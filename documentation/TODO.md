@@ -480,6 +480,47 @@
   - Deciding how to handle turn advancement (auto-advance vs manual only)
 - **Notes**: This would be a significant UX change requiring careful design and testing
 
+### Export Compendium as HTML
+- **Issue**: Add functionality to export a compendium as an HTML document
+- **Status**: FUTURE ENHANCEMENT - Design phase
+- **Priority**: LOW - Quality of life improvement for content sharing
+- **Description**: Allow users to export compendium contents (items, actors, journal entries, etc.) as a formatted HTML document for sharing, printing, or archiving
+- **Requirements**:
+  1. **Export Options**:
+     - Export entire compendium or selected entries
+     - Choose which compendiums to export
+     - Filter by entry type (Actor, Item, JournalEntry, etc.)
+     - Include/exclude specific fields (images, descriptions, stats, etc.)
+  2. **HTML Formatting**:
+     - Clean, readable HTML structure
+     - Proper formatting for different entry types
+     - Include images with proper paths or embedded data
+     - Styled tables for stats/data
+     - Organized sections and headings
+  3. **Export Functionality**:
+     - Generate HTML from compendium data
+     - Save HTML file for download
+     - Option to copy HTML to clipboard
+     - Include metadata (compendium name, export date, etc.)
+  4. **Settings**:
+     - Toggle to enable/disable export feature
+     - Configure default export options
+     - Choose export template/style
+- **Location**: New file `scripts/compendium-exporter.js` or add to `scripts/journal-tools.js`
+- **Technical Considerations**:
+  - Access compendium data via Foundry API
+  - Convert Foundry document structure to HTML
+  - Handle embedded media (images, audio)
+  - Generate valid, readable HTML
+  - Consider file size for large compendiums
+- **Benefits**: Easy content sharing, backup/archival, printing capabilities, cross-platform compatibility
+- **Challenges**:
+  - Converting Foundry-specific formats to HTML
+  - Handling embedded media paths
+  - Performance with large compendiums
+  - Maintaining formatting and styling
+- **Notes**: Should generate clean, standards-compliant HTML that can be viewed in any browser
+
 ### CODEX-AI Integration
 - [ ] **FUTURE**: Integrate CODEX system with AI API for cost-efficient context management
 - [ ] **FUTURE**: Design CODEX API methods for querying journal entries and building AI context

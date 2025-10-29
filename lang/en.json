@@ -38,11 +38,11 @@
 			"headingH2Themes-Label": "Themes",
 			"headingH2Themes-Hint": "Enable or disable the themes you'd like to use in the Coffee Pub suite of modules.",
 		
-			"headingH3simpleThemeSelections-Label": "Theme Selections",
-			"headingH3simpleThemeSelections-Hint": "Description",
+			"headingH3ThemeSelections-Label": "Theme Selections",
+			"headingH3ThemeSelections-Hint": "Description",
 		
-			"headingH3simpleThemeDefault-Label": "Theme Defaults",
-			"headingH3simpleThemeDefault-Hint": "Description",
+			"headingH3ThemeDefault-Label": "Theme Defaults",
+			"headingH3ThemeDefault-Hint": "Description",
 
 			"headingH2FoundryEnhancements-Label": "Foundry Enhancements",
 			"headingH2FoundryEnhancements-Hint": "Enhancements and improvements to FoundryVTT's interface and functionality",
@@ -60,8 +60,8 @@
 			"canvasToolsHideBottomUI-Hint": "When enabled, the bottom of the interface, including the macrobar, will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
 
 
-			"headingH3simplemenubar-Label": "Blacksmith Menubar",
-			"headingH3simplemenubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
+			"headingH3menubar-Label": "Blacksmith Menubar",
+			"headingH3menubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
 		
 			"enableMenubar-Label": "Enable Menubar",
 			"enableMenubar-Hint": "Show the slim Blacksmith Menubar at the top of the foundry interface. Required for many of the tools and features of blacksmit including combat enhancements.",
@@ -137,10 +137,10 @@
 	"headingH1ManageContent-Hint": "Tools for managing tokens, images, and content",
 
 			"headingH2CompendiumMapping-Label": "Compendium Mapping",
-			"headingH2CompendiumMapping-Hint": "When we sutomate searching for thigns, we look in the compendiums first. This is where we will look for a match. They are in priority order and we stop looking when we find a match.",
+			"headingH2CompendiumMapping-Hint": "When we automate searching for things, we look in the compendiums first. This is where we will look for a match. They are in priority order and we stop looking when we find a match.",
 
 				"headingH3ActorCompendiums-Label": "Actor Compendiums",
-				"headingH3ActorCompendiums-Hint": "These settings control how you to link actors in the game.",
+				"headingH3ActorCompendiums-Hint": "",
 
 					"searchWorldActorsFirst-Label": "Search World Actors First",
 					"searchWorldActorsFirst-Hint": "When enabled, will search for actors in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
@@ -149,7 +149,7 @@
 					"searchWorldActorsLast-Hint": "When enabled, will search for actors in the world after looking in compendiums if no results found. When disabled, will not search world actors as fallback.",
 
 				"headingH3ItemCompendiums-Label": "Item Compendiums",
-				"headingH3ItemCompendiums-Hint": "These settings control how you to link items in the game.",
+				"headingH3ItemCompendiums-Hint": "",
 
 					"searchWorldItemsFirst-Label": "Search World Items First",
 					"searchWorldItemsFirst-Hint": "When enabled, will search for items in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
@@ -157,23 +157,23 @@
 					"searchWorldItemsLast-Label": "Search World Items Last",
 					"searchWorldItemsLast-Hint": "When enabled, will search for items in the world after looking in compendiums if no results found. When disabled, will not search world items as fallback.",
 
-				"headingH3FeatureCompendiums-Label": "Item Compendiums",
-				"headingH3FeatureCompendiums-Hint": "These settings control how you to link items in the game.",
-
-					"searchWorldFeaturesFirst-Label": "Search World Features First",
-					"searchWorldFeaturesFirst-Hint": "When enabled, will search for features in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
-
-					"searchWorldFeaturesLast-Label": "Search World Features Last",
-					"searchWorldFeaturesLast-Hint": "When enabled, will search for features in the world after looking in compendiums if no results found. When disabled, will not search world features as fallback.",
-
 				"headingH3SpellCompendiums-Label": "Spell Compendiums",
-				"headingH3SpellCompendiums-Hint": "These settings control how you to link spells in the game.",
+				"headingH3SpellCompendiums-Hint": "",
 
 					"searchWorldSpellsFirst-Label": "Search World Spells First",
 					"searchWorldSpellsFirst-Hint": "When enabled, will search for spells in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
 
 					"searchWorldSpellsLast-Label": "Search World Spells Last",
 					"searchWorldSpellsLast-Hint": "When enabled, will search for spells in the world after looking in compendiums if no results found. When disabled, will not search world spells as fallback.",
+
+				"headingH3FeatureCompendiums-Label": "Feature Compendiums",
+				"headingH3FeatureCompendiums-Hint": "",
+
+					"searchWorldFeaturesFirst-Label": "Search World Features First",
+					"searchWorldFeaturesFirst-Hint": "When enabled, will search for features in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
+
+					"searchWorldFeaturesLast-Label": "Search World Features Last",
+					"searchWorldFeaturesLast-Hint": "When enabled, will search for features in the world after looking in compendiums if no results found. When disabled, will not search world features as fallback.",
 
 
 
@@ -338,7 +338,7 @@
 				"tokenImageReplacementSkipLinked-Label": "Skip Linked Tokens",
 				"tokenImageReplacementSkipLinked-Hint": "Do not replace images for tokens linked to actors (usually player characters).",
 
-				
+
 
 
 
@@ -488,14 +488,14 @@
 		"headingH2ConsoleSettings-Label": "Console Log",
 		"headingH2ConsoleSettings-Hint": "Console output options",
 
-			"headingH3simpleConsole-Label": "Console",
-			"headingH3simpleConsole-Hint": "Description not needed",
+			"headingH3Console-Label": "Console",
+			"headingH3Console-Hint": "Description not needed",
 		
 				"globalFancyConsole-Label": "Fancy Console",
 				"globalFancyConsole-Hint": "You love sunshine and lollipops. Display console messages in rich colors... not that you should ever have to see them. Default: On (checked).",
 	
-			"headingH3simpleDebugSettings-Label": "Debug",
-			"headingH3simpleDebugSettings-Hint": "Description not needed",
+			"headingH3DebugSettings-Label": "Debug",
+			"headingH3DebugSettings-Hint": "Description not needed",
 			
 				"globalDebugMode-Label": "Debug Mode",
 				"globalDebugMode-Hint": "Log errors to the console and notification system as appropriate. Make the console bleed. Default: Off (unchecked).",
@@ -621,8 +621,8 @@
 
 
 
-	"headingH3simpleheadingH2OpenAICore-Label": "Open AI Information",
-	"headingH3simpleheadingH2OpenAICore-Hint": "Description",
+	"headingH3headingH2OpenAICore-Label": "Open AI Information",
+	"headingH3headingH2OpenAICore-Hint": "Description",
 
 	"openAIMacro-Label": "Macro",
 	"openAIMacro-Hint": "The name of the macro that should trigger the AI window if you want one in addition to the Ask the Regent button in the toolbar.",
@@ -634,8 +634,8 @@
 	"openAIModel-Label": "Model",
 	"openAIModel-Hint": "Version of the OpenAI model to use. GPT-4 Turbo is recommended for D&D content but costs more. Free accounts can use GPT-3.5 Turbo.",
 
-	"headingH3simpleheadingH2OpenAIContext-Label": "Context",
-	"headingH3simpleheadingH2OpenAIContext-Hint": "Description",
+	"headingH3headingH2OpenAIContext-Label": "Context",
+	"headingH3headingH2OpenAIContext-Hint": "Description",
 
 	"openAIContextLength-Label": "Context Length",
 	"openAIContextLength-Hint": "Number of messages, including replies, OpenAI has access to. Increases API usage cost. Context is not shared among users and resets on page reload.",

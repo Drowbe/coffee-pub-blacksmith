@@ -629,9 +629,9 @@ export const registerSettings = async () => {
 		
 
 		// --------------------------------------
-		// -- H3simple: THEME SELECTIONS
+		// -- H3: THEME SELECTIONS
 		// --------------------------------------
-		registerHeader('ThemeSelections', 'headingH3simpleThemeSelections-Label', 'headingH3simpleThemeSelections-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+		registerHeader('ThemeSelections', 'headingH3ThemeSelections-Label', 'headingH3ThemeSelections-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
 		// Build out the themes based on the js file.
 		registerThemes();
@@ -639,9 +639,9 @@ export const registerSettings = async () => {
 		getThemeChoices();
 
 		// --------------------------------------
-		// -- H3simple: THEME DEFAULT
+		// -- H3: THEME DEFAULT
 		// --------------------------------------
-		registerHeader('ThemeDefault', 'headingH3simpleThemeDefault-Label', 'headingH3simpleThemeDefault-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+		registerHeader('ThemeDefault', 'headingH3ThemeDefault-Label', 'headingH3ThemeDefault-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
 		game.settings.register(MODULE.ID, 'defaultCardTheme', {
 			name: MODULE.ID + '.defaultCardTheme-Label',
@@ -661,9 +661,9 @@ export const registerSettings = async () => {
 		registerHeader('FoundryEnhancements', 'headingH2FoundryEnhancements-Label', 'headingH2FoundryEnhancements-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
 		// --------------------------------------
-		// -- H3simple: QUALITY OF LIFE
+		// -- H3: QUALITY OF LIFE
 		// --------------------------------------
-		registerHeader('QualityOfLife', 'headingH3QualityOfLife-Label', 'headingH3QualityOfLife-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+		registerHeader('QualityOfLife', 'headingH3QualityOfLife-Label', 'headingH3QualityOfLife-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
 		// -- Object Link Style --
 		game.settings.register(MODULE.ID, 'objectLinkStyle', {
@@ -687,9 +687,9 @@ export const registerSettings = async () => {
 		});
 
 		// --------------------------------------
-		// -- H3simple: CANVAS TOOLS
+		// -- H3: CANVAS TOOLS
 		// --------------------------------------
-		registerHeader('CanvasTools', 'headingH3CanvasTools-Label', 'headingH3CanvasTools-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+		registerHeader('CanvasTools', 'headingH3CanvasTools-Label', 'headingH3CanvasTools-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
 		// -- Left UI --
 		game.settings.register(MODULE.ID, 'canvasToolsHideLeftUI', {
@@ -716,9 +716,9 @@ export const registerSettings = async () => {
 		});
 
 		// --------------------------------------
-		// -- H3simple: MENUBAR
+		// -- H3: MENUBAR
 		// --------------------------------------
-		registerHeader('Menubar', 'headingH3simplemenubar-Label', 'headingH3simplemenubar-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+		registerHeader('Menubar', 'headingH3menubar-Label', 'headingH3menubar-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
 
 		game.settings.register(MODULE.ID, 'enableMenubar', {
 			name: MODULE.ID + '.enableMenubar-Label',
@@ -742,9 +742,9 @@ export const registerSettings = async () => {
 		});
 
 		// --------------------------------------
-		// -- H3simple: TOOLBAR
+		// -- H3: TOOLBAR
 		// --------------------------------------
-		registerHeader('Toolbar', 'headingH3Toolbar-Label', 'headingH3Toolbar-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+		registerHeader('Toolbar', 'headingH3Toolbar-Label', 'headingH3Toolbar-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
 		// -- Show Toolbar Dividers --
 		game.settings.register(MODULE.ID, 'toolbarShowDividers', {
@@ -769,9 +769,9 @@ export const registerSettings = async () => {
 		});
 
 		// --------------------------------------
-		// -- H3simple: SCENES
+		// -- H3: SCENES
 		// --------------------------------------
-		registerHeader('Scenes', 'headingH3Scenes-Label', 'headingH3Scenes-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+		registerHeader('Scenes', 'headingH3Scenes-Label', 'headingH3Scenes-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
 		// -- SCENE INTERACTIONS --
 		game.settings.register(MODULE.ID, 'enableSceneInteractions', {
@@ -866,9 +866,9 @@ export const registerSettings = async () => {
 		});
 
 		// --------------------------------------
-		// -- H3simple: CHAT ADJUSTMENTS
+		// -- H3: CHAT ADJUSTMENTS
 		// --------------------------------------
-		registerHeader('CardAdjustments', 'headingH3CardAdjustments-Label', 'headingH3CardAdjustments-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+		registerHeader('CardAdjustments', 'headingH3CardAdjustments-Label', 'headingH3CardAdjustments-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
 		game.settings.register(MODULE.ID, 'hideRollTableIcon', {
 			name: MODULE.ID + '.hideRollTableIcon-Label',
@@ -980,9 +980,9 @@ export const registerSettings = async () => {
 
 
 		// --------------------------------------
-		// -- H3simple: WINDOWS
+		// -- H3: WINDOWS
 		// --------------------------------------
-		registerHeader('Windows', 'headingH3Windows-Label', 'headingH3Windows-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+		registerHeader('Windows', 'headingH3Windows-Label', 'headingH3Windows-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
 		// -- Titlebar Text Size --
 		game.settings.register(MODULE.ID, 'titlebarTextSize', {
@@ -1037,9 +1037,9 @@ export const registerSettings = async () => {
 
 
 		// --------------------------------------
-		// -- H3simple: JOURNAL TOOLS
+		// -- H3: JOURNAL TOOLS
 		// --------------------------------------
-		registerHeader('JournalTools', 'headingH3JournalTools-Label', 'headingH3JournalTools-Hint', 'H3simple', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+		registerHeader('JournalTools', 'headingH3JournalTools-Label', 'headingH3JournalTools-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
 		// -- Enable Journal Double-Click --
 		game.settings.register(MODULE.ID, 'enableJournalDoubleClick', {
@@ -1126,9 +1126,9 @@ export const registerSettings = async () => {
 		registerHeader('CompendiumMapping', 'headingH2CompendiumMapping-Label', 'headingH2CompendiumMapping-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT);
 
 		// --------------------------------------
-		// -- H3simple: Actor Compendiums
+		// -- H3: Actor Compendiums
 		// --------------------------------------
-		registerHeader('ActorCompendiums', 'headingH3ActorCompendiums-Label', 'headingH3ActorCompendiums-Hint', 'H3simple', WORKFLOW_GROUPS.MANAGE_CONTENT);
+		registerHeader('ActorCompendiums', 'headingH3ActorCompendiums-Label', 'headingH3ActorCompendiums-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT);
 
 
 		// -- Search World Actors First --
@@ -1165,9 +1165,9 @@ export const registerSettings = async () => {
 	}
 
 	// --------------------------------------
-	// -- H3simple: Item Compendiums
+	// -- H3: Item Compendiums
 	// --------------------------------------
-	registerHeader('ItemCompendiums', 'headingH3ItemCompendiums-Label', 'headingH3ItemCompendiums-Hint', 'H3simple', WORKFLOW_GROUPS.MANAGE_CONTENT);	
+	registerHeader('ItemCompendiums', 'headingH3ItemCompendiums-Label', 'headingH3ItemCompendiums-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT);	
 
 
 	// -- Search World Items First --
@@ -1206,54 +1206,10 @@ export const registerSettings = async () => {
 		});
 	}
 
-	// ---------- FEATURE COMPENDIUMS ----------
-	game.settings.register(MODULE.ID, "headingH3FeatureCompendiums", {
-		name: 'Feature Compendiums',
-		hint: 'These settings control how you to link features in the game.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-	// ------------------------------------- 
-
 	// --------------------------------------
-	// -- H3simple: Feature Compendiums
+	// -- H3: Spell Compendiums
 	// --------------------------------------
-	registerHeader('FeatureCompendiums', 'headingH3FeatureCompendiums-Label', 'headingH3FeatureCompendiums-Hint', 'H3simple', WORKFLOW_GROUPS.MANAGE_CONTENT);	
-
-	// -- Search World Features Last --
-	game.settings.register(MODULE.ID, 'searchWorldFeaturesLast', {
-		name: MODULE.ID + '.searchWorldFeaturesLast-Label',
-		hint: MODULE.ID + '.searchWorldFeaturesLast-Hint',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// -- Features Lookup Compendiums (up to 8) --
-	for (let i = 1; i <= numCompendiums; i++) {
-		game.settings.register(MODULE.ID, `featuresCompendium${i}` , {
-			name: `Feature: Priority ${i}`,
-			hint: null,
-			scope: "world",
-			config: true,
-			requiresReload: false,
-			default: "none",
-			choices: BLACKSMITH.arrFeatureChoices || "failed to load choices",
-			group: WORKFLOW_GROUPS.MANAGE_CONTENT
-		});
-	}
-
-
-
-	// --------------------------------------
-	// -- H3simple: Spell Compendiums
-	// --------------------------------------
-	registerHeader('SpellCompendiums', 'headingH3SpellCompendiums-Label', 'headingH3SpellCompendiums-Hint', 'H3simple', WORKFLOW_GROUPS.MANAGE_CONTENT);	
+	registerHeader('SpellCompendiums', 'headingH3SpellCompendiums-Label', 'headingH3SpellCompendiums-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT);	
 
 	// -- Search World Spells First --
 	game.settings.register(MODULE.ID, 'searchWorldSpellsFirst', {
@@ -1288,10 +1244,50 @@ export const registerSettings = async () => {
 			default: "none",
 			choices: BLACKSMITH.arrSpellChoices || "failed to load choices",
 			group: WORKFLOW_GROUPS.MANAGE_CONTENT
+		});
+	}
+
+
+	// --------------------------------------
+	// -- H3: Feature Compendiums
+	// --------------------------------------
+	registerHeader('FeatureCompendiums', 'headingH3FeatureCompendiums-Label', 'headingH3FeatureCompendiums-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT);	
+
+	// -- Search World Features First --
+	game.settings.register(MODULE.ID, 'searchWorldFeaturesFirst', {
+		name: MODULE.ID + '.searchWorldFeaturesFirst-Label',
+		hint: MODULE.ID + '.searchWorldFeaturesFirst-Hint',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
-}
 
+	// -- Search World Features Last --
+	game.settings.register(MODULE.ID, 'searchWorldFeaturesLast', {
+		name: MODULE.ID + '.searchWorldFeaturesLast-Label',
+		hint: MODULE.ID + '.searchWorldFeaturesLast-Hint',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
 
+	// -- Features Lookup Compendiums (up to 8) --
+	for (let i = 1; i <= numCompendiums; i++) {
+		game.settings.register(MODULE.ID, `featuresCompendium${i}` , {
+			name: `Feature: Priority ${i}`,
+			hint: null,
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			default: "none",
+			choices: BLACKSMITH.arrFeatureChoices || "failed to load choices",
+			group: WORKFLOW_GROUPS.MANAGE_CONTENT
+		});
+	}
 
 
 
@@ -1340,7 +1336,7 @@ export const registerSettings = async () => {
 			group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 		});
 
-		registerHeader('diceRollToolIntegrations', 'headingH3diceRollToolIntegrations-Label', 'headingH3diceRollToolIntegrations-Hint', 'H3simple', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
+		registerHeader('diceRollToolIntegrations', 'headingH3diceRollToolIntegrations-Label', 'headingH3diceRollToolIntegrations-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
 
 		// -- Enable Dice So Nice Integration --
 		game.settings.register(MODULE.ID, 'diceRollToolEnableDiceSoNice', {
@@ -1543,9 +1539,9 @@ export const registerSettings = async () => {
 		registerHeader('Tokens', 'headingH2Tokens-Label', 'headingH2Tokens-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
 
 		// --------------------------------------
-		// -- H3simple: Rotation
+		// -- H3: Rotation
 		// --------------------------------------
-		registerHeader('TokenRotationOptions', 'headingH3TokenRotationOptions-Label', 'headingH3TokenRotationOptions-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+		registerHeader('TokenRotationOptions', 'headingH3TokenRotationOptions-Label', 'headingH3TokenRotationOptions-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
 		game.settings.register(MODULE.ID, 'enableTokenRotation', {
 			name: MODULE.ID + '.enableTokenRotation-Label',
@@ -1593,9 +1589,9 @@ export const registerSettings = async () => {
 
 
 		// --------------------------------------
-		// -- H3simple: Token Movement
+		// -- H3: Token Movement
 		// --------------------------------------
-		registerHeader('TokenMovementOptions', 'headingH3TokenMovementOptions-Label', 'headingH3TokenMovementOptions-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+		registerHeader('TokenMovementOptions', 'headingH3TokenMovementOptions-Label', 'headingH3TokenMovementOptions-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
 		// -- Follow Movement Type - HIDDEN SETTING --
 		game.settings.register(MODULE.ID, 'movementType', {
@@ -1665,9 +1661,9 @@ export const registerSettings = async () => {
 		});
 
 		// --------------------------------------
-		// -- H3simple: Token Sound
+		// -- H3: Token Sound
 		// --------------------------------------
-		registerHeader('TokenMovementSounds', 'headingH3TokenMovementSounds-Label', 'headingH3TokenMovementSounds-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+		registerHeader('TokenMovementSounds', 'headingH3TokenMovementSounds-Label', 'headingH3TokenMovementSounds-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
 		// Enable Movement Sounds
 		game.settings.register(MODULE.ID, 'movementSoundsEnabled', {
@@ -1747,9 +1743,9 @@ export const registerSettings = async () => {
 		registerHeader('DroppedTokens', 'headingH2DroppedTokens-Label', 'headingH2DroppedTokens-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
 
 		// --------------------------------------
-		// -- H3simple: Token Movement Overrides
+		// -- H3: Token Movement Overrides
 		// --------------------------------------
-		registerHeader('TokenOverrides', 'headingH3TokenOverrides-Label', 'headingH3TokenOverrides-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+		registerHeader('TokenOverrides', 'headingH3TokenOverrides-Label', 'headingH3TokenOverrides-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
 		// -- Unlock Token Rotation --
 		game.settings.register(MODULE.ID, 'unlockTokenRotation', {
@@ -1811,9 +1807,9 @@ export const registerSettings = async () => {
 		});
 
 		// --------------------------------------
-		// -- H3simple: Nameplate Style
+		// -- H3: Nameplate Style
 		// --------------------------------------
-		registerHeader('TokenRenamingOptions', 'headingH3TokenRenamingOptions-Label', 'headingH3TokenRenamingOptions-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+		registerHeader('TokenRenamingOptions', 'headingH3TokenRenamingOptions-Label', 'headingH3TokenRenamingOptions-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 		
 		// -- Name Format --
 		game.settings.register(MODULE.ID, 'tokenNameFormat', {
@@ -1868,9 +1864,9 @@ export const registerSettings = async () => {
 
 
 		// --------------------------------------
-		// -- H3simple: Nameplate Style
+		// -- H3: Nameplate Style
 		// --------------------------------------
-		registerHeader('TokenNameplateStyle', 'headingH3TokenNameplateStyle-Label', 'headingH3TokenNameplateStyle-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+		registerHeader('TokenNameplateStyle', 'headingH3TokenNameplateStyle-Label', 'headingH3TokenNameplateStyle-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
 		// -- Font Family --
 		game.settings.register(MODULE.ID,'nameplateFontFamily', {
@@ -1950,9 +1946,9 @@ export const registerSettings = async () => {
 	
 
 		// --------------------------------------
-		// -- H3simple: Image Replacement
+		// -- H3: Image Replacement
 		// --------------------------------------
-		registerHeader('TokenImageReplacement', 'headingH3TokenImageReplacement-Label', 'headingH3TokenImageReplacement-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+		registerHeader('TokenImageReplacement', 'headingH3TokenImageReplacement-Label', 'headingH3TokenImageReplacement-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
 		// -- Enable Overall Image Replacement Features --
 		game.settings.register(MODULE.ID, 'tokenImageReplacementEnabled', {
@@ -2084,9 +2080,9 @@ export const registerSettings = async () => {
 
 
 		// --------------------------------------
-		// -- H3simple: Image Replacement Cache
+		// -- H3: Image Replacement Cache
 		// --------------------------------------
-		registerHeader('TokenImageReplacementCache', 'headingH3TokenImageReplacementCache-Label', 'headingH3TokenImageReplacementCache-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+		registerHeader('TokenImageReplacementCache', 'headingH3TokenImageReplacementCache-Label', 'headingH3TokenImageReplacementCache-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
 		// Cache Status - HIDDEN SETTING
 		game.settings.register(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus', {
@@ -2371,9 +2367,9 @@ export const registerSettings = async () => {
 		registerHeader('AutomatedEncounters', 'headingH2AutomatedEncounters-Label', 'headingH2AutomatedEncounters-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
 
 		// --------------------------------------
-		// -- H3simple: Journal Toolbar
+		// -- H3: Journal Toolbar
 		// --------------------------------------
-		registerHeader('JournalEncounterToolbar', 'headingH3JournalEncounterToolbar-Label', 'headingH3JournalEncounterToolbar-Hint', 'H3simple', WORKFLOW_GROUPS.AUTOMATION);
+		registerHeader('JournalEncounterToolbar', 'headingH3JournalEncounterToolbar-Label', 'headingH3JournalEncounterToolbar-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
 		// -- Enable Journal Encounter Toolbar --
 		game.settings.register(MODULE.ID, 'enableJournalEncounterToolbar', {
@@ -2484,9 +2480,9 @@ export const registerSettings = async () => {
 		registerHeader('ArtificialIntelligence', 'headingH1ArtificialIntelligence-Label', 'headingH1ArtificialIntelligence-Hint', 'H1', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE);
 
 		// --------------------------------------
-		// -- H3simple: Open AI Core
+		// -- H3: Open AI Core
 		// --------------------------------------
-		registerHeader('OpenAICore', 'headingH3simpleheadingH2OpenAICore-Label', 'headingH3simpleheadingH2OpenAICore-Hint', 'H3simple', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE);
+		registerHeader('OpenAICore', 'headingH3headingH2OpenAICore-Label', 'headingH3headingH2OpenAICore-Hint', 'H3', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE);
 
 		// -- OPENAI MACRO --
 		game.settings.register(MODULE.ID,'openAIMacro', {
@@ -2544,9 +2540,9 @@ export const registerSettings = async () => {
 
 
 		// --------------------------------------
-		// -- H3simple: Open AI Context
+		// -- H3: Open AI Context
 		// --------------------------------------
-		registerHeader('OpenAIContext', 'headingH3simpleheadingH2OpenAIContext-Label', 'headingH3simpleheadingH2OpenAIContext-Hint', 'H3simple', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE);
+		registerHeader('OpenAIContext', 'headingH3headingH2OpenAIContext-Label', 'headingH3headingH2OpenAIContext-Hint', 'H3', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE);
 
 		// -- GAME SYSTEMS -- IS THIS USED??
 		game.settings.register(MODULE.ID, 'openAIGameSystems', {
@@ -2670,7 +2666,7 @@ export const registerSettings = async () => {
 		registerHeader('PerformanceTools', 'headingH2PerformanceTools-Label', 'headingH2PerformanceTools-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
 
 		// -- H3: PERFORMANCE MENUBAR OPTIONS ---------------
-		registerHeader('PerformanceMenubarOptions', 'headingH3PerformanceMenubarOptions-Label', 'headingH3PerformanceMenubarOptions-Hint', 'H3simple', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+		registerHeader('PerformanceMenubarOptions', 'headingH3PerformanceMenubarOptions-Label', 'headingH3PerformanceMenubarOptions-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
 
 
 		// Show Settings Tool
@@ -2723,7 +2719,7 @@ export const registerSettings = async () => {
 		});
 
 		// -- H3: LATENCY SETTINGS ---------------
-		registerHeader('Latency', 'headingH3Latency-Label', 'headingH3Latency-Hint', 'H3simple', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+		registerHeader('Latency', 'headingH3Latency-Label', 'headingH3Latency-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
 
 		game.settings.register(MODULE.ID, 'enableLatency', {
 			name: MODULE.ID + '.enableLatency-Label',
@@ -2757,7 +2753,7 @@ export const registerSettings = async () => {
 
 
 		// -- H3: CONSOLE SETTINGS ---------------
-		registerHeader('Console', 'headingH3simpleConsole-Label', 'headingH3simpleConsole-Hint', 'H3simple', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+		registerHeader('Console', 'headingH3Console-Label', 'headingH3Console-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
 		// -------------------------------------
 
 		// -- LOG FANCY CONSOLE --
@@ -2773,7 +2769,7 @@ export const registerSettings = async () => {
 		});
 
 		// -- H3: DEBUG SETTINGS ---------------
-		registerHeader('DebugSettings', 'headingH3simpleDebugSettings-Label', 'headingH3simpleDebugSettings-Hint', 'H3simple', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+		registerHeader('DebugSettings', 'headingH3DebugSettings-Label', 'headingH3DebugSettings-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
 
 		// -- LOG DEBUG SETTINGS --
 		game.settings.register(MODULE.ID, 'globalDebugMode', {
@@ -4144,7 +4140,7 @@ export const registerSettings = async () => {
 
 
 	// ---------- GLOBAL TIMER SETTINGS ----------
-	game.settings.register(MODULE.ID, "headingH3simpleGlobalTimer", {
+	game.settings.register(MODULE.ID, "headingH3GlobalTimer", {
 		name: 'SHARED TIMER SETTINGS',
 		hint: 'These settings will allow you to set the default timer settings for both the combat and planning timers.',
 		scope: "world",
@@ -4224,7 +4220,7 @@ export const registerSettings = async () => {
 	});
 
 	// ---------- GLOBAL TIMER SETTINGS ----------
-	game.settings.register(MODULE.ID, "headingH3simpleGlobalTimerMessaging", {
+	game.settings.register(MODULE.ID, "headingH3GlobalTimerMessaging", {
 		name: 'TIMER NOTIFICATIONS',
 		hint: 'These settings will allow you to control the notifications that are sent to the players when the timers are running out.',
 		scope: "world",
