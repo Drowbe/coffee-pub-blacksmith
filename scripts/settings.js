@@ -474,7 +474,7 @@ export const registerSettings = async () => {
     // Settings registration function - called during the 'ready' phase when Foundry is ready
 
     // Build the Dropdown choices
-    getCompendiumChoices();
+    await getCompendiumChoices();
     getTableChoices();
     getMacroChoices();
     getBackgroundImageChoices();

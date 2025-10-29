@@ -28,7 +28,8 @@ class CombatTracker {
     static initialize() {
         // Handle auto-open on client load if combat is already active (outside ready hook)
         Hooks.once('ready', () => {
-            if (game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
+            // Check if the setting exists before accessing it
+            if (game.settings.settings.has(`${MODULE.ID}.combatTrackerOpen`) && game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
 
                 const combat = game.combat;
 
@@ -82,7 +83,7 @@ class CombatTracker {
 						this._hasSetFirstCombatant = false;
 						
 						// Auto-open combat tracker for all users when setting is enabled
-						if (game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
+						if (game.settings.settings.has(`${MODULE.ID}.combatTrackerOpen`) && game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
 							// Small delay to ensure combat is fully initialized
 							setTimeout(() => {
 								CombatTracker.openCombatTracker();
