@@ -62,6 +62,7 @@ Coffee Pub Blacksmith offers a clean, reliable integration path for external mod
 - **Asset Lookup Tool**: Tag-based asset searching and filtering
 - **Data Structure**: New `id`/`value`/`path` separation for enhanced asset management
 - **Menubar API**: Register tools and send notifications to the global menubar
+- **Compendium Configuration**: Access configured compendium arrays for all document types (v12.1.19+)
 
 
 ## **Integration Philosophy**
@@ -700,6 +701,227 @@ This will test:
 - ✅ Choice generation
 - ✅ Random selection
 - ✅ Constant generation
+
+---
+
+# **📚 Compendium Configuration API (v12.1.19+)**
+
+## **Overview**
+
+Blacksmith provides a centralized compendium management system that allows modules to access configured compendiums for all document types. This eliminates the need for each module to implement its own compendium selection logic.
+
+### **Key Benefits:**
+- **🎯 Centralized Configuration**: Users configure compendiums once in Blacksmith settings
+- **🔄 Dynamic Support**: Automatically supports all compendium types (Actor, Item, JournalEntry, RollTable, Scene, Macro, Playlist, Adventure, Card, Stack, etc.)
+- **📊 Priority Ordering**: Arrays contain compendiums in user-configured priority order
+- **⚡ Easy Integration**: Simple array iteration for search functions
+- **🔧 Configurable Count**: Each type can have 1-20 priority slots (default: 1)
+
+## **Available Arrays**
+
+Blacksmith exposes arrays for each document type containing only the compendiums that have been configured by the user. Each type has a `arrSelected[Type]Compendiums` array.
+
+### **Common Types:**
+```javascript
+// Actor compendiums (monsters, NPCs, etc.)
+const monsterCompendiums = BLACKSMITH.arrSelectedMonsterCompendiums || [];
+
+// Item compendiums (weapons, armor, etc.)
+const itemCompendiums = BLACKSMITH.arrSelectedItemCompendiums || [];
+
+// Spell compendiums
+const spellCompendiums = BLACKSMITH.arrSelectedSpellCompendiums || [];
+
+// Feature compendiums
+const featureCompendiums = BLACKSMITH.arrSelectedFeatureCompendiums || [];
+```
+
+### **All Document Types:**
+Arrays are automatically created for any compendium type found in the system:
+- `arrSelectedActorCompendiums` / `arrSelectedMonsterCompendiums` (synonyms)
+- `arrSelectedItemCompendiums`
+- `arrSelectedJournalEntryCompendiums`
+- `arrSelectedRollTableCompendiums`
+- `arrSelectedSceneCompendiums`
+- `arrSelectedMacroCompendiums`
+- `arrSelectedPlaylistCompendiums`
+- `arrSelectedAdventureCompendiums`
+- `arrSelectedCardCompendiums`
+- `arrSelectedStackCompendiums`
+- Any other compendium types found in the system
+
+### **Array Structure:**
+- **Position = Priority**: Array index 0 is Priority 1, index 1 is Priority 2, etc.
+- **Contains Only Configured**: Arrays only include compendiums selected by the user
+- **Compendium IDs**: Each element is a compendium ID string (e.g., "coffee-pub-blacksmith.blacksmith-injuries")
+- **Empty Arrays**: Returns `[]` if no compendiums configured for that type
+
+## **Usage Examples**
+
+### **Basic Iteration**
+```javascript
+// Simple iteration - already in priority order!
+const selectedMonsters = BLACKSMITH.arrSelectedMonsterCompendiums || [];
+
+for (const compendiumId of selectedMonsters) {
+    // Search in this compendium
+    // Position 0 = Priority 1, Position 1 = Priority 2, etc.
+    const compendium = game.packs.get(compendiumId);
+    if (compendium) {
+        // Search for entities in this compendium
+    }
+}
+```
+
+### **Get First Priority Compendium**
+```javascript
+// Get the highest priority compendium
+const topPriorityCompendium = BLACKSMITH.arrSelectedMonsterCompendiums?.[0];
+if (topPriorityCompendium) {
+    const compendium = game.packs.get(topPriorityCompendium);
+    // Use the top priority compendium
+}
+```
+
+### **Search All Configured Compendiums**
+```javascript
+// Search all configured compendiums in priority order
+const searchResults = [];
+const actorCompendiums = BLACKSMITH.arrSelectedMonsterCompendiums || [];
+
+for (const compendiumId of actorCompendiums) {
+    const compendium = game.packs.get(compendiumId);
+    if (!compendium) continue;
+    
+    const matches = await compendium.search({ name: searchQuery });
+    searchResults.push(...matches);
+}
+
+return searchResults;
+```
+
+### **Count Configured Compendiums**
+```javascript
+// Check how many compendiums are configured for a type
+const monsterCompendiums = BLACKSMITH.arrSelectedMonsterCompendiums || [];
+const count = monsterCompendiums.length;
+
+console.log(`${count} monster compendiums configured`);
+```
+
+### **Type-Safe Access Pattern**
+```javascript
+function getSelectedCompendiums(type) {
+    const arrayName = `arrSelected${type}Compendiums`;
+    return BLACKSMITH[arrayName] || [];
+}
+
+// Usage
+const actors = getSelectedCompendiums('Monster');
+const items = getSelectedCompendiums('Item');
+const journals = getSelectedCompendiums('JournalEntry');
+```
+
+## **Accessing BLACKSMITH Object**
+
+The compendium arrays are exposed through the `BLACKSMITH` object. Access methods:
+
+### **Method 1: Direct Access (Recommended)**
+```javascript
+// In FoundryVTT console or your module code
+const monsterCompendiums = BLACKSMITH.arrSelectedMonsterCompendiums || [];
+```
+
+### **Method 2: Via Module API**
+```javascript
+// In external modules
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+const monsterCompendiums = blacksmith?.BLACKSMITH?.arrSelectedMonsterCompendiums || [];
+```
+
+### **Method 3: Via Window Object**
+```javascript
+// If BLACKSMITH is exposed to window
+const monsterCompendiums = window.BLACKSMITH?.arrSelectedMonsterCompendiums || [];
+```
+
+## **Configuration in Settings**
+
+Users configure compendiums in Blacksmith's module settings under the "Manage Content" group:
+
+1. **Number of Slots**: Each type can have 1-20 priority slots (default: 1)
+2. **Priority Selection**: For each slot, select which compendium has that priority
+3. **Search Order**: Optional settings for "Search World First" and "Search World Last"
+4. **Automatic Updates**: Arrays update automatically when settings change
+
+## **Integration Best Practices**
+
+### **Always Provide Fallback**
+```javascript
+// Always provide empty array fallback
+const compendiums = BLACKSMITH.arrSelectedMonsterCompendiums || [];
+```
+
+### **Check Array Length**
+```javascript
+const compendiums = BLACKSMITH.arrSelectedMonsterCompendiums || [];
+if (compendiums.length === 0) {
+    console.warn('No monster compendiums configured');
+    return;
+}
+```
+
+### **Handle Missing Compendiums**
+```javascript
+for (const compendiumId of compendiums) {
+    const compendium = game.packs.get(compendiumId);
+    if (!compendium) {
+        console.warn(`Compendium ${compendiumId} not found`);
+        continue;
+    }
+    // Use compendium
+}
+```
+
+### **Iterate Efficiently**
+```javascript
+// Efficient iteration - stop at first match if needed
+const compendiums = BLACKSMITH.arrSelectedMonsterCompendiums || [];
+
+for (const compendiumId of compendiums) {
+    const compendium = game.packs.get(compendiumId);
+    if (!compendium) continue;
+    
+    const result = await compendium.getDocument(searchId);
+    if (result) {
+        return result; // Found in priority order
+    }
+}
+```
+
+## **Testing**
+
+### **Console Commands**
+```javascript
+// Check which compendiums are configured
+console.log('Monster Compendiums:', BLACKSMITH.arrSelectedMonsterCompendiums);
+console.log('Item Compendiums:', BLACKSMITH.arrSelectedItemCompendiums);
+console.log('Spell Compendiums:', BLACKSMITH.arrSelectedSpellCompendiums);
+
+// Check all available arrays
+console.log('All BLACKSMITH properties:', Object.keys(BLACKSMITH).filter(k => k.startsWith('arrSelected')));
+```
+
+### **Verification**
+```javascript
+// Verify compendium arrays are populated
+const testTypes = ['Monster', 'Item', 'Spell', 'Feature'];
+for (const type of testTypes) {
+    const arrayName = `arrSelected${type}Compendiums`;
+    const array = BLACKSMITH[arrayName];
+    console.log(`${type}:`, array?.length || 0, 'compendiums configured');
+}
+```
 
 ---
 
@@ -2128,6 +2350,7 @@ For full menubar API documentation, see: **`documentation/api-menubar.md`**
 - **Utils**: Safe settings access, logging, sound, formatting
 - **Stats API**: Combat and player statistics access
 - **BLACKSMITH Object**: Global constants and choice arrays
+- **Compendium Arrays**: Access configured compendiums for all document types (v12.1.19+)
 
 ## **⚠️ Common Mistakes to Avoid:**
 - **Missing Import**: Always import the bridge file first
@@ -2153,7 +2376,7 @@ For full menubar API documentation, see: **`documentation/api-menubar.md`**
 
 ---
 
-**Last Updated**: Current session - API fully functional and documented  
+**Last Updated**: v12.1.19 - Added Compendium Configuration API  
 **Status**: Production ready with comprehensive integration support  
 **Next Milestone**: Enhanced API features and ecosystem integration
 

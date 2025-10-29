@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.1.19] - Dynamic Compendium Configuration and Expanded Type Support
+
+### Added
+- **Configurable Compendium Counts:** Added per-type settings to configure how many compendium priority slots are available
+  - `numCompendiumsActor` - Configure number of Actor compendium slots (1-20, default: 1)
+  - `numCompendiumsItem` - Configure number of Item compendium slots (1-20, default: 1)
+  - `numCompendiumsSpell` - Configure number of Spell compendium slots (1-20, default: 1)
+  - `numCompendiumsFeature` - Configure number of Feature compendium slots (1-20, default: 1)
+  - Settings require reload to take effect when changed
+
+- **Selected Compendium Arrays:** New arrays exposed to external modules containing only configured compendiums in priority order
+  - `arrSelectedMonsterCompendiums` - Actor compendiums in priority order
+  - `arrSelectedItemCompendiums` - Item compendiums in priority order
+  - `arrSelectedSpellCompendiums` - Spell compendiums in priority order
+  - `arrSelectedFeatureCompendiums` - Feature compendiums in priority order
+  - Arrays automatically update when compendium settings change
+  - Position in array = Priority (index 0 = Priority 1, etc.)
+
+- **Expanded Compendium Type Support:** Dynamic registration for ALL compendium types found in the system
+  - Automatically registers settings for any compendium type (JournalEntry, RollTable, Scene, Macro, Playlist, Adventure, Card, Stack, etc.)
+  - All types get full settings support: numCompendiums, searchWorldFirst, searchWorldLast, and priority compendium slots
+  - Selected arrays created for all types (e.g., `arrSelectedJournalEntryCompendiums`, `arrSelectedRollTableCompendiums`)
+  - No hardcoding required - system adapts to available compendium types
+
+### Changed
+- **Compendium Settings Registration:** Refactored from hardcoded Actor/Item/Spell/Feature to fully dynamic system
+  - All compendium types now use unified dynamic registration function
+  - Settings automatically registered based on types found in system
+  - Backward compatible - existing settings and variable names unchanged
+
+- **Compendium Search Logic:** Updated to respect per-type configured counts instead of hardcoded limit of 8
+  - `common.js`: Actor and Item compendium search loops now use dynamic counts
+  - `manager-compendiums.js`: All compendium type searches respect configured counts
+  - `journal-tools.js`: Compendium setting key arrays generated dynamically
+  - All search functions now honor user-configured compendium limits
+
+### Fixed
+- **Async Function Issue:** Fixed `getCompendiumChoices()` async/await mismatch
+  - Function properly marked as `async` to support `await buildContentTypeMap()` call
+  - Added `await` when calling `getCompendiumChoices()` in `registerSettings()`
+  - Ensures compendium choice arrays are populated before settings registration
+
+- **Race Condition:** Fixed `combatTrackerOpen` setting access before registration
+  - Added safety checks using `game.settings.settings.has()` before accessing setting
+  - Prevents errors when combat-tracker hook runs before settings are registered
+  - Applied to both ready hook and combat start hook contexts
 
 ## [12.1.18] - Menubar Performance Optimization, Token Movement Features, and Code Cleanup
 
