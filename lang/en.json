@@ -142,41 +142,24 @@
 			"headingH2CompendiumMapping-Label": "Compendium Mapping",
 			"headingH2CompendiumMapping-Hint": "When we automate searching for things, we look in the compendiums first. This is where we will look for a match. They are in priority order and we stop looking when we find a match.",
 
-				"headingH3ActorCompendiums-Label": "Actor Compendiums",
-				"headingH3ActorCompendiums-Hint": "",
+			"headingH3ActorCompendiums-Label": "Actor Compendiums",
+			"headingH3ActorCompendiums-Hint": "",
 
-					"searchWorldActorsFirst-Label": "Search World Actors First",
-					"searchWorldActorsFirst-Hint": "When enabled, will search for actors in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
+			"headingH3ItemCompendiums-Label": "Item Compendiums",
+			"headingH3ItemCompendiums-Hint": "",
 
-					"searchWorldActorsLast-Label": "Search World Actors Last",
-					"searchWorldActorsLast-Hint": "When enabled, will search for actors in the world after looking in compendiums if no results found. When disabled, will not search world actors as fallback.",
+			"headingH3SpellCompendiums-Label": "Spell Compendiums",
+			"headingH3SpellCompendiums-Hint": "",
 
-				"headingH3ItemCompendiums-Label": "Item Compendiums",
-				"headingH3ItemCompendiums-Hint": "",
+			"headingH3FeatureCompendiums-Label": "Feature Compendiums",
+			"headingH3FeatureCompendiums-Hint": "",
 
-					"searchWorldItemsFirst-Label": "Search World Items First",
-					"searchWorldItemsFirst-Hint": "When enabled, will search for items in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
+			"searchWorldFirst-Label": "Search World First",
+			"searchWorldFirst-Hint": "When enabled, will search for matches in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
 
-					"searchWorldItemsLast-Label": "Search World Items Last",
-					"searchWorldItemsLast-Hint": "When enabled, will search for items in the world after looking in compendiums if no results found. When disabled, will not search world items as fallback.",
+			"searchWorldLast-Label": "Search World Last",
+			"searchWorldLast-Hint": "When enabled, will search for for matches in the world after looking in compendiums if no results are found. When disabled, will not search world as a fallback.",
 
-				"headingH3SpellCompendiums-Label": "Spell Compendiums",
-				"headingH3SpellCompendiums-Hint": "",
-
-					"searchWorldSpellsFirst-Label": "Search World Spells First",
-					"searchWorldSpellsFirst-Hint": "When enabled, will search for spells in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
-
-					"searchWorldSpellsLast-Label": "Search World Spells Last",
-					"searchWorldSpellsLast-Hint": "When enabled, will search for spells in the world after looking in compendiums if no results found. When disabled, will not search world spells as fallback.",
-
-				"headingH3FeatureCompendiums-Label": "Feature Compendiums",
-				"headingH3FeatureCompendiums-Hint": "",
-
-					"searchWorldFeaturesFirst-Label": "Search World Features First",
-					"searchWorldFeaturesFirst-Hint": "When enabled, will search for features in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
-
-					"searchWorldFeaturesLast-Label": "Search World Features Last",
-					"searchWorldFeaturesLast-Hint": "When enabled, will search for features in the world after looking in compendiums if no results found. When disabled, will not search world features as fallback.",
 
 
 

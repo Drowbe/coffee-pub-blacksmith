@@ -184,7 +184,9 @@ async function getCompendiumChoices() {
             'Playlist': 'Playlists',
             'Adventure': 'Adventures',
             'Card': 'Cards',
-            'Stack': 'Stacks'
+            'Stack': 'Stacks',
+            'Spell': 'Spells',
+            'Feature': 'Features'
         };
         return typeMap[type] || type;
     };
@@ -297,54 +299,223 @@ async function getCompendiumChoices() {
 }
 
 /**
+ * Convert Foundry compendium type to setting-friendly prefix
+ * @param {string} type - Foundry compendium type (e.g., "Actor", "JournalEntry")
+ * @returns {string} Setting prefix (e.g., "monsterCompendium", "journalEntryCompendium")
+ */
+function getCompendiumSettingPrefix(type) {
+    // Special cases for backward compatibility
+    const specialCases = {
+        'Actor': 'monsterCompendium',
+        'Item': 'itemCompendium',
+        'Spell': 'spellCompendium',
+        'Feature': 'featuresCompendium'
+    };
+    
+    if (specialCases[type]) {
+        return specialCases[type];
+    }
+    
+    // Convert Foundry type to camelCase setting prefix
+    // "JournalEntry" → "journalEntryCompendium", "RollTable" → "rollTableCompendium"
+    const firstChar = type.charAt(0).toLowerCase();
+    const rest = type.slice(1);
+    return `${firstChar}${rest}Compendium`;
+}
+
+/**
+ * Convert Foundry compendium type to array name
+ * @param {string} type - Foundry compendium type
+ * @returns {string} Array name (e.g., "arrSelectedMonsterCompendiums")
+ */
+function getSelectedArrayName(type) {
+    // Special cases for backward compatibility
+    const specialCases = {
+        'Actor': 'arrSelectedMonsterCompendiums',
+        'Item': 'arrSelectedItemCompendiums',
+        'Spell': 'arrSelectedSpellCompendiums',
+        'Feature': 'arrSelectedFeatureCompendiums'
+    };
+    
+    if (specialCases[type]) {
+        return specialCases[type];
+    }
+    
+    // Convert to array name: "JournalEntry" → "arrSelectedJournalEntryCompendiums"
+    const firstChar = type.charAt(0);
+    const rest = type.slice(1);
+    return `arrSelected${firstChar}${rest}Compendiums`;
+}
+
+/**
+ * Convert Foundry compendium type to numCompendiums setting name
+ * @param {string} type - Foundry compendium type
+ * @returns {string} Setting name (e.g., "numCompendiumsActor")
+ */
+function getNumCompendiumsSettingName(type) {
+    // Special cases for backward compatibility
+    const specialCases = {
+        'Actor': 'numCompendiumsActor',
+        'Item': 'numCompendiumsItem',
+        'Spell': 'numCompendiumsSpell',
+        'Feature': 'numCompendiumsFeature'
+    };
+    
+    if (specialCases[type]) {
+        return specialCases[type];
+    }
+    
+    // Convert: "JournalEntry" → "numCompendiumsJournalEntry"
+    return `numCompendiums${type}`;
+}
+
+/**
+ * Get choices array key for a compendium type
+ * @param {string} type - Foundry compendium type
+ * @returns {string} Key name in BLACKSMITH (e.g., "arrMonsterChoices")
+ */
+function getChoicesArrayKey(type) {
+    // Special cases
+    const specialCases = {
+        'Actor': 'arrMonsterChoices',
+        'Item': 'arrCompendiumChoicesItem',
+        'Spell': 'arrSpellChoices',
+        'Feature': 'arrFeatureChoices'
+    };
+    
+    if (specialCases[type]) {
+        return specialCases[type];
+    }
+    
+    // Convert: "JournalEntry" → "arrCompendiumChoicesJournalEntry"
+    return `arrCompendiumChoices${type}`;
+}
+
+/**
+ * Dynamically register compendium settings for all types found in the system
+ * (except Actor, Item, Spell, Feature which are registered manually)
+ */
+function registerDynamicCompendiumTypes() {
+    // Get all types from compendium data
+    const compendiumData = BLACKSMITH.arrCompendiumChoicesData || [];
+    const foundTypes = [...new Set(compendiumData.map(c => c.type))];
+    
+    // Exclude types that are already registered manually
+    const excludedTypes = ['Actor', 'Item'];
+    const typesToRegister = foundTypes.filter(type => !excludedTypes.includes(type));
+    
+    // Helper function to get human-readable label (using getTypeLabel from getCompendiumChoices)
+    const getTypeLabel = (type) => {
+        const typeMap = {
+            'Actor': 'Actors',
+            'Item': 'Items',
+            'JournalEntry': 'Journal Entries',
+            'RollTable': 'Roll Tables',
+            'Scene': 'Scenes',
+            'Macro': 'Macros',
+            'Playlist': 'Playlists',
+            'Adventure': 'Adventures',
+            'Card': 'Cards',
+            'Stack': 'Stacks',
+            'Spell': 'Spells',
+            'Feature': 'Features'
+        };
+        return typeMap[type] || type;
+    };
+    
+    // Register settings for each type
+    for (const type of typesToRegister) {
+        const settingPrefix = getCompendiumSettingPrefix(type);
+        const numSetting = getNumCompendiumsSettingName(type);
+        const choicesKey = getChoicesArrayKey(type);
+        
+        // Register header
+        registerHeader(`${type}Compendiums`, 
+            `headingH3${type}Compendiums-Label`, 
+            `headingH3${type}Compendiums-Hint`, 
+            'H3', 
+            WORKFLOW_GROUPS.MANAGE_CONTENT);
+        
+        // Register number setting (skip if already exists)
+        if (!game.settings.settings.has(`${MODULE.ID}.${numSetting}`)) {
+            game.settings.register(MODULE.ID, numSetting, {
+                name: MODULE.ID + '.numCompendiums-Label',
+                hint: MODULE.ID + '.numCompendiums-Hint',
+                type: Number,
+                config: true,
+                scope: 'world',
+                default: 1,
+                range: { min: 1, max: 20 },
+                requiresReload: true,
+                group: WORKFLOW_GROUPS.MANAGE_CONTENT
+            });
+        }
+        
+        // Register compendium priority settings
+        const numCompendiums = game.settings.get(MODULE.ID, numSetting) || 1;
+        for (let i = 1; i <= numCompendiums; i++) {
+            const settingKey = `${settingPrefix}${i}`;
+            
+            // Skip if already registered
+            if (game.settings.settings.has(`${MODULE.ID}.${settingKey}`)) {
+                continue;
+            }
+            
+            game.settings.register(MODULE.ID, settingKey, {
+                name: `${getTypeLabel(type)}: Priority ${i}`,
+                hint: null,
+                scope: "world",
+                config: true,
+                requiresReload: false,
+                default: "none",
+                choices: BLACKSMITH[choicesKey] || {"none": "-- None --"},
+                group: WORKFLOW_GROUPS.MANAGE_CONTENT
+            });
+        }
+    }
+}
+
+/**
  * Build arrays of selected/configured compendiums in priority order for each type
  * These arrays contain only compendiums that are actually configured (not "none")
  * Array position = Priority (index 0 = Priority 1, etc.)
  */
 export function buildSelectedCompendiumArrays() {
-    // Actor/Monster compendiums
-    const numActor = game.settings.get(MODULE.ID, 'numCompendiumsActor') || 1;
-    const selectedMonsters = [];
-    for (let i = 1; i <= numActor; i++) {
-        const compendiumId = game.settings.get(MODULE.ID, `monsterCompendium${i}`);
-        if (compendiumId && compendiumId !== 'none' && compendiumId !== '') {
-            selectedMonsters.push(compendiumId);
-        }
-    }
-    BLACKSMITH.updateValue('arrSelectedMonsterCompendiums', selectedMonsters);
+    // Get all types from compendium data
+    const compendiumData = BLACKSMITH.arrCompendiumChoicesData || [];
+    const foundTypes = [...new Set(compendiumData.map(c => c.type))];
     
-    // Item compendiums
-    const numItem = game.settings.get(MODULE.ID, 'numCompendiumsItem') || 1;
-    const selectedItems = [];
-    for (let i = 1; i <= numItem; i++) {
-        const compendiumId = game.settings.get(MODULE.ID, `itemCompendium${i}`);
-        if (compendiumId && compendiumId !== 'none' && compendiumId !== '') {
-            selectedItems.push(compendiumId);
-        }
-    }
-    BLACKSMITH.updateValue('arrSelectedItemCompendiums', selectedItems);
+    // Add special content-based types (Spell, Feature) that aren't direct Foundry types
+    const allTypes = [...new Set([...foundTypes, 'Spell', 'Feature'])];
     
-    // Spell compendiums
-    const numSpell = game.settings.get(MODULE.ID, 'numCompendiumsSpell') || 1;
-    const selectedSpells = [];
-    for (let i = 1; i <= numSpell; i++) {
-        const compendiumId = game.settings.get(MODULE.ID, `spellCompendium${i}`);
-        if (compendiumId && compendiumId !== 'none' && compendiumId !== '') {
-            selectedSpells.push(compendiumId);
+    // Build arrays for each type
+    for (const type of allTypes) {
+        const numSetting = getNumCompendiumsSettingName(type);
+        const settingPrefix = getCompendiumSettingPrefix(type);
+        const arrayName = getSelectedArrayName(type);
+        
+        // Check if setting exists (may not be registered yet on first load)
+        if (!game.settings.settings.has(`${MODULE.ID}.${numSetting}`)) {
+            continue; // Skip if settings not registered yet
         }
-    }
-    BLACKSMITH.updateValue('arrSelectedSpellCompendiums', selectedSpells);
-    
-    // Feature compendiums
-    const numFeature = game.settings.get(MODULE.ID, 'numCompendiumsFeature') || 1;
-    const selectedFeatures = [];
-    for (let i = 1; i <= numFeature; i++) {
-        const compendiumId = game.settings.get(MODULE.ID, `featuresCompendium${i}`);
-        if (compendiumId && compendiumId !== 'none' && compendiumId !== '') {
-            selectedFeatures.push(compendiumId);
+        
+        const numCompendiums = game.settings.get(MODULE.ID, numSetting) || 1;
+        const selected = [];
+        
+        for (let i = 1; i <= numCompendiums; i++) {
+            const settingKey = `${settingPrefix}${i}`;
+            if (!game.settings.settings.has(`${MODULE.ID}.${settingKey}`)) {
+                continue; // Skip if setting not registered
+            }
+            
+            const compendiumId = game.settings.get(MODULE.ID, settingKey);
+            if (compendiumId && compendiumId !== 'none' && compendiumId !== '') {
+                selected.push(compendiumId);
+            }
         }
+        
+        BLACKSMITH.updateValue(arrayName, selected);
     }
-    BLACKSMITH.updateValue('arrSelectedFeatureCompendiums', selectedFeatures);
     
     postConsoleAndNotification(MODULE.NAME, "Selected compendium arrays updated", "", false, false);
 }
@@ -1198,8 +1369,8 @@ export const registerSettings = async () => {
 
 		// -- Search World Actors First --
 		game.settings.register(MODULE.ID, 'searchWorldActorsFirst', {
-			name: 'Search World Actors First',
-			hint: 'When enabled, will search for actors in the world before looking in compendiums. When disabled, will only search in the selected compendiums.',
+			name: MODULE.ID + '.searchWorldFirst-Label',
+			hint: MODULE.ID + '.searchWorldFirst-Hint',
 			type: Boolean,
 			config: true,
 			scope: 'world',
@@ -1208,8 +1379,8 @@ export const registerSettings = async () => {
 
 		// -- Search World Actors Last --
 		game.settings.register(MODULE.ID, 'searchWorldActorsLast', {
-			name: 'Search World Actors Last',
-			hint: 'When enabled, will search for actors in the world after looking in compendiums if no results found. When disabled, will not search world actors as fallback.',
+			name: MODULE.ID + '.searchWorldLast-Label',
+			hint: MODULE.ID + '.searchWorldLast-Hint',
 			type: Boolean,
 			config: true,
 			scope: 'world',
@@ -1254,19 +1425,19 @@ export const registerSettings = async () => {
 
 		// -- Search World Items First --
 		game.settings.register(MODULE.ID, 'searchWorldItemsFirst', {
-			name: MODULE.ID + '.searchWorldItemsFirst-Label',
-			hint: MODULE.ID + '.searchWorldItemsFirst-Hint',
-				type: Boolean,
-				config: true,
-				scope: 'world',
-				default: false,
+			name: MODULE.ID + '.searchWorldFirst-Label',
+			hint: MODULE.ID + '.searchWorldFirst-Hint',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: false,
 			group: WORKFLOW_GROUPS.MANAGE_CONTENT
 		});
 
 		// -- Search World Items Last --
 		game.settings.register(MODULE.ID, 'searchWorldItemsLast', {
-			name: MODULE.ID + '.searchWorldItemsLast-Label',
-			hint: MODULE.ID + '.searchWorldItemsLast-Hint',
+			name: MODULE.ID + '.searchWorldLast-Label',
+			hint: MODULE.ID + '.searchWorldLast-Hint',
 			type: Boolean,
 				config: true,
 				scope: 'world',
@@ -1312,8 +1483,8 @@ export const registerSettings = async () => {
 
 		// -- Search World Spells First --
 		game.settings.register(MODULE.ID, 'searchWorldSpellsFirst', {
-			name: MODULE.ID + '.searchWorldSpellsFirst-Label',
-			hint: MODULE.ID + '.searchWorldSpellsFirst-Hint',
+			name: MODULE.ID + '.searchWorldFirst-Label',
+			hint: MODULE.ID + '.searchWorldFirst-Hint',
 			type: Boolean,
 			config: true,
 			scope: 'world',
@@ -1323,8 +1494,8 @@ export const registerSettings = async () => {
 
 		// -- Search World Spells Last --
 		game.settings.register(MODULE.ID, 'searchWorldSpellsLast', {
-			name: MODULE.ID + '.searchWorldSpellsLast-Label',
-			hint: MODULE.ID + '.searchWorldSpellsLast-Hint',
+			name: MODULE.ID + '.searchWorldLast-Label',
+			hint: MODULE.ID + '.searchWorldLast-Hint',
 			type: Boolean,
 			config: true,
 			scope: 'world',
@@ -1371,8 +1542,8 @@ export const registerSettings = async () => {
 
 		// -- Search World Features First --
 		game.settings.register(MODULE.ID, 'searchWorldFeaturesFirst', {
-			name: MODULE.ID + '.searchWorldFeaturesFirst-Label',
-			hint: MODULE.ID + '.searchWorldFeaturesFirst-Hint',
+			name: MODULE.ID + '.searchWorldFirst-Label',
+			hint: MODULE.ID + '.searchWorldFirst-Hint',
 			type: Boolean,
 			config: true,
 			scope: 'world',
@@ -1382,8 +1553,8 @@ export const registerSettings = async () => {
 
 		// -- Search World Features Last --
 		game.settings.register(MODULE.ID, 'searchWorldFeaturesLast', {
-			name: MODULE.ID + '.searchWorldFeaturesLast-Label',
-			hint: MODULE.ID + '.searchWorldFeaturesLast-Hint',
+			name: MODULE.ID + '.searchWorldLast-Label',
+			hint: MODULE.ID + '.searchWorldLast-Hint',
 			type: Boolean,
 			config: true,
 			scope: 'world',
@@ -1405,6 +1576,9 @@ export const registerSettings = async () => {
 				group: WORKFLOW_GROUPS.MANAGE_CONTENT
 			});
 		}
+
+		// Dynamically register settings for all other compendium types found in the system
+		registerDynamicCompendiumTypes();
 
 
 
