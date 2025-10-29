@@ -402,8 +402,9 @@ async function findMonsterUUID(monsterData) {
             }
         }
         
-        // Check up to 8 compendium settings in order
-        for (let i = 1; i <= 8; i++) {
+        // Check compendium settings in order (up to configured number)
+        const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsActor') || 1;
+        for (let i = 1; i <= numCompendiums; i++) {
             const compendiumSetting = game.settings.get(MODULE.ID, `monsterCompendium${i}`);
             if (!compendiumSetting || compendiumSetting === 'none') continue;
             
@@ -474,9 +475,10 @@ export async function buildCompendiumLinkActor(monsterData) {
                 return formatLink(`Actor.${strActorID}`, strActorName);
             }
         }
-        // Check up to 8 compendium settings in order
+        // Check compendium settings in order (up to configured number)
+        const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsActor') || 1;
         let found = false;
-        for (let i = 1; i <= 8; i++) {
+        for (let i = 1; i <= numCompendiums; i++) {
             const compendiumSetting = game.settings.get(MODULE.ID, `monsterCompendium${i}`);
             if (!compendiumSetting || compendiumSetting === 'none') continue;
             const compendium = game.packs.get(compendiumSetting);
@@ -527,8 +529,9 @@ export async function buildCompendiumLinkItem(itemData) {
                 return formatLink(`Item.${strItemID}`, strItemName);
             }
         }
-        // Check up to 8 compendium settings in order
-        for (let i = 1; i <= 8; i++) {
+        // Check compendium settings in order (up to configured number)
+        const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsItem') || 1;
+        for (let i = 1; i <= numCompendiums; i++) {
             const compendiumSetting = game.settings.get(MODULE.ID, `itemCompendium${i}`);
             if (!compendiumSetting || compendiumSetting === 'none') continue;
             const compendium = game.packs.get(compendiumSetting);

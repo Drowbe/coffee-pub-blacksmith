@@ -136,6 +136,9 @@
 	"headingH1ManageContent-Label": "Manage Content",
 	"headingH1ManageContent-Hint": "Tools for managing tokens, images, and content",
 
+			"numCompendiums-Label": "Number of Compendiums",
+			"numCompendiums-Hint": "Sets how many compendium priority slots are available for each type (Actor, Item, Feature, Spell). Changing this value requires a reload to take effect.",
+
 			"headingH2CompendiumMapping-Label": "Compendium Mapping",
 			"headingH2CompendiumMapping-Hint": "When we automate searching for things, we look in the compendiums first. This is where we will look for a match. They are in priority order and we stop looking when we find a match.",
 

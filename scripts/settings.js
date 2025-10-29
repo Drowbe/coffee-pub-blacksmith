@@ -1117,9 +1117,6 @@ export const registerSettings = async () => {
 		// ==================================================================================================================== 
 		registerHeader('ManageContent', 'headingH1ManageContent-Label', 'headingH1ManageContent-Hint', 'H1', WORKFLOW_GROUPS.MANAGE_CONTENT);
 		
-		// Set the number of compendiums
-		const numCompendiums = 8;
-
 		// --------------------------------------
 		// -- H2: Compendiums
 		// --------------------------------------
@@ -1130,6 +1127,21 @@ export const registerSettings = async () => {
 		// --------------------------------------
 		registerHeader('ActorCompendiums', 'headingH3ActorCompendiums-Label', 'headingH3ActorCompendiums-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT);
 
+		// -- Number of Compendiums --
+		game.settings.register(MODULE.ID, 'numCompendiumsActor', {
+			name: MODULE.ID + '.numCompendiums-Label',
+			hint: MODULE.ID + '.numCompendiums-Hint',
+			type: Number,
+			config: true,
+			scope: 'world',
+			default: 1,
+			range: {
+				min: 1,
+				max: 20
+			},
+			requiresReload: true,
+			group: WORKFLOW_GROUPS.MANAGE_CONTENT
+		});
 
 		// -- Search World Actors First --
 		game.settings.register(MODULE.ID, 'searchWorldActorsFirst', {
@@ -1151,143 +1163,195 @@ export const registerSettings = async () => {
 			default: false,
 		});
 
-	// -- Monster Lookup Compendiums (up to 8) --
-	for (let i = 1; i <= numCompendiums; i++) {
-		game.settings.register(MODULE.ID, `monsterCompendium${i}` , {
-			name: `Actor: Priority ` + i,
-			hint: null,
-			scope: "world",
+		// -- Monster Lookup Compendiums (up to 8) --
+				// Get the number of compendiums from settings
+		const numCompendiumsActor = game.settings.get(MODULE.ID, 'numCompendiumsActor') || 1;
+		for (let i = 1; i <= numCompendiumsActor; i++) {
+			game.settings.register(MODULE.ID, `monsterCompendium${i}` , {
+				name: `Actor: Priority ` + i,
+				hint: null,
+				scope: "world",
+				config: true,
+				requiresReload: false,
+				default: "none",
+				choices: BLACKSMITH.arrMonsterChoices ||  "failed to load choices"
+			});
+		}
+
+		// --------------------------------------
+		// -- H3: Item Compendiums
+		// --------------------------------------
+		registerHeader('ItemCompendiums', 'headingH3ItemCompendiums-Label', 'headingH3ItemCompendiums-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT);	
+
+		// -- Number of Compendiums --
+		game.settings.register(MODULE.ID, 'numCompendiumsItem', {
+			name: MODULE.ID + '.numCompendiums-Label',
+			hint: MODULE.ID + '.numCompendiums-Hint',
+			type: Number,
 			config: true,
-			requiresReload: false,
-			default: "none",
-			choices: BLACKSMITH.arrMonsterChoices ||  "failed to load choices"
+			scope: 'world',
+			default: 1,
+			range: {
+				min: 1,
+				max: 20
+			},
+			requiresReload: true,
+			group: WORKFLOW_GROUPS.MANAGE_CONTENT
 		});
-	}
 
-	// --------------------------------------
-	// -- H3: Item Compendiums
-	// --------------------------------------
-	registerHeader('ItemCompendiums', 'headingH3ItemCompendiums-Label', 'headingH3ItemCompendiums-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT);	
+		// -- Search World Items First --
+		game.settings.register(MODULE.ID, 'searchWorldItemsFirst', {
+			name: MODULE.ID + '.searchWorldItemsFirst-Label',
+			hint: MODULE.ID + '.searchWorldItemsFirst-Hint',
+				type: Boolean,
+				config: true,
+				scope: 'world',
+				default: false,
+			group: WORKFLOW_GROUPS.MANAGE_CONTENT
+		});
 
+		// -- Search World Items Last --
+		game.settings.register(MODULE.ID, 'searchWorldItemsLast', {
+			name: MODULE.ID + '.searchWorldItemsLast-Label',
+			hint: MODULE.ID + '.searchWorldItemsLast-Hint',
+			type: Boolean,
+				config: true,
+				scope: 'world',
+			default: false,
+			group: WORKFLOW_GROUPS.MANAGE_CONTENT
+		});
 
-	// -- Search World Items First --
-	game.settings.register(MODULE.ID, 'searchWorldItemsFirst', {
-		name: MODULE.ID + '.searchWorldItemsFirst-Label',
-		hint: MODULE.ID + '.searchWorldItemsFirst-Hint',
+		// -- Item Lookup Compendiums --
+		const numCompendiumsItem = game.settings.get(MODULE.ID, 'numCompendiumsItem') || 1;
+		for (let i = 1; i <= numCompendiumsItem; i++) {
+			game.settings.register(MODULE.ID, `itemCompendium${i}` , {
+				name: `Item: Priority ` + i,
+				hint: null,
+				scope: "world",
+				config: true,
+				requiresReload: false,
+				default: "none",
+				choices: BLACKSMITH.arrCompendiumChoicesItem || "failed to load choices",
+				group: WORKFLOW_GROUPS.MANAGE_CONTENT
+			});
+		}
+
+		// --------------------------------------
+		// -- H3: Spell Compendiums
+		// --------------------------------------
+		registerHeader('SpellCompendiums', 'headingH3SpellCompendiums-Label', 'headingH3SpellCompendiums-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT);	
+
+		// -- Number of Compendiums --
+		game.settings.register(MODULE.ID, 'numCompendiumsSpell', {
+			name: MODULE.ID + '.numCompendiums-Label',
+			hint: MODULE.ID + '.numCompendiums-Hint',
+			type: Number,
+			config: true,
+			scope: 'world',
+			default: 1,
+			range: {
+				min: 1,
+				max: 20
+			},
+			requiresReload: true,
+			group: WORKFLOW_GROUPS.MANAGE_CONTENT
+		});
+
+		// -- Search World Spells First --
+		game.settings.register(MODULE.ID, 'searchWorldSpellsFirst', {
+			name: MODULE.ID + '.searchWorldSpellsFirst-Label',
+			hint: MODULE.ID + '.searchWorldSpellsFirst-Hint',
 			type: Boolean,
 			config: true,
 			scope: 'world',
 			default: false,
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
+			group: WORKFLOW_GROUPS.MANAGE_CONTENT
+		});
 
-	// -- Search World Items Last --
-	game.settings.register(MODULE.ID, 'searchWorldItemsLast', {
-		name: MODULE.ID + '.searchWorldItemsLast-Label',
-		hint: MODULE.ID + '.searchWorldItemsLast-Hint',
-		type: Boolean,
+		// -- Search World Spells Last --
+		game.settings.register(MODULE.ID, 'searchWorldSpellsLast', {
+			name: MODULE.ID + '.searchWorldSpellsLast-Label',
+			hint: MODULE.ID + '.searchWorldSpellsLast-Hint',
+			type: Boolean,
 			config: true,
 			scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// -- Item Lookup Compendiums (up to 8) --
-	for (let i = 1; i <= numCompendiums; i++) {
-		game.settings.register(MODULE.ID, `itemCompendium${i}` , {
-			name: `Item: Priority ` + i,
-			hint: null,
-			scope: "world",
-			config: true,
-			requiresReload: false,
-			default: "none",
-			choices: BLACKSMITH.arrCompendiumChoicesItem || "failed to load choices",
+			default: false,
 			group: WORKFLOW_GROUPS.MANAGE_CONTENT
 		});
-	}
 
-	// --------------------------------------
-	// -- H3: Spell Compendiums
-	// --------------------------------------
-	registerHeader('SpellCompendiums', 'headingH3SpellCompendiums-Label', 'headingH3SpellCompendiums-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT);	
+		// -- Spell Lookup Compendiums --
+		const numCompendiumsSpell = game.settings.get(MODULE.ID, 'numCompendiumsSpell') || 1;
+		for (let i = 1; i <= numCompendiumsSpell; i++) {
+			game.settings.register(MODULE.ID, `spellCompendium${i}` , {
+				name: `Spells: Priority ${i}`,
+				hint: null,
+				scope: "world",
+				config: true,
+				requiresReload: false,
+				default: "none",
+				choices: BLACKSMITH.arrSpellChoices || "failed to load choices",
+				group: WORKFLOW_GROUPS.MANAGE_CONTENT
+			});
+		}
 
-	// -- Search World Spells First --
-	game.settings.register(MODULE.ID, 'searchWorldSpellsFirst', {
-		name: MODULE.ID + '.searchWorldSpellsFirst-Label',
-		hint: MODULE.ID + '.searchWorldSpellsFirst-Hint',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
 
-	// -- Search World Spells Last --
-	game.settings.register(MODULE.ID, 'searchWorldSpellsLast', {
-		name: MODULE.ID + '.searchWorldSpellsLast-Label',
-		hint: MODULE.ID + '.searchWorldSpellsLast-Hint',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
+		// --------------------------------------
+		// -- H3: Feature Compendiums
+		// --------------------------------------
+		registerHeader('FeatureCompendiums', 'headingH3FeatureCompendiums-Label', 'headingH3FeatureCompendiums-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT);	
 
-	// -- Spell Lookup Compendiums (up to 8) --
-	for (let i = 1; i <= numCompendiums; i++) {
-		game.settings.register(MODULE.ID, `spellCompendium${i}` , {
-			name: `Spells: Priority ${i}`,
-			hint: null,
-			scope: "world",
+		// -- Number of Compendiums --
+		game.settings.register(MODULE.ID, 'numCompendiumsFeature', {
+			name: MODULE.ID + '.numCompendiums-Label',
+			hint: MODULE.ID + '.numCompendiums-Hint',
+			type: Number,
 			config: true,
-			requiresReload: false,
-			default: "none",
-			choices: BLACKSMITH.arrSpellChoices || "failed to load choices",
+			scope: 'world',
+			default: 1,
+			range: {
+				min: 1,
+				max: 20
+			},
+			requiresReload: true,
 			group: WORKFLOW_GROUPS.MANAGE_CONTENT
 		});
-	}
 
-
-	// --------------------------------------
-	// -- H3: Feature Compendiums
-	// --------------------------------------
-	registerHeader('FeatureCompendiums', 'headingH3FeatureCompendiums-Label', 'headingH3FeatureCompendiums-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT);	
-
-	// -- Search World Features First --
-	game.settings.register(MODULE.ID, 'searchWorldFeaturesFirst', {
-		name: MODULE.ID + '.searchWorldFeaturesFirst-Label',
-		hint: MODULE.ID + '.searchWorldFeaturesFirst-Hint',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// -- Search World Features Last --
-	game.settings.register(MODULE.ID, 'searchWorldFeaturesLast', {
-		name: MODULE.ID + '.searchWorldFeaturesLast-Label',
-		hint: MODULE.ID + '.searchWorldFeaturesLast-Hint',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// -- Features Lookup Compendiums (up to 8) --
-	for (let i = 1; i <= numCompendiums; i++) {
-		game.settings.register(MODULE.ID, `featuresCompendium${i}` , {
-			name: `Feature: Priority ${i}`,
-			hint: null,
-			scope: "world",
+		// -- Search World Features First --
+		game.settings.register(MODULE.ID, 'searchWorldFeaturesFirst', {
+			name: MODULE.ID + '.searchWorldFeaturesFirst-Label',
+			hint: MODULE.ID + '.searchWorldFeaturesFirst-Hint',
+			type: Boolean,
 			config: true,
-			requiresReload: false,
-			default: "none",
-			choices: BLACKSMITH.arrFeatureChoices || "failed to load choices",
+			scope: 'world',
+			default: false,
 			group: WORKFLOW_GROUPS.MANAGE_CONTENT
 		});
-	}
+
+		// -- Search World Features Last --
+		game.settings.register(MODULE.ID, 'searchWorldFeaturesLast', {
+			name: MODULE.ID + '.searchWorldFeaturesLast-Label',
+			hint: MODULE.ID + '.searchWorldFeaturesLast-Hint',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: false,
+			group: WORKFLOW_GROUPS.MANAGE_CONTENT
+		});
+
+		// -- Features Lookup Compendiums --
+		const numCompendiumsFeature = game.settings.get(MODULE.ID, 'numCompendiumsFeature') || 1;
+		for (let i = 1; i <= numCompendiumsFeature; i++) {
+			game.settings.register(MODULE.ID, `featuresCompendium${i}` , {
+				name: `Feature: Priority ${i}`,
+				hint: null,
+				scope: "world",
+				config: true,
+				requiresReload: false,
+				default: "none",
+				choices: BLACKSMITH.arrFeatureChoices || "failed to load choices",
+				group: WORKFLOW_GROUPS.MANAGE_CONTENT
+			});
+		}
 
 
 

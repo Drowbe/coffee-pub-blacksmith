@@ -49,6 +49,24 @@ export class JournalTools {
         }
     }
 
+    /**
+     * Generate array of compendium setting keys for a given type
+     * @param {string} type - 'actor' or 'item'
+     * @returns {string[]} Array of setting keys like ['monsterCompendium1', 'monsterCompendium2', ...]
+     */
+    static getCompendiumSettingKeys(type) {
+        const numCompendiums = type === 'actor' 
+            ? (game.settings.get(MODULE.ID, 'numCompendiumsActor') || 1)
+            : (game.settings.get(MODULE.ID, 'numCompendiumsItem') || 1);
+        
+        const prefix = type === 'actor' ? 'monsterCompendium' : 'itemCompendium';
+        const keys = [];
+        for (let i = 1; i <= numCompendiums; i++) {
+            keys.push(`${prefix}${i}`);
+        }
+        return keys;
+    }
+
     static _onSettingChange(moduleId, key, value) {
         if (moduleId === 'coffee-pub-blacksmith') {
             if (key === 'enableJournalTools') {
@@ -1500,11 +1518,7 @@ export class JournalTools {
             }
             
             // Search compendiums based on entity type
-            const compendiumSettings = entityType === 'actor' 
-                ? ['monsterCompendium1', 'monsterCompendium2', 'monsterCompendium3', 'monsterCompendium4', 
-                   'monsterCompendium5', 'monsterCompendium6', 'monsterCompendium7', 'monsterCompendium8']
-                : ['itemCompendium1', 'itemCompendium2', 'itemCompendium3', 'itemCompendium4',
-                   'itemCompendium5', 'itemCompendium6', 'itemCompendium7', 'itemCompendium8'];
+            const compendiumSettings = this.constructor.getCompendiumSettingKeys(entityType);
             
             // Try each search name
             for (const searchName of searchNames) {
@@ -1589,8 +1603,7 @@ export class JournalTools {
             // Try each search name
             for (const searchName of searchNames) {
                 // Try actor compendiums first (default bias)
-                const actorCompendiums = ['monsterCompendium1', 'monsterCompendium2', 'monsterCompendium3', 'monsterCompendium4', 
-                                         'monsterCompendium5', 'monsterCompendium6', 'monsterCompendium7', 'monsterCompendium8'];
+                const actorCompendiums = this.constructor.getCompendiumSettingKeys('actor');
                 
                 for (const settingKey of actorCompendiums) {
                     const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
@@ -1617,8 +1630,7 @@ export class JournalTools {
                 }
                 
                 // Try item compendiums second
-                const itemCompendiums = ['itemCompendium1', 'itemCompendium2', 'itemCompendium3', 'itemCompendium4',
-                                        'itemCompendium5', 'itemCompendium6', 'itemCompendium7', 'itemCompendium8'];
+                const itemCompendiums = this.constructor.getCompendiumSettingKeys('item');
                 
                 for (const settingKey of itemCompendiums) {
                     const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
@@ -2088,8 +2100,7 @@ export class JournalTools {
                 }
                 
                 // Try actor compendiums
-                const actorCompendiums = ['monsterCompendium1', 'monsterCompendium2', 'monsterCompendium3', 'monsterCompendium4', 
-                                         'monsterCompendium5', 'monsterCompendium6', 'monsterCompendium7', 'monsterCompendium8'];
+                const actorCompendiums = this.constructor.getCompendiumSettingKeys('actor');
                 
                 for (const settingKey of actorCompendiums) {
                     const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
@@ -2116,8 +2127,7 @@ export class JournalTools {
                 }
                 
                 // Try item compendiums
-                const itemCompendiums = ['itemCompendium1', 'itemCompendium2', 'itemCompendium3', 'itemCompendium4',
-                                        'itemCompendium5', 'itemCompendium6', 'itemCompendium7', 'itemCompendium8'];
+                const itemCompendiums = this.constructor.getCompendiumSettingKeys('item');
                 
                 for (const settingKey of itemCompendiums) {
                     const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);

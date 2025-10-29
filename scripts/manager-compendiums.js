@@ -50,8 +50,17 @@ export class CompendiumManager {
             return settings;
         }
         
-        // Get compendium mappings (1-8 for each type)
-        for (let i = 1; i <= 8; i++) {
+        // Get compendium mappings (up to configured number for each type)
+        // Map type to the numCompendiums setting name
+        const numSettingMap = {
+            'item': 'numCompendiumsItem',
+            'spell': 'numCompendiumsSpell',
+            'feature': 'numCompendiumsFeature',
+            'actor': 'numCompendiumsActor'
+        };
+        const numCompendiums = game.settings.get(MODULE.ID, numSettingMap[type]) || 1;
+
+        for (let i = 1; i <= numCompendiums; i++) {
             const settingKey = `${mappedType.compendium}Compendium${i}`;
             try {
                 const compendiumName = game.settings.get(MODULE.ID, settingKey);
@@ -186,8 +195,16 @@ export class CompendiumManager {
             searchOrder.push('world');
         }
         
-        // Add compendiums in order
-        for (let i = 1; i <= 8; i++) {
+        // Add compendiums in order (settings object already filtered to configured number)
+        // Find the highest compendium number in settings
+        let maxNum = 0;
+        for (const key in settings) {
+            if (key.startsWith('compendium')) {
+                const num = parseInt(key.replace('compendium', ''));
+                if (num > maxNum) maxNum = num;
+            }
+        }
+        for (let i = 1; i <= maxNum; i++) {
             const compendiumKey = `compendium${i}`;
             if (settings[compendiumKey]) {
                 searchOrder.push(settings[compendiumKey]);
