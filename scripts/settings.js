@@ -671,9 +671,9 @@ function getSoundChoices() {
     return choices; 
 }
 
-// ================================================================== 
+// ====================================================================================================================  
 // ===== SETTINGS ===================================================
-// ================================================================== 
+// ==================================================================================================================== 
 
 export const registerSettings = () => {
     // Settings registration function - called during the 'ready' phase when Foundry is ready
@@ -1002,20 +1002,38 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
-	// -- Scene Panel Height --
-	game.settings.register(MODULE.ID, 'scenePanelHeight', {
-		name: MODULE.ID + '.scenePanelHeight-Label',
-		hint: MODULE.ID + '.scenePanelHeight-Hint',
+	// -- Scene Text Align --
+	game.settings.register(MODULE.ID, 'sceneTextAlign', {
+		name: MODULE.ID + '.sceneTextAlign-Label',
+		hint: MODULE.ID + '.sceneTextAlign-Hint',
+		scope: 'world',
+		config: true,
+		requiresReload: true,
+		type: String,
+		default: 'left',
+		choices: {
+			'center': 'Foundry Default (Center)',
+			'left': 'Left Align Scene Title',
+			'right': 'Right Align Scene Title',
+		},
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
+
+	// -- Scene Text Size --
+	game.settings.register(MODULE.ID, 'sceneFontSize', {
+		name: MODULE.ID + '.sceneFontSize-Label',
+		hint: MODULE.ID + '.sceneFontSize-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: true,
 		type: Number,
 		range: {
-			min: 30,
-			max: 300,
-			step: 5,
+			min: .5,
+			max: 3,
+			step: .05,
 		},
-		default: 100,
+		default: 1,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
@@ -1036,37 +1054,20 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
-	// -- Scene Text Align --
-	game.settings.register(MODULE.ID, 'sceneTextAlign', {
-		name: MODULE.ID + '.sceneTextAlign-Label',
-		hint: MODULE.ID + '.sceneTextAlign-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: true,
-		type: String,
-		default: 'left',
-		choices: {
-			'center': 'Foundry Default (Center)',
-			'left': 'Left Align Scene Title',
-			'right': 'Right Align Scene Title',
-		},
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
-
-	// -- Scene Text Size --
-	game.settings.register(MODULE.ID, 'sceneFontSize', {
-		name: MODULE.ID + '.sceneFontSize-Label',
-		hint: MODULE.ID + '.sceneFontSize-Hint',
+	// -- Scene Panel Height --
+	game.settings.register(MODULE.ID, 'scenePanelHeight', {
+		name: MODULE.ID + '.scenePanelHeight-Label',
+		hint: MODULE.ID + '.scenePanelHeight-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: true,
 		type: Number,
 		range: {
-			min: .5,
-			max: 3,
-			step: .05,
+			min: 30,
+			max: 300,
+			step: 5,
 		},
-		default: 1,
+		default: 100,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
@@ -1102,6 +1103,24 @@ export const registerSettings = () => {
 		default: 3,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
+
+	// -- Top Offset --
+	game.settings.register(MODULE.ID,'cardTopOffset', {
+		name: MODULE.ID + '.cardTopOffset-Label',
+		hint: MODULE.ID + '.cardTopOffset-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: true,
+		type: Number,
+		range: {
+		min: -80,
+		max: 80,
+		step: 1,
+		},
+		default: 50,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
 	// -- Top Margin --
 	game.settings.register(MODULE.ID,'cardTopMargin', {
 		name: MODULE.ID + '.cardTopMargin-Label',
@@ -1166,23 +1185,6 @@ export const registerSettings = () => {
 		default: 0,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
-	// -- Top Offset --
-	game.settings.register(MODULE.ID,'cardTopOffset', {
-		name: MODULE.ID + '.cardTopOffset-Label',
-		hint: MODULE.ID + '.cardTopOffset-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: true,
-		type: Number,
-		range: {
-		min: -80,
-		max: 80,
-		step: 1,
-		},
-		default: 50,
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
-
 
 	// --------------------------------------
 	// -- H3: WINDOWS
@@ -1246,6 +1248,16 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('JournalTools', 'headingH3JournalTools-Label', 'headingH3JournalTools-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
+	// -- Journal Tools --
+	game.settings.register(MODULE.ID, 'enableJournalTools', {
+		name: MODULE.ID + '.enableJournalTools-Label',
+		hint: MODULE.ID + '.enableJournalTools-Hint',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: true,
+	});
+
 	// -- Enable Journal Double-Click --
 	game.settings.register(MODULE.ID, 'enableJournalDoubleClick', {
 		name: MODULE.ID + '.enableJournalDoubleClick-Label',
@@ -1257,26 +1269,6 @@ export const registerSettings = () => {
 		default: true,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
-
-	// -- Journal Tools --
-	game.settings.register(MODULE.ID, 'enableJournalTools', {
-		name: MODULE.ID + '.enableJournalTools-Label',
-		hint: MODULE.ID + '.enableJournalTools-Hint',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: true,
-	});
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1523,6 +1515,17 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// Hide Foundry Default Target Indicators
+	game.settings.register(MODULE.ID, 'hideDefaultTargetIndicators', {
+		name: 'Hide Default Target Indicators',
+		hint: 'Hide Foundry\'s default target indicators (reticles, brackets, pips) to use only custom indicators.',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: false,
+		requiresReload: false
+	});
+
 	game.settings.register(MODULE.ID, 'targetedIndicatorStyle', {
 		name: MODULE.ID + '.targetedIndicatorStyle-Label',
 		hint: MODULE.ID + '.targetedIndicatorStyle-Hint',
@@ -1597,35 +1600,630 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	// Hide Foundry Default Target Indicators
-	game.settings.register(MODULE.ID, 'hideDefaultTargetIndicators', {
-		name: 'Hide Default Target Indicators',
-		hint: 'Hide Foundry\'s default target indicators (reticles, brackets, pips) to use only custom indicators.',
-		scope: 'client',
+
+
+	// --------------------------------------
+	// -- H2: Timers
+	// --------------------------------------
+	registerHeader('Timers', 'headingH2Timers-Label', 'headingH2Timers-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+	// --------------------------------------
+	// -- H3: Session Timer Settings	
+	// --------------------------------------
+	registerHeader('GlobalTimerSettings', 'headingH3GlobalTimerSettings-Label', 'headingH3GlobalTimerSettings-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+	// -- Timer Visibility --
+	game.settings.register(MODULE.ID, 'combatTimerGMOnly', {
+		name: MODULE.ID + '.combatTimerGMOnly-Label',
+		hint: MODULE.ID + '.combatTimerGMOnly-Hint',
+		scope: 'world',
 		config: true,
 		type: Boolean,
 		default: false,
-		requiresReload: false
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Timer Show Notifications --
+	game.settings.register(MODULE.ID, 'timerShowNotifications', {
+		name: MODULE.ID + '.timerShowNotifications-Label',
+		hint: MODULE.ID + '.timerShowNotifications-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true
+	});
+
+	// -- Notification Override List --
+	game.settings.register(MODULE.ID, 'timerNotificationOverride', {
+		name: MODULE.ID + '.timerNotificationOverride-Label',
+		hint: MODULE.ID + '.timerNotificationOverride-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Hurry Up Message Sound --
+	game.settings.register(MODULE.ID, 'hurryUpSound', {
+		name: MODULE.ID + '.hurryUpSound-Label',
+		hint: MODULE.ID + '.hurryUpSound-Hint',
+		scope: "world",
+		config: true,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none",
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Timer Pause/Resume Sound --
+	game.settings.register(MODULE.ID, 'timerPauseResumeSound', {
+		name: MODULE.ID + '.timerPauseResumeSound-Label',
+		hint: MODULE.ID + '.timerPauseResumeSound-Hint',
+		scope: "world",
+		config: true,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none",
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Timer Sound Volume --
+	game.settings.register(MODULE.ID, 'timerSoundVolume', {
+		name: MODULE.ID + '.timerSoundVolume-Label',
+		hint: MODULE.ID + '.timerSoundVolume-Hint',
+		scope: "client",
+		config: true,
+		type: Number,
+		default: 0.8,
+		range: {
+			min: 0,
+			max: 1,
+			step: 0.1
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// --------------------------------------
+	// -- H3: Global Timer Notifications	
+	// --------------------------------------
+	registerHeader('GlobalTimerNotifications', 'headingH3GlobalTimerNotifications-Label', 'headingH3GlobalTimerNotifications-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+	// Timer Chat Message Settings
+	game.settings.register(MODULE.ID, 'timerChatPauseUnpause', {
+		name: MODULE.ID + '.timerChatPauseUnpause-Label',
+		hint: MODULE.ID + '.timerChatPauseUnpause-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Planning Starting --
+	game.settings.register(MODULE.ID, 'timerChatPlanningStart', {
+		name: MODULE.ID + '.timerChatPlanningStart-Label',
+		hint: MODULE.ID + '.timerChatPlanningStart-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Planning Ending Soon --
+	game.settings.register(MODULE.ID, 'timerChatPlanningRunningOut', {
+		name: MODULE.ID + '.timerChatPlanningRunningOut-Label',
+		hint: MODULE.ID + '.timerChatPlanningRunningOut-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Planning Ended --
+	game.settings.register(MODULE.ID, 'timerChatPlanningEnded', {
+		name: MODULE.ID + '.timerChatPlanningEnded-Label',
+		hint: MODULE.ID + '.timerChatPlanningEnded-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Turn Starting --
+	game.settings.register(MODULE.ID, 'timerChatTurnStart', {
+		name: MODULE.ID + '.timerChatTurnStart-Label',
+		hint: MODULE.ID + '.timerChatTurnStart-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Turn Ending Soon --
+	game.settings.register(MODULE.ID, 'timerChatTurnRunningOut', {
+		name: MODULE.ID + '.timerChatTurnRunningOut-Label',
+		hint: MODULE.ID + '.timerChatTurnRunningOut-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Turn Ended --
+	game.settings.register(MODULE.ID, 'timerChatTurnEnded', {
+		name: MODULE.ID + '.timerChatTurnEnded-Label',
+		hint: MODULE.ID + '.timerChatTurnEnded-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// --------------------------------------
+	// -- H3: Session Timer Settings	
+	// --------------------------------------
+	registerHeader('SessionTimers', 'headingH3SessionTimers-Label', 'headingH3SessionTimers-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+
+	// Session Start Time - HIDDEN SETTINGS
+	game.settings.register(MODULE.ID, 'sessionStartTime', {
+		scope: 'world',
+		config: false,
+		type: Number,
+		default: 0,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+	
+	// Session End Time - HIDDEN SETTINGS
+	game.settings.register(MODULE.ID, 'sessionEndTime', {
+		scope: 'world',
+		config: false,
+		type: Number,
+		default: 0,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// Session Timer Date - HIDDEN SETTINGS
+	game.settings.register(MODULE.ID, 'sessionTimerDate', {
+		scope: 'world',
+		config: false,
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// Menubar Settings
+	game.settings.register(MODULE.ID, 'sessionTimerDefault', {
+		name: MODULE.ID + '.sessionTimerDefault-Label',
+		hint: MODULE.ID + '.sessionTimerDefault-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 60,
+		range: {
+			min: 15,
+			max: 600,
+			step: 1
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// Menubar Settings
+	game.settings.register(MODULE.ID, 'sessionTimerWarningThreshold', {
+		name: MODULE.ID + '.sessionTimerWarningThreshold-Label',
+		hint: MODULE.ID + '.sessionTimerWarningThreshold-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 15,
+		range: {
+			min: 1,
+			max: 60,
+			step: 1
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Session Timer Warning Sound --
+	game.settings.register(MODULE.ID, 'sessionTimerWarningSound', {
+		name: MODULE.ID + '.sessionTimerWarningSound-Label',
+		hint: MODULE.ID + '.sessionTimerWarningSound-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'none',
+		choices: BLACKSMITH.arrSoundChoices,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Session Timer Warning Message --
+	game.settings.register(MODULE.ID, 'sessionTimerWarningMessage', {
+		name: MODULE.ID + '.sessionTimerWarningMessage-Label',
+		hint: MODULE.ID + '.sessionTimerWarningMessage-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'Time is running out in the session. We have about {time} remaining in our session.',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME	
+	});
+
+	// -- Session Timer Expired Sound --
+	game.settings.register(MODULE.ID, 'sessionTimerExpiredSound', {
+		name: MODULE.ID + '.sessionTimerExpiredSound-Label',
+		hint: MODULE.ID + '.sessionTimerExpiredSound-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'none',
+		choices: BLACKSMITH.arrSoundChoices,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Session Timer Expired Message --
+	game.settings.register(MODULE.ID, 'sessionTimerExpiredMessage', {
+		name: MODULE.ID + '.sessionTimerExpiredMessage-Label',
+		hint: MODULE.ID + '.sessionTimerExpiredMessage-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'Time has run out in this session. Bummer. We can pick up here next time.',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
 
 
+	// --------------------------------------
+	// -- H3: Round Timer Settings	
+	// --------------------------------------
+	registerHeader('RoundTimer', 'headingH3RoundTimer-Label', 'headingH3RoundTimer-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	
+	// -- Show Round Timer --
+	game.settings.register(MODULE.ID, 'showRoundTimer', {
+		name: MODULE.ID + '.showRoundTimer-Label',
+		hint: MODULE.ID + '.showRoundTimer-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// Announce New Rounds
+	game.settings.register(MODULE.ID, 'announceNewRounds', {
+		name: MODULE.ID + '.announceNewRounds-Label',
+		hint: MODULE.ID + '.announceNewRounds-Hint',
+		scope: 'world',
+		config: true,
+		requiresReload: false,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// New Round Sound Setting
+	game.settings.register(MODULE.ID, 'newRoundSound', {
+		name: MODULE.ID + '.newRoundSound-Label',
+		hint: MODULE.ID + '.newRoundSound-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none",
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// --------------------------------------
+	// -- H3: Planning Timer Settings	
+	// --------------------------------------
+	registerHeader('PlanningTimer', 'headingH3PlanningTimer-Label', 'headingH3PlanningTimer-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	
+	// Planning Timer Settings
+	game.settings.register(MODULE.ID, 'planningTimerEnabled', {
+		name: MODULE.ID + '.planningTimerEnabled-Label',
+		hint: MODULE.ID + '.planningTimerEnabled-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Planning Timer Auto Start --
+	game.settings.register(MODULE.ID, 'planningTimerAutoStart', {
+		name: MODULE.ID + '.planningTimerAutoStart-Label',
+		hint: MODULE.ID + '.planningTimerAutoStart-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Planning Timer Label --
+	game.settings.register(MODULE.ID, 'planningTimerLabel', {
+		name: MODULE.ID + '.planningTimerLabel-Label',
+		hint: MODULE.ID + '.planningTimerLabel-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'Planning',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Planning Timer Duration --
+	game.settings.register(MODULE.ID, 'planningTimerDuration', {
+		name: MODULE.ID + '.planningTimerDuration-Label',
+		hint: MODULE.ID + '.planningTimerDuration-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 120,
+		range: {
+			min: 5,
+			max: 900,
+			step: 5
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Planning Timer Ending Soon Threshold --
+	game.settings.register(MODULE.ID, 'planningTimerEndingSoonThreshold', {
+		name: MODULE.ID + '.planningTimerEndingSoonThreshold-Label',
+		hint: MODULE.ID + '.planningTimerEndingSoonThreshold-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 20,
+		range: {
+			min: 1,
+			max: 100,
+			step: 1
+		},	
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Planning Timer Ending Soon Message --
+	game.settings.register(MODULE.ID, 'planningTimerEndingSoonMessage', {
+		name: MODULE.ID + '.planningTimerEndingSoonMessage-Label',
+		hint: MODULE.ID + '.planningTimerEndingSoonMessage-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'Planning phase ending soon!',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Planning Timer Ending Soon Sound --
+	game.settings.register(MODULE.ID, 'planningTimerEndingSoonSound', {
+		name: MODULE.ID + '.planningTimerEndingSoonSound-Label',
+		hint: MODULE.ID + '.planningTimerEndingSoonSound-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'none',
+		choices: BLACKSMITH.arrSoundChoices,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Planning Timer Expired Message --
+	game.settings.register(MODULE.ID, 'planningTimerExpiredMessage', {
+		name: MODULE.ID + '.planningTimerExpiredMessage-Label',
+		hint: MODULE.ID + '.planningTimerExpiredMessage-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'Planning phase has ended!',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Planning Timer Expired Sound --
+	game.settings.register(MODULE.ID, 'planningTimerExpiredSound', {
+		name: MODULE.ID + '.planningTimerExpiredSound-Label',
+		hint: MODULE.ID + '.planningTimerExpiredSound-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'none',
+		choices: BLACKSMITH.arrSoundChoices,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// --------------------------------------
+	// -- H3: Combat Timer Settings	
+	// --------------------------------------
+	registerHeader('CombatTimer', 'headingH3CombatTimer-Label', 'headingH3CombatTimer-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	
+	// -- Combat Timer Enabled --
+	game.settings.register(MODULE.ID, 'combatTimerEnabled', {
+		name: MODULE.ID + '.combatTimerEnabled-Label',
+		hint: MODULE.ID + '.combatTimerEnabled-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Auto Start Timer --
+	game.settings.register(MODULE.ID, 'combatTimerAutoStart', {
+		name: MODULE.ID + '.combatTimerAutoStart-Label',
+		hint: MODULE.ID + '.combatTimerAutoStart-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Activity Starts Timer --
+	game.settings.register(MODULE.ID, 'combatTimerActivityStart', {
+		name: MODULE.ID + '.combatTimerActivityStart-Label',
+		hint: MODULE.ID + '.combatTimerActivityStart-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	game.settings.register(MODULE.ID, 'combatTimerDuration', {
+		name: MODULE.ID + '.combatTimerDuration-Label',
+		hint: MODULE.ID + '.combatTimerDuration-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 120,
+		range: {
+			min: 10,
+			max: 900,
+			step: 5
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
 
 
+	// Combat Timer Settings
+	game.settings.register(MODULE.ID, 'combatTimerStartSound', {
+		name: MODULE.ID + '.combatTimerStartSound-Label',
+		hint: MODULE.ID + '.combatTimerStartSound-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'none',
+		choices: BLACKSMITH.arrSoundChoices,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
 
 
+	// -- Warning Threshold --
+	game.settings.register(MODULE.ID, 'combatTimerWarningThreshold', {
+		name: MODULE.ID + '.combatTimerWarningThreshold-Label',
+		hint: MODULE.ID + '.combatTimerWarningThreshold-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 50,
+		range: {
+			min: 20,
+			max: 80,
+			step: 5
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Warning Message --
+	game.settings.register(MODULE.ID, 'combatTimerWarningMessage', {
+		name: MODULE.ID + '.combatTimerWarningMessage-Label',
+		hint: MODULE.ID + '.combatTimerWarningMessage-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '{name} is running out of time!'
+	});
+
+	// -- Warning Sound --
+	game.settings.register(MODULE.ID, 'combatTimerWarningSound', {
+		name: MODULE.ID + '.combatTimerWarningSound-Label',
+		hint: MODULE.ID + '.combatTimerWarningSound-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'none',
+		choices: BLACKSMITH.arrSoundChoices,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Critical Threshold --
+	game.settings.register(MODULE.ID, 'combatTimerCriticalThreshold', {
+		name: MODULE.ID + '.combatTimerCriticalThreshold-Label',
+		hint: MODULE.ID + '.combatTimerCriticalThreshold-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 20,
+		range: {
+			min: 5,
+			max: 40,
+			step: 5
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Critical Message --
+	game.settings.register(MODULE.ID, 'combatTimerCriticalMessage', {
+		name: MODULE.ID + '.combatTimerCriticalMessage-Label',
+		hint: MODULE.ID + '.combatTimerCriticalMessage-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '{name} is running out of time!',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Critical Sound --
+	game.settings.register(MODULE.ID, 'combatTimerCriticalSound', {
+		name: MODULE.ID + '.combatTimerCriticalSound-Label',
+		hint: MODULE.ID + '.combatTimerCriticalSound-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'none',
+		choices: BLACKSMITH.arrSoundChoices,
+	});
+
+	// -- Expired Message --
+	game.settings.register(MODULE.ID, 'combatTimerExpiredMessage', {
+		name: MODULE.ID + '.combatTimerExpiredMessage-Label',
+		hint: MODULE.ID + '.combatTimerExpiredMessage-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '{name}\'s time has expired!',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Expired Sound --
+	game.settings.register(MODULE.ID, 'combatTimeisUpSound', {
+		name: MODULE.ID + '.combatTimerExpiredSound-Label',
+		hint: MODULE.ID + '.combatTimerExpiredSound-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'none',
+		choices: BLACKSMITH.arrSoundChoices,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
 
 
+	// -- End Turn on Timer Expiration --
+	game.settings.register(MODULE.ID, 'combatTimerEndTurn', {
+		name: MODULE.ID + '.combatTimerEndTurn-Label',
+		hint: MODULE.ID + '.combatTimerEndTurn-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
 
-
-
-
-
-
-
-
-
-
+	// -- Auto End Turn Message --
+	game.settings.register(MODULE.ID, 'combatTimerAutoAdvanceMessage', {
+		name: MODULE.ID + '.combatTimerAutoAdvanceMessage-Label',
+		hint: MODULE.ID + '.combatTimerAutoAdvanceMessage-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '{name}\'s turn was automatically ended due to time expiration.',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});	
 
 
 
@@ -1677,6 +2275,24 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('diceRollTool', 'headingH2diceRollTool-Label', 'headingH2diceRollTool-Hint', 'H2', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
 
+
+
+	// -- Skill Check Preferences - HIDDEN SETTING --
+	game.settings.register(MODULE.ID, 'skillCheckPreferences', {
+		name: 'Skill Check Preferences',
+		hint: 'Default preferences for skill check dialog',
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {
+			showRollExplanation: true,
+			showDC: true,
+			groupRoll: true,
+			isCinematic: false
+		},
+		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
+	});
+
 	// -- Chat Roll System Choice --
 	game.settings.register(MODULE.ID, 'diceRollToolSystem', {
 		name: 'Chat Roll System',
@@ -1706,31 +2322,20 @@ export const registerSettings = () => {
 	});
 
 
-	// -- Skill Check Preferences - HIDDEN SETTING --
-	game.settings.register(MODULE.ID, 'skillCheckPreferences', {
-		name: 'Skill Check Preferences',
-		hint: 'Default preferences for skill check dialog',
-		scope: 'client',
-		config: false,
-		type: Object,
-		default: {
-			showRollExplanation: true,
-			showDC: true,
-			groupRoll: true,
-			isCinematic: false
-		},
-		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
-	});
-
 	// --------------------------------------
 	// -- H2: XP DISTRIBUTION
 	// --------------------------------------
 	registerHeader('XpDistribution', 'headingH2XpDistribution-Label', 'headingH2XpDistribution-Hint', 'H2', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
 
+	// --------------------------------------
+	// -- H3: XP Configuration
+	// --------------------------------------
+	registerHeader('XpConfiguration', 'headingH3XpConfiguration-Label', 'headingH3XpConfiguration-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
+
 	// -- Enable XP Distribution --
 	game.settings.register(MODULE.ID, 'enableXpDistribution', {
-		name: 'Enable XP Distribution',
-		hint: 'When enabled, automatically show XP distribution window when combat ends',
+		name: MODULE.ID + '.enableXpDistribution-Label',
+		hint: MODULE.ID + '.enableXpDistribution-Hint',
 		scope: 'world',
 		config: true,
 		type: Boolean,
@@ -1740,8 +2345,8 @@ export const registerSettings = () => {
 
 	// -- Auto-distribute XP --
 	game.settings.register(MODULE.ID, 'autoDistributeXp', {
-		name: 'Auto-distribute XP',
-		hint: 'When enabled, automatically distribute XP without showing the distribution window',
+		name: MODULE.ID + '.autoDistributeXp-Label',
+		hint: MODULE.ID + '.autoDistributeXp-Hint',
 		scope: 'world',
 		config: true,
 		type: Boolean,
@@ -1751,8 +2356,8 @@ export const registerSettings = () => {
 
 	// -- Share XP Results --
 	game.settings.register(MODULE.ID, 'shareXpResults', {
-		name: 'Share XP Results',
-		hint: 'If enabled, XP distribution results will be shared to all players. If disabled, only the GM will see them.',
+		name: MODULE.ID + '.shareXpResults-Label',
+		hint: 	MODULE.ID + '.shareXpResults-Hint',
 		scope: 'world',
 		config: true,
 		type: Boolean,
@@ -1762,8 +2367,8 @@ export const registerSettings = () => {
 
 	// -- XP Calculation Method --
 	game.settings.register(MODULE.ID, 'xpCalculationMethod', {
-		name: 'XP Calculation Method',
-		hint: 'Choose the method for calculating XP from monster CR. "Narrative/Goal-Based XP" allows you to enter XP for each player directly.',
+		name: MODULE.ID + '.xpCalculationMethod-Label',
+		hint: MODULE.ID + '.xpCalculationMethod-Hint',
 		scope: 'world',
 		config: true,
 		type: String,
@@ -1777,8 +2382,8 @@ export const registerSettings = () => {
 
 	// -- Party Size Handling --
 	game.settings.register(MODULE.ID, 'xpPartySizeHandling', {
-		name: 'Party Size Handling',
-		hint: 'Choose how XP is divided among the party. "D&D 5e RAW (No Multipliers)" divides total base XP among players (official rules). "House Rules (Scale for Party Size)" applies a party size multiplier to XP awarded (not RAW).',
+		name: MODULE.ID + '.xpPartySizeHandling-Label',
+		hint: MODULE.ID + '.xpPartySizeHandling-Hint',
 		scope: 'world',
 		config: true,
 		type: String,
@@ -1790,11 +2395,15 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 	});
 
+	// --------------------------------------
+	// -- H3: XP Multipliers
+	// --------------------------------------
+	registerHeader('XpMultipliers', 'headingH3XpMultipliers-Label', 'headingH3XpMultipliers-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
 
 	// -- Resolution Type XP Multipliers --
 	game.settings.register(MODULE.ID, 'xpMultiplierDefeated', {
-		name: 'Defeated XP Multiplier',
-		hint: 'Multiplier for defeated monsters (Default: 1.0)',
+		name: MODULE.ID + '.xpMultiplierDefeated-Label',
+		hint: MODULE.ID + '.xpMultiplierDefeated-Hint',
 		scope: 'world',
 		config: true,
 		type: Number,
@@ -1807,9 +2416,10 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 	});
 
+	// -- Negotiated XP Multiplier --
 	game.settings.register(MODULE.ID, 'xpMultiplierNegotiated', {
-		name: 'Negotiated XP Multiplier',
-		hint: 'Multiplier for negotiated monsters (Default: 1.0)',
+		name: MODULE.ID + '.xpMultiplierNegotiated-Label',
+		hint: MODULE.ID + '.xpMultiplierNegotiated-Hint',
 		scope: 'world',
 		config: true,
 		type: Number,
@@ -1822,9 +2432,26 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 	});
 
+	// -- Captured XP Multiplier --
+	game.settings.register(MODULE.ID, 'xpMultiplierCaptured', {
+		name: MODULE.ID + '.xpMultiplierCaptured-Label',
+		hint: MODULE.ID + '.xpMultiplierCaptured-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 1.0,
+		range: {
+		min: 0,
+			max: 3,
+			step: 0.05
+		},
+		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
+	});
+
+	// -- Escaped XP Multiplier --
 	game.settings.register(MODULE.ID, 'xpMultiplierEscaped', {
-		name: 'Escaped XP Multiplier',
-		hint: 'Multiplier for monsters that escaped (Default: 1.0)',
+		name: MODULE.ID + '.xpMultiplierEscaped-Label',
+		hint: MODULE.ID + '.xpMultiplierEscaped-Hint',
 		scope: 'world',
 		config: true,
 		type: Number,
@@ -1837,9 +2464,10 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 	});
 
+	// -- Ignored XP Multiplier --
 	game.settings.register(MODULE.ID, 'xpMultiplierIgnored', {
-		name: 'Ignored XP Multiplier',
-		hint: 'Multiplier for ignored monsters (Default: 0.0)',
+		name: MODULE.ID + '.xpMultiplierIgnored-Label',
+		hint: MODULE.ID + '.xpMultiplierIgnored-Hint',
 		scope: 'world',
 		config: true,
 		type: Number,
@@ -1851,32 +2479,6 @@ export const registerSettings = () => {
 		},
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 	});
-
-	game.settings.register(MODULE.ID, 'xpMultiplierCaptured', {
-		name: 'Captured XP Multiplier',
-		hint: 'Multiplier for captured monsters (Default: 1.0)',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 1.0,
-		range: {
-		min: 0,
-			max: 3,
-			step: 0.05
-		},
-		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
-	});
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2007,8 +2609,6 @@ export const registerSettings = () => {
 
 	// -- Pre-Combat Movement Mode Storage - HIDDEN SETTING --
 	game.settings.register(MODULE.ID, 'preCombatMovementMode', {
-		name: 'Pre-Combat Movement Mode',
-		hint: 'Stores the movement mode that was active before combat started (for client refresh restoration)',
 		type: String,
 		config: false,
 		scope: 'world',
@@ -2105,8 +2705,8 @@ export const registerSettings = () => {
 
 	// -- Unlock Token Rotation --
 	game.settings.register(MODULE.ID, 'unlockTokenRotation', {
-		name: 'Unlock Token Rotation',
-		hint: 'Override Foundry\'s default "lock rotation" setting for all new tokens. This will allow tokens to be rotated freely.',
+		name: MODULE.ID + '.unlockTokenRotation-Label',
+		hint: MODULE.ID + '.unlockTokenRotation-Hint',
 		type: Boolean,
 		config: true,
 		requiresReload: false,
@@ -2117,8 +2717,8 @@ export const registerSettings = () => {
 
 	// -- Disable Token Ring --
 	game.settings.register(MODULE.ID, 'disableTokenRing', {
-		name: 'Disable Token Ring',
-		hint: 'Override Foundry\'s default "enable ring" setting for all new tokens. This will disable the dynamic token ring display. Note: This setting only affects Foundry\'s ring system and will not remove rings that are part of the token image itself.',
+		name: MODULE.ID + '.disableTokenRing-Label',
+		hint: MODULE.ID + '.disableTokenRing-Hint',
 		type: Boolean,
 		config: true,
 		requiresReload: false,
@@ -2129,8 +2729,8 @@ export const registerSettings = () => {
 
 	// -- Set Token Scale --
 	game.settings.register(MODULE.ID,'setTokenScale', {
-		name: 'Set Token Scale',
-		hint: 'Set the default scale size for dropped tokens.',
+		name: MODULE.ID + '.setTokenScale-Label',
+		hint: MODULE.ID + '.setTokenScale-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: false,
@@ -2146,8 +2746,8 @@ export const registerSettings = () => {
 
 	// -- Fit Mode --
 	game.settings.register(MODULE.ID, 'setTokenImageFitMode', {
-		name: 'Image Fit Mode',
-		hint: 'Set the image fit mode for dropped tokens. (default is Contain)',
+		name: MODULE.ID + '.setTokenImageFitMode-Label',
+		hint: MODULE.ID + '.setTokenImageFitMode-Hint',
 		type: String,
 		choices: {
 			"fill": "Fill",
@@ -2442,8 +3042,6 @@ export const registerSettings = () => {
 
 	// Token Image Replacement Cache (server-side storage) - HIDDEN SETTING
 	game.settings.register(MODULE.ID, 'tokenImageReplacementCache', {
-		name: 'Token Image Replacement Cache',
-		hint: 'Internal cache storage for token image replacement system (server-side)',
 		scope: 'world',
 		config: false, // Hidden from users - internal use only
 		type: String,
@@ -2593,12 +3191,10 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
-
 	// Fuzzy Search
 	game.settings.register(MODULE.ID, 'tokenImageReplacementFuzzySearch', {
 		name: MODULE.ID + '.tokenImageReplacementFuzzySearch-Label',
 		hint: MODULE.ID + '.tokenImageReplacementFuzzySearch-Hint',
-		hint: 'When enabled, searches for individual words independently. When disabled, searches for exact string matches.',
 		type: Boolean,
 		config: true, // Hidden setting - controlled by UI toggle
 		requiresReload: false,
@@ -2700,7 +3296,6 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightSize', {
 		name: MODULE.ID + '.tokenImageReplacementWeightSize-Label',
 		hint: MODULE.ID + '.tokenImageReplacementWeightSize-Hint',
-		hint: 'How important size is for matching (e.g., "Large", "Medium", "Huge")',
 		type: Number,
 		config: true,
 		scope: 'world',
@@ -2708,8 +3303,6 @@ export const registerSettings = () => {
 		default: 3,
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
-
-
 
 
 	// --------------------------------------
@@ -2757,8 +3350,8 @@ export const registerSettings = () => {
 
 	// -- Encounter Folder --
 	game.settings.register(MODULE.ID, 'encounterFolder', {
-		name: 'Encounter Folder',
-		hint: 'Folder in which to add actors when deloying from the journal. Leave blank to not put them in a folder.',
+		name: MODULE.ID + '.encounterFolder-Label',
+		hint: MODULE.ID + '.encounterFolder-Hint',
 		scope: 'world',
 		config: true,
 		type: String,
@@ -2794,30 +3387,6 @@ export const registerSettings = () => {
 		default: false,
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
 
 
 
@@ -3164,6 +3733,23 @@ export const registerSettings = () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	// ==================================================================================================================== 
 	// ===== TEMPORARY DIVIDER - NEW VS OLD ORGANIZATION ===============
 	// ==================================================================================================================== 
@@ -3181,156 +3767,6 @@ export const registerSettings = () => {
 		default: "",
 		type: String,
 	});
-
-
-
-
-
-		// Session Timer Settings
-		game.settings.register(MODULE.ID, 'sessionEndTime', {
-			name: 'Session End Time',
-			hint: 'When the current session timer will end (in milliseconds)',
-			scope: 'world',
-			config: false,
-			type: Number,
-			default: 0
-		});
-
-		game.settings.register(MODULE.ID, 'sessionStartTime', {
-			name: 'Session Start Time',
-			hint: 'When the current session timer was started (in milliseconds)',
-			scope: 'world',
-			config: false,
-			type: Number,
-			default: 0
-		});
-
-		game.settings.register(MODULE.ID, 'sessionTimerDate', {
-			name: 'Session Timer Date',
-			hint: 'The date when the session timer was last set',
-			scope: 'world',
-			config: false,
-			type: String,
-			default: ''
-		});
-
-		// Menubar Settings
-		game.settings.register(MODULE.ID, 'sessionTimerDefault', {
-			name: 'Default Session Time',
-			hint: 'The default duration of the session. (Up to 10 hours)',
-			scope: 'world',
-			config: true,
-			type: Number,
-			default: 60,
-			range: {
-				min: 15,
-				max: 600,
-				step: 1
-			}
-		});
-
-		// Menubar Settings
-		game.settings.register(MODULE.ID, 'sessionTimerWarningThreshold', {
-			name: 'Session Timer Warning Time',
-			hint: 'How many minutes before the end to show the warning (1-60 minutes)',
-			scope: 'world',
-			config: true,
-			type: Number,
-			default: 15,
-			range: {
-				min: 1,
-				max: 60,
-				step: 1
-			}
-		});
-
-		game.settings.register(MODULE.ID, 'sessionTimerWarningSound', {
-			name: 'Session Timer Warning Sound',
-			hint: 'Sound to play when time is running out',
-			scope: 'world',
-			config: true,
-			type: String,
-			default: 'none',
-			choices: BLACKSMITH.arrSoundChoices
-		});
-
-		game.settings.register(MODULE.ID, 'sessionTimerWarningMessage', {
-			name: 'Session Timer Warning Message',
-			hint: 'Message to display when time is running out. Use {time} for remaining time.',
-			scope: 'world',
-			config: true,
-			type: String,
-			default: 'Time is running out in the session. We have about {time} remaining in our session.'
-		});
-
-		game.settings.register(MODULE.ID, 'sessionTimerExpiredSound', {
-			name: 'Session Timer Expired Sound',
-			hint: 'Sound to play when time has run out',
-			scope: 'world',
-			config: true,
-			type: String,
-			default: 'none',
-			choices: BLACKSMITH.arrSoundChoices
-		});
-
-		game.settings.register(MODULE.ID, 'sessionTimerExpiredMessage', {
-			name: 'Session Timer Expired Message',
-			hint: 'Message to display when time has run out',
-			scope: 'world',
-			config: true,
-			type: String,
-			default: 'Time has run out in this session. Bummer. We can pick up here next time.'
-		});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		
-
-
 
 
 
@@ -3582,36 +4018,6 @@ export const registerSettings = () => {
 
 
 	
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3997,22 +4403,6 @@ export const registerSettings = () => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	// -------------------------------------
 
 	// *** COMBAT TRACKER SETTINGS ***
@@ -4121,18 +4511,6 @@ export const registerSettings = () => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 	// -- Combat Tracker Size Data (Internal) --
 	game.settings.register(MODULE.ID, 'combatTrackerSize', {
 		name: 'Combat Tracker Size Data',
@@ -4190,682 +4568,6 @@ export const registerSettings = () => {
 			step: 2,		
 		},
 	});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	// *** TIMER SETTINGS ***
-
-	// ---------- SUBHEADING ----------
-	game.settings.register(MODULE.ID, "headingH2Timers", {
-		name: 'TIMERS',
-		hint: 'These settings will allow you to add both combat and planning timers into the combat tracker. They can be used to keep the players on track and to keep the GM in control.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	// ---------- GLOBAL TIMER SETTINGS ----------
-	game.settings.register(MODULE.ID, "headingH3GlobalTimer", {
-		name: 'SHARED TIMER SETTINGS',
-		hint: 'These settings will allow you to set the default timer settings for both the combat and planning timers.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-
-	// -- Timer Visibility --
-	game.settings.register(MODULE.ID, 'combatTimerGMOnly', {
-		name: 'GM-Only Timers',
-		hint: 'When enabled, the timers will only be visible to the GM in the combat tracker',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-
-	// Add shared notification setting under "SHARED TIMER SETTINGS"
-	game.settings.register(MODULE.ID, 'timerShowNotifications', {
-		name: 'Show Timer Notifications',
-		hint: 'Show notifications for timer events (expiration, warnings, etc.)',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-	// -- Notification Override List --
-	game.settings.register(MODULE.ID, 'timerNotificationOverride', {
-		name: 'Notification Override List',
-		hint: 'Always show notifications to these actors (comma-separated names), even if notifications are disabled',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: ''
-	});
-
-	// Add this with the other shared timer settings under "SHARED TIMER SETTINGS"
-	game.settings.register(MODULE.ID, 'hurryUpSound', {
-		name: "Hurry Up Message Sound",
-		hint: "Sound to play when a player sends a hurry up message",
-		scope: "world",
-		config: true,
-		type: String,
-		choices: BLACKSMITH.arrSoundChoices,
-		default: "none"
-	});
-
-	// Add this with the other shared timer settings under "SHARED TIMER SETTINGS"
-	game.settings.register(MODULE.ID, 'timerPauseResumeSound', {
-		name: "Timer Pause/Resume Sound",
-		hint: "Sound to play when either timer is paused or resumed",
-		scope: "world",
-		config: true,
-		type: String,
-		choices: BLACKSMITH.arrSoundChoices,
-		default: "none"
-	});
-
-	// Add shared volume control for all timer sounds
-	game.settings.register(MODULE.ID, 'timerSoundVolume', {
-		name: "Timer Sound Volume",
-		hint: "Volume level for timer sounds (0-1)",
-		scope: "client",
-		config: true,
-		type: Number,
-		default: 0.8,
-		range: {
-			min: 0,
-			max: 1,
-			step: 0.1
-		}
-	});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	// ---------- GLOBAL TIMER SETTINGS ----------
-	game.settings.register(MODULE.ID, "headingH3GlobalTimerMessaging", {
-		name: 'TIMER NOTIFICATIONS',
-		hint: 'These settings will allow you to control the notifications that are sent to the players when the timers are running out.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-	// Timer Chat Message Settings
-	game.settings.register(MODULE.ID, 'timerChatPauseUnpause', {
-		name: "Send Pause/Unpause Messages to Chat",
-		hint: "When enabled, sends messages to chat when timers are paused or unpaused",
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	game.settings.register(MODULE.ID, 'timerChatPlanningStart', {
-		name: "Send Planning Starting Messages to Chat",
-		hint: "When enabled, sends messages to chat when planning phase begins",
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	game.settings.register(MODULE.ID, 'timerChatTurnStart', {
-		name: "Send Turn Starting Messages to Chat",
-		hint: "When enabled, sends messages to chat when a new turn begins",
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	game.settings.register(MODULE.ID, 'timerChatPlanningRunningOut', {
-		name: "Send Planning Running Out Messages to Chat",
-		hint: "When enabled, sends warning messages to chat when planning time is running low",
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	game.settings.register(MODULE.ID, 'timerChatTurnRunningOut', {
-		name: "Send Turn Running Out Messages to Chat",
-		hint: "When enabled, sends warning messages to chat when turn time is running low",
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	game.settings.register(MODULE.ID, 'timerChatPlanningEnded', {
-		name: "Send Planning Ended Messages to Chat",
-		hint: "When enabled, sends messages to chat when planning phase ends",
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	game.settings.register(MODULE.ID, 'timerChatTurnEnded', {
-		name: "Send Turn Ended Messages to Chat",
-		hint: "When enabled, sends messages to chat when a turn ends",
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-	// *** ROUND ANNOUNCMENTS ***
-
-	// ---------- ROUND ANNOUNCMENTS HEADING ----------
-	game.settings.register(MODULE.ID, "headingH2RoundAnnouncments", {
-		name: 'ROUND ANNOUNCEMENTS',
-		hint: 'Add anouncements for rounds to the chat.',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		default: "",
-		type: String,
-	});
-
-
-	// Announce New Rounds Setting
-	game.settings.register(MODULE.ID, 'announceNewRounds', {
-		name: 'Announce New Rounds',
-		hint: 'Post an announcement card to chat when a new round begins',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: Boolean,
-		default: true
-	});
-
-	// New Round Sound Setting
-	game.settings.register(MODULE.ID, 'newRoundSound', {
-		name: "New Round Sound",
-		hint: "Sound to play when a new round begins",
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		choices: BLACKSMITH.arrSoundChoices,
-		default: "none"
-	});
-
-
-
-
-	// ---------- ROUND TIMER ----------
-	game.settings.register(MODULE.ID, "headingH3RoundTimer", {
-		name: 'ROUND TIMER',
-		hint: 'This timer keeps track of the actual real-world round time.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-	game.settings.register(MODULE.ID, 'showRoundTimer', {
-		name: 'Show Round Timer',
-		hint: 'When enabled, the round timer will be displayed during combat.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-	// ---------- PLANNING TIMER ----------
-	game.settings.register(MODULE.ID, "headingH3PlanningTimer", {
-		name: 'PLANNING TIMER',
-		hint: 'At the start of each round, a planning timer will be displayed. This timer will allow the players to plan their actions for the round.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-	// Planning Timer Settings
-	game.settings.register(MODULE.ID, 'planningTimerEnabled', {
-		name: 'Enable Planning Timer',
-		hint: 'Enable or disable the planning timer for the first turn of each round',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-	game.settings.register(MODULE.ID, 'planningTimerAutoStart', {
-		name: 'Auto-Start Planning Timer',
-		hint: 'When enabled, the planning timer will start automatically instead of being paused by default',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	game.settings.register(MODULE.ID, 'planningTimerLabel', {
-		name: 'Planning Timer Label',
-		hint: 'Text label shown during planning phase',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'Planning'
-	});
-
-	game.settings.register(MODULE.ID, 'planningTimerDuration', {
-		name: 'Planning Timer Duration',
-		hint: 'How long the planning timer should run for (in seconds)',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 120,
-		range: {
-			min: 5,
-			max: 900,
-			step: 5
-		}
-	});
-
-	game.settings.register(MODULE.ID, 'planningTimerEndingSoonThreshold', {
-		name: 'Planning Timer "Ending Soon" Threshold',
-		hint: 'Percentage of time remaining when "ending soon" warning appears (1-100)',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 20,
-		range: {
-			min: 1,
-			max: 100,
-			step: 1
-		}
-	});
-
-	game.settings.register(MODULE.ID, 'planningTimerEndingSoonMessage', {
-		name: 'Planning Timer Ending Soon Message',
-		hint: 'Message shown when planning timer is about to expire',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'Planning phase ending soon!'
-	});
-
-
-	game.settings.register(MODULE.ID, 'planningTimerEndingSoonSound', {
-		name: 'Planning Timer Ending Soon Sound',
-		hint: 'Sound to play when planning timer is about to expire',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'none',
-		choices: BLACKSMITH.arrSoundChoices
-	});
-
-
-
-	game.settings.register(MODULE.ID, 'planningTimerExpiredMessage', {
-		name: 'Planning Timer Expired Message',
-		hint: 'Message shown when planning timer expires',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'Planning phase has ended!'
-	});
-
-	
-	game.settings.register(MODULE.ID, 'planningTimerExpiredSound', {
-		name: 'Planning Timer Expired Sound',
-		hint: 'Sound to play when planning timer expires',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'none',
-		choices: BLACKSMITH.arrSoundChoices
-	});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	// ---------- COMBAT TIMER ----------
-	game.settings.register(MODULE.ID, "headingH3CombatTimer", {
-		name: 'COMBAT TIMER',
-		hint: 'At the start of each round, a combat timer will be displayed. This timer will allow the players to track the time remaining for each combatant.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-	
-	// COMBAT TIMER
-	// Add these to your existing settings registration
-	game.settings.register(MODULE.ID, 'combatTimerEnabled', {
-		name: 'Enable Combat Timer',
-		hint: 'Enable or disable the combat timer',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-
-	// -- Auto Start Timer --
-	game.settings.register(MODULE.ID, 'combatTimerAutoStart', {
-		name: 'Auto Start Timer',
-		hint: 'Automatically start the timer when a new turn begins. If disabled, timer will load paused.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	// -- Activity Starts Timer --
-	game.settings.register(MODULE.ID, 'combatTimerActivityStart', {
-		name: 'Activity Starts Timer',
-		hint: 'Automatically start the timer when the active combatant moves their token or takes any action (attack, heal, or roll)',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-	game.settings.register(MODULE.ID, 'combatTimerDuration', {
-		name: 'Combat Timer Duration',
-		hint: 'Number of seconds for each turn',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 120,
-		range: {
-			min: 10,
-			max: 900,
-			step: 5
-		}
-	});
-
-
-	// Combat Timer Settings
-	game.settings.register(MODULE.ID, 'combatTimerStartSound', {
-		name: 'Timer Start Sound',
-		hint: 'The sound to play when the timer starts.',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'none',
-		choices: BLACKSMITH.arrSoundChoices,
-	});
-
-
-	// -- Warning Threshold --
-	game.settings.register(MODULE.ID, 'combatTimerWarningThreshold', {
-		name: 'Warning Threshold',
-		hint: 'Percentage of time remaining when the time warning triggers (default 50%)',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 50,
-		range: {
-			min: 20,
-			max: 80,
-			step: 5
-		}
-	});
-
-	// -- Warning Message --
-	game.settings.register(MODULE.ID, 'combatTimerWarningMessage', {
-		name: 'Warning Message',
-		hint: 'Custom message to show when timer reaches the Warning Threshold. Use {name} to insert current combatant name.',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '{name} is running out of time!'
-	});
-
-	// -- Warning Sound --
-	game.settings.register(MODULE.ID, 'combatTimerWarningSound', {
-		name: 'Warning Sound',
-		hint: 'The sound to play when the timer reaches the Warning Threshold.',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'none',
-		choices: BLACKSMITH.arrSoundChoices,
-	});
-
-	// -- Critical Threshold --
-	game.settings.register(MODULE.ID, 'combatTimerCriticalThreshold', {
-		name: 'Critical Threshold',
-		hint: 'Percentage of time remaining when the critical time warning triggers (default 20%)',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 20,
-		range: {
-			min: 5,
-			max: 40,
-			step: 5
-		}
-	});
-
-	// -- Critical Message --
-	game.settings.register(MODULE.ID, 'combatTimerCriticalMessage', {
-		name: 'Critical Message',
-		hint: 'Custom message to show when timer is running critically low. Use {name} to insert current combatant name.',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '{name} is running out of time!'
-	});
-
-	// -- Critical Sound --
-	game.settings.register(MODULE.ID, 'combatTimerCriticalSound', {
-		name: 'Critical Sound',
-		hint: 'The sound to play when the timer is critical and has almost run out.',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'none',
-		choices: BLACKSMITH.arrSoundChoices,
-	});
-
-
-	// -- Expired Message --
-	game.settings.register(MODULE.ID, 'combatTimerExpiredMessage', {
-		name: 'Time Expired Message',
-		hint: 'Custom message to show when timer runs out. Use {name} to insert current combatant name.',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '{name}\'s time has expired!'
-	});
-
-	// -- Expired Sound --
-	game.settings.register(MODULE.ID, 'combatTimeisUpSound', {
-		name: 'Expired Sound',
-		hint: 'The sound to play when the timer runs out.',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'none',
-		choices: BLACKSMITH.arrSoundChoices,
-	});
-
-
-	// -- End Turn on Timer Expiration --
-	game.settings.register(MODULE.ID, 'combatTimerEndTurn', {
-		name: 'End Turn on Expiration',
-		hint: 'Automatically end the current turn when the timer expires',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	// -- Auto End Turn Message --
-	game.settings.register(MODULE.ID, 'combatTimerAutoAdvanceMessage', {
-		name: 'End Turn Message',
-		hint: 'Message to show when turn is automatically advanced (use {name} for current combatant)',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '{name}\'s turn was automatically ended due to time expiration.'
-	});
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -4984,31 +4686,6 @@ export const registerSettings = () => {
 		type: Boolean,
 		default: true
 	});
-
-
-
-
-
-
-
-
-
-
-
-	// THESE ARE OLD SETTINGS FOR COMBAT STATS THAT WE HAVEN"T USED YET. THEY ARE IN THE COMBAT_STATS.JS FILE, BUT WE WILL REUILB IT.
-
-	// ---------- COMBAT STATS ----------
-	game.settings.register(MODULE.ID, "headingH3CombatStats", {
-		name: 'Combat Stats',
-		hint: '(COMIN SOON) These settings apply to Combat Stats that can be shared at the end of each combat session.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-
 
 
 

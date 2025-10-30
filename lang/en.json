@@ -29,7 +29,6 @@
 
 		"defaultRulebooks-Label": "Default Rulebooks",
 		"defaultRulebooks-Hint": "A comma separated list of default rule books to use when creating new narratives.",
-
 		
 
 	"SEPARATOR-USER-EXPERIENCE": "-------------------------------------------------------",
@@ -38,85 +37,119 @@
 	"headingH1LayoutAndExperience-Label": "User Experience",
 	"headingH1LayoutAndExperience-Hint": "Customize the layout and experience of the Coffee Pub suite of modules.",
 
-
 		"headingH2Themes-Label": "Themes",
-		"headingH2Themes-Hint": "Enable or disable the themes you'd like to use in the Coffee Pub suite of modules.",
+		"headingH2Themes-Hint": "Enable or disable the themes you'd like made available in the Coffee Pub suite of modules.",
 	
-		"headingH3ThemeSelections-Label": "Theme Selections",
-		"headingH3ThemeSelections-Hint": "Description",
-	
-		"headingH3ThemeDefault-Label": "Theme Defaults",
-		"headingH3ThemeDefault-Hint": "Description",
+			"headingH3ThemeSelections-Label": "Theme Selections",
+			"headingH3ThemeSelections-Hint": "",
 
+			"headingH3ThemeDefault-Label": "Theme Defaults",
+			"headingH3ThemeDefault-Hint": "",
+
+				"defaultCardTheme-Label": "Deault Coffee Pub Theme",
+				"defaultCardTheme-Hint": "This theme will be used as the default theme unless you override it in the other coffee pub modules.",
+			
 		"headingH2FoundryEnhancements-Label": "Foundry Enhancements",
 		"headingH2FoundryEnhancements-Hint": "Enhancements and improvements to FoundryVTT's interface and functionality",
 		
-		"headingH3QualityOfLife-Label": "Quality of Life",
-		"headingH3QualityOfLife-Hint": "Quality of life improvements and user experience enhancements",
-		
-		"headingH3CanvasTools-Label": "Canvas Tools",
-		"headingH3CanvasTools-Hint": "Control which bits of the interface hide and show when toggled.",
+			"headingH3QualityOfLife-Label": "Quality of Life",
+			"headingH3QualityOfLife-Hint": "Quality of life improvements and user experience enhancements",
+			
+				"objectLinkStyle-Label": "Object Link Style",
+				"objectLinkStyle-Hint": "Styling for object links in chat and journals",
 
-		"canvasToolsHideLeftUI-Label": "Hide Left UI",
-		"canvasToolsHideLeftUI-Hint": "When enabled, the left side of the interface, including the branding, toolbar, and player list will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
+			"headingH3CanvasTools-Label": "Canvas Tools",
+			"headingH3CanvasTools-Hint": "",
 
-		"canvasToolsHideBottomUI-Label": "Hide Bottom UI",
-		"canvasToolsHideBottomUI-Hint": "When enabled, the bottom of the interface, including the macrobar, will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
+				"canvasToolsHideLeftUI-Label": "Hide Left UI",
+				"canvasToolsHideLeftUI-Hint": "When enabled, the left side of the interface, including the branding, toolbar, and player list will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
 
+				"canvasToolsHideBottomUI-Label": "Hide Bottom UI",
+				"canvasToolsHideBottomUI-Hint": "When enabled, the bottom of the interface, including the macrobar, will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
 
-		"headingH3menubar-Label": "Blacksmith Menubar",
-		"headingH3menubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
+			"headingH3menubar-Label": "Blacksmith Menubar",
+			"headingH3menubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
 	
-		"enableMenubar-Label": "Enable Menubar",
-		"enableMenubar-Hint": "Show the slim Blacksmith Menubar at the top of the foundry interface. Required for many of the tools and features of blacksmit including combat enhancements.",
+				"enableMenubar-Label": "Enable Menubar",
+				"enableMenubar-Hint": "Show the slim Blacksmith Menubar at the top of the foundry interface. Required for many of the tools and features of blacksmit including combat enhancements.",
+			
+				"excludedUsersMenubar-Label": "Excluded Menubar Users",
+				"excludedUsersMenubar-Hint": "List of userIDs that should not see the menubar. (comma-separated)",
+
+			"headingH3Toolbar-Label": "Foundry Toolbar",
+			"headingH3Toolbar-Hint": "",
+		
+				"toolbarShowDividers-Label": "Coffee Pub Dividers",
+				"toolbarShowDividers-Hint": "",
+		
+				"toolbarShowLabels-Label": "Coffee Pub Labels",
+				"toolbarShowLabels-Hint": "",
+
+			"headingH3Scenes-Label": "Scenes",
+			"headingH3Scenes-Hint": "",
+
+				"enableSceneInteractions-Label": "Show Scene Indicators",
+				"enableSceneInteractions-Hint": "Adds icons to the scene title letting you know which is active and which is being viewed. Defualt: Enabled (checked).",	
 	
-		"excludedUsersMenubar-Label": "Excluded Menubar Users",
-		"excludedUsersMenubar-Hint": "List of userIDs that should not see the menubar. (comma-separated)",
-
-		"headingH3Toolbar-Label": "Toolbar",
-		"headingH3Toolbar-Hint": "Toolbar customization and display options",
-		
-		"headingH3Windows-Label": "Windows",
-		"headingH3Windows-Hint": "Window styling and titlebar customization",
-		
-		"headingH3Scenes-Label": "Scenes",
-		"headingH3Scenes-Hint": "Scene layout and display customization",
-
-		"objectLinkStyle-Label": "Object Link Style",
-		"objectLinkStyle-Hint": "Styling for object links in chat and journals",
-
-		"hideRollTableIcon-Label": "Hide Roll Table Icon",
-		"hideRollTableIcon-Hint": "Hide the roll table icon in the interface",
-
-		"toolbarShowDividers-Label": "Show Toolbar Dividers",
-		"toolbarShowDividers-Hint": "Show dividers between toolbar sections",
-
-		"toolbarShowLabels-Label": "Show Toolbar Labels",
-		"toolbarShowLabels-Hint": "Show labels on toolbar buttons",
-
-		"titlebarTextSize-Label": "Titlebar Text Size",
-		"titlebarTextSize-Hint": "Size of text in window titlebars",
-
-		"titlebarIconSize-Label": "Titlebar Icon Size",
-		"titlebarIconSize-Hint": "Size of icons in window titlebars",
-		
-		"titlebarSpacing-Label": "TitlebarSpacing",
-		"titlebarSpacing-Hint": "Changes the spacing between the elements in the titlebar of windows. This change applies to all foundry module windows with titlebar icons. If other modules are changing titlebars, this could result in odd titlebar behaviors. Range: 0px to 25px. Default: 0px.",
-
-		"sceneTitlePadding-Label": "Scene Title Padding",
-		"sceneTitlePadding-Hint": "Padding around scene titles",
-
-		"scenePanelHeight-Label": "Scene Panel Height",
-		"scenePanelHeight-Hint": "Height of scene panels",
-
-		"headingH3JournalTools-Label": "Journal Tools",
-		"headingH3JournalTools-Hint": "Tools for upgrading actor and item links to compendium references.",
-
-		"enableJournalTools-Label": "Enable Journal Tools",
-		"enableJournalTools-Hint": "Add a Tools icon to journal windows for upgrading actor and item links to compendium references.",
+				"enableSceneClickBehaviors-Label": "Custom Mouse Behaviors",
+				"enableSceneClickBehaviors-Hint": "Change the default mouse behaviors on the Scene Directory. Left-click: View Scene, Double-click: Activate Scene, and Shift-Left-click: Open up the scene configuration window. Defualt: Enabled (checked).",	
 	
-		"enableJournalDoubleClick-Label": "Enable Journal Double-Click",
-		"enableJournalDoubleClick-Hint": "Enable double-click to open journal entries",
+				"sceneTextAlign-Label": "Title Alignment",
+				"sceneTextAlign-Hint": "",
+
+				"sceneFontSize-Label": "Title Size",
+				"sceneFontSize-Hint": "",
+		
+				"sceneTitlePadding-Label": "Title Padding",
+				"sceneTitlePadding-Hint": "",
+
+				"scenePanelHeight-Label": "Panel Height",
+				"scenePanelHeight-Hint": "",
+	
+			"headingH3CardAdjustments-Label": "Chat Adjustments",
+			"headingH3CardAdjustments-Hint": "",
+
+				"hideRollTableIcon-Label": "Hide Roll Table Icon",
+				"hideRollTableIcon-Hint": "Hide the roll table icon in the interface",
+
+				"chatSpacing-Label": "Chat Gap",
+				"chatSpacing-Hint": "Increases the gap between chat messages. Applies globally to all chat messages.",
+
+				"cardTopOffset-Label": "Top Offset",
+				"cardTopOffset-Hint": "Adds additional top margin for some cards. Only applies to Coffee Pub modules.",
+			
+				"cardTopMargin-Label": "Top margin",
+				"cardTopMargin-Hint": "Increses or decreases the top margin of the chat. Only applies to Coffee Pub modules.",
+
+				"cardBottomMargin-Label": "Bottom margin",
+				"cardBottomMargin-Hint": "Increses or decreases the bottom margin of the chat. Only applies to Coffee Pub modules.",
+				
+				"cardLeftMargin-Label": "Left margin",
+				"cardLeftMargin-Hint": "Increses or decreases the left margin of the chat. Only applies to Coffee Pub modules.",
+
+				"cardRightMargin-Label": "Right margin",
+				"cardRightMargin-Hint": "Increses or decreases the right margin of the chat. Only applies to Coffee Pub modules. ",
+
+			"headingH3Windows-Label": "Windows",
+			"headingH3Windows-Hint": "",
+
+				"titlebarTextSize-Label": "Titlebar Text Size",
+				"titlebarTextSize-Hint": "",
+
+				"titlebarIconSize-Label": "Titlebar Icon Size",
+				"titlebarIconSize-Hint": "",
+				
+				"titlebarSpacing-Label": "TitlebarSpacing",
+				"titlebarSpacing-Hint": "Changes the spacing between the elements in the titlebar of windows. This change applies to all foundry module windows with titlebar icons. If other modules are changing titlebars, this could result in odd titlebar behaviors.",
+
+			"headingH3JournalTools-Label": "Journals",
+			"headingH3JournalTools-Hint": "Tools for upgrading actor and item links to compendium references.",
+
+				"enableJournalTools-Label": "Enable Journal Tools",
+				"enableJournalTools-Hint": "Add a Tools icon to journal windows for upgrading actor and item links to compendium references.",
+			
+				"enableJournalDoubleClick-Label": "Enable Journal Double-Click",
+				"enableJournalDoubleClick-Hint": "Enable double-click to open journal entries",
 
 
 	"SEPARATOR-RUN-THE-GAME": "-------------------------------------------------------",
@@ -189,9 +222,167 @@
 				"targetedIndicatorBackgroundColor-Hint": "",
 
 
+	"headingH2Timers-Label": "Timers",
+	"headingH2Timers-Hint": "Blacksmith supports various timers for your game. This includes session timers, combat timers, and planning timers.",
 
 
+		"headingH3GlobalTimerSettings-Label": "Global Settings",
+		"headingH3GlobalTimerSettings-Hint": "These settings will allow you to set the default timer settings for both the Combat and Planning timers. These settings do not affect the Session timer.",
 
+			"combatTimerGMOnly-Label": "GM-Only Timers",
+			"combatTimerGMOnly-Hint": "When enabled, the timers will only be visible to the GM in the combat tracker",
+
+			"timerShowNotifications-Label": "Show Chat Notifications",
+			"timerShowNotifications-Hint": "",
+
+			"timerNotificationOverride-Label": "Notification Override List",
+			"timerNotificationOverride-Hint": "Always show notifications to these actors (comma-separated names), even if notifications are disabled. This is useful for specific players that might need a more regular nudge.",		
+
+			"hurryUpSound-Label": "'Hurry Up' Sound",
+			"hurryUpSound-Hint": "",
+
+			"timerPauseResumeSound-Label": "Pause/Resume Sound",
+			"timerPauseResumeSound-Hint": "",
+
+			"timerSoundVolume-Label": "Sound Volume",
+			"timerSoundVolume-Hint": "",
+
+
+		"headingH3GlobalTimerNotifications-Label": "Chat Notifications",
+		"headingH3GlobalTimerNotifications-Hint": "",
+
+			"timerChatPauseUnpause-Label": "Pause/Unpause",
+			"timerChatPauseUnpause-Hint": "",
+
+			"timerChatPlanningStart-Label": "Planning Starting",
+			"timerChatPlanningStart-Hint": "",
+
+			"timerChatTurnStart-Label": "Turn Starting",
+			"timerChatTurnStart-Hint": "",
+
+			"timerChatPlanningRunningOut-Label": "Planning Ending Soon",
+			"timerChatPlanningRunningOut-Hint": "",
+
+			"timerChatTurnRunningOut-Label": "Turn Ending Soon",
+			"timerChatTurnRunningOut-Hint": "",
+
+			"timerChatPlanningEnded-Label": "Planning Ended",
+			"timerChatPlanningEnded-Hint": "",
+
+			"timerChatTurnEnded-Label": "Turn Ended",
+			"timerChatTurnEnded-Hint": "",
+
+		"headingH3RoundTimer-Label": "Round Timer",
+		"headingH3RoundTimer-Hint": "This timer keeps track of the actual real-world round time.",
+
+			"showRoundTimer-Label": "Enable Round Timer",
+			"showRoundTimer-Hint": "",
+
+			"announceNewRounds-Label": "Announce New Rounds",
+			"announceNewRounds-Hint": "Post an announcement card to chat when a new round begins. If using the Crier module, you don't need this enabled.",
+
+			"newRoundSound-Label": "New Round Sound",
+			"newRoundSound-Hint": "",
+
+		"headingH3SessionTimers-Label": "Session Timer",
+		"headingH3SessionTimers-Hint": "",
+
+			"sessionTimerDefault-Label": "Default Duration",
+			"sessionTimerDefault-Hint": "The default duration of the session. (Up to 10 hours, for you maniacs.)",
+
+			"sessionTimerWarningThreshold-Label": " Warning Threshold",
+			"sessionTimerWarningThreshold-Hint": "",
+
+			"sessionTimerWarningSound-Label": "Warning Sound",
+			"sessionTimerWarningSound-Hint": "",
+
+			"sessionTimerWarningMessage-Label": "Warning Message",
+			"sessionTimerWarningMessage-Hint": "",
+
+			"sessionTimerExpiredSound-Label": "Session Over Sound",
+			"sessionTimerExpiredSound-Hint": "",
+
+			"sessionTimerExpiredMessage-Label": "Session OVer Message",
+			"sessionTimerExpiredMessage-Hint": "",
+
+		"headingH3PlanningTimer-Label": "Planning Timer",
+		"headingH3PlanningTimer-Hint": "At the start of each round, a planning timer will be displayed. This timer will allow the players to plan their actions for the round.",
+
+			"planningTimerEnabled-Label": "Enable Planning Phase",
+			"planningTimerEnabled-Hint": "",
+
+			"planningTimerAutoStart-Label": "Auto-Start",
+			"planningTimerAutoStart-Hint": "",
+
+			"planningTimerLabel-Label": "Label",
+			"planningTimerLabel-Hint": "",
+
+			"planningTimerDuration-Label": "Duration",
+			"planningTimerDuration-Hint": "",
+
+			"planningTimerEndingSoonThreshold-Label": "Ending Soon Threshold",
+			"planningTimerEndingSoonThreshold-Hint": "",
+
+			"planningTimerEndingSoonMessage-Label": "Ending Soon Message",
+			"planningTimerEndingSoonMessage-Hint": "",
+
+			"planningTimerEndingSoonSound-Label": "Ending Soon Sound",
+			"planningTimerEndingSoonSound-Hint": "",
+
+			"planningTimerExpiredMessage-Label": "Expired Message",
+			"planningTimerExpiredMessage-Hint": "",
+
+			"planningTimerExpiredSound-Label": "Expired Sound",
+			"planningTimerExpiredSound-Hint": "",
+
+		"headingH3CombatTimer-Label": "Combat Timer",
+		"headingH3CombatTimer-Hint": "At the start of a player turn, a combat timer will be displayed under thier slot in the combat tracker. This timer will allow the players to track the time remaining for each turn.",
+
+			"combatTimerEnabled-Label": "Enable Combat Turn Timer",
+			"combatTimerEnabled-Hint": "",
+
+			"combatTimerAutoStart-Label": "Auto-Start",
+			"combatTimerAutoStart-Hint": "",
+
+			"combatTimerActivityStart-Label": "Activity Trigger",
+			"combatTimerActivityStart-Hint": "Automatically start the timer when the active combatant moves their token or takes any action (attack, heal, or roll)",
+
+			"combatTimerDuration-Label": "Turn Duration",
+			"combatTimerDuration-Hint": "",
+
+			"combatTimerStartSound-Label": "Start Sound",
+			"combatTimerStartSound-Hint": "",
+
+			"combatTimerWarningThreshold-Label": "Ending Soon Threshold",
+			"combatTimerWarningThreshold-Hint": "",
+
+			"combatTimerWarningMessage-Label": "Ending Soon Message",
+			"combatTimerWarningMessage-Hint": "Use {name} to insert current combatant name.",
+
+			"combatTimerWarningSound-Label": "Ending Soon Sound",
+			"combatTimerWarningSound-Hint": "",	
+
+			"combatTimerCriticalThreshold-Label": "Critical Threshold",
+			"combatTimerCriticalThreshold-Hint": "",
+
+			"combatTimerCriticalMessage-Label": "Critical Message",
+			"combatTimerCriticalMessage-Hint": "Use {name} to insert current combatant name.",
+
+			"combatTimerCriticalSound-Label": "Critical Sound",
+			"combatTimerCriticalSound-Hint": "",
+
+			"combatTimerExpiredMessage-Label": "Expired Message",
+			"combatTimerExpiredMessage-Hint": "Use {name} to insert current combatant name.",
+
+			"combatTimerExpiredSound-Label": "Expired Sound",
+			"combatTimerExpiredSound-Hint": "",
+			
+			"combatTimerEndTurn-Label": "Auto-Advance Turn",
+			"combatTimerEndTurn-Hint": "",
+
+			"combatTimerAutoAdvanceMessage-Label": "Auto Advance Message",
+			"combatTimerAutoAdvanceMessage-Hint": "",
+			
 
 	"SEPARATOR-MANAGE-CONTENT": "-------------------------------------------------------",
 
@@ -255,14 +446,56 @@
 	"headingH1RollingAndProgression-Label": "Rolling and Progression",
 	"headingH1RollingAndProgression-Hint": "Roll systems, XP distribution, and character progression",
 
+		"headingH2diceRollTool-Label": "Roll System",
+		"headingH2diceRollTool-Hint": "Configure the unified roll system and its integrations with other modules.",
 
+				"diceRollToolSystem-Label": "Rolls from Chat Cards",
+				"diceRollToolSystem-Hint": "Set the system you wish to use when rolling from the chat card.",
 
+			"headingH3diceRollToolIntegrations-Label": "Module Integrations",
+			"headingH3diceRollToolIntegrations-Hint": "Blacksmit Dice Rolls and work with some other modules. Selecte the modules you wish to leverage. (They must be installed and enabled.)",
 
+				"diceRollToolEnableDiceSoNice-Label": "Dice So Nice Rolls",
+				"diceRollToolEnableDiceSoNice-Hint": "Use Dice So Nice for animated dice rolls.",
 
+		"headingH2XpDistribution-Label": "XP and Milestones",
+		"headingH2XpDistribution-Hint": "These settings control the automatic XP distribution system that triggers when combat ends.",
 
+			"headingH3XpConfiguration-Label": "Configuration",
+			"headingH3XpConfiguration-Hint": "",
 
+				"enableXpDistribution-Label": "Enable Distribution",
+				"enableXpDistribution-Hint": "Automatically show XP distribution window when combat ends",
 
+				"autoDistributeXp-Label": "Auto-distribute",
+				"autoDistributeXp-Hint": "Sutomatically distribute XP without showing the distribution window",
 
+				"shareXpResults-Label": "Share Results",
+				"shareXpResults-Hint": "If enabled, distribution results will be shared to all players. If disabled, only the GM will see them.",
+
+				"xpCalculationMethod-Label": "Calculation Method",
+				"xpCalculationMethod-Hint": "Choose the method for calculating XP from monster CR",
+
+				"xpPartySizeHandling-Label": "Party Size Handling",
+				"xpPartySizeHandling-Hint": "How to handle XP distribution with varying party sizes",
+			
+			"headingH3XpMultipliers-Label": "Multipliers",
+			"headingH3XpMultipliers-Hint": "One size does not have to fit all. You can customize the multipliers for each resolution type to fit your needs, and adjust for the playstyle of your group.",
+
+				"xpMultiplierDefeated-Label": "Defeated",
+				"xpMultiplierDefeated-Hint": "",
+
+				"xpMultiplierNegotiated-Label": "Negotiated",
+				"xpMultiplierNegotiated-Hint": "",
+
+				"xpMultiplierCaptured-Label": "Captured",
+				"xpMultiplierCaptured-Hint": "",
+
+				"xpMultiplierEscaped-Label": "Escaped",
+				"xpMultiplierEscaped-Hint": "",
+
+				"xpMultiplierIgnored-Label": "Ignored",
+				"xpMultiplierIgnored-Hint": "",
 
 
 	"SEPARATOR-AUTOMATION": "-------------------------------------------------------",
@@ -332,6 +565,9 @@
 				"setTokenScale-Label": "Set Token Scale",
 				"setTokenScale-Hint": "Set the default scale size for dropped tokens.",
 
+				"setTokenImageFitMode-Label": "Image Fit Mode",
+				"setTokenImageFitMode-Hint": "Set the image fit mode for dropped tokens. (default is Contain)",
+
 			"headingH3TokenRenamingOptions-Label": "Renaming",
 			"headingH3TokenRenamingOptions-Hint": "",
 		
@@ -399,8 +635,6 @@
 				"tokenImageReplacementSkipLinked-Label": "Skip Linked Tokens",
 				"tokenImageReplacementSkipLinked-Hint": "Do not replace images for tokens linked to actors (usually player characters).",
 
-
-
 		"headingH2TokenImageReplacementCache-Label": "Image Cache",
 		"headingH2TokenImageReplacementCache-Hint": "The cache is where we store the image references that are used for token image replacement. It also contains the tags, cateogries and other metadata for the images.",
 
@@ -419,7 +653,7 @@
 
 
 				"tokenImageReplacementAutoUpdate-Label": "Automatically Update Image Cache",
-				"tokenImageReplacementAutoUpdate-Hint": "Automatically scan for new or changed token images when changes are detected.",
+				"tokenImageReplacementAutoUpdate-Hint": "",
 
 
 				"tokenImageReplacementDeprioritizedWords-Label": "Deprioritized Words",
@@ -436,43 +670,43 @@
 				"tokenImageReplacementCategoryStyle-Hint": "Choose how category filters are displayed in the Token Image Replacement window. Buttons show as clickable buttons, Tabs show as traditional tab interface.",
 
 				"tokenImageReplacementTagSortMode-Label": "Tag Sort Mode",
-				"tokenImageReplacementTagSortMode-Hint": "How to sort and display tags: Count (by frequency), Alpha (alphabetical), or Hidden (hide tags completely)",
+				"tokenImageReplacementTagSortMode-Hint": "",
 
 				"tokenImageReplacementFuzzySearch-Label": "Fuzzy Search",
 				"tokenImageReplacementFuzzySearch-Hint": "When enabled, searches for individual words independently. When disabled, searches for exact string matches.",
 
 			"headingH3TokenImageReplacementDataWeights-Label": "Token Data Weighting",
-			"headingH3TokenImageReplacementDataWeights-Hint": "Configure the weights for the data used to calculate the best match for a token image replacement. These weights are used to determine the importance of the data when calculating the best match for a token image replacement.",
+			"headingH3TokenImageReplacementDataWeights-Hint": "The weighting for the data used to calculate the best match for a token image replacement. These weights are used to determine the importance of the data when calculating the best match for a token image replacement.",
 
-				"tokenImageReplacementWeightActorName-Label": "Actor Name Weight",
-				"tokenImageReplacementWeightActorName-Hint": "Weight the actor name field with the highest priority when calculating the best match for a token image replacement. (e.g., 'Frost Giant', 'Goblin')",
+				"tokenImageReplacementWeightActorName-Label": "Actor Name",
+				"tokenImageReplacementWeightActorName-Hint": "",
 
-				"tokenImageReplacementWeightTokenName-Label": "Token Name Weight",
-				"tokenImageReplacementWeightTokenName-Hint": "Weight the token name field with the highest priority when calculating the best match for a token image replacement. (e.g., 'Bob (Goblin)', 'Goblin 1', 'Bob')",
+				"tokenImageReplacementWeightTokenName-Label": "Token Name",
+				"tokenImageReplacementWeightTokenName-Hint": "",
 
-				"tokenImageReplacementWeightRepresentedActor-Label": "Represented Actor Weight",
-				"tokenImageReplacementWeightRepresentedActor-Hint": "Weight the represented actor field with the highest priority when calculating the best match for a token image replacement. (e.g., 'Bob (Goblin)', 'Goblin 1', 'Bob')",
+				"tokenImageReplacementWeightRepresentedActor-Label": "Represented Actor",
+				"tokenImageReplacementWeightRepresentedActor-Hint": "",
 
-				"tokenImageReplacementWeightCreatureType-Label": "Creature Type Weight",
-				"tokenImageReplacementWeightCreatureType-Hint": "Weight the creature type field with the highest priority when calculating the best match for a token image replacement. (e.g., 'Humanoid', 'Dragon', 'Beast') - Official D&D5e type",	
+				"tokenImageReplacementWeightCreatureType-Label": "Creature Type",
+				"tokenImageReplacementWeightCreatureType-Hint": "",	
 
-				"tokenImageReplacementWeightCreatureSubtype-Label": "Creature Subtype Weight",
-				"tokenImageReplacementWeightCreatureSubtype-Hint": "Weight the creature subtype field with the highest priority when calculating the best match for a token image replacement. (e.g., 'Goblinoid', 'Orc', 'Elf') - Official D&D5e subtype",	
+				"tokenImageReplacementWeightCreatureSubtype-Label": "Creature Subtype",
+				"tokenImageReplacementWeightCreatureSubtype-Hint": "",	
 
-				"tokenImageReplacementWeightEquipment-Label": "Equipment Weight",
-				"tokenImageReplacementWeightEquipment-Hint": "Weight the equipment field with the highest priority when calculating the best match for a token image replacement. (e.g., 'Sword', 'Bow', 'Staff')",	
+				"tokenImageReplacementWeightEquipment-Label": "Equipment",
+				"tokenImageReplacementWeightEquipment-Hint": "",	
 				
-				"tokenImageReplacementWeightSize-Label": "Size Weight",
-				"tokenImageReplacementWeightSize-Hint": "Weight the size field with the highest priority when calculating the best match for a token image replacement. (e.g., 'Large', 'Medium', 'Huge')",	
+				"tokenImageReplacementWeightSize-Label": "Size",
+				"tokenImageReplacementWeightSize-Hint": "",	
 
-		"headingH2AutomatedEncounters-Label": "Automated Encounters",
-		"headingH2AutomatedEncounters-Hint": "Automated encounters and monsters deployment.",
+		"headingH2AutomatedEncounters-Label": "Encounters",
+		"headingH2AutomatedEncounters-Hint": "A toolbar can be added to journal entries with potential encounter data. It provides tools for deploying monsters, calcualtating real-time CR, and creating combat encounters.",
 
 			"headingH3JournalEncounterToolbar-Label": "Journal",
 			"headingH3JournalEncounterToolbar-Hint": "Automated encounter settings for journal entries.",
 
-				"enableJournalEncounterToolbar-Label": "Journal Toolbar",
-				"enableJournalEncounterToolbar-Hint": "Shows a toolbar in journal entries with potential encounter data that provides tools for deploying monsters, rolling initiative, and creating combat encounters.",
+				"enableJournalEncounterToolbar-Label": "Enable Journal Toolbar",
+				"enableJournalEncounterToolbar-Hint": "",
 			
 				"enableEncounterContentScanning-Label": "Enable Content Scanning",
 				"enableEncounterContentScanning-Hint": "Scan journal content for encounter data in JSON, markdown, or plain text formats when structured data is not found.",
@@ -480,29 +714,16 @@
 				"enableJournalEncounterToolbarRealTimeUpdates-Label": "Enable Real-time CR Updates",
 				"enableJournalEncounterToolbarRealTimeUpdates-Hint": "Automatically update monster and party CR values in encounter toolbars when tokens are added, moved, or removed from the canvas. Disable if you experience performance issues.",
 
+				"encounterFolder-Label": "Encounter Folder",
+				"encounterFolder-Hint": "Folder in which to add actors when deloying from the journal. Leave blank to put them in the root of the actor tab.",
+
 				"encounterToolbarDeploymentPattern-Label": "Monster Deployment Pattern",
-				"encounterToolbarDeploymentPattern-Hint": "Choose how monsters should be arranged when deployed from an encounter journal entry.",
+				"encounterToolbarDeploymentPattern-Hint": "Choose how monsters should be arranged when deployed from an encounter journal entry by clicking the canvas.",
 			
-				"toggleVisibility-Label": "Toggle Token Visibility",
-				"toggleVisibility-Hint": "Toggle the visibility of all tokens on the canvas. If any tokens are hidden, this will make them visible. If all tokens are visible, this will hide them all.",
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+				"encounterToolbarDeploymentHidden-Label": "Deploy Hidden",
+				"encounterToolbarDeploymentHidden-Hint": "Deploy the tokens to the canvas in the hidden state.",
+			
 
 	"SEPARATOR-ARTIFICIAL-INTELLIGENCE": "-------------------------------------------------------",
 
@@ -623,130 +844,9 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	"defaultCardTheme-Label": "Deault Coffee Pub Theme",
-	"defaultCardTheme-Hint": "This theme will be used as the default theme unless you override it in the other coffee pub modules.",
-
-	"headingH3CardAdjustments-Label": "Chat Adjustments",
-	"headingH3CardAdjustments-Hint": "Description",
-
-	"chatSpacing-Label": "Chat Gap",
-	"chatSpacing-Hint": "Increases the gap between chat messages. Applies to all messages, no just this module. Range: -20px to 60px. Default: 3px.",
-
-	"cardTopMargin-Label": "Top margin",
-	"cardTopMargin-Hint": "Increses or decreases the top margin of the chat. This is useful if other module add items like tokens or text into the chat that changes the default layout. This offset only applies to Coffee Pub modules. Range: -20px to 20px. Default: 0px.",
-
-	"cardBottomMargin-Label": "Bottom margin",
-	"cardBottomMargin-Hint": "Increses or decreases the bottom margin of the chat. This is useful if other module add items like tokens or text into the chat that changes the default layout. This offset only applies to Coffee Pub modules. Range: -20px to 20px. Default: 0px.",
-	
-	"cardLeftMargin-Label": "Left margin",
-	"cardLeftMargin-Hint": "Increses or decreases the left margin of the chat. This is useful if other module add items like tokens or text into the chat that changes the default layout. This offset only applies to Coffee Pub modules. Range: -20px to 20px. Default: 0px.",
-
-	"cardRightMargin-Label": "Right margin",
-	"cardRightMargin-Hint": "Increses or decreases the right margin of the chat. This is useful if other module add items like tokens or text into the chat that changes the default layout. This offset only applies to Coffee Pub modules. Range: -20px to 20px. Default: 0px.",
-
-	"cardTopOffset-Label": "Top Offset",
-	"cardTopOffset-Hint": "Adds additional top margin for some cards. And example would be scribe chat narration cards. This offset only applies to Coffee Pub modules. Range: -80px to 80px.",
-
-
-
-
-
-
-	"headingH2diceRollTool-Label": "Roll System",
-	"headingH2diceRollTool-Hint": "Configure the unified roll system and its integrations with other modules.",
-
-	"diceRollToolSystem-Label": "Rolls from Chat Cards",
-	"diceRollToolSystem-Hint": "Set the system you wish to use when rolling from the chat card.",
-
-	"headingH3diceRollToolIntegrations-Label": "Module Integrations",
-	"headingH3diceRollToolIntegrations-Hint": "Blacksmit Dice Rolls and work with some other modules. Selecte the modules you wish to leverage. (They must be installed and enabled.)",
-
-	"diceRollToolEnableDiceSoNice-Label": "Dice So Nice Rolls",
-	"diceRollToolEnableDiceSoNice-Hint": "Use Dice So Nice for animated dice rolls.",
-
-
-
-
-	"enableSceneInteractions-Label": "Show Scene Indicators",
-	"enableSceneInteractions-Hint": "Adds icons to the scene title letting you knwo which is active and which is being viewed. Defualt: Enabled (checked).",	
-
-
-	"enableSceneClickBehaviors-Label": "Custom Mouse Behaviors",
-	"enableSceneClickBehaviors-Hint": "Change the default mouse behaviors on the Scene Directory. Left-click: View Scene, Double-click: Activate Scene, and Shift-Left-click: Open up the scene configuration window. Defualt: Enabled (checked).",	
-
-
-	"headingH3SceneSettings-Label": "Layout",
-	"headingH3SceneSettings-Hint": "Description",
-
-	"sceneTextAlign-Label": "Title Alignment",
-	"sceneTextAlign-Hint": "Sets the alignment of the titles in the scene selector.  Defualt: Center.",
-	
-	"sceneFontSize-Label": "Title Size",
-	"sceneFontSize-Hint": "Sets the font size for the scene titles in the scene selector.  Defualt: 1.0em.",
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	"headingH3NarrativeGenerator-Label": "Narration",
 	"headingH3NarrativeGenerator-Hint": "Description",
 
-	"encounterToolbarDeploymentHidden-Label": "Deployment Visibility",
-	"encounterToolbarDeploymentHidden-Hint": "If checked, deployed tokens will be hidden by default.",
 
 	
 	"defaultNarrativeFolder-Label": "Default Narrative Folder",
@@ -807,55 +907,11 @@
 	"encounterDefaultImagePath-Hint": "The default path to use for custom images in encounter cards. Used if 'custom' is selected above. (optional)",
 
 
-
-
-
-
-
-
-
-
-	"headingH2XpDistribution-Label": "XP DISTRIBUTION",
-	"headingH2XpDistribution-Hint": "These settings control the automatic XP distribution system that triggers when combat ends.",
-
-	"enableXpDistribution-Label": "Enable XP Distribution",
-	"enableXpDistribution-Hint": "When enabled, automatically show XP distribution window when combat ends",
-
-	"autoDistributeXp-Label": "Auto-distribute XP",
-	"autoDistributeXp-Hint": "When enabled, automatically distribute XP without showing the distribution window",
-
-	"xpCalculationMethod-Label": "XP Calculation Method",
-	"xpCalculationMethod-Hint": "Choose the method for calculating XP from monster CR",
-
-	"xpMultiplierDefeated-Label": "Defeated XP Multiplier",
-	"xpMultiplierDefeated-Hint": "XP multiplier for defeated monsters (1.0 = full XP)",
-
-	"xpMultiplierNegotiated-Label": "Negotiated XP Multiplier",
-	"xpMultiplierNegotiated-Hint": "XP multiplier for negotiated monsters (1.0 = full XP)",
-
-	"xpMultiplierFled-Label": "Fled XP Multiplier",
-	"xpMultiplierFled-Hint": "XP multiplier for monsters that fled (0.5 = half XP)",
-
-	"xpMultiplierBypassed-Label": "Bypassed XP Multiplier",
-	"xpMultiplierBypassed-Hint": "XP multiplier for bypassed monsters (0.0 = no XP)",
-
-	"xpMultiplierCaptured-Label": "Captured XP Multiplier",
-	"xpMultiplierCaptured-Hint": "XP multiplier for captured monsters (1.0 = full XP)",
-
-	"xpPartySizeHandling-Label": "Party Size Handling",
-	"xpPartySizeHandling-Hint": "How to handle XP distribution with varying party sizes",
-
-	"shareXpResults-Label": "Share XP Results",
-	"shareXpResults-Hint": "If enabled, XP distribution results will be shared to all players. If disabled, only the GM will see them.",
-
 	"enableEnhancedImageGuessing-Label": "Enhanced Image Guessing",
 	"enableEnhancedImageGuessing-Hint": "Uses comprehensive synonym mapping to automatically select appropriate images for imported items based on their names and descriptions.",
 
 	"imageGuessingDebugMode-Label": "Image Guessing Debug Mode",
 	"imageGuessingDebugMode-Hint": "Shows detailed console logs about how images are selected for imported items. Useful for troubleshooting and understanding the matching process."
-
-
-
 
 
 	}
