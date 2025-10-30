@@ -1067,9 +1067,9 @@ async function getNarrativeTemplateWithDefaults(narrativeTemplate) {
     { placeholder: '[ADD-PARTY-LEVEL-HERE]', key: 'defaultPartyLevel' },
     { placeholder: '[ADD-PARTY-MAKEUP-HERE]', key: 'defaultPartyMakeup' },
     { placeholder: '[ADD-FOLDER-NAME-HERE]', key: 'defaultNarrativeFolder' },
-    { placeholder: '[ADD-SCENE-AREA-HERE]', key: 'defaultSceneArea' },
-    { placeholder: '[ADD-SCENE-ENVIRONMENT-HERE]', key: 'defaultSceneEnvironment' },
-    { placeholder: '[ADD-SCENE-LOCATION-HERE]', key: 'defaultSceneLocation' },
+    { placeholder: '[ADD-SCENE-AREA-HERE]', key: 'defaultCampaignArea' },
+    { placeholder: '[ADD-SCENE-ENVIRONMENT-HERE]', key: 'defaultCampaignSite' },
+    { placeholder: '[ADD-SCENE-LOCATION-HERE]', key: 'defaultCampaignRealm' },
     { placeholder: '[ADD-IMAGE-PATH-HERE]', key: 'narrativeDefaultCardImage' }
   ];
   let result = narrativeTemplate;
@@ -1099,10 +1099,10 @@ async function getEncounterTemplateWithDefaults(encounterTemplate) {
     { placeholder: '[ADD-PARTY-SIZE-HERE]', key: 'defaultPartySize' },
     { placeholder: '[ADD-PARTY-LEVEL-HERE]', key: 'defaultPartyLevel' },
     { placeholder: '[ADD-PARTY-MAKEUP-HERE]', key: 'defaultPartyMakeup' },
-    { placeholder: '[ADD-FOLDER-NAME-HERE]', key: 'defaultEncounterFolder' },
-    { placeholder: '[ADD-SCENE-AREA-HERE]', key: 'defaultSceneArea' },
-    { placeholder: '[ADD-SCENE-ENVIRONMENT-HERE]', key: 'defaultSceneEnvironment' },
-    { placeholder: '[ADD-SCENE-LOCATION-HERE]', key: 'defaultSceneLocation' },
+    { placeholder: '[ADD-FOLDER-NAME-HERE]', key: 'encounterFolder' },
+    { placeholder: '[ADD-SCENE-AREA-HERE]', key: 'defaultCampaignArea' },
+    { placeholder: '[ADD-SCENE-ENVIRONMENT-HERE]', key: 'defaultCampaignSite' },
+    { placeholder: '[ADD-SCENE-LOCATION-HERE]', key: 'defaultCampaignRealm' },
     { placeholder: '[ADD-IMAGE-PATH-HERE]', key: 'encounterDefaultCardImage' }
   ];
   let result = encounterTemplate;

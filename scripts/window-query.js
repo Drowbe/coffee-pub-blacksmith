@@ -2500,17 +2500,17 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
         const strDefaultJournalPageTitle = getCookieValue('scene_title') || 
             game.settings.get(MODULE.ID, 'defaultJournalPageTitle');
         
-        const strDefaultSceneLocation = getCookieValue('location') || 
-            game.settings.get(MODULE.ID, 'defaultSceneLocation');
+        const strdefaultCampaignRealm = getCookieValue('location') || 
+            game.settings.get(MODULE.ID, 'defaultCampaignRealm');
         
-        const strDefaultSceneParent = getCookieValue('scene_parent') || 
-            game.settings.get(MODULE.ID, 'defaultSceneParent');
+        const strdefaultCampaignRegion = getCookieValue('scene_parent') || 
+            game.settings.get(MODULE.ID, 'defaultCampaignRegion');
         
-        const strDefaultSceneArea = getCookieValue('scene_area') || 
-            game.settings.get(MODULE.ID, 'defaultSceneArea');
+        const strdefaultCampaignArea = getCookieValue('scene_area') || 
+            game.settings.get(MODULE.ID, 'defaultCampaignArea');
         
-        const strDefaultSceneEnvironment = getCookieValue('environment') || 
-            game.settings.get(MODULE.ID, 'defaultSceneEnvironment');
+        const strdefaultCampaignSite = getCookieValue('environment') || 
+            game.settings.get(MODULE.ID, 'defaultCampaignSite');
 
         // Get the new settings with cookie fallbacks
         const blnNarrativeUseCookies = game.settings.get(MODULE.ID, 'narrativeUseCookies');
@@ -2550,10 +2550,10 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
             randomuser2: randomuser2,
             strDefaultNarrativeFolder: strDefaultNarrativeFolder,
             strDefaultJournalPageTitle: strDefaultJournalPageTitle,
-            strDefaultSceneLocation: strDefaultSceneLocation,
-            strDefaultSceneParent: strDefaultSceneParent,
-            strDefaultSceneArea: strDefaultSceneArea,
-            strDefaultSceneEnvironment: strDefaultSceneEnvironment,
+            strdefaultCampaignRealm: strdefaultCampaignRealm,
+            strdefaultCampaignRegion: strdefaultCampaignRegion,
+            strdefaultCampaignArea: strdefaultCampaignArea,
+            strdefaultCampaignSite: strdefaultCampaignSite,
             blnNarrativeUseCookies: blnNarrativeUseCookies,
             strNarrativeDefaultCardImage: strNarrativeDefaultCardImage,
             strNarrativeDefaultCardImageName: strNarrativeDefaultCardImageName,

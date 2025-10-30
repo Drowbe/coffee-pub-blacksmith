@@ -12,24 +12,87 @@
 		"headingH2CoffeePubSuite-Label": "Coffee Pub Suite",
 		"headingH2CoffeePubSuite-Hint": "Information about installed Coffee Pub modules",
 
-		"headingH2DefaultPartySettings-Label": "Default Party Settings",
+		"headingH2DefaultPartySettings-Label": "Party Settings",
 		"headingH2DefaultPartySettings-Hint": "Default settings for party creation and management",
 
-		"defaultPartyName-Label": "Default Party Name",
-		"defaultPartyName-Hint": "The default party name to use when creating new narratives.",
+			"defaultPartyName-Label": "Default Party Name",
+			"defaultPartyName-Hint": "The default party name to use when creating new narratives.",
 
-		"defaultPartySize-Label": "Default Party Size", 
-		"defaultPartySize-Hint": "The default party size to use when creating new narratives.",
+			"defaultPartySize-Label": "Default Party Size", 
+			"defaultPartySize-Hint": "The default party size to use when creating new narratives.",
 
-		"defaultPartyMakeup-Label": "Default Party Makeup",
-		"defaultPartyMakeup-Hint": "The default party makeup to use when creating new narratives.",
+			"defaultPartyMakeup-Label": "Default Party Makeup",
+			"defaultPartyMakeup-Hint": "The default party makeup to use when creating new narratives.",
 
-		"defaultPartyLevel-Label": "Default Party Level",
-		"defaultPartyLevel-Hint": "The default party level to use when creating new narratives.",
+			"defaultPartyLevel-Label": "Default Party Level",
+			"defaultPartyLevel-Hint": "The default party level to use when creating new narratives.",
 
-		"defaultRulebooks-Label": "Default Rulebooks",
-		"defaultRulebooks-Hint": "A comma separated list of default rule books to use when creating new narratives.",
+			"defaultRulebooks-Label": "Default Rulebooks",
+			"defaultRulebooks-Hint": "A comma separated list of default rule books to use when creating new narratives.",
 		
+		"headingH2CampaignSettings-Label": "Campaign Settings",
+		"headingH2CampaignSettings-Hint": "These are used as context for various tools and features, including both any AI generated content as well as augment any JSON imports for items, journal entries, characters, etc.",
+
+			"headingH3CampaignCommon-Label": "Common",
+			"headingH3CampaignCommon-Hint": "General campaign settings that are common to all narratives.",
+
+				"defaultCampaignName-Label": "Default Campaign Name",
+				"defaultCampaignName-Hint": "",
+
+
+			"headingH3CampaignGeography-Label": "Geography",
+			"headingH3CampaignGeography-Hint": "The geography of the campaign. This includes the location, parent, environment, and area. These will be used as context for whenever location information is needed. Geography hierarchy: REALM > REGION > SITE > AREA.",	
+
+				"defaultCampaignRealm-Label": "Realm",
+				"defaultCampaignRealm-Hint": "The broad world or plane of existence, encompassing vast continents, cultures, and histories (e.g. Faerûn, Eberron, etc.).",
+		
+				"defaultCampaignRegion-Label": "Region",
+				"defaultCampaignRegion-Hint": "A defined area within a realm, such as a kingdom, territory, or geographic expanse.",
+
+				"defaultCampaignSite-Label": "Site",
+				"defaultCampaignSite-Hint": "A specific location or structure within a region like a building, mine, or stronghold.",
+
+				"defaultCampaignArea-Label": "Area",
+				"defaultCampaignArea-Hint": "A distinct part of a site like a room, chamber, street, or locartion where scenes or encounters occur.",
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+	
+		"enableEnhancedImageGuessing-Label": "Enhanced Image Guessing",
+		"enableEnhancedImageGuessing-Hint": "Uses comprehensive synonym mapping to automatically select appropriate images for imported items based on their names and descriptions.",
+	
+		"imageGuessingDebugMode-Label": "Image Guessing Debug Mode",
+		"imageGuessingDebugMode-Hint": "Shows detailed console logs about how images are selected for imported items. Useful for troubleshooting and understanding the matching process.",
+	
+		"narrativeUseCookies-Label": "Use Cookies for Data",
+		"narrativeUseCookies-Hint": "If checked, the system will first attempt to pull data from cookies before using defaults.",
+
+	
+		"cookiesRememberCardStates-Label": "Remember Card States",
+		"cookiesRememberCardStates-Hint": "If enabled, the collapsed/expanded state of cards will be remembered between sessions using cookies.",
+
+
+
+
+
+
+
+
+
+
+
+
 
 	"SEPARATOR-USER-EXPERIENCE": "-------------------------------------------------------",
 
@@ -159,7 +222,7 @@
 	"headingH1RunTheGame-Hint": "Settings for running games, toolbars, chat, and gameplay features",
 
 		"headingH2TokenEnhancements-Label": "Token Enhancements",
-		"headingH2TokenImageReplacementActions-Hint": "Automation of token actions. This include token changes for when a character dies, is targeted, has the current turn in combat, etc.",
+		"headingH2TokenEnhancements-Hint": "Automation of token actions. This include token changes for when a character dies, is targeted, has the current turn in combat, etc.",
 
 			"headingH3GeneralIndicatorSettings-Label": "General Indicator Congifuration",
 			"headingH3GeneralIndicatorSettings-Hint": "",
@@ -388,13 +451,59 @@
 
 
 	"headingH1ManageContent-Label": "Manage Content",
-	"headingH1ManageContent-Hint": "Tools for managing tokens, images, and content",
+	"headingH1ManageContent-Hint": "Tools for managing tokens, images, and content.",
 
-			"numCompendiums-Label": "Number of Compendiums",
-			"numCompendiums-Hint": "Sets how many compendium priority slots are available for each type (Actor, Item, Feature, Spell). Changing this value requires a reload to take effect.",
+		"headingH2NarrativeGenerator-Label": "Narratives",
+		"headingH2NarrativeGenerator-Hint": "",
 
-			"headingH2CompendiumMapping-Label": "Compendium Mapping",
-			"headingH2CompendiumMapping-Hint": "When we automate searching for things, we look in the compendiums first. This is where we will look for a match. They are in priority order and we stop looking when we find a match.",
+			"headingH3NarrativeConfiguration-Label": "Narrative Defaults",
+			"headingH3NarrativeConfiguration-Hint": "",
+
+				"defaultNarrativeFolder-Label": "Narrative Folder",
+				"defaultNarrativeFolder-Hint": "Folder that should be used when creating new narratives. (optional)",
+
+				"defaultJournalPageTitle-Label": "Journal Page Title",
+				"defaultJournalPageTitle-Hint": "Title that should be used when creating new journal pages. (optional)",
+
+				"narrativeDefaultCardImage-Label": "Card Image",
+				"narrativeDefaultCardImage-Hint": "",
+
+				"narrativeDefaultImagePath-Label": "Custom Image",
+				"narrativeDefaultImagePath-Hint": "Full path to a custom image for narrative cards. Used if 'custom' is selected above. (optional)",
+
+			"headingH3NarrativeOptions-Label": "Narrative Options",
+			"headingH3NarrativeOptions-Hint": "",
+
+				"narrativeDefaultIncludeTreasure-Label": "Include Treasure by Default",
+				"narrativeDefaultIncludeTreasure-Hint": "",
+
+				"narrativeDefaultTreasureDetails-Label": "Default Treasure Details",
+				"narrativeDefaultTreasureDetails-Hint": "",
+
+				"narrativeDefaultIncludeEncounter-Label": "Include Encounter by Default",
+				"narrativeDefaultIncludeEncounter-Hint": "",
+
+				"narrativeDefaultXP-Label": "Default XP",
+				"narrativeDefaultXP-Hint": "",
+
+				"narrativeDefaultEncounterDetails-Label": "Default Encounter Details",
+				"narrativeDefaultEncounterDetails-Hint": "",
+
+		"headingH2EncounterGenerator-Label": "Encounter Defaults",
+		"headingH2EncounterGenerator-Hint": "These settings control default values for encounter templates.",
+
+				"encounterFolder-Label": "Encounter Folder",
+				"encounterFolder-Hint": "Folder in which to add actors when deloying from the journal. Leave blank to put them in the root of the actor tab.",
+
+				"encounterDefaultCardImage-Label": "Default Encounter Card Image",
+				"encounterDefaultCardImage-Hint": "Select the default image option for new encounter cards. (optional)",
+
+				"encounterDefaultImagePath-Label": "Custom Image",
+				"encounterDefaultImagePath-Hint": "Full path to a custom image for encounter cards. Used if 'custom' is selected above. (optional)",
+
+
+		"headingH2CompendiumMapping-Label": "Compendium Mapping",
+		"headingH2CompendiumMapping-Hint": "When we automate searching for things, we look in the compendiums first. This is where we will look for a match. They are in priority order and we stop looking when we find a match.",
 
 			"headingH3ActorCompendiums-Label": "Actors",
 			"headingH3ActorCompendiums-Hint": "",
@@ -438,6 +547,39 @@
 
 			"searchWorldLast-Label": "Search World Last",
 			"searchWorldLast-Hint": "When enabled, will search for for matches in the world after looking in compendiums if no results are found. When disabled, will not search world as a fallback.",
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 	"SEPARATOR-ROLLING-AND-PROGRESSION": "-------------------------------------------------------",
@@ -549,6 +691,79 @@
 				"movementSoundDistanceThreshold-Label": "Movement Sound Distance Threshold",
 				"movementSoundDistanceThreshold-Hint": "Minimum distance in feet that a token must move to trigger a sound (1-50 feet).",
 
+
+		"headingH2DeadTokens-Label": "Dead Tokens",
+		"headingH2DeadTokens-Hint": "When a player or crearture dies, they will be replaced with a 'dead' version of their token.",
+
+			"headingH3DeadConfiguration-Label": "Configuration",
+			"headingH3DeadConfiguration-Hint": "",
+
+				"enableDeadTokenReplacement-Label": "Enable Dead Token Replacement",
+				"enableDeadTokenReplacement-Hint": "",
+
+				"deadTokenCreatureTypeFilter-Label": "Creature Type Filter",
+				"deadTokenCreatureTypeFilter-Hint": "Comma-separated creature types to apply dead tokens to for NPCs (leave empty for all). Example: humanoid,beast,dragon",
+
+			"headingH3DeadExperience-Label": "Experience",
+			"headingH3DeadExperience-Hint": "",
+
+				"deadTokenImagePath-Label": "Dead NPC Image",
+				"deadTokenImagePath-Hint": "Full path to dead token image for NPCs/Monsters (applied immediately at 0 HP).",
+				
+				"deadTokenSoundNPC-Label": "NPC Death Sound",
+				"deadTokenSoundNPC-Hint": "",
+
+				"deadTokenImagePathPC-Label": "Dead Player Image",
+				"deadTokenImagePathPC-Hint": "Full path to dead token image for Player Characters (applied after 3 failed death saves).",
+
+				"deadTokenSoundPC-Label": "Player Death Sound",
+				"deadTokenSoundPC-Hint": "",
+
+				"deadTokenSoundStable-Label": "Player Stabilized Sound",
+				"deadTokenSoundStable-Hint": "",
+
+		"headingH2LootTokens-Label": "Loot Tokens",
+		"headingH2LootTokens-Hint": "When a player or crearture dies, they will be replaced with a 'loot' version of their token.",
+
+			"headingH3LootConfiguration-Label": "Configuration",
+			"headingH3LootConfiguration-Hint": "",	
+
+				"tokenConvertDeadToLoot-Label": "Convert Dead to Loot",
+				"tokenConvertDeadToLoot-Hint": "Requires the module 'Item Piles' be installed and enabled.",
+
+				"tokenConvertDelay-Label": "Loot Delay",
+				"tokenConvertDelay-Hint": "How many seconds to wait before the loot is converted to a pile?",
+
+				"tokenLootPileImage-Label": "Loot Token Image",
+				"tokenLootPileImage-Hint": "Full path to loot token image (applied after token converted to loot pile).",
+
+				"tokenLootSound-Label": "Loot Conversion Sound",
+				"tokenLootSound-Hint": "",
+
+				"tokenLootChatMessage-Label": "Loot Chat Message",
+				"tokenLootChatMessage-Hint": "Send loot updates to the chat log.",
+
+			"headingH3LootTreasure-Label": "Treasure and Loot",
+			"headingH3LootTreasure-Hint": "",
+
+				"tokenLootTableGeneral-Label": "General Loot Table",
+				"tokenLootTableGeneral-Hint": "",
+
+				"tokenLootTableGeneralAmount-Label": "General Quantity",
+				"tokenLootTableGeneralAmount-Hint": "",
+
+				"tokenLootTableGear-Label": "Gear Loot Table",
+				"tokenLootTableGear-Hint": "",
+
+				"tokenLootTableGearAmount-Label": "Gear Quantity",
+				"tokenLootTableGearAmount-Hint": "",
+
+				"tokenLootTableTreasure-Label": "Treasure Loot Table",
+				"tokenLootTableTreasure-Hint": "",	
+
+				"tokenLootTableTreasureAmount-Label": "Treasure Quantity",
+				"tokenLootTableTreasureAmount-Hint": "",
+
 		"headingH2DroppedTokens-Label": "Dropped Tokens",
 		"headingH2DroppedTokens-Hint": "Configure the options for dropped tokens on the canvas.",
 
@@ -644,7 +859,7 @@
 			"headingH3TokenImageReplacementConfiguration-Hint": "",
 
 				
-				"tokenImageReplacementPath-Label": "Replacement Images Folder",
+				"tokenImageReplacementPath-Label": "Images Folder",
 				"tokenImageReplacementPath-Hint": "Base folder path for replacement images. For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
 			
 				
@@ -652,7 +867,7 @@
 				"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for token images. These folders will be completely skipped during the scan process. Examples: _gsdata_, .DS_Store",
 
 
-				"tokenImageReplacementAutoUpdate-Label": "Automatically Update Image Cache",
+				"tokenImageReplacementAutoUpdate-Label": "Automatically Update Images",
 				"tokenImageReplacementAutoUpdate-Hint": "",
 
 
@@ -703,9 +918,9 @@
 		"headingH2AutomatedEncounters-Hint": "A toolbar can be added to journal entries with potential encounter data. It provides tools for deploying monsters, calcualtating real-time CR, and creating combat encounters.",
 
 			"headingH3JournalEncounterToolbar-Label": "Journal",
-			"headingH3JournalEncounterToolbar-Hint": "Automated encounter settings for journal entries.",
+			"headingH3JournalEncounterToolbar-Hint": "",
 
-				"enableJournalEncounterToolbar-Label": "Enable Journal Toolbar",
+				"enableJournalEncounterToolbar-Label": "Enable Encounter Toolbar",
 				"enableJournalEncounterToolbar-Hint": "",
 			
 				"enableEncounterContentScanning-Label": "Enable Content Scanning",
@@ -713,9 +928,6 @@
 			
 				"enableJournalEncounterToolbarRealTimeUpdates-Label": "Enable Real-time CR Updates",
 				"enableJournalEncounterToolbarRealTimeUpdates-Hint": "Automatically update monster and party CR values in encounter toolbars when tokens are added, moved, or removed from the canvas. Disable if you experience performance issues.",
-
-				"encounterFolder-Label": "Encounter Folder",
-				"encounterFolder-Hint": "Folder in which to add actors when deloying from the journal. Leave blank to put them in the root of the actor tab.",
 
 				"encounterToolbarDeploymentPattern-Label": "Monster Deployment Pattern",
 				"encounterToolbarDeploymentPattern-Hint": "Choose how monsters should be arranged when deployed from an encounter journal entry by clicking the canvas.",
@@ -827,92 +1039,6 @@
 				"globalDebugMode-Hint": "Log errors to the console and notification system as appropriate. Make the console bleed. Default: Off (unchecked).",
 			
 				"globalConsoleDebugStyle-Label": "Debug Style",
-				"globalConsoleDebugStyle-Hint": "Looking for debug code? You have to ask yourself if you use the console to solve problems or if you enjoy a good word-search puzzle. Default: Fancy Pants.",
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	"headingH3NarrativeGenerator-Label": "Narration",
-	"headingH3NarrativeGenerator-Hint": "Description",
-
-
-	
-	"defaultNarrativeFolder-Label": "Default Narrative Folder",
-	"defaultNarrativeFolder-Hint": "The folder that should be used when creating new narratives.",
-
-	"defaultJournalPageTitle-Label": "Default Journal Page Title",
-	"defaultJournalPageTitle-Hint": "Optional: The title that should be used when creating new journal pages.",
-
-	"defaultSceneLocation-Label": "Default Location",
-	"defaultSceneLocation-Hint": "LOCATION > Parent > Environtment > Area. The location that should be used when creating new scenes. (Optional)",
-
-	"defaultSceneParent-Label": "Default Parent",
-	"defaultSceneParent-Hint": "Location > PARENT > Environtment > Area. The parent that should be used when creating new scenes. This would be the larger collection of scenes. e.g. Mines of Tethyamar, Castle of the White Dragon, etc. (optional)",
-
-	"defaultSceneEnvironment-Label": "Default Environment",
-	"defaultSceneEnvironment-Hint": "LOCATION > Parent > ENVIRONMENT> Area. The kind of environment that should be used when creating the narrative.. e.g. Forest, Crypt, Dungeon, etc. (optional)",
-
-	"defaultSceneArea-Label": "Default Area",
-	"defaultSceneArea-Hint": "Location > Parent > Environtment > AREA.  The area that should be used when creating new scenes. e.g. Chasmfall Castle, Old House, Goblin Cave, etc. (optional)",
-
-	"narrativeUseCookies-Label": "Use Cookies for Data",
-	"narrativeUseCookies-Hint": "If checked, the system will first attempt to pull data from cookies before using defaults.",
-
-	"cookiesRememberCardStates-Label": "Remember Card States",
-	"cookiesRememberCardStates-Hint": "If enabled, the collapsed/expanded state of cards will be remembered between sessions using cookies.",
-
-	"narrativeDefaultCardImage-Label": "Default Card Image",
-	"narrativeDefaultCardImage-Hint": "Select the default image option for new narrative cards.  (optional)",
-
-	"narrativeDefaultImagePath-Label": "Default Image Path",
-	"narrativeDefaultImagePath-Hint": "The default path to use for custom images in narrative cards. Used if 'custom' is selected above. (optional)",
-
-	"narrativeDefaultIncludeEncounter-Label": "Include Encounter by Default",
-	"narrativeDefaultIncludeEncounter-Hint": "If checked, new narratives will include an encounter section by default.",
-
-	"narrativeDefaultIncludeTreasure-Label": "Include Treasure by Default",
-	"narrativeDefaultIncludeTreasure-Hint": "If checked, new narratives will include a treasure section by default.",
-
-	"narrativeDefaultXP-Label": "Default XP",
-	"narrativeDefaultXP-Hint": "The default XP value to use in new narratives. Use 'None' or a number (e.g., '3600 XP'). (optional)",
-
-	"narrativeDefaultTreasureDetails-Label": "Default Treasure Details",
-	"narrativeDefaultTreasureDetails-Hint": "The default treasure description to use in new narratives. (optional)",
-
-	"narrativeDefaultEncounterDetails-Label": "Default Encounter Details",
-	"narrativeDefaultEncounterDetails-Hint": "The default encounter description to use in new narratives. (optional)",
-
-	"headingH3EncounterDefaults-Label": "Encounter Defaults",
-	"headingH3EncounterDefaults-Hint": "These settings control default values for encounter templates.",
-
-	"defaultEncounterFolder-Label": "Default Encounter Folder",
-	"defaultEncounterFolder-Hint": "The folder that should be used when creating new encounters.",
-
-	"encounterDefaultCardImage-Label": "Default Encounter Card Image",
-	"encounterDefaultCardImage-Hint": "Select the default image option for new encounter cards. (optional)",
-
-	"encounterDefaultImagePath-Label": "Default Encounter Image Path",
-	"encounterDefaultImagePath-Hint": "The default path to use for custom images in encounter cards. Used if 'custom' is selected above. (optional)",
-
-
-	"enableEnhancedImageGuessing-Label": "Enhanced Image Guessing",
-	"enableEnhancedImageGuessing-Hint": "Uses comprehensive synonym mapping to automatically select appropriate images for imported items based on their names and descriptions.",
-
-	"imageGuessingDebugMode-Label": "Image Guessing Debug Mode",
-	"imageGuessingDebugMode-Hint": "Shows detailed console logs about how images are selected for imported items. Useful for troubleshooting and understanding the matching process."
-
-
+				"globalConsoleDebugStyle-Hint": "Looking for debug code? You have to ask yourself if you use the console to solve problems or if you enjoy a good word-search puzzle. Default: Fancy Pants."
 	}
 }

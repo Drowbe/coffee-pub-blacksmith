@@ -809,6 +809,164 @@ export const registerSettings = () => {
 		default: { userId: '', actorId: '' }
 	});
 
+	// --------------------------------------
+	// -- H2: CAMPAIGN SETTINGS
+	// --------------------------------------
+	registerHeader('CampaignSettings', 'headingH2CampaignSettings-Label', 'headingH2CampaignSettings-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED);
+
+
+	// --------------------------------------
+	// -- H3: CAMPAIGN COMMON
+	// --------------------------------------
+	registerHeader('CampaignCommon', 'headingH3CampaignCommon-Label', 'headingH3CampaignCommon-Hint', 'H3', WORKFLOW_GROUPS.GETTING_STARTED);
+
+	// -- Default Campaign Name --
+	game.settings.register(MODULE.ID, 'defaultCampaignName', {
+		name: MODULE.ID + '.defaultCampaignName-Label',
+		hint: MODULE.ID + '.defaultCampaignName-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.GETTING_STARTED
+	});
+
+	// --------------------------------------
+	// -- H3: CAMPAIGN GEOGRAPHY
+	// --------------------------------------
+	registerHeader('CampaignGeography', 'headingH3CampaignGeography-Label', 'headingH3CampaignGeography-Hint', 'H3', WORKFLOW_GROUPS.GETTING_STARTED);
+
+
+	// -- Default Campaign Realm --
+	game.settings.register(MODULE.ID, 'defaultCampaignRealm', {
+		name: MODULE.ID + '.defaultCampaignRealm-Label',
+		hint: MODULE.ID + '.defaultCampaignRealm-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+	// -- Default Campaign Region --
+	game.settings.register(MODULE.ID, 'defaultCampaignRegion', {
+		name: MODULE.ID + '.defaultCampaignRegion-Label',
+		hint: MODULE.ID + '.defaultCampaignRegion-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+	// -- Default Campaign Site --
+	game.settings.register(MODULE.ID, 'defaultCampaignSite', {	
+		name: MODULE.ID + '.defaultCampaignSite-Label',	
+		hint: MODULE.ID + '.defaultCampaignSite-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});	
+
+	// -- Default Campaign Area --
+	game.settings.register(MODULE.ID, 'defaultCampaignArea', {
+		name: MODULE.ID + '.defaultCampaignArea-Label',
+		hint: MODULE.ID + '.defaultCampaignArea-Hint',	
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+	
+	// ---------- ITEM IMPORT ----------
+	game.settings.register(MODULE.ID, "headingH3ItemImport", {
+		name: 'Item Import',
+		hint: 'These settings control how you to import items into the game.',
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+	// -------------------------------------
+
+
+	// -- Enhanced Image Guessing --
+	game.settings.register(MODULE.ID, 'enableEnhancedImageGuessing', {
+		name: MODULE.ID + '.enableEnhancedImageGuessing-Label',
+		hint: MODULE.ID + '.enableEnhancedImageGuessing-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+	});
+
+
+	// -- Use Cookies --
+	game.settings.register(MODULE.ID, 'narrativeUseCookies', {
+		name: MODULE.ID + '.narrativeUseCookies-Label',
+		hint: MODULE.ID + '.narrativeUseCookies-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+	});
+
+	game.settings.register(MODULE.ID, 'cookiesRememberCardStates', {
+		name: 'Remember Card States',
+		hint: 'If enabled, the collapsed/expanded state of cards will be remembered between sessions using cookies.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true
+	});
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1271,23 +1429,12 @@ export const registerSettings = () => {
 	});
 
 
-
-
-
-
-
-
-
-
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
 	// == RUN THE GAME
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
 	registerHeader('RunTheGame', 'headingH1RunTheGame-Label', 'headingH1RunTheGame-Hint', 'H1', WORKFLOW_GROUPS.RUN_THE_GAME);
-
-
-
 
 	// Clear Targets After Turn
 	game.settings.register(MODULE.ID, 'clearTargetsAfterTurn', {
@@ -1299,7 +1446,6 @@ export const registerSettings = () => {
 		default: false,
 		requiresReload: false
 	});
-
 
 	// --------------------------------------
 	// -- H2: Token Enhancements
@@ -1322,8 +1468,6 @@ export const registerSettings = () => {
 		requiresReload: false,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
-
-
 
 	// -- Turn Indicator Thickness --
 	game.settings.register(MODULE.ID, 'generalIndicatorsThickness', {
@@ -1410,14 +1554,10 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-
-
 	// --------------------------------------
 	// -- H3: Turn Indicators
 	// --------------------------------------
 	registerHeader('TurnIndicators', 'headingH3TurnIndicators-Label', 'headingH3TurnIndicators-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
-
-
 
 	// -- Turn Indicator Style --
 	game.settings.register(MODULE.ID, 'turnIndicatorCurrentStyle', {
@@ -1497,7 +1637,6 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-
 	// --------------------------------------
 	// -- H3: Target Indicators
 	// --------------------------------------
@@ -1526,6 +1665,7 @@ export const registerSettings = () => {
 		requiresReload: false
 	});
 
+	// -- Targeted Indicator Style --
 	game.settings.register(MODULE.ID, 'targetedIndicatorStyle', {
 		name: MODULE.ID + '.targetedIndicatorStyle-Label',
 		hint: MODULE.ID + '.targetedIndicatorStyle-Hint',
@@ -1544,6 +1684,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Targeted Indicator Animation --
 	game.settings.register(MODULE.ID, 'targetedIndicatorAnimation', {
 		name: MODULE.ID + '.targetedIndicatorAnimation-Label',
 		hint: MODULE.ID + '.targetedIndicatorAnimation-Hint',
@@ -1561,6 +1702,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Targeted Indicator Animation Speed --
 	game.settings.register(MODULE.ID, 'targetedIndicatorAnimationSpeed', {
 		name: MODULE.ID + '.targetedIndicatorAnimationSpeed-Label',
 		hint: MODULE.ID + '.targetedIndicatorAnimationSpeed-Hint',
@@ -1577,6 +1719,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Targeted Indicator Border Color --
 	game.settings.register(MODULE.ID, 'targetedIndicatorBorderColor', {
 		name: MODULE.ID + '.targetedIndicatorBorderColor-Label',
 		hint: MODULE.ID + '.targetedIndicatorBorderColor-Hint',
@@ -1588,7 +1731,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-
+	// -- Targeted Indicator Background Color --
 	game.settings.register(MODULE.ID, 'targetedIndicatorBackgroundColor', {
 		name: MODULE.ID + '.targetedIndicatorBackgroundColor-Label',
 		hint: MODULE.ID + '.targetedIndicatorBackgroundColor-Hint',
@@ -1599,8 +1742,6 @@ export const registerSettings = () => {
 		requiresReload: false,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
-
-
 
 	// --------------------------------------
 	// -- H2: Timers
@@ -2234,6 +2375,266 @@ export const registerSettings = () => {
 	// ==================================================================================================================== 
 	registerHeader('ManageContent', 'headingH1ManageContent-Label', 'headingH1ManageContent-Hint', 'H1', WORKFLOW_GROUPS.MANAGE_CONTENT);
 	
+
+	// --------------------------------------
+	// -- H2: Narratives
+	// --------------------------------------
+	registerHeader('NarrativeGenerator', 'headingH2NarrativeGenerator-Label', 'headingH2NarrativeGenerator-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT);
+
+
+	// --------------------------------------
+	// -- H3: Narrative Configuration	
+	// --------------------------------------
+	registerHeader('NarrativeConfiguration', 'headingH3NarrativeConfiguration-Label', 'headingH3NarrativeConfiguration-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	
+
+	// -- Default Narrative Folder --
+	game.settings.register(MODULE.ID, 'defaultNarrativeFolder', {
+		name: MODULE.ID + '.defaultNarrativeFolder-Label',
+		hint: MODULE.ID + '.defaultNarrativeFolder-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: 'New Narratives',
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// -- Default Journal Page Title --
+	game.settings.register(MODULE.ID, 'defaultJournalPageTitle', {
+		name: MODULE.ID + '.defaultJournalPageTitle-Label',
+		hint: MODULE.ID + '.defaultJournalPageTitle-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+
+	// -- Default Card Image Selection --
+	game.settings.register(MODULE.ID, 'narrativeDefaultCardImage', {
+		name: MODULE.ID + '.narrativeDefaultCardImage-Label',
+		hint: MODULE.ID + '.narrativeDefaultCardImage-Hint',
+		scope: 'world',
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: 'none',
+		choices: {
+			'none': 'No Image',
+			'custom': 'Custom: Paste the Path Below',
+			'modules/coffee-pub-blacksmith/images/banners/banners-heros-1.webp': 'Heroes 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-heros-2.webp': 'Heroes 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-heros-3.webp': 'Heroes 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-1.webp': 'Location:Crypt 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-2.webp': 'Location:Crypt 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-1.webp': 'Landscape: Forest 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-2.webp': 'Landscape: Forest 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-3.webp': 'Landscape: Forest 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-4.webp': 'Landscape: Forest 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-jungle-1.webp': 'Landscape: Jungle 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-mountains-1.webp': 'Landscape: Mountains 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-mushrooms-1.webp': 'Landscape: Mushrooms 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-mushrooms-2.webp': 'Landscape: Mushrooms 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-path-1.webp': 'Landscape: Path 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-path-2.webp': 'Landscape: Path 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-1.webp': 'Landscape: Winter 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-2.webp': 'Landscape: Winter 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-3.webp': 'Landscape: Winter 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-dragon-1.webp': 'Monster: Dragon 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-minotour-1.webp': 'Monster: Minotaur 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-wraith-1.webp': 'Monster: Wraith 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-wraith-2.webp': 'Monster: Wraith 2'
+		},
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// -- Default Image Path --
+	game.settings.register(MODULE.ID, 'narrativeDefaultImagePath', {
+		name: MODULE.ID + '.narrativeDefaultImagePath-Label',
+		hint: MODULE.ID + '.narrativeDefaultImagePath-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+
+	// --------------------------------------
+	// -- H3: Narrative Options	
+	// --------------------------------------
+	registerHeader('NarrativeOptions', 'headingH3NarrativeOptions-Label', 'headingH3NarrativeOptions-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	
+	// -- Include Treasure by Default --
+	game.settings.register(MODULE.ID, 'narrativeDefaultIncludeTreasure', {
+		name: MODULE.ID + '.narrativeDefaultIncludeTreasure-Label',
+		hint: MODULE.ID + '.narrativeDefaultIncludeTreasure-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// -- Default Treasure Details --
+	game.settings.register(MODULE.ID, 'narrativeDefaultTreasureDetails', {
+		name: MODULE.ID + '.narrativeDefaultTreasureDetails-Label',
+		hint: MODULE.ID + '.narrativeDefaultTreasureDetails-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: 'None',
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// -- Include Encounter by Default --
+	game.settings.register(MODULE.ID, 'narrativeDefaultIncludeEncounter', {
+		name: MODULE.ID + '.narrativeDefaultIncludeEncounter-Label',
+		hint: MODULE.ID + '.narrativeDefaultIncludeEncounter-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// -- Default XP --
+	game.settings.register(MODULE.ID, 'narrativeDefaultXP', {
+		name: MODULE.ID + '.narrativeDefaultXP-Label',
+		hint: MODULE.ID + '.narrativeDefaultXP-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: 'None',
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// -- Default Encounter Details --
+	game.settings.register(MODULE.ID, 'narrativeDefaultEncounterDetails', {
+		name: MODULE.ID + '.narrativeDefaultEncounterDetails-Label',
+		hint: MODULE.ID + '.narrativeDefaultEncounterDetails-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// --------------------------------------
+	// -- H2: Narratives
+	// --------------------------------------
+	registerHeader('EncounterGenerator', 'headingH2EncounterGenerator-Label', 'headingH2EncounterGenerator-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT);
+
+	// -- Encounter Folder --
+	game.settings.register(MODULE.ID, 'encounterFolder', {
+		name: MODULE.ID + '.encounterFolder-Label',
+		hint: MODULE.ID + '.encounterFolder-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'Encounters',
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// -- Default Encounter Card Image Selection --
+	game.settings.register(MODULE.ID, 'encounterDefaultCardImage', {
+		name: MODULE.ID + '.encounterDefaultCardImage-Label',
+		hint: MODULE.ID + '.encounterDefaultCardImage-Hint',
+		scope: 'world',
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: 'none',
+		choices: {
+			'none': 'No Image',
+			'custom': 'Custom: Paste the Path Below',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-acid-1.webp': 'Damage: Acid 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-acid-2.webp': 'Damage: Acid 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-acid-3.webp': 'Damage: Acid 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-1.webp': 'Damage: Bludgeoning 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-2.webp': 'Damage: Bludgeoning 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-3.webp': 'Damage: Bludgeoning 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-4.webp': 'Damage: Bludgeoning 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-1.webp': 'Damage: Cold 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-2.webp': 'Damage: Cold 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-3.webp': 'Damage: Cold 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-4.webp': 'Damage: Cold 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-1.webp': 'Damage: Fire 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-2.webp': 'Damage: Fire 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-3.webp': 'Damage: Fire 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-4.webp': 'Damage: Fire 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-5.webp': 'Damage: Fire 5',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-6.webp': 'Damage: Fire 6',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-1.webp': 'Damage: Force 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-2.webp': 'Damage: Force 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-3.webp': 'Damage: Force 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-4.webp': 'Damage: Force 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-1.webp': 'Damage: Lightning 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-2.webp': 'Damage: Lightning 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-3.webp': 'Damage: Lightning 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-4.webp': 'Damage: Lightning 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-1.webp': 'Damage: Necrotic 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-2.webp': 'Damage: Necrotic 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-3.webp': 'Damage: Necrotic 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-4.webp': 'Damage: Necrotic 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-5.webp': 'Damage: Necrotic 5',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-1.webp': 'Damage: Oops 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-2.webp': 'Damage: Oops 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-3.webp': 'Damage: Oops 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-4.webp': 'Damage: Oops 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-5.webp': 'Damage: Oops 5',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-6.webp': 'Damage: Oops 6',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-7.webp': 'Damage: Oops 7',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-8.webp': 'Damage: Oops 8',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-9.webp': 'Damage: Oops 9',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-10.webp': 'Damage: Oops 10',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-11.webp': 'Damage: Oops 11',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-piercing-1.webp': 'Damage: Piercing 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-piercing-2.webp': 'Damage: Piercing 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-piercing-3.webp': 'Damage: Piercing 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-1.webp': 'Damage: Poison 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-2.webp': 'Damage: Poison 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-3.webp': 'Damage: Poison 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-4.webp': 'Damage: Poison 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-5.webp': 'Damage: Poison 5',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-1.webp': 'Damage: Psychic 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-2.webp': 'Damage: Psychic 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-3.webp': 'Damage: Psychic 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-4.webp': 'Damage: Psychic 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-1.webp': 'Damage: Radiant 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-2.webp': 'Damage: Radiant 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-3.webp': 'Damage: Radiant 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-4.webp': 'Damage: Radiant 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-slashing-1.webp': 'Damage: Slashing 1',
+			'modules/coffee-pub-blacksmith/images/banners-damage-slashing-2.webp': 'Damage: Slashing 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-slashing-3.webp': 'Damage: Slashing 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-slashing-4.webp': 'Damage: Slashing 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-thunder-1.webp': 'Damage: Thunder 1'
+		},
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// -- Default Encounter Image Path --
+	game.settings.register(MODULE.ID, 'encounterDefaultImagePath', {
+		name: MODULE.ID + '.encounterDefaultImagePath-Label',
+		hint: MODULE.ID + '.encounterDefaultImagePath-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
 	// --------------------------------------
 	// -- H2: Compendiums
 	// --------------------------------------
@@ -2246,22 +2647,7 @@ export const registerSettings = () => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	
 
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
@@ -2690,6 +3076,275 @@ export const registerSettings = () => {
 			max: 50,
 			step: 1
 		},
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+
+	// --------------------------------------
+	// -- H2: DEAD TOKENS
+	// --------------------------------------
+	registerHeader('DeadTokens', 'headingH2DeadTokens-Label', 'headingH2DeadTokens-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
+
+	// --------------------------------------
+	// -- H3: Dead Configuration
+	// --------------------------------------
+	registerHeader('DeadConfiguration', 'headingH3DeadConfiguration-Label', 'headingH3DeadConfiguration-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+
+	// Enable Dead Token Replacement
+	game.settings.register(MODULE.ID, 'enableDeadTokenReplacement', {
+		name: MODULE.ID + '.enableDeadTokenReplacement-Label',
+		hint: MODULE.ID + '.enableDeadTokenReplacement-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Dead Token Creature Type Filter
+	game.settings.register(MODULE.ID, 'deadTokenCreatureTypeFilter', {
+		name: MODULE.ID + '.deadTokenCreatureTypeFilter-Label',
+		hint: MODULE.ID + '.deadTokenCreatureTypeFilter-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '',
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	
+	// --------------------------------------
+	// -- H3: Dead Experience
+	// --------------------------------------
+	registerHeader('DeadExperience', 'headingH3DeadExperience-Label', 'headingH3DeadExperience-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+
+	// Dead Token Image Path (NPC/Monster)
+	game.settings.register(MODULE.ID, 'deadTokenImagePath', {
+		name: MODULE.ID + '.deadTokenImagePath-Label',
+		hint: MODULE.ID + '.deadTokenImagePath-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-npc.webp',
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	game.settings.register(MODULE.ID, 'deadTokenSoundNPC', {
+		name: MODULE.ID + '.deadTokenSoundNPC-Label',
+		hint: MODULE.ID + '.deadTokenSoundNPC-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none",
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Dead Token Image Path (Player Character)
+	game.settings.register(MODULE.ID, 'deadTokenImagePathPC', {
+		name: MODULE.ID + '.deadTokenImagePathPC-Label',
+		hint: MODULE.ID + '.deadTokenImagePathPC-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-pc.webp',
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	game.settings.register(MODULE.ID, 'deadTokenSoundPC', {
+		name: MODULE.ID + '.deadTokenSoundPC-Label',
+		hint: MODULE.ID + '.deadTokenSoundPC-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none",
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	
+	game.settings.register(MODULE.ID, 'deadTokenSoundStable', {
+		name: MODULE.ID + '.deadTokenSoundStable-Label',
+		hint: MODULE.ID + '.deadTokenSoundStable-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none",
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// --------------------------------------
+	// -- H2: CONVERT DEAD TO LOOT 
+	// --------------------------------------
+	registerHeader('LootTokens', 'headingH2LootTokens-Label', 'headingH2LootTokens-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
+
+	// --------------------------------------
+	// -- H3: Loot Configuration
+	// --------------------------------------
+	registerHeader('LootConfiguration', 'headingH3LootConfiguration-Label', 'headingH3LootConfiguration-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+
+	// -- CONVERT DEAD TO LOOT --
+	game.settings.register(MODULE.ID, 'tokenConvertDeadToLoot', {
+		name: MODULE.ID + '.tokenConvertDeadToLoot-Label',
+		hint: MODULE.ID + '.tokenConvertDeadToLoot-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// -- Loot Delay --
+	game.settings.register(MODULE.ID,"tokenConvertDelay", {
+		name: MODULE.ID + '.tokenConvertDelay-Label',
+		hint: MODULE.ID + '.tokenConvertDelay-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: Number,
+		range: {
+		min: 5,
+		max: 60,
+		step: 1,
+		},
+		default: 10,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// -- Loot Pile Image --
+	game.settings.register(MODULE.ID, 'tokenLootPileImage', {
+		name: MODULE.ID + '.tokenLootPileImage-Label',
+		hint: MODULE.ID + '.tokenLootPileImage-Hint',
+        scope: 'world',
+        config: true,
+        type: String,
+		requiresReload: false,
+        default: 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-loot-sack.webp',
+		group: WORKFLOW_GROUPS.AUTOMATION
+    });
+
+	// -- Loot Sound --
+	game.settings.register(MODULE.ID, 'tokenLootSound', {
+		name: MODULE.ID + '.tokenLootSound-Label',
+		hint: MODULE.ID + '.tokenLootSound-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+        choices: BLACKSMITH.arrSoundChoices,
+		default: 'modules/coffee-pub-blacksmith/sounds/clatter.mp3',
+		group: WORKFLOW_GROUPS.AUTOMATION
+    });
+
+	// -- Loot Chat Message --
+	game.settings.register(MODULE.ID, 'tokenLootChatMessage', {
+		name: MODULE.ID + '.tokenLootChatMessage-Label',
+		hint: MODULE.ID + '.tokenLootChatMessage-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// --------------------------------------
+	// -- H3: Loot Treasure
+	// --------------------------------------
+	registerHeader('LootTreasure', 'headingH3LootTreasure-Label', 'headingH3LootTreasure-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+
+	// -- General Loot Table --
+	game.settings.register(MODULE.ID,'tokenLootTableGeneral', {
+		name: MODULE.ID + '.tokenLootTableGeneral-Label',
+		hint: MODULE.ID + '.tokenLootTableGeneral-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		default: '-- Choose a General Loot Table --',
+		choices: BLACKSMITH.arrTableChoices,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// -- General Loot Amount --
+	game.settings.register(MODULE.ID,"tokenLootTableGeneralAmount", {
+		name: MODULE.ID + '.tokenLootTableGeneralAmount-Label',
+		hint: MODULE.ID + '.tokenLootTableGeneralAmount-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: true,
+		type: Number,
+		range: {
+		min: 0,
+		max: 10,
+		step: 1,
+		},
+		default: 3,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// -- Gear Loot Table --
+	game.settings.register(MODULE.ID,'tokenLootTableGear', {
+		name: MODULE.ID + '.tokenLootTableGear-Label',
+		hint: MODULE.ID + '.tokenLootTableGear-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		default: '-- Choose a Gear Loot Table --',
+		choices: BLACKSMITH.arrTableChoices,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+	
+	// -- Gear Loot Amount --
+	game.settings.register(MODULE.ID,"tokenLootTableGearAmount", {
+		name: MODULE.ID + '.tokenLootTableGearAmount-Label',
+		hint: MODULE.ID + '.tokenLootTableGearAmount-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: true,
+		type: Number,
+		range: {
+		min: 0,
+		max: 10,
+		step: 1,
+		},
+		default: 2,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// -- Treasure Loot Table --
+	game.settings.register(MODULE.ID,'tokenLootTableTreasure', {
+		name: MODULE.ID + '.tokenLootTableTreasure-Label',
+		hint: MODULE.ID + '.tokenLootTableTreasure-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		default: '-- Choose a Treasure Table --',
+		choices: BLACKSMITH.arrTableChoices,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// -- Treasure Loot Amount --
+	game.settings.register(MODULE.ID,"tokenLootTableTreasureAmount", {
+		name: MODULE.ID + '.tokenLootTableTreasureAmount-Label',
+		hint: MODULE.ID + '.tokenLootTableTreasureAmount-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: true,
+		type: Number,
+		range: {
+		min: 0,
+		max: 10,
+		step: 1,
+		},
+		default: 1,
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
@@ -3348,16 +4003,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
-	// -- Encounter Folder --
-	game.settings.register(MODULE.ID, 'encounterFolder', {
-		name: MODULE.ID + '.encounterFolder-Label',
-		hint: MODULE.ID + '.encounterFolder-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'Encounters',
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
+
 
 	// -- Deployment Pattern --
 	game.settings.register(MODULE.ID, 'encounterToolbarDeploymentPattern', {
@@ -3773,633 +4419,6 @@ export const registerSettings = () => {
 
 
 
-	// DEAD TOKEN REPLACEMENT
-
-	
-	// Enable Dead Token Replacement
-	game.settings.register(MODULE.ID, 'enableDeadTokenReplacement', {
-		name: 'Enable Dead Token Replacement',
-		hint: 'Choose which types of tokens should automatically change to "dead" versions when they reach 0 HP (NPCs die immediately, PCs die after 3 failed death saves)',
-		scope: 'world',
-		config: true,
-		type: String,
-		choices: {
-			'disabled': 'Disabled',
-			'both': 'NPCs and PCs',
-			'npcs': 'NPCs Only',
-			'pcs': 'PCs Only'
-		},
-		default: 'disabled',
-		requiresReload: false
-	});
-
-	// Dead Token Image Path (NPC/Monster)
-	game.settings.register(MODULE.ID, 'deadTokenImagePath', {
-		name: 'Dead Token Image Path (NPC)',
-		hint: 'Full path to dead token image for NPCs/Monsters (applied immediately at 0 HP)',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-npc.webp',
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'deadTokenSoundNPC', {
-		name: "Dead NPC Sound",
-		hint: "Sound to play when an NPC dies.",
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		choices: BLACKSMITH.arrSoundChoices,
-		default: "none"
-	});
-
-	// Dead Token Image Path (Player Character)
-	game.settings.register(MODULE.ID, 'deadTokenImagePathPC', {
-		name: 'Dead Token Image Path (PC)',
-		hint: 'Full path to dead token image for Player Characters (applied after 3 failed death saves)',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-pc.webp',
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'deadTokenSoundPC', {
-		name: "Dead PC Sound",
-		hint: "Sound to play when an Player Character dies.",
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		choices: BLACKSMITH.arrSoundChoices,
-		default: "none"
-	});
-
-	// Dead Token Creature Type Filter
-	game.settings.register(MODULE.ID, 'deadTokenCreatureTypeFilter', {
-		name: 'Dead Token Creature Types (NPC)',
-		hint: 'Comma-separated creature types to apply dead tokens to for NPCs (leave empty for all). Example: humanoid,beast,dragon',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '',
-		requiresReload: false
-	});
-
-
-
-	game.settings.register(MODULE.ID, 'deadTokenSoundStable', {
-		name: "Stable PC Sound",
-		hint: "Sound to play when an Player Character becomes stable.",
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		choices: BLACKSMITH.arrSoundChoices,
-		default: "none"
-	});
-
-
-
-
-	// *** TREASURE LOOT ***
-
-	// -- CONVERT DEAD TO LOOT --
-	game.settings.register(MODULE.ID, 'tokenConvertDeadToLoot', {
-		name: 'Convert Dead to Loot',
-		hint: 'If you have the module "Item Piles" installed, this will convert dead tokens to loot piles.',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
-
-	// -- Loot Delay --
-	game.settings.register(MODULE.ID,"tokenConvertDelay", {
-		name: 'Loot Delay',
-		hint: 'How many seconds to wait before the loot is converted to a pile?',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: Number,
-		range: {
-		min: 5,
-		max: 60,
-		step: 1,
-		},
-		default: 10,
-	});
-
-	// -- Loot Sound --
-	game.settings.register(MODULE.ID, 'tokenLootSound', {
-		name: "Loot Conversion Sound",
-		hint: "Sound to play when a token is turned into loot.",
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-        choices: BLACKSMITH.arrSoundChoices,
-		default: 'modules/coffee-pub-blacksmith/sounds/clatter.mp3'
-    });
-
-	game.settings.register(MODULE.ID, 'tokenLootPileImage', {
-		name: 'Loot Token Image Path',
-		hint: 'Full path to loot token image for tokens (applied after token converted to loot pile)',
-        scope: 'world',
-        config: true,
-        type: String,
-		requiresReload: false,
-        default: 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-loot-sack.webp'
-    });
-
-
-
-	game.settings.register(MODULE.ID,'tokenLootTableTreasure', {
-		name: 'Treasure Loot Table',
-		hint: 'When a token is converted to a loot pile, this is the table that will be used to create the treasure loot, aside from what they were carrying.',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		default: '-- Choose a Treasure Table --',
-		choices: BLACKSMITH.arrTableChoices
-	});
-
-	// -- Treasure Loot Amount --
-	game.settings.register(MODULE.ID,"tokenLootTableTreasureAmount", {
-		name: 'Treasure Loot Amount',
-		hint: 'How many of this type of treasure should be added to the loot pile?',
-		scope: "world",
-		config: true,
-		requiresReload: true,
-		type: Number,
-		range: {
-		min: 0,
-		max: 10,
-		step: 1,
-		},
-		default: 1,
-	});
-
-	// *** GEAR LOOT ***
-
-	game.settings.register(MODULE.ID,'tokenLootTableGear', {
-		name: 'Gear Loot Table',
-		hint: 'When a token is converted to a loot pile, this is the table that will be used to create the gear loot, aside from what they were carrying.',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		default: '-- Choose a Gear Loot Table --',
-		choices: BLACKSMITH.arrTableChoices
-	});
-	
-	// -- Gear Loot Amount --
-	game.settings.register(MODULE.ID,"tokenLootTableGearAmount", {
-		name: 'Gear Loot Amount',
-		hint: 'How many of this type of Gear loot should be added to the loot pile?',
-		scope: "world",
-		config: true,
-		requiresReload: true,
-		type: Number,
-		range: {
-		min: 0,
-		max: 10,
-		step: 1,
-		},
-		default: 2,
-	});
-
-	// *** General LOOT ***
-
-	game.settings.register(MODULE.ID,'tokenLootTableGeneral', {
-		name: 'General Loot Table',
-		hint: 'When a token is converted to a loot pile, this is the table that will be used to create the general loot, aside from what they were carrying.',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		default: '-- Choose a General Loot Table --',
-		choices: BLACKSMITH.arrTableChoices
-	});
-
-	// -- General Loot Amount --
-	game.settings.register(MODULE.ID,"tokenLootTableGeneralAmount", {
-		name: 'General Loot Amount',
-		hint: 'How many of this type of General loot should be added to the loot pile?',
-		scope: "world",
-		config: true,
-		requiresReload: true,
-		type: Number,
-		range: {
-		min: 0,
-		max: 10,
-		step: 1,
-		},
-		default: 3,
-	});
-
-
-
-	game.settings.register(MODULE.ID, 'tokenLootChatMessage', {
-		name: 'Loot Chat Message',
-		hint: 'Send loot updates to the chat log.',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
-
-
-
-
-
-
-
-	
-
-
-
-	
-	// ---------- SUBHEADING ----------
-	game.settings.register(MODULE.ID, "headingH2CampaignSettings", {
-		name: 'Campaign Settings',
-		hint: 'These settings are used to power both any AI generated content as well as augment any JSON imports for items, journal entries, characters, etc.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-
-
-	
-	// ---------- CAMPAIGN COMMON ----------
-	game.settings.register(MODULE.ID, "headingH3CampaignCommon", {
-		name: 'Campaign Common',
-		hint: 'General campaign settings that are common to all narratives.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-
-	// -- Use Cookies --
-	game.settings.register(MODULE.ID, 'narrativeUseCookies', {
-		name: MODULE.ID + '.narrativeUseCookies-Label',
-		hint: MODULE.ID + '.narrativeUseCookies-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
-
-	// -- Default Campaign Name --
-	game.settings.register(MODULE.ID, 'defaultCampaignName', {
-		name:'Default Campaign Name',
-		hint: 'The default campaign name to use when creating new narratives.',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-
-	// ---------- Narratvie Generator ----------
-	game.settings.register(MODULE.ID, "headingH3NarrativeGenerator", {
-		name: MODULE.ID + '.headingH3NarrativeGenerator-Label',
-		hint: MODULE.ID + '.headingH3NarrativeGenerator-Hint',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-	// -- Default Narrative Folder --
-	game.settings.register(MODULE.ID, 'defaultNarrativeFolder', {
-		name: MODULE.ID + '.defaultNarrativeFolder-Label',
-		hint: MODULE.ID + '.defaultNarrativeFolder-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'New Narratives'
-	});
-
-	// -- Default Journal Page Title --
-	game.settings.register(MODULE.ID, 'defaultJournalPageTitle', {
-		name: MODULE.ID + '.defaultJournalPageTitle-Label',
-		hint: MODULE.ID + '.defaultJournalPageTitle-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''	
-	});
-
-	// -- Default Scene Location --
-	game.settings.register(MODULE.ID, 'defaultSceneLocation', {
-		name: MODULE.ID + '.defaultSceneLocation-Label',
-		hint: MODULE.ID + '.defaultSceneLocation-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-
-	// -- Default Scene Parent --
-	game.settings.register(MODULE.ID, 'defaultSceneParent', {
-		name: MODULE.ID + '.defaultSceneParent-Label',
-		hint: MODULE.ID + '.defaultSceneParent-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-
-	// -- Default Scene Area --
-	game.settings.register(MODULE.ID, 'defaultSceneArea', {
-		name: MODULE.ID + '.defaultSceneArea-Label',
-		hint: MODULE.ID + '.defaultSceneArea-Hint',	
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-
-	// -- Default Scene Environment --
-	game.settings.register(MODULE.ID, 'defaultSceneEnvironment', {	
-		name: MODULE.ID + '.defaultSceneEnvironment-Label',	
-		hint: MODULE.ID + '.defaultSceneEnvironment-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});	
-
-	
-
-	// -- Default Card Image Selection --
-	game.settings.register(MODULE.ID, 'narrativeDefaultCardImage', {
-		name: MODULE.ID + '.narrativeDefaultCardImage-Label',
-		hint: MODULE.ID + '.narrativeDefaultCardImage-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'none',
-		choices: {
-			'none': 'No Image',
-			'custom': 'Custom: Paste the Path Below',
-			'modules/coffee-pub-blacksmith/images/banners/banners-heros-1.webp': 'Heroes 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-heros-2.webp': 'Heroes 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-heros-3.webp': 'Heroes 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-1.webp': 'Location:Crypt 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-2.webp': 'Location:Crypt 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-1.webp': 'Landscape: Forest 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-2.webp': 'Landscape: Forest 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-3.webp': 'Landscape: Forest 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-4.webp': 'Landscape: Forest 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-jungle-1.webp': 'Landscape: Jungle 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-mountains-1.webp': 'Landscape: Mountains 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-mushrooms-1.webp': 'Landscape: Mushrooms 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-mushrooms-2.webp': 'Landscape: Mushrooms 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-path-1.webp': 'Landscape: Path 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-path-2.webp': 'Landscape: Path 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-1.webp': 'Landscape: Winter 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-2.webp': 'Landscape: Winter 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-3.webp': 'Landscape: Winter 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-dragon-1.webp': 'Monster: Dragon 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-minotour-1.webp': 'Monster: Minotaur 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-wraith-1.webp': 'Monster: Wraith 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-wraith-2.webp': 'Monster: Wraith 2'
-		}
-	});
-
-	// -- Default Image Path --
-	game.settings.register(MODULE.ID, 'narrativeDefaultImagePath', {
-		name: MODULE.ID + '.narrativeDefaultImagePath-Label',
-		hint: MODULE.ID + '.narrativeDefaultImagePath-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-
-	// -- Include Encounter by Default --
-	game.settings.register(MODULE.ID, 'narrativeDefaultIncludeEncounter', {
-		name: MODULE.ID + '.narrativeDefaultIncludeEncounter-Label',
-		hint: MODULE.ID + '.narrativeDefaultIncludeEncounter-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
-
-	// -- Default Encounter Details --
-	game.settings.register(MODULE.ID, 'narrativeDefaultEncounterDetails', {
-		name: MODULE.ID + '.narrativeDefaultEncounterDetails-Label',
-		hint: MODULE.ID + '.narrativeDefaultEncounterDetails-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-
-
-	// -- Include Treasure by Default --
-	game.settings.register(MODULE.ID, 'narrativeDefaultIncludeTreasure', {
-		name: MODULE.ID + '.narrativeDefaultIncludeTreasure-Label',
-		hint: MODULE.ID + '.narrativeDefaultIncludeTreasure-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
-
-
-
-	// -- Default XP --
-	game.settings.register(MODULE.ID, 'narrativeDefaultXP', {
-		name: MODULE.ID + '.narrativeDefaultXP-Label',
-		hint: MODULE.ID + '.narrativeDefaultXP-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'None'
-	});
-
-	// -- Default Treasure Details --
-	game.settings.register(MODULE.ID, 'narrativeDefaultTreasureDetails', {
-		name: MODULE.ID + '.narrativeDefaultTreasureDetails-Label',
-		hint: MODULE.ID + '.narrativeDefaultTreasureDetails-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-
-	// ---------- ENCOUNTER DEFAULTS ----------
-	game.settings.register(MODULE.ID, "headingH3EncounterDefaults", {
-		name: 'Encounter Defaults',
-		hint: 'These settings control default values for encounter templates.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-	// -- Default Encounter Folder --
-	game.settings.register(MODULE.ID, 'defaultEncounterFolder', {
-		name: MODULE.ID + '.defaultEncounterFolder-Label',
-		hint: MODULE.ID + '.defaultEncounterFolder-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'New Encounters'
-	});
-
-	// -- Default Encounter Card Image Selection --
-	game.settings.register(MODULE.ID, 'encounterDefaultCardImage', {
-		name: MODULE.ID + '.encounterDefaultCardImage-Label',
-		hint: MODULE.ID + '.encounterDefaultCardImage-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'none',
-		choices: {
-			'none': 'No Image',
-			'custom': 'Custom: Paste the Path Below',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-acid-1.webp': 'Damage: Acid 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-acid-2.webp': 'Damage: Acid 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-acid-3.webp': 'Damage: Acid 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-1.webp': 'Damage: Bludgeoning 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-2.webp': 'Damage: Bludgeoning 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-3.webp': 'Damage: Bludgeoning 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-4.webp': 'Damage: Bludgeoning 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-1.webp': 'Damage: Cold 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-2.webp': 'Damage: Cold 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-3.webp': 'Damage: Cold 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-4.webp': 'Damage: Cold 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-1.webp': 'Damage: Fire 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-2.webp': 'Damage: Fire 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-3.webp': 'Damage: Fire 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-4.webp': 'Damage: Fire 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-5.webp': 'Damage: Fire 5',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-6.webp': 'Damage: Fire 6',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-1.webp': 'Damage: Force 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-2.webp': 'Damage: Force 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-3.webp': 'Damage: Force 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-4.webp': 'Damage: Force 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-1.webp': 'Damage: Lightning 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-2.webp': 'Damage: Lightning 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-3.webp': 'Damage: Lightning 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-4.webp': 'Damage: Lightning 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-1.webp': 'Damage: Necrotic 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-2.webp': 'Damage: Necrotic 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-3.webp': 'Damage: Necrotic 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-4.webp': 'Damage: Necrotic 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-5.webp': 'Damage: Necrotic 5',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-1.webp': 'Damage: Oops 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-2.webp': 'Damage: Oops 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-3.webp': 'Damage: Oops 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-4.webp': 'Damage: Oops 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-5.webp': 'Damage: Oops 5',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-6.webp': 'Damage: Oops 6',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-7.webp': 'Damage: Oops 7',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-8.webp': 'Damage: Oops 8',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-9.webp': 'Damage: Oops 9',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-10.webp': 'Damage: Oops 10',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-11.webp': 'Damage: Oops 11',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-piercing-1.webp': 'Damage: Piercing 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-piercing-2.webp': 'Damage: Piercing 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-piercing-3.webp': 'Damage: Piercing 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-1.webp': 'Damage: Poison 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-2.webp': 'Damage: Poison 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-3.webp': 'Damage: Poison 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-4.webp': 'Damage: Poison 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-5.webp': 'Damage: Poison 5',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-1.webp': 'Damage: Psychic 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-2.webp': 'Damage: Psychic 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-3.webp': 'Damage: Psychic 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-4.webp': 'Damage: Psychic 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-1.webp': 'Damage: Radiant 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-2.webp': 'Damage: Radiant 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-3.webp': 'Damage: Radiant 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-4.webp': 'Damage: Radiant 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-slashing-1.webp': 'Damage: Slashing 1',
-			'modules/coffee-pub-blacksmith/images/banners-damage-slashing-2.webp': 'Damage: Slashing 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-slashing-3.webp': 'Damage: Slashing 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-slashing-4.webp': 'Damage: Slashing 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-thunder-1.webp': 'Damage: Thunder 1'
-		}
-	});
-
-	// -- Default Encounter Image Path --
-	game.settings.register(MODULE.ID, 'encounterDefaultImagePath', {
-		name: MODULE.ID + '.encounterDefaultImagePath-Label',
-		hint: MODULE.ID + '.encounterDefaultImagePath-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-	
-	// ---------- ITEM IMPORT ----------
-	game.settings.register(MODULE.ID, "headingH3ItemImport", {
-		name: 'Item Import',
-		hint: 'These settings control how you to import items into the game.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-
-	// -- Enhanced Image Guessing --
-	game.settings.register(MODULE.ID, 'enableEnhancedImageGuessing', {
-		name: MODULE.ID + '.enableEnhancedImageGuessing-Label',
-		hint: MODULE.ID + '.enableEnhancedImageGuessing-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-	});
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -4629,14 +4648,6 @@ export const registerSettings = () => {
 		default: false
 	});
 
-	game.settings.register(MODULE.ID, 'cookiesRememberCardStates', {
-		name: 'Remember Card States',
-		hint: 'If enabled, the collapsed/expanded state of cards will be remembered between sessions using cookies.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
 
 
 
