@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 
 // Register hooks after settings are initialized
@@ -25,7 +25,7 @@ Hooks.once('ready', () => {
         if (!controlGroups.length) return;
 
         // Set up observer for portrait changes if enabled
-        if (game.settings.get(MODULE.ID, 'combatTrackerShowPortraits')) {
+        if (getSettingSafely(MODULE.ID, 'combatTrackerShowPortraits', false)) {
             const observer = new MutationObserver((mutations) => {
                 mutations.forEach((mutation) => {
                     if (mutation.type === 'childList' || mutation.type === 'attributes') {
@@ -158,12 +158,12 @@ Hooks.once('ready', () => {
             if (!actor) return;
 
             // Handle portrait vs token image
-            if (game.settings.get(MODULE.ID, 'combatTrackerShowPortraits')) {
+            if (getSettingSafely(MODULE.ID, 'combatTrackerShowPortraits', false)) {
                 updatePortrait(element);
             }
 
             // Add our button for GMs
-            if (game.user.isGM && game.settings.get(MODULE.ID, 'combatTrackerSetCurrentCombatant')) {
+            if (game.user.isGM && getSettingSafely(MODULE.ID, 'combatTrackerSetCurrentCombatant', false)) {
                 const controls = combatant.find('.combatant-controls');
                 const button = $(`
                     <a class="combatant-control" 
@@ -188,7 +188,7 @@ Hooks.once('ready', () => {
             }
 
             // Only create health ring if the setting is enabled
-            if (game.settings.get(MODULE.ID, 'combatTrackerShowHealthBar')) {
+            if (getSettingSafely(MODULE.ID, 'combatTrackerShowHealthBar', false)) {
                 // Calculate health percentage
                 const hp = actor.system.attributes.hp;
                 const currentHP = hp.value;
@@ -247,7 +247,7 @@ Hooks.once('ready', () => {
 
 
                 // Add dead class and skull overlay if HP is 0 or less
-                if (currentHP <= 0 && game.settings.get(MODULE.ID, 'combatTrackerShowPortraits')) {
+                if (currentHP <= 0 && getSettingSafely(MODULE.ID, 'combatTrackerShowPortraits', false)) {
                     combatant.addClass('portrait-dead');
                     // Add skull overlay to the initiative div if it doesn't exist
                     const initiativeDiv = combatant.find('.token-initiative');
@@ -317,7 +317,7 @@ class CombatTools {
         const combatPopout = document.querySelector('#combat-popout');
         if (!combatPopout) return;
 
-        const isResizable = game.settings.get(MODULE.ID, 'combatTrackerResizable');
+        const isResizable = getSettingSafely(MODULE.ID, 'combatTrackerResizable', false);
 
         if (isResizable) {
             document.body.classList.add('combat-tracker-resizable');

@@ -730,7 +730,7 @@ class MenuBar {
                 // Small delay to ensure everything is ready
                 setTimeout(() => {
                     // Check if auto-show is enabled
-                    const shouldShowCombatBar = game.settings.get(MODULE.ID, 'menubarCombatShow');
+                    const shouldShowCombatBar = getSettingSafely(MODULE.ID, 'menubarCombatShow', false);
                     if (shouldShowCombatBar) {
                         this.openCombatBar();
                     }

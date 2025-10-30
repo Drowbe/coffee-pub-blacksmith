@@ -4,7 +4,7 @@
 
 import { MODULE } from './const.js';
 import { CombatStats } from './stats-combat.js';
-import { postConsoleAndNotification, playSound, trimString, formatTime } from './api-core.js';
+import { postConsoleAndNotification, playSound, trimString, formatTime, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 
 export class RoundTimer {
@@ -153,7 +153,7 @@ export class RoundTimer {
             {
                 roundDurationActual: formattedRoundTime,
                 totalCombatDuration: formattedTotalTime,
-                showRoundTimer: game.settings.get(MODULE.ID, 'showRoundTimer')
+                showRoundTimer: getSettingSafely(MODULE.ID, 'showRoundTimer', false)
             }
         );
         

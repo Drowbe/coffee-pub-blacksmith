@@ -125,10 +125,68 @@
 	"headingH1RunTheGame-Label": "Run the Game",
 	"headingH1RunTheGame-Hint": "Settings for running games, toolbars, chat, and gameplay features",
 
+		"headingH2TokenEnhancements-Label": "Token Enhancements",
+		"headingH2TokenImageReplacementActions-Hint": "Automation of token actions. This include token changes for when a character dies, is targeted, has the current turn in combat, etc.",
 
+			"headingH3GeneralIndicatorSettings-Label": "General Indicator Congifuration",
+			"headingH3GeneralIndicatorSettings-Hint": "",
 
+				"generalIndicatorsEnabled-Label": "Enable Turn Indicator",
+				"generalIndicatorsEnabled-Hint": "",
 
+				"generalIndicatorsThickness-Label": "Border Thickness",
+				"generalIndicatorsThickness-Hint": "",
 
+				"generalIndicatorsOffset-Label": "BorderOffset",
+				"generalIndicatorsOffset-Hint": "",
+
+				"generalIndicatorsOpacityMin-Label": "Min Opacity",
+				"generalIndicatorsOpacityMin-Hint": "",
+
+				"generalIndicatorsOpacityMax-Label": "Max Opacity",
+				"generalIndicatorsOpacityMax-Hint": "",
+
+				"generalIndicatorsOpacityInner-Label": "Background Opacity",
+				"generalIndicatorsOpacityInner-Hint": "",
+
+			"headingH3TurnIndicators-Label": "Current Turn",
+			"headingH3TurnIndicators-Hint": "",
+
+				"turnIndicatorCurrentStyle-Label": "Style",
+				"turnIndicatorCurrentStyle-Hint": "",
+
+				"turnIndicatorCurrentAnimation-Label": "Animation Type",
+				"turnIndicatorCurrentAnimation-Hint": "",
+
+				"turnIndicatorCurrentAnimationSpeed-Label": "Animation Speed",
+				"turnIndicatorCurrentAnimationSpeed-Hint": "",
+
+				"turnIndicatorCurrentBorderColor-Label": "Border Color",
+				"turnIndicatorCurrentBorderColor-Hint": "Enter a hex color code for the border color of the turn indicator.",
+
+				"turnIndicatorCurrentBackgroundColor-Label": " Background Color",
+				"turnIndicatorCurrentBackgroundColor-Hint": "Enter a hex color code for the background color of the turn indicator.",
+
+			"headingH3TargetedIndicator-Label": "Targeted Tokens",
+			"headingH3TargetedIndicator-Hint": "",
+
+				"targetedIndicatorEnabled-Label": "Enable Targeted Indicator",
+				"targetedIndicatorEnabled-Hint": "",
+
+				"targetedIndicatorStyle-Label": "Style",
+				"targetedIndicatorStyle-Hint": "",
+
+				"targetedIndicatorAnimation-Label": "Animation Type",
+				"targetedIndicatorAnimation-Hint": "",
+
+				"targetedIndicatorAnimationSpeed-Label": "Animation Speed",
+				"targetedIndicatorAnimationSpeed-Hint": "",
+
+				"targetedIndicatorBorderColor-Label": "Border Color",
+				"targetedIndicatorBorderColor-Hint": "",
+
+				"targetedIndicatorBackgroundColor-Label": "Background Color",
+				"targetedIndicatorBackgroundColor-Hint": "",
 
 
 
@@ -147,41 +205,41 @@
 			"headingH2CompendiumMapping-Label": "Compendium Mapping",
 			"headingH2CompendiumMapping-Hint": "When we automate searching for things, we look in the compendiums first. This is where we will look for a match. They are in priority order and we stop looking when we find a match.",
 
-			"headingH3ActorCompendiums-Label": "Actor Compendiums",
+			"headingH3ActorCompendiums-Label": "Actors",
 			"headingH3ActorCompendiums-Hint": "",
 
-			"headingH3AdventureCompendiums-Label": "Adventure Compendiums",
+			"headingH3AdventureCompendiums-Label": "Adventures",
 			"headingH3AdventureCompendiums-Hint": "",
 
-			"headingH3CardCompendiums-Label": "Card Compendiums",
-			"headingH3CardCompendiums-Hint": "",
+			"headingH3CardsCompendiums-Label": "Cards",
+			"headingH3CardsCompendiums-Hint": "",
 
-			"headingH3FeatureCompendiums-Label": "Feature Compendiums",
+			"headingH3FeatureCompendiums-Label": "Features",
 			"headingH3FeatureCompendiums-Hint": "",
 
-			"headingH3ItemCompendiums-Label": "Item Compendiums",
+			"headingH3ItemCompendiums-Label": "Items",
 			"headingH3ItemCompendiums-Hint": "",
 
-			"headingH3JournalEntryCompendiums-Label": "Journal Entry Compendiums",
+			"headingH3JournalEntryCompendiums-Label": "Journal",
 			"headingH3JournalEntryCompendiums-Hint": "",
 
-			"headingH3MacroCompendiums-Label": "Macro Compendiums",
+			"headingH3MacroCompendiums-Label": "Macros",
 			"headingH3MacroCompendiums-Hint": "",
 
-			"headingH3PlaylistCompendiums-Label": "Playlist Compendiums",
+			"headingH3PlaylistCompendiums-Label": "Playlists",
 			"headingH3PlaylistCompendiums-Hint": "",
 			
-			
-			"headingH3RollTableCompendiums-Label": "Roll Table Compendiums",
+		
+			"headingH3RollTableCompendiums-Label": "Roll Tables",
 			"headingH3RollTableCompendiums-Hint": "",
 
-			"headingH3SceneCompendiums-Label": "Scene Compendiums",
+			"headingH3SceneCompendiums-Label": "Scenes",
 			"headingH3SceneCompendiums-Hint": "",
 
-			"headingH3SpellCompendiums-Label": "Spell Compendiums",
+			"headingH3SpellCompendiums-Label": "Spells",
 			"headingH3SpellCompendiums-Hint": "",
 
-			"headingH3StackCompendiums-Label": "Stack Compendiums",
+			"headingH3StackCompendiums-Label": "Stacks",
 			"headingH3StackCompendiums-Hint": "",
 
 			"searchWorldFirst-Label": "Search World First",
@@ -263,7 +321,7 @@
 
 
 			"headingH3TokenOverrides-Label": "Overrides",
-			"headingH3TokenOverrides-Hint": "Configure the options for overriding the behavior of dropped tokens on the canvas.",
+			"headingH3TokenOverrides-Hint": "",
 
 				"unlockTokenRotation-Label": "Unlock Token Rotation",
 				"unlockTokenRotation-Hint": "Override Foundry's default 'lock rotation' setting for all new tokens. This will allow tokens to be rotated freely.",
@@ -275,7 +333,7 @@
 				"setTokenScale-Hint": "Set the default scale size for dropped tokens.",
 
 			"headingH3TokenRenamingOptions-Label": "Renaming",
-			"headingH3TokenRenamingOptions-Hint": "Configure the options for renaming dropped tokens on the canvas.",
+			"headingH3TokenRenamingOptions-Hint": "",
 		
 				"tokenNameFormat-Label": "Format",
 				"tokenNameFormat-Hint": "Choose the format of token renaming so they read how you want them.",
@@ -290,9 +348,8 @@
 				"tokenNameTable-Hint": "If using a random name from a table, select the table that should be used to rename the token.",
 
 			"headingH3TokenNameplateStyle-Label": "Nameplate Style",
-			"headingH3TokenNameplateStyle-Hint": "Configure the options for the nameplate of dropped tokens on the canvas.",
+			"headingH3TokenNameplateStyle-Hint": "",
 
-		
 				"nameplateFontSize-Label": "Font Size",
 				"nameplateFontSize-Hint": "Sets the fontsize for nameplates under tokens. Range: 5px to 70px. Default: 24px.",
 			
@@ -308,8 +365,8 @@
 				"nameplateOutlineColor-Label": " Outline Color",
 				"nameplateOutlineColor-Hint": "Sets the outline color for nameplates under tokens. Default: #111111.",
 
-			"headingH3TokenImageReplacement-Label": "Image Replacement",
-			"headingH3TokenImageReplacement-Hint": "Token image replacement features and functions. This includes dropped tokens, manual image updates, and more.",
+			"headingH3TokenImageReplacement-Label": "Token Replacement",
+			"headingH3TokenImageReplacement-Hint": "",
 
 				"tokenImageReplacementEnabled-Label": "Replace Images",
 				"tokenImageReplacementEnabled-Hint": "Enable the image replacement features and functions.",
@@ -344,11 +401,15 @@
 
 
 
-			"headingH3TokenImageReplacementCache-Label": "Image Cache",
-			"headingH3TokenImageReplacementCache-Hint": "The cache is where we store the image references that are used for token image replacement. It also contains the tags, cateogries and other metadata for the images.",
+		"headingH2TokenImageReplacementCache-Label": "Image Cache",
+		"headingH2TokenImageReplacementCache-Hint": "The cache is where we store the image references that are used for token image replacement. It also contains the tags, cateogries and other metadata for the images.",
 
-				"tokenImageReplacementCacheStats-Label": "Cache Status",
+			"tokenImageReplacementCacheStats-Label": "Cache Status",
 
+			"headingH3TokenImageReplacementConfiguration-Label": "Configuration",
+			"headingH3TokenImageReplacementConfiguration-Hint": "",
+
+				
 				"tokenImageReplacementPath-Label": "Replacement Images Folder",
 				"tokenImageReplacementPath-Hint": "Base folder path for replacement images. For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
 			
@@ -357,23 +418,55 @@
 				"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for token images. These folders will be completely skipped during the scan process. Examples: _gsdata_, .DS_Store",
 
 
+				"tokenImageReplacementAutoUpdate-Label": "Automatically Update Image Cache",
+				"tokenImageReplacementAutoUpdate-Hint": "Automatically scan for new or changed token images when changes are detected.",
 
 
+				"tokenImageReplacementDeprioritizedWords-Label": "Deprioritized Words",
+				"tokenImageReplacementDeprioritizedWords-Hint": "Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., 'spirit,ghost,undead,shadow').",
+				
+				"tokenImageReplacementIgnoredWords-Label": "Ignored Words",
+				"tokenImageReplacementIgnoredWords-Hint": "Comma-separated list of patterns to completely exclude files from cache. Supports wildcards: 'spirit' (exact), '*spirit' (ends with), 'spirit*' (starts with), '*spirit*' (contains), '*.png' (extension). Files matching any pattern will not be scanned or cached.",	
 
 
-
+			"headingH3TokenImageReplacementDisplay-Label": "Window Display",
+			"headingH3TokenImageReplacementDisplay-Hint": "",
 			
 				"tokenImageReplacementCategoryStyle-Label": "Category Style",
 				"tokenImageReplacementCategoryStyle-Hint": "Choose how category filters are displayed in the Token Image Replacement window. Buttons show as clickable buttons, Tabs show as traditional tab interface.",
 
+				"tokenImageReplacementTagSortMode-Label": "Tag Sort Mode",
+				"tokenImageReplacementTagSortMode-Hint": "How to sort and display tags: Count (by frequency), Alpha (alphabetical), or Hidden (hide tags completely)",
 
+				"tokenImageReplacementFuzzySearch-Label": "Fuzzy Search",
+				"tokenImageReplacementFuzzySearch-Hint": "When enabled, searches for individual words independently. When disabled, searches for exact string matches.",
 
+			"headingH3TokenImageReplacementDataWeights-Label": "Token Data Weighting",
+			"headingH3TokenImageReplacementDataWeights-Hint": "Configure the weights for the data used to calculate the best match for a token image replacement. These weights are used to determine the importance of the data when calculating the best match for a token image replacement.",
 
+				"tokenImageReplacementWeightActorName-Label": "Actor Name Weight",
+				"tokenImageReplacementWeightActorName-Hint": "Weight the actor name field with the highest priority when calculating the best match for a token image replacement. (e.g., 'Frost Giant', 'Goblin')",
 
+				"tokenImageReplacementWeightTokenName-Label": "Token Name Weight",
+				"tokenImageReplacementWeightTokenName-Hint": "Weight the token name field with the highest priority when calculating the best match for a token image replacement. (e.g., 'Bob (Goblin)', 'Goblin 1', 'Bob')",
+
+				"tokenImageReplacementWeightRepresentedActor-Label": "Represented Actor Weight",
+				"tokenImageReplacementWeightRepresentedActor-Hint": "Weight the represented actor field with the highest priority when calculating the best match for a token image replacement. (e.g., 'Bob (Goblin)', 'Goblin 1', 'Bob')",
+
+				"tokenImageReplacementWeightCreatureType-Label": "Creature Type Weight",
+				"tokenImageReplacementWeightCreatureType-Hint": "Weight the creature type field with the highest priority when calculating the best match for a token image replacement. (e.g., 'Humanoid', 'Dragon', 'Beast') - Official D&D5e type",	
+
+				"tokenImageReplacementWeightCreatureSubtype-Label": "Creature Subtype Weight",
+				"tokenImageReplacementWeightCreatureSubtype-Hint": "Weight the creature subtype field with the highest priority when calculating the best match for a token image replacement. (e.g., 'Goblinoid', 'Orc', 'Elf') - Official D&D5e subtype",	
+
+				"tokenImageReplacementWeightEquipment-Label": "Equipment Weight",
+				"tokenImageReplacementWeightEquipment-Hint": "Weight the equipment field with the highest priority when calculating the best match for a token image replacement. (e.g., 'Sword', 'Bow', 'Staff')",	
+				
+				"tokenImageReplacementWeightSize-Label": "Size Weight",
+				"tokenImageReplacementWeightSize-Hint": "Weight the size field with the highest priority when calculating the best match for a token image replacement. (e.g., 'Large', 'Medium', 'Huge')",	
 
 		"headingH2AutomatedEncounters-Label": "Automated Encounters",
 		"headingH2AutomatedEncounters-Hint": "Automated encounters and monsters deployment.",
-
 
 			"headingH3JournalEncounterToolbar-Label": "Journal",
 			"headingH3JournalEncounterToolbar-Hint": "Automated encounter settings for journal entries.",
@@ -392,6 +485,23 @@
 			
 				"toggleVisibility-Label": "Toggle Token Visibility",
 				"toggleVisibility-Hint": "Toggle the visibility of all tokens on the canvas. If any tokens are hidden, this will make them visible. If all tokens are visible, this will hide them all.",
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 	"SEPARATOR-ARTIFICIAL-INTELLIGENCE": "-------------------------------------------------------",

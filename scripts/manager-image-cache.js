@@ -179,12 +179,12 @@ export class ImageCacheManager {
     /**
      * Load monster mapping data from resources and store in settings
      */
-    static async _loadMonsterMappingData() {
+    static async _loadtargetedIndicatorEnabled() {
         try {
             // Check if we already have the data
-            const existingData = game.settings.get(MODULE.ID, 'monsterMappingData');
+            const existingData = game.settings.get(MODULE.ID, 'targetedIndicatorEnabled');
             if (existingData && Object.keys(existingData).length > 0) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: DEBUG (_loadMonsterMappingData) - Monster mapping data already loaded", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: DEBUG (_loadtargetedIndicatorEnabled) - Monster mapping data already loaded", "", true, false);
                 return;
             }
             
@@ -194,7 +194,7 @@ export class ImageCacheManager {
             const response = await fetch('modules/coffee-pub-blacksmith/resources/monster-mapping.json');
             if (response.ok) {
                 const monsterData = await response.json();
-                await game.settings.set(MODULE.ID, 'monsterMappingData', monsterData);
+                await game.settings.set(MODULE.ID, 'targetedIndicatorEnabled', monsterData);
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Loaded monster mapping data with ${Object.keys(monsterData.monsters).length} monsters`, "", true, false);
             } else {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Failed to load monster mapping data - HTTP ${response.status}`, "", true, false);
@@ -216,7 +216,7 @@ export class ImageCacheManager {
         try {
             // Load monster mapping from resources
             const mappingPath = 'modules/coffee-pub-blacksmith/resources/monster-mapping.json';
-            const mappingData = game.settings.get(MODULE.ID, 'monsterMappingData');
+            const mappingData = game.settings.get(MODULE.ID, 'targetedIndicatorEnabled');
             
             if (mappingData) {
                 this.monsterMapping = mappingData;
@@ -688,7 +688,7 @@ export class ImageCacheManager {
         this._addConsoleCommands();
         
         // Load monster mapping data
-        await this._loadMonsterMappingData();
+        await this._loadtargetedIndicatorEnabled();
         
         // Initialize the caching system immediately since we're already in the ready hook
         await this._initializeCache();

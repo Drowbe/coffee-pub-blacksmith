@@ -245,7 +245,7 @@ Hooks.once('ready', async () => {
     postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: Ready hook started", "", false, false);
     try {
         // Register settings FIRST during the ready phase
-        await registerSettings();
+        registerSettings();
         
         // Initialize HookManager (infrastructure layer)
         HookManager.initialize();

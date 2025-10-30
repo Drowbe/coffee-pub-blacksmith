@@ -88,13 +88,13 @@ export class TokenImageUtilities {
             style: getSettingSafely(MODULE.ID, 'turnIndicatorCurrentStyle', 'solid'),
             animation: animationType,
             color: color,
-            thickness: getSettingSafely(MODULE.ID, 'turnIndicatorThickness', 3),
-            offset: getSettingSafely(MODULE.ID, 'turnIndicatorOffset', 8),
+            thickness: getSettingSafely(MODULE.ID, 'generalIndicatorsThickness', 3),
+            offset: getSettingSafely(MODULE.ID, 'generalIndicatorsOffset', 8),
             pulseSpeed: TokenImageUtilities._mapSpeedToAnimationSpeed(userSpeed, animationType),
-            pulseMin: getSettingSafely(MODULE.ID, 'turnIndicatorOpacityMin', 0.3),
-            pulseMax: getSettingSafely(MODULE.ID, 'turnIndicatorOpacityMax', 0.8),
+            pulseMin: getSettingSafely(MODULE.ID, 'generalIndicatorsOpacityMin', 0.3),
+            pulseMax: getSettingSafely(MODULE.ID, 'generalIndicatorsOpacityMax', 0.8),
             innerColor: innerColor,
-            innerOpacity: getSettingSafely(MODULE.ID, 'turnIndicatorInnerOpacity', 0.3)
+            innerOpacity: getSettingSafely(MODULE.ID, 'generalIndicatorsOpacityInner', 0.3)
         };
     }
     
@@ -103,28 +103,28 @@ export class TokenImageUtilities {
      */
     static _getTargetedIndicatorSettings() {
         // Get color as hex string and convert to PIXI color integer
-        const colorHex = getSettingSafely(MODULE.ID, 'turnIndicatorTargetedBorderColor', '#a51214');
+        const colorHex = getSettingSafely(MODULE.ID, 'targetedIndicatorBorderColor', '#a51214');
         const color = parseInt(colorHex.replace('#', '0x'));
         
         // Get inner fill color
-        const innerColorHex = getSettingSafely(MODULE.ID, 'turnIndicatorTargetedBackgroundColor', '#a51214');
+        const innerColorHex = getSettingSafely(MODULE.ID, 'targetedIndicatorBackgroundColor', '#a51214');
         const innerColor = parseInt(innerColorHex.replace('#', '0x'));
         
         // Get user speed (1-10) and map to animation speed
-        const userSpeed = getSettingSafely(MODULE.ID, 'turnIndicatorTargetedAnimationSpeed', 5);
-        const animationType = getSettingSafely(MODULE.ID, 'turnIndicatorTargetedAnimation', 'pulse');
+        const userSpeed = getSettingSafely(MODULE.ID, 'targetedIndicatorAnimationSpeed', 5);
+        const animationType = getSettingSafely(MODULE.ID, 'targetedIndicatorAnimation', 'pulse');
         
         return {
-            style: getSettingSafely(MODULE.ID, 'turnIndicatorTargetedStyle', 'solid'),
+            style: getSettingSafely(MODULE.ID, 'targetedIndicatorStyle', 'solid'),
             animation: animationType,
             color: color,
-            thickness: getSettingSafely(MODULE.ID, 'turnIndicatorThickness', 3),
-            offset: getSettingSafely(MODULE.ID, 'turnIndicatorOffset', 8),
+            thickness: getSettingSafely(MODULE.ID, 'generalIndicatorsThickness', 3),
+            offset: getSettingSafely(MODULE.ID, 'generalIndicatorsOffset', 8),
             pulseSpeed: TokenImageUtilities._mapSpeedToAnimationSpeed(userSpeed, animationType),
-            pulseMin: getSettingSafely(MODULE.ID, 'turnIndicatorOpacityMin', 0.3),
-            pulseMax: getSettingSafely(MODULE.ID, 'turnIndicatorOpacityMax', 0.8),
+            pulseMin: getSettingSafely(MODULE.ID, 'generalIndicatorsOpacityMin', 0.3),
+            pulseMax: getSettingSafely(MODULE.ID, 'generalIndicatorsOpacityMax', 0.8),
             innerColor: innerColor,
-            innerOpacity: getSettingSafely(MODULE.ID, 'turnIndicatorInnerOpacity', 0.3)
+            innerOpacity: getSettingSafely(MODULE.ID, 'generalIndicatorsOpacityInner', 0.3)
         };
     }
     
@@ -155,7 +155,7 @@ export class TokenImageUtilities {
     /**
      * Draw the targeted turn indicator based on the selected style
      */
-    static _drawTurnIndicatorTargetedStyle(graphics, settings, ringRadius) {
+    static _drawtargetedIndicatorStyle(graphics, settings, ringRadius) {
         switch (settings.style) {
             case 'dashed':
                 TokenImageUtilities._drawDashedCircle(graphics, settings, ringRadius);
@@ -1222,7 +1222,7 @@ export class TokenImageUtilities {
      */
     static initializeTurnIndicator() {
         // Check if turn indicator is enabled
-        if (!getSettingSafely(MODULE.ID, 'turnIndicatorCurrentEnabled', true)) {
+        if (!getSettingSafely(MODULE.ID, 'generalIndicatorsEnabled', true)) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Utilities: Turn indicator disabled in settings", "", true, false);
             return;
         }
@@ -1987,7 +1987,7 @@ export class TokenImageUtilities {
     static _onTargetingChange(user, token, targeted) {
         postConsoleAndNotification(MODULE.NAME, `DEBUG: Targeting change - User: ${user.name}, Token: ${token.name}, Targeted: ${targeted}`, "", true, false);
         
-        if (!getSettingSafely(MODULE.ID, 'turnIndicatorTargetedEnabled', true)) {
+        if (!getSettingSafely(MODULE.ID, 'targetedIndicatorEnabled', true)) {
             postConsoleAndNotification(MODULE.NAME, "DEBUG: Targeted indicator disabled in settings", "", true, false);
             return;
         }
@@ -2046,7 +2046,7 @@ export class TokenImageUtilities {
         postConsoleAndNotification(MODULE.NAME, `DEBUG: Dimensions - Width: ${tokenWidth}, Height: ${tokenHeight}, Ring Radius: ${ringRadius}`, "", true, false);
         
         const graphics = new PIXI.Graphics();
-        TokenImageUtilities._drawTurnIndicatorTargetedStyle(graphics, settings, ringRadius);
+        TokenImageUtilities._drawtargetedIndicatorStyle(graphics, settings, ringRadius);
         
         const center = TokenImageUtilities._calculateTokenCenter(token);
         graphics.position.set(center.x, center.y);

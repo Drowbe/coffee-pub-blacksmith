@@ -747,12 +747,11 @@ function getSoundChoices() {
 // ===== SETTINGS ===================================================
 // ================================================================== 
 
-//export const registerSettings = () => {
-export const registerSettings = async () => {
+export const registerSettings = () => {
     // Settings registration function - called during the 'ready' phase when Foundry is ready
 
     // Build the Dropdown choices
-    await getCompendiumChoices();
+    getCompendiumChoices(); // Run async in background - don't block settings registration
     getTableChoices();
     getMacroChoices();
     getBackgroundImageChoices();
@@ -1366,6 +1365,320 @@ export const registerSettings = async () => {
 		// ==================================================================================================================== 
 		// ==================================================================================================================== 
 		registerHeader('RunTheGame', 'headingH1RunTheGame-Label', 'headingH1RunTheGame-Hint', 'H1', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+
+
+
+		// Clear Targets After Turn
+		game.settings.register(MODULE.ID, 'clearTargetsAfterTurn', {
+			name: 'Clear Targets After Turn',
+			hint: 'Automatically clear all targets when the turn changes in combat.',
+			scope: 'client',
+			config: true,
+			type: Boolean,
+			default: false,
+			requiresReload: false
+		});
+
+
+		// --------------------------------------
+		// -- H2: Token Enhancements
+		// --------------------------------------
+		registerHeader('TokenEnhancements', 'headingH2TokenEnhancements-Label', 'headingH2TokenEnhancements-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+		// --------------------------------------
+		// -- H3: GeneralIndicatorSettings	
+		// --------------------------------------
+		registerHeader('GeneralIndicatorSettings', 'headingH3GeneralIndicatorSettings-Label', 'headingH3GeneralIndicatorSettings-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+		// -- Turn Indicator Enabled --
+		game.settings.register(MODULE.ID, 'generalIndicatorsEnabled', {
+			name: MODULE.ID + '.generalIndicatorsEnabled-Label',
+			hint: MODULE.ID + '.generalIndicatorsEnabled-Hint',
+			scope: 'world',
+			config: true,
+			type: Boolean,
+			default: true,
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+
+
+		// -- Turn Indicator Thickness --
+		game.settings.register(MODULE.ID, 'generalIndicatorsThickness', {
+			name: MODULE.ID + '.generalIndicatorsThickness-Label',
+			hint: MODULE.ID + '.generalIndicatorsThickness-Hint',
+			scope: 'world',
+			config: true,
+			type: Number,
+			default: 10,
+			range: {
+				min: 5,
+				max: 30,
+				step: 1
+			},
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// -- Turn Indicator Offset --
+		game.settings.register(MODULE.ID, 'generalIndicatorsOffset', {
+			name: MODULE.ID + '.generalIndicatorsOffset-Label',
+			hint: MODULE.ID + '.generalIndicatorsOffset-Hint',
+			scope: 'world',
+			config: true,
+			type: Number,
+			default: 8,
+			range: {
+				min: 0,
+				max: 50,
+				step: 1
+			},
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+	
+		// -- Turn Indicator Min Opacity --
+		game.settings.register(MODULE.ID, 'generalIndicatorsOpacityMin', {
+			name: MODULE.ID + '.generalIndicatorsOpacityMin-Label',
+			hint: MODULE.ID + '.generalIndicatorsOpacityMin-Hint',
+			scope: 'world',
+			config: true,
+			type: Number,
+			default: 0.3,
+			range: {
+				min: 0,
+				max: 1,
+				step: 0.05
+			},
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+	
+		// -- Turn Indicator Max Opacity --
+		game.settings.register(MODULE.ID, 'generalIndicatorsOpacityMax', {
+			name: MODULE.ID + '.generalIndicatorsOpacityMax-Label',
+			hint: MODULE.ID + '.generalIndicatorsOpacityMax-Hint',
+			scope: 'world',
+			config: true,
+			type: Number,
+			default: 0.8,
+			range: {
+				min: 0,
+				max: 1,
+				step: 0.05
+			},
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+	
+		// -- Turn Indicator Inner Fill Opacity --
+		game.settings.register(MODULE.ID, 'generalIndicatorsOpacityInner', {
+			name: MODULE.ID + '.generalIndicatorsOpacityInner-Label',
+			hint: MODULE.ID + '.generalIndicatorsOpacityInner-Hint',
+			scope: 'world',
+			config: true,
+			type: Number,
+			default: 0.3,
+			range: {
+				min: 0,
+				max: 1,
+				step: 0.05
+			},
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+
+
+		// --------------------------------------
+		// -- H3: Turn Indicators
+		// --------------------------------------
+		registerHeader('TurnIndicators', 'headingH3TurnIndicators-Label', 'headingH3TurnIndicators-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+
+
+		// -- Turn Indicator Style --
+		game.settings.register(MODULE.ID, 'turnIndicatorCurrentStyle', {
+			name: MODULE.ID + '.turnIndicatorCurrentStyle-Label',
+			hint: MODULE.ID + '.turnIndicatorCurrentStyle-Hint',
+			scope: 'world',
+			config: true,
+			type: String,
+			choices: {
+				solid: "Solid Circle",
+				dashed: "Dashed Circle",
+				spikes: "Circle with Spikes",
+				spikesIn: "Circle with Inward Spikes",
+				roundedSquare: "Rounded Square"
+			},
+			default: 'solid',
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// -- Turn Indicator Animation --
+		game.settings.register(MODULE.ID, 'turnIndicatorCurrentAnimation', {
+			name: MODULE.ID + '.turnIndicatorCurrentAnimation-Label',
+			hint: MODULE.ID + '.turnIndicatorCurrentAnimation-Hint',
+			scope: 'world',
+			config: true,
+			type: String,
+			choices: {
+				pulse: "Pulse (Opacity)",
+				rotate: "Rotate",
+				wobble: "Wobble (Scale)",
+				fixed: "Fixed (No Animation)"
+			},
+			default: 'pulse',
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// -- Turn Indicator Animation Speed --
+		game.settings.register(MODULE.ID, 'turnIndicatorCurrentAnimationSpeed', {
+			name: MODULE.ID + '.turnIndicatorCurrentAnimationSpeed-Label',
+			hint: MODULE.ID + '.turnIndicatorCurrentAnimationSpeed-Hint',
+			scope: 'world',
+			config: true,
+			type: Number,
+			default: 5,
+			range: {
+				min: 1,
+				max: 10,
+				step: 1
+			},
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// -- Turn Indicator Border Color --
+		game.settings.register(MODULE.ID, 'turnIndicatorCurrentBorderColor', {
+			name: MODULE.ID + '.turnIndicatorCurrentBorderColor-Label',
+			hint: MODULE.ID + '.turnIndicatorCurrentBorderColor-Hint',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: '#03c602',
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// -- Turn Indicator Inner Fill Color --
+		game.settings.register(MODULE.ID, 'turnIndicatorCurrentBackgroundColor', {
+			name: MODULE.ID + '.turnIndicatorCurrentBackgroundColor-Label',
+			hint: MODULE.ID + '.turnIndicatorCurrentBackgroundColor-Hint',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: '#03c602',
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+
+		// --------------------------------------
+		// -- H3: Target Indicators
+		// --------------------------------------
+		registerHeader('TargetedIndicator', 'headingH3TargetedIndicator-Label', 'headingH3TargetedIndicator-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+		// -- Targeted Indicator Enabled --
+		game.settings.register(MODULE.ID, 'targetedIndicatorEnabled', {
+			name: MODULE.ID + '.targetedIndicatorEnabled-Label',
+			hint: MODULE.ID + '.targetedIndicatorEnabled-Hint',
+			scope: 'world',
+			config: true,
+			type: Boolean,
+			default: true,
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		game.settings.register(MODULE.ID, 'targetedIndicatorStyle', {
+			name: MODULE.ID + '.targetedIndicatorStyle-Label',
+			hint: MODULE.ID + '.targetedIndicatorStyle-Hint',
+			scope: 'world',
+			config: true,
+			type: String,
+			choices: {
+				solid: "Solid Circle",
+				dashed: "Dashed Circle",
+				spikes: "Circle with Spikes",
+				spikesIn: "Circle with Inward Spikes",
+				roundedSquare: "Rounded Square"
+			},
+			default: 'solid',
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		game.settings.register(MODULE.ID, 'targetedIndicatorAnimation', {
+			name: MODULE.ID + '.targetedIndicatorAnimation-Label',
+			hint: MODULE.ID + '.targetedIndicatorAnimation-Hint',
+			scope: 'world',
+			config: true,
+			type: String,
+			choices: {
+				pulse: "Pulse (Opacity)",
+				rotate: "Rotate",
+				wobble: "Wobble (Scale)",
+				fixed: "Fixed (No Animation)"
+			},
+			default: 'pulse',
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		game.settings.register(MODULE.ID, 'targetedIndicatorAnimationSpeed', {
+			name: MODULE.ID + '.targetedIndicatorAnimationSpeed-Label',
+			hint: MODULE.ID + '.targetedIndicatorAnimationSpeed-Hint',
+			scope: 'world',
+			config: true,
+			type: Number,
+			default: 5,
+			range: {
+				min: 1,
+				max: 10,
+				step: 1
+			},
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		game.settings.register(MODULE.ID, 'targetedIndicatorBorderColor', {
+			name: MODULE.ID + '.targetedIndicatorBorderColor-Label',
+			hint: MODULE.ID + '.targetedIndicatorBorderColor-Hint',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: '#a51214',
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+
+		game.settings.register(MODULE.ID, 'targetedIndicatorBackgroundColor', {
+			name: MODULE.ID + '.targetedIndicatorBackgroundColor-Label',
+			hint: MODULE.ID + '.targetedIndicatorBackgroundColor-Hint',
+			scope: 'world',
+			config: true,
+			type: String,
+			default: '#a51214',
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// Hide Foundry Default Target Indicators
+		game.settings.register(MODULE.ID, 'hideDefaultTargetIndicators', {
+			name: 'Hide Default Target Indicators',
+			hint: 'Hide Foundry\'s default target indicators (reticles, brackets, pips) to use only custom indicators.',
+			scope: 'client',
+			config: true,
+			type: Boolean,
+			default: false,
+			requiresReload: false
+		});
 
 
 
@@ -2195,9 +2508,9 @@ export const registerSettings = async () => {
 
 
 		// --------------------------------------
-		// -- H3: Image Replacement Cache
+		// -- H2: Image Replacement Cache
 		// --------------------------------------
-		registerHeader('TokenImageReplacementCache', 'headingH3TokenImageReplacementCache-Label', 'headingH3TokenImageReplacementCache-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
+		registerHeader('TokenImageReplacementCache', 'headingH2TokenImageReplacementCache-Label', 'headingH2TokenImageReplacementCache-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
 
 		// Token Image Replacement Cache (server-side storage) - HIDDEN SETTING
 		game.settings.register(MODULE.ID, 'tokenImageReplacementCache', {
@@ -2242,6 +2555,11 @@ export const registerSettings = async () => {
 		});
 
 
+		
+		// --------------------------------------
+		// -- H3: Image Replacement Configuration
+		// --------------------------------------
+		registerHeader('TokenImageReplacementConfiguration', 'headingH3TokenImageReplacementConfiguration-Label', 'headingH3TokenImageReplacementConfiguration-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
 		// Image Replacement Folder
 		game.settings.register(MODULE.ID, 'tokenImageReplacementPath', {
@@ -2275,19 +2593,20 @@ export const registerSettings = async () => {
 
 		// Automatically Update Image Cache
 		game.settings.register(MODULE.ID, 'tokenImageReplacementAutoUpdate', {
-			name: 'Automatically Update Image Cache',
-			hint: 'Automatically scan for new or changed token images when changes are detected.',
+			name: MODULE.ID + '.tokenImageReplacementAutoUpdate-Label',
+			hint: MODULE.ID + '.tokenImageReplacementAutoUpdate-Hint',
 			type: Boolean,
 			config: true,
 			requiresReload: false,
 			scope: 'world',
 			default: false,
+			group: WORKFLOW_GROUPS.AUTOMATION
 		});
 
 		// Deprioritized Words
 		game.settings.register(MODULE.ID, 'tokenImageReplacementDeprioritizedWords', {
-			name: 'Deprioritized Words',
-			hint: 'Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., "spirit,ghost,undead,shadow").',
+			name: MODULE.ID + '.tokenImageReplacementDeprioritizedWords-Label',
+			hint: MODULE.ID + '.tokenImageReplacementDeprioritizedWords-Hint',
 			type: String,
 			config: true,
 			requiresReload: false,
@@ -2298,8 +2617,8 @@ export const registerSettings = async () => {
 
 		// Ignored Words (File Exclusion)
 		game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredWords', {
-			name: 'Ignored Words (File Exclusion)',
-			hint: 'Comma-separated list of patterns to completely exclude files from cache. Supports wildcards: "spirit" (exact), "*spirit" (ends with), "spirit*" (starts with), "*spirit*" (contains), "*.png" (extension). Files matching any pattern will not be scanned or cached.',
+			name: MODULE.ID + '.tokenImageReplacementIgnoredWords-Label',
+			hint: MODULE.ID + '.tokenImageReplacementIgnoredWords-Hint',
 			scope: 'world',
 			config: true,
 			type: String,
@@ -2308,179 +2627,159 @@ export const registerSettings = async () => {
 			group: WORKFLOW_GROUPS.AUTOMATION
 		});
 
+		// --------------------------------------
+		// -- H3: Image Replacement Display
+		// --------------------------------------
+		registerHeader('TokenImageReplacementDisplay', 'headingH3TokenImageReplacementDisplay-Label', 'headingH3TokenImageReplacementDisplay-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+
+		// Cateogry Style
+		game.settings.register(MODULE.ID, 'tokenImageReplacementCategoryStyle', {
+			name: MODULE.ID + '.tokenImageReplacementCategoryStyle-Label',
+			hint: MODULE.ID + '.tokenImageReplacementCategoryStyle-Hint',
+			scope: 'world',
+			config: true,
+			type: String,
+			choices: {
+				'buttons': 'Buttons',
+				'tabs': 'Tabs'
+			},
+			default: 'buttons',
+			requiresReload: true,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
+
+		// Tag Sort Mode
+		game.settings.register(MODULE.ID, 'tokenImageReplacementTagSortMode', {
+			name: MODULE.ID + '.tokenImageReplacementTagSortMode-Label',
+			hint: MODULE.ID + '.tokenImageReplacementTagSortMode-Hint',
+			scope: 'world',
+			config: true,
+			type: String,
+			choices: {
+				'count': 'Count (by frequency)',
+				'alpha': 'Alpha (alphabetical)',
+				'hidden': 'Hidden (hide tags)'
+			},
+			default: 'count',
+			requiresReload: false,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
 
 
-	
-
-	// Cateogry Style
-	game.settings.register(MODULE.ID, 'tokenImageReplacementCategoryStyle', {
-		name: 'Token Image Replacement: Category Style',
-		hint: 'Choose how category filters are displayed in the Token Image Replacement window',
-		scope: 'world',
-		config: true,
-		type: String,
-		choices: {
-			'buttons': 'Buttons',
-			'tabs': 'Tabs'
-		},
-		default: 'buttons',
-		requiresReload: true
-	});
-
-
-
-	// Tag Sort Mode
-	game.settings.register(MODULE.ID, 'tokenImageReplacementTagSortMode', {
-		name: 'Tag Sort Mode',
-		hint: 'How to sort and display tags: Count (by frequency), Alpha (alphabetical), or Hidden (hide tags completely)',
-		scope: 'world',
-		config: true,
-		type: String,
-		choices: {
-			'count': 'Count (by frequency)',
-			'alpha': 'Alpha (alphabetical)',
-			'hidden': 'Hidden (hide tags)'
-		},
-		default: 'count',
-		requiresReload: false
-	});
-
-
-
-	// Fuzzy Search - HIDDEN SETTING
-	game.settings.register(MODULE.ID, 'tokenImageReplacementFuzzySearch', {
-		name: 'Fuzzy Search',
-		hint: 'When enabled, searches for individual words independently. When disabled, searches for exact string matches.',
-		type: Boolean,
-		config: false, // Hidden setting - controlled by UI toggle
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
-
-	
-
-
-
-	// TOKEN DATA WEIGHTING
-
-	// Actor Name Weight (NEW - most important for clean creature names)
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightActorName', {
-		name: 'Actor Name Weight',
-		hint: 'Weigting of the actor name when calulating matches. Weight the fiels with the most clean creature name the highest priority (e.g., "Frost Giant", "Goblin")',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 90
-	});
+		// Fuzzy Search
+		game.settings.register(MODULE.ID, 'tokenImageReplacementFuzzySearch', {
+			name: MODULE.ID + '.tokenImageReplacementFuzzySearch-Label',
+			hint: MODULE.ID + '.tokenImageReplacementFuzzySearch-Hint',
+			hint: 'When enabled, searches for individual words independently. When disabled, searches for exact string matches.',
+			type: Boolean,
+			config: true, // Hidden setting - controlled by UI toggle
+			requiresReload: false,
+			scope: 'world',
+			default: false,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
 
 	
-	// Token Name Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightTokenName', {
-		name: 'Token Name Weight',
-		hint: 'Weigting of the actor name when calulating matches. This field often contains the display name of the token (e.g., "Bob (Goblin)", "Goblin 1", "Bob")',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 70
-	});
-
-	// Represented Actor Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor', {
-		name: 'Represented Actor Weight',
-		hint: 'Weigting of the represented actor when calulating matches. This field usually represents the name of a linked token.',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 50
-	});
+		// --------------------------------------
+		// -- H3: Image Replacement Data Weights
+		// --------------------------------------
+		registerHeader('TokenImageReplacementDataWeights', 'headingH3TokenImageReplacementDataWeights-Label', 'headingH3TokenImageReplacementDataWeights-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
 
-	// Creature Type Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightCreatureType', {
-		name: 'Creature Type Weight',
-		hint: 'How important the creature type is for matching (e.g., "Humanoid", "Dragon", "Beast") - Official D&D5e type',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 15
-	});
+		// Monster Mapping Data - HIDDEN SETTING
+		game.settings.register(MODULE.ID, 'targetedIndicatorEnabled', {
+			type: Object,
+			config: false,
+			scope: 'world',
+			default: {},
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
 
-	// Creature Subtype Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype', {
-		name: 'Creature Subtype Weight',
-		hint: 'How important the creature subtype is for matching (e.g., "Goblinoid", "Orc", "Elf") - Official D&D5e subtype',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 15
-	});
+		// Actor Name Weight (NEW - most important for clean creature names)
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWeightActorName', {
+			name: MODULE.ID + '.tokenImageReplacementWeightActorName-Label',
+			hint: MODULE.ID + '.tokenImageReplacementWeightActorName-Hint',
+			type: Number,
+			config: true,
+			scope: 'world',
+			range: { min: 0, max: 100, step: 5 },
+			default: 90,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
 
-	// Equipment Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightEquipment', {
-		name: 'Equipment Weight',
-		hint: 'How important equipment is for matching (e.g., "Sword", "Bow", "Staff")',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 10
-	});
+		
+		// Token Name Weight
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWeightTokenName', {
+			name: MODULE.ID + '.tokenImageReplacementWeightTokenName-Label',
+			hint: MODULE.ID + '.tokenImageReplacementWeightTokenName-Hint',
+			type: Number,
+			config: true,
+			scope: 'world',
+			range: { min: 0, max: 100, step: 5 },
+			default: 70,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
 
+		// Represented Actor Weight
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWeightRepresentedActor', {
+			name: MODULE.ID + '.tokenImageReplacementWeightRepresentedActor-Label',
+			hint: MODULE.ID + '.tokenImageReplacementWeightRepresentedActor-Hint',
+			type: Number,
+			config: true,
+			scope: 'world',
+			range: { min: 0, max: 100, step: 5 },
+			default: 50,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
 
+		// Creature Type Weight
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWeightCreatureType', {
+			name: MODULE.ID + '.tokenImageReplacementWeightCreatureType-Label',
+			hint: MODULE.ID + '.tokenImageReplacementWeightCreatureType-Hint',
+			type: Number,
+			config: true,
+			scope: 'world',
+			range: { min: 0, max: 100, step: 5 },
+			default: 15,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
 
-	// Size Weight
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightSize', {
-		name: 'Size Weight',
-		hint: 'How important size is for matching (e.g., "Large", "Medium", "Huge")',
-		type: Number,
-		config: true,
-		scope: 'world',
-		range: { min: 0, max: 100, step: 5 },
-		default: 3
-	});
+		// Creature Subtype Weight
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype', {
+			name: MODULE.ID + '.tokenImageReplacementWeightCreatureSubtype-Label',
+			hint: MODULE.ID + '.tokenImageReplacementWeightCreatureSubtype-Hint',
+			type: Number,
+			config: true,
+			scope: 'world',
+			range: { min: 0, max: 100, step: 5 },
+			default: 15,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
 
+		// Equipment Weight
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWeightEquipment', {
+			name: MODULE.ID + '.tokenImageReplacementWeightEquipment-Label',
+			hint: MODULE.ID + '.tokenImageReplacementWeightEquipment-Hint',
+			type: Number,
+			config: true,
+			scope: 'world',
+			range: { min: 0, max: 100, step: 5 },
+			default: 10,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
 
-	// Monster Mapping Data
-	game.settings.register(MODULE.ID, 'monsterMappingData', {
-		name: 'Monster Mapping Data',
-		hint: 'Internal setting for monster type mapping data',
-		type: Object,
-		config: false,
-		scope: 'world',
-		default: {}
-	});
-
-	// ---------- Dead Tokens ----------
-	game.settings.register(MODULE.ID, "headingH3TokenActions", {
-		name: 'Token Actions',
-		hint: 'Automation of token actions.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+		// Size Weight
+		game.settings.register(MODULE.ID, 'tokenImageReplacementWeightSize', {
+			name: MODULE.ID + '.tokenImageReplacementWeightSize-Label',
+			hint: MODULE.ID + '.tokenImageReplacementWeightSize-Hint',
+			hint: 'How important size is for matching (e.g., "Large", "Medium", "Huge")',
+			type: Number,
+			config: true,
+			scope: 'world',
+			range: { min: 0, max: 100, step: 5 },
+			default: 3,
+			group: WORKFLOW_GROUPS.AUTOMATION
+		});
 
 
 
@@ -3354,277 +3653,12 @@ export const registerSettings = async () => {
 
 
 
-
-
-
-
-
-	// Current Turn Indicator Settings
-	game.settings.register(MODULE.ID, 'turnIndicatorCurrentEnabled', {
-		name: 'Enable Turn Indicator',
-		hint: 'Display a ring around the token whose turn it is in combat.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true,
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorCurrentStyle', {
-		name: 'Turn Indicator Style',
-		hint: 'The visual style of the turn indicator ring.',
-		scope: 'world',
-		config: true,
-		type: String,
-		choices: {
-			solid: "Solid Circle",
-			dashed: "Dashed Circle",
-			spikes: "Circle with Spikes",
-			spikesIn: "Circle with Inward Spikes",
-			roundedSquare: "Rounded Square"
-		},
-		default: 'solid',
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorCurrentAnimation', {
-		name: 'Turn Indicator Animation',
-		hint: 'The animation style for the turn indicator.',
-		scope: 'world',
-		config: true,
-		type: String,
-		choices: {
-			pulse: "Pulse (Opacity)",
-			rotate: "Rotate",
-			wobble: "Wobble (Scale)",
-			fixed: "Fixed (No Animation)"
-		},
-		default: 'pulse',
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorCurrentAnimationSpeed', {
-		name: 'Turn Indicator Animation Speed',
-		hint: 'Animation speed from 1 (very slow) to 10 (very fast).',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 5,
-		range: {
-			min: 1,
-			max: 10,
-			step: 1
-		},
-		requiresReload: false
-	});
-	game.settings.register(MODULE.ID, 'turnIndicatorCurrentBorderColor', {
-		name: 'Turn Indicator border Color',
-		hint: 'The color of the turn indicator ring.',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '#03c602',
-		requiresReload: false
-	});
-
-
-	game.settings.register(MODULE.ID, 'turnIndicatorCurrentBackgroundColor', {
-		name: 'Turn Indicator Inner Fill Color',
-		hint: 'Color for the inner fill of the turn indicator ring.',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '#03c602',
-		requiresReload: false
-	});
-
-	
-	// Current Turn Indicator Settings
-	game.settings.register(MODULE.ID, 'turnIndicatorTargetedEnabled', {
-		name: 'Enable Targeted Indicator',
-		hint: 'Display a ring around the Targeted tokens in combat.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true,
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorTargetedStyle', {
-		name: 'Targeted Indicator Style',
-		hint: 'The visual style of the Targeted indicator ring.',
-		scope: 'world',
-		config: true,
-		type: String,
-		choices: {
-			solid: "Solid Circle",
-			dashed: "Dashed Circle",
-			spikes: "Circle with Spikes",
-			spikesIn: "Circle with Inward Spikes",
-			roundedSquare: "Rounded Square"
-		},
-		default: 'solid',
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorTargetedAnimation', {
-		name: 'Targeted Indicator Animation',
-		hint: 'The animation style for the Targeted indicator.',
-		scope: 'world',
-		config: true,
-		type: String,
-		choices: {
-			pulse: "Pulse (Opacity)",
-			rotate: "Rotate",
-			wobble: "Wobble (Scale)",
-			fixed: "Fixed (No Animation)"
-		},
-		default: 'pulse',
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorTargetedAnimationSpeed', {
-		name: 'Targeted Indicator Animation Speed',
-		hint: 'Animation speed from 1 (very slow) to 10 (very fast).',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 5,
-		range: {
-			min: 1,
-			max: 10,
-			step: 1
-		},
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorTargetedBorderColor', {
-		name: 'Targeted Indicator Border Color',
-		hint: 'The color of the Targeted indicator ring.',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '#a51214',
-		requiresReload: false
-	});
-
-
-	game.settings.register(MODULE.ID, 'turnIndicatorTargetedBackgroundColor', {
-		name: 'Targeted Indicator Inner Fill Color',
-		hint: 'Color for the inner fill of the Targeted indicator ring.',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '#a51214',
-		requiresReload: false
-	});
-
-	// Hide Foundry Default Target Indicators
-	game.settings.register(MODULE.ID, 'hideDefaultTargetIndicators', {
-		name: 'Hide Default Target Indicators',
-		hint: 'Hide Foundry\'s default target indicators (reticles, brackets, pips) to use only custom indicators.',
-		scope: 'client',
-		config: true,
-		type: Boolean,
-		default: false,
-		requiresReload: false
-	});
-
-	// Clear Targets After Turn
-	game.settings.register(MODULE.ID, 'clearTargetsAfterTurn', {
-		name: 'Clear Targets After Turn',
-		hint: 'Automatically clear all targets when the turn changes in combat.',
-		scope: 'client',
-		config: true,
-		type: Boolean,
-		default: false,
-		requiresReload: false
-	});
-
-
-
-
 	
 
 
 
 
-	game.settings.register(MODULE.ID, 'turnIndicatorThickness', {
-		name: 'Turn Indicator Thickness',
-		hint: 'The thickness of the turn indicator ring in pixels.',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 10,
-		range: {
-			min: 5,
-			max: 30,
-			step: 1
-		},
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorOffset', {
-		name: 'Turn Indicator Distance',
-		hint: 'How far the ring extends beyond the token edge in pixels.',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 8,
-		range: {
-			min: 0,
-			max: 50,
-			step: 1
-		},
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorOpacityMin', {
-		name: 'Turn Indicator Min Opacity',
-		hint: 'Minimum opacity when animating (0 = invisible, 1 = fully visible).',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 0.3,
-		range: {
-			min: 0,
-			max: 1,
-			step: 0.05
-		},
-		requiresReload: false
-	});
-
-	game.settings.register(MODULE.ID, 'turnIndicatorOpacityMax', {
-		name: 'Turn Indicator Max Opacity',
-		hint: 'Maximum opacity for indicator ring (0 = invisible, 1 = fully visible).',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 0.8,
-		range: {
-			min: 0,
-			max: 1,
-			step: 0.05
-		},
-		requiresReload: false
-	});
-
-
-	game.settings.register(MODULE.ID, 'turnIndicatorInnerOpacity', {
-		name: 'Turn Indicator Inner Fill Opacity',
-		hint: 'Opacity for the inner fill of the turn indicator ring (0 = invisible, 1 = fully visible).',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 0.3,
-		range: {
-			min: 0,
-			max: 1,
-			step: 0.05
-		},
-		requiresReload: false
-	});
-
+	
 
 
 
@@ -4027,42 +4061,28 @@ export const registerSettings = async () => {
 
 
 
-	// *** ROUND ANNOUNCMENTS ***
-
-	// ---------- ROUND ANNOUNCMENTS HEADING ----------
-	game.settings.register(MODULE.ID, "headingH2RoundAnnouncments", {
-		name: 'ROUND ANNOUNCEMENTS',
-		hint: 'Add anouncements for rounds to the chat.',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		default: "",
-		type: String,
-	});
 
 
-	// Announce New Rounds Setting
-	game.settings.register(MODULE.ID, 'announceNewRounds', {
-		name: 'Announce New Rounds',
-		hint: 'Post an announcement card to chat when a new round begins',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: Boolean,
-		default: true
-	});
 
-	// New Round Sound Setting
-	game.settings.register(MODULE.ID, 'newRoundSound', {
-		name: "New Round Sound",
-		hint: "Sound to play when a new round begins",
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		choices: BLACKSMITH.arrSoundChoices,
-		default: "none"
-	});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 	// -------------------------------------
@@ -4172,6 +4192,19 @@ export const registerSettings = async () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 	// -- Combat Tracker Size Data (Internal) --
 	game.settings.register(MODULE.ID, 'combatTrackerSize', {
 		name: 'Combat Tracker Size Data',
@@ -4232,6 +4265,42 @@ export const registerSettings = async () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	// *** TIMER SETTINGS ***
 
 	// ---------- SUBHEADING ----------
@@ -4245,6 +4314,20 @@ export const registerSettings = async () => {
 	});
 	// -------------------------------------
 	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 	// ---------- GLOBAL TIMER SETTINGS ----------
@@ -4326,6 +4409,31 @@ export const registerSettings = async () => {
 			step: 0.1
 		}
 	});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	// ---------- GLOBAL TIMER SETTINGS ----------
 	game.settings.register(MODULE.ID, "headingH3GlobalTimerMessaging", {
@@ -4409,6 +4517,54 @@ export const registerSettings = async () => {
 	
 
 
+
+
+
+
+
+
+
+
+	// *** ROUND ANNOUNCMENTS ***
+
+	// ---------- ROUND ANNOUNCMENTS HEADING ----------
+	game.settings.register(MODULE.ID, "headingH2RoundAnnouncments", {
+		name: 'ROUND ANNOUNCEMENTS',
+		hint: 'Add anouncements for rounds to the chat.',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		default: "",
+		type: String,
+	});
+
+
+	// Announce New Rounds Setting
+	game.settings.register(MODULE.ID, 'announceNewRounds', {
+		name: 'Announce New Rounds',
+		hint: 'Post an announcement card to chat when a new round begins',
+		scope: 'world',
+		config: true,
+		requiresReload: false,
+		type: Boolean,
+		default: true
+	});
+
+	// New Round Sound Setting
+	game.settings.register(MODULE.ID, 'newRoundSound', {
+		name: "New Round Sound",
+		hint: "Sound to play when a new round begins",
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none"
+	});
+
+
+
+
 	// ---------- ROUND TIMER ----------
 	game.settings.register(MODULE.ID, "headingH3RoundTimer", {
 		name: 'ROUND TIMER',
@@ -4433,6 +4589,24 @@ export const registerSettings = async () => {
 
 
 	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	
 	// ---------- PLANNING TIMER ----------
@@ -4543,6 +4717,27 @@ export const registerSettings = async () => {
 		default: 'none',
 		choices: BLACKSMITH.arrSoundChoices
 	});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4730,6 +4925,22 @@ export const registerSettings = async () => {
 		type: String,
 		default: '{name}\'s turn was automatically ended due to time expiration.'
 	});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 	
