@@ -191,60 +191,6 @@ async function getCompendiumChoices() {
         return typeMap[type] || type;
     };
     
-    // Helper function to determine if a compendium contains specific item types
-    const getContentTypes = async (compendium) => {
-        const contentTypes = {
-            spell: false,
-            feat: false,
-            trait: false,
-            weapon: false,
-            equipment: false,
-            monster: false
-        };
-        
-        try {
-            const pack = game.packs.get(compendium.id);
-            if (!pack) return contentTypes;
-            
-            const index = await pack.getIndex();
-            if (!index || index.length === 0) return contentTypes;
-            
-            // If this is an Actor compendium, it contains monsters
-            if (compendium.type === 'Actor') {
-                contentTypes.monster = true;
-                return contentTypes;
-            }
-            
-            // If this is an Item compendium, check the types of items inside
-            if (compendium.type === 'Item') {
-                const itemTypes = [...new Set(index.map(item => item.type))];
-                
-                if (itemTypes.includes('spell')) contentTypes.spell = true;
-                if (itemTypes.includes('feat')) contentTypes.feat = true;
-                if (itemTypes.includes('trait')) contentTypes.trait = true;
-                if (itemTypes.includes('weapon')) contentTypes.weapon = true;
-                if (itemTypes.includes('equipment')) contentTypes.equipment = true;
-            }
-        } catch (error) {
-            // If we can't access the compendium, use label-based filtering as fallback
-            postConsoleAndNotification(MODULE.NAME, `Could not index compendium ${compendium.id}, using label-based filtering`, "", false, true);
-        }
-        
-        return contentTypes;
-    };
-    
-    // Build content type mapping for all compendiums
-    async function buildContentTypeMap() {
-        const contentTypeMap = new Map();
-        
-        for (const compendium of choicesArray) {
-            const contentTypes = await getContentTypes(compendium);
-            contentTypeMap.set(compendium.id, contentTypes);
-        }
-        
-        return contentTypeMap;
-    }
-    
     // Create and store filtered arrays for each type
     const types = [...new Set(choicesArray.map(c => c.type))];
     types.forEach(type => {
@@ -258,34 +204,23 @@ async function getCompendiumChoices() {
         BLACKSMITH.updateValue(`arrCompendiumChoices${type}`, filteredChoices);
     });
     
-    // Build content type map and create smart-filtered arrays
-    const contentTypeMap = await buildContentTypeMap();
-    
+    // Spell and Feature now use type-based filtering (all Item compendiums)
+    // Same approach as Actor - simpler and works synchronously
     const spellChoices = choicesArray
-        .filter(compendium => {
-            const contentTypes = contentTypeMap.get(compendium.id);
-            return contentTypes && contentTypes.spell;
-        })
+        .filter(compendium => compendium.type === 'Item')
         .reduce((choices, compendium) => {
-            choices[compendium.id] = `Spells: ${compendium.label}`;
+            choices[compendium.id] = compendium.label;
             return choices;
         }, {"none": "-- None --"});
     BLACKSMITH.updateValue('arrSpellChoices', spellChoices);
     
     const featureChoices = choicesArray
-        .filter(compendium => {
-            const contentTypes = contentTypeMap.get(compendium.id);
-            return contentTypes && (contentTypes.feat || contentTypes.trait);
-        })
+        .filter(compendium => compendium.type === 'Item')
         .reduce((choices, compendium) => {
-            choices[compendium.id] = `Features: ${compendium.label}`;
+            choices[compendium.id] = compendium.label;
             return choices;
         }, {"none": "-- None --"});
     BLACKSMITH.updateValue('arrFeatureChoices', featureChoices);
-    
-    // Actor compendiums are already created by the unified system above (line 258)
-    // No need to override with content-based filtering - use all Actor compendiums
-    // Remove the old content-based monster choices - unified system handles it
     
     // Make the array available to these settings.
     return choices;
