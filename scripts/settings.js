@@ -83,7 +83,7 @@ function formatMODULE_ID(strModuleID) {
 
 
 
-
+// -- CHECK INSTALLED COFFEE PUB MODULES  --
 function checkInstalledModules() {
 	let coffeePubActive = [];
 	let coffeePubMissing = [];
@@ -283,16 +283,9 @@ async function getCompendiumChoices() {
         }, {"none": "-- None --"});
     BLACKSMITH.updateValue('arrFeatureChoices', featureChoices);
     
-    const monsterChoices = choicesArray
-        .filter(compendium => {
-            const contentTypes = contentTypeMap.get(compendium.id);
-            return contentTypes && contentTypes.monster;
-        })
-        .reduce((choices, compendium) => {
-            choices[compendium.id] = `Monsters: ${compendium.label}`;
-            return choices;
-        }, {"none": "-- None --"});
-    BLACKSMITH.updateValue('arrMonsterChoices', monsterChoices);
+    // Actor compendiums are already created by the unified system above (line 258)
+    // No need to override with content-based filtering - use all Actor compendiums
+    // Remove the old content-based monster choices - unified system handles it
     
     // Make the array available to these settings.
     return choices;
@@ -375,10 +368,10 @@ function getNumCompendiumsSettingName(type) {
  * @returns {string} Key name in BLACKSMITH (e.g., "arrMonsterChoices")
  */
 function getChoicesArrayKey(type) {
-    // Special cases
+    // Special cases for content-based filtering (Spell, Feature - not direct Foundry types)
+    // Actor now uses unified system: arrCompendiumChoicesActor
+    // Item now uses unified system: arrCompendiumChoicesItem
     const specialCases = {
-        'Actor': 'arrMonsterChoices',
-        'Item': 'arrCompendiumChoicesItem',
         'Spell': 'arrSpellChoices',
         'Feature': 'arrFeatureChoices'
     };
