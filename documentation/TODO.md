@@ -50,7 +50,171 @@
 - **Related Settings**: None currently
 - **Notes**: This is a critical stability issue that must be resolved. The disconnect between heap memory (~950MB) and browser tab memory (9.5GB) suggests resources not tracked by V8 heap (images, DOM, WebGL, etc.) are accumulating. Focus on resource cleanup, cache limits, and proper disposal of Foundry objects.
 
+- **FINDINGS - CRITICAL MEMORY LEAK IDENTIFIED**:
+  - **Event Listener Leak in `api-menubar.js`**: `addClickHandlers()` adds event listeners every time `renderMenubar()` is called (20+ times per session), but old listeners are never removed
+    - Location: `scripts/api-menubar.js` lines 2580-2633
+    - Issue: `renderMenubar()` removes the old menubar container (line 2508) then inserts new HTML (line 2514) and calls `addClickHandlers()` (line 2517)
+    - Problem: `addClickHandlers()` adds a new `addEventListener('click', ...)` (line 2586) without removing the previous listener
+    - Impact: Over a 3-hour session with frequent re-renders (combat changes, notifications, timer updates), hundreds or thousands of duplicate event listeners accumulate
+    - Each event listener holds a closure with the handler function, preventing garbage collection
+    - Fix needed: Store event listener reference and remove before adding new one, or use event delegation that doesn't require removal
+    - Related code: `renderMenubar()` called 20+ times throughout codebase (grep results show calls at lines 94, 275, 327, 348, 982, 1078, 1110, 1273, 1321, 1345, 1372, 1405, 1927, 1973, 2040, 2424, 2807, 2822, 3463)
+
+- **POTENTIAL ADDITIONAL ISSUES**:
+  - Notification timeouts may accumulate if notifications are removed without clearing timeouts (though code shows cleanup in `removeNotification()`)
+  - DOM nodes: Old menubar containers are removed (line 2508), but need to verify they're fully garbage collected
+  - Image resources: Token image replacement window has cleanup (good), but need to verify all image references are cleared
+
+- **FINDINGS - CRITICAL MEMORY LEAK IN STATS CODE**:
+  - **Unbounded Array Growth in `stats-combat.js`**: Arrays grow without limits during combat, accumulating thousands of entries
+    - Location: `scripts/stats-combat.js` lines 1120-1131, 1317, 1338, 1478
+    - Issue: Every attack roll pushes hit/miss data to BOTH `currentStats.hits/misses` AND `combatStats.hits/misses`
+    - Problem: `combatStats.hits` and `combatStats.misses` arrays are NOT cleared between rounds (only `currentStats` is reset at line 1500)
+    - Impact: During a long combat (3-hour session), these arrays can grow to thousands of entries, each holding full object references with actor data, timestamps, roll information, etc.
+    - Each hit/miss entry contains: `{ attackRoll, isCritical, isFumble, isHit, timestamp, actorId, actorName }`
+    - `combatStats.rounds.push()` also grows unbounded (line 1478) - stores complete round stats for every round
+    - `combatStats.participantStats[actorId].hits.push()` grows unbounded (line 1338) - per-actor hit arrays
+    - Fix needed: Add array size limits, implement LRU cleanup, or clear old entries periodically
+
+  - **Unbounded Array Growth in `stats-player.js`**: Combat flags stored in Foundry persist and grow unbounded
+    - Location: `scripts/stats-player.js` lines 424, 479, 491, 242, 509
+    - Issue: Combat stats stored in Foundry combat flags via `combat.setFlag()` grow without limits
+    - Problem: 
+      - `combatStats.hits.push(hitEvent)` (line 479) - grows unbounded during combat
+      - `combatStats.participants[actor.id].hits.push(hitEvent)` (line 491) - per-actor arrays grow unbounded
+      - `combatStats.healing.push(healingEvent)` (line 424) - healing array grows unbounded
+      - `sessionStats.currentCombat.turns.push(turnData)` (line 242) - turn tracking array grows unbounded
+    - Impact: 
+      - Each hit/healing/turn entry contains full object data: `{ amount, attacker, timestamp, round, turn, target, weapon, etc. }`
+      - Combat flags persist in Foundry's database, accumulating across sessions if not cleared
+      - During a 3-hour combat session, these arrays could contain hundreds or thousands of entries
+      - `_onCombatEnd()` (line 597) doesn't clear the combat flag, just reads it for stats
+    - Fix needed: Clear combat flags on combat end, add array size limits, or implement periodic cleanup
+
+  - **No Array Size Limits**: None of the stats arrays have maximum size limits or cleanup mechanisms
+    - `combatStats.hits`, `combatStats.misses`, `combatStats.healing`, `combatStats.rounds` all grow unbounded
+    - `combatStats.participantStats[actorId].hits` grows unbounded per actor
+    - `sessionStats.currentCombat.turns` grows unbounded
+    - Only `hitLog` in player stats is limited (line 564: `hitLog.slice(0, 20)`)
+  
+  - **Foundry Flag Persistence**: Combat flags stored via `combat.setFlag()` persist in Foundry's database
+    - If combats are not deleted, flag data accumulates across sessions
+    - Large combat flags can cause Foundry performance issues and memory bloat
+    - Need to ensure combat flags are cleared when combat ends or combat is deleted
+
+- **FINDINGS - MEMORY LEAK IN COMBAT TRACKER CODE**:
+  - **Duplicate Button and Event Listener Accumulation in `combat-tracker.js`**: Button and click handler are added on every combat tracker render without checking for existing button
+    - Location: `scripts/combat-tracker.js` lines 335-369
+    - Issue: `renderCombatTracker` hook creates a new "Roll Remaining" button and adds a click handler every time it fires
+    - Problem: 
+      - No check to see if button already exists before creating new one (line 353)
+      - No cleanup of old button or click handler before adding new one
+      - Click handler is attached directly to the button (line 363) without storing reference for removal
+    - Impact: If combat tracker re-renders multiple times during combat (turn changes, initiative updates, etc.), duplicate buttons and click handlers accumulate
+    - Each duplicate button takes up DOM space and memory
+    - Each duplicate click handler holds a closure preventing garbage collection
+    - During a long combat session with frequent tracker re-renders, this could accumulate many duplicates
+    - Fix needed: Check if button exists before creating, remove old button/handler before adding new one, or use event delegation with unique selector
+  
+  - **Multiple setTimeout Calls Without Clearance Checks**: Combat tracker uses many setTimeout calls (8 instances)
+    - Location: Lines 38, 88, 108, 140, 155, 185, 204, 450, 680
+    - Issue: One-off timeouts that complete naturally, but if combat tracker is destroyed/unloaded before timeout completes, they could execute with stale references
+    - Problem: No timeout ID tracking or cleanup mechanism for pending timeouts
+    - Impact: Less critical than DOM/event listener leaks, but could cause issues if module unloads during timeout execution
+    - Fix needed: Track timeout IDs and clear them on cleanup/unload if needed
+
 ### MEDIUM PRIORITY ISSUES
+
+### Hide NPC Health from Players in Menubar
+- **Issue**: NPC health should be hidden from players in the menubar combat display
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - Gameplay functionality
+- **Current State**: NPC health is visible to players in the menubar
+- **Location**: `scripts/api-menubar.js` (combat bar rendering), menubar templates
+- **Tasks Needed**:
+  - Check ownership/permissions before displaying health values for NPCs
+  - Hide or mask NPC health for non-GM players
+  - Ensure GM can still see all health values
+  - Test with different permission levels
+- **Related Settings**: None currently
+- **Notes**: Players should not see NPC health values - only GM should see them
+
+### Menubar Health Rings Not Updating on Health Change
+- **Issue**: Health rings in menubar only update when turn changes, not when health changes
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - UI/UX improvement
+- **Current State**: Health rings update only on turn change events
+- **Location**: `scripts/api-menubar.js` (combat bar updates), health ring rendering logic
+- **Tasks Needed**:
+  - Add hook/event listener for actor HP changes
+  - Update health rings immediately when actor HP changes
+  - Ensure health rings update both on turn change AND health change
+  - Test with healing, damage, and status effects
+- **Related Settings**: None currently
+- **Notes**: Health rings should reflect current HP in real-time, not just on turn changes
+
+### Menubar Not Respecting Excluded Users Setting
+- **Issue**: Menubar is not honoring the setting to hide menubar from listed excluded players
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - Settings compliance
+- **Current State**: `excludedUsersMenubar` setting exists but may not be properly filtering visibility
+- **Location**: `scripts/api-menubar.js` (menubar rendering), `scripts/settings.js` (excludedUsersMenubar setting)
+- **Tasks Needed**:
+  - Verify `excludedUsersMenubar` setting is checked during menubar render
+  - Hide menubar for users in the exclusion list
+  - Test with different users and exclusion lists
+  - Ensure setting works for both GM and player users
+- **Related Settings**:
+  - `excludedUsersMenubar` - Comma-separated list of userIDs to exclude from menubar
+  - `enableMenubar` - Main toggle for menubar functionality
+- **Notes**: This ensures proper user-level control over menubar visibility per user preference
+
+### Cleanup Menubar Timer Layout
+- **Issue**: Menubar timer display layout needs cleanup and organization
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - UI/UX improvement
+- **Current State**: Timer layout may be cluttered or poorly organized
+- **Location**: `scripts/api-menubar.js` (timer display), menubar templates, timer CSS
+- **Tasks Needed**:
+  - Review current timer layout and identify issues
+  - Reorganize timer elements for better visual hierarchy
+  - Improve spacing, alignment, and readability
+  - Test with different timer states and durations
+- **Related Settings**: None currently
+- **Notes**: Timer display should be clean, readable, and well-organized
+
+### Hide Dead and Skip Dead Options for Menubar and Combat Tracker
+- **Issue**: Need options to hide and skip dead combatants in menubar and combat tracker
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - UI/UX improvement
+- **Current State**: Dead combatants are always shown in menubar and combat tracker
+- **Location**: `scripts/api-menubar.js` (combat bar rendering), `scripts/combat-tracker.js`, menubar templates
+- **Tasks Needed**:
+  - Add setting to hide dead combatants from menubar
+  - Add setting to hide dead combatants from combat tracker
+  - Add setting to skip dead combatants during turn advancement
+  - Filter dead combatants based on settings
+  - Ensure GM can still see all combatants if needed
+- **Related Settings**: 
+  - `menubarHideDead` - Hide dead combatants from menubar (new)
+  - `menubarSkipDead` - Skip dead combatants during turn advancement (new)
+  - `combatTrackerHideDead` - Hide dead combatants from combat tracker (new)
+- **Notes**: Options should be separate for menubar and combat tracker to allow different preferences
+
+### Targeted and Current Turn Rings Should Honor Invisibility
+- **Issue**: Token indicator rings (targeted, current turn) should honor token invisibility so players don't see rings on invisible tokens
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - Gameplay functionality and stealth
+- **Current State**: Indicator rings are shown even when tokens are invisible
+- **Location**: `scripts/token-image-utilities.js` (turn indicator, targeted indicator rendering)
+- **Tasks Needed**:
+  - Check token visibility/invisibility status before rendering rings
+  - Hide targeted indicator ring for invisible tokens (for players)
+  - Hide current turn indicator ring for invisible tokens (for players)
+  - Ensure GM can still see rings for invisible tokens
+  - Test with different visibility levels (invisible, hidden, visible)
+- **Related Settings**: None currently
+- **Notes**: Critical for stealth gameplay - players should not be able to see indicator rings for invisible tokens
 
 ### Wire up enableMenubar Setting
 - **Issue**: enableMenubar setting needs to be properly connected to functionality
