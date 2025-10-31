@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
 ## [12.1.19] - Dynamic Compendium Configuration and Expanded Type Support
 
 ### Added
@@ -41,6 +42,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `journal-tools.js`: Compendium setting key arrays generated dynamically
   - All search functions now honor user-configured compendium limits
 
+- **Spell and Feature Compendum Filtering:** Switched from content-based to type-based filtering for Spell and Feature compendiums
+  - Now uses all Item compendiums like Actor compendiums (simpler and works synchronously)
+  - Removed "Spells:" and "Features:" prefixes from dropdown labels since filtering is now type-based
+  - Eliminated async complexity from compendium choice initialization
+  
+- **Removed Duplicate Settings:** Cleaned up duplicate compendium settings from old code organization
+  - Removed duplicate `defaultEncounterFolder` setting in favor of `encounterFolder`
+  - Removed old hardcoded compendium registration patterns that were superseded by dynamic system
+  
+- **Code Cleanup:** Removed unused async helper functions from `getCompendiumChoices()`
+  - Removed `getContentTypes()` and `buildContentTypeMap()` functions that were no longer needed
+  - Simplified compendium choice generation logic
+
 ### Fixed
 - **Async Function Issue:** Fixed `getCompendiumChoices()` async/await mismatch
   - Function properly marked as `async` to support `await buildContentTypeMap()` call
@@ -51,6 +65,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added safety checks using `game.settings.settings.has()` before accessing setting
   - Prevents errors when combat-tracker hook runs before settings are registered
   - Applied to both ready hook and combat start hook contexts
+  - Applied to `combatTrackerShowPortraits`, `showRoundTimer`, and `menubarCombatShow`
+  - Prevents "setting is not registered" errors during module initialization
+  - Imported `getSettingSafely` into affected modules
+
+- **Sync Initialization:** Fixed compendium choices not being available during settings registration
+  - Added synchronous initialization of basic compendium choices in `registerSettings()`
+  - `getCompendiumChoices()` now runs async in background without blocking settings registration
+  - Ensures all compendium dropdowns have choices available immediately
 
 ## [12.1.18] - Menubar Performance Optimization, Token Movement Features, and Code Cleanup
 
