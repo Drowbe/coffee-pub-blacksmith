@@ -2,6 +2,54 @@
 
 ## ACTIVE ISSUES
 
+### CRITICAL PRIORITY ISSUES
+
+### Memory Leak Investigation
+- **Issue**: Severe memory leak causing browser tab to consume 9.5GB over a 3-hour session, eventually crashing
+- **Status**: PENDING - Needs investigation
+- **Priority**: CRITICAL - System stability and performance
+- **Current State**: 
+  - Heap memory stays relatively stable around ~950MB
+  - Browser tab memory grows unbounded, reaching 9.5GB before crash
+  - Memory usage increases steadily over time during active play session
+  - Issue occurs during normal 3-hour gameplay session
+- **Symptoms**:
+  - Heap memory: ~950MB (stable)
+  - Browser tab memory: 9.5GB+ (growing unbounded)
+  - Memory growth pattern: Gradual increase over time
+  - Crash: Browser tab eventually crashes due to excessive memory usage
+- **Investigation Needed**:
+  - **Event Listeners**: Check for event listeners not being removed (window, document, Foundry hooks)
+  - **DOM Nodes**: Search for detached DOM nodes accumulating in memory
+  - **Closures**: Identify closures holding references to large objects or collections
+  - **Canvas/WebGL**: Check for Canvas/WebGL contexts or textures not being released
+  - **Image Resources**: Verify image assets are properly disposed and not accumulating in memory
+  - **Cached Data**: Review cache implementations for unbounded growth (no limits, no cleanup)
+  - **WebSocket Connections**: Ensure socket connections are properly closed and cleaned up
+  - **Hook Registration**: Verify hooks are being unregistered when no longer needed
+  - **Interval/Timeout**: Check for intervals or timeouts not being cleared
+  - **Foundry API**: Review usage of Foundry APIs that may cache data (Actors, Items, Scenes, etc.)
+  - **Memory Profiling**: Use browser DevTools Memory profiler to identify specific objects/classes growing over time
+- **Areas to Check**:
+  - `scripts/manager-image-cache.js` - Large cache implementation (17,562+ files)
+  - `scripts/manager-image-matching.js` - Token matching processes
+  - `scripts/manager-canvas.js` - Canvas-related operations
+  - `scripts/stats-combat.js` - Combat stats tracking
+  - `scripts/stats-player.js` - Player stats tracking
+  - `scripts/api-menubar.js` - Menubar UI elements
+  - `scripts/socket-manager.js` - Socket connections
+  - `scripts/hook-manager.js` - Hook registration/cleanup
+  - Any code that creates intervals, timeouts, or event listeners
+  - Any code that manipulates DOM elements
+  - Any code that loads/displays images or media
+- **Tools/Methods**:
+  - Chrome DevTools Memory Profiler (Heap Snapshots)
+  - Chrome DevTools Performance Monitor (Memory timeline)
+  - Performance.memory API for tracking memory usage
+  - Search codebase for common leak patterns (addEventListener without removeEventListener, setInterval without clearInterval)
+- **Related Settings**: None currently
+- **Notes**: This is a critical stability issue that must be resolved. The disconnect between heap memory (~950MB) and browser tab memory (9.5GB) suggests resources not tracked by V8 heap (images, DOM, WebGL, etc.) are accumulating. Focus on resource cleanup, cache limits, and proper disposal of Foundry objects.
+
 ### MEDIUM PRIORITY ISSUES
 
 ### Wire up enableMenubar Setting
