@@ -76,6 +76,14 @@ class CombatStats {
         roundTurnTimes: 'expanded'
     };
 
+    // Bounded push helper to prevent unbounded array growth
+    static _boundedPush(array, item, maxSize = 1000) {
+        array.push(item);
+        if (array.length > maxSize) {
+            array.shift(); // Remove oldest item if over limit
+        }
+    }
+
     static initialize() {
         // Only initialize if this is the GM and stats tracking is enabled
         if (!game.user.isGM || !getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
@@ -128,7 +136,7 @@ class CombatStats {
             }, true, false);
             
             // Only call _onRoundEnd when we're actually ending a round (not starting a new one)
-            if (combat.previous.round > 0) {
+            if (combat.previous.round >= 0) {
                 await this._onRoundEnd();
             }
             this._onRoundStart(combat);
@@ -235,7 +243,7 @@ class CombatStats {
         
         // Record expired turn if it exceeded the time limit
         if (previousCombatant && isExpired) {
-            this.currentStats.expiredTurns.push({
+            this._boundedPush(this.currentStats.expiredTurns, {
                 actor: previousCombatant.name,
                 round: combat.round,
                 duration: duration
@@ -1117,8 +1125,8 @@ class CombatStats {
         attackerCombatStats.combat.attacks.attempts++;
 
         if (isHit) {
-            this.currentStats.hits.push(hitInfo);
-            this.combatStats.hits.push(hitInfo);
+            this._boundedPush(this.currentStats.hits, hitInfo);
+            this._boundedPush(this.combatStats.hits, hitInfo);
             attackerStats.combat.attacks.hits++;
             attackerCombatStats.combat.attacks.hits++;
             if (isCritical) {
@@ -1126,8 +1134,8 @@ class CombatStats {
                 attackerCombatStats.combat.attacks.crits++;
             }
         } else {
-            this.currentStats.misses.push(hitInfo);
-            this.combatStats.misses.push(hitInfo);
+            this._boundedPush(this.currentStats.misses, hitInfo);
+            this._boundedPush(this.combatStats.misses, hitInfo);
             attackerStats.combat.attacks.misses++;
             attackerCombatStats.combat.attacks.misses++;
         }
@@ -1162,6 +1170,21 @@ class CombatStats {
 
     // Register all necessary hooks
     static _registerHooks() {
+        // Register combat start hook
+        const combatStartHookId = HookManager.registerHook({
+            name: 'combatStart',
+            description: 'Combat Stats: Initialize stats when combat starts',
+            context: 'stats-combat',
+            priority: 3,
+            callback: (combat) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                this._onCombatStart(combat);
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+        
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | combatStart", "stats-combat", true, false);
+        
         // Register combat hooks
         // Migrate updateCombat hook to HookManager for centralized control
         const hookId = HookManager.registerHook({
@@ -1314,7 +1337,7 @@ class CombatStats {
         }, true, false);
 
         // Add hit to current round stats
-        this.currentStats.hits.push(processedHitData);
+        this._boundedPush(this.currentStats.hits, processedHitData);
 
         // Initialize participant stats if needed
         if (!this.combatStats.participantStats[hitData.attackerId]) {
@@ -1335,7 +1358,7 @@ class CombatStats {
         if (!attackerStats.hits) {
             attackerStats.hits = [];
         }
-        attackerStats.hits.push(processedHitData);
+        this._boundedPush(attackerStats.hits, processedHitData);
 
         // Update target's stats if it exists
         if (hitData.targetId && this.combatStats.participantStats[hitData.targetId]) {
@@ -1475,7 +1498,7 @@ class CombatStats {
             if (!this.combatStats.rounds) {
                 this.combatStats.rounds = [];
             }
-            this.combatStats.rounds.push(roundStats);
+            this._boundedPush(this.combatStats.rounds, roundStats);
 
             // Set the round number for the template
             templateData.roundNumber = roundStats.round;
@@ -1601,9 +1624,17 @@ class CombatStats {
                     existingStats.combat.attacks.fumbles += stats.combat.attacks.fumbles || 0;
                 }
 
-                // Safely merge hits and misses arrays
-                if (Array.isArray(stats.hits)) existingStats.hits.push(...stats.hits);
-                if (Array.isArray(stats.misses)) existingStats.misses.push(...stats.misses);
+                // Safely merge hits and misses arrays with bounded push
+                if (Array.isArray(stats.hits)) {
+                    for (const hit of stats.hits) {
+                        this._boundedPush(existingStats.hits, hit);
+                    }
+                }
+                if (Array.isArray(stats.misses)) {
+                    for (const miss of stats.misses) {
+                        this._boundedPush(existingStats.misses, miss);
+                    }
+                }
 
                 participantMap.set(stats.name, existingStats);
             }

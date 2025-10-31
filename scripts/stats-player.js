@@ -63,6 +63,14 @@ const CPB_STATS_DEFAULTS = {
 };
 
 class CPBPlayerStats {
+    // Bounded push helper to prevent unbounded array growth
+    static _boundedPush(array, item, maxSize = 1000) {
+        array.push(item);
+        if (array.length > maxSize) {
+            array.shift(); // Remove oldest item if over limit
+        }
+    }
+
     static initialize() {
         if (!game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
         
@@ -239,7 +247,7 @@ class CPBPlayerStats {
             turnNumber: combat.turn
         };
         
-        sessionStats.currentCombat.turns.push(turnData);
+        this._boundedPush(sessionStats.currentCombat.turns, turnData);
         this._updateSessionStats(actorId, { currentCombat: sessionStats.currentCombat });
     }
 
@@ -421,7 +429,7 @@ class CPBPlayerStats {
                     };
                     
                     combatStats.healing = combatStats.healing || [];
-                    combatStats.healing.push(healingEvent);
+                    this._boundedPush(combatStats.healing, healingEvent);
                     
                     // Initialize participant if needed
                     if (!combatStats.participants[actor.id]) {
@@ -476,7 +484,7 @@ class CPBPlayerStats {
                     };
 
                     combatStats.hits = combatStats.hits || [];
-                    combatStats.hits.push(hitEvent);
+                    this._boundedPush(combatStats.hits, hitEvent);
 
                     // Initialize participant if needed
                     if (!combatStats.participants[actor.id]) {
@@ -488,7 +496,7 @@ class CPBPlayerStats {
                         };
                     }
                     
-                    combatStats.participants[actor.id].hits.push(hitEvent);
+                    this._boundedPush(combatStats.participants[actor.id].hits, hitEvent);
                     combatStats.participants[actor.id].damage.dealt += rollTotal;
 
                     // Update target's stats if it exists
@@ -628,6 +636,9 @@ class CPBPlayerStats {
 
         // Store these stats somewhere if needed
         // Could be added to a combat log journal, sent to chat, etc.
+        
+        // Clear combat flag to prevent persistence leak
+        await combat.unsetFlag(MODULE.ID, 'combatStats');
     }
 }
 
