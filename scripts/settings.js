@@ -732,6 +732,18 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.GETTING_STARTED
 	});
 
+	// ==================================================================================================================== 
+	// ===== HR Visual Divider
+	// ==================================================================================================================== 
+	game.settings.register(MODULE.ID, "headingHR", {
+		name: "",
+		hint: "",
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+	});
+
 	// --------------------------------------
 	// -- H2: DEFAULT PARTY SETTINGS
 	// --------------------------------------
@@ -881,101 +893,6 @@ export const registerSettings = () => {
 		type: String,
 		default: ''
 	});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-	
-	// ---------- ITEM IMPORT ----------
-	game.settings.register(MODULE.ID, "headingH3ItemImport", {
-		name: 'Item Import',
-		hint: 'These settings control how you to import items into the game.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-
-	// -- Enhanced Image Guessing --
-	game.settings.register(MODULE.ID, 'enableEnhancedImageGuessing', {
-		name: MODULE.ID + '.enableEnhancedImageGuessing-Label',
-		hint: MODULE.ID + '.enableEnhancedImageGuessing-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-	});
-
-
-	// -- Use Cookies --
-	game.settings.register(MODULE.ID, 'narrativeUseCookies', {
-		name: MODULE.ID + '.narrativeUseCookies-Label',
-		hint: MODULE.ID + '.narrativeUseCookies-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-	});
-
-	game.settings.register(MODULE.ID, 'cookiesRememberCardStates', {
-		name: 'Remember Card States',
-		hint: 'If enabled, the collapsed/expanded state of cards will be remembered between sessions using cookies.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 	// ==================================================================================================================== 
@@ -1428,7 +1345,6 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
-
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
 	// == RUN THE GAME
@@ -1436,16 +1352,289 @@ export const registerSettings = () => {
 	// ==================================================================================================================== 
 	registerHeader('RunTheGame', 'headingH1RunTheGame-Label', 'headingH1RunTheGame-Hint', 'H1', WORKFLOW_GROUPS.RUN_THE_GAME);
 
-	// Clear Targets After Turn
-	game.settings.register(MODULE.ID, 'clearTargetsAfterTurn', {
-		name: 'Clear Targets After Turn',
-		hint: 'Automatically clear all targets when the turn changes in combat.',
+	// --------------------------------------
+	// -- H2: Combat
+	// --------------------------------------
+	registerHeader('CombatEnhancements', 'headingH2CombatEnhancements-Label', 'headingH2CombatEnhancements-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+	// --------------------------------------
+	// -- H3: Combat Tracker Behaviors
+	// --------------------------------------
+	registerHeader('CombatTrackerBehaviors', 'headingH3CombatTrackerBehaviors-Label', 'headingH3CombatTrackerBehaviors-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+	// -- Combat Tracker Size Data - HIDDEN SETTING
+	game.settings.register(MODULE.ID, 'combatTrackerSize', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Open Combat Tracker --
+	game.settings.register(MODULE.ID, 'combatTrackerOpen', {
+		name: MODULE.ID + '.combatTrackerOpen-Label',
+		hint: MODULE.ID + '.combatTrackerOpen-Hint',
 		scope: 'client',
 		config: true,
 		type: Boolean,
 		default: false,
-		requiresReload: false
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
+
+	// -- Make Combat Tracker Resizable --
+	game.settings.register(MODULE.ID, 'combatTrackerResizable', {
+		name: MODULE.ID + '.combatTrackerResizable-Label',
+		hint: MODULE.ID + '.combatTrackerResizable-Hint',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+
+	// -- Show Health Bar --
+	game.settings.register(MODULE.ID, 'combatTrackerShowHealthBar', {
+		name: MODULE.ID + '.combatTrackerShowHealthBar-Label',
+		hint: MODULE.ID + '.combatTrackerShowHealthBar-Hint',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Show Health Bar --
+	game.settings.register(MODULE.ID, 'combatTrackerShowPortraits', {
+		name: MODULE.ID + '.combatTrackerShowPortraits-Label',
+		hint: MODULE.ID + '.combatTrackerShowPortraits-Hint',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// --------------------------------------
+	// -- H3: Combat Tracker Tools
+	// --------------------------------------
+	registerHeader('CombatTrackerTools', 'headingH3CombatTrackerTools-Label', 'headingH3CombatTrackerTools-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+	// -- Set Current Combatant Icon --
+	game.settings.register(MODULE.ID, 'combatTrackerSetCurrentCombatant', {
+		name: MODULE.ID + '.combatTrackerSetCurrentCombatant-Label',
+		hint: MODULE.ID + '.combatTrackerSetCurrentCombatant-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+	
+	// -- Clear Initiative --
+	game.settings.register(MODULE.ID, 'combatTrackerClearInitiative', {
+		name: MODULE.ID + '.combatTrackerClearInitiative-Label',
+		hint: MODULE.ID + '.combatTrackerClearInitiative-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+	
+	// -- Set First Combatant --
+	game.settings.register(MODULE.ID, 'combatTrackerSetFirstTurn', {
+		name: MODULE.ID + '.combatTrackerSetFirstTurn-Label',
+		hint: MODULE.ID + '.combatTrackerSetFirstTurn-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+	
+	// -- Roll Initiative for Monstars and NPCs --
+	game.settings.register(MODULE.ID, 'combatTrackerRollInitiativeNonPlayer', {
+		name: MODULE.ID + '.combatTrackerRollInitiativeNonPlayer-Label',
+		hint: MODULE.ID + '.combatTrackerRollInitiativeNonPlayer-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Roll Initiative for Player Characters --
+	game.settings.register(MODULE.ID, 'combatTrackerRollInitiativePlayer', {
+		name: MODULE.ID + '.combatTrackerRollInitiativePlayer-Label',
+		hint: MODULE.ID + '.combatTrackerRollInitiativePlayer-Hint',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	
+	// -- Clear Targets After Turn --
+	game.settings.register(MODULE.ID, 'clearTargetsAfterTurn', {
+		name: MODULE.ID + '.clearTargetsAfterTurn-Label',
+		hint: MODULE.ID + '.clearTargetsAfterTurn-Hint',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: false,
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Monster/NPC Initiative --
+	game.settings.register(MODULE.ID, 'combatTrackerAddInitiative', {
+		name: MODULE.ID + '.combatTrackerAddInitiative-Label',
+		hint: MODULE.ID + '.combatTrackerAddInitiative-Hint',
+		scope: 'world',
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: 'none',
+		choices: {
+			'none': 'Do Nothing: Just add the Monster/NPC to the combat tracker',
+			'auto': 'Roll Initiative: Automatically roll initiative for the Monster/NPC',
+			'next': 'Set Next: Monster/NPC takes the next available turn',
+			'last': 'Last: Monster/NPC gets added to the end of the combat tracker',
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// --------------------------------------
+	// -- H3: Combat Menubar
+	// --------------------------------------
+	registerHeader('CombatMenubar', 'headingH3CombatMenubar-Label', 'headingH3CombatMenubar-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+	// -- Show Combat Menubar Bar --
+	game.settings.register(MODULE.ID, 'menubarCombatShow', {
+		name: MODULE.ID + '.menubarCombatShow-Label',
+		hint: MODULE.ID + '.menubarCombatShow-Hint',
+		scope: 'client',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Combat Menubar Size --
+	game.settings.register(MODULE.ID, 'menubarCombatSize', {
+		name: MODULE.ID + '.menubarCombatSize-Label',
+		hint: MODULE.ID + '.menubarCombatSize-Hint',
+		scope: "client",
+		config: true,
+		requiresReload: true,	
+		type: Number,
+		default: 60,
+		range: {
+			min: 30,
+			max: 120,
+			step: 2,		
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+
+	// --------------------------------------
+	// -- H2: Combat Statistics
+	// --------------------------------------
+	registerHeader('Statistics', 'headingH2Statistics-Label', 'headingH2Statistics-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+
+	// --------------------------------------
+	// -- H3: Combat Tracker Behaviors
+	// --------------------------------------
+	registerHeader('StatisticsGeneral', 'headingH3StatisticsGeneral-Label', 'headingH3StatisticsGeneral-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+	// -- Track Player Statistics --
+	game.settings.register(MODULE.ID, 'trackPlayerStats', {
+		name: MODULE.ID + '.trackPlayerStats-Label',
+		hint: MODULE.ID + '.trackPlayerStats-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Track Combat Statistics --
+	game.settings.register(MODULE.ID, 'trackCombatStats', {
+		name: MODULE.ID + '.trackCombatStats-Label',
+		hint: MODULE.ID + '.trackCombatStats-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Share Combat Statistics --
+	game.settings.register(MODULE.ID, 'shareCombatStats', {
+		name: MODULE.ID + '.shareCombatStats-Label',
+		hint: MODULE.ID + '.shareCombatStats-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+
+	// --------------------------------------
+	// -- H3: Combat Tracker Behaviors
+	// --------------------------------------
+	registerHeader('StatisticsSharing', 'headingH3StatisticsSharing-Label', 'headingH3StatisticsSharing-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+	// -- Show Round Summary --
+	game.settings.register(MODULE.ID, 'showRoundSummary', {
+		name: MODULE.ID + '.showRoundSummary-Label',
+		hint: MODULE.ID + '.showRoundSummary-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	}); 
+
+	// -- Show Round MVP --
+	game.settings.register(MODULE.ID, 'showRoundMVP', {
+		name: MODULE.ID + '.showRoundMVP-Label',
+		hint: MODULE.ID + '.showRoundMVP-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	}); 
+
+	// -- Show Notable Moments --
+	game.settings.register(MODULE.ID, 'showNotableMoments', {
+		name: MODULE.ID + '.showNotableMoments-Label',
+		hint: MODULE.ID + '.showNotableMoments-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	}); 
+
+	// -- Show Party Breakdown --
+	game.settings.register(MODULE.ID, 'showPartyBreakdown', {
+		name: MODULE.ID + '.showPartyBreakdown-Label',
+		hint: MODULE.ID + '.showPartyBreakdown-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 
 	// --------------------------------------
 	// -- H2: Token Enhancements
@@ -2377,6 +2566,22 @@ export const registerSettings = () => {
 	
 
 	// --------------------------------------
+	// -- H2: Imports
+	// --------------------------------------
+	registerHeader('ContentImports', 'headingH2ContentImports-Label', 'headingH2ContentImports-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT);
+
+	// -- Enhanced Image Guessing --
+	game.settings.register(MODULE.ID, 'enableEnhancedImageGuessing', {
+		name: MODULE.ID + '.enableEnhancedImageGuessing-Label',
+		hint: MODULE.ID + '.enableEnhancedImageGuessing-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+	});
+
+	// --------------------------------------
 	// -- H2: Narratives
 	// --------------------------------------
 	registerHeader('NarrativeGenerator', 'headingH2NarrativeGenerator-Label', 'headingH2NarrativeGenerator-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT);
@@ -2387,6 +2592,17 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('NarrativeConfiguration', 'headingH3NarrativeConfiguration-Label', 'headingH3NarrativeConfiguration-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
 	
+	// -- Use Cookies --
+	game.settings.register(MODULE.ID, 'narrativeUseCookies', {
+		name: MODULE.ID + '.narrativeUseCookies-Label',
+		hint: MODULE.ID + '.narrativeUseCookies-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
 
 	// -- Default Narrative Folder --
 	game.settings.register(MODULE.ID, 'defaultNarrativeFolder', {
@@ -4349,358 +4565,6 @@ export const registerSettings = () => {
 		},
 		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 	});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	// ==================================================================================================================== 
-	// ===== TEMPORARY DIVIDER - NEW VS OLD ORGANIZATION ===============
-	// ==================================================================================================================== 
-	// *** END OF NEW WORKFLOW-BASED ORGANIZATION ***
-	// Everything above this line uses the new helper functions and workflow groups
-	// Everything below this line is still using the old organization
-	// ==================================================================================================================== 
-
-	// *** VISUAL DIVIDER IN SETTINGS ***
-	game.settings.register(MODULE.ID, "headingHR", {
-		name: "",
-		hint: "",
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-
-
-
-
-
-
-
-
-
-	// -------------------------------------
-
-	// *** COMBAT TRACKER SETTINGS ***
-
-	// ---------- SUBHEADING ----------
-	game.settings.register(MODULE.ID, "headingH2CombatTracker", {
-		name: 'COMBAT TRACKER',
-		hint: 'These settings will allow you to add both combat and planning timers into the combat tracker. They can be used to keep the players on track and to keep the GM in control.',
-		scope: "client",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-	// -- Set Current Combatant Icon --
-	game.settings.register(MODULE.ID, 'combatTrackerSetCurrentCombatant', {
-		name: 'Show Set Current Combatant Icon',
-		hint: 'When enabled an icon will show up for each combatant that allows you to set them as the current combatant.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-	
-	// -- Clear Initiative --
-	game.settings.register(MODULE.ID, 'combatTrackerClearInitiative', {
-		name: 'Clear Initiative',
-		hint: 'When enabled the combat tracker will clear the initiative each round.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-	
-	// -- Set First Combatant --
-	game.settings.register(MODULE.ID, 'combatTrackerSetFirstTurn', {
-		name: 'Set First Combatant',
-		hint: 'When enabled the combat tracker will set the first combatant as the current combatant.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-	
-	// -- Roll Initiative for Monstars and NPCs --
-	game.settings.register(MODULE.ID, 'combatTrackerRollInitiativeNonPlayer', {
-		name: 'Roll Monster/NPC Initiative',
-		hint: 'When enabled the combat tracker will roll initiative for all monsters and NPCs automatically each round.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	// -- Roll Initiative for Player Characters --
-	game.settings.register(MODULE.ID, 'combatTrackerRollInitiativePlayer', {
-		name: 'Roll Player Character Initiative',
-		hint: 'When enabled, players will automatically roll initiative for their characters each round.',
-		scope: 'client',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	// -- Monster/NPC Initiative --
-	game.settings.register(MODULE.ID, 'combatTrackerAddInitiative', {
-		name: 'Monster/NPC Mid-combat Initiative',
-		hint: 'When an NPC or Monster is added to the combat tracker mid combat, this setting will determine what happens to their initiative.',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'none',
-		choices: {
-			'none': 'Do Nothing: Just add the Monster/NPC to the combat tracker',
-			'auto': 'Roll Initiative: Automatically roll initiative for the Monster/NPC',
-			'next': 'Set Next: Monster/NPC takes the next available turn',
-			'last': 'Last: Monster/NPC gets added to the end of the combat tracker',
-		}
-	});
-
-	// -- Open Combat Tracker --
-	game.settings.register(MODULE.ID, 'combatTrackerOpen', {
-		name: 'Open Combat Tracker',
-		hint: 'When enabled, the combat tracker will be open by default when a combat starts',
-		scope: 'client',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-	// -- Make Combat Tracker Resizable --
-	game.settings.register(MODULE.ID, 'combatTrackerResizable', {
-		name: 'Make it Resizable',
-		hint: 'When enabled, the combat tracker window can be resized by dragging the corner',
-		scope: 'client',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-
-
-
-
-
-
-	// -- Combat Tracker Size Data (Internal) --
-	game.settings.register(MODULE.ID, 'combatTrackerSize', {
-		name: 'Combat Tracker Size Data',
-		hint: 'Internal setting to store combat tracker size and position',
-		scope: 'client',
-		config: false,
-		type: Object,
-		default: {}
-	});
-
-	// -- Show Health Bar --
-	game.settings.register(MODULE.ID, 'combatTrackerShowHealthBar', {
-		name: 'Show Health Bar',
-		hint: 'When enabled, combatants in the combat tracker will have a health bar around the token.',
-		scope: 'client',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-	// -- Show Health Bar --
-	game.settings.register(MODULE.ID, 'combatTrackerShowPortraits', {
-		name: 'Show Portraits in Combat Tracker',
-		hint: 'When enabled, combatants in the combat tracker will have a portrait icon.',
-		scope: 'client',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-
-
-	// -- Show Combat Menubar Bar --
-	game.settings.register(MODULE.ID, 'menubarCombatShow', {
-		name: 'Automatically Show Combat Menu Bar',
-		hint: 'When enabled, the combat bar will automatically show when a combat starts.',
-		scope: 'client',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-	// -- Default Party Level --
-	game.settings.register(MODULE.ID, 'menubarCombatSize', {
-		name:'Combat Menubar Size',
-		hint: 'The verticle size of the combat menubar.',
-		scope: "client",
-		config: true,
-		requiresReload: true,	
-		type: Number,
-		default: 60,
-		range: {
-			min: 30,
-			max: 120,
-			step: 2,		
-		},
-	});
-
-
-
-
-
-	
-	// *** STATISTICS ***
-
-	// ---------- SUBHEADING ----------
-	game.settings.register(MODULE.ID, "headingH2Statistics", {
-		name: 'Combat Statistics',
-		hint: 'These settings will allow you to track and share combat statistics.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-	// ---------- SHARED STAT SETTINGS ----------
-	game.settings.register(MODULE.ID, "headingH3SharedStats", {
-		name: 'Global Settings',
-		hint: 'These settings apply to both Round Stats and Combat Stats that can be shared at the end of each round or combat session.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-
-	// Combat Statistics Settings
-	game.settings.register(MODULE.ID, 'trackCombatStats', {
-		name: 'Track Combat Statistics',
-		hint: 'Enable tracking and reporting of combat round statistics (turn durations, timer expirations, etc.)',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-
-
-	game.settings.register(MODULE.ID, 'trackPlayerStats', {
-		name: 'Track Player Statistics',
-		hint: 'Enable detailed tracking of player statistics including attacks, healing, and more. This data persists between sessions.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-	game.settings.register(MODULE.ID, 'shareCombatStats', {
-		name: 'Share With Players',
-		hint: 'If enabled, combat statistics will be shared to all players. If disabled, only the GM will see them.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: false
-	});
-
-
-
-
-	// ---------- ROUND STATS ----------
-	game.settings.register(MODULE.ID, "headingH3RoundStats", {
-		name: 'ROUND Statistics',
-		hint: 'These settings apply to the End-of-Round statistics.',
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-	});
-	// -------------------------------------
-
-	game.settings.register(MODULE.ID, 'showRoundSummary', {
-		name: 'Show Round Summary',
-		hint: 'Show the round summary section with duration, planning, accuracy, and other key metrics.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	}); 
-
-	game.settings.register(MODULE.ID, 'showRoundMVP', {
-		name: 'Show Round MVP',
-		hint: 'Show the MVP section highlighting the best performer of the round.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	}); 
-
-	game.settings.register(MODULE.ID, 'showNotableMoments', {
-		name: 'Show Notable Moments',
-		hint: 'Show the notable moments section in combat statistics.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	}); 
-
-	game.settings.register(MODULE.ID, 'showPartyBreakdown', {
-		name: 'Show Party Breakdown',
-		hint: 'Show the detailed breakdown of each party member performance.',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true
-	});
-
-
-
-
 
 	// Build selected compendium arrays after all settings are registered
 	buildSelectedCompendiumArrays();

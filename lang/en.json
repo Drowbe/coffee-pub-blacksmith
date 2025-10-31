@@ -56,44 +56,6 @@
 				"defaultCampaignArea-Hint": "A distinct part of a site like a room, chamber, street, or locartion where scenes or encounters occur.",
 
 
-
-
-
-
-	
-
-
-
-
-
-
-
-	
-		"enableEnhancedImageGuessing-Label": "Enhanced Image Guessing",
-		"enableEnhancedImageGuessing-Hint": "Uses comprehensive synonym mapping to automatically select appropriate images for imported items based on their names and descriptions.",
-	
-		"imageGuessingDebugMode-Label": "Image Guessing Debug Mode",
-		"imageGuessingDebugMode-Hint": "Shows detailed console logs about how images are selected for imported items. Useful for troubleshooting and understanding the matching process.",
-	
-		"narrativeUseCookies-Label": "Use Cookies for Data",
-		"narrativeUseCookies-Hint": "If checked, the system will first attempt to pull data from cookies before using defaults.",
-
-	
-		"cookiesRememberCardStates-Label": "Remember Card States",
-		"cookiesRememberCardStates-Hint": "If enabled, the collapsed/expanded state of cards will be remembered between sessions using cookies.",
-
-
-
-
-
-
-
-
-
-
-
-
-
 	"SEPARATOR-USER-EXPERIENCE": "-------------------------------------------------------",
 
 
@@ -220,6 +182,89 @@
 
 	"headingH1RunTheGame-Label": "Run the Game",
 	"headingH1RunTheGame-Hint": "Settings for running games, toolbars, chat, and gameplay features",
+
+		"headingH2CombatEnhancements-Label": "Combat",
+		"headingH2CombatEnhancements-Hint": "Enhancements and quality of lifeimprovements to the combat system.",
+
+			"headingH3CombatTrackerBehaviors-Label": "Combat Tracker Behaviors",
+			"headingH3CombatTrackerBehaviors-Hint": "",
+
+				"combatTrackerOpen-Label": "Automatically Open",
+				"combatTrackerOpen-Hint": "",
+
+				"combatTrackerResizable-Label": "Make Resizable",
+				"combatTrackerResizable-Hint": "",
+
+				"combatTrackerShowHealthBar-Label": "Show Health Bar",
+				"combatTrackerShowHealthBar-Hint": "",
+
+				"combatTrackerShowPortraits-Label": "Show Portraits",
+				"combatTrackerShowPortraits-Hint": "",
+
+			"headingH3CombatTrackerTools-Label": "Combat Tracker Tools",
+			"headingH3CombatTrackerTools-Hint": "",
+
+				"combatTrackerSetCurrentCombatant-Label": "Add Set Current Icon",
+				"combatTrackerSetCurrentCombatant-Hint": "Add an icon to each combatant that allows the GM to set them as the current combatant.",
+
+				"combatTrackerClearInitiative-Label": "Clear Initiative",
+				"combatTrackerClearInitiative-Hint": "Combat tracker will clear the initiative at the top of each round for all participants.",
+
+				"combatTrackerSetFirstTurn-Label": "Set First Turn",
+				"combatTrackerSetFirstTurn-Hint": "Set the first combatant as the current combatant at the start of the combat after all inititives have been rolled.",
+
+				"combatTrackerRollInitiativeNonPlayer-Label": "Roll NPC Initiative",
+				"combatTrackerRollInitiativeNonPlayer-Hint": "Roll initiative for all NPCs automatically each round.",
+
+				"combatTrackerRollInitiativePlayer-Label": "Roll Player Initiative",
+				"combatTrackerRollInitiativePlayer-Hint": "Roll initiative for player characters automatically each round.",
+
+				"clearTargetsAfterTurn-Label": "Clear Targets After Turn",
+				"clearTargetsAfterTurn-Hint": "Automatically clear all targets when the turn changes in combat.",
+
+				"combatTrackerAddInitiative-Label": "Mid-Combat Additions",
+				"combatTrackerAddInitiative-Hint": "When an NPC is added to the combat tracker mid combat, determine what happens to their initiative and combat tracker position.",
+
+			"headingH3CombatMenubar-Label": "Combat Menubar",
+			"headingH3CombatMenubar-Hint": "Settings for the combat menubar that appears at the top of foundry's interface.",
+
+				"menubarCombatShow-Label": "Automatically Show",
+				"menubarCombatShow-Hint": "",
+
+				"menubarCombatSize-Label": "Size",
+				"menubarCombatSize-Hint": "The verticle size of the combat menubar.",
+
+
+		"headingH2Statistics-Label": "Statistics",
+		"headingH2Statistics-Hint": "Settings for tracking and sharing combat statistics.",
+
+			"headingH3StatisticsGeneral-Label": "General",
+			"headingH3StatisticsGeneral-Hint": "",
+
+				"trackPlayerStats-Label": "Track Player Statistics",
+				"trackPlayerStats-Hint": "Enable tracking and reporting of player statistics (hits, misses, damage, healing, etc.)",
+			
+				"trackCombatStats-Label": "Track Combat Statistics",
+				"trackCombatStats-Hint": "Enable tracking and reporting of combat round statistics (turn durations, timer expirations, etc.)",
+
+
+				"shareCombatStats-Label": "Share With Players",
+				"shareCombatStats-Hint": "If enabled, combat statistics will be shared to all players. If disabled, only the GM will see them.",
+
+			"headingH3StatisticsSharing-Label": "Sharing",
+			"headingH3StatisticsSharing-Hint": "",
+
+				"showRoundSummary-Label": "Round Summary",
+				"showRoundSummary-Hint": "Show a combat round summary with key metrics like turn duration, planning duration, accuracy, and other measures.",
+
+				"showRoundMVP-Label": "Round MVP",
+				"showRoundMVP-Hint": "Share the combat round MVP, highlighting the best performer of the round, in the chat at the end of the round.",
+
+				"showNotableMoments-Label": "Notable Moments",
+				"showNotableMoments-Hint": "Share the combat notable moments in the chat at the end of the round.",
+
+				"showPartyBreakdown-Label": "Show Party Breakdown",
+				"showPartyBreakdown-Hint": "Share a detailed breakdown of each party member's performance in the chat at the end of the round.",
 
 		"headingH2TokenEnhancements-Label": "Token Enhancements",
 		"headingH2TokenEnhancements-Hint": "Automation of token actions. This include token changes for when a character dies, is targeted, has the current turn in combat, etc.",
@@ -453,11 +498,20 @@
 	"headingH1ManageContent-Label": "Manage Content",
 	"headingH1ManageContent-Hint": "Tools for managing tokens, images, and content.",
 
+		"headingH2ContentImports-Label": "Content Imports",
+		"headingH2ContentImports-Hint": "Configurations for importing content into the game.",
+
+			"enableEnhancedImageGuessing-Label": "Enhanced Image Guessing",
+			"enableEnhancedImageGuessing-Hint": "Uses comprehensive synonym mapping to automatically select appropriate images for imported items based on their names and descriptions.",
+	
 		"headingH2NarrativeGenerator-Label": "Narratives",
 		"headingH2NarrativeGenerator-Hint": "",
 
 			"headingH3NarrativeConfiguration-Label": "Narrative Defaults",
 			"headingH3NarrativeConfiguration-Hint": "",
+
+				"narrativeUseCookies-Label": "Use Cookies for Data",
+				"narrativeUseCookies-Hint": "If checked, the system will first attempt to pull data from cookies before using defaults.",
 
 				"defaultNarrativeFolder-Label": "Narrative Folder",
 				"defaultNarrativeFolder-Hint": "Folder that should be used when creating new narratives. (optional)",
@@ -505,6 +559,7 @@
 		"headingH2CompendiumMapping-Label": "Compendium Mapping",
 		"headingH2CompendiumMapping-Hint": "When we automate searching for things, we look in the compendiums first. This is where we will look for a match. They are in priority order and we stop looking when we find a match.",
 
+
 			"headingH3ActorCompendiums-Label": "Actors",
 			"headingH3ActorCompendiums-Hint": "",
 
@@ -529,7 +584,6 @@
 			"headingH3PlaylistCompendiums-Label": "Playlists",
 			"headingH3PlaylistCompendiums-Hint": "",
 			
-		
 			"headingH3RollTableCompendiums-Label": "Roll Tables",
 			"headingH3RollTableCompendiums-Hint": "",
 
@@ -542,44 +596,14 @@
 			"headingH3StackCompendiums-Label": "Stacks",
 			"headingH3StackCompendiums-Hint": "",
 
+			"numCompendiums-Label": "Number of Compendiums",
+			"numCompendiums-Hint": "",
+
 			"searchWorldFirst-Label": "Search World First",
 			"searchWorldFirst-Hint": "When enabled, will search for matches in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",
 
 			"searchWorldLast-Label": "Search World Last",
 			"searchWorldLast-Hint": "When enabled, will search for for matches in the world after looking in compendiums if no results are found. When disabled, will not search world as a fallback.",
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 	"SEPARATOR-ROLLING-AND-PROGRESSION": "-------------------------------------------------------",
