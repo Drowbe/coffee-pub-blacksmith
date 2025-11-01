@@ -35,6 +35,7 @@
 @import "cards-themes.css";
 @import "cards-common.css";
 @import "cards-xp.css";
+@import "cards-stats.css";
 
 /* --- Menubar ---------------------- */
 @import "menubar.css";

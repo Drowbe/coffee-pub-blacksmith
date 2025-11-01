@@ -1574,6 +1574,11 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// --------------------------------------
+	// -- H3: Statistics Tracking
+	// --------------------------------------
+	registerHeader('StatisticsSharing', 'headingH3StatisticsSharing-Label', 'headingH3StatisticsSharing-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
 	// -- Share Combat Statistics --
 	game.settings.register(MODULE.ID, 'shareCombatStats', {
 		name: MODULE.ID + '.shareCombatStats-Label',
@@ -1584,12 +1589,6 @@ export const registerSettings = () => {
 		default: false,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
-
-
-	// --------------------------------------
-	// -- H3: Combat Tracker Behaviors
-	// --------------------------------------
-	registerHeader('StatisticsSharing', 'headingH3StatisticsSharing-Label', 'headingH3StatisticsSharing-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
 
 	// -- Show Round Summary --
 	game.settings.register(MODULE.ID, 'showRoundSummary', {

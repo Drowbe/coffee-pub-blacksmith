@@ -1,0 +1,358 @@
+/* ------------------------------------ */
+/* --- STATS CARDS ------------------- */
+/* ------------------------------------ */
+
+.blacksmith-card-spacer {
+    margin-bottom: 10px;
+}
+
+/* Round Duration */
+
+.round-duration {
+    color: #594a3c;
+    font-size: 0.9em;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.round-duration span {
+    color: #461313;
+    font-weight: bold;
+}
+
+
+
+/* MVP Details */
+
+.mvp-details {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.mvp-details img {
+    width: 64px;
+    height: 64px;
+    border: 2px solid #d5ccc7;
+    border-radius: 5px;
+    margin-right: 8px;
+}
+
+.mvp-info {
+    flex: 1;
+}
+
+.mvp-info .player-name {
+    color: #461313;
+    font-size: 1.1em;
+    font-weight: bold;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.mvp-description {
+    color: #594a3c;
+    font-size: 0.85em;
+    margin: 0;
+    font-style: normal;
+}
+
+/* No MVP case */
+.mvp-details:not(:has(img)) .mvp-description {
+    font-size: 1.0em;
+    text-align: center;
+    padding: 0;
+    font-style: normal;
+}
+
+.mvp-stats {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 8px;
+}
+
+.mvp-stat-card {
+    background: rgba(255, 255, 255, 0.0);
+    border: 1px solid rgba(0, 0, 0, 0.0);
+    border-radius: 4px;
+    padding: 0px;
+}
+
+.mvp-stat-card h4 {
+    color: rgba(72, 21, 21, 0.9);
+    font-size: 0.9em;
+    font-weight: 700;
+    margin: 0 0 6px 0;
+    padding: 3px;
+    border-bottom: 0px solid rgba(0, 0, 0, 0.1);
+    background-color: rgb(215, 208, 199);
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+.mvp-stat-card h4 i {
+    font-size: 0.9em;
+    margin-right: 0 !important;
+    padding: 0px 0px 0px 0px !important;
+}
+
+.mvp-stat-card h4 i,
+.mvp-stat-card h4 .fas {
+    margin-right: 0 !important;
+}
+
+/* Stats Colors */
+.combat-stats { color: #8b0000; }
+.damage-stats { color: #d63737; }
+.healing-stats { color: #2d8a45; }
+
+
+/* Turn Details */
+
+
+.turn-row {
+    background: rgba(176, 169, 163, 0.3);
+    border: 1px solid rgba(138, 133, 128, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding: 6px;
+    border-radius: 4px;
+    position: relative;
+}
+
+.turn-portrait {
+    width: 48px;
+    height: 48px;
+    border: 2px solid #d5ccc7;
+    border-radius: 5px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.turn-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.turn-name {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: normal;
+    font-size: 1.0em;
+    margin-bottom: 2px;
+}
+
+
+.turn-name strong {
+    font-weight: 900;
+    text-transform: uppercase;
+    text-overflow: ellipsis;
+}
+
+.status-tag.rank {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    background-color: #629602;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: bold;
+    z-index: 1;
+}
+
+.turn-time {
+    margin-left: auto;
+    color: #594a3c;
+    white-space: nowrap;
+}
+
+.turn-time.expired {
+    color: #8b0000;
+    font-weight: bold;
+}
+
+.turn-time.skipped {
+    color: #666666;
+    font-style: italic;
+}
+
+.turn-name .crit {
+    color: #629602;
+    margin-right: 4px;
+}
+
+.turn-name .fumble {
+    color: #952023;
+    margin-right: 4px;
+}
+
+.turn-stats {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    font-size: 0.9em;
+    color: #594a3c;
+    margin-top: 1px;
+}
+
+.turn-stats .stat-value {
+    display: inline;
+    margin: 0;
+}
+
+
+
+
+/* Status Indicators */
+
+.quick-turn { color: #4a8f52; font-weight: bold; }
+.expired-turn { color: #8b0000; font-weight: bold; }
+
+/* Progress Bars */
+.progress-bar {
+    height: 4px;
+    background: #d5ccc7;
+    border-radius: 2px;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #4a8f52;
+    border-radius: 2px;
+}
+
+
+
+
+
+
+/* Notable Moments */
+
+
+.moment-card {
+    background: rgba(255, 255, 255, 0.0);
+    border: 0px solid var(--color-border-light-primary);
+    border-radius: 4px;
+    padding: 0px;
+    position: relative;
+    margin-bottom: 8px;
+}
+
+.moment-card:last-child {
+    margin-bottom: 0;
+}
+
+.moment-card h4 {
+    color: rgba(72, 21, 21, 0.9);
+    font-size: 0.9em;
+    font-weight: 700;
+    margin: 0 0 6px 0;
+    padding: 3px;
+    border-bottom: 0px solid rgba(0, 0, 0, 0.1);
+    background-color: rgb(215, 208, 199);
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+.moment-card h4 i {
+    font-size: 0.9em;
+    margin-right: 0 !important;
+    padding: 0px 0px 0px 0px !important;
+}
+.moment-content {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    font-size: 1.0em;
+}
+
+.moment-content .actor { 
+    color: rgba(78, 84, 54, 0.9); 
+    font-weight: 700; 
+}
+.moment-content .target { 
+    color: #8b0000; 
+    font-weight: 700; 
+}
+.moment-content .detail { 
+    color: inherit;
+}
+.moment-content .amount { 
+    font-weight: 700;
+    color: #461313; 
+}
+
+.no-moments {
+    text-align: center;
+    color: #594a3c;
+    font-size: 1.0em;
+    padding: 8px;
+    font-style: normal;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border-light-primary);
+    border-radius: 4px;
+    margin: 0 0 8px 0;
+}
+
+
+/* Party Stats Grid */
+
+
+.party-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 0;
+}
+
+.round-stat-card {
+    background: rgba(255, 255, 255, 0.0);
+    border: 0px solid var(--color-border-light-primary);
+    border-radius: 4px;
+    padding: 0px;
+    position: relative;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+}
+
+.round-stat-card h4 {
+    color: rgba(72, 21, 21, 0.9);
+    font-size: 0.9em;
+    font-weight: 700;
+    margin: 0 0 6px 0;
+    padding: 3px;
+    border-bottom: 0px solid rgba(0, 0, 0, 0.1);
+    background-color: rgb(215, 208, 199);
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+.round-stat-card h4 i {
+    font-size: 0.9em;
+    margin-right: 0 !important;
+    padding: 0px 0px 0px 0px !important;
+}
+.round-stat-value {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #461313;
+}
+
+.round-stat-value .expired { color: #8b0000; font-weight: bold; }
+.round-stat-value .skipped { color: #666666; font-weight: bold; }
+
+.round-stat-detail {
+    font-size: 0.7em;
+}

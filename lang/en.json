@@ -238,21 +238,20 @@
 		"headingH2Statistics-Label": "Statistics",
 		"headingH2Statistics-Hint": "Settings for tracking and sharing combat statistics.",
 
-			"headingH3StatisticsGeneral-Label": "General",
+			"headingH3StatisticsGeneral-Label": "Tracking",
 			"headingH3StatisticsGeneral-Hint": "",
 
-				"trackPlayerStats-Label": "Track Player Statistics",
+				"trackPlayerStats-Label": "Player Statistics",
 				"trackPlayerStats-Hint": "Enable tracking and reporting of player statistics (hits, misses, damage, healing, etc.)",
 			
-				"trackCombatStats-Label": "Track Combat Statistics",
+				"trackCombatStats-Label": "Combat Statistics",
 				"trackCombatStats-Hint": "Enable tracking and reporting of combat round statistics (turn durations, timer expirations, etc.)",
-
-
-				"shareCombatStats-Label": "Share With Players",
-				"shareCombatStats-Hint": "If enabled, combat statistics will be shared to all players. If disabled, only the GM will see them.",
 
 			"headingH3StatisticsSharing-Label": "Sharing",
 			"headingH3StatisticsSharing-Hint": "",
+
+				"shareCombatStats-Label": "Share With Players",
+				"shareCombatStats-Hint": "If enabled, combat statistics will be shared to all players. If disabled, only the GM will see them.",
 
 				"showRoundSummary-Label": "Round Summary",
 				"showRoundSummary-Hint": "Show a combat round summary with key metrics like turn duration, planning duration, accuracy, and other measures.",
