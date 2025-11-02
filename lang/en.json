@@ -207,10 +207,13 @@
 				"combatTrackerSetCurrentCombatant-Label": "Add Set Current Icon",
 				"combatTrackerSetCurrentCombatant-Hint": "Add an icon to each combatant that allows the GM to set them as the current combatant.",
 
-				"combatTrackerClearInitiative-Label": "Clear Initiative",
-				"combatTrackerClearInitiative-Hint": "Combat tracker will clear the initiative at the top of each round for all participants.",
+			"combatTrackerClearInitiative-Label": "Clear Initiative",
+			"combatTrackerClearInitiative-Hint": "Clear the initiative at the top of each round for all participants.",
 
-				"combatTrackerSetFirstTurn-Label": "Set First Turn",
+			"combatTrackerAutoSelectToken-Label": "Auto-Select Current Combatant",
+			"combatTrackerAutoSelectToken-Hint": "Automatically select the token for the combatant whose turn it is when the turn changes.",
+
+			"combatTrackerSetFirstTurn-Label": "Set First Turn",
 				"combatTrackerSetFirstTurn-Hint": "Set the first combatant as the current combatant at the start of the combat after all inititives have been rolled.",
 
 				"combatTrackerRollInitiativeNonPlayer-Label": "Roll NPC Initiative",

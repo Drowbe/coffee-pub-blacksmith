@@ -212,6 +212,48 @@ class CombatTracker {
                 // Log hook registration
                 postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "combat-tracker-player-initiative", true, false);
                 
+                // Handle automatic token selection on turn change
+                const autoSelectTokenHookId = HookManager.registerHook({
+                    name: 'updateCombat',
+                    description: 'Combat Tracker: Auto-select token when turn changes',
+                    context: 'combat-tracker-auto-select-token',
+                    priority: 3,
+                    callback: (combat, changed, options, userId) => {
+                        // --- BEGIN - HOOKMANAGER CALLBACK ---
+                        // Only process if setting is enabled
+                        if (!game.settings.get(MODULE.ID, 'combatTrackerAutoSelectToken')) return;
+                        
+                        // Only process turn changes
+                        if (!('turn' in changed)) return;
+                        
+                        // Only process if combat is started
+                        if (!combat?.started) return;
+                        
+                        // Get current combatant
+                        const currentCombatant = combat.combatant;
+                        if (!currentCombatant || !currentCombatant.token) return;
+                        
+                        // Get the token on the canvas
+                        const token = canvas.tokens.get(currentCombatant.token.id);
+                        if (!token) return;
+                        
+                        // Check if user has permission to control this token
+                        // For GM: can control any token
+                        // For players: can only control tokens they own
+                        const canControl = game.user.isGM || token.actor?.hasPlayerOwner;
+                        if (!canControl) return;
+                        
+                        // Select the token
+                        token.control({ releaseOthers: true });
+                        
+                        postConsoleAndNotification(MODULE.NAME, `Auto-selected token for ${currentCombatant.name}`, "", true, false);
+                        // --- END - HOOKMANAGER CALLBACK ---
+                    }
+                });
+                
+                // Log hook registration
+                postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat (auto-select token)", "combat-tracker-auto-select-token", true, false);
+                
                 // Hook into combat start for player initiative
                 const combatStartPlayerInitiativeHookId = HookManager.registerHook({
 					name: 'combatStart',

@@ -1443,6 +1443,17 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 	
+	// -- Auto-Select Current Turn Token --
+	game.settings.register(MODULE.ID, 'combatTrackerAutoSelectToken', {
+		name: MODULE.ID + '.combatTrackerAutoSelectToken-Label',
+		hint: MODULE.ID + '.combatTrackerAutoSelectToken-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+	
 	// -- Set First Combatant --
 	game.settings.register(MODULE.ID, 'combatTrackerSetFirstTurn', {
 		name: MODULE.ID + '.combatTrackerSetFirstTurn-Label',
