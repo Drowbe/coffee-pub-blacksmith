@@ -525,7 +525,7 @@ class CombatTracker {
         // If no combatants need initiative, all have been rolled
         if (combatantsNeedingInitiative.length === 0) {
             // Only proceed if combat has actually started
-            if (!combat.started || combat.round === 0) {
+            if (!combat.started) {
                 return;
             }
 
@@ -539,7 +539,7 @@ class CombatTracker {
                 // Wait a moment for the combat tracker to finish sorting
                 await new Promise(resolve => setTimeout(resolve, 100));
                 
-                // Set turn to 0 after the sort
+                // Set turn to 0 after the sort (first combatant at top of list)
                 await combat.update({turn: 0}, {diff: false});
                 
                 // Only set the flag after successfully setting the turn
