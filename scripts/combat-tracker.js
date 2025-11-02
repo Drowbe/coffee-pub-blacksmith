@@ -25,6 +25,9 @@ class CombatTracker {
     static _rollRemainingButton = null;
     static _rollRemainingClickHandler = null;
     
+    // Track pending setTimeout calls for cleanup
+    static _pendingTimeouts = new Set();
+    
     /**
      * Initialize the Combat Tracker functionality
      * Sets up hooks for combat events
@@ -39,7 +42,7 @@ class CombatTracker {
 
                 if (combat && combat.combatants.size > 0) {
                     // Small delay to ensure UI is fully initialized
-                    setTimeout(() => {
+                    this._trackedSetTimeout(() => {
                         CombatTracker.openCombatTracker();
                     }, 500);
                 } else {
@@ -64,6 +67,7 @@ class CombatTracker {
                         // --- BEGIN - HOOKMANAGER CALLBACK ---
                         if (moduleId === MODULE.ID) {
                             this._removeRollRemainingButton();
+                            this._clearAllTimeouts();
                             postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Cleanup on module unload", "", true, false);
                         }
                         // --- END - HOOKMANAGER CALLBACK ---
@@ -105,7 +109,7 @@ class CombatTracker {
 						// Auto-open combat tracker for all users when setting is enabled
 						if (game.settings.settings.has(`${MODULE.ID}.combatTrackerOpen`) && game.settings.get(MODULE.ID, 'combatTrackerOpen')) {
 							// Small delay to ensure combat is fully initialized
-							setTimeout(() => {
+							this._trackedSetTimeout(() => {
 								CombatTracker.openCombatTracker();
 							}, 100);
 						}
@@ -125,9 +129,12 @@ class CombatTracker {
 						
 						// No encounter / ended — close any tracker UI
 						// Add a small delay to ensure combat deletion is fully processed
-						setTimeout(async () => {
+						this._trackedSetTimeout(async () => {
 							await CombatTracker.closeCombatTracker();
 						}, 200);
+						
+						// Clear any pending timeouts when combat is deleted
+						this._clearAllTimeouts();
 
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
@@ -144,6 +151,9 @@ class CombatTracker {
 						
 						// Close the combat tracker when combat ends
 						CombatTracker.closeCombatTracker();
+						
+						// Clear any pending timeouts when combat ends
+						this._clearAllTimeouts();
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
 				});
@@ -157,7 +167,7 @@ class CombatTracker {
 					callback: (combat) => {
 						// --- BEGIN - HOOKMANAGER CALLBACK ---
 						// Wait a small delay to ensure all combatants are fully initialized
-						setTimeout(() => this._checkAllInitiativesRolled(combat), 100);
+						this._trackedSetTimeout(() => this._checkAllInitiativesRolled(combat), 100);
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
 				});
@@ -172,7 +182,7 @@ class CombatTracker {
                         // If the round changes, reset the flag and check initiatives
                         if ('round' in changed && combat.round > 0) {
                             // Wait a small delay to ensure all combat state is updated
-                            setTimeout(() => this._checkAllInitiativesRolled(combat), 100);
+                            this._trackedSetTimeout(() => this._checkAllInitiativesRolled(combat), 100);
                             
                             // Only for GM: Clear initiative and roll for NPCs if enabled
                             if (game.user.isGM) {
@@ -202,7 +212,7 @@ class CombatTracker {
                         if (!game.settings.get(MODULE.ID, 'combatTrackerClearInitiative')) return;
                         
                         // Add a slight delay to ensure the GM has time to clear initiatives first
-                        setTimeout(() => {
+                        this._trackedSetTimeout(() => {
                             // Now roll initiative for player-owned characters
                             this._rollInitiativeForPlayerCharacters(combat);
                         }, 1000);
@@ -263,7 +273,7 @@ class CombatTracker {
 					callback: (combat) => {
 						// --- BEGIN - HOOKMANAGER CALLBACK ---
 						// When combat starts, check if we should roll for player characters
-						setTimeout(() => {
+						this._trackedSetTimeout(() => {
 							this._rollInitiativeForPlayerCharacters(combat);
 						}, 500);
 						// --- END - HOOKMANAGER CALLBACK ---
@@ -685,6 +695,36 @@ class CombatTracker {
         
         // Clear handler reference
         this._rollRemainingClickHandler = null;
+    }
+    
+    /**
+     * Create a tracked setTimeout that can be cleared on cleanup
+     * @param {Function} callback - Function to call after delay
+     * @param {number} delay - Delay in milliseconds
+     * @returns {number} Timeout ID
+     */
+    static _trackedSetTimeout(callback, delay) {
+        const timeoutId = setTimeout(() => {
+            // Remove from tracking when timeout completes
+            this._pendingTimeouts.delete(timeoutId);
+            callback();
+        }, delay);
+        this._pendingTimeouts.add(timeoutId);
+        return timeoutId;
+    }
+    
+    /**
+     * Clear all pending setTimeout calls
+     */
+    static _clearAllTimeouts() {
+        const count = this._pendingTimeouts.size;
+        for (const timeoutId of this._pendingTimeouts) {
+            clearTimeout(timeoutId);
+        }
+        this._pendingTimeouts.clear();
+        if (count > 0) {
+            postConsoleAndNotification(MODULE.NAME, `Cleared ${count} pending timeouts`, "", true, false);
+        }
     }
 
     /**
