@@ -551,55 +551,78 @@ class CombatStats {
             return a > b;
         });
 
-        // Add click handler for collapsible sections after template is rendered
+        // Set up event delegation for collapsible sections on chat log container
+        this._setupCollapsibleSections();
+        
+        // Also ensure handler is set up when messages are rendered (in case chat log wasn't ready during init)
         const renderChatMessageHookId = HookManager.registerHook({
             name: 'renderChatMessage',
-            description: 'Combat Stats: Handle collapsible section clicks in blacksmith cards',
+            description: 'Combat Stats: Ensure collapsible section handler is set up when messages render',
             context: 'stats-combat-chat',
-            priority: 3, // Normal priority - UI interaction
+            priority: 3,
             callback: (message, html) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
                 if (message.content.includes('blacksmith-card')) {
-                    const headers = html.find('.section-header.collapsible');
-                    
-                    headers.on('click', (event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        
-                        const header = event.currentTarget;
-                        const content = header.nextElementSibling;
-                        const sectionType = header.dataset.section;
-                        const icon = header.querySelector('.collapse-indicator');
-                        
-                        // Toggle collapsed state
-                        header.classList.toggle('collapsed');
-                        
-                        // Update maxHeight based on collapsed state
-                        if (header.classList.contains('collapsed')) {
-                            content.style.maxHeight = '0px';
-                            // Update chevron
-                            icon.classList.remove('fa-chevron-down');
-                            icon.classList.add('fa-chevron-right');
-                            // Store state for next time
-                            if (sectionType) {
-                                this.sectionStates[sectionType] = 'collapsed';
-                            }
-                        } else {
-                            content.style.maxHeight = content.scrollHeight + "px";
-                            // Update chevron
-                            icon.classList.remove('fa-chevron-right');
-                            icon.classList.add('fa-chevron-down');
-                            // Store state for next time
-                            if (sectionType) {
-                                this.sectionStates[sectionType] = 'expanded';
-                            }
-                        }
-                    });
+                    this._setupCollapsibleSections();
                 }
+                // --- END - HOOKMANAGER CALLBACK ---
             }
         });
         
-        // Log hook registration
-        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessage", "stats-combat-chat", true, false);
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessage (collapsible sections)", "stats-combat-chat", true, false);
+    }
+
+    // Set up event delegation for collapsible sections
+    static _setupCollapsibleSections() {
+        const chatLog = document.querySelector('#chat-log');
+        if (chatLog && !chatLog.hasAttribute('data-blacksmith-collapsible-handler')) {
+            // Add event delegation handler
+            chatLog.addEventListener('click', this._handleCollapsibleSectionClick.bind(this));
+            // Mark that we've added the handler to prevent duplicates
+            chatLog.setAttribute('data-blacksmith-collapsible-handler', 'true');
+        }
+    }
+
+    // Handle collapsible section clicks using event delegation
+    static _handleCollapsibleSectionClick(event) {
+        // Check if the click target is a collapsible section header or its children
+        const header = event.target.closest('.section-header.collapsible');
+        if (!header) return;
+        
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const content = header.nextElementSibling;
+        if (!content || !content.classList.contains('section-content')) return;
+        
+        const icon = header.querySelector('.collapse-indicator');
+        
+        // Toggle collapsed state on the header
+        const isCollapsed = header.classList.contains('collapsed');
+        
+        if (isCollapsed) {
+            // Expand - remove collapsed class and set maxHeight to scrollHeight
+            header.classList.remove('collapsed');
+            content.classList.remove('collapsed');
+            // Temporarily set to auto to get the real height
+            content.style.maxHeight = 'none';
+            const height = content.scrollHeight;
+            // Set to the actual height with transition
+            content.style.maxHeight = height + "px";
+            if (icon) {
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-down');
+            }
+        } else {
+            // Collapse - add collapsed class and set maxHeight to 0
+            header.classList.add('collapsed');
+            content.classList.add('collapsed');
+            content.style.maxHeight = '0px';
+            if (icon) {
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-right');
+            }
+        }
     }
 
     // Helper method to format time
