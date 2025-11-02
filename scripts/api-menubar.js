@@ -40,6 +40,10 @@ class MenuBar {
     // Timer interval tracking for cleanup
     static _timerDisplayInterval = null;
     static _timerSyncInterval = null;
+    
+    // Event listener reference tracking for cleanup
+    static _clickHandler = null;
+    static _clickHandlerContainer = null;
 
     static async initialize() {
         // Load the templates
@@ -711,6 +715,9 @@ class MenuBar {
             document.removeEventListener('dblclick', this._combatBarDblClickHandler);
             this._combatBarDblClickHandler = null;
         }
+        
+        // Clean up menubar click handlers
+        this.removeClickHandlers();
         
         // Clean up timer intervals
         this._stopTimerUpdates();
@@ -2504,6 +2511,9 @@ class MenuBar {
             // Render the template
             const panelHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/menubar.hbs', templateData);
 
+            // Remove click handlers before removing the DOM elements
+            this.removeClickHandlers();
+
             // Remove any existing menubar and secondary bars
             document.querySelector('.blacksmith-menubar-container')?.remove();
             document.querySelectorAll('.blacksmith-menubar-secondary').forEach(el => el.remove());
@@ -2582,9 +2592,16 @@ class MenuBar {
         const menubarContainer = document.querySelector('.blacksmith-menubar-container');
         if (!menubarContainer) return;
 
-        // Add a single event listener to the container for event delegation
-        menubarContainer.addEventListener('click', (event) => {
+        // Remove old click handler if it exists and is still attached to a container
+        if (this._clickHandler && this._clickHandlerContainer) {
+            this._clickHandlerContainer.removeEventListener('click', this._clickHandler);
+            postConsoleAndNotification(MODULE.NAME, "MENUBAR MEMORY TEST | Removed old click handler", "", true, false);
+            this._clickHandler = null;
+            this._clickHandlerContainer = null;
+        }
 
+        // Create the click handler function
+        const clickHandler = (event) => {
             // Check if this is a notification close button click
             const closeButton = event.target.closest('.notification-close');
             if (closeButton) {
@@ -2626,10 +2643,32 @@ class MenuBar {
                     postConsoleAndNotification(MODULE.NAME, `Error executing tool ${toolId}:`, error, false, false);
                 }
             }
-        });
+        };
+
+        // Store the handler reference and container for cleanup
+        this._clickHandler = clickHandler;
+        this._clickHandlerContainer = menubarContainer;
+
+        // Add the event listener
+        menubarContainer.addEventListener('click', clickHandler);
+        postConsoleAndNotification(MODULE.NAME, "MENUBAR MEMORY TEST | Added new click handler", "", true, false);
 
         // Note: Right zone tools (leader-section, movement, timer-section) are now handled
         // by the dynamic click system above via their data-tool attributes
+    }
+    
+    /**
+     * Remove click handlers - called when menubar is destroyed or reset
+     */
+    static removeClickHandlers() {
+        if (this._clickHandler && this._clickHandlerContainer) {
+            this._clickHandlerContainer.removeEventListener('click', this._clickHandler);
+            postConsoleAndNotification(MODULE.NAME, "MENUBAR MEMORY TEST | removeClickHandlers() called - handler removed", "", true, false);
+            this._clickHandler = null;
+            this._clickHandlerContainer = null;
+        } else {
+            postConsoleAndNotification(MODULE.NAME, "MENUBAR MEMORY TEST | removeClickHandlers() called - no handler to remove", "", true, false);
+        }
     }
 
     /**
