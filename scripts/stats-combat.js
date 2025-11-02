@@ -1714,7 +1714,7 @@ class CombatStats {
                 combatTimerEnabled: game.settings.get(MODULE.ID, 'combatTimerEnabled')
             },
             sectionStates: this.sectionStates,
-            notableMoments: this.currentStats.notableMoments,
+            notableMoments: await this._enrichNotableMomentsWithPortraits(this.currentStats.notableMoments),
             hasNotableMoments: Object.values(this.currentStats.notableMoments)
                 .some(moment => moment.amount > 0 || moment.duration > 0)
         };
@@ -1843,6 +1843,35 @@ class CombatStats {
                 }
                 break;
         }
+    }
+
+    // Enrich notable moments with portrait images
+    static async _enrichNotableMomentsWithPortraits(notableMoments) {
+        if (!notableMoments) return notableMoments;
+        
+        const enriched = foundry.utils.deepClone(notableMoments);
+        
+        // Helper to add portrait to a moment
+        const addPortrait = async (moment) => {
+            if (!moment || !moment.actorId) return moment;
+            const actor = game.actors.get(moment.actorId);
+            if (actor) {
+                moment.actorImg = getPortraitImage(actor) || "icons/svg/mystery-man.svg";
+            } else {
+                moment.actorImg = "icons/svg/mystery-man.svg";
+            }
+            return moment;
+        };
+        
+        // Add portraits to all notable moments that have actorId
+        if (enriched.biggestHit?.actorId) await addPortrait(enriched.biggestHit);
+        if (enriched.weakestHit?.actorId) await addPortrait(enriched.weakestHit);
+        if (enriched.mostDamage?.actorId) await addPortrait(enriched.mostDamage);
+        if (enriched.biggestHeal?.actorId) await addPortrait(enriched.biggestHeal);
+        if (enriched.mostHurt?.actorId) await addPortrait(enriched.mostHurt);
+        if (enriched.longestTurn?.actorId) await addPortrait(enriched.longestTurn);
+        
+        return enriched;
     }
 
     // Record when first player's turn starts

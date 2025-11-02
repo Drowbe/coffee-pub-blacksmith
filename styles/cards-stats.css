@@ -6,7 +6,7 @@
     margin-bottom: 10px;
 }
 
-/* Round Duration */
+/* === Round Duration === */
 
 .round-duration {
     color: #594a3c;
@@ -23,7 +23,7 @@
 
 
 
-/* MVP Details */
+/* === MVP Details === */
 
 .mvp-details {
     display: flex;
@@ -111,8 +111,7 @@
 .healing-stats { color: #2d8a45; }
 
 
-/* Turn Details */
-
+/* === Turn Details === */
 
 .turn-row {
     background: rgba(176, 169, 163, 0.3);
@@ -234,14 +233,9 @@
     border-radius: 2px;
 }
 
+/* === Notable Moments === */
 
-
-
-
-
-/* Notable Moments */
-
-
+/* Moment Cards */
 .moment-card {
     background: rgba(255, 255, 255, 0.0);
     border: 0px solid var(--color-border-light-primary);
@@ -255,6 +249,7 @@
     margin-bottom: 0;
 }
 
+/* Moment Card Headers */
 .moment-card h4 {
     color: rgba(72, 21, 21, 0.9);
     font-size: 0.9em;
@@ -271,44 +266,73 @@
     margin-right: 0 !important;
     padding: 0px 0px 0px 0px !important;
 }
+
+/* Moment Card Content */
 .moment-content {
     display: flex;
     flex-direction: row;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
     font-size: 1.0em;
 }
 
+/* Moment Card Portraits */
+.moment-portrait {
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(215, 208, 199, 0.7);
+    border-radius: 50%;
+    background-color: rgba(215, 208, 199, 1.0);
+    flex-shrink: 0;
+    object-fit: cover;
+}
+
+/* Moment Card Info */
+.moment-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+/* Moment Card Actor */
 .moment-content .actor { 
-    color: rgba(78, 84, 54, 0.9); 
+    color: rgba(89, 74, 60, 0.9); 
     font-weight: 700; 
+    text-transform: uppercase;
 }
+
+/* Moment Card Target */
 .moment-content .target { 
-    color: #8b0000; 
-    font-weight: 700; 
+    color: rgba(158, 48, 47. 0.9); 
+    font-weight: 700;    
 }
+
+/* Moment Card Detail */
 .moment-content .detail { 
     color: inherit;
 }
+
+/* Moment Card Amount */
 .moment-content .amount { 
     font-weight: 700;
     color: #461313; 
 }
 
+/* No Moments */
 .no-moments {
     text-align: center;
     color: #594a3c;
     font-size: 1.0em;
     padding: 8px;
     font-style: normal;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.3);
     border: 1px solid var(--color-border-light-primary);
     border-radius: 4px;
     margin: 0 0 8px 0;
 }
 
-
-/* Party Stats Grid */
-
+/* === Party Stats Grid === */
 
 .party-stats-grid {
     display: grid;
