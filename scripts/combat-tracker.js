@@ -21,6 +21,10 @@ class CombatTracker {
     // Track the last processed round
     static _lastProcessedRound = 0;
     
+    // Track Roll Remaining button and handler for cleanup
+    static _rollRemainingButton = null;
+    static _rollRemainingClickHandler = null;
+    
     /**
      * Initialize the Combat Tracker functionality
      * Sets up hooks for combat events
@@ -49,6 +53,22 @@ class CombatTracker {
                 
                 // Reset last processed round
                 this._lastProcessedRound = 0;
+                
+                // Register cleanup hook for module unload
+                HookManager.registerHook({
+                    name: 'unloadModule',
+                    description: 'Combat Tracker: Cleanup on module unload',
+                    context: 'combat-tracker-cleanup',
+                    priority: 3,
+                    callback: (moduleId) => {
+                        // --- BEGIN - HOOKMANAGER CALLBACK ---
+                        if (moduleId === MODULE.ID) {
+                            this._removeRollRemainingButton();
+                            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Cleanup on module unload", "", true, false);
+                        }
+                        // --- END - HOOKMANAGER CALLBACK ---
+                    }
+                });
                 
                 // Hook for detecting when all initiatives have been rolled
                 const updateCombatantHookId = HookManager.registerHook({
@@ -349,6 +369,16 @@ class CombatTracker {
 						const rollNPCButton = html.find('.combat-control[data-control="rollNPC"]');
 						if (!rollNPCButton.length) return;
 
+						// Remove old button and handler if they exist
+						this._removeRollRemainingButton();
+
+						// Check if button already exists in the HTML (from previous render)
+						let existingButton = html.find('.combat-control[data-control="rollRemaining"]');
+						if (existingButton.length) {
+							existingButton.remove();
+							postConsoleAndNotification(MODULE.NAME, "COMBAT TRACKER MEMORY TEST | Removed existing Roll Remaining button", "", true, false);
+						}
+
 						// Create and insert our new button
 						const rollRemainingButton = $(`
 							<a class="combat-button combat-control" aria-label="Roll Remaining" role="button" data-tooltip="Roll Remaining" data-control="rollRemaining">
@@ -359,11 +389,19 @@ class CombatTracker {
 						// Insert after the Roll NPCs button
 						rollNPCButton.after(rollRemainingButton);
 
-						// Add click handler
-						rollRemainingButton.click(async (event) => {
+						// Create click handler function
+						const clickHandler = async (event) => {
 							event.preventDefault();
 							await this._rollRemainingInitiatives();
-						});
+						};
+
+						// Store button and handler references for cleanup
+						this._rollRemainingButton = rollRemainingButton;
+						this._rollRemainingClickHandler = clickHandler;
+
+						// Add click handler
+						rollRemainingButton.click(clickHandler);
+						postConsoleAndNotification(MODULE.NAME, "COMBAT TRACKER MEMORY TEST | Added Roll Remaining button and handler", "", true, false);
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
 				});
@@ -584,6 +622,27 @@ class CombatTracker {
         if (!foundCombatants) {
         } else {
         }
+    }
+
+    /**
+     * Remove Roll Remaining button and its click handler
+     * Called before adding new button to prevent duplicates
+     */
+    static _removeRollRemainingButton() {
+        // Remove click handler if it exists
+        if (this._rollRemainingButton && this._rollRemainingClickHandler) {
+            this._rollRemainingButton.off('click', this._rollRemainingClickHandler);
+            postConsoleAndNotification(MODULE.NAME, "COMBAT TRACKER MEMORY TEST | Removed Roll Remaining button handler", "", true, false);
+        }
+        
+        // Remove button from DOM if it exists
+        if (this._rollRemainingButton) {
+            this._rollRemainingButton.remove();
+            this._rollRemainingButton = null;
+        }
+        
+        // Clear handler reference
+        this._rollRemainingClickHandler = null;
     }
 
     /**
