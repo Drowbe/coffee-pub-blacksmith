@@ -114,6 +114,9 @@ Hooks.once('ready', () => {
                 html.find('.drag-over').removeClass('drag-over');
                 
                 // Get all combatants in current order
+                // Skip if combat doesn't exist (combat might have been deleted)
+                if (!game.combat || !game.combats.has(game.combat.id)) return;
+                
                 const combatants = game.combat.turns;
                 if (!combatants) return;
 

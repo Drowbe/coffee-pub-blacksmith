@@ -174,6 +174,9 @@ export class PlanningTimer {
     static handleCombatUpdate(combat, changed, options, userId) {
         // Only GM handles timer state changes
         if (!game.user.isGM) return;
+        
+        // Skip if combat doesn't exist (combat might have been deleted)
+        if (!combat || !game.combats.has(combat.id)) return;
 
         // Safely check if planning timer is enabled
         try {

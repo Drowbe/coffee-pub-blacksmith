@@ -2568,7 +2568,7 @@ class MenuBar {
     static async setCurrentCombatant(combatantId) {
         try {
             const combat = game.combat;
-            if (!combat) return;
+            if (!combat || !game.combats.has(combat.id)) return;
 
             const combatant = combat.combatants.get(combatantId);
             if (!combatant) return;

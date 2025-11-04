@@ -449,6 +449,9 @@ class CombatTimer {
         if (this._endingPlanningTimer) {
             return;
         }
+        
+        // Skip if combat doesn't exist (combat might have been deleted)
+        if (!combat || !game.combats.has(combat.id)) return;
 
         // Handle round changes first - detect by explicit round property change or using our tracking
         const isRoundChanged = ("round" in changed) || (combat.round > 0 && combat.round !== this._lastProcessedRound);

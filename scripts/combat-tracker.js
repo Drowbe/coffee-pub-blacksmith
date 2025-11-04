@@ -85,6 +85,8 @@ class CombatTracker {
 						// Only process if initiative was changed and we're the GM
 						if (!game.user.isGM || !('initiative' in data)) return;
 						
+						// Skip if combat doesn't exist (combat might have been deleted)
+						if (!combatant.combat || !game.combats.has(combatant.combat.id)) return;
 						
 						// Reset the flag when any initiative is set to null
 						if (data.initiative === null) {
@@ -132,9 +134,6 @@ class CombatTracker {
 						this._trackedSetTimeout(async () => {
 							await CombatTracker.closeCombatTracker();
 						}, 200);
-						
-						// Clear any pending timeouts when combat is deleted
-						this._clearAllTimeouts();
 
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
@@ -151,9 +150,6 @@ class CombatTracker {
 						
 						// Close the combat tracker when combat ends
 						CombatTracker.closeCombatTracker();
-						
-						// Clear any pending timeouts when combat ends
-						this._clearAllTimeouts();
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
 				});
@@ -179,6 +175,9 @@ class CombatTracker {
                     context: 'combat-tracker-round-change',
                     priority: 2, // High priority - core combat functionality
                     callback: (combat, changed) => {
+                        // Skip if combat doesn't exist (combat might have been deleted)
+                        if (!combat || !game.combats.has(combat.id)) return;
+                        
                         // If the round changes, reset the flag and check initiatives
                         if ('round' in changed && combat.round > 0) {
                             // Wait a small delay to ensure all combat state is updated
@@ -202,6 +201,9 @@ class CombatTracker {
                     context: 'combat-tracker-player-initiative',
                     priority: 2, // High priority - core combat functionality
                     callback: (combat, changed, options, userId) => {
+                        // Skip if combat doesn't exist (combat might have been deleted)
+                        if (!combat || !game.combats.has(combat.id)) return;
+                        
                         // Only process round changes (when the combat updates with a new round)
                         if (!("round" in changed)) return;
                         
@@ -230,6 +232,9 @@ class CombatTracker {
                     priority: 3,
                     callback: (combat, changed, options, userId) => {
                         // --- BEGIN - HOOKMANAGER CALLBACK ---
+                        // Skip if combat doesn't exist (combat might have been deleted)
+                        if (!combat || !game.combats.has(combat.id)) return;
+                        
                         // Only process if setting is enabled
                         if (!game.settings.get(MODULE.ID, 'combatTrackerAutoSelectToken')) return;
                         
@@ -471,6 +476,9 @@ class CombatTracker {
     static async _handleRoundChange(combat) {
         if (!game.user.isGM) return;
         
+        // Skip if combat doesn't exist (combat might have been deleted)
+        if (!combat || !game.combats.has(combat.id)) return;
+        
         // Check if we should clear initiative when round changes
         // ONLY clear initiative when changing to round 2 or higher
         if (game.settings.get(MODULE.ID, 'combatTrackerClearInitiative') && combat.round > 1) {
@@ -487,6 +495,9 @@ class CombatTracker {
             
             // Apply the updates
             if (updates.length > 0) {
+                // Double-check combat still exists before updating
+                if (!combat || !game.combats.has(combat.id)) return;
+                
                 await combat.updateEmbeddedDocuments("Combatant", updates);
                 
                 // After clearing initiative, auto-roll for non-player combatants if enabled
@@ -504,6 +515,9 @@ class CombatTracker {
      */
     static async _checkAllInitiativesRolled(combat) {
         if (!combat || !game.user.isGM) return;
+        
+        // Skip if combat doesn't exist (combat might have been deleted)
+        if (!game.combats.has(combat.id)) return;
         
         // Don't proceed if the setting is not enabled
         if (!game.settings.get(MODULE.ID, 'combatTrackerSetFirstTurn')) {
@@ -539,6 +553,9 @@ class CombatTracker {
                 // Wait a moment for the combat tracker to finish sorting
                 await new Promise(resolve => setTimeout(resolve, 100));
                 
+                // Double-check combat still exists after the delay
+                if (!combat || !game.combats.has(combat.id)) return;
+                
                 // Set turn to 0 after the sort (first combatant at top of list)
                 await combat.update({turn: 0}, {diff: false});
                 
@@ -558,6 +575,9 @@ class CombatTracker {
      */
     static async _rollInitiativeForNonPlayers(combat) {
         if (!game.user.isGM || !combat) return;
+        
+        // Skip if combat doesn't exist (combat might have been deleted)
+        if (!game.combats.has(combat.id)) return;
         
         // Get all combatants with null initiative that are not player-controlled
         const nonPlayerCombatants = combat.turns?.filter(c => 
@@ -587,6 +607,9 @@ class CombatTracker {
     static async _rollInitiativeForPlayerCharacters(combat) {
         // Return early if there's no combat
         if (!combat) return;
+        
+        // Skip if combat doesn't exist (combat might have been deleted)
+        if (!game.combats.has(combat.id)) return;
         
         postConsoleAndNotification(MODULE.NAME, `Combat Tracker: _rollInitiativeForPlayerCharacters called (GM: ${game.user.isGM}, Setting: ${game.settings.get(MODULE.ID, 'combatTrackerRollInitiativePlayer')})`, "", true, false);
         
@@ -838,8 +861,8 @@ class CombatTracker {
                 }
             }
             
-            // Force a re-render to ensure UI is properly cleaned up
-            if (ui.combat) {
+            // Only re-render if combat still exists (not when combat has been deleted)
+            if (ui.combat && game.combat) {
                 ui.combat.render();
             }
             

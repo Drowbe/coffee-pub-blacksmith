@@ -66,7 +66,7 @@ export class RoundTimer {
                 window.addEventListener('focus', () => {
                     this.isActive = true;
                     // When game becomes active, update the start timestamp to now
-                    if (game.combat?.started) {
+                    if (game.combat?.started && game.combats.has(game.combat.id)) {
                         const stats = game.combat.getFlag(MODULE.ID, 'stats') || {};
                         if (stats.roundStartTimestamp) {
                             stats.roundStartTimestamp = Date.now();
@@ -79,7 +79,7 @@ export class RoundTimer {
                 window.addEventListener('blur', () => {
                     this.isActive = false;
                     // When game becomes inactive, save the accumulated time
-                    if (game.combat?.started) {
+                    if (game.combat?.started && game.combats.has(game.combat.id)) {
                         const stats = game.combat.getFlag(MODULE.ID, 'stats') || {};
                         if (stats.roundStartTimestamp) {
                             stats.accumulatedTime = (stats.accumulatedTime || 0) + (Date.now() - stats.roundStartTimestamp);
@@ -169,6 +169,9 @@ export class RoundTimer {
     }
 
     static _onUpdateCombat(combat, changed, options, userId) {
+        // Skip if combat doesn't exist (combat might have been deleted)
+        if (!combat || !game.combats.has(combat.id)) return;
+        
         // If round changes, we need to reset our timer
         if (changed.round && changed.round !== combat.previous.round && game.user.isGM) {
             // Get current stats before resetting
@@ -199,7 +202,7 @@ export class RoundTimer {
     }
 
     static _getCurrentRoundDuration() {
-        if (!game.combat?.started) return 0;
+        if (!game.combat?.started || !game.combats.has(game.combat.id)) return 0;
         
         // Get the current stats from combat flags
         const stats = game.combat.getFlag(MODULE.ID, 'stats') || {};
@@ -215,7 +218,7 @@ export class RoundTimer {
     }
 
     static _getTotalCombatDuration() {
-        if (!game.combat?.started) return 0;
+        if (!game.combat?.started || !game.combats.has(game.combat.id)) return 0;
         
         // Get the accumulated total from all previous rounds
         const totalCombatDuration = game.combat.getFlag(MODULE.ID, 'totalCombatDuration') || 0;

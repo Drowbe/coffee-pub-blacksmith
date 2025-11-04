@@ -118,6 +118,9 @@ class CombatStats {
         // Only process combat updates if this is the GM
         if (!game.user.isGM || !getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
         if (!game.combat?.started) return;
+        
+        // Skip if combat doesn't exist (combat might have been deleted)
+        if (!combat || !game.combats.has(combat.id)) return;
 
         // Ensure currentStats is initialized
         if (!this.currentStats) {
@@ -149,6 +152,9 @@ class CombatStats {
     }
 
     static _onRoundStart(combat) {
+        // Skip if combat doesn't exist (combat might have been deleted)
+        if (!combat || !game.combats.has(combat.id)) return;
+        
         // Handle stats tracking if enabled
         if (game.user.isGM && getSettingSafely(MODULE.ID, 'trackCombatStats', false)) {
             // Ensure currentStats is initialized before overwriting
@@ -188,6 +194,9 @@ class CombatStats {
 
     // New method to handle round announcements
     static async _announceNewRound(combat) {
+        // Skip if combat doesn't exist (combat might have been deleted)
+        if (!combat || !game.combats.has(combat.id)) return;
+        
         try {
             // Use the current round number (no need to subtract 1 since this is announcing the start)
             const roundNumber = combat.round;
@@ -223,6 +232,9 @@ class CombatStats {
 
     static _onTurnChange(combat, currentCombatant, previousCombatant) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        
+        // Skip if combat doesn't exist (combat might have been deleted)
+        if (!combat || !game.combats.has(combat.id)) return;
 
         // Ensure currentStats is initialized
         if (!this.currentStats) {
@@ -296,6 +308,9 @@ class CombatStats {
 
     static _onCombatEnd(combat, options, userId) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        
+        // Skip if combat doesn't exist (combat might have been deleted)
+        if (!combat || !game.combats.has(combat.id)) return;
 
         // Ensure stats are initialized
         if (!this.combatStats) {
@@ -1416,6 +1431,9 @@ class CombatStats {
     // Combat flow tracking methods
     static _onCombatStart(combat) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        
+        // Skip if combat doesn't exist (combat might have been deleted)
+        if (!combat || !game.combats.has(combat.id)) return;
 
         // Ensure stats are initialized
         if (!this.combatStats) {

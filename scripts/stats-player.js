@@ -210,6 +210,9 @@ class CPBPlayerStats {
     // Combat update handler
     static async _onCombatUpdate(combat, changed, options, userId) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
+        
+        // Skip if combat doesn't exist (combat might have been deleted)
+        if (!combat || !game.combats.has(combat.id)) return;
 
         // Only process if turn changed or combat ended
         if (!changed.turn && !changed.round && !changed.active) return;
@@ -395,7 +398,7 @@ class CPBPlayerStats {
 
             // Get the current combat
             const combat = game.combat;
-            if (combat?.active) {
+            if (combat?.active && game.combats.has(combat.id)) {
                 let combatStats = await combat.getFlag(MODULE.ID, 'combatStats');
                 if (!combatStats) {
                     // Initialize if not exists
@@ -604,6 +607,9 @@ class CPBPlayerStats {
 
     static async _onCombatEnd(combat, options, userId) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
+        
+        // Skip if combat doesn't exist (combat might have been deleted)
+        if (!combat || !game.combats.has(combat.id)) return;
 
         const combatStats = await combat.getFlag(MODULE.ID, 'combatStats');
         if (!combatStats) return;
