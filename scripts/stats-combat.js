@@ -306,6 +306,170 @@ class CombatStats {
         }
     }
 
+    /**
+     * Generate combat summary from combatStats
+     * Creates aggregated summary with top N moments (no full event arrays)
+     * @param {Combat} combat - The combat object
+     * @returns {Object} Combat summary with metadata, aggregates, and top moments
+     */
+    static _generateCombatSummary(combat) {
+        const combatDuration = Date.now() - this.combatStats.startTime;
+        const scene = combat.scene ? game.scenes.get(combat.scene) : null;
+        const sceneName = scene ? scene.name : 'Unknown Scene';
+
+        // Extract participant summaries (aggregates only, no arrays)
+        const participantSummaries = Object.entries(this.combatStats.participantStats || {}).map(([actorId, stats]) => {
+            const hitCount = (stats.hits || []).length;
+            const missCount = (stats.misses || []).length;
+            return {
+                actorId,
+                name: stats.name || 'Unknown',
+                damageDealt: stats.damage?.dealt || 0,
+                damageTaken: stats.damage?.taken || 0,
+                healingGiven: stats.healing?.given || 0,
+                healingReceived: stats.healing?.received || 0,
+                hits: hitCount,
+                misses: missCount,
+                totalAttacks: hitCount + missCount
+            };
+        });
+
+        // Extract top N moments from arrays (Phase 2 will track these during combat)
+        const topHits = (this.combatStats.hits || [])
+            .slice()
+            .sort((a, b) => (b.amount || 0) - (a.amount || 0))
+            .slice(0, 5)
+            .map(hit => ({
+                attacker: hit.attacker || 'Unknown',
+                attackerId: hit.attackerId,
+                target: hit.targetName || 'Unknown',
+                targetId: hit.targetId,
+                amount: hit.amount || 0,
+                weapon: hit.weapon || 'Unknown',
+                isCritical: hit.isCritical || false,
+                timestamp: hit.timestamp
+            }));
+
+        const topHeals = []; // Healing tracking will need to be added if not already present
+        // TODO: Extract from healing array if it exists in combatStats
+
+        // Calculate aggregates
+        const totalHits = (this.combatStats.hits || []).length;
+        const totalMisses = (this.combatStats.misses || []).length;
+        const totalDamage = participantSummaries.reduce((sum, p) => sum + p.damageDealt, 0);
+        const totalHealing = participantSummaries.reduce((sum, p) => sum + p.healingGiven, 0);
+        const totalCriticals = (this.combatStats.hits || []).filter(h => h.isCritical).length;
+        const totalFumbles = (this.combatStats.misses || []).filter(m => m.isFumble).length;
+
+        // Find MVP (participant with most damage dealt)
+        const mvp = participantSummaries.reduce((max, p) => 
+            (p.damageDealt > (max?.damageDealt || 0)) ? p : max, null
+        );
+
+        // Build summary
+        const summary = {
+            // Metadata
+            combatId: combat.id,
+            date: new Date().toISOString(),
+            duration: combatDuration, // milliseconds
+            durationSeconds: Math.round(combatDuration / 1000),
+            rounds: combat.round || 0,
+            sceneName,
+            sceneId: combat.scene || null,
+
+            // Aggregated totals
+            totals: {
+                hits: totalHits,
+                misses: totalMisses,
+                totalAttacks: totalHits + totalMisses,
+                damageDealt: totalDamage,
+                healingGiven: totalHealing,
+                criticals: totalCriticals,
+                fumbles: totalFumbles,
+                hitRate: totalHits + totalMisses > 0 ? (totalHits / (totalHits + totalMisses) * 100).toFixed(1) : 0
+            },
+
+            // Per-participant summaries (totals only, no event arrays)
+            participants: participantSummaries,
+
+            // Top N moments (highlights only)
+            notableMoments: {
+                biggestHit: topHits[0] || null,
+                topHits: topHits,
+                topHeals: topHeals,
+                longestTurn: this.combatStats.longestTurn || null,
+                fastestTurn: this.combatStats.fastestTurn?.duration !== Infinity ? this.combatStats.fastestTurn : null,
+                mvp: mvp || null
+            },
+
+            // Round summaries (already aggregated from rounds array, if it exists)
+            roundCount: (this.combatStats.rounds || []).length,
+            rounds: (this.combatStats.rounds || []).map(round => {
+                // Handle whatever structure the round summary has
+                return {
+                    round: round.round || round.roundNumber || 0,
+                    // Only include aggregated data, no event arrays
+                    summary: {
+                        duration: round.duration || round.roundDuration || 0,
+                        hits: round.totalHits || round.hits || 0,
+                        misses: round.totalMisses || round.misses || 0,
+                        damage: round.damageDealt || round.damage || 0,
+                        healing: round.healingDone || round.healing || 0
+                    }
+                };
+            })
+        };
+
+        return summary;
+    }
+
+    /**
+     * Store combat summary in world flags (bounded array, keep last N)
+     * @param {Object} summary - Combat summary to store
+     */
+    static async _storeCombatSummary(summary) {
+        try {
+            // Get current history or initialize empty array
+            const currentHistory = game.settings.get(MODULE.ID, 'combatHistory') || [];
+            
+            // Add new summary to front of array
+            const updatedHistory = [summary, ...currentHistory];
+            
+            // Keep only last 20 combats (bounded array)
+            const MAX_HISTORY = 20;
+            const prunedHistory = updatedHistory.slice(0, MAX_HISTORY);
+            
+            // Store in world flags (async)
+            await game.settings.set(MODULE.ID, 'combatHistory', prunedHistory);
+            
+            postConsoleAndNotification(MODULE.NAME, "Combat Summary | Stored to history", {
+                historySize: prunedHistory.length,
+                combatId: summary.combatId
+            }, true, false);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error storing combat summary", error, false, false);
+        }
+    }
+
+    /**
+     * Get the most recent combat summary (for API access)
+     * @returns {Object|null} Most recent combat summary or null
+     */
+    static getCombatSummary() {
+        const history = game.settings.get(MODULE.ID, 'combatHistory') || [];
+        return history.length > 0 ? history[0] : null;
+    }
+
+    /**
+     * Get combat history (for API access)
+     * @param {number} limit - Maximum number of summaries to return (default: 20)
+     * @returns {Array} Array of combat summaries
+     */
+    static getCombatHistory(limit = 20) {
+        const history = game.settings.get(MODULE.ID, 'combatHistory') || [];
+        return history.slice(0, limit);
+    }
+
     static _onCombatEnd(combat, options, userId) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         
@@ -320,20 +484,23 @@ class CombatStats {
             this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
         }
 
-        const combatDuration = Date.now() - this.combatStats.startTime;
-        
-        postConsoleAndNotification(MODULE.NAME, "Combat Ended | Stats:", {
-            combat: {
-                duration: combatDuration,
-                rounds: combat.round,
-                totalHits: (this.combatStats.hits || []).length,
-                expiredTurns: (this.currentStats.expiredTurns || []).length,
-                participantStats: this.combatStats.participantStats || {}
-            }
-        }, true, false);
+        // Generate combat summary before resetting stats
+        const combatSummary = this._generateCombatSummary(combat);
 
-        // Reset stats
-            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        // Report combat summary to console
+        postConsoleAndNotification(MODULE.NAME, "Combat Ended | Summary:", combatSummary, true, false);
+
+        // Fire hook to expose combat summary (for stats-player.js and other consumers)
+        Hooks.callAll('blacksmith.combatSummaryReady', combatSummary, combat);
+
+        // Optionally store combat summary in world flags (bounded array, keep last 20)
+        // Note: Fire-and-forget async operation, don't await
+        this._storeCombatSummary(combatSummary).catch(error => {
+            postConsoleAndNotification(MODULE.NAME, "Error storing combat summary", error, false, false);
+        });
+
+        // Reset stats after summary is generated and exposed
+        this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
         this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
     }
 
