@@ -210,7 +210,7 @@ class CPBPlayerStats {
     // Combat update handler
     static async _onCombatUpdate(combat, changed, options, userId) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
-        
+
         // Skip if combat doesn't exist (combat might have been deleted)
         if (!combat || !game.combats.has(combat.id)) return;
 

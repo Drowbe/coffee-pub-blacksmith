@@ -449,7 +449,7 @@ class CombatTimer {
         if (this._endingPlanningTimer) {
             return;
         }
-        
+
         // Skip if combat doesn't exist (combat might have been deleted)
         if (!combat || !game.combats.has(combat.id)) return;
 

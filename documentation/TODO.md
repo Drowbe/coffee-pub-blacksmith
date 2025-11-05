@@ -153,6 +153,18 @@
 - **Related Settings**: None currently
 - **Notes**: Health rings should reflect current HP in real-time, not just on turn changes
 
+### Track and report our movement distance against the walking speed of the token
+- **Issue**: Need to track and report our movement distance against the walking speed of the token
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - Gameplay functionality
+- **Current State**: We are not tracking and reporting our movement distance against the walking speed of the token
+- **Location**: `scripts/token-movement.js` (movement tracking)
+- **Tasks Needed**:
+  - Track our movement distance against the walking speed of the token
+  - Report our movement distance against the walking speed of the token
+- **Related Settings**: None currently
+
+
 ### Menubar Not Respecting Excluded Users Setting
 - **Issue**: Menubar is not honoring the setting to hide menubar from listed excluded players
 - **Status**: PENDING - Needs implementation

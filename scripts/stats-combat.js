@@ -118,7 +118,7 @@ class CombatStats {
         // Only process combat updates if this is the GM
         if (!game.user.isGM || !getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
         if (!game.combat?.started) return;
-        
+
         // Skip if combat doesn't exist (combat might have been deleted)
         if (!combat || !game.combats.has(combat.id)) return;
 
