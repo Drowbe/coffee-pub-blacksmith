@@ -64,12 +64,9 @@ export class WrapperManager {
             // Register all wrappers and log their registration
             for (const reg of wrapperRegistrations) {
                 try {
-                    postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Attempting to register wrapper', {target: reg.target, type: reg.type}, true, false);
                     libWrapper.register(MODULE.ID, reg.target, reg.callback, reg.type);
-                    postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Successfully registered wrapper', reg.target, true, false);
                 } catch (wrapError) {
-                    postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: ERROR registering wrapper', {target: reg.target, error: wrapError.message}, false, true);
-                    console.error(`Coffee Pub Blacksmith | Error registering wrapper for ${reg.target}:`, wrapError);
+                    postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: ERROR registering wrapper', {target: reg.target, error: wrapError.message}, false, false);
                 }
             }
             

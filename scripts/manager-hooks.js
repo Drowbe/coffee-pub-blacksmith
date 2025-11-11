@@ -258,7 +258,7 @@ export class HookManager {
             MODULE.NAME,
             'All hooks cleaned up',
             { totalCleaned },
-            false,
+            true,
             false
         );
     }

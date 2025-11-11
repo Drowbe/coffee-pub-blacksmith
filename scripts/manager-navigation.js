@@ -14,7 +14,6 @@ export class NavigationManager {
      * Initialize scene navigation hooks
      */
     static initialize() {
-        console.log('Scene Navigation: Registering hooks via HookManager...');
         
         // Use setTimeout to delay execution until after module loading phase
         // All early hooks (init, ready, canvasReady, updateScene) have already fired
@@ -52,7 +51,6 @@ export class NavigationManager {
             callback: NavigationManager.cleanup
         });
         
-        postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Hooks registered via HookManager', '', true, false);
     }
 
     /**
@@ -85,7 +83,6 @@ export class NavigationManager {
      * @private
      */
     static cleanup() {
-        console.log('Scene Navigation: Cleaning up hooks...');
         
         // Unregister hooks via HookManager
         HookManager.unregisterHook('ready', 'scene-navigation-ready-debug');
@@ -108,7 +105,6 @@ export class NavigationManager {
             NavigationManager._renderTimeouts = [];
         }
         
-        postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Cleanup completed', '', true, false);
     }
 
     /**
@@ -171,30 +167,17 @@ export class NavigationManager {
      */
     static async _onSceneClickNative(event) {
         try {
-            console.log('Scene Navigation: *** NATIVE HANDLER CALLED ***', {
-                type: event?.type,
-                detail: event?.detail,
-                shiftKey: event?.shiftKey
-            });
             
-            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: *** NATIVE HANDLER CALLED ***', {
-                type: event?.type,
-                detail: event?.detail,
-                shiftKey: event?.shiftKey
-            }, true, false);
             
             if (!event) return;
 
             // Only handle if custom clicks are enabled
             const blnCustomClicks = game.settings.get(MODULE.ID, 'enableSceneClickBehaviors');
-            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Custom clicks enabled', blnCustomClicks, true, false);
 
             if (!blnCustomClicks) {
-                postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Custom clicks disabled, allowing default', '', true, false);
                 return; // Allow default behavior
             }
 
-            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Preventing default and stopping propagation', '', true, false);
             event.preventDefault();
             event.stopPropagation();
 
@@ -204,27 +187,21 @@ export class NavigationManager {
             // Check if this is actually a scene (not other documents)
             const scene = game.scenes.get(entryId);
             if (!scene) {
-                postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Not a scene, allowing default', {entryId}, true, false);
                 return; // Allow default behavior
             }
-            
-            postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Scene identified', {name: scene?.name, id: entryId}, true, false);
-            
+                       
             // Handle shift-click for configuration
             if (event.shiftKey) {
-                postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Shift-click detected, opening config', '', true, false);
                 scene.sheet.render(true);
                 return;
             }
 
             // Handle double-click for activation
             if (event.type === "click" && event.detail === 2) {
-                postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Double-click detected, activating scene', scene.name, true, false);
                 // Clear any pending single-click timeout for this scene
                 if (NavigationManager._singleClickTimeouts && NavigationManager._singleClickTimeouts.has(entryId)) {
                     clearTimeout(NavigationManager._singleClickTimeouts.get(entryId));
                     NavigationManager._singleClickTimeouts.delete(entryId);
-                    postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Cleared pending single-click timeout', scene.name, true, false);
                 }
                 await scene.activate();
                 NavigationManager._updateSceneIcons();
@@ -233,7 +210,6 @@ export class NavigationManager {
 
             // Handle single-click for viewing with a delay
             if (event.type === "click" && event.detail === 1) {
-                postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: Single-click detected, scheduling view in 250ms', scene.name, true, false);
                 
                 // Clear any existing timeout for this scene
                 if (NavigationManager._singleClickTimeouts && NavigationManager._singleClickTimeouts.has(entryId)) {
@@ -263,7 +239,6 @@ export class NavigationManager {
             }
             
         } catch (error) {
-            console.error('Scene Navigation: ERROR in native handler', error);
             postConsoleAndNotification(MODULE.NAME, 'Scene Navigation: ERROR in native handler', error.message, false, true);
         }
     }

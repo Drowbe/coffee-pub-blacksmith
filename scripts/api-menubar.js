@@ -2595,7 +2595,6 @@ class MenuBar {
         // Remove old click handler if it exists and is still attached to a container
         if (this._clickHandler && this._clickHandlerContainer) {
             this._clickHandlerContainer.removeEventListener('click', this._clickHandler);
-            postConsoleAndNotification(MODULE.NAME, "MENUBAR MEMORY TEST | Removed old click handler", "", true, false);
             this._clickHandler = null;
             this._clickHandlerContainer = null;
         }
@@ -2651,7 +2650,6 @@ class MenuBar {
 
         // Add the event listener
         menubarContainer.addEventListener('click', clickHandler);
-        postConsoleAndNotification(MODULE.NAME, "MENUBAR MEMORY TEST | Added new click handler", "", true, false);
 
         // Note: Right zone tools (leader-section, movement, timer-section) are now handled
         // by the dynamic click system above via their data-tool attributes
@@ -2663,7 +2661,6 @@ class MenuBar {
     static removeClickHandlers() {
         if (this._clickHandler && this._clickHandlerContainer) {
             this._clickHandlerContainer.removeEventListener('click', this._clickHandler);
-            postConsoleAndNotification(MODULE.NAME, "MENUBAR MEMORY TEST | removeClickHandlers() called - handler removed", "", true, false);
             this._clickHandler = null;
             this._clickHandlerContainer = null;
         } else {

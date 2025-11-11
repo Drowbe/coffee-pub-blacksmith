@@ -433,7 +433,6 @@ class CombatTracker {
 						let existingButton = html.find('.combat-control[data-control="rollRemaining"]');
 						if (existingButton.length) {
 							existingButton.remove();
-							postConsoleAndNotification(MODULE.NAME, "COMBAT TRACKER MEMORY TEST | Removed existing Roll Remaining button", "", true, false);
 						}
 
 						// Create and insert our new button
@@ -458,7 +457,6 @@ class CombatTracker {
 
 						// Add click handler
 						rollRemainingButton.click(clickHandler);
-						postConsoleAndNotification(MODULE.NAME, "COMBAT TRACKER MEMORY TEST | Added Roll Remaining button and handler", "", true, false);
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
 				});
@@ -707,7 +705,6 @@ class CombatTracker {
         // Remove click handler if it exists
         if (this._rollRemainingButton && this._rollRemainingClickHandler) {
             this._rollRemainingButton.off('click', this._rollRemainingClickHandler);
-            postConsoleAndNotification(MODULE.NAME, "COMBAT TRACKER MEMORY TEST | Removed Roll Remaining button handler", "", true, false);
         }
         
         // Remove button from DOM if it exists
