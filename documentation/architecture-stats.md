@@ -31,11 +31,11 @@ This document outlines the current state and proposed architecture for the Coffe
 - `notableMoments` - Biggest hit, most damage, longest turn, etc.
 - Timing data: `roundStartTime`, `planningStartTime`, `activeRoundTime`, etc.
 
-**combatStats** - Persists entire combat
-- `hits[]` - **GROWS UNBOUNDED** (capped at 1000 via `_boundedPush`)
-- `misses[]` - **GROWS UNBOUNDED** (capped at 1000 via `_boundedPush`)
+**combatStats** - Persists entire combat (now aggregate-only)
+- `totals` - Aggregate damage, healing, and attack counts (hits, misses, crits, fumbles, attempts)
 - `rounds[]` - Stores summary of each round (capped at 1000)
-- `participantStats{}` - Per-actor cumulative stats with nested `hits[]` arrays (capped at 1000 per actor)
+- `participantStats{}` - Per-actor cumulative stats (totals only, no raw event arrays)
+- `topHits[]`, `topHeals[]` - Highlight reels kept to top N (bounded)
 - `longestTurn`, `fastestTurn` - Combat-wide records
 
 #### Lifecycle
@@ -55,8 +55,10 @@ This document outlines the current state and proposed architecture for the Coffe
 
 - Combat-level stats are logged but not saved anywhere permanent
 - Arrays grow to 1000 items during long combats
-- `combatStats.hits[]` and `combatStats.misses[]` accumulate full event objects across all rounds
+- *(Resolved in Phase 2)* `combatStats.hits[]` and `combatStats.misses[]` previously accumulated full event objects across all rounds; these are now replaced by aggregate counters.
 - Per-actor `participantStats[actorId].hits[]` arrays also grow unbounded (up to 1000)
+- `combatStats.hits[]` - **REMOVED**; replaced by aggregated counters in `combatStats.totals`
+- `combatStats.misses[]` - **REMOVED**; aggregate counts live in `combatStats.totals.attacks.misses`
 
 ---
 
@@ -244,7 +246,7 @@ This document outlines the current state and proposed architecture for the Coffe
 
 - **Round summaries will NOT be affected**: The end-of-round report uses `currentStats` (round-level data) which is **preserved**. Round summaries use `currentStats.hits[]`, `currentStats.misses[]`, `currentStats.participantStats[]`, and `currentStats.notableMoments` - none of these are being removed.
 
-- **Only combat-level arrays are removed**: The arrays being removed are `combatStats.hits[]`, `combatStats.misses[]`, etc., which accumulate across the entire combat. These are NOT used for round summaries - they're used for combat-level aggregation.
+- **Only combat-level arrays are gone**: Phase 2 replaced the old `combatStats.hits[]`, `combatStats.misses[]`, etc., with aggregate counters. Round summaries still rely on `currentStats.hits[]`, so nothing about end-of-round reporting changed.
 
 **Removals**:
 - ❌ `combatStats.hits[]` - Don't need full array, just count (round summaries use `currentStats.hits[]` instead)
@@ -654,10 +656,10 @@ We're storing full event arrays in multiple places:
 
 ### Phase 2: Cleanup and Consolidation
 
-1. Remove event arrays from `combatStats`
-2. Clear timer flags at combat end
-3. Consolidate tracking to eliminate duplication
-4. Update `stats-player.js` to consume combat summaries
+1. ✅ Remove event arrays from `combatStats`
+2. ✅ Clear timer flags at combat end
+3. ✅ Consolidate tracking to eliminate duplication
+4. ✅ Update `stats-player.js` to consume combat summaries
 
 ### Phase 3: Refactor for Clarity
 
@@ -772,6 +774,8 @@ Lifetime stats persist in actor flags forever
 - [ ] Update cleanup in `timer-round.js` to clear timing flags
 - [ ] Test data flow: round → combat → lifetime
 - [ ] Verify no data loss and proper cleanup
+- [ ] ✅ `combatStats.hits[]` replaced with `combatStats.totals.attacks.hits` (round summaries still use `currentStats.hits[]`)
+- [ ] ✅ `combatStats.misses[]` replaced with `combatStats.totals.attacks.misses`
 
 ---
 

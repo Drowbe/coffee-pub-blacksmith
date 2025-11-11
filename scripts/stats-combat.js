@@ -58,9 +58,19 @@ class CombatStats {
         },
         combatStats: {
             startTime: Date.now(),
-            hits: [],
-            misses: [],
             participantStats: {},
+            totals: {
+                damage: { dealt: 0, taken: 0 },
+                healing: { given: 0, received: 0 },
+                attacks: {
+                    attempts: 0,
+                    hits: 0,
+                    misses: 0,
+                    crits: 0,
+                    fumbles: 0
+                }
+            },
+            rounds: [],
             longestTurn: { duration: 0 },
             fastestTurn: { duration: Infinity },
             topHits: [],  // Top N hits during combat (sorted by amount, descending)
@@ -114,6 +124,104 @@ class CombatStats {
             sortedArray.push(item);
             sortedArray.sort((a, b) => extractValue(b) - extractValue(a)); // Re-sort descending
         }
+    }
+
+    static _ensureCombatTotals() {
+        if (!this.combatStats) {
+            this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
+        }
+
+        if (!this.combatStats.totals) {
+            this.combatStats.totals = foundry.utils.deepClone(this.DEFAULTS.combatStats.totals);
+        } else {
+            this.combatStats.totals.damage = this.combatStats.totals.damage || { dealt: 0, taken: 0 };
+            this.combatStats.totals.healing = this.combatStats.totals.healing || { given: 0, received: 0 };
+            this.combatStats.totals.attacks = this.combatStats.totals.attacks || {
+                attempts: 0,
+                hits: 0,
+                misses: 0,
+                crits: 0,
+                fumbles: 0
+            };
+        }
+    }
+
+    static _ensureParticipantStats(actor, { includeCurrent = true, includeCombat = true } = {}) {
+        if (!actor) return { current: null, combat: null };
+
+        if (includeCurrent) {
+            if (!this.currentStats) this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+            if (!this.currentStats.participantStats) this.currentStats.participantStats = {};
+        }
+
+        if (includeCombat) {
+            if (!this.combatStats) this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
+            if (!this.combatStats.participantStats) this.combatStats.participantStats = {};
+            this._ensureCombatTotals();
+        }
+
+        const defaultCurrentParticipantStats = {
+            name: actor.name,
+            damage: { dealt: 0, taken: 0 },
+            healing: { given: 0, received: 0 },
+            combat: {
+                attacks: {
+                    hits: 0,
+                    misses: 0,
+                    crits: 0,
+                    fumbles: 0,
+                    attempts: 0
+                }
+            },
+            turnDuration: 0,
+            lastTurnExpired: false,
+            hits: [],
+            misses: []
+        };
+
+        const defaultCombatParticipantStats = {
+            name: actor.name,
+            damage: { dealt: 0, taken: 0 },
+            healing: { given: 0, received: 0 },
+            combat: {
+                attacks: {
+                    hits: 0,
+                    misses: 0,
+                    crits: 0,
+                    fumbles: 0,
+                    attempts: 0
+                }
+            },
+            turnDuration: 0,
+            lastTurnExpired: false
+        };
+
+        if (includeCurrent) {
+            if (!this.currentStats.participantStats[actor.id]) {
+                this.currentStats.participantStats[actor.id] = foundry.utils.deepClone(defaultCurrentParticipantStats);
+            } else if (!this.currentStats.participantStats[actor.id].combat?.attacks) {
+                this.currentStats.participantStats[actor.id].combat = foundry.utils.deepClone(defaultCurrentParticipantStats.combat);
+            }
+            if (!Array.isArray(this.currentStats.participantStats[actor.id].hits)) {
+                this.currentStats.participantStats[actor.id].hits = [];
+            }
+            if (!Array.isArray(this.currentStats.participantStats[actor.id].misses)) {
+                this.currentStats.participantStats[actor.id].misses = [];
+            }
+        }
+
+        if (includeCombat) {
+            if (!this.combatStats.participantStats[actor.id]) {
+                this.combatStats.participantStats[actor.id] = foundry.utils.deepClone(defaultCombatParticipantStats);
+            } else if (!this.combatStats.participantStats[actor.id].combat?.attacks) {
+                this.combatStats.participantStats[actor.id].combat = foundry.utils.deepClone(defaultCombatParticipantStats.combat);
+            }
+        }
+
+        return {
+            current: includeCurrent ? this.currentStats.participantStats[actor.id] : null,
+            combat: includeCombat ? this.combatStats.participantStats[actor.id] : null
+        };
     }
 
     static initialize() {
@@ -351,8 +459,15 @@ class CombatStats {
 
         // Extract participant summaries (aggregates only, no arrays)
         const participantSummaries = Object.entries(this.combatStats.participantStats || {}).map(([actorId, stats]) => {
-            const hitCount = (stats.hits || []).length;
-            const missCount = (stats.misses || []).length;
+            const attackStats = stats.combat?.attacks || {
+                hits: 0,
+                misses: 0,
+                crits: 0,
+                fumbles: 0,
+                attempts: 0
+            };
+            const hitCount = attackStats.hits || 0;
+            const missCount = attackStats.misses || Math.max(0, (attackStats.attempts || 0) - hitCount);
             return {
                 actorId,
                 name: stats.name || 'Unknown',
@@ -362,7 +477,9 @@ class CombatStats {
                 healingReceived: stats.healing?.received || 0,
                 hits: hitCount,
                 misses: missCount,
-                totalAttacks: hitCount + missCount
+                totalAttacks: attackStats.attempts || (hitCount + missCount),
+                criticals: attackStats.crits || 0,
+                fumbles: attackStats.fumbles || 0
             };
         });
 
@@ -388,12 +505,13 @@ class CombatStats {
         }));
 
         // Calculate aggregates
-        const totalHits = (this.combatStats.hits || []).length;
-        const totalMisses = (this.combatStats.misses || []).length;
-        const totalDamage = participantSummaries.reduce((sum, p) => sum + p.damageDealt, 0);
-        const totalHealing = participantSummaries.reduce((sum, p) => sum + p.healingGiven, 0);
-        const totalCriticals = (this.combatStats.hits || []).filter(h => h.isCritical).length;
-        const totalFumbles = (this.combatStats.misses || []).filter(m => m.isFumble).length;
+        const combatTotals = this.combatStats.totals || {};
+        const totalHits = combatTotals.attacks?.hits || 0;
+        const totalMisses = combatTotals.attacks?.misses || 0;
+        const totalDamage = combatTotals.damage?.dealt || participantSummaries.reduce((sum, p) => sum + p.damageDealt, 0);
+        const totalHealing = combatTotals.healing?.given || participantSummaries.reduce((sum, p) => sum + p.healingGiven, 0);
+        const totalCriticals = combatTotals.attacks?.crits || 0;
+        const totalFumbles = combatTotals.attacks?.fumbles || 0;
 
         // Find MVP (participant with most damage dealt)
         const mvp = participantSummaries.reduce((max, p) => 
@@ -1046,58 +1164,12 @@ class CombatStats {
             return;
         }
         
-        // Initialize stats objects if they don't exist
-        if (!this.currentStats) {
-            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
-        }
-        if (!this.combatStats) {
-            this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
-        }
-
-        // Initialize participant stats if needed
-        if (!this.currentStats.participantStats) this.currentStats.participantStats = {};
-        if (!this.combatStats.participantStats) this.combatStats.participantStats = {};
-        
-        if (!this.currentStats.participantStats[actor.id]) {
-            this.currentStats.participantStats[actor.id] = {
-                name: actor.name,
-                damage: { dealt: 0, taken: 0 },
-                healing: { given: 0, received: 0 },
-                combat: {
-                    attacks: {
-                        hits: 0,
-                        misses: 0,
-                        crits: 0,
-                        fumbles: 0,
-                        attempts: 0
-                    }
-                },
-                hits: [],
-                misses: []
-            };
-        }
-        if (!this.combatStats.participantStats[actor.id]) {
-            this.combatStats.participantStats[actor.id] = {
-                name: actor.name,
-                damage: { dealt: 0, taken: 0 },
-                healing: { given: 0, received: 0 },
-                combat: {
-                    attacks: {
-                        hits: 0,
-                        misses: 0,
-                        crits: 0,
-                        fumbles: 0,
-                        attempts: 0
-                    }
-                },
-                hits: [],
-                misses: []
-            };
-        }
-
-        // Get attacker stats
-        const attackerStats = this.currentStats.participantStats[actor.id];
-        const attackerCombatStats = this.combatStats.participantStats[actor.id];
+        const { current: attackerStats, combat: attackerCombatStats } = this._ensureParticipantStats(actor, {
+            includeCurrent: true,
+            includeCombat: true
+        });
+        this._ensureCombatTotals();
+        const combatTotals = this.combatStats.totals;
 
         // Determine if this is healing or damage
         const isHealing = item.system.actionType === 'heal' || 
@@ -1120,6 +1192,7 @@ class CombatStats {
             // Update healing stats for the healer
             attackerStats.healing.given += amount;
             attackerCombatStats.healing.given += amount;
+            combatTotals.healing.given += amount;
 
             // Initialize topHeals if needed
             if (!this.combatStats.topHeals) {
@@ -1146,29 +1219,14 @@ class CombatStats {
                     };
                     this._maintainTopN(this.combatStats.topHeals, healEvent, (h) => h.amount || 0, 5);
 
-                    // Initialize target stats if needed
-                    if (!this.currentStats.participantStats[targetActor.id]) {
-                        this.currentStats.participantStats[targetActor.id] = {
-                            name: targetActor.name,
-                            damage: { dealt: 0, taken: 0 },
-                            healing: { given: 0, received: 0 },
-                            hits: [],
-                            misses: []
-                        };
-                    }
-                    if (!this.combatStats.participantStats[targetActor.id]) {
-                        this.combatStats.participantStats[targetActor.id] = {
-                            name: targetActor.name,
-                            damage: { dealt: 0, taken: 0 },
-                            healing: { given: 0, received: 0 },
-                            hits: [],
-                            misses: []
-                        };
-                    }
+                    const { current: targetCurrentStats, combat: targetCombatStats } = this._ensureParticipantStats(targetActor, {
+                        includeCurrent: true,
+                        includeCombat: true
+                    });
 
-                    // Update healing received
-                    this.currentStats.participantStats[targetActor.id].healing.received += amount;
-                    this.combatStats.participantStats[targetActor.id].healing.received += amount;
+                    targetCurrentStats.healing.received += amount;
+                    targetCombatStats.healing.received += amount;
+                    combatTotals.healing.received += amount;
 
                     // Add notable moment tracking for healing for each target
                     this._updateNotableMoments('healing', {
@@ -1204,6 +1262,7 @@ class CombatStats {
                     timestamp: Date.now()
                 };
                 this._maintainTopN(this.combatStats.topHeals, healEvent, (h) => h.amount || 0, 5);
+                combatTotals.healing.received += amount;
             }
 
             if (this._isPlayerCharacter(actor)) {
@@ -1213,6 +1272,7 @@ class CombatStats {
             // Update damage stats for the attacker
             attackerStats.damage.dealt += amount;
             attackerCombatStats.damage.dealt += amount;
+            combatTotals.damage.dealt += amount;
 
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Updated Damage Stats:', {
                 actor: actor.name,
@@ -1248,29 +1308,14 @@ class CombatStats {
                     };
                     this._maintainTopN(this.combatStats.topHits, hitEvent, (h) => h.amount || 0, 5);
 
-                    // Initialize target stats if needed
-                    if (!this.currentStats.participantStats[targetActor.id]) {
-                        this.currentStats.participantStats[targetActor.id] = {
-                            name: targetActor.name,
-                        damage: { dealt: 0, taken: 0 },
-                        healing: { given: 0, received: 0 },
-                            hits: [],
-                            misses: []
-                        };
-                    }
-                    if (!this.combatStats.participantStats[targetActor.id]) {
-                        this.combatStats.participantStats[targetActor.id] = {
-                            name: targetActor.name,
-                            damage: { dealt: 0, taken: 0 },
-                            healing: { given: 0, received: 0 },
-                            hits: [],
-                            misses: []
-                        };
-                    }
+                    const { current: targetCurrentStats, combat: targetCombatStats } = this._ensureParticipantStats(targetActor, {
+                        includeCurrent: true,
+                        includeCombat: true
+                    });
 
-                    // Update damage taken
-                    this.currentStats.participantStats[targetActor.id].damage.taken += amount;
-                    this.combatStats.participantStats[targetActor.id].damage.taken += amount;
+                    targetCurrentStats.damage.taken += amount;
+                    targetCombatStats.damage.taken += amount;
+                    combatTotals.damage.taken += amount;
 
                     // Add notable moment tracking for damage for each target
                     this._updateNotableMoments('damage', {
@@ -1319,81 +1364,15 @@ class CombatStats {
         const actor = item.actor;
         if (!actor) return;
 
-        // Initialize stats objects if they don't exist
-        if (!this.currentStats) {
-            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
-        }
-        if (!this.combatStats) {
-            this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
-        }
+        const { current: attackerStats, combat: attackerCombatStats } = this._ensureParticipantStats(actor, {
+            includeCurrent: true,
+            includeCombat: true
+        });
 
-        // Ensure arrays exist
         if (!this.currentStats.hits) this.currentStats.hits = [];
         if (!this.currentStats.misses) this.currentStats.misses = [];
-        if (!this.combatStats.hits) this.combatStats.hits = [];
-        if (!this.combatStats.misses) this.combatStats.misses = [];
-
-        // Initialize participant stats if needed
-        if (!this.currentStats.participantStats) {
-            this.currentStats.participantStats = {};
-        }
-        if (!this.combatStats.participantStats) {
-            this.combatStats.participantStats = {};
-        }
-
-        // Initialize participant combat stats if needed
-        const defaultParticipantStats = {
-            name: actor.name,
-            damage: { dealt: 0, taken: 0 },
-            healing: { given: 0, received: 0 },
-            combat: {
-                attacks: {
-                    hits: 0,
-                    misses: 0,
-                    crits: 0,
-                    fumbles: 0,
-                    attempts: 0
-                }
-            },
-            hits: [],
-            misses: []
-        };
-
-        // Ensure current stats exist with complete structure
-        if (!this.currentStats.participantStats[actor.id]) {
-            this.currentStats.participantStats[actor.id] = foundry.utils.deepClone(defaultParticipantStats);
-        } else if (!this.currentStats.participantStats[actor.id].combat?.attacks) {
-            // Ensure combat stats structure exists
-            this.currentStats.participantStats[actor.id].combat = {
-                attacks: {
-                    hits: 0,
-                    misses: 0,
-                    crits: 0,
-                    fumbles: 0,
-                    attempts: 0
-                }
-            };
-        }
-
-        // Ensure combat stats exist with complete structure
-        if (!this.combatStats.participantStats[actor.id]) {
-            this.combatStats.participantStats[actor.id] = foundry.utils.deepClone(defaultParticipantStats);
-        } else if (!this.combatStats.participantStats[actor.id].combat?.attacks) {
-            // Ensure combat stats structure exists
-            this.combatStats.participantStats[actor.id].combat = {
-                attacks: {
-                    hits: 0,
-                    misses: 0,
-                    crits: 0,
-                    fumbles: 0,
-                    attempts: 0
-                }
-            };
-        }
-
-        // Get attacker stats
-        const attackerStats = this.currentStats.participantStats[actor.id];
-        const attackerCombatStats = this.combatStats.participantStats[actor.id];
+        this._ensureCombatTotals();
+        const combatTotals = this.combatStats.totals;
 
         // Store attack roll information
         const attackRoll = roll.total;
@@ -1416,26 +1395,35 @@ class CombatStats {
         // Update combat stats
         attackerStats.combat.attacks.attempts++;
         attackerCombatStats.combat.attacks.attempts++;
+        combatTotals.attacks.attempts++;
 
         if (isHit) {
             this._boundedPush(this.currentStats.hits, hitInfo);
-            this._boundedPush(this.combatStats.hits, hitInfo);
+            if (Array.isArray(attackerStats.hits)) {
+                this._boundedPush(attackerStats.hits, hitInfo);
+            }
             attackerStats.combat.attacks.hits++;
             attackerCombatStats.combat.attacks.hits++;
+            combatTotals.attacks.hits++;
             if (isCritical) {
                 attackerStats.combat.attacks.crits++;
                 attackerCombatStats.combat.attacks.crits++;
+                combatTotals.attacks.crits++;
             }
         } else {
             this._boundedPush(this.currentStats.misses, hitInfo);
-            this._boundedPush(this.combatStats.misses, hitInfo);
             attackerStats.combat.attacks.misses++;
             attackerCombatStats.combat.attacks.misses++;
+            combatTotals.attacks.misses++;
+            if (Array.isArray(attackerStats.misses)) {
+                this._boundedPush(attackerStats.misses, hitInfo);
+            }
         }
 
         if (isFumble) {
             attackerStats.combat.attacks.fumbles++;
             attackerCombatStats.combat.attacks.fumbles++;
+            combatTotals.attacks.fumbles++;
         }
 
         // Store the critical hit state for damage roll
@@ -1606,9 +1594,8 @@ class CombatStats {
             this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
         }
 
-        // Initialize hits arrays if needed
         if (!this.currentStats.hits) this.currentStats.hits = [];
-        if (!this.combatStats.hits) this.combatStats.hits = [];
+        this._ensureCombatTotals();
 
         // Ensure hit data has all required fields
         const processedHitData = {
@@ -1632,31 +1619,36 @@ class CombatStats {
         // Add hit to current round stats
         this._boundedPush(this.currentStats.hits, processedHitData);
 
-        // Initialize participant stats if needed
-        if (!this.combatStats.participantStats[hitData.attackerId]) {
-            this.combatStats.participantStats[hitData.attackerId] = {
-                name: processedHitData.attacker,
-                damage: { dealt: 0, taken: 0 },
-                healing: { given: 0, received: 0 },
-                hits: [],
-                turns: []
-            };
+        const attackerActor = game.actors.get(hitData.attackerId) || { id: hitData.attackerId, name: processedHitData.attacker };
+        const targetActor = hitData.targetId ? (game.actors.get(hitData.targetId) || { id: hitData.targetId, name: processedHitData.targetName }) : null;
+
+        const { current: currentAttackerStats, combat: combatAttackerStats } = this._ensureParticipantStats(attackerActor, {
+            includeCurrent: true,
+            includeCombat: true
+        });
+
+        currentAttackerStats.damage.dealt += processedHitData.amount;
+        combatAttackerStats.damage.dealt += processedHitData.amount;
+
+        if (Array.isArray(currentAttackerStats.hits)) {
+            this._boundedPush(currentAttackerStats.hits, processedHitData);
         }
 
-        // Update attacker's stats
-        const attackerStats = this.combatStats.participantStats[hitData.attackerId];
-        attackerStats.damage.dealt += processedHitData.amount;
-        
-        // Ensure hits array exists
-        if (!attackerStats.hits) {
-            attackerStats.hits = [];
+        if (targetActor) {
+            const { current: currentTargetStats, combat: combatTargetStats } = this._ensureParticipantStats(targetActor, {
+                includeCurrent: true,
+                includeCombat: true
+            });
+            currentTargetStats.damage.taken += processedHitData.amount;
+            combatTargetStats.damage.taken += processedHitData.amount;
         }
-        this._boundedPush(attackerStats.hits, processedHitData);
 
-        // Update target's stats if it exists
-        if (hitData.targetId && this.combatStats.participantStats[hitData.targetId]) {
-            this.combatStats.participantStats[hitData.targetId].damage.taken += processedHitData.amount;
+        // Update combat totals and notable hits
+        this.combatStats.totals.damage.dealt += processedHitData.amount;
+        if (targetActor) {
+            this.combatStats.totals.damage.taken += processedHitData.amount;
         }
+        this._maintainTopN(this.combatStats.topHits, processedHitData, (h) => h.amount || 0, 5);
 
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Stats after hit:', {
             currentStats: {

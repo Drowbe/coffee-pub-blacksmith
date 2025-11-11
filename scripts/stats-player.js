@@ -118,20 +118,19 @@ class CPBPlayerStats {
 			priority: 3,
 			callback: this._onActorUpdate.bind(this)
 		});
-        const createCombatHookId = HookManager.registerHook({
-			name: 'createCombat',
-			description: 'Player Stats: Track combat start for player character statistics',
-			context: 'stats-player-combat-start',
-			priority: 3,
-			callback: this._onCombatStart.bind(this)
-		});
-        const deleteCombatHookId = HookManager.registerHook({
-			name: 'deleteCombat',
-			description: 'Player Stats: Track combat end for player character statistics',
-			context: 'stats-player-combat-end',
-			priority: 3,
-			callback: this._onCombatEnd.bind(this)
-		});
+        const combatSummaryHookId = HookManager.registerHook({
+            name: 'blacksmith.combatSummaryReady',
+            description: 'Player Stats: Consume combat summaries for lifetime statistics',
+            context: 'stats-player-combat-summary',
+            priority: 3,
+            key: 'stats-player-combat-summary',
+            options: {},
+            callback: (summary, combat) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                this._onCombatSummaryReady(summary, combat);
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
         const createActorHookId = HookManager.registerHook({
 			name: 'createActor',
 			description: 'Player Stats: Initialize statistics for newly created player characters',
@@ -357,22 +356,6 @@ class CPBPlayerStats {
             this._updateSessionStats(actor.id, sessionStats);
 
             // Update crit/fumble counts immediately
-            const stats = await this.getPlayerStats(actor.id);
-            if (!stats) return;
-
-            const updates = { lifetime: { attacks: {...stats.lifetime.attacks} } };
-
-            if (isCritical) {
-                updates.lifetime.attacks.criticals = (stats.lifetime.attacks.criticals || 0) + 1;
-            }
-            if (isFumble) {
-                updates.lifetime.attacks.fumbles = (stats.lifetime.attacks.fumbles || 0) + 1;
-            }
-
-            if (Object.keys(updates.lifetime.attacks).length > 0) {
-                await this.updatePlayerStats(actor.id, updates);
-            }
-
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Error processing attack roll:`, error, false, false);
         }
@@ -395,130 +378,6 @@ class CPBPlayerStats {
 
             const updates = { lifetime: {} };
             const sessionStats = this._getSessionStats(actor.id);
-
-            // Get the current combat
-            const combat = game.combat;
-            if (combat?.active && game.combats.has(combat.id)) {
-                let combatStats = await combat.getFlag(MODULE.ID, 'combatStats');
-                if (!combatStats) {
-                    // Initialize if not exists
-                    combatStats = {
-                        startTime: Date.now(),
-                        rounds: [],
-                        hits: [],
-                        criticals: [],
-                        fumbles: [],
-                        healing: [],
-                        participants: {}
-                    };
-                }
-
-                // Ensure participants object exists
-                combatStats.participants = combatStats.participants || {};
-                
-                if (isHealing) {
-                    // Record healing in combat stats
-                    const healingEvent = {
-                        amount: rollTotal,
-                        healer: actor.name,
-                        healerId: actor.id,
-                        timestamp: Date.now(),
-                        round: combat.round,
-                        turn: combat.turn,
-                        targets: Array.from(game.user.targets).map(t => ({
-                            id: t.actor?.id,
-                            name: t.name
-                        }))
-                    };
-                    
-                    combatStats.healing = combatStats.healing || [];
-                    this._boundedPush(combatStats.healing, healingEvent);
-                    
-                    // Initialize participant if needed
-                    if (!combatStats.participants[actor.id]) {
-                        combatStats.participants[actor.id] = {
-                            name: actor.name,
-                            healing: { given: 0, received: 0 },
-                            damage: { dealt: 0, taken: 0 },
-                            hits: []
-                        };
-                    }
-                    combatStats.participants[actor.id].healing.given += rollTotal;
-                    
-                    // Update healing stats for targets
-                    healingEvent.targets.forEach(target => {
-                        if (target.id && !combatStats.participants[target.id]) {
-                            combatStats.participants[target.id] = {
-                                name: target.name,
-                                healing: { given: 0, received: 0 },
-                                damage: { dealt: 0, taken: 0 },
-                                hits: []
-                            };
-                        }
-                        if (target.id) {
-                            combatStats.participants[target.id].healing.received += rollTotal;
-                        }
-                    });
-                } else {
-                    // Find the matching attack roll
-                    let attackInfo = null;
-                    for (const [id, attack] of sessionStats.pendingAttacks) {
-                        if (Date.now() - attack.timestamp < 10000) {
-                            attackInfo = attack;
-                            sessionStats.pendingAttacks.delete(id);
-                            break;
-                        }
-                    }
-
-                    // Record hit in combat stats
-                    const hitEvent = {
-                        amount: rollTotal,
-                        attacker: actor.name,
-                        attackerId: actor.id,
-                        weapon: item.name,
-                        attackRoll: attackInfo?.attackRoll,
-                        isCritical: attackInfo?.isCritical,
-                        targetName: attackInfo?.targetActor?.name || 'Unknown Target',
-                        targetId: attackInfo?.targetActor?.id,
-                        targetAC: attackInfo?.targetActor?.system?.attributes?.ac?.value,
-                        timestamp: Date.now(),
-                        round: combat.round,
-                        turn: combat.turn
-                    };
-
-                    combatStats.hits = combatStats.hits || [];
-                    this._boundedPush(combatStats.hits, hitEvent);
-
-                    // Initialize participant if needed
-                    if (!combatStats.participants[actor.id]) {
-                        combatStats.participants[actor.id] = {
-                            name: actor.name,
-                            hits: [],
-                            damage: { dealt: 0, taken: 0 },
-                            healing: { given: 0, received: 0 }
-                        };
-                    }
-                    
-                    this._boundedPush(combatStats.participants[actor.id].hits, hitEvent);
-                    combatStats.participants[actor.id].damage.dealt += rollTotal;
-
-                    // Update target's stats if it exists
-                    if (hitEvent.targetId) {
-                        if (!combatStats.participants[hitEvent.targetId]) {
-                            combatStats.participants[hitEvent.targetId] = {
-                                name: hitEvent.targetName,
-                                damage: { dealt: 0, taken: 0 },
-                                healing: { given: 0, received: 0 },
-                                hits: []
-                            };
-                        }
-                        combatStats.participants[hitEvent.targetId].damage.taken += rollTotal;
-                    }
-                }
-
-                // Save combat stats
-                await combat.setFlag(MODULE.ID, 'combatStats', combatStats);
-            }
 
             if (isHealing) {
                 updates.lifetime.healing = updates.lifetime.healing || {};
@@ -590,61 +449,50 @@ class CPBPlayerStats {
         // We'll implement this to track HP changes and unconsciousness
     }
 
-    static async _onCombatStart(combat, options, userId) {
+    static async _onCombatSummaryReady(summary, combat) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
+        if (!summary?.participants?.length) return;
 
-        // Initialize combat-wide statistics
-        await combat.setFlag(MODULE.ID, 'combatStats', {
-            startTime: Date.now(),
-            rounds: [],
-            hits: [],
-            criticals: [],
-            fumbles: [],
-            healing: [],
-            participants: {}
-        });
-    }
+        for (const participant of summary.participants) {
+            const actorId = participant.actorId;
+            if (!actorId) continue;
 
-    static async _onCombatEnd(combat, options, userId) {
-        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
-        
-        // Skip if combat doesn't exist (combat might have been deleted)
-        if (!combat || !game.combats.has(combat.id)) return;
+            const actor = game.actors.get(actorId);
+            if (!actor || !actor.hasPlayerOwner || actor.isToken) continue;
 
-        const combatStats = await combat.getFlag(MODULE.ID, 'combatStats');
-        if (!combatStats) return;
+            const stats = await this.getPlayerStats(actorId);
+            if (!stats) continue;
 
-        // Calculate final statistics
-        const duration = (Date.now() - combatStats.startTime) / 1000;
-        const participants = Object.values(combatStats.participants)
-            .filter(p => p.hits?.length > 0 || p.healing?.given > 0);
+            const lifetimeAttacks = stats.lifetime?.attacks || {};
+            const updates = {
+                lifetime: {
+                    attacks: {
+                        totalHits: (lifetimeAttacks.totalHits || 0) + (participant.hits || 0),
+                        totalMisses: (lifetimeAttacks.totalMisses || 0) + (participant.misses || 0),
+                        criticals: (lifetimeAttacks.criticals || 0) + (participant.criticals || 0),
+                        fumbles: (lifetimeAttacks.fumbles || 0) + (participant.fumbles || 0)
+                    }
+                }
+            };
 
-        // Generate interesting statistics
-        const stats = {
-            duration,
-            rounds: combat.round,
-            participants: participants.map(p => ({
-                name: p.name,
-                damageDealt: p.damage?.dealt || 0,
-                damageTaken: p.damage?.taken || 0,
-                healingGiven: p.healing?.given || 0,
-                healingReceived: p.healing?.received || 0,
-                hits: p.hits?.length || 0
-            })),
-            mostDamage: participants.reduce((max, p) => 
-                (p.damage?.dealt > (max?.damage?.dealt || 0)) ? p : max, null),
-            mostHealing: participants.reduce((max, p) => 
-                (p.healing?.given > (max?.healing?.given || 0)) ? p : max, null),
-            biggestHit: combatStats.hits.reduce((max, hit) => 
-                (hit.amount > (max?.amount || 0)) ? hit : max, null),
-            criticals: combatStats.hits.filter(h => h.isCritical).length
-        };
+            await this.updatePlayerStats(actorId, updates);
 
-        // Store these stats somewhere if needed
-        // Could be added to a combat log journal, sent to chat, etc.
-        
-        // Clear combat flag to prevent persistence leak
-        await combat.unsetFlag(MODULE.ID, 'combatStats');
+            const sessionStats = this._getSessionStats(actorId);
+            if (sessionStats) {
+                const combatRecord = {
+                    combatId: summary.combatId,
+                    date: summary.date,
+                    damageDealt: participant.damageDealt || 0,
+                    damageTaken: participant.damageTaken || 0,
+                    healingGiven: participant.healingGiven || 0,
+                    healingReceived: participant.healingReceived || 0,
+                    hits: participant.hits || 0,
+                    misses: participant.misses || 0
+                };
+                this._boundedPush(sessionStats.combats, combatRecord, 20);
+                sessionStats.currentCombat = null;
+            }
+        }
     }
 }
 

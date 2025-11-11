@@ -15,7 +15,7 @@ Blacksmith publishes a global `BlacksmithStats` helper (installed by the API bri
 The stats system splits responsibilities across multiple scopes:
 
 - **Round scope (`CombatStats.currentStats`)**: ephemeral data for the active round, stored in memory and mirrored to the combat flag. It resets when a new round begins.
-- **Combat scope (`CombatStats.combatStats`)**: cumulative values for the current combat, including notable moments and per-participant totals. It is cleared when combat concludes after the summary is generated and saved.
+- **Combat scope (`CombatStats.combatStats`)**: aggregate-only data for the active combat. Totals live in `combatStats.totals` (damage, healing, attack counts) alongside per-participant summaries and top moment highlights. Raw event arrays are discarded when the summary is generated.
 - **Lifetime scope (`CPBPlayerStats` on actor flags)**: permanent per-actor records covering attacks, healing, and turn metrics. Only GMs modify this data.
 - **Session scope (`CPBPlayerStats._sessionStats`)**: GM-only in-memory Map keyed by actor ID to hold transient session information (pending attacks, current combat turns). Reset on world reload.
 - **Bounded arrays**: `_boundedPush` applies limits (default 1000 entries) to round and actor logs. The persisted combat history stored in the `combatHistory` world setting keeps only the newest twenty summaries.
@@ -41,6 +41,8 @@ The stats system splits responsibilities across multiple scopes:
 - `getStatCategory(actorId: string, category: string) -> Promise<object | null>` resolves an individual lifetime category such as `attacks`, `healing`, or `turnStats`.
 
 Lifetime data persists on the actor flag, while session data remains transient in `_sessionStats`. External consumers should treat returned objects as read-only unless coordinating changes with the Blacksmith maintainers.
+
+Player-facing aggregates such as `totalHits`, `totalMisses`, `criticals`, and `fumbles` are now updated when the module receives the `blacksmith.combatSummaryReady` event. Session storage keeps a bounded `combats` array so custom UIs can display recent combat contributions without rehydrating the entire history.
 
 ### Commands & Examples
 
@@ -72,6 +74,15 @@ if (actor) {
 ```
 
 ```javascript
+// Show the last recorded combats for the actor (updated via combat summaries)
+const actor = canvas.tokens.controlled[0]?.actor;
+if (actor) {
+    const session = BlacksmithStats.player.getSessionStats(actor.id);
+    console.table(session?.combats ?? []);
+}
+```
+
+```javascript
 // Pull a specific lifetime category, such as healing totals
 const actor = canvas.tokens.controlled[0]?.actor;
 if (actor) {
@@ -92,6 +103,8 @@ if (actor) {
 - `unsubscribeFromUpdates(subscriptionId: string)` clears all subscribers. Future refactors may support per-ID removal, so integrations should handle that change gracefully.
 - `getCombatSummary() -> object | null` returns the newest persisted combat summary.
 - `getCombatHistory(limit = 20) -> Array<object>` returns a newest-first slice of stored summaries. The history is bounded to twenty entries when written.
+
+Summaries expose a consistent schema: `totals.damage`, `totals.healing`, and `totals.attacks` (attempts, hits, misses, crits, fumbles) plus `participants[]` entries that mirror those counts per actor. Consumers no longer receive the raw hit/miss arrays; use the aggregate fields for analytics and the `notableMoments` block for highlights.
 
 When combat ends, `CombatStats._onCombatEnd` emits `Hooks.callAll('blacksmith.combatSummaryReady', combatSummary, combat)` so external modules can react without polling the API.
 
@@ -137,13 +150,21 @@ BlacksmithStats.combat.unsubscribeFromUpdates(subId);
 ```javascript
 // View the most recent combat summary stored in history
 const latestSummary = BlacksmithStats.combat.getCombatSummary();
-console.log('Latest combat summary', latestSummary);
+console.log('Latest combat summary totals', {
+    damage: latestSummary?.totals?.damageDealt,
+    healing: latestSummary?.totals?.healingGiven,
+    attacks: latestSummary?.totals?.attacks
+});
 ```
 
 ```javascript
 // List the three most recent combat summaries with metadata only
 const recent = BlacksmithStats.combat.getCombatHistory(3);
-console.log('Recent combat summaries', recent.map(s => ({ combatId: s.combatId, hitRate: s.totals?.hitRate })));
+console.log('Recent combat summaries', recent.map(s => ({
+    combatId: s.combatId,
+    hitRate: s.totals?.hitRate,
+    topCrits: s.participants?.map(p => ({ actorId: p.actorId, crits: p.criticals }))
+})));
 ```
 
 ---
@@ -191,11 +212,11 @@ console.log('Current combat totals', CombatStatsClass.combatStats?.totals);
 
 ## Data Retention & Safeguards
 
-- Combat flags are cleared at the end of combat (`combat.unsetFlag(MODULE.ID, 'combatStats')`) to avoid stale values.
+- Combat aggregates reset as soon as the summary is generated: `combatStats.totals` and `combatStats.participantStats` are reinitialized for the next combat, so no combat-level flags remain in the world data.
 - Guard checks (`game.combats.has(combat.id)`) prevent operations on deleted combats.
 - `_boundedPush` limits hit, miss, and turn arrays to safeguard against unbounded growth.
 - The `combatHistory` world setting stores only the newest twenty combat summaries; modules needing long-term archives should persist their own copies.
-- `CPBPlayerStats.pendingAttacks` uses a Map keyed by random IDs to correlate attack and damage rolls. Entries are intentionally short-lived.
+- `CPBPlayerStats.pendingAttacks` uses a Map keyed by random IDs to correlate attack and damage rolls. Entries are intentionally short-lived, and lifetime counters update when `blacksmith.combatSummaryReady` fires.
 
 ---
 
@@ -218,6 +239,16 @@ Hooks.once('ready', async () => {
         if (mvp) {
             console.log('MVP recorded:', { combatId: summary.combatId, mvp });
         }
+
+        // Showcase aggregate fields now included in summaries
+        console.table((summary?.participants ?? []).map(p => ({
+            actorId: p.actorId,
+            hits: p.hits,
+            misses: p.misses,
+            crits: p.criticals,
+            fumbles: p.fumbles,
+            damageDealt: p.damageDealt
+        })));
     });
 
     // Pull lifetime actor stats (requires GM)
