@@ -254,16 +254,12 @@ Hooks.once('ready', async () => {
         if (mvp) {
             console.log('MVP recorded:', { combatId: summary.combatId, mvp });
         }
+    });
 
-        // Showcase aggregate fields now included in summaries
-        console.table((summary?.participants ?? []).map(p => ({
-            actorId: p.actorId,
-            hits: p.hits,
-            misses: p.misses,
-            crits: p.criticals,
-            fumbles: p.fumbles,
-            damageDealt: p.damageDealt
-        })));
+    // Track round-by-round MVP progress (e.g., update a custom UI badge)
+    Hooks.on('blacksmith.roundMvpScore', ({ actorId, score, rank, name }) => {
+        console.log('Round MVP update:', { actorId, name, score, rank });
+        // Example: store in your module's state to show a live leaderboard
     });
 
     // Pull lifetime actor stats (requires GM)
