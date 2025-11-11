@@ -184,7 +184,6 @@ export class ImageCacheManager {
             // Check if we already have the data
             const existingData = game.settings.get(MODULE.ID, 'targetedIndicatorEnabled');
             if (existingData && Object.keys(existingData).length > 0) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: DEBUG (_loadtargetedIndicatorEnabled) - Monster mapping data already loaded", "", true, false);
                 return;
             }
             

@@ -2510,17 +2510,7 @@ export class TokenImageReplacementWindow extends Application {
         // Extract token data
         const tokenData = ImageCacheManager._extractTokenData(tokenDocument);
         
-        // Log formatted breakdown (simplified for new scoring system)
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ===== TOKEN DATA BREAKDOWN =====`, "", true, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Criteria | Data from Token`, "", true, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: representedActor | "${tokenData.representedActor || 'none'}"`, "", true, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: tokenName | "${tokenDocument.name || 'none'}"`, "", true, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: creatureType | "${tokenData.creatureType || 'none'}"`, "", true, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: creatureSubtype | "${tokenData.creatureSubtype || 'none'}"`, "", true, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: equipment | [${tokenData.equipment?.join(', ') || 'none'}]`, "", true, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: size | "${tokenData.size || 'none'}"`, "", true, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: =================================`, "", true, false);
-        
+        // Log formatted breakdown (simplified for new scoring system)        
         // Wait a moment for the token to be fully created on the canvas
         await new Promise(resolve => setTimeout(resolve, 100));
         
