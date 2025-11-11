@@ -6,40 +6,6 @@
 > 
 > **If you're developing Blacksmith itself**, see `BLACKSMITH-ARCHITECTURE.md` for internal architecture details.
 
-## **⚠️ Breaking Change Notice**
-
-**Version 12.2.0+**: The API has been simplified to use global objects instead of async methods.
-
-**Old way (broken):**
-```javascript
-const hookManager = await BlacksmithAPI.getHookManager();
-const utils = await BlacksmithAPI.getUtils();
-```
-
-**New way (working):**
-```javascript
-const hookManager = BlacksmithHookManager;
-const utils = BlacksmithUtils;
-```
-
-**Migration**: Update your code to use the global objects directly - no more `await` needed!
-
-## **✅ MIGRATION COMPLETED NOTICE**
-
-**Important**: We have successfully completed the migration of our constants system from the old `COFFEEPUB` approach to a new data-driven system. The migration is now complete:
-
-- **✅ COMPLETED**: Core API functions (hooks, utilities, module management)
-- **✅ COMPLETED**: Sound constants, image constants, and other asset constants
-- **✅ COMPLETED**: Data structure with new `id`/`value`/`path` separation
-- **✅ COMPLETED**: Asset Lookup Tool with tag-based searching
-
-**What This Means for You:**
-- Your module integration works for all features
-- All constants are available via `BlacksmithConstants` for external module access
-- New data structure provides enhanced asset management with semantic IDs and values
-
-**Current Status**: All constants are now available and the new Asset Lookup Tool provides flexible, tag-based asset access.
-
 ## **What This API Provides**
 
 Coffee Pub Blacksmith offers a clean, reliable integration path for external modules through our **global object system**. This approach:
@@ -50,6 +16,13 @@ Coffee Pub Blacksmith offers a clean, reliable integration path for external mod
 - ✅ **Offers debugging tools** - Console commands to verify integration
 - ✅ **Simple direct access** - No async/await complexity
 
+You can access global objects directly once Blacksmith is ready:
+
+```javascript
+const hookManager = BlacksmithHookManager;
+const utils = BlacksmithUtils;
+```
+
 ## **✅ Current API Status - What's Available**
 
 ### **✅ Available Now (Fully Functional)**
@@ -57,13 +30,12 @@ Coffee Pub Blacksmith offers a clean, reliable integration path for external mod
 - **Utility Functions**: Logging, notifications, settings management
 - **Module Registration**: Register your module with Blacksmith
 - **Statistics API**: Access combat and player statistics
-- **Core Constants**: Theme choices, sound choices, background image choices
+- **Core Constants**: Theme choices, sound choices, background image choices (via `BlacksmithConstants`)
 - **Asset Constants**: All sound, image, theme, and volume constants
 - **Asset Lookup Tool**: Tag-based asset searching and filtering
-- **Data Structure**: New `id`/`value`/`path` separation for enhanced asset management
+- **Data Structure**: `id`/`value`/`path` separation for enhanced asset management
 - **Menubar API**: Register tools and send notifications to the global menubar
 - **Compendium Configuration**: Access configured compendium arrays for all document types (v12.1.19+)
-
 
 ## **Integration Philosophy**
 
@@ -198,155 +170,187 @@ Hooks.once('ready', async () => {
         // Access non-exposed variables
         console.log('API TEST | BLACKSMITH TEST: Blacksmith version:', game.modules.get('coffee-pub-blacksmith')?.api?.version);
 
-
-         // ----- UTILITY TESTS: CONSOLE AND NOTIFICATION TEST
+        // ----- UTILITY TESTS: NOTIFICATION TEST
         console.log('API TEST | ');
-        console.log('API TEST | ==================================================='); 
+        console.log('API TEST | ===================================================');
         console.log('API TEST | ====  UTILITY TESTS: NOTIFICATION TEST         ====');
         console.log('API TEST | ===================================================');
-        console.log('API TEST | ');
         console.log('API TEST | 1. You should see the message "API TEST | BLACKSMITH TEST OF POSTCONSOLEANDNOTIFICATION" in the console.');
-        console.log('API TEST | 2. It should be followed by a value "Some awesome result"');
-        console.log('API TEST | 3. It should be laid out differently than the other console messages and start with "COFFEE PUB • "');
-        console.log('API TEST | 4. It should also pop aup a notifcation.');
-        console.log('API TEST | 5. If you see a notfication and value, your the utility functions worked!');
+        console.log('API TEST | 2. It should be followed by a value "Some awesome result".');
+        console.log('API TEST | 3. The log will start with "COFFEEPUB" to show the formatted utility output.');
+        console.log('API TEST | 4. A notification should appear at the top of Foundry.');
+        console.log('API TEST | 5. If you see both, your utility functions worked!');
         console.log('API TEST | ');
+
         BlacksmithUtils.postConsoleAndNotification(
-            TEST_MODULE_ID,        // Module ID (string)
-            'API TEST | BLACKSMITH TEST OF POSTCONSOLEANDNOTIFICATION',      // Main message
-            'Some awesome result',                 // Result object (optional)
-            false,                  // Debug flag (true = debug, false = system)
-            true                   // Show notification (true = show, false = console only)
+            TEST_MODULE_ID,
+            'API TEST | BLACKSMITH TEST OF POSTCONSOLEANDNOTIFICATION',
+            'Some awesome result',
+            false,
+            true
         );
+
         // ----- SAFE SETTINGS TEST
-        console.log('API TEST | ');
         console.log('API TEST | ===================================================');
         console.log('API TEST | ====  SAFE SETTINGS TEST INSTRUCTIONS          ====');
         console.log('API TEST | ===================================================');
-        console.log('API TEST | ');
         console.log('API TEST | 1. This test will fail with "not a registered game setting" - this is EXPECTED!');
         console.log('API TEST | 2. The error proves Blacksmith is properly integrated with FoundryVTT settings.');
         console.log('API TEST | 3. In real usage, you would register your settings first in your module.json or init hook.');
         console.log('API TEST | 4. If you see the error message, your safe settings integration is working correctly!');
         console.log('API TEST | ');
 
-        // Test safe settings access (this will fail as expected)
         try {
-            // Test safe get BEFORE setting (should return default since setting doesn't exist)
             const defaultValue = BlacksmithUtils.getSettingSafely(TEST_MODULE_ID, 'test-setting', 'default-value');
             console.log('✅ API TEST | BLACKSMITH TEST: Safe get (before set) working:', defaultValue);
-            
-            // Test safe set
-            BlacksmithUtils.setSettingSafely(TEST_MODULE_ID, 'test-setting', 'test-value-123');
-            console.log('✅ API TEST | BLACKSMITH TEST: Safe set working');
-            
-            // This will fail because the setting isn't registered - this is EXPECTED behavior
+
+            const setSuccess = await BlacksmithUtils.setSettingSafely(TEST_MODULE_ID, 'test-setting', 'test-value-123');
+            console.log('✅ API TEST | BLACKSMITH TEST: Safe set working:', setSuccess);
+
             const rawSetting = game.settings.get(TEST_MODULE_ID, 'test-setting');
-            console.log('🔍 API TEST | BLACKSMITH TEST: Raw FoundryVTT setting:', rawSetting);
-            
-        } catch (error) {
+            console.log('⚠️ API TEST | BLACKSMITH TEST: Raw FoundryVTT setting:', rawSetting);
+        } catch (settingError) {
             console.log('✅ API TEST | BLACKSMITH TEST: Safe settings test completed as expected');
-            console.log('✅ API TEST | BLACKSMITH TEST: Error shows proper FoundryVTT integration:', error.message);
+            console.log('⚠️ API TEST | BLACKSMITH TEST: Error shows proper FoundryVTT integration:', settingError);
         }
+
+        // ----- HOOK MANAGER TEST
+        console.log('API TEST | ==== HOOK MANAGER TEST INSTRUCTIONS: ====');
+        console.log('API TEST | 1. You should see a hook registration confirmation.');
+        console.log('API TEST | 2. The hook should unlock a notification when triggered.');
+        console.log('API TEST | ');
+
+        const hookName = 'createActor';
+        const hookContext = TEST_MODULE_ID;
+
+        const hookResult = BlacksmithHookManager.registerHook({
+            name: hookName,
+            description: 'API Test Hook',
+            context: hookContext,
+            priority: 50,
+            key: `${hookContext}-${hookName}`,
+            options: {},
+            // BEGIN - HOOKMANAGER CALLBACK
+            callback: async (actor) => {
+                BlacksmithUtils.postConsoleAndNotification(TEST_MODULE_ID, 'API TEST | Hook triggered!', {
+                    actorId: actor.id,
+                    name: actor.name
+                }, false, false);
+            }
+            // END - HOOKMANAGER CALLBACK
+        });
+
+        console.log('API TEST | Hook registration result:', hookResult);
 
         // ----- SOUND PLAYBACK TEST
-        console.log('API TEST | ');
         console.log('API TEST | ===================================================');
-        console.log('API TEST | ====  SOUND PLAYBACK TEST INSTRUCTIONS         ====');
+        console.log('API TEST | ====  SOUND PLAYBACK TEST INSTRUCTIONS        ====');
         console.log('API TEST | ===================================================');
-        console.log('API TEST | ');
         console.log('API TEST | 1. You should hear a "Battle Cry" sound.');
-        console.log('API TEST | 2. If you don\'t hear a sound, you may have missed it. Try clicking the canvas or try again to be safe.');
-        console.log('API TEST | 3. If DO you hear a battle cry, your sound playback worked!');
+        console.log('API TEST | 2. If you do not hear a sound, click the canvas or ensure audio is playing.');
+        console.log('API TEST | 3. If you hear a battle cry, your sound playback worked!');
         console.log('API TEST | ');
 
-        // Test sound playback
         try {
-            // Use a direct sound path instead of COFFEEPUB constants
             BlacksmithUtils.playSound('modules/coffee-pub-blacksmith/sounds/battlecry.mp3', 0.7);
             console.log('✅ API TEST | BLACKSMITH TEST: Sound playback test completed');
-        } catch (error) {
-            console.error('❌ API TEST | BLACKSMITH TEST: Sound playback test failed:', error);
+        } catch (soundError) {
+            console.error('❌ API TEST | BLACKSMITH TEST: Sound playback test failed:', soundError);
         }
 
+        // ----- UTILS TEST
+        console.log('API TEST | ==== UTILS TEST INSTRUCTIONS: ====');
+        console.log('API TEST | 1. You should see a notification in the console.');
+        console.log('API TEST | 2. The notification should contain your module ID.');
+        console.log('API TEST | ');
+
+        BlacksmithUtils.postConsoleAndNotification(TEST_MODULE_ID, 'API TEST | Utils working!', null, false, false);
+
         // ----- HOOK TEST - Use REAL FoundryVTT events
-        console.log('API TEST | ');
         console.log('API TEST | ===================================================');
-        console.log('API TEST | ====  HOOK REGISTRATION TEST INSTRUCTIONS      ====');
+        console.log('API TEST | ====  HOOK REGISTRATION TEST INSTRUCTIONS     ====');
         console.log('API TEST | ===================================================');
+        console.log('API TEST | 1. You should see the message "API TEST | BLACKSMITH TEST: Hooks registered successfully".');
+        console.log('API TEST | 2. It should be followed by an object showing token and chat hook IDs.');
         console.log('API TEST | ');
-        console.log('API TEST | 1. You should see the message "API TEST | BLACKSMITH TEST: Hooks registered successfully:" in the console.');
-        console.log('API TEST | 2. It should be followed by a value "token: tokenHookId, chat: chatHookId"');
-        console.log('API TEST | 3. If you see a value, your the hook registration worked!');
-        console.log('API TEST | ');
-        // HOOK TEST - Use REAL FoundryVTT events
-        // Hook that fires when you update a token (this actually exists)
+
         const tokenHookId = BlacksmithHookManager.registerHook({
-            name: 'updateToken',  // This is a real FoundryVTT event
+            name: 'updateToken',
             description: 'API TEST: Test hook for token updates',
             context: 'api-test-token',
             priority: 5,
+            // BEGIN - HOOKMANAGER CALLBACK
             callback: (token, changes) => {
-                console.log('🎯 API TEST | BLACKSMITH TEST: Token Updated:', { token, changes });
-                
+                console.log('🟣 API TEST | BLACKSMITH TEST: Token Updated:', { token, changes });
                 BlacksmithUtils.postConsoleAndNotification(
-                    TEST_MODULE_ID,  // ✅ Use the same module ID as above
+                    TEST_MODULE_ID,
                     'API TEST | BLACKSMITH TEST: Token updated!',
-                    { hookId: tokenHookId, tokenName: token.name, tokenId: token.id, changes },
+                    { hookId: tokenHookId, tokenName: token?.name, tokenId: token?.id, changes },
                     false,
                     true
                 );
             }
+            // END - HOOKMANAGER CALLBACK
         });
 
-        // Hook that fires when you render a chat message (this actually exists)
         const chatHookId = BlacksmithHookManager.registerHook({
-            name: 'renderChatMessage',  // This is a real FoundryVTT event
+            name: 'renderChatMessage',
             description: 'API TEST: Test hook for chat messages',
             context: 'api-test-chat',
             priority: 5,
+            // BEGIN - HOOKMANAGER CALLBACK
             callback: (message, html, data) => {
-                console.log('💬 API TEST | BLACKSMITH TEST: Chat Message Rendered:', { message, data });
-                
+                console.log('🟣 API TEST | BLACKSMITH TEST: Chat Message Rendered:', { message, data });
                 BlacksmithUtils.postConsoleAndNotification(
-                    TEST_MODULE_ID,  // ✅ Use the same module ID as above
+                    TEST_MODULE_ID,
                     'API TEST | BLACKSMITH TEST: Chat message rendered!',
-                    { hookId: chatHookId, messageId: message.id, content: message.content },
+                    { hookId: chatHookId, messageId: message?.id, content: message?.content },
                     false,
                     true
                 );
             }
+            // END - HOOKMANAGER CALLBACK
         });
 
-        console.log('✅ API TEST | BLACKSMITH TEST: Hooks registered successfully:', { 
-            token: tokenHookId, 
-            chat: chatHookId
-        });
+        console.log('API TEST | BLACKSMITH TEST: Hooks registered successfully:', { tokenHookId, chatHookId });
 
-        // ----- HOOK ACTIVATIONTEST INSTRUCTIONS
+        // ----- MODULE MANAGER TEST
+        console.log('API TEST | ==== MODULE MANAGER TEST INSTRUCTIONS: ====');
+        console.log('API TEST | 1. You should see your module registered in the module manager.');
+        console.log('API TEST | 2. The registration should include your module ID and version.');
         console.log('API TEST | ');
-        console.log('API TEST | ====  HOOK ACTIVATION TEST INSTRUCTIONS        ====');
-        console.log('API TEST | ');
-        console.log('API TEST | 1. Move a token to trigger updateToken hook');
-        console.log('API TEST | 2. Send a chat message to trigger renderChatMessage hook');
+
+        const moduleManager = BlacksmithModuleManager;
+        const registeredModules = moduleManager.getRegisteredModules?.() || [];
+        console.log('API TEST | Registered modules:', registeredModules);
+
+        // ----- HOOK ACTIVATION TEST INSTRUCTIONS
+        console.log('API TEST | ===================================================');
+        console.log('API TEST | ====  HOOK ACTIVATION TEST INSTRUCTIONS       ====');
+        console.log('API TEST | ===================================================');
+        console.log('API TEST | 1. Move a token to trigger updateToken hook.');
+        console.log('API TEST | 2. Send a chat message to trigger renderChatMessage hook.');
         console.log('API TEST | 3. If you see logging, your hooks worked!');
         console.log('API TEST | ');
 
+        console.log('API TEST | ==== TEST COMPLETE: PLEASE REVIEW THE RESULTS ABOVE ====');
+
     } catch (error) {
-        console.error('❌ API TEST | BLACKSMITH TEST: Error during testing:', error);
-        
+        console.error('API TEST | BLACKSMITH TEST: Error during testing:', error);
+
         // Try to log the error with Blacksmith if available
         if (BlacksmithUtils && BlacksmithUtils.postConsoleAndNotification) {
             BlacksmithUtils.postConsoleAndNotification(
-                TEST_MODULE_ID,  // ✅ Use the same module ID here too
+                TEST_MODULE_ID,
                 'API TEST | BLACKSMITH TEST: Error occurred during testing',
-                { error: error.message, stack: error.stack },
+                { error: error?.message, stack: error?.stack },
                 false,
                 true
             );
         }
-    }
 
+        console.error('API TEST | ERROR OCCURRED DURING API TEST:', error);
+    }
 });
 // ========== END: BLACKSMITH API TESTING ==========
 ```
@@ -1391,36 +1395,7 @@ console.log('My module features:', myFeatures);
 
 
 ## **Stats API - Statistics and Analytics**
-**Purpose**: Access to Blacksmith's statistics and tracking systems
-
-**Key Methods**:
-```javascript
-// Get combat statistics
-const combatStats = stats.combat.getCurrentStats();
-
-// Get player statistics
-const playerStats = await stats.player.getStats(actorId);
-
-// Get specific stat categories
-const attackStats = await stats.player.getStatCategory(actorId, 'attacks');
-const roundSummary = stats.combat.getRoundSummary();
-```
-
-**Usage Examples**:
-```javascript
-// Get combat statistics
-const combatStats = BlacksmithStats.combat.getCurrentStats();
-console.log('Current combat stats:', combatStats);
-
-// Get player statistics for a specific actor
-const playerStats = await BlacksmithStats.player.getStats(actorId);
-console.log('Player stats:', playerStats);
-
-// Get specific stat categories
-const attackStats = await BlacksmithStats.player.getStatCategory(actorId, 'attacks');
-const healingStats = await BlacksmithStats.player.getStatCategory(actorId, 'healing');
-```
-
+Blacksmith exposes a global `BlacksmithStats` helper (installed by the API bridge) with `player`, `combat`, `utils`, and `CombatStats` namespaces for reading combat, round, and lifetime data. The stats system only activates for GMs when the tracking settings are enabled. For the complete method list, data retention rules, and integration patterns, see `documentation/api-stats.md`.
 
 ***
 

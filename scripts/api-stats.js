@@ -104,8 +104,31 @@ export class StatsAPI {
          */
         unsubscribeFromUpdates: (subscriptionId) => {
             CombatStats.unsubscribeFromUpdates(subscriptionId);
+        },
+
+        /**
+         * Get the most recent combat summary
+         * @returns {Object|null} Most recent combat summary or null
+         */
+        getCombatSummary: () => {
+            return CombatStats.getCombatSummary();
+        },
+
+        /**
+         * Get combat history (stored summaries)
+         * @param {number} limit - Maximum number of summaries to return (default: 20)
+         * @returns {Array} Array of combat summaries
+         */
+        getCombatHistory: (limit = 20) => {
+            return CombatStats.getCombatHistory(limit);
         }
     };
+
+    /**
+     * Direct access to CombatStats class (for advanced usage/testing)
+     * @type {typeof CombatStats}
+     */
+    static CombatStats = CombatStats;
 
     /**
      * Utility Methods

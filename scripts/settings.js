@@ -1585,6 +1585,16 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Combat History (Internal Storage) --
+	game.settings.register(MODULE.ID, 'combatHistory', {
+		name: 'Combat History',
+		hint: 'Internal storage for combat summaries (last 20 combats)',
+		scope: 'world',
+		config: false,  // Hidden setting - internal use only
+		type: Object,
+		default: []
+	});
+
 	// --------------------------------------
 	// -- H3: Statistics Tracking
 	// --------------------------------------

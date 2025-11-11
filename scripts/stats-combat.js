@@ -62,7 +62,9 @@ class CombatStats {
             misses: [],
             participantStats: {},
             longestTurn: { duration: 0 },
-            fastestTurn: { duration: Infinity }
+            fastestTurn: { duration: Infinity },
+            topHits: [],  // Top N hits during combat (sorted by amount, descending)
+            topHeals: []  // Top N heals during combat (sorted by amount, descending)
         }
     };
 
@@ -81,6 +83,36 @@ class CombatStats {
         array.push(item);
         if (array.length > maxSize) {
             array.shift(); // Remove oldest item if over limit
+        }
+    }
+
+    /**
+     * Maintain a sorted top N list (e.g., top hits, top heals)
+     * Inserts item into sorted array and keeps only top N items
+     * @param {Array} sortedArray - Array to maintain (must be sorted descending)
+     * @param {Object} item - Item to potentially add
+     * @param {Function} extractValue - Function to extract comparison value from item
+     * @param {number} maxSize - Maximum number of items to keep (default: 5)
+     */
+    static _maintainTopN(sortedArray, item, extractValue, maxSize = 5) {
+        if (!sortedArray) sortedArray = [];
+        
+        const itemValue = extractValue(item);
+        
+        // If array is not full, just insert and sort
+        if (sortedArray.length < maxSize) {
+            sortedArray.push(item);
+            sortedArray.sort((a, b) => extractValue(b) - extractValue(a)); // Descending
+            return;
+        }
+        
+        // If array is full, check if this item should replace the smallest
+        const smallestValue = extractValue(sortedArray[sortedArray.length - 1]);
+        if (itemValue > smallestValue) {
+            // Remove smallest and insert new item
+            sortedArray.pop();
+            sortedArray.push(item);
+            sortedArray.sort((a, b) => extractValue(b) - extractValue(a)); // Re-sort descending
         }
     }
 
@@ -334,24 +366,26 @@ class CombatStats {
             };
         });
 
-        // Extract top N moments from arrays (Phase 2 will track these during combat)
-        const topHits = (this.combatStats.hits || [])
-            .slice()
-            .sort((a, b) => (b.amount || 0) - (a.amount || 0))
-            .slice(0, 5)
-            .map(hit => ({
-                attacker: hit.attacker || 'Unknown',
-                attackerId: hit.attackerId,
-                target: hit.targetName || 'Unknown',
-                targetId: hit.targetId,
-                amount: hit.amount || 0,
-                weapon: hit.weapon || 'Unknown',
-                isCritical: hit.isCritical || false,
-                timestamp: hit.timestamp
-            }));
+        // Extract top N moments from combatStats.topHits and topHeals (maintained during combat)
+        const topHits = (this.combatStats.topHits || []).map(hit => ({
+            attacker: hit.attacker || hit.attackerName || 'Unknown',
+            attackerId: hit.attackerId,
+            target: hit.targetName || 'Unknown',
+            targetId: hit.targetId,
+            amount: hit.amount || 0,
+            weapon: hit.weapon || 'Unknown',
+            isCritical: hit.isCritical || false,
+            timestamp: hit.timestamp
+        }));
 
-        const topHeals = []; // Healing tracking will need to be added if not already present
-        // TODO: Extract from healing array if it exists in combatStats
+        const topHeals = (this.combatStats.topHeals || []).map(heal => ({
+            healer: heal.healer || heal.healerName || 'Unknown',
+            healerId: heal.healerId,
+            target: heal.targetName || 'Unknown',
+            targetId: heal.targetId,
+            amount: heal.amount || 0,
+            timestamp: heal.timestamp
+        }));
 
         // Calculate aggregates
         const totalHits = (this.combatStats.hits || []).length;
@@ -487,8 +521,8 @@ class CombatStats {
         // Generate combat summary before resetting stats
         const combatSummary = this._generateCombatSummary(combat);
 
-        // Report combat summary to console
-        postConsoleAndNotification(MODULE.NAME, "Combat Ended | Summary:", combatSummary, true, false);
+        // Report combat summary to console (debug flag enabled)
+        postConsoleAndNotification(MODULE.NAME, "COMBAT SUMMARY ", combatSummary, true, false);
 
         // Fire hook to expose combat summary (for stats-player.js and other consumers)
         Hooks.callAll('blacksmith.combatSummaryReady', combatSummary, combat);
@@ -1087,12 +1121,30 @@ class CombatStats {
             attackerStats.healing.given += amount;
             attackerCombatStats.healing.given += amount;
 
+            // Initialize topHeals if needed
+            if (!this.combatStats.topHeals) {
+                this.combatStats.topHeals = [];
+            }
+
             // Get targets safely
             const targets = game.user.targets;
             if (targets.size > 0) {
                 targets.forEach(target => {
                     const targetActor = target.actor;
                     if (!targetActor) return;
+
+                    // Track top heals for combat summary
+                    const healEvent = {
+                        healer: actor.name,
+                        healerId: actor.id,
+                        healerName: actor.name,
+                        target: targetActor.name,
+                        targetName: targetActor.name,
+                        targetId: targetActor.id,
+                        amount: amount,
+                        timestamp: Date.now()
+                    };
+                    this._maintainTopN(this.combatStats.topHeals, healEvent, (h) => h.amount || 0, 5);
 
                     // Initialize target stats if needed
                     if (!this.currentStats.participantStats[targetActor.id]) {
@@ -1136,6 +1188,22 @@ class CombatStats {
                     targetName: actor.name,
                     amount: amount
                 });
+
+                // Track self-heal in top heals
+                if (!this.combatStats.topHeals) {
+                    this.combatStats.topHeals = [];
+                }
+                const healEvent = {
+                    healer: actor.name,
+                    healerId: actor.id,
+                    healerName: actor.name,
+                    target: actor.name,
+                    targetName: actor.name,
+                    targetId: actor.id,
+                    amount: amount,
+                    timestamp: Date.now()
+                };
+                this._maintainTopN(this.combatStats.topHeals, healEvent, (h) => h.amount || 0, 5);
             }
 
             if (this._isPlayerCharacter(actor)) {
@@ -1153,12 +1221,32 @@ class CombatStats {
                 statsAfterUpdate: { ...attackerStats }
             }, true, false);
 
+            // Initialize topHits if needed
+            if (!this.combatStats.topHits) {
+                this.combatStats.topHits = [];
+            }
+
             // Get targets safely
             const targets = game.user.targets;
             if (targets.size > 0) {
                 targets.forEach(target => {
                     const targetActor = target.actor;
                     if (!targetActor) return;
+
+                    // Track top hits for combat summary
+                    const hitEvent = {
+                        attacker: actor.name,
+                        attackerId: actor.id,
+                        attackerName: actor.name,
+                        target: targetActor.name,
+                        targetName: targetActor.name,
+                        targetId: targetActor.id,
+                        amount: amount,
+                        weapon: item.name || 'Unknown',
+                        isCritical: this._lastRollWasCritical || false,
+                        timestamp: Date.now()
+                    };
+                    this._maintainTopN(this.combatStats.topHits, hitEvent, (h) => h.amount || 0, 5);
 
                     // Initialize target stats if needed
                     if (!this.currentStats.participantStats[targetActor.id]) {
@@ -1626,6 +1714,14 @@ class CombatStats {
         // Initialize combat stats
         this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
         this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        
+        // Ensure top N lists are initialized
+        if (!this.combatStats.topHits) {
+            this.combatStats.topHits = [];
+        }
+        if (!this.combatStats.topHeals) {
+            this.combatStats.topHeals = [];
+        }
         
         // Record combat start time
         this.combatStats.startTime = Date.now();

@@ -1,2 +1,344 @@
-                <div class="stat-label">Planning Time</div>
-                <div class="stat-value">{{formatTime planningDuration}}</div> 
+<span style="visibility: hidden">coffeepub-hide-header</span>
+
+{{#unless (or settings.showRoundSummary settings.showRoundMVP settings.showNotableMoments settings.showPartyBreakdown)}}
+<div class="blacksmith-card theme-default">
+    <div class="section-header"><i class="fa-solid fa-swords"></i> Round {{roundNumber}} Has Ended</div>
+</div>
+{{/unless}}
+
+{{!-- Round Summary --}}
+{{#if settings.showRoundSummary}}
+<div class="blacksmith-card theme-default">
+    <div class="section-header collapsible {{sectionStates.roundSummary}}" data-section="roundSummary-{{roundNumber}}" data-card-id="round-{{roundNumber}}">
+        <i class="fa-solid fa-swords"></i> Round {{roundNumber}} Summary 
+        <i class="fa-solid fa-chevron-{{#if (eq sectionStates.roundSummary 'collapsed')}}right{{else}}down{{/if}} collapse-indicator"></i>
+    </div>
+    <div class="section-content {{#if (eq sectionStates.roundSummary 'collapsed')}}collapsed{{/if}}">
+        <div class="party-stats-grid">
+            {{#if settings.showRoundTimer}}
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-clock"></i> Elapsed</h4>
+                <div class="round-stat-value">{{formatTime roundDurationActual}}</div>
+                <div class="round-stat-detail">Total Time</div>
+            </div>
+            {{/if}}
+            {{#if (and settings.planningTimerEnabled settings.combatTimerEnabled)}}
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-hand-fist"></i> Active</h4>
+                <div class="round-stat-value">{{formatTime roundDurationActive}}</div>
+                <div class="round-stat-detail">Party Time</div>
+            </div>
+            {{/if}}
+
+            {{#if settings.planningTimerEnabled}}
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-brain"></i> Strategy</h4>
+                <div class="round-stat-value">{{formatTime planningDuration}}</div>
+                <div class="round-stat-detail">Planning Time</div>
+            </div>
+            {{/if}}
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-bullseye"></i> Accuracy</h4>
+                <div class="round-stat-value">{{round partyStats.hitMissRatio}}%</div>
+                <div class="round-stat-detail">Hits: {{partyStats.totalHits}} | Misses: {{partyStats.totalMisses}}</div>
+            </div>
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-swords"></i> Damage</h4>
+                <div class="round-stat-value">{{formatDamage partyStats.damageDealt}} hp</div>
+                <div class="round-stat-detail">Dealt</div>
+            </div>
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-shield"></i> Defense</h4>
+                <div class="round-stat-value">{{formatDamage partyStats.damageTaken}} hp</div>
+                <div class="round-stat-detail">Taken</div>
+            </div>
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-heart"></i> Healing</h4>
+                <div class="round-stat-value">{{formatDamage partyStats.healingDone true}} hp</div>
+                <div class="round-stat-detail">Restored</div>
+            </div>
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-fire-flame"></i> Finesse</h4>
+                <div class="round-stat-value">{{partyStats.criticalHits}} | {{partyStats.fumbles}}</div>
+                <div class="round-stat-detail">Crits | Fumbles</div>
+            </div>
+        </div>
+    </div>
+</div>
+{{/if}}
+
+{{!-- Round MVP --}}
+{{#if settings.showRoundMVP}}
+<div class="blacksmith-card-spacer"></div>
+<div class="blacksmith-card theme-default">
+    <div class="section-header collapsible {{sectionStates.roundMVP}}" data-section="roundMVP-{{roundNumber}}" data-card-id="round-{{roundNumber}}">
+        <i class="fa-solid fa-trophy"></i> Round {{roundNumber}} MVP 
+        <i class="fa-solid fa-chevron-{{#if (eq sectionStates.roundMVP 'collapsed')}}right{{else}}down{{/if}} collapse-indicator"></i>
+    </div>
+    <div class="section-content {{#if (eq sectionStates.roundMVP 'collapsed')}}collapsed{{/if}}">
+        {{#if roundMVP}}
+            {{#if roundMVP.score}}
+            {{#with roundMVP}}
+            <div class="mvp-details">
+                <img src="{{tokenImg}}" alt="{{name}}" />
+                <div class="mvp-info">
+                    <div class="player-name">{{name}}</div>
+                    <p class="mvp-description">{{description}}</p>
+                </div>
+            </div>
+            <div class="mvp-stats">
+                <div class="mvp-stat-card">
+                    <h4><i class="fas fa-swords"></i> Combat</h4>
+                    <div class="moment-content">
+   
+                            <span class="detail">Hits:</span>
+                            <span class="amount">{{combat.attacks.hits}}/{{combat.attacks.attempts}}</span>
+        
+                            <span class="detail">Crits:</span>
+                            <span class="amount">{{combat.attacks.crits}}</span>
+
+                            <span class="detail">Fumbles:</span>
+                            <span class="amount">{{combat.attacks.fumbles}}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mvp-stat-card">
+                    <h4><i class="fas fa-droplet"></i> Damage</h4>
+                    <div class="moment-content">
+
+                            <span class="detail">Dealt:</span>
+                            <span class="amount">{{damage.dealt}}</span>
+
+                            <span class="detail">Taken:</span>
+                            <span class="amount">{{damage.taken}}</span>
+
+                    </div>
+                </div>
+                <div class="mvp-stat-card">
+                    <h4><i class="fas fa-heart"></i> Healing</h4>
+                    <div class="moment-content">
+
+                            <span class="detail">Given:</span>
+                            <span class="amount">{{healing.given}}</span>
+
+                            <span class="detail">Received:</span>
+                            <span class="amount">{{healing.received}}</span>
+
+                    </div>
+                </div>
+            </div>
+            {{/with}}
+            {{else}}
+            <div class="mvp-details">
+                <div class="mvp-info">
+                    <p class="mvp-description">{{roundMVP.description}}</p>
+                </div>
+            </div>
+            {{/if}}
+        {{else}}
+            <div class="mvp-details">
+                <div class="mvp-info">
+                    <p class="mvp-description">{{description}}</p>
+                </div>
+            </div>
+        {{/if}}
+    </div>
+</div>
+{{/if}}
+
+{{!-- Notable Moments Section --}}
+{{#if settings.showNotableMoments}}
+<div class="blacksmith-card-spacer"></div>
+<div class="blacksmith-card theme-default">
+    <div class="section-header collapsible {{sectionStates.notableMoments}}" data-section="notableMoments-{{roundNumber}}" data-card-id="round-{{roundNumber}}">
+        <i class="fa-solid fa-medal"></i> Notable Moments 
+        <i class="fa-solid fa-chevron-{{#if (eq sectionStates.notableMoments 'collapsed')}}right{{else}}down{{/if}} collapse-indicator"></i>
+    </div>
+    <div class="section-content {{#if (eq sectionStates.notableMoments 'collapsed')}}collapsed{{/if}}">
+        <!-- Debug Info -->
+        <div style="display: none;">
+            Has Moments: {{hasNotableMoments}}<br>
+            Biggest Hit: {{notableMoments.biggestHit.amount}}<br>
+            Most Damage: {{notableMoments.mostDamage.amount}}<br>
+            Biggest Heal: {{notableMoments.biggestHeal.amount}}<br>
+            Longest Turn: {{notableMoments.longestTurn.duration}}<br>
+            Most Hurt: {{notableMoments.mostHurt.amount}}<br>
+            Weakest Hit: {{notableMoments.weakestHit.amount}}
+        </div>
+        {{#if hasNotableMoments}}
+        <div class="notable-moments-grid">
+            {{#if notableMoments.biggestHit.amount}}
+            <div class="moment-card">
+                <h4><i class="fas fa-burst"></i> Biggest Hit</h4>
+                <div class="moment-content">
+                    {{#if notableMoments.biggestHit.actorImg}}
+                    <img src="{{notableMoments.biggestHit.actorImg}}" alt="{{notableMoments.biggestHit.actorName}}" class="moment-portrait" />
+                    {{/if}}
+                    <div class="moment-info">
+                        <div>
+                            <span class="actor">{{notableMoments.biggestHit.actorName}}</span>
+                        </div>
+                        <div>
+                            <span class="detail">Dealt</span>
+                            <span class="amount">{{formatDamage notableMoments.biggestHit.amount}} hp</span>
+                            <span class="detail">damage to</span>
+                            <span class="target">{{notableMoments.biggestHit.targetName}}</span>!
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{/if}}
+
+            {{#if notableMoments.weakestHit.amount}}
+            <div class="moment-card">
+                <h4><i class="fas fa-feather"></i> Weakest Hit</h4>
+                <div class="moment-content">
+                    {{#if notableMoments.weakestHit.actorImg}}
+                    <img src="{{notableMoments.weakestHit.actorImg}}" alt="{{notableMoments.weakestHit.actorName}}" class="moment-portrait" />
+                    {{/if}}
+                    <div class="moment-info">
+                        <div>
+                            <span class="actor">{{notableMoments.weakestHit.actorName}}</span>
+                        </div>
+                        <div>
+                            <span class="detail">Dealt a mere </span>
+                            <span class="amount">{{formatDamage notableMoments.weakestHit.amount}} hp</span>
+                            <span class="detail">to</span>
+                            <span class="target">{{notableMoments.weakestHit.targetName}}</span>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{/if}}
+            {{#if notableMoments.mostDamage.amount}}
+            <div class="moment-card">
+                <h4><i class="fas fa-fire-flame-curved"></i> Most Damage</h4>
+                <div class="moment-content">
+                    {{#if notableMoments.mostDamage.actorImg}}
+                    <img src="{{notableMoments.mostDamage.actorImg}}" alt="{{notableMoments.mostDamage.actorName}}" class="moment-portrait" />
+                    {{/if}}
+                    <div class="moment-info">
+                        <div>
+                            <span class="actor">{{notableMoments.mostDamage.actorName}}</span>
+                        </div>
+                        <div>
+                            <span class="detail">Dealt a total of</span>
+                            <span class="amount">{{formatDamage notableMoments.mostDamage.amount}} hp</span>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{/if}}
+
+            {{#if notableMoments.biggestHeal.amount}}
+            <div class="moment-card">
+                <h4><i class="fas fa-heart"></i> Biggest Heal</h4>
+                <div class="moment-content">
+                    {{#if notableMoments.biggestHeal.actorImg}}
+                    <img src="{{notableMoments.biggestHeal.actorImg}}" alt="{{notableMoments.biggestHeal.actorName}}" class="moment-portrait" />
+                    {{/if}}
+                    <div class="moment-info">
+                        <div>
+                            <span class="actor">{{notableMoments.biggestHeal.actorName}}</span>
+                        </div>
+                        <div>
+                            <span class="detail">Sent </span>
+                            <span class="amount">{{formatDamage notableMoments.biggestHeal.amount true}} hp</span>
+                            <span class="detail">of healing to</span>
+                            <span class="target">{{notableMoments.biggestHeal.targetName}}</span>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{/if}}
+
+            {{#if notableMoments.mostHurt.amount}}
+            <div class="moment-card">
+                <h4><i class="fas fa-skull"></i> Most Hurt</h4>
+                <div class="moment-content">
+                    {{#if notableMoments.mostHurt.actorImg}}
+                    <img src="{{notableMoments.mostHurt.actorImg}}" alt="{{notableMoments.mostHurt.actorName}}" class="moment-portrait" />
+                    {{/if}}
+                    <div class="moment-info">
+                        <div>
+                            <span class="actor">{{notableMoments.mostHurt.actorName}}</span>
+                        </div>
+                        <div>
+                            <span class="detail">Took a total of</span>
+                            <span class="amount">{{formatDamage notableMoments.mostHurt.amount}} hp</span>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{/if}}
+
+            {{#if (and notableMoments.longestTurn.duration settings.combatTimerEnabled)}}
+            <div class="moment-card">
+                <h4><i class="fas fa-hourglass-end"></i> Longest Turn</h4>
+                <div class="moment-content">
+                    {{#if notableMoments.longestTurn.actorImg}}
+                    <img src="{{notableMoments.longestTurn.actorImg}}" alt="{{notableMoments.longestTurn.actorName}}" class="moment-portrait" />
+                    {{/if}}
+                    <div class="moment-info">
+                        <div>
+                            <span class="actor">{{notableMoments.longestTurn.actorName}}</span>
+                        </div>
+                        <div>
+                            <span class="detail">Managed to spend</span>
+                            <span class="amount">{{formatTime notableMoments.longestTurn.duration}}</span> taking their turn.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{/if}}
+        </div>
+        {{else}}
+            <div class="no-moments">Sorry, nothing notable this round. Try a bit harder next time.</div>
+        {{/if}}
+    </div>
+</div>
+{{/if}}
+
+{{!-- Party Details --}}
+{{#if settings.showPartyBreakdown}}
+<div class="blacksmith-card-spacer"></div>
+<div class="blacksmith-card theme-default">
+    <div class="section-header collapsible {{sectionStates.partyBreakdown}}" data-section="partyBreakdown-{{roundNumber}}" data-card-id="round-{{roundNumber}}">
+        <i class="fa-solid fa-users"></i> Party Breakdown 
+        <i class="fa-solid fa-chevron-{{#if (eq sectionStates.partyBreakdown 'collapsed')}}right{{else}}down{{/if}} collapse-indicator"></i>
+    </div>
+    <div class="section-content {{#if (eq sectionStates.partyBreakdown 'collapsed')}}collapsed{{/if}}">
+        {{#each turnDetails}}
+        <div class="turn-row">
+            <img class="turn-portrait" src="{{this.tokenImg}}" title="{{this.name}}" />
+            <div class="turn-info">
+                <div class="turn-name">
+                    <span class="status-tag rank">{{add @index 1}}</span>
+                    {{#if (gt this.combat.attacks.crits 0)}}<i class="fa-solid fa-swords crit"></i>{{/if}}
+                    {{#if (gt this.combat.attacks.fumbles 0)}}<i class="fa-solid fa-skull-crossbones fumble"></i>{{/if}}
+                    <strong>{{this.name}}</strong>
+                    {{#if ../settings.combatTimerEnabled}}
+                    <span class="turn-time">{{formatTime this.turnDuration}}</span>
+                    {{/if}}
+                </div>
+                {{#if ../settings.combatTimerEnabled}}
+                <div class="turn-timer">
+                    <div class="progress-bar">
+                        <div class="progress-fill {{#if this.lastTurnExpired}}expired{{/if}}" style="width: {{multiply (divide this.turnDuration ../timerDuration) 100}}%" data-debug="Turn: {{this.turnDuration}}, Max: {{../timerDuration}}, Calc: {{multiply (divide this.turnDuration ../timerDuration) 100}}%"></div>
+                    </div>
+                </div>
+                {{/if}}
+                <div class="turn-stats">MVP: {{this.score}}  •  DMG: {{this.damage.dealt}}  •  Hits: {{this.combat.attacks.hits}}/{{this.combat.attacks.attempts}}</div>
+            </div>
+        </div>
+        {{/each}}
+        {{#if settings.combatTimerEnabled}}
+        <div class="party-timing-stats">
+            <div class="timing-stat">
+                <span class="label">Party Total: </span><span class="value">{{formatTime totalPartyTime}}</span>  •  <span class="label">Average Turn: </span><span class="value">{{partyStats.averageTurnTime}}</span>
+            </div>
+        </div>
+        {{/if}}
+    </div>
+</div>
+{{/if}} 
