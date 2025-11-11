@@ -42,7 +42,7 @@ The stats system splits responsibilities across multiple scopes:
 
 Lifetime data persists on the actor flag, while session data remains transient in `_sessionStats`. External consumers should treat returned objects as read-only unless coordinating changes with the Blacksmith maintainers.
 
-Player-facing aggregates such as `totalHits`, `totalMisses`, `criticals`, and `fumbles` are now updated when the module receives the `blacksmith.combatSummaryReady` event. Session storage keeps a bounded `combats` array so custom UIs can display recent combat contributions without rehydrating the entire history.
+Player-facing aggregates such as `totalHits`, `totalMisses`, `criticals`, and `fumbles` are now updated when the module receives the `blacksmith.combatSummaryReady` event. Session storage keeps a bounded `combats` array so custom UIs can display recent combat contributions without rehydrating the entire history. Lifetime data also records cumulative MVP performance (`mvp.totalScore`, `mvp.averageScore`, `mvp.highScore`, `mvp.combats`, `mvp.lastScore`, `mvp.lastRank`) so you can present long-term rankings across server restarts.
 
 ### Commands & Examples
 
@@ -91,6 +91,14 @@ if (actor) {
 }
 ```
 
+```javascript
+// Inspect lifetime MVP performance for the actor
+if (actor) {
+    const stats = await BlacksmithStats.player.getStats(actor.id);
+    console.log('Lifetime MVP totals', stats?.lifetime?.mvp);
+}
+```
+
 ---
 
 ## Combat Namespace
@@ -106,7 +114,7 @@ if (actor) {
 
 Summaries expose a consistent schema: `totals.damage`, `totals.healing`, and `totals.attacks` (attempts, hits, misses, crits, fumbles) plus `participants[]` entries that mirror those counts per actor. Consumers no longer receive the raw hit/miss arrays; use the aggregate fields for analytics and the `notableMoments` block for highlights. The `notableMoments` bundle now includes `mvpRankings`—a descending list of per-actor MVP scores (same formula used in the Party Breakdown)—alongside the top MVP entry.
 
-When combat ends, `CombatStats._onCombatEnd` emits `Hooks.callAll('blacksmith.combatSummaryReady', combatSummary, combat)` so external modules can react without polling the API.
+When combat ends, `CombatStats._onCombatEnd` emits `Hooks.callAll('blacksmith.combatSummaryReady', combatSummary, combat)` so external modules can react without polling the API. During each round, `Hooks.callAll('blacksmith.roundMvpScore', { actorId, actorUuid, score, rank, name })` fires after the Party Breakdown is generated, which you can use to track per-round leaderboards or persist MVP progress mid-combat.
 
 ### Commands & Examples
 

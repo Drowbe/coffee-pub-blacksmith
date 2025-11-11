@@ -663,10 +663,10 @@ We're storing full event arrays in multiple places:
 
 ### Phase 3: Refactor for Clarity
 
-1. Document tier boundaries clearly
-2. Refactor `stats-combat.js` for clarity
-3. Add JSDoc comments
-4. Update API documentation
+1. ✅ Document tier boundaries clearly (module headers & section comments added)
+2. ✅ Refactor `stats-combat.js` for clarity (grouped helpers, shared MVP scorer)
+3. ✅ Add JSDoc comments (core entry points and helpers annotated)
+4. ✅ Update API documentation (MVP aggregate usage + querying examples)
 
 ---
 
@@ -700,7 +700,7 @@ We're storing full event arrays in multiple places:
 |-----------|------------------|-----------|-------------|------------------|
 | **Round** | `stats-combat.js` → `currentStats` (in-memory) | Current round only | Full event arrays during round | Everything after round summary posted |
 | **Combat** | `stats-combat.js` → `combatStats` (in-memory) | Entire combat, then discarded | Aggregates + top N moments | All data after combat summary + lifetime update |
-| **Lifetime** | `stats-player.js` → Actor flags (permanent) | Forever | Totals, records, last 20 hits | Nothing (except by user action) |
+| **Lifetime** | `stats-player.js` → Actor flags (permanent) | Forever | Totals, records, last 20 hits, MVP aggregate scores | Nothing (except by user action) |
 
 ### File Responsibilities
 

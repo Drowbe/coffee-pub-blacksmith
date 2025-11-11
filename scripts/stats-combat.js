@@ -1,3 +1,10 @@
+/**
+ * Tier 1 & 2 statistics manager for Coffee Pub Blacksmith.
+ * - Tracks round-scoped data (ephemeral) and combat-scoped aggregates.
+ * - Generates round chat summaries and end-of-combat summaries for the API.
+ * - Emits `blacksmith.combatSummaryReady` so lifetime consumers can update.
+ */
+
 // Import MODULE variables
 import { MODULE } from './const.js';
 import { getPortraitImage, isPlayerCharacter, postConsoleAndNotification, playSound, getSettingSafely } from './api-core.js';
@@ -77,6 +84,10 @@ class CombatStats {
             topHeals: []  // Top N heals during combat (sorted by amount, descending)
         }
     };
+
+    // -------------------------------------------------------------------------
+    // Utility helpers
+    // -------------------------------------------------------------------------
 
     // Store section states
     static sectionStates = {
@@ -229,6 +240,10 @@ class CombatStats {
         };
     }
 
+    /**
+     * Initialize combat stat tracking for the active GM.
+     * Sets up default structures, registers helpers, and subscribes to hooks.
+     */
     static initialize() {
         // Only initialize if this is the GM and stats tracking is enabled
         if (!game.user.isGM || !getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
@@ -453,7 +468,7 @@ class CombatStats {
 
     /**
      * Generate combat summary from combatStats
-     * Creates aggregated summary with top N moments (no full event arrays)
+     * Creates aggregated summary with top N moments and MVP rankings (no full event arrays)
      * @param {Combat} combat - The combat object
      * @returns {Object} Combat summary with metadata, aggregates, and top moments
      */
@@ -655,6 +670,11 @@ class CombatStats {
         return history.slice(0, limit);
     }
 
+    /**
+     * Handle Foundry's `updateCombat` event when combat ends.
+     * Generates, logs, and stores the combat summary, then emits an API hook.
+     * @param {Combat} combat - The combat instance that ended.
+     */
     static _onCombatEnd(combat, options, userId) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         
@@ -1190,6 +1210,37 @@ class CombatStats {
             return;
         }
         
+        const actionType = item.system?.actionType
+            || item.system?.activities?.default?.type
+            || Object.values(item.system?.activities || {})[0]?.type
+            || '';
+
+        const normalizedActionType = typeof actionType === 'string' ? actionType.toLowerCase() : '';
+
+        // Initialize stats objects if they don't exist
+        if (!this.currentStats) {
+            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        }
+        if (!this.combatStats) {
+            this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
+        }
+
+        // Initialize participant stats if needed
+        if (!this.currentStats.participantStats) this.currentStats.participantStats = {};
+        if (!this.combatStats.participantStats) this.combatStats.participantStats = {};
+        
+        if (!this.currentStats.participantStats[actor.id]) {
+            this.currentStats.participantStats[actor.id] = foundry.utils.deepClone(this.DEFAULTS.roundStats.participantStats);
+        } else if (!this.currentStats.participantStats[actor.id].combat?.attacks) {
+            this.currentStats.participantStats[actor.id].combat = foundry.utils.deepClone(this.DEFAULTS.roundStats.participantStats.combat);
+        }
+        if (!Array.isArray(this.currentStats.participantStats[actor.id].hits)) {
+            this.currentStats.participantStats[actor.id].hits = [];
+        }
+        if (!Array.isArray(this.currentStats.participantStats[actor.id].misses)) {
+            this.currentStats.participantStats[actor.id].misses = [];
+        }
+
         const { current: attackerStats, combat: attackerCombatStats } = this._ensureParticipantStats(actor, {
             includeCurrent: true,
             includeCombat: true
@@ -1198,7 +1249,7 @@ class CombatStats {
         const combatTotals = this.combatStats.totals;
 
         // Determine if this is healing or damage
-        const isHealing = item.system.actionType === 'heal' || 
+        const isHealing = normalizedActionType === 'heal' || 
                          item.name.toLowerCase().includes('heal') || 
                          item.name.toLowerCase().includes('cure');
 
@@ -1878,21 +1929,23 @@ class CombatStats {
                 // Skip if no actor or not a player character
                 if (!turn?.actor || !this._isPlayerCharacter(turn.actor)) continue;
                 
-                const id = turn.id; // Use combatant ID instead of actor ID
-                if (!id) continue;
+                const actorId = turn.actor.id;
+                const actorUuid = turn.actor.uuid;
+                const combatantId = turn.id; // Use combatant ID for per-round timing
+                if (!actorId || !combatantId) continue;
 
                 // Get this combatant's specific turn duration
-                const turnDuration = this.currentStats.partyStats?.turnTimes?.[id] || 0;
+                const turnDuration = this.currentStats.partyStats?.turnTimes?.[combatantId] || 0;
 
                 postConsoleAndNotification(MODULE.NAME, `Turn Duration for ${turn.actor.name}:`, {
                     turnDuration,
-                    combatantId: id,
-                    actorId: turn.actor.id,
+                    combatantId,
+                    actorId,
                     turnTimes: this.currentStats.partyStats?.turnTimes || {}
                 }, true, false);
 
                 // Safely get stats, defaulting to empty structure if not found
-                const stats = this.currentStats?.participantStats?.[turn.actor.id] || {
+                const stats = this.currentStats?.participantStats?.[actorId] || {
                     name: turn.actor.name,
                     damage: { dealt: 0, taken: 0 },
                     healing: { given: 0, received: 0 },
@@ -1909,11 +1962,12 @@ class CombatStats {
                     misses: [],
                     turnDuration: turnDuration,
                     lastTurnExpired: turnDuration >= (timerDuration * 1000),
-                    combatantId: id // Store the combatant ID
+                    combatantId
                 };
 
-                const existingStats = participantMap.get(stats.name) || {
-                    ids: new Set(),
+                const existingStats = participantMap.get(actorId) || {
+                    actorId,
+                    actorUuid,
                     name: stats.name,
                     damage: { dealt: 0, taken: 0 },
                     healing: { given: 0, received: 0 },
@@ -1930,11 +1984,13 @@ class CombatStats {
                     misses: [],
                     turnDuration: turnDuration,
                     lastTurnExpired: turnDuration >= (timerDuration * 1000),
-                    score: 0
+                    combatantIds: new Set()
                 };
 
-                // Add this ID to the set
-                existingStats.ids.add(id);
+                // Track combatant IDs encountered (for timing data)
+                existingStats.combatantIds.add(combatantId);
+                existingStats.actorUuid = actorUuid;
+                existingStats.name = stats.name;
 
                 // Safely merge damage and healing
                 existingStats.damage.dealt += stats.damage?.dealt || 0;
@@ -1963,7 +2019,7 @@ class CombatStats {
                     }
                 }
 
-                participantMap.set(stats.name, existingStats);
+                participantMap.set(actorId, existingStats);
             }
         }
 
@@ -1980,16 +2036,20 @@ class CombatStats {
 
             // Get token image
             const tokenImg = (() => {
-                const actor = game.actors.find(a => a.name === stats.name && (a.hasPlayerOwner || a.type === 'character'));
-                const combatant = game.combat?.turns?.find(t => t.name === stats.name);
-                return actor ? getPortraitImage(actor) : getActorPortrait(combatant);
+                const actor = game.actors.get(stats.actorId);
+                if (actor) return getPortraitImage(actor);
+                const combatantId = Array.from(stats.combatantIds || [])[0];
+                const combatant = combatantId ? game.combat?.combatants?.get(combatantId) : null;
+                return getActorPortrait(combatant);
             })();
 
             // Convert timerDuration to milliseconds for comparison
             const timerDurationMs = timerDuration * 1000;
             
             return {
-                id: Array.from(stats.ids)[0],
+                actorId: stats.actorId,
+                actorUuid: stats.actorUuid,
+                combatantIds: Array.from(stats.combatantIds || []),
                 name: stats.name,
                 damage: stats.damage,
                 healing: stats.healing,
@@ -2022,7 +2082,7 @@ class CombatStats {
             timerDuration: timerDuration * 1000,  // Convert to milliseconds to match turnDuration
             totalPartyTime: totalPartyTime,
             partyStats: {
-                hitMissRatio: this.currentStats.partyStats.hits / 
+                hitMissRatio: this.currentStats.partyStats.hits /
                     (this.currentStats.partyStats.hits + this.currentStats.partyStats.misses) * 100 || 0,
                 totalHits: this.currentStats.partyStats.hits,
                 totalMisses: this.currentStats.partyStats.misses,
@@ -2048,25 +2108,64 @@ class CombatStats {
                 .some(moment => moment.amount > 0 || moment.duration > 0)
         };
 
-        postConsoleAndNotification(MODULE.NAME, 'Notable Moments Debug:', {
-            notableMoments: this.currentStats.notableMoments
-        }, true, false);
+        const actorScores = sortedParticipants.map((participant, index) => ({
+            name: participant.name,
+            actorId: participant.actorId,
+            actorUuid: participant.actorUuid,
+            score: participant.score,
+            rank: index + 1
+        }));
 
-        postConsoleAndNotification(MODULE.NAME, 'Template Settings:', {
-            settings: templateData.settings
-        }, true, false);
+        postConsoleAndNotification(
+            MODULE.NAME,
+            'COMBAT STATS: Round MVP rankings computed',
+            {
+                round: game.combat?.round ?? 0,
+                actorScores
+            },
+            true,
+            false
+        );
 
-        postConsoleAndNotification(MODULE.NAME, 'Round Duration Debug - Template Prep:', {
-            roundStartTime: this.currentStats.roundStartTime,
-            roundEndTime: Date.now(),
-            duration: this.currentStats.roundDuration
-        }, true, false);
+        actorScores.forEach(entry => {
+            if (!entry.actorId) return;
+            Hooks.callAll('blacksmith.roundMvpScore', entry);
+        });
 
-        postConsoleAndNotification(MODULE.NAME, `Timer Debug [${new Date().toISOString()}] - EXIT _prepareTemplateData`, {
-            templateData
-        }, true, false);
-
-        return templateData;
+        return {
+            roundDurationActive: activeRoundDuration,  // Combined party time + planning
+            roundDurationActual: this.currentStats.roundDuration,  // Wall-clock time
+            planningDuration: this.currentStats.activePlanningTime,  // Pass raw number
+            turnDetails: sortedParticipants,
+            roundMVP: sortedParticipants[0],
+            timerDuration: timerDuration * 1000,  // Convert to milliseconds to match turnDuration
+            totalPartyTime: totalPartyTime,
+            partyStats: {
+                hitMissRatio: this.currentStats.partyStats.hits /
+                    (this.currentStats.partyStats.hits + this.currentStats.partyStats.misses) * 100 || 0,
+                totalHits: this.currentStats.partyStats.hits,
+                totalMisses: this.currentStats.partyStats.misses,
+                damageDealt: sortedParticipants.reduce((sum, p) => sum + (p.damage?.dealt || 0), 0),
+                damageTaken: sortedParticipants.reduce((sum, p) => sum + (p.damage?.taken || 0), 0),
+                healingDone: this.currentStats.partyStats.healingDone,
+                averageTurnTime: this._formatTime(this.currentStats.partyStats.averageTurnTime),
+                criticalHits: sortedParticipants.reduce((sum, p) => sum + (p.combat?.attacks?.crits || 0), 0),
+                fumbles: sortedParticipants.reduce((sum, p) => sum + (p.combat?.attacks?.fumbles || 0), 0),
+            },
+            settings: {
+                showRoundSummary: game.settings.get(MODULE.ID, 'showRoundSummary'),
+                showRoundMVP: game.settings.get(MODULE.ID, 'showRoundMVP'),
+                showNotableMoments: game.settings.get(MODULE.ID, 'showNotableMoments'),
+                showPartyBreakdown: game.settings.get(MODULE.ID, 'showPartyBreakdown'),
+                showRoundTimer: game.settings.get(MODULE.ID, 'showRoundTimer'),
+                planningTimerEnabled: game.settings.get(MODULE.ID, 'planningTimerEnabled'),
+                combatTimerEnabled: game.settings.get(MODULE.ID, 'combatTimerEnabled')
+            },
+            sectionStates: this.sectionStates,
+            notableMoments: await this._enrichNotableMomentsWithPortraits(this.currentStats.notableMoments),
+            hasNotableMoments: Object.values(this.currentStats.notableMoments)
+                .some(moment => moment.amount > 0 || moment.duration > 0)
+        };
     }
 
     static async generateRoundSummary(templateData) {

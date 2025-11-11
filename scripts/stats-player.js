@@ -1,3 +1,9 @@
+/**
+ * Tier 3 statistics manager for Coffee Pub Blacksmith.
+ * - Maintains per-session data (in-memory) and lifetime aggregates on actor flags.
+ * - Listens for combat summaries to update long-term records (MVP totals, damage, etc.).
+ */
+
 // Import MODULE variables
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, trimString, isPlayerCharacter } from './api-core.js';
@@ -56,6 +62,14 @@ const CPB_STATS_DEFAULTS = {
             fastest: null,
             slowest: null
         },
+        mvp: {
+            totalScore: 0,
+            highScore: 0,
+            combats: 0,
+            averageScore: 0,
+            lastScore: 0,
+            lastRank: null
+        },
         unconscious: 0,
         movement: 0,
         lastUpdated: null
@@ -71,6 +85,39 @@ class CPBPlayerStats {
         }
     }
 
+    /**
+     * Clone-safe helper for MVP aggregates on lifetime stats.
+     * @param {Object|null} existing - Previously stored aggregate, if any.
+     * @param {number|null} score - Score from the latest combat (optional).
+     * @param {number|null} rank - Rank from the latest combat (optional).
+     * @param {boolean} accumulate - Whether to add the score to running totals.
+     * @returns {Object} Updated MVP aggregate object.
+     */
+    static _updateLifetimeMvp(existing, score = null, rank = null, accumulate = true) {
+        const aggregate = existing
+            ? foundry.utils.deepClone(existing)
+            : foundry.utils.deepClone(CPB_STATS_DEFAULTS.lifetime.mvp);
+
+        if (typeof score === 'number') {
+            if (accumulate) {
+                aggregate.totalScore = (aggregate.totalScore || 0) + score;
+                aggregate.combats = (aggregate.combats || 0) + 1;
+                aggregate.highScore = Math.max(aggregate.highScore || 0, score);
+                aggregate.averageScore = Number((aggregate.totalScore / aggregate.combats).toFixed(2));
+            }
+            aggregate.lastScore = score;
+            aggregate.lastRank = rank;
+        } else if (typeof rank === 'number') {
+            aggregate.lastRank = rank;
+        }
+
+        return aggregate;
+    }
+
+    /**
+     * Initialize lifetime tracking for the current GM.
+     * Sets default actor flags, registers hooks, and prepares session caches.
+     */
     static initialize() {
         if (!game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
         
@@ -128,6 +175,20 @@ class CPBPlayerStats {
             callback: (summary, combat) => {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
                 this._onCombatSummaryReady(summary, combat);
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
+        const roundMvpHookId = HookManager.registerHook({
+            name: 'blacksmith.roundMvpScore',
+            description: 'Player Stats: Snapshot MVP score each round to preserve progress across sessions',
+            context: 'stats-player-round-mvp',
+            priority: 3,
+            key: 'stats-player-round-mvp',
+            options: {},
+            callback: (payload) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                this._applyRoundMvpScore(payload || {});
                 // --- END - HOOKMANAGER CALLBACK ---
             }
         });
@@ -449,6 +510,11 @@ class CPBPlayerStats {
         // We'll implement this to track HP changes and unconsciousness
     }
 
+    /**
+     * Consume end-of-combat summaries to update lifetime actor statistics.
+     * @param {Object} summary - Summary emitted by `CombatStats`.
+     * @param {Combat} combat - The source combat document.
+     */
     static async _onCombatSummaryReady(summary, combat) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
         if (!summary?.participants?.length) return;
@@ -473,15 +539,23 @@ class CPBPlayerStats {
                         totalMisses: (lifetimeAttacks.totalMisses || 0) + (participant.misses || 0),
                         criticals: (lifetimeAttacks.criticals || 0) + (participant.criticals || 0),
                         fumbles: (lifetimeAttacks.fumbles || 0) + (participant.fumbles || 0)
-                    }
+                    },
+                    mvp: { ...stats.lifetime?.mvp }
                 }
             };
+
+            const rankingIndex = rankings.findIndex(r => r.actorId === actorId);
+            const rankingEntry = rankingIndex >= 0 ? rankings[rankingIndex] : null;
+            const score = rankingEntry?.score ?? null;
+            const rank = rankingEntry ? rankingIndex + 1 : null;
+            if (rankingEntry) {
+                updates.lifetime.mvp = CPBPlayerStats._updateLifetimeMvp(stats.lifetime?.mvp, score, rank, false);
+            }
 
             await this.updatePlayerStats(actorId, updates);
 
             const sessionStats = this._getSessionStats(actorId);
             if (sessionStats) {
-                const rankingIndex = rankings.findIndex(r => r.actorId === actorId);
                 const combatRecord = {
                     combatId: summary.combatId,
                     date: summary.date,
@@ -492,14 +566,44 @@ class CPBPlayerStats {
                     hits: participant.hits || 0,
                     misses: participant.misses || 0
                 };
-                if (rankingIndex >= 0) {
-                    combatRecord.mvpScore = rankings[rankingIndex].score;
-                    combatRecord.mvpRank = rankingIndex + 1;
+                if (rankingEntry) {
+                    combatRecord.mvpScore = rankingEntry.score;
+                    combatRecord.mvpRank = rank;
                 }
                 this._boundedPush(sessionStats.combats, combatRecord, 20);
                 sessionStats.currentCombat = null;
             }
         }
+    }
+
+    static async _applyRoundMvpScore({ actorId, score, rank }) {
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
+        if (!actorId || typeof score !== 'number') return;
+
+        const actor = game.actors.get(actorId);
+        if (!actor || !actor.hasPlayerOwner || actor.isToken) return;
+
+        const stats = await this.getPlayerStats(actor.id);
+        if (!stats) return;
+
+        const updatedMvp = this._updateLifetimeMvp(stats.lifetime?.mvp, score, rank, true);
+        await this.updatePlayerStats(actor.id, { lifetime: { mvp: updatedMvp } });
+
+        postConsoleAndNotification(
+            MODULE.NAME,
+            'COMBAT STATS: MVP round score applied',
+            {
+                actorId: actor.id,
+                actorName: actor.name,
+                score,
+                rank,
+                totalScore: updatedMvp.totalScore,
+                combats: updatedMvp.combats,
+                averageScore: updatedMvp.averageScore
+            },
+            true,
+            false
+        );
     }
 }
 

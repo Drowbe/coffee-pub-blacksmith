@@ -7,6 +7,9 @@ import { CombatStats } from './stats-combat.js';
 import { postConsoleAndNotification, playSound, trimString, formatTime, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 
+/**
+ * RoundTimer handles tiered timing concerns for combat rounds (no stat storage).
+ */
 export class RoundTimer {
     static updateInterval = null;
     static isActive = false;
