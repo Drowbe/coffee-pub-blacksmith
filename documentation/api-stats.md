@@ -272,6 +272,7 @@ Hooks.once('ready', async () => {
     console.log('Most recent combat hit rate:', recentSummary?.totals?.hitRate);
 });
 ```
+```
 
 ---
 
