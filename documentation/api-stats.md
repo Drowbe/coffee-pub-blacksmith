@@ -104,7 +104,7 @@ if (actor) {
 - `getCombatSummary() -> object | null` returns the newest persisted combat summary.
 - `getCombatHistory(limit = 20) -> Array<object>` returns a newest-first slice of stored summaries. The history is bounded to twenty entries when written.
 
-Summaries expose a consistent schema: `totals.damage`, `totals.healing`, and `totals.attacks` (attempts, hits, misses, crits, fumbles) plus `participants[]` entries that mirror those counts per actor. Consumers no longer receive the raw hit/miss arrays; use the aggregate fields for analytics and the `notableMoments` block for highlights.
+Summaries expose a consistent schema: `totals.damage`, `totals.healing`, and `totals.attacks` (attempts, hits, misses, crits, fumbles) plus `participants[]` entries that mirror those counts per actor. Consumers no longer receive the raw hit/miss arrays; use the aggregate fields for analytics and the `notableMoments` block for highlights. The `notableMoments` bundle now includes `mvpRankings`—a descending list of per-actor MVP scores (same formula used in the Party Breakdown)—alongside the top MVP entry.
 
 When combat ends, `CombatStats._onCombatEnd` emits `Hooks.callAll('blacksmith.combatSummaryReady', combatSummary, combat)` so external modules can react without polling the API.
 
@@ -163,8 +163,15 @@ const recent = BlacksmithStats.combat.getCombatHistory(3);
 console.log('Recent combat summaries', recent.map(s => ({
     combatId: s.combatId,
     hitRate: s.totals?.hitRate,
-    topCrits: s.participants?.map(p => ({ actorId: p.actorId, crits: p.criticals }))
+    topCrits: s.participants?.map(p => ({ actorId: p.actorId, crits: p.criticals })),
+    mvpRankings: s.notableMoments?.mvpRankings
 })));
+```
+
+```javascript
+// Inspect MVP rankings for the latest combat
+const rankings = BlacksmithStats.combat.getCombatSummary()?.notableMoments?.mvpRankings ?? [];
+console.table(rankings.map((r, index) => ({ rank: index + 1, name: r.name, score: r.score })));
 ```
 
 ---

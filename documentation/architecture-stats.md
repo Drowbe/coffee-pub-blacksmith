@@ -673,7 +673,7 @@ We're storing full event arrays in multiple places:
 ## Success Criteria
 
 - ✅ Round summaries continue to work as expected
-- ✅ Combat summaries are saved and retrievable
+- ✅ Combat summaries are saved and retrievable (now including MVP rankings for team stack-ranks)
 - ✅ Lifetime stats continue to update correctly
 - ✅ Memory usage is bounded and predictable
 - ✅ No data loss at combat end

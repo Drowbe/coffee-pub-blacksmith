@@ -453,6 +453,8 @@ class CPBPlayerStats {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
         if (!summary?.participants?.length) return;
 
+        const rankings = summary.notableMoments?.mvpRankings || [];
+
         for (const participant of summary.participants) {
             const actorId = participant.actorId;
             if (!actorId) continue;
@@ -479,6 +481,7 @@ class CPBPlayerStats {
 
             const sessionStats = this._getSessionStats(actorId);
             if (sessionStats) {
+                const rankingIndex = rankings.findIndex(r => r.actorId === actorId);
                 const combatRecord = {
                     combatId: summary.combatId,
                     date: summary.date,
@@ -489,6 +492,10 @@ class CPBPlayerStats {
                     hits: participant.hits || 0,
                     misses: participant.misses || 0
                 };
+                if (rankingIndex >= 0) {
+                    combatRecord.mvpScore = rankings[rankingIndex].score;
+                    combatRecord.mvpRank = rankingIndex + 1;
+                }
                 this._boundedPush(sessionStats.combats, combatRecord, 20);
                 sessionStats.currentCombat = null;
             }

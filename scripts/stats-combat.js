@@ -126,6 +126,11 @@ class CombatStats {
         }
     }
 
+    static _computeMvpScore({ hits = 0, crits = 0, fumbles = 0, damage = 0, healing = 0 }) {
+        const rawScore = (hits * 2) + (crits * 3) + (damage * 0.1) + (healing * 0.2) - (fumbles * 2);
+        return Number(rawScore.toFixed(1));
+    }
+
     static _ensureCombatTotals() {
         if (!this.combatStats) {
             this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
@@ -513,10 +518,37 @@ class CombatStats {
         const totalCriticals = combatTotals.attacks?.crits || 0;
         const totalFumbles = combatTotals.attacks?.fumbles || 0;
 
-        // Find MVP (participant with most damage dealt)
-        const mvp = participantSummaries.reduce((max, p) => 
-            (p.damageDealt > (max?.damageDealt || 0)) ? p : max, null
-        );
+        // Compute MVP rankings using the same formula as round breakdown
+        const mvpRankings = participantSummaries.map(p => {
+            const score = this._computeMvpScore({
+                hits: p.hits || 0,
+                crits: p.criticals || 0,
+                fumbles: p.fumbles || 0,
+                damage: p.damageDealt || 0,
+                healing: p.healingGiven || 0
+            });
+
+            const totalAttacks = p.totalAttacks || (p.hits || 0) + (p.misses || 0);
+            const misses = (typeof p.misses === 'number') ? p.misses : Math.max(0, totalAttacks - (p.hits || 0));
+
+            return {
+                actorId: p.actorId,
+                name: p.name,
+                score,
+                hits: p.hits || 0,
+                misses,
+                totalAttacks,
+                crits: p.criticals || 0,
+                fumbles: p.fumbles || 0,
+                damageDealt: p.damageDealt || 0,
+                damageTaken: p.damageTaken || 0,
+                healingGiven: p.healingGiven || 0,
+                healingReceived: p.healingReceived || 0
+            };
+        }).sort((a, b) => b.score - a.score);
+
+        const mvp = mvpRankings.length ? { ...mvpRankings[0] } : null;
+        this.combatStats.mvpRankings = mvpRankings;
 
         // Build summary
         const summary = {
@@ -551,7 +583,8 @@ class CombatStats {
                 topHeals: topHeals,
                 longestTurn: this.combatStats.longestTurn || null,
                 fastestTurn: this.combatStats.fastestTurn?.duration !== Infinity ? this.combatStats.fastestTurn : null,
-                mvp: mvp || null
+                mvp: mvp || null,
+                mvpRankings
             },
 
             // Round summaries (already aggregated from rounds array, if it exists)
@@ -1007,24 +1040,13 @@ class CombatStats {
         const actor = await this._getActorFromUuid(stats.uuid);
         if (!actor || (!actor.hasPlayerOwner && actor.type !== 'character')) return -1;
 
-        let score = 0;
-        
-        // Add points for hits
-        score += (stats.combat?.attacks?.hits || 0) * 2;
-        
-        // Add points for critical hits
-        score += (stats.combat?.attacks?.crits || 0) * 3;
-        
-        // Add points for damage
-        score += (stats.damage?.dealt || 0) * 0.1;
-        
-        // Add points for healing
-        score += (stats.healing?.given || 0) * 0.2;
-        
-        // Subtract points for fumbles
-        score -= (stats.combat?.attacks?.fumbles || 0) * 2;
-
-        return score;
+        return this._computeMvpScore({
+            hits: stats.combat?.attacks?.hits || 0,
+            crits: stats.combat?.attacks?.crits || 0,
+            fumbles: stats.combat?.attacks?.fumbles || 0,
+            damage: stats.damage?.dealt || 0,
+            healing: stats.healing?.given || 0
+        });
     }
 
     // Helper method to calculate MVP
@@ -1075,14 +1097,15 @@ class CombatStats {
         }));
 
         // Filter out null entries and find the highest score
-        const validCandidates = mvpCandidates.filter(c => c !== null);
-        const mvp = validCandidates.reduce((max, current) => 
-            (!max || current.score > max.score) ? current : max, null);
+        const validCandidates = mvpCandidates
+            .filter(c => c !== null)
+            .sort((a, b) => b.score - a.score);
+        const topCandidate = validCandidates.length ? validCandidates[0] : null;
 
         postConsoleAndNotification(MODULE.NAME, 'MVP - Final Selection:', {
-            selectedMVP: mvp?.name,
-            score: mvp?.score,
-            description: mvp?.description,
+            selectedMVP: topCandidate?.name,
+            score: topCandidate?.score,
+            description: topCandidate?.description,
             allCandidates: validCandidates.map(c => ({
                 name: c.name,
                 score: c.score,
@@ -1090,7 +1113,10 @@ class CombatStats {
             }))
         }, true, false);
 
-        return mvp;
+        return {
+            mvp: topCandidate,
+            rankings: validCandidates
+        };
     }
 
     // Helper method to check if an actor is a player character
@@ -1762,16 +1788,21 @@ class CombatStats {
         postConsoleAndNotification(MODULE.NAME, 'Round End - Player Stats for MVP:', playerStats, true, false);
 
         // Calculate MVP only if there are player stats
-        const mvp = playerStats.length > 0 ? await this._calculateMVP(playerStats) : {
-            score: 0,
-            description: MVPDescriptionGenerator.generateDescription({
-                combat: { attacks: { hits: 0, attempts: 0 } },
-                damage: { dealt: 0 },
-                healing: { given: 0 }
-            })
-        };
+        let roundMvpResult = { mvp: null, rankings: [] };
+        if (playerStats.length > 0) {
+            roundMvpResult = await this._calculateMVP(playerStats);
+        } else {
+            roundMvpResult.mvp = {
+                score: 0,
+                description: MVPDescriptionGenerator.generateDescription({
+                    combat: { attacks: { hits: 0, attempts: 0 } },
+                    damage: { dealt: 0 },
+                    healing: { given: 0 }
+                })
+            };
+        }
 
-        postConsoleAndNotification(MODULE.NAME, 'Round End - MVP Calculated:', mvp, true, false);
+        postConsoleAndNotification(MODULE.NAME, 'Round End - MVP Calculated:', roundMvpResult, true, false);
 
         // Calculate total round duration (real wall-clock time)
         const roundEndTimestamp = Date.now();
@@ -1800,8 +1831,8 @@ class CombatStats {
             templateData.roundNumber = roundStats.round;
 
             // Add MVP data to template
-            if (mvp) {
-                templateData.roundMVP = mvp;
+            if (roundMvpResult.mvp) {
+                templateData.roundMVP = roundMvpResult.mvp;
             }
 
             // Render the template
@@ -1939,11 +1970,13 @@ class CombatStats {
         // Second pass: Calculate final scores and prepare for template
         const sortedParticipants = Array.from(participantMap.values()).map(stats => {
             // Calculate MVP score
-            const score = Number(((stats.combat.attacks.hits * 2) + 
-                         (stats.combat.attacks.crits * 3) + 
-                         (stats.damage.dealt * 0.1) + 
-                         (stats.healing.given * 0.2) - 
-                         (stats.combat.attacks.fumbles * 2)).toFixed(1));
+            const score = this._computeMvpScore({
+                hits: stats.combat.attacks.hits,
+                crits: stats.combat.attacks.crits,
+                fumbles: stats.combat.attacks.fumbles,
+                damage: stats.damage.dealt,
+                healing: stats.healing.given
+            });
 
             // Get token image
             const tokenImg = (() => {
