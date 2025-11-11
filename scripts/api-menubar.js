@@ -1,14 +1,17 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, getSettingSafely, setSettingSafely } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely, playSound } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
-import { VoteConfig } from './vote-config.js';
 import { ModuleManager } from './manager-modules.js';
-import { SkillCheckDialog } from './window-skillcheck.js';
-import { CombatTracker } from './combat-tracker.js';
-import { MovementConfig } from './token-movement.js';
 import { HookManager } from './manager-hooks.js';
 import { TokenImageReplacementWindow } from './token-image-replacement.js';
+import { MovementConfig } from './token-movement.js';
 import { PerformanceUtility } from './utility-performance.js';
+import { VoteConfig } from './vote-config.js';
+import { XpManager } from './xp-manager.js';
+import { CSSEditor } from './window-gmtools.js';
+import { SkillCheckDialog } from './window-skillcheck.js';
+import { CombatTracker } from './combat-tracker.js';
+import { StatsWindow } from './window-stats.js';
 
 class MenuBar {
     static ID = 'menubar';
@@ -880,13 +883,27 @@ class MenuBar {
             }
         });
 
+        this.registerMenubarTool('party-stats', {
+            icon: "fas fa-chart-line",
+            name: "party-stats",
+            title: "Party Statistics",
+            tooltip: "Open combat history and MVP leaderboard",
+            zone: "middle",
+            order: 6,
+            moduleId: "blacksmith-core",
+            gmOnly: false,
+            onClick: () => {
+                this.openStatsWindow();
+            }
+        });
+
         this.registerMenubarTool('create-combat', {
             icon: "fas fa-swords",
             name: "create-combat",
             title: "Create Combat",
             tooltip: "Create combat encounter with selected tokens or all tokens on canvas",
             zone: "middle",
-            order: 6,
+            order: 7,
             moduleId: "blacksmith-core",
             gmOnly: true,
             onClick: () => {
@@ -2743,16 +2760,17 @@ class MenuBar {
      */
     static openXpDistribution() {
         try {
-            // Import the XpManager dynamically to avoid circular dependencies
-            import('./xp-manager.js').then(({ XpManager }) => {
-                XpManager.openXpDistributionWindow();
-            }).catch(error => {
-                postConsoleAndNotification(MODULE.NAME, "Error opening XP Distribution window", error, false, false);
-                ui.notifications.error("Failed to open XP Distribution window");
-            });
+            XpManager.openXpDistributionWindow();
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Error importing XP Manager", error, false, false);
-            ui.notifications.error("Failed to open XP Distribution window");
+            postConsoleAndNotification(MODULE.NAME, "Menubar: Error opening XP distribution window", error, false, false);
+        }
+    }
+
+    static openStatsWindow() {
+        try {
+            StatsWindow.show();
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Menubar: Error opening stats window", error, false, false);
         }
     }
 
