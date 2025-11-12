@@ -214,9 +214,17 @@ class CombatStats {
 
         if (includeCurrent) {
             if (!this.currentStats.participantStats[actor.id]) {
-                this.currentStats.participantStats[actor.id] = foundry.utils.deepClone(defaultCurrentParticipantStats);
-            } else if (!this.currentStats.participantStats[actor.id].combat?.attacks) {
-                this.currentStats.participantStats[actor.id].combat = foundry.utils.deepClone(defaultCurrentParticipantStats.combat);
+                this.currentStats.participantStats[actor.id] = foundry.utils.deepClone(this.DEFAULTS.roundStats.participantStats || {});
+            }
+            if (!this.currentStats.participantStats[actor.id].combat?.attacks) {
+                this.currentStats.participantStats[actor.id].combat = this.currentStats.participantStats[actor.id].combat || {};
+                this.currentStats.participantStats[actor.id].combat.attacks = {
+                    hits: this.currentStats.participantStats[actor.id].combat.attacks?.hits || 0,
+                    misses: this.currentStats.participantStats[actor.id].combat.attacks?.misses || 0,
+                    crits: this.currentStats.participantStats[actor.id].combat.attacks?.crits || 0,
+                    fumbles: this.currentStats.participantStats[actor.id].combat.attacks?.fumbles || 0,
+                    attempts: this.currentStats.participantStats[actor.id].combat.attacks?.attempts || 0
+                };
             }
             if (!Array.isArray(this.currentStats.participantStats[actor.id].hits)) {
                 this.currentStats.participantStats[actor.id].hits = [];
@@ -1230,9 +1238,17 @@ class CombatStats {
         if (!this.combatStats.participantStats) this.combatStats.participantStats = {};
         
         if (!this.currentStats.participantStats[actor.id]) {
-            this.currentStats.participantStats[actor.id] = foundry.utils.deepClone(this.DEFAULTS.roundStats.participantStats);
-        } else if (!this.currentStats.participantStats[actor.id].combat?.attacks) {
-            this.currentStats.participantStats[actor.id].combat = foundry.utils.deepClone(this.DEFAULTS.roundStats.participantStats.combat);
+            this.currentStats.participantStats[actor.id] = foundry.utils.deepClone(this.DEFAULTS.roundStats.participantStats || {});
+        }
+        if (!this.currentStats.participantStats[actor.id].combat?.attacks) {
+            this.currentStats.participantStats[actor.id].combat = this.currentStats.participantStats[actor.id].combat || {};
+            this.currentStats.participantStats[actor.id].combat.attacks = {
+                hits: this.currentStats.participantStats[actor.id].combat.attacks?.hits || 0,
+                misses: this.currentStats.participantStats[actor.id].combat.attacks?.misses || 0,
+                crits: this.currentStats.participantStats[actor.id].combat.attacks?.crits || 0,
+                fumbles: this.currentStats.participantStats[actor.id].combat.attacks?.fumbles || 0,
+                attempts: this.currentStats.participantStats[actor.id].combat.attacks?.attempts || 0
+            };
         }
         if (!Array.isArray(this.currentStats.participantStats[actor.id].hits)) {
             this.currentStats.participantStats[actor.id].hits = [];
@@ -1245,6 +1261,11 @@ class CombatStats {
             includeCurrent: true,
             includeCombat: true
         });
+
+        attackerStats.damage = attackerStats.damage || { dealt: 0, taken: 0 };
+        attackerStats.healing = attackerStats.healing || { given: 0, received: 0 };
+        attackerCombatStats.damage = attackerCombatStats.damage || { dealt: 0, taken: 0 };
+        attackerCombatStats.healing = attackerCombatStats.healing || { given: 0, received: 0 };
         this._ensureCombatTotals();
         const combatTotals = this.combatStats.totals;
 
@@ -1389,6 +1410,9 @@ class CombatStats {
                         includeCurrent: true,
                         includeCombat: true
                     });
+
+                    targetCurrentStats.damage = targetCurrentStats.damage || { dealt: 0, taken: 0 };
+                    targetCombatStats.damage = targetCombatStats.damage || { dealt: 0, taken: 0 };
 
                     targetCurrentStats.damage.taken += amount;
                     targetCombatStats.damage.taken += amount;

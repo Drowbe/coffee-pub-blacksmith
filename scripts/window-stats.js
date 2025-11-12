@@ -25,7 +25,11 @@ export class StatsWindow extends Application {
 
     async getData(options = {}) {
         try {
-            const history = StatsAPI.combat.getCombatHistory(20) || [];
+            let history = StatsAPI.combat.getCombatHistory(20) || [];
+            if (!history.length) {
+                const latest = StatsAPI.combat.getCombatSummary();
+                if (latest) history = [latest];
+            }
             const combats = history.map((summary, index) => this._mapCombatSummary(summary, index, history.length));
 
             const leaderboard = await this._buildLeaderboard();
