@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Menubar Combat Health Rings:** Health rings now refresh in real time by listening to `updateActor` and `updateToken` hooks and re-rendering the combat secondary bar whenever combatant HP changes.
+- **Menubar Visibility Controls:** Honored `excludedUsersMenubar` by skipping menubar/secondary-bar rendering and interactions for listed users, ensuring GM-configured exclusions take effect.
+- **NPC Health Privacy Setting:** Added `menubarCombatHideHealthBars` (world) so GMs can hide monster health rings for players while retaining full visibility themselves.
+
 
 ## [12.1.19] - Dynamic Compendium Configuration and Expanded Type Support
 
@@ -1466,8 +1469,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed MVP player name formatting
 - Adjusted fumble icon color for better visibility
-
-- **Menubar Visibility Controls:** Honored `excludedUsersMenubar` by skipping menubar/secondary-bar rendering and interactions for listed users, ensuring GM-configured exclusions take effect.
-- **NPC Health Privacy Setting:** Added `menubarCombatHideHealthBars` (world) so GMs can hide monster health rings for players while retaining full visibility themselves.
 
 
