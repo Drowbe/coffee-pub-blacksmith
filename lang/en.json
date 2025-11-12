@@ -893,8 +893,8 @@
 				"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for token images. These folders will be completely skipped during the scan process. Examples: _gsdata_, .DS_Store",
 
 
-				"tokenImageReplacementAutoUpdate-Label": "Automatically Update Images",
-				"tokenImageReplacementAutoUpdate-Hint": "",
+				"tokenImageReplacementAutoUpdate-Label": "Monitor Image Folder for Changes",
+				"tokenImageReplacementAutoUpdate-Hint": "If enabled, the module will monitor the image folder for changes and update the cache accordingly. If disabled, the module will only update the cache when the 'Update Images' button is clicked.",
 
 
 				"tokenImageReplacementDeprioritizedWords-Label": "Deprioritized Words",

@@ -1467,4 +1467,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed MVP player name formatting
 - Adjusted fumble icon color for better visibility
 
+- **Menubar Visibility Controls:** Honored `excludedUsersMenubar` by skipping menubar/secondary-bar rendering and interactions for listed users, ensuring GM-configured exclusions take effect.
+
 

@@ -2072,15 +2072,13 @@ class MenuBar {
      */
     static toggleSecondaryBar(typeId, options = {}) {
         try {
+            if (this._isUserExcluded(game.user)) return false;
             if (this.secondaryBar.isOpen && this.secondaryBar.type === typeId) {
-                // Close if same type is open (user initiated)
                 return this.closeSecondaryBar(true);
             } else {
-                // For combat bars, reset the userClosed flag since this is a deliberate user action
                 if (typeId === 'combat') {
                     this.secondaryBar.userClosed = false;
                 }
-                // Open the specified type
                 return this.openSecondaryBar(typeId, options);
             }
         } catch (error) {
@@ -2096,6 +2094,7 @@ class MenuBar {
      */
     static updateSecondaryBar(data) {
         try {
+            if (this._isUserExcluded(game.user)) return false;
             if (!this.secondaryBar.isOpen) {
                 postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Cannot update closed bar", "", false, false);
                 return false;
@@ -2103,7 +2102,6 @@ class MenuBar {
 
             this.secondaryBar.data = { ...this.secondaryBar.data, ...data };
 
-            // Re-render to update the bar content
             this.renderMenubar(true);
 
             return true;
@@ -2150,8 +2148,8 @@ class MenuBar {
      */
     static openCombatBar(combatData = null) {
         try {
+            if (this._isUserExcluded(game.user)) return false;
             
-            // Set initial combat menubar height from setting
             const combatHeight = game.settings.get(MODULE.ID, 'menubarCombatSize');
             document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${combatHeight}px`);
             
@@ -2161,7 +2159,6 @@ class MenuBar {
             }
 
 
-            // Reset user closed flag when combat starts
             this.secondaryBar.userClosed = false;
 
             const data = combatData || this.getCombatData(combat);
@@ -2177,14 +2174,10 @@ class MenuBar {
         }
     }
 
-    /**
-     * Close combat tracker secondary bar
-     * @returns {boolean} Success status
-     */
     static closeCombatBar() {
         try {
+            if (this._isUserExcluded(game.user)) return true;
             if (this.secondaryBar.isOpen && this.secondaryBar.type === 'combat') {
-                // Reset userClosed flag when combat ends (not user-initiated)
                 this.secondaryBar.userClosed = false;
                 return this.closeSecondaryBar();
             }
@@ -2195,20 +2188,15 @@ class MenuBar {
         }
     }
 
-    /**
-     * Update combat tracker secondary bar
-     * @param {Object} combatData - Updated combat data
-     * @returns {boolean} Success status
-     */
     static updateCombatBar(combatData = null) {
         try {
+            if (this._isUserExcluded(game.user)) return false;
             if (!this.secondaryBar.isOpen || this.secondaryBar.type !== 'combat') {
                 return false;
             }
 
             const combat = game.combats.active;
             if (!combat) {
-                // Close combat bar if no active combat
                 return this.closeCombatBar();
             }
 
@@ -2522,10 +2510,28 @@ class MenuBar {
         }
     }
 
+    static _isUserExcluded(user) {
+        if (!user) return false;
+        const raw = game.settings.get(MODULE.ID, 'excludedUsersMenubar') || '';
+        const tokens = raw.split(',').map(token => token.trim().toLowerCase()).filter(Boolean);
+        if (!tokens.length) return false;
+
+        const matchesUserId = tokens.includes(user.id.toLowerCase());
+        const matchesUserName = user.name ? tokens.includes(user.name.toLowerCase()) : false;
+
+        return matchesUserId || matchesUserName;
+    }
+
+    static _removeMenubarDom() {
+        document.querySelector('.blacksmith-menubar-container')?.remove();
+        document.querySelectorAll('.blacksmith-menubar-secondary').forEach(el => el.remove());
+        document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', '0px');
+        document.documentElement.style.setProperty('--blacksmith-menubar-total-height', 'var(--blacksmith-menubar-primary-height)');
+    }
+
     static async renderMenubar(immediate = false) {
         try {
 
-            // Debounce rapid render calls
             if (!immediate && this.renderTimeout) {
                 clearTimeout(this.renderTimeout);
                 this.renderTimeout = null;
@@ -2537,6 +2543,12 @@ class MenuBar {
                 }, 50); // 50ms debounce
                 return;
             }
+
+            if (this._isUserExcluded(game.user)) {
+                this._removeMenubarDom();
+                return;
+            }
+
             // Check if movement type setting exists first
             let currentMovement = 'normal-movement';
             let currentMovementData = { icon: 'fa-person-running', name: 'Free' };
@@ -3025,19 +3037,17 @@ class MenuBar {
                 actor.hasPlayerOwner
             )
             .map(actor => {
-                // Find the user with highest ownership level for this actor
                 const ownerEntry = Object.entries(actor.ownership)
                     .filter(([userId, level]) => 
-                        level === 3 && // OWNER level
-                        !excludedUsers.includes(userId) && 
-                        !excludedUsers.includes(game.users.get(userId)?.name)
+                        level === 3 &&
+                        !this._isUserExcluded(game.users.get(userId))
                     )
                     .map(([userId, level]) => ({
                         userId,
                         user: game.users.get(userId),
                         level
                     }))
-                    .find(entry => entry.user && entry.user.active); // Only include active users
+                    .find(entry => entry.user && entry.user.active);
 
                 if (ownerEntry) {
                     return {

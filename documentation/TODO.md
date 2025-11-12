@@ -70,22 +70,6 @@
 - **Related Settings**: None currently
 
 
-### Menubar Not Respecting Excluded Users Setting
-- **Issue**: Menubar is not honoring the setting to hide menubar from listed excluded players
-- **Status**: PENDING - Needs implementation
-- **Priority**: MEDIUM - Settings compliance
-- **Current State**: `excludedUsersMenubar` setting exists but may not be properly filtering visibility
-- **Location**: `scripts/api-menubar.js` (menubar rendering), `scripts/settings.js` (excludedUsersMenubar setting)
-- **Tasks Needed**:
-  - Verify `excludedUsersMenubar` setting is checked during menubar render
-  - Hide menubar for users in the exclusion list
-  - Test with different users and exclusion lists
-  - Ensure setting works for both GM and player users
-- **Related Settings**:
-  - `excludedUsersMenubar` - Comma-separated list of userIDs to exclude from menubar
-  - `enableMenubar` - Main toggle for menubar functionality
-- **Notes**: This ensures proper user-level control over menubar visibility per user preference
-
 ### Cleanup Menubar Timer Layout
 - **Issue**: Menubar timer display layout needs cleanup and organization
 - **Status**: PENDING - Needs implementation
