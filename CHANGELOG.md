@@ -1468,5 +1468,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adjusted fumble icon color for better visibility
 
 - **Menubar Visibility Controls:** Honored `excludedUsersMenubar` by skipping menubar/secondary-bar rendering and interactions for listed users, ensuring GM-configured exclusions take effect.
+- **NPC Health Privacy Setting:** Added `menubarCombatHideHealthBars` (world) so GMs can hide monster health rings for players while retaining full visibility themselves.
 
 

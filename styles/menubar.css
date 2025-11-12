@@ -639,8 +639,7 @@ Combat Tracker Tunables
     border-radius: 50%;
     -webkit-user-drag: none;
     user-select: none;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    
+    border: 0px solid rgba(0, 0, 0, 0.05);
   }
   
   
@@ -700,6 +699,9 @@ Combat Tracker Tunables
   }
   .blacksmith-menubar-secondary .combat-portrait-ring-critical  circle { 
       stroke: #a11c1b; 
+  }
+  .blacksmith-menubar-secondary .combat-portrait-ring-hidden circle {
+    stroke: rgba(61, 39, 41, 0.2);
   }
   
   /* Dead pulsing */

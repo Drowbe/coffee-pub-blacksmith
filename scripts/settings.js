@@ -1551,6 +1551,16 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Hide HEalth Bars for Enemy Combatants --
+	game.settings.register(MODULE.ID, 'menubarCombatHideHealthBars', {
+		name: MODULE.ID + '.menubarCombatHideHealthBars-Label',
+		hint: MODULE.ID + '.menubarCombatHideHealthBars-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
 
 	// --------------------------------------
 	// -- H2: Combat Statistics

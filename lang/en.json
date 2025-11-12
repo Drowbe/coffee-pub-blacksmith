@@ -237,6 +237,9 @@
 				"menubarCombatSize-Label": "Size",
 				"menubarCombatSize-Hint": "The verticle size of the combat menubar.",
 
+				"menubarCombatHideHealthBars-Label": "Hide Enemy Health Bars",
+				"menubarCombatHideHealthBars-Hint": "When enabled, the health bars of enemy combatants will be hidden from players in the combat menubar.",
+
 
 		"headingH2Statistics-Label": "Statistics",
 		"headingH2Statistics-Hint": "Settings for tracking and sharing combat statistics.",

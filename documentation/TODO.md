@@ -43,21 +43,6 @@
 
 ### MEDIUM PRIORITY ISSUES
 
-### Hide NPC Health from Players in Menubar
-- **Issue**: NPC health should be hidden from players in the menubar combat display
-- **Status**: PENDING - Needs implementation
-- **Priority**: MEDIUM - Gameplay functionality
-- **Current State**: NPC health is visible to players in the menubar
-- **Location**: `scripts/api-menubar.js` (combat bar rendering), menubar templates
-- **Tasks Needed**:
-  - Check ownership/permissions before displaying health values for NPCs
-  - Hide or mask NPC health for non-GM players
-  - Ensure GM can still see all health values
-  - Test with different permission levels
-- **Related Settings**: None currently
-- **Notes**: Players should not see NPC health values - only GM should see them
-
-
 ### Track and report our movement distance against the walking speed of the token
 - **Issue**: Need to track and report our movement distance against the walking speed of the token
 - **Status**: PENDING - Needs implementation
@@ -71,7 +56,7 @@
 
 
 ### Cleanup Menubar Timer Layout
-- **Issue**: Menubar timer display layout needs cleanup and organization
+- **Issue**: Menubar timer display layout needs cleanup and organization. It is not showing the proper data.
 - **Status**: PENDING - Needs implementation
 - **Priority**: MEDIUM - UI/UX improvement
 - **Current State**: Timer layout may be cluttered or poorly organized
@@ -133,23 +118,6 @@
   - `enableMenubar` - Main toggle for menubar functionality
   - `excludedUsersMenubar` - List of users who should not see the menubar
 - **Notes**: This is part of the settings refactoring - ensure the migrated settings actually work
-
-### Wire up excludedUsersMenubar Setting
-- **Issue**: excludedUsersMenubar setting needs to be properly connected to hide menubar for excluded users
-- **Status**: PENDING - Needs implementation
-- **Priority**: MEDIUM - Settings refactoring completion
-- **Current State**: Setting exists but may not be properly filtering menubar visibility
-- **Location**: `scripts/settings.js` (excludedUsersMenubar setting), `scripts/api-menubar.js` (menubar functionality)
-- **Tasks Needed**:
-  - Ensure excludedUsersMenubar setting properly hides menubar for users in the exclusion list
-  - Verify the setting is parsed correctly (comma-separated userIDs)
-  - Test that excluded users don't see the menubar panel
-  - Test that non-excluded users still see the menubar
-  - Verify the setting works in combination with enableMenubar
-- **Related Settings**:
-  - `excludedUsersMenubar` - Comma-separated list of userIDs to exclude from menubar
-  - `enableMenubar` - Main toggle for menubar functionality
-- **Notes**: This ensures proper user-level control over menubar visibility
 
 ### Verify Auto Add XP is Wired
 - **Issue**: Auto Add XP functionality needs to be verified as properly connected
@@ -240,32 +208,6 @@
   - `rulebookCustom` - Custom rulebooks text box (new)
 - **Notes**: This provides better UX for selecting common rulebooks while maintaining flexibility for custom ones
 
-### Filter Compendiums by Type
-- **Issue**: Compendium search settings should allow filtering by compendium type (Actor, Item, Feature, Spell, etc.)
-- **Status**: PENDING - Needs implementation
-- **Priority**: MEDIUM - Settings refactoring completion
-- **Current State**: Compendium settings are organized by type but may not have proper filtering
-- **Location**: `scripts/settings.js` (compendium settings), compendium search functionality
-- **Tasks Needed**:
-  - Review current compendium settings organization
-  - Add filtering logic to separate compendiums by type
-  - Ensure Actor compendiums only show Actor compendiums
-  - Ensure Item compendiums only show Item compendiums
-  - Ensure Feature compendiums only show Feature compendiums
-  - Ensure Spell compendiums only show Spell compendiums
-  - Test that filtering works correctly for each type
-  - Update UI to show only relevant compendiums per type
-  - Consider adding "All Types" option for mixed compendiums
-- **Related Settings**:
-  - `monsterCompendium1-8` - Monster/Actor compendiums (8 settings)
-  - `itemCompendium1-8` - Item compendiums (8 settings)
-  - `featureCompendium1-8` - Feature compendiums (8 settings)
-  - `spellCompendium1-8` - Spell compendiums (8 settings)
-  - `searchWorldMonstersFirst` - Search world monsters first
-  - `searchWorldItemsFirst` - Search world items first
-  - `searchWorldFeaturesFirst` - Search world features first
-- **Notes**: This ensures users only see relevant compendiums for each type, improving UX and reducing confusion
-
 ### Refactor Compendium Settings into Reusable Function
 - **Issue**: Compendium settings have repeated code patterns that could be consolidated
 - **Status**: PENDING - Needs implementation
@@ -317,61 +259,6 @@
   - `spellCompendium1-8` - Spell compendiums (8 settings)
 - **Notes**: This reduces code duplication and makes adding new compendium types easier
 
-### Enhance Compendium Choices with Type Filtering
-- **Issue**: Compendium choices should be filtered by type and made available to other modules
-- **Status**: PENDING - Needs implementation
-- **Priority**: MEDIUM - Settings refactoring completion
-- **Current State**: Single `arrCompendiumChoices` array contains all compendiums regardless of type
-- **Location**: `scripts/settings.js` (`getCompendiumChoices()` function)
-- **Tasks Needed**:
-  - Modify `getCompendiumChoices()` to include type information in compendium data
-  - Create filtered arrays for each compendium type (Actor, Item, JournalEntry, Scene, etc.)
-  - Expose filtered arrays to other modules via `BLACKSMITH.updateValue()`
-  - Update compendium settings to use type-specific filtered arrays
-  - Test that other modules can access both full and filtered arrays
-  - Ensure backward compatibility with existing `arrCompendiumChoices`
-- **Proposed Enhancement**:
-  ```javascript
-  function getCompendiumChoices() {
-      // ... existing code ...
-      
-      // Store full data with type information
-      BLACKSMITH.updateValue('arrCompendiumChoicesData', choicesArray);
-      
-      // Store main choices (backward compatible)
-      BLACKSMITH.updateValue('arrCompendiumChoices', choices);
-      
-      // Create and store filtered arrays for each type
-      const types = [...new Set(choicesArray.map(c => c.type))];
-      types.forEach(type => {
-          const filteredChoices = choicesArray
-              .filter(compendium => compendium.type === type)
-              .reduce((choices, compendium) => {
-                  choices[compendium.id] = compendium.label;
-                  return choices;
-              }, {"none": "-- None --"});
-          
-          BLACKSMITH.updateValue(`arrCompendiumChoices${type}`, filteredChoices);
-      });
-  }
-  ```
-- **Available Arrays for Other Modules**:
-  - `BLACKSMITH.arrCompendiumChoices` - Full array (backward compatible)
-  - `BLACKSMITH.arrCompendiumChoicesActor` - Actor compendiums only
-  - `BLACKSMITH.arrCompendiumChoicesAdventure` - Adventure compendiums only
-  - `BLACKSMITH.arrCompendiumChoicesCardStack` - Card Stack compendiums only
-  - `BLACKSMITH.arrCompendiumChoicesItem` - Item compendiums only
-  - `BLACKSMITH.arrCompendiumChoicesJournalEntry` - Journal Entry compendiums only
-  - `BLACKSMITH.arrCompendiumChoicesMacro` - Macro compendiums only
-  - `BLACKSMITH.arrCompendiumChoicesPlaylist` - Playlist compendiums only
-  - `BLACKSMITH.arrCompendiumChoicesRollTable` - Rollable Table compendiums only
-  - `BLACKSMITH.arrCompendiumChoicesScene` - Scene compendiums only
-- **Settings Updates**:
-  - `monsterCompendium1-8` → `choices: BLACKSMITH.arrCompendiumChoicesActor`
-  - `itemCompendium1-8` → `choices: BLACKSMITH.arrCompendiumChoicesItem`
-  - `featureCompendium1-8` → `choices: BLACKSMITH.arrCompendiumChoicesJournalEntry`
-  - `spellCompendium1-8` → `choices: BLACKSMITH.arrCompendiumChoicesItem` (or appropriate type)
-- **Notes**: This provides better UX by showing only relevant compendiums per type while maintaining backward compatibility
 
 ### Combat Stats - Review and Refactor
 - **Issue**: Combat stats system needs review and potential refactoring

@@ -2218,29 +2218,33 @@ class MenuBar {
         try {
             if (!combat) return {};
 
+            const hideNpcHealthSetting = game.settings.get(MODULE.ID, 'menubarCombatHideHealthBars');
+            const hideNpcHealth = hideNpcHealthSetting && !game.user.isGM;
+
             const combatants = combat.combatants.map(combatant => {
                 const token = combatant.token;
                 const actor = combatant.actor;
                 
-                // Get combat-portrait data
                 let currentHP = 0;
                 let maxHP = 0;
                 let healthPercentage = 100;
                 let healthCircumference = 0;
                 let healthDashOffset = 0;
                 let healthClass = 'combat-portrait-ring-healthy';
+                let healthRingHidden = false;
                 
-                // Calculate SVG values for health ring (derived from CSS variable)
-                // Portrait size is 80% of secondary bar height (defined in CSS)
                 const secondaryHeightStr = getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-menubar-secondary-combat-height');
                 const secondaryHeight = parseInt(secondaryHeightStr) || 50;
-                const size = Math.floor(secondaryHeight * 0.8); // Match CSS: --portrait-size: calc(var(--blacksmith-menubar-secondary-height) * 0.8)
-                const strokeWidth = Math.max(2, Math.floor(size * 0.05)); // Stroke is ~5% of portrait size
-                // Radius needs to account for half the stroke width to keep it within bounds
+                const size = Math.floor(secondaryHeight * 0.8);
+                const strokeWidth = Math.max(2, Math.floor(size * 0.05));
                 const radius = (size / 2) - (strokeWidth / 2);
                 
                 if (actor) {
-                    // Try to get HP from actor
+                    const isNpc = !actor.hasPlayerOwner;
+                    if (hideNpcHealth && isNpc) {
+                        healthRingHidden = true;
+                    }
+                    
                     if (actor.system?.attributes?.hp) {
                         currentHP = actor.system.attributes.hp.value || 0;
                         maxHP = actor.system.attributes.hp.max || 1;
@@ -2253,14 +2257,12 @@ class MenuBar {
                         healthPercentage = Math.max(0, Math.min(100, (currentHP / maxHP) * 100));
                     }
                     
-                    // Calculate health ring dash values
                     const circumference = 2 * Math.PI * radius;
                     const dashOffset = currentHP <= 0 ? 0 : circumference - (healthPercentage / 100) * circumference;
                     
                     healthCircumference = circumference;
                     healthDashOffset = dashOffset;
                     
-                    // Get combat-portrait color class
                     if (currentHP <= 0) {
                         healthClass = 'combat-portrait-ring-dead';
                     } else if (healthPercentage >= 75) {
@@ -2274,14 +2276,11 @@ class MenuBar {
                     }
                 }
                 
-                   // Determine if combatant is actually dead based on D&D5e rules
                    let isActuallyDead = false;
                    if (actor) {
                        if (actor.type === "character") {
-                           // For PCs: Only dead if marked as defeated (failed 3 death saves)
                            isActuallyDead = combatant.isDefeated || false;
                        } else {
-                           // For NPCs/Monsters: Dead if HP <= 0
                            const currentHP = actor.system?.attributes?.hp?.value || 0;
                            isActuallyDead = currentHP <= 0;
                        }
@@ -2300,15 +2299,15 @@ class MenuBar {
                        maxHP: maxHP,
                        healthPercentage: healthPercentage,
                        healthCircumference: healthCircumference,
-                       healthDashOffset: healthDashOffset,
-                       healthClass: healthClass,
+                       healthDashOffset: healthRingHidden ? 0 : healthDashOffset,
+                       healthClass: healthRingHidden ? 'combat-portrait-ring-hidden' : healthClass,
+                       healthRingHidden,
                        svgSize: size,
                        svgCenter: size / 2,
                        svgRadius: radius,
                        svgStrokeWidth: strokeWidth
                    };
-                
-                
+
                 return combatantData;
             });
 

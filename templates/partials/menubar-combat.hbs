@@ -53,19 +53,34 @@
                     data-combatant-id="{{id}}"
                     data-tooltip="{{name}} - Initiative: {{initiative}} - HP: {{currentHP}}/{{maxHP}}">
                    <div class="combat-portrait-healthring">
-                       <svg width="{{svgSize}}" height="{{svgSize}}" viewBox="0 0 {{svgSize}} {{svgSize}}" class="{{healthClass}}">
-                           <circle
-                               cx="{{svgCenter}}"
-                               cy="{{svgCenter}}"
-                               r="{{svgRadius}}"
-                               fill="none"
-                               stroke-width="{{svgStrokeWidth}}"
-                               stroke-dasharray="{{healthCircumference}}"
-                               stroke-dashoffset="{{healthDashOffset}}"
-                               transform="rotate(-90, {{svgCenter}}, {{svgCenter}})"
-                               {{#if (gt currentHP 0)}}style="transition: stroke-dashoffset 0.3s ease-in-out, stroke 0.3s ease-in-out"{{/if}}
-                           />
-                       </svg>
+                       {{#if healthRingHidden}}
+                           <svg width="{{svgSize}}" height="{{svgSize}}" viewBox="0 0 {{svgSize}} {{svgSize}}" class="{{healthClass}}">
+                               <circle
+                                   cx="{{svgCenter}}"
+                                   cy="{{svgCenter}}"
+                                   r="{{svgRadius}}"
+                                   fill="none"
+                                   stroke-width="{{svgStrokeWidth}}"
+                                   stroke-dasharray="{{healthCircumference}}"
+                                   stroke-dashoffset="0"
+                                   transform="rotate(-90, {{svgCenter}}, {{svgCenter}})"
+                               />
+                           </svg>
+                       {{else}}
+                           <svg width="{{svgSize}}" height="{{svgSize}}" viewBox="0 0 {{svgSize}} {{svgSize}}" class="{{healthClass}}">
+                               <circle
+                                   cx="{{svgCenter}}"
+                                   cy="{{svgCenter}}"
+                                   r="{{svgRadius}}"
+                                   fill="none"
+                                   stroke-width="{{svgStrokeWidth}}"
+                                   stroke-dasharray="{{healthCircumference}}"
+                                   stroke-dashoffset="{{healthDashOffset}}"
+                                   transform="rotate(-90, {{svgCenter}}, {{svgCenter}})"
+                                   {{#if (gt currentHP 0)}}style="transition: stroke-dashoffset 0.3s ease-in-out, stroke 0.3s ease-in-out"{{/if}}
+                               />
+                           </svg>
+                       {{/if}}
                    </div>
                    <div class="combat-portrait-image">
                        <img src="{{portrait}}" alt="{{name}}" onerror="this.src='modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp'">
