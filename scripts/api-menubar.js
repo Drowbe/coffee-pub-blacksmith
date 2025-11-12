@@ -357,6 +357,49 @@ class MenuBar {
             }
         });
 
+        // Hook for actor HP change
+        const updateActorHookId = HookManager.registerHook({
+            name: 'updateActor',
+            description: 'MenuBar: Update combat bar when actor HP changes',
+            context: 'menubar-actor-update',
+            priority: 3,
+            callback: (actor, updateData) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                // Check if actor is in combat
+                if (MenuBar._isCombatBarActive()) {
+                    MenuBar._handleActorHpChange(actor, updateData);
+                }
+            }
+        });
+
+        // Hook for token HP change
+        const updateTokenHookId = HookManager.registerHook({
+            name: 'updateToken',
+            description: 'MenuBar: Update combat bar when token HP changes',
+            context: 'menubar-token-update',
+            priority: 3,
+            callback: (token, updateData) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                // Check if token is in combat
+                if (MenuBar._isCombatBarActive()) {
+                    MenuBar._handleTokenHpChange(token, updateData);
+                }
+            }
+        });
+
+        this._registeredHooks = {
+            combatUpdateHookId,
+            combatCreateHookId,
+            combatantCreateHookId,
+            combatantUpdateHookId,
+            combatantDeleteHookId,
+            combatDeleteHookId,
+            combatTrackerRenderHookId,
+            combatTrackerCloseHookId,
+            updateActorHookId,
+            updateTokenHookId
+        };
+
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat hooks registered", "", true, false);
     }
 
@@ -2318,65 +2361,99 @@ class MenuBar {
                         control: 'endTurn',
                         label: 'End Turn',
                         tooltip: 'End Turn',
-                        icon: 'fa-forward',
+                        icon: 'fa-flag-checkered',
                         text: 'End Turn',
-                        type: 'end'
+                        type: 'turn'
                     };
-                } else {
-                    // Check how many owned combatants need initiative
-                    const ownedCombatantsNeedingInitiative = combatants.filter(c => c.needsInitiative && c.canRollInitiative);
-                    const ownedPCs = combat.combatants.filter(c =>
-                        c?.actor &&
-                        c.actor.type === "character" && // strictly PCs
-                        c.isOwner                       // owned in *this* combat by the current user
-                      );
-                    
-                    if (ownedCombatantsNeedingInitiative.length > 0) {
-                        // Calculate which initiative roll this is (1 of X, 2 of X, etc.)
-                        const totalOwnedPCs = ownedPCs.length;
-                        const alreadyRolled = ownedPCs.filter(c => c.initiative !== null).length;
-                        const currentRoll = alreadyRolled + 1; // Next initiative to roll
-                        
-                        // Always show count if player owns multiple characters, even for the last one
-                        const buttonText = totalOwnedPCs === 1 ? 'Roll Initiative' : `Roll Initiative ${currentRoll} of ${totalOwnedPCs}`;
-                        const tooltipText = totalOwnedPCs === 1 ? 'Roll Initiative' : `Roll Initiative for character ${currentRoll} of ${totalOwnedPCs}`;
-                        
-                        actionButton = {
-                            control: 'rollInitiative',
-                            label: buttonText,
-                            tooltip: tooltipText,
-                            icon: 'fa-dice-d20',
-                            text: buttonText,
-                            type: 'roll',
-                            currentRoll: currentRoll,
-                            totalOwnedPCs: totalOwnedPCs,
-                            countRemaining: ownedCombatantsNeedingInitiative.length
-                        };
-                    }
-                    // If no owned combatants need initiative, don't show any action button
                 }
             }
 
-            // Get current combatant name
-            const currentCombatant = combat.combatants.get(combat.current.combatantId);
-            const currentCombatantName = currentCombatant ? currentCombatant.name : '';
-
-            const combatData = {
-                currentRound: combat.round || 1,
-                currentTurn: combat.turn || 1,
-                totalTurns: combatants.length,
-                combatants: combatants,
-                isActive: combat.started,
-                actionButton: actionButton,
-                isGM: game.user.isGM,
-                currentCombatant: currentCombatantName
+            return {
+                combatants,
+                actionButton
             };
-            
-            
-            return combatData;
-
         } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error gathering combat data", { error }, false, false);
             return {};
+        }
+    }
+
+    static _isCombatBarActive() {
+        return MenuBar.secondaryBar.isOpen && MenuBar.secondaryBar.type === 'combat';
+    }
+
+    static _didHpChange(updateData) {
+        if (!updateData) return false;
+        const targets = [
+            'system.attributes.hp.value',
+            'system.attributes.hp.temp',
+            'system.attributes.hp.max',
+            'system.attributes.hp.base',
+            'system.attributes.hp.bonus',
+            'system.vitals.hp.value',
+            'system.vitals.hp.temp',
+            'system.vitals.hp.max',
+            'system.hitPoints.value',
+            'system.hitPoints.max',
+            'system.hp.value',
+            'system.hp.max',
+            'actorData.system.attributes.hp.value',
+            'actorData.system.attributes.hp.temp',
+            'actorData.system.attributes.hp.max',
+            'actorData.system.hitPoints.value',
+            'actorData.system.hitPoints.max',
+            'actorData.system.hp.value',
+            'actorData.system.hp.max'
+        ];
+        const flat = foundry.utils.flattenObject(updateData || {});
+        const changed = targets.some(path => flat[path] !== undefined);
+        if (changed) {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: HP change detected in update data', { paths: targets.filter(path => flat[path] !== undefined), values: flat }, true, false);
+        }
+        return changed;
+    }
+
+    static _handleActorHpChange(actor, updateData) {
+        try {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: updateActor received', { actorId: actor?.id, updateData }, true, false);
+            if (!MenuBar._isCombatBarActive()) return;
+            if (!MenuBar._didHpChange(updateData)) return;
+
+            const combat = game.combats?.active;
+            if (!combat) return;
+
+            const isCombatant = combat.combatants.some(combatant => combatant.actor?.id === actor?.id);
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Actor HP change evaluated', { isCombatant }, true, false);
+            if (!isCombatant) return;
+
+            MenuBar.updateCombatBar();
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Failed to process actor HP change', { actorId: actor?.id, error }, true, false);
+        }
+    }
+
+    static _handleTokenHpChange(token, updateData) {
+        try {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: updateToken received', { tokenId: token?.id, updateData }, true, false);
+            if (!MenuBar._isCombatBarActive()) return;
+            if (!MenuBar._didHpChange(updateData)) return;
+
+            const combat = game.combats?.active;
+            if (!combat) return;
+
+            const tokenId = token?.id;
+            const actorId = token?.actor?.id;
+
+            const isCombatant = combat.combatants.some(combatant => {
+                return combatant.token?.id === tokenId || combatant.actor?.id === actorId;
+            });
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Token HP change evaluated', { isCombatant }, true, false);
+
+            if (!isCombatant) return;
+
+            MenuBar.updateCombatBar();
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Failed to process token HP change', { tokenId: token?.id, error }, true, false);
         }
     }
 
