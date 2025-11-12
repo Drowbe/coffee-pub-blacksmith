@@ -268,14 +268,22 @@ div#blacksmith-stats-window .window-content {
   gap: 6px;
 }
 
-.stats-table-wrapper[data-table-type=\"combats\"] .stats-table-header,
-.stats-table-wrapper[data-table-type=\"combats\"] .stats-table-row {
-  grid-template-columns: 2fr 1fr 1fr 1.5fr 1fr;
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-header,
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
 }
 
-.stats-table-wrapper[data-table-type=\"leaderboard\"] .stats-table-header,
-.stats-table-wrapper[data-table-type=\"leaderboard\"] .stats-table-row {
-  grid-template-columns: 0.5fr 2fr 1fr 0.8fr 1fr 1fr;
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-1 { width: 10%; }
+.stats-table-col-2 { width: 30%; }
+.stats-table-col-3 { width: 15%; }
+.stats-table-col-4 { width: 15%; }
+.stats-table-col-5 { width: 15%; }
+.stats-table-col-6 { width: 15%; }
+
+.stats-table-row .stats-table-col-2 {
+  gap: 8px;
 }
 
 .stats-table-row .player-portrait {
