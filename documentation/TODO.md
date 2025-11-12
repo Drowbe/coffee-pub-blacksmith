@@ -792,3 +792,6 @@
 - **Issue**: Socketmanager is evolving into a "god class" that both manages hooks AND contains business logic
 - **Proposed Solution**:
   - Socketmanager should ONLY manage socket registration/cleanup (like hookmanager)
+
+- [ ] Party Stats Window: recent combat history and MVP highlights still not displaying even after combat summaries write; investigate data pipeline and update window accordingly.
+- [ ] Combat Tracker: prevent "Round Summary" from firing when the GM clicks Begin Combat.
