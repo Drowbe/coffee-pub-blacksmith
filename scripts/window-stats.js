@@ -41,17 +41,16 @@ export class StatsWindow extends Application {
                 filters: {
                     showCombats: true,
                     showLifetime: true
-                },
-                formatDate: this._formatDate.bind(this),
-                formatDuration: this._formatDuration.bind(this)
+                }
             };
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'COMBAT STATS: Failed to prepare stats window context', error, false, false);
             return {
                 summary: {
                     totalCombats: 0,
-                    averageHitRate: 0,
-                    topMvp: { name: '—', score: '0.0' },
+                    averageHitRate: '0.0',
+                    topMvp: '—',
+                    bestScore: '0.0',
                     lastCombatDate: '—'
                 },
                 combats: [],
@@ -60,9 +59,7 @@ export class StatsWindow extends Application {
                 filters: {
                     showCombats: true,
                     showLifetime: true
-                },
-                formatDate: this._formatDate.bind(this),
-                formatDuration: this._formatDuration.bind(this)
+                }
             };
         }
     }
@@ -70,38 +67,44 @@ export class StatsWindow extends Application {
     activateListeners(html) {
         super.activateListeners(html);
 
-        html.querySelector('#toggleCombats')?.addEventListener('change', (event) => {
-            const section = html.querySelector('[data-section="combat-history"]');
-            section?.classList.toggle('hidden', !event.currentTarget.checked);
-        });
+        const element = html?.[0];
+        if (!element) return;
 
-        html.querySelector('#toggleLifetime')?.addEventListener('change', (event) => {
-            const section = html.querySelector('[data-section="lifetime-leaderboard"]');
-            section?.classList.toggle('hidden', !event.currentTarget.checked);
-        });
+        const combatSection = element.querySelector('[data-section="combat-history"]');
+        const lifetimeSection = element.querySelector('[data-section="lifetime-leaderboard"]');
 
-        html.querySelector('.close-stats')?.addEventListener('click', () => this.close());
-        html.querySelector('.export-history')?.addEventListener('click', () => this._exportHistory());
+        const toggleCombats = element.querySelector('#toggleCombats');
+        if (toggleCombats) {
+            toggleCombats.addEventListener('change', (event) => {
+                combatSection?.classList.toggle('hidden', !event.currentTarget.checked);
+            });
+        }
+
+        const toggleLifetime = element.querySelector('#toggleLifetime');
+        if (toggleLifetime) {
+            toggleLifetime.addEventListener('change', (event) => {
+                lifetimeSection?.classList.toggle('hidden', !event.currentTarget.checked);
+            });
+        }
+
+        element.querySelector('.close-stats')?.addEventListener('click', () => this.close());
+        element.querySelector('.export-history')?.addEventListener('click', () => this._exportHistory());
     }
 
     _mapCombatSummary(summary, index, totalCombats) {
         const totals = summary?.totals || {};
-        const hitRate = Number(totals.hitRate ?? 0).toFixed(1);
+        const hitRateValue = Number(totals.hitRate ?? 0).toFixed(1);
         const durationSeconds = summary?.durationSeconds ?? Math.round((summary?.duration || 0) / 1000);
         const mvp = summary?.notableMoments?.mvp || { name: '—', score: 0 };
 
         return {
             combatId: summary?.combatId || `combat-${index}`,
-            date: summary?.date || null,
-            label: summary?.sceneName ? `${summary.sceneName}` : `Combat ${totalCombats - index}`,
-            totals: {
-                hitRate
-            },
-            mvp: {
-                name: mvp?.name || '—',
-                score: Number(mvp?.score ?? 0).toFixed(1)
-            },
-            durationSeconds
+            label: summary?.sceneName || `Combat ${totalCombats - index}`,
+            dateFormatted: summary?.date ? this._formatDate(summary.date) : '—',
+            hitRate: `${hitRateValue}%`,
+            mvpName: mvp?.name || '—',
+            mvpScore: Number(mvp?.score ?? 0).toFixed(1),
+            duration: this._formatDuration(durationSeconds)
         };
     }
 
@@ -158,14 +161,19 @@ export class StatsWindow extends Application {
 
     _buildSummary(combats, leaderboard) {
         const totalCombats = combats.length;
-        const averageHitRate = totalCombats ? (combats.reduce((sum, combat) => sum + Number(combat.totals.hitRate || 0), 0) / totalCombats).toFixed(1) : '0.0';
-        const topMvp = leaderboard[0] ? { name: leaderboard[0].name, score: leaderboard[0].mvp.totalScore } : { name: '—', score: '0.0' };
-        const lastCombatDate = combats[0]?.date ? this._formatDate(combats[0].date) : '—';
+        const averageHitRate = totalCombats
+            ? (combats.reduce((sum, combat) => sum + parseFloat(combat.hitRate), 0) / totalCombats).toFixed(1)
+            : '0.0';
+        const topMvpEntry = leaderboard[0];
+        const topMvp = topMvpEntry ? `${topMvpEntry.name}` : '—';
+        const bestScore = topMvpEntry ? topMvpEntry.mvp.highScore : '0.0';
+        const lastCombatDate = combats[0]?.dateFormatted || '—';
 
         return {
             totalCombats,
             averageHitRate,
             topMvp,
+            bestScore,
             lastCombatDate
         };
     }

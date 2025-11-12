@@ -1,11 +1,9 @@
-{{!-- Combat & MVP Statistics Window Template --}}
+{{!-- Party Statistics Window Template --}}
 <div class="stats-window foundry-style-window">
   <div class="stats-header-sticky">
     <div class="stats-header">
       <div class="stats-header-content">
-        <div class="stats-header-icon">
-          <i class="fas fa-chart-line"></i>
-        </div>
+        <div class="stats-header-icon"><i class="fas fa-chart-line"></i></div>
         <div class="stats-header-title">
           <div class="stats-header-maintitle">Party Statistics</div>
           <div class="stats-header-subtitle">Review recent combats and lifetime performance</div>
@@ -14,26 +12,25 @@
           <div class="stats-toggle-container">
             <span class="stats-toggle-label">Combat History</span>
             <div class="stats-toggle">
-              <input type="checkbox" name="toggleCombats" id="toggleCombats" {{#if filters.showCombats}}checked{{/if}}>
+              <input type="checkbox" id="toggleCombats" {{#if filters.showCombats}}checked{{/if}}>
               <label for="toggleCombats" class="stats-toggle-slider"></label>
             </div>
           </div>
           <div class="stats-toggle-container">
             <span class="stats-toggle-label">Lifetime Leaderboard</span>
             <div class="stats-toggle">
-              <input type="checkbox" name="toggleLifetime" id="toggleLifetime" {{#if filters.showLifetime}}checked{{/if}}>
+              <input type="checkbox" id="toggleLifetime" {{#if filters.showLifetime}}checked{{/if}}>
               <label for="toggleLifetime" class="stats-toggle-slider"></label>
             </div>
           </div>
         </div>
       </div>
     </div>
-
     <div class="stats-summary-row">
       <div class="stats-summary-item"><span class="label">Combats Tracked</span><span>{{summary.totalCombats}}</span></div>
       <div class="stats-summary-item"><span class="label">Average Hit Rate</span><span>{{summary.averageHitRate}}%</span></div>
-      <div class="stats-summary-item"><span class="label">Top MVP</span><span>{{summary.topMvp.name}}</span></div>
-      <div class="stats-summary-item"><span class="label">Best Score</span><span>{{summary.topMvp.score}}</span></div>
+      <div class="stats-summary-item"><span class="label">Top MVP</span><span>{{summary.topMvp}}</span></div>
+      <div class="stats-summary-item"><span class="label">Best Score</span><span>{{summary.bestScore}}</span></div>
       <div class="stats-summary-item"><span class="label">Last Combat</span><span>{{summary.lastCombatDate}}</span></div>
     </div>
   </div>
@@ -52,13 +49,13 @@
         <div class="stats-table-body">
           {{#if combats.length}}
             {{#each combats}}
-            <div class="stats-table-row" data-row-type="combat" data-combat-id="{{combatId}}">
-              <span class="stats-table-col-1" data-field="name">{{label}}</span>
-              <span class="stats-table-col-2" data-field="date">{{formatDate date}}</span>
-              <span class="stats-table-col-3" data-field="hitRate">{{totals.hitRate}}%</span>
-              <span class="stats-table-col-4" data-field="mvp">{{mvp.name}} ({{mvp.score}})</span>
-              <span class="stats-table-col-5" data-field="duration">{{formatDuration durationSeconds}}</span>
-            </div>
+              <div class="stats-table-row" data-row-type="combat" data-combat-id="{{combatId}}">
+                <span class="stats-table-col-1">{{label}}</span>
+                <span class="stats-table-col-2">{{dateFormatted}}</span>
+                <span class="stats-table-col-3">{{hitRate}}</span>
+                <span class="stats-table-col-4">{{mvpName}} ({{mvpScore}})</span>
+                <span class="stats-table-col-5">{{duration}}</span>
+              </div>
             {{/each}}
           {{else}}
             <div class="stats-empty-state">No combat history recorded yet.</div>
@@ -81,17 +78,17 @@
         <div class="stats-table-body">
           {{#if leaderboard.length}}
             {{#each leaderboard}}
-            <div class="stats-table-row" data-row-type="leaderboard" data-actor-id="{{actorId}}">
-              <span class="stats-table-col-1" data-field="rank">{{rank}}</span>
-              <span class="stats-table-col-2" data-field="name">
-                <img class="player-portrait" src="{{img}}" alt="{{name}}" />
-                <span class="player-name">{{name}}</span>
-              </span>
-              <span class="stats-table-col-3" data-field="total">{{mvp.totalScore}}</span>
-              <span class="stats-table-col-4" data-field="combats">{{mvp.combats}}</span>
-              <span class="stats-table-col-5" data-field="average">{{mvp.averageScore}}</span>
-              <span class="stats-table-col-6" data-field="best">{{mvp.highScore}}</span>
-            </div>
+              <div class="stats-table-row" data-row-type="leaderboard" data-actor-id="{{actorId}}">
+                <span class="stats-table-col-1">{{rank}}</span>
+                <span class="stats-table-col-2">
+                  <img class="player-portrait" src="{{img}}" alt="{{name}}">
+                  <span class="player-name">{{name}}</span>
+                </span>
+                <span class="stats-table-col-3">{{mvp.totalScore}}</span>
+                <span class="stats-table-col-4">{{mvp.combats}}</span>
+                <span class="stats-table-col-5">{{mvp.averageScore}}</span>
+                <span class="stats-table-col-6">{{mvp.highScore}}</span>
+              </div>
             {{/each}}
           {{else}}
             <div class="stats-empty-state">No lifetime MVP data yet.</div>
@@ -103,26 +100,27 @@
     <div class="stats-section" data-section="mvp-history">
       <div class="stats-section-header"><i class="fas fa-medal"></i> MVP Highlights</div>
       <div class="stats-highlight-grid">
-        {{#each highlights}}
-        <div class="stats-highlight-card">
-          <div class="highlight-header">
-            <img class="player-portrait" src="{{img}}" alt="{{player}}" />
-            <div class="highlight-title">
-              <div class="highlight-player">{{player}}</div>
-              <div class="highlight-score">Score: {{score}}</div>
+        {{#if highlights.length}}
+          {{#each highlights}}
+            <div class="stats-highlight-card">
+              <div class="highlight-header">
+                <img class="player-portrait" src="{{img}}" alt="{{player}}">
+                <div class="highlight-title">
+                  <div class="highlight-player">{{player}}</div>
+                  <div class="highlight-score">Score: {{score}}</div>
+                </div>
+              </div>
+              <div class="highlight-body">
+                <div><span class="label">Combat:</span> {{combat}}</div>
+                <div><span class="label">Damage:</span> {{damage}}</div>
+                <div><span class="label">Healing:</span> {{healing}}</div>
+                <div><span class="label">Notes:</span> {{notes}}</div>
+              </div>
             </div>
-          </div>
-          <div class="highlight-body">
-            <div><span class="label">Combat:</span> {{combat}}</div>
-            <div><span class="label">Damage:</span> {{damage}}</div>
-            <div><span class="label">Healing:</span> {{healing}}</div>
-            <div><span class="label">Notes:</span> {{notes}}</div>
-          </div>
-        </div>
-        {{/each}}
-        {{#unless highlights.length}}
-        <div class="stats-empty-state">Complete a combat to see MVP highlights.</div>
-        {{/unless}}
+          {{/each}}
+        {{else}}
+          <div class="stats-empty-state">Complete a combat to see MVP highlights.</div>
+        {{/if}}
       </div>
     </div>
   </div>
