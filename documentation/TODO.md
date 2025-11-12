@@ -50,16 +50,6 @@
 - **Related Settings**: None currently
 - **Notes**: This is a critical stability issue that must be resolved. The disconnect between heap memory (~950MB) and browser tab memory (9.5GB) suggests resources not tracked by V8 heap (images, DOM, WebGL, etc.) are accumulating. Focus on resource cleanup, cache limits, and proper disposal of Foundry objects.
 
-- **FINDINGS - CRITICAL MEMORY LEAK IDENTIFIED**:
-  - **Event Listener Leak in `api-menubar.js`**: `addClickHandlers()` adds event listeners every time `renderMenubar()` is called (20+ times per session), but old listeners are never removed
-    - Location: `scripts/api-menubar.js` lines 2580-2633
-    - Issue: `renderMenubar()` removes the old menubar container (line 2508) then inserts new HTML (line 2514) and calls `addClickHandlers()` (line 2517)
-    - Problem: `addClickHandlers()` adds a new `addEventListener('click', ...)` (line 2586) without removing the previous listener
-    - Impact: Over a 3-hour session with frequent re-renders (combat changes, notifications, timer updates), hundreds or thousands of duplicate event listeners accumulate
-    - Each event listener holds a closure with the handler function, preventing garbage collection
-    - Fix needed: Store event listener reference and remove before adding new one, or use event delegation that doesn't require removal
-    - Related code: `renderMenubar()` called 20+ times throughout codebase (grep results show calls at lines 94, 275, 327, 348, 982, 1078, 1110, 1273, 1321, 1345, 1372, 1405, 1927, 1973, 2040, 2424, 2807, 2822, 3463)
-
 - **POTENTIAL ADDITIONAL ISSUES**:
   - Notification timeouts may accumulate if notifications are removed without clearing timeouts (though code shows cleanup in `removeNotification()`)
   - DOM nodes: Old menubar containers are removed (line 2508), but need to verify they're fully garbage collected
@@ -139,19 +129,6 @@
 - **Related Settings**: None currently
 - **Notes**: Players should not see NPC health values - only GM should see them
 
-### Menubar Health Rings Not Updating on Health Change
-- **Issue**: Health rings in menubar only update when turn changes, not when health changes
-- **Status**: PENDING - Needs implementation
-- **Priority**: MEDIUM - UI/UX improvement
-- **Current State**: Health rings update only on turn change events
-- **Location**: `scripts/api-menubar.js` (combat bar updates), health ring rendering logic
-- **Tasks Needed**:
-  - Add hook/event listener for actor HP changes
-  - Update health rings immediately when actor HP changes
-  - Ensure health rings update both on turn change AND health change
-  - Test with healing, damage, and status effects
-- **Related Settings**: None currently
-- **Notes**: Health rings should reflect current HP in real-time, not just on turn changes
 
 ### Track and report our movement distance against the walking speed of the token
 - **Issue**: Need to track and report our movement distance against the walking speed of the token

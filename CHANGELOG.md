@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [12.1.20] - 2025-11-12
+
+### Added
+- **Party Statistics Window:** New menubar tool and application providing combat history, lifetime MVP leaderboard, summary chips, and MVP highlights styled after the XP distribution interface.
+- **Stats API Exposure:** Stats window data now available through `StatsWindow` and supporting API methods for other modules to consume combat summaries and lifetime MVP data.
+
+### Changed
+- **Documentation:** Refreshed `documentation/api-stats.md`, `api-core.md`, and `architecture-stats.md` with updated architecture details, API recipes, retention policies, and integration samples for the stats system.
+- **Templates & Styles:** Introduced dedicated `window-stats.hbs` and `styles/window-stats.css` to align party stats UI with the module design system while keeping assets modular for future module splits.
+
+### Fixed
+- **Menubar Combat Health Rings:** Health rings now refresh in real time by listening to `updateActor` and `updateToken` hooks and re-rendering the combat secondary bar whenever combatant HP changes.
+
 ## [12.1.19] - Dynamic Compendium Configuration and Expanded Type Support
 
 ### Added
