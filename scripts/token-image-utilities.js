@@ -651,7 +651,7 @@ export class TokenImageUtilities {
            
             // Play sound
             const sound = game.settings.get(MODULE.ID, 'tokenLootSound');
-            if (sound) {
+            if (sound && sound !== 'none' && sound !== 'sound-none') {
                 AudioHelper.play({src: sound, volume: 0.5, autoplay: true, loop: false}, true);
             }
             
@@ -774,8 +774,10 @@ export class TokenImageUtilities {
                             }
                         }
 
-                        // Apply loot image 
-                        await TokenImageUtilities.updateTokenImage(token.document, 'loot');
+                        // Apply loot image only if Item Piles is active
+                        if (game.modules.get("item-piles")?.active) {
+                            await TokenImageUtilities.updateTokenImage(token.document, 'loot');
+                        }
                         
                         // Clean up the timeout ID after execution
                         TokenImageUtilities._lootConversionTimeouts.delete(tokenId);
