@@ -591,9 +591,21 @@ export class TokenImageUtilities {
             if (!lootAlreadyAdded) {
                 // Add loot from tables if configured
                 const tables = [
-                    {setting: 'tokenLootTableTreasure', amount: 'tokenLootTableTreasureAmount'},
-                    {setting: 'tokenLootTableGear', amount: 'tokenLootTableGearAmount'},
-                    {setting: 'tokenLootTableGeneral', amount: 'tokenLootTableGeneralAmount'}
+                    {
+                        setting: 'tokenLootTableTreasure',
+                        amount: 'tokenLootTableTreasureAmount',
+                        quantity: 'tokenLootTableTreasureQuantity'
+                    },
+                    {
+                        setting: 'tokenLootTableGear',
+                        amount: 'tokenLootTableGearAmount',
+                        quantity: 'tokenLootTableGearQuantity'
+                    },
+                    {
+                        setting: 'tokenLootTableGeneral',
+                        amount: 'tokenLootTableGeneralAmount',
+                        quantity: 'tokenLootTableGeneralQuantity'
+                    }
                 ];
                 
                 // Roll loot from each configured table
@@ -601,20 +613,37 @@ export class TokenImageUtilities {
                     const tableName = game.settings.get(MODULE.ID, table.setting);
                     if (tableName && tableName !== "none" && !tableName.startsWith('--')) {
                         const amount = game.settings.get(MODULE.ID, table.amount);
+                        const quantityMax = game.settings.get(MODULE.ID, table.quantity);
                         if (amount > 0) {
-                            await CanvasTools._rollLootTable(tableName, amount, token.actor);
+                            await CanvasTools._rollLootTable(tableName, amount, token.actor, quantityMax);
                         }
                     }
                 }
                 
                 // Add random coins
-                await CanvasTools._addRandomCoins(token.actor);
+                const addCoins = getSettingSafely(MODULE.ID, 'tokenLootAddCoins', true);
+                if (addCoins) {
+                    await CanvasTools._addRandomCoins(token.actor);
+                }
                 
                 // Mark that loot has been added
                 await token.document.setFlag(MODULE.ID, 'blnLootAdded', true);
                 postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Added loot to ${token.name}`, "", true, false);
             } else {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Loot already added to ${token.name}, skipping loot generation`, "", true, false);
+            }
+
+            // Roll epic loot based on configured odds
+            const epicTableName = getSettingSafely(MODULE.ID, 'tokenLootTableEpic', '');
+            const epicOddsSetting = Number(getSettingSafely(MODULE.ID, 'tokenLootTableEpicOdds', 0)) || 0;
+            if (epicTableName && epicTableName !== 'none' && !epicTableName.startsWith('--') && epicOddsSetting > 0) {
+                const epicRoll = Math.floor(Math.random() * 1000) + 1;
+                if (epicRoll <= Math.min(epicOddsSetting, 1000)) {
+                    await CanvasTools._rollLootTable(epicTableName, 1, token.actor, 1);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Epic loot awarded to ${token.name} (roll ${epicRoll}/${epicOddsSetting})`, "", true, false);
+                } else {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Epic loot roll failed (${epicRoll}/${epicOddsSetting})`, "", false, false);
+                }
             }
 
             // Set up proper permissions before converting to item pile

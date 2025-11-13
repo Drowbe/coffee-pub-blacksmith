@@ -479,7 +479,7 @@ export class CanvasTools {
      * @param {number} timesToRoll - How many times to roll the table
      * @param {Actor} actor - The actor to add items to
      */
-    static async _rollLootTable(tableName, timesToRoll, actor) {
+    static async _rollLootTable(tableName, timesToRoll, actor, quantityMax = 1) {
         try {
             postConsoleAndNotification(MODULE.NAME, `Looking for loot table: "${tableName}"`, "", true, false);
             
@@ -530,12 +530,13 @@ export class CanvasTools {
                             // Create a copy of the item data
                             const itemData = item.toObject();
                             
-                            // Set quantity if the result has a quantity range
-                            if (result.range && result.range[0] !== result.range[1]) {
-                                const quantity = Math.floor(Math.random() * (result.range[1] - result.range[0] + 1)) + result.range[0];
-                                if (itemData.system?.quantity !== undefined) {
-                                    itemData.system.quantity = quantity;
-                                }
+                            // Set quantity using configured maximum range
+                            if (itemData.system?.quantity !== undefined) {
+                                const maxQuantity = Math.max(1, Number(quantityMax) || 1);
+                                const quantity = maxQuantity > 1
+                                    ? Math.floor(Math.random() * maxQuantity) + 1
+                                    : 1;
+                                itemData.system.quantity = quantity;
                             }
                             
                             // Add the item to the actor

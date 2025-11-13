@@ -3507,6 +3507,18 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('LootTreasure', 'headingH3LootTreasure-Label', 'headingH3LootTreasure-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
+	// -- Add Coins --
+	game.settings.register(MODULE.ID, 'tokenLootAddCoins', {
+		name: MODULE.ID + '.tokenLootAddCoins-Label',
+		hint: MODULE.ID + '.tokenLootAddCoins-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
 	// -- General Loot Table --
 	game.settings.register(MODULE.ID,'tokenLootTableGeneral', {
 		name: MODULE.ID + '.tokenLootTableGeneral-Label',
@@ -3529,10 +3541,27 @@ export const registerSettings = () => {
 		type: Number,
 		range: {
 		min: 0,
-		max: 10,
+		max: 30,
 		step: 1,
 		},
 		default: 3,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// -- General Loot Quantity --
+	game.settings.register(MODULE.ID,"tokenLootTableGeneralQuantity", {
+		name: MODULE.ID + '.tokenLootTableGeneralQuantity-Label',
+		hint: MODULE.ID + '.tokenLootTableGeneralQuantity-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: true,
+		type: Number,
+		range: {
+		min: 0,
+		max: 30,
+		step: 1,
+		},
+		default: 1,
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
@@ -3547,7 +3576,7 @@ export const registerSettings = () => {
 		choices: BLACKSMITH.arrTableChoices,
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
-	
+
 	// -- Gear Loot Amount --
 	game.settings.register(MODULE.ID,"tokenLootTableGearAmount", {
 		name: MODULE.ID + '.tokenLootTableGearAmount-Label',
@@ -3562,6 +3591,24 @@ export const registerSettings = () => {
 		step: 1,
 		},
 		default: 2,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+
+	// -- Gear Loot Quantity --
+	game.settings.register(MODULE.ID,"tokenLootTableGearQuantity", {
+		name: MODULE.ID + '.tokenLootTableGearQuantity-Label',
+		hint: MODULE.ID + '.tokenLootTableGearQuantity-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: true,
+		type: Number,
+		range: {
+		min: 0,
+		max: 30,
+		step: 1,
+		},
+		default: 1,
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
@@ -3593,6 +3640,54 @@ export const registerSettings = () => {
 		default: 1,
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
+
+	// -- Treasure Loot Quantity --
+	game.settings.register(MODULE.ID,"tokenLootTableTreasureQuantity", {
+		name: MODULE.ID + '.tokenLootTableTreasureQuantity-Label',
+		hint: MODULE.ID + '.tokenLootTableTreasureQuantity-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: true,
+		type: Number,
+		range: {
+		min: 0,
+		max: 30,
+		step: 1,
+		},
+		default: 1,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	
+	// -- Epic Loot Table --
+	game.settings.register(MODULE.ID,'tokenLootTableEpic', {
+		name: MODULE.ID + '.tokenLootTableEpic-Label',
+		hint: MODULE.ID + '.tokenLootTableEpic-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		default: '-- Choose an Epic Loot Table --',
+		choices: BLACKSMITH.arrTableChoices,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// -- Epic Loot Odds --
+		game.settings.register(MODULE.ID,"tokenLootTableEpicOdds", {
+		name: MODULE.ID + '.tokenLootTableEpicOdds-Label',
+		hint: MODULE.ID + '.tokenLootTableEpicOdds-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: true,
+		type: Number,
+		range: {
+		min: 0,
+		max: 1000,
+		step: 1,
+		},
+		default: 0,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
 
 	// --------------------------------------
 	// -- H2: DROPPED TOKENS

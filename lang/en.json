@@ -775,23 +775,41 @@
 			"headingH3LootTreasure-Label": "Treasure and Loot",
 			"headingH3LootTreasure-Hint": "",
 
+				"tokenLootAddCoins-Label": "Add Coins",
+				"tokenLootAddCoins-Hint": "When enabled, will add random coins to the loot pile based on a 1d100 roll.",
+
 				"tokenLootTableGeneral-Label": "General Loot Table",
 				"tokenLootTableGeneral-Hint": "",
 
-				"tokenLootTableGeneralAmount-Label": "General Quantity",
+				"tokenLootTableGeneralAmount-Label": "General Amount",
 				"tokenLootTableGeneralAmount-Hint": "",
+
+				"tokenLootTableGeneralQuantity-Label": "General Max Quantity",
+				"tokenLootTableGeneralQuantity-Hint": "",
 
 				"tokenLootTableGear-Label": "Gear Loot Table",
 				"tokenLootTableGear-Hint": "",
 
-				"tokenLootTableGearAmount-Label": "Gear Quantity",
+				"tokenLootTableGearAmount-Label": "Gear Amount",
 				"tokenLootTableGearAmount-Hint": "",
+
+				"tokenLootTableGearQuantity-Label": "Gear Max Quantity",
+				"tokenLootTableGearQuantity-Hint": "",
 
 				"tokenLootTableTreasure-Label": "Treasure Loot Table",
 				"tokenLootTableTreasure-Hint": "",	
 
-				"tokenLootTableTreasureAmount-Label": "Treasure Quantity",
+				"tokenLootTableTreasureAmount-Label": "Treasure Amount",
 				"tokenLootTableTreasureAmount-Hint": "",
+
+				"tokenLootTableTreasureQuantity-Label": "Treasure Max Quantity",
+				"tokenLootTableTreasureQuantity-Hint": "",
+
+				"tokenLootTableEpic-Label": "Epic Loot Table",
+				"tokenLootTableEpic-Hint": "",
+
+				"tokenLootTableEpicOdds-Label": "Epic Loot Odds",
+				"tokenLootTableEpicOdds-Hint": "Percentage chance that the epic loot table will be rolled. A value of 0 means it will never be rolled, a value of 1000 means it will always be rolled.",
 
 		"headingH2DroppedTokens-Label": "Dropped Tokens",
 		"headingH2DroppedTokens-Hint": "Configure the options for dropped tokens on the canvas.",

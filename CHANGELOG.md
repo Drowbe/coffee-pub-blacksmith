@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Loot Conversion Sound:** Honored the "No Sound" option by skipping playback when `tokenLootSound` is disabled.
 - **Loot Conversion Image:** Restricted loot image swaps to cases where the Item Piles module is active.
+- **Loot Table Quantities:** Loot item counts now randomize between 1 and the configured quantity setting instead of using roll result ranges.
+- **Loot Coin Setting:** Coins are only added when the `tokenLootAddCoins` toggle is enabled.
+- **Epic Loot Odds:** Epic loot tables now respect the configured odds and always award a single item when triggered.
 
 
 ## [12.1.20] - 2025-11-12
