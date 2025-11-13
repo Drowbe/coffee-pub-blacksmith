@@ -468,7 +468,10 @@ export class TokenImageUtilities {
                 try {
                     // Use the object form for the update to ensure it works with unlinked tokens
                     const updateData = { 'texture.src': currentImage };
-                    await tokenDocument.update(updateData, { render: true, diff: false });
+
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: updateTokenImage - BEFORE update - Will restore with this currentImage for ${tokenDocument.name}: ${currentImage}`, "", true, false);
+                    tokenDocument.updateSource(updateData);
+                    await tokenDocument.object?.render(true);
                     postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: updateTokenImage - AFTER update - new texture: ${tokenDocument.texture.src}`, "", true, false);
                     
                     // Clear all flags
@@ -476,7 +479,7 @@ export class TokenImageUtilities {
                     await tokenDocument.unsetFlag(MODULE.ID, 'currentImageStored');
                     await tokenDocument.unsetFlag(MODULE.ID, 'imageState');
                     await tokenDocument.unsetFlag(MODULE.ID, 'isDeadTokenApplied');
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: updateTokenImage - Restored current image for ${tokenDocument.name} to: ${currentImage}`, "", true, false);
+                    
                 } catch (error) {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: updateTokenImage - ERROR restoring image: ${error.message}`, "", false, false);
                 }
@@ -659,11 +662,7 @@ export class TokenImageUtilities {
             // Update token permissions
             await token.document.update(updates);
             
-            // Get loot image path
-            const lootImagePath = getSettingSafely(MODULE.ID, 'tokenLootPileImage', 'modules/coffee-pub-blacksmith/images/tokens/death/splat-square-loot-chest.webp');
-            
-            // Convert to item pile with proper configuration
-            // Pass tokenSettings to preserve our loot image and prevent Item Piles from changing it
+            // Convert to item pile, keeping the token's original image (we handle the swap separately)
             await game.itempiles.API.turnTokensIntoItemPiles([token], {
                 pileSettings: {
                     enabled: true,
@@ -671,10 +670,9 @@ export class TokenImageUtilities {
                     lootable: true,
                     closed: false,
                     shareItemsWithPlayers: true,
-                    displayOne: false
+                    displayOne: false,
+                    keepOriginal: true
                 }
-            }, {
-                img: lootImagePath
             });
             
            
@@ -699,6 +697,11 @@ export class TokenImageUtilities {
                     content: messageHtml,
                     speaker: ChatMessage.getSpeaker()
                 });
+            }
+
+            if (originalImage) {
+                await token.document.setFlag(MODULE.ID, 'currentImage', originalImage);
+                await token.document.setFlag(MODULE.ID, 'currentImageStored', true);
             }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Error converting token to loot: ${error.message}`, "", true, false);
@@ -831,7 +834,7 @@ export class TokenImageUtilities {
                 // If it was converted to loot pile, revert it to a token
                 if (imageState === 'loot' && game.modules.get("item-piles")?.active) {
                     try {
-                        await game.itempiles.API.revertTokensFromItemPiles([token]);
+                        await game.itempiles.API.revertTokensFromItemPiles([token], { resetImage: true });
                     } catch (error) {
                         postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: ERROR reverting from item pile: ${error.message}`, "", false, false);
                     }

@@ -13,11 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Loot Conversion Sound:** Honored the "No Sound" option by skipping playback when `tokenLootSound` is disabled.
 - **Loot Conversion Image:** Restricted loot image swaps to cases where the Item Piles module is active.
+- **Loot Image Preservation:** Item Piles now keeps original token art during loot conversion and restores it when piles revert.
 - **Loot Table Quantities:** Loot item counts now randomize between 1 and the configured quantity setting instead of using roll result ranges.
 - **Loot Coin Setting:** Coins are only added when the `tokenLootAddCoins` toggle is enabled.
 - **Epic Loot Odds:** Epic loot tables now respect the configured odds and always award a single item when triggered.
 - **Loot Coin Maximums:** Coin rewards now roll between 1 and the per-currency maximum settings (including electrum) instead of using a static percentile table.
 - **Dead Token Toggle:** Dead token replacement now correctly follows the `enableDeadTokenReplacement` setting in both UI and automation hooks.
+- **Loot Image Restore:** Original token art is captured before loot conversion so reviving a loot pile restores the pre-death image.
 
 
 ## [12.1.20] - 2025-11-12
