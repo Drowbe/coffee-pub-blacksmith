@@ -304,7 +304,7 @@ export class TokenImageReplacementWindow extends Application {
             fuzzySearch: getSettingSafely(MODULE.ID, 'tokenImageReplacementFuzzySearch', false),
             tagSortMode: getSettingSafely(MODULE.ID, 'tokenImageReplacementTagSortMode', 'count'),
             convertDeadToLoot: getSettingSafely(MODULE.ID, 'tokenConvertDeadToLoot', false),
-            deadTokenReplacement: getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled') !== 'disabled',
+            deadTokenReplacement: getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', false),
             itemPilesInstalled: game.modules.get("item-piles")?.active || false
         };
     }
@@ -1767,8 +1767,7 @@ export class TokenImageReplacementWindow extends Application {
      */
     async _onDeadTokenReplacementToggle(event) {
         const isEnabled = event.target.checked;
-        const newValue = isEnabled ? 'both' : 'disabled';
-        await game.settings.set(MODULE.ID, 'enableDeadTokenReplacement', newValue);
+        await game.settings.set(MODULE.ID, 'enableDeadTokenReplacement', isEnabled);
         
         postConsoleAndNotification(MODULE.NAME, `Dead Token Replacement ${isEnabled ? 'enabled' : 'disabled'}`, 
             isEnabled ? 'Tokens will change to dead versions at 0 HP' : 'Tokens will not change when dead', 

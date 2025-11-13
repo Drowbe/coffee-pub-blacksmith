@@ -753,8 +753,8 @@ export class TokenImageUtilities {
 
                 // Token at 0 HP or below - check dead token settings
                 // DEAD TOKEN MODE CHECK
-                const deadTokenMode = getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', 'disabled');
-                if (deadTokenMode !== 'disabled') {
+                const deadTokenEnabled = getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', false);
+                if (deadTokenEnabled) {
                     // For player characters, check death saves
                     let hasFailed3DeathSaves = false;
                     if (isPlayerCharacter) {
@@ -828,21 +828,21 @@ export class TokenImageUtilities {
                     TokenImageUtilities._lootConversionTimeouts.delete(token.id);
                 }
                 
-                if (imageState && (imageState === 'dead' || imageState === 'loot')) {
-                    // Get fresh document reference after Item Piles reversion
-                    const freshToken = canvas.tokens.get(token.id);
-                    if (freshToken) {
-                        // Restore the current image using unified function with fresh reference
-                        await TokenImageUtilities.updateTokenImage(freshToken.document, 'restore');
-                    }
-                }
-
                 // If it was converted to loot pile, revert it to a token
                 if (imageState === 'loot' && game.modules.get("item-piles")?.active) {
                     try {
                         await game.itempiles.API.revertTokensFromItemPiles([token]);
                     } catch (error) {
                         postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: ERROR reverting from item pile: ${error.message}`, "", false, false);
+                    }
+                }
+
+                if (imageState && (imageState === 'dead' || imageState === 'loot')) {
+                    // Get fresh document reference after Item Piles reversion
+                    const freshToken = canvas.tokens.get(token.id);
+                    if (freshToken) {
+                        // Restore the current image using unified function with fresh reference
+                        await TokenImageUtilities.updateTokenImage(freshToken.document, 'restore');
                     }
                 }
 
