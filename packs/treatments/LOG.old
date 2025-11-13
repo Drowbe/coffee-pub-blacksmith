@@ -1,4 +1,1 @@
-2025/11/12-20:24:22.668 ac18 Log #2248: 0 ops saved to Table #2249 OK
-2025/11/12-20:24:22.670 ac18 Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\treatments/002248.log: OK
-2025/11/12-20:24:22.675 ac18 Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\treatments/MANIFEST-002245: OK
-2025/11/12-20:24:22.679 ac18 **** Repaired leveldb C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\treatments; recovered 0 files; 0 bytes. Some data may have been lost. ****
+2025/11/12-20:24:22.690 ac18 Delete type=3 #1
