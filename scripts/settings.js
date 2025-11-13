@@ -3519,6 +3519,91 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
+	// -- Max Platinum Amount --
+	game.settings.register(MODULE.ID,"tokenLootMaxPlatinumAmount", {
+		name: MODULE.ID + '.tokenLootMaxPlatinumAmount-Label',
+		hint: MODULE.ID + '.tokenLootMaxPlatinumAmount-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: Number,
+		range: {
+		min: 0,
+		max: 100,
+		step: 1,
+		},
+		default: 0,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// -- Max Gold Amount --
+	game.settings.register(MODULE.ID,"tokenLootMaxGoldAmount", {
+		name: MODULE.ID + '.tokenLootMaxGoldAmount-Label',
+		hint: MODULE.ID + '.tokenLootMaxGoldAmount-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: Number,
+		range: {
+		min: 0,
+		max: 100,
+		step: 1,
+		},
+		default: 5,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// -- Max Gold Amount --
+	game.settings.register(MODULE.ID,"tokenLootMaxSilverAmount", {
+		name: MODULE.ID + '.tokenLootMaxSilverAmount-Label',
+		hint: MODULE.ID + '.tokenLootMaxSilverAmount-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: Number,
+		range: {
+		min: 0,
+		max: 100,
+		step: 1,
+		},
+		default: 5,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// -- Max Electrum Amount --
+	game.settings.register(MODULE.ID,"tokenLootMaxElectrumAmount", {
+		name: MODULE.ID + '.tokenLootMaxElectrumAmount-Label',
+		hint: MODULE.ID + '.tokenLootMaxElectrumAmount-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: Number,
+		range: {
+		min: 0,
+		max: 100,
+		step: 1,
+		},
+		default: 0,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// -- Max Copper Amount --
+	game.settings.register(MODULE.ID,"tokenLootMaxCopperAmount", {
+		name: MODULE.ID + '.tokenLootMaxCopperAmount-Label',
+		hint: MODULE.ID + '.tokenLootMaxCopperAmount-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: Number,
+		range: {
+		min: 0,
+		max: 100,
+		step: 1,
+		},
+		default: 5,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
 	// -- General Loot Table --
 	game.settings.register(MODULE.ID,'tokenLootTableGeneral', {
 		name: MODULE.ID + '.tokenLootTableGeneral-Label',
@@ -3554,7 +3639,7 @@ export const registerSettings = () => {
 		hint: MODULE.ID + '.tokenLootTableGeneralQuantity-Hint',
 		scope: "world",
 		config: true,
-		requiresReload: true,
+		requiresReload: false,
 		type: Number,
 		range: {
 		min: 0,
@@ -3583,7 +3668,7 @@ export const registerSettings = () => {
 		hint: MODULE.ID + '.tokenLootTableGearAmount-Hint',
 		scope: "world",
 		config: true,
-		requiresReload: true,
+		requiresReload: false,
 		type: Number,
 		range: {
 		min: 0,
@@ -3601,7 +3686,7 @@ export const registerSettings = () => {
 		hint: MODULE.ID + '.tokenLootTableGearQuantity-Hint',
 		scope: "world",
 		config: true,
-		requiresReload: true,
+		requiresReload: false,
 		type: Number,
 		range: {
 		min: 0,
@@ -3630,7 +3715,7 @@ export const registerSettings = () => {
 		hint: MODULE.ID + '.tokenLootTableTreasureAmount-Hint',
 		scope: "world",
 		config: true,
-		requiresReload: true,
+		requiresReload: false,
 		type: Number,
 		range: {
 		min: 0,
@@ -3647,7 +3732,7 @@ export const registerSettings = () => {
 		hint: MODULE.ID + '.tokenLootTableTreasureQuantity-Hint',
 		scope: "world",
 		config: true,
-		requiresReload: true,
+		requiresReload: false,
 		type: Number,
 		range: {
 		min: 0,
@@ -3677,7 +3762,7 @@ export const registerSettings = () => {
 		hint: MODULE.ID + '.tokenLootTableEpicOdds-Hint',
 		scope: "world",
 		config: true,
-		requiresReload: true,
+		requiresReload: false,
 		type: Number,
 		range: {
 		min: 0,

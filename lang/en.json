@@ -776,7 +776,22 @@
 			"headingH3LootTreasure-Hint": "",
 
 				"tokenLootAddCoins-Label": "Add Coins",
-				"tokenLootAddCoins-Hint": "When enabled, will add random coins to the loot pile based on a 1d100 roll.",
+				"tokenLootAddCoins-Hint": "",
+
+				"tokenLootMaxPlatinumAmount-Label": "Max Platinum Amount",
+				"tokenLootMaxPlatinumAmount-Hint": "",
+
+				"tokenLootMaxGoldAmount-Label": "Max Gold Amount",
+				"tokenLootMaxGoldAmount-Hint": "",
+
+				"tokenLootMaxElectrumAmount-Label": "Max Electrum Amount",
+				"tokenLootMaxElectrumAmount-Hint": "",
+
+				"tokenLootMaxSilverAmount-Label": "Max Silver Amount",
+				"tokenLootMaxSilverAmount-Hint": "",
+
+				"tokenLootMaxCopperAmount-Label": "Max Copper Amount",
+				"tokenLootMaxCopperAmount-Hint": "",
 
 				"tokenLootTableGeneral-Label": "General Loot Table",
 				"tokenLootTableGeneral-Hint": "",

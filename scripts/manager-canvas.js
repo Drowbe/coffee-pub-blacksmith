@@ -7,7 +7,7 @@ import { MODULE, BLACKSMITH } from './const.js';
 // -- Import the shared GLOBAL variables --
 // COFFEEPUB now available globally via window.COFFEEPUB
 // -- Load the shared GLOBAL functions --
-import { postConsoleAndNotification, getTokenImage, getTokenId } from './api-core.js';
+import { postConsoleAndNotification, getTokenImage, getTokenId, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 
 // ================================================================== 
@@ -565,45 +565,36 @@ export class CanvasTools {
         }
         
         try {
-            const roll = await new Roll("1d100").evaluate();
-            let coinRoll;
-            
-            if (roll.total <= 16) {
-                coinRoll = {pp: "0", gp: "0", sp: "0", cp: "1d4"};
-            } else if (roll.total <= 55) {
-                coinRoll = {pp: "0", gp: "0", sp: "3d4", cp: "1d8"};
-            } else if (roll.total <= 79) {
-                coinRoll = {pp: "0", gp: "0", sp: "4d4", cp: "2d8"};
-            } else if (roll.total <= 89) {
-                coinRoll = {pp: "0", gp: "0", sp: "8d4", cp: "3d8"};
-            } else if (roll.total <= 94) {
-                coinRoll = {pp: "0", gp: "1d4", sp: "4d6", cp: "4d8"};
-            } else if (roll.total <= 97) {
-                coinRoll = {pp: "0", gp: "2d4", sp: "3d6", cp: "5d8"};
-            } else if (roll.total <= 99) {
-                coinRoll = {pp: "0", gp: "3d4", sp: "2d6", cp: "6d8"};
-            } else {
-                coinRoll = {pp: "1d2", gp: "4d4", sp: "1d6", cp: "7d8"};
-            }
-            
             const currency = actor.system.currency;
-            const rolls = {};
-            
-            for (const [key, formula] of Object.entries(coinRoll)) {
-                rolls[key] = await new Roll(formula).evaluate();
-            }
-            
+            const maxCopper = Math.max(0, Number(getSettingSafely(MODULE.ID, 'tokenLootMaxCopperAmount', 0)) || 0);
+            const maxSilver = Math.max(0, Number(getSettingSafely(MODULE.ID, 'tokenLootMaxSilverAmount', 0)) || 0);
+            const maxGold = Math.max(0, Number(getSettingSafely(MODULE.ID, 'tokenLootMaxGoldAmount', 0)) || 0);
+            const maxPlatinum = Math.max(0, Number(getSettingSafely(MODULE.ID, 'tokenLootMaxPlatinumAmount', 0)) || 0);
+            const maxElectrum = Math.max(0, Number(getSettingSafely(MODULE.ID, 'tokenLootMaxElectrumAmount', 0)) || 0);
+
+            const copperAmount = maxCopper > 0 ? Math.floor(Math.random() * maxCopper) + 1 : 0;
+            const silverAmount = maxSilver > 0 ? Math.floor(Math.random() * maxSilver) + 1 : 0;
+            const goldAmount = maxGold > 0 ? Math.floor(Math.random() * maxGold) + 1 : 0;
+            const platinumAmount = maxPlatinum > 0 ? Math.floor(Math.random() * maxPlatinum) + 1 : 0;
+            const electrumAmount = maxElectrum > 0 ? Math.floor(Math.random() * maxElectrum) + 1 : 0;
+
             await actor.update({
-                "system.currency.cp": currency.cp + rolls.cp.total,
-                "system.currency.sp": currency.sp + rolls.sp.total,
-                "system.currency.gp": currency.gp + rolls.gp.total,
-                "system.currency.pp": currency.pp + rolls.pp.total
+                "system.currency.cp": currency.cp + copperAmount,
+                "system.currency.sp": currency.sp + silverAmount,
+                "system.currency.gp": currency.gp + goldAmount,
+                "system.currency.pp": currency.pp + platinumAmount,
+                "system.currency.ep": (currency.ep || 0) + electrumAmount
             });
-            
-            postConsoleAndNotification(MODULE.NAME, "Added coins:", 
-                `CP: ${rolls.cp.total}, SP: ${rolls.sp.total}, GP: ${rolls.gp.total}, PP: ${rolls.pp.total}`, 
-                false, false, false);
-                
+
+            postConsoleAndNotification(
+                MODULE.NAME,
+                "Added coins:",
+                `CP: ${copperAmount}, SP: ${silverAmount}, EP: ${electrumAmount}, GP: ${goldAmount}, PP: ${platinumAmount}`,
+                false,
+                false,
+                false
+            );
+
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error adding coins:", error, true, false);
         }
