@@ -26,16 +26,10 @@ Centralized notes for long-running performance and memory investigations. Use th
 | --- | --- | --- | --- |
 | 1 | Critical | Hook cleanup | ✅ Completed – `HookManager.unregisterHook` implemented and all call sites updated. |
 | 2 | High | Target hiding loop | ✅ Completed – replaced continuous RAF loop with event-driven hiding. |
-| 3 | High | Token movement state | Active |
+| 3 | High | Token movement state | ✅ Completed – state resets on scene/mode changes and hooks clean up properly. |
 | 4 | High | Token image search | Active |
 | 5 | Medium | Menubar rerenders | Active |
 | 6 | Medium | Image cache footprint | Active |
-
-3. **Token movement subsystem retains state**
-   - **Files**: `scripts/token-movement.js`.
-   - **Evidence**: Global Maps/Sets (`leaderMovementPath`, `tokenFollowers`, `occupiedGridPositions`, `tokenOriginalPositions`) plus hook registrations at module scope (`preUpdateToken`, `updateToken`). No teardown or scene scoping exists.
-   - **Impact**: Tokens from previous scenes remain referenced, keeping actor/token data, sounds, and textures alive. Hooks keep firing even when movement automation disabled, adding GC pressure.
-   - **Actionable Notes**: Add lifecycle hooks (`Hooks.on('canvasTearDown')`) to clear Maps/Sets, reset leader IDs, and remove hook callbacks via `disposeByContext`. Only enable hooks when the related movement mode is active.
 
 4. **Token image search clones 17k-entry cache per keystroke**
    - **Files**: `scripts/token-image-replacement.js` (`_getFilteredFiles`, `_applyTagFilters`, `_cacheSearchResults`).

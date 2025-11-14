@@ -8,7 +8,7 @@
 - **Issue**: Browser tab memory grows to 9.5 GB in ~3 hours while heap stays ~950 MB, leading to crashes.
 - **Status**: PENDING — see `documentation/performance.md` for full investigation notes, findings, and next steps.
 - **Priority**: CRITICAL
-- **Next Step**: Fix hook cleanup (blocks the rest of the mitigation work). Update this entry once the linked doc changes status.
+- **Next Step**: Address image search/display churn (see performance.md). Update this entry once the linked doc changes status.
 
 ### Select Leader broken
 - no longer fires after a vote
