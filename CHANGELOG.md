@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [12.1.21] - 2025-11-12
+## [12.1.21] - 2025-11-13
 
 ### Added
 - **Loot Pogs:** Added new images for when tokens are converted to loot.
@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Loot Coin Maximums:** Coin rewards now roll between 1 and the per-currency maximum settings (including electrum) instead of using a static percentile table.
 - **Dead Token Toggle:** Dead token replacement now correctly follows the `enableDeadTokenReplacement` setting in both UI and automation hooks.
 - **Indicator Visibility:** Current-turn and targeted rings now respect per-user token visibility, hiding from players when tokens are invisible to them.
+- **Combat Bar Details:** Secondary combat bar now reports turn order labels and formatted total combat time.
 
 
 ## [12.1.20] - 2025-11-12
