@@ -43,6 +43,9 @@ let marchingOrderJustCalculated = false;
 // Add this near the top with other state variables
 let previousMarchingOrder = null;
 
+// Track scheduled timeouts so they can be cancelled during cleanup
+const scheduledTimeouts = new Set();
+
 // Constants for status tracking
 const STATUS = {
     NORMAL: 'normal',
@@ -52,6 +55,22 @@ const STATUS = {
 
 // Distance threshold in grid units (60 feet = 12 grid units at 5ft/grid)
 // const DISTANCE_THRESHOLD = 12;
+
+function scheduleTimeout(callback, delay) {
+    const id = globalThis.setTimeout(() => {
+        scheduledTimeouts.delete(id);
+        callback();
+    }, delay);
+    scheduledTimeouts.add(id);
+    return id;
+}
+
+function clearScheduledTimeouts() {
+    for (const id of scheduledTimeouts) {
+        clearTimeout(id);
+    }
+    scheduledTimeouts.clear();
+}
 
 // ================================================================== 
 // ===== SHARED MOVEMENT FUNCTIONS ==================================
@@ -205,7 +224,7 @@ function handleTokenOrdering(token, isFirstTimeSetup, isGMMoveOfFollower) {
         calculateMarchingOrder(leaderToken, true, false);
         marchingOrderJustCalculated = true;
         // Reset the flag after a short delay
-        setTimeout(() => {
+        scheduleTimeout(() => {
             marchingOrderJustCalculated = false;
         }, 1000);
     }
@@ -611,7 +630,7 @@ const updateTokenHookId = HookManager.registerHook({
             }
             
             // Process follower movement after a short delay
-            setTimeout(() => {
+            scheduleTimeout(() => {
                 if (leaderMovementPath.length >= 2) {
                     const sortedFollowers = getSortedFollowers();
                     processFollowerMovement(movementContext.currentMovement, sortedFollowers);
@@ -801,7 +820,7 @@ async function processFollowMovement(sortedFollowers) {
         }
 
         // Wait before processing next follower
-        setTimeout(() => {
+        scheduleTimeout(() => {
             processNextFollower(index + 1);
         }, 100);
     }
@@ -954,7 +973,7 @@ function processCongaMovement(sortedFollowers) {
 
         // After all tokens have moved one step, wait then move again
         Promise.all(promises).then(() => {
-                setTimeout(() => {
+                scheduleTimeout(() => {
                 moveAllTokensOneStep();
             }, 100);
         });
@@ -962,6 +981,28 @@ function processCongaMovement(sortedFollowers) {
 
     // Start the movement
     moveAllTokensOneStep();
+}
+
+function resetTokenMovementState(reason = 'manual') {
+    leaderMovementPath = [];
+    tokenFollowers.clear();
+    occupiedGridPositions.clear();
+    tokenOriginalPositions.clear();
+    currentLeaderTokenId = null;
+    lastLeaderMoveTime = Date.now();
+    marchingOrderJustDetermined = false;
+    marchingOrderJustCalculated = false;
+    processingCongaMovement = false;
+    previousMarchingOrder = null;
+    clearScheduledTimeouts();
+
+    postConsoleAndNotification(
+        MODULE.NAME,
+        `Token Movement: State reset (${reason})`,
+        {},
+        true,
+        false
+    );
 }
 
 // Calculate the marching order based on proximity to a leader token
@@ -1385,4 +1426,14 @@ const readyHookId = HookManager.registerHook({
 
 // Log hook registration
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | ready", "token-movement-client-refresh", true, false);
+
+Hooks.on('canvasTearDown', () => {
+    resetTokenMovementState('canvas-teardown');
+});
+
+Hooks.on('deleteToken', (_scene, tokenData) => {
+    const tokenId = tokenData?._id ?? tokenData?.id;
+    if (!tokenId) return;
+    tokenFollowers.delete(tokenId);
+});
 
