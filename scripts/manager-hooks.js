@@ -225,6 +225,49 @@ export class HookManager {
         
         return true;
     }
+
+    /**
+     * Unregister hook utilities (replacement for legacy unregisterHook usage)
+     * @param {Object} params
+     * @param {string} params.name - Hook name
+     * @param {string} [params.callbackId] - Specific callbackId to remove
+     * @returns {boolean} Success status
+     */
+    static unregisterHook({ name, callbackId } = {}) {
+        if (!name) {
+            console.warn('HookManager.unregisterHook called without a hook name');
+            return false;
+        }
+
+        if (callbackId) {
+            const removed = this.removeCallback(callbackId);
+            if (removed) {
+                postConsoleAndNotification(
+                    MODULE.NAME,
+                    `Hook callback removed via unregisterHook`,
+                    { name, callbackId },
+                    true,
+                    false
+                );
+            }
+            return removed;
+        }
+
+        const hookExists = this.hooks.has(name);
+        if (hookExists) {
+            this.removeHook(name);
+            postConsoleAndNotification(
+                MODULE.NAME,
+                `Hook removed via unregisterHook`,
+                { name },
+                true,
+                false
+            );
+            return true;
+        }
+
+        return false;
+    }
     
     /**
      * Remove all callbacks for a specific context

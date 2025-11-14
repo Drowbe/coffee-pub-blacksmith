@@ -315,6 +315,10 @@
 
 ## FUTURE PHASES
 
+### Targeted By
+- **Issue**: Add some way to see who is tarteting things
+
+
 ### Drawing Tools
 - **Issue**: Give the users tools to plot and draw on the canvas
 - **Status**: FUTURE ENHANCEMENT - Design phase
