@@ -25,19 +25,11 @@ Centralized notes for long-running performance and memory investigations. Use th
 | Rank | Severity | Area | Status |
 | --- | --- | --- | --- |
 | 1 | Critical | Hook cleanup | ✅ Completed – `HookManager.unregisterHook` implemented and all call sites updated. |
-| 2 | High | Target hiding loop | Active |
+| 2 | High | Target hiding loop | ✅ Completed – replaced continuous RAF loop with event-driven hiding. |
 | 3 | High | Token movement state | Active |
 | 4 | High | Token image search | Active |
 | 5 | Medium | Menubar rerenders | Active |
 | 6 | Medium | Image cache footprint | Active |
-
-#### Finding Details
-
-2. **Target-hiding RAF loop runs indefinitely**
-   - **Files**: `scripts/token-image-utilities.js` (`_onCanvasReadyForHiding`, `_hideTargetsAnimationId`).
-   - **Evidence**: `requestAnimationFrame` loop hides target indicators every frame (`TokenImageUtilities._hideAllTargetIndicators()` iterates every token). Cleanup attempts to `cancelAnimationFrame`, but because of the missing hook cleanup, it is never reached after reloads.
-   - **Impact**: Continuous 60 fps loop touches every token, pinning token objects, graphics, and textures; increases CPU/GPU usage and prevents GC of detached tokens.
-   - **Actionable Notes**: Replace loop with hook-driven toggles (run only when `targetToken` events fire) or gate by setting. Ensure cleanup is called on `canvasTearDown`.
 
 3. **Token movement subsystem retains state**
    - **Files**: `scripts/token-movement.js`.
@@ -64,13 +56,6 @@ Centralized notes for long-running performance and memory investigations. Use th
    - **Evidence**: `ImageCacheManager.cache` holds Maps for `files`, `folders`, `creatureTypes`, plus progress metadata. No eviction or unload. Scans only mutate the in-memory object; even after closing the feature the cache persists until page refresh.
    - **Impact**: 17k+ entries (names, tags, folder paths, metadata) plus progress strings consume hundreds of MB. Combined with search allocations, this explains non-heap growth despite stable JS heap.
    - **Actionable Notes**: Persist processed metadata to settings/storage to reload on demand, add a “flush cache” control, or load subsets lazily (e.g., per top-level folder). Track cache size and warn when above threshold.
-
-### Next Actions
-1. **Target hiding loop**: Gate/remove continuous RAF loop; drive indicator hiding via events/settings.
-2. **Token movement cleanup**: Add `canvasTearDown` teardown for conga/follow state (Maps/Sets/hooks).
-3. **Image search/filtering**: Avoid cloning entire cache per search; redesign cache eviction.
-4. **Menubar rerenders**: Throttle/diff updates so only affected DOM nodes refresh.
-5. **Image cache footprint**: Provide unload/flush controls or persist metadata to disk.
 
 Document any additional findings in this file, then link back to them from `TODO.md`.
 
