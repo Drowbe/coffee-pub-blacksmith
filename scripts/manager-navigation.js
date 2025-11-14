@@ -85,9 +85,18 @@ export class NavigationManager {
     static cleanup() {
         
         // Unregister hooks via HookManager
-        HookManager.unregisterHook('ready', 'scene-navigation-ready-debug');
-        HookManager.unregisterHook('renderSceneDirectory', 'scene-navigation-directory');
-        HookManager.unregisterHook('renderSceneNavigation', 'scene-navigation-bar');
+        HookManager.unregisterHook({
+            name: 'ready',
+            callbackId: 'scene-navigation-ready-debug'
+        });
+        HookManager.unregisterHook({
+            name: 'renderSceneDirectory',
+            callbackId: 'scene-navigation-directory'
+        });
+        HookManager.unregisterHook({
+            name: 'renderSceneNavigation',
+            callbackId: 'scene-navigation-bar'
+        });
         
         // Clear any pending single-click timeouts
         if (NavigationManager._singleClickTimeouts) {

@@ -1475,33 +1475,51 @@ export class TokenImageUtilities {
         
         // Unregister hooks using HookManager
         if (TokenImageUtilities._updateCombatHookId) {
-            HookManager.unregisterHook('updateCombat', TokenImageUtilities._updateCombatHookId);
+            HookManager.unregisterHook({
+                name: 'updateCombat',
+                callbackId: TokenImageUtilities._updateCombatHookId
+            });
             TokenImageUtilities._updateCombatHookId = null;
         }
         
         if (TokenImageUtilities._deleteCombatHookId) {
-            HookManager.unregisterHook('deleteCombat', TokenImageUtilities._deleteCombatHookId);
+            HookManager.unregisterHook({
+                name: 'deleteCombat',
+                callbackId: TokenImageUtilities._deleteCombatHookId
+            });
             TokenImageUtilities._deleteCombatHookId = null;
         }
         
         if (TokenImageUtilities._updateTokenHookId) {
-            HookManager.unregisterHook('updateToken', TokenImageUtilities._updateTokenHookId);
+            HookManager.unregisterHook({
+                name: 'updateToken',
+                callbackId: TokenImageUtilities._updateTokenHookId
+            });
             TokenImageUtilities._updateTokenHookId = null;
         }
         
         if (TokenImageUtilities._targetingHookId) {
-            HookManager.unregisterHook('targetToken', TokenImageUtilities._targetingHookId);
+            HookManager.unregisterHook({
+                name: 'targetToken',
+                callbackId: TokenImageUtilities._targetingHookId
+            });
             TokenImageUtilities._targetingHookId = null;
         }
         
         // Unregister target hiding hooks
         if (TokenImageUtilities._canvasReadyHookId) {
-            HookManager.unregisterHook('canvasReady', TokenImageUtilities._canvasReadyHookId);
+            HookManager.unregisterHook({
+                name: 'canvasReady',
+                callbackId: TokenImageUtilities._canvasReadyHookId
+            });
             TokenImageUtilities._canvasReadyHookId = null;
         }
         
         if (TokenImageUtilities._refreshTokenHookId) {
-            HookManager.unregisterHook('refreshToken', TokenImageUtilities._refreshTokenHookId);
+            HookManager.unregisterHook({
+                name: 'refreshToken',
+                callbackId: TokenImageUtilities._refreshTokenHookId
+            });
             TokenImageUtilities._refreshTokenHookId = null;
         }
         

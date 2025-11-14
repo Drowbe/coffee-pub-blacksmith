@@ -233,7 +233,17 @@ export class HookManager {
      * @param {string} [params.callbackId] - Specific callbackId to remove
      * @returns {boolean} Success status
      */
-    static unregisterHook({ name, callbackId } = {}) {
+    static unregisterHook(nameOrOptions, maybeCallbackId) {
+        let name;
+        let callbackId;
+
+        if (typeof nameOrOptions === 'string') {
+            name = nameOrOptions;
+            callbackId = maybeCallbackId;
+        } else if (typeof nameOrOptions === 'object' && nameOrOptions !== null) {
+            ({ name, callbackId } = nameOrOptions);
+        }
+
         if (!name) {
             console.warn('HookManager.unregisterHook called without a hook name');
             return false;

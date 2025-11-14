@@ -10,6 +10,10 @@
 - **Priority**: CRITICAL
 - **Next Step**: Fix hook cleanup (blocks the rest of the mitigation work). Update this entry once the linked doc changes status.
 
+### Select Leader broken
+- no longer fires after a vote
+- no longwer works when gm selects the leader
+
 ### MEDIUM PRIORITY ISSUES
 
 ### Verify Loot Token Restoration

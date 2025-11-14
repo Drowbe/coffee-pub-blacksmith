@@ -22,24 +22,16 @@ Centralized notes for long-running performance and memory investigations. Use th
 4. Capture at least three heap snapshots (baseline, mid-session, pre-crash) and diff by constructors.
 
 ### Current Findings (Stack Ranked)
-| Rank | Severity | Area | Description |
+| Rank | Severity | Area | Status |
 | --- | --- | --- | --- |
-| 1 | Critical | Hook cleanup | `HookManager.unregisterHook` is called in multiple modules but not implemented; cleanup paths throw before removing callbacks, so hooks, timers, PIXI graphics, and RAF loops accumulate every reload. |
-| 2 | High | Target hiding loop | `_onCanvasReadyForHiding` starts a `requestAnimationFrame` loop that hides targets every frame (all tokens, 60 fps). Because cleanup never runs (see above), the loop and its captured references persist indefinitely, driving CPU and preventing GC. |
-| 3 | High | Token movement state | `token-movement.js` registers global `preUpdateToken`/`updateToken` hooks and stores large Maps/Sets (`leaderMovementPath`, `tokenFollowers`, etc.) without teardown. Tokens from prior scenes stay referenced, retaining textures and audio buffers. |
-| 4 | High | Token image search | `_getFilteredFiles` clones the entire 17k-entry cache on every search/filter, and `_cacheSearchResults` keeps deep copies of result arrays (up to 50 cached entries). Searching or scrolling allocates tens of thousands of objects and keeps them alive for 5+ minutes. |
-| 5 | Medium | Menubar rerenders | Numerous hooks (`updateCombat`, `updateToken`, `renderApplication`, etc.) call `MenuBar.renderMenubar(true)` each time. Every HP change or tracker toggle rebuilds the entire menubar DOM, creating detached nodes and reloading templates. |
-| 6 | Medium | Image cache footprint | `ImageCacheManager.cache` holds metadata for every discovered asset with no eviction/unload path. 17k+ entries (names, tags, folder paths) remain in memory even when the feature is idle, consuming hundreds of MB. |
+| 1 | Critical | Hook cleanup | ✅ Completed – `HookManager.unregisterHook` implemented and all call sites updated. |
+| 2 | High | Target hiding loop | Active |
+| 3 | High | Token movement state | Active |
+| 4 | High | Token image search | Active |
+| 5 | Medium | Menubar rerenders | Active |
+| 6 | Medium | Image cache footprint | Active |
 
 #### Finding Details
-
-1. **Hook cleanup not implemented**
-   - **Files**: `scripts/manager-hooks.js`, `scripts/manager-canvas.js`, `scripts/token-image-utilities.js`, `scripts/manager-navigation.js`, others.
-   - **Evidence**: Callers invoke `HookManager.unregisterHook(...)` in cleanup paths, but `manager-hooks.js` only exports `registerHook`, `removeHook`, and `removeCallback`. The missing method throws, so teardown logic never unregisters callbacks or clears requestAnimationFrame handles. Example:
-     - `scripts/manager-canvas.js` → `CanvasTools.cleanup()` (lines ~606–634).
-     - `scripts/token-image-utilities.js` → `cleanupTurnIndicator()` (lines ~1470–1507).
-   - **Impact**: Every reload duplicates hooks, timers, PIXI graphics, and RAF loops; memory and CPU usage grow across play sessions.
-   - **Actionable Notes**: Implement `HookManager.unregisterHook(name, callbackId?)` or switch callers to `removeCallback` / `disposeByContext`. Audit modules for manual hook storage once the helper exists.
 
 2. **Target-hiding RAF loop runs indefinitely**
    - **Files**: `scripts/token-image-utilities.js` (`_onCanvasReadyForHiding`, `_hideTargetsAnimationId`).
@@ -74,12 +66,11 @@ Centralized notes for long-running performance and memory investigations. Use th
    - **Actionable Notes**: Persist processed metadata to settings/storage to reload on demand, add a “flush cache” control, or load subsets lazily (e.g., per top-level folder). Track cache size and warn when above threshold.
 
 ### Next Actions
-1. **Fix hook cleanup**: add `HookManager.unregisterHook` or switch callers to `removeCallback` / `disposeByContext` so teardown actually runs.
-2. **Gate/remove target-hiding RAF loop**: run only when needed, or replace with hook-driven toggles.
-3. **Add teardown for token movement system**: clear Maps/Sets and unregister hooks on `canvasTearDown` or setting change.
-4. **Optimize image search/filtering**: introduce indexes or streams to avoid cloning the entire cache; cap search result cache by total memory, not entry count.
-5. **Throttle menubar renders**: batch hook responses and update only the DOM fragments that changed.
-6. **Provide cache offloading**: persist processed metadata to disk or add a “flush cache” button to reclaim memory mid-session.
+1. **Target hiding loop**: Gate/remove continuous RAF loop; drive indicator hiding via events/settings.
+2. **Token movement cleanup**: Add `canvasTearDown` teardown for conga/follow state (Maps/Sets/hooks).
+3. **Image search/filtering**: Avoid cloning entire cache per search; redesign cache eviction.
+4. **Menubar rerenders**: Throttle/diff updates so only affected DOM nodes refresh.
+5. **Image cache footprint**: Provide unload/flush controls or persist metadata to disk.
 
 Document any additional findings in this file, then link back to them from `TODO.md`.
 

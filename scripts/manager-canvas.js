@@ -606,28 +606,43 @@ export class CanvasTools {
     static cleanup() {
         // Unregister nameplate hooks
         if (CanvasTools._nameplateCreateTokenHookId) {
-            HookManager.unregisterHook('createToken', CanvasTools._nameplateCreateTokenHookId);
+            HookManager.unregisterHook({
+                name: 'createToken',
+                callbackId: CanvasTools._nameplateCreateTokenHookId
+            });
             CanvasTools._nameplateCreateTokenHookId = null;
         }
         
         // Unregister token naming hooks
         if (CanvasTools._preCreateTokenHookId) {
-            HookManager.unregisterHook('preCreateToken', CanvasTools._preCreateTokenHookId);
+            HookManager.unregisterHook({
+                name: 'preCreateToken',
+                callbackId: CanvasTools._preCreateTokenHookId
+            });
             CanvasTools._preCreateTokenHookId = null;
         }
         
         if (CanvasTools._preUpdateTokenHookId) {
-            HookManager.unregisterHook('preUpdateToken', CanvasTools._preUpdateTokenHookId);
+            HookManager.unregisterHook({
+                name: 'preUpdateToken',
+                callbackId: CanvasTools._preUpdateTokenHookId
+            });
             CanvasTools._preUpdateTokenHookId = null;
         }
         
         if (CanvasTools._createTokenHookId) {
-            HookManager.unregisterHook('createToken', CanvasTools._createTokenHookId);
+            HookManager.unregisterHook({
+                name: 'createToken',
+                callbackId: CanvasTools._createTokenHookId
+            });
             CanvasTools._createTokenHookId = null;
         }
         
         if (CanvasTools._tokenAddedToSceneHookId) {
-            HookManager.unregisterHook('createToken', CanvasTools._tokenAddedToSceneHookId);
+            HookManager.unregisterHook({
+                name: 'createToken',
+                callbackId: CanvasTools._tokenAddedToSceneHookId
+            });
             CanvasTools._tokenAddedToSceneHookId = null;
         }
         
