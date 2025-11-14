@@ -322,19 +322,13 @@ export class TokenImageUtilities {
      */
     static _drawRoundedSquare(graphics, settings, ringRadius) {
         // Calculate square size based on ring radius
-        // For a square to encompass the same area, use side = radius * sqrt(2)
+        const cornerRadius = settings.thickness / 2; // Round the corners based on thickness
         const squareSize = ringRadius * 2;
-        const halfSize = squareSize / 2;
-        const cornerRadius = squareSize * 0.15; // 15% of size for nice rounded corners
-        
+ 
         // Draw inner fill first (behind the ring)
-        graphics.beginFill(settings.innerColor, settings.innerOpacity);
-        graphics.drawRoundedRect(-halfSize, -halfSize, squareSize, squareSize, cornerRadius);
+        graphics.beginFill(settings.backgroundColor, settings.backgroundOpacity);
+        graphics.drawRoundedRect(-squareSize / 2, -squareSize / 2, squareSize, squareSize, cornerRadius);
         graphics.endFill();
-        
-        // Draw the rounded square border on top
-        graphics.lineStyle(settings.thickness, settings.color, settings.pulseMax);
-        graphics.drawRoundedRect(-halfSize, -halfSize, squareSize, squareSize, cornerRadius);
     }
     
     /**
@@ -2244,6 +2238,84 @@ export class TokenImageUtilities {
                 return game.combat?.getCombatantByToken(token.id) !== undefined;
             default:
                 return true;
+        }
+    }
+
+    static _calculateScaledOpacity(baseOpacity, scaleFactor) {
+        return Math.min(Math.max(baseOpacity * scaleFactor, 0), 1);
+    }
+
+    static _canUserSeeToken(token) {
+        if (!token) {
+            return false;
+        }
+
+        try {
+            if (token.document?.testUserVisibility) {
+                return token.document.testUserVisibility(game.user);
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Visibility check failed for ${token.name}: ${error.message}`, "", true, false);
+        }
+
+        // Fallback to generic visibility flag
+        return token.visible !== undefined ? token.visible : true;
+    }
+
+    /**
+     * Get token image path for player characters (based on death saves)
+     */
+    static getDeadTokenImagePath(isPlayerCharacter) {
+        const defaultPath = 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round.webp';
+        if (isPlayerCharacter) {
+            // PC has failed 3 death saves - use PC-specific dead token from setting
+            const pcPath = getSettingSafely(MODULE.ID, 'deadTokenImagePathPC', defaultPath);
+            if (pcPath && ImageCacheManager.cache && ImageCacheManager.cache.files) {
+                const fileName = pcPath.split('/').pop();
+                const cachedFile = ImageCacheManager.cache.files.get(fileName.toLowerCase());
+                if (cachedFile) {
+                    return cachedFile.fullPath;
+                }
+            }
+        } else {
+            // NPC/Monster - use existing setting
+            const npcPath = getSettingSafely(MODULE.ID, 'deadTokenImagePath', defaultPath);
+            if (npcPath && ImageCacheManager.cache && ImageCacheManager.cache.files) {
+                const fileName = npcPath.split('/').pop();
+                const cachedFile = ImageCacheManager.cache.files.get(fileName.toLowerCase());
+                if (cachedFile) {
+                    return cachedFile.fullPath;
+                }
+            }
+        }
+        return defaultPath;
+    }
+
+    static _handleTokenVisibilityChange(tokenDocument) {
+        const token = canvas.tokens.get(tokenDocument.id);
+        if (!token) {
+            return;
+        }
+
+        const canSee = TokenImageUtilities._canUserSeeToken(token);
+        const tokenId = tokenDocument.id;
+
+        if (!canSee) {
+            if (TokenImageUtilities._currentTurnTokenId === tokenId) {
+                TokenImageUtilities._removeTurnIndicator();
+            }
+
+            if (TokenImageUtilities._targetedIndicators.has(tokenId)) {
+                TokenImageUtilities._removeTargetedIndicator(tokenId);
+            }
+        } else {
+            if (TokenImageUtilities._currentTurnTokenId === tokenId && !TokenImageUtilities._turnIndicator) {
+                TokenImageUtilities._createTurnIndicator(token);
+            }
+
+            if (TokenImageUtilities._targetedTokens.has(tokenId) && !TokenImageUtilities._targetedIndicators.has(tokenId)) {
+                TokenImageUtilities._addTargetedIndicator(token.document);
+            }
         }
     }
 }

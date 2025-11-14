@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Epic Loot Odds:** Epic loot tables now respect the configured odds and always award a single item when triggered.
 - **Loot Coin Maximums:** Coin rewards now roll between 1 and the per-currency maximum settings (including electrum) instead of using a static percentile table.
 - **Dead Token Toggle:** Dead token replacement now correctly follows the `enableDeadTokenReplacement` setting in both UI and automation hooks.
+- **Indicator Visibility:** Current-turn and targeted rings now respect per-user token visibility, hiding from players when tokens are invisible to them.
 
 
 ## [12.1.20] - 2025-11-12
