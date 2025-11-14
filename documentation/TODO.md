@@ -56,6 +56,19 @@
   - Add automated or documented manual test steps for future regressions
 - **Related Settings**: `tokenConvertDeadToLoot`, `tokenLootPileImage`
 
+### Combat Session Timer Keeps Running After End
+- **Issue**: When combat or session ends, the session timer continues counting down instead of stopping/resetting
+- **Status**: PENDING - Needs investigation
+- **Priority**: MEDIUM - UX consistency
+- **Current State**: Timer display and intervals persist after the session is over; users see time continue to elapse
+- **Location**: `scripts/api-menubar.js` (session timer logic), possibly `timer-round.js`
+- **Tasks Needed**:
+  - Reproduce scenario where timer keeps running post-session
+  - Ensure expiration stops intervals and clears stored end/start time
+  - Confirm timer UI resets for all clients after session completion
+  - Add regression tests/manual checklist for end-of-session behavior
+- **Related Settings**: `sessionEndTime`, `sessionStartTime`, `sessionTimerDefault`
+
 ### Track and report our movement distance against the walking speed of the token
 - **Issue**: Need to track and report our movement distance against the walking speed of the token
 - **Status**: PENDING - Needs implementation
@@ -99,21 +112,6 @@
   - `menubarSkipDead` - Skip dead combatants during turn advancement (new)
   - `combatTrackerHideDead` - Hide dead combatants from combat tracker (new)
 - **Notes**: Options should be separate for menubar and combat tracker to allow different preferences
-
-### Targeted and Current Turn Rings Should Honor Invisibility
-- **Issue**: Token indicator rings (targeted, current turn) should honor token invisibility so players don't see rings on invisible tokens
-- **Status**: PENDING - Needs implementation
-- **Priority**: MEDIUM - Gameplay functionality and stealth
-- **Current State**: Indicator rings are shown even when tokens are invisible
-- **Location**: `scripts/token-image-utilities.js` (turn indicator, targeted indicator rendering)
-- **Tasks Needed**:
-  - Check token visibility/invisibility status before rendering rings
-  - Hide targeted indicator ring for invisible tokens (for players)
-  - Hide current turn indicator ring for invisible tokens (for players)
-  - Ensure GM can still see rings for invisible tokens
-  - Test with different visibility levels (invisible, hidden, visible)
-- **Related Settings**: None currently
-- **Notes**: Critical for stealth gameplay - players should not be able to see indicator rings for invisible tokens
 
 ### Wire up enableMenubar Setting
 - **Issue**: enableMenubar setting needs to be properly connected to functionality

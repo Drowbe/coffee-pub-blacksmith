@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, getSettingSafely, playSound } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely, playSound, formatTime } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { ModuleManager } from './manager-modules.js';
 import { HookManager } from './manager-hooks.js';
@@ -12,6 +12,7 @@ import { CSSEditor } from './window-gmtools.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
 import { CombatTracker } from './combat-tracker.js';
 import { StatsWindow } from './window-stats.js';
+import { RoundTimer } from './timer-round.js';
 
 class MenuBar {
     static ID = 'menubar';
@@ -2355,9 +2356,31 @@ class MenuBar {
                 }
             }
 
+            const currentRound = combat.round || 0;
+            const totalTurns = Array.isArray(combat.turns) ? combat.turns.length : combat.combatants.size;
+            const currentTurnIndex = typeof combat.turn === 'number' ? combat.turn : 0;
+            const currentTurn = Math.min(currentTurnIndex + 1, Math.max(totalTurns, 1));
+            const currentCombatantName = combat.combatant?.name || 'No Active Turn';
+
+            // Derive combat duration information
+            const totalCombatDurationBase = combat.getFlag(MODULE.ID, 'totalCombatDuration') || 0;
+            const stats = combat.getFlag(MODULE.ID, 'stats') || {};
+            const accumulated = stats.accumulatedTime || 0;
+            const roundStart = stats.roundStartTimestamp || 0;
+            const isActive = RoundTimer?.isActive ?? true;
+            const runningRound = (roundStart && isActive) ? Math.max(0, Date.now() - roundStart) : 0;
+            const currentRoundDurationMs = accumulated + runningRound;
+            const totalCombatDurationMs = totalCombatDurationBase + currentRoundDurationMs;
+
             return {
                 combatants,
-                actionButton
+                actionButton,
+                currentRound,
+                currentTurn,
+                totalTurns,
+                currentCombatant: currentCombatantName,
+                totalCombatDuration: formatTime(totalCombatDurationMs || 0, 'hh:mm:ss'),
+                currentRoundDuration: formatTime(currentRoundDurationMs || 0, 'hh:mm:ss')
             };
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error gathering combat data", { error }, false, false);
