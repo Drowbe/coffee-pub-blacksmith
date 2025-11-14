@@ -5,41 +5,10 @@
 ### CRITICAL PRIORITY ISSUES
 
 ### Memory Leak Investigation
-- **Issue**: Severe memory leak causing browser tab to consume 9.5GB over a 3-hour session, eventually crashing
-- **Status**: PENDING - Needs investigation
-- **Priority**: CRITICAL - System stability and performance
-- **Current State**: 
-  - Heap memory stays relatively stable around ~950MB
-  - Browser tab memory grows unbounded, reaching 9.5GB before crash
-  - Memory usage increases steadily over time during active play session
-  - Issue occurs during normal 3-hour gameplay session
-- **Symptoms**:
-  - Heap memory: ~950MB (stable)
-  - Browser tab memory: 9.5GB+ (growing unbounded)
-  - Memory growth pattern: Gradual increase over time
-  - Crash: Browser tab eventually crashes due to excessive memory usage
-- **Investigation Needed**:
-  - **Image Resources**: Verify image assets are properly disposed and not accumulating in memory
-  - **Cached Data**: Review cache implementations for unbounded growth (no limits, no cleanup)
-  - **WebSocket Connections**: Ensure socket connections are properly closed and cleaned up
-  - **Foundry API**: Review usage of Foundry APIs that may cache data (Actors, Items, Scenes, etc.)
-  - **Memory Profiling**: Use browser DevTools Memory profiler to identify specific objects/classes growing over time
-- **Areas to Check**:
-  - `scripts/manager-image-cache.js` - Large cache implementation (17,562+ files)
-  - `scripts/manager-image-matching.js` - Token matching processes
-  - `scripts/manager-canvas.js` - Canvas-related operations
-  - Any code that loads/displays images or media
-- **Tools/Methods**:
-  - Chrome DevTools Memory Profiler (Heap Snapshots)
-  - Chrome DevTools Performance Monitor (Memory timeline)
-  - Performance.memory API for tracking memory usage
-- **Related Settings**: None currently
-- **Notes**: This is a critical stability issue that must be resolved. The disconnect between heap memory (~950MB) and browser tab memory (9.5GB) suggests resources not tracked by V8 heap (images, DOM, WebGL, etc.) are accumulating. Focus on resource cleanup, cache limits, and proper disposal of Foundry objects.
-
-- **POTENTIAL ADDITIONAL ISSUES**:
-  - Notification timeouts may accumulate if notifications are removed without clearing timeouts (though code shows cleanup in `removeNotification()`)
-  - DOM nodes: Old menubar containers are removed (line 2508), but need to verify they're fully garbage collected
-  - Image resources: Token image replacement window has cleanup (good), but need to verify all image references are cleared
+- **Issue**: Browser tab memory grows to 9.5 GB in ~3 hours while heap stays ~950 MB, leading to crashes.
+- **Status**: PENDING — see `documentation/performance.md` for full investigation notes, findings, and next steps.
+- **Priority**: CRITICAL
+- **Next Step**: Fix hook cleanup (blocks the rest of the mitigation work). Update this entry once the linked doc changes status.
 
 ### MEDIUM PRIORITY ISSUES
 
@@ -345,6 +314,44 @@
   ```
 
 ## FUTURE PHASES
+
+### Drawing Tools
+- **Issue**: Give the users tools to plot and draw on the canvas
+- **Status**: FUTURE ENHANCEMENT - Design phase
+- **Priority**: LOW - Quality of life improvement
+- **Description**: Allow for drawing tools
+- **Requirements**:
+  1. **Sketching Tools**:
+     - Drawing tools should be configurable
+  2. **Objects**:
+     - arrows, circles, lines, rectangles, polygons, text, images, etc.
+  3. **Sticky Notes**:
+
+### Token Outfits
+- **Issue**: Allow for token outfits
+- **Status**: FUTURE ENHANCEMENT - Design phase
+- **Priority**: LOW - Quality of life improvement
+- **Description**: Allow for token outfits. Extend what we do for image replacement
+- **Requirements**:
+  1. **Outfit Types**:
+  2. **Outfit Items**:
+
+### Rest and Recovery
+- **Issue**: Allow for long and short rests
+- **Status**: FUTURE ENHANCEMENT - Design phase
+- **Priority**: LOW - Quality of life improvement
+- **Description**: Allow for long and short rests
+- **Requirements**:
+  1. **Rest Types**:
+     - Long Rest
+     - Short Rest
+     - Full Rest
+     - Partial Rest
+     - Custom Rest
+  2. **Food and Water Consumption**
+     - Food and water consumption should be configurable
+  3. **Spell Slot Recovery**:
+     - Spell slot recovery should be configurable
 
 ### Auto-Roll Injury Based on Rules
 - **Issue**: Automatically roll for injuries when certain conditions are met
