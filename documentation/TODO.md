@@ -43,6 +43,19 @@
 
 ### MEDIUM PRIORITY ISSUES
 
+### Verify Loot Token Restoration
+- **Issue**: Ensure tokens converted to loot piles reliably restore their original images after revival
+- **Status**: PENDING - Needs validation pass
+- **Priority**: MEDIUM - Gameplay consistency
+- **Current State**: Recent fixes rely on Item Piles `keepOriginal` and manual restore logic; needs regression testing across scenarios
+- **Location**: `scripts/token-image-utilities.js`
+- **Tasks Needed**:
+  - Test loot conversion and restoration with various token types (linked/unlinked, PCs/NPCs)
+  - Confirm restoration holds across scene reloads and Foundry refresh
+  - Verify behavior with Item Piles disabled/enabled
+  - Add automated or documented manual test steps for future regressions
+- **Related Settings**: `tokenConvertDeadToLoot`, `tokenLootPileImage`
+
 ### Track and report our movement distance against the walking speed of the token
 - **Issue**: Need to track and report our movement distance against the walking speed of the token
 - **Status**: PENDING - Needs implementation
