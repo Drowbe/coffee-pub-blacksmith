@@ -23,10 +23,10 @@
 /* --- Chat Cleanup ------------------- */
 /* ------------------------------------ */
 
-.chat-message  {
+li.chat-message  {
     /* splits the chat spacing equally */
-	margin-top: var(--intChatSpacing);
-    margin-bottom: var(--intChatSpacing);
+	margin-top: var(--intChatSpacing) !important;
+    margin-bottom: var(--intChatSpacing) !important;
 }
 
 /* removes the leading icon from the roll table results */

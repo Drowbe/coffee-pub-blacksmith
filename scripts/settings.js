@@ -1209,7 +1209,7 @@ export const registerSettings = () => {
 		max: 20,
 		step: 1,
 		},
-		default: 0,
+		default: -5,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 	// -- Bottom Margin --
@@ -1225,7 +1225,7 @@ export const registerSettings = () => {
 		max: 20,
 		step: 1,
 		},
-		default: 0,
+		default: -5,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 	// -- Left Margin --
@@ -1241,7 +1241,7 @@ export const registerSettings = () => {
 		max: 20,
 		step: 1,
 		},
-		default: 0,
+		default: -5,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 	// -- Right Margin --
@@ -1257,7 +1257,7 @@ export const registerSettings = () => {
 		max: 20,
 		step: 1,
 		},
-		default: 0,
+		default: -5,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 

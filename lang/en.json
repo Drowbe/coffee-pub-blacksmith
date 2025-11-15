@@ -138,22 +138,22 @@
 				"hideRollTableIcon-Hint": "Hide the roll table icon in the interface",
 
 				"chatSpacing-Label": "Chat Gap",
-				"chatSpacing-Hint": "Increases the gap between chat messages. Applies globally to all chat messages.",
+				"chatSpacing-Hint": "Gap between chat messages. Applies globally to all chat messages.",
 
 				"cardTopOffset-Label": "Top Offset",
-				"cardTopOffset-Hint": "Adds additional top margin for some cards. Only applies to Coffee Pub modules.",
+				"cardTopOffset-Hint": "Adds additional top margin for some cards. (Only applies to Coffee Pub modules.)",
 			
-				"cardTopMargin-Label": "Top margin",
-				"cardTopMargin-Hint": "Increses or decreases the top margin of the chat. Only applies to Coffee Pub modules.",
+				"cardTopMargin-Label": "Top Padding",
+				"cardTopMargin-Hint": "Padding above chat content. (Only applies to Coffee Pub modules.)",
 
-				"cardBottomMargin-Label": "Bottom margin",
-				"cardBottomMargin-Hint": "Increses or decreases the bottom margin of the chat. Only applies to Coffee Pub modules.",
+				"cardBottomMargin-Label": "Bottom Padding",
+				"cardBottomMargin-Hint": "Padding below chat content. (Only applies to Coffee Pub modules.)",
 				
-				"cardLeftMargin-Label": "Left margin",
-				"cardLeftMargin-Hint": "Increses or decreases the left margin of the chat. Only applies to Coffee Pub modules.",
+				"cardLeftMargin-Label": "Left Padding",
+				"cardLeftMargin-Hint": "Padding left of chat content. (Only applies to Coffee Pub modules.)",
 
-				"cardRightMargin-Label": "Right margin",
-				"cardRightMargin-Hint": "Increses or decreases the right margin of the chat. Only applies to Coffee Pub modules. ",
+				"cardRightMargin-Label": "Right Padding",
+				"cardRightMargin-Hint": "Padding right of chat content. (Only applies to Coffee Pub modules.) ",
 
 			"headingH3Windows-Label": "Windows",
 			"headingH3Windows-Hint": "",
