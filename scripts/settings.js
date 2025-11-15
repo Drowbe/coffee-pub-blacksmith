@@ -1621,6 +1621,14 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+
+
+	// --------------------------------------
+	// -- H3: Round Summary Sharing
+	// --------------------------------------
+	registerHeader('RoundSummarySharing', 'headingH3RoundSummarySharing-Label', 'headingH3RoundSummarySharing-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+
 	// -- Show Round Summary --
 	game.settings.register(MODULE.ID, 'showRoundSummary', {
 		name: MODULE.ID + '.showRoundSummary-Label',
@@ -1664,6 +1672,19 @@ export const registerSettings = () => {
 		default: true,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
+
+
+	// --------------------------------------
+	// -- H3: Round Summary Sharing
+	// --------------------------------------
+	registerHeader('CombatSummarySharing', 'headingH3CombatSummarySharing-Label', 'headingH3CombatSummarySharing-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+
+
+
+
+
+
 
 
 	// --------------------------------------
@@ -2478,6 +2499,19 @@ export const registerSettings = () => {
 		},
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
+
+
+	// -- Combat Timer Label --
+	game.settings.register(MODULE.ID, 'combatTimerLabel', {
+		name: MODULE.ID + '.combatTimerLabel-Label',
+		hint: MODULE.ID + '.combatTimerLabel-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'Turn',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 
 	// -- Warning Message --
 	game.settings.register(MODULE.ID, 'combatTimerWarningMessage', {

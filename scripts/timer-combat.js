@@ -727,7 +727,7 @@ class CombatTimer {
                 if (game.user.isGM && game.settings.get(MODULE.ID, 'timerChatTurnRunningOut')) {
                     this.sendChatMessage({
                         isTimerWarning: true,
-                        warningMessage: message
+                        warningMessage: formattedMessage
                     });
                 }
             }
@@ -752,7 +752,7 @@ class CombatTimer {
                 if (game.user.isGM && game.settings.get(MODULE.ID, 'timerChatTurnRunningOut')) {
                     this.sendChatMessage({
                         isTimerExpiringSoon: true,
-                        expiringSoonMessage: message
+                        expiringSoonMessage: formattedMessage
                     });
                 }
             }
@@ -981,11 +981,14 @@ class CombatTimer {
             data.duration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
 
+        // Pull timer label from settings so the chat card matches configured text
+        const timerLabel = game.settings.get(MODULE.ID, 'combatTimerLabel') || 'Combat';
+
         // Prepare the message data with timer info
         const messageData = {
             isPublic: true,
             isTimer: true,
-            timerLabel: 'Combat',
+            timerLabel,
             theme: data.isTimerWarning ? 'orange' : 
                    data.isTimerExpired ? 'red' : 
                    (data.isTimerStart || data.isTimerSet) ? 'blue' : 'default',

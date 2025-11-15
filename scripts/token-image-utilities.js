@@ -2280,35 +2280,6 @@ export class TokenImageUtilities {
         return token.visible !== undefined ? token.visible : true;
     }
 
-    /**
-     * Get token image path for player characters (based on death saves)
-     */
-    static getDeadTokenImagePath(isPlayerCharacter) {
-        const defaultPath = 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round.webp';
-        if (isPlayerCharacter) {
-            // PC has failed 3 death saves - use PC-specific dead token from setting
-            const pcPath = getSettingSafely(MODULE.ID, 'deadTokenImagePathPC', defaultPath);
-            if (pcPath && ImageCacheManager.cache && ImageCacheManager.cache.files) {
-                const fileName = pcPath.split('/').pop();
-                const cachedFile = ImageCacheManager.cache.files.get(fileName.toLowerCase());
-                if (cachedFile) {
-                    return cachedFile.fullPath;
-                }
-            }
-        } else {
-            // NPC/Monster - use existing setting
-            const npcPath = getSettingSafely(MODULE.ID, 'deadTokenImagePath', defaultPath);
-            if (npcPath && ImageCacheManager.cache && ImageCacheManager.cache.files) {
-                const fileName = npcPath.split('/').pop();
-                const cachedFile = ImageCacheManager.cache.files.get(fileName.toLowerCase());
-                if (cachedFile) {
-                    return cachedFile.fullPath;
-                }
-            }
-        }
-        return defaultPath;
-    }
-
     static _handleTokenVisibilityChange(tokenDocument) {
         const token = canvas.tokens.get(tokenDocument.id);
         if (!token) {

@@ -26,6 +26,7 @@ class CombatStats {
     static currentStats = null;
     static combatStats = null;
     static _lastRollWasCritical = false;
+    static _processedCombats = new Set();
     
     static DEFAULTS = {
         roundStats: {
@@ -285,10 +286,17 @@ class CombatStats {
     static async _onUpdateCombat(combat, changed, options, userId) {
         // Only process combat updates if this is the GM
         if (!game.user.isGM || !getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
-        if (!game.combat?.started) return;
 
         // Skip if combat doesn't exist (combat might have been deleted)
         if (!combat || !game.combats.has(combat.id)) return;
+
+        // Detect combat ending via update (active flag turned off)
+        if (changed.active === false && combat.previous?.active !== false) {
+            await this._onCombatEnd(combat, options, userId);
+            return;
+        }
+
+        if (!game.combat?.started) return;
 
         // Ensure currentStats is initialized
         if (!this.currentStats) {
@@ -683,11 +691,24 @@ class CombatStats {
      * Generates, logs, and stores the combat summary, then emits an API hook.
      * @param {Combat} combat - The combat instance that ended.
      */
-    static _onCombatEnd(combat, options, userId) {
+    static async _onCombatEnd(combat, options, userId) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         
         // Skip if combat doesn't exist (combat might have been deleted)
-        if (!combat || !game.combats.has(combat.id)) return;
+        if (!combat || !combat.id) return;
+
+        if (!this._processedCombats) {
+            this._processedCombats = new Set();
+        }
+        if (this._processedCombats.has(combat.id)) {
+            return;
+        }
+        this._processedCombats.add(combat.id);
+        
+        // Combat may already be removed from collection if delete fired first
+        if (!game.combats.has(combat.id)) {
+            // continue so we can still generate summary with existing data
+        }
 
         // Ensure stats are initialized
         if (!this.combatStats) {
@@ -711,6 +732,21 @@ class CombatStats {
         this._storeCombatSummary(combatSummary).catch(error => {
             postConsoleAndNotification(MODULE.NAME, "Error storing combat summary", error, false, false);
         });
+
+        // Render combat summary chat card
+        try {
+            const template = 'modules/' + MODULE.ID + '/templates/stats-combat.hbs';
+            const content = await renderTemplate(template, combatSummary);
+            const shareStats = game.settings.get(MODULE.ID, 'shareCombatStats');
+
+            await ChatMessage.create({
+                content,
+                whisper: shareStats ? [] : [game.user.id],
+                speaker: { alias: "Game Master", user: game.user.id }
+            });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Error rendering combat summary chat card', error, false, false);
+        }
 
         // Reset stats after summary is generated and exposed
         this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
@@ -1782,6 +1818,10 @@ class CombatStats {
         
         // Skip if combat doesn't exist (combat might have been deleted)
         if (!combat || !game.combats.has(combat.id)) return;
+
+        if (this._processedCombats && combat.id) {
+            this._processedCombats.delete(combat.id);
+        }
 
         // Ensure stats are initialized
         if (!this.combatStats) {
