@@ -52,6 +52,13 @@ export class TokenImageReplacementWindow extends Application {
         this._searchResultCache = new Map(); // Cache: searchKey → {results, timestamp}
         this._searchCacheMaxSize = 50; // Maximum cached searches
         this._searchCacheTTL = 300000; // Cache lifetime: 5 minutes (300000ms)
+
+        // Lifecycle tracking for cleanup
+        this._domEventDisposers = [];
+        this._trackedTimeouts = new Set();
+        this._teardownExecuted = false;
+        this._hookRegistrationTimeoutId = null;
+        this._activeImageElements = new Set();
     }
 
     /**
@@ -102,6 +109,113 @@ export class TokenImageReplacementWindow extends Application {
             game.settings.set(MODULE.ID, 'tokenImageReplacementWindowState', { top, left, width, height });
         }
         return pos;
+    }
+
+    /**
+     * Track DOM event bindings for cleanup
+     * @param {JQuery} html - root element
+     * @param {string} selector - target selector
+     * @param {string} eventName - event to bind
+     * @param {Function} handler - handler bound to this instance
+     * @param {boolean} delegate - whether to delegate from root
+     */
+    _registerDomEvent(html, selector, eventName, handler, delegate = false) {
+        if (!html) return;
+        const boundHandler = handler.bind(this);
+        if (delegate) {
+            html.on(eventName, selector, boundHandler);
+            this._domEventDisposers.push(() => html.off(eventName, selector, boundHandler));
+            return;
+        }
+        const $targets = html.find(selector);
+        if ($targets.length === 0) return;
+        $targets.on(eventName, boundHandler);
+        this._domEventDisposers.push(() => $targets.off(eventName, boundHandler));
+    }
+
+    /**
+     * Remove all tracked DOM event bindings
+     */
+    _clearDomEvents() {
+        while (this._domEventDisposers.length > 0) {
+            const disposer = this._domEventDisposers.pop();
+            try {
+                disposer();
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error clearing DOM event: ${error.message}`, "", false, false);
+            }
+        }
+    }
+
+    /**
+     * Track timeouts for cleanup
+     */
+    _scheduleTrackedTimeout(callback, delay) {
+        const timeoutId = window.setTimeout(() => {
+            this._trackedTimeouts.delete(timeoutId);
+            callback();
+        }, delay);
+        this._trackedTimeouts.add(timeoutId);
+        return timeoutId;
+    }
+
+    _cancelTrackedTimeout(timeoutId) {
+        if (!timeoutId) return null;
+        clearTimeout(timeoutId);
+        this._trackedTimeouts.delete(timeoutId);
+        return null;
+    }
+
+    _cancelAllTrackedTimeouts() {
+        for (const timeoutId of this._trackedTimeouts) {
+            clearTimeout(timeoutId);
+        }
+        this._trackedTimeouts.clear();
+    }
+
+    /**
+     * Tear down DOM references, listeners, and timers so the window releases memory
+     */
+    _teardownWindowResources() {
+        if (this._teardownExecuted) {
+            return;
+        }
+        this._teardownExecuted = true;
+
+        // Ensure no DOM events remain bound to detached nodes
+        this._clearDomEvents();
+
+        // Cancel timers
+        this.searchTimeout = this._cancelTrackedTimeout(this.searchTimeout);
+        this._hookRegistrationTimeoutId = this._cancelTrackedTimeout(this._hookRegistrationTimeoutId);
+        this._tokenSelectionDebounceTimer = this._cancelTrackedTimeout(this._tokenSelectionDebounceTimer);
+        this._cancelAllTrackedTimeouts();
+
+        // Release image references so decoded textures can be GC'd
+        this._activeImageElements.forEach(img => {
+            try {
+                img.src = '';
+            } catch (error) {
+                // Ignore cleanup errors so teardown always finishes
+            }
+        });
+        this._activeImageElements.clear();
+
+        const $element = this.element;
+        if ($element && $element.length > 0) {
+            // Remove any lingering listeners that were attached outside _registerDomEvent
+            $element.find('*').off();
+            $element.remove();
+        }
+
+        // Drop heavy references
+        this.matches = [];
+        this.allMatches = [];
+        this.selectedToken = null;
+        this._cachedSearchTerms = null;
+        this.selectedTags.clear();
+        this._lastProcessedTokenId = null;
+        this._searchResultCache.clear();
     }
 
     /**
@@ -313,56 +427,57 @@ export class TokenImageReplacementWindow extends Application {
     activateListeners(html) {
         super.activateListeners(html);
 
+        this._clearDomEvents();
 
         // Thumbnail clicks
-        html.find('.tir-thumbnail-item').on('click', this._onSelectImage.bind(this));
-        html.find('.tir-thumbnail-item').on('contextmenu', this._onImageRightClick.bind(this));
+        this._registerDomEvent(html, '.tir-thumbnail-item', 'click', this._onSelectImage, true);
+        this._registerDomEvent(html, '.tir-thumbnail-item', 'contextmenu', this._onImageRightClick, true);
         
         // Pause cache button
-        html.find('.button-pause-cache').on('click', this._onPauseCache.bind(this));
+        this._registerDomEvent(html, '.button-pause-cache', 'click', this._onPauseCache);
         
         // Scan images button
-        html.find('.button-scan-images').on('click', this._onScanImages.bind(this));
+        this._registerDomEvent(html, '.button-scan-images', 'click', this._onScanImages);
         
         // Delete cache button
-        html.find('.button-delete-cache').on('click', this._onDeleteCache.bind(this));
+        this._registerDomEvent(html, '.button-delete-cache', 'click', this._onDeleteCache);
         
         
         // Close button
-        html.find('.close-btn').on('click', this._onClose.bind(this));
+        this._registerDomEvent(html, '.close-btn', 'click', this._onClose);
 
         // Search functionality
-        html.find('.tir-search-input').on('input', this._onSearchInput.bind(this));
+        this._registerDomEvent(html, '.tir-search-input', 'input', this._onSearchInput);
         
         // Sort order change
-        html.find('.tir-select').on('change', this._onSortOrderChange.bind(this));
-        html.find('.tir-search-input').on('keypress', (event) => {
+        this._registerDomEvent(html, '.tir-select', 'change', this._onSortOrderChange);
+        this._registerDomEvent(html, '.tir-search-input', 'keypress', (event) => {
             if (event.which === 13) { // Enter key
                 event.preventDefault();
             }
         });
         
         // Infinite scroll
-        html.find('.tir-thumbnails-grid').on('scroll', this._onScroll.bind(this));
+        this._registerDomEvent(html, '.tir-thumbnails-grid', 'scroll', this._onScroll);
         
         
         // Filter category click handlers
-        html.find('#tir-filter-category-container').on('click', '.tir-filter-category', this._onCategoryFilterClick.bind(this));
+        this._registerDomEvent(html, '.tir-filter-category', 'click', this._onCategoryFilterClick, true);
         
         // Tag click handlers for new tags row
-        html.find('#tir-search-tools-tag-container').on('click', '.tir-search-tools-tag', this._onTagClick.bind(this));
+        this._registerDomEvent(html, '.tir-search-tools-tag', 'click', this._onTagClick, true);
         
         // Clear search button
-        html.find('.tir-clear-search-btn').on('click', this._onClearSearch.bind(this));
+        this._registerDomEvent(html, '.tir-clear-search-btn', 'click', this._onClearSearch);
         
         // Filter toggle button
-        html.find('.tir-filter-toggle-btn').on('click', this._onFilterToggle.bind(this));
+        this._registerDomEvent(html, '.tir-filter-toggle-btn', 'click', this._onFilterToggle);
         
         // Initialize filter toggle button state
         this._initializeFilterToggleButton();
         
         // Threshold slider
-        html.find('.tir-rangeslider-input').on('input', this._onThresholdSliderChange.bind(this));
+        this._registerDomEvent(html, '.tir-rangeslider-input', 'input', this._onThresholdSliderChange);
         
         // Set initial threshold value in label
         const currentThreshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
@@ -370,16 +485,16 @@ export class TokenImageReplacementWindow extends Application {
         html.find('.tir-threshold-value').text(`${thresholdPercentage}%`);
         
         // Update Dropped Tokens toggle
-        html.find('#updateDropped').on('change', this._onUpdateDroppedToggle.bind(this));
+        this._registerDomEvent(html, '#updateDropped', 'change', this._onUpdateDroppedToggle);
         
         // Fuzzy Search toggle
-        html.find('#fuzzySearch').on('change', this._onFuzzySearchToggle.bind(this));
+        this._registerDomEvent(html, '#fuzzySearch', 'change', this._onFuzzySearchToggle);
         
         // Convert Dead To Loot toggle
-        html.find('#convertDeadToLoot').on('change', this._onConvertDeadToLootToggle.bind(this));
+        this._registerDomEvent(html, '#convertDeadToLoot', 'change', this._onConvertDeadToLootToggle);
         
         // Dead Token Replacement toggle
-        html.find('#deadTokenReplacement').on('change', this._onDeadTokenReplacementToggle.bind(this));
+        this._registerDomEvent(html, '#deadTokenReplacement', 'change', this._onDeadTokenReplacementToggle);
         
         // Initialize threshold slider with current value
         this._initializeThresholdSlider();
@@ -783,7 +898,7 @@ export class TokenImageReplacementWindow extends Application {
         $element.find('.tir-scan-progress').hide();
         
         // Clear the notification after a delay
-        setTimeout(() => {
+        this._scheduleTrackedTimeout(() => {
             const $notification = $element.find('.tir-notification');
             if ($notification.length > 0) {
                 $notification.fadeOut(500);
@@ -797,7 +912,8 @@ export class TokenImageReplacementWindow extends Application {
         // Register token selection hook only once when first rendered
         // Use a small delay to ensure the DOM is ready
         if (!this._tokenHookRegistered) {
-            setTimeout(async () => {
+            this._hookRegistrationTimeoutId = this._scheduleTrackedTimeout(async () => {
+                this._hookRegistrationTimeoutId = null;
                 if (!this._tokenHookRegistered) {
                     postConsoleAndNotification(MODULE.NAME, 'Token Image Replacement: Registering controlToken hook', 'token-image-replacement-selection', true, false);
                     this._tokenHookId = HookManager.registerHook({
@@ -824,47 +940,18 @@ export class TokenImageReplacementWindow extends Application {
         // Cancel any ongoing search
         this.isSearching = false;
         
-        // Clear search timeout
-        if (this.searchTimeout) {
-            clearTimeout(this.searchTimeout);
-            this.searchTimeout = null;
-        }
-        
         // Remove token selection hook
         if (this._tokenHookRegistered && this._tokenHookId) {
-            HookManager.removeCallback(this._tokenHookId);
+            HookManager.unregisterHook({
+                name: 'controlToken',
+                callbackId: this._tokenHookId
+            });
             this._tokenHookRegistered = false;
             this._tokenHookId = null;
         }
         
-        // Clear debounce timer
-        if (this._tokenSelectionDebounceTimer) {
-            clearTimeout(this._tokenSelectionDebounceTimer);
-            this._tokenSelectionDebounceTimer = null;
-        }
-        
-        // MEMORY CLEANUP: Clear all arrays and references
-        this.matches = [];
-        this.allMatches = [];
-        this.selectedToken = null;
-        this._cachedSearchTerms = null;
-        this.selectedTags.clear();
-        this._lastProcessedTokenId = null;
-        
-        // MEMORY CLEANUP: Remove all image elements from DOM to free memory
-        const $element = this.element;
-        if ($element) {
-            // Remove all img tags to release decoded image data
-            $element.find('img').each(function() {
-                this.src = ''; // Clear src to free memory
-                $(this).remove();
-            });
-            
-            // Remove all event listeners
-            $element.find('.tir-thumbnail-item').off();
-            $element.find('.tir-search-input').off();
-            $element.find('.tir-clear-search').off();
-        }
+        // Tear down DOM, listeners, and cached references
+        this._teardownWindowResources();
         
         postConsoleAndNotification(MODULE.NAME, 'Token Image Replacement: Window closed, memory cleaned up', '', true, false);
         
@@ -878,13 +965,11 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         // Clear any existing debounce timer
-        if (this._tokenSelectionDebounceTimer) {
-            clearTimeout(this._tokenSelectionDebounceTimer);
-        }
+        this._tokenSelectionDebounceTimer = this._cancelTrackedTimeout(this._tokenSelectionDebounceTimer);
         
         // Debounce token selection changes to prevent multiple rapid-fire executions
-        this._tokenSelectionDebounceTimer = setTimeout(async () => {
-        await this._handleTokenSwitch();
+        this._tokenSelectionDebounceTimer = this._scheduleTrackedTimeout(async () => {
+            await this._handleTokenSwitch();
         }, 100); // 100ms debounce
     }
 
@@ -1057,9 +1142,7 @@ export class TokenImageReplacementWindow extends Application {
         this.searchTerm = searchTerm; // Store the search term
         
         // Clear any existing timeout
-        if (this.searchTimeout) {
-            clearTimeout(this.searchTimeout);
-        }
+        this.searchTimeout = this._cancelTrackedTimeout(this.searchTimeout);
         
         // Cancel any ongoing search
         this.isSearching = false;
@@ -1073,7 +1156,7 @@ export class TokenImageReplacementWindow extends Application {
         }
 
         // Debounce search to avoid too many calls
-        this.searchTimeout = setTimeout(async () => {
+        this.searchTimeout = this._scheduleTrackedTimeout(async () => {
             this._showSearchSpinner();
             await this._performSearch(searchTerm);
             this._hideSearchSpinner();
@@ -1264,11 +1347,20 @@ export class TokenImageReplacementWindow extends Application {
         const $element = this.element;
         if ($element) {
             const $grid = $element.find('.tir-thumbnails-grid');
+            // Clear previous references so old DOM nodes can be GC'd
+            this._activeImageElements.forEach(img => {
+                try {
+                    img.src = '';
+                } catch (error) {
+                    // Ignore cleanup errors to avoid blocking render
+                }
+            });
+            this._activeImageElements.clear();
+
             $grid.html(resultsHtml);
-            
-            // Re-attach event handlers for the new thumbnail items
-            $element.find('.tir-thumbnail-item').off('click').on('click', this._onSelectImage.bind(this));
-            $element.find('.tir-thumbnail-item').off('contextmenu').on('contextmenu', this._onImageRightClick.bind(this));
+            $grid.find('img').each((_, img) => {
+                this._activeImageElements.add(img);
+            });
             
             // Update the results summary with current counts
             const $countElement = $element.find('#tir-results-details-count');
