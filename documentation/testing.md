@@ -46,6 +46,22 @@ Document:
 - Repro steps to trigger the leak.
 
 Use the findings to implement targeted cleanup (destroy graphics, clear intervals, stop timers when scenes unload).
+
+## Token Image Replacement Window Cleanup
+1. **Baseline**
+   - Load a scene, open DevTools, take `Snapshot A` before opening the window.
+2. **Exercise**
+   - Select a token, open `Coffee Pub → Token Image Replacement`.
+   - Apply a few images, close the window. Repeat opening/closing 3–4 times.
+3. **Snapshot Comparison**
+   - Take `Snapshot B`, set Memory view to “Objects allocated between Snapshot A and Snapshot B”.
+   - Filter for `Detached` and verify detached DOM trees stay near zero (no large `HTMLDivElement` entries from `.tir-thumbnail-item`).
+4. **Performance Timeline**
+   - Record 60 s on the Performance tab while repeating the open/apply/close loop.
+   - Expected: Documents/Nodes counters flatten once the window is closed; no sustained upward slope.
+5. **Console Verification**
+   - Confirm `postConsoleAndNotification` emits “Token Image Replacement: Window closed, memory cleaned up” each time.
+   - Ensure no `[Violation]` messages persist after closing the window (brief ones during render are acceptable).
 {
   "cells": [],
   "metadata": {

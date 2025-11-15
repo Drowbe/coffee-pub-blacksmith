@@ -27,25 +27,33 @@ Centralized notes for long-running performance and memory investigations. Use th
 | 1 | Critical | Hook cleanup | ✅ Completed – `HookManager.unregisterHook` implemented and all call sites updated. |
 | 2 | High | Target hiding loop | ✅ Completed – replaced continuous RAF loop with event-driven hiding. |
 | 3 | High | Token movement state | ✅ Completed – state resets on scene/mode changes and hooks clean up properly. |
-| 4 | High | Token image search | Active |
-| 5 | Medium | Menubar rerenders | Active |
-| 6 | Medium | Image cache footprint | Active |
+| 4 | High | Token image search/filtering | ✅ Completed – cache indexes + lightweight result caching prevent 17k-entry clones. |
+| 5 | High | Token image replacement window | ✅ Completed – teardown now removes DOM, listeners, and timers between opens. |
+| 6 | Medium | Menubar rerenders | Active |
+| 7 | Medium | Image cache footprint | Active |
 
-4. **Token image search clones 17k-entry cache per keystroke**
-   - **Files**: `scripts/token-image-replacement.js` (`_getFilteredFiles`, `_applyTagFilters`, `_cacheSearchResults`).
+4. **Token image search/filtering churn**
+   - **Status**: ✅ Completed.
+   - **Files**: `scripts/manager-image-cache.js`, `scripts/token-image-replacement.js`.
+   - **Evidence**: Previous code cloned `ImageCacheManager.cache.files` (17k entries) per keystroke and cached deep copies of match arrays for five minutes, visible in heap snapshots as large `Array` diffs and cached match objects.
+   - **Fix**: Added `categoryIndex`/`tagIndex` Maps during cache build, updated filtering/search routines to operate on ID lists, and changed `_cacheSearchResults` to store lightweight references only. Search now allocates O(resultCount) per query and releases arrays once pagination updates.
+
+5. **Token image replacement window leaks DOM between opens**
+   - **Status**: ✅ Completed.
+   - **Files**: `scripts/token-image-replacement.js` (`_updateResults`, `_teardownWindowResources`, `close`).
    - **Evidence**:
-     - `_getFilteredFiles` → `const allFiles = Array.from(ImageCacheManager.cache.files.values());` for every filter/search, then `filter` repeatedly.
-     - `_cacheSearchResults` deep-clones `results` arrays (`results: [...results]`) and stores up to 50 entries for 5-minute TTL.
-   - **Impact**: Each search allocates tens of thousands of objects. Cached arrays retain references for at least 5 minutes, matching the observed non-heap growth.
-   - **Actionable Notes**: Pre-index cache by category/tag once during scan, filter via iterators, and store only lightweight references (paths/IDs) in the search cache. Consider capping cache by total bytes.
+     - Performance recording showed Documents climbing from 33 → 915 and Nodes from 72k → 254k after opening/replacing images several times.
+     - Heap snapshots comparing “baseline” vs “post-window” contained thousands of `Detached HTMLDivElement` entries rooted in `.tir-thumbnail-item` trees.
+   - **Root Cause**: `close()` only cleared arrays and removed a few listeners; the rendered DOM stayed attached to `document.body`, `<img>` elements kept `src` references (decoded textures), and tracked timeouts/hooks were left pending.
+   - **Fix**: Introduced `_teardownWindowResources()` to clear delegated events, cancel tracked timeouts, wipe `this._activeImageElements`, remove the window root, and reset caches. `_updateResults()` now tracks `<img>` nodes so the next render can null their `src`. `close()` unregisters the `controlToken` hook via `HookManager.unregisterHook` and calls the teardown, ensuring each open/close cycle releases DOM/texture memory.
 
-5. **Menubar re-renders too frequently**
+6. **Menubar re-renders too frequently**
    - **Files**: `scripts/api-menubar.js`.
    - **Evidence**: Hook registrations for `updateCombat`, `createCombatant`, `updateCombatant`, `deleteCombatant`, `renderApplication`, `closeApplication`, `updateActor`, `updateToken`, etc., most of which call `MenuBar.renderMenubar(true)` directly.
    - **Impact**: Any combat/timer/tokenevent rebuilds the entire menubar template, tears down event handlers, and recreates DOM nodes; detached nodes accumulate if cleanup fails. Adds CPU spikes during combat and increases GC pressure.
    - **Actionable Notes**: Introduce state diffing or throttling (e.g., `requestAnimationFrame` debouncing) and update only the relevant DOM fragments (timer text, leader badge, etc.).
 
-6. **Image cache retains entire asset library in memory**
+7. **Image cache retains entire asset library in memory**
    - **Files**: `scripts/manager-image-cache.js`.
    - **Evidence**: `ImageCacheManager.cache` holds Maps for `files`, `folders`, `creatureTypes`, plus progress metadata. No eviction or unload. Scans only mutate the in-memory object; even after closing the feature the cache persists until page refresh.
    - **Impact**: 17k+ entries (names, tags, folder paths, metadata) plus progress strings consume hundreds of MB. Combined with search allocations, this explains non-heap growth despite stable JS heap.

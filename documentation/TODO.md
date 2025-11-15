@@ -8,7 +8,7 @@
 - **Issue**: Browser tab memory grows to 9.5 GB in ~3 hours while heap stays ~950 MB, leading to crashes.
 - **Status**: PENDING — see `documentation/performance.md` for full investigation notes, findings, and next steps.
 - **Priority**: CRITICAL
-- **Next Step**: Address image search/display churn (see performance.md). Update this entry once the linked doc changes status.
+- **Next Step**: Verify token image window cleanup in live play, then tackle menubar rerenders (per performance.md). Update this entry when the linked doc advances.
 
 ### Select Leader broken
 - no longer fires after a vote
