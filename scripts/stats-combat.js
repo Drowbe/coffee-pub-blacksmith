@@ -307,7 +307,7 @@ class CombatStats {
             }, true, false);
             
             // Only call _onRoundEnd when we're actually ending a round (not starting a new one)
-            if (combat.previous.round >= 0) {
+            if (combat.previous.round >= 1) {
                 await this._onRoundEnd();
             }
             this._onRoundStart(combat);
