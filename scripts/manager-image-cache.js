@@ -21,6 +21,8 @@ export class ImageCacheManager {
         files: new Map(),           // filename -> full path mapping
         folders: new Map(),         // folder path -> array of files
         creatureTypes: new Map(),   // creature type -> array of files
+        categoryIndex: new Map(),   // category -> Set(fileId)
+        tagIndex: new Map(),        // tag -> Set(fileId)
         lastScan: null,            // timestamp of last scan
         isScanning: false,         // prevent multiple simultaneous scans
         isPaused: false,           // pause state for scanning
@@ -286,10 +288,11 @@ export class ImageCacheManager {
         };
         
         // Extract folder path information (for filtering)
-        const pathParts = filePath.split('/');
+        const normalizedPath = filePath.startsWith('data:') ? filePath : filePath.replace(/^\.?\/?/, '');
+        const pathParts = normalizedPath.split('/').filter(Boolean);
         metadata.fullPath = pathParts.slice(0, -1).join('/');
-        metadata.folderPath = pathParts.slice(0, -1); // Array of folder names
-        metadata.topLevelFolder = pathParts[0] || ''; // First folder (for category filtering)
+        metadata.folderPath = pathParts.slice(0, -1);
+        metadata.topLevelFolder = pathParts.length > 0 ? pathParts[0] : '';
         
         // Extract filename without extension
         const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
@@ -336,6 +339,35 @@ export class ImageCacheManager {
         metadata.tags = this._generateTagsFromMetadata(metadata);
         
         return metadata;
+    }
+
+    static _buildIndexes() {
+        this.cache.categoryIndex = new Map();
+        this.cache.tagIndex = new Map();
+
+        for (const [key, file] of this.cache.files.entries()) {
+            const metadata = file.metadata || {};
+
+            if (metadata.folderPath && metadata.folderPath.length) {
+                const category = (metadata.folderPath[0] || '').toLowerCase();
+                if (category) {
+                    if (!this.cache.categoryIndex.has(category)) {
+                        this.cache.categoryIndex.set(category, new Set());
+                    }
+                    this.cache.categoryIndex.get(category).add(key);
+                }
+            }
+
+            if (Array.isArray(metadata.tags)) {
+                for (const tag of metadata.tags) {
+                    const tagKey = String(tag).toLowerCase();
+                    if (!this.cache.tagIndex.has(tagKey)) {
+                        this.cache.tagIndex.set(tagKey, new Set());
+                    }
+                    this.cache.tagIndex.get(tagKey).add(key);
+                }
+            }
+        }
     }
     
     

@@ -578,49 +578,45 @@ export class TokenImageReplacementWindow extends Application {
         if (!imagePath) return;
 
         try {
-            // Get the file info from cache
-            const fileInfo = this._getFileInfoFromCache(imageName);
-            if (!fileInfo) {
-                ui.notifications.warn(`Could not find file info for ${imageName}`);
-                return;
-            }
-
-            // Ensure metadata and tags exist
-            if (!fileInfo.metadata) {
-                fileInfo.metadata = {};
-            }
-            if (!fileInfo.metadata.tags) {
-                fileInfo.metadata.tags = [];
-            }
-
-            // Toggle favorite status
-            const isFavorited = fileInfo.metadata.tags.includes('FAVORITE');
-            if (isFavorited) {
-                // Remove favorite
-                fileInfo.metadata.tags = fileInfo.metadata.tags.filter(tag => tag !== 'FAVORITE');
-                ui.notifications.info(`Removed ${imageName} from favorites`);
-            } else {
-                // Add favorite
-                fileInfo.metadata.tags.push('FAVORITE');
-                ui.notifications.info(`Added ${imageName} to favorites`);
-            }
-
-            // Save the updated cache
-            await ImageCacheManager._saveCacheToStorage(true); // Incremental save
-
-            // Refresh the current view if we're on favorites
-            if (this.currentFilter === 'favorites') {
-                this._showSearchSpinner();
-                await this._findMatches();
-                this._hideSearchSpinner();
-            } else {
-                // Just update the current view to show the heart icon
-                this._updateResults();
-            }
-
-        } catch (error) {
-            ui.notifications.error(`Failed to toggle favorite: ${error.message}`);
+        const fileInfo = this._getFileInfoFromCache(imageName);
+        if (!fileInfo) {
+            ui.notifications.warn(`Could not find file info for ${imageName}`);
+            return;
         }
+
+        if (!fileInfo.metadata) {
+            fileInfo.metadata = {};
+        }
+        if (!Array.isArray(fileInfo.metadata.tags)) {
+            fileInfo.metadata.tags = [];
+        }
+
+        const isFavorited = fileInfo.metadata.tags.includes('FAVORITE');
+        const normalizedName = fileInfo.name?.toLowerCase();
+
+        if (isFavorited) {
+            fileInfo.metadata.tags = fileInfo.metadata.tags.filter(tag => tag !== 'FAVORITE');
+            ImageCacheManager.removeTagFromFile(normalizedName, 'FAVORITE');
+            ui.notifications.info(`Removed ${imageName} from favorites`);
+        } else {
+            fileInfo.metadata.tags.push('FAVORITE');
+            ImageCacheManager.addTagToFile(normalizedName, 'FAVORITE');
+            ui.notifications.info(`Added ${imageName} to favorites`);
+        }
+
+        await ImageCacheManager._saveCacheToStorage(true);
+
+        if (this.currentFilter === 'favorites') {
+            this._showSearchSpinner();
+            await this._findMatches();
+            this._hideSearchSpinner();
+        } else {
+            this._updateResults();
+        }
+
+    } catch (error) {
+        ui.notifications.error(`Failed to toggle favorite: ${error.message}`);
+    }
     }
 
     /**
