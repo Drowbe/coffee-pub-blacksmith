@@ -1089,13 +1089,13 @@
 		"headingH2ConsoleSettings-Hint": "Console output options",
 
 			"headingH3Console-Label": "Console",
-			"headingH3Console-Hint": "Description not needed",
+			"headingH3Console-Hint": "",
 		
 				"globalFancyConsole-Label": "Fancy Console",
 				"globalFancyConsole-Hint": "You love sunshine and lollipops. Display console messages in rich colors... not that you should ever have to see them. Default: On (checked).",
 	
 			"headingH3DebugSettings-Label": "Debug",
-			"headingH3DebugSettings-Hint": "Description not needed",
+			"headingH3DebugSettings-Hint": "",
 			
 				"globalDebugMode-Label": "Debug Mode",
 				"globalDebugMode-Hint": "Log errors to the console and notification system as appropriate. Make the console bleed. Default: Off (unchecked).",
