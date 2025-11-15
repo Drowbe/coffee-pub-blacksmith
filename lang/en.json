@@ -259,6 +259,12 @@
 				"shareCombatStats-Label": "Share With Players",
 				"shareCombatStats-Hint": "If enabled, combat statistics will be shared to all players. If disabled, only the GM will see them.",
 
+
+
+
+			"headingH3RoundSummarySharing-Label": "Round Summary Sharing",
+			"headingH3RoundSummarySharing-Hint": "",
+
 				"showRoundSummary-Label": "Round Summary",
 				"showRoundSummary-Hint": "Show a combat round summary with key metrics like turn duration, planning duration, accuracy, and other measures.",
 
@@ -270,6 +276,16 @@
 
 				"showPartyBreakdown-Label": "Show Party Breakdown",
 				"showPartyBreakdown-Hint": "Share a detailed breakdown of each party member's performance in the chat at the end of the round.",
+
+
+
+			"headingH3CombatSummarySharing-Label": "Combat Summary Sharing",
+			"headingH3CombatSummarySharing-Hint": "",
+
+
+
+
+
 
 		"headingH2TokenEnhancements-Label": "Token Enhancements",
 		"headingH2TokenEnhancements-Hint": "Automation of token actions. This include token changes for when a character dies, is targeted, has the current turn in combat, etc.",
@@ -468,6 +484,9 @@
 
 			"combatTimerWarningThreshold-Label": "Ending Soon Threshold",
 			"combatTimerWarningThreshold-Hint": "",
+
+			"combatTimerLabel-Label": "Label",
+			"combatTimerLabel-Hint": "",
 
 			"combatTimerWarningMessage-Label": "Ending Soon Message",
 			"combatTimerWarningMessage-Hint": "Use {name} to insert current combatant name.",
