@@ -545,6 +545,7 @@ class CombatStats {
         const totalHits = combatTotals.attacks?.hits || 0;
         const totalMisses = combatTotals.attacks?.misses || 0;
         const totalDamage = combatTotals.damage?.dealt || participantSummaries.reduce((sum, p) => sum + p.damageDealt, 0);
+        const totalDamageTaken = combatTotals.damage?.taken || participantSummaries.reduce((sum, p) => sum + p.damageTaken, 0);
         const totalHealing = combatTotals.healing?.given || participantSummaries.reduce((sum, p) => sum + p.healingGiven, 0);
         const totalCriticals = combatTotals.attacks?.crits || 0;
         const totalFumbles = combatTotals.attacks?.fumbles || 0;
@@ -588,7 +589,7 @@ class CombatStats {
             date: new Date().toISOString(),
             duration: combatDuration, // milliseconds
             durationSeconds: Math.round(combatDuration / 1000),
-            rounds: combat.round || 0,
+            totalRounds: combat.round || 0,  // Total number of rounds fought
             sceneName,
             sceneId: combat.scene || null,
 
@@ -598,6 +599,7 @@ class CombatStats {
                 misses: totalMisses,
                 totalAttacks: totalHits + totalMisses,
                 damageDealt: totalDamage,
+                damageTaken: totalDamageTaken,
                 healingGiven: totalHealing,
                 criticals: totalCriticals,
                 fumbles: totalFumbles,
@@ -620,10 +622,16 @@ class CombatStats {
 
             // Round summaries (already aggregated from rounds array, if it exists)
             roundCount: (this.combatStats.rounds || []).length,
-            rounds: (this.combatStats.rounds || []).map(round => {
+            rounds: (this.combatStats.rounds || []).map((round, index) => {
+                // Safely extract round number, handling NaN and undefined
+                let roundNum = round.round ?? round.roundNumber ?? (index + 1);
+                if (typeof roundNum !== 'number' || isNaN(roundNum)) {
+                    roundNum = index + 1; // Fallback to 1-based index
+                }
+                
                 // Handle whatever structure the round summary has
                 return {
-                    round: round.round || round.roundNumber || 0,
+                    round: roundNum,
                     // Only include aggregated data, no event arrays
                     summary: {
                         duration: round.duration || round.roundDuration || 0,
@@ -1924,12 +1932,29 @@ class CombatStats {
         const totalRoundDuration = roundEndTimestamp - this.currentStats.roundStartTimestamp;
         this.currentStats.roundDuration = totalRoundDuration;
 
+        // Safely get the round number, ensuring it's a valid number
+        const currentRound = typeof game.combat?.round === 'number' && !isNaN(game.combat.round) 
+            ? game.combat.round 
+            : (this.combatStats.rounds?.length || 0) + 1;
+        const previousRound = Math.max(0, currentRound - 1);
+
         // Calculate round statistics
         const roundStats = {
-            round: game.combat.round - 1,  // Use the previous round number
+            round: previousRound,  // Use the previous round number
+            roundNumber: previousRound,  // Alias for template compatibility
+            duration: totalRoundDuration,  // Round duration in milliseconds
+            roundDuration: totalRoundDuration,  // Alias for template compatibility
             hits: (this.currentStats.hits || []).length,
-            expiredTurns: (this.currentStats.expiredTurns || []).length,
-            turnTimes: this.currentStats.partyStats?.turnTimes || {}
+            totalHits: (this.currentStats.hits || []).length,  // Alias for template compatibility
+            misses: this.currentStats.partyStats.misses || 0,
+            totalMisses: this.currentStats.partyStats.misses || 0,  // Alias for template compatibility
+            damageDealt: this.currentStats.partyStats.damageDealt || 0,
+            damage: this.currentStats.partyStats.damageDealt || 0,  // Alias for template compatibility
+            damageTaken: this.currentStats.partyStats.damageTaken || 0,
+            healingDone: this.currentStats.partyStats.healingDone || 0,
+            healing: this.currentStats.partyStats.healingDone || 0,  // Alias for template compatibility
+            expiredTurns: (this.currentStats.expiredTurns || []).length,  // Keep for potential future use
+            turnTimes: this.currentStats.partyStats?.turnTimes || {}  // Keep for potential future use
         };
 
         try {

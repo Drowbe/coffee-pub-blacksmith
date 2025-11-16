@@ -14,7 +14,7 @@
             </div>
             <div class="round-stat-card">
                 <h4><i class="fa-solid fa-arrows-rotate"></i> Rounds</h4>
-                <div class="round-stat-value">{{rounds}}</div>
+                <div class="round-stat-value">{{totalRounds}}</div>
                 <div class="round-stat-detail">Total rounds fought</div>
             </div>
             <div class="round-stat-card">
@@ -116,7 +116,7 @@
 </div>
 {{/if}}
 
-{{#if (or (and notableMoments.topHits (gt (length notableMoments.topHits) 0)) (and notableMoments.topHeals (gt (length notableMoments.topHeals) 0)))}}
+{{#if (or notableMoments.topHits.length notableMoments.topHeals.length)}}
 <div class="blacksmith-card-spacer"></div>
 <div class="blacksmith-card theme-default">
     <div class="section-header">
@@ -200,7 +200,7 @@
         <div class="turn-row">
             <div class="turn-info">
                 <div class="turn-name">
-                    <span class="status-tag rank">R{{summary.round}}</span>
+                    <span class="status-tag rank">R{{round}}</span>
                     <strong>Round {{round}}</strong>
                 </div>
                 <div class="turn-stats">
