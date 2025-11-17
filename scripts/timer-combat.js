@@ -183,6 +183,21 @@ class CombatTimer {
 					}
 				});
 
+                // Register cleanup hook for combat deletion
+                const deleteCombatHookId = HookManager.registerHook({
+                    name: 'deleteCombat',
+                    description: 'Combat Timer: Cleanup when combat is deleted',
+                    context: 'timer-combat-cleanup',
+                    priority: 3,
+                    callback: () => {
+                        // --- BEGIN - HOOKMANAGER CALLBACK ---
+                        this.cleanupTimer();
+                        this.resetTimer();
+                        this.state.isPaused = true;
+                        // --- END - HOOKMANAGER CALLBACK ---
+                    }
+                });
+
                 // Register cleanup hook for module unload
                 const unloadHookId = HookManager.registerHook({
                     name: 'unloadModule',
@@ -447,6 +462,14 @@ class CombatTimer {
         
         // Skip updates if we're in the process of ending the planning timer
         if (this._endingPlanningTimer) {
+            return;
+        }
+
+        // Handle combat end - cleanup timers when combat stops
+        if ("started" in changed && !changed.started) {
+            this.cleanupTimer();
+            this.resetTimer();
+            this.state.isPaused = true;
             return;
         }
 

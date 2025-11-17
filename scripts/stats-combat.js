@@ -399,7 +399,12 @@ class CombatStats {
             const soundId = game.settings.get(MODULE.ID, 'newRoundSound');
             if (soundId && soundId !== 'none') {
                 const volume = game.settings.get(MODULE.ID, 'timerSoundVolume');
-                playSound(soundId, volume);
+                try {
+                    await playSound(soundId, volume);
+                } catch (soundError) {
+                    // Silently handle sound playback errors (non-critical)
+                    // Errors are already logged by playSound function
+                }
             }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Error announcing new round', error, false, false);
@@ -624,10 +629,12 @@ class CombatStats {
             roundCount: (this.combatStats.rounds || []).length,
             rounds: (this.combatStats.rounds || []).map((round, index) => {
                 // Safely extract round number, handling NaN and undefined
-                let roundNum = round.round ?? round.roundNumber ?? (index + 1);
-                if (typeof roundNum !== 'number' || isNaN(roundNum)) {
-                    roundNum = index + 1; // Fallback to 1-based index
-                }
+                // Check for NaN explicitly first, as nullish coalescing doesn't catch NaN
+                let roundNum = (typeof round.round === 'number' && !isNaN(round.round)) 
+                    ? round.round 
+                    : (typeof round.roundNumber === 'number' && !isNaN(round.roundNumber))
+                        ? round.roundNumber
+                        : (index + 1); // Fallback to 1-based index
                 
                 // Handle whatever structure the round summary has
                 return {

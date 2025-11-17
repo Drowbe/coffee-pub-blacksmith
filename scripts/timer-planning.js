@@ -49,6 +49,19 @@ export class PlanningTimer {
 			callback: this.forceEnd.bind(this)
 		});
 		
+		// Register cleanup hook for combat deletion
+		const deleteCombatHookId = HookManager.registerHook({
+			name: 'deleteCombat',
+			description: 'Planning Timer: Cleanup when combat is deleted',
+			context: 'timer-planning-cleanup',
+			priority: 3,
+			callback: () => {
+				// --- BEGIN - HOOKMANAGER CALLBACK ---
+				this.cleanupTimer();
+				// --- END - HOOKMANAGER CALLBACK ---
+			}
+		});
+
 		// Register cleanup hook for module unload
 		Hooks.once('ready', () => {
 			const unloadHookId = HookManager.registerHook({
