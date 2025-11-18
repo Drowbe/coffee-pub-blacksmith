@@ -10,9 +10,6 @@
 - **Priority**: CRITICAL
 - **Next Step**: Verify token image window cleanup in live play, then tackle menubar rerenders (per performance.md). Update this entry when the linked doc advances.
 
-### Select Leader broken
-- no longer fires after a vote
-- no longwer works when gm selects the leader
 
 ### Combat Stats - Critical Bugs and Design Alignment
 - **Issue**: Multiple critical bugs in combat stats system and design inconsistencies between round summaries and combat summary

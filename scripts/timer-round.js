@@ -117,7 +117,7 @@ export class RoundTimer {
                     });
 
                     // update the combat bar round time
-                    const combatbarRoundElements = document.querySelectorAll('.combat-info .combat-time-round');
+                    const combatbarRoundElements = document.querySelectorAll('.combat-endcap-left .combat-time-round');
                     combatbarRoundElements.forEach(element => {
                         element.textContent = formattedRoundTime;
                     });
@@ -129,7 +129,7 @@ export class RoundTimer {
                     });
 
                     // update the combat bar total time
-                    const combatbarTotalElements = document.querySelectorAll('.combat-status .combat-time-total');
+                    const combatbarTotalElements = document.querySelectorAll('.combat-endcap-right .combat-time-total');
                     combatbarTotalElements.forEach(element => {
                         element.textContent = formattedTotalTime;
                     });

@@ -445,7 +445,7 @@
 .blacksmith-menubar-secondary {
     --menubar-secondary-text-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.15);
     --menubar-secondary-subtext-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.10);
-    --blacksmith-menubar-secondary-backgroundcolor: rgba(50, 26, 31, 0.6);
+    --blacksmith-menubar-secondary-backgroundcolor: rgba(0, 0, 0, 0.6);
 }
 
 .blacksmith-menubar-secondary {
@@ -488,14 +488,14 @@ Combat Tracker Tunables
     --combatbar-button-ends-height: calc(var(--blacksmith-menubar-secondary-height) * 0.6);
     --combatbar-button-ends-width: calc(var(--blacksmith-menubar-secondary-height) * 0.6);  
     
-    --combatbar-endcaps-minwidth: 10%;
+    --combatbar-endcaps-minwidth: 5%;
     
     /* Thickness of the SVG stroke */
     --ring-thickness: 3px;
-    --gap: 1px;
-    --combatbar-button-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.21);
-    --combatbar-text-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.18);
-    --combatbar-subtext-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.15);
+    --gap: 2px;
+    --combatbar-button-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.20);
+    --combatbar-text-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.22);
+    --combatbar-subtext-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.13);
 }
 
 
@@ -513,59 +513,71 @@ Combat Tracker Tunables
 
 }
 
-.blacksmith-menubar-secondary .combat-info {
-  display: flex;
-  flex-direction: column;
-  justify-content: center; /* centers items vertically */
-  align-items: flex-start;
-  gap: 2px;
-  min-width: var(--combatbar-endcaps-minwidth);
-  height: 100%;
-  font-size: var(--combatbar-text-font-size);
-  color: var(--blacksmith-menubar-fontcolor);
-  padding: 0px 8px;
-  background-color: rgba(73, 82, 50, 0.6);
-  border-right: 1px solid rgba(17, 17, 17, 0.1);
-}
+/* ENDCAPS */
 
-.blacksmith-menubar-secondary .combat-round {
-    font-weight: 900;
-    text-transform: uppercase;
-    font-size: calc(var(--combatbar-text-font-size) * 1.1);
-    margin: 0px 0px .2em 0px;
-}
+.blacksmith-menubar-secondary .combat-endcap-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* centers items vertically */
+    align-items: center;
+    gap: 2px;
+    height: 100%;
+    padding: 0px 8px;
+    background-color: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.7);
+    border-radius: 0px 2px 2px 0px;
+  }
+  .blacksmith-menubar-secondary .combat-endcap-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;   /* centers items vertically */
+    align-items: flex-end;   /* keep them left-aligned horizontally */
+    gap: 2px;
+    height: 100%;
+    padding: 0px 8px;
+    background-color: rgba(0, 0, 0, 0.0);
+    border-left: 0px solid rgba(17, 17, 17, 0.1);
+  }
+  
+  /* ENDCAP Top */
+  .blacksmith-menubar-secondary .combat-endcap-right .combat-endcap-top,
+  .blacksmith-menubar-secondary .combat-endcap-left .combat-endcap-top {
+      opacity: 0.6;
+      font-size: var(--combatbar-subtext-font-size);
+      color: var(--blacksmith-menubar-fontcolor);
+  }
+  
+  /* ENDCAP Bottom */
+  .blacksmith-menubar-secondary .combat-endcap-right .combat-endcap-bottom,
+  .blacksmith-menubar-secondary .combat-endcap-left .combat-endcap-bottom  {
+      font-weight: 900;
+      text-transform: uppercase;
+      font-size: var(--combatbar-text-font-size);
+      color: var(--blacksmith-menubar-fontcolor);
+      margin: 0px 0px .2em 0px;
+  
+  }
 
-.blacksmith-menubar-secondary .combat-turn {
-    opacity: 0.8;
-    font-size: var(--combatbar-subtext-font-size);
-}
 
-.blacksmith-menubar-secondary .combat-status {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;   /* centers items vertically */
-  align-items: flex-end;   /* keep them left-aligned horizontally */
-  gap: 2px;
-  min-width: var(--combatbar-endcaps-minwidth);
-  height: 100%;
-  font-size: var(--combatbar-text-font-size);
-  color: var(--blacksmith-menubar-fontcolor);
-  padding: 0px 8px;
-  background-color: rgba(73, 82, 50, 0.6);
-  border-left: 1px solid rgba(17, 17, 17, 0.1);
-}
 
-.blacksmith-menubar-secondary .combat-status .combat-stat-primary {
-    font-weight: 900;
-    text-transform: uppercase;
-    font-size: var(--combatbar-text-font-size);
-    margin: 0px 0px .2em 0px;
-}
 
-.blacksmith-menubar-secondary .combat-status .combat-state-secondary {
-    opacity: 0.8;
-    font-size: var(--combatbar-subtext-font-size);
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /* COMBAT PORTRAITS */
