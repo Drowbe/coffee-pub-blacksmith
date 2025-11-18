@@ -14,6 +14,75 @@
 - no longer fires after a vote
 - no longwer works when gm selects the leader
 
+### Combat Stats - Critical Bugs and Design Alignment
+- **Issue**: Multiple critical bugs in combat stats system and design inconsistencies between round summaries and combat summary
+- **Status**: PENDING - Needs investigation and fixes
+- **Priority**: CRITICAL - Broken functionality and design inconsistencies
+- **Current State**: 
+  - Error preventing damage/healing tracking from working correctly
+  - Round summary cards missing data and UI elements
+  - Combat summary card missing data, portraits, and proper layout
+  - Design inconsistency between round summaries and combat summary
+- **Location**: `scripts/stats-combat.js`, `templates/stats-round.hbs`, `templates/stats-combat.hbs`
+- **Overall Goal**: End-of-combat results should match round results design but aggregated for the whole combat session
+- **Tasks Needed**:
+  - **CRITICAL BUGS:**
+    - Fix `TypeError: Cannot read properties of undefined (reading 'received')` at `stats-combat.js:1381` in `_onDamageRoll` method
+      - Error occurs when accessing `healing.received` property that doesn't exist
+      - Need to add safe property access with defaults
+  - **ROUND SUMMARY CARD ISSUES:**
+    - Fix MVP display showing portrait and data but saying "no mvp" message
+      - MVP calculation/description generation is incorrect when MVP exists
+      - Need to verify MVP detection logic and description generation
+    - Fix missing player names in Round 1 party breakdown
+      - Player names not displaying in turn details for first round
+      - Check `_prepareTemplateData` and template rendering
+    - Restore missing time bar in party breakdown for all round cards
+      - Progress bar for turn timers no longer displays
+      - Check template and CSS for `.progress-bar` and `.progress-fill` elements
+  - **COMBAT SUMMARY CARD ISSUES:**
+    - Fix missing scene name display
+      - Scene name should be shown in combat summary header
+      - Verify `sceneName` is being passed to template correctly
+    - Add same notable moments display as round cards
+      - Combat summary should show "Notable Moments" section with same format as round summaries
+      - Include biggest hit, weakest hit, most damage, biggest heal, most hurt, longest turn
+    - Fix MVP layout to match round card MVP design
+      - Current MVP section is sparse and incomplete
+      - Should include portrait, name, description, and detailed stats (Combat, Damage, Healing) like round cards
+    - Add portraits to party breakdown section
+      - Party breakdown should show token portraits like round summaries do
+      - Need to add `tokenImg` data to participant summaries and update template
+  - **DESIGN ALIGNMENT:**
+    - Ensure combat summary uses same visual design as round summaries
+      - Same card structure, section headers, stat cards, and layout
+      - Same portrait sizes and placements
+      - Same notable moments format
+      - Same MVP display format
+- **Related Files**:
+  - `scripts/stats-combat.js` - Data generation and processing
+  - `templates/stats-round.hbs` - Round summary template
+  - `templates/stats-combat.hbs` - Combat summary template
+  - `styles/cards-stats.css` - Styling for both templates
+- **Notes**: The combat summary should be essentially an aggregated version of the round summaries, using the exact same design patterns and data structures. All the same sections (MVP, Notable Moments, Party Breakdown) should be present with the same visual design.
+
+### Verify Auto-Favor Actions for NPCs
+- **Issue**: Verify that actions are being automatically favored for NPCs
+- **Status**: PENDING - Needs verification
+- **Priority**: MEDIUM - Functionality verification
+- **Current State**: Auto-favor functionality may exist but needs verification that it works correctly for NPCs
+- **Location**: Action/item favoriting logic (likely in item/actor management code)
+- **Tasks Needed**:
+  - Verify that NPC actions are automatically favored when created/imported
+  - Test that auto-favor works for different NPC types (monsters, NPCs, etc.)
+  - Check that auto-favor applies to all relevant action types (attacks, spells, features, etc.)
+  - Verify auto-favor behavior with different actor creation methods (manual, import, compendium)
+  - Test that auto-favor settings are respected (if there's a toggle)
+  - Confirm that player character actions are NOT auto-favored (if that's the intended behavior)
+- **Related Settings**: 
+  - Any settings related to auto-favoring actions (if they exist)
+- **Notes**: This ensures NPCs have their actions properly favored for easier access during combat
+
 ### MEDIUM PRIORITY ISSUES
 
 ### Verify Loot Token Restoration
@@ -29,18 +98,7 @@
   - Add automated or documented manual test steps for future regressions
 - **Related Settings**: `tokenConvertDeadToLoot`, `tokenLootPileImage`
 
-### Combat Session Timer Keeps Running After End
-- **Issue**: When combat or session ends, the session timer continues counting down instead of stopping/resetting
-- **Status**: PENDING - Needs investigation
-- **Priority**: MEDIUM - UX consistency
-- **Current State**: Timer display and intervals persist after the session is over; users see time continue to elapse
-- **Location**: `scripts/api-menubar.js` (session timer logic), possibly `timer-round.js`
-- **Tasks Needed**:
-  - Reproduce scenario where timer keeps running post-session
-  - Ensure expiration stops intervals and clears stored end/start time
-  - Confirm timer UI resets for all clients after session completion
-  - Add regression tests/manual checklist for end-of-session behavior
-- **Related Settings**: `sessionEndTime`, `sessionStartTime`, `sessionTimerDefault`
+
 
 ### Track and report our movement distance against the walking speed of the token
 - **Issue**: Need to track and report our movement distance against the walking speed of the token
@@ -85,6 +143,24 @@
   - `menubarSkipDead` - Skip dead combatants during turn advancement (new)
   - `combatTrackerHideDead` - Hide dead combatants from combat tracker (new)
 - **Notes**: Options should be separate for menubar and combat tracker to allow different preferences
+
+### Hide Initiative Roll Chat Cards
+- **Issue**: Initiative roll chat cards clutter the chat log and may not be needed for all users
+- **Status**: PENDING - Needs implementation
+- **Priority**: MEDIUM - UI/UX improvement
+- **Current State**: Initiative rolls are posted to chat as visible chat cards
+- **Location**: Initiative roll handling (likely in combat-tracker.js or combat-tools.js), chat message creation
+- **Tasks Needed**:
+  - Add setting to hide initiative roll chat cards
+  - Option to hide for all users or only non-GM users
+  - Ensure initiative values are still properly set in combat tracker
+  - Verify that initiative rolls still function correctly when hidden
+  - Test with different combat scenarios (manual rolls, automatic rolls, etc.)
+  - Consider alternative display methods (e.g., only show in combat tracker)
+- **Related Settings**: 
+  - `hideInitiativeRolls` - Hide initiative roll chat cards (new)
+  - `hideInitiativeRollsForPlayers` - Hide initiative rolls for non-GM users only (new)
+- **Notes**: This reduces chat clutter while maintaining full combat functionality. Initiative values should still be visible in the combat tracker.
 
 ### Wire up enableMenubar Setting
 - **Issue**: enableMenubar setting needs to be properly connected to functionality
@@ -144,6 +220,8 @@
   - `openAIContextLength` - Context length setting
   - `openAITemperature` - Temperature setting
 - **Notes**: This is part of the settings refactoring - ensure migrated AI settings actually work
+
+
 
 ### Add Enable Setting for Nameplate Styling
 - **Issue**: Nameplate styling settings should operate independently from nameplate content/formatting
