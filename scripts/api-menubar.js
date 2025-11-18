@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, getSettingSafely, playSound, formatTime } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely, setSettingSafely, playSound, formatTime } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { ModuleManager } from './manager-modules.js';
 import { HookManager } from './manager-hooks.js';

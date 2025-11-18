@@ -673,8 +673,28 @@ export class VoteManager {
                         }
                         this.activeVote.results.winner = { userId, actorId };
                         
+                        // Set the leader
                         await MenuBar.setNewLeader({ userId, actorId }, true);
+                        
+                        // Update the vote message to show final results
                         await this._updateVoteMessage();
+                        
+                        // Close the vote after tie-breaker selection
+                        // Mark vote as inactive and set end time
+                        this.activeVote.isActive = false;
+                        this.activeVote.endTime = Date.now();
+                        
+                        // Play completion sound
+                        playSound(window.COFFEEPUB?.SOUNDNOTIFICATION15, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+                        
+                        // Notify other clients
+                        const socket = SocketManager.getSocket();
+                        await socket.executeForOthers("receiveVoteClose", {
+                            results: this.activeVote.results
+                        });
+                        
+                        // Clear the active vote
+                        this.activeVote = null;
                     },
                 },
             },
