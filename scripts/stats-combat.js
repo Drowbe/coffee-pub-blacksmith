@@ -2458,19 +2458,28 @@ class MVPDescriptionGenerator {
     };
 
     static calculateStats(rawStats) {
+        // Safely access nested properties with defaults
+        const combat = rawStats.combat || {};
+        const attacks = combat.attacks || {};
+        const damage = rawStats.damage || {};
+        const healing = rawStats.healing || {};
+        
+        const hits = attacks.hits || 0;
+        const attempts = attacks.attempts || 0;
+        
         return {
-            hits: rawStats.combat.attacks.hits,
-            attempts: rawStats.combat.attacks.attempts,
-            accuracy: Math.round((rawStats.combat.attacks.hits / rawStats.combat.attacks.attempts) * 100) || 0,
-            damage: rawStats.damage.dealt,
-            crits: rawStats.combat.attacks.crits,
-            healing: rawStats.healing.given,
-            fumbles: rawStats.combat.attacks.fumbles
+            hits: hits,
+            attempts: attempts,
+            accuracy: attempts > 0 ? Math.round((hits / attempts) * 100) : 0,
+            damage: damage.dealt || 0,
+            crits: attacks.crits || 0,
+            healing: healing.given || 0,
+            fumbles: attacks.fumbles || 0
         };
     }
 
     static determinePattern(stats) {
-        const accuracy = (stats.hits / stats.attempts) * 100;
+        const accuracy = stats.attempts > 0 ? (stats.hits / stats.attempts) * 100 : 0;
 
         // Combat Excellence: High accuracy + crits + multiple hits
         if (accuracy >= this.THRESHOLDS.COMBAT_EXCELLENCE.accuracy && 
