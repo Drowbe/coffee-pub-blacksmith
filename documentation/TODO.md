@@ -63,22 +63,6 @@
   - `styles/cards-stats.css` - Styling for both templates
 - **Notes**: The combat summary should be essentially an aggregated version of the round summaries, using the exact same design patterns and data structures. All the same sections (MVP, Notable Moments, Party Breakdown) should be present with the same visual design.
 
-### Verify Auto-Favor Actions for NPCs
-- **Issue**: Verify that actions are being automatically favored for NPCs
-- **Status**: PENDING - Needs verification
-- **Priority**: MEDIUM - Functionality verification
-- **Current State**: Auto-favor functionality may exist but needs verification that it works correctly for NPCs
-- **Location**: Action/item favoriting logic (likely in item/actor management code)
-- **Tasks Needed**:
-  - Verify that NPC actions are automatically favored when created/imported
-  - Test that auto-favor works for different NPC types (monsters, NPCs, etc.)
-  - Check that auto-favor applies to all relevant action types (attacks, spells, features, etc.)
-  - Verify auto-favor behavior with different actor creation methods (manual, import, compendium)
-  - Test that auto-favor settings are respected (if there's a toggle)
-  - Confirm that player character actions are NOT auto-favored (if that's the intended behavior)
-- **Related Settings**: 
-  - Any settings related to auto-favoring actions (if they exist)
-- **Notes**: This ensures NPCs have their actions properly favored for easier access during combat
 
 ### MEDIUM PRIORITY ISSUES
 
