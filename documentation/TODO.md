@@ -96,7 +96,6 @@
 - **Related Settings**: `tokenConvertDeadToLoot`, `tokenLootPileImage`
 
 
-
 ### Track and report our movement distance against the walking speed of the token
 - **Issue**: Need to track and report our movement distance against the walking speed of the token
 - **Status**: PENDING - Needs implementation
@@ -108,20 +107,6 @@
   - Report our movement distance against the walking speed of the token
 - **Related Settings**: None currently
 
-
-### Cleanup Menubar Timer Layout
-- **Issue**: Menubar timer display layout needs cleanup and organization. It is not showing the proper data.
-- **Status**: PENDING - Needs implementation
-- **Priority**: MEDIUM - UI/UX improvement
-- **Current State**: Timer layout may be cluttered or poorly organized
-- **Location**: `scripts/api-menubar.js` (timer display), menubar templates, timer CSS
-- **Tasks Needed**:
-  - Review current timer layout and identify issues
-  - Reorganize timer elements for better visual hierarchy
-  - Improve spacing, alignment, and readability
-  - Test with different timer states and durations
-- **Related Settings**: None currently
-- **Notes**: Timer display should be clean, readable, and well-organized
 
 ### Hide Dead and Skip Dead Options for Menubar and Combat Tracker
 - **Issue**: Need options to hide and skip dead combatants in menubar and combat tracker
@@ -217,7 +202,6 @@
   - `openAIContextLength` - Context length setting
   - `openAITemperature` - Temperature setting
 - **Notes**: This is part of the settings refactoring - ensure migrated AI settings actually work
-
 
 
 ### Add Enable Setting for Nameplate Styling
