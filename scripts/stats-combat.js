@@ -316,7 +316,7 @@ class CombatStats {
             
             // Only call _onRoundEnd when we're actually ending a round (not starting a new one)
             if (combat.previous.round >= 1) {
-                await this._onRoundEnd();
+                await this._onRoundEnd(combat.previous.round);
             }
             this._onRoundStart(combat);
         }
@@ -628,13 +628,18 @@ class CombatStats {
             // Round summaries (already aggregated from rounds array, if it exists)
             roundCount: (this.combatStats.rounds || []).length,
             rounds: (this.combatStats.rounds || []).map((round, index) => {
-                // Safely extract round number, handling NaN and undefined
-                // Check for NaN explicitly first, as nullish coalescing doesn't catch NaN
-                let roundNum = (typeof round.round === 'number' && !isNaN(round.round)) 
-                    ? round.round 
-                    : (typeof round.roundNumber === 'number' && !isNaN(round.roundNumber))
-                        ? round.roundNumber
-                        : (index + 1); // Fallback to 1-based index
+                // Use the stored round number if valid, otherwise fall back to array index
+                // The round number was stored when the round ended in _onRoundEnd
+                let roundNum = round.round || round.roundNumber;
+                
+                // Explicit type validation and coercion
+                if (typeof roundNum !== 'number' || isNaN(roundNum) || roundNum <= 0) {
+                    // Fallback to array index if stored value is invalid
+                    roundNum = index + 1;
+                }
+                
+                // Ensure it's a number (not a string or other type)
+                roundNum = Number(roundNum);
                 
                 // Handle whatever structure the round summary has
                 return {
@@ -737,7 +742,7 @@ class CombatStats {
         const combatSummary = this._generateCombatSummary(combat);
 
         // Report combat summary to console (debug flag enabled)
-        postConsoleAndNotification(MODULE.NAME, "COMBAT SUMMARY ", combatSummary, true, false);
+        postConsoleAndNotification(MODULE.NAME, "COMBAT SUMMARY: Object ", combatSummary, true, false);
 
         // Fire hook to expose combat summary (for stats-player.js and other consumers)
         Hooks.callAll('blacksmith.combatSummaryReady', combatSummary, combat);
@@ -1876,7 +1881,7 @@ class CombatStats {
         this.currentStats.roundStartTime = Date.now();
     }
 
-    static async _onRoundEnd() {
+    static async _onRoundEnd(roundNumber) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
@@ -1939,16 +1944,30 @@ class CombatStats {
         const totalRoundDuration = roundEndTimestamp - this.currentStats.roundStartTimestamp;
         this.currentStats.roundDuration = totalRoundDuration;
 
-        // Safely get the round number, ensuring it's a valid number
-        const currentRound = typeof game.combat?.round === 'number' && !isNaN(game.combat.round) 
-            ? game.combat.round 
-            : (this.combatStats.rounds?.length || 0) + 1;
-        const previousRound = Math.max(0, currentRound - 1);
+        // Determine the round number that just ended
+        // The most reliable source is the number of rounds we've already stored + 1
+        // This ensures we always have a valid, sequential round number
+        const existingRoundsCount = (this.combatStats.rounds?.length || 0);
+        let finalRoundNumber = existingRoundsCount + 1;
+        
+        // Validate the passed roundNumber as a sanity check, but don't rely on it
+        // If it's valid and matches our calculation, use it; otherwise trust our count
+        if (typeof roundNumber === 'number' && !isNaN(roundNumber) && roundNumber > 0) {
+            // If the passed roundNumber is close to our count (within 1), use it
+            // This handles edge cases where combat.previous.round might be slightly off
+            if (Math.abs(roundNumber - finalRoundNumber) <= 1) {
+                finalRoundNumber = roundNumber;
+            }
+            // Otherwise, trust our own count (it's more reliable)
+        }
+        
+        // Final safety check - ensure we have a valid positive number
+        finalRoundNumber = Math.max(1, typeof finalRoundNumber === 'number' && !isNaN(finalRoundNumber) ? finalRoundNumber : 1);
 
         // Calculate round statistics
         const roundStats = {
-            round: previousRound,  // Use the previous round number
-            roundNumber: previousRound,  // Alias for template compatibility
+            round: finalRoundNumber,  // The round that just ended
+            roundNumber: finalRoundNumber,  // Alias for template compatibility
             duration: totalRoundDuration,  // Round duration in milliseconds
             roundDuration: totalRoundDuration,  // Alias for template compatibility
             hits: (this.currentStats.hits || []).length,
@@ -1975,7 +1994,7 @@ class CombatStats {
             this._boundedPush(this.combatStats.rounds, roundStats);
 
             // Set the round number for the template
-            templateData.roundNumber = roundStats.round;
+            templateData.roundNumber = finalRoundNumber;
 
             // Add MVP data to template
             if (roundMvpResult.mvp) {

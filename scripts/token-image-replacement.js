@@ -693,45 +693,45 @@ export class TokenImageReplacementWindow extends Application {
         if (!imagePath) return;
 
         try {
-        const fileInfo = this._getFileInfoFromCache(imageName);
-        if (!fileInfo) {
-            ui.notifications.warn(`Could not find file info for ${imageName}`);
-            return;
-        }
+            const fileInfo = this._getFileInfoFromCache(imageName);
+            if (!fileInfo) {
+                ui.notifications.warn(`Could not find file info for ${imageName}`);
+                return;
+            }
 
-        if (!fileInfo.metadata) {
-            fileInfo.metadata = {};
-        }
+            if (!fileInfo.metadata) {
+                fileInfo.metadata = {};
+            }
         if (!Array.isArray(fileInfo.metadata.tags)) {
-            fileInfo.metadata.tags = [];
-        }
+                fileInfo.metadata.tags = [];
+            }
 
-        const isFavorited = fileInfo.metadata.tags.includes('FAVORITE');
+            const isFavorited = fileInfo.metadata.tags.includes('FAVORITE');
         const normalizedName = fileInfo.name?.toLowerCase();
 
-        if (isFavorited) {
-            fileInfo.metadata.tags = fileInfo.metadata.tags.filter(tag => tag !== 'FAVORITE');
+            if (isFavorited) {
+                fileInfo.metadata.tags = fileInfo.metadata.tags.filter(tag => tag !== 'FAVORITE');
             ImageCacheManager.removeTagFromFile(normalizedName, 'FAVORITE');
-            ui.notifications.info(`Removed ${imageName} from favorites`);
-        } else {
-            fileInfo.metadata.tags.push('FAVORITE');
+                ui.notifications.info(`Removed ${imageName} from favorites`);
+            } else {
+                fileInfo.metadata.tags.push('FAVORITE');
             ImageCacheManager.addTagToFile(normalizedName, 'FAVORITE');
-            ui.notifications.info(`Added ${imageName} to favorites`);
-        }
+                ui.notifications.info(`Added ${imageName} to favorites`);
+            }
 
         await ImageCacheManager._saveCacheToStorage(true);
 
-        if (this.currentFilter === 'favorites') {
-            this._showSearchSpinner();
-            await this._findMatches();
-            this._hideSearchSpinner();
-        } else {
-            this._updateResults();
-        }
+            if (this.currentFilter === 'favorites') {
+                this._showSearchSpinner();
+                await this._findMatches();
+                this._hideSearchSpinner();
+            } else {
+                this._updateResults();
+            }
 
-    } catch (error) {
-        ui.notifications.error(`Failed to toggle favorite: ${error.message}`);
-    }
+        } catch (error) {
+            ui.notifications.error(`Failed to toggle favorite: ${error.message}`);
+        }
     }
 
     /**
@@ -969,7 +969,7 @@ export class TokenImageReplacementWindow extends Application {
         
         // Debounce token selection changes to prevent multiple rapid-fire executions
         this._tokenSelectionDebounceTimer = this._scheduleTrackedTimeout(async () => {
-            await this._handleTokenSwitch();
+        await this._handleTokenSwitch();
         }, 100); // 100ms debounce
     }
 
