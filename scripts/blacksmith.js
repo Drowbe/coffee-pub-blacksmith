@@ -2011,6 +2011,66 @@ function getWorldItemsList() {
   }
 }
 
+// Helper to get comma-delimited list of selected item compendium IDs
+function getItemCompendiumsList() {
+  try {
+    const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsItem') || 1;
+    const compendiums = [];
+    
+    for (let i = 1; i <= numCompendiums; i++) {
+      const compendiumSetting = game.settings.get(MODULE.ID, `itemCompendium${i}`);
+      if (compendiumSetting && compendiumSetting !== 'none') {
+        compendiums.push(compendiumSetting);
+      }
+    }
+    
+    return compendiums.join(', ');
+  } catch (e) {
+    postConsoleAndNotification(MODULE.NAME, "Error getting item compendiums list", e, false, false);
+    return 'No compendiums configured';
+  }
+}
+
+// Helper to get formatted list of items from all selected item compendiums
+async function getCompendiumItemsList() {
+  try {
+    const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsItem') || 1;
+    const compendiumItems = [];
+    
+    for (let i = 1; i <= numCompendiums; i++) {
+      const compendiumId = game.settings.get(MODULE.ID, `itemCompendium${i}`);
+      if (!compendiumId || compendiumId === 'none') {
+        continue;
+      }
+      
+      try {
+        const compendium = game.packs.get(compendiumId);
+        if (!compendium) {
+          postConsoleAndNotification(MODULE.NAME, "Configured compendium not found", compendiumId, false, false);
+          continue;
+        }
+        
+        const index = await compendium.getIndex();
+        if (!index || index.length === 0) {
+          // Skip empty compendiums
+          continue;
+        }
+        
+        const itemNames = index.map(entry => entry.name).join(', ');
+        compendiumItems.push(`${compendiumId}: ${itemNames}`);
+      } catch (e) {
+        postConsoleAndNotification(MODULE.NAME, `Error getting items from compendium ${compendiumId}`, e, false, false);
+        continue;
+      }
+    }
+    
+    return compendiumItems.join('\n');
+  } catch (e) {
+    postConsoleAndNotification(MODULE.NAME, "Error getting compendium items list", e, false, false);
+    return 'Error retrieving compendium items';
+  }
+}
+
 // Cache for icon paths with expiration
 let iconPathsCache = null;
 
@@ -2631,6 +2691,7 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
     const tableDocumentCustomPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-document-custom.txt')).text();
     const tableDocumentActorPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-document-actor.txt')).text();
     const tableDocumentItemPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-document-items.txt')).text();
+    const tableCompendiumItemPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-compendium-items.txt')).text();
 
     // Build dialog content with dropdown and button
     const dialogContent = `
@@ -2704,6 +2765,14 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
               // Replace [ADD-ITEMS-HERE] with actual item list
               const itemsList = getWorldItemsList();
               promptWithDefaults = promptWithDefaults.split('[ADD-ITEMS-HERE]').join(itemsList);
+            } else if (type === "compendium-item") {
+              promptWithDefaults = await getTablePromptWithDefaults(tableCompendiumItemPrompt);
+              // Replace [ADD-COMPENDIUMS-HERE] with selected compendium IDs
+              const compendiumsList = getItemCompendiumsList();
+              promptWithDefaults = promptWithDefaults.split('[ADD-COMPENDIUMS-HERE]').join(compendiumsList);
+              // Replace [ADD-COMPENDIUM-ITEMS-HERE] with formatted items from compendiums
+              const compendiumItemsList = await getCompendiumItemsList();
+              promptWithDefaults = promptWithDefaults.split('[ADD-COMPENDIUM-ITEMS-HERE]').join(compendiumItemsList);
             }
             
             copyToClipboard(promptWithDefaults);
