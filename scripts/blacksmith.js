@@ -2553,8 +2553,14 @@ async function parseTableToFoundry(flat) {
         maxRange = rangeUpper;
       }
       
+      // Map resultType to FoundryVTT type (Compendium -> pack, Document -> document, Text -> text)
+      let foundryType = (result.resultType || "text").toLowerCase();
+      if (foundryType === "compendium") {
+        foundryType = "pack";
+      }
+      
       const tableResult = {
-        type: (result.resultType || "text").toLowerCase(),
+        type: foundryType,
         text: result.resultText || "",
         img: result.resultImagePath || "",
         weight: weight,
@@ -2568,8 +2574,8 @@ async function parseTableToFoundry(flat) {
         tableResult.documentCollection = result.resultDocumentType.charAt(0).toUpperCase() + result.resultDocumentType.slice(1);
       }
       
-      if (tableResult.type === "compendium" && result.resultCompendium) {
-        tableResult.collection = result.resultCompendium;
+      if (tableResult.type === "pack" && result.resultCompendium) {
+        tableResult.documentCollection = result.resultCompendium;
       }
 
       data.results.push(tableResult);
