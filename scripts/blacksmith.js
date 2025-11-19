@@ -2449,7 +2449,7 @@ async function parseTableToFoundry(flat) {
     name: flat.tableName || "Imported Table",
     description: flat.tableDescription || "",
     img: flat.tableImagePath || "",
-    formula: "1d100",
+    formula: "1d1", // Will be updated based on actual range
     replacement: flat.drawWithReplacement !== false, // Default to true
     displayRoll: flat.displayRollFormula === true, // Default to false
     results: []
@@ -2458,11 +2458,40 @@ async function parseTableToFoundry(flat) {
   // Process results
   if (flat.results && Array.isArray(flat.results)) {
     let currentRange = 1;
+    let maxRange = 0;
     
     for (const result of flat.results) {
       const weight = result.resultWeight || 1;
-      const rangeLower = result.resultRangeLower || currentRange;
-      const rangeUpper = result.resultRangeUpper || (currentRange + weight - 1);
+      let rangeLower, rangeUpper;
+      
+      // Determine range based on what's provided
+      if (result.resultRangeLower !== undefined && result.resultRangeUpper !== undefined) {
+        // Both bounds provided - use them directly
+        rangeLower = result.resultRangeLower;
+        rangeUpper = result.resultRangeUpper;
+        // Update currentRange to be after this range for next iteration
+        currentRange = rangeUpper + 1;
+      } else if (result.resultRangeLower !== undefined) {
+        // Only lower bound provided - calculate upper from weight
+        rangeLower = result.resultRangeLower;
+        rangeUpper = rangeLower + weight - 1;
+        currentRange = rangeUpper + 1;
+      } else {
+        // No bounds provided - use currentRange and weight
+        rangeLower = currentRange;
+        rangeUpper = currentRange + weight - 1;
+        currentRange = rangeUpper + 1;
+      }
+      
+      // Validate range
+      if (rangeLower > rangeUpper) {
+        throw new Error(`Invalid range: lower bound (${rangeLower}) is greater than upper bound (${rangeUpper})`);
+      }
+      
+      // Track maximum range for formula calculation
+      if (rangeUpper > maxRange) {
+        maxRange = rangeUpper;
+      }
       
       const tableResult = {
         type: (result.resultType || "text").toLowerCase(),
@@ -2484,8 +2513,10 @@ async function parseTableToFoundry(flat) {
       }
 
       data.results.push(tableResult);
-      currentRange = rangeUpper + 1;
     }
+    
+    // Set formula based on maximum range (minimum 1 to avoid invalid formula)
+    data.formula = `1d${Math.max(1, maxRange)}`;
   }
 
   return data;
@@ -2606,9 +2637,10 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
       <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
         <select id="table-template-type" style="flex: 0 0 auto;">
           <option value="text">Simple Text Rollable Table</option>
-          <option value="document-custom">Document: Custom</option>
-          <option value="document-actor">Document: Actor</option>
-          <option value="document-item">Document: Item</option>
+          <option value="document-custom">Document: World Custom</option>
+          <option value="document-actor">Document: World Actors</option>
+          <option value="document-item">Document: World Items</option>
+          <option value="compendium-item">Compendium: Compendium Items</option>
         </select>
         <button id="copy-table-template-btn" type="button">Copy Template to Clipboard</button>
       </div>
@@ -2647,7 +2679,6 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
                         postConsoleAndNotification(MODULE.NAME, `Imported ${created.length} table(s) successfully.`, "", false, true);
                     } catch (e) {
                         postConsoleAndNotification(MODULE.NAME, "Failed to import tables", e, false, true);
-                        ui.notifications.error("Failed to import tables: " + e.message);
                     }
                 }
             }
