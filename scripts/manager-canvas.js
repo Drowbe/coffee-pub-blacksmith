@@ -374,7 +374,11 @@ export class CanvasTools {
                 let strTableName = game.settings.get(MODULE.ID, 'tokenNameTable');
                 if (strTableName) {
                     const table = game.tables.getName(strTableName);
-                    const result = await table.roll({async: true});
+                    if (!table) {
+                        postConsoleAndNotification(MODULE.NAME, `Roll table "${strTableName}" not found. Skipping token name modification.`, "", false, false);
+                        updatedName = document.actor.name;
+                    } else {
+                        const result = await table.roll({async: true});
     
                     if (result && result.results && result.results.length > 0) {
                         let strName;
@@ -408,6 +412,7 @@ export class CanvasTools {
                     } else {
                         postConsoleAndNotification(MODULE.NAME, "Result from name table came back empty.", "", true, false);
                         updatedName = document.actor.name;
+                    }
                     }
                 } else {
                     postConsoleAndNotification(MODULE.NAME, "No roll table selected in settings.", "", true, false);
