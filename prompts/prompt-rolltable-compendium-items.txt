@@ -68,6 +68,7 @@ To generate a rollable table, use the template and guidance above. Create flavor
 - The campaign is called "[ADD-CAMPAIGN-NAME-HERE]"
 - The campaign is leveraging these rulebooks: [ADD-RULEBOOKS-HERE]
 - You may use items from any of the following compendiums. For each result, you must set RESULTCOMPENDIUM to the compendium that actually contains that item. Valid compendiums include: [ADD-COMPENDIUMS-HERE]
+- Don’t cluster all entries in a single compendium unless instructed to do so. 
 - Ask clarifying questions if something is ambiguous.
 
 ===================

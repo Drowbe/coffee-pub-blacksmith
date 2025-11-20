@@ -2064,7 +2064,7 @@ async function getCompendiumItemsList() {
       }
     }
     
-    return compendiumItems.join('\n');
+    return compendiumItems.join('\n\n');
   } catch (e) {
     postConsoleAndNotification(MODULE.NAME, "Error getting compendium items list", e, false, false);
     return 'Error retrieving compendium items';
@@ -2703,13 +2703,14 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
     const dialogContent = `
       <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
         <select id="table-template-type" style="flex: 0 0 auto;">
-          <option value="text">Simple Text Rollable Table</option>
-          <option value="document-custom">Document: World Custom</option>
-          <option value="document-actor">Document: World Actors</option>
-          <option value="document-item">Document: World Items</option>
-          <option value="compendium-item">Compendium: Compendium Items</option>
+          <option value="text">Simple Text</option>
+          <option value="document-custom">Custom</option>
+          <option value="document-item">World Items</option>
+          <option value="document-actor">World Actors</option>
+          <option value="compendium-item">Compendium Items</option>
+          <option value="compendium-actor">Compendium Actors</option>
         </select>
-        <button id="copy-table-template-btn" type="button">Copy Template to Clipboard</button>
+        <button id="copy-table-template-btn" type="button">Copy Template</button>
       </div>
       <textarea id="table-json-input" style="width:100%;height:400px;"></textarea>
     `;
