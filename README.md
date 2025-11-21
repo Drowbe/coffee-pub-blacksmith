@@ -13,7 +13,7 @@
 
 ## IMPORTANT NOTICE
 
-Blacksmith verions 12.1.23 is the final build of BLACKSMITH that will be compatiable with FoundryVTT v12. All future builds will be compatible with FoundryVTT v13 and later.
+Blacksmith version 12.1.23 is the final build of BLACKSMITH that will be compatible with FoundryVTT v12. All future builds will be compatible with FoundryVTT v13 and later.
 
 ## Disclaimer
 

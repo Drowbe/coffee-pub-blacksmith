@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.0.0] - v13 Migration Begins
+
+### Important Notice
+- **v13 MIGRATION START:** This version begins the migration to FoundryVTT v13
+- **Breaking Changes:** This version requires FoundryVTT v13.0.0 or later
+- **v12 Support Ended:** v12.1.23-FINAL was the last version supporting FoundryVTT v12
+
+### Changed
+- **Minimum Core Version:** Updated to require FoundryVTT v13.0.0
+- **Module Version:** Bumped to 13.0.0 to align with FoundryVTT v13
+- **Compatibility:** Module now exclusively supports FoundryVTT v13
+
+### Technical
+- **Migration Status:** Beginning v13 migration work
+- **Breaking Changes:** Will address v13 API changes including:
+  - `getSceneControlButtons` hook API changes (controls from array to object)
+  - jQuery removal (migrating to native DOM methods)
+  - ApplicationV2 framework migration (planned for future versions)
+
+### Migration Notes
+- See `documentation/migration-v13.md` for detailed migration documentation
+- See `documentation/migration-v13-plan.md` for migration plan and progress tracking
+- This version may have incomplete v13 compatibility - migration work in progress
+
 ## [12.1.23] - Final v12 Release
 
 ### Important Notice
