@@ -10,6 +10,11 @@
 ![MIT License](https://img.shields.io/badge/license-MIT-blue)
 
 
+
+## IMPORTANT NOTICE
+
+Blacksmith verions 12.1.23 is the final build of BLACKSMITH that will be compatiable with FoundryVTT v12. All future builds will be compatible with FoundryVTT v13 and later.
+
 ## Disclaimer
 
 This is a personal project created for my FoundryVTT games to introduce various quality-of-life features and functions. 

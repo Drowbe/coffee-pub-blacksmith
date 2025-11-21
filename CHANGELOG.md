@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.1.23] - Final v12 Release
+
+### Important Notice
+- **FINAL v12 RELEASE:** This is the final build of Coffee Pub Blacksmith compatible with FoundryVTT v12
+- **v13 Migration:** All future builds will require FoundryVTT v13 or later
+- **Breaking Changes:** Users must upgrade to FoundryVTT v13 to use future versions of this module
+
+### Changed
+- **Documentation Updates:** Updated README.md and module.json to reflect v12.1.23 as the final v12 release
+- **Compatibility Notice:** Added clear notice that v12.1.23 is the last version supporting FoundryVTT v12
+- **Migration Preparation:** Module is now locked for v12 compatibility; v13 migration work will begin in next version
+
+### Technical
+- **Version Lock:** Module version locked at 12.1.23-FINAL for v12 compatibility
+- **Future Development:** All development moving forward will target FoundryVTT v13 exclusively
+
 ## [12.1.22]
 
 ### Added
