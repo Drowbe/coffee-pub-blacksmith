@@ -1951,7 +1951,8 @@ async function getTablePromptWithDefaults(tablePrompt) {
   const settings = [
     { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', key: 'defaultCampaignName' },
     { placeholder: '[ADD-RULEBOOKS-HERE]', key: 'defaultRulebooks' },
-    { placeholder: '[ADD-ITEM-SOURCE-HERE]', key: 'defaultCampaignName' }
+    { placeholder: '[ADD-ITEM-SOURCE-HERE]', key: 'defaultCampaignName' },
+    { placeholder: '[ADD-ACTORS-SOURCE-HERE]', key: 'defaultCampaignName' }
   ];
 
   let result = tablePrompt;
@@ -2031,6 +2032,26 @@ function getItemCompendiumsList() {
   }
 }
 
+// Helper to get comma-delimited list of selected actor compendium IDs
+function getActorCompendiumsList() {
+  try {
+    const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsActor') || 1;
+    const compendiums = [];
+    
+    for (let i = 1; i <= numCompendiums; i++) {
+      const compendiumSetting = game.settings.get(MODULE.ID, `monsterCompendium${i}`);
+      if (compendiumSetting && compendiumSetting !== 'none') {
+        compendiums.push(compendiumSetting);
+      }
+    }
+    
+    return compendiums.join(', ');
+  } catch (e) {
+    postConsoleAndNotification(MODULE.NAME, "Error getting actor compendiums list", e, false, false);
+    return 'No compendiums configured';
+  }
+}
+
 // Helper to get formatted list of items from all selected item compendiums
 async function getCompendiumItemsList() {
   try {
@@ -2068,6 +2089,46 @@ async function getCompendiumItemsList() {
   } catch (e) {
     postConsoleAndNotification(MODULE.NAME, "Error getting compendium items list", e, false, false);
     return 'Error retrieving compendium items';
+  }
+}
+
+// Helper to get formatted list of actors from all selected actor compendiums
+async function getCompendiumActorsList() {
+  try {
+    const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsActor') || 1;
+    const compendiumActors = [];
+    
+    for (let i = 1; i <= numCompendiums; i++) {
+      const compendiumId = game.settings.get(MODULE.ID, `monsterCompendium${i}`);
+      if (!compendiumId || compendiumId === 'none') {
+        continue;
+      }
+      
+      try {
+        const compendium = game.packs.get(compendiumId);
+        if (!compendium) {
+          postConsoleAndNotification(MODULE.NAME, "Configured compendium not found", compendiumId, false, false);
+          continue;
+        }
+        
+        const index = await compendium.getIndex();
+        if (!index || index.length === 0) {
+          // Skip empty compendiums
+          continue;
+        }
+        
+        const actorNames = index.map(entry => entry.name).join(', ');
+        compendiumActors.push(`${compendiumId}: ${actorNames}`);
+      } catch (e) {
+        postConsoleAndNotification(MODULE.NAME, `Error getting actors from compendium ${compendiumId}`, e, false, false);
+        continue;
+      }
+    }
+    
+    return compendiumActors.join('\n\n');
+  } catch (e) {
+    postConsoleAndNotification(MODULE.NAME, "Error getting compendium actors list", e, false, false);
+    return 'Error retrieving compendium actors';
   }
 }
 
@@ -2698,6 +2759,7 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
     const tableDocumentActorPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-document-actor.txt')).text();
     const tableDocumentItemPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-document-items.txt')).text();
     const tableCompendiumItemPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-compendium-items.txt')).text();
+    const tableCompendiumActorPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-compendium-actors.txt')).text();
 
     // Build dialog content with dropdown and button
     const dialogContent = `
@@ -2780,6 +2842,14 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
               // Replace [ADD-COMPENDIUM-ITEMS-HERE] with formatted items from compendiums
               const compendiumItemsList = await getCompendiumItemsList();
               promptWithDefaults = promptWithDefaults.split('[ADD-COMPENDIUM-ITEMS-HERE]').join(compendiumItemsList);
+            } else if (type === "compendium-actor") {
+              promptWithDefaults = await getTablePromptWithDefaults(tableCompendiumActorPrompt);
+              // Replace [ADD-COMPENDIUMS-HERE] with selected actor compendium IDs
+              const compendiumsList = getActorCompendiumsList();
+              promptWithDefaults = promptWithDefaults.split('[ADD-COMPENDIUMS-HERE]').join(compendiumsList);
+              // Replace [ADD-COMPENDIUM-ACTORS-HERE] with formatted actors from compendiums
+              const compendiumActorsList = await getCompendiumActorsList();
+              promptWithDefaults = promptWithDefaults.split('[ADD-COMPENDIUM-ACTORS-HERE]').join(compendiumActorsList);
             }
             
             copyToClipboard(promptWithDefaults);
