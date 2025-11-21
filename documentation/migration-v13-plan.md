@@ -52,9 +52,9 @@ This document outlines a comprehensive migration plan for Coffee Pub Blacksmith 
 #### 0.1 Finalize v12 Release
 **Tasks:**
 - [ ] Ensure v12.1.22 is stable and tested
-- [ ] Create git tag: `v12.1.22` (or `v12.1.22-final`)
-- [ ] Create GitHub release for v12.1.22
-- [ ] Update README to note v12.1.22 as final v12 release
+- [ ] Create git tag: `v12.1.22-FINAL` (clearly marks as final v12 release)
+- [ ] Create GitHub release for v12.1.22-FINAL
+- [ ] Update README to note v12.1.22-FINAL as final v12 release
 - [ ] Document v12 support end date
 - [ ] Create `v12-maintenance` branch (optional, for critical v12 fixes only)
 
@@ -409,7 +409,7 @@ This document outlines a comprehensive migration plan for Coffee Pub Blacksmith 
 ## Implementation Strategy
 
 ### Step-by-Step Process
-1. **Complete Phase 0** - Lock down v12.1.22 release first
+1. **Complete Phase 0** - Lock down v12.1.22-FINAL release first
 2. **Update module.json** - Set minimum Core Version to `13.0.0`
 3. **Optional: Create Feature Branch** - `v13-migration` or `v13-dev` (recommended for safety, but optional for single developer)
 4. **Start with Phase 1** - Fix critical errors first
@@ -429,17 +429,17 @@ This document outlines a comprehensive migration plan for Coffee Pub Blacksmith 
 5. **No v12 Testing** - v12 is locked, no need to test backward compatibility
 
 ### Rollback Plan
-1. **v12 Release Locked** - v12.1.22 is final v12 release (tagged and released)
-2. **v13 Branch** - All v13 work in separate branch
+1. **v12 Release Locked** - v12.1.22-FINAL is final v12 release (tagged and released)
+2. **v13 Branch** - All v13 work in separate branch (optional)
 3. **Document Changes** - All changes documented for reference
-4. **Rollback Procedure** - Can revert to v12.1.22 if needed (but v13 is forward-only)
+4. **Rollback Procedure** - Can revert to v12.1.22-FINAL if needed (but v13 is forward-only)
 
 ---
 
 ## Success Criteria
 
 ### Phase 0 Complete
-- ✅ v12.1.22 tagged and released
+- ✅ v12.1.22-FINAL tagged and released
 - ✅ GitHub release created
 - ✅ Documentation updated
 - ✅ v12 support end date documented
@@ -483,7 +483,7 @@ This document outlines a comprehensive migration plan for Coffee Pub Blacksmith 
 
 ## Next Steps
 
-1. **Complete Phase 0** - Lock down v12.1.22 release (tag, release, document)
+1. **Complete Phase 0** - Lock down v12.1.22-FINAL release (tag, release, document)
 2. **Review and Approve Plan** - Ensure alignment with project goals
 3. **Set Timeline** - Choose migration approach and timeline
 4. **Prepare Environment** - Set up v13 testing environment
@@ -493,7 +493,7 @@ This document outlines a comprehensive migration plan for Coffee Pub Blacksmith 
 8. **Track Progress** - Use migration checklist to track completion
 
 **Simplified Workflow (Single Developer):**
-- Tag v12.1.22
+- Tag v12.1.22-FINAL (marks final v12 release)
 - Update module.json to require v13
 - Work directly on main branch
 - Test frequently
@@ -510,11 +510,11 @@ This document outlines a comprehensive migration plan for Coffee Pub Blacksmith 
 - [ ] Documentation up to date
 
 ### Lockdown Steps
-- [ ] Create git tag: `v12.1.22` (or `v12.1.22-final`)
-- [ ] Create GitHub release for v12.1.22
+- [ ] Create git tag: `v12.1.22-FINAL` (clearly marks as final v12 release)
+- [ ] Create GitHub release for v12.1.22-FINAL
 - [ ] Mark release as "Final v12 Release"
 - [ ] Update README.md with v12 support end notice
-- [ ] Update CHANGELOG.md with v12.1.22 entry
+- [ ] Update CHANGELOG.md with v12.1.22-FINAL entry
 - [ ] Create `v12-maintenance` branch (optional, for emergency fixes only)
 - [ ] Document v12 support end date
 
@@ -532,7 +532,7 @@ This document outlines a comprehensive migration plan for Coffee Pub Blacksmith 
 3. **Timeline:** What is the target release date for v13 compatibility?
 4. **Testing:** Who will be responsible for testing?
 5. **Release Strategy:** Should we do a beta release first?
-6. **v12 Support:** How long to maintain v12.1.22 for critical fixes? (Recommend: 30 days max)
+6. **v12 Support:** How long to maintain v12.1.22-FINAL for critical fixes? (Recommend: 30 days max)
 
 ---
 
