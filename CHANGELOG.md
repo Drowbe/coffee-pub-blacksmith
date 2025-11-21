@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.1.22]
+
+### Added
+- **Compendium Table Import Support:** Added comprehensive compendium table import functionality for both items and actors
+  - New "Compendium Items" template option for rolltable imports
+  - New "Compendium Actors" template option for rolltable imports
+  - Dynamic compendium list generation from configured settings
+  - Formatted item/actor lists with compendium names and entries
+  - Template placeholders automatically populated with user's configured compendiums
+
+### Fixed
+- **Table Import Range Calculation:** Fixed critical bug in table range calculation logic
+  - Properly handles explicit range bounds (rangeLower and rangeUpper)
+  - Correctly calculates ranges when only lower bound is provided
+  - Prevents gaps and overlaps in range assignments
+  - Added validation to ensure rangeLower <= rangeUpper
+- **Dynamic Table Formula:** Fixed hardcoded "1d100" formula to dynamically calculate based on actual table range
+  - Formula now automatically adjusts to match maximum range value (e.g., 1d20, 1d500)
+  - Ensures formula always matches the table's actual range coverage
+- **Compendium Type Mapping:** Fixed compendium result type mapping for FoundryVTT compatibility
+  - Correctly maps "Compendium" type to "pack" (FoundryVTT's actual type name)
+  - Properly sets `documentCollection` field for pack-type results
+  - Ensures compendium dropdowns select correct compendium on import
+- **ImageCacheManager.addTagToFile Error:** Fixed "addTagToFile is not a function" error when toggling favorites
+  - Removed redundant calls to non-existent `addTagToFile()` and `removeTagFromFile()` functions
+  - Tags are already updated directly in fileInfo.metadata.tags array
+  - Favorite toggle functionality now works correctly
+
+### Changed
+- **Table Import UI:** Improved table import dropdown labels for better clarity
+  - Simplified option names (e.g., "Simple Text" instead of "Simple Text Rollable Table")
+  - Reorganized options for better logical grouping
+  - Updated button text to "Copy Template" for consistency
+
 ## [12.1.21] - 2025-11-13
 
 ### Added
