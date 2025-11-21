@@ -707,15 +707,12 @@ export class TokenImageReplacementWindow extends Application {
             }
 
             const isFavorited = fileInfo.metadata.tags.includes('FAVORITE');
-        const normalizedName = fileInfo.name?.toLowerCase();
 
             if (isFavorited) {
                 fileInfo.metadata.tags = fileInfo.metadata.tags.filter(tag => tag !== 'FAVORITE');
-            ImageCacheManager.removeTagFromFile(normalizedName, 'FAVORITE');
                 ui.notifications.info(`Removed ${imageName} from favorites`);
             } else {
                 fileInfo.metadata.tags.push('FAVORITE');
-            ImageCacheManager.addTagToFile(normalizedName, 'FAVORITE');
                 ui.notifications.info(`Added ${imageName} to favorites`);
             }
 

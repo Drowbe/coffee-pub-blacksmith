@@ -6,23 +6,18 @@
 
 ### ImageCacheManager.addTagToFile Function Missing
 - **Issue**: Error "ImageCacheManager.addTagToFile is not a function" when toggling favorites
-- **Status**: PENDING - Needs investigation and fix
+- **Status**: FIXED - Removed redundant function calls
 - **Priority**: CRITICAL - Broken functionality preventing favorite toggling
 - **Error Location**: `foundry.js:72077` - Failed to toggle favorite
-- **Current State**: 
-  - Function `addTagToFile` is being called but doesn't exist on ImageCacheManager
-  - Favorite toggle functionality is broken
-- **Location**: `scripts/token-image-replacement.js` or related image cache manager
-- **Tasks Needed**:
-  - Locate where `addTagToFile` is being called
-  - Verify if function exists in ImageCacheManager class
-  - Implement missing function or fix function call
-  - Test favorite toggle functionality
-  - Verify tag management works correctly
+- **Solution**: 
+  - Removed calls to non-existent `ImageCacheManager.addTagToFile()` and `ImageCacheManager.removeTagFromFile()` functions
+  - Tags are already updated directly in `fileInfo.metadata.tags` array, which is sufficient
+  - Cache is saved via `ImageCacheManager._saveCacheToStorage(true)` after tag updates
+- **Location**: `scripts/token-image-replacement.js` - `_onImageRightClick` method
 - **Related Files**:
-  - `scripts/token-image-replacement.js` - ImageCacheManager class
+  - `scripts/token-image-replacement.js` - Fixed in `_onImageRightClick` method
   - `scripts/manager-image-cache.js` - Image cache management
-- **Notes**: This prevents users from toggling favorites on images, which is a core feature of the token image replacement system
+- **Notes**: The favorite toggle now works correctly by directly updating the tags array in the fileInfo object
 
 ### Memory Leak Investigation
 - **Issue**: Browser tab memory grows to 9.5 GB in ~3 hours while heap stays ~950 MB, leading to crashes.
