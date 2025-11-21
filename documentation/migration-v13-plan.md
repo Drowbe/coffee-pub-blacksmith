@@ -410,14 +410,16 @@ This document outlines a comprehensive migration plan for Coffee Pub Blacksmith 
 
 ### Step-by-Step Process
 1. **Complete Phase 0** - Lock down v12.1.22 release first
-2. **Create Feature Branch** - `v13-migration` or `v13-dev`
-3. **Update module.json** - Set minimum Core Version to `13.0.0`
+2. **Update module.json** - Set minimum Core Version to `13.0.0`
+3. **Optional: Create Feature Branch** - `v13-migration` or `v13-dev` (recommended for safety, but optional for single developer)
 4. **Start with Phase 1** - Fix critical errors first
 5. **Test After Each Phase** - Don't proceed until phase is stable
 6. **Use v13-Only Patterns** - No dual-compatibility needed (simpler code)
 7. **Incremental Commits** - Commit after each file/module completion
 8. **Regular Testing** - Test in v13 environment frequently
-9. **Code Review** - Review each phase before moving forward
+9. **When Ready** - Tag v13.0.0 and release
+
+**Note:** Since v12 is locked and you're the only developer, you can work directly on `main` branch if preferred. A separate branch is optional but provides a safety net during development.
 
 ### Testing Strategy
 1. **Development Testing** - Test in v13 development environment only
@@ -486,8 +488,16 @@ This document outlines a comprehensive migration plan for Coffee Pub Blacksmith 
 3. **Set Timeline** - Choose migration approach and timeline
 4. **Prepare Environment** - Set up v13 testing environment
 5. **Update module.json** - Set minimum Core Version to `13.0.0`
-6. **Begin Phase 1** - Start with critical fixes
-7. **Track Progress** - Use migration checklist to track completion
+6. **Optional: Create Branch** - Create `v13-migration` branch (optional, but provides safety net)
+7. **Begin Phase 1** - Start with critical fixes
+8. **Track Progress** - Use migration checklist to track completion
+
+**Simplified Workflow (Single Developer):**
+- Tag v12.1.22
+- Update module.json to require v13
+- Work directly on main branch
+- Test frequently
+- Tag v13.0.0 when ready
 
 ---
 
@@ -510,8 +520,8 @@ This document outlines a comprehensive migration plan for Coffee Pub Blacksmith 
 
 ### Post-Lockdown
 - [ ] Update module.json for v13 development (minimum: "13.0.0")
-- [ ] Create `v13-migration` or `v13-dev` branch
-- [ ] Begin Phase 1 migration work
+- [ ] **Optional:** Create `v13-migration` or `v13-dev` branch (recommended for safety)
+- [ ] Begin Phase 1 migration work on main (or branch if created)
 
 ---
 
