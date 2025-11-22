@@ -99,56 +99,59 @@ export class JournalTools {
         }
 
         // Store the app instance for reliable journal retrieval
-        html.data('journal-app', app);
+        html.setAttribute('data-journal-app', 'stored');
+        html._journalApp = app; // Store app reference for access
 
         // Add the tools icon
         this._addToolsIcon(html);
     }
 
     static _isEditMode(html) {
-        return html.find('.editor-container').length > 0;
+        return html.querySelector('.editor-container') !== null;
     }
 
     static _addToolsIcon(html) {
         // Find the window header
-        const windowHeader = html.find('.window-header');
+        const windowHeader = html.querySelector('.window-header');
         
-        if (!windowHeader.length) {
+        if (!windowHeader) {
             return;
         }
 
         // Check if tools icon already exists
-        const existingToolsIcon = windowHeader.find('.journal-tools-icon');
-        if (existingToolsIcon.length > 0) {
+        const existingToolsIcon = windowHeader.querySelector('.journal-tools-icon');
+        if (existingToolsIcon) {
             return; // Already added
         }
 
         // Create the tools icon
-        const toolsIcon = $(`
-            <a class="journal-tools-icon" title="Journal Tools" style="cursor: pointer; margin-left: 8px;">
-                <i class="fas fa-feather"></i>
-            </a>
-        `);
+        const toolsIcon = document.createElement('a');
+        toolsIcon.className = 'journal-tools-icon';
+        toolsIcon.title = 'Journal Tools';
+        toolsIcon.style.cursor = 'pointer';
+        toolsIcon.style.marginLeft = '8px';
+        toolsIcon.innerHTML = '<i class="fas fa-feather"></i>';
+        
         postConsoleAndNotification(MODULE.NAME, "Journal Tools: Created tools icon", 
             "Icon element created", true, false);
 
         // Add click handler
-        toolsIcon.on('click', (event) => {
+        toolsIcon.addEventListener('click', (event) => {
             event.preventDefault();
             this._openToolsDialog(html);
         });
 
         // Insert the icon before the close button (if it exists) or at the end
-        const closeButton = windowHeader.find('.header-button.close');
-        const configureButton = windowHeader.find('.header-button.configure-sheet');
+        const closeButton = windowHeader.querySelector('.header-button.close');
+        const configureButton = windowHeader.querySelector('.header-button.configure-sheet');
         
         // Try to place it before the close button, then before configure button, then at the end
-        if (closeButton.length > 0) {
-            closeButton.before(toolsIcon);
-        } else if (configureButton.length > 0) {
-            configureButton.before(toolsIcon);
+        if (closeButton) {
+            closeButton.insertAdjacentElement('beforebegin', toolsIcon);
+        } else if (configureButton) {
+            configureButton.insertAdjacentElement('beforebegin', toolsIcon);
         } else {
-            windowHeader.append(toolsIcon);
+            windowHeader.appendChild(toolsIcon);
         }
 
         postConsoleAndNotification(MODULE.NAME, "Journal Tools: Added tools icon to journal window", "", false, false);
@@ -157,21 +160,24 @@ export class JournalTools {
     static _openToolsDialog(html) {
         try {
             // Get the journal from the stored app instance
-            const app = html.data('journal-app');
+            const app = html._journalApp;
             let journal = null;
 
             if (app && app.document) {
                 journal = app.document;
             } else {
-                // Fallback: try to get from the HTML data
-                journal = html.data('journal');
+                // Fallback: try to get from the HTML data attribute
+                const journalId = html.getAttribute('data-journal-id');
+                if (journalId) {
+                    journal = game.journal.get(journalId);
+                }
                 postConsoleAndNotification(MODULE.NAME, "Journal Tools: Found journal via HTML data", 
                     journal ? `Journal: ${journal.name}` : 'No journal found', true, false);
             }
 
             if (!journal) {
                 postConsoleAndNotification(MODULE.NAME, "Journal Tools: Could not find journal entry", 
-                    `Primary: ${app?.document?.name}, Alternative: ${html.data('journal')?.name}`, false, true);
+                    `Primary: ${app?.document?.name}, Alternative: ${html.getAttribute('data-journal-id')}`, false, true);
                 ui.notifications.error("Could not find journal entry");
                 return;
             }
@@ -2462,23 +2468,59 @@ export class JournalToolsWindow extends FormApplication {
         super.activateListeners(html);
         
         // Add event listeners for the custom buttons
-        html.find('.apply-tools').click(this._onApplyTools.bind(this));
-        html.find('.cancel-tools').click(this._onCancelTools.bind(this));
-        html.find('#copy-results-entity').click(this._onCopyStatus.bind(this));
-        html.find('.journal-tools-tab').click(this._onTabSwitch.bind(this));
-        html.find('#open-journal-btn').click(this._onOpenJournal.bind(this));
+        const applyToolsButton = html.querySelector('.apply-tools');
+        if (applyToolsButton) {
+            applyToolsButton.addEventListener('click', this._onApplyTools.bind(this));
+        }
+        
+        const cancelToolsButton = html.querySelector('.cancel-tools');
+        if (cancelToolsButton) {
+            cancelToolsButton.addEventListener('click', this._onCancelTools.bind(this));
+        }
+        
+        const copyResultsEntityButton = html.querySelector('#copy-results-entity');
+        if (copyResultsEntityButton) {
+            copyResultsEntityButton.addEventListener('click', this._onCopyStatus.bind(this));
+        }
+        
+        const openJournalButton = html.querySelector('#open-journal-btn');
+        if (openJournalButton) {
+            openJournalButton.addEventListener('click', this._onOpenJournal.bind(this));
+        }
         
         // Tab switching
-        html.find('.journal-tools-tab').click(this._onTabSwitch.bind(this));
+        html.querySelectorAll('.journal-tools-tab').forEach(tab => {
+            tab.addEventListener('click', this._onTabSwitch.bind(this));
+        });
         
         // Search & Replace functionality
-        html.find('.clear-search-btn').click(this._onClearSearch.bind(this));
-        html.find('.run-report-btn').click(this._onRunReport.bind(this));
-        html.find('.mass-replace-btn').click(this._onMassReplace.bind(this));
-        html.find('#copy-results-search').click(this._onCopyResults.bind(this));
+        const clearSearchButton = html.querySelector('.clear-search-btn');
+        if (clearSearchButton) {
+            clearSearchButton.addEventListener('click', this._onClearSearch.bind(this));
+        }
+        
+        const runReportButton = html.querySelector('.run-report-btn');
+        if (runReportButton) {
+            runReportButton.addEventListener('click', this._onRunReport.bind(this));
+        }
+        
+        const massReplaceButton = html.querySelector('.mass-replace-btn');
+        if (massReplaceButton) {
+            massReplaceButton.addEventListener('click', this._onMassReplace.bind(this));
+        }
+        
+        const copyResultsSearchButton = html.querySelector('#copy-results-search');
+        if (copyResultsSearchButton) {
+            copyResultsSearchButton.addEventListener('click', this._onCopyResults.bind(this));
+        }
 
         // Delegated click for dynamically generated result titles
-        html.on('click', '.replace-title', this._onResultTitleClick.bind(this));
+        html.addEventListener('click', (event) => {
+            const target = event.target.closest('.replace-title');
+            if (target) {
+                this._onResultTitleClick.call(this, event);
+            }
+        });
     }
 
     _onResultTitleClick(event) {
@@ -2487,11 +2529,10 @@ export class JournalToolsWindow extends FormApplication {
 
         try {
             const target = event.currentTarget;
-            const $t = $(target);
-            const type = $t.data('type');
-            const id = $t.data('id');
-            const pageId = $t.data('page-id');
-            const soundId = $t.data('sound-id');
+            const type = target.getAttribute('data-type');
+            const id = target.getAttribute('data-id');
+            const pageId = target.getAttribute('data-page-id');
+            const soundId = target.getAttribute('data-sound-id');
 
             if (!type || !id) return;
 
@@ -2568,7 +2609,12 @@ export class JournalToolsWindow extends FormApplication {
         
         try {
             // Get form data
-            const formData = new FormData(this.element.find('form')[0]);
+            const form = this.element.querySelector('form');
+            if (!form) {
+                ui.notifications.error("Form not found");
+                return;
+            }
+            const formData = new FormData(form);
             const upgradeActors = formData.get('upgradeActors') === 'true';
             const upgradeItems = formData.get('upgradeItems') === 'true';
             const upgradeMacros = formData.get('upgradeMacros') === 'true';
@@ -2583,7 +2629,10 @@ export class JournalToolsWindow extends FormApplication {
             }
             
             // Clear status area for fresh start
-            this.element.find('#results-entity').empty();
+            const resultsEntity = this.element.querySelector('#results-entity');
+            if (resultsEntity) {
+                resultsEntity.innerHTML = '';
+            }
             this.addStatusMessage("Ready to process...", "info");
 
             // Debug logging
@@ -2592,9 +2641,12 @@ export class JournalToolsWindow extends FormApplication {
 
             // Fallback: read checkbox values directly if FormData fails
             if (!upgradeActors && !upgradeItems && !upgradeMacros) {
-                const actorsChecked = this.element.find('#upgrade-actors').is(':checked');
-                const itemsChecked = this.element.find('#upgrade-items').is(':checked');
-                const macrosChecked = this.element.find('#upgrade-macros').is(':checked');
+                const actorsCheckbox = this.element.querySelector('#upgrade-actors');
+                const itemsCheckbox = this.element.querySelector('#upgrade-items');
+                const macrosCheckbox = this.element.querySelector('#upgrade-macros');
+                const actorsChecked = actorsCheckbox ? actorsCheckbox.checked : false;
+                const itemsChecked = itemsCheckbox ? itemsCheckbox.checked : false;
+                const macrosChecked = macrosCheckbox ? macrosCheckbox.checked : false;
                 
                 postConsoleAndNotification(MODULE.NAME, "Journal Tools: Fallback checkbox reading", 
                     `actors: ${actorsChecked}, items: ${itemsChecked}, macros: ${macrosChecked}`, true, false);
@@ -2631,13 +2683,26 @@ export class JournalToolsWindow extends FormApplication {
             this.shouldStop = false;
             
             // Show progress and status sections
-            this.element.find('#progress-section').show();
-            this.element.find('#status-section').show();
+            const progressSection = this.element.querySelector('#progress-section');
+            const statusSection = this.element.querySelector('#status-section');
+            if (progressSection) progressSection.style.display = '';
+            if (statusSection) statusSection.style.display = '';
             
             // Change button to stop mode
-            this.element.find('#apply-icon').removeClass('fa-check').addClass('fa-stop');
-            this.element.find('#apply-text').text('Stop Update');
-            this.element.find('#apply-button').addClass('stop-mode').prop('disabled', false);
+            const applyIcon = this.element.querySelector('#apply-icon');
+            const applyText = this.element.querySelector('#apply-text');
+            const applyButton = this.element.querySelector('#apply-button');
+            if (applyIcon) {
+                applyIcon.classList.remove('fa-check');
+                applyIcon.classList.add('fa-stop');
+            }
+            if (applyText) {
+                applyText.textContent = 'Stop Update';
+            }
+            if (applyButton) {
+                applyButton.classList.add('stop-mode');
+                applyButton.disabled = false;
+            }
             
             // Initialize progress
             this.updateOverallProgress(0, "Initializing...");
@@ -2678,12 +2743,11 @@ export class JournalToolsWindow extends FormApplication {
             }
             
             // Stop the spinner
-            this.element.find('#progress-spinner').removeClass('fa-spin');
+            const progressSpinner = this.element.querySelector('#progress-spinner');
+            if (progressSpinner) progressSpinner.classList.remove('fa-spin');
             
             // Reset button state
-            this.element.find('#apply-icon').removeClass('fa-stop').addClass('fa-check');
-            this.element.find('#apply-text').text('Update Links');
-            this.element.find('#apply-button').removeClass('stop-mode').prop('disabled', false);
+            this._resetApplyButton();
             
             // Reset processing state
             this.isProcessing = false;
@@ -2695,12 +2759,11 @@ export class JournalToolsWindow extends FormApplication {
         } catch (error) {
             this.addStatusMessage(`Error: ${error.message}`, "error");
             // Stop the spinner on error too
-            this.element.find('#progress-spinner').removeClass('fa-spin');
+            const progressSpinnerErr = this.element.querySelector('#progress-spinner');
+            if (progressSpinnerErr) progressSpinnerErr.classList.remove('fa-spin');
             
             // Reset button state
-            this.element.find('#apply-icon').removeClass('fa-stop').addClass('fa-check');
-            this.element.find('#apply-text').text('Update Links');
-            this.element.find('#apply-button').removeClass('stop-mode').prop('disabled', false);
+            this._resetApplyButton();
             
             // Reset processing state
             this.isProcessing = false;
@@ -2712,20 +2775,27 @@ export class JournalToolsWindow extends FormApplication {
     }
 
     updateOverallProgress(percentage, message) {
-        this.element.find('#overall-progress-bar').css('width', `${percentage}%`);
-        this.element.find('#overall-progress-text').text(message);
+        const progressBar = this.element.querySelector('#overall-progress-bar');
+        const progressText = this.element.querySelector('#overall-progress-text');
+        if (progressBar) progressBar.style.width = `${percentage}%`;
+        if (progressText) progressText.textContent = message;
     }
 
     updatePageProgress(percentage, message) {
-        this.element.find('#page-progress-bar').css('width', `${percentage}%`);
-        this.element.find('#page-progress-text').text(message);
+        const progressBar = this.element.querySelector('#page-progress-bar');
+        const progressText = this.element.querySelector('#page-progress-text');
+        if (progressBar) progressBar.style.width = `${percentage}%`;
+        if (progressText) progressText.textContent = message;
     }
 
     addStatusMessage(message, type = "info") {
-        const statusArea = this.element.find('#results-entity');
-        const messageDiv = $(`<div class="status-message ${type}">${message}</div>`);
-        statusArea.append(messageDiv);
-        statusArea.scrollTop(statusArea[0].scrollHeight);
+        const statusArea = this.element.querySelector('#results-entity');
+        if (!statusArea) return;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `status-message ${type}`;
+        messageDiv.textContent = message;
+        statusArea.appendChild(messageDiv);
+        statusArea.scrollTop = statusArea.scrollHeight;
         
         // Force UI update by yielding control back to browser
         setTimeout(() => {}, 0);
@@ -2736,15 +2806,15 @@ export class JournalToolsWindow extends FormApplication {
         event.stopPropagation();
         
         try {
-            const statusArea = this.element.find('#results-entity');
+            const statusArea = this.element.querySelector('#results-entity');
+            if (!statusArea) return;
             
             // Get all status messages and format them properly
-            const statusMessages = statusArea.find('.status-message');
+            const statusMessages = statusArea.querySelectorAll('.status-message');
             let formattedText = '';
             
-            statusMessages.each(function() {
-                const message = $(this).text();
-                formattedText += message + '\n';
+            statusMessages.forEach((msg) => {
+                formattedText += msg.textContent + '\n';
             });
             
             if (formattedText && formattedText.trim()) {
@@ -2769,21 +2839,27 @@ export class JournalToolsWindow extends FormApplication {
         event.preventDefault();
         event.stopPropagation();
         
-        const targetTab = $(event.currentTarget).data('tab');
+        const target = event.currentTarget;
+        const targetTab = target.getAttribute('data-tab');
+        if (!targetTab) return;
         
         // Update tab buttons
-        this.element.find('.journal-tools-tab').removeClass('active');
-        $(event.currentTarget).addClass('active');
+        this.element.querySelectorAll('.journal-tools-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        target.classList.add('active');
         
         // Update tab content
-        this.element.find('.journal-tools-tab-content').removeClass('active');
-        this.element.find(`#${targetTab}-content`).addClass('active');
+        this.element.querySelectorAll('.journal-tools-tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        const targetContent = this.element.querySelector(`#${targetTab}-content`);
+        if (targetContent) targetContent.classList.add('active');
         
         // Show/hide appropriate footer
-        if (targetTab === 'entity-replacement') {
-            this.element.find('#entity-replacement-footer').show();
-        } else {
-            this.element.find('#entity-replacement-footer').hide();
+        const footer = this.element.querySelector('#entity-replacement-footer');
+        if (footer) {
+            footer.style.display = (targetTab === 'entity-replacement') ? '' : 'none';
         }
     }
 
@@ -2793,7 +2869,8 @@ export class JournalToolsWindow extends FormApplication {
         
         try {
             // Get the selected journal ID from the dropdown
-            const selectedJournalId = this.element.find('#journal-tools-selector-entity-journal').val();
+            const journalSelect = this.element.querySelector('#journal-tools-selector-entity-journal');
+            const selectedJournalId = journalSelect ? journalSelect.value : null;
             
             if (!selectedJournalId) {
                 ui.notifications.warn("No journal selected");
@@ -2821,21 +2898,31 @@ export class JournalToolsWindow extends FormApplication {
         event.stopPropagation();
         
         // Reset all input fields
-        this.element.find('#current-text').val("");
-        this.element.find('#new-text').val("");
-        this.element.find('#journal-tools-selector-search-folder').val("");
-        this.element.find('#journal-tools-selector-match-mode').val("all");
+        const currentText = this.element.querySelector('#current-text');
+        const newText = this.element.querySelector('#new-text');
+        const folderSelect = this.element.querySelector('#journal-tools-selector-search-folder');
+        const matchModeSelect = this.element.querySelector('#journal-tools-selector-match-mode');
+        if (currentText) currentText.value = "";
+        if (newText) newText.value = "";
+        if (folderSelect) folderSelect.value = "";
+        if (matchModeSelect) matchModeSelect.value = "all";
         
         // Reset checkboxes
-        this.element.find('#update-actors, #update-items, #update-scenes, #update-journals, #update-tables, #update-playlists').prop('checked', false);
-        this.element.find('#target-images, #target-audio').prop('checked', false);
-        this.element.find('#target-text').prop('checked', true); // Keep text checked by default
+        const updateCheckboxes = this.element.querySelectorAll('#update-actors, #update-items, #update-scenes, #update-journals, #update-tables, #update-playlists');
+        updateCheckboxes.forEach(cb => cb.checked = false);
+        const targetCheckboxes = this.element.querySelectorAll('#target-images, #target-audio');
+        targetCheckboxes.forEach(cb => cb.checked = false);
+        const targetTextCheckbox = this.element.querySelector('#target-text');
+        if (targetTextCheckbox) targetTextCheckbox.checked = true; // Keep text checked by default
         
         // Clear the results area
-        this.element.find('#results-search').html(`
-            <div class="results-message">Always back up your files before running a mass change.</div>
-            <div class="results-message">Run a search before doing a mass replace to verify what will be changed.</div>
-        `);
+        const resultsSearch = this.element.querySelector('#results-search');
+        if (resultsSearch) {
+            resultsSearch.innerHTML = `
+                <div class="results-message">Always back up your files before running a mass change.</div>
+                <div class="results-message">Run a search before doing a mass replace to verify what will be changed.</div>
+            `;
+        }
     }
 
     _onRunReport(event) {
@@ -2861,8 +2948,9 @@ export class JournalToolsWindow extends FormApplication {
         event.stopPropagation();
         
         try {
-            const resultsArea = this.element.find('#results-search');
-            const resultsText = resultsArea.text();
+            const resultsArea = this.element.querySelector('#results-search');
+            if (!resultsArea) return;
+            const resultsText = resultsArea.textContent;
             
             if (resultsText && resultsText.trim()) {
                 navigator.clipboard.writeText(resultsText).then(() => {
@@ -2880,21 +2968,32 @@ export class JournalToolsWindow extends FormApplication {
     }
 
     async _handleSearchReplace(doReplace = false) {
-        const currentText = this.element.find('#current-text').val()?.trim();
-        const newText = this.element.find('#new-text').val() ?? "";
-        const folderFilter = this.element.find('#journal-tools-selector-search-folder').val();
-        const matchMode = this.element.find('#journal-tools-selector-match-mode').val();
-        const caseSensitive = this.element.find('#search-case-sensitive').is(':checked');
-        const resultsArea = this.element.find('#results-search');
+        const currentTextInput = this.element.querySelector('#current-text');
+        const newTextInput = this.element.querySelector('#new-text');
+        const folderFilterSelect = this.element.querySelector('#journal-tools-selector-search-folder');
+        const matchModeSelect = this.element.querySelector('#journal-tools-selector-match-mode');
+        const caseSensitiveCheckbox = this.element.querySelector('#search-case-sensitive');
+        const resultsArea = this.element.querySelector('#results-search');
+        
+        const currentText = currentTextInput ? currentTextInput.value?.trim() : '';
+        const newText = newTextInput ? newTextInput.value ?? "" : "";
+        const folderFilter = folderFilterSelect ? folderFilterSelect.value : '';
+        const matchMode = matchModeSelect ? matchModeSelect.value : '';
+        const caseSensitive = caseSensitiveCheckbox ? caseSensitiveCheckbox.checked : false;
+        
+        if (!resultsArea) return;
         
         // Target field checkboxes
-        const targetImages = this.element.find('#target-images').is(':checked');
-        const targetText = this.element.find('#target-text').is(':checked');
-        const targetAudio = this.element.find('#target-audio').is(':checked');
+        const targetImagesCheckbox = this.element.querySelector('#target-images');
+        const targetTextCheckbox = this.element.querySelector('#target-text');
+        const targetAudioCheckbox = this.element.querySelector('#target-audio');
+        const targetImages = targetImagesCheckbox ? targetImagesCheckbox.checked : false;
+        const targetText = targetTextCheckbox ? targetTextCheckbox.checked : false;
+        const targetAudio = targetAudioCheckbox ? targetAudioCheckbox.checked : false;
 
         if (!targetImages && !targetText && !targetAudio) {
             ui.notifications.warn("Please select at least one target field (Images, Text, or Audio).");
-            resultsArea.html(`<div class="results-message" style="color: #ff4444;"><strong>Warning:</strong> Please select at least one target field (Images, Text, or Audio).</div>`);
+            resultsArea.innerHTML = `<div class="results-message" style="color: #ff4444;"><strong>Warning:</strong> Please select at least one target field (Images, Text, or Audio).</div>`;
             return;
         }
 
@@ -2904,34 +3003,43 @@ export class JournalToolsWindow extends FormApplication {
         }
 
         // Document type options
+        const updateActorsCheckbox = this.element.querySelector('#update-actors');
+        const updateItemsCheckbox = this.element.querySelector('#update-items');
+        const updateScenesCheckbox = this.element.querySelector('#update-scenes');
+        const updateJournalsCheckbox = this.element.querySelector('#update-journals');
+        const updateTablesCheckbox = this.element.querySelector('#update-tables');
+        const updatePlaylistsCheckbox = this.element.querySelector('#update-playlists');
+        
         const options = {
-            actors: this.element.find('#update-actors').is(':checked'),
-            items: this.element.find('#update-items').is(':checked'),
-            scenes: this.element.find('#update-scenes').is(':checked'),
-            journals: this.element.find('#update-journals').is(':checked'),
-            tables: this.element.find('#update-tables').is(':checked'),
-            playlists: this.element.find('#update-playlists').is(':checked')
+            actors: updateActorsCheckbox ? updateActorsCheckbox.checked : false,
+            items: updateItemsCheckbox ? updateItemsCheckbox.checked : false,
+            scenes: updateScenesCheckbox ? updateScenesCheckbox.checked : false,
+            journals: updateJournalsCheckbox ? updateJournalsCheckbox.checked : false,
+            tables: updateTablesCheckbox ? updateTablesCheckbox.checked : false,
+            playlists: updatePlaylistsCheckbox ? updatePlaylistsCheckbox.checked : false
         };
 
         // Warn if no document type is selected
         if (!options.actors && !options.items && !options.scenes && !options.journals && !options.tables && !options.playlists) {
             ui.notifications.warn("Please select at least one document type (Actors, Items, Scenes, Journals, Roll Tables, or Playlists).");
-            resultsArea.html(`<div class="results-message" style="color: #ff4444;"><strong>Warning:</strong> Please select at least one document type (Actors, Items, Scenes, Journals, Roll Tables, or Playlists).</div>`);
+            resultsArea.innerHTML = `<div class="results-message" style="color: #ff4444;"><strong>Warning:</strong> Please select at least one document type (Actors, Items, Scenes, Journals, Roll Tables, or Playlists).</div>`;
             return;
         }
 
         // Show progress
-        this.element.find('#search-progress-section').show();
-        this.element.find('#search-results-section').show();
+        const searchProgressSection = this.element.querySelector('#search-progress-section');
+        const searchResultsSection = this.element.querySelector('#search-results-section');
+        if (searchProgressSection) searchProgressSection.style.display = '';
+        if (searchResultsSection) searchResultsSection.style.display = '';
         this.updateSearchProgress(0, doReplace ? "Running replacements..." : "Generating report...");
         
-        resultsArea.html(`<div class="results-message"><strong>${doReplace ? "Running replacements..." : "Generating report..."}</strong></div>`);
+        resultsArea.innerHTML = `<div class="results-message"><strong>${doReplace ? "Running replacements..." : "Generating report..."}</strong></div>`;
 
         try {
             const changes = await this._collectChanges(currentText, newText, folderFilter, matchMode, options, targetImages, targetText, targetAudio, caseSensitive);
             
             if (!changes.length) {
-                resultsArea.append(`<div class="results-message"><em>No matching text found.</em></div>`);
+                resultsArea.insertAdjacentHTML('beforeend', `<div class="results-message"><em>No matching text found.</em></div>`);
                 this.updateSearchProgress(100, "Complete!");
                 return;
             }
@@ -2939,26 +3047,28 @@ export class JournalToolsWindow extends FormApplication {
             if (!doReplace) {
                 // Show report
                 const reportHtml = this._renderSearchResults(changes, matchMode, currentText, newText, caseSensitive);
-                resultsArea.append(reportHtml);
+                resultsArea.insertAdjacentHTML('beforeend', reportHtml);
                 this.updateSearchProgress(100, "Report complete!");
             } else {
                 // Perform mass replace
                 await this._performMassReplace(changes, caseSensitive);
                 const reportHtml = this._renderSearchResults(changes, matchMode, currentText, newText, caseSensitive);
-                resultsArea.html(reportHtml + `<div class="results-message" style="color: #4CAF50;"><strong>Success!</strong> ${changes.length} references updated.</div>`);
+                resultsArea.innerHTML = reportHtml + `<div class="results-message" style="color: #4CAF50;"><strong>Success!</strong> ${changes.length} references updated.</div>`;
                 this.updateSearchProgress(100, "Replace complete!");
             }
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error in search/replace", error.message, false, false);
-            resultsArea.append(`<div class="results-message" style="color: #ff4444;"><strong>Error:</strong> ${error.message}</div>`);
+            resultsArea.insertAdjacentHTML('beforeend', `<div class="results-message" style="color: #ff4444;"><strong>Error:</strong> ${error.message}</div>`);
             this.updateSearchProgress(100, "Error!");
         }
     }
 
     updateSearchProgress(percentage, message) {
-        this.element.find('#search-progress-bar').css('width', `${percentage}%`);
-        this.element.find('#search-progress-text').text(message);
+        const progressBar = this.element.querySelector('#search-progress-bar');
+        const progressText = this.element.querySelector('#search-progress-text');
+        if (progressBar) progressBar.style.width = `${percentage}%`;
+        if (progressText) progressText.textContent = message;
     }
 
     async _collectChanges(currentText, newText, folderFilter, matchMode, options, targetImages, targetText, targetAudio, caseSensitive) {

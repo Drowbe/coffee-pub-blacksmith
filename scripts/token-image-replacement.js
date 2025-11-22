@@ -123,14 +123,23 @@ export class TokenImageReplacementWindow extends Application {
         if (!html) return;
         const boundHandler = handler.bind(this);
         if (delegate) {
-            html.on(eventName, selector, boundHandler);
-            this._domEventDisposers.push(() => html.off(eventName, selector, boundHandler));
+            // Event delegation: listen on html, check if target matches selector
+            const delegatedHandler = (event) => {
+                const target = event.target.closest(selector);
+                if (target) {
+                    boundHandler.call(this, event);
+                }
+            };
+            html.addEventListener(eventName, delegatedHandler);
+            this._domEventDisposers.push(() => html.removeEventListener(eventName, delegatedHandler));
             return;
         }
-        const $targets = html.find(selector);
-        if ($targets.length === 0) return;
-        $targets.on(eventName, boundHandler);
-        this._domEventDisposers.push(() => $targets.off(eventName, boundHandler));
+        const targets = html.querySelectorAll(selector);
+        if (targets.length === 0) return;
+        targets.forEach(target => {
+            target.addEventListener(eventName, boundHandler);
+            this._domEventDisposers.push(() => target.removeEventListener(eventName, boundHandler));
+        });
     }
 
     /**
@@ -201,11 +210,13 @@ export class TokenImageReplacementWindow extends Application {
         });
         this._activeImageElements.clear();
 
-        const $element = this.element;
-        if ($element && $element.length > 0) {
+        const element = this.element;
+        if (element) {
             // Remove any lingering listeners that were attached outside _registerDomEvent
-            $element.find('*').off();
-            $element.remove();
+            // (Already handled by _clearDomEvents above)
+            if (element.parentNode) {
+                element.remove();
+            }
         }
 
         // Drop heavy references
@@ -223,7 +234,8 @@ export class TokenImageReplacementWindow extends Application {
      */
     _showSearchSpinner() {
         const html = this.element;
-        html.find('.tir-search-spinner').removeClass('hidden');
+        const spinner = html.querySelector('.tir-search-spinner');
+        if (spinner) spinner.classList.remove('hidden');
     }
 
     /**
@@ -231,7 +243,8 @@ export class TokenImageReplacementWindow extends Application {
      */
     _hideSearchSpinner() {
         const html = this.element;
-        html.find('.tir-search-spinner').addClass('hidden');
+        const spinner = html.querySelector('.tir-search-spinner');
+        if (spinner) spinner.classList.add('hidden');
     }
 
 
@@ -482,7 +495,8 @@ export class TokenImageReplacementWindow extends Application {
         // Set initial threshold value in label
         const currentThreshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
         const thresholdPercentage = Math.round(currentThreshold * 100);
-        html.find('.tir-threshold-value').text(`${thresholdPercentage}%`);
+        const thresholdValue = html.querySelector('.tir-threshold-value');
+        if (thresholdValue) thresholdValue.textContent = `${thresholdPercentage}%`;
         
         // Update Dropped Tokens toggle
         this._registerDomEvent(html, '#updateDropped', 'change', this._onUpdateDroppedToggle);
@@ -850,55 +864,65 @@ export class TokenImageReplacementWindow extends Application {
 
     // Show completion notification in the window
     showCompletionNotification(totalFiles, totalFolders, timeString) {
-        const $element = this.element;
-        if (!$element) return;
+        const element = this.element;
+        if (!element) return;
         
         // Update the notification area with completion info
         this.notificationIcon = 'fas fa-check-circle';
         this.notificationText = `Scan Complete! Found ${totalFiles} files across ${totalFolders} folders in ${timeString}`;
         
         // Update the notification display
-        const $notification = $element.find('.tir-notification');
-        if ($notification.length > 0) {
-            $notification.html(`
+        const notification = element.querySelector('.tir-notification');
+        if (notification) {
+            notification.innerHTML = `
                 <i class="${this.notificationIcon}"></i>
                 <span>${this.notificationText}</span>
-            `).show();
+            `;
+            notification.style.display = '';
         }
     }
 
     // Show error notification in the window
     showErrorNotification(errorMessage) {
-        const $element = this.element;
-        if (!$element) return;
+        const element = this.element;
+        if (!element) return;
         
         // Update the notification area with error info
         this.notificationIcon = 'fas fa-exclamation-triangle';
         this.notificationText = `Scan Failed: ${errorMessage}`;
         
         // Update the notification display
-        const $notification = $element.find('.tir-notification');
-        if ($notification.length > 0) {
-            $notification.html(`
+        const notification = element.querySelector('.tir-notification');
+        if (notification) {
+            notification.innerHTML = `
                 <i class="${this.notificationIcon}"></i>
                 <span>${this.notificationText}</span>
-            `).show();
+            `;
+            notification.style.display = '';
         }
     }
 
     // Hide progress bars after completion
     hideProgressBars() {
-        const $element = this.element;
-        if (!$element) return;
+        const element = this.element;
+        if (!element) return;
         
         // Hide the progress bars
-        $element.find('.tir-scan-progress').hide();
+        const scanProgress = element.querySelector('.tir-scan-progress');
+        if (scanProgress) scanProgress.style.display = 'none';
         
         // Clear the notification after a delay
         this._scheduleTrackedTimeout(() => {
-            const $notification = $element.find('.tir-notification');
-            if ($notification.length > 0) {
-                $notification.fadeOut(500);
+            const notification = element.querySelector('.tir-notification');
+            if (notification) {
+                // Fade out using CSS transition
+                notification.style.transition = 'opacity 0.5s';
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.style.display = 'none';
+                    }
+                }, 500);
             }
         }, 2000); // Hide notification after 2 more seconds
     }
@@ -1025,20 +1049,23 @@ export class TokenImageReplacementWindow extends Application {
      * Update tab states without full re-render
      */
     _updateTabStates() {
-        const $element = this.element;
-        if (!$element) return;
+        const element = this.element;
+        if (!element) return;
         
         // Update active tab states
-        $element.find('.tir-filter-category').removeClass('active');
-        $element.find(`[data-category="${this.currentFilter}"]`).addClass('active');
+        element.querySelectorAll('.tir-filter-category').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        const activeTab = element.querySelector(`[data-category="${this.currentFilter}"]`);
+        if (activeTab) activeTab.classList.add('active');
     }
 
     /**
      * Update token info in header without full re-render
      */
     _updateTokenInfo() {
-        const $element = this.element;
-        if (!$element) return;
+        const element = this.element;
+        if (!element) return;
         
         // Update token name and image in header
         if (this.selectedToken) {
@@ -1046,20 +1073,26 @@ export class TokenImageReplacementWindow extends Application {
             const tokenImage = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
             
             // Update token name
-            $element.find('.tir-main-title').text(tokenName);
+            const mainTitle = element.querySelector('.tir-main-title');
+            if (mainTitle) mainTitle.textContent = tokenName;
             
             // Update token image - ensure image element exists and is visible
-            const $headerIcon = $element.find('.tir-header-icon');
-            let $tokenImage = $headerIcon.find('img');
-            
-            if ($tokenImage.length === 0) {
-                // Create image element if it doesn't exist
-                $tokenImage = $('<img>').appendTo($headerIcon);
+            const headerIcon = element.querySelector('.tir-header-icon');
+            if (headerIcon) {
+                let tokenImageEl = headerIcon.querySelector('img');
+                
+                if (!tokenImageEl) {
+                    // Create image element if it doesn't exist
+                    tokenImageEl = document.createElement('img');
+                    headerIcon.appendChild(tokenImageEl);
+                }
+                
+                // Hide the icon and show the image
+                const icon = headerIcon.querySelector('i');
+                if (icon) icon.style.display = 'none';
+                tokenImageEl.setAttribute('src', tokenImage);
+                tokenImageEl.style.display = '';
             }
-            
-            // Hide the icon and show the image
-            $headerIcon.find('i').hide();
-            $tokenImage.attr('src', tokenImage).show();
             
             // Update subtitle with actor info
             const actorName = this.selectedToken.actor?.name || '';
@@ -1073,16 +1106,23 @@ export class TokenImageReplacementWindow extends Application {
             if (actorValue) subtitle += (subtitle ? '  •  ' : '') + actorValue;
             if (actorSubtype) subtitle += (subtitle ? '  •  ' : '') + actorSubtype;
             
-            $element.find('.tir-subtitle').text(subtitle);
+            const subtitleElement = element.querySelector('.tir-subtitle');
+            if (subtitleElement) subtitleElement.textContent = subtitle;
         } else {
             // Clear token info when no token selected
-            $element.find('.tir-main-title').text('No Token Selected');
-            $element.find('.tir-subtitle').text('Select a token on the canvas');
+            const mainTitle = element.querySelector('.tir-main-title');
+            const subtitleElement = element.querySelector('.tir-subtitle');
+            if (mainTitle) mainTitle.textContent = 'No Token Selected';
+            if (subtitleElement) subtitleElement.textContent = 'Select a token on the canvas';
             
             // Hide the image and show the icon
-            const $headerIcon = $element.find('.tir-header-icon');
-            $headerIcon.find('img').hide();
-            $headerIcon.find('i').show();
+            const headerIcon = element.querySelector('.tir-header-icon');
+            if (headerIcon) {
+                const img = headerIcon.querySelector('img');
+                const icon = headerIcon.querySelector('i');
+                if (img) img.style.display = 'none';
+                if (icon) icon.style.display = '';
+            }
         }
     }
 
@@ -1135,7 +1175,7 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     async _onSearchInput(event) {
-        const searchTerm = $(event.currentTarget).val().trim();
+        const searchTerm = event.currentTarget.value.trim();
         this.searchTerm = searchTerm; // Store the search term
         
         // Clear any existing timeout
@@ -1341,34 +1381,41 @@ export class TokenImageReplacementWindow extends Application {
     _updateResults() {
         // Update the results grid and the results summary
         const resultsHtml = this._renderResults();
-        const $element = this.element;
-        if ($element) {
-            const $grid = $element.find('.tir-thumbnails-grid');
-            // Clear previous references so old DOM nodes can be GC'd
-            this._activeImageElements.forEach(img => {
-                try {
-                    img.src = '';
-                } catch (error) {
-                    // Ignore cleanup errors to avoid blocking render
-                }
-            });
-            this._activeImageElements.clear();
+        const element = this.element;
+        if (element) {
+            const grid = element.querySelector('.tir-thumbnails-grid');
+            if (grid) {
+                // Clear previous references so old DOM nodes can be GC'd
+                this._activeImageElements.forEach(img => {
+                    try {
+                        img.src = '';
+                    } catch (error) {
+                        // Ignore cleanup errors to avoid blocking render
+                    }
+                });
+                this._activeImageElements.clear();
 
-            $grid.html(resultsHtml);
-            $grid.find('img').each((_, img) => {
-                this._activeImageElements.add(img);
-            });
+                grid.innerHTML = resultsHtml;
+                grid.querySelectorAll('img').forEach((img) => {
+                    this._activeImageElements.add(img);
+                });
+            }
             
             // Update the results summary with current counts
-            const $countElement = $element.find('#tir-results-details-count');
-            $countElement.html(`<i class="fas fa-images"></i>${this.matches.length} of ${this.allMatches.length} Showing`);
+            const countElement = element.querySelector('#tir-results-details-count');
+            if (countElement) {
+                countElement.innerHTML = `<i class="fas fa-images"></i>${this.matches.length} of ${this.allMatches.length} Showing`;
+            }
             
             
             // Update the status text based on search state
-            if (this.isSearching) {
-                $element.find('#tir-results-details-status').html('<i class="fas fa-sync-alt fa-spin"></i>Searching for more...');
-            } else {
-                $element.find('#tir-results-details-status').html('<i class="fas fa-check"></i>Complete');
+            const statusElement = element.querySelector('#tir-results-details-status');
+            if (statusElement) {
+                if (this.isSearching) {
+                    statusElement.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i>Searching for more...';
+                } else {
+                    statusElement.innerHTML = '<i class="fas fa-check"></i>Complete';
+                }
             }
             
             // Update aggregated tags
@@ -1649,11 +1696,11 @@ export class TokenImageReplacementWindow extends Application {
         this._invalidateSearchCache();
         
         // Update the visual state of the tag
-        const $tag = $(event.currentTarget);
+        const tag = event.currentTarget;
         if (this.selectedTags.has(tagName)) {
-            $tag.addClass('selected');
+            tag.classList.add('selected');
         } else {
-            $tag.removeClass('selected');
+            tag.classList.remove('selected');
         }
         
         // Apply the tag filters and refresh results
@@ -1771,16 +1818,17 @@ export class TokenImageReplacementWindow extends Application {
         const currentThreshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
         const percentage = Math.round(currentThreshold * 100);
         
-        const $slider = this.element.find('.tir-rangeslider');
-        const $input = $slider.find('.tir-rangeslider-input');
-        const $fill = $slider.find('.tir-rangeslider-fill');
-        const $thumb = $slider.find('.tir-rangeslider-thumb');
-        const $value = $slider.find('.tir-rangeslider-value');
+        const slider = this.element.querySelector('.tir-rangeslider');
+        if (!slider) return;
+        const input = slider.querySelector('.tir-rangeslider-input');
+        const fill = slider.querySelector('.tir-rangeslider-fill');
+        const thumb = slider.querySelector('.tir-rangeslider-thumb');
+        const value = slider.querySelector('.tir-rangeslider-value');
         
-        $input.val(percentage);
-        $fill.css('width', `${percentage}%`);
-        $thumb.css('left', `${percentage}%`);
-        $value.text(`${percentage}%`);
+        if (input) input.value = percentage;
+        if (fill) fill.style.width = `${percentage}%`;
+        if (thumb) thumb.style.left = `${percentage}%`;
+        if (value) value.textContent = `${percentage}%`;
     }
 
     /**
@@ -1792,14 +1840,15 @@ export class TokenImageReplacementWindow extends Application {
         const threshold = value / 100; // Convert percentage to decimal
         
         // Update the visual elements
-        const $slider = $(event.target).closest('.tir-rangeslider');
-        const $fill = $slider.find('.tir-rangeslider-fill');
-        const $thumb = $slider.find('.tir-rangeslider-thumb');
-        const $thresholdValue = $('.tir-threshold-value');
+        const slider = event.target.closest('.tir-rangeslider');
+        if (!slider) return;
+        const fill = slider.querySelector('.tir-rangeslider-fill');
+        const thumb = slider.querySelector('.tir-rangeslider-thumb');
+        const thresholdValue = this.element.querySelector('.tir-threshold-value');
         
-        $fill.css('width', `${percentage}%`);
-        $thumb.css('left', `${percentage}%`);
-        $thresholdValue.text(`${percentage}%`);
+        if (fill) fill.style.width = `${percentage}%`;
+        if (thumb) thumb.style.left = `${percentage}%`;
+        if (thresholdValue) thresholdValue.textContent = `${percentage}%`;
         
         // Update the setting
         game.settings.set(MODULE.ID, 'tokenImageReplacementThreshold', threshold);
@@ -2053,15 +2102,18 @@ export class TokenImageReplacementWindow extends Application {
     async _onClearSearch(event) {
         event.preventDefault();
         
-        const $element = this.element;
-        if ($element) {
+        const element = this.element;
+        if (element) {
             // Clear the search input
-            $element.find('.tir-search-input').val('');
+            const searchInput = element.querySelector('.tir-search-input');
+            if (searchInput) searchInput.value = '';
             this.searchTerm = '';
             
             // Clear selected tags
             this.selectedTags.clear();
-            $element.find('.tir-search-tools-tag').removeClass('selected');
+            element.querySelectorAll('.tir-search-tools-tag').forEach(tag => {
+                tag.classList.remove('selected');
+            });
             
             // Clear any pending search timeout
             if (this.searchTimeout) {
@@ -2078,27 +2130,37 @@ export class TokenImageReplacementWindow extends Application {
     _onFilterToggle(event) {
         event.preventDefault();
         
-        const $element = this.element;
-        if ($element) {
-            const $button = $(event.currentTarget);
-            const $tagContainer = $element.find('#tir-search-tools-tag-container');
+        const element = this.element;
+        if (element) {
+            const button = event.currentTarget;
+            const tagContainer = element.querySelector('#tir-search-tools-tag-container');
+            const icon = button.querySelector('i');
             
             // Cycle through the 3 states: count -> alpha -> hidden -> count
             if (this.tagSortMode === 'count') {
                 this.tagSortMode = 'alpha';
-                $button.attr('title', 'Tag Sort: Alpha');
-                $button.find('i').removeClass('fa-filter').addClass('fa-filter-list');
-                $tagContainer.show();
+                button.setAttribute('title', 'Tag Sort: Alpha');
+                if (icon) {
+                    icon.classList.remove('fa-filter');
+                    icon.classList.add('fa-filter-list');
+                }
+                if (tagContainer) tagContainer.style.display = '';
             } else if (this.tagSortMode === 'alpha') {
                 this.tagSortMode = 'hidden';
-                $button.attr('title', 'Tag Sort: Hidden');
-                $button.find('i').removeClass('fa-filter-list').addClass('fa-filter-circle-xmark');
-                $tagContainer.hide();
+                button.setAttribute('title', 'Tag Sort: Hidden');
+                if (icon) {
+                    icon.classList.remove('fa-filter-list');
+                    icon.classList.add('fa-filter-circle-xmark');
+                }
+                if (tagContainer) tagContainer.style.display = 'none';
             } else { // hidden
                 this.tagSortMode = 'count';
-                $button.attr('title', 'Tag Sort: Count');
-                $button.find('i').removeClass('fa-filter-circle-xmark').addClass('fa-filter');
-                $tagContainer.show();
+                button.setAttribute('title', 'Tag Sort: Count');
+                if (icon) {
+                    icon.classList.remove('fa-filter-circle-xmark');
+                    icon.classList.add('fa-filter');
+                }
+                if (tagContainer) tagContainer.style.display = '';
             }
             
             // Save the setting
@@ -2121,11 +2183,13 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         // Update active filter
-        const $element = this.element;
-        if ($element) {
+        const element = this.element;
+        if (element) {
             // Remove active class from all filter categories
-            $element.find('#tir-filter-category-container .tir-filter-category').removeClass('active');
-            $(event.currentTarget).addClass('active');
+            element.querySelectorAll('#tir-filter-category-container .tir-filter-category').forEach(cat => {
+                cat.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
             
             // Set new filter
             this.currentFilter = category;
@@ -2434,25 +2498,35 @@ export class TokenImageReplacementWindow extends Application {
         const $element = this.element;
         if (!$element) return;
 
-        const $button = $element.find('.tir-filter-toggle-btn');
-        const $tagContainer = $element.find('#tir-search-tools-tag-container');
+        const button = element.querySelector('.tir-filter-toggle-btn');
+        const tagContainer = element.querySelector('#tir-search-tools-tag-container');
+        const icon = button ? button.querySelector('i') : null;
         
         // Set the correct icon, title, and visibility based on current mode
         switch (this.tagSortMode) {
             case 'count':
-                $button.attr('title', 'Tag Sort: Count');
-                $button.find('i').removeClass('fa-filter-list fa-filter-circle-xmark').addClass('fa-filter');
-                $tagContainer.show();
+                if (button) button.setAttribute('title', 'Tag Sort: Count');
+                if (icon) {
+                    icon.classList.remove('fa-filter-list', 'fa-filter-circle-xmark');
+                    icon.classList.add('fa-filter');
+                }
+                if (tagContainer) tagContainer.style.display = '';
                 break;
             case 'alpha':
-                $button.attr('title', 'Tag Sort: Alpha');
-                $button.find('i').removeClass('fa-filter fa-filter-circle-xmark').addClass('fa-filter-list');
-                $tagContainer.show();
+                if (button) button.setAttribute('title', 'Tag Sort: Alpha');
+                if (icon) {
+                    icon.classList.remove('fa-filter', 'fa-filter-circle-xmark');
+                    icon.classList.add('fa-filter-list');
+                }
+                if (tagContainer) tagContainer.style.display = '';
                 break;
             case 'hidden':
-                $button.attr('title', 'Tag Sort: Hidden');
-                $button.find('i').removeClass('fa-filter fa-filter-list').addClass('fa-filter-circle-xmark');
-                $tagContainer.hide();
+                if (button) button.setAttribute('title', 'Tag Sort: Hidden');
+                if (icon) {
+                    icon.classList.remove('fa-filter', 'fa-filter-list');
+                    icon.classList.add('fa-filter-circle-xmark');
+                }
+                if (tagContainer) tagContainer.style.display = 'none';
                 break;
         }
     }
@@ -2461,8 +2535,8 @@ export class TokenImageReplacementWindow extends Application {
      * Update the tag container with current tags and sorting
      */
     _updateTagContainer() {
-        const $element = this.element;
-        if (!$element) return;
+        const element = this.element;
+        if (!element) return;
 
         const aggregatedTags = this._getAggregatedTags();
         const tagHtml = aggregatedTags.map(tag => {
@@ -2471,13 +2545,16 @@ export class TokenImageReplacementWindow extends Application {
             return `<span class="tir-search-tools-tag${selectedClass}" data-search-term="${tag}">${tag}</span>`;
         }).join('');
         
-        $element.find('#tir-search-tools-tag-container').html(tagHtml);
-        
-        // Show/hide tags row based on whether there are tags and current mode
-        if (aggregatedTags.length > 0 && this.tagSortMode !== 'hidden') {
-            $element.find('#tir-search-tools-tag-container').show();
-        } else {
-            $element.find('#tir-search-tools-tag-container').hide();
+        const tagContainer = element.querySelector('#tir-search-tools-tag-container');
+        if (tagContainer) {
+            tagContainer.innerHTML = tagHtml;
+            
+            // Show/hide tags row based on whether there are tags and current mode
+            if (aggregatedTags.length > 0 && this.tagSortMode !== 'hidden') {
+                tagContainer.style.display = '';
+            } else {
+                tagContainer.style.display = 'none';
+            }
         }
     }
 

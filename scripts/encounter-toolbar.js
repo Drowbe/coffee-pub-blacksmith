@@ -124,7 +124,7 @@ export class EncounterToolbar {
             
             for (const journalSheet of journalSheets) {
                 // Check if this journal has encounter toolbars
-                const toolbars = journalSheet.element.find('.encounter-toolbar');
+                const toolbars = journalSheet.element.querySelectorAll('.encounter-toolbar');
                 if (toolbars.length > 0) {
                     this._updateToolbarCRs(journalSheet.element);
                 }
@@ -138,11 +138,10 @@ export class EncounterToolbar {
     static _updateToolbarCRs(html) {
         try {
             // Find all toolbars in this journal
-            const toolbars = html.find('.encounter-toolbar');
+            const toolbars = html.querySelectorAll('.encounter-toolbar');
             
-            toolbars.each((index, toolbarElement) => {
-                const $toolbar = $(toolbarElement);
-                const pageId = $toolbar.data('page-id');
+            toolbars.forEach((toolbarElement) => {
+                const pageId = toolbarElement.getAttribute('data-page-id');
                 
                 if (pageId) {
                     // Recalculate CR values
@@ -150,23 +149,30 @@ export class EncounterToolbar {
                     const monsterCR = this.getMonsterCR({ monsters: [] }); // Empty metadata for canvas-only calculation
                     
                     // Update the CR badges with icons intact
-                    $toolbar.find('.encounter-party-cr').html(`<i class="fas fa-helmet-battle"></i>${partyCR}`);
-                    $toolbar.find('.encounter-monster-cr').html(`<i class="fas fa-dragon"></i>${monsterCR}`);
+                    const partyCrElement = toolbarElement.querySelector('.encounter-party-cr');
+                    const monsterCrElement = toolbarElement.querySelector('.encounter-monster-cr');
+                    if (partyCrElement) partyCrElement.innerHTML = `<i class="fas fa-helmet-battle"></i>${partyCR}`;
+                    if (monsterCrElement) monsterCrElement.innerHTML = `<i class="fas fa-dragon"></i>${monsterCR}`;
                     
                     // Update the deployment pattern badge
                     const currentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
                     const patternName = this._getDeploymentPatternName(currentPattern);
-                    $toolbar.find('.deploy-type').html(`<i class="fas fa-grid-2-plus"></i>${patternName}`);
+                    const deployTypeElement = toolbarElement.querySelector('.deploy-type');
+                    if (deployTypeElement) deployTypeElement.innerHTML = `<i class="fas fa-grid-2-plus"></i>${patternName}`;
                     
                     // Update the deployment visibility badge
                     const currentHidden = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden');
                     const visibilityName = this._getDeploymentVisibilityName(currentHidden);
-                    $toolbar.find('.deploy-visibility').html(`<i class="fas fa-eye"></i>${visibilityName}`);
+                    const deployVisibilityElement = toolbarElement.querySelector('.deploy-visibility');
+                    if (deployVisibilityElement) deployVisibilityElement.innerHTML = `<i class="fas fa-eye"></i>${visibilityName}`;
                     
                     // Update the difficulty badge based on current CR values
                     const difficultyData = this._calculateEncounterDifficulty(partyCR, monsterCR);
-                    $toolbar.find('.difficulty-badge').html(`<i class="fa-solid fa-swords"></i>${difficultyData.difficulty}`);
-                    $toolbar.find('.difficulty-badge').removeClass().addClass(`difficulty-badge ${difficultyData.difficultyClass}`);
+                    const difficultyBadge = toolbarElement.querySelector('.difficulty-badge');
+                    if (difficultyBadge) {
+                        difficultyBadge.innerHTML = `<i class="fa-solid fa-swords"></i>${difficultyData.difficulty}`;
+                        difficultyBadge.className = `difficulty-badge ${difficultyData.difficultyClass}`;
+                    }
                     
                     postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Updated CR values", { pageId, partyCR, monsterCR }, true, false);
                 }
@@ -221,7 +227,7 @@ export class EncounterToolbar {
     // Helper method to check if we're in edit mode
     static _isEditMode(html) {
         // Check if the specific journal sheet has editor-container (is in edit mode)
-        return html.find('.editor-container').length > 0;
+        return html.querySelector('.editor-container') !== null;
     }
 
     // Helper method to validate UUIDs
@@ -328,32 +334,32 @@ export class EncounterToolbar {
         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Starting content scan for page", pageId, true, false);
         
         // Get the journal page content - try different selectors
-        let pageContent = html.find(`article[data-page-id="${pageId}"] section.journal-page-content`);
+        let pageContent = html.querySelector(`article[data-page-id="${pageId}"] section.journal-page-content`);
         
-        if (pageContent.length === 0) {
+        if (!pageContent) {
             // If that doesn't work, try finding the article first, then the section
-            const article = html.find(`article[data-page-id="${pageId}"]`);
-            if (article.length > 0) {
-                pageContent = article.find('section.journal-page-content');
+            const article = html.querySelector(`article[data-page-id="${pageId}"]`);
+            if (article) {
+                pageContent = article.querySelector('section.journal-page-content');
             }
         }
         
-        if (pageContent.length === 0) {
+        if (!pageContent) {
             // Try finding any section
-            pageContent = html.find('section.journal-page-content');
+            pageContent = html.querySelector('section.journal-page-content');
         }
         
-        if (pageContent.length === 0) {
+        if (!pageContent) {
             // Last resort: search the entire document
-            pageContent = $(document).find(`article[data-page-id="${pageId}"] section.journal-page-content`);
+            pageContent = document.querySelector(`article[data-page-id="${pageId}"] section.journal-page-content`);
         }
         
-        if (pageContent.length === 0) {
+        if (!pageContent) {
             // Try a broader search for any content
-            pageContent = $(document).find('.journal-page-content');
+            pageContent = document.querySelector('.journal-page-content');
         }
         
-        if (pageContent.length === 0) {
+        if (!pageContent) {
             postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No page content found", "", true, false);
             return null;
         }
@@ -365,8 +371,8 @@ export class EncounterToolbar {
         }
 
         // Extract both text and HTML content
-        const textContent = pageContent.text() || '';
-        const htmlContent = pageContent.html() || '';
+        const textContent = pageContent.textContent || '';
+        const htmlContent = pageContent.innerHTML || '';
         
         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Text content length", textContent.length, true, false);
         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: HTML content length", htmlContent.length, true, false);
@@ -515,13 +521,13 @@ export class EncounterToolbar {
         }
 
         // Check if we're in a journal sheet context
-        if (!html || !html.length) {
+        if (!html) {
             return;
         }
 
         // Get the page ID to scope the toolbar
-        const journalPage = html.find('article.journal-entry-page');
-        const pageId = journalPage.data('page-id');
+        const journalPage = html.querySelector('article.journal-entry-page');
+        const pageId = journalPage ? journalPage.getAttribute('data-page-id') : null;
         
         if (!pageId) {
             postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No page ID found", "", true, false);
@@ -530,16 +536,18 @@ export class EncounterToolbar {
         
         // Check if toolbar already exists for this specific page, if not create it
         const toolbarSelector = `.encounter-toolbar[data-page-id="${pageId}"]`;
-        let toolbar = html.find(toolbarSelector);
+        let toolbar = html.querySelector(toolbarSelector);
         
-        if (toolbar.length === 0) {
+        if (!toolbar) {
             // Create the toolbar container
-            const journalHeader = html.find('.journal-header');
-            const journalEntryPages = html.find('.journal-entry-pages');
+            const journalHeader = html.querySelector('.journal-header');
+            const journalEntryPages = html.querySelector('.journal-entry-pages');
             
-            if (journalHeader.length && journalEntryPages.length) {
-                const toolbarContainer = $(`<div class="encounter-toolbar" data-page-id="${pageId}"></div>`);
-                journalHeader.after(toolbarContainer);
+            if (journalHeader && journalEntryPages) {
+                const toolbarContainer = document.createElement('div');
+                toolbarContainer.className = 'encounter-toolbar';
+                toolbarContainer.setAttribute('data-page-id', pageId);
+                journalHeader.insertAdjacentElement('afterend', toolbarContainer);
                 toolbar = toolbarContainer;
                 postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created toolbar container", `Page ID: ${pageId}`, true, false);
             } else {
@@ -583,8 +591,10 @@ export class EncounterToolbar {
                 const templatePath = `modules/${MODULE.ID}/templates/encounter-toolbar.hbs`;
                 getCachedTemplate(templatePath).then(template => {
                     // Prepare the data for the template
+                    const journalSheet = html.closest('.journal-sheet');
+                    const journalId = journalSheet ? journalSheet.getAttribute('data-document-id') : 'unknown';
                     const templateData = {
-                        journalId: html.closest('.journal-sheet').data('document-id') || 'unknown',
+                        journalId: journalId,
                         hasEncounterData: true,
                         hasMonsters,
                         hasNpcs,
@@ -601,7 +611,7 @@ export class EncounterToolbar {
                     
                     // Render the toolbar
                     const renderedHtml = template(templateData);
-                    toolbar.html(renderedHtml);
+                    toolbar.innerHTML = renderedHtml;
                     
                     // Add event listeners to the buttons
                     this._addEventListeners(toolbar, encounterData);
@@ -631,8 +641,10 @@ export class EncounterToolbar {
         const templatePath = `modules/${MODULE.ID}/templates/encounter-toolbar.hbs`;
         getCachedTemplate(templatePath).then(template => {
             // Prepare the data for the template (no encounter case)
+            const journalSheet = html.closest('.journal-sheet');
+            const journalId = journalSheet ? journalSheet.getAttribute('data-document-id') : 'unknown';
             const templateData = {
-                journalId: html.closest('.journal-sheet').data('document-id') || 'unknown',
+                journalId: journalId,
                 hasEncounterData: false,
                 hasMonsters: false,
                 hasNpcs: false,
@@ -647,7 +659,7 @@ export class EncounterToolbar {
             
             // Render the toolbar
             const renderedHtml = template(templateData);
-            toolbar.html(renderedHtml);
+            toolbar.innerHTML = renderedHtml;
             
             // Add event listeners even when there's no encounter data (for the Reveal button)
             this._addEventListeners(toolbar, { monsters: [], npcs: [] });
@@ -662,107 +674,124 @@ export class EncounterToolbar {
         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Metadata npcs array", metadata.npcs || [], true, false);
         
         // Deploy monsters button - scope to this toolbar only
-        toolbar.find('.deploy-monsters').off('click').on('click', async (event) => {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deploy monsters button clicked!", "", true, false);
-            event.preventDefault();
-            event.stopPropagation();
-            EncounterToolbar._deployMonsters(metadata);
-        });
+        const deployMonstersButton = toolbar.querySelector('.deploy-monsters');
+        if (deployMonstersButton) {
+            deployMonstersButton.addEventListener('click', async (event) => {
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deploy monsters button clicked!", "", true, false);
+                event.preventDefault();
+                event.stopPropagation();
+                EncounterToolbar._deployMonsters(metadata);
+            });
+        }
         
         // Create combat button - scope to this toolbar only
-        toolbar.find('.create-combat').off('click').on('click', async (event) => {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Create combat button clicked!", "", true, false);
-            event.preventDefault();
-            event.stopPropagation();
-            
-            // Deploy monsters first, then create combat
-            const deployedTokens = await EncounterToolbar._deployMonsters(metadata);
-            if (deployedTokens && deployedTokens.length > 0) {
-                await EncounterToolbar._createCombatWithTokens(deployedTokens, metadata);
-            }
-        });
+        const createCombatButton = toolbar.querySelector('.create-combat');
+        if (createCombatButton) {
+            createCombatButton.addEventListener('click', async (event) => {
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Create combat button clicked!", "", true, false);
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Deploy monsters first, then create combat
+                const deployedTokens = await EncounterToolbar._deployMonsters(metadata);
+                if (deployedTokens && deployedTokens.length > 0) {
+                    await EncounterToolbar._createCombatWithTokens(deployedTokens, metadata);
+                }
+            });
+        }
 
         // Toggle visibility button - scope to this toolbar only
-        toolbar.find('.toggle-visibility').off('click').on('click', async (event) => {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Toggle visibility button clicked!", "", true, false);
-            event.preventDefault();
-            event.stopPropagation();
-            
-            await EncounterToolbar._toggleTokenVisibility();
-        });
+        const toggleVisibilityButton = toolbar.querySelector('.toggle-visibility');
+        if (toggleVisibilityButton) {
+            toggleVisibilityButton.addEventListener('click', async (event) => {
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Toggle visibility button clicked!", "", true, false);
+                event.preventDefault();
+                event.stopPropagation();
+                
+                await EncounterToolbar._toggleTokenVisibility();
+            });
+        }
 
         // Deployment type badge - cycle through deployment patterns
-        toolbar.find('.deploy-type').off('click').on('click', async (event) => {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment type badge clicked!", "", true, false);
-            event.preventDefault();
-            event.stopPropagation();
-            
-            await EncounterToolbar._cycleDeploymentPattern();
-        });
+        const deployTypeBadge = toolbar.querySelector('.deploy-type');
+        if (deployTypeBadge) {
+            deployTypeBadge.addEventListener('click', async (event) => {
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment type badge clicked!", "", true, false);
+                event.preventDefault();
+                event.stopPropagation();
+                
+                await EncounterToolbar._cycleDeploymentPattern();
+            });
+        }
 
         // Deployment visibility badge - toggle visibility setting
-        toolbar.find('.deploy-visibility').off('click').on('click', async (event) => {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment visibility badge clicked!", "", true, false);
-            event.preventDefault();
-            event.stopPropagation();
-            
-            await EncounterToolbar._toggleDeploymentVisibility();
-        });
+        const deployVisibilityBadge = toolbar.querySelector('.deploy-visibility');
+        if (deployVisibilityBadge) {
+            deployVisibilityBadge.addEventListener('click', async (event) => {
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment visibility badge clicked!", "", true, false);
+                event.preventDefault();
+                event.stopPropagation();
+                
+                await EncounterToolbar._toggleDeploymentVisibility();
+            });
+        }
 
         // Monster icon clicks - deploy individual monsters
-        toolbar.find('.encounter-icon-monster').off('click').on('click', async (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            
-            const $monsterIcon = $(event.currentTarget);
-            const monsterUUID = $monsterIcon.data('uuid');
-            
-            if (monsterUUID) {
-                const isCtrlHeld = event.ctrlKey;
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Monster icon clicked!", `UUID: ${monsterUUID}, CTRL: ${isCtrlHeld}`, true, false);
+        toolbar.querySelectorAll('.encounter-icon-monster').forEach((monsterIcon) => {
+            monsterIcon.addEventListener('click', async (event) => {
+                event.preventDefault();
+                event.stopPropagation();
                 
-                // Create metadata for just this one monster
-                const singleMonsterMetadata = {
-                    ...metadata,
-                    monsters: [monsterUUID],
-                    npcs: []
-                };
+                const monsterUUID = monsterIcon.getAttribute('data-uuid');
                 
-                // Use multiple deployment only if CTRL is held, otherwise use regular deployment
-                if (isCtrlHeld) {
-                    await EncounterToolbar._deploySingleMonsterMultiple(singleMonsterMetadata);
-                } else {
-                    await EncounterToolbar._deployMonsters(singleMonsterMetadata);
+                if (monsterUUID) {
+                    const isCtrlHeld = event.ctrlKey;
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Monster icon clicked!", `UUID: ${monsterUUID}, CTRL: ${isCtrlHeld}`, true, false);
+                    
+                    // Create metadata for just this one monster
+                    const singleMonsterMetadata = {
+                        ...metadata,
+                        monsters: [monsterUUID],
+                        npcs: []
+                    };
+                    
+                    // Use multiple deployment only if CTRL is held, otherwise use regular deployment
+                    if (isCtrlHeld) {
+                        await EncounterToolbar._deploySingleMonsterMultiple(singleMonsterMetadata);
+                    } else {
+                        await EncounterToolbar._deployMonsters(singleMonsterMetadata);
+                    }
                 }
-            }
+            });
         });
 
         // NPC icon clicks - deploy individual NPCs
-        toolbar.find('.encounter-icon-npc').off('click').on('click', async (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            
-            const $npcIcon = $(event.currentTarget);
-            const npcUUID = $npcIcon.data('uuid');
-            
-            if (npcUUID) {
-                const isCtrlHeld = event.ctrlKey;
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: NPC icon clicked!", `UUID: ${npcUUID}, CTRL: ${isCtrlHeld}`, true, false);
+        toolbar.querySelectorAll('.encounter-icon-npc').forEach((npcIcon) => {
+            npcIcon.addEventListener('click', async (event) => {
+                event.preventDefault();
+                event.stopPropagation();
                 
-                // Create metadata for just this one NPC
-                const singleNpcMetadata = {
-                    ...metadata,
-                    monsters: [],
-                    npcs: [npcUUID]
-                };
+                const npcUUID = npcIcon.getAttribute('data-uuid');
                 
-                // Use multiple deployment only if CTRL is held, otherwise use regular deployment
-                if (isCtrlHeld) {
-                    await EncounterToolbar._deploySingleMonsterMultiple(singleNpcMetadata);
-                } else {
-                    await EncounterToolbar._deployMonsters(singleNpcMetadata);
+                if (npcUUID) {
+                    const isCtrlHeld = event.ctrlKey;
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: NPC icon clicked!", `UUID: ${npcUUID}, CTRL: ${isCtrlHeld}`, true, false);
+                    
+                    // Create metadata for just this one NPC
+                    const singleNpcMetadata = {
+                        ...metadata,
+                        monsters: [],
+                        npcs: [npcUUID]
+                    };
+                    
+                    // Use multiple deployment only if CTRL is held, otherwise use regular deployment
+                    if (isCtrlHeld) {
+                        await EncounterToolbar._deploySingleMonsterMultiple(singleNpcMetadata);
+                    } else {
+                        await EncounterToolbar._deployMonsters(singleNpcMetadata);
+                    }
                 }
-            }
+            });
         });
     }
 

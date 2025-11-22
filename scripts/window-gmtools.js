@@ -45,57 +45,79 @@ export class CSSEditor extends FormApplication {
         super.activateListeners(html);
 
         // Add dark mode toggle listener
-        html.find('input[name="dark"]').change(async (event) => {
-            const isDark = event.target.checked;
-            this.element[0].classList.toggle('dark-mode', isDark);
-        });
-
+        const darkModeInput = html.querySelector('input[name="dark"]');
+        if (darkModeInput) {
+            darkModeInput.addEventListener('change', async (event) => {
+                const isDark = event.target.checked;
+                if (this.element) {
+                    this.element.classList.toggle('dark-mode', isDark);
+                }
+            });
+        }
 
         // Add refresh button listener
-        html.find('.refresh-button').click(() => {
-            window.location.reload();
-        });
+        const refreshButton = html.querySelector('.refresh-button');
+        if (refreshButton) {
+            refreshButton.addEventListener('click', () => {
+                window.location.reload();
+            });
+        }
 
         // Add copy button listener
-        html.find('.copy-button').click(() => {
-            const textarea = html.find('textarea[name="css"]')[0];
-            navigator.clipboard.writeText(textarea.value).then(() => {
-                ui.notifications.info('CSS copied to clipboard');
-            }).catch(err => {
-                ui.notifications.error('Failed to copy CSS');
-                postConsoleAndNotification(MODULE.NAME, 'Failed to copy CSS', err, false, true);
+        const copyButton = html.querySelector('.copy-button');
+        if (copyButton) {
+            copyButton.addEventListener('click', () => {
+                const textarea = html.querySelector('textarea[name="css"]');
+                if (textarea) {
+                    navigator.clipboard.writeText(textarea.value).then(() => {
+                        ui.notifications.info('CSS copied to clipboard');
+                    }).catch(err => {
+                        ui.notifications.error('Failed to copy CSS');
+                        postConsoleAndNotification(MODULE.NAME, 'Failed to copy CSS', err, false, true);
+                    });
+                }
             });
-        });
+        }
 
         // Add clear button listener
-        html.find('.clear-button').click(() => {
-            const textarea = html.find('textarea[name="css"]')[0];
-            if (textarea.value.trim() !== '') {
-                Dialog.confirm({
-                    title: 'Clear CSS Editor',
-                    content: '<p>Are you sure you want to clear all CSS? This cannot be undone.</p>',
-                    yes: () => {
-                        textarea.value = '';
-                        ui.notifications.info('CSS editor cleared');
-                    }
-                });
-            }
-        });
+        const clearButton = html.querySelector('.clear-button');
+        if (clearButton) {
+            clearButton.addEventListener('click', () => {
+                const textarea = html.querySelector('textarea[name="css"]');
+                if (textarea && textarea.value.trim() !== '') {
+                    Dialog.confirm({
+                        title: 'Clear CSS Editor',
+                        content: '<p>Are you sure you want to clear all CSS? This cannot be undone.</p>',
+                        yes: () => {
+                            textarea.value = '';
+                            ui.notifications.info('CSS editor cleared');
+                        }
+                    });
+                }
+            });
+        }
 
         // Update world button to open World Config
-        html.find('.world-button').click(() => {
-            new WorldConfig(game.world).render(true);
-        });
+        const worldButton = html.querySelector('.world-button');
+        if (worldButton) {
+            worldButton.addEventListener('click', () => {
+                new WorldConfig(game.world).render(true);
+            });
+        }
 
         // Settings button
-        html.find('.settings-button').click(() => {
-            game.settings.sheet.render(true);
-        });
-
+        const settingsButton = html.querySelector('.settings-button');
+        if (settingsButton) {
+            settingsButton.addEventListener('click', () => {
+                game.settings.sheet.render(true);
+            });
+        }
 
         // Add smart indentation handlers
-        const textarea = html.find('textarea[name="css"]')[0];
-        textarea.addEventListener('keydown', this._handleEditorKeydown.bind(this));
+        const textarea = html.querySelector('textarea[name="css"]');
+        if (textarea) {
+            textarea.addEventListener('keydown', this._handleEditorKeydown.bind(this));
+        }
         
         // Search functionality listeners
         this._setupSearchListeners(html);
@@ -177,7 +199,9 @@ export class CSSEditor extends FormApplication {
         await game.settings.set(MODULE.ID, 'cssDarkMode', dark);
 
         // Apply dark mode
-        this.element[0].classList.toggle('dark-mode', dark);
+        if (this.element) {
+            this.element.classList.toggle('dark-mode', dark);
+        }
 
         // Apply the CSS
         this.applyCSS(css, transition);
@@ -228,18 +252,20 @@ export class CSSEditor extends FormApplication {
         const result = await super.render(force, options);
         
         // Only try to access the element after render is complete
-        if (this.element && this.element[0]) {
+        if (this.element) {
             const dark = game.settings.get(MODULE.ID, 'cssDarkMode');
-            this.element[0].classList.toggle('dark-mode', dark);
+            this.element.classList.toggle('dark-mode', dark);
         }
         
         return result;
     }
 
     _setupSearchListeners(html) {
-        const textarea = html.find('textarea[name="css"]')[0];
-        const searchInput = html.find('.search-input')[0];
-        const replaceInput = html.find('.replace-input')[0];
+        const textarea = html.querySelector('textarea[name="css"]');
+        const searchInput = html.querySelector('.search-input');
+        const replaceInput = html.querySelector('.replace-input');
+        
+        if (!textarea || !searchInput || !replaceInput) return;
         
         // Search input listeners
         searchInput.addEventListener('input', () => {
@@ -258,21 +284,33 @@ export class CSSEditor extends FormApplication {
         });
         
         // Search button listeners
-        html.find('.find-next-button').click(() => {
-            this._findNext(html);
-        });
+        const findNextButton = html.querySelector('.find-next-button');
+        if (findNextButton) {
+            findNextButton.addEventListener('click', () => {
+                this._findNext(html);
+            });
+        }
         
-        html.find('.find-prev-button').click(() => {
-            this._findPrevious(html);
-        });
+        const findPrevButton = html.querySelector('.find-prev-button');
+        if (findPrevButton) {
+            findPrevButton.addEventListener('click', () => {
+                this._findPrevious(html);
+            });
+        }
         
-        html.find('.replace-button').click(() => {
-            this._replaceCurrent(html);
-        });
+        const replaceButton = html.querySelector('.replace-button');
+        if (replaceButton) {
+            replaceButton.addEventListener('click', () => {
+                this._replaceCurrent(html);
+            });
+        }
         
-        html.find('.replace-all-button').click(() => {
-            this._replaceAll(html);
-        });
+        const replaceAllButton = html.querySelector('.replace-all-button');
+        if (replaceAllButton) {
+            replaceAllButton.addEventListener('click', () => {
+                this._replaceAll(html);
+            });
+        }
         
         // Global keyboard shortcuts - store handler for cleanup
         this._keydownHandler = (event) => {
@@ -291,8 +329,9 @@ export class CSSEditor extends FormApplication {
 
     // Search functionality methods
     _performSearch(html) {
-        const textarea = html.find('textarea[name="css"]')[0];
-        const searchInput = html.find('.search-input')[0];
+        const textarea = html.querySelector('textarea[name="css"]');
+        const searchInput = html.querySelector('.search-input');
+        if (!textarea || !searchInput) return;
         const searchTerm = searchInput.value;
         
         if (searchTerm === '') {
@@ -337,8 +376,9 @@ export class CSSEditor extends FormApplication {
     }
     
     _highlightCurrentMatch(html) {
-        const textarea = html.find('textarea[name="css"]')[0];
-        const searchInput = html.find('.search-input')[0];
+        const textarea = html.querySelector('textarea[name="css"]');
+        const searchInput = html.querySelector('.search-input');
+        if (!textarea || !searchInput) return;
         const searchTerm = searchInput.value;
         
         if (this.currentSearchIndex >= 0 && this.currentSearchIndex < this.searchResults.length) {
@@ -356,9 +396,10 @@ export class CSSEditor extends FormApplication {
     }
     
     _replaceCurrent(html) {
-        const textarea = html.find('textarea[name="css"]')[0];
-        const searchInput = html.find('.search-input')[0];
-        const replaceInput = html.find('.replace-input')[0];
+        const textarea = html.querySelector('textarea[name="css"]');
+        const searchInput = html.querySelector('.search-input');
+        const replaceInput = html.querySelector('.replace-input');
+        if (!textarea || !searchInput || !replaceInput) return;
         const searchTerm = searchInput.value;
         const replaceTerm = replaceInput.value;
         
@@ -376,9 +417,10 @@ export class CSSEditor extends FormApplication {
     }
     
     _replaceAll(html) {
-        const textarea = html.find('textarea[name="css"]')[0];
-        const searchInput = html.find('.search-input')[0];
-        const replaceInput = html.find('.replace-input')[0];
+        const textarea = html.querySelector('textarea[name="css"]');
+        const searchInput = html.querySelector('.search-input');
+        const replaceInput = html.querySelector('.replace-input');
+        if (!textarea || !searchInput || !replaceInput) return;
         const searchTerm = searchInput.value;
         const replaceTerm = replaceInput.value;
         

@@ -838,31 +838,47 @@ class XpDistributionWindow extends FormApplication {
         super.activateListeners(html);
         
         // Add event listeners for mode toggles
-        html.find('#modeExperiencePoints').on('change', this._onModeToggleChange.bind(this));
-        html.find('#modeMilestone').on('change', this._onModeToggleChange.bind(this));
+        const modeExperiencePoints = html.querySelector('#modeExperiencePoints');
+        const modeMilestone = html.querySelector('#modeMilestone');
+        if (modeExperiencePoints) modeExperiencePoints.addEventListener('change', this._onModeToggleChange.bind(this));
+        if (modeMilestone) modeMilestone.addEventListener('change', this._onModeToggleChange.bind(this));
         
         // Add event listeners for milestone form
-        html.find('#milestone-xp').on('input', this._onMilestoneXpChange.bind(this));
-        html.find('.milestone-input, .milestone-textarea, .milestone-select').on('input change', this._onMilestoneDataChange.bind(this));
+        const milestoneXp = html.querySelector('#milestone-xp');
+        if (milestoneXp) milestoneXp.addEventListener('input', this._onMilestoneXpChange.bind(this));
+        html.querySelectorAll('.milestone-input, .milestone-textarea, .milestone-select').forEach(el => {
+            el.addEventListener('input', this._onMilestoneDataChange.bind(this));
+            el.addEventListener('change', this._onMilestoneDataChange.bind(this));
+        });
         
         // Add event listeners for player adjustments
-        html.find('.player-adjustment').on('input', this._onPlayerAdjustmentChange.bind(this));
-        html.find('.adjustment-sign').on('click', this._onPlayerAdjustmentSignClick.bind(this));
+        html.querySelectorAll('.player-adjustment').forEach(el => {
+            el.addEventListener('input', this._onPlayerAdjustmentChange.bind(this));
+        });
+        html.querySelectorAll('.adjustment-sign').forEach(el => {
+            el.addEventListener('click', this._onPlayerAdjustmentSignClick.bind(this));
+        });
         
         // Add event listeners for action buttons
-        html.find('.apply-xp').click(this._onApplyXp.bind(this));
-        html.find('.cancel-xp').click(this._onCancelXp.bind(this));
+        const applyXp = html.querySelector('.apply-xp');
+        const cancelXp = html.querySelector('.cancel-xp');
+        if (applyXp) applyXp.addEventListener('click', this._onApplyXp.bind(this));
+        if (cancelXp) cancelXp.addEventListener('click', this._onCancelXp.bind(this));
         
         // Add event listeners for monster resolution icons
-        html.find('[data-table-type="monsters"] .resolution-icon').on('click', this._onMonsterResolutionIconClick.bind(this));
-        html.find('[data-table-type="monsters"] .resolution-icon').on('keydown', (event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                this._onMonsterResolutionIconClick(event);
-            }
+        html.querySelectorAll('[data-table-type="monsters"] .resolution-icon').forEach(el => {
+            el.addEventListener('click', this._onMonsterResolutionIconClick.bind(this));
+            el.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    this._onMonsterResolutionIconClick(event);
+                }
+            });
         });
         
         // Add event listeners for player inclusion icons
-        html.find('[data-table-type="players"] .inclusion-toggle').on('click', this._onPlayerInclusionClick.bind(this));
+        html.querySelectorAll('[data-table-type="players"] .inclusion-toggle').forEach(el => {
+            el.addEventListener('click', this._onPlayerInclusionClick.bind(this));
+        });
         
         // Initialize xpData.players with current state
         this._updateXpDataPlayers();
@@ -877,29 +893,32 @@ class XpDistributionWindow extends FormApplication {
     }
 
     _onPlayerAdjustmentSignClick(event) {
-        const clickedIcon = $(event.currentTarget);
+        const clickedIcon = event.currentTarget;
         const playerRow = clickedIcon.closest('[data-row-type="player"]');
-        const playerId = playerRow.attr('data-player-id');
+        if (!playerRow) return;
+        const playerId = playerRow.getAttribute('data-player-id');
         
         // Remove active class from both icons in this row
-        playerRow.find('.adjustment-sign').removeClass('active');
+        playerRow.querySelectorAll('.adjustment-sign').forEach(icon => {
+            icon.classList.remove('active');
+        });
         
         // Add active class to clicked icon
-        clickedIcon.addClass('active');
+        clickedIcon.classList.add('active');
         
         // Update the player's sign preference
         const player = this.xpData.players.find(p => p.actorId === playerId);
         if (player) {
-            player.adjustmentSign = clickedIcon.attr('data-sign');
+            player.adjustmentSign = clickedIcon.getAttribute('data-sign');
             this._updateXpDataPlayers();
             this._updateXpDisplay();
         }
     }
 
     _onModeToggleChange(event) {
-        const toggle = $(event.currentTarget);
-        const mode = toggle.attr('id').replace('mode', '').toLowerCase();
-        const isChecked = toggle.is(':checked');
+        const toggle = event.currentTarget;
+        const mode = toggle.id.replace('mode', '').toLowerCase();
+        const isChecked = toggle.checked;
         
         // Update the mode in xpData - handle camelCase conversion properly
         const modeKey = mode === 'experiencepoints' ? 'modeExperiencePoints' : `mode${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
@@ -907,23 +926,29 @@ class XpDistributionWindow extends FormApplication {
         
         // Simple show/hide logic - no re-rendering
         if (mode === 'experiencepoints') {
+            const expSection = this.element.querySelector('[data-section="experience-points"]');
+            const resolutionSection = this.element.querySelector('[data-section="resolution-types"]');
             if (isChecked) {
-                this.element.find('[data-section="experience-points"]').removeClass('hidden');
-                this.element.find('[data-section="resolution-types"]').removeClass('hidden');
+                if (expSection) expSection.classList.remove('hidden');
+                if (resolutionSection) resolutionSection.classList.remove('hidden');
             } else {
-                this.element.find('[data-section="experience-points"]').addClass('hidden');
-                this.element.find('[data-section="resolution-types"]').addClass('hidden');
+                if (expSection) expSection.classList.add('hidden');
+                if (resolutionSection) resolutionSection.classList.add('hidden');
             }
         } else if (mode === 'milestone') {
-            if (isChecked) {
-                this.element.find('[data-section="milestones"]').removeClass('hidden');
-            } else {
-                this.element.find('[data-section="milestones"]').addClass('hidden');
+            const milestoneSection = this.element.querySelector('[data-section="milestones"]');
+            if (milestoneSection) {
+                if (isChecked) {
+                    milestoneSection.classList.remove('hidden');
+                } else {
+                    milestoneSection.classList.add('hidden');
+                }
             }
         }
         
         // Always ensure Player Adjustments section is visible
-        this.element.find('[data-section="player-adjustments"]').removeClass('hidden');
+        const playerAdjustmentsSection = this.element.querySelector('[data-section="player-adjustments"]');
+        if (playerAdjustmentsSection) playerAdjustmentsSection.classList.remove('hidden');
         
         // Debug logging
         
@@ -936,7 +961,7 @@ class XpDistributionWindow extends FormApplication {
 
 
     _onMilestoneXpChange(event) {
-        const xpAmount = parseInt($(event.currentTarget).val()) || 0;
+        const xpAmount = parseInt(event.currentTarget.value) || 0;
         this.xpData.milestoneXp = xpAmount;
         
         // Recalculate and update display
@@ -951,10 +976,14 @@ class XpDistributionWindow extends FormApplication {
 
     _collectMilestoneData() {
         // Collect milestone data directly from input elements since there's no form wrapper
-        const category = this.element.find('#milestone-category').val() || '';
-        const title = this.element.find('#milestone-title').val() || '';
-        const description = this.element.find('#milestone-description').val() || '';
-        const xpAmount = this.element.find('#milestone-xp').val() || '0';
+        const categoryEl = this.element.querySelector('#milestone-category');
+        const titleEl = this.element.querySelector('#milestone-title');
+        const descriptionEl = this.element.querySelector('#milestone-description');
+        const xpAmountEl = this.element.querySelector('#milestone-xp');
+        const category = categoryEl ? categoryEl.value : '';
+        const title = titleEl ? titleEl.value : '';
+        const description = descriptionEl ? descriptionEl.value : '';
+        const xpAmount = xpAmountEl ? xpAmountEl.value : '0';
         
         this.xpData.milestoneData = {
             category: category,
@@ -1021,51 +1050,78 @@ class XpDistributionWindow extends FormApplication {
 
         // Update summary display
         const html = this.element;
-        html.find('.xp-summary-item').eq(0).find('span').last().text(this.xpData.totalXp);
-        html.find('.xp-summary-item').eq(1).find('span').last().text(includedCount);
-        html.find('.xp-summary-item').eq(2).find('span').last().text((this.xpData.partyMultiplier || 1) + 'x');
-        html.find('.xp-summary-item').eq(3).find('span').last().text(this.xpData.adjustedTotalXp);
-        html.find('.xp-summary-item').eq(4).find('span').last().text(this.xpData.xpPerPlayer);
+        const summaryItems = html.querySelectorAll('.xp-summary-item');
+        if (summaryItems.length > 0) {
+            const spans0 = summaryItems[0].querySelectorAll('span');
+            if (spans0.length > 0) spans0[spans0.length - 1].textContent = this.xpData.totalXp;
+        }
+        if (summaryItems.length > 1) {
+            const spans1 = summaryItems[1].querySelectorAll('span');
+            if (spans1.length > 0) spans1[spans1.length - 1].textContent = includedCount;
+        }
+        if (summaryItems.length > 2) {
+            const spans2 = summaryItems[2].querySelectorAll('span');
+            if (spans2.length > 0) spans2[spans2.length - 1].textContent = (this.xpData.partyMultiplier || 1) + 'x';
+        }
+        if (summaryItems.length > 3) {
+            const spans3 = summaryItems[3].querySelectorAll('span');
+            if (spans3.length > 0) spans3[spans3.length - 1].textContent = this.xpData.adjustedTotalXp;
+        }
+        if (summaryItems.length > 4) {
+            const spans4 = summaryItems[4].querySelectorAll('span');
+            if (spans4.length > 0) spans4[spans4.length - 1].textContent = this.xpData.xpPerPlayer;
+        }
 
         // Update monster rows
+        const monsterRows = html.querySelectorAll('[data-table-type="monsters"] [data-row-type="monster"]');
         this.xpData.monsters.forEach((monster, i) => {
-            const row = html.find('[data-table-type="monsters"] [data-row-type="monster"]').eq(i);
+            if (i >= monsterRows.length) return;
+            const row = monsterRows[i];
+            const xpField = row.querySelector('[data-field="xp"]');
+            if (!xpField) return;
             
             // Show the calculation based on current resolution
             if (monster.resolutionType === 'REMOVED') {
                 // Show red "0" for removed monsters
-                row.find('[data-field="xp"]').html('<span class="excluded-xp">0</span>');
+                xpField.innerHTML = '<span class="excluded-xp">0</span>';
             } else {
                 // Show the full calculation
-                row.find('[data-field="xp"]').html(`${monster.baseXp} x ${monster.multiplier.toFixed(2)} = <strong>${monster.finalXp}</strong>`);
+                xpField.innerHTML = `${monster.baseXp} x ${monster.multiplier.toFixed(2)} = <strong>${monster.finalXp}</strong>`;
             }
         });
 
         // Update player rows
+        const playerRows = html.querySelectorAll('[data-table-type="players"] [data-row-type="player"]');
         this.xpData.players.forEach((player, i) => {
-            const row = html.find('[data-table-type="players"] [data-row-type="player"]').eq(i);
-            const inclusionIcon = row.find('.inclusion-toggle');
-            const isIncluded = inclusionIcon.hasClass('active');
+            if (i >= playerRows.length) return;
+            const row = playerRows[i];
+            const inclusionIcon = row.querySelector('.inclusion-toggle');
+            const isIncluded = inclusionIcon && inclusionIcon.classList.contains('active');
             
             if (isIncluded) {
             // Get adjustment value from input
-            const adjInput = row.find('.player-adjustment');
-            let adjustment = parseInt(adjInput.val(), 10);
+            const adjInput = row.querySelector('.player-adjustment');
+            let adjustment = adjInput ? parseInt(adjInput.value, 10) : 0;
             if (isNaN(adjustment)) adjustment = 0;
                 
                 // Get adjustment sign from active icon
-                const activeSign = row.find('.adjustment-sign.active').attr('data-sign') || '+';
+                const activeSignEl = row.querySelector('.adjustment-sign.active');
+                const activeSign = activeSignEl ? activeSignEl.getAttribute('data-sign') : '+';
                 const signedAdjustment = activeSign === '-' ? -adjustment : adjustment;
                 
                 // Calculate total for this player (minimum 0)
                 const calculatedTotal = this.xpData.xpPerPlayer + signedAdjustment;
                 const total = Math.max(0, calculatedTotal);
-            row.find('.player-base-xp').text(this.xpData.xpPerPlayer);
-            row.find('.calculated-total').text(total);
+            const baseXpEl = row.querySelector('.player-base-xp');
+            const totalEl = row.querySelector('.calculated-total');
+            if (baseXpEl) baseXpEl.textContent = this.xpData.xpPerPlayer;
+            if (totalEl) totalEl.textContent = total;
             } else {
                 // Show 0 for disabled players
-                row.find('.player-base-xp').text('0');
-                row.find('.calculated-total').text('0');
+                const baseXpEl = row.querySelector('.player-base-xp');
+                const totalEl = row.querySelector('.calculated-total');
+                if (baseXpEl) baseXpEl.textContent = '0';
+                if (totalEl) totalEl.textContent = '0';
             }
         });
     }
@@ -1073,9 +1129,9 @@ class XpDistributionWindow extends FormApplication {
 
     _onMonsterResolutionIconClick(event) {
         event.preventDefault();
-        const icon = $(event.currentTarget);
-        const monsterId = icon.data('monster-id');
-        const resolution = icon.data('resolution');
+        const icon = event.currentTarget;
+        const monsterId = icon.getAttribute('data-monster-id');
+        const resolution = icon.getAttribute('data-resolution');
         const monster = this.xpData.monsters.find(m => m.id === monsterId);
         if (monster && resolution) {
             // Update monster resolution and XP
@@ -1088,15 +1144,18 @@ class XpDistributionWindow extends FormApplication {
             
             // Update the visual state of all icons for this monster
             const monsterRow = icon.closest('[data-row-type="monster"]');
-            monsterRow.find('.resolution-icon').each((index, element) => {
-                const $element = $(element);
-                const iconResolution = $element.data('resolution');
-                if (iconResolution === resolution) {
-                    $element.removeClass('dimmed').addClass('active');
-                } else {
-                    $element.removeClass('active').addClass('dimmed');
-                }
-            });
+            if (monsterRow) {
+                monsterRow.querySelectorAll('.resolution-icon').forEach((element) => {
+                    const iconResolution = element.getAttribute('data-resolution');
+                    if (iconResolution === resolution) {
+                        element.classList.remove('dimmed');
+                        element.classList.add('active');
+                    } else {
+                        element.classList.remove('active');
+                        element.classList.add('dimmed');
+                    }
+                });
+            }
             
             // Update all XP calculations and display
             this._updateXpDisplay();
@@ -1107,14 +1166,16 @@ class XpDistributionWindow extends FormApplication {
     }
 
     _onPlayerInclusionClick(event) {
-        const icon = $(event.currentTarget);
-        const playerId = icon.data('player-id');
+        const icon = event.currentTarget;
+        const playerId = icon.getAttribute('data-player-id');
         
         // Toggle the icon state
-        if (icon.hasClass('active')) {
-            icon.removeClass('active').addClass('dimmed');
+        if (icon.classList.contains('active')) {
+            icon.classList.remove('active');
+            icon.classList.add('dimmed');
         } else {
-            icon.removeClass('dimmed').addClass('active');
+            icon.classList.remove('dimmed');
+            icon.classList.add('active');
         }
         
         // Update xpData to reflect included players
@@ -1142,17 +1203,20 @@ class XpDistributionWindow extends FormApplication {
             }
             
             // Use actorId to find the row (from the logged data structure)
-            const row = this.element.find(`[data-player-id="${player.actorId}"]`).closest('[data-row-type="player"]');
-            const inclusionIcon = row.find('.inclusion-toggle');
-            const isIncluded = inclusionIcon.hasClass('active');
+            const playerEl = this.element.querySelector(`[data-player-id="${player.actorId}"]`);
+            const row = playerEl ? playerEl.closest('[data-row-type="player"]') : null;
+            if (!row) return player;
+            const inclusionIcon = row.querySelector('.inclusion-toggle');
+            const isIncluded = inclusionIcon && inclusionIcon.classList.contains('active');
             
             // Get adjustment value from input
-            const adjInput = row.find('.player-adjustment');
-            let adjustment = parseInt(adjInput.val(), 10);
+            const adjInput = row.querySelector('.player-adjustment');
+            let adjustment = adjInput ? parseInt(adjInput.value, 10) : 0;
             if (isNaN(adjustment)) adjustment = 0;
             
             // Get adjustment sign from active icon
-            const activeSign = row.find('.adjustment-sign.active').attr('data-sign') || '+';
+            const activeSignEl = row.querySelector('.adjustment-sign.active');
+            const activeSign = activeSignEl ? activeSignEl.getAttribute('data-sign') : '+';
             const signedAdjustment = activeSign === '-' ? -adjustment : adjustment;
             
             // Calculate final XP for this player (minimum 0)

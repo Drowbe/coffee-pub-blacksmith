@@ -97,7 +97,8 @@ class CombatTimer {
 						// Check if this is the current combatant's token and it actually moved
 						if (token.id === currentToken.id && (changes.x || changes.y) && CombatTimer.state.isPaused) {
 							CombatTimer.state.showingMessage = false;
-							$('.combat-timer-text').text('');
+							const timerText = document.querySelector('.combat-timer-text');
+							if (timerText) timerText.textContent = '';
 							CombatTimer.resumeTimer();
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
@@ -121,7 +122,8 @@ class CombatTimer {
 						// Check if this is the current combatant's action
 						if (item.actor.id === currentActor.id && CombatTimer.state.isPaused) {
 							CombatTimer.state.showingMessage = false;
-							$('.combat-timer-text').text('');
+							const timerText = document.querySelector('.combat-timer-text');
+							if (timerText) timerText.textContent = '';
 							CombatTimer.resumeTimer();
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
@@ -145,7 +147,8 @@ class CombatTimer {
 						// Check if this is the current combatant's action
 						if (item.actor.id === currentActor.id && CombatTimer.state.isPaused) {
 							CombatTimer.state.showingMessage = false;
-							$('.combat-timer-text').text('');
+							const timerText = document.querySelector('.combat-timer-text');
+							if (timerText) timerText.textContent = '';
 							CombatTimer.resumeTimer();
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
@@ -176,7 +179,8 @@ class CombatTimer {
 						
 						if (isCurrentCombatantUser && CombatTimer.state.isPaused) {
 							CombatTimer.state.showingMessage = false;
-							$('.combat-timer-text').text('');
+							const timerText = document.querySelector('.combat-timer-text');
+							if (timerText) timerText.textContent = '';
 							CombatTimer.resumeTimer();
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
@@ -796,25 +800,28 @@ class CombatTimer {
         try {
             // Update progress bar using state duration
             const percentage = (this.state.remaining / this.state.duration) * 100;
-            const bar = $('.combat-timer-bar');
-            bar.css('width', `${percentage}%`);
+            const bar = document.querySelector('.combat-timer-bar');
+            if (!bar) return;
+            bar.style.width = `${percentage}%`;
             
             // Update bar color based on percentage
-            bar.removeClass('high medium low');
+            bar.classList.remove('high', 'medium', 'low');
             if (percentage <= 25) {
-                bar.addClass('low');
+                bar.classList.add('low');
             } else if (percentage <= 50) {
-                bar.addClass('medium');
+                bar.classList.add('medium');
             } else {
-                bar.addClass('high');
+                bar.classList.add('high');
             }
 
             // Handle expired state
+            const progressElements = document.querySelectorAll('.combat-timer-progress');
             if (this.state.remaining <= 0) {
-                $('.combat-timer-bar').addClass('expired');
-                $('.combat-timer-progress').addClass('expired');
+                bar.classList.add('expired');
+                progressElements.forEach(el => el.classList.add('expired'));
             } else {
-                $('.combat-timer-bar, .combat-timer-progress').removeClass('expired');
+                bar.classList.remove('expired');
+                progressElements.forEach(el => el.classList.remove('expired'));
             }
 
             // Don't update text if we're showing a message
@@ -823,23 +830,25 @@ class CombatTimer {
                 if (this.state.remaining <= 0) {
                     const message = game.settings.get(MODULE.ID, 'combatTimerExpiredMessage')
                         .replace('{name}', game.combat?.combatant?.name || '');
-                    $('.combat-timer-text').text(message);
+                    const timerText = document.querySelector('.combat-timer-text');
+                    if (timerText) timerText.textContent = message;
                 }
                 return;
             }
             
             // Update timer text
-            const timerText = $('.combat-timer-text');
+            const timerText = document.querySelector('.combat-timer-text');
+            if (!timerText) return;
             if (this.state.isPaused) {
-                timerText.text('COMBAT TIMER PAUSED');
+                timerText.textContent = 'COMBAT TIMER PAUSED';
             } else if (this.state.remaining <= 0) {
                 const message = game.settings.get(MODULE.ID, 'combatTimerExpiredMessage')
                     .replace('{name}', game.combat?.combatant?.name || '');
-                timerText.text(message);
+                timerText.textContent = message;
             } else {
                 const minutes = Math.floor(this.state.remaining / 60);
                 const seconds = this.state.remaining % 60;
-                timerText.text(`${minutes}:${seconds.toString().padStart(2, '0')} REMAINING`);
+                timerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')} REMAINING`;
             }
 
         } catch (error) {
@@ -941,7 +950,8 @@ class CombatTimer {
         this.state.showingMessage = false;
         
         // Clear visual states
-        $('.combat-timer-progress').removeClass('expired');
+        const progressElements = document.querySelectorAll('.combat-timer-progress');
+        progressElements.forEach(el => el.classList.remove('expired'));
         
         // Start fresh timer with chat message
         if (game.user.isGM && game.settings.get(MODULE.ID, 'timerChatTurnStart')) {

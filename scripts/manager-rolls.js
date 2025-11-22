@@ -219,8 +219,8 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
         // Open appropriate mode for rolling
         if (mode === 'cinema') {
             // Check if cinema overlay already exists (from initial request)
-            const existingOverlay = $('#cpb-cinematic-overlay');
-            if (existingOverlay.length === 0) {
+            const existingOverlay = document.querySelector('#cpb-cinematic-overlay');
+            if (!existingOverlay) {
             await showCinemaOverlay(rollData);
             } else {
                 postConsoleAndNotification(MODULE.NAME, `orchestrateRoll: Cinema overlay already exists, skipping creation`, null, true, false);
@@ -1129,27 +1129,40 @@ class RollWindow extends Application {
         postConsoleAndNotification(MODULE.NAME, `RollWindow activateListeners: Setting up event handlers`, null, true, false);
         
         // Roll buttons - each button triggers a roll with different advantage/disadvantage
-        html.find('.roll-advantage').on('click', async (event) => {
-            event.preventDefault();
-            await this._executeRoll('advantage');
-        });
+        const rollAdvantage = html.querySelector('.roll-advantage');
+        const rollNormal = html.querySelector('.roll-normal');
+        const rollDisadvantage = html.querySelector('.roll-disadvantage');
+        const cancelRoll = html.querySelector('.cancel-roll');
         
-        html.find('.roll-normal').on('click', async (event) => {
-            event.preventDefault();
-            await this._executeRoll('normal');
-        });
+        if (rollAdvantage) {
+            rollAdvantage.addEventListener('click', async (event) => {
+                event.preventDefault();
+                await this._executeRoll('advantage');
+            });
+        }
         
-        html.find('.roll-disadvantage').on('click', async (event) => {
-            event.preventDefault();
-            await this._executeRoll('disadvantage');
-        });
+        if (rollNormal) {
+            rollNormal.addEventListener('click', async (event) => {
+                event.preventDefault();
+                await this._executeRoll('normal');
+            });
+        }
+        
+        if (rollDisadvantage) {
+            rollDisadvantage.addEventListener('click', async (event) => {
+                event.preventDefault();
+                await this._executeRoll('disadvantage');
+            });
+        }
         
         // Cancel button
-        html.find('.cancel-roll').on('click', (event) => {
-            event.preventDefault();
-            postConsoleAndNotification(MODULE.NAME, `RollWindow: Cancel button clicked, closing window`, null, true, false);
-            this.close();
-        });
+        if (cancelRoll) {
+            cancelRoll.addEventListener('click', (event) => {
+                event.preventDefault();
+                postConsoleAndNotification(MODULE.NAME, `RollWindow: Cancel button clicked, closing window`, null, true, false);
+                this.close();
+            });
+        }
 
         // Real-time formula updates
         this._setupFormulaUpdates(html);
@@ -1162,9 +1175,12 @@ class RollWindow extends Application {
             // Get roll options from the form
             const advantage = rollType === 'advantage';
             const disadvantage = rollType === 'disadvantage';
-            const situationalBonus = parseInt(this.element.find('input[name="situational-bonus"]').val()) || 0;
-            const customModifier = this.element.find('input[name="custom-modifier"]').val().trim();
-            const rollMode = this.element.find('select[name="roll-mode"]').val() || 'roll';
+            const situationalBonusInput = this.element.querySelector('input[name="situational-bonus"]');
+            const customModifierInput = this.element.querySelector('input[name="custom-modifier"]');
+            const rollModeSelect = this.element.querySelector('select[name="roll-mode"]');
+            const situationalBonus = parseInt(situationalBonusInput ? situationalBonusInput.value : '0') || 0;
+            const customModifier = customModifierInput ? customModifierInput.value.trim() : '';
+            const rollMode = rollModeSelect ? rollModeSelect.value : 'roll';
             
             const rollOptions = {
                 advantage: advantage,
@@ -1201,9 +1217,11 @@ class RollWindow extends Application {
     }
     
     _setupFormulaUpdates(html) {
-        const formulaElement = html.find('.roll-formula');
-        const situationalInput = html.find('input[name="situational-bonus"]');
-        const customModifierInput = html.find('input[name="custom-modifier"]');
+        const formulaElement = html.querySelector('.roll-formula');
+        const situationalInput = html.querySelector('input[name="situational-bonus"]');
+        const customModifierInput = html.querySelector('input[name="custom-modifier"]');
+        
+        if (!formulaElement || !situationalInput || !customModifierInput) return;
         
         // Store original formula for reference
         const originalFormula = this.rollData.rollFormula;
@@ -1213,8 +1231,8 @@ class RollWindow extends Application {
         const proficiencyBonus = this.rollData.proficiencyBonus || 0;
         
         const updateFormula = () => {
-            const situationalBonus = parseInt(situationalInput.val()) || 0;
-            const customModifier = customModifierInput.val().trim();
+            const situationalBonus = parseInt(situationalInput.value) || 0;
+            const customModifier = customModifierInput.value.trim();
             
             // Build formula parts
             const formulaParts = [baseRoll];
@@ -1256,12 +1274,14 @@ class RollWindow extends Application {
             
             // Update the formula display with HTML
             const newFormula = formulaParts.join(' ');
-            formulaElement.html(newFormula);
+            formulaElement.innerHTML = newFormula;
         };
         
         // Set up event listeners
-        situationalInput.on('input change', updateFormula);
-        customModifierInput.on('input change', updateFormula);
+        situationalInput.addEventListener('input', updateFormula);
+        situationalInput.addEventListener('change', updateFormula);
+        customModifierInput.addEventListener('input', updateFormula);
+        customModifierInput.addEventListener('change', updateFormula);
         
         // Initial update
         updateFormula();
@@ -1324,15 +1344,15 @@ export async function updateCinemaOverlay(rollResults, context) {
         const { messageId, tokenId } = context;
         
         // Find the cinema overlay
-        const overlay = $('#cpb-cinematic-overlay');
-        if (overlay.length === 0) {
+        const overlay = document.querySelector('#cpb-cinematic-overlay');
+        if (!overlay) {
             postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: No cinema overlay found`, null, true, false);
             return;
         }
         
         // Find the specific actor card
-        const actorCard = overlay.find(`[data-token-id="${tokenId}"]`);
-        if (actorCard.length === 0) {
+        const actorCard = overlay.querySelector(`[data-token-id="${tokenId}"]`);
+        if (!actorCard) {
             postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: No actor card found for token ${tokenId}`, null, true, false);
             return;
         }
@@ -1469,8 +1489,9 @@ export async function updateCinemaOverlay(rollResults, context) {
                 postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: FUMBLE DETECTED!', "", true, false);
             }
 
-            const rollArea = actorCard.find('.cpb-cinematic-roll-area');
-            rollArea.empty(); // Clear the button or pending icon
+            const rollArea = actorCard.querySelector('.cpb-cinematic-roll-area');
+            if (!rollArea) return;
+            rollArea.innerHTML = ''; // Clear the button or pending icon
 
             let specialClass = '';
             if (d20Roll === 20) specialClass = 'critical';
@@ -1478,12 +1499,12 @@ export async function updateCinemaOverlay(rollResults, context) {
 
             const successClass = roll.total >= 10 ? 'success' : 'failure'; // TODO: get actual DC from context
             const resultHtml = `<div class="cpb-cinematic-roll-result ${successClass} ${specialClass}">${roll.total}</div>`;
-            rollArea.append(resultHtml);
+            rollArea.insertAdjacentHTML('beforeend', resultHtml);
 
             // Check if all rolls are complete to show group results or hide overlay
-            const allCards = overlay.find('.cpb-cinematic-card');
-            const allComplete = allCards.toArray().every(card => {
-                return $(card).find('.cpb-cinematic-roll-result').length > 0;
+            const allCards = overlay.querySelectorAll('.cpb-cinematic-card');
+            const allComplete = Array.from(allCards).every(card => {
+                return card.querySelector('.cpb-cinematic-roll-result') !== null;
             });
             
             if (allComplete) {
@@ -1550,7 +1571,10 @@ export async function updateCinemaOverlay(rollResults, context) {
                         `;
                         
                         // Append the results bar to the main cinematic bar
-                        overlay.find('#cpb-cinematic-bar').append(resultsBarHtml);
+                        const cinematicBar = overlay.querySelector('#cpb-cinematic-bar');
+                        if (cinematicBar) {
+                            cinematicBar.insertAdjacentHTML('beforeend', resultsBarHtml);
+                        }
                         
                         // Play sound for group results
                         let groupSound;

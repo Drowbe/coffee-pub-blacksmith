@@ -446,10 +446,10 @@ class MenuBar {
             if (ui.combat) {
                 try {
                     // Try to trigger the combat tracker's rollInitiative event
-                    const combatTrackerElement = ui.combat.element.find(`[data-combatant-id="${combatant.id}"] .combatant-control[data-control="rollInitiative"]`);
-                    if (combatTrackerElement.length > 0) {
+                    const combatTrackerElement = ui.combat.element.querySelector(`[data-combatant-id="${combatant.id}"] .combatant-control[data-control="rollInitiative"]`);
+                    if (combatTrackerElement) {
                         postConsoleAndNotification(MODULE.NAME, `Combat Bar: Found combat tracker element, triggering click`, "", true, false);
-                        combatTrackerElement.trigger('click');
+                        combatTrackerElement.click();
                         return;
                     }
                 } catch (trackerError) {
@@ -3111,7 +3111,8 @@ class MenuBar {
                     label: "Set Leader",
                     callback: async (html) => {
                 
-                        const selectedValue = html.find('#leader-select').val();
+                        const leaderSelect = html.querySelector('#leader-select');
+                        const selectedValue = leaderSelect ? leaderSelect.value : '';
                         if (selectedValue) {
   
                             const [actorId, userId] = selectedValue.split('|');
@@ -3437,9 +3438,12 @@ class MenuBar {
                     icon: '<i class="fas fa-check"></i>',
                     label: "Set Timer",
                     callback: async (html) => {
-                        const hours = parseInt(html.find('#hours-select').val());
-                        const minutes = parseInt(html.find('#minutes-select').val());
-                        const setAsDefault = html.find('#set-default').prop('checked');
+                        const hoursSelect = html.querySelector('#hours-select');
+                        const minutesSelect = html.querySelector('#minutes-select');
+                        const setDefaultCheckbox = html.querySelector('#set-default');
+                        const hours = parseInt(hoursSelect ? hoursSelect.value : '0');
+                        const minutes = parseInt(minutesSelect ? minutesSelect.value : '0');
+                        const setAsDefault = setDefaultCheckbox ? setDefaultCheckbox.checked : false;
                         const duration = (hours * 60 + minutes) * 60 * 1000; // Convert to milliseconds
                         
                         this.sessionStartTime = Date.now();

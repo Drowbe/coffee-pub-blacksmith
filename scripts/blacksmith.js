@@ -553,11 +553,10 @@ Hooks.once('init', async function() {
         callback: (message, html) => {
             if (message.flags?.['coffee-pub-blacksmith']?.type === 'skillCheck') {
                 // Check ownership and disable buttons for non-owners
-                const skillCheckActors = html.find('.cpb-skill-check-actor');
+                const skillCheckActors = html.querySelectorAll('.cpb-skill-check-actor');
                 
-                skillCheckActors.each(function() {
-                    const actorDiv = $(this);
-                    const actorId = actorDiv.data('actor-id');
+                skillCheckActors.forEach((actorDiv) => {
+                    const actorId = actorDiv.getAttribute('data-actor-id');
                     const isGM = game.user.isGM;
                     
                     if (actorId) {
@@ -566,7 +565,7 @@ Hooks.once('init', async function() {
                         
                         // Disable if not owner and not GM
                         if (!isOwner && !isGM) {
-                            actorDiv.addClass('disabled');
+                            actorDiv.classList.add('disabled');
                         }
                     }
                 });
@@ -880,8 +879,10 @@ const renderNoteConfigHookId = HookManager.registerHook({
         }
 
         // Set the font size and icon size fields
-        html.find('input[name="fontSize"]').val(intFontSize);
-        html.find('input[name="iconSize"]').val(intIconSize);
+        const fontSizeInput = html.querySelector('input[name="fontSize"]');
+        const iconSizeInput = html.querySelector('input[name="iconSize"]');
+        if (fontSizeInput) fontSizeInput.value = intFontSize;
+        if (iconSizeInput) iconSizeInput.value = intIconSize;
 
         // Use cached note config icons to avoid repeated file system operations
         try {
@@ -889,14 +890,15 @@ const renderNoteConfigHookId = HookManager.registerHook({
             
             if (customIcons.length > 0) {
                 // Add custom icons to the start of the dropdown
-                const entryIconField = html.find('select[name="icon.selected"]');
-                if (entryIconField.length) {
+                const entryIconField = html.querySelector('select[name="icon.selected"]');
+                if (entryIconField) {
                     customIcons.reverse().forEach(icon => {
-                        entryIconField.prepend(new Option(icon.label, icon.value));
+                        const option = new Option(icon.label, icon.value);
+                        entryIconField.insertBefore(option, entryIconField.firstChild);
                     });
 
                     // Set the default icon
-                    entryIconField.val(strIconUrl);
+                    entryIconField.value = strIconUrl;
                 } else {
                     postConsoleAndNotification(MODULE.NAME, "Entry Icon field not found", "", false, false);
                 }
@@ -989,16 +991,19 @@ const journalDoubleClickHookId = HookManager.registerHook({
             const currentUser = game.user;
             
             // Remove any existing handler first to prevent accumulation
-            html.off('dblclick', '.journal-entry-page');
+            // (Event listeners are automatically cleaned up when DOM is replaced)
             
-            html.on('dblclick', '.journal-entry-page', event => {
-                event.preventDefault();
-                const hasEditPermission = app.document.testUserPermission(currentUser, ENTITY_PERMISSIONS.OWNER);
-                if (hasEditPermission) {
-                    // Try to find the edit button more generally
-                    const editButton = html.find('.edit-container .editor-edit');
-                    if (editButton.length > 0) {
-                        editButton[0].click();
+            // Use event delegation for dynamically added elements
+            html.addEventListener('dblclick', (event) => {
+                if (event.target.closest('.journal-entry-page')) {
+                    event.preventDefault();
+                    const hasEditPermission = app.document.testUserPermission(currentUser, ENTITY_PERMISSIONS.OWNER);
+                    if (hasEditPermission) {
+                        // Try to find the edit button more generally
+                        const editButton = html.querySelector('.edit-container .editor-edit');
+                        if (editButton) {
+                            editButton.click();
+                        }
                     }
                 }
             });
@@ -1040,13 +1045,25 @@ const hideHeaderChatHookId = HookManager.registerHook({
     priority: 3, // Normal priority - UI enhancement
     callback: (message, html, data) => {
 
-        let hideHeaderFlag = html.find('span:contains("coffeepub-hide-header")');
-        if (hideHeaderFlag.length) { 
+        // Find span containing "coffeepub-hide-header" text
+        const spans = html.querySelectorAll('span');
+        let hideHeaderFlag = null;
+        for (const span of spans) {
+            if (span.textContent.includes('coffeepub-hide-header')) {
+                hideHeaderFlag = span;
+                break;
+            }
+        }
+        if (hideHeaderFlag) { 
           // Found the "coffeepub-hide-header" flag within the message
-          hideHeaderFlag.parents('.message').find('.message-header').hide()
+          const message = hideHeaderFlag.closest('.message');
+          if (message) {
+              const messageHeader = message.querySelector('.message-header');
+              if (messageHeader) messageHeader.style.display = 'none';
+          }
       
           // Now remove or hide the "coffeepub-hide-header" flag itself
-          hideHeaderFlag.css("display", "none");
+          hideHeaderFlag.style.display = "none";
         }
     }
 });
@@ -1154,8 +1171,9 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
         <textarea id="json-input" style="width:100%;height:400px;"></textarea>
         `;
 
-        const button = $(`<button><i class="fa-solid fa-masks-theater"></i> Import JSON to Journal</button>`);
-        button.click(() => {
+        const button = document.createElement('button');
+        button.innerHTML = '<i class="fa-solid fa-masks-theater"></i> Import JSON to Journal';
+        button.addEventListener('click', () => {
         new Dialog({
             title: "Paste JSON",
             width: 800,
@@ -1169,7 +1187,8 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
                 icon: "<i class='fa-solid fa-masks-theater'></i>",
                 label: "Import JSON",
                 callback: async (html) => {
-                    const jsonData = html.find("#json-input").val();
+                    const jsonInput = html.querySelector("#json-input");
+                    const jsonData = jsonInput ? jsonInput.value : '';
                     try {
                         // Get the journal 
                         const journalData = JSON.parse(jsonData);
@@ -1203,8 +1222,11 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
             default: "ok",
             render: (htmlDialog) => {
             // Attach event listeners for template copy
-            htmlDialog.find("#copy-template-btn").click(async () => {
-                const type = htmlDialog.find("#template-type").val();
+            const copyTemplateBtn = htmlDialog.querySelector("#copy-template-btn");
+            if (copyTemplateBtn) {
+                copyTemplateBtn.addEventListener('click', async () => {
+                    const templateTypeSelect = htmlDialog.querySelector("#template-type");
+                    const type = templateTypeSelect ? templateTypeSelect.value : '';
                 if (type === "injury") {
                 copyToClipboard(injuryTemplate);
                 } else if (type === "encounter") {
@@ -1214,11 +1236,15 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
                 const templateWithDefaults = await getNarrativeTemplateWithDefaults(narrativeTemplate);
                 copyToClipboard(templateWithDefaults);
                 }
-            });
+                });
+            }
             }
         }).render(true);
         });
-        $(html).find(".header-actions.action-buttons").prepend(button);
+        const headerActions = html.querySelector(".header-actions.action-buttons");
+        if (headerActions) {
+            headerActions.insertBefore(button, headerActions.firstChild);
+        }
         
         //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
     }
@@ -2682,8 +2708,9 @@ const renderItemDirectoryHookId = HookManager.registerHook({
       <textarea id="item-json-input" style="width:100%;height:400px;"></textarea>
     `;
 
-    const button = $(`<button><i class="fa-solid fa-boxes-stacked"></i> Import JSON to Items</button>`);
-    button.click(() => {
+    const button = document.createElement('button');
+    button.innerHTML = '<i class="fa-solid fa-boxes-stacked"></i> Import JSON to Items';
+    button.addEventListener('click', () => {
       new Dialog({
         title: "Paste JSON for Items",
         content: dialogContent,
@@ -2698,7 +2725,8 @@ const renderItemDirectoryHookId = HookManager.registerHook({
                 icon: "<i class='fa-solid fa-boxes-stacked'></i>",
                 label: "Import JSON",
                 callback: async (html) => {
-                    const jsonData = html.find("#item-json-input").val();
+                    const jsonInput = html.querySelector("#item-json-input");
+                    const jsonData = jsonInput ? jsonInput.value : '';
                     let itemsToImport = [];
                     try {
                         let parsed = JSON.parse(jsonData);
@@ -2722,8 +2750,11 @@ const renderItemDirectoryHookId = HookManager.registerHook({
         default: "ok",
         render: (htmlDialog) => {
           // Attach event listeners for template copy
-          htmlDialog.find("#copy-item-template-btn").click(async () => {
-            const type = htmlDialog.find("#item-template-type").val();
+          const copyItemTemplateBtn = htmlDialog.querySelector("#copy-item-template-btn");
+          if (copyItemTemplateBtn) {
+              copyItemTemplateBtn.addEventListener('click', async () => {
+                  const itemTemplateTypeSelect = htmlDialog.querySelector("#item-template-type");
+                  const type = itemTemplateTypeSelect ? itemTemplateTypeSelect.value : '';
             if (type === "loot") {
               const promptWithDefaults = await getItemPromptWithDefaults(lootPrompt);
               copyToClipboard(promptWithDefaults);
@@ -2731,11 +2762,15 @@ const renderItemDirectoryHookId = HookManager.registerHook({
               const promptWithDefaults = await getItemPromptWithDefaults(consumablePrompt);
               copyToClipboard(promptWithDefaults);
             }
-          });
+              });
+          }
         }
       }).render(true);
     });
-        $(html).find(".header-actions.action-buttons").prepend(button);
+        const headerActions = html.querySelector(".header-actions.action-buttons");
+        if (headerActions) {
+            headerActions.insertBefore(button, headerActions.firstChild);
+        }
         
         //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
     }
@@ -2781,8 +2816,9 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
       <textarea id="table-json-input" style="width:100%;height:400px;"></textarea>
     `;
 
-    const button = $(`<button><i class="fa-solid fa-dice-d20"></i> Import JSON to Tables</button>`);
-    button.click(() => {
+    const button = document.createElement('button');
+    button.innerHTML = '<i class="fa-solid fa-dice-d20"></i> Import JSON to Tables';
+    button.addEventListener('click', () => {
       new Dialog({
         title: "Paste JSON for Tables",
         content: dialogContent,
@@ -2797,7 +2833,8 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
                 icon: "<i class='fa-solid fa-dice-d20'></i>",
                 label: "Import JSON",
                 callback: async (html) => {
-                    const jsonData = html.find("#table-json-input").val();
+                    const jsonInput = html.querySelector("#table-json-input");
+                    const jsonData = jsonInput ? jsonInput.value : '';
                     let tablesToImport = [];
                     try {
                         let parsed = JSON.parse(jsonData);
@@ -2820,8 +2857,11 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
         default: "ok",
         render: (htmlDialog) => {
           // Attach event listeners for template copy
-          htmlDialog.find("#copy-table-template-btn").click(async () => {
-            const type = htmlDialog.find("#table-template-type").val();
+          const copyTableTemplateBtn = htmlDialog.querySelector("#copy-table-template-btn");
+          if (copyTableTemplateBtn) {
+              copyTableTemplateBtn.addEventListener('click', async () => {
+                  const tableTemplateTypeSelect = htmlDialog.querySelector("#table-template-type");
+                  const type = tableTemplateTypeSelect ? tableTemplateTypeSelect.value : '';
             let promptWithDefaults = '';
             
             if (type === "text") {
@@ -2857,11 +2897,15 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
             }
             
             copyToClipboard(promptWithDefaults);
-          });
+              });
+          }
         }
       }).render(true);
     });
-        $(html).find(".header-actions.action-buttons").prepend(button);
+        const headerActions = html.querySelector(".header-actions.action-buttons");
+        if (headerActions) {
+            headerActions.insertBefore(button, headerActions.firstChild);
+        }
         
         //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
     }
@@ -2897,8 +2941,9 @@ const renderActorDirectoryHookId = HookManager.registerHook({
       <textarea id="actor-json-input" style="width:100%;height:400px;"></textarea>
     `;
 
-    const button = $(`<button><i class="fa-solid fa-user-plus"></i> Import JSON to Actors</button>`);
-    button.click(() => {
+    const button = document.createElement('button');
+    button.innerHTML = '<i class="fa-solid fa-user-plus"></i> Import JSON to Actors';
+    button.addEventListener('click', () => {
       new Dialog({
         title: "Paste JSON for Actors/NPCs",
         content: dialogContent,
@@ -2913,7 +2958,8 @@ const renderActorDirectoryHookId = HookManager.registerHook({
                 icon: "<i class='fa-solid fa-user-plus'></i>",
                 label: "Import JSON",
                 callback: async (html) => {
-                    const jsonData = html.find("#actor-json-input").val();
+                    const jsonInput = html.querySelector("#actor-json-input");
+                    const jsonData = jsonInput ? jsonInput.value : '';
                     let actorsToImport = [];
                     try {
                         let parsed = JSON.parse(jsonData);
@@ -2946,17 +2992,24 @@ const renderActorDirectoryHookId = HookManager.registerHook({
         default: "ok",
         render: (htmlDialog) => {
           // Attach event listeners for template copy
-          htmlDialog.find("#copy-actor-template-btn").click(async () => {
-            const type = htmlDialog.find("#actor-template-type").val();
-            if (type === "npc") {
-              const promptWithDefaults = await getActorPromptWithDefaults(characterPrompt);
-              copyToClipboard(promptWithDefaults);
-            }
-          });
+          const copyActorTemplateBtn = htmlDialog.querySelector("#copy-actor-template-btn");
+          if (copyActorTemplateBtn) {
+              copyActorTemplateBtn.addEventListener('click', async () => {
+                  const actorTemplateTypeSelect = htmlDialog.querySelector("#actor-template-type");
+                  const type = actorTemplateTypeSelect ? actorTemplateTypeSelect.value : '';
+                  if (type === "npc") {
+                      const promptWithDefaults = await getActorPromptWithDefaults(characterPrompt);
+                      copyToClipboard(promptWithDefaults);
+                  }
+              });
+          }
         }
       }).render(true);
     });
-        $(html).find(".header-actions.action-buttons").prepend(button);
+        const headerActions = html.querySelector(".header-actions.action-buttons");
+        if (headerActions) {
+            headerActions.insertBefore(button, headerActions.firstChild);
+        }
         
         //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
     }

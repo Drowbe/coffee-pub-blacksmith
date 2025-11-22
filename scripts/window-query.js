@@ -359,55 +359,88 @@ export class BlacksmithWindowQuery extends FormApplication {
         super.activateListeners(html);
 
         // don't let these buttons submit the main form
-        html.on('click', '.blacksmith-send-button-normal', (event) => {
-            event.preventDefault();
-            this._onSubmit(event, html.find('form')[0]);
-        });
-
-        // Bind the copy and chat buttons
-        html.on('click', '#blacksmith-chat-button-json', this._onSendToJson.bind(this));
-        html.on('click', '#blacksmith-chat-button-chat', this._onSendToChat.bind(this));
-        html.on('click', '#blacksmith-chat-button-copy', this._onCopyToClipboard.bind(this));
-        html.find('form').submit(this._onSubmit.bind(this));
-
-        // Bind the clear button workspace 
-        html.find('#blacksmith-clear-workspace').on('click', (event) => {
-            event.preventDefault();
-            const form = html.find('form')[0];
-            
-            // Only clear inputs within the active workspace
-            const workspaceSelector = `#blacksmith-query-workspace-${this.workspaceId}`;
-            const workspaceInputs = form.querySelector(workspaceSelector);
-            
-            if (workspaceInputs) {
-                const formInputs = workspaceInputs.querySelectorAll('input:not([data-persist]), textarea:not([data-persist]), select:not([data-persist])');
-                formInputs.forEach(input => {
-                    if (input.type === 'checkbox' || input.type === 'radio') {
-                        input.checked = false;
-                    } else {
-                        input.value = '';
-                    }
-                });
-
-                // Only clear worksheets for the active workspace if it's encounter or narrative
-                if (this.workspaceId === 'encounter') {
-                    clearWorksheetTokens("encounter");
-                } else if (this.workspaceId === 'narrative') {
-                    clearWorksheetTokens("narrative");
+        html.addEventListener('click', (event) => {
+            const target = event.target.closest('.blacksmith-send-button-normal');
+            if (target) {
+                event.preventDefault();
+                const form = html.querySelector('form');
+                if (form) {
+                    this._onSubmit(event, form);
                 }
             }
         });
 
-        // Handle the Enter key press based on the checkbox state
-        const enterSubmitsCheckbox = html.find('#enterSubmits');
-        const inputMessage = html.find('textarea[name="blacksmith-input-message"]');
-
-        inputMessage.on('keypress', (event) => {
-            if (event.key === 'Enter' && enterSubmitsCheckbox.is(':checked')) {
-                event.preventDefault();
-                this._onSubmit(event, html.find('form')[0]); // Pass the form element
+        // Bind the copy and chat buttons
+        html.addEventListener('click', (event) => {
+            const target = event.target.closest('#blacksmith-chat-button-json');
+            if (target) {
+                this._onSendToJson.call(this, event);
             }
         });
+        html.addEventListener('click', (event) => {
+            const target = event.target.closest('#blacksmith-chat-button-chat');
+            if (target) {
+                this._onSendToChat.call(this, event);
+            }
+        });
+        html.addEventListener('click', (event) => {
+            const target = event.target.closest('#blacksmith-chat-button-copy');
+            if (target) {
+                this._onCopyToClipboard.call(this, event);
+            }
+        });
+        const form = html.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', this._onSubmit.bind(this));
+        }
+
+        // Bind the clear button workspace 
+        const clearWorkspaceButton = html.querySelector('#blacksmith-clear-workspace');
+        if (clearWorkspaceButton) {
+            clearWorkspaceButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                const form = html.querySelector('form');
+                if (!form) return;
+                
+                // Only clear inputs within the active workspace
+                const workspaceSelector = `#blacksmith-query-workspace-${this.workspaceId}`;
+                const workspaceInputs = form.querySelector(workspaceSelector);
+                
+                if (workspaceInputs) {
+                    const formInputs = workspaceInputs.querySelectorAll('input:not([data-persist]), textarea:not([data-persist]), select:not([data-persist])');
+                    formInputs.forEach(input => {
+                        if (input.type === 'checkbox' || input.type === 'radio') {
+                            input.checked = false;
+                        } else {
+                            input.value = '';
+                        }
+                    });
+
+                    // Only clear worksheets for the active workspace if it's encounter or narrative
+                    if (this.workspaceId === 'encounter') {
+                        clearWorksheetTokens("encounter");
+                    } else if (this.workspaceId === 'narrative') {
+                        clearWorksheetTokens("narrative");
+                    }
+                }
+            });
+        }
+
+        // Handle the Enter key press based on the checkbox state
+        const enterSubmitsCheckbox = html.querySelector('#enterSubmits');
+        const inputMessage = html.querySelector('textarea[name="blacksmith-input-message"]');
+
+        if (inputMessage) {
+            inputMessage.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter' && enterSubmitsCheckbox && enterSubmitsCheckbox.checked) {
+                    event.preventDefault();
+                    const form = html.querySelector('form');
+                    if (form) {
+                        this._onSubmit(event, form); // Pass the form element
+                    }
+                }
+            });
+        }
 
 
         // -- WATCH FOR WORKSPACE CHANGES --
@@ -421,25 +454,29 @@ export class BlacksmithWindowQuery extends FormApplication {
         this.switchWorkspace(html, `blacksmith-query-workspace-${this.workspaceId}`);
 
         // Attach the event listener for the toggle button
-        html.find('#blacksmith-toggle-workspace').on('click', (event) => {
-            event.preventDefault();
-            this.toggleWorkspaceVisibility(html, true);
-        });
+        const toggleWorkspaceButton = html.querySelector('#blacksmith-toggle-workspace');
+        if (toggleWorkspaceButton) {
+            toggleWorkspaceButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                this.toggleWorkspaceVisibility(html, true);
+            });
+        }
 
         // Attach the event listener for workspace buttons
-        const workspaceButtons = html.find('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
-        workspaceButtons.on('click', (event) => {
-            event.preventDefault();
-            const clickedButton = $(event.currentTarget);
-            const workspaceId = clickedButton.attr('id').replace('button', 'workspace');
-            this.switchWorkspace(html, workspaceId);
+        html.addEventListener('click', (event) => {
+            const clickedButton = event.target.closest('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
+            if (clickedButton) {
+                event.preventDefault();
+                const workspaceId = clickedButton.getAttribute('id').replace('button', 'workspace');
+                this.switchWorkspace(html, workspaceId);
+            }
         });
 
         // -- ADD TOKENS BUTTONS --
 
         // Add event listener for "add-tokens-button"
-        html.find('.add-tokens-button').each((index, button) => {
-            $(button).on('click', async (event) => {
+        html.querySelectorAll('.add-tokens-button').forEach((button) => {
+            button.addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
                 const id = event.target.id.split('-').pop();
                 // add the tokens to the container
@@ -455,8 +492,8 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add event listener for "add-monsters-button"
-        html.find('.add-monsters-button').each((index, button) => {
-            $(button).on('click', async (event) => {
+        html.querySelectorAll('.add-monsters-button').forEach((button) => {
+            button.addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
                 const id = event.target.id.split('-').pop();
                 // add the monsters to the container
@@ -471,8 +508,8 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add event listener for "add-npcs-button"
-        html.find('.add-npcs-button').each((index, button) => {
-            $(button).on('click', async (event) => {
+        html.querySelectorAll('.add-npcs-button').forEach((button) => {
+            button.addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
                 const id = event.target.id.split('-').pop();
                 // add the monsters to the container
@@ -491,7 +528,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         addNPCDropZoneHandlers(id);
 
         // Add drag and drop event listeners for panel drop zones
-        html.find('.panel-drop-zone').each((index, dropZone) => {
+        html.querySelectorAll('.panel-drop-zone').forEach((dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
                 event.preventDefault();
                 dropZone.classList.add('dragover');
@@ -568,11 +605,14 @@ export class BlacksmithWindowQuery extends FormApplication {
                                                 select: {
                                                     label: "Select",
                                                     callback: async (html) => {
-                                                        const pageId = html.find('#page-select').val();
+                                                        const pageSelect = html.querySelector('#page-select');
+                                                        const pageId = pageSelect ? pageSelect.value : null;
 
-                                                        const page = journal.pages.get(pageId);
-                                                        if (page) {
-                                                            await addEncounterToNarrative(id, journal, page);
+                                                        if (pageId) {
+                                                            const page = journal.pages.get(pageId);
+                                                            if (page) {
+                                                                await addEncounterToNarrative(id, journal, page);
+                                                            }
                                                         }
                                                     }
                                                 },
@@ -690,9 +730,9 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
 
-        // Add event listener for "add-monsters-button"
-        html.find('.add-all-button').each((index, button) => {
-            $(button).on('click', async (event) => {
+        // Add event listener for "add-all-button"
+        html.querySelectorAll('.add-all-button').forEach((button) => {
+            button.addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
                 const id = event.target.id.split('-').pop();
                 await this.addAllTokensToContainer(id);
@@ -722,13 +762,15 @@ export class BlacksmithWindowQuery extends FormApplication {
         loadNarrativeCookies(this.workspaceId);
 
         // Add listeners for form changes to save cookies
-        const formElements = html.find('input, select, textarea');
-        formElements.on('change', () => {
-            saveNarrativeCookies(this.workspaceId);
+        const formElements = html.querySelectorAll('input, select, textarea');
+        formElements.forEach((element) => {
+            element.addEventListener('change', () => {
+                saveNarrativeCookies(this.workspaceId);
+            });
         });
 
         // Add event listener for encounter journal drops
-        html.find('.encounters-drop-zone').each((index, dropZone) => {
+        html.querySelectorAll('.encounters-drop-zone').forEach((dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
                 event.preventDefault();
                 dropZone.classList.add('dragover');
@@ -775,10 +817,13 @@ export class BlacksmithWindowQuery extends FormApplication {
                                         select: {
                                             label: "Select",
                                             callback: async (html) => {
-                                                const pageId = html.find('#page-select').val();
-                                                const page = journal.pages.get(pageId);
-                                                if (page) {
-                                                    await addEncounterToNarrative(id, journal, page);
+                                                const pageSelect = html.querySelector('#page-select');
+                                                const pageId = pageSelect ? pageSelect.value : null;
+                                                if (pageId) {
+                                                    const page = journal.pages.get(pageId);
+                                                    if (page) {
+                                                        await addEncounterToNarrative(id, journal, page);
+                                                    }
                                                 }
                                             }
                                         },
@@ -799,10 +844,13 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add roll dice button handler
-        html.find('.roll-dice-button').on('click', async (event) => {
-            event.preventDefault();
-            const id = event.currentTarget.id.split('-').pop();
-            await this._handleRollDiceClick(id);
+        html.addEventListener('click', (event) => {
+            const target = event.target.closest('.roll-dice-button');
+            if (target) {
+                event.preventDefault();
+                const id = target.id.split('-').pop();
+                this._handleRollDiceClick(id);
+            }
         });
     }
 
@@ -866,12 +914,16 @@ export class BlacksmithWindowQuery extends FormApplication {
         }
     
         if (html) {
-            // jQuery path
-            const workspaceButtons = html.find('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
-            workspaceButtons.removeClass('active');
-            html.find(`#blacksmith-query-button-${this.workspaceId}`).addClass('active');
-            html.find('.workspace-content').addClass('hidden');
-            html.find(`#${workspaceId}`).removeClass('hidden');
+            // Native DOM path (v13)
+            const workspaceButtons = html.querySelectorAll('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
+            workspaceButtons.forEach(button => button.classList.remove('active'));
+            const activeButton = html.querySelector(`#blacksmith-query-button-${this.workspaceId}`);
+            if (activeButton) activeButton.classList.add('active');
+            
+            const workspaceContents = html.querySelectorAll('.workspace-content');
+            workspaceContents.forEach(content => content.classList.add('hidden'));
+            const activeWorkspace = html.querySelector(`#${workspaceId}`);
+            if (activeWorkspace) activeWorkspace.classList.remove('hidden');
         } else {
             // Direct DOM manipulation path
             const workspaceButtons = document.querySelectorAll('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
@@ -1276,10 +1328,10 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     async _onSendToJson(event) {
         event.preventDefault();
-        const button = $(event.currentTarget);
-        const messageId = button.data('message-id');
-        const contentElement = $(`#blacksmith-message-wrapper[data-message-id="${messageId}"]`);
-        let content = contentElement.length ? contentElement.html() : null;
+        const button = event.currentTarget;
+        const messageId = button.getAttribute('data-message-id');
+        const contentElement = document.querySelector(`#blacksmith-message-wrapper[data-message-id="${messageId}"]`);
+        let content = contentElement ? contentElement.innerHTML : null;
         
         try {
             // Extract just the JSON content from the HTML
@@ -1321,10 +1373,10 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     async _onSendToChat(event) {
         event.preventDefault();
-        const button = $(event.currentTarget);
-        const messageId = button.data('message-id');
-        const contentElement = $(`#blacksmith-message-wrapper[data-message-id="${messageId}"]`);
-        const content = contentElement.length ? contentElement.html() : null;
+        const button = event.currentTarget;
+        const messageId = button.getAttribute('data-message-id');
+        const contentElement = document.querySelector(`#blacksmith-message-wrapper[data-message-id="${messageId}"]`);
+        const content = contentElement ? contentElement.innerHTML : null;
         postConsoleAndNotification(MODULE.NAME, "Content Element:", contentElement, true, false);
         postConsoleAndNotification(MODULE.NAME, "Content:", content, true, false);
         playSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMESOFT);
@@ -1346,10 +1398,10 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     async _onCopyToClipboard(event) {
         event.preventDefault();
-        const button = $(event.currentTarget);
-        const messageId = button.data('message-id');
-        const contentElement = $(`#blacksmith-message-content[data-message-id="${messageId}"]`);
-        let content = contentElement.length ? contentElement.html() : null;
+        const button = event.currentTarget;
+        const messageId = button.getAttribute('data-message-id');
+        const contentElement = document.querySelector(`#blacksmith-message-content[data-message-id="${messageId}"]`);
+        let content = contentElement ? contentElement.innerHTML : null;
         postConsoleAndNotification(MODULE.NAME, "Content Element:", contentElement, false, false);
         postConsoleAndNotification(MODULE.NAME, "Content:", content, false, false);
         playSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMESOFT);
@@ -2458,13 +2510,23 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
     }
     // send the messag to the output window.
     displayMessage(message) {
-        this.element.find('#coffee-pub-blacksmith-output').append(message);
-        this._scrollToBottom();
+        const output = this.element.querySelector('#coffee-pub-blacksmith-output');
+        if (output) {
+            // If message is a string, use insertAdjacentHTML, otherwise appendChild
+            if (typeof message === 'string') {
+                output.insertAdjacentHTML('beforeend', message);
+            } else {
+                output.appendChild(message);
+            }
+            this._scrollToBottom();
+        }
     }
 
     _scrollToBottom() {
-        const output = this.element.find('#coffee-pub-blacksmith-output');
-        output.scrollTop(output[0].scrollHeight);
+        const output = this.element.querySelector('#coffee-pub-blacksmith-output');
+        if (output) {
+            output.scrollTop = output.scrollHeight;
+        }
     }
 
     // Pass Data to the template
@@ -2587,42 +2649,51 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
 
         // Apply level counts
         Object.entries(levelCounts).forEach(([level, count]) => {
-            const levelButton = this.element.find(`.level-button[data-level="${level}"]`);
-            if (levelButton.length) {
+            const levelButton = this.element.querySelector(`.level-button[data-level="${level}"]`);
+            if (levelButton) {
                 // Remove both classes first
-                levelButton.removeClass('active auto');
+                levelButton.classList.remove('active', 'auto');
                 // Add 'auto' since count matches token count
-                levelButton.addClass('auto');
-                levelButton.find('.count').text(count).show();
+                levelButton.classList.add('auto');
+                const countElement = levelButton.querySelector('.count');
+                if (countElement) {
+                    countElement.textContent = count;
+                    countElement.style.display = '';
+                }
 
                 // Activate the clear button
-                const clearButton = levelButton.find('.clear-button');
-                if (clearButton.length) {
-                    clearButton.show();
+                const clearButton = levelButton.querySelector('.clear-button');
+                if (clearButton) {
+                    clearButton.style.display = '';
                 }
             }
         });
 
         // Apply class counts
         Object.entries(classCounts).forEach(([className, count]) => {
-            const classButton = this.element.find(`.class-button[data-class="${className.toLowerCase()}"]`);
-            if (classButton.length) {
+            const classButton = this.element.querySelector(`.class-button[data-class="${className.toLowerCase()}"]`);
+            if (classButton) {
                 // Remove both classes first
-                classButton.removeClass('active auto');
+                classButton.classList.remove('active', 'auto');
                 // Add 'auto' since count matches token count
-                classButton.addClass('auto');
-                classButton.find('.count').text(count).show();
+                classButton.classList.add('auto');
+                const countElement = classButton.querySelector('.count');
+                if (countElement) {
+                    countElement.textContent = count;
+                    countElement.style.display = '';
+                }
 
                 // Activate the clear button
-                const clearButton = classButton.find('.clear-button');
-                if (clearButton.length) {
-                    clearButton.show();
+                const clearButton = classButton.querySelector('.clear-button');
+                if (clearButton) {
+                    clearButton.style.display = '';
                 }
             }
         });
 
         // Update Encounter Benchmark info
-        const id = this.element.closest('.window-content').data('window-id');
+        const windowContent = this.element.closest('.window-content');
+        const id = windowContent ? windowContent.getAttribute('data-window-id') : null;
         if (id) {
             // Wrap these calls in a setTimeout to ensure they run after the DOM has updated
             setTimeout(() => {

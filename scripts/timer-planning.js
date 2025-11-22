@@ -145,8 +145,15 @@ export class PlanningTimer {
             if (data?.wasExpired || data?.shouldFadeOut) {
                 // Handle UI updates without modifying state
                 if (data.shouldFadeOut) {
-                    $('.planning-phase').fadeOut(400, function() {
-                        $(this).remove();
+                    const planningPhaseElements = document.querySelectorAll('.planning-phase');
+                    planningPhaseElements.forEach((el) => {
+                        el.style.transition = 'opacity 0.4s';
+                        el.style.opacity = '0';
+                        setTimeout(() => {
+                            if (el.parentNode) {
+                                el.remove();
+                            }
+                        }, 400);
                     });
                 }
             }
@@ -176,8 +183,15 @@ export class PlanningTimer {
                 setTimeout(async () => {
                     const socket = SocketManager.getSocket();
                     await socket.executeForOthers("timerCleanup", { shouldFadeOut: true });
-                    $('.planning-phase').fadeOut(400, function() {
-                        $(this).remove();
+                    const planningPhaseElements = document.querySelectorAll('.planning-phase');
+                    planningPhaseElements.forEach((el) => {
+                        el.style.transition = 'opacity 0.4s';
+                        el.style.opacity = '0';
+                        setTimeout(() => {
+                            if (el.parentNode) {
+                                el.remove();
+                            }
+                        }, 400);
                     });
                 }, 3000);
             }
@@ -265,8 +279,15 @@ export class PlanningTimer {
                 setTimeout(async () => {
                     const socket = SocketManager.getSocket();
                     await socket.executeForOthers("timerCleanup", { shouldFadeOut: true });
-                    $('.planning-phase').fadeOut(400, function() {
-                        $(this).remove();
+                    const planningPhaseElements = document.querySelectorAll('.planning-phase');
+                    planningPhaseElements.forEach((el) => {
+                        el.style.transition = 'opacity 0.4s';
+                        el.style.opacity = '0';
+                        setTimeout(() => {
+                            if (el.parentNode) {
+                                el.remove();
+                            }
+                        }, 400);
                     });
                 }, 3000);
             }
@@ -600,41 +621,42 @@ export class PlanningTimer {
             const percentage = (this.state.remaining / timeLimit) * 100;
             
             // Update progress bar width and color classes
-            const bar = $('.planning-timer-bar');
-            if (!bar.length) return;
+            const bar = document.querySelector('.planning-timer-bar');
+            if (!bar) return;
             
-            bar.css('width', `${percentage}%`);
+            bar.style.width = `${percentage}%`;
             
             // Update color classes based on percentage
-            bar.removeClass('high medium low expired');
+            bar.classList.remove('high', 'medium', 'low', 'expired');
+            const progressElements = document.querySelectorAll('.planning-timer-progress');
             if (this.state.remaining <= 0) {
-                bar.addClass('expired');
-                $('.planning-timer-progress').addClass('expired');
+                bar.classList.add('expired');
+                progressElements.forEach(el => el.classList.add('expired'));
             } else if (percentage <= 25) {
-                bar.addClass('low');
-                $('.planning-timer-progress').removeClass('expired');
+                bar.classList.add('low');
+                progressElements.forEach(el => el.classList.remove('expired'));
             } else if (percentage <= 50) {
-                bar.addClass('medium');
-                $('.planning-timer-progress').removeClass('expired');
+                bar.classList.add('medium');
+                progressElements.forEach(el => el.classList.remove('expired'));
             } else {
-                bar.addClass('high');
-                $('.planning-timer-progress').removeClass('expired');
+                bar.classList.add('high');
+                progressElements.forEach(el => el.classList.remove('expired'));
             }
 
             if (this.state.showingMessage) return;
 
-            const timerText = $('.planning-timer-text');
-            if (!timerText.length) return;
+            const timerText = document.querySelector('.planning-timer-text');
+            if (!timerText) return;
             
             const label = game.settings.get(MODULE.ID, 'planningTimerLabel');
 
             if (this.state.remaining <= 0) {
-                timerText.text(game.settings.get(MODULE.ID, 'planningTimerExpiredMessage'));
+                timerText.textContent = game.settings.get(MODULE.ID, 'planningTimerExpiredMessage');
             } else if (this.state.isPaused) {
-                timerText.text(`${label} TIMER PAUSED`);
+                timerText.textContent = `${label} TIMER PAUSED`;
             } else {
                 const timeString = this.formatTime(this.state.remaining);
-                timerText.text(`${timeString} ${label}`);
+                timerText.textContent = `${timeString} ${label}`;
             }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Planning Timer | Error updating UI:", error, false, false);
@@ -694,8 +716,15 @@ export class PlanningTimer {
             const socket = SocketManager.getSocket();
             await socket.executeForOthers("timerCleanup", { wasExpired: true, shouldFadeOut: true });
         }
-        $('.planning-phase').fadeOut(400, function() {
-            $(this).remove();
+        const planningPhaseElements = document.querySelectorAll('.planning-phase');
+        planningPhaseElements.forEach((el) => {
+            el.style.transition = 'opacity 0.4s';
+            el.style.opacity = '0';
+            setTimeout(() => {
+                if (el.parentNode) {
+                    el.remove();
+                }
+            }, 400);
         });
 
         // Trigger planning timer expired hook
@@ -765,8 +794,15 @@ export class PlanningTimer {
             socket.executeForOthers("timerCleanup", { wasExpired: true });
             setTimeout(async () => {
                 await socket.executeForOthers("timerCleanup", { wasExpired: true, shouldFadeOut: true });
-                $('.planning-phase').fadeOut(400, function() {
-                    $(this).remove();
+                const planningPhaseElements = document.querySelectorAll('.planning-phase');
+                planningPhaseElements.forEach((el) => {
+                    el.style.transition = 'opacity 0.4s';
+                    el.style.opacity = '0';
+                    setTimeout(() => {
+                        if (el.parentNode) {
+                            el.remove();
+                        }
+                    }, 400);
                 });
             }, 3000);
         }
