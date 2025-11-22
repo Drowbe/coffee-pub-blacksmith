@@ -61,15 +61,15 @@ export class NavigationManager {
         // Update scene icons on initial load
         NavigationManager._updateSceneIcons();
         
-        // Try to attach listeners if elements exist
+        // Try to attach listeners if elements exist (v13: pass native DOM element, not jQuery)
         const sceneDirectory = document.querySelector('#scenes');
         if (sceneDirectory) {
-            NavigationManager._attachSceneClickListeners($(sceneDirectory));
+            NavigationManager._attachSceneClickListeners(sceneDirectory);
         }
         
         const sceneNavigation = document.querySelector('#navigation');
         if (sceneNavigation) {
-            NavigationManager._attachSceneClickListeners($(sceneNavigation));
+            NavigationManager._attachSceneClickListeners(sceneNavigation);
         }
         
         // Try ui.scenes.element if direct query failed
