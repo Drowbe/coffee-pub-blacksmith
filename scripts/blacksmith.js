@@ -551,9 +551,25 @@ Hooks.once('init', async function() {
         context: 'blacksmith-skill-check',
         priority: 3, // Normal priority - UI interaction
         callback: (message, html) => {
+            // v13: Handle both jQuery and native DOM (renderChatMessage hook may still pass jQuery)
+            let htmlElement;
+            if (html && typeof html.jquery !== 'undefined') {
+                // It's a jQuery object, get the native DOM element
+                htmlElement = html[0] || html.get?.(0);
+            } else if (html && typeof html.querySelectorAll === 'function') {
+                // It's already a native DOM element
+                htmlElement = html;
+            } else {
+                return;
+            }
+            
+            if (!htmlElement) {
+                return;
+            }
+            
             if (message.flags?.['coffee-pub-blacksmith']?.type === 'skillCheck') {
                 // Check ownership and disable buttons for non-owners
-                const skillCheckActors = html.querySelectorAll('.cpb-skill-check-actor');
+                const skillCheckActors = htmlElement.querySelectorAll('.cpb-skill-check-actor');
                 
                 skillCheckActors.forEach((actorDiv) => {
                     const actorId = actorDiv.getAttribute('data-actor-id');
@@ -570,7 +586,7 @@ Hooks.once('init', async function() {
                     }
                 });
                 
-                SkillCheckDialog.handleChatMessageClick(message, html);
+                SkillCheckDialog.handleChatMessageClick(message, htmlElement);
             }
         }
     });
@@ -1044,9 +1060,24 @@ const hideHeaderChatHookId = HookManager.registerHook({
     context: 'blacksmith-hide-header',
     priority: 3, // Normal priority - UI enhancement
     callback: (message, html, data) => {
+        // v13: Handle both jQuery and native DOM (renderChatMessage hook may still pass jQuery)
+        let htmlElement;
+        if (html && typeof html.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            htmlElement = html[0] || html.get?.(0);
+        } else if (html && typeof html.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            htmlElement = html;
+        } else {
+            return;
+        }
+        
+        if (!htmlElement) {
+            return;
+        }
 
         // Find span containing "coffeepub-hide-header" text
-        const spans = html.querySelectorAll('span');
+        const spans = htmlElement.querySelectorAll('span');
         let hideHeaderFlag = null;
         for (const span of spans) {
             if (span.textContent.includes('coffeepub-hide-header')) {
