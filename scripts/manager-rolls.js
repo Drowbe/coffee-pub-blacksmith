@@ -838,7 +838,24 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
         case 'tool':
             postConsoleAndNotification(MODULE.NAME, `Creating manual tool roll for: ${value}`, null, true, false);
             // Create a tool check roll manually: 1d20 + abilityMod + profBonus
-            const toolItem = actor.items.get(value) || actor.items.find(i => i.system.baseItem === value);
+            // Try multiple lookup methods: by ID, by baseItem, by name
+            let toolItem = actor.items.get(value);
+            if (!toolItem) {
+                toolItem = actor.items.find(i => i.system.baseItem === value);
+            }
+            if (!toolItem) {
+                // Try finding by name (case-insensitive)
+                const toolName = value.toLowerCase();
+                toolItem = actor.items.find(i => i.type === 'tool' && i.name?.toLowerCase() === toolName);
+            }
+            if (!toolItem) {
+                // Try finding any tool item as last resort
+                const tools = actor.items.filter(i => i.type === 'tool');
+                if (tools.length > 0) {
+                    postConsoleAndNotification(MODULE.NAME, `Tool item ${value} not found, using first available tool: ${tools[0].name}`, null, true, false);
+                    toolItem = tools[0];
+                }
+            }
             if (toolItem) {
                 const ability = toolItem.system.ability || "int";
                 const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
