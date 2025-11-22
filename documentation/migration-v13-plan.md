@@ -44,75 +44,122 @@ This document outlines a comprehensive migration plan for Coffee Pub Blacksmith 
 
 ## Migration Phases
 
-### Phase 0: Lock Down v12 Release
+### Phase 0: Lock Down v12 Release ✅ **COMPLETE**
 **Priority:** 🔴 Critical  
 **Estimated Effort:** 1 hour  
-**Timeline:** Before starting migration
+**Timeline:** Before starting migration  
+**Status:** ✅ Completed
 
 #### 0.1 Finalize v12 Release
 **Tasks:**
-- [ ] Ensure v12.1.22 is stable and tested
-- [ ] Create git tag: `v12.1.22-FINAL` (clearly marks as final v12 release)
-- [ ] Create GitHub release for v12.1.22-FINAL
-- [ ] Update README to note v12.1.22-FINAL as final v12 release
-- [ ] Document v12 support end date
-- [ ] Create `v12-maintenance` branch (optional, for critical v12 fixes only)
+- [x] Ensure v12.1.23 is stable and tested
+- [x] Create git tag: `v12.1.23-FINAL` (clearly marks as final v12 release)
+- [x] Create GitHub release for v12.1.23-FINAL
+- [x] Update README to note v12.1.23-FINAL as final v12 release
+- [x] Update CHANGELOG with final v12 release
+- [x] Document v12 support end date
+- [x] Update module.json to v13.0.0
 
 **Note:** After this point, all development focuses on v13 only.
 
 ---
 
-### Phase 1: Critical Fixes (Blocks v13 Compatibility)
+### Phase 1: Critical Fixes (Blocks v13 Compatibility) ✅ **COMPLETE**
 **Priority:** 🔴 Critical  
 **Estimated Effort:** 6-10 hours (reduced from 8-12, no dual-compatibility)  
-**Timeline:** 1-2 days
+**Timeline:** 1-2 days  
+**Status:** ✅ Completed
 
-#### 1.1 Fix `getSceneControlButtons` Hook
+#### 1.1 Fix `getSceneControlButtons` Hook ✅
 **File:** `scripts/manager-toolbar.js`  
-**Effort:** 2-3 hours
+**Effort:** 2-3 hours  
+**Status:** ✅ Completed
 
 **Tasks:**
-- [ ] Replace `controls.findIndex()` with object property check
-- [ ] Replace `controls.splice()` with object deletion
-- [ ] Replace `controls.push()` with object property assignment
-- [ ] Replace `controls.find()` with direct property access
-- [ ] Update tools handling (array → object)
-- [ ] Use v13-only patterns (no dual-compatibility needed)
-- [ ] Test toolbar functionality
+- [x] Replace `controls.findIndex()` with object property check
+- [x] Replace `controls.splice()` with object deletion
+- [x] Replace `controls.push()` with object property assignment
+- [x] Replace `controls.find()` with direct property access
+- [x] Update tools handling (array → object)
+- [x] Use v13-only patterns (no dual-compatibility needed)
+- [x] Test toolbar functionality
 
 **Complexity:** Medium - Requires understanding of controls structure changes  
 **Note:** v13-only approach simplifies implementation (no version checks needed)
 
-#### 1.2 Fix `renderCombatTracker` Hooks
-**Files:** 5 files affected
-- `scripts/combat-tools.js` (14 instances)
-- `scripts/combat-tracker.js` (2 instances)
-- `scripts/timer-planning.js` (4 instances)
-- `scripts/timer-round.js` (2 instances)
-- `scripts/timer-combat.js` (6 instances)
+#### 1.2 Fix `renderCombatTracker` Hooks ✅
+**Files:** 5 files affected  
+**Status:** ✅ Completed
+- `scripts/combat-tools.js` (14 instances) ✅
+- `scripts/combat-tracker.js` (2 instances) ✅
+- `scripts/timer-planning.js` (4 instances) ✅
+- `scripts/timer-round.js` (2 instances) ✅
+- `scripts/timer-combat.js` (6 instances) ✅
 
-**Effort:** 4-6 hours (1-1.5 hours per file)
+**Additional files fixed:**
+- `scripts/manager-navigation.js` - `renderSceneNavigation` and `renderSceneDirectory` hooks ✅
+
+**Effort:** 4-6 hours (1-1.5 hours per file)  
+**Actual:** ~4 hours
 
 **Tasks Per File:**
-- [ ] Replace `html.find()` with `html.querySelectorAll()` or `html.querySelector()`
-- [ ] Replace `.each()` with `.forEach()`
-- [ ] Replace `.append()`, `.before()`, `.after()` with native DOM methods
-- [ ] Replace `.remove()` with native `.remove()` (same API)
-- [ ] Update length checks for NodeLists
-- [ ] Replace `$(element)` with native element handling
-- [ ] Test combat tracker functionality
+- [x] Replace `html.find()` with `html.querySelectorAll()` or `html.querySelector()`
+- [x] Replace `.each()` with `.forEach()`
+- [x] Replace `.append()`, `.before()`, `.after()` with native DOM methods
+- [x] Replace `.remove()` with native `.remove()` (same API)
+- [x] Update length checks for NodeLists
+- [x] Replace `$(element)` with native element handling
+- [x] Fix SVG className bug (use `setAttribute('class', ...)` instead of `className`)
+- [x] Test combat tracker functionality
 
 **Complexity:** Medium - Systematic jQuery → DOM conversion
 
-#### 1.3 Testing Critical Path
-**Effort:** 2-3 hours
+#### 1.3 Testing Critical Path ✅
+**Effort:** 2-3 hours  
+**Status:** ✅ Completed
 
 **Tasks:**
-- [ ] Test scene controls in v13
-- [ ] Test combat tracker rendering
-- [ ] Test timer functionality
-- [ ] Verify no console errors
-- [ ] Smoke test core module features
+- [x] Test scene controls in v13
+- [x] Test combat tracker rendering
+- [x] Test timer functionality
+- [x] Verify no console errors
+- [x] Smoke test core module features
+
+**Result:** ✅ Error-free, 0 console errors
+
+---
+
+### Phase 1.5: Deprecation Warnings ✅ **COMPLETE**
+**Priority:** 🟡 High  
+**Estimated Effort:** 1-2 hours  
+**Timeline:** After Phase 1  
+**Status:** ✅ Completed
+
+#### 1.5.1 Fix Token#target Deprecation ✅
+**File:** `scripts/token-image-utilities.js`  
+**Status:** ✅ Completed
+
+**Tasks:**
+- [x] Replace `token.target` with `token.targetArrows` and `token.targetPips`
+- [x] Update `_onRefreshTokenForHiding()` method
+- [x] Update `_hideAllTargetIndicators()` method
+- [x] Test token target indicators
+
+**Note:** Deprecated in v13, removed in v14 - urgent fix
+
+#### 1.5.2 Fix FilePicker Deprecation ✅
+**Files:** `scripts/manager-image-cache.js`, `scripts/blacksmith.js`  
+**Status:** ✅ Completed
+
+**Tasks:**
+- [x] Replace global `FilePicker` with `foundry.applications.apps.FilePicker.implementation`
+- [x] Add static getter helper `ImageCacheManager.FilePicker`
+- [x] Update all 5 `FilePicker.browse()` calls
+- [x] Test file browsing functionality
+
+**Note:** Deprecated in v13, removed in v15 - less urgent but fixed proactively
+
+**Result:** ✅ Warning-free, 0 deprecation warnings
 
 ---
 

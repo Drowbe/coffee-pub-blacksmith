@@ -4,17 +4,29 @@
 
 This document tracks the migration process from FoundryVTT v12 to v13, including API changes, breaking changes, and issues encountered during migration.
 
+**Migration Status:**
+- **Phase 1:** ✅ Complete - Critical fixes (0 errors)
+- **Phase 1.5:** ✅ Complete - Deprecation warnings (0 warnings)
+- **Phase 2:** 🟡 In Progress - jQuery removal for remaining files
+
 **Summary of Issues Found:**
-- **Error #1:** `controls.findIndex is not a function` - `getSceneControlButtons` hook now receives object instead of array
-- **Errors #2-5:** `html.find is not a function` - Multiple files affected by jQuery removal in `renderCombatTracker` hook
-  - `combat-tools.js`
-  - `combat-tracker.js`
-  - `timer-planning.js`
-  - `timer-round.js`
+- **Error #1:** `controls.findIndex is not a function` - `getSceneControlButtons` hook now receives object instead of array ✅ **FIXED**
+- **Errors #2-6:** `html.find is not a function` - Multiple files affected by jQuery removal ✅ **FIXED**
+  - `combat-tools.js` ✅
+  - `combat-tracker.js` ✅
+  - `timer-planning.js` ✅
+  - `timer-round.js` ✅
+  - `timer-combat.js` ✅
+  - `manager-navigation.js` ✅
+
+**Additional Issues Fixed:**
+- **Bug #1:** SVG `className` property error - Fixed by using `setAttribute('class', ...)` ✅
+- **Warning #1:** `Token#target` deprecation - Fixed by using `targetArrows` and `targetPips` ✅
+- **Warning #2:** `FilePicker` deprecation - Fixed by using namespaced `foundry.applications.apps.FilePicker.implementation` ✅
 
 **Key Breaking Changes:**
-1. `getSceneControlButtons` - controls changed from array to object
-2. jQuery removal - all hooks now receive native DOM elements instead of jQuery objects
+1. `getSceneControlButtons` - controls changed from array to object ✅ **MIGRATED**
+2. jQuery removal - all hooks now receive native DOM elements instead of jQuery objects ✅ **MIGRATED**
 
 ---
 
@@ -521,34 +533,69 @@ Same as previous errors - replace jQuery methods with native DOM methods.
 
 ## Migration Checklist
 
-### Scene Controls Migration
-- [ ] Review all `getSceneControlButtons` hook implementations
-- [ ] Update controls manipulation code for v13 API (object-based instead of array-based)
-- [ ] Update tools manipulation within controls (object-based instead of array-based)
-- [ ] Implement dual-compatibility pattern for v12/v13 or migrate to v13-only
-- [ ] Test toolbar functionality in both v12 and v13 (if supporting both)
-- [ ] Verify all scene control buttons work correctly
-- [ ] Test with other modules that might interact with scene controls
+### Phase 1: Critical Fixes ✅ **COMPLETE**
 
-### ApplicationV2 Migration
+#### Scene Controls Migration ✅
+- [x] Review all `getSceneControlButtons` hook implementations
+- [x] Update controls manipulation code for v13 API (object-based instead of array-based)
+- [x] Update tools manipulation within controls (object-based instead of array-based)
+- [x] Migrate to v13-only patterns (no dual-compatibility)
+- [x] Test toolbar functionality in v13
+- [x] Verify all scene control buttons work correctly
+
+#### jQuery Removal - Critical Hooks ✅
+- [x] Update all `renderCombatTracker` hooks to handle native HTMLElement instead of jQuery
+  - [x] `combat-tools.js` ✅
+  - [x] `combat-tracker.js` ✅
+  - [x] `timer-planning.js` ✅
+  - [x] `timer-round.js` ✅
+  - [x] `timer-combat.js` ✅
+- [x] Update `renderSceneNavigation` and `renderSceneDirectory` hooks
+  - [x] `manager-navigation.js` ✅
+- [x] Fix SVG className bug (use `setAttribute('class', ...)`)
+- [x] Replace jQuery selectors with native `querySelector` / `querySelectorAll`
+- [x] Replace jQuery DOM manipulation with native methods
+- [x] Replace jQuery event handlers with native `addEventListener`
+- [x] Test all UI interactions
+
+#### Phase 1.5: Deprecation Warnings ✅
+- [x] Fix `Token#target` deprecation (use `targetArrows` and `targetPips`)
+  - [x] `token-image-utilities.js` ✅
+- [x] Fix `FilePicker` deprecation (use `foundry.applications.apps.FilePicker.implementation`)
+  - [x] `manager-image-cache.js` ✅
+  - [x] `blacksmith.js` ✅
+
+### Phase 2: jQuery Removal - Remaining Files 🟡 **IN PROGRESS**
+
+#### High-Impact Files
+- [ ] `scripts/window-skillcheck.js` (66 instances)
+- [ ] `scripts/window-query.js` (23 instances)
+- [ ] `scripts/window-gmtools.js` (26 instances)
+- [ ] `scripts/journal-tools.js` (12 instances)
+- [ ] `scripts/encounter-toolbar.js` (10 instances)
+
+#### Medium-Impact Files
+- [ ] `scripts/token-image-replacement.js` (16 instances)
+- [ ] `scripts/blacksmith.js` (10 instances)
+- [ ] `scripts/xp-manager.js` (18 instances)
+- [ ] `scripts/token-image-utilities.js` (24 instances)
+- [ ] `scripts/api-menubar.js` (39 instances)
+- [ ] `scripts/combat-tools.js` (19 instances) - Additional jQuery usage outside hooks
+- [ ] `scripts/timer-planning.js` (11 instances) - Additional jQuery usage outside hooks
+- [ ] `scripts/timer-combat.js` (8 instances) - Additional jQuery usage outside hooks
+- [ ] `scripts/manager-rolls.js` (5 instances)
+
+### Phase 3: ApplicationV2 Migration 🔵 **PLANNED**
 - [ ] Identify all Application classes
 - [ ] Plan migration strategy for each Application
 - [ ] Migrate to ApplicationV2 framework
 - [ ] Test all application windows and dialogs
 
-### jQuery Removal
-- [ ] Identify all jQuery usage in codebase (use grep for `.find(`, `.each(`, `$(` patterns)
-- [ ] Replace jQuery selectors with native `document.querySelector` / `querySelectorAll`
-- [ ] Replace jQuery DOM manipulation with native methods (`.append()` → `.appendChild()`, etc.)
-- [ ] Replace jQuery event handlers with native `addEventListener`
-- [ ] Update all `renderCombatTracker` hooks to handle native HTMLElement instead of jQuery
-- [ ] Update all other hooks that receive `html` parameter (check all render hooks)
-- [ ] Test all UI interactions
-
 ### General
-- [ ] Review all hook implementations for v13 changes
-- [ ] Check for deprecated APIs and methods
-- [ ] Update module.json minimum Core Version to v13.0.0
+- [x] Update module.json minimum Core Version to v13.0.0 ✅
+- [x] Review critical hook implementations for v13 changes ✅
+- [x] Check for deprecated APIs and methods ✅
+- [ ] Review all remaining hook implementations for v13 changes
 - [ ] Test all module functionality end-to-end
 - [ ] Update documentation
 
