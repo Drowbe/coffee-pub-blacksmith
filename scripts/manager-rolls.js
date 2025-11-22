@@ -1126,13 +1126,30 @@ class RollWindow extends Application {
 
     activateListeners(html) {
         super.activateListeners(html);
+        
+        // v13: Handle both jQuery and native DOM (html parameter may still be jQuery)
+        let htmlElement;
+        if (html && typeof html.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            htmlElement = html[0] || html.get?.(0);
+        } else if (html && typeof html.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            htmlElement = html;
+        } else {
+            return;
+        }
+        
+        if (!htmlElement) {
+            return;
+        }
+        
         postConsoleAndNotification(MODULE.NAME, `RollWindow activateListeners: Setting up event handlers`, null, true, false);
         
         // Roll buttons - each button triggers a roll with different advantage/disadvantage
-        const rollAdvantage = html.querySelector('.roll-advantage');
-        const rollNormal = html.querySelector('.roll-normal');
-        const rollDisadvantage = html.querySelector('.roll-disadvantage');
-        const cancelRoll = html.querySelector('.cancel-roll');
+        const rollAdvantage = htmlElement.querySelector('.roll-advantage');
+        const rollNormal = htmlElement.querySelector('.roll-normal');
+        const rollDisadvantage = htmlElement.querySelector('.roll-disadvantage');
+        const cancelRoll = htmlElement.querySelector('.cancel-roll');
         
         if (rollAdvantage) {
             rollAdvantage.addEventListener('click', async (event) => {
@@ -1165,7 +1182,7 @@ class RollWindow extends Application {
         }
 
         // Real-time formula updates
-        this._setupFormulaUpdates(html);
+        this._setupFormulaUpdates(htmlElement);
     }
 
     async _executeRoll(rollType) {
@@ -1217,9 +1234,25 @@ class RollWindow extends Application {
     }
     
     _setupFormulaUpdates(html) {
-        const formulaElement = html.querySelector('.roll-formula');
-        const situationalInput = html.querySelector('input[name="situational-bonus"]');
-        const customModifierInput = html.querySelector('input[name="custom-modifier"]');
+        // v13: Handle both jQuery and native DOM (html parameter may still be jQuery)
+        let htmlElement;
+        if (html && typeof html.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            htmlElement = html[0] || html.get?.(0);
+        } else if (html && typeof html.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            htmlElement = html;
+        } else {
+            return;
+        }
+        
+        if (!htmlElement) {
+            return;
+        }
+        
+        const formulaElement = htmlElement.querySelector('.roll-formula');
+        const situationalInput = htmlElement.querySelector('input[name="situational-bonus"]');
+        const customModifierInput = htmlElement.querySelector('input[name="custom-modifier"]');
         
         if (!formulaElement || !situationalInput || !customModifierInput) return;
         
@@ -1593,24 +1626,36 @@ export async function updateCinemaOverlay(rollResults, context) {
                         
                         // Auto-close after showing group results
                         setTimeout(() => {
-                            overlay.fadeOut(1000, () => {
-                                overlay.remove();
-                            });
+                            overlay.style.transition = 'opacity 1s';
+                            overlay.style.opacity = '0';
+                            setTimeout(() => {
+                                if (overlay.parentNode) {
+                                    overlay.remove();
+                                }
+                            }, 1000);
                         }, groupResultsTime); // Longer delay for group results
                     } else {
                         // No group results, just auto-close
                         setTimeout(() => {
-                            overlay.fadeOut(1000, () => {
-                                overlay.remove();
-                            });
+                            overlay.style.transition = 'opacity 1s';
+                            overlay.style.opacity = '0';
+                            setTimeout(() => {
+                                if (overlay.parentNode) {
+                                    overlay.remove();
+                                }
+                            }, 1000);
                         }, rollResultsTime);
                     }
                 } else {
                     // No message data, just auto-close
                     setTimeout(() => {
-                        overlay.fadeOut(1000, () => {
-                            overlay.remove();
-                        });
+                        overlay.style.transition = 'opacity 1s';
+                        overlay.style.opacity = '0';
+                        setTimeout(() => {
+                            if (overlay.parentNode) {
+                                overlay.remove();
+                            }
+                        }, 1000);
                     }, rollResultsTime);
                 }
             }

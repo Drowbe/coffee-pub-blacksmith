@@ -121,20 +121,37 @@ export class TokenImageReplacementWindow extends Application {
      */
     _registerDomEvent(html, selector, eventName, handler, delegate = false) {
         if (!html) return;
+        
+        // v13: Handle both jQuery and native DOM (html parameter may still be jQuery)
+        let htmlElement;
+        if (html && typeof html.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            htmlElement = html[0] || html.get?.(0);
+        } else if (html && typeof html.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            htmlElement = html;
+        } else {
+            return;
+        }
+        
+        if (!htmlElement) {
+            return;
+        }
+        
         const boundHandler = handler.bind(this);
         if (delegate) {
-            // Event delegation: listen on html, check if target matches selector
+            // Event delegation: listen on htmlElement, check if target matches selector
             const delegatedHandler = (event) => {
                 const target = event.target.closest(selector);
                 if (target) {
                     boundHandler.call(this, event);
                 }
             };
-            html.addEventListener(eventName, delegatedHandler);
-            this._domEventDisposers.push(() => html.removeEventListener(eventName, delegatedHandler));
+            htmlElement.addEventListener(eventName, delegatedHandler);
+            this._domEventDisposers.push(() => htmlElement.removeEventListener(eventName, delegatedHandler));
             return;
         }
-        const targets = html.querySelectorAll(selector);
+        const targets = htmlElement.querySelectorAll(selector);
         if (targets.length === 0) return;
         targets.forEach(target => {
             target.addEventListener(eventName, boundHandler);
@@ -233,8 +250,23 @@ export class TokenImageReplacementWindow extends Application {
      * Show the search spinner overlay
      */
     _showSearchSpinner() {
-        const html = this.element;
-        const spinner = html.querySelector('.tir-search-spinner');
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let htmlElement;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            htmlElement = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            htmlElement = this.element;
+        } else {
+            return;
+        }
+        
+        if (!htmlElement) {
+            return;
+        }
+        
+        const spinner = htmlElement.querySelector('.tir-search-spinner');
         if (spinner) spinner.classList.remove('hidden');
     }
 
@@ -242,8 +274,23 @@ export class TokenImageReplacementWindow extends Application {
      * Hide the search spinner overlay
      */
     _hideSearchSpinner() {
-        const html = this.element;
-        const spinner = html.querySelector('.tir-search-spinner');
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let htmlElement;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            htmlElement = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            htmlElement = this.element;
+        } else {
+            return;
+        }
+        
+        if (!htmlElement) {
+            return;
+        }
+        
+        const spinner = htmlElement.querySelector('.tir-search-spinner');
         if (spinner) spinner.classList.add('hidden');
     }
 
@@ -440,62 +487,78 @@ export class TokenImageReplacementWindow extends Application {
     activateListeners(html) {
         super.activateListeners(html);
 
+        // v13: Handle both jQuery and native DOM (html parameter may still be jQuery)
+        let htmlElement;
+        if (html && typeof html.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            htmlElement = html[0] || html.get?.(0);
+        } else if (html && typeof html.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            htmlElement = html;
+        } else {
+            return;
+        }
+        
+        if (!htmlElement) {
+            return;
+        }
+
         this._clearDomEvents();
 
         // Thumbnail clicks
-        this._registerDomEvent(html, '.tir-thumbnail-item', 'click', this._onSelectImage, true);
-        this._registerDomEvent(html, '.tir-thumbnail-item', 'contextmenu', this._onImageRightClick, true);
+        this._registerDomEvent(htmlElement, '.tir-thumbnail-item', 'click', this._onSelectImage, true);
+        this._registerDomEvent(htmlElement, '.tir-thumbnail-item', 'contextmenu', this._onImageRightClick, true);
         
         // Pause cache button
-        this._registerDomEvent(html, '.button-pause-cache', 'click', this._onPauseCache);
+        this._registerDomEvent(htmlElement, '.button-pause-cache', 'click', this._onPauseCache);
         
         // Scan images button
-        this._registerDomEvent(html, '.button-scan-images', 'click', this._onScanImages);
+        this._registerDomEvent(htmlElement, '.button-scan-images', 'click', this._onScanImages);
         
         // Delete cache button
-        this._registerDomEvent(html, '.button-delete-cache', 'click', this._onDeleteCache);
+        this._registerDomEvent(htmlElement, '.button-delete-cache', 'click', this._onDeleteCache);
         
         
         // Close button
-        this._registerDomEvent(html, '.close-btn', 'click', this._onClose);
+        this._registerDomEvent(htmlElement, '.close-btn', 'click', this._onClose);
 
         // Search functionality
-        this._registerDomEvent(html, '.tir-search-input', 'input', this._onSearchInput);
+        this._registerDomEvent(htmlElement, '.tir-search-input', 'input', this._onSearchInput);
         
         // Sort order change
-        this._registerDomEvent(html, '.tir-select', 'change', this._onSortOrderChange);
-        this._registerDomEvent(html, '.tir-search-input', 'keypress', (event) => {
+        this._registerDomEvent(htmlElement, '.tir-select', 'change', this._onSortOrderChange);
+        this._registerDomEvent(htmlElement, '.tir-search-input', 'keypress', (event) => {
             if (event.which === 13) { // Enter key
                 event.preventDefault();
             }
         });
         
         // Infinite scroll
-        this._registerDomEvent(html, '.tir-thumbnails-grid', 'scroll', this._onScroll);
+        this._registerDomEvent(htmlElement, '.tir-thumbnails-grid', 'scroll', this._onScroll);
         
         
         // Filter category click handlers
-        this._registerDomEvent(html, '.tir-filter-category', 'click', this._onCategoryFilterClick, true);
+        this._registerDomEvent(htmlElement, '.tir-filter-category', 'click', this._onCategoryFilterClick, true);
         
         // Tag click handlers for new tags row
-        this._registerDomEvent(html, '.tir-search-tools-tag', 'click', this._onTagClick, true);
+        this._registerDomEvent(htmlElement, '.tir-search-tools-tag', 'click', this._onTagClick, true);
         
         // Clear search button
-        this._registerDomEvent(html, '.tir-clear-search-btn', 'click', this._onClearSearch);
+        this._registerDomEvent(htmlElement, '.tir-clear-search-btn', 'click', this._onClearSearch);
         
         // Filter toggle button
-        this._registerDomEvent(html, '.tir-filter-toggle-btn', 'click', this._onFilterToggle);
+        this._registerDomEvent(htmlElement, '.tir-filter-toggle-btn', 'click', this._onFilterToggle);
         
         // Initialize filter toggle button state
         this._initializeFilterToggleButton();
         
         // Threshold slider
-        this._registerDomEvent(html, '.tir-rangeslider-input', 'input', this._onThresholdSliderChange);
+        this._registerDomEvent(htmlElement, '.tir-rangeslider-input', 'input', this._onThresholdSliderChange);
         
         // Set initial threshold value in label
         const currentThreshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
         const thresholdPercentage = Math.round(currentThreshold * 100);
-        const thresholdValue = html.querySelector('.tir-threshold-value');
+        const thresholdValue = htmlElement.querySelector('.tir-threshold-value');
         if (thresholdValue) thresholdValue.textContent = `${thresholdPercentage}%`;
         
         // Update Dropped Tokens toggle
