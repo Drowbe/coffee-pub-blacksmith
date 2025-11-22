@@ -20,8 +20,8 @@ Hooks.once('ready', () => {
         // Apply resizable functionality if enabled
         CombatTools.applyResizableSettings(html);
         
-        // Find all combatant control groups
-        const controlGroups = html.find('.combatant-controls');
+        // Find all combatant control groups (v13: html is native DOM element)
+        const controlGroups = html.querySelectorAll('.combatant-controls');
         if (!controlGroups.length) return;
 
         // Set up observer for portrait changes if enabled
@@ -29,16 +29,17 @@ Hooks.once('ready', () => {
             const observer = new MutationObserver((mutations) => {
                 mutations.forEach((mutation) => {
                     if (mutation.type === 'childList' || mutation.type === 'attributes') {
-                        const combatant = $(mutation.target).closest('.combatant');
-                        if (combatant.length) {
-                            updatePortrait(combatant[0]);
+                        // v13: Use native DOM closest() instead of jQuery
+                        const combatant = mutation.target.closest('.combatant');
+                        if (combatant) {
+                            updatePortrait(combatant);
                         }
                     }
                 });
             });
 
-            // Observe the combat tracker for changes
-            html.find('.directory-list').each((i, el) => {
+            // Observe the combat tracker for changes (v13: html is native DOM)
+            html.querySelectorAll('.directory-list').forEach((el) => {
                 observer.observe(el, {
                     childList: true,
                     subtree: true,
@@ -50,47 +51,54 @@ Hooks.once('ready', () => {
 
         // Make combatants draggable for GM only
         if (game.user.isGM) {
-            const directoryList = html.find('.directory-list');
-            const combatants = html.find('.combatant');
+            const directoryList = html.querySelector('.directory-list');
+            const combatants = html.querySelectorAll('.combatant');
 
-        // First, clear any existing drop targets
-        html.find('.drop-target').remove();
+        // First, clear any existing drop targets (v13: native DOM)
+        html.querySelectorAll('.drop-target').forEach(target => target.remove());
 
-        // Add drop targets between combatants
-        combatants.each((i, element) => {
-            const dropTarget = $('<li class="drop-target"></li>');
-            $(element).before(dropTarget);
+        // Add drop targets between combatants (v13: native DOM)
+        combatants.forEach((element) => {
+            const dropTarget = document.createElement('li');
+            dropTarget.className = 'drop-target';
+            element.insertAdjacentElement('beforebegin', dropTarget);
         });
         // Add final drop target at the end
-        directoryList.append($('<li class="drop-target"></li>'));
+        if (directoryList) {
+            const finalDropTarget = document.createElement('li');
+            finalDropTarget.className = 'drop-target';
+            directoryList.appendChild(finalDropTarget);
+        }
 
-        // Make combatants draggable
-        combatants.each((i, element) => {
+        // Make combatants draggable (v13: native DOM forEach)
+        combatants.forEach((element) => {
             element.setAttribute('draggable', 'true');
             element.addEventListener('dragstart', (ev) => {
                 ev.dataTransfer.setData('text/plain', ev.target.dataset.combatantId);
                 ev.target.classList.add('dragging');
                 
-                html.find('#combat-tracker').addClass('dragging-active');
+                const combatTracker = html.querySelector('#combat-tracker');
+                if (combatTracker) combatTracker.classList.add('dragging-active');
             });
 
             element.addEventListener('dragend', (ev) => {
                 ev.target.classList.remove('dragging');
-                html.find('.drag-over').removeClass('drag-over');
+                html.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
                 
-                html.find('#combat-tracker').removeClass('dragging-active');
+                const combatTracker = html.querySelector('#combat-tracker');
+                if (combatTracker) combatTracker.classList.remove('dragging-active');
             });
         });
 
-        // Add drop handlers to drop targets
-        html.find('.drop-target').each((i, element) => {
+        // Add drop handlers to drop targets (v13: native DOM)
+        html.querySelectorAll('.drop-target').forEach((element) => {
             element.addEventListener('dragover', (ev) => {
                 ev.preventDefault();
                 ev.stopPropagation();
-                const draggingElement = html.find('.dragging')[0];
+                const draggingElement = html.querySelector('.dragging');
                 if (draggingElement) {
-                    html.find('.drag-over').removeClass('drag-over');
-                    $(element).addClass('drag-over');
+                    html.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                    element.classList.add('drag-over');
                 }
             });
 
@@ -100,7 +108,7 @@ Hooks.once('ready', () => {
             });
 
             element.addEventListener('dragleave', (ev) => {
-                $(element).removeClass('drag-over');
+                element.classList.remove('drag-over');
             });
 
             element.addEventListener('drop', async (ev) => {
@@ -111,7 +119,7 @@ Hooks.once('ready', () => {
                 if (!draggedId) return;
                 
                 // Remove drag-over styling
-                html.find('.drag-over').removeClass('drag-over');
+                html.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
                 
                 // Get all combatants in current order
                 // Skip if combat doesn't exist (combat might have been deleted)
@@ -123,9 +131,9 @@ Hooks.once('ready', () => {
                 const draggedIndex = combatants.findIndex(c => c.id === draggedId);
                 if (draggedIndex === -1) return;
 
-                // Calculate drop index based on the drop target's position
-                const dropTargets = html.find('.drop-target');
-                const dropIndex = dropTargets.index(element);
+                // Calculate drop index based on the drop target's position (v13: native DOM)
+                const dropTargets = Array.from(html.querySelectorAll('.drop-target'));
+                const dropIndex = dropTargets.indexOf(element);
                 
                 // Calculate new initiative
                 let newInitiative;
@@ -151,10 +159,10 @@ Hooks.once('ready', () => {
         });
         } // End GM-only drag and drop section
 
-        // Process each combatant (for all users)
-        html.find('.combatant').each((i, element) => {
-            const combatant = $(element);
-            const combatantId = combatant.data('combatantId');
+        // Process each combatant (for all users) (v13: native DOM)
+        html.querySelectorAll('.combatant').forEach((element) => {
+            // v13: Use dataset instead of jQuery data()
+            const combatantId = element.dataset.combatantId;
             const actor = game.combat?.combatants.get(combatantId)?.actor;
 
             // Only proceed if we have a valid actor
@@ -165,29 +173,29 @@ Hooks.once('ready', () => {
                 updatePortrait(element);
             }
 
-            // Add our button for GMs
+            // Add our button for GMs (v13: native DOM)
             if (game.user.isGM && getSettingSafely(MODULE.ID, 'combatTrackerSetCurrentCombatant', false)) {
-                const controls = combatant.find('.combatant-controls');
-                const button = $(`
-                    <a class="combatant-control" 
-                       aria-label="Set as Current" 
-                       role="button" 
-                       data-tooltip="Set as Current Combatant" 
-                       data-control="setAsCurrent">
-                        <i class="fas fa-bullseye"></i>
-                    </a>
-                `);
+                const controls = element.querySelector('.combatant-controls');
+                if (controls) {
+                    const button = document.createElement('a');
+                    button.className = 'combatant-control';
+                    button.setAttribute('aria-label', 'Set as Current');
+                    button.setAttribute('role', 'button');
+                    button.setAttribute('data-tooltip', 'Set as Current Combatant');
+                    button.setAttribute('data-control', 'setAsCurrent');
+                    button.innerHTML = '<i class="fas fa-bullseye"></i>';
 
-                button.on('click', async (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
+                    button.addEventListener('click', async (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
 
-                    if (game.combat) {
-                        await game.combat.update({turn: game.combat.turns.findIndex(t => t.id === combatantId)});
-                    }
-                });
+                        if (game.combat) {
+                            await game.combat.update({turn: game.combat.turns.findIndex(t => t.id === combatantId)});
+                        }
+                    });
 
-                controls.prepend(button);
+                    controls.insertBefore(button, controls.firstChild);
+                }
             }
 
             // Only create health ring if the setting is enabled
@@ -218,49 +226,54 @@ Hooks.once('ready', () => {
                 
                 const healthClass = getHealthClass(healthPercent, currentHP);
 
-                // Create container div if it doesn't exist
-                let container = combatant.find('.health-ring-container');
-                if (!container.length) {
-                    container = $('<div class="health-ring-container"></div>');
-                    combatant.prepend(container);
+                // Create container div if it doesn't exist (v13: native DOM)
+                let container = element.querySelector('.health-ring-container');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.className = 'health-ring-container';
+                    element.insertBefore(container, element.firstChild);
                 }
 
-                // Create SVG for health ring
-                const svg = $(`
-                    <svg width="${size}" height="${size}" class="${healthClass}">
-                        <circle
-                            cx="${size/2}"
-                            cy="${size/2}"
-                            r="${radius}"
-                            fill="none"
-                            stroke-width="${strokeWidth}"
-                            stroke-dasharray="${circumference}"
-                            stroke-dashoffset="${dashOffset}"
-                            transform="rotate(-90, ${size/2}, ${size/2})"
-                            ${currentHP > 0 ? 'style="transition: stroke-dashoffset 0.3s ease-in-out, stroke 0.3s ease-in-out"' : ''}
-                        />
-                    </svg>
-                `);
+                // Create SVG for health ring (v13: native DOM)
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('width', size);
+                svg.setAttribute('height', size);
+                svg.className = healthClass;
+                
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', size/2);
+                circle.setAttribute('cy', size/2);
+                circle.setAttribute('r', radius);
+                circle.setAttribute('fill', 'none');
+                circle.setAttribute('stroke-width', strokeWidth);
+                circle.setAttribute('stroke-dasharray', circumference);
+                circle.setAttribute('stroke-dashoffset', dashOffset);
+                circle.setAttribute('transform', `rotate(-90, ${size/2}, ${size/2})`);
+                if (currentHP > 0) {
+                    circle.setAttribute('style', 'transition: stroke-dashoffset 0.3s ease-in-out, stroke 0.3s ease-in-out');
+                }
+                svg.appendChild(circle);
+
+                // Update the ring and handle dead state (v13: native DOM)
+                container.innerHTML = '';
+                container.appendChild(svg);
                 
 
 
-                // Update the ring and handle dead state
-                container.empty().append(svg);
-                
-
-
-                // Add dead class and skull overlay if HP is 0 or less
+                // Add dead class and skull overlay if HP is 0 or less (v13: native DOM)
                 if (currentHP <= 0 && getSettingSafely(MODULE.ID, 'combatTrackerShowPortraits', false)) {
-                    combatant.addClass('portrait-dead');
+                    element.classList.add('portrait-dead');
                     // Add skull overlay to the initiative div if it doesn't exist
-                    const initiativeDiv = combatant.find('.token-initiative');
-                    if (initiativeDiv.length && !initiativeDiv.find('.portrait-dead-overlay').length) {
-                        const skullOverlay = $('<i class="fas fa-skull portrait-dead-overlay"></i>');
-                        initiativeDiv.append(skullOverlay);
+                    const initiativeDiv = element.querySelector('.token-initiative');
+                    if (initiativeDiv && !initiativeDiv.querySelector('.portrait-dead-overlay')) {
+                        const skullOverlay = document.createElement('i');
+                        skullOverlay.className = 'fas fa-skull portrait-dead-overlay';
+                        initiativeDiv.appendChild(skullOverlay);
                     }
                 } else {
-                    combatant.removeClass('portrait-dead');
-                    combatant.find('.portrait-dead-overlay').remove();
+                    element.classList.remove('portrait-dead');
+                    const overlay = element.querySelector('.portrait-dead-overlay');
+                    if (overlay) overlay.remove();
                 }
             }
         });
@@ -273,19 +286,19 @@ Hooks.once('ready', () => {
 });
 
 
-// Function to update portrait
+// Function to update portrait (v13: native DOM)
 const updatePortrait = (element) => {
-    const combatant = $(element);
-    const combatantId = combatant.data('combatantId');
+    // v13: element is already a native DOM element
+    const combatantId = element.dataset.combatantId;
     const actor = game.combat?.combatants.get(combatantId)?.actor;
     
     if (!actor) return;
     
-    const img = combatant.find('img.token-image');
-    if (img.length) {
+    const img = element.querySelector('img.token-image');
+    if (img) {
         const portraitPath = actor.img || actor.prototypeToken.texture.src;
-        if (portraitPath && img.attr('src') !== portraitPath) {
-            img.attr('src', portraitPath);
+        if (portraitPath && img.getAttribute('src') !== portraitPath) {
+            img.setAttribute('src', portraitPath);
         }
     }
 };

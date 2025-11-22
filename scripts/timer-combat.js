@@ -288,18 +288,22 @@ class CombatTimer {
             );
             
             
-            // Modified selector to exclude groups and look for active individual combatant
-            const activeCombatant = html.find('.combatant.active:not(.combatant-group)');
-            const activeGroupMember = html.find('.group-children .combatant.active');
-            const combatTracker = html.find('#combat-tracker');
+            // Modified selector to exclude groups and look for active individual combatant (v13: native DOM)
+            const activeCombatant = html.querySelector('.combatant.active:not(.combatant-group)');
+            const activeGroupMember = html.querySelector('.group-children .combatant.active');
+            const combatTracker = html.querySelector('#combat-tracker');
             
+            // Parse HTML string into DOM element
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = timerHtml;
+            const timerElement = tempDiv.firstElementChild;
 
-            if (activeCombatant.length) {
-                activeCombatant.after(timerHtml);
-            } else if (activeGroupMember.length) {
-                activeGroupMember.after(timerHtml);
-            } else {
-                combatTracker.append(timerHtml);
+            if (activeCombatant && timerElement) {
+                activeCombatant.insertAdjacentElement('afterend', timerElement);
+            } else if (activeGroupMember && timerElement) {
+                activeGroupMember.insertAdjacentElement('afterend', timerElement);
+            } else if (combatTracker && timerElement) {
+                combatTracker.appendChild(timerElement);
             }
             
             if (isEnabled) {
@@ -313,48 +317,52 @@ class CombatTimer {
     }
 
     static bindTimerEvents(html) {
-        // Left click for pause/unpause (GM only)
-        html.find('.combat-timer-progress').click((event) => {
-            if (!game.user.isGM) return;
-            if (event.button === 0) {
-                this.state.showingMessage = false;
-                $('.combat-timer-text').text('');
-                this.state.isPaused ? this.resumeTimer() : this.pauseTimer();
-            }
+        // Left click for pause/unpause (GM only) (v13: native DOM)
+        html.querySelectorAll('.combat-timer-progress').forEach(el => {
+            el.addEventListener('click', (event) => {
+                if (!game.user.isGM) return;
+                if (event.button === 0) {
+                    this.state.showingMessage = false;
+                    // v13: native DOM
+                    const timerText = document.querySelector('.combat-timer-text');
+                    if (timerText) timerText.textContent = '';
+                    this.state.isPaused ? this.resumeTimer() : this.pauseTimer();
+                }
+            });
         });
 
-        // Right click for time adjustment (GM only)
+        // Right click for time adjustment (GM only) (v13: native DOM)
         if (game.user.isGM) {
-            html.find('.combat-timer-progress').contextmenu((event) => {
-                event.preventDefault();
-                this.handleRightClick(event);
+            html.querySelectorAll('.combat-timer-progress').forEach(el => {
+                el.addEventListener('contextmenu', (event) => {
+                    event.preventDefault();
+                    this.handleRightClick(event);
+                });
             });
         } else {
-            // Player turn handling
-            const progress = html.find('.combat-timer-progress');
+            // Player turn handling (v13: native DOM)
+            const progress = html.querySelector('.combat-timer-progress');
             const combat = game.combat;
             const currentToken = combat?.combatant?.token;
             
-            if (currentToken?.isOwner) {
-                // Active player - Add class to progress bar
-                progress.addClass('player-turn');
+            if (currentToken?.isOwner && progress) {
+                // Active player - Add class to progress bar (v13: native DOM)
+                progress.classList.add('player-turn');
                 
-                // Create and add overlay
-                const overlay = $(`
-                    <div class="combat-timer-end-turn-overlay">
-                        <div class="overlay-text">END TURN <i class="fa-solid fa-right"></i></div>
-                    </div>
-                `);
+                // Create and add overlay (v13: native DOM)
+                const overlay = document.createElement('div');
+                overlay.className = 'combat-timer-end-turn-overlay';
+                overlay.innerHTML = '<div class="overlay-text">END TURN <i class="fa-solid fa-right"></i></div>';
                 
-                // Add click handler to overlay
-                overlay.click(() => {
+                // Add click handler to overlay (v13: native DOM)
+                overlay.addEventListener('click', () => {
                     if (currentToken?.isOwner) {
                         combat?.nextTurn();
                     }
                 });
                 
-                progress.append(overlay);
-            } else if (!game.user.isGM) {
+                progress.appendChild(overlay);
+            } else if (!game.user.isGM && progress) {
                 // Non-active player - Add hurry up overlay
                 const currentPlayerName = combat?.combatant?.name || 'Unknown';
                 
@@ -372,14 +380,12 @@ class CombatTimer {
                     "{name}, if this turn were a quest, we'd already have failed the time limit."
                 ];
                 
-                const overlay = $(`
-                    <div class="combat-timer-hurry-overlay">
-                        <div class="overlay-text"><i class="fa-solid fa-rabbit-running"></i> TELL ${currentPlayerName} TO HURRY UP!</div>
-                    </div>
-                `);
+                const overlay = document.createElement('div');
+                overlay.className = 'combat-timer-hurry-overlay';
+                overlay.innerHTML = `<div class="overlay-text"><i class="fa-solid fa-rabbit-running"></i> TELL ${currentPlayerName} TO HURRY UP!</div>`;
                 
-                // Add click handler to overlay
-                overlay.click(() => {
+                // Add click handler to overlay (v13: native DOM)
+                overlay.addEventListener('click', () => {
                     // Get random message and replace {name} with player name when clicked
                     const randomMessage = hurryMessages[Math.floor(Math.random() * hurryMessages.length)]
                         .replace(/{name}/g, currentPlayerName);
@@ -396,8 +402,8 @@ class CombatTimer {
                     }
                 });
                 
-                progress.append(overlay);
-                progress.addClass('other-player-turn');
+                progress.appendChild(overlay);
+                progress.classList.add('other-player-turn');
             }
         }
     }

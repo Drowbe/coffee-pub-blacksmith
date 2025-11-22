@@ -422,28 +422,30 @@ class CombatTracker {
 						// Only add if there's an active combat
 						if (!game.combat) return;
 
-						// Find the Roll NPCs button
-						const rollNPCButton = html.find('.combat-control[data-control="rollNPC"]');
-						if (!rollNPCButton.length) return;
+						// Find the Roll NPCs button (v13: html is native DOM element)
+						const rollNPCButton = html.querySelector('.combat-control[data-control="rollNPC"]');
+						if (!rollNPCButton) return;
 
 						// Remove old button and handler if they exist
 						this._removeRollRemainingButton();
 
 						// Check if button already exists in the HTML (from previous render)
-						let existingButton = html.find('.combat-control[data-control="rollRemaining"]');
-						if (existingButton.length) {
+						const existingButton = html.querySelector('.combat-control[data-control="rollRemaining"]');
+						if (existingButton) {
 							existingButton.remove();
 						}
 
-						// Create and insert our new button
-						const rollRemainingButton = $(`
-							<a class="combat-button combat-control" aria-label="Roll Remaining" role="button" data-tooltip="Roll Remaining" data-control="rollRemaining">
-								<i class="fas fa-users-medical"></i>
-							</a>
-						`);
+						// Create and insert our new button (v13: native DOM)
+						const rollRemainingButton = document.createElement('a');
+						rollRemainingButton.className = 'combat-button combat-control';
+						rollRemainingButton.setAttribute('aria-label', 'Roll Remaining');
+						rollRemainingButton.setAttribute('role', 'button');
+						rollRemainingButton.setAttribute('data-tooltip', 'Roll Remaining');
+						rollRemainingButton.setAttribute('data-control', 'rollRemaining');
+						rollRemainingButton.innerHTML = '<i class="fas fa-users-medical"></i>';
 
-						// Insert after the Roll NPCs button
-						rollNPCButton.after(rollRemainingButton);
+						// Insert after the Roll NPCs button (v13: native DOM)
+						rollNPCButton.insertAdjacentElement('afterend', rollRemainingButton);
 
 						// Create click handler function
 						const clickHandler = async (event) => {
@@ -455,8 +457,8 @@ class CombatTracker {
 						this._rollRemainingButton = rollRemainingButton;
 						this._rollRemainingClickHandler = clickHandler;
 
-						// Add click handler
-						rollRemainingButton.click(clickHandler);
+						// Add click handler (v13: native DOM)
+						rollRemainingButton.addEventListener('click', clickHandler);
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
 				});

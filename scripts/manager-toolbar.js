@@ -481,40 +481,49 @@ export function addToolbarButton() {
             // Get all visible tools, organized by zones
             const visibleTools = getVisibleToolsByZones();
             
-            // Remove existing blacksmith toolbar if it exists
-            const existingIndex = controls.findIndex(control => control.name === "blacksmith-utilities");
-            if (existingIndex !== -1) {
-                controls.splice(existingIndex, 1);
+            // Remove existing blacksmith toolbar if it exists (v13: controls is an object)
+            if (controls['blacksmith-utilities']) {
+                delete controls['blacksmith-utilities'];
             }
             
-            // Convert to the format expected by FoundryVTT
-            const tools = visibleTools.map(tool => ({
-                icon: tool.icon,
-                name: tool.name,
-                title: tool.title,
-                button: tool.button,
-                visible: true, // Visibility is already filtered by getVisibleTools()
-                onClick: tool.onClick
-            }));
+            // Convert to the format expected by FoundryVTT v13 (tools as object keyed by name)
+            const tools = {};
+            visibleTools.forEach(tool => {
+                tools[tool.name] = {
+                    icon: tool.icon,
+                    name: tool.name,
+                    title: tool.title,
+                    button: tool.button,
+                    visible: true, // Visibility is already filtered by getVisibleTools()
+                    onClick: tool.onClick,
+                    order: Object.keys(tools).length
+                };
+            });
 
-            controls.push({
+            // Add blacksmith utilities control (v13: controls is an object keyed by control name)
+            controls['blacksmith-utilities'] = {
                 name: "blacksmith-utilities",
                 title: "Blacksmith Utilities",
                 icon: "fa-solid fa-mug-hot",
                 layer: "blacksmith-utilities-layer", // Ensure this matches the registration key
                 tools: tools
-            });
+            };
 
             // Add tools to FoundryVTT native toolbars
             const foundryTools = getFoundryToolbarTools();
             
             // Add tools to token toolbar (default behavior for now)
-            const tokenControl = controls.find(control => control.name === "token");
+            // v13: controls is an object, access directly by key
+            const tokenControl = controls.tokens;
             if (tokenControl && foundryTools.length > 0) {
+                // v13: tools is always an object keyed by tool name
+                if (!tokenControl.tools) {
+                    tokenControl.tools = {};
+                }
+                
                 foundryTools.forEach(tool => {
-                    // Check if tool already exists
-                    const existingTool = tokenControl.tools.find(existing => existing.name === tool.name);
-                    if (!existingTool) {
+                    // Check if tool already exists (v13: tools is an object)
+                    if (!tokenControl.tools[tool.name]) {
                         // Check visibility using the same logic as our toolbar
                         const isGM = game.user.isGM;
                         const isLeaderUser = isLeader();
@@ -535,14 +544,16 @@ export function addToolbarButton() {
                         }
                         
                         if (shouldShow) {
-                            tokenControl.tools.push({
+                            // v13: tools is an object, assign by key
+                            tokenControl.tools[tool.name] = {
                                 icon: tool.icon,
                                 name: tool.name,
                                 title: tool.title,
                                 button: tool.button,
                                 visible: true,
-                                onClick: tool.onClick
-                            });
+                                onClick: tool.onClick,
+                                order: Object.keys(tokenControl.tools).length
+                            };
                         }
                     }
                 });

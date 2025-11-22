@@ -291,17 +291,28 @@ export class PlanningTimer {
             }
         );
         
-        // Remove any existing planning timers
-        html.find('.planning-phase').remove();
+        // Remove any existing planning timers (v13: html is native DOM element)
+        html.querySelectorAll('.planning-phase').forEach(el => el.remove());
         
-        // Insert before first combatant
-        const firstCombatant = html.find('.combatant').first();
-        firstCombatant.before(timerHtml);
+        // Insert before first combatant (v13: native DOM)
+        const firstCombatant = html.querySelector('.combatant');
+        if (firstCombatant) {
+            // Parse HTML string into DOM element
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = timerHtml;
+            const timerElement = tempDiv.firstElementChild;
+            if (timerElement) {
+                firstCombatant.insertAdjacentElement('beforebegin', timerElement);
+            }
+        }
         
-        // Bind click handlers
+        // Bind click handlers (v13: native DOM)
         if (game.user.isGM) {
-            html.find('.planning-timer-progress').click(this._onTimerClick.bind(this));
-            html.find('.planning-timer-progress').contextmenu(this._onTimerRightClick.bind(this));
+            const progressElements = html.querySelectorAll('.planning-timer-progress');
+            progressElements.forEach(el => {
+                el.addEventListener('click', this._onTimerClick.bind(this));
+                el.addEventListener('contextmenu', this._onTimerRightClick.bind(this));
+            });
         }
         
         this.updateUI();

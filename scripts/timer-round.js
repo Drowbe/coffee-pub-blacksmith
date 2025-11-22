@@ -160,13 +160,19 @@ export class RoundTimer {
             }
         );
         
-        // Find the encounter title (which contains the round number) and insert after it
-        const roundTitle = html.find('.encounter-title');
-        if (roundTitle.length) {
+        // Find the encounter title (which contains the round number) and insert after it (v13: native DOM)
+        const roundTitle = html.querySelector('.encounter-title');
+        if (roundTitle) {
             // Insert after the encounter controls div to place it between the round number and planning timer
-            const encounterControls = html.find('.encounter-controls');
-            if (encounterControls.length) {
-                encounterControls.after(timerHtml);
+            const encounterControls = html.querySelector('.encounter-controls');
+            if (encounterControls) {
+                // Parse HTML string into DOM element
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = timerHtml;
+                const timerElement = tempDiv.firstElementChild;
+                if (timerElement) {
+                    encounterControls.insertAdjacentElement('afterend', timerElement);
+                }
             }
         }
     }
