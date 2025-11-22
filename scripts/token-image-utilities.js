@@ -1421,8 +1421,12 @@ export class TokenImageUtilities {
      * Refresh token callback - hide target indicators on token refresh
      */
     static _onRefreshTokenForHiding(token) {
-        if (token.target) {
-            token.target.visible = false;
+        // v13: token.target is deprecated, use targetArrows and targetPips
+        if (token.targetArrows) {
+            token.targetArrows.visible = false;
+        }
+        if (token.targetPips) {
+            token.targetPips.visible = false;
         }
     }
     
@@ -1430,10 +1434,14 @@ export class TokenImageUtilities {
      * Hide all target indicators on all tokens
      */
     static _hideAllTargetIndicators() {
+        // v13: token.target is deprecated, use targetArrows and targetPips
         if (canvas.tokens) {
             for (const token of canvas.tokens.placeables) {
-                if (token.target) {
-                    token.target.visible = false;
+                if (token.targetArrows) {
+                    token.targetArrows.visible = false;
+                }
+                if (token.targetPips) {
+                    token.targetPips.visible = false;
                 }
             }
         }

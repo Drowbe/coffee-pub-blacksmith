@@ -117,6 +117,8 @@ async function getNoteConfigIcons() {
     // Cache expired or doesn't exist, rebuild it
     const folderPath = "modules/coffee-pub-blacksmith/images/pins-note";
     try {
+        // v13: FilePicker is now namespaced
+        const FilePicker = foundry.applications.apps.FilePicker.implementation;
         const response = await FilePicker.browse("data", folderPath);
         if (response.files && response.files.length > 0) {
             const customIcons = response.files.map(file => {
@@ -2153,6 +2155,8 @@ async function getIconPaths() {
   // Cache expired or doesn't exist, rebuild it
   const paths = [];
   async function collect(dir) {
+    // v13: FilePicker is now namespaced
+    const FilePicker = foundry.applications.apps.FilePicker.implementation;
     const result = await FilePicker.browse('public', dir);
     for (const file of result.files) {
       if (file.endsWith('.webp') || file.endsWith('.png') || file.endsWith('.jpg')) {

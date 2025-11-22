@@ -16,6 +16,11 @@ import { ImageMatching } from './manager-image-matching.js';
 export class ImageCacheManager {
     static ID = 'token-image-replacement';
     
+    // v13: FilePicker is now namespaced under foundry.applications.apps.FilePicker.implementation
+    static get FilePicker() {
+        return foundry.applications.apps.FilePicker.implementation;
+    }
+    
     // Cache structure for storing file information
     static cache = {
         files: new Map(),           // filename -> full path mapping
@@ -1415,8 +1420,8 @@ export class ImageCacheManager {
         try {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Scanning directory: ${basePath}`, "", true, false);
             
-            // Use Foundry's FilePicker to browse the directory
-            const response = await FilePicker.browse("data", basePath);
+            // Use Foundry's FilePicker to browse the directory (v13: use namespaced FilePicker)
+            const response = await ImageCacheManager.FilePicker.browse("data", basePath);
             
             // Log what we found for debugging
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Directory scan results - Files: ${response.files?.length || 0}, Subdirectories: ${response.dirs?.length || 0}`, "", true, false);
@@ -1570,7 +1575,8 @@ export class ImageCacheManager {
         const files = [];
         
         try {
-            const response = await FilePicker.browse("data", subDir);
+            // v13: use namespaced FilePicker
+            const response = await ImageCacheManager.FilePicker.browse("data", subDir);
             
             if (response.files && response.files.length > 0) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${response.files.length} files in ${subDir}`, "", true, false);
@@ -1680,8 +1686,8 @@ export class ImageCacheManager {
         let lastModified = Date.now();
         
         try {
-            // Try to get file information using FilePicker
-            const fileInfo = await FilePicker.browse("data", filePath);
+            // Try to get file information using FilePicker (v13: use namespaced FilePicker)
+            const fileInfo = await ImageCacheManager.FilePicker.browse("data", filePath);
             if (fileInfo && fileInfo.files && fileInfo.files.length > 0) {
                 // For now, we'll use basic info - in a real implementation,
                 // we might want to get actual file size and modification date
@@ -2570,6 +2576,8 @@ export class ImageCacheManager {
             let errorCount = 0;
             async function collectPaths(dir) {
                 try {
+                    // v13: FilePicker is now namespaced
+                    const FilePicker = foundry.applications.apps.FilePicker.implementation;
                     const result = await FilePicker.browse('data', dir);
                     // Add directories (for traversal only, not for fingerprint)
                     for (const subdir of result.dirs) {
