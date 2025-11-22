@@ -178,24 +178,43 @@ export class SkillCheckDialog extends Application {
     activateListeners(html) {
         super.activateListeners(html);
 
+        // v13: Handle both jQuery and native DOM (some Application classes may still pass jQuery)
+        // Convert jQuery to native DOM if needed
+        let htmlElement;
+        if (html && typeof html.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            htmlElement = html[0] || html.get?.(0);
+        } else if (html && typeof html.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            htmlElement = html;
+        } else {
+            console.error('SkillCheckDialog.activateListeners: Invalid html parameter', html);
+            return;
+        }
+        
+        if (!htmlElement) {
+            console.error('SkillCheckDialog.activateListeners: Could not extract DOM element');
+            return;
+        }
+
         postConsoleAndNotification(MODULE.NAME, "SKILLROLLL | LOCATION CHECK: We are in skill-check-dialogue.js and in activateListeners(html)...", "", true, false);
 
-        // If we have an initial skill selection, trigger a click on it
+        // If we have an initial skill selection, trigger a click on it (v13: native DOM)
         if (this.selectedType === 'skill' && this.selectedValue) {
-            const skillItem = html.find(`.cpb-check-item[data-type="skill"][data-value="${this.selectedValue}"]`);
-            if (skillItem.length) {
-                skillItem.addClass('selected');
-                skillItem.addClass('cpb-skill-challenger');
-                const indicator = skillItem[0].querySelector('.cpb-roll-type-indicator');
+            const skillItem = htmlElement.querySelector(`.cpb-check-item[data-type="skill"][data-value="${this.selectedValue}"]`);
+            if (skillItem) {
+                skillItem.classList.add('selected', 'cpb-skill-challenger');
+                const indicator = skillItem.querySelector('.cpb-roll-type-indicator');
                 if (indicator) {
                     indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
                 }
             }
         }
 
-        // Debug: Check if classes are being applied
-        postConsoleAndNotification(MODULE.NAME, 'Tool items with unavailable class:', html.find('.cpb-tool-unavailable').length, true, false);
-        html.find('.cpb-check-item[data-type="tool"]').each((i, el) => {
+        // Debug: Check if classes are being applied (v13: native DOM)
+        const unavailableTools = htmlElement.querySelectorAll('.cpb-tool-unavailable');
+        postConsoleAndNotification(MODULE.NAME, 'Tool items with unavailable class:', unavailableTools.length, true, false);
+        htmlElement.querySelectorAll('.cpb-check-item[data-type="tool"]').forEach((el) => {
             postConsoleAndNotification(MODULE.NAME, 'Tool item:', {
                 name: el.querySelector('span').textContent,
                 hasUnavailableClass: el.classList.contains('cpb-tool-unavailable'),
@@ -204,39 +223,45 @@ export class SkillCheckDialog extends Application {
             }, true, false);
         });
 
-        // Apply initial filter if there are selected tokens
+        // Apply initial filter if there are selected tokens (v13: native DOM)
         const hasSelectedTokens = canvas.tokens.controlled.length > 0;
         const initialFilter = hasSelectedTokens ? 'selected' : 'party';
         
-        // Set initial active state on actor filter button (left column)
-        html.find(`.cpb-dialog-column:first-child .cpb-filter-btn[data-filter="${initialFilter}"]`).addClass('active');
+        // Set initial active state on actor filter button (left column) (v13: native DOM)
+        const firstColumn = htmlElement.querySelector('.cpb-dialog-column:first-child');
+        const initialFilterBtn = firstColumn?.querySelector(`.cpb-filter-btn[data-filter="${initialFilter}"]`);
+        if (initialFilterBtn) initialFilterBtn.classList.add('active');
         
         // Apply initial actor filter
         this._applyFilter(html, initialFilter);
         
-        // Set initial roll type filter to "quick" and apply it (middle column)
-        html.find(`.cpb-dialog-column:nth-child(2) .cpb-filter-btn[data-filter="quick"]`).addClass('active');
+        // Set initial roll type filter to "quick" and apply it (middle column) (v13: native DOM)
+        const secondColumn = htmlElement.querySelector('.cpb-dialog-column:nth-child(2)');
+        const quickFilterBtn = secondColumn?.querySelector(`.cpb-filter-btn[data-filter="quick"]`);
+        if (quickFilterBtn) quickFilterBtn.classList.add('active');
         this._applyRollTypeFilter(html, 'quick');
 
-        // If tokens are selected on the canvas, pre-select them in the dialog
+        // If tokens are selected on the canvas, pre-select them in the dialog (v13: native DOM)
         if (hasSelectedTokens) {
             canvas.tokens.controlled.forEach(token => {
-                const actorItem = html.find(`.cpb-actor-item[data-token-id="${token.id}"]`);
-                if (actorItem.length) {
+                const actorItem = htmlElement.querySelector(`.cpb-actor-item[data-token-id="${token.id}"]`);
+                if (actorItem) {
                     const actor = token.actor;
-                    const indicator = actorItem.find('.cpb-group-indicator');
+                    const indicator = actorItem.querySelector('.cpb-group-indicator');
 
                     if (actor && actor.type !== 'character') {
                         // NPCs and Monsters default to Defenders
-                        actorItem.removeClass('cpb-group-1').addClass('selected cpb-group-2');
-                        if (indicator.length) {
-                            indicator.html('<i class="fas fa-shield-halved" title="Defenders"></i>');
+                        actorItem.classList.remove('cpb-group-1');
+                        actorItem.classList.add('selected', 'cpb-group-2');
+                        if (indicator) {
+                            indicator.innerHTML = '<i class="fas fa-shield-halved" title="Defenders"></i>';
                         }
                     } else {
                         // Players default to Challengers
-                        actorItem.removeClass('cpb-group-2').addClass('selected cpb-group-1');
-                        if (indicator.length) {
-                            indicator.html('<i class="fas fa-swords" title="Challengers"></i>');
+                        actorItem.classList.remove('cpb-group-2');
+                        actorItem.classList.add('selected', 'cpb-group-1');
+                        if (indicator) {
+                            indicator.innerHTML = '<i class="fas fa-swords" title="Challengers"></i>';
                         }
                     }
                 }
@@ -245,174 +270,209 @@ export class SkillCheckDialog extends Application {
             this._updateToolList();
         }
 
-        // Handle actor selection - updated to handle both namespaced and legacy classes
-        html.find('.cpb-actor-item').on('click contextmenu', (ev) => {
-            ev.preventDefault();
-            const item = ev.currentTarget;
-            const isRightClick = ev.type === 'contextmenu';
-            const groupIndicator = item.querySelector('.cpb-group-indicator') || item.querySelector('.group-indicator');
+        // Handle actor selection (v13: native DOM)
+        htmlElement.querySelectorAll('.cpb-actor-item').forEach(item => {
+            const handleActorSelection = (ev) => {
+                ev.preventDefault();
+                const isRightClick = ev.type === 'contextmenu';
+                const groupIndicator = item.querySelector('.cpb-group-indicator') || item.querySelector('.group-indicator');
 
-            if (!groupIndicator) return;
+                if (!groupIndicator) return;
 
-            // Toggle selection based on click type
-            if (isRightClick) {
-                if (groupIndicator.innerHTML.includes('fa-shield-halved')) {
-                    // Remove from group 2
-                    groupIndicator.innerHTML = '';
-                    item.classList.remove('selected', 'cpb-group-2');
+                // Toggle selection based on click type
+                if (isRightClick) {
+                    if (groupIndicator.innerHTML.includes('fa-shield-halved')) {
+                        // Remove from group 2
+                        groupIndicator.innerHTML = '';
+                        item.classList.remove('selected', 'cpb-group-2');
+                    } else {
+                        // Add to group 2, remove from group 1 if needed 
+                        groupIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defenders"></i>';
+                        item.classList.remove('cpb-group-1');
+                        item.classList.add('selected', 'cpb-group-2');
+                    }
                 } else {
-                    // Add to group 2, remove from group 1 if needed 
-                    groupIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defenders"></i>';
-                    item.classList.remove('cpb-group-1');
-                    item.classList.add('selected', 'cpb-group-2');
+                    if (groupIndicator.innerHTML.includes('fa-swords')) {
+                        // Remove from group 1
+                        groupIndicator.innerHTML = '';
+                        item.classList.remove('selected', 'cpb-group-1');
+                    } else {
+                        // Add to group 1, remove from group 2 if needed  
+                        groupIndicator.innerHTML = '<i class="fas fa-swords" title="Challengers"></i>';
+                        item.classList.remove('cpb-group-2');
+                        item.classList.add('selected', 'cpb-group-1');
+                    }
                 }
-            } else {
-                if (groupIndicator.innerHTML.includes('fa-swords')) {
-                    // Remove from group 1
-                    groupIndicator.innerHTML = '';
-                    item.classList.remove('selected', 'cpb-group-1');
-                } else {
-                    // Add to group 1, remove from group 2 if needed  
-                    groupIndicator.innerHTML = '<i class="fas fa-swords" title="Challengers"></i>';
-                    item.classList.remove('cpb-group-2');
-                    item.classList.add('selected', 'cpb-group-1');
-                }
-            }
 
-            // Update tool proficiencies when actor selection changes
-            this._updateToolList();
+                // Update tool proficiencies when actor selection changes
+                this._updateToolList();
+                
+                // Check if all defenders were removed and clear defender roll selections (v13: native DOM)
+                const defenders = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-2');
+                const hasDefenders = defenders.length > 0;
+                if (!hasDefenders) {
+                    // Clear all defender roll selections
+                    const defenderIndicators = htmlElement.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator i.fa-shield-halved');
+                    defenderIndicators.forEach(indicator => {
+                        const parent = indicator.parentElement;
+                        if (parent) parent.innerHTML = '';
+                    });
+                    htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('cpb-skill-defender'));
+                    this.defenderRoll = { type: null, value: null };
+                }
+            };
             
-            // Check if all defenders were removed and clear defender roll selections
-            const hasDefenders = html.find('.cpb-actor-item.cpb-group-2').length > 0;
-            if (!hasDefenders) {
-                // Clear all defender roll selections
-                html.find('.cpb-check-item .cpb-roll-type-indicator i.fa-shield-halved').parent().html('');
-                html.find('.cpb-check-item').removeClass('cpb-skill-defender');
-                this.defenderRoll = { type: null, value: null };
-            }
+            item.addEventListener('click', handleActorSelection);
+            item.addEventListener('contextmenu', handleActorSelection);
         });
 
-        // Handle player search - separate from criteria search
-        html.find('input[name="search"]').each((i, input) => {
-            const $input = $(input);
-            const $clearButton = $input.closest('.cpb-search-container').find('.cpb-clear-search-button');
-            const isPlayerSearch = $input.closest('.cpb-dialog-column').find('.cpb-actor-list').length > 0;
+        // Handle player search - separate from criteria search (v13: native DOM)
+        htmlElement.querySelectorAll('input[name="search"]').forEach((input) => {
+            const searchContainer = input.closest('.cpb-search-container');
+            const clearButton = searchContainer?.querySelector('.cpb-clear-search-button');
+            const dialogColumn = input.closest('.cpb-dialog-column');
+            const actorList = dialogColumn?.querySelector('.cpb-actor-list');
+            const isPlayerSearch = actorList !== null;
             
             // Show/hide clear button based on input content
             const updateClearButton = () => {
-                $clearButton.toggle($input.val().length > 0);
+                if (clearButton) {
+                    clearButton.style.display = input.value.length > 0 ? '' : 'none';
+                }
             };
             
-            $input.on('input', ev => {
+            input.addEventListener('input', (ev) => {
                 const searchTerm = ev.currentTarget.value.toLowerCase();
                 updateClearButton();
                 
                 if (isPlayerSearch) {
                     // Search in actor list - support both class naming schemes
-                    html.find('.cpb-actor-list .cpb-actor-item').each((i, el) => {
-                        const name = el.querySelector('.cpb-actor-name').textContent.toLowerCase();
-                        el.style.display = name.includes(searchTerm) ? '' : 'none';
+                    dialogColumn.querySelectorAll('.cpb-actor-list .cpb-actor-item').forEach((el) => {
+                        const nameEl = el.querySelector('.cpb-actor-name');
+                        if (nameEl) {
+                            const name = nameEl.textContent.toLowerCase();
+                            el.style.display = name.includes(searchTerm) ? '' : 'none';
+                        }
                     });
                 } else {
                     // Search in criteria/checks list
-                    html.find('.cpb-check-item, .check-item').each((i, el) => {
+                    htmlElement.querySelectorAll('.cpb-check-item, .check-item').forEach((el) => {
                         const text = el.textContent.toLowerCase();
                         el.style.display = text.includes(searchTerm) ? '' : 'none';
                     });
                 }
             });
 
-            // Handle clear button click
-            $clearButton.on('click', () => {
-                $input.val('').trigger('input');
-                $clearButton.hide();
-            });
+            // Handle clear button click (v13: native DOM)
+            if (clearButton) {
+                clearButton.addEventListener('click', () => {
+                    input.value = '';
+                    // Trigger input event manually
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    clearButton.style.display = 'none';
+                });
+            }
 
             // Initial state
             updateClearButton();
         });
 
-        // Handle actor filter buttons (left column)
-        html.find('.cpb-dialog-column:first-child .cpb-filter-btn').click(ev => {
-            const button = ev.currentTarget;
-            const filterType = button.dataset.filter;
-            
-            // Toggle active state on actor filter buttons only
-            html.find('.cpb-dialog-column:first-child .cpb-filter-btn').removeClass('active');
-            button.classList.add('active');
-            
-            // Handle actor filtering
-            const searchTerm = html.find('input[name="search"]').first().val().toLowerCase();
-            if (searchTerm) {
-                // First apply filter without updating visibility
-                this._applyFilter(html, filterType, false);
-                
-                // Then apply search within filtered results
-                html.find('.cpb-actor-list .cpb-actor-item').each((i, el) => {
-                    if (el.style.display !== 'none') {
-                        const name = el.querySelector('.cpb-actor-name, .actor-name').textContent.toLowerCase();
-                        el.style.display = name.includes(searchTerm) ? '' : 'none';
+        // Handle actor filter buttons (left column) (v13: native DOM)
+        // Reuse firstColumn declared in Phase 1 (line 216)
+        if (firstColumn) {
+            firstColumn.querySelectorAll('.cpb-filter-btn').forEach(button => {
+                button.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    const filterType = button.dataset.filter;
+                    
+                    // Toggle active state on actor filter buttons only
+                    firstColumn.querySelectorAll('.cpb-filter-btn').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    // Handle actor filtering
+                    const firstSearchInput = htmlElement.querySelector('input[name="search"]');
+                    const searchTerm = firstSearchInput ? firstSearchInput.value.toLowerCase() : '';
+                    if (searchTerm) {
+                        // First apply filter without updating visibility
+                        this._applyFilter(html, filterType, false);
+                        
+                        // Then apply search within filtered results
+                        firstColumn.querySelectorAll('.cpb-actor-list .cpb-actor-item').forEach((el) => {
+                            if (el.style.display !== 'none') {
+                                const nameEl = el.querySelector('.cpb-actor-name, .actor-name');
+                                if (nameEl) {
+                                    const name = nameEl.textContent.toLowerCase();
+                                    el.style.display = name.includes(searchTerm) ? '' : 'none';
+                                }
+                            }
+                        });
+                    } else {
+                        // No search term, just apply filter
+                        this._applyFilter(html, filterType, true);
                     }
                 });
-            } else {
-                // No search term, just apply filter
-                this._applyFilter(html, filterType, true);
-            }
-        });
+            });
+        }
 
-        // Handle roll type filter buttons (middle column)
-        html.find('.cpb-dialog-column:nth-child(2) .cpb-filter-btn').click(ev => {
-            const button = ev.currentTarget;
-            const filterType = button.dataset.filter;
-            
-            // Toggle active state on roll type filter buttons only
-            html.find('.cpb-dialog-column:nth-child(2) .cpb-filter-btn').removeClass('active');
-            button.classList.add('active');
-            
-            // Handle roll type filtering
-            this._applyRollTypeFilter(html, filterType);
-        });
+        // Handle roll type filter buttons (middle column) (v13: native DOM)
+        // Reuse secondColumn declared in Phase 1 (line 224)
+        if (secondColumn) {
+            secondColumn.querySelectorAll('.cpb-filter-btn').forEach(button => {
+                button.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    const filterType = button.dataset.filter;
+                    
+                    // Toggle active state on roll type filter buttons only
+                    secondColumn.querySelectorAll('.cpb-filter-btn').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    // Handle roll type filtering
+                    this._applyRollTypeFilter(html, filterType);
+                });
+            });
+        }
 
-        // Handle check item selection
-        html.find('.cpb-check-item, .check-item').on('click contextmenu', (ev) => {
-            ev.preventDefault();
-            const item = ev.currentTarget;
-            const type = item.dataset.type;
+        // Handle check item selection (v13: native DOM)
+        htmlElement.querySelectorAll('.cpb-check-item, .check-item').forEach((item) => {
+            const handleCheckItemSelection = (ev) => {
+                ev.preventDefault();
+                const type = item.dataset.type;
 
-            // This handler should not manage tool selections as they have a dedicated handler.
-            if (type === 'tool') return;
-            
-            const value = item.dataset.value;
-            const isRightClick = ev.type === 'contextmenu';
+                // This handler should not manage tool selections as they have a dedicated handler.
+                if (type === 'tool') return;
+                
+                const value = item.dataset.value;
+                const isRightClick = ev.type === 'contextmenu';
 
-            // Handle quick rolls
-            if (type === 'quick') {
-                // Read new data attributes
-                const rollType = item.dataset.rollType || null;
-                const groupAttr = item.dataset.group;
-                const dcAttr = item.dataset.dc;
-                const defenderSkillAttr = item.dataset.defenderSkill;
-                const rollTitle = item.dataset.rollTitle || null;
-                let isGroupRoll = null;
-                if (groupAttr !== undefined) isGroupRoll = groupAttr === 'true';
-                let dcOverride = dcAttr !== undefined ? dcAttr : null;
+                // Handle quick rolls
+                if (type === 'quick') {
+                    // Read new data attributes
+                    const rollType = item.dataset.rollType || null;
+                    const groupAttr = item.dataset.group;
+                    const dcAttr = item.dataset.dc;
+                    const defenderSkillAttr = item.dataset.defenderSkill;
+                    const rollTitle = item.dataset.rollTitle || null;
+                    let isGroupRoll = null;
+                    if (groupAttr !== undefined) isGroupRoll = groupAttr === 'true';
+                    let dcOverride = dcAttr !== undefined ? dcAttr : null;
 
-                // Check if defenders are selected for non-contested rolls
-                if (rollType !== 'contested' && rollType !== 'party') {
-                    const hasDefenders = html.find('.cpb-actor-item.cpb-group-2').length > 0;
-                    if (hasDefenders) {
-                        ui.notifications.warn("You have defenders selected, but this is not a contested roll type. Please deselect defenders or choose a contested roll.");
-                        return;
+                    // Check if defenders are selected for non-contested rolls (v13: native DOM)
+                    if (rollType !== 'contested' && rollType !== 'party') {
+                        const defenders = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-2');
+                        const hasDefenders = defenders.length > 0;
+                        if (hasDefenders) {
+                            ui.notifications.warn("You have defenders selected, but this is not a contested roll type. Please deselect defenders or choose a contested roll.");
+                            return;
+                        }
                     }
-                }
 
-                // Clear any existing selections
-                html.find('.cpb-check-item').removeClass('selected');
-                html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
+                    // Clear any existing selections (v13: native DOM)
+                    htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('selected'));
+                    htmlElement.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator').forEach(ind => ind.innerHTML = '');
 
-                // Party roll: select all party members
-                if (rollType === 'party') {
-                    html.find('.cpb-actor-item').each((i, actorItem) => {
+                    // Party roll: select all party members (v13: native DOM)
+                    if (rollType === 'party') {
+                        htmlElement.querySelectorAll('.cpb-actor-item').forEach((actorItem) => {
                         const tokenId = actorItem.dataset.tokenId; // This is now a token ID
                         const token = canvas.tokens.placeables.find(t => t.id === tokenId);
                         const actor = token?.actor;
@@ -443,47 +503,46 @@ export class SkillCheckDialog extends Application {
                         'intimidation': 'itm'
                     };
                     const challengerSkillValue = quickRollMap[value] || value;
-                    if (challengerSkillValue) {
-                        const challengerSkillItem = html.find(`.cpb-check-item[data-type="skill"][data-value="${challengerSkillValue}"]`);
-                        if (challengerSkillItem.length) {
-                            challengerSkillItem.addClass('selected');
-                            challengerSkillItem.addClass('cpb-skill-challenger');
-                            const indicator = challengerSkillItem[0].querySelector('.cpb-roll-type-indicator');
-                            if (indicator) {
-                                indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                        if (challengerSkillValue) {
+                            const challengerSkillItem = htmlElement.querySelector(`.cpb-check-item[data-type="skill"][data-value="${challengerSkillValue}"]`);
+                            if (challengerSkillItem) {
+                                challengerSkillItem.classList.add('selected', 'cpb-skill-challenger');
+                                const indicator = challengerSkillItem.querySelector('.cpb-roll-type-indicator');
+                                if (indicator) {
+                                    indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                                }
+                                this.challengerRoll = { type: 'skill', value: challengerSkillValue };
                             }
-                            this.challengerRoll = { type: 'skill', value: challengerSkillValue };
                         }
-                    }
 
-                    // Set the defender skill selection
-                    if (defenderSkillAttr) {
-                        const defenderSkillValue = quickRollMap[defenderSkillAttr] || defenderSkillAttr;
-                        const defenderSkillItem = html.find(`.cpb-check-item[data-type="skill"][data-value="${defenderSkillValue}"]`);
-                        if (defenderSkillItem.length) {
-                            defenderSkillItem.addClass('selected');
-                            defenderSkillItem.addClass('cpb-skill-defender');
-                            const indicator = defenderSkillItem[0].querySelector('.cpb-roll-type-indicator');
-                            if (indicator) {
-                                indicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
+                        // Set the defender skill selection (v13: native DOM)
+                        if (defenderSkillAttr) {
+                            const defenderSkillValue = quickRollMap[defenderSkillAttr] || defenderSkillAttr;
+                            const defenderSkillItem = htmlElement.querySelector(`.cpb-check-item[data-type="skill"][data-value="${defenderSkillValue}"]`);
+                            if (defenderSkillItem) {
+                                defenderSkillItem.classList.add('selected', 'cpb-skill-defender');
+                                const indicator = defenderSkillItem.querySelector('.cpb-roll-type-indicator');
+                                if (indicator) {
+                                    indicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
+                                }
+                                this.defenderRoll = { type: 'skill', value: defenderSkillValue };
                             }
-                            this.defenderRoll = { type: 'skill', value: defenderSkillValue };
                         }
-                    }
 
-                    // Set quick contested roll flag and store overrides
-                    this._isQuickPartyRoll = true;
-                    this._quickRollOverrides = {
-                        isGroupRoll: false, // Contested rolls are never group rolls
-                        dcOverride: null, // Contested rolls don't use DC
-                        isContested: true,
-                        rollType: rollType, // Store the roll type for consistency
-                        rollTitle: rollTitle // Store the roll title
-                    };
+                        // Set quick contested roll flag and store overrides
+                        this._isQuickPartyRoll = true;
+                        this._quickRollOverrides = {
+                            isGroupRoll: false, // Contested rolls are never group rolls
+                            dcOverride: null, // Contested rolls don't use DC
+                            isContested: true,
+                            rollType: rollType, // Store the roll type for consistency
+                            rollTitle: rollTitle // Store the roll title
+                        };
 
-                    // Automatically click the roll button
-                    html.find('button[data-button="roll"]').trigger('click');
-                    return;
+                        // Automatically click the roll button (v13: native DOM)
+                        const rollButton = htmlElement.querySelector('button[data-button="roll"]');
+                        if (rollButton) rollButton.click();
+                        return;
                 } else if (rollType === 'common') {
                     // Common roll: use only selected tokens (do nothing extra)
                 }
@@ -496,33 +555,33 @@ export class SkillCheckDialog extends Application {
                     'nature': 'nat',
                     'stealth': 'ste'
                 };
-                const skillValue = quickRollMap[value] || value;
-                if (skillValue) {
-                    const skillItem = html.find(`.cpb-check-item[data-type="skill"][data-value="${skillValue}"]`);
-                    if (skillItem.length) {
-                        skillItem.addClass('selected');
-                        skillItem.addClass('cpb-skill-challenger');
-                        const indicator = skillItem[0].querySelector('.cpb-roll-type-indicator');
-                        if (indicator) {
-                            indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                    const skillValue = quickRollMap[value] || value;
+                    if (skillValue) {
+                        const skillItem = htmlElement.querySelector(`.cpb-check-item[data-type="skill"][data-value="${skillValue}"]`);
+                        if (skillItem) {
+                            skillItem.classList.add('selected', 'cpb-skill-challenger');
+                            const indicator = skillItem.querySelector('.cpb-roll-type-indicator');
+                            if (indicator) {
+                                indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                            }
+                            this.selectedType = 'skill';
+                            this.selectedValue = skillValue;
                         }
-                        this.selectedType = 'skill';
-                        this.selectedValue = skillValue;
                     }
-                }
 
-                // Set quick party/common roll flag and store overrides
-                this._isQuickPartyRoll = true;
-                this._quickRollOverrides = {
-                    isGroupRoll,
-                    dcOverride,
-                    rollType: rollType, // Store the roll type to distinguish party vs other quick rolls
-                    rollTitle: rollTitle // Store the roll title
-                };
+                    // Set quick party/common roll flag and store overrides
+                    this._isQuickPartyRoll = true;
+                    this._quickRollOverrides = {
+                        isGroupRoll,
+                        dcOverride,
+                        rollType: rollType, // Store the roll type to distinguish party vs other quick rolls
+                        rollTitle: rollTitle // Store the roll title
+                    };
 
-                // Automatically click the roll button
-                html.find('button[data-button="roll"]').trigger('click');
-                return;
+                    // Automatically click the roll button (v13: native DOM)
+                    const rollButton = htmlElement.querySelector('button[data-button="roll"]');
+                    if (rollButton) rollButton.click();
+                    return;
             }
 
             // If this is a non-common tool, prevent selection and show notification
@@ -532,51 +591,54 @@ export class SkillCheckDialog extends Application {
                 return;
             }
 
-            // Check if we have both challengers and defenders
-            const hasChallengers = html.find('.cpb-actor-item.cpb-group-1').length > 0;
-            const hasDefenders = html.find('.cpb-actor-item.cpb-group-2').length > 0;
-            const isContestedRoll = hasChallengers && hasDefenders;
+                // Check if we have both challengers and defenders (v13: native DOM)
+                        const challengers = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-1');
+                const defenders = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-2');
+                const hasChallengers = challengers.length > 0;
+                const hasDefenders = defenders.length > 0;
+                const isContestedRoll = hasChallengers && hasDefenders;
 
-            if (isContestedRoll) {
-                // In contested mode, maintain two selections
-                let wasDeselected = false;
-                html.find('.cpb-check-item .cpb-roll-type-indicator i').each((i, el) => {
-                    const indicator = el.closest('.cpb-roll-type-indicator');
-                    const checkItem = indicator.closest('.cpb-check-item');
-                    
-                    // If clicking the same item, deselect it
-                    if (checkItem === item) {
-                        if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
-                            (!isRightClick && el.classList.contains('fa-swords'))) {
+                if (isContestedRoll) {
+                    // In contested mode, maintain two selections (v13: native DOM)
+                    let wasDeselected = false;
+                    htmlElement.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator i').forEach((el) => {
+                        const indicator = el.closest('.cpb-roll-type-indicator');
+                        const checkItem = indicator.closest('.cpb-check-item');
+                        
+                        // If clicking the same item, deselect it
+                        if (checkItem === item) {
+                            if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
+                                (!isRightClick && el.classList.contains('fa-swords'))) {
+                                indicator.innerHTML = '';
+                                checkItem.classList.remove('selected');
+                                // Remove styling classes
+                                checkItem.classList.remove('cpb-skill-challenger', 'cpb-skill-defender');
+                                wasDeselected = true;
+                                // Clear the appropriate roll type
+                                if (isRightClick) {
+                                    this.defenderRoll = { type: null, value: null };
+                                } else {
+                                    this.challengerRoll = { type: null, value: null };
+                                }
+                            }
+                        }
+                        // Remove other selections of the same type
+                        else if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
+                                (!isRightClick && el.classList.contains('fa-swords'))) {
                             indicator.innerHTML = '';
                             checkItem.classList.remove('selected');
                             // Remove styling classes
                             checkItem.classList.remove('cpb-skill-challenger', 'cpb-skill-defender');
-                            wasDeselected = true;
-                            // Clear the appropriate roll type
-                            if (isRightClick) {
-                                this.defenderRoll = { type: null, value: null };
-                            } else {
-                                this.challengerRoll = { type: null, value: null };
-                            }
-                            return false; // Break the each loop
                         }
-                    }
-                    // Remove other selections of the same type
-                    else if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
-                            (!isRightClick && el.classList.contains('fa-swords'))) {
-                        indicator.innerHTML = '';
-                        checkItem.classList.remove('selected');
-                        // Remove styling classes
-                        checkItem.classList.remove('cpb-skill-challenger', 'cpb-skill-defender');
-                    }
-                });
+                    });
 
-                // Only add new selection if we didn't just deselect
-                if (!wasDeselected) {
-                    // Check if trying to select defender roll without defenders
+                    // Break early if deselected
+                    if (wasDeselected) return;
+
+                    // Check if trying to select defender roll without defenders (v13: native DOM)
                     if (isRightClick) {
-                        const hasDefenders = html.find('.cpb-actor-item.cpb-group-2').length > 0;
+                        const defenders = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-2');
+                        const hasDefenders = defenders.length > 0;
                         if (!hasDefenders) {
                             ui.notifications.warn("You must select at least one defender in the contestants column before selecting a defender roll.");
                             return;
@@ -601,33 +663,33 @@ export class SkillCheckDialog extends Application {
                         }
                     }
                     item.classList.add('selected');
-                }
-            } else {
-                // Check if we're deselecting the current selection
-                const currentIndicator = item.querySelector('.cpb-roll-type-indicator');
-                const hasCurrentSelection = currentIndicator && currentIndicator.innerHTML !== '';
-                
-                if (hasCurrentSelection) {
-                    // Clear selection
-                    html.find('.cpb-check-item').removeClass('selected');
-                    html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
-                    html.find('.cpb-check-item').removeClass('cpb-skill-challenger', 'cpb-skill-defender');
-                    this.selectedType = null;
-                    this.selectedValue = null;
                 } else {
-                    // Check if trying to select defender roll without defenders
-                    if (isRightClick) {
-                        const hasDefenders = html.find('.cpb-actor-item.cpb-group-2').length > 0;
-                        if (!hasDefenders) {
-                            ui.notifications.warn("You must select at least one defender in the contestants column before selecting a defender roll.");
-                            return;
-                        }
-                    }
+                    // Check if we're deselecting the current selection
+                    const currentIndicator = item.querySelector('.cpb-roll-type-indicator');
+                    const hasCurrentSelection = currentIndicator && currentIndicator.innerHTML !== '';
                     
-                    // New selection
-                    html.find('.cpb-check-item').removeClass('selected');
-                    html.find('.cpb-check-item .cpb-roll-type-indicator').html('');
-                    html.find('.cpb-check-item').removeClass('cpb-skill-challenger', 'cpb-skill-defender');
+                    if (hasCurrentSelection) {
+                        // Clear selection (v13: native DOM)
+                        htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('selected'));
+                        htmlElement.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator').forEach(ind => ind.innerHTML = '');
+                        htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('cpb-skill-challenger', 'cpb-skill-defender'));
+                        this.selectedType = null;
+                        this.selectedValue = null;
+                    } else {
+                        // Check if trying to select defender roll without defenders (v13: native DOM)
+                        if (isRightClick) {
+                            const defenders = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-2');
+                            const hasDefenders = defenders.length > 0;
+                            if (!hasDefenders) {
+                                ui.notifications.warn("You must select at least one defender in the contestants column before selecting a defender roll.");
+                                return;
+                            }
+                        }
+                        
+                        // New selection (v13: native DOM)
+                        htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('selected'));
+                        htmlElement.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator').forEach(ind => ind.innerHTML = '');
+                        htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('cpb-skill-challenger', 'cpb-skill-defender'));
                     
                     const rollTypeIndicator = item.querySelector('.cpb-roll-type-indicator');
                     if (rollTypeIndicator) {
@@ -673,17 +735,23 @@ export class SkillCheckDialog extends Application {
                     postConsoleAndNotification(MODULE.NAME, "Skill Info set:", this.skillInfo, true, false);
                 }
             }
+            };
+            
+            item.addEventListener('click', handleCheckItemSelection);
+            item.addEventListener('contextmenu', handleCheckItemSelection);
         });
 
-        // Handle the roll button
-        html.find('button[data-button="roll"]').click(async (ev) => {
+        // Handle the roll button (v13: native DOM)
+        const rollButton = htmlElement.querySelector('button[data-button="roll"]');
+        if (rollButton) {
+            rollButton.addEventListener('click', async (ev) => {
             // Guard clause: Only proceed if the current user is the owner of at least one selected actor or is GM
             
             // Check if this is a quick party roll and get all party members if so
             let selectedActors;
-            if (this._isQuickPartyRoll && this._quickRollOverrides && this._quickRollOverrides.rollType === 'party') {
-                // For party rolls, include all party members regardless of UI selection
-                selectedActors = Array.from(html.find('.cpb-actor-item')).map(item => {
+                if (this._isQuickPartyRoll && this._quickRollOverrides && this._quickRollOverrides.rollType === 'party') {
+                    // For party rolls, include all party members regardless of UI selection (v13: native DOM)
+                    selectedActors = Array.from(htmlElement.querySelectorAll('.cpb-actor-item')).map(item => {
                     const tokenId = item.dataset.tokenId;
                     const token = canvas.tokens.placeables.find(t => t.id === tokenId);
                     const actor = token?.actor;
@@ -699,9 +767,9 @@ export class SkillCheckDialog extends Application {
                     }
                     return null;
                 }).filter(actor => actor !== null);
-            } else {
-                // For non-party rolls, use the currently selected actors
-                selectedActors = Array.from(html.find('.cpb-actor-item.selected')).map(item => {
+                } else {
+                    // For non-party rolls, use the currently selected actors (v13: native DOM)
+                    selectedActors = Array.from(htmlElement.querySelectorAll('.cpb-actor-item.selected')).map(item => {
                     const tokenId = item.dataset.tokenId; // This is now a token ID
                     const token = canvas.tokens.placeables.find(t => t.id === tokenId);
                     const actor = token?.actor;
@@ -802,13 +870,14 @@ export class SkillCheckDialog extends Application {
                 if (this._quickRollOverrides.dcOverride !== null) {
                     dc = this._quickRollOverrides.dcOverride;
                 } else {
-                    const dcInput = html.find('input[name="dc"]');
-                    dc = dcInput.val() ? dcInput.val() : 15;
+                    const dcInput = htmlElement.querySelector('input[name="dc"]');
+                    dc = dcInput && dcInput.value ? dcInput.value : 15;
                 }
                 if (this._quickRollOverrides.isGroupRoll !== null) {
                     groupRoll = this._quickRollOverrides.isGroupRoll;
                 } else {
-                    groupRoll = html.find('input[name="groupRoll"]').prop('checked');
+                    const groupRollInput = htmlElement.querySelector('input[name="groupRoll"]');
+                    groupRoll = groupRollInput ? groupRollInput.checked : false;
                 }
                 
                 // Handle contested roll overrides
@@ -819,9 +888,11 @@ export class SkillCheckDialog extends Application {
                     isContestedRoll = true; // Force contested mode
                 }
             } else {
+                const dcInput = htmlElement.querySelector('input[name="dc"]');
                 dc = (challengerRollType === 'save' && challengerRollValue === 'death') ? 10 : 
-                      (html.find('input[name="dc"]').val() || null);
-                groupRoll = html.find('input[name="groupRoll"]').prop('checked');
+                      (dcInput ? dcInput.value || null : null);
+                const groupRollInput = htmlElement.querySelector('input[name="groupRoll"]');
+                groupRoll = groupRollInput ? groupRollInput.checked : false;
             }
 
             // If only one actor is selected, it cannot be a group roll.
@@ -829,8 +900,10 @@ export class SkillCheckDialog extends Application {
                 groupRoll = false;
             }
 
-            const showDC = html.find('input[name="showDC"]').prop('checked');
-            const rollMode = html.find('select[name="rollMode"]').val();
+            const showDCInput = htmlElement.querySelector('input[name="showDC"]');
+            const showDC = showDCInput ? showDCInput.checked : false;
+            const rollModeSelect = htmlElement.querySelector('select[name="rollMode"]');
+            const rollMode = rollModeSelect ? rollModeSelect.value : null;
             
 
             // Process actors and their specific tool IDs if needed
@@ -853,7 +926,8 @@ export class SkillCheckDialog extends Application {
             // Get roll information for both challenger and defender
             const getRollInfo = (type, value) => {
                 let name, desc, link;
-                const showExplanation = html.find('input[name="showRollExplanation"]').prop('checked');
+                const showExplanationInput = htmlElement.querySelector('input[name="showRollExplanation"]');
+                const showExplanation = showExplanationInput ? showExplanationInput.checked : false;
                 const showLink = showExplanation; // Always show links when explanations are enabled
 
                 switch (type) {
@@ -962,8 +1036,8 @@ export class SkillCheckDialog extends Application {
                 rollType: challengerRollType,
                 defenderRollType: isContestedRoll ? defenderRollType : null,
                 hasMultipleGroups: isContestedRoll,
-                showRollExplanation: html.find('input[name="showRollExplanation"]').is(':checked'),
-                isCinematic: html.find('input[name="isCinematic"]').is(':checked'),
+                showRollExplanation: htmlElement.querySelector('input[name="showRollExplanation"]')?.checked || false,
+                isCinematic: htmlElement.querySelector('input[name="isCinematic"]')?.checked || false,
                 isGM: game.user.isGM
             };
 
@@ -1003,137 +1077,178 @@ export class SkillCheckDialog extends Application {
 
             // Close the dialog
             this.close();
-        });
+            });
+        }
 
-        // Handle the cancel button
-        html.find('button[data-button="cancel"]').click(() => this.close());
+        // Handle the cancel button (v13: native DOM)
+        const cancelButton = htmlElement.querySelector('button[data-button="cancel"]');
+        if (cancelButton) {
+            cancelButton.addEventListener('click', () => this.close());
+        }
 
-        // Handle preference checkboxes
-        html.find('input[name="showRollExplanation"]').change(ev => {
-            this.userPreferences.showRollExplanation = ev.currentTarget.checked;
-            game.settings.set('coffee-pub-blacksmith', 'skillCheckPreferences', this.userPreferences);
-        });
+        // Handle preference checkboxes (v13: native DOM)
+        const showRollExplanationInput = htmlElement.querySelector('input[name="showRollExplanation"]');
+        if (showRollExplanationInput) {
+            showRollExplanationInput.addEventListener('change', (ev) => {
+                this.userPreferences.showRollExplanation = ev.currentTarget.checked;
+                game.settings.set('coffee-pub-blacksmith', 'skillCheckPreferences', this.userPreferences);
+            });
+        }
 
+        const showDCInput = htmlElement.querySelector('input[name="showDC"]');
+        if (showDCInput) {
+            showDCInput.addEventListener('change', (ev) => {
+                this.userPreferences.showDC = ev.currentTarget.checked;
+                game.settings.set('coffee-pub-blacksmith', 'skillCheckPreferences', this.userPreferences);
+            });
+        }
 
-        html.find('input[name="showDC"]').change(ev => {
-            this.userPreferences.showDC = ev.currentTarget.checked;
-            game.settings.set('coffee-pub-blacksmith', 'skillCheckPreferences', this.userPreferences);
-        });
+        const groupRollInput = htmlElement.querySelector('input[name="groupRoll"]');
+        if (groupRollInput) {
+            groupRollInput.addEventListener('change', (ev) => {
+                this.userPreferences.groupRoll = ev.currentTarget.checked;
+                game.settings.set('coffee-pub-blacksmith', 'skillCheckPreferences', this.userPreferences);
+            });
+        }
 
-        html.find('input[name="groupRoll"]').change(ev => {
-            this.userPreferences.groupRoll = ev.currentTarget.checked;
-            game.settings.set('coffee-pub-blacksmith', 'skillCheckPreferences', this.userPreferences);
-        });
+        const isCinematicInput = htmlElement.querySelector('input[name="isCinematic"]');
+        if (isCinematicInput) {
+            isCinematicInput.addEventListener('change', (ev) => {
+                this.userPreferences.isCinematic = ev.currentTarget.checked;
+                game.settings.set('coffee-pub-blacksmith', 'skillCheckPreferences', this.userPreferences);
+            });
+        }
 
-        html.find('input[name="isCinematic"]').change(ev => {
-            this.userPreferences.isCinematic = ev.currentTarget.checked;
-            game.settings.set('coffee-pub-blacksmith', 'skillCheckPreferences', this.userPreferences);
-        });
-
-        // Update DC display when DC input changes
-        html.find('input[name="dc"]').on('input change', ev => {
-            const dcValue = ev.currentTarget.value;
-            // Update the unified header DC display
-            const dcDisplay = html.find('.unified-dc-display, .unified-dc-input');
-            if (dcValue && dcValue.trim() !== '') {
-                dcDisplay.val(dcValue);
-            } else {
-                dcDisplay.val('--');
-            }
-        });
+        // Update DC display when DC input changes (v13: native DOM)
+        const dcInput = htmlElement.querySelector('input[name="dc"]');
+        if (dcInput) {
+            const handleDCChange = (ev) => {
+                const dcValue = ev.currentTarget.value;
+                // Update the unified header DC display
+                const dcDisplay = htmlElement.querySelector('.unified-dc-display, .unified-dc-input');
+                if (dcDisplay) {
+                    if (dcValue && dcValue.trim() !== '') {
+                        dcDisplay.value = dcValue;
+                    } else {
+                        dcDisplay.value = '--';
+                    }
+                }
+            };
+            dcInput.addEventListener('input', handleDCChange);
+            dcInput.addEventListener('change', handleDCChange);
+        }
     }
 
     _updateToolList() {
         const tools = this._getToolProficiencies();
-        const toolSection = this.element.find('.cpb-check-section').last();
+        // v13: native DOM - get last check section
+        const checkSections = this.element.querySelectorAll('.cpb-check-section');
+        const toolSection = checkSections.length > 0 ? checkSections[checkSections.length - 1] : null;
         
-        // Clear existing tools
-        toolSection.find('.cpb-check-item').remove();
+        if (!toolSection) return;
         
-        // Add new tools
+        // Clear existing tools (v13: native DOM)
+        toolSection.querySelectorAll('.cpb-check-item').forEach(item => item.remove());
+        
+        // Add new tools (v13: native DOM)
         tools.forEach(tool => {
             // Convert Map to array of [actorId, toolId] pairs for data attribute
             const actorToolsArray = Array.from(tool.actorTools.entries());
             
-            const toolItem = $(`
-                <div class="cpb-check-item${tool.isCommon ? '' : ' cpb-tool-unavailable'}" 
-                     data-type="tool" 
-                     data-tool-name="${tool.name}"
-                     data-actor-tools='${JSON.stringify(actorToolsArray).replace(/'/g, "&apos;")}'
-                     data-common="${tool.isCommon}"
-                     data-roll-title="${tool.name}"
-                     data-tooltip="${tool.description}">
-                    <i class="fas fa-tools"></i>
-                    <span class="cpb-roll-label">${tool.name}</span><span class="cpb-roll-description">${tool.description}</span>
-                    <div class="cpb-roll-type-indicator"></div>
-                </div>
-            `);
+            // Create tool item element (v13: native DOM)
+            const toolItem = document.createElement('div');
+            toolItem.className = `cpb-check-item${tool.isCommon ? '' : ' cpb-tool-unavailable'}`;
+            toolItem.dataset.type = 'tool';
+            toolItem.dataset.toolName = tool.name;
+            toolItem.dataset.actorTools = JSON.stringify(actorToolsArray).replace(/'/g, "&apos;");
+            toolItem.dataset.common = tool.isCommon;
+            toolItem.dataset.rollTitle = tool.name;
+            toolItem.dataset.tooltip = tool.description;
+            
+            // Build inner HTML
+            toolItem.innerHTML = `
+                <i class="fas fa-tools"></i>
+                <span class="cpb-roll-label">${tool.name}</span><span class="cpb-roll-description">${tool.description}</span>
+                <div class="cpb-roll-type-indicator"></div>
+            `;
             
             // Only attach click handler if the tool is common
             if (tool.isCommon) {
-                toolItem.on('click contextmenu', (ev) => {
+                const handleToolSelection = (ev) => {
                     ev.preventDefault();
                     try {
-                const item = ev.currentTarget;
+                        const item = ev.currentTarget;
                         const type = 'tool';
                         // Parse the actor tools data back into a Map
                         const actorToolsData = JSON.parse(item.dataset.actorTools);
                         const actorTools = new Map(actorToolsData);
                         const isRightClick = ev.type === 'contextmenu';
 
-                        // Check if we have both challengers and defenders
-                        const hasChallengers = this.element.find('.cpb-actor-item.cpb-group-1').length > 0;
-                        const hasDefenders = this.element.find('.cpb-actor-item.cpb-group-2').length > 0;
+                        // Check if we have both challengers and defenders (v13: native DOM)
+                        const challengers = this.element.querySelectorAll('.cpb-actor-item.cpb-group-1');
+                        const defenders = this.element.querySelectorAll('.cpb-actor-item.cpb-group-2');
+                        const hasChallengers = challengers.length > 0;
+                        const hasDefenders = defenders.length > 0;
                         const isContestedRoll = hasChallengers && hasDefenders;
 
                         if (isContestedRoll) {
-                            // Handle contested roll selection
-                            const currentIndicator = $(item).find('.cpb-roll-type-indicator');
-                            const currentIcon = currentIndicator.find('i');
+                            // Handle contested roll selection (v13: native DOM)
+                            const currentIndicator = item.querySelector('.cpb-roll-type-indicator');
+                            const currentIcon = currentIndicator?.querySelector('i');
                             
                             if (isRightClick) {
                                 // Handle defender selection
-                                if (currentIcon.hasClass('fa-shield-halved')) {
+                                if (currentIcon?.classList.contains('fa-shield-halved')) {
                                     // Deselect if already selected as defender
-                                    currentIndicator.empty();
-                                    $(item).removeClass('selected');
+                                    if (currentIndicator) currentIndicator.innerHTML = '';
+                                    item.classList.remove('selected');
                                     this.defenderRoll = { type: null, value: null };
                                 } else {
                                     // Clear other defender selections
-                                    toolSection.find('.cpb-check-item .cpb-roll-type-indicator i.fa-shield-halved').parent().empty();
-                                    toolSection.find('.cpb-check-item').removeClass('selected');
+                                    toolSection.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator i.fa-shield-halved').forEach(icon => {
+                                        const parent = icon.parentElement;
+                                        if (parent) parent.innerHTML = '';
+                                    });
+                                    toolSection.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('selected'));
                                     
                                     // Set as defender
-                                    currentIndicator.html('<i class="fas fa-shield-halved" title="Defender Roll"></i>');
-                                    $(item).addClass('selected');
+                                    if (currentIndicator) {
+                                        currentIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
+                                    }
+                                    item.classList.add('selected');
                                     this.defenderRoll = { type, value: actorTools };
                                 }
                             } else {
                                 // Handle challenger selection
-                                if (currentIcon.hasClass('fa-swords')) {
+                                if (currentIcon?.classList.contains('fa-swords')) {
                                     // Deselect if already selected as challenger
-                                    currentIndicator.empty();
-                                    $(item).removeClass('selected');
+                                    if (currentIndicator) currentIndicator.innerHTML = '';
+                                    item.classList.remove('selected');
                                     this.challengerRoll = { type: null, value: null };
                                 } else {
                                     // Clear other challenger selections
-                                    toolSection.find('.cpb-check-item .cpb-roll-type-indicator i.fa-swords').parent().empty();
-                                    toolSection.find('.cpb-check-item').removeClass('selected');
+                                    toolSection.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator i.fa-swords').forEach(icon => {
+                                        const parent = icon.parentElement;
+                                        if (parent) parent.innerHTML = '';
+                                    });
+                                    toolSection.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('selected'));
                                     
                                     // Set as challenger
-                                    currentIndicator.html('<i class="fas fa-swords" title="Challenger Roll"></i>');
-                                    $(item).addClass('selected');
+                                    if (currentIndicator) {
+                                        currentIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                                    }
+                                    item.classList.add('selected');
                                     this.challengerRoll = { type, value: actorTools };
                                 }
                             }
                         } else {
-                            // Handle non-contested roll selection
-                            const currentIndicator = $(item).find('.cpb-roll-type-indicator');
-                            const hasCurrentSelection = currentIndicator.html() !== '';
+                            // Handle non-contested roll selection (v13: native DOM)
+                            const currentIndicator = item.querySelector('.cpb-roll-type-indicator');
+                            const hasCurrentSelection = currentIndicator ? currentIndicator.innerHTML !== '' : false;
                             
                             // Clear all selections first
-                            toolSection.find('.cpb-check-item').removeClass('selected');
-                            toolSection.find('.cpb-check-item .cpb-roll-type-indicator').empty();
+                            toolSection.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('selected'));
+                            toolSection.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator').forEach(ind => ind.innerHTML = '');
                             
                             if (hasCurrentSelection) {
                                 // If clicking an already selected item, clear the selection
@@ -1141,13 +1256,15 @@ export class SkillCheckDialog extends Application {
                                 this.selectedValue = null;
                             } else {
                                 // Set new selection
-                                if (isRightClick) {
-                                    currentIndicator.html('<i class="fas fa-shield-halved" title="Defender Roll"></i>');
-                                } else {
-                                    currentIndicator.html('<i class="fas fa-swords" title="Challenger Roll"></i>');
+                                if (currentIndicator) {
+                                    if (isRightClick) {
+                                        currentIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
+                                    } else {
+                                        currentIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                                    }
                                 }
-                                $(item).addClass('selected');
-                this.selectedType = type;
+                                item.classList.add('selected');
+                                this.selectedType = type;
                                 this.selectedValue = actorTools;
                             }
                         }
@@ -1155,21 +1272,32 @@ export class SkillCheckDialog extends Application {
                         console.error('Error in tool selection', error);
                         ui.notifications.error('There was an error processing the tool selection.');
                     }
-                });
+                };
+                
+                toolItem.addEventListener('click', handleToolSelection);
+                toolItem.addEventListener('contextmenu', handleToolSelection);
             } else {
-                toolItem.on('click contextmenu', (ev) => {
+                const handleUnavailableTool = (ev) => {
                     ev.preventDefault();
                     ui.notifications.warn(`Not all selected players have ${tool.name}.`);
-                });
+                };
+                toolItem.addEventListener('click', handleUnavailableTool);
+                toolItem.addEventListener('contextmenu', handleUnavailableTool);
             }
             
-            toolSection.append(toolItem);
+            toolSection.appendChild(toolItem);
         });
     }
 
-    // Update helper method to optionally defer visibility updates
+    // Update helper method to optionally defer visibility updates (v13: native DOM)
     _applyFilter(html, filterType, updateVisibility = true) {
-        html.find('.cpb-actor-list .cpb-actor-item').each((i, el) => {
+        // v13: Handle both jQuery and native DOM
+        const htmlElement = html && typeof html.jquery !== 'undefined' ? (html[0] || html.get?.(0)) : html;
+        if (!htmlElement || typeof htmlElement.querySelectorAll !== 'function') {
+            console.error('_applyFilter: Invalid html parameter');
+            return;
+        }
+        htmlElement.querySelectorAll('.cpb-actor-list .cpb-actor-item').forEach((el) => {
             const tokenId = el.dataset.tokenId; // This is now a token ID
             const token = canvas.tokens.placeables.find(t => t.id === tokenId);
             const actor = token?.actor;
@@ -1212,25 +1340,41 @@ export class SkillCheckDialog extends Application {
             }
         });
         
-        // Check if all defenders were removed and clear defender roll selections
-        const hasDefenders = html.find('.cpb-actor-item.cpb-group-2').length > 0;
+        // Check if all defenders were removed and clear defender roll selections (v13: native DOM)
+        const defenders = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-2');
+        const hasDefenders = defenders.length > 0;
         if (!hasDefenders) {
             // Clear all defender roll selections
-            html.find('.cpb-check-item .cpb-roll-type-indicator i.fa-shield-halved').parent().html('');
-            html.find('.cpb-check-item').removeClass('cpb-skill-defender');
+            const defenderIndicators = htmlElement.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator i.fa-shield-halved');
+            defenderIndicators.forEach(indicator => {
+                const parent = indicator.parentElement;
+                if (parent) parent.innerHTML = '';
+            });
+            htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('cpb-skill-defender'));
             this.defenderRoll = { type: null, value: null };
         }
     }
 
     /**
-     * Apply roll type filter to show/hide sections
+     * Apply roll type filter to show/hide sections (v13: native DOM)
      */
     _applyRollTypeFilter(html, filterType) {
+        // v13: Handle both jQuery and native DOM
+        const htmlElement = html && typeof html.jquery !== 'undefined' ? (html[0] || html.get?.(0)) : html;
+        if (!htmlElement || typeof htmlElement.querySelectorAll !== 'function') {
+            console.error('_applyRollTypeFilter: Invalid html parameter');
+            return;
+        }
         // Hide all sections first
-        html.find('.cpb-check-section').hide();
+        htmlElement.querySelectorAll('.cpb-check-section').forEach(section => {
+            section.style.display = 'none';
+        });
         
         // Show the section that matches the filter
-        html.find(`.cpb-check-section[data-filter="${filterType}"]`).show();
+        const targetSection = htmlElement.querySelector(`.cpb-check-section[data-filter="${filterType}"]`);
+        if (targetSection) {
+            targetSection.style.display = '';
+        }
     }
 
     /**
@@ -1591,8 +1735,28 @@ export class SkillCheckDialog extends Application {
      * @param {object} html - The jQuery-wrapped HTML of the chat card.
      */
     static handleChatMessageClick(message, html) {
-        html.find('.cpb-skill-roll').each((_, btn) => {
-            $(btn).off('click').on('click', async (event) => {
+        // v13: Handle both jQuery and native DOM (renderChatMessage hook may still pass jQuery)
+        // Convert jQuery to native DOM if needed
+        let htmlElement;
+        if (html && typeof html.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            htmlElement = html[0] || html.get?.(0);
+        } else if (html && typeof html.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            htmlElement = html;
+        } else {
+            console.warn('SkillCheckDialog.handleChatMessageClick: Invalid html parameter', html);
+            return;
+        }
+        
+        if (!htmlElement) {
+            console.warn('SkillCheckDialog.handleChatMessageClick: Could not extract DOM element');
+            return;
+        }
+        
+        // Use the native DOM element
+        htmlElement.querySelectorAll('.cpb-skill-roll').forEach((btn) => {
+            btn.addEventListener('click', async (event) => {
                 const button = event.currentTarget;
                 const actorId = button.dataset.actorId;
                 const tokenId = button.dataset.tokenId;
