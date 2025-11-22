@@ -1189,12 +1189,30 @@ class RollWindow extends Application {
         try {
             postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Starting ${rollType} roll execution`, null, true, false);
             
+            // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+            let element;
+            if (this.element && typeof this.element.jquery !== 'undefined') {
+                // It's a jQuery object, get the native DOM element
+                element = this.element[0] || this.element.get?.(0);
+            } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+                // It's already a native DOM element
+                element = this.element;
+            } else {
+                postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Invalid this.element`, null, true, false);
+                return;
+            }
+            
+            if (!element) {
+                postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Could not extract DOM element`, null, true, false);
+                return;
+            }
+            
             // Get roll options from the form
             const advantage = rollType === 'advantage';
             const disadvantage = rollType === 'disadvantage';
-            const situationalBonusInput = this.element.querySelector('input[name="situational-bonus"]');
-            const customModifierInput = this.element.querySelector('input[name="custom-modifier"]');
-            const rollModeSelect = this.element.querySelector('select[name="roll-mode"]');
+            const situationalBonusInput = element.querySelector('input[name="situational-bonus"]');
+            const customModifierInput = element.querySelector('input[name="custom-modifier"]');
+            const rollModeSelect = element.querySelector('select[name="roll-mode"]');
             const situationalBonus = parseInt(situationalBonusInput ? situationalBonusInput.value : '0') || 0;
             const customModifier = customModifierInput ? customModifierInput.value.trim() : '';
             const rollMode = rollModeSelect ? rollModeSelect.value : 'roll';
