@@ -1141,8 +1141,26 @@ export class SkillCheckDialog extends Application {
 
     _updateToolList() {
         const tools = this._getToolProficiencies();
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            element = this.element;
+        } else {
+            console.error('_updateToolList: Invalid this.element', this.element);
+            return;
+        }
+        
+        if (!element) {
+            console.error('_updateToolList: Could not extract DOM element');
+            return;
+        }
+        
         // v13: native DOM - get last check section
-        const checkSections = this.element.querySelectorAll('.cpb-check-section');
+        const checkSections = element.querySelectorAll('.cpb-check-section');
         const toolSection = checkSections.length > 0 ? checkSections[checkSections.length - 1] : null;
         
         if (!toolSection) return;
@@ -1185,8 +1203,8 @@ export class SkillCheckDialog extends Application {
                         const isRightClick = ev.type === 'contextmenu';
 
                         // Check if we have both challengers and defenders (v13: native DOM)
-                        const challengers = this.element.querySelectorAll('.cpb-actor-item.cpb-group-1');
-                        const defenders = this.element.querySelectorAll('.cpb-actor-item.cpb-group-2');
+                        const challengers = element.querySelectorAll('.cpb-actor-item.cpb-group-1');
+                        const defenders = element.querySelectorAll('.cpb-actor-item.cpb-group-2');
                         const hasChallengers = challengers.length > 0;
                         const hasDefenders = defenders.length > 0;
                         const isContestedRoll = hasChallengers && hasDefenders;
