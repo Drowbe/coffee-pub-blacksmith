@@ -7,7 +7,7 @@ This document tracks the migration process from FoundryVTT v12 to v13, including
 **Migration Status:**
 - **Phase 1:** ✅ Complete - Critical fixes (0 errors)
 - **Phase 1.5:** ✅ Complete - Deprecation warnings (0 warnings)
-- **Phase 2:** 🟡 In Progress - jQuery removal for remaining files
+- **Phase 2:** 🟡 In Progress - jQuery removal for remaining files (Mostly complete, testing in progress)
 
 **Summary of Issues Found:**
 - **Error #1:** `controls.findIndex is not a function` - `getSceneControlButtons` hook now receives object instead of array ✅ **FIXED**
@@ -27,6 +27,12 @@ This document tracks the migration process from FoundryVTT v12 to v13, including
 - **Bug #1:** SVG `className` property error - Fixed by using `setAttribute('class', ...)` ✅
 - **Warning #1:** `Token#target` deprecation - Fixed by using `targetArrows` and `targetPips` ✅
 - **Warning #2:** `FilePicker` deprecation - Fixed by using namespaced `foundry.applications.apps.FilePicker.implementation` ✅
+- **Error #8:** Syntax errors in `blacksmith.js` (extra closing braces) ✅ **FIXED**
+- **Error #9:** `html.querySelectorAll is not a function` in `renderChatMessage` hooks (blacksmith.js) ✅ **FIXED**
+- **Error #10:** `overlay.fadeOut is not a function` in `manager-rolls.js` (cinematic overlay) ✅ **FIXED**
+- **Error #11:** `html.querySelector is not a function` in `token-image-replacement.js` ✅ **FIXED**
+- **Error #12:** `html.querySelector is not a function` in `RollWindow.activateListeners` (manager-rolls.js) ✅ **FIXED**
+- **Error #13:** `this.element.querySelector is not a function` in `RollWindow._executeRoll` (manager-rolls.js) ✅ **FIXED**
 
 **Key Breaking Changes:**
 1. `getSceneControlButtons` - controls changed from array to object ✅ **MIGRATED**
@@ -569,25 +575,25 @@ Same as previous errors - replace jQuery methods with native DOM methods.
   - [x] `manager-image-cache.js` ✅
   - [x] `blacksmith.js` ✅
 
-### Phase 2: jQuery Removal - Remaining Files 🟡 **IN PROGRESS**
+### Phase 2: jQuery Removal - Remaining Files ✅ **COMPLETE** (Testing in progress)
 
 #### High-Impact Files
 - [x] `scripts/window-skillcheck.js` (144+ instances) ✅ **COMPLETE**
-- [ ] `scripts/window-query.js` (23 instances)
-- [ ] `scripts/window-gmtools.js` (26 instances)
-- [ ] `scripts/journal-tools.js` (12 instances)
-- [ ] `scripts/encounter-toolbar.js` (10 instances)
+- [x] `scripts/window-query.js` (23 instances) ✅ **COMPLETE**
+- [x] `scripts/window-gmtools.js` (26 instances) ✅ **COMPLETE**
+- [x] `scripts/journal-tools.js` (12 instances) ✅ **COMPLETE**
+- [x] `scripts/encounter-toolbar.js` (10 instances) ✅ **COMPLETE**
 
 #### Medium-Impact Files
-- [ ] `scripts/token-image-replacement.js` (16 instances)
-- [ ] `scripts/blacksmith.js` (10 instances)
-- [ ] `scripts/xp-manager.js` (18 instances)
-- [ ] `scripts/token-image-utilities.js` (24 instances)
-- [ ] `scripts/api-menubar.js` (39 instances)
-- [ ] `scripts/combat-tools.js` (19 instances) - Additional jQuery usage outside hooks
-- [ ] `scripts/timer-planning.js` (11 instances) - Additional jQuery usage outside hooks
-- [ ] `scripts/timer-combat.js` (8 instances) - Additional jQuery usage outside hooks
-- [ ] `scripts/manager-rolls.js` (5 instances)
+- [x] `scripts/token-image-replacement.js` (84+ instances) ✅ **COMPLETE** - Added jQuery detection for `activateListeners`, `_showSearchSpinner`, `_hideSearchSpinner`, `_registerDomEvent`
+- [x] `scripts/blacksmith.js` (10+ instances) ✅ **COMPLETE** - Fixed syntax errors, added jQuery detection for `renderChatMessage` hooks
+- [x] `scripts/xp-manager.js` (18 instances) ✅ **COMPLETE**
+- [x] `scripts/token-image-utilities.js` (24 instances) ✅ **COMPLETE** - No jQuery found, already using native DOM
+- [x] `scripts/api-menubar.js` (39 instances) ✅ **COMPLETE**
+- [x] `scripts/combat-tools.js` (19 instances) ✅ **COMPLETE** - Already using native DOM
+- [x] `scripts/timer-planning.js` (11 instances) ✅ **COMPLETE** - Fixed `fadeOut()` replacements
+- [x] `scripts/timer-combat.js` (8 instances) ✅ **COMPLETE** - Fixed jQuery usage
+- [x] `scripts/manager-rolls.js` (5+ instances) ✅ **COMPLETE** - Fixed `activateListeners`, `_setupFormulaUpdates`, `_executeRoll`, `fadeOut()` replacements, improved tool lookup
 
 ### Phase 3: ApplicationV2 Migration 🔵 **PLANNED**
 - [ ] Identify all Application classes
@@ -599,9 +605,87 @@ Same as previous errors - replace jQuery methods with native DOM methods.
 - [x] Update module.json minimum Core Version to v13.0.0 ✅
 - [x] Review critical hook implementations for v13 changes ✅
 - [x] Check for deprecated APIs and methods ✅
-- [ ] Review all remaining hook implementations for v13 changes
-- [ ] Test all module functionality end-to-end
-- [ ] Update documentation
+- [x] Review all remaining hook implementations for v13 changes ✅
+- [x] Complete jQuery removal from all identified files ✅
+- [x] Implement jQuery detection patterns where needed ✅
+- [x] Replace fadeOut() with CSS transitions ✅
+- [x] Update documentation ✅
+- [ ] Test all module functionality end-to-end (in progress)
+
+---
+
+## Recent Fixes (Testing Phase)
+
+### jQuery Detection Pattern Implementation
+
+During testing, we discovered that some hooks and Application methods still receive jQuery objects in v13, requiring dual-compatibility patterns. The following pattern was implemented across multiple files:
+
+```javascript
+// v13: Handle both jQuery and native DOM (html parameter may still be jQuery)
+let htmlElement;
+if (html && typeof html.jquery !== 'undefined') {
+    // It's a jQuery object, get the native DOM element
+    htmlElement = html[0] || html.get?.(0);
+} else if (html && typeof html.querySelectorAll === 'function') {
+    // It's already a native DOM element
+    htmlElement = html;
+} else {
+    return;
+}
+
+if (!htmlElement) {
+    return;
+}
+```
+
+**Files Updated with jQuery Detection:**
+- `blacksmith.js` - `renderChatMessage` hooks (2 instances)
+- `token-image-replacement.js` - `activateListeners`, `_showSearchSpinner`, `_hideSearchSpinner`, `_registerDomEvent`
+- `manager-rolls.js` - `RollWindow.activateListeners`, `_setupFormulaUpdates`, `_executeRoll`
+
+### fadeOut() Replacement Pattern
+
+jQuery's `fadeOut()` method was replaced with CSS transitions and setTimeout:
+
+```javascript
+// Before (jQuery):
+overlay.fadeOut(1000, () => {
+    overlay.remove();
+});
+
+// After (Native DOM):
+overlay.style.transition = 'opacity 1s';
+overlay.style.opacity = '0';
+setTimeout(() => {
+    if (overlay.parentNode) {
+        overlay.remove();
+    }
+}, 1000);
+```
+
+**Files Updated:**
+- `manager-rolls.js` - Cinematic overlay fade-out (3 instances)
+- `timer-planning.js` - Planning phase fade-out (6 instances)
+
+### Tool Lookup Improvements
+
+Enhanced tool item lookup in `manager-rolls.js` to handle multiple lookup methods:
+1. By ID: `actor.items.get(value)`
+2. By baseItem: `actor.items.find(i => i.system.baseItem === value)`
+3. By name: Case-insensitive name matching
+4. Fallback: Use first available tool if exact match not found
+
+### Testing Status
+
+**✅ Working:**
+- Skill check rolls (window opens, rolls execute correctly)
+- Cinematic overlay (displays and fades out correctly)
+- Token image replacement window (opens and functions correctly)
+- Roll window (opens, form updates, rolls execute)
+
+**🟡 In Progress:**
+- End-to-end testing of all module features
+- Verification of all jQuery removal fixes
 
 ---
 
