@@ -153,7 +153,7 @@ export class NavigationManager {
      * @private
      */
     static _attachSceneClickListeners(html) {
-        // Try different selectors to find scene elements
+        // Try different selectors to find scene elements (v13: html is native DOM element)
         const selectors = [
             '.directory-item .scene-name',
             '.directory-item a',
@@ -162,9 +162,20 @@ export class NavigationManager {
         ];
         
         for (const selector of selectors) {
-            const elements = html.find(selector);
+            const elements = html.querySelectorAll(selector);
             if (elements.length > 0) {
-                elements.off('click.blacksmith').on('click.blacksmith', NavigationManager._onSceneClickNative);
+                // v13: Remove existing listeners and add new ones (native DOM)
+                elements.forEach(element => {
+                    // Remove existing listener if it exists (check for data attribute)
+                    const existingListener = element._blacksmithClickListener;
+                    if (existingListener) {
+                        element.removeEventListener('click', existingListener);
+                    }
+                    // Add new listener
+                    element.addEventListener('click', NavigationManager._onSceneClickNative);
+                    // Store reference for cleanup
+                    element._blacksmithClickListener = NavigationManager._onSceneClickNative;
+                });
                 break; // Stop after finding elements with the first working selector
             }
         }

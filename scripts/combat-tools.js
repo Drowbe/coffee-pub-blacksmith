@@ -238,7 +238,8 @@ Hooks.once('ready', () => {
                 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 svg.setAttribute('width', size);
                 svg.setAttribute('height', size);
-                svg.className = healthClass;
+                // SVG elements use setAttribute for class, not className property
+                svg.setAttribute('class', healthClass);
                 
                 const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 circle.setAttribute('cx', size/2);
