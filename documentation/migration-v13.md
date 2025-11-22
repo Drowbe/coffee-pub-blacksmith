@@ -18,6 +18,10 @@ This document tracks the migration process from FoundryVTT v12 to v13, including
   - `timer-round.js` ✅
   - `timer-combat.js` ✅
   - `manager-navigation.js` ✅
+- **Error #7:** `window-skillcheck.js` - jQuery removal (144+ instances) ✅ **FIXED**
+  - All jQuery converted to native DOM
+  - Added dual-compatibility for jQuery/native DOM detection
+  - Fixed `activateListeners`, `handleChatMessageClick`, `_updateToolList`, and helper methods
 
 **Additional Issues Fixed:**
 - **Bug #1:** SVG `className` property error - Fixed by using `setAttribute('class', ...)` ✅
@@ -568,7 +572,7 @@ Same as previous errors - replace jQuery methods with native DOM methods.
 ### Phase 2: jQuery Removal - Remaining Files 🟡 **IN PROGRESS**
 
 #### High-Impact Files
-- [ ] `scripts/window-skillcheck.js` (66 instances)
+- [x] `scripts/window-skillcheck.js` (144+ instances) ✅ **COMPLETE**
 - [ ] `scripts/window-query.js` (23 instances)
 - [ ] `scripts/window-gmtools.js` (26 instances)
 - [ ] `scripts/journal-tools.js` (12 instances)
