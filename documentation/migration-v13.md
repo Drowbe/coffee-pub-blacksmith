@@ -33,6 +33,10 @@ This document tracks the migration process from FoundryVTT v12 to v13, including
 - **Error #11:** `html.querySelector is not a function` in `token-image-replacement.js` ✅ **FIXED**
 - **Error #12:** `html.querySelector is not a function` in `RollWindow.activateListeners` (manager-rolls.js) ✅ **FIXED**
 - **Error #13:** `this.element.querySelector is not a function` in `RollWindow._executeRoll` (manager-rolls.js) ✅ **FIXED**
+- **Error #14:** `element.querySelector is not a function` in `_updateResults` and other methods (token-image-replacement.js) ✅ **FIXED**
+- **Error #15:** `element is not defined` in `_initializeFilterToggleButton` (token-image-replacement.js) ✅ **FIXED**
+- **Error #16:** Mouse events not registering on image thumbnails (token-image-replacement.js) ✅ **FIXED** - Fixed event delegation Proxy to correctly set `currentTarget`
+- **Error #17:** `Illegal invocation` error on right-click (token-image-replacement.js) ✅ **FIXED** - Fixed Proxy to bind event methods to original event object
 
 **Key Breaking Changes:**
 1. `getSceneControlButtons` - controls changed from array to object ✅ **MIGRATED**
@@ -683,9 +687,15 @@ Enhanced tool item lookup in `manager-rolls.js` to handle multiple lookup method
 - Token image replacement window (opens and functions correctly)
 - Roll window (opens, form updates, rolls execute)
 
+**✅ Completed:**
+- Token image replacement window (click and right-click events working)
+- Skill check rolls
+- Cinematic overlay fade-out
+- All jQuery removal fixes verified
+
 **🟡 In Progress:**
 - End-to-end testing of all module features
-- Verification of all jQuery removal fixes
+- Verification of remaining functionality
 
 ---
 
