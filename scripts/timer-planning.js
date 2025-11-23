@@ -88,14 +88,20 @@ export class PlanningTimer {
                 if (CombatStats.currentStats) {
                     const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
                     this.startTimer(duration, true);
-                    ui.combat.render(true);
+                    // Only render if timer actually started (all initiatives rolled)
+                    if (this.state.isActive) {
+                        ui.combat.render(true);
+                    }
                 } else {
                     // Wait for CombatStats to be ready before restoring planning state
                     Hooks.once('blacksmithUpdated', () => {
                         if (game.combat?.started && game.combat.turn === 0) {
                             const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
                             this.startTimer(duration, true);
-                            ui.combat.render(true);
+                            // Only render if timer actually started (all initiatives rolled)
+                            if (this.state.isActive) {
+                                ui.combat.render(true);
+                            }
                         }
                     });
                 }
@@ -259,7 +265,10 @@ export class PlanningTimer {
         const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
         this.startTimer(duration, true);
 
-        requestAnimationFrame(() => ui.combat.render(true));
+        // Only render if timer actually started (all initiatives rolled)
+        if (this.state.isActive) {
+            requestAnimationFrame(() => ui.combat.render(true));
+        }
     }
 
     static handleNewRound(combat) {
@@ -272,7 +281,10 @@ export class PlanningTimer {
         const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
         this.startTimer(duration, true);
 
-        setTimeout(() => ui.combat.render(true), 100);
+        // Only render if timer actually started (all initiatives rolled)
+        if (this.state.isActive) {
+            setTimeout(() => ui.combat.render(true), 100);
+        }
     }
 
     static handleTurnChange(combat) {
@@ -284,7 +296,10 @@ export class PlanningTimer {
             const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
             this.startTimer(duration, true);
 
-            setTimeout(() => ui.combat.render(true), 100);
+            // Only render if timer actually started (all initiatives rolled)
+            if (this.state.isActive) {
+                setTimeout(() => ui.combat.render(true), 100);
+            }
         } else if (combat.turn > 0) {
             this.cleanupTimer();
             
@@ -334,6 +349,13 @@ export class PlanningTimer {
         
         // If remaining is 0 but timer should be active, initialize it
         if (this.state.remaining === 0 && this.state.isActive && !this.state.isExpired) {
+            this.state.remaining = this.state.duration;
+            postConsoleAndNotification(MODULE.NAME, `Planning Timer: Initialized remaining time from 0 to ${this.state.duration}`, "", true, false);
+        }
+        
+        // If timer is active but remaining is 0 and not expired, it means timer just started
+        // Don't show "HAS ENDED" in this case - show the actual time
+        if (this.state.remaining === 0 && this.state.isActive && !this.state.isExpired && this.state.duration) {
             this.state.remaining = this.state.duration;
         }
         
@@ -626,6 +648,16 @@ export class PlanningTimer {
         const isGMOnly = getSettingSafely(MODULE.ID, 'combatTimerGMOnly', false);
         if (isGMOnly && !game.user.isGM) return false;
 
+        // Check if all combatants have rolled initiative before showing planning timer
+        const combatants = game.combat.turns || [];
+        const combatantsNeedingInitiative = combatants.filter(c => 
+            c.initiative === null && !c.isDefeated
+        );
+        if (combatantsNeedingInitiative.length > 0) {
+            // Not all initiatives rolled yet - don't show timer
+            return false;
+        }
+
         return true;
     }
 
@@ -701,7 +733,13 @@ export class PlanningTimer {
         }
 
         this.updateUI();
-        this.syncState();
+        
+        // Only sync state if we're the GM (to avoid unnecessary socket calls)
+        if (game.user.isGM) {
+            this.syncState();
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, `Planning Timer: Timer started - remaining: ${this.state.remaining}, isPaused: ${this.state.isPaused}, isActive: ${this.state.isActive}`, "", true, false);
     }
 
     static updateUI() {

@@ -409,11 +409,12 @@ class CombatTracker {
 
                                 
                 // Add Roll Remaining button to combat tracker
+                // Use higher priority (5) to ensure it runs after planning timer (priority 3)
                 const renderCombatTrackerButtonHookId = HookManager.registerHook({
 					name: 'renderCombatTracker',
 					description: 'Combat Tracker: Add Roll Remaining button to combat tracker',
 					context: 'combat-tracker-button-add',
-					priority: 3,
+					priority: 5,
 					callback: (app, html) => {
 						// --- BEGIN - HOOKMANAGER CALLBACK ---
 						// Only add for GM
@@ -422,10 +423,12 @@ class CombatTracker {
 						// Only add if there's an active combat
 						if (!game.combat) return;
 
+						postConsoleAndNotification(MODULE.NAME, `Combat Tracker: renderCombatTracker hook called`, "", true, false);
+
 						// v13: Use app.element (the actual rendered element) instead of html
 						// html might be a temporary element that gets replaced
-						// Use setTimeout to ensure we insert after Foundry's render completes
-						setTimeout(() => {
+						// Insert immediately - no delay needed since we check for existing buttons
+						postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Starting button insertion`, "", true, false);
 							// v13: Detect and convert jQuery to native DOM if needed
 							let nativeHtml = html;
 							if (html && (html.jquery || typeof html.find === 'function')) {
@@ -457,6 +460,25 @@ class CombatTracker {
 								postConsoleAndNotification(MODULE.NAME, `Combat Tracker: No valid search roots found`, "", true, false);
 								return;
 							}
+							
+							// Simple approach: remove any existing buttons in the current render's DOM
+							// This ensures we don't have duplicates
+							for (const root of searchRoots) {
+								const existingButtons = root.querySelectorAll('.combat-control[data-control="rollRemaining"], .combat-control[data-action="rollRemaining"]');
+								existingButtons.forEach(btn => {
+									// Remove event listener if it's our tracked button
+									if (btn === this._rollRemainingButton && this._rollRemainingClickHandler) {
+										btn.removeEventListener('click', this._rollRemainingClickHandler);
+									}
+									btn.remove();
+								});
+							}
+							
+							// Clear tracked references if button was removed
+							if (this._rollRemainingButton && !this._rollRemainingButton.parentElement) {
+								this._rollRemainingButton = null;
+								this._rollRemainingClickHandler = null;
+							}
 
 							// Find the Roll NPCs button (v13: html is native DOM element)
 							// v13: Changed from data-control to data-action
@@ -481,23 +503,11 @@ class CombatTracker {
 								postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Roll NPC button not found in any root, trying container insertion`, "", true, false);
 								// Try to find the left controls container and append there
 								let leftControls = null;
-								let controlsRoot = null;
 								for (const root of searchRoots) {
 									leftControls = root.querySelector('.control-buttons.left');
-									if (leftControls) {
-										controlsRoot = root;
-										break;
-									}
+									if (leftControls) break;
 								}
 								if (leftControls) {
-									// Remove old button if exists
-									let existingButton = null;
-									for (const root of searchRoots) {
-										existingButton = root.querySelector('.combat-control[data-control="rollRemaining"], .combat-control[data-action="rollRemaining"]');
-										if (existingButton) break;
-									}
-									if (existingButton) existingButton.remove();
-									
 									// Create and insert button
 									const rollRemainingButton = document.createElement('button');
 									rollRemainingButton.type = 'button';
@@ -525,18 +535,7 @@ class CombatTracker {
 								return;
 							}
 
-							// Remove old button and handler if they exist
-							this._removeRollRemainingButton();
-
-							// Check if button already exists in the HTML (from previous render)
-							// Only check in the same root where we found the rollNPC button
-							let existingButton = null;
-							if (foundRoot) {
-								existingButton = foundRoot.querySelector('.combat-control[data-control="rollRemaining"], .combat-control[data-action="rollRemaining"]');
-							}
-							if (existingButton) {
-								existingButton.remove();
-							}
+							// Old button already removed above
 
 							// Create and insert our new button (v13: native DOM)
 							// v13: Use button element to match Foundry's structure
@@ -550,7 +549,19 @@ class CombatTracker {
 
 							// Insert after the Roll NPCs button (v13: native DOM)
 							// Use the same root where we found the button to ensure we're inserting into the correct DOM tree
-							rollNPCButton.insertAdjacentElement('afterend', rollRemainingButton);
+							// IMPORTANT: Insert into the actual rendered element, not a temporary one
+							if (rollNPCButton.parentElement) {
+								rollNPCButton.insertAdjacentElement('afterend', rollRemainingButton);
+								
+								// Verify insertion was successful
+								if (!rollRemainingButton.parentElement) {
+									postConsoleAndNotification(MODULE.NAME, `Combat Tracker: ERROR - Button insertion failed!`, "", true, false);
+								} else {
+									postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Button inserted into ${rollRemainingButton.parentElement.tagName}.${rollRemainingButton.parentElement.className}`, "", true, false);
+								}
+							} else {
+								postConsoleAndNotification(MODULE.NAME, `Combat Tracker: ERROR - Roll NPC button has no parent!`, "", true, false);
+							}
 							
 							postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Roll Remaining button inserted after Roll NPC button`, "", true, false);
 
@@ -567,7 +578,8 @@ class CombatTracker {
 
 							// Add click handler (v13: native DOM)
 							rollRemainingButton.addEventListener('click', clickHandler);
-						}, 0); // Use setTimeout with 0 delay to ensure it runs after Foundry's render completes
+							
+							postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Button successfully inserted`, "", true, false);
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
 				});
