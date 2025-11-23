@@ -927,7 +927,17 @@ export class TokenImageReplacementWindow extends Application {
 
     // Show completion notification in the window
     showCompletionNotification(totalFiles, totalFolders, timeString) {
-        const element = this.element;
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            element = this.element;
+        } else {
+            return;
+        }
         if (!element) return;
         
         // Update the notification area with completion info
@@ -947,7 +957,17 @@ export class TokenImageReplacementWindow extends Application {
 
     // Show error notification in the window
     showErrorNotification(errorMessage) {
-        const element = this.element;
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            element = this.element;
+        } else {
+            return;
+        }
         if (!element) return;
         
         // Update the notification area with error info
@@ -967,7 +987,17 @@ export class TokenImageReplacementWindow extends Application {
 
     // Hide progress bars after completion
     hideProgressBars() {
-        const element = this.element;
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            element = this.element;
+        } else {
+            return;
+        }
         if (!element) return;
         
         // Hide the progress bars
@@ -1112,7 +1142,17 @@ export class TokenImageReplacementWindow extends Application {
      * Update tab states without full re-render
      */
     _updateTabStates() {
-        const element = this.element;
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            element = this.element;
+        } else {
+            return;
+        }
         if (!element) return;
         
         // Update active tab states
@@ -1127,7 +1167,17 @@ export class TokenImageReplacementWindow extends Application {
      * Update token info in header without full re-render
      */
     _updateTokenInfo() {
-        const element = this.element;
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            element = this.element;
+        } else {
+            return;
+        }
         if (!element) return;
         
         // Update token name and image in header
@@ -1444,7 +1494,17 @@ export class TokenImageReplacementWindow extends Application {
     _updateResults() {
         // Update the results grid and the results summary
         const resultsHtml = this._renderResults();
-        const element = this.element;
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            element = this.element;
+        } else {
+            return;
+        }
         if (element) {
             const grid = element.querySelector('.tir-thumbnails-grid');
             if (grid) {
@@ -1745,8 +1805,17 @@ export class TokenImageReplacementWindow extends Application {
         const tagName = event.currentTarget.dataset.searchTerm;
         if (!tagName) return;
         
-        const $element = this.element;
-        if (!$element) return;
+        // Note: This method doesn't actually use this.element, but keeping for consistency
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            element = this.element;
+        }
+        // Note: We don't return early here since we don't actually use element in this method
         
         // Toggle the tag in the selected tags set
         if (this.selectedTags.has(tagName)) {
@@ -1878,10 +1947,23 @@ export class TokenImageReplacementWindow extends Application {
         // Don't re-initialize during scanning - it's not needed
         if (ImageCacheManager.cache?.isScanning) return;
         
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            element = this.element;
+        } else {
+            return;
+        }
+        if (!element) return;
+        
         const currentThreshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
         const percentage = Math.round(currentThreshold * 100);
         
-        const slider = this.element.querySelector('.tir-rangeslider');
+        const slider = element.querySelector('.tir-rangeslider');
         if (!slider) return;
         const input = slider.querySelector('.tir-rangeslider-input');
         const fill = slider.querySelector('.tir-rangeslider-fill');
@@ -1907,7 +1989,16 @@ export class TokenImageReplacementWindow extends Application {
         if (!slider) return;
         const fill = slider.querySelector('.tir-rangeslider-fill');
         const thumb = slider.querySelector('.tir-rangeslider-thumb');
-        const thresholdValue = this.element.querySelector('.tir-threshold-value');
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            element = this.element;
+        }
+        const thresholdValue = element ? element.querySelector('.tir-threshold-value') : null;
         
         if (fill) fill.style.width = `${percentage}%`;
         if (thumb) thumb.style.left = `${percentage}%`;
@@ -2165,7 +2256,17 @@ export class TokenImageReplacementWindow extends Application {
     async _onClearSearch(event) {
         event.preventDefault();
         
-        const element = this.element;
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            element = this.element;
+        } else {
+            return;
+        }
         if (element) {
             // Clear the search input
             const searchInput = element.querySelector('.tir-search-input');
@@ -2193,7 +2294,17 @@ export class TokenImageReplacementWindow extends Application {
     _onFilterToggle(event) {
         event.preventDefault();
         
-        const element = this.element;
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            element = this.element;
+        } else {
+            return;
+        }
         if (element) {
             const button = event.currentTarget;
             const tagContainer = element.querySelector('#tir-search-tools-tag-container');
@@ -2246,7 +2357,17 @@ export class TokenImageReplacementWindow extends Application {
         }
         
         // Update active filter
-        const element = this.element;
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            element = this.element;
+        } else {
+            return;
+        }
         if (element) {
             // Remove active class from all filter categories
             element.querySelectorAll('#tir-filter-category-container .tir-filter-category').forEach(cat => {
@@ -2558,8 +2679,18 @@ export class TokenImageReplacementWindow extends Application {
      * Initialize the filter toggle button state based on current setting
      */
     _initializeFilterToggleButton() {
-        const $element = this.element;
-        if (!$element) return;
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            element = this.element;
+        } else {
+            return;
+        }
+        if (!element) return;
 
         const button = element.querySelector('.tir-filter-toggle-btn');
         const tagContainer = element.querySelector('#tir-search-tools-tag-container');
@@ -2598,7 +2729,17 @@ export class TokenImageReplacementWindow extends Application {
      * Update the tag container with current tags and sorting
      */
     _updateTagContainer() {
-        const element = this.element;
+        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            // It's a jQuery object, get the native DOM element
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            // It's already a native DOM element
+            element = this.element;
+        } else {
+            return;
+        }
         if (!element) return;
 
         const aggregatedTags = this._getAggregatedTags();
