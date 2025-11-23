@@ -4,7 +4,7 @@
 
 // -- Import MODULE variables --
 import { MODULE, BLACKSMITH } from './const.js';
-import { postConsoleAndNotification, playSound, trimString } from './api-core.js';
+import { postConsoleAndNotification, playSound, trimString, getSettingSafely } from './api-core.js';
 import { CombatStats } from './stats-combat.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
@@ -296,10 +296,25 @@ export class PlanningTimer {
 
     static async _onRenderCombatTracker(app, html, data) {
         // Verify settings and combat state
-        if (!this.verifyTimerConditions()) return;
+        if (!this.verifyTimerConditions()) {
+            // Debug: Log why timer isn't showing (use getSettingSafely to avoid errors)
+            const enabled = getSettingSafely(MODULE.ID, 'planningTimerEnabled', false);
+            postConsoleAndNotification(MODULE.NAME, `Planning Timer: Conditions not met - enabled: ${enabled}, combat started: ${game.combat?.started}, turn: ${game.combat?.turn}, expired: ${this.state.isExpired}`, "", true, false);
+            return;
+        }
 
         // Get label from settings
-        const label = game.settings.get(MODULE.ID, 'planningTimerLabel');
+        const label = getSettingSafely(MODULE.ID, 'planningTimerLabel', 'Planning');
+        
+        // Ensure state has valid duration
+        if (!this.state.duration || this.state.duration === 0) {
+            this.state.duration = getSettingSafely(MODULE.ID, 'planningTimerDuration', this.DEFAULTS.timeLimit);
+        }
+        
+        // If remaining is 0 but timer should be active, initialize it
+        if (this.state.remaining === 0 && this.state.isActive && !this.state.isExpired) {
+            this.state.remaining = this.state.duration;
+        }
         
         const timerHtml = await renderTemplate(
             'modules/coffee-pub-blacksmith/templates/timer-planning.hbs',
@@ -307,7 +322,7 @@ export class PlanningTimer {
                 label,
                 isPaused: this.state.isPaused,
                 remaining: this.state.remaining,
-                timeLimit: this.DEFAULTS.timeLimit,
+                timeLimit: this.state.duration || this.DEFAULTS.timeLimit,
                 isExpired: this.state.isExpired
             }
         );
@@ -315,27 +330,83 @@ export class PlanningTimer {
         // Remove any existing planning timers (v13: html is native DOM element)
         html.querySelectorAll('.planning-phase').forEach(el => el.remove());
         
-        // Insert before first combatant (v13: native DOM)
-        const firstCombatant = html.querySelector('.combatant');
-        if (firstCombatant) {
+        // v13: Find the combat tracker list (ol.combat-tracker) and insert into it
+        // Try multiple selectors to find the combat tracker list
+        const combatTracker = html.querySelector('ol.combat-tracker.plain') || 
+                              html.querySelector('ol.combat-tracker') ||
+                              html.querySelector('.combat-tracker.plain') ||
+                              html.querySelector('.combat-tracker') ||
+                              html.querySelector('[data-application-part="tracker"]');
+        if (combatTracker) {
+            postConsoleAndNotification(MODULE.NAME, `Planning Timer: Found combat tracker, inserting timer`, "", true, false);
             // Parse HTML string into DOM element
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = timerHtml;
             const timerElement = tempDiv.firstElementChild;
             if (timerElement) {
-                firstCombatant.insertAdjacentElement('beforebegin', timerElement);
+                // Insert at the beginning of the list, before any combatants or drop targets
+                combatTracker.insertBefore(timerElement, combatTracker.firstChild);
+                
+                // Bind click handlers after insertion (v13: native DOM)
+                if (game.user.isGM) {
+                    const progressElement = timerElement.querySelector('.planning-timer-progress');
+                    if (progressElement) {
+                        // Remove any existing handlers by cloning (clean slate)
+                        const newProgress = progressElement.cloneNode(true);
+                        progressElement.parentNode.replaceChild(newProgress, progressElement);
+                        
+                        // Add fresh handlers to the cloned element
+                        newProgress.addEventListener('click', (event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            this._onTimerClick(event);
+                        });
+                        newProgress.addEventListener('contextmenu', (event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            this._onTimerRightClick(event);
+                        });
+                    }
+                }
+            }
+        } else {
+            // Fallback: try to find first combatant (v13: native DOM)
+            postConsoleAndNotification(MODULE.NAME, `Planning Timer: Combat tracker not found, trying fallback`, "", true, false);
+            const firstCombatant = html.querySelector('.combatant');
+            if (firstCombatant) {
+                // Parse HTML string into DOM element
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = timerHtml;
+                const timerElement = tempDiv.firstElementChild;
+                if (timerElement) {
+                    firstCombatant.insertAdjacentElement('beforebegin', timerElement);
+                    
+                    // Bind click handlers after insertion (v13: native DOM)
+                    if (game.user.isGM) {
+                        const progressElement = timerElement.querySelector('.planning-timer-progress');
+                        if (progressElement) {
+                            // Remove any existing handlers by cloning (clean slate)
+                            const newProgress = progressElement.cloneNode(true);
+                            progressElement.parentNode.replaceChild(newProgress, progressElement);
+                            
+                            // Add fresh handlers to the cloned element
+                            newProgress.addEventListener('click', (event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                this._onTimerClick(event);
+                            });
+                            newProgress.addEventListener('contextmenu', (event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                this._onTimerRightClick(event);
+                            });
+                        }
+                    }
+                }
             }
         }
         
-        // Bind click handlers (v13: native DOM)
-        if (game.user.isGM) {
-            const progressElements = html.querySelectorAll('.planning-timer-progress');
-            progressElements.forEach(el => {
-                el.addEventListener('click', this._onTimerClick.bind(this));
-                el.addEventListener('contextmenu', this._onTimerRightClick.bind(this));
-            });
-        }
-        
+        // Update UI after rendering to ensure correct display
         this.updateUI();
     }
 
@@ -523,17 +594,14 @@ export class PlanningTimer {
     }
 
     static verifyTimerConditions() {
-        try {
-            if (!game.settings.get(MODULE.ID, 'planningTimerEnabled')) return false;
-        } catch (error) {
-            return false;
-        }
+        // Use getSettingSafely to avoid errors if settings aren't registered yet
+        if (!getSettingSafely(MODULE.ID, 'planningTimerEnabled', false)) return false;
 
         if (!game.combat?.started) return false;
         if (game.combat.turn !== 0) return false;
         if (this.state.isExpired) return false;
 
-        const isGMOnly = game.settings.get(MODULE.ID, 'combatTimerGMOnly');
+        const isGMOnly = getSettingSafely(MODULE.ID, 'combatTimerGMOnly', false);
         if (isGMOnly && !game.user.isGM) return false;
 
         return true;
@@ -617,47 +685,78 @@ export class PlanningTimer {
     static updateUI() {
         try {
             // Use duration from state instead of settings
-            const timeLimit = this.state.duration;
-            const percentage = (this.state.remaining / timeLimit) * 100;
+            const timeLimit = this.state.duration || this.DEFAULTS.timeLimit;
+            const percentage = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
             
-            // Update progress bar width and color classes
-            const bar = document.querySelector('.planning-timer-bar');
-            if (!bar) return;
+            // v13: Find all combat tracker windows (sidebar and popout)
+            const allBars = [];
+            const allTexts = [];
+            const allProgressElements = [];
             
-            bar.style.width = `${percentage}%`;
-            
-            // Update color classes based on percentage
-            bar.classList.remove('high', 'medium', 'low', 'expired');
-            const progressElements = document.querySelectorAll('.planning-timer-progress');
-            if (this.state.remaining <= 0) {
-                bar.classList.add('expired');
-                progressElements.forEach(el => el.classList.add('expired'));
-            } else if (percentage <= 25) {
-                bar.classList.add('low');
-                progressElements.forEach(el => el.classList.remove('expired'));
-            } else if (percentage <= 50) {
-                bar.classList.add('medium');
-                progressElements.forEach(el => el.classList.remove('expired'));
-            } else {
-                bar.classList.add('high');
-                progressElements.forEach(el => el.classList.remove('expired'));
+            // Check sidebar combat tracker
+            if (ui.combat?.element) {
+                const sidebarBar = ui.combat.element.querySelector('.planning-timer-bar');
+                const sidebarText = ui.combat.element.querySelector('.planning-timer-text');
+                const sidebarProgress = ui.combat.element.querySelectorAll('.planning-timer-progress');
+                if (sidebarBar) allBars.push(sidebarBar);
+                if (sidebarText) allTexts.push(sidebarText);
+                sidebarProgress.forEach(el => allProgressElements.push(el));
             }
+            
+            // Check popout windows
+            document.querySelectorAll('#combat-popout .planning-timer-bar, .combat-sidebar .planning-timer-bar').forEach(bar => {
+                if (!allBars.includes(bar)) allBars.push(bar);
+            });
+            document.querySelectorAll('#combat-popout .planning-timer-text, .combat-sidebar .planning-timer-text').forEach(text => {
+                if (!allTexts.includes(text)) allTexts.push(text);
+            });
+            document.querySelectorAll('#combat-popout .planning-timer-progress, .combat-sidebar .planning-timer-progress').forEach(progress => {
+                if (!allProgressElements.includes(progress)) allProgressElements.push(progress);
+            });
+            
+            // Update all bars
+            allBars.forEach(bar => {
+                bar.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
+                
+                // Update color classes based on percentage
+                bar.classList.remove('high', 'medium', 'low', 'expired');
+                if (this.state.remaining <= 0) {
+                    bar.classList.add('expired');
+                } else if (percentage <= 25) {
+                    bar.classList.add('low');
+                } else if (percentage <= 50) {
+                    bar.classList.add('medium');
+                } else {
+                    bar.classList.add('high');
+                }
+            });
+            
+            // Update progress elements
+            allProgressElements.forEach(el => {
+                el.classList.remove('expired');
+                if (this.state.remaining <= 0) {
+                    el.classList.add('expired');
+                }
+            });
 
             if (this.state.showingMessage) return;
 
-            const timerText = document.querySelector('.planning-timer-text');
-            if (!timerText) return;
+            // Update all text elements
+            const label = getSettingSafely(MODULE.ID, 'planningTimerLabel', 'Planning');
+            let textContent;
             
-            const label = game.settings.get(MODULE.ID, 'planningTimerLabel');
-
             if (this.state.remaining <= 0) {
-                timerText.textContent = game.settings.get(MODULE.ID, 'planningTimerExpiredMessage');
+                textContent = getSettingSafely(MODULE.ID, 'planningTimerExpiredMessage', 'Planning Timer Expired');
             } else if (this.state.isPaused) {
-                timerText.textContent = `${label} TIMER PAUSED`;
+                textContent = `${label} TIMER PAUSED`;
             } else {
                 const timeString = this.formatTime(this.state.remaining);
-                timerText.textContent = `${timeString} ${label}`;
+                textContent = `${timeString} ${label}`;
             }
+            
+            allTexts.forEach(timerText => {
+                timerText.textContent = textContent;
+            });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Planning Timer | Error updating UI:", error, false, false);
         }

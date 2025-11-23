@@ -424,8 +424,46 @@ class CombatTracker {
 
 						// Find the Roll NPCs button (v13: html is native DOM element)
 						// v13: Changed from data-control to data-action
-						const rollNPCButton = html.querySelector('.combat-control[data-action="rollNPC"]') || html.querySelector('.combat-control[data-control="rollNPC"]');
-						if (!rollNPCButton) return;
+						// Try multiple selectors to find the button - must match the exact structure
+						const rollNPCButton = html.querySelector('button.inline-control.combat-control[data-action="rollNPC"]') ||
+						                      html.querySelector('button.combat-control[data-action="rollNPC"]') ||
+						                      html.querySelector('.combat-control[data-action="rollNPC"]') ||
+						                      html.querySelector('button[data-action="rollNPC"]') ||
+						                      html.querySelector('.combat-control[data-control="rollNPC"]') ||
+						                      html.querySelector('button.combat-control[data-control="rollNPC"]');
+						if (!rollNPCButton) {
+							// Don't return early - try to find the container and insert anyway
+							postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Roll NPC button not found, trying container insertion`, "", true, false);
+							// Try to find the left controls container and append there
+							const leftControls = html.querySelector('.control-buttons.left');
+							if (leftControls) {
+								// Remove old button if exists
+								const existingButton = html.querySelector('.combat-control[data-control="rollRemaining"]');
+								if (existingButton) existingButton.remove();
+								
+								// Create and insert button
+								const rollRemainingButton = document.createElement('button');
+								rollRemainingButton.type = 'button';
+								rollRemainingButton.className = 'inline-control combat-control icon fa-solid fa-users-medical';
+								rollRemainingButton.setAttribute('aria-label', 'Roll Remaining');
+								rollRemainingButton.setAttribute('data-tooltip', 'Roll Remaining');
+								rollRemainingButton.setAttribute('data-control', 'rollRemaining');
+								rollRemainingButton.setAttribute('data-action', 'rollRemaining');
+								
+								leftControls.appendChild(rollRemainingButton);
+								
+								// Add click handler
+								const clickHandler = async (event) => {
+									event.preventDefault();
+									await this._rollRemainingInitiatives();
+								};
+								this._rollRemainingButton = rollRemainingButton;
+								this._rollRemainingClickHandler = clickHandler;
+								rollRemainingButton.addEventListener('click', clickHandler);
+								return;
+							}
+							return;
+						}
 
 						// Remove old button and handler if they exist
 						this._removeRollRemainingButton();
@@ -437,20 +475,24 @@ class CombatTracker {
 						}
 
 						// Create and insert our new button (v13: native DOM)
-						const rollRemainingButton = document.createElement('a');
-						rollRemainingButton.className = 'combat-button combat-control';
+						// v13: Use button element to match Foundry's structure
+						const rollRemainingButton = document.createElement('button');
+						rollRemainingButton.type = 'button';
+						rollRemainingButton.className = 'inline-control combat-control icon fa-solid fa-users-medical';
 						rollRemainingButton.setAttribute('aria-label', 'Roll Remaining');
-						rollRemainingButton.setAttribute('role', 'button');
 						rollRemainingButton.setAttribute('data-tooltip', 'Roll Remaining');
 						rollRemainingButton.setAttribute('data-control', 'rollRemaining');
-						rollRemainingButton.innerHTML = '<i class="fas fa-users-medical"></i>';
+						rollRemainingButton.setAttribute('data-action', 'rollRemaining');
 
 						// Insert after the Roll NPCs button (v13: native DOM)
 						rollNPCButton.insertAdjacentElement('afterend', rollRemainingButton);
+						
+						postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Roll Remaining button inserted after Roll NPC button`, "", true, false);
 
 						// Create click handler function
 						const clickHandler = async (event) => {
 							event.preventDefault();
+							event.stopPropagation();
 							await this._rollRemainingInitiatives();
 						};
 

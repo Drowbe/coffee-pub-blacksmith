@@ -295,7 +295,8 @@ class CombatTimer {
             // Modified selector to exclude groups and look for active individual combatant (v13: native DOM)
             const activeCombatant = html.querySelector('.combatant.active:not(.combatant-group)');
             const activeGroupMember = html.querySelector('.group-children .combatant.active');
-            const combatTracker = html.querySelector('#combat-tracker');
+            // v13: Changed from #combat-tracker to .combat-tracker
+            const combatTracker = html.querySelector('.combat-tracker') || html.querySelector('ol.combat-tracker') || html.querySelector('#combat-tracker');
             
             // Parse HTML string into DOM element
             const tempDiv = document.createElement('div');
@@ -307,6 +308,7 @@ class CombatTimer {
             } else if (activeGroupMember && timerElement) {
                 activeGroupMember.insertAdjacentElement('afterend', timerElement);
             } else if (combatTracker && timerElement) {
+                // Insert into the combat tracker list
                 combatTracker.appendChild(timerElement);
             }
             
@@ -799,30 +801,61 @@ class CombatTimer {
     static updateUI() {
         try {
             // Update progress bar using state duration
-            const percentage = (this.state.remaining / this.state.duration) * 100;
-            const bar = document.querySelector('.combat-timer-bar');
-            if (!bar) return;
-            bar.style.width = `${percentage}%`;
+            const timeLimit = this.state.duration || this.DEFAULTS.timeLimit;
+            const percentage = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
             
-            // Update bar color based on percentage
-            bar.classList.remove('high', 'medium', 'low');
-            if (percentage <= 25) {
-                bar.classList.add('low');
-            } else if (percentage <= 50) {
-                bar.classList.add('medium');
-            } else {
-                bar.classList.add('high');
+            // v13: Find all combat timer elements in all windows (sidebar and popout)
+            const allBars = [];
+            const allTexts = [];
+            const allProgressElements = [];
+            
+            // Check sidebar combat tracker
+            if (ui.combat?.element) {
+                const sidebarBar = ui.combat.element.querySelector('.combat-timer-bar');
+                const sidebarText = ui.combat.element.querySelector('.combat-timer-text');
+                const sidebarProgress = ui.combat.element.querySelectorAll('.combat-timer-progress');
+                if (sidebarBar) allBars.push(sidebarBar);
+                if (sidebarText) allTexts.push(sidebarText);
+                sidebarProgress.forEach(el => allProgressElements.push(el));
             }
+            
+            // Check popout windows
+            document.querySelectorAll('#combat-popout .combat-timer-bar, .combat-sidebar .combat-timer-bar').forEach(bar => {
+                if (!allBars.includes(bar)) allBars.push(bar);
+            });
+            document.querySelectorAll('#combat-popout .combat-timer-text, .combat-sidebar .combat-timer-text').forEach(text => {
+                if (!allTexts.includes(text)) allTexts.push(text);
+            });
+            document.querySelectorAll('#combat-popout .combat-timer-progress, .combat-sidebar .combat-timer-progress').forEach(progress => {
+                if (!allProgressElements.includes(progress)) allProgressElements.push(progress);
+            });
+            
+            if (allBars.length === 0) return; // No timer bars found
+            
+            // Update all bars
+            allBars.forEach(bar => {
+                bar.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
+                
+                // Update bar color based on percentage
+                bar.classList.remove('high', 'medium', 'low', 'expired');
+                if (this.state.remaining <= 0) {
+                    bar.classList.add('expired');
+                } else if (percentage <= 25) {
+                    bar.classList.add('low');
+                } else if (percentage <= 50) {
+                    bar.classList.add('medium');
+                } else {
+                    bar.classList.add('high');
+                }
+            });
 
-            // Handle expired state
-            const progressElements = document.querySelectorAll('.combat-timer-progress');
-            if (this.state.remaining <= 0) {
-                bar.classList.add('expired');
-                progressElements.forEach(el => el.classList.add('expired'));
-            } else {
-                bar.classList.remove('expired');
-                progressElements.forEach(el => el.classList.remove('expired'));
-            }
+            // Update progress elements
+            allProgressElements.forEach(el => {
+                el.classList.remove('expired');
+                if (this.state.remaining <= 0) {
+                    el.classList.add('expired');
+                }
+            });
 
             // Don't update text if we're showing a message
             if (this.state.showingMessage) {
@@ -830,26 +863,30 @@ class CombatTimer {
                 if (this.state.remaining <= 0) {
                     const message = game.settings.get(MODULE.ID, 'combatTimerExpiredMessage')
                         .replace('{name}', game.combat?.combatant?.name || '');
-                    const timerText = document.querySelector('.combat-timer-text');
-                    if (timerText) timerText.textContent = message;
+                    allTexts.forEach(timerText => {
+                        timerText.textContent = message;
+                    });
                 }
                 return;
             }
             
-            // Update timer text
-            const timerText = document.querySelector('.combat-timer-text');
-            if (!timerText) return;
+            // Update all timer text elements
+            let textContent;
             if (this.state.isPaused) {
-                timerText.textContent = 'COMBAT TIMER PAUSED';
+                textContent = 'COMBAT TIMER PAUSED';
             } else if (this.state.remaining <= 0) {
                 const message = game.settings.get(MODULE.ID, 'combatTimerExpiredMessage')
                     .replace('{name}', game.combat?.combatant?.name || '');
-                timerText.textContent = message;
+                textContent = message;
             } else {
                 const minutes = Math.floor(this.state.remaining / 60);
                 const seconds = this.state.remaining % 60;
-                timerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')} REMAINING`;
+                textContent = `${minutes}:${seconds.toString().padStart(2, '0')} REMAINING`;
             }
+            
+            allTexts.forEach(timerText => {
+                timerText.textContent = textContent;
+            });
 
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Combat Timer: Error updating UI", error, false, false);
