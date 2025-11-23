@@ -145,15 +145,22 @@ export class PlanningTimer {
             if (data?.wasExpired || data?.shouldFadeOut) {
                 // Handle UI updates without modifying state
                 if (data.shouldFadeOut) {
-                    const planningPhaseElements = document.querySelectorAll('.planning-phase');
-                    planningPhaseElements.forEach((el) => {
-                        el.style.transition = 'opacity 0.4s';
-                        el.style.opacity = '0';
-                        setTimeout(() => {
-                            if (el.parentNode) {
-                                el.remove();
-                            }
-                        }, 400);
+                    // Find timer in both sidebar and popout windows
+                    const searchRoots = [document];
+                    if (ui.combat?.element) {
+                        searchRoots.push(ui.combat.element);
+                    }
+                    searchRoots.forEach(root => {
+                        const planningPhaseElements = root.querySelectorAll('.planning-timer-item');
+                        planningPhaseElements.forEach((el) => {
+                            el.style.transition = 'opacity 0.4s';
+                            el.style.opacity = '0';
+                            setTimeout(() => {
+                                if (el.parentNode) {
+                                    el.remove();
+                                }
+                            }, 400);
+                        });
                     });
                 }
             }
@@ -183,15 +190,22 @@ export class PlanningTimer {
                 setTimeout(async () => {
                     const socket = SocketManager.getSocket();
                     await socket.executeForOthers("timerCleanup", { shouldFadeOut: true });
-                    const planningPhaseElements = document.querySelectorAll('.planning-phase');
-                    planningPhaseElements.forEach((el) => {
-                        el.style.transition = 'opacity 0.4s';
-                        el.style.opacity = '0';
-                        setTimeout(() => {
-                            if (el.parentNode) {
-                                el.remove();
-                            }
-                        }, 400);
+                    // Find timer in both sidebar and popout windows
+                    const searchRoots = [document];
+                    if (ui.combat?.element) {
+                        searchRoots.push(ui.combat.element);
+                    }
+                    searchRoots.forEach(root => {
+                        const planningPhaseElements = root.querySelectorAll('.planning-timer-item');
+                        planningPhaseElements.forEach((el) => {
+                            el.style.transition = 'opacity 0.4s';
+                            el.style.opacity = '0';
+                            setTimeout(() => {
+                                if (el.parentNode) {
+                                    el.remove();
+                                }
+                            }, 400);
+                        });
                     });
                 }, 3000);
             }
@@ -279,15 +293,22 @@ export class PlanningTimer {
                 setTimeout(async () => {
                     const socket = SocketManager.getSocket();
                     await socket.executeForOthers("timerCleanup", { shouldFadeOut: true });
-                    const planningPhaseElements = document.querySelectorAll('.planning-phase');
-                    planningPhaseElements.forEach((el) => {
-                        el.style.transition = 'opacity 0.4s';
-                        el.style.opacity = '0';
-                        setTimeout(() => {
-                            if (el.parentNode) {
-                                el.remove();
-                            }
-                        }, 400);
+                    // Find timer in both sidebar and popout windows
+                    const searchRoots = [document];
+                    if (ui.combat?.element) {
+                        searchRoots.push(ui.combat.element);
+                    }
+                    searchRoots.forEach(root => {
+                        const planningPhaseElements = root.querySelectorAll('.planning-timer-item');
+                        planningPhaseElements.forEach((el) => {
+                            el.style.transition = 'opacity 0.4s';
+                            el.style.opacity = '0';
+                            setTimeout(() => {
+                                if (el.parentNode) {
+                                    el.remove();
+                                }
+                            }, 400);
+                        });
                     });
                 }, 3000);
             }
@@ -816,15 +837,22 @@ export class PlanningTimer {
             const socket = SocketManager.getSocket();
             await socket.executeForOthers("timerCleanup", { wasExpired: true, shouldFadeOut: true });
         }
-        const planningPhaseElements = document.querySelectorAll('.planning-phase');
-        planningPhaseElements.forEach((el) => {
-            el.style.transition = 'opacity 0.4s';
-            el.style.opacity = '0';
-            setTimeout(() => {
-                if (el.parentNode) {
-                    el.remove();
-                }
-            }, 400);
+        // Find timer in both sidebar and popout windows
+        const searchRoots = [document];
+        if (ui.combat?.element) {
+            searchRoots.push(ui.combat.element);
+        }
+        searchRoots.forEach(root => {
+            const planningPhaseElements = root.querySelectorAll('.planning-timer-item');
+            planningPhaseElements.forEach((el) => {
+                el.style.transition = 'opacity 0.4s';
+                el.style.opacity = '0';
+                setTimeout(() => {
+                    if (el.parentNode) {
+                        el.remove();
+                    }
+                }, 400);
+            });
         });
 
         // Trigger planning timer expired hook
@@ -894,15 +922,22 @@ export class PlanningTimer {
             socket.executeForOthers("timerCleanup", { wasExpired: true });
             setTimeout(async () => {
                 await socket.executeForOthers("timerCleanup", { wasExpired: true, shouldFadeOut: true });
-                const planningPhaseElements = document.querySelectorAll('.planning-phase');
-                planningPhaseElements.forEach((el) => {
-                    el.style.transition = 'opacity 0.4s';
-                    el.style.opacity = '0';
-                    setTimeout(() => {
-                        if (el.parentNode) {
-                            el.remove();
-                        }
-                    }, 400);
+                // Find timer in both sidebar and popout windows
+                const searchRoots = [document];
+                if (ui.combat?.element) {
+                    searchRoots.push(ui.combat.element);
+                }
+                searchRoots.forEach(root => {
+                    const planningPhaseElements = root.querySelectorAll('.planning-timer-item');
+                    planningPhaseElements.forEach((el) => {
+                        el.style.transition = 'opacity 0.4s';
+                        el.style.opacity = '0';
+                        setTimeout(() => {
+                            if (el.parentNode) {
+                                el.remove();
+                            }
+                        }, 400);
+                    });
                 });
             }, 3000);
         }
