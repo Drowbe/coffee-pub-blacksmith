@@ -144,7 +144,42 @@ export class TokenImageReplacementWindow extends Application {
             const delegatedHandler = (event) => {
                 const target = event.target.closest(selector);
                 if (target) {
-                    boundHandler.call(this, event);
+                    // Create a synthetic event with currentTarget set to the matched element
+                    // This ensures handlers can use event.currentTarget correctly
+                    // Use a Proxy to intercept currentTarget access while preserving all other event properties
+                    const syntheticEvent = new Proxy(event, {
+                        get: (obj, prop) => {
+                            if (prop === 'currentTarget') {
+                                return target;
+                            }
+                            return obj[prop];
+                        },
+                        has: (obj, prop) => {
+                            if (prop === 'currentTarget') {
+                                return true;
+                            }
+                            return prop in obj;
+                        },
+                        ownKeys: (obj) => {
+                            const keys = Reflect.ownKeys(obj);
+                            if (!keys.includes('currentTarget')) {
+                                return [...keys, 'currentTarget'];
+                            }
+                            return keys;
+                        },
+                        getOwnPropertyDescriptor: (obj, prop) => {
+                            if (prop === 'currentTarget') {
+                                return {
+                                    enumerable: true,
+                                    configurable: true,
+                                    value: target,
+                                    writable: false
+                                };
+                            }
+                            return Reflect.getOwnPropertyDescriptor(obj, prop);
+                        }
+                    });
+                    boundHandler.call(this, syntheticEvent);
                 }
             };
             htmlElement.addEventListener(eventName, delegatedHandler);
