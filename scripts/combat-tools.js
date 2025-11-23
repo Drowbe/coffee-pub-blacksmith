@@ -341,54 +341,36 @@ class CombatTools {
      * @param {jQuery} html - The combat tracker HTML
      */
     static applyResizableSettings(html) {
-        // v13: html is native DOM, but we need to check both sidebar and popout
-        // Try to find the combat popout window
+        const isResizable = getSettingSafely(MODULE.ID, 'combatTrackerResizable', false);
+        
+        // Always check for popout in document, regardless of html parameter
+        // The popout might exist even if the hook is running for the sidebar
         let combatPopout = document.querySelector('#combat-popout');
         
-        // Also check if ui.combat.element is the popout
-        if (!combatPopout && ui.combat?.element) {
-            let combatElement = ui.combat.element;
-            // Convert jQuery if needed
-            if (combatElement && (combatElement.jquery || typeof combatElement.find === 'function')) {
-                combatElement = combatElement[0] || combatElement.get?.(0) || combatElement;
-            }
-            // Check if it's the popout
-            if (combatElement && (combatElement.id === 'combat-popout' || combatElement.classList.contains('combat-sidebar'))) {
-                combatPopout = combatElement;
-            }
-        }
-        
-        // If still no popout, try to find it in the html parameter
-        if (!combatPopout && html) {
-            let nativeHtml = html;
-            if (html && (html.jquery || typeof html.find === 'function')) {
-                nativeHtml = html[0] || html.get?.(0) || html;
-            }
-            if (nativeHtml && nativeHtml.closest) {
-                combatPopout = nativeHtml.closest('#combat-popout');
-            }
-        }
-        
-        if (!combatPopout) return;
+        // If popout exists, apply settings to it
+        if (combatPopout) {
+            if (isResizable) {
+                document.body.classList.add('combat-tracker-resizable');
 
-        const isResizable = getSettingSafely(MODULE.ID, 'combatTrackerResizable', false);
-
-        if (isResizable) {
-            document.body.classList.add('combat-tracker-resizable');
-
-            // Add resize handle if it doesn't exist
-            if (!combatPopout.querySelector('.window-resizable-handle')) {
-                const resizeHandle = document.createElement('div');
-                resizeHandle.className = 'window-resizable-handle';
-                resizeHandle.innerHTML = '<i class="fas fa-arrows-alt-h"></i>';
-                combatPopout.appendChild(resizeHandle);
+                // Add resize handle if it doesn't exist
+                if (!combatPopout.querySelector('.window-resizable-handle')) {
+                    const resizeHandle = document.createElement('div');
+                    resizeHandle.className = 'window-resizable-handle';
+                    resizeHandle.innerHTML = '<i class="fas fa-arrows-alt-h"></i>';
+                    combatPopout.appendChild(resizeHandle);
+                }
+            } else {
+                document.body.classList.remove('combat-tracker-resizable');
+                // Remove resize handle if it exists
+                const existingHandle = combatPopout.querySelector('.window-resizable-handle');
+                if (existingHandle) {
+                    existingHandle.remove();
+                }
             }
         } else {
-            document.body.classList.remove('combat-tracker-resizable');
-            // Remove resize handle if it exists
-            const existingHandle = combatPopout.querySelector('.window-resizable-handle');
-            if (existingHandle) {
-                existingHandle.remove();
+            // No popout found - remove class and handle if setting is disabled
+            if (!isResizable) {
+                document.body.classList.remove('combat-tracker-resizable');
             }
         }
     }
