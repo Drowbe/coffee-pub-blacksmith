@@ -7,12 +7,41 @@
 
 /* Planning Timer Styles */
 
+/* v13: Changed from <li class="combatant planning-phase"> to <li class="planning-timer-item"> */
+/* The .combatant class was causing visibility issues in v13 */
+.planning-timer-item {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: block;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto;
+    min-height: 33px;
+}
+
+.planning-timer-container {
+    padding: 8px 6px 6px 6px;
+    height: 33px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+    margin-bottom: 5px;
+    display: block;
+    position: relative;
+    z-index: 1;
+}
+
+/* Legacy support for old structure */
 .combatant.planning-phase {
     padding: 8px 6px 6px 6px;
     height: 33px;
     background: rgba(0, 0, 0, 0.1);
     border-radius: 3px;
     margin-bottom: 5px;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    list-style: none !important;
 }
 
 /* Progress Bar */

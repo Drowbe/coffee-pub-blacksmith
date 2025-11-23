@@ -328,7 +328,7 @@ export class PlanningTimer {
         );
         
         // Remove any existing planning timers (v13: html is native DOM element)
-        html.querySelectorAll('.planning-phase').forEach(el => el.remove());
+        html.querySelectorAll('.planning-timer-item, .planning-timer-container, .planning-phase').forEach(el => el.remove());
         
         // v13: Find the combat tracker list (ol.combat-tracker) and insert into it
         // Try multiple selectors to find the combat tracker list
@@ -345,6 +345,7 @@ export class PlanningTimer {
             const timerElement = tempDiv.firstElementChild;
             if (timerElement) {
                 // Insert at the beginning of the list, before any combatants or drop targets
+                // v13: Insert as a div before the first child (which might be a drop-target or combatant)
                 combatTracker.insertBefore(timerElement, combatTracker.firstChild);
                 
                 // Bind click handlers after insertion (v13: native DOM)
