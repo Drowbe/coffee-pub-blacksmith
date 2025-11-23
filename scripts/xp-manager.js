@@ -931,10 +931,16 @@ class XpDistributionWindow extends FormApplication {
         const modeKey = mode === 'experiencepoints' ? 'modeExperiencePoints' : `mode${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
         this.xpData[modeKey] = isChecked;
         
+        // v13: Detect and convert jQuery to native DOM if needed
+        let element = this.element;
+        if (element && (element.jquery || typeof element.find === 'function')) {
+            element = element[0] || element.get?.(0) || element;
+        }
+        
         // Simple show/hide logic - no re-rendering
         if (mode === 'experiencepoints') {
-            const expSection = this.element.querySelector('[data-section="experience-points"]');
-            const resolutionSection = this.element.querySelector('[data-section="resolution-types"]');
+            const expSection = element.querySelector('[data-section="experience-points"]');
+            const resolutionSection = element.querySelector('[data-section="resolution-types"]');
             if (isChecked) {
                 if (expSection) expSection.classList.remove('hidden');
                 if (resolutionSection) resolutionSection.classList.remove('hidden');
@@ -943,7 +949,7 @@ class XpDistributionWindow extends FormApplication {
                 if (resolutionSection) resolutionSection.classList.add('hidden');
             }
         } else if (mode === 'milestone') {
-            const milestoneSection = this.element.querySelector('[data-section="milestones"]');
+            const milestoneSection = element.querySelector('[data-section="milestones"]');
             if (milestoneSection) {
                 if (isChecked) {
                     milestoneSection.classList.remove('hidden');
@@ -954,7 +960,7 @@ class XpDistributionWindow extends FormApplication {
         }
         
         // Always ensure Player Adjustments section is visible
-        const playerAdjustmentsSection = this.element.querySelector('[data-section="player-adjustments"]');
+        const playerAdjustmentsSection = element.querySelector('[data-section="player-adjustments"]');
         if (playerAdjustmentsSection) playerAdjustmentsSection.classList.remove('hidden');
         
         // Debug logging
@@ -982,11 +988,17 @@ class XpDistributionWindow extends FormApplication {
     }
 
     _collectMilestoneData() {
+        // v13: Detect and convert jQuery to native DOM if needed
+        let element = this.element;
+        if (element && (element.jquery || typeof element.find === 'function')) {
+            element = element[0] || element.get?.(0) || element;
+        }
+        
         // Collect milestone data directly from input elements since there's no form wrapper
-        const categoryEl = this.element.querySelector('#milestone-category');
-        const titleEl = this.element.querySelector('#milestone-title');
-        const descriptionEl = this.element.querySelector('#milestone-description');
-        const xpAmountEl = this.element.querySelector('#milestone-xp');
+        const categoryEl = element.querySelector('#milestone-category');
+        const titleEl = element.querySelector('#milestone-title');
+        const descriptionEl = element.querySelector('#milestone-description');
+        const xpAmountEl = element.querySelector('#milestone-xp');
         const category = categoryEl ? categoryEl.value : '';
         const title = titleEl ? titleEl.value : '';
         const description = descriptionEl ? descriptionEl.value : '';
@@ -1202,10 +1214,21 @@ class XpDistributionWindow extends FormApplication {
 
 
     _getIncludedPlayerCount() {
-        return this.element.find('[data-table-type="players"] .inclusion-toggle.active').length;
+        // v13: Detect and convert jQuery to native DOM if needed
+        let element = this.element;
+        if (element && (element.jquery || typeof element.find === 'function')) {
+            element = element[0] || element.get?.(0) || element;
+        }
+        return element.querySelectorAll('[data-table-type="players"] .inclusion-toggle.active').length;
     }
 
     _updateXpDataPlayers() {
+        // v13: Detect and convert jQuery to native DOM if needed
+        let element = this.element;
+        if (element && (element.jquery || typeof element.find === 'function')) {
+            element = element[0] || element.get?.(0) || element;
+        }
+        
         // Update xpData.players with current inclusion status and calculated totals
         this.xpData.players = this.xpData.players.map(player => {
             // Skip if player is undefined
@@ -1214,7 +1237,7 @@ class XpDistributionWindow extends FormApplication {
             }
             
             // Use actorId to find the row (from the logged data structure)
-            const playerEl = this.element.querySelector(`[data-player-id="${player.actorId}"]`);
+            const playerEl = element.querySelector(`[data-player-id="${player.actorId}"]`);
             const row = playerEl ? playerEl.closest('[data-row-type="player"]') : null;
             if (!row) return player;
             const inclusionIcon = row.querySelector('.inclusion-toggle');
