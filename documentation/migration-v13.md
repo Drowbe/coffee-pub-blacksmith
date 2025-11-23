@@ -37,6 +37,8 @@ This document tracks the migration process from FoundryVTT v12 to v13, including
 - **Error #15:** `element is not defined` in `_initializeFilterToggleButton` (token-image-replacement.js) ✅ **FIXED**
 - **Error #16:** Mouse events not registering on image thumbnails (token-image-replacement.js) ✅ **FIXED** - Fixed event delegation Proxy to correctly set `currentTarget`
 - **Error #17:** `Illegal invocation` error on right-click (token-image-replacement.js) ✅ **FIXED** - Fixed Proxy to bind event methods to original event object
+- **Error #18:** `html.querySelector is not a function` in `XpDistributionWindow.activateListeners` (xp-manager.js) ✅ **FIXED** - Added jQuery detection
+- **Error #19:** `this.element.querySelector is not a function` in `_updateXpDataPlayers` and other methods (xp-manager.js) ✅ **FIXED** - Added jQuery detection for all `this.element` usage
 
 **Key Breaking Changes:**
 1. `getSceneControlButtons` - controls changed from array to object ✅ **MIGRATED**
@@ -591,7 +593,7 @@ Same as previous errors - replace jQuery methods with native DOM methods.
 #### Medium-Impact Files
 - [x] `scripts/token-image-replacement.js` (84+ instances) ✅ **COMPLETE** - Added jQuery detection for `activateListeners`, `_showSearchSpinner`, `_hideSearchSpinner`, `_registerDomEvent`
 - [x] `scripts/blacksmith.js` (10+ instances) ✅ **COMPLETE** - Fixed syntax errors, added jQuery detection for `renderChatMessage` hooks
-- [x] `scripts/xp-manager.js` (18 instances) ✅ **COMPLETE**
+- [x] `scripts/xp-manager.js` (18 instances) ✅ **COMPLETE** - Fixed jQuery detection in `activateListeners`, `_onModeToggleChange`, `_collectMilestoneData`, `_getIncludedPlayerCount`, `_updateXpDataPlayers`, and `_updateXpDisplay`
 - [x] `scripts/token-image-utilities.js` (24 instances) ✅ **COMPLETE** - No jQuery found, already using native DOM
 - [x] `scripts/api-menubar.js` (39 instances) ✅ **COMPLETE**
 - [x] `scripts/combat-tools.js` (19 instances) ✅ **COMPLETE** - Already using native DOM
@@ -646,6 +648,7 @@ if (!htmlElement) {
 - `blacksmith.js` - `renderChatMessage` hooks (2 instances)
 - `token-image-replacement.js` - `activateListeners`, `_showSearchSpinner`, `_hideSearchSpinner`, `_registerDomEvent`
 - `manager-rolls.js` - `RollWindow.activateListeners`, `_setupFormulaUpdates`, `_executeRoll`
+- `xp-manager.js` - `XpDistributionWindow.activateListeners`, `_onModeToggleChange`, `_collectMilestoneData`, `_getIncludedPlayerCount`, `_updateXpDataPlayers`, `_updateXpDisplay`
 
 ### fadeOut() Replacement Pattern
 
@@ -691,6 +694,7 @@ Enhanced tool item lookup in `manager-rolls.js` to handle multiple lookup method
 - Token image replacement window (click and right-click events working)
 - Skill check rolls
 - Cinematic overlay fade-out
+- XP distribution window (fully functional)
 - All jQuery removal fixes verified
 
 **🟡 In Progress:**
