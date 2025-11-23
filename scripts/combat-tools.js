@@ -39,19 +39,22 @@ Hooks.once('ready', () => {
             });
 
             // Observe the combat tracker for changes (v13: html is native DOM)
-            html.querySelectorAll('.directory-list').forEach((el) => {
-                observer.observe(el, {
+            // v13: Changed from .directory-list to .combat-tracker
+            const combatTracker = html.querySelector('.combat-tracker') || html.querySelector('.directory-list');
+            if (combatTracker) {
+                observer.observe(combatTracker, {
                     childList: true,
                     subtree: true,
                     attributes: true,
                     attributeFilter: ['src']
                 });
-            });
+            }
         }
 
         // Make combatants draggable for GM only
         if (game.user.isGM) {
-            const directoryList = html.querySelector('.directory-list');
+            // v13: Changed from .directory-list to .combat-tracker (ol.combat-tracker.plain)
+            const directoryList = html.querySelector('.combat-tracker') || html.querySelector('.directory-list');
             const combatants = html.querySelectorAll('.combatant');
 
         // First, clear any existing drop targets (v13: native DOM)
@@ -74,18 +77,25 @@ Hooks.once('ready', () => {
         combatants.forEach((element) => {
             element.setAttribute('draggable', 'true');
             element.addEventListener('dragstart', (ev) => {
-                ev.dataTransfer.setData('text/plain', ev.target.dataset.combatantId);
-                ev.target.classList.add('dragging');
+                // v13: Use currentTarget to get the combatant element, not the child that was clicked
+                const combatantElement = ev.currentTarget;
+                const combatantId = combatantElement.dataset.combatantId;
+                if (!combatantId) return;
                 
-                const combatTracker = html.querySelector('#combat-tracker');
+                ev.dataTransfer.setData('text/plain', combatantId);
+                combatantElement.classList.add('dragging');
+                
+                // v13: Find combat tracker by class or ID
+                const combatTracker = html.querySelector('.combat-tracker') || html.querySelector('#combat-tracker');
                 if (combatTracker) combatTracker.classList.add('dragging-active');
             });
 
             element.addEventListener('dragend', (ev) => {
-                ev.target.classList.remove('dragging');
+                ev.currentTarget.classList.remove('dragging');
                 html.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
                 
-                const combatTracker = html.querySelector('#combat-tracker');
+                // v13: Find combat tracker by class or ID
+                const combatTracker = html.querySelector('.combat-tracker') || html.querySelector('#combat-tracker');
                 if (combatTracker) combatTracker.classList.remove('dragging-active');
             });
         });

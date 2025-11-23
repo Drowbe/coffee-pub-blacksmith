@@ -423,7 +423,8 @@ class CombatTracker {
 						if (!game.combat) return;
 
 						// Find the Roll NPCs button (v13: html is native DOM element)
-						const rollNPCButton = html.querySelector('.combat-control[data-control="rollNPC"]');
+						// v13: Changed from data-control to data-action
+						const rollNPCButton = html.querySelector('.combat-control[data-action="rollNPC"]') || html.querySelector('.combat-control[data-control="rollNPC"]');
 						if (!rollNPCButton) return;
 
 						// Remove old button and handler if they exist
@@ -704,9 +705,9 @@ class CombatTracker {
      * Called before adding new button to prevent duplicates
      */
     static _removeRollRemainingButton() {
-        // Remove click handler if it exists
+        // Remove click handler if it exists (v13: native DOM)
         if (this._rollRemainingButton && this._rollRemainingClickHandler) {
-            this._rollRemainingButton.off('click', this._rollRemainingClickHandler);
+            this._rollRemainingButton.removeEventListener('click', this._rollRemainingClickHandler);
         }
         
         // Remove button from DOM if it exists

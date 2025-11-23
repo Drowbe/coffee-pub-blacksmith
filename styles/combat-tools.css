@@ -1,10 +1,13 @@
 
 /* Drag and Drop */
 
+/* v13: Updated selectors for new DOM structure */
+.combat-tracker,
 #combat-tracker .directory-list {
     position: relative;
 }
 
+.combat-tracker .combatant,
 #combat-tracker .combatant {
     position: relative;
     transition: margin 0.2s ease-out;
@@ -12,10 +15,12 @@
     cursor: grab;
 }
 
+.combat-tracker.dragging-active .combatant,
 #combat-tracker.dragging-active .combatant {
     margin: 0px 0;
 }
 
+.combat-tracker .drop-target,
 #combat-tracker .drop-target {
     position: relative;
     height: 2px;
@@ -25,6 +30,7 @@
     list-style: none;
 }
 
+.combat-tracker.dragging-active .drop-target,
 #combat-tracker.dragging-active .drop-target {
     height: 16px;
     background: rgba(33, 33, 31, 0.7);
@@ -33,6 +39,7 @@
   	outline-offset: -4px;
 }
 
+.combat-tracker .drop-target.drag-over,
 #combat-tracker .drop-target.drag-over {
     height: 28px !important;
     background: rgba(0, 255, 0, 0.2);
@@ -41,12 +48,14 @@
 	outline-offset: -4px;
 }
 
+.combat-tracker .combatant.dragging,
 #combat-tracker .combatant.dragging {
     opacity: 0.5;
     cursor: grabing;
 }
 
 /* Non-GM users should not see drag cursor */
+body:not(.gm) .combat-tracker .combatant,
 body:not(.gm) #combat-tracker .combatant {
     cursor: default !important;
 }
@@ -54,7 +63,9 @@ body:not(.gm) #combat-tracker .combatant {
 
 /* Health Ring  */
 
-.health-ring-container {
+/* v13: Health ring container is now part of the combatant structure */
+.combatant .health-ring-container,
+#combat-tracker .combatant .health-ring-container {
     position: absolute;
     top: 0;
     left: 0;
@@ -64,9 +75,11 @@ body:not(.gm) #combat-tracker .combatant {
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 1;
 }
 
-.token-image {
+.combatant .token-image,
+#combat-tracker .combatant .token-image {
     position: relative;
     width: 32px !important;
     height: 32px !important;
@@ -77,9 +90,11 @@ body:not(.gm) #combat-tracker .combatant {
     margin: 8px !important;
     border-radius: 50% !important;
     object-fit: cover !important;
+    z-index: 2;
 }
 
-.health-ring-container svg {
+.combatant .health-ring-container svg,
+#combat-tracker .combatant .health-ring-container svg {
     position: absolute;
     top: 4px;
     left: 4px;
