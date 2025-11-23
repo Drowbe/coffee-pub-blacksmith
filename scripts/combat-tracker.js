@@ -422,86 +422,152 @@ class CombatTracker {
 						// Only add if there's an active combat
 						if (!game.combat) return;
 
-						// Find the Roll NPCs button (v13: html is native DOM element)
-						// v13: Changed from data-control to data-action
-						// Try multiple selectors to find the button - must match the exact structure
-						const rollNPCButton = html.querySelector('button.inline-control.combat-control[data-action="rollNPC"]') ||
-						                      html.querySelector('button.combat-control[data-action="rollNPC"]') ||
-						                      html.querySelector('.combat-control[data-action="rollNPC"]') ||
-						                      html.querySelector('button[data-action="rollNPC"]') ||
-						                      html.querySelector('.combat-control[data-control="rollNPC"]') ||
-						                      html.querySelector('button.combat-control[data-control="rollNPC"]');
-						if (!rollNPCButton) {
-							// Don't return early - try to find the container and insert anyway
-							postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Roll NPC button not found, trying container insertion`, "", true, false);
-							// Try to find the left controls container and append there
-							const leftControls = html.querySelector('.control-buttons.left');
-							if (leftControls) {
-								// Remove old button if exists
-								const existingButton = html.querySelector('.combat-control[data-control="rollRemaining"]');
-								if (existingButton) existingButton.remove();
-								
-								// Create and insert button
-								const rollRemainingButton = document.createElement('button');
-								rollRemainingButton.type = 'button';
-								rollRemainingButton.className = 'inline-control combat-control icon fa-solid fa-users-medical';
-								rollRemainingButton.setAttribute('aria-label', 'Roll Remaining');
-								rollRemainingButton.setAttribute('data-tooltip', 'Roll Remaining');
-								rollRemainingButton.setAttribute('data-control', 'rollRemaining');
-								rollRemainingButton.setAttribute('data-action', 'rollRemaining');
-								
-								leftControls.appendChild(rollRemainingButton);
-								
-								// Add click handler
-								const clickHandler = async (event) => {
-									event.preventDefault();
-									await this._rollRemainingInitiatives();
-								};
-								this._rollRemainingButton = rollRemainingButton;
-								this._rollRemainingClickHandler = clickHandler;
-								rollRemainingButton.addEventListener('click', clickHandler);
+						// v13: Use app.element (the actual rendered element) instead of html
+						// html might be a temporary element that gets replaced
+						// Use setTimeout to ensure we insert after Foundry's render completes
+						setTimeout(() => {
+							// v13: Detect and convert jQuery to native DOM if needed
+							let nativeHtml = html;
+							if (html && (html.jquery || typeof html.find === 'function')) {
+								// jQuery object - get the native element
+								nativeHtml = html[0] || html.get?.(0) || html;
+							}
+							
+							// Get app.element (the actual rendered application element)
+							let appElement = app?.element;
+							if (appElement && (appElement.jquery || typeof appElement.find === 'function')) {
+								appElement = appElement[0] || appElement.get?.(0) || appElement;
+							}
+							
+							// Build search roots: prefer app.element, fallback to html, also check ui.combat.element
+							const searchRoots = [];
+							if (appElement) searchRoots.push(appElement);
+							if (nativeHtml && nativeHtml !== appElement) searchRoots.push(nativeHtml);
+							if (ui.combat?.element) {
+								let combatElement = ui.combat.element;
+								if (combatElement && (combatElement.jquery || typeof combatElement.find === 'function')) {
+									combatElement = combatElement[0] || combatElement.get?.(0) || combatElement;
+								}
+								if (combatElement && combatElement !== appElement && combatElement !== nativeHtml) {
+									searchRoots.push(combatElement);
+								}
+							}
+							
+							if (searchRoots.length === 0) {
+								postConsoleAndNotification(MODULE.NAME, `Combat Tracker: No valid search roots found`, "", true, false);
 								return;
 							}
-							return;
-						}
 
-						// Remove old button and handler if they exist
-						this._removeRollRemainingButton();
+							// Find the Roll NPCs button (v13: html is native DOM element)
+							// v13: Changed from data-control to data-action
+							// Try multiple selectors to find the button - must match the exact structure
+							let rollNPCButton = null;
+							let foundRoot = null;
+							for (const root of searchRoots) {
+								rollNPCButton = root.querySelector('button.inline-control.combat-control[data-action="rollNPC"]') ||
+								                root.querySelector('button.combat-control[data-action="rollNPC"]') ||
+								                root.querySelector('.combat-control[data-action="rollNPC"]') ||
+								                root.querySelector('button[data-action="rollNPC"]') ||
+								                root.querySelector('.combat-control[data-control="rollNPC"]') ||
+								                root.querySelector('button.combat-control[data-control="rollNPC"]');
+								if (rollNPCButton) {
+									foundRoot = root;
+									break;
+								}
+							}
+							
+							if (!rollNPCButton) {
+								// Don't return early - try to find the container and insert anyway
+								postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Roll NPC button not found in any root, trying container insertion`, "", true, false);
+								// Try to find the left controls container and append there
+								let leftControls = null;
+								let controlsRoot = null;
+								for (const root of searchRoots) {
+									leftControls = root.querySelector('.control-buttons.left');
+									if (leftControls) {
+										controlsRoot = root;
+										break;
+									}
+								}
+								if (leftControls) {
+									// Remove old button if exists
+									let existingButton = null;
+									for (const root of searchRoots) {
+										existingButton = root.querySelector('.combat-control[data-control="rollRemaining"], .combat-control[data-action="rollRemaining"]');
+										if (existingButton) break;
+									}
+									if (existingButton) existingButton.remove();
+									
+									// Create and insert button
+									const rollRemainingButton = document.createElement('button');
+									rollRemainingButton.type = 'button';
+									rollRemainingButton.className = 'inline-control combat-control icon fa-solid fa-users-medical';
+									rollRemainingButton.setAttribute('aria-label', 'Roll Remaining');
+									rollRemainingButton.setAttribute('data-tooltip', 'Roll Remaining');
+									rollRemainingButton.setAttribute('data-control', 'rollRemaining');
+									rollRemainingButton.setAttribute('data-action', 'rollRemaining');
+									
+									leftControls.appendChild(rollRemainingButton);
+									
+									postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Roll Remaining button inserted into left controls container`, "", true, false);
+									
+									// Add click handler
+									const clickHandler = async (event) => {
+										event.preventDefault();
+										await this._rollRemainingInitiatives();
+									};
+									this._rollRemainingButton = rollRemainingButton;
+									this._rollRemainingClickHandler = clickHandler;
+									rollRemainingButton.addEventListener('click', clickHandler);
+									return;
+								}
+								postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Could not find Roll NPC button or left controls container`, "", true, false);
+								return;
+							}
 
-						// Check if button already exists in the HTML (from previous render)
-						const existingButton = html.querySelector('.combat-control[data-control="rollRemaining"]');
-						if (existingButton) {
-							existingButton.remove();
-						}
+							// Remove old button and handler if they exist
+							this._removeRollRemainingButton();
 
-						// Create and insert our new button (v13: native DOM)
-						// v13: Use button element to match Foundry's structure
-						const rollRemainingButton = document.createElement('button');
-						rollRemainingButton.type = 'button';
-						rollRemainingButton.className = 'inline-control combat-control icon fa-solid fa-users-medical';
-						rollRemainingButton.setAttribute('aria-label', 'Roll Remaining');
-						rollRemainingButton.setAttribute('data-tooltip', 'Roll Remaining');
-						rollRemainingButton.setAttribute('data-control', 'rollRemaining');
-						rollRemainingButton.setAttribute('data-action', 'rollRemaining');
+							// Check if button already exists in the HTML (from previous render)
+							// Only check in the same root where we found the rollNPC button
+							let existingButton = null;
+							if (foundRoot) {
+								existingButton = foundRoot.querySelector('.combat-control[data-control="rollRemaining"], .combat-control[data-action="rollRemaining"]');
+							}
+							if (existingButton) {
+								existingButton.remove();
+							}
 
-						// Insert after the Roll NPCs button (v13: native DOM)
-						rollNPCButton.insertAdjacentElement('afterend', rollRemainingButton);
-						
-						postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Roll Remaining button inserted after Roll NPC button`, "", true, false);
+							// Create and insert our new button (v13: native DOM)
+							// v13: Use button element to match Foundry's structure
+							const rollRemainingButton = document.createElement('button');
+							rollRemainingButton.type = 'button';
+							rollRemainingButton.className = 'inline-control combat-control icon fa-solid fa-users-medical';
+							rollRemainingButton.setAttribute('aria-label', 'Roll Remaining');
+							rollRemainingButton.setAttribute('data-tooltip', 'Roll Remaining');
+							rollRemainingButton.setAttribute('data-control', 'rollRemaining');
+							rollRemainingButton.setAttribute('data-action', 'rollRemaining');
 
-						// Create click handler function
-						const clickHandler = async (event) => {
-							event.preventDefault();
-							event.stopPropagation();
-							await this._rollRemainingInitiatives();
-						};
+							// Insert after the Roll NPCs button (v13: native DOM)
+							// Use the same root where we found the button to ensure we're inserting into the correct DOM tree
+							rollNPCButton.insertAdjacentElement('afterend', rollRemainingButton);
+							
+							postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Roll Remaining button inserted after Roll NPC button`, "", true, false);
 
-						// Store button and handler references for cleanup
-						this._rollRemainingButton = rollRemainingButton;
-						this._rollRemainingClickHandler = clickHandler;
+							// Create click handler function
+							const clickHandler = async (event) => {
+								event.preventDefault();
+								event.stopPropagation();
+								await this._rollRemainingInitiatives();
+							};
 
-						// Add click handler (v13: native DOM)
-						rollRemainingButton.addEventListener('click', clickHandler);
+							// Store button and handler references for cleanup
+							this._rollRemainingButton = rollRemainingButton;
+							this._rollRemainingClickHandler = clickHandler;
+
+							// Add click handler (v13: native DOM)
+							rollRemainingButton.addEventListener('click', clickHandler);
+						}, 0); // Use setTimeout with 0 delay to ensure it runs after Foundry's render completes
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
 				});
