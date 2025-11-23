@@ -837,36 +837,43 @@ class XpDistributionWindow extends FormApplication {
     activateListeners(html) {
         super.activateListeners(html);
         
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            // jQuery object - get the native element
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+        
         // Add event listeners for mode toggles
-        const modeExperiencePoints = html.querySelector('#modeExperiencePoints');
-        const modeMilestone = html.querySelector('#modeMilestone');
+        const modeExperiencePoints = nativeHtml.querySelector('#modeExperiencePoints');
+        const modeMilestone = nativeHtml.querySelector('#modeMilestone');
         if (modeExperiencePoints) modeExperiencePoints.addEventListener('change', this._onModeToggleChange.bind(this));
         if (modeMilestone) modeMilestone.addEventListener('change', this._onModeToggleChange.bind(this));
         
         // Add event listeners for milestone form
-        const milestoneXp = html.querySelector('#milestone-xp');
+        const milestoneXp = nativeHtml.querySelector('#milestone-xp');
         if (milestoneXp) milestoneXp.addEventListener('input', this._onMilestoneXpChange.bind(this));
-        html.querySelectorAll('.milestone-input, .milestone-textarea, .milestone-select').forEach(el => {
+        nativeHtml.querySelectorAll('.milestone-input, .milestone-textarea, .milestone-select').forEach(el => {
             el.addEventListener('input', this._onMilestoneDataChange.bind(this));
             el.addEventListener('change', this._onMilestoneDataChange.bind(this));
         });
         
         // Add event listeners for player adjustments
-        html.querySelectorAll('.player-adjustment').forEach(el => {
+        nativeHtml.querySelectorAll('.player-adjustment').forEach(el => {
             el.addEventListener('input', this._onPlayerAdjustmentChange.bind(this));
         });
-        html.querySelectorAll('.adjustment-sign').forEach(el => {
+        nativeHtml.querySelectorAll('.adjustment-sign').forEach(el => {
             el.addEventListener('click', this._onPlayerAdjustmentSignClick.bind(this));
         });
         
         // Add event listeners for action buttons
-        const applyXp = html.querySelector('.apply-xp');
-        const cancelXp = html.querySelector('.cancel-xp');
+        const applyXp = nativeHtml.querySelector('.apply-xp');
+        const cancelXp = nativeHtml.querySelector('.cancel-xp');
         if (applyXp) applyXp.addEventListener('click', this._onApplyXp.bind(this));
         if (cancelXp) cancelXp.addEventListener('click', this._onCancelXp.bind(this));
         
         // Add event listeners for monster resolution icons
-        html.querySelectorAll('[data-table-type="monsters"] .resolution-icon').forEach(el => {
+        nativeHtml.querySelectorAll('[data-table-type="monsters"] .resolution-icon').forEach(el => {
             el.addEventListener('click', this._onMonsterResolutionIconClick.bind(this));
             el.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -876,7 +883,7 @@ class XpDistributionWindow extends FormApplication {
         });
         
         // Add event listeners for player inclusion icons
-        html.querySelectorAll('[data-table-type="players"] .inclusion-toggle').forEach(el => {
+        nativeHtml.querySelectorAll('[data-table-type="players"] .inclusion-toggle').forEach(el => {
             el.addEventListener('click', this._onPlayerInclusionClick.bind(this));
         });
         
@@ -1049,7 +1056,11 @@ class XpDistributionWindow extends FormApplication {
         const includedCount = this._getIncludedPlayerCount();
 
         // Update summary display
-        const html = this.element;
+        // v13: Detect and convert jQuery to native DOM if needed
+        let html = this.element;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            html = html[0] || html.get?.(0) || html;
+        }
         const summaryItems = html.querySelectorAll('.xp-summary-item');
         if (summaryItems.length > 0) {
             const spans0 = summaryItems[0].querySelectorAll('span');

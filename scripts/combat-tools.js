@@ -341,7 +341,34 @@ class CombatTools {
      * @param {jQuery} html - The combat tracker HTML
      */
     static applyResizableSettings(html) {
-        const combatPopout = document.querySelector('#combat-popout');
+        // v13: html is native DOM, but we need to check both sidebar and popout
+        // Try to find the combat popout window
+        let combatPopout = document.querySelector('#combat-popout');
+        
+        // Also check if ui.combat.element is the popout
+        if (!combatPopout && ui.combat?.element) {
+            let combatElement = ui.combat.element;
+            // Convert jQuery if needed
+            if (combatElement && (combatElement.jquery || typeof combatElement.find === 'function')) {
+                combatElement = combatElement[0] || combatElement.get?.(0) || combatElement;
+            }
+            // Check if it's the popout
+            if (combatElement && (combatElement.id === 'combat-popout' || combatElement.classList.contains('combat-sidebar'))) {
+                combatPopout = combatElement;
+            }
+        }
+        
+        // If still no popout, try to find it in the html parameter
+        if (!combatPopout && html) {
+            let nativeHtml = html;
+            if (html && (html.jquery || typeof html.find === 'function')) {
+                nativeHtml = html[0] || html.get?.(0) || html;
+            }
+            if (nativeHtml && nativeHtml.closest) {
+                combatPopout = nativeHtml.closest('#combat-popout');
+            }
+        }
+        
         if (!combatPopout) return;
 
         const isResizable = getSettingSafely(MODULE.ID, 'combatTrackerResizable', false);
