@@ -152,7 +152,12 @@ export class TokenImageReplacementWindow extends Application {
                             if (prop === 'currentTarget') {
                                 return target;
                             }
-                            return obj[prop];
+                            // For methods, bind them to the original event object to preserve 'this' context
+                            const value = obj[prop];
+                            if (typeof value === 'function') {
+                                return value.bind(obj);
+                            }
+                            return value;
                         },
                         has: (obj, prop) => {
                             if (prop === 'currentTarget') {
