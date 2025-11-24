@@ -114,7 +114,44 @@ export class CSSEditor extends FormApplication {
         const worldButton = nativeHtml.querySelector('.world-button');
         if (worldButton) {
             worldButton.addEventListener('click', () => {
-                new WorldConfig(game.world).render(true);
+                try {
+                    // v13: Try to find and trigger FoundryVTT's openApp handler
+                    // First, try to find an existing button with data-action="openApp" and data-app="world"
+                    const existingButton = document.querySelector('button[data-action="openApp"][data-app="world"]');
+                    if (existingButton) {
+                        existingButton.click();
+                        return;
+                    }
+                    
+                    // Alternative: Try to access the world application directly
+                    if (ui?.world) {
+                        ui.world.render(true);
+                        return;
+                    }
+                    
+                    // Fallback: Try to open world sheet directly
+                    if (game.world?.sheet) {
+                        game.world.sheet.render(true);
+                        return;
+                    }
+                    
+                    // Last resort: Try to create and trigger the button event
+                    const tempButton = document.createElement('button');
+                    tempButton.setAttribute('data-action', 'openApp');
+                    tempButton.setAttribute('data-app', 'world');
+                    document.body.appendChild(tempButton);
+                    
+                    // Try to trigger FoundryVTT's event handler
+                    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+                    tempButton.dispatchEvent(event);
+                    
+                    // Clean up after a short delay
+                    setTimeout(() => tempButton.remove(), 100);
+                } catch (error) {
+                    // If all else fails, open settings sheet
+                    postConsoleAndNotification(MODULE.NAME, 'Error opening World Config', error, false, false);
+                    game.settings.sheet.render(true);
+                }
             });
         }
 
