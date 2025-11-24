@@ -310,10 +310,14 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ************************************
 
     async initialize(html) {
-
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
 
         // Get the window element - try both jQuery and direct DOM approaches
-        const windowElement = html ? html.closest('.window-app') : document.querySelector('#coffee-pub-blacksmith');
+        const windowElement = nativeHtml ? nativeHtml.closest('.window-app') : document.querySelector('#coffee-pub-blacksmith');
         
         // Set initial workspace visibility
         if (!this.showWorkspace) {
@@ -781,7 +785,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add event listener for encounter journal drops
-        html.querySelectorAll('.encounters-drop-zone').forEach((dropZone) => {
+        nativeHtml.querySelectorAll('.encounters-drop-zone').forEach((dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
                 event.preventDefault();
                 dropZone.classList.add('dragover');
@@ -828,7 +832,12 @@ export class BlacksmithWindowQuery extends FormApplication {
                                         select: {
                                             label: "Select",
                                             callback: async (html) => {
-                                                const pageSelect = html.querySelector('#page-select');
+                                                // v13: Detect and convert jQuery to native DOM if needed
+                                                let nativeDialogHtml = html;
+                                                if (html && (html.jquery || typeof html.find === 'function')) {
+                                                    nativeDialogHtml = html[0] || html.get?.(0) || html;
+                                                }
+                                                const pageSelect = nativeDialogHtml.querySelector('#page-select');
                                                 const pageId = pageSelect ? pageSelect.value : null;
                                                 if (pageId) {
                                                     const page = journal.pages.get(pageId);
@@ -855,7 +864,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add roll dice button handler
-        html.addEventListener('click', (event) => {
+        nativeHtml.addEventListener('click', (event) => {
             const target = event.target.closest('.roll-dice-button');
             if (target) {
                 event.preventDefault();
@@ -925,15 +934,21 @@ export class BlacksmithWindowQuery extends FormApplication {
         }
     
         if (html) {
+            // v13: Detect and convert jQuery to native DOM if needed
+            let nativeHtml = html;
+            if (html && (html.jquery || typeof html.find === 'function')) {
+                nativeHtml = html[0] || html.get?.(0) || html;
+            }
+            
             // Native DOM path (v13)
-            const workspaceButtons = html.querySelectorAll('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
+            const workspaceButtons = nativeHtml.querySelectorAll('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
             workspaceButtons.forEach(button => button.classList.remove('active'));
-            const activeButton = html.querySelector(`#blacksmith-query-button-${this.workspaceId}`);
+            const activeButton = nativeHtml.querySelector(`#blacksmith-query-button-${this.workspaceId}`);
             if (activeButton) activeButton.classList.add('active');
             
-            const workspaceContents = html.querySelectorAll('.workspace-content');
+            const workspaceContents = nativeHtml.querySelectorAll('.workspace-content');
             workspaceContents.forEach(content => content.classList.add('hidden'));
-            const activeWorkspace = html.querySelector(`#${workspaceId}`);
+            const activeWorkspace = nativeHtml.querySelector(`#${workspaceId}`);
             if (activeWorkspace) activeWorkspace.classList.remove('hidden');
         } else {
             // Direct DOM manipulation path
