@@ -2547,21 +2547,24 @@ export class JournalToolsWindow extends FormApplication {
         nativeHtml.addEventListener('click', (event) => {
             const target = event.target.closest('.replace-title');
             if (target) {
-                this._onResultTitleClick.call(this, event);
+                this._onResultTitleClick.call(this, event, target);
             }
         });
     }
 
-    _onResultTitleClick(event) {
+    _onResultTitleClick(event, target) {
         event.preventDefault();
         event.stopPropagation();
 
         try {
-            const target = event.currentTarget;
-            const type = target.getAttribute('data-type');
-            const id = target.getAttribute('data-id');
-            const pageId = target.getAttribute('data-page-id');
-            const soundId = target.getAttribute('data-sound-id');
+            // Use the target element passed in, or fallback to finding it from event
+            const clickedElement = target || event.target.closest('.replace-title');
+            if (!clickedElement) return;
+            
+            const type = clickedElement.getAttribute('data-type');
+            const id = clickedElement.getAttribute('data-id');
+            const pageId = clickedElement.getAttribute('data-page-id');
+            const soundId = clickedElement.getAttribute('data-sound-id');
 
             if (!type || !id) return;
 
