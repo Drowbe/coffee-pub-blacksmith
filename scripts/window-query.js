@@ -276,6 +276,19 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     }
 
+    /**
+     * Get native DOM element from this.element (handles jQuery conversion)
+     * @returns {HTMLElement|null} Native DOM element
+     */
+    _getNativeElement() {
+        if (!this.element) return null;
+        // v13: Detect and convert jQuery to native DOM if needed
+        if (this.element.jquery || typeof this.element.find === 'function') {
+            return this.element[0] || this.element.get?.(0) || this.element;
+        }
+        return this.element;
+    }
+
     // ************************************
     // ** OPTIONS defaultOptions
     // ************************************
@@ -2536,7 +2549,7 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
     }
     // send the messag to the output window.
     displayMessage(message) {
-        const output = this.element.querySelector('#coffee-pub-blacksmith-output');
+        const output = this._getNativeElement()?.querySelector('#coffee-pub-blacksmith-output');
         if (output) {
             // If message is a string, use insertAdjacentHTML, otherwise appendChild
             if (typeof message === 'string') {
@@ -2549,7 +2562,7 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
     }
 
     _scrollToBottom() {
-        const output = this.element.querySelector('#coffee-pub-blacksmith-output');
+        const output = this._getNativeElement()?.querySelector('#coffee-pub-blacksmith-output');
         if (output) {
             output.scrollTop = output.scrollHeight;
         }
@@ -2675,7 +2688,7 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
 
         // Apply level counts
         Object.entries(levelCounts).forEach(([level, count]) => {
-            const levelButton = this.element.querySelector(`.level-button[data-level="${level}"]`);
+            const levelButton = this._getNativeElement()?.querySelector(`.level-button[data-level="${level}"]`);
             if (levelButton) {
                 // Remove both classes first
                 levelButton.classList.remove('active', 'auto');
@@ -2697,7 +2710,7 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
 
         // Apply class counts
         Object.entries(classCounts).forEach(([className, count]) => {
-            const classButton = this.element.querySelector(`.class-button[data-class="${className.toLowerCase()}"]`);
+            const classButton = this._getNativeElement()?.querySelector(`.class-button[data-class="${className.toLowerCase()}"]`);
             if (classButton) {
                 // Remove both classes first
                 classButton.classList.remove('active', 'auto');
@@ -2718,7 +2731,7 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
         });
 
         // Update Encounter Benchmark info
-        const windowContent = this.element.closest('.window-content');
+        const windowContent = this._getNativeElement()?.closest('.window-content');
         const id = windowContent ? windowContent.getAttribute('data-window-id') : null;
         if (id) {
             // Wrap these calls in a setTimeout to ensure they run after the DOM has updated
