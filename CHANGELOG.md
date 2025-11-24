@@ -5,6 +5,74 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [13.0.1] - v13 Migration
+
+### Fixed
+- **Combat Tracker - Health Ring Alignment:** Fixed health rings not aligning correctly over token/portrait images in the combat tracker
+  - Updated CSS positioning for `.health-ring-container` and SVG elements
+  - Changed insertion logic to insert health ring container right before token image element
+- **Combat Tracker - Roll Remaining Button:** Fixed "Roll Remaining" button not appearing in combat tracker
+  - Migrated button creation to native DOM methods (removed jQuery dependency)
+  - Updated button structure to match v13 format with `data-action` attribute
+  - Improved insertion logic with multiple search roots for better compatibility
+  - Fixed event listener removal to use native `removeEventListener` instead of jQuery
+  - Increased hook priority to ensure button appears after other combat tracker elements
+- **Combat Tracker - Planning Timer:** Fixed multiple planning timer issues
+  - Fixed timer not being visible or clickable
+  - Fixed timer showing "0s Planning" when active (state initialization issue)
+  - Fixed timer not gracefully disappearing after planning ended
+  - Fixed excessive re-renders by adding initiative check before showing timer
+  - Fixed timer appearing before all initiatives were rolled
+  - Changed HTML structure from `.combatant.planning-phase` to `.planning-timer-item` to avoid CSS conflicts
+  - Updated CSS to force visibility with important flags
+  - Enhanced fade-out to work in both sidebar and popout windows
+  - Fixed setting access errors by using `getSettingSafely` utility
+- **Combat Tracker - Combat Timer:** Fixed combat timer visibility and timing issues
+  - Fixed timer not showing in popped-out combat window
+  - Fixed timer not being clickable
+  - Fixed timer showing before all initiatives were rolled
+  - Updated selectors from `#combat-tracker` to `.combat-tracker` for v13 compatibility
+  - Enhanced `updateUI()` to find timer elements in both sidebar and popout windows
+- **Combat Tracker - Popout Window Closing:** Fixed popped-out combat window not closing when combat ends
+  - Enhanced `closeCombatTracker()` to check multiple ways to find and close popout window
+  - Added direct DOM lookup for `#combat-popout` element
+  - Added fallback to click close button if Application instance not found
+  - Made `endCombat` hook callback async to properly await window closing
+- **XP Distribution Window:** Fixed jQuery-related errors in XP distribution window
+  - Fixed `html.querySelector is not a function` error in `activateListeners`
+  - Fixed `this.element.querySelector is not a function` errors in multiple methods
+  - Added jQuery detection and conversion for all DOM queries
+  - Updated `_updateXpDisplay()`, `_getIncludedPlayerCount()`, `_updateXpDataPlayers()`, `_onModeToggleChange()`, and `_collectMilestoneData()` methods
+
+### Changed
+- **jQuery Removal:** Continued migration from jQuery to native DOM methods across combat tracker components
+  - All combat tracker hooks now handle native DOM elements
+  - Added jQuery detection patterns where needed for compatibility
+  - Replaced jQuery event handlers with native `addEventListener`
+  - Replaced jQuery DOM manipulation with native methods (`querySelector`, `appendChild`, `insertBefore`, etc.)
+- **Combat Tracker Structure:** Updated combat tracker HTML structure for v13 compatibility
+  - Planning timer now uses `.planning-timer-item` class instead of `.combatant.planning-phase`
+  - Roll Remaining button now uses `<button>` element with v13-compatible attributes
+  - All selectors updated to match v13 DOM structure
+
+### Technical
+- **Initiative Checks:** Added initiative validation before showing timers
+  - Planning timer and combat timer now only appear after all combatants have rolled initiative
+  - Prevents timers from appearing prematurely and reduces unnecessary re-renders
+- **Hook Priorities:** Adjusted hook priorities for proper execution order
+  - Roll Remaining button hook priority set to 5 (runs after planning timer at priority 3)
+  - Ensures proper element insertion order in combat tracker
+- **Error Handling:** Improved error handling for async operations
+  - Added proper delays and error handling for window closing operations
+  - Enhanced fallback mechanisms for finding and closing popout windows
+
+### Migration Notes
+- See `documentation/migration-v13.md` for detailed migration documentation
+- All combat tracker functionality has been restored and tested in v13
+- jQuery removal is complete for combat tracker components
+
+
 ## [13.0.0] - v13 Migration Begins
 
 ### Important Notice
