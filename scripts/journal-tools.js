@@ -107,12 +107,22 @@ export class JournalTools {
     }
 
     static _isEditMode(html) {
-        return html.querySelector('.editor-container') !== null;
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+        return nativeHtml.querySelector('.editor-container') !== null;
     }
 
     static _addToolsIcon(html) {
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
         // Find the window header
-        const windowHeader = html.querySelector('.window-header');
+        const windowHeader = nativeHtml.querySelector('.window-header');
         
         if (!windowHeader) {
             return;
@@ -2360,6 +2370,19 @@ export class JournalToolsWindow extends FormApplication {
         this.shouldStop = false;
     }
 
+    /**
+     * Get native DOM element from this.element (handles jQuery conversion)
+     * @returns {HTMLElement|null} Native DOM element
+     */
+    _getNativeElement() {
+        if (!this.element) return null;
+        // v13: Detect and convert jQuery to native DOM if needed
+        if (this.element.jquery || typeof this.element.find === 'function') {
+            return this.element[0] || this.element.get?.(0) || this.element;
+        }
+        return this.element;
+    }
+
     static get defaultOptions() {
         return foundry.utils.mergeObject(super.defaultOptions, {
             id: "journal-tools-window",
@@ -2467,55 +2490,61 @@ export class JournalToolsWindow extends FormApplication {
     activateListeners(html) {
         super.activateListeners(html);
         
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+        
         // Add event listeners for the custom buttons
-        const applyToolsButton = html.querySelector('.apply-tools');
+        const applyToolsButton = nativeHtml.querySelector('.apply-tools');
         if (applyToolsButton) {
             applyToolsButton.addEventListener('click', this._onApplyTools.bind(this));
         }
         
-        const cancelToolsButton = html.querySelector('.cancel-tools');
+        const cancelToolsButton = nativeHtml.querySelector('.cancel-tools');
         if (cancelToolsButton) {
             cancelToolsButton.addEventListener('click', this._onCancelTools.bind(this));
         }
         
-        const copyResultsEntityButton = html.querySelector('#copy-results-entity');
+        const copyResultsEntityButton = nativeHtml.querySelector('#copy-results-entity');
         if (copyResultsEntityButton) {
             copyResultsEntityButton.addEventListener('click', this._onCopyStatus.bind(this));
         }
         
-        const openJournalButton = html.querySelector('#open-journal-btn');
+        const openJournalButton = nativeHtml.querySelector('#open-journal-btn');
         if (openJournalButton) {
             openJournalButton.addEventListener('click', this._onOpenJournal.bind(this));
         }
         
         // Tab switching
-        html.querySelectorAll('.journal-tools-tab').forEach(tab => {
+        nativeHtml.querySelectorAll('.journal-tools-tab').forEach(tab => {
             tab.addEventListener('click', this._onTabSwitch.bind(this));
         });
         
         // Search & Replace functionality
-        const clearSearchButton = html.querySelector('.clear-search-btn');
+        const clearSearchButton = nativeHtml.querySelector('.clear-search-btn');
         if (clearSearchButton) {
             clearSearchButton.addEventListener('click', this._onClearSearch.bind(this));
         }
         
-        const runReportButton = html.querySelector('.run-report-btn');
+        const runReportButton = nativeHtml.querySelector('.run-report-btn');
         if (runReportButton) {
             runReportButton.addEventListener('click', this._onRunReport.bind(this));
         }
         
-        const massReplaceButton = html.querySelector('.mass-replace-btn');
+        const massReplaceButton = nativeHtml.querySelector('.mass-replace-btn');
         if (massReplaceButton) {
             massReplaceButton.addEventListener('click', this._onMassReplace.bind(this));
         }
         
-        const copyResultsSearchButton = html.querySelector('#copy-results-search');
+        const copyResultsSearchButton = nativeHtml.querySelector('#copy-results-search');
         if (copyResultsSearchButton) {
             copyResultsSearchButton.addEventListener('click', this._onCopyResults.bind(this));
         }
 
         // Delegated click for dynamically generated result titles
-        html.addEventListener('click', (event) => {
+        nativeHtml.addEventListener('click', (event) => {
             const target = event.target.closest('.replace-title');
             if (target) {
                 this._onResultTitleClick.call(this, event);
@@ -2609,7 +2638,9 @@ export class JournalToolsWindow extends FormApplication {
         
         try {
             // Get form data
-            const form = this.element.querySelector('form');
+            const nativeElement = this._getNativeElement();
+            if (!nativeElement) return;
+            const form = nativeElement.querySelector('form');
             if (!form) {
                 ui.notifications.error("Form not found");
                 return;
@@ -2629,7 +2660,7 @@ export class JournalToolsWindow extends FormApplication {
             }
             
             // Clear status area for fresh start
-            const resultsEntity = this.element.querySelector('#results-entity');
+            const resultsEntity = nativeElement.querySelector('#results-entity');
             if (resultsEntity) {
                 resultsEntity.innerHTML = '';
             }
@@ -2641,9 +2672,9 @@ export class JournalToolsWindow extends FormApplication {
 
             // Fallback: read checkbox values directly if FormData fails
             if (!upgradeActors && !upgradeItems && !upgradeMacros) {
-                const actorsCheckbox = this.element.querySelector('#upgrade-actors');
-                const itemsCheckbox = this.element.querySelector('#upgrade-items');
-                const macrosCheckbox = this.element.querySelector('#upgrade-macros');
+                const actorsCheckbox = nativeElement.querySelector('#upgrade-actors');
+                const itemsCheckbox = nativeElement.querySelector('#upgrade-items');
+                const macrosCheckbox = nativeElement.querySelector('#upgrade-macros');
                 const actorsChecked = actorsCheckbox ? actorsCheckbox.checked : false;
                 const itemsChecked = itemsCheckbox ? itemsCheckbox.checked : false;
                 const macrosChecked = macrosCheckbox ? macrosCheckbox.checked : false;
@@ -2683,15 +2714,15 @@ export class JournalToolsWindow extends FormApplication {
             this.shouldStop = false;
             
             // Show progress and status sections
-            const progressSection = this.element.querySelector('#progress-section');
-            const statusSection = this.element.querySelector('#status-section');
+            const progressSection = nativeElement.querySelector('#progress-section');
+            const statusSection = nativeElement.querySelector('#status-section');
             if (progressSection) progressSection.style.display = '';
             if (statusSection) statusSection.style.display = '';
             
             // Change button to stop mode
-            const applyIcon = this.element.querySelector('#apply-icon');
-            const applyText = this.element.querySelector('#apply-text');
-            const applyButton = this.element.querySelector('#apply-button');
+            const applyIcon = nativeElement.querySelector('#apply-icon');
+            const applyText = nativeElement.querySelector('#apply-text');
+            const applyButton = nativeElement.querySelector('#apply-button');
             if (applyIcon) {
                 applyIcon.classList.remove('fa-check');
                 applyIcon.classList.add('fa-stop');
@@ -2743,7 +2774,7 @@ export class JournalToolsWindow extends FormApplication {
             }
             
             // Stop the spinner
-            const progressSpinner = this.element.querySelector('#progress-spinner');
+            const progressSpinner = nativeElement.querySelector('#progress-spinner');
             if (progressSpinner) progressSpinner.classList.remove('fa-spin');
             
             // Reset button state
@@ -2759,7 +2790,8 @@ export class JournalToolsWindow extends FormApplication {
         } catch (error) {
             this.addStatusMessage(`Error: ${error.message}`, "error");
             // Stop the spinner on error too
-            const progressSpinnerErr = this.element.querySelector('#progress-spinner');
+            const nativeElementErr = this._getNativeElement();
+            const progressSpinnerErr = nativeElementErr ? nativeElementErr.querySelector('#progress-spinner') : null;
             if (progressSpinnerErr) progressSpinnerErr.classList.remove('fa-spin');
             
             // Reset button state
@@ -2775,21 +2807,27 @@ export class JournalToolsWindow extends FormApplication {
     }
 
     updateOverallProgress(percentage, message) {
-        const progressBar = this.element.querySelector('#overall-progress-bar');
-        const progressText = this.element.querySelector('#overall-progress-text');
+        const nativeElement = this._getNativeElement();
+        if (!nativeElement) return;
+        const progressBar = nativeElement.querySelector('#overall-progress-bar');
+        const progressText = nativeElement.querySelector('#overall-progress-text');
         if (progressBar) progressBar.style.width = `${percentage}%`;
         if (progressText) progressText.textContent = message;
     }
 
     updatePageProgress(percentage, message) {
-        const progressBar = this.element.querySelector('#page-progress-bar');
-        const progressText = this.element.querySelector('#page-progress-text');
+        const nativeElement = this._getNativeElement();
+        if (!nativeElement) return;
+        const progressBar = nativeElement.querySelector('#page-progress-bar');
+        const progressText = nativeElement.querySelector('#page-progress-text');
         if (progressBar) progressBar.style.width = `${percentage}%`;
         if (progressText) progressText.textContent = message;
     }
 
     addStatusMessage(message, type = "info") {
-        const statusArea = this.element.querySelector('#results-entity');
+        const nativeElement = this._getNativeElement();
+        if (!nativeElement) return;
+        const statusArea = nativeElement.querySelector('#results-entity');
         if (!statusArea) return;
         const messageDiv = document.createElement('div');
         messageDiv.className = `status-message ${type}`;
@@ -2805,8 +2843,11 @@ export class JournalToolsWindow extends FormApplication {
         event.preventDefault();
         event.stopPropagation();
         
+        const nativeElement = this._getNativeElement();
+        if (!nativeElement) return;
+        
         try {
-            const statusArea = this.element.querySelector('#results-entity');
+            const statusArea = nativeElement.querySelector('#results-entity');
             if (!statusArea) return;
             
             // Get all status messages and format them properly
@@ -2839,25 +2880,28 @@ export class JournalToolsWindow extends FormApplication {
         event.preventDefault();
         event.stopPropagation();
         
+        const nativeElement = this._getNativeElement();
+        if (!nativeElement) return;
+        
         const target = event.currentTarget;
         const targetTab = target.getAttribute('data-tab');
         if (!targetTab) return;
         
         // Update tab buttons
-        this.element.querySelectorAll('.journal-tools-tab').forEach(tab => {
+        nativeElement.querySelectorAll('.journal-tools-tab').forEach(tab => {
             tab.classList.remove('active');
         });
         target.classList.add('active');
         
         // Update tab content
-        this.element.querySelectorAll('.journal-tools-tab-content').forEach(content => {
+        nativeElement.querySelectorAll('.journal-tools-tab-content').forEach(content => {
             content.classList.remove('active');
         });
-        const targetContent = this.element.querySelector(`#${targetTab}-content`);
+        const targetContent = nativeElement.querySelector(`#${targetTab}-content`);
         if (targetContent) targetContent.classList.add('active');
         
         // Show/hide appropriate footer
-        const footer = this.element.querySelector('#entity-replacement-footer');
+        const footer = nativeElement.querySelector('#entity-replacement-footer');
         if (footer) {
             footer.style.display = (targetTab === 'entity-replacement') ? '' : 'none';
         }
@@ -2867,9 +2911,12 @@ export class JournalToolsWindow extends FormApplication {
         event.preventDefault();
         event.stopPropagation();
         
+        const nativeElement = this._getNativeElement();
+        if (!nativeElement) return;
+        
         try {
             // Get the selected journal ID from the dropdown
-            const journalSelect = this.element.querySelector('#journal-tools-selector-entity-journal');
+            const journalSelect = nativeElement.querySelector('#journal-tools-selector-entity-journal');
             const selectedJournalId = journalSelect ? journalSelect.value : null;
             
             if (!selectedJournalId) {
@@ -2897,26 +2944,29 @@ export class JournalToolsWindow extends FormApplication {
         event.preventDefault();
         event.stopPropagation();
         
+        const nativeElement = this._getNativeElement();
+        if (!nativeElement) return;
+        
         // Reset all input fields
-        const currentText = this.element.querySelector('#current-text');
-        const newText = this.element.querySelector('#new-text');
-        const folderSelect = this.element.querySelector('#journal-tools-selector-search-folder');
-        const matchModeSelect = this.element.querySelector('#journal-tools-selector-match-mode');
+        const currentText = nativeElement.querySelector('#current-text');
+        const newText = nativeElement.querySelector('#new-text');
+        const folderSelect = nativeElement.querySelector('#journal-tools-selector-search-folder');
+        const matchModeSelect = nativeElement.querySelector('#journal-tools-selector-match-mode');
         if (currentText) currentText.value = "";
         if (newText) newText.value = "";
         if (folderSelect) folderSelect.value = "";
         if (matchModeSelect) matchModeSelect.value = "all";
         
         // Reset checkboxes
-        const updateCheckboxes = this.element.querySelectorAll('#update-actors, #update-items, #update-scenes, #update-journals, #update-tables, #update-playlists');
+        const updateCheckboxes = nativeElement.querySelectorAll('#update-actors, #update-items, #update-scenes, #update-journals, #update-tables, #update-playlists');
         updateCheckboxes.forEach(cb => cb.checked = false);
-        const targetCheckboxes = this.element.querySelectorAll('#target-images, #target-audio');
+        const targetCheckboxes = nativeElement.querySelectorAll('#target-images, #target-audio');
         targetCheckboxes.forEach(cb => cb.checked = false);
-        const targetTextCheckbox = this.element.querySelector('#target-text');
+        const targetTextCheckbox = nativeElement.querySelector('#target-text');
         if (targetTextCheckbox) targetTextCheckbox.checked = true; // Keep text checked by default
         
         // Clear the results area
-        const resultsSearch = this.element.querySelector('#results-search');
+        const resultsSearch = nativeElement.querySelector('#results-search');
         if (resultsSearch) {
             resultsSearch.innerHTML = `
                 <div class="results-message">Always back up your files before running a mass change.</div>
@@ -2947,8 +2997,11 @@ export class JournalToolsWindow extends FormApplication {
         event.preventDefault();
         event.stopPropagation();
         
+        const nativeElement = this._getNativeElement();
+        if (!nativeElement) return;
+        
         try {
-            const resultsArea = this.element.querySelector('#results-search');
+            const resultsArea = nativeElement.querySelector('#results-search');
             if (!resultsArea) return;
             const resultsText = resultsArea.textContent;
             
@@ -2968,12 +3021,15 @@ export class JournalToolsWindow extends FormApplication {
     }
 
     async _handleSearchReplace(doReplace = false) {
-        const currentTextInput = this.element.querySelector('#current-text');
-        const newTextInput = this.element.querySelector('#new-text');
-        const folderFilterSelect = this.element.querySelector('#journal-tools-selector-search-folder');
-        const matchModeSelect = this.element.querySelector('#journal-tools-selector-match-mode');
-        const caseSensitiveCheckbox = this.element.querySelector('#search-case-sensitive');
-        const resultsArea = this.element.querySelector('#results-search');
+        const nativeElement = this._getNativeElement();
+        if (!nativeElement) return;
+        
+        const currentTextInput = nativeElement.querySelector('#current-text');
+        const newTextInput = nativeElement.querySelector('#new-text');
+        const folderFilterSelect = nativeElement.querySelector('#journal-tools-selector-search-folder');
+        const matchModeSelect = nativeElement.querySelector('#journal-tools-selector-match-mode');
+        const caseSensitiveCheckbox = nativeElement.querySelector('#search-case-sensitive');
+        const resultsArea = nativeElement.querySelector('#results-search');
         
         const currentText = currentTextInput ? currentTextInput.value?.trim() : '';
         const newText = newTextInput ? newTextInput.value ?? "" : "";
@@ -2984,9 +3040,9 @@ export class JournalToolsWindow extends FormApplication {
         if (!resultsArea) return;
         
         // Target field checkboxes
-        const targetImagesCheckbox = this.element.querySelector('#target-images');
-        const targetTextCheckbox = this.element.querySelector('#target-text');
-        const targetAudioCheckbox = this.element.querySelector('#target-audio');
+        const targetImagesCheckbox = nativeElement.querySelector('#target-images');
+        const targetTextCheckbox = nativeElement.querySelector('#target-text');
+        const targetAudioCheckbox = nativeElement.querySelector('#target-audio');
         const targetImages = targetImagesCheckbox ? targetImagesCheckbox.checked : false;
         const targetText = targetTextCheckbox ? targetTextCheckbox.checked : false;
         const targetAudio = targetAudioCheckbox ? targetAudioCheckbox.checked : false;
@@ -3003,12 +3059,12 @@ export class JournalToolsWindow extends FormApplication {
         }
 
         // Document type options
-        const updateActorsCheckbox = this.element.querySelector('#update-actors');
-        const updateItemsCheckbox = this.element.querySelector('#update-items');
-        const updateScenesCheckbox = this.element.querySelector('#update-scenes');
-        const updateJournalsCheckbox = this.element.querySelector('#update-journals');
-        const updateTablesCheckbox = this.element.querySelector('#update-tables');
-        const updatePlaylistsCheckbox = this.element.querySelector('#update-playlists');
+        const updateActorsCheckbox = nativeElement.querySelector('#update-actors');
+        const updateItemsCheckbox = nativeElement.querySelector('#update-items');
+        const updateScenesCheckbox = nativeElement.querySelector('#update-scenes');
+        const updateJournalsCheckbox = nativeElement.querySelector('#update-journals');
+        const updateTablesCheckbox = nativeElement.querySelector('#update-tables');
+        const updatePlaylistsCheckbox = nativeElement.querySelector('#update-playlists');
         
         const options = {
             actors: updateActorsCheckbox ? updateActorsCheckbox.checked : false,
@@ -3027,8 +3083,8 @@ export class JournalToolsWindow extends FormApplication {
         }
 
         // Show progress
-        const searchProgressSection = this.element.querySelector('#search-progress-section');
-        const searchResultsSection = this.element.querySelector('#search-results-section');
+        const searchProgressSection = nativeElement.querySelector('#search-progress-section');
+        const searchResultsSection = nativeElement.querySelector('#search-results-section');
         if (searchProgressSection) searchProgressSection.style.display = '';
         if (searchResultsSection) searchResultsSection.style.display = '';
         this.updateSearchProgress(0, doReplace ? "Running replacements..." : "Generating report...");
@@ -3065,8 +3121,10 @@ export class JournalToolsWindow extends FormApplication {
     }
 
     updateSearchProgress(percentage, message) {
-        const progressBar = this.element.querySelector('#search-progress-bar');
-        const progressText = this.element.querySelector('#search-progress-text');
+        const nativeElement = this._getNativeElement();
+        if (!nativeElement) return;
+        const progressBar = nativeElement.querySelector('#search-progress-bar');
+        const progressText = nativeElement.querySelector('#search-progress-text');
         if (progressBar) progressBar.style.width = `${percentage}%`;
         if (progressText) progressText.textContent = message;
     }
