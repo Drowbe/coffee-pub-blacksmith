@@ -64,6 +64,9 @@ body:not(.gm) #combat-tracker .combatant {
 /* Health Ring  */
 
 /* v13: Health ring container is now part of the combatant structure */
+/* Container positioned to align ring center with image center */
+/* Image: margin 8px, size 32px → center at (24px, 24px) */
+/* Ring: size 40px → needs top-left at (4px, 4px) to center at (24px, 24px) */
 .combatant .health-ring-container,
 #combat-tracker .combatant .health-ring-container {
     position: absolute;
@@ -72,9 +75,6 @@ body:not(.gm) #combat-tracker .combatant {
     width: 48px;
     height: 48px;
     pointer-events: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     z-index: 1;
 }
 
@@ -96,10 +96,12 @@ body:not(.gm) #combat-tracker .combatant {
 .combatant .health-ring-container svg,
 #combat-tracker .combatant .health-ring-container svg {
     position: absolute;
-    top: 4px;
-    left: 4px;
+    top: 12px;
+    left: 12px;
     width: 40px;
     height: 40px;
+    margin: 0;
+    padding: 0;
 }
 
 /* Health Ring Colors */

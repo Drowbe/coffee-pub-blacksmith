@@ -237,11 +237,17 @@ Hooks.once('ready', () => {
                 const healthClass = getHealthClass(healthPercent, currentHP);
 
                 // Create container div if it doesn't exist (v13: native DOM)
+                // Insert it right before the token image to ensure proper stacking
                 let container = element.querySelector('.health-ring-container');
+                const tokenImage = element.querySelector('.token-image');
                 if (!container) {
                     container = document.createElement('div');
                     container.className = 'health-ring-container';
-                    element.insertBefore(container, element.firstChild);
+                    if (tokenImage && tokenImage.parentNode) {
+                        tokenImage.parentNode.insertBefore(container, tokenImage);
+                    } else {
+                        element.insertBefore(container, element.firstChild);
+                    }
                 }
 
                 // Create SVG for health ring (v13: native DOM)
