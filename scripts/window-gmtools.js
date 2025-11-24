@@ -44,19 +44,32 @@ export class CSSEditor extends FormApplication {
     activateListeners(html) {
         super.activateListeners(html);
 
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+
         // Add dark mode toggle listener
-        const darkModeInput = html.querySelector('input[name="dark"]');
+        const darkModeInput = nativeHtml.querySelector('input[name="dark"]');
         if (darkModeInput) {
             darkModeInput.addEventListener('change', async (event) => {
                 const isDark = event.target.checked;
                 if (this.element) {
-                    this.element.classList.toggle('dark-mode', isDark);
+                    // v13: Detect and convert jQuery to native DOM if needed
+                    let nativeElement = this.element;
+                    if (this.element && (this.element.jquery || typeof this.element.find === 'function')) {
+                        nativeElement = this.element[0] || this.element.get?.(0) || this.element;
+                    }
+                    if (nativeElement && nativeElement.classList) {
+                        nativeElement.classList.toggle('dark-mode', isDark);
+                    }
                 }
             });
         }
 
         // Add refresh button listener
-        const refreshButton = html.querySelector('.refresh-button');
+        const refreshButton = nativeHtml.querySelector('.refresh-button');
         if (refreshButton) {
             refreshButton.addEventListener('click', () => {
                 window.location.reload();
@@ -64,10 +77,10 @@ export class CSSEditor extends FormApplication {
         }
 
         // Add copy button listener
-        const copyButton = html.querySelector('.copy-button');
+        const copyButton = nativeHtml.querySelector('.copy-button');
         if (copyButton) {
             copyButton.addEventListener('click', () => {
-                const textarea = html.querySelector('textarea[name="css"]');
+                const textarea = nativeHtml.querySelector('textarea[name="css"]');
                 if (textarea) {
                     navigator.clipboard.writeText(textarea.value).then(() => {
                         ui.notifications.info('CSS copied to clipboard');
@@ -80,10 +93,10 @@ export class CSSEditor extends FormApplication {
         }
 
         // Add clear button listener
-        const clearButton = html.querySelector('.clear-button');
+        const clearButton = nativeHtml.querySelector('.clear-button');
         if (clearButton) {
             clearButton.addEventListener('click', () => {
-                const textarea = html.querySelector('textarea[name="css"]');
+                const textarea = nativeHtml.querySelector('textarea[name="css"]');
                 if (textarea && textarea.value.trim() !== '') {
                     Dialog.confirm({
                         title: 'Clear CSS Editor',
@@ -98,7 +111,7 @@ export class CSSEditor extends FormApplication {
         }
 
         // Update world button to open World Config
-        const worldButton = html.querySelector('.world-button');
+        const worldButton = nativeHtml.querySelector('.world-button');
         if (worldButton) {
             worldButton.addEventListener('click', () => {
                 new WorldConfig(game.world).render(true);
@@ -106,7 +119,7 @@ export class CSSEditor extends FormApplication {
         }
 
         // Settings button
-        const settingsButton = html.querySelector('.settings-button');
+        const settingsButton = nativeHtml.querySelector('.settings-button');
         if (settingsButton) {
             settingsButton.addEventListener('click', () => {
                 game.settings.sheet.render(true);
@@ -114,7 +127,7 @@ export class CSSEditor extends FormApplication {
         }
 
         // Add smart indentation handlers
-        const textarea = html.querySelector('textarea[name="css"]');
+        const textarea = nativeHtml.querySelector('textarea[name="css"]');
         if (textarea) {
             textarea.addEventListener('keydown', this._handleEditorKeydown.bind(this));
         }
@@ -200,7 +213,14 @@ export class CSSEditor extends FormApplication {
 
         // Apply dark mode
         if (this.element) {
-            this.element.classList.toggle('dark-mode', dark);
+            // v13: Detect and convert jQuery to native DOM if needed
+            let nativeElement = this.element;
+            if (this.element && (this.element.jquery || typeof this.element.find === 'function')) {
+                nativeElement = this.element[0] || this.element.get?.(0) || this.element;
+            }
+            if (nativeElement && nativeElement.classList) {
+                nativeElement.classList.toggle('dark-mode', dark);
+            }
         }
 
         // Apply the CSS
@@ -253,17 +273,30 @@ export class CSSEditor extends FormApplication {
         
         // Only try to access the element after render is complete
         if (this.element) {
-            const dark = game.settings.get(MODULE.ID, 'cssDarkMode');
-            this.element.classList.toggle('dark-mode', dark);
+            // v13: Detect and convert jQuery to native DOM if needed
+            let nativeElement = this.element;
+            if (this.element && (this.element.jquery || typeof this.element.find === 'function')) {
+                nativeElement = this.element[0] || this.element.get?.(0) || this.element;
+            }
+            if (nativeElement && nativeElement.classList) {
+                const dark = game.settings.get(MODULE.ID, 'cssDarkMode');
+                nativeElement.classList.toggle('dark-mode', dark);
+            }
         }
         
         return result;
     }
 
     _setupSearchListeners(html) {
-        const textarea = html.querySelector('textarea[name="css"]');
-        const searchInput = html.querySelector('.search-input');
-        const replaceInput = html.querySelector('.replace-input');
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+
+        const textarea = nativeHtml.querySelector('textarea[name="css"]');
+        const searchInput = nativeHtml.querySelector('.search-input');
+        const replaceInput = nativeHtml.querySelector('.replace-input');
         
         if (!textarea || !searchInput || !replaceInput) return;
         
@@ -284,31 +317,31 @@ export class CSSEditor extends FormApplication {
         });
         
         // Search button listeners
-        const findNextButton = html.querySelector('.find-next-button');
+        const findNextButton = nativeHtml.querySelector('.find-next-button');
         if (findNextButton) {
             findNextButton.addEventListener('click', () => {
-                this._findNext(html);
+                this._findNext(nativeHtml);
             });
         }
         
-        const findPrevButton = html.querySelector('.find-prev-button');
+        const findPrevButton = nativeHtml.querySelector('.find-prev-button');
         if (findPrevButton) {
             findPrevButton.addEventListener('click', () => {
-                this._findPrevious(html);
+                this._findPrevious(nativeHtml);
             });
         }
         
-        const replaceButton = html.querySelector('.replace-button');
+        const replaceButton = nativeHtml.querySelector('.replace-button');
         if (replaceButton) {
             replaceButton.addEventListener('click', () => {
-                this._replaceCurrent(html);
+                this._replaceCurrent(nativeHtml);
             });
         }
         
-        const replaceAllButton = html.querySelector('.replace-all-button');
+        const replaceAllButton = nativeHtml.querySelector('.replace-all-button');
         if (replaceAllButton) {
             replaceAllButton.addEventListener('click', () => {
-                this._replaceAll(html);
+                this._replaceAll(nativeHtml);
             });
         }
         
@@ -329,8 +362,14 @@ export class CSSEditor extends FormApplication {
 
     // Search functionality methods
     _performSearch(html) {
-        const textarea = html.querySelector('textarea[name="css"]');
-        const searchInput = html.querySelector('.search-input');
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+
+        const textarea = nativeHtml.querySelector('textarea[name="css"]');
+        const searchInput = nativeHtml.querySelector('.search-input');
         if (!textarea || !searchInput) return;
         const searchTerm = searchInput.value;
         
@@ -356,7 +395,7 @@ export class CSSEditor extends FormApplication {
         }
         
         if (this.searchResults.length > 0) {
-            this._highlightCurrentMatch(html);
+            this._highlightCurrentMatch(nativeHtml);
         }
     }
     
@@ -376,8 +415,14 @@ export class CSSEditor extends FormApplication {
     }
     
     _highlightCurrentMatch(html) {
-        const textarea = html.querySelector('textarea[name="css"]');
-        const searchInput = html.querySelector('.search-input');
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+
+        const textarea = nativeHtml.querySelector('textarea[name="css"]');
+        const searchInput = nativeHtml.querySelector('.search-input');
         if (!textarea || !searchInput) return;
         const searchTerm = searchInput.value;
         
@@ -396,9 +441,15 @@ export class CSSEditor extends FormApplication {
     }
     
     _replaceCurrent(html) {
-        const textarea = html.querySelector('textarea[name="css"]');
-        const searchInput = html.querySelector('.search-input');
-        const replaceInput = html.querySelector('.replace-input');
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+
+        const textarea = nativeHtml.querySelector('textarea[name="css"]');
+        const searchInput = nativeHtml.querySelector('.search-input');
+        const replaceInput = nativeHtml.querySelector('.replace-input');
         if (!textarea || !searchInput || !replaceInput) return;
         const searchTerm = searchInput.value;
         const replaceTerm = replaceInput.value;
@@ -412,14 +463,20 @@ export class CSSEditor extends FormApplication {
             textarea.value = before + replaceTerm + after;
             
             // Update search results after replacement
-            this._performSearch(html);
+            this._performSearch(nativeHtml);
         }
     }
     
     _replaceAll(html) {
-        const textarea = html.querySelector('textarea[name="css"]');
-        const searchInput = html.querySelector('.search-input');
-        const replaceInput = html.querySelector('.replace-input');
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+
+        const textarea = nativeHtml.querySelector('textarea[name="css"]');
+        const searchInput = nativeHtml.querySelector('.search-input');
+        const replaceInput = nativeHtml.querySelector('.replace-input');
         if (!textarea || !searchInput || !replaceInput) return;
         const searchTerm = searchInput.value;
         const replaceTerm = replaceInput.value;
