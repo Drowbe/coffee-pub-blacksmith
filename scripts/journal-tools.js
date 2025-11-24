@@ -2580,22 +2580,22 @@ export class JournalToolsWindow extends FormApplication {
             if (type === 'journal-text' || type === 'journal-image' || type === 'journals') {
                 const journal = game.journal.get(id);
                 if (!journal) return;
-                // Try to show a specific page if available (V10+ supports show with page)
+                
+                // Try to show a specific page if available
                 if (pageId) {
-                    // Preferred modern API
-                    if (typeof journal.show === 'function') {
-                        journal.show({pageId, force: true});
-                    } else {
-                        // Fallbacks
+                    // First, ensure the journal sheet is open
+                    if (!journal.sheet?.rendered) {
                         openSheet(journal);
-                        if (journal.sheet && typeof journal.sheet.viewPage === 'function') {
-                            journal.sheet.viewPage(pageId);
-                        } else {
-                            const page = journal.pages?.get(pageId);
-                            openSheet(page);
-                        }
+                        // Wait a bit for the sheet to render before trying to view the page
+                        setTimeout(() => {
+                            this._viewJournalPage(journal, pageId);
+                        }, 200);
+                    } else {
+                        // Sheet is already open, try to view the page immediately
+                        this._viewJournalPage(journal, pageId);
                     }
                 } else {
+                    // No page ID, just open the journal
                     openSheet(journal);
                 }
                 return;
@@ -2625,6 +2625,72 @@ export class JournalToolsWindow extends FormApplication {
             }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error opening result link", error, false, false);
+        }
+    }
+
+    /**
+     * Helper method to view a specific journal page
+     * @param {JournalEntry} journal - The journal entry
+     * @param {string} pageId - The page ID to view
+     */
+    _viewJournalPage(journal, pageId) {
+        if (!journal || !pageId) return;
+        
+        try {
+            // Try multiple methods to view the page
+            const sheet = journal.sheet;
+            
+            // Method 1: Use journal.show() with pageId (v10+)
+            if (typeof journal.show === 'function') {
+                try {
+                    journal.show({pageId, force: true});
+                    return;
+                } catch (e) {
+                    // Continue to fallback methods
+                }
+            }
+            
+            // Method 2: Use sheet.viewPage() if available
+            if (sheet && typeof sheet.viewPage === 'function') {
+                try {
+                    sheet.viewPage(pageId);
+                    return;
+                } catch (e) {
+                    // Continue to fallback methods
+                }
+            }
+            
+            // Method 3: Get the page and open it directly
+            const page = journal.pages?.get(pageId);
+            if (page && page.sheet) {
+                page.sheet.render(true);
+                return;
+            }
+            
+            // Method 4: Try to find and click the page tab in the sheet
+            if (sheet && sheet.rendered) {
+                const nativeElement = sheet.element;
+                if (nativeElement) {
+                    // v13: Detect and convert jQuery to native DOM if needed
+                    let nativeSheetElement = nativeElement;
+                    if (nativeElement.jquery || typeof nativeElement.find === 'function') {
+                        nativeSheetElement = nativeElement[0] || nativeElement.get?.(0) || nativeElement;
+                    }
+                    
+                    const pageTab = nativeSheetElement.querySelector(`[data-page-id="${pageId}"]`);
+                    if (pageTab) {
+                        pageTab.click();
+                        return;
+                    }
+                }
+            }
+            
+            // If all else fails, at least ensure the journal is open
+            if (!sheet?.rendered) {
+                journal.sheet?.render(true);
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error viewing journal page", error, false, false);
         }
     }
 
@@ -2806,6 +2872,30 @@ export class JournalToolsWindow extends FormApplication {
             
             postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error applying tools", error, false, false);
             ui.notifications.error(`Error applying journal tools: ${error.message}`);
+        }
+    }
+
+    /**
+     * Reset the Apply button to its original state
+     */
+    _resetApplyButton() {
+        const nativeElement = this._getNativeElement();
+        if (!nativeElement) return;
+        
+        const applyIcon = nativeElement.querySelector('#apply-icon');
+        const applyText = nativeElement.querySelector('#apply-text');
+        const applyButton = nativeElement.querySelector('#apply-button');
+        
+        if (applyIcon) {
+            applyIcon.classList.remove('fa-stop');
+            applyIcon.classList.add('fa-check');
+        }
+        if (applyText) {
+            applyText.textContent = 'Apply Tools';
+        }
+        if (applyButton) {
+            applyButton.classList.remove('stop-mode');
+            applyButton.disabled = false;
         }
     }
 
