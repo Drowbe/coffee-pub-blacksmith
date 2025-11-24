@@ -144,12 +144,12 @@ class CombatTracker {
 					description: 'Combat Tracker: Handle combat end and cleanup',
 					context: 'combat-tracker-combat-end',
 					priority: 3,
-					callback: () => {
+					callback: async () => {
 						// --- BEGIN - HOOKMANAGER CALLBACK ---
 						this._hasSetFirstCombatant = false;
 						
 						// Close the combat tracker when combat ends
-						CombatTracker.closeCombatTracker();
+						await CombatTracker.closeCombatTracker();
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
 				});
@@ -971,6 +971,34 @@ class CombatTracker {
             // Close any alternative popout windows (different spelling)
             if (ui.combat?._popout?.rendered) {
                 await ui.combat._popout.close({force: true});
+            }
+            
+            // Also check for popout window by ID (v13: direct DOM check)
+            // The popout element itself is the window element
+            const combatPopout = document.querySelector('#combat-popout');
+            if (combatPopout) {
+                let popoutClosed = false;
+                
+                // Find the window application that owns this element
+                for (const app of Object.values(ui.windows)) {
+                    const el = app?.element?.[0] ?? app?.element;
+                    // Check if this app's element is the popout or contains it
+                    if (el && (el === combatPopout || el.id === 'combat-popout' || el.contains(combatPopout))) {
+                        await app.close({force: true});
+                        popoutClosed = true;
+                        break;
+                    }
+                }
+                
+                // Fallback: If we found the popout but couldn't find the app, try clicking the close button
+                if (!popoutClosed && combatPopout.parentNode) {
+                    const closeButton = combatPopout.querySelector('button[data-action="close"]');
+                    if (closeButton) {
+                        closeButton.click();
+                        // Wait a moment for the close to process
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                }
             }
             
             // Close any other combat tracker windows that might exist
