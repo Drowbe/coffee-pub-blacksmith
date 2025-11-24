@@ -279,6 +279,16 @@ class CombatTimer {
             if (isGMOnly && !game.user.isGM) {
                 return;
             }
+
+            // Check if all combatants have rolled initiative before showing combat timer
+            const combatants = game.combat.turns || [];
+            const combatantsNeedingInitiative = combatants.filter(c => 
+                c.initiative === null && !c.isDefeated
+            );
+            if (combatantsNeedingInitiative.length > 0) {
+                // Not all initiatives rolled yet - don't show timer
+                return;
+            }
             
 
             const timerHtml = await renderTemplate(
