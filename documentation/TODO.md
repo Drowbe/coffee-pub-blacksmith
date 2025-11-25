@@ -187,6 +187,30 @@
   - `openAITemperature` - Temperature setting
 - **Notes**: This is part of the settings refactoring - ensure migrated AI settings actually work
 
+### Query Tool Review and Improvements
+- **Issue**: Query tool needs comprehensive review and fixes for functionality and UX
+- **Status**: PENDING - Needs review and implementation
+- **Priority**: MEDIUM - Functionality review and improvements
+- **Current State**: Query tool exists but needs verification and improvements
+- **Location**: `scripts/window-query.js`, query tool templates
+- **Tasks Needed**:
+  - **Verify Each Tab**: Test all tabs (Lookup, Narrative, Encounter, Assistant, Character) to ensure they work correctly
+  - **Drop Functionality Design**: 
+    - Review and document how dropping items and linked journals should work
+    - Ensure consistent behavior across all drop zones
+    - Verify drop handlers work for all supported types (tokens, actors, items, journals)
+    - Test edge cases (invalid drops, multiple drops, etc.)
+  - **JSON Generation Fix**: 
+    - Review and fix JSON generation for query results
+    - Ensure JSON output is valid and properly formatted
+    - Test JSON generation with various input types
+    - Verify JSON structure matches expected format
+- **Related Files**:
+  - `scripts/window-query.js` - Main query tool implementation
+  - `scripts/token-handler.js` - Token/item drop handling
+  - Query tool templates
+- **Notes**: This is a comprehensive review to ensure the query tool works correctly and has a clear, consistent UX for all features
+
 
 ### Add Enable Setting for Nameplate Styling
 - **Issue**: Nameplate styling settings should operate independently from nameplate content/formatting
