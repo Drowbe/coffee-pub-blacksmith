@@ -798,11 +798,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add event listener for criteria drop zone (assistant workspace)
-        const criteriaDropZones = nativeHtml.querySelectorAll('.criteria-dropzone');
-        postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Found drop zones', criteriaDropZones.length.toString(), true, false);
-        
-        criteriaDropZones.forEach((dropZone) => {
-            postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Setting up handlers for', dropZone.id || 'no-id', true, false);
+        nativeHtml.querySelectorAll('.criteria-dropzone').forEach((dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
                 event.preventDefault();
                 dropZone.classList.add('dragover');
@@ -818,21 +814,11 @@ export class BlacksmithWindowQuery extends FormApplication {
                 dropZone.classList.remove('dragover');
 
                 try {
-                    postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Drop event fired', '', true, false);
-                    
                     const rawData = event.dataTransfer.getData('text/plain');
-                    postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Raw data', rawData || 'No data', true, false);
-                    
-                    if (!rawData) {
-                        postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: No raw data found', '', true, false);
-                        return;
-                    }
+                    if (!rawData) return;
                     
                     const data = JSON.parse(rawData);
-                    postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Parsed data', JSON.stringify(data), true, false);
-                    
                     const id = dropZone.id.split('-').pop();
-                    postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: ID extracted', id, true, false);
 
                     // Handle token drops (from canvas)
                     if (data.type === 'Token') {
