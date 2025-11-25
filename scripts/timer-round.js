@@ -160,11 +160,17 @@ export class RoundTimer {
             }
         );
         
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+        
         // Find the encounter title (which contains the round number) and insert after it (v13: native DOM)
-        const roundTitle = html.querySelector('.encounter-title');
+        const roundTitle = nativeHtml.querySelector('.encounter-title');
         if (roundTitle) {
             // Insert after the encounter controls div to place it between the round number and planning timer
-            const encounterControls = html.querySelector('.encounter-controls');
+            const encounterControls = nativeHtml.querySelector('.encounter-controls');
             if (encounterControls) {
                 // Parse HTML string into DOM element
                 const tempDiv = document.createElement('div');

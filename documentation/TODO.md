@@ -657,6 +657,74 @@
 
 ## ARCHITECTURAL CONCERNS
 
+### ⚠️ Important Note: jQuery Detection Pattern is Technical Debt
+
+**Status**: TECHNICAL DEBT - Transitional pattern during v13 migration  
+**Priority**: MEDIUM - Should be addressed after migration is complete  
+**Location**: Multiple files using jQuery detection pattern
+
+#### Why This Pattern is Problematic
+
+In FoundryVTT v13, jQuery is completely removed. Ideally, `html` parameters should always be native DOM elements.
+
+The jQuery detection pattern indicates we're still in a mixed state where jQuery might be passed in. This is defensive code to handle an inconsistency we should fix at the source, not normalize at the destination.
+
+#### What We Should Do Instead
+
+**Long-term (fully migrated v13):**
+- Ensure call sites pass native DOM elements consistently
+- Remove all jQuery detection code
+- TypeScript or explicit checks at call sites can enforce this
+
+**Short-term (during migration):**
+- This pattern is acceptable to prevent crashes while migrating
+- Plan to remove it once all call sites are fixed
+- Track which methods use this pattern and why
+
+#### The Real Question
+
+**Where is `html` coming from that might be a jQuery object?**
+- If it's from FoundryVTT's Application classes: they should return native DOM in v13, so the check isn't needed
+- If it's from our code: fix the call sites to pass native DOM
+- If it's unknown: keep the check temporarily, but track and fix the sources
+
+#### Bottom Line
+
+Keep jQuery detection during migration, but treat it as technical debt. Once all call sites are confirmed to pass native DOM elements (especially when elements come from `querySelector()` which always returns native DOM), remove the detection code.
+
+**Example of unnecessary detection:**
+```javascript
+// codexContainer comes from this.element.querySelector() → guaranteed native DOM
+// No jQuery detection needed in _activateListeners(codexContainer)
+```
+
+**Action Item:** After migration, audit all jQuery detection patterns and remove those where the source is guaranteed to be native DOM (e.g., `querySelector()` results).
+
+**Files Using jQuery Detection Pattern:**
+- `scripts/blacksmith.js` - `renderJournalSheet` hook
+- `scripts/window-query.js` - `activateListeners`, `initialize`, `displayMessage`, etc.
+- `scripts/journal-tools.js` - `activateListeners`, `_isEditMode`, `_addToolsIcon`
+- `scripts/window-gmtools.js` - `activateListeners`, `render`, `_updateObject`, etc.
+- `scripts/xp-manager.js` - `activateListeners`, `_onModeToggleChange`, etc.
+- `scripts/vote-manager.js` - `renderChatMessage` hook
+- `scripts/token-movement.js` - `activateListeners`
+- `scripts/vote-config.js` - `activateListeners`, Dialog callbacks
+- `scripts/timer-combat.js` - `_onRenderCombatTracker`, `bindTimerEvents`
+- `scripts/timer-planning.js` - `_onRenderCombatTracker`
+- `scripts/timer-round.js` - `_onRenderCombatTracker`
+- `scripts/manager-navigation.js` - Hook callbacks
+- `scripts/api-menubar.js` - Dialog callbacks
+- `scripts/encounter-toolbar.js` - `_updateToolbarCRs`, `_scanJournalContent`, etc.
+- `scripts/combat-tracker.js` - `renderCombatTracker` hook
+- And potentially others...
+
+**Migration Task:**
+- [ ] Audit all jQuery detection patterns after v13 migration is complete
+- [ ] Identify which detections are unnecessary (source is guaranteed native DOM)
+- [ ] Remove unnecessary jQuery detection code
+- [ ] Document which detections are necessary and why
+- [ ] Create test cases to verify native DOM is always passed
+
 ### Socketmanager Becoming Monolithic
 - **Issue**: Socketmanager is evolving into a "god class" that both manages hooks AND contains business logic
 - **Proposed Solution**:

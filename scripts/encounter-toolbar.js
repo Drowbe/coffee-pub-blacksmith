@@ -137,8 +137,14 @@ export class EncounterToolbar {
     // Update CR values for a specific journal toolbar
     static _updateToolbarCRs(html) {
         try {
+            // v13: Detect and convert jQuery to native DOM if needed
+            let nativeHtml = html;
+            if (html && (html.jquery || typeof html.find === 'function')) {
+                nativeHtml = html[0] || html.get?.(0) || html;
+            }
+            
             // Find all toolbars in this journal
-            const toolbars = html.querySelectorAll('.encounter-toolbar');
+            const toolbars = nativeHtml.querySelectorAll('.encounter-toolbar');
             
             toolbars.forEach((toolbarElement) => {
                 const pageId = toolbarElement.getAttribute('data-page-id');
@@ -227,7 +233,12 @@ export class EncounterToolbar {
     // Helper method to check if we're in edit mode
     static _isEditMode(html) {
         // Check if the specific journal sheet has editor-container (is in edit mode)
-        return html.querySelector('.editor-container') !== null;
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+        return nativeHtml.querySelector('.editor-container') !== null;
     }
 
     // Helper method to validate UUIDs
@@ -338,7 +349,7 @@ export class EncounterToolbar {
         
         if (!pageContent) {
             // If that doesn't work, try finding the article first, then the section
-            const article = html.querySelector(`article[data-page-id="${pageId}"]`);
+            const article = nativeHtml.querySelector(`article[data-page-id="${pageId}"]`);
             if (article) {
                 pageContent = article.querySelector('section.journal-page-content');
             }
@@ -346,7 +357,7 @@ export class EncounterToolbar {
         
         if (!pageContent) {
             // Try finding any section
-            pageContent = html.querySelector('section.journal-page-content');
+            pageContent = nativeHtml.querySelector('section.journal-page-content');
         }
         
         if (!pageContent) {
@@ -536,12 +547,12 @@ export class EncounterToolbar {
         
         // Check if toolbar already exists for this specific page, if not create it
         const toolbarSelector = `.encounter-toolbar[data-page-id="${pageId}"]`;
-        let toolbar = html.querySelector(toolbarSelector);
+        let toolbar = nativeHtml.querySelector(toolbarSelector);
         
         if (!toolbar) {
             // Create the toolbar container
-            const journalHeader = html.querySelector('.journal-header');
-            const journalEntryPages = html.querySelector('.journal-entry-pages');
+            const journalHeader = nativeHtml.querySelector('.journal-header');
+            const journalEntryPages = nativeHtml.querySelector('.journal-entry-pages');
             
             if (journalHeader && journalEntryPages) {
                 const toolbarContainer = document.createElement('div');
@@ -591,7 +602,12 @@ export class EncounterToolbar {
                 const templatePath = `modules/${MODULE.ID}/templates/encounter-toolbar.hbs`;
                 getCachedTemplate(templatePath).then(template => {
                     // Prepare the data for the template
-                    const journalSheet = html.closest('.journal-sheet');
+                    // v13: Detect and convert jQuery to native DOM if needed
+                    let nativeHtml = html;
+                    if (html && (html.jquery || typeof html.find === 'function')) {
+                        nativeHtml = html[0] || html.get?.(0) || html;
+                    }
+                    const journalSheet = nativeHtml.closest('.journal-sheet');
                     const journalId = journalSheet ? journalSheet.getAttribute('data-document-id') : 'unknown';
                     const templateData = {
                         journalId: journalId,
@@ -640,8 +656,13 @@ export class EncounterToolbar {
         // Get the template
         const templatePath = `modules/${MODULE.ID}/templates/encounter-toolbar.hbs`;
         getCachedTemplate(templatePath).then(template => {
+            // v13: Detect and convert jQuery to native DOM if needed
+            let nativeHtml = html;
+            if (html && (html.jquery || typeof html.find === 'function')) {
+                nativeHtml = html[0] || html.get?.(0) || html;
+            }
             // Prepare the data for the template (no encounter case)
-            const journalSheet = html.closest('.journal-sheet');
+            const journalSheet = nativeHtml.closest('.journal-sheet');
             const journalId = journalSheet ? journalSheet.getAttribute('data-document-id') : 'unknown';
             const templateData = {
                 journalId: journalId,

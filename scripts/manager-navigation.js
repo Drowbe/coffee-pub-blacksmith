@@ -161,8 +161,14 @@ export class NavigationManager {
             '.scene-name'
         ];
         
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+        
         for (const selector of selectors) {
-            const elements = html.querySelectorAll(selector);
+            const elements = nativeHtml.querySelectorAll(selector);
             if (elements.length > 0) {
                 // v13: Remove existing listeners and add new ones (native DOM)
                 elements.forEach(element => {

@@ -295,21 +295,46 @@ export class MovementConfig extends Application {
     activateListeners(html) {
         super.activateListeners(html);
 
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+
         // Add click handler for movement types
-        html.find('.movement-type').click(async (event) => {
-            const movementId = event.currentTarget.dataset.movementId;
-            await this._handleMovementChange(movementId);
+        nativeHtml.querySelectorAll('.movement-type').forEach(button => {
+            button.addEventListener('click', async (event) => {
+                const movementId = event.currentTarget.dataset.movementId;
+                await this._handleMovementChange(movementId);
+            });
         });
 
         // Add change handler for spacing slider
-        html.find('.token-spacing-slider').on('input change', async (event) => {
-            const spacing = parseInt(event.currentTarget.value);
-            await game.settings.set(MODULE.ID, 'tokenSpacing', spacing);
-            tokenSpacing = spacing; // Update the local variable
-            
-            // Update the display value
-            html.find('.spacing-value').text(spacing);
-        });
+        const spacingSlider = nativeHtml.querySelector('.token-spacing-slider');
+        if (spacingSlider) {
+            spacingSlider.addEventListener('input', async (event) => {
+                const spacing = parseInt(event.currentTarget.value);
+                await game.settings.set(MODULE.ID, 'tokenSpacing', spacing);
+                tokenSpacing = spacing; // Update the local variable
+                
+                // Update the display value
+                const spacingValue = nativeHtml.querySelector('.spacing-value');
+                if (spacingValue) {
+                    spacingValue.textContent = spacing;
+                }
+            });
+            spacingSlider.addEventListener('change', async (event) => {
+                const spacing = parseInt(event.currentTarget.value);
+                await game.settings.set(MODULE.ID, 'tokenSpacing', spacing);
+                tokenSpacing = spacing; // Update the local variable
+                
+                // Update the display value
+                const spacingValue = nativeHtml.querySelector('.spacing-value');
+                if (spacingValue) {
+                    spacingValue.textContent = spacing;
+                }
+            });
+        }
     }
 
     async _handleMovementChange(movementId) {

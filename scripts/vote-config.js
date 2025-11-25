@@ -139,8 +139,15 @@ export class VoteConfig extends Application {
                     icon: '<i class="fas fa-check"></i>',
                     label: "Create Vote",
                     callback: async (html) => {
-                        const title = html.find('[name="title"]').val().trim();
-                        const optionsText = html.find('[name="options"]').val().trim();
+                        // v13: Detect and convert jQuery to native DOM if needed
+                        let nativeDialogHtml = html;
+                        if (html && (html.jquery || typeof html.find === 'function')) {
+                            nativeDialogHtml = html[0] || html.get?.(0) || html;
+                        }
+                        const titleInput = nativeDialogHtml.querySelector('[name="title"]');
+                        const optionsTextarea = nativeDialogHtml.querySelector('[name="options"]');
+                        const title = titleInput ? titleInput.value.trim() : '';
+                        const optionsText = optionsTextarea ? optionsTextarea.value.trim() : '';
                         
                         if (!title || !optionsText) {
                             ui.notifications.warn("Please provide both a title and options.");
@@ -173,7 +180,17 @@ export class VoteConfig extends Application {
                 }
             },
             default: "create",
-            render: html => html.find('[name="title"]').focus()
+            render: html => {
+                // v13: Detect and convert jQuery to native DOM if needed
+                let nativeDialogHtml = html;
+                if (html && (html.jquery || typeof html.find === 'function')) {
+                    nativeDialogHtml = html[0] || html.get?.(0) || html;
+                }
+                const titleInput = nativeDialogHtml.querySelector('[name="title"]');
+                if (titleInput) {
+                    titleInput.focus();
+                }
+            }
         });
         dialog.render(true);
     }

@@ -355,9 +355,26 @@ if (svgElement.classList) {
 
 ### Pattern 10: jQuery Detection for FormApplication
 
+> ⚠️ **IMPORTANT: This Pattern is Technical Debt**
+> 
+> The jQuery detection pattern is a **TRANSITIONAL/HACKY** solution and should be treated as technical debt. In FoundryVTT v13, jQuery is completely removed, so `html` parameters should ideally always be native DOM elements. This pattern is defensive code to handle an inconsistency that should be fixed at the source, not normalized at the destination.
+> 
+> **What to do instead:**
+> - **Long-term**: Ensure call sites pass native DOM elements consistently, then remove all jQuery detection code
+> - **Short-term**: This pattern is acceptable during migration to prevent crashes, but plan to remove it once all call sites are fixed
+> - **The real question**: Where is `html` coming from that might be a jQuery object? Fix the source, not add detection everywhere
+> 
+> **Example of unnecessary detection:**
+> ```javascript
+> // codexContainer comes from this.element.querySelector() → guaranteed native DOM
+> // No jQuery detection needed in _activateListeners(codexContainer)
+> ```
+> 
+> **Action Item**: After migration, audit all jQuery detection patterns and remove those where the source is guaranteed to be native DOM (e.g., `querySelector()` results).
+
 **Issue:** In v13, `this.element` in `FormApplication` instances and `html` parameters in hooks may still be jQuery objects in some cases. Always detect and convert.
 
-**v13 Pattern (Recommended):**
+**v13 Pattern (Recommended - Use During Migration, Remove Later):**
 ```javascript
 export class MyApplication extends FormApplication {
     /**
@@ -406,9 +423,11 @@ export class MyApplication extends FormApplication {
 
 ### Pattern 11: Dialog Callback jQuery Detection
 
+> ⚠️ **See Pattern 10 warning above** - This is also technical debt. Prefer fixing Dialog callbacks to receive native DOM.
+
 **Issue:** Dialog callbacks also receive `html` parameters that may be jQuery objects.
 
-**v13 Pattern:**
+**v13 Pattern (Use During Migration, Remove Later):**
 ```javascript
 new Dialog({
     title: "My Dialog",
@@ -503,9 +522,13 @@ function findElement(selector) {
 | `.val()` | `.value` |
 | `.prop(name, value)` | `.name = value` (for properties) or `.setAttribute(name, value)` (for attributes) |
 
-### jQuery Detection Pattern (Critical for v13)
+### jQuery Detection Pattern (⚠️ Technical Debt - Use During Migration Only)
 
-**Always detect and convert jQuery objects before using native DOM methods:**
+> ⚠️ **IMPORTANT: This is a transitional pattern, not a permanent solution**
+> 
+> This pattern is defensive code to handle inconsistencies during migration. The goal should be to fix call sites to pass native DOM elements, not normalize jQuery at every destination.
+
+**Use this pattern during migration to prevent crashes:**
 
 ```javascript
 // For html parameters in hooks and activateListeners
@@ -524,7 +547,15 @@ _getNativeElement() {
 }
 ```
 
-**Why:** Even in v13, `html` parameters and `this.element` may still be jQuery objects in some contexts (FormApplication, Dialog callbacks, etc.). Always detect and convert to prevent `querySelector is not a function` errors.
+**Why use it during migration:** Even in v13, `html` parameters and `this.element` may still be jQuery objects in some contexts (FormApplication, Dialog callbacks, etc.). This prevents `querySelector is not a function` errors.
+
+**Why remove it later:** Once all call sites are confirmed to pass native DOM elements, this detection becomes unnecessary overhead. Elements from `querySelector()` are always native DOM - no detection needed.
+
+**Best Practice:** 
+- Use this pattern during migration to prevent crashes
+- Track which methods use it and why
+- After migration, audit and remove unnecessary detections
+- Fix call sites that pass jQuery instead of adding detection everywhere
 
 ### Scene Controls Conversion
 
@@ -845,22 +876,26 @@ grep -r "FilePicker\." scripts/
 
 **Solution:** Set `visible: true` or conditional visibility based on permissions.
 
-### 6. jQuery Objects in FormApplication
+### 6. jQuery Objects in FormApplication (⚠️ Technical Debt)
 **Issue:** `this.element` and `html` parameters may still be jQuery objects even in v13.
 
-**Solution:** Always detect and convert jQuery to native DOM before using native methods:
+**Solution (Transitional):** Detect and convert jQuery to native DOM before using native methods:
 ```javascript
-// Detection pattern
+// Detection pattern (use during migration, remove later)
 let nativeHtml = html;
 if (html && (html.jquery || typeof html.find === 'function')) {
     nativeHtml = html[0] || html.get?.(0) || html;
 }
 ```
 
-### 7. Dialog Callback jQuery
+**Better Solution (Long-term):** Fix call sites to pass native DOM elements. This detection pattern is technical debt - it normalizes an inconsistency that should be fixed at the source.
+
+### 7. Dialog Callback jQuery (⚠️ Technical Debt)
 **Issue:** Dialog callbacks receive `html` that may be jQuery objects.
 
-**Solution:** Apply same jQuery detection pattern in dialog callbacks before using `querySelector`.
+**Solution (Transitional):** Apply same jQuery detection pattern in dialog callbacks before using `querySelector`.
+
+**Better Solution (Long-term):** Ensure Dialog callbacks receive native DOM elements. The detection is a workaround, not a permanent fix.
 
 ### 8. Multiple DOM Roots
 **Issue:** Elements may be rendered to different DOM locations (sidebar vs popout).
@@ -877,9 +912,11 @@ if (html && (html.jquery || typeof html.find === 'function')) {
 4. **Use Native DOM** - Prefer native methods over jQuery patterns
 5. **Check Console** - Always check for errors and warnings
 6. **Verify Functionality** - Don't just fix errors, verify features work
-7. **Always Detect jQuery** - Even in v13, `html` and `this.element` may be jQuery objects - always detect and convert
-8. **Use Helper Methods** - Create `_getNativeElement()` helper in FormApplication classes for consistent jQuery handling
-9. **Test Popout Windows** - Test UI elements in both sidebar and popout windows (they may render to different DOM locations)
+7. **Detect jQuery During Migration** - Even in v13, `html` and `this.element` may be jQuery objects during migration - detect and convert to prevent crashes
+8. **Plan to Remove Detection** - jQuery detection is technical debt. After migration, audit and remove unnecessary detections where the source is guaranteed to be native DOM
+9. **Fix Call Sites, Not Add Detection** - If jQuery is being passed, fix the source rather than adding detection everywhere
+10. **Use Helper Methods** - Create `_getNativeElement()` helper in FormApplication classes for consistent jQuery handling during migration
+11. **Test Popout Windows** - Test UI elements in both sidebar and popout windows (they may render to different DOM locations)
 
 ---
 

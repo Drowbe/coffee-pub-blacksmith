@@ -302,11 +302,17 @@ class CombatTimer {
             );
             
             
+            // v13: Detect and convert jQuery to native DOM if needed
+            let nativeHtml = html;
+            if (html && (html.jquery || typeof html.find === 'function')) {
+                nativeHtml = html[0] || html.get?.(0) || html;
+            }
+            
             // Modified selector to exclude groups and look for active individual combatant (v13: native DOM)
-            const activeCombatant = html.querySelector('.combatant.active:not(.combatant-group)');
-            const activeGroupMember = html.querySelector('.group-children .combatant.active');
+            const activeCombatant = nativeHtml.querySelector('.combatant.active:not(.combatant-group)');
+            const activeGroupMember = nativeHtml.querySelector('.group-children .combatant.active');
             // v13: Changed from #combat-tracker to .combat-tracker
-            const combatTracker = html.querySelector('.combat-tracker') || html.querySelector('ol.combat-tracker') || html.querySelector('#combat-tracker');
+            const combatTracker = nativeHtml.querySelector('.combat-tracker') || nativeHtml.querySelector('ol.combat-tracker') || nativeHtml.querySelector('#combat-tracker');
             
             // Parse HTML string into DOM element
             const tempDiv = document.createElement('div');
@@ -323,7 +329,7 @@ class CombatTimer {
             }
             
             if (isEnabled) {
-                this.bindTimerEvents(html);
+                this.bindTimerEvents(nativeHtml);
             }
 
             this.updateUI();
@@ -333,8 +339,14 @@ class CombatTimer {
     }
 
     static bindTimerEvents(html) {
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+        
         // Left click for pause/unpause (GM only) (v13: native DOM)
-        html.querySelectorAll('.combat-timer-progress').forEach(el => {
+        nativeHtml.querySelectorAll('.combat-timer-progress').forEach(el => {
             el.addEventListener('click', (event) => {
                 if (!game.user.isGM) return;
                 if (event.button === 0) {
@@ -349,7 +361,7 @@ class CombatTimer {
 
         // Right click for time adjustment (GM only) (v13: native DOM)
         if (game.user.isGM) {
-            html.querySelectorAll('.combat-timer-progress').forEach(el => {
+            nativeHtml.querySelectorAll('.combat-timer-progress').forEach(el => {
                 el.addEventListener('contextmenu', (event) => {
                     event.preventDefault();
                     this.handleRightClick(event);
@@ -357,7 +369,7 @@ class CombatTimer {
             });
         } else {
             // Player turn handling (v13: native DOM)
-            const progress = html.querySelector('.combat-timer-progress');
+            const progress = nativeHtml.querySelector('.combat-timer-progress');
             const combat = game.combat;
             const currentToken = combat?.combatant?.token;
             

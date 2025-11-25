@@ -99,54 +99,65 @@ export class VoteManager {
             priority: 3, // Normal priority - UI interaction
             callback: (message, html) => {
                 if (message.flags?.['coffee-pub-blacksmith']?.isVoteCard) {
+                    // v13: Detect and convert jQuery to native DOM if needed
+                    let nativeHtml = html;
+                    if (html && (html.jquery || typeof html.find === 'function')) {
+                        nativeHtml = html[0] || html.get?.(0) || html;
+                    }
+                    
                     // Vote button click handler
-                    html.find('.vote-button').click(async (event) => {
-                        event.preventDefault();
-                        // Prevent GMs from voting
-                        if (game.user.isGM) {
-                            ui.notifications.warn("GMs cannot participate in voting.");
-                            return;
-                        }
-                        const optionId = event.currentTarget.dataset.optionId;
-                        await this.castVote(game.user.id, optionId);
+                    nativeHtml.querySelectorAll('.vote-button').forEach(button => {
+                        button.addEventListener('click', async (event) => {
+                            event.preventDefault();
+                            // Prevent GMs from voting
+                            if (game.user.isGM) {
+                                ui.notifications.warn("GMs cannot participate in voting.");
+                                return;
+                            }
+                            const optionId = event.currentTarget.dataset.optionId;
+                            await this.castVote(game.user.id, optionId);
+                        });
                     });
 
                     // Handle close button visibility and click event
-                    const closeButton = html.find('.vote-controls');
-                    if (!game.user.isGM) {
-                        closeButton.hide();
-                    } else {
-                        closeButton.find('.close-vote').click(async (event) => {
-                            event.preventDefault();
-                            await this.closeVote();
-                        });
+                    const closeButton = nativeHtml.querySelector('.vote-controls');
+                    if (closeButton) {
+                        if (!game.user.isGM) {
+                            closeButton.style.display = 'none';
+                        } else {
+                            const closeVoteButton = closeButton.querySelector('.close-vote');
+                            if (closeVoteButton) {
+                                closeVoteButton.addEventListener('click', async (event) => {
+                                    event.preventDefault();
+                                    await this.closeVote();
+                                });
+                            }
+                        }
                     }
 
                     // Add visual indicators for votes and GM status
                     if (this.activeVote?.votes) {
                         const userVote = this.activeVote.votes[game.user.id];
-                        html.find('.vote-button').each((i, button) => {
-                            const $button = $(button);
-                            const optionId = $button.data('optionId');
+                        nativeHtml.querySelectorAll('.vote-button').forEach((button) => {
+                            const optionId = button.dataset.optionId;
                             
                             // Disable buttons for GMs
                             if (game.user.isGM) {
-                                $button.prop('disabled', true);
-                                $button.css({
-                                    'opacity': '0.6',
-                                    'cursor': 'not-allowed',
-                                    'pointer-events': 'none'
-                                });
+                                button.disabled = true;
+                                button.style.opacity = '0.6';
+                                button.style.cursor = 'not-allowed';
+                                button.style.pointerEvents = 'none';
                             } else if (userVote === optionId) {
                                 // Add check mark to voted option
-                                const $icon = $('<i class="fas fa-check" style="margin-left: 10px; color: #2d8a45;"></i>');
-                                $button.append($icon);
-                                $button.css({
-                                    'background': 'rgba(45, 138, 69, 0.1)',
-                                    'border-color': '#2d8a45',
-                                    'color': '#2d8a45',
-                                    'pointer-events': 'none'
-                                });
+                                const icon = document.createElement('i');
+                                icon.className = 'fas fa-check';
+                                icon.style.marginLeft = '10px';
+                                icon.style.color = '#2d8a45';
+                                button.appendChild(icon);
+                                button.style.background = 'rgba(45, 138, 69, 0.1)';
+                                button.style.borderColor = '#2d8a45';
+                                button.style.color = '#2d8a45';
+                                button.style.pointerEvents = 'none';
                             } else if (userVote) {
                                 // Style non-selected options when user has voted
                                 $button.css({
@@ -310,10 +321,19 @@ export class VoteManager {
                     icon: '<i class="fas fa-check"></i>',
                     label: "Create Vote",
                     callback: async (html) => {
-                        const form = html.find('form')[0];
-                        const title = form.title.value;
-                        const description = form.description.value;
-                        const source = form.source.value;
+                        // v13: Detect and convert jQuery to native DOM if needed
+                        let nativeDialogHtml = html;
+                        if (html && (html.jquery || typeof html.find === 'function')) {
+                            nativeDialogHtml = html[0] || html.get?.(0) || html;
+                        }
+                        const form = nativeDialogHtml.querySelector('form');
+                        if (!form) return;
+                        const titleInput = form.querySelector('[name="title"]');
+                        const descriptionInput = form.querySelector('[name="description"]');
+                        const sourceInput = form.querySelector('[name="source"]');
+                        const title = titleInput ? titleInput.value : '';
+                        const description = descriptionInput ? descriptionInput.value : '';
+                        const source = sourceInput ? sourceInput.value : '';
                         
                         if (!title) {
                             ui.notifications.error("Please enter a title for the vote.");
@@ -664,7 +684,13 @@ export class VoteManager {
                     icon: '<i class="fas fa-crown"></i>',
                     label: "Choose Leader",
                     callback: async (html) => {
-                        const selectedValue = html.find('#tie-breaker-select').val();
+                        // v13: Detect and convert jQuery to native DOM if needed
+                        let nativeDialogHtml = html;
+                        if (html && (html.jquery || typeof html.find === 'function')) {
+                            nativeDialogHtml = html[0] || html.get?.(0) || html;
+                        }
+                        const tieBreakerSelect = nativeDialogHtml.querySelector('#tie-breaker-select');
+                        const selectedValue = tieBreakerSelect ? tieBreakerSelect.value : '';
                         const [userId, actorId] = selectedValue.split('|');
                         
                         // Initialize results if they don't exist

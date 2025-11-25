@@ -370,16 +370,22 @@ export class PlanningTimer {
             }
         );
         
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+        
         // Remove any existing planning timers (v13: html is native DOM element)
-        html.querySelectorAll('.planning-timer-item, .planning-timer-container, .planning-phase').forEach(el => el.remove());
+        nativeHtml.querySelectorAll('.planning-timer-item, .planning-timer-container, .planning-phase').forEach(el => el.remove());
         
         // v13: Find the combat tracker list (ol.combat-tracker) and insert into it
         // Try multiple selectors to find the combat tracker list
-        const combatTracker = html.querySelector('ol.combat-tracker.plain') || 
-                              html.querySelector('ol.combat-tracker') ||
-                              html.querySelector('.combat-tracker.plain') ||
-                              html.querySelector('.combat-tracker') ||
-                              html.querySelector('[data-application-part="tracker"]');
+        const combatTracker = nativeHtml.querySelector('ol.combat-tracker.plain') || 
+                              nativeHtml.querySelector('ol.combat-tracker') ||
+                              nativeHtml.querySelector('.combat-tracker.plain') ||
+                              nativeHtml.querySelector('.combat-tracker') ||
+                              nativeHtml.querySelector('[data-application-part="tracker"]');
         if (combatTracker) {
             postConsoleAndNotification(MODULE.NAME, `Planning Timer: Found combat tracker, inserting timer`, "", true, false);
             // Parse HTML string into DOM element
@@ -416,7 +422,7 @@ export class PlanningTimer {
         } else {
             // Fallback: try to find first combatant (v13: native DOM)
             postConsoleAndNotification(MODULE.NAME, `Planning Timer: Combat tracker not found, trying fallback`, "", true, false);
-            const firstCombatant = html.querySelector('.combatant');
+            const firstCombatant = nativeHtml.querySelector('.combatant');
             if (firstCombatant) {
                 // Parse HTML string into DOM element
                 const tempDiv = document.createElement('div');

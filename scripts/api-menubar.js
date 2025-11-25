@@ -3110,8 +3110,13 @@ class MenuBar {
                     icon: '<i class="fas fa-check"></i>',
                     label: "Set Leader",
                     callback: async (html) => {
+                        // v13: Detect and convert jQuery to native DOM if needed
+                        let nativeDialogHtml = html;
+                        if (html && (html.jquery || typeof html.find === 'function')) {
+                            nativeDialogHtml = html[0] || html.get?.(0) || html;
+                        }
                 
-                        const leaderSelect = html.querySelector('#leader-select');
+                        const leaderSelect = nativeDialogHtml.querySelector('#leader-select');
                         const selectedValue = leaderSelect ? leaderSelect.value : '';
                         if (selectedValue) {
   
@@ -3438,9 +3443,14 @@ class MenuBar {
                     icon: '<i class="fas fa-check"></i>',
                     label: "Set Timer",
                     callback: async (html) => {
-                        const hoursSelect = html.querySelector('#hours-select');
-                        const minutesSelect = html.querySelector('#minutes-select');
-                        const setDefaultCheckbox = html.querySelector('#set-default');
+                        // v13: Detect and convert jQuery to native DOM if needed
+                        let nativeDialogHtml = html;
+                        if (html && (html.jquery || typeof html.find === 'function')) {
+                            nativeDialogHtml = html[0] || html.get?.(0) || html;
+                        }
+                        const hoursSelect = nativeDialogHtml.querySelector('#hours-select');
+                        const minutesSelect = nativeDialogHtml.querySelector('#minutes-select');
+                        const setDefaultCheckbox = nativeDialogHtml.querySelector('#set-default');
                         const hours = parseInt(hoursSelect ? hoursSelect.value : '0');
                         const minutes = parseInt(minutesSelect ? minutesSelect.value : '0');
                         const setAsDefault = setDefaultCheckbox ? setDefaultCheckbox.checked : false;
