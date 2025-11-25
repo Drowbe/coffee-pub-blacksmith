@@ -797,6 +797,92 @@ export class BlacksmithWindowQuery extends FormApplication {
             });
         });
 
+        // Add event listener for criteria drop zone (assistant workspace)
+        const criteriaDropZones = nativeHtml.querySelectorAll('.criteria-dropzone');
+        postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Found drop zones', criteriaDropZones.length.toString(), true, false);
+        
+        criteriaDropZones.forEach((dropZone) => {
+            postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Setting up handlers for', dropZone.id || 'no-id', true, false);
+            dropZone.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', async (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                dropZone.classList.remove('dragover');
+
+                try {
+                    postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Drop event fired', '', true, false);
+                    
+                    const rawData = event.dataTransfer.getData('text/plain');
+                    postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Raw data', rawData || 'No data', true, false);
+                    
+                    if (!rawData) {
+                        postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: No raw data found', '', true, false);
+                        return;
+                    }
+                    
+                    const data = JSON.parse(rawData);
+                    postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Parsed data', JSON.stringify(data), true, false);
+                    
+                    const id = dropZone.id.split('-').pop();
+                    postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: ID extracted', id, true, false);
+
+                    // Handle token drops (from canvas)
+                    if (data.type === 'Token') {
+                        const tokenDoc = await fromUuid(data.uuid);
+                        if (!tokenDoc) {
+                            postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Token not found', data.uuid, true, false);
+                            return;
+                        }
+                        // Get the token from canvas if it exists, otherwise create a token-like structure
+                        const token = canvas.tokens.get(tokenDoc.id) || {
+                            actor: tokenDoc.actor,
+                            document: tokenDoc,
+                            name: tokenDoc.name
+                        };
+                        await TokenHandler.updateSkillCheckFromToken(id, token);
+                    }
+                    // Handle actor drops (from sidebar)
+                    else if (data.type === 'Actor') {
+                        const actor = await fromUuid(data.uuid);
+                        if (!actor) {
+                            postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Actor not found', data.uuid, true, false);
+                            return;
+                        }
+                        // Create a token-like structure for the actor
+                        const token = {
+                            actor: actor,
+                            document: {
+                                disposition: actor.type === 'npc' ? -1 : 1,
+                                texture: { src: actor.img },
+                                effects: []
+                            },
+                            name: actor.name
+                        };
+                        await TokenHandler.updateSkillCheckFromToken(id, token);
+                    }
+                    // Handle item drops
+                    else if (data.type === 'Item') {
+                        const item = await fromUuid(data.uuid);
+                        if (!item) {
+                            postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Item not found', data.uuid, true, false);
+                            return;
+                        }
+                        await TokenHandler.updateSkillCheckFromToken(id, null, item);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, 'Error processing criteria drop:', error, false, false);
+                }
+            });
+        });
+
         // Add event listener for encounter journal drops
         nativeHtml.querySelectorAll('.encounters-drop-zone').forEach((dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
