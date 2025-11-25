@@ -44,17 +44,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed `this.element.querySelector is not a function` errors in multiple methods
   - Added jQuery detection and conversion for all DOM queries
   - Updated `_updateXpDisplay()`, `_getIncludedPlayerCount()`, `_updateXpDataPlayers()`, `_onModeToggleChange()`, and `_collectMilestoneData()` methods
+- **CSS Editor Window:** Fixed jQuery-related errors in CSS Editor
+  - Fixed `html.querySelector is not a function` error in `activateListeners`
+  - Fixed `Cannot read properties of undefined (reading 'toggle')` error
+  - Added jQuery detection and conversion for `html` and `this.element` in all methods
+  - Fixed World Settings button to open World Config instead of general settings
+  - Added missing `_resetApplyButton` method
+  - Updated `render()`, `_updateObject()`, `_setupSearchListeners()`, `_performSearch()`, `_highlightCurrentMatch()`, `_replaceCurrent()`, and `_replaceAll()` methods
+- **Journal Tools Window:** Fixed jQuery-related errors in Journal Tools
+  - Fixed `html.querySelector is not a function` error in `activateListeners`
+  - Fixed `this.element.querySelectorAll is not a function` and `this.element.querySelector is not a function` errors
+  - Added `_getNativeElement()` helper method for jQuery detection
+  - Fixed journal page opening when clicking "replace title" in search results
+  - Added `_viewJournalPage` helper method with multiple strategies for opening journal pages
+  - Added missing `_resetApplyButton` method
+  - Updated all methods to use native DOM after jQuery detection
+- **Blacksmith Window Query:** Fixed jQuery-related errors in query window
+  - Fixed `html.querySelector is not a function` and `html.querySelectorAll is not a function` errors
+  - Fixed `html.addEventListener is not a function` error
+  - Fixed `this.element.querySelector is not a function` errors in `displayMessage()` and other methods
+  - Added `_getNativeElement()` helper method for jQuery detection
+  - Added drop zone handlers for criteria drop zone in assistant workspace (skill check assistant)
+  - Updated `activateListeners()`, `initialize()`, `displayMessage()`, `_scrollToBottom()`, and `switchWorkspace()` methods
 
 ### Changed
-- **jQuery Removal:** Continued migration from jQuery to native DOM methods across combat tracker components
-  - All combat tracker hooks now handle native DOM elements
-  - Added jQuery detection patterns where needed for compatibility
+- **jQuery Removal:** Continued migration from jQuery to native DOM methods across all application windows
+  - All application windows now handle native DOM elements with jQuery detection fallbacks
+  - Added `_getNativeElement()` helper method pattern for consistent jQuery detection
   - Replaced jQuery event handlers with native `addEventListener`
   - Replaced jQuery DOM manipulation with native methods (`querySelector`, `appendChild`, `insertBefore`, etc.)
+  - Updated XP Distribution, CSS Editor, Journal Tools, and Blacksmith Window Query windows
 - **Combat Tracker Structure:** Updated combat tracker HTML structure for v13 compatibility
   - Planning timer now uses `.planning-timer-item` class instead of `.combatant.planning-phase`
   - Roll Remaining button now uses `<button>` element with v13-compatible attributes
   - All selectors updated to match v13 DOM structure
+- **Query Tool - Assistant Workspace:** Added drop zone functionality for skill check assistant
+  - Added event handlers for criteria drop zone to accept token, actor, and item drops
+  - Drop zone now populates skill check form fields automatically when items are dropped
+  - Supports drops from canvas (tokens) and sidebar (actors and items)
 
 ### Technical
 - **Initiative Checks:** Added initiative validation before showing timers
@@ -70,7 +97,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Migration Notes
 - See `documentation/migration-v13.md` for detailed migration documentation
 - All combat tracker functionality has been restored and tested in v13
-- jQuery removal is complete for combat tracker components
+- jQuery removal is complete for combat tracker components and all major application windows
+- All application windows (XP Distribution, CSS Editor, Journal Tools, Blacksmith Window Query) now use native DOM with jQuery detection fallbacks
 
 
 ## [13.0.0] - v13 Migration Begins
