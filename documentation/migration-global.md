@@ -353,6 +353,125 @@ if (svgElement.classList) {
 }
 ```
 
+### Pattern 10: jQuery Detection for FormApplication
+
+**Issue:** In v13, `this.element` in `FormApplication` instances and `html` parameters in hooks may still be jQuery objects in some cases. Always detect and convert.
+
+**v13 Pattern (Recommended):**
+```javascript
+export class MyApplication extends FormApplication {
+    /**
+     * Get native DOM element from this.element (handles jQuery conversion)
+     * @returns {HTMLElement|null} Native DOM element
+     */
+    _getNativeElement() {
+        if (!this.element) return null;
+        // v13: Detect and convert jQuery to native DOM if needed
+        if (this.element.jquery || typeof this.element.find === 'function') {
+            return this.element[0] || this.element.get?.(0) || this.element;
+        }
+        return this.element;
+    }
+
+    activateListeners(html) {
+        super.activateListeners(html);
+        
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+        
+        // Now use nativeHtml for all DOM operations
+        const button = nativeHtml.querySelector('.my-button');
+        // ...
+    }
+    
+    someMethod() {
+        // Use helper method for this.element
+        const element = this._getNativeElement();
+        if (element) {
+            const output = element.querySelector('#output');
+            // ...
+        }
+    }
+}
+```
+
+**Why This Matters:**
+- `FormApplication.activateListeners(html)` may receive jQuery objects
+- `this.element` in FormApplication instances can be jQuery
+- Always detect and convert before using native DOM methods
+- This pattern prevents `querySelector is not a function` errors
+
+### Pattern 11: Dialog Callback jQuery Detection
+
+**Issue:** Dialog callbacks also receive `html` parameters that may be jQuery objects.
+
+**v13 Pattern:**
+```javascript
+new Dialog({
+    title: "My Dialog",
+    content: "<div>Content</div>",
+    buttons: {
+        ok: {
+            label: "OK",
+            callback: async (html) => {
+                // v13: Detect and convert jQuery to native DOM if needed
+                let nativeDialogHtml = html;
+                if (html && (html.jquery || typeof html.find === 'function')) {
+                    nativeDialogHtml = html[0] || html.get?.(0) || html;
+                }
+                
+                const input = nativeDialogHtml.querySelector('#my-input');
+                const value = input ? input.value : null;
+                // ...
+            }
+        }
+    }
+}).render(true);
+```
+
+### Pattern 12: Multiple Search Roots
+
+**Issue:** Foundry may render elements to different DOM locations (sidebar, popout windows, etc.). Search multiple roots when needed.
+
+**v13 Pattern:**
+```javascript
+// When searching for elements that might be in different locations
+function findElement(selector) {
+    // Try multiple roots
+    const roots = [
+        app?.element,
+        html,
+        ui.combat?.element,
+        document.querySelector('#combat-tracker'),
+        document.querySelector('#combat-popout')
+    ];
+    
+    for (const root of roots) {
+        if (!root) continue;
+        
+        // Handle jQuery
+        let nativeRoot = root;
+        if (root.jquery || typeof root.find === 'function') {
+            nativeRoot = root[0] || root.get?.(0) || root;
+        }
+        
+        const element = nativeRoot.querySelector?.(selector);
+        if (element) return element;
+    }
+    
+    return null;
+}
+```
+
+**When to Use:**
+- Elements that can appear in sidebar or popout windows
+- Combat tracker elements
+- Scene navigation elements
+- Any UI that can be "popped out"
+
 ---
 
 ## Common Conversions
@@ -383,6 +502,29 @@ if (svgElement.classList) {
 | `.off(event, handler)` | `.removeEventListener(event, handler)` |
 | `.val()` | `.value` |
 | `.prop(name, value)` | `.name = value` (for properties) or `.setAttribute(name, value)` (for attributes) |
+
+### jQuery Detection Pattern (Critical for v13)
+
+**Always detect and convert jQuery objects before using native DOM methods:**
+
+```javascript
+// For html parameters in hooks and activateListeners
+let nativeHtml = html;
+if (html && (html.jquery || typeof html.find === 'function')) {
+    nativeHtml = html[0] || html.get?.(0) || html;
+}
+
+// For this.element in FormApplication classes
+_getNativeElement() {
+    if (!this.element) return null;
+    if (this.element.jquery || typeof this.element.find === 'function') {
+        return this.element[0] || this.element.get?.(0) || this.element;
+    }
+    return this.element;
+}
+```
+
+**Why:** Even in v13, `html` parameters and `this.element` may still be jQuery objects in some contexts (FormApplication, Dialog callbacks, etc.). Always detect and convert to prevent `querySelector is not a function` errors.
 
 ### Scene Controls Conversion
 
@@ -703,6 +845,28 @@ grep -r "FilePicker\." scripts/
 
 **Solution:** Set `visible: true` or conditional visibility based on permissions.
 
+### 6. jQuery Objects in FormApplication
+**Issue:** `this.element` and `html` parameters may still be jQuery objects even in v13.
+
+**Solution:** Always detect and convert jQuery to native DOM before using native methods:
+```javascript
+// Detection pattern
+let nativeHtml = html;
+if (html && (html.jquery || typeof html.find === 'function')) {
+    nativeHtml = html[0] || html.get?.(0) || html;
+}
+```
+
+### 7. Dialog Callback jQuery
+**Issue:** Dialog callbacks receive `html` that may be jQuery objects.
+
+**Solution:** Apply same jQuery detection pattern in dialog callbacks before using `querySelector`.
+
+### 8. Multiple DOM Roots
+**Issue:** Elements may be rendered to different DOM locations (sidebar vs popout).
+
+**Solution:** Search multiple roots when looking for elements that can appear in different locations.
+
 ---
 
 ## Best Practices
@@ -713,6 +877,9 @@ grep -r "FilePicker\." scripts/
 4. **Use Native DOM** - Prefer native methods over jQuery patterns
 5. **Check Console** - Always check for errors and warnings
 6. **Verify Functionality** - Don't just fix errors, verify features work
+7. **Always Detect jQuery** - Even in v13, `html` and `this.element` may be jQuery objects - always detect and convert
+8. **Use Helper Methods** - Create `_getNativeElement()` helper in FormApplication classes for consistent jQuery handling
+9. **Test Popout Windows** - Test UI elements in both sidebar and popout windows (they may render to different DOM locations)
 
 ---
 

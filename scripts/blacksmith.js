@@ -1009,14 +1009,20 @@ const journalDoubleClickHookId = HookManager.registerHook({
             // Remove any existing handler first to prevent accumulation
             // (Event listeners are automatically cleaned up when DOM is replaced)
             
+            // v13: Detect and convert jQuery to native DOM if needed
+            let nativeHtml = html;
+            if (html && (html.jquery || typeof html.find === 'function')) {
+                nativeHtml = html[0] || html.get?.(0) || html;
+            }
+            
             // Use event delegation for dynamically added elements
-            html.addEventListener('dblclick', (event) => {
+            nativeHtml.addEventListener('dblclick', (event) => {
                 if (event.target.closest('.journal-entry-page')) {
                     event.preventDefault();
                     const hasEditPermission = app.document.testUserPermission(currentUser, ENTITY_PERMISSIONS.OWNER);
                     if (hasEditPermission) {
                         // Try to find the edit button more generally
-                        const editButton = html.querySelector('.edit-container .editor-edit');
+                        const editButton = nativeHtml.querySelector('.edit-container .editor-edit');
                         if (editButton) {
                             editButton.click();
                         }
