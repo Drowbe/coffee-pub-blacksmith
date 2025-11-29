@@ -247,6 +247,17 @@ Hooks.on('getSceneControlButtons', (controls) => {
 - [ ] Migrate to ApplicationV2 framework
 - [ ] Test all application windows and dialogs
 
+### Phase 2.5: jQuery Detection Pattern Audit ✅ **IN PROGRESS**
+- [x] Audit all jQuery detection patterns ✅ **COMPLETE** - See `documentation/jquery-detection-audit.md`
+- [x] Document audit findings and recommendations ✅ **COMPLETE**
+- [x] Fix bugs found during audit ✅ **COMPLETE** - Fixed `window-gmtools.js` _replaceCurrent and _replaceAll
+- [ ] Test files without detection to verify necessity
+- [ ] Standardize implementations based on test results
+- [ ] Remove unnecessary detections
+- [ ] Consolidate inline detections into helper methods
+
+**Status:** Initial audit complete. Found 74 instances across 5 categories. Key finding: Inconsistency in `activateListeners(html)` and `this.element` handling suggests some detections may be unnecessary. Testing plan created. See `documentation/jquery-detection-audit.md` for full report.
+
 ---
 
 ## Migration Patterns

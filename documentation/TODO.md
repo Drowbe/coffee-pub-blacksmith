@@ -698,11 +698,13 @@ Keep jQuery detection during migration, but treat it as technical debt. Once all
 **Action Item:** After migration, audit all jQuery detection patterns and remove those where the source is guaranteed to be native DOM (e.g., `querySelector()` results).
 
 **Migration Task:**
-- [ ] Audit all jQuery detection patterns after v13 migration is complete
-- [ ] Identify which detections are unnecessary (source is guaranteed native DOM)
-- [ ] Remove unnecessary jQuery detection code
-- [ ] Document which detections are necessary and why
-- [ ] Create test cases to verify native DOM is always passed
+- [x] Audit all jQuery detection patterns after v13 migration is complete ✅ **COMPLETE** - See `documentation/jquery-detection-audit.md`
+- [ ] Identify which detections are unnecessary (source is guaranteed native DOM) - **IN PROGRESS** - Testing required
+- [ ] Remove unnecessary jQuery detection code - **PENDING** - Awaiting test results
+- [x] Document which detections are necessary and why ✅ **COMPLETE** - See audit report
+- [ ] Create test cases to verify native DOM is always passed - **PENDING** - See audit report testing plan
+
+**Audit Status:** Initial audit complete. Found 74 instances across 5 categories. Key finding: Inconsistency in `activateListeners(html)` and `this.element` handling suggests some detections may be unnecessary. Testing plan created to verify necessity. See `documentation/jquery-detection-audit.md` for full report.
 
 ### Socketmanager Becoming Monolithic
 - **Issue**: Socketmanager is evolving into a "god class" that both manages hooks AND contains business logic

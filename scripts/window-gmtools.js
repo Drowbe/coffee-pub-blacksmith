@@ -467,9 +467,9 @@ export class CSSEditor extends FormApplication {
             nativeHtml = html[0] || html.get?.(0) || html;
         }
 
-        const textarea = html.querySelector('textarea[name="css"]');
-        const searchInput = html.querySelector('.search-input');
-        const replaceInput = html.querySelector('.replace-input');
+        const textarea = nativeHtml.querySelector('textarea[name="css"]');
+        const searchInput = nativeHtml.querySelector('.search-input');
+        const replaceInput = nativeHtml.querySelector('.replace-input');
         if (!textarea || !searchInput || !replaceInput) return;
         const searchTerm = searchInput.value;
         const replaceTerm = replaceInput.value;
@@ -494,9 +494,9 @@ export class CSSEditor extends FormApplication {
             nativeHtml = html[0] || html.get?.(0) || html;
         }
 
-        const textarea = html.querySelector('textarea[name="css"]');
-        const searchInput = html.querySelector('.search-input');
-        const replaceInput = html.querySelector('.replace-input');
+        const textarea = nativeHtml.querySelector('textarea[name="css"]');
+        const searchInput = nativeHtml.querySelector('.search-input');
+        const replaceInput = nativeHtml.querySelector('.replace-input');
         if (!textarea || !searchInput || !replaceInput) return;
         const searchTerm = searchInput.value;
         const replaceTerm = replaceInput.value;
