@@ -10,6 +10,9 @@
 - **Priority**: CRITICAL
 - **Next Step**: Verify token image window cleanup in live play, then tackle menubar rerenders (per performance.md). Update this entry when the linked doc advances.
 
+### Movement
+- **Issue**: Tokens no longer follow in conga or other modes
+
 
 ### Combat Stats - Critical Bugs and Design Alignment
 - **Issue**: Multiple critical bugs in combat stats system and design inconsistencies between round summaries and combat summary
@@ -692,31 +695,7 @@ The jQuery detection pattern indicates we're still in a mixed state where jQuery
 
 Keep jQuery detection during migration, but treat it as technical debt. Once all call sites are confirmed to pass native DOM elements (especially when elements come from `querySelector()` which always returns native DOM), remove the detection code.
 
-**Example of unnecessary detection:**
-```javascript
-// codexContainer comes from this.element.querySelector() → guaranteed native DOM
-// No jQuery detection needed in _activateListeners(codexContainer)
-```
-
 **Action Item:** After migration, audit all jQuery detection patterns and remove those where the source is guaranteed to be native DOM (e.g., `querySelector()` results).
-
-**Files Using jQuery Detection Pattern:**
-- `scripts/blacksmith.js` - `renderJournalSheet` hook
-- `scripts/window-query.js` - `activateListeners`, `initialize`, `displayMessage`, etc.
-- `scripts/journal-tools.js` - `activateListeners`, `_isEditMode`, `_addToolsIcon`
-- `scripts/window-gmtools.js` - `activateListeners`, `render`, `_updateObject`, etc.
-- `scripts/xp-manager.js` - `activateListeners`, `_onModeToggleChange`, etc.
-- `scripts/vote-manager.js` - `renderChatMessage` hook
-- `scripts/token-movement.js` - `activateListeners`
-- `scripts/vote-config.js` - `activateListeners`, Dialog callbacks
-- `scripts/timer-combat.js` - `_onRenderCombatTracker`, `bindTimerEvents`
-- `scripts/timer-planning.js` - `_onRenderCombatTracker`
-- `scripts/timer-round.js` - `_onRenderCombatTracker`
-- `scripts/manager-navigation.js` - Hook callbacks
-- `scripts/api-menubar.js` - Dialog callbacks
-- `scripts/encounter-toolbar.js` - `_updateToolbarCRs`, `_scanJournalContent`, etc.
-- `scripts/combat-tracker.js` - `renderCombatTracker` hook
-- And potentially others...
 
 **Migration Task:**
 - [ ] Audit all jQuery detection patterns after v13 migration is complete
