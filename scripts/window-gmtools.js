@@ -44,9 +44,19 @@ export class CSSEditor extends FormApplication {
     activateListeners(html) {
         super.activateListeners(html);
 
-        // v13: Foundry passes native DOM to activateListeners
+        // v13: Application/FormApplication.activateListeners may still receive jQuery
+        // Convert to native DOM if needed
+        let htmlElement = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            htmlElement = html[0] || html.get?.(0) || html;
+        } else if (html && typeof html.querySelectorAll !== 'function') {
+            // Not a valid DOM element
+            return;
+        }
+        if (!htmlElement) return;
+
         // Add dark mode toggle listener
-        const darkModeInput = html.querySelector('input[name="dark"]');
+        const darkModeInput = htmlElement.querySelector('input[name="dark"]');
         if (darkModeInput) {
             darkModeInput.addEventListener('change', async (event) => {
                 const isDark = event.target.checked;
@@ -58,7 +68,7 @@ export class CSSEditor extends FormApplication {
         }
 
         // Add refresh button listener
-        const refreshButton = html.querySelector('.refresh-button');
+        const refreshButton = htmlElement.querySelector('.refresh-button');
         if (refreshButton) {
             refreshButton.addEventListener('click', () => {
                 window.location.reload();
@@ -66,10 +76,10 @@ export class CSSEditor extends FormApplication {
         }
 
         // Add copy button listener
-        const copyButton = html.querySelector('.copy-button');
+        const copyButton = htmlElement.querySelector('.copy-button');
         if (copyButton) {
             copyButton.addEventListener('click', () => {
-                const textarea = html.querySelector('textarea[name="css"]');
+                const textarea = htmlElement.querySelector('textarea[name="css"]');
                 if (textarea) {
                     navigator.clipboard.writeText(textarea.value).then(() => {
                         ui.notifications.info('CSS copied to clipboard');
@@ -82,10 +92,10 @@ export class CSSEditor extends FormApplication {
         }
 
         // Add clear button listener
-        const clearButton = html.querySelector('.clear-button');
+        const clearButton = htmlElement.querySelector('.clear-button');
         if (clearButton) {
             clearButton.addEventListener('click', () => {
-                const textarea = html.querySelector('textarea[name="css"]');
+                const textarea = htmlElement.querySelector('textarea[name="css"]');
                 if (textarea && textarea.value.trim() !== '') {
                     Dialog.confirm({
                         title: 'Clear CSS Editor',
@@ -100,7 +110,7 @@ export class CSSEditor extends FormApplication {
         }
 
         // Update world button to open World Config
-        const worldButton = html.querySelector('.world-button');
+        const worldButton = htmlElement.querySelector('.world-button');
         if (worldButton) {
             worldButton.addEventListener('click', () => {
                 try {
@@ -145,7 +155,7 @@ export class CSSEditor extends FormApplication {
         }
 
         // Settings button
-        const settingsButton = html.querySelector('.settings-button');
+        const settingsButton = htmlElement.querySelector('.settings-button');
         if (settingsButton) {
             settingsButton.addEventListener('click', () => {
                 game.settings.sheet.render(true);
@@ -153,13 +163,13 @@ export class CSSEditor extends FormApplication {
         }
 
         // Add smart indentation handlers
-        const textarea = html.querySelector('textarea[name="css"]');
+        const textarea = htmlElement.querySelector('textarea[name="css"]');
         if (textarea) {
             textarea.addEventListener('keydown', this._handleEditorKeydown.bind(this));
         }
         
         // Search functionality listeners
-        this._setupSearchListeners(html);
+        this._setupSearchListeners(htmlElement);
     }
 
     _handleEditorKeydown(event) {
@@ -314,51 +324,51 @@ export class CSSEditor extends FormApplication {
             nativeHtml = html[0] || html.get?.(0) || html;
         }
 
-        const textarea = html.querySelector('textarea[name="css"]');
-        const searchInput = html.querySelector('.search-input');
-        const replaceInput = html.querySelector('.replace-input');
+        const textarea = nativeHtml.querySelector('textarea[name="css"]');
+        const searchInput = nativeHtml.querySelector('.search-input');
+        const replaceInput = nativeHtml.querySelector('.replace-input');
         
         if (!textarea || !searchInput || !replaceInput) return;
         
         // Search input listeners
         searchInput.addEventListener('input', () => {
-            this._performSearch(html);
+            this._performSearch(nativeHtml);
         });
         
         searchInput.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
                 if (event.shiftKey) {
-                    this._findPrevious(html);
+                    this._findPrevious(nativeHtml);
                 } else {
-                    this._findNext(html);
+                    this._findNext(nativeHtml);
                 }
             }
         });
         
         // Search button listeners
-        const findNextButton = html.querySelector('.find-next-button');
+        const findNextButton = nativeHtml.querySelector('.find-next-button');
         if (findNextButton) {
             findNextButton.addEventListener('click', () => {
                 this._findNext(nativeHtml);
             });
         }
         
-        const findPrevButton = html.querySelector('.find-prev-button');
+        const findPrevButton = nativeHtml.querySelector('.find-prev-button');
         if (findPrevButton) {
             findPrevButton.addEventListener('click', () => {
                 this._findPrevious(nativeHtml);
             });
         }
         
-        const replaceButton = html.querySelector('.replace-button');
+        const replaceButton = nativeHtml.querySelector('.replace-button');
         if (replaceButton) {
             replaceButton.addEventListener('click', () => {
                 this._replaceCurrent(nativeHtml);
             });
         }
         
-        const replaceAllButton = html.querySelector('.replace-all-button');
+        const replaceAllButton = nativeHtml.querySelector('.replace-all-button');
         if (replaceAllButton) {
             replaceAllButton.addEventListener('click', () => {
                 this._replaceAll(nativeHtml);
@@ -388,8 +398,8 @@ export class CSSEditor extends FormApplication {
             nativeHtml = html[0] || html.get?.(0) || html;
         }
 
-        const textarea = html.querySelector('textarea[name="css"]');
-        const searchInput = html.querySelector('.search-input');
+        const textarea = nativeHtml.querySelector('textarea[name="css"]');
+        const searchInput = nativeHtml.querySelector('.search-input');
         if (!textarea || !searchInput) return;
         const searchTerm = searchInput.value;
         
@@ -441,8 +451,8 @@ export class CSSEditor extends FormApplication {
             nativeHtml = html[0] || html.get?.(0) || html;
         }
 
-        const textarea = html.querySelector('textarea[name="css"]');
-        const searchInput = html.querySelector('.search-input');
+        const textarea = nativeHtml.querySelector('textarea[name="css"]');
+        const searchInput = nativeHtml.querySelector('.search-input');
         if (!textarea || !searchInput) return;
         const searchTerm = searchInput.value;
         

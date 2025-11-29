@@ -370,13 +370,23 @@ export class BlacksmithWindowQuery extends FormApplication {
     activateListeners(html) {
         super.activateListeners(html);
 
-        // v13: Foundry passes native DOM to activateListeners
+        // v13: Application/FormApplication.activateListeners may still receive jQuery
+        // Convert to native DOM if needed
+        let htmlElement = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            htmlElement = html[0] || html.get?.(0) || html;
+        } else if (html && typeof html.querySelectorAll !== 'function') {
+            // Not a valid DOM element
+            return;
+        }
+        if (!htmlElement) return;
+
         // don't let these buttons submit the main form
-        html.addEventListener('click', (event) => {
+        htmlElement.addEventListener('click', (event) => {
             const target = event.target.closest('.blacksmith-send-button-normal');
             if (target) {
                 event.preventDefault();
-                const form = html.querySelector('form');
+                const form = htmlElement.querySelector('form');
                 if (form) {
                     this._onSubmit(event, form);
                 }
@@ -384,35 +394,35 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Bind the copy and chat buttons
-        html.addEventListener('click', (event) => {
+        htmlElement.addEventListener('click', (event) => {
             const target = event.target.closest('#blacksmith-chat-button-json');
             if (target) {
                 this._onSendToJson.call(this, event);
             }
         });
-        html.addEventListener('click', (event) => {
+        htmlElement.addEventListener('click', (event) => {
             const target = event.target.closest('#blacksmith-chat-button-chat');
             if (target) {
                 this._onSendToChat.call(this, event);
             }
         });
-        html.addEventListener('click', (event) => {
+        htmlElement.addEventListener('click', (event) => {
             const target = event.target.closest('#blacksmith-chat-button-copy');
             if (target) {
                 this._onCopyToClipboard.call(this, event);
             }
         });
-        const form = html.querySelector('form');
+        const form = htmlElement.querySelector('form');
         if (form) {
             form.addEventListener('submit', this._onSubmit.bind(this));
         }
 
         // Bind the clear button workspace 
-        const clearWorkspaceButton = html.querySelector('#blacksmith-clear-workspace');
+        const clearWorkspaceButton = htmlElement.querySelector('#blacksmith-clear-workspace');
         if (clearWorkspaceButton) {
             clearWorkspaceButton.addEventListener('click', (event) => {
                 event.preventDefault();
-                const form = html.querySelector('form');
+                const form = htmlElement.querySelector('form');
                 if (!form) return;
                 
                 // Only clear inputs within the active workspace
@@ -440,14 +450,14 @@ export class BlacksmithWindowQuery extends FormApplication {
         }
 
         // Handle the Enter key press based on the checkbox state
-        const enterSubmitsCheckbox = html.querySelector('#enterSubmits');
-        const inputMessage = html.querySelector('textarea[name="blacksmith-input-message"]');
+        const enterSubmitsCheckbox = htmlElement.querySelector('#enterSubmits');
+        const inputMessage = htmlElement.querySelector('textarea[name="blacksmith-input-message"]');
 
         if (inputMessage) {
             inputMessage.addEventListener('keypress', (event) => {
                 if (event.key === 'Enter' && enterSubmitsCheckbox && enterSubmitsCheckbox.checked) {
                     event.preventDefault();
-                    const form = html.querySelector('form');
+                    const form = htmlElement.querySelector('form');
                     if (form) {
                         this._onSubmit(event, form); // Pass the form element
                     }
@@ -460,35 +470,35 @@ export class BlacksmithWindowQuery extends FormApplication {
 
         // Call toggleWorkspaceVisibility based on initial mode
         if (this.showWorkspace) {
-            this.toggleWorkspaceVisibility(html, false);
+            this.toggleWorkspaceVisibility(htmlElement, false);
         }
         
         // Ensure the correct workspace button is active based on the initial mode
-        this.switchWorkspace(html, `blacksmith-query-workspace-${this.workspaceId}`);
+        this.switchWorkspace(htmlElement, `blacksmith-query-workspace-${this.workspaceId}`);
 
         // Attach the event listener for the toggle button
-        const toggleWorkspaceButton = html.querySelector('#blacksmith-toggle-workspace');
+        const toggleWorkspaceButton = htmlElement.querySelector('#blacksmith-toggle-workspace');
         if (toggleWorkspaceButton) {
             toggleWorkspaceButton.addEventListener('click', (event) => {
                 event.preventDefault();
-                this.toggleWorkspaceVisibility(html, true);
+                this.toggleWorkspaceVisibility(htmlElement, true);
             });
         }
 
         // Attach the event listener for workspace buttons
-        html.addEventListener('click', (event) => {
+        htmlElement.addEventListener('click', (event) => {
             const clickedButton = event.target.closest('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
             if (clickedButton) {
                 event.preventDefault();
                 const workspaceId = clickedButton.getAttribute('id').replace('button', 'workspace');
-                this.switchWorkspace(html, workspaceId);
+                this.switchWorkspace(htmlElement, workspaceId);
             }
         });
 
         // -- ADD TOKENS BUTTONS --
 
         // Add event listener for "add-tokens-button"
-        html.querySelectorAll('.add-tokens-button').forEach((button) => {
+        htmlElement.querySelectorAll('.add-tokens-button').forEach((button) => {
             button.addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
                 const id = event.target.id.split('-').pop();
@@ -505,7 +515,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add event listener for "add-monsters-button"
-        html.querySelectorAll('.add-monsters-button').forEach((button) => {
+        htmlElement.querySelectorAll('.add-monsters-button').forEach((button) => {
             button.addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
                 const id = event.target.id.split('-').pop();
@@ -521,7 +531,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add event listener for "add-npcs-button"
-        html.querySelectorAll('.add-npcs-button').forEach((button) => {
+        htmlElement.querySelectorAll('.add-npcs-button').forEach((button) => {
             button.addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
                 const id = event.target.id.split('-').pop();
@@ -541,7 +551,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         addNPCDropZoneHandlers(id);
 
         // Add drag and drop event listeners for panel drop zones
-        html.querySelectorAll('.panel-drop-zone').forEach((dropZone) => {
+        htmlElement.querySelectorAll('.panel-drop-zone').forEach((dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
                 event.preventDefault();
                 dropZone.classList.add('dragover');
@@ -749,7 +759,7 @@ export class BlacksmithWindowQuery extends FormApplication {
 
 
         // Add event listener for "add-all-button"
-        html.querySelectorAll('.add-all-button').forEach((button) => {
+        htmlElement.querySelectorAll('.add-all-button').forEach((button) => {
             button.addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
                 const id = event.target.id.split('-').pop();
@@ -780,7 +790,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         loadNarrativeCookies(this.workspaceId);
 
         // Add listeners for form changes to save cookies
-        const formElements = html.querySelectorAll('input, select, textarea');
+        const formElements = htmlElement.querySelectorAll('input, select, textarea');
         formElements.forEach((element) => {
             element.addEventListener('change', () => {
                 saveNarrativeCookies(this.workspaceId);
@@ -788,7 +798,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add event listener for criteria drop zone (assistant workspace)
-        html.querySelectorAll('.criteria-dropzone').forEach((dropZone) => {
+        htmlElement.querySelectorAll('.criteria-dropzone').forEach((dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
                 event.preventDefault();
                 dropZone.classList.add('dragover');
@@ -860,7 +870,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add event listener for encounter journal drops
-        html.querySelectorAll('.encounters-drop-zone').forEach((dropZone) => {
+        htmlElement.querySelectorAll('.encounters-drop-zone').forEach((dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
                 event.preventDefault();
                 dropZone.classList.add('dragover');
@@ -939,7 +949,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add roll dice button handler
-        html.addEventListener('click', (event) => {
+        htmlElement.addEventListener('click', (event) => {
             const target = event.target.closest('.roll-dice-button');
             if (target) {
                 event.preventDefault();

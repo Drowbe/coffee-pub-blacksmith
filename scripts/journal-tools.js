@@ -2478,56 +2478,66 @@ export class JournalToolsWindow extends FormApplication {
     activateListeners(html) {
         super.activateListeners(html);
         
-        // v13: Foundry passes native DOM to activateListeners
+        // v13: Application/FormApplication.activateListeners may still receive jQuery
+        // Convert to native DOM if needed
+        let htmlElement = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            htmlElement = html[0] || html.get?.(0) || html;
+        } else if (html && typeof html.querySelectorAll !== 'function') {
+            // Not a valid DOM element
+            return;
+        }
+        if (!htmlElement) return;
+
         // Add event listeners for the custom buttons
-        const applyToolsButton = html.querySelector('.apply-tools');
+        const applyToolsButton = htmlElement.querySelector('.apply-tools');
         if (applyToolsButton) {
             applyToolsButton.addEventListener('click', this._onApplyTools.bind(this));
         }
         
-        const cancelToolsButton = html.querySelector('.cancel-tools');
+        const cancelToolsButton = htmlElement.querySelector('.cancel-tools');
         if (cancelToolsButton) {
             cancelToolsButton.addEventListener('click', this._onCancelTools.bind(this));
         }
         
-        const copyResultsEntityButton = html.querySelector('#copy-results-entity');
+        const copyResultsEntityButton = htmlElement.querySelector('#copy-results-entity');
         if (copyResultsEntityButton) {
             copyResultsEntityButton.addEventListener('click', this._onCopyStatus.bind(this));
         }
         
-        const openJournalButton = html.querySelector('#open-journal-btn');
+        const openJournalButton = htmlElement.querySelector('#open-journal-btn');
         if (openJournalButton) {
             openJournalButton.addEventListener('click', this._onOpenJournal.bind(this));
         }
         
         // Tab switching
-        html.querySelectorAll('.journal-tools-tab').forEach(tab => {
+        htmlElement.querySelectorAll('.journal-tools-tab').forEach(tab => {
             tab.addEventListener('click', this._onTabSwitch.bind(this));
         });
         
         // Search & Replace functionality
-        const clearSearchButton = html.querySelector('.clear-search-btn');
+        const clearSearchButton = htmlElement.querySelector('.clear-search-btn');
         if (clearSearchButton) {
             clearSearchButton.addEventListener('click', this._onClearSearch.bind(this));
         }
         
-        const runReportButton = html.querySelector('.run-report-btn');
+        const runReportButton = htmlElement.querySelector('.run-report-btn');
         if (runReportButton) {
             runReportButton.addEventListener('click', this._onRunReport.bind(this));
         }
         
-        const massReplaceButton = html.querySelector('.mass-replace-btn');
+        const massReplaceButton = htmlElement.querySelector('.mass-replace-btn');
         if (massReplaceButton) {
             massReplaceButton.addEventListener('click', this._onMassReplace.bind(this));
         }
         
-        const copyResultsSearchButton = html.querySelector('#copy-results-search');
+        const copyResultsSearchButton = htmlElement.querySelector('#copy-results-search');
         if (copyResultsSearchButton) {
             copyResultsSearchButton.addEventListener('click', this._onCopyResults.bind(this));
         }
 
         // Delegated click for dynamically generated result titles
-        html.addEventListener('click', (event) => {
+        htmlElement.addEventListener('click', (event) => {
             const target = event.target.closest('.replace-title');
             if (target) {
                 this._onResultTitleClick.call(this, event, target);
