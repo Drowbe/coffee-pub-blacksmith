@@ -88,9 +88,26 @@ export class VoteConfig extends Application {
     activateListeners(html) {
         super.activateListeners(html);
 
-        html.find('.vote-type').click(async (event) => {
-            event.preventDefault();
-            const type = event.currentTarget.dataset.type;
+        // v13: Application.activateListeners may still receive jQuery in some cases
+        // Convert to native DOM if needed
+        let htmlElement = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            htmlElement = html[0] || html.get?.(0) || html;
+        } else if (html && typeof html.querySelectorAll !== 'function') {
+            // Not a valid DOM element
+            return;
+        }
+        
+        if (!htmlElement) {
+            return;
+        }
+
+        // v13: Use native DOM instead of jQuery
+        const voteTypeButtons = htmlElement.querySelectorAll('.vote-type');
+        voteTypeButtons.forEach(button => {
+            button.addEventListener('click', async (event) => {
+                event.preventDefault();
+                const type = event.currentTarget.dataset.type;
             
 
 
@@ -118,6 +135,7 @@ export class VoteConfig extends Application {
                     ui.notifications.error("Error starting vote. Check the console for details.");
                 }
             }
+            });
         });
     }
 

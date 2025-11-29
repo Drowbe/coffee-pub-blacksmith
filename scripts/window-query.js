@@ -323,14 +323,9 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ************************************
 
     async initialize(html) {
-        // v13: Detect and convert jQuery to native DOM if needed
-        let nativeHtml = html;
-        if (html && (html.jquery || typeof html.find === 'function')) {
-            nativeHtml = html[0] || html.get?.(0) || html;
-        }
-
-        // Get the window element - try both jQuery and direct DOM approaches
-        const windowElement = nativeHtml ? nativeHtml.closest('.window-app') : document.querySelector('#coffee-pub-blacksmith');
+        // v13: Foundry passes native DOM to initialize
+        // Get the window element
+        const windowElement = html ? html.closest('.window-app') : document.querySelector('#coffee-pub-blacksmith');
         
         // Set initial workspace visibility
         if (!this.showWorkspace) {
@@ -375,18 +370,13 @@ export class BlacksmithWindowQuery extends FormApplication {
     activateListeners(html) {
         super.activateListeners(html);
 
-        // v13: Detect and convert jQuery to native DOM if needed
-        let nativeHtml = html;
-        if (html && (html.jquery || typeof html.find === 'function')) {
-            nativeHtml = html[0] || html.get?.(0) || html;
-        }
-
+        // v13: Foundry passes native DOM to activateListeners
         // don't let these buttons submit the main form
-        nativeHtml.addEventListener('click', (event) => {
+        html.addEventListener('click', (event) => {
             const target = event.target.closest('.blacksmith-send-button-normal');
             if (target) {
                 event.preventDefault();
-                const form = nativeHtml.querySelector('form');
+                const form = html.querySelector('form');
                 if (form) {
                     this._onSubmit(event, form);
                 }
@@ -394,35 +384,35 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Bind the copy and chat buttons
-        nativeHtml.addEventListener('click', (event) => {
+        html.addEventListener('click', (event) => {
             const target = event.target.closest('#blacksmith-chat-button-json');
             if (target) {
                 this._onSendToJson.call(this, event);
             }
         });
-        nativeHtml.addEventListener('click', (event) => {
+        html.addEventListener('click', (event) => {
             const target = event.target.closest('#blacksmith-chat-button-chat');
             if (target) {
                 this._onSendToChat.call(this, event);
             }
         });
-        nativeHtml.addEventListener('click', (event) => {
+        html.addEventListener('click', (event) => {
             const target = event.target.closest('#blacksmith-chat-button-copy');
             if (target) {
                 this._onCopyToClipboard.call(this, event);
             }
         });
-        const form = nativeHtml.querySelector('form');
+        const form = html.querySelector('form');
         if (form) {
             form.addEventListener('submit', this._onSubmit.bind(this));
         }
 
         // Bind the clear button workspace 
-        const clearWorkspaceButton = nativeHtml.querySelector('#blacksmith-clear-workspace');
+        const clearWorkspaceButton = html.querySelector('#blacksmith-clear-workspace');
         if (clearWorkspaceButton) {
             clearWorkspaceButton.addEventListener('click', (event) => {
                 event.preventDefault();
-                const form = nativeHtml.querySelector('form');
+                const form = html.querySelector('form');
                 if (!form) return;
                 
                 // Only clear inputs within the active workspace
@@ -450,14 +440,14 @@ export class BlacksmithWindowQuery extends FormApplication {
         }
 
         // Handle the Enter key press based on the checkbox state
-        const enterSubmitsCheckbox = nativeHtml.querySelector('#enterSubmits');
-        const inputMessage = nativeHtml.querySelector('textarea[name="blacksmith-input-message"]');
+        const enterSubmitsCheckbox = html.querySelector('#enterSubmits');
+        const inputMessage = html.querySelector('textarea[name="blacksmith-input-message"]');
 
         if (inputMessage) {
             inputMessage.addEventListener('keypress', (event) => {
                 if (event.key === 'Enter' && enterSubmitsCheckbox && enterSubmitsCheckbox.checked) {
                     event.preventDefault();
-                    const form = nativeHtml.querySelector('form');
+                    const form = html.querySelector('form');
                     if (form) {
                         this._onSubmit(event, form); // Pass the form element
                     }
@@ -470,35 +460,35 @@ export class BlacksmithWindowQuery extends FormApplication {
 
         // Call toggleWorkspaceVisibility based on initial mode
         if (this.showWorkspace) {
-            this.toggleWorkspaceVisibility(nativeHtml, false);
+            this.toggleWorkspaceVisibility(html, false);
         }
         
         // Ensure the correct workspace button is active based on the initial mode
-        this.switchWorkspace(nativeHtml, `blacksmith-query-workspace-${this.workspaceId}`);
+        this.switchWorkspace(html, `blacksmith-query-workspace-${this.workspaceId}`);
 
         // Attach the event listener for the toggle button
-        const toggleWorkspaceButton = nativeHtml.querySelector('#blacksmith-toggle-workspace');
+        const toggleWorkspaceButton = html.querySelector('#blacksmith-toggle-workspace');
         if (toggleWorkspaceButton) {
             toggleWorkspaceButton.addEventListener('click', (event) => {
                 event.preventDefault();
-                this.toggleWorkspaceVisibility(nativeHtml, true);
+                this.toggleWorkspaceVisibility(html, true);
             });
         }
 
         // Attach the event listener for workspace buttons
-        nativeHtml.addEventListener('click', (event) => {
+        html.addEventListener('click', (event) => {
             const clickedButton = event.target.closest('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
             if (clickedButton) {
                 event.preventDefault();
                 const workspaceId = clickedButton.getAttribute('id').replace('button', 'workspace');
-                this.switchWorkspace(nativeHtml, workspaceId);
+                this.switchWorkspace(html, workspaceId);
             }
         });
 
         // -- ADD TOKENS BUTTONS --
 
         // Add event listener for "add-tokens-button"
-        nativeHtml.querySelectorAll('.add-tokens-button').forEach((button) => {
+        html.querySelectorAll('.add-tokens-button').forEach((button) => {
             button.addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
                 const id = event.target.id.split('-').pop();
@@ -515,7 +505,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add event listener for "add-monsters-button"
-        nativeHtml.querySelectorAll('.add-monsters-button').forEach((button) => {
+        html.querySelectorAll('.add-monsters-button').forEach((button) => {
             button.addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
                 const id = event.target.id.split('-').pop();
@@ -531,7 +521,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add event listener for "add-npcs-button"
-        nativeHtml.querySelectorAll('.add-npcs-button').forEach((button) => {
+        html.querySelectorAll('.add-npcs-button').forEach((button) => {
             button.addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
                 const id = event.target.id.split('-').pop();
@@ -551,7 +541,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         addNPCDropZoneHandlers(id);
 
         // Add drag and drop event listeners for panel drop zones
-        nativeHtml.querySelectorAll('.panel-drop-zone').forEach((dropZone) => {
+        html.querySelectorAll('.panel-drop-zone').forEach((dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
                 event.preventDefault();
                 dropZone.classList.add('dragover');
@@ -759,7 +749,7 @@ export class BlacksmithWindowQuery extends FormApplication {
 
 
         // Add event listener for "add-all-button"
-        nativeHtml.querySelectorAll('.add-all-button').forEach((button) => {
+        html.querySelectorAll('.add-all-button').forEach((button) => {
             button.addEventListener('click', async (event) => {
                 event.preventDefault(); // Prevent form submission
                 const id = event.target.id.split('-').pop();
@@ -790,7 +780,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         loadNarrativeCookies(this.workspaceId);
 
         // Add listeners for form changes to save cookies
-        const formElements = nativeHtml.querySelectorAll('input, select, textarea');
+        const formElements = html.querySelectorAll('input, select, textarea');
         formElements.forEach((element) => {
             element.addEventListener('change', () => {
                 saveNarrativeCookies(this.workspaceId);
@@ -798,7 +788,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add event listener for criteria drop zone (assistant workspace)
-        nativeHtml.querySelectorAll('.criteria-dropzone').forEach((dropZone) => {
+        html.querySelectorAll('.criteria-dropzone').forEach((dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
                 event.preventDefault();
                 dropZone.classList.add('dragover');
@@ -870,7 +860,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add event listener for encounter journal drops
-        nativeHtml.querySelectorAll('.encounters-drop-zone').forEach((dropZone) => {
+        html.querySelectorAll('.encounters-drop-zone').forEach((dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
                 event.preventDefault();
                 dropZone.classList.add('dragover');
@@ -949,7 +939,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         });
 
         // Add roll dice button handler
-        nativeHtml.addEventListener('click', (event) => {
+        html.addEventListener('click', (event) => {
             const target = event.target.closest('.roll-dice-button');
             if (target) {
                 event.preventDefault();
@@ -1019,21 +1009,15 @@ export class BlacksmithWindowQuery extends FormApplication {
         }
     
         if (html) {
-            // v13: Detect and convert jQuery to native DOM if needed
-            let nativeHtml = html;
-            if (html && (html.jquery || typeof html.find === 'function')) {
-                nativeHtml = html[0] || html.get?.(0) || html;
-            }
-            
-            // Native DOM path (v13)
-            const workspaceButtons = nativeHtml.querySelectorAll('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
+            // v13: html should be native DOM (from our code or Foundry)
+            const workspaceButtons = html.querySelectorAll('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
             workspaceButtons.forEach(button => button.classList.remove('active'));
-            const activeButton = nativeHtml.querySelector(`#blacksmith-query-button-${this.workspaceId}`);
+            const activeButton = html.querySelector(`#blacksmith-query-button-${this.workspaceId}`);
             if (activeButton) activeButton.classList.add('active');
             
-            const workspaceContents = nativeHtml.querySelectorAll('.workspace-content');
+            const workspaceContents = html.querySelectorAll('.workspace-content');
             workspaceContents.forEach(content => content.classList.add('hidden'));
-            const activeWorkspace = nativeHtml.querySelector(`#${workspaceId}`);
+            const activeWorkspace = html.querySelector(`#${workspaceId}`);
             if (activeWorkspace) activeWorkspace.classList.remove('hidden');
         } else {
             // Direct DOM manipulation path

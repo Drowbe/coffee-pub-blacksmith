@@ -837,43 +837,50 @@ class XpDistributionWindow extends FormApplication {
     activateListeners(html) {
         super.activateListeners(html);
         
-        // v13: Detect and convert jQuery to native DOM if needed
-        let nativeHtml = html;
+        // v13: FormApplication.activateListeners may still receive jQuery in some cases
+        // Convert to native DOM if needed
+        let htmlElement = html;
         if (html && (html.jquery || typeof html.find === 'function')) {
-            // jQuery object - get the native element
-            nativeHtml = html[0] || html.get?.(0) || html;
+            htmlElement = html[0] || html.get?.(0) || html;
+        } else if (html && typeof html.querySelectorAll !== 'function') {
+            // Not a valid DOM element
+            return;
+        }
+        
+        if (!htmlElement) {
+            return;
         }
         
         // Add event listeners for mode toggles
-        const modeExperiencePoints = nativeHtml.querySelector('#modeExperiencePoints');
-        const modeMilestone = nativeHtml.querySelector('#modeMilestone');
+        const modeExperiencePoints = htmlElement.querySelector('#modeExperiencePoints');
+        const modeMilestone = htmlElement.querySelector('#modeMilestone');
         if (modeExperiencePoints) modeExperiencePoints.addEventListener('change', this._onModeToggleChange.bind(this));
         if (modeMilestone) modeMilestone.addEventListener('change', this._onModeToggleChange.bind(this));
         
         // Add event listeners for milestone form
-        const milestoneXp = nativeHtml.querySelector('#milestone-xp');
+        const milestoneXp = htmlElement.querySelector('#milestone-xp');
         if (milestoneXp) milestoneXp.addEventListener('input', this._onMilestoneXpChange.bind(this));
-        nativeHtml.querySelectorAll('.milestone-input, .milestone-textarea, .milestone-select').forEach(el => {
+        htmlElement.querySelectorAll('.milestone-input, .milestone-textarea, .milestone-select').forEach(el => {
             el.addEventListener('input', this._onMilestoneDataChange.bind(this));
             el.addEventListener('change', this._onMilestoneDataChange.bind(this));
         });
         
         // Add event listeners for player adjustments
-        nativeHtml.querySelectorAll('.player-adjustment').forEach(el => {
+        htmlElement.querySelectorAll('.player-adjustment').forEach(el => {
             el.addEventListener('input', this._onPlayerAdjustmentChange.bind(this));
         });
-        nativeHtml.querySelectorAll('.adjustment-sign').forEach(el => {
+        htmlElement.querySelectorAll('.adjustment-sign').forEach(el => {
             el.addEventListener('click', this._onPlayerAdjustmentSignClick.bind(this));
         });
         
         // Add event listeners for action buttons
-        const applyXp = nativeHtml.querySelector('.apply-xp');
-        const cancelXp = nativeHtml.querySelector('.cancel-xp');
+        const applyXp = htmlElement.querySelector('.apply-xp');
+        const cancelXp = htmlElement.querySelector('.cancel-xp');
         if (applyXp) applyXp.addEventListener('click', this._onApplyXp.bind(this));
         if (cancelXp) cancelXp.addEventListener('click', this._onCancelXp.bind(this));
         
         // Add event listeners for monster resolution icons
-        nativeHtml.querySelectorAll('[data-table-type="monsters"] .resolution-icon').forEach(el => {
+        htmlElement.querySelectorAll('[data-table-type="monsters"] .resolution-icon').forEach(el => {
             el.addEventListener('click', this._onMonsterResolutionIconClick.bind(this));
             el.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -883,7 +890,7 @@ class XpDistributionWindow extends FormApplication {
         });
         
         // Add event listeners for player inclusion icons
-        nativeHtml.querySelectorAll('[data-table-type="players"] .inclusion-toggle').forEach(el => {
+        htmlElement.querySelectorAll('[data-table-type="players"] .inclusion-toggle').forEach(el => {
             el.addEventListener('click', this._onPlayerInclusionClick.bind(this));
         });
         

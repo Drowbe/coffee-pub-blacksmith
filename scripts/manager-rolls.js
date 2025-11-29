@@ -1144,15 +1144,14 @@ class RollWindow extends Application {
     activateListeners(html) {
         super.activateListeners(html);
         
-        // v13: Handle both jQuery and native DOM (html parameter may still be jQuery)
-        let htmlElement;
-        if (html && typeof html.jquery !== 'undefined') {
-            // It's a jQuery object, get the native DOM element
-            htmlElement = html[0] || html.get?.(0);
-        } else if (html && typeof html.querySelectorAll === 'function') {
-            // It's already a native DOM element
-            htmlElement = html;
-        } else {
+        // v13: Application.activateListeners may still receive jQuery in some cases
+        // Convert to native DOM if needed
+        let htmlElement = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            htmlElement = html[0] || html.get?.(0) || html;
+        } else if (html && typeof html.querySelectorAll !== 'function') {
+            // Not a valid DOM element
+            postConsoleAndNotification(MODULE.NAME, "RollWindow.activateListeners: Invalid html parameter", html, true, false);
             return;
         }
         

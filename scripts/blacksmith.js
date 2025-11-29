@@ -93,6 +93,49 @@ let settingsCache = new Map();
 const SETTINGS_CACHE_EXPIRATION = 5 * 60 * 1000; // 5 minutes
 
 // Helper function to get cached root element
+/**
+ * Convert renderChatMessage html parameter to native DOM element
+ * Handles jQuery objects, DocumentFragments, and HTMLElements
+ * @param {*} html - The html parameter from renderChatMessage hook
+ * @returns {HTMLElement|null} Native DOM element or null
+ */
+function getChatMessageElement(html) {
+    if (!html) return null;
+    
+    // If it's already a native DOM element with querySelectorAll, use it
+    if (typeof html.querySelectorAll === 'function') {
+        return html;
+    }
+    
+    // If it's a jQuery object, extract the first element
+    if (html.jquery || typeof html.find === 'function') {
+        const element = html[0] || html.get?.(0);
+        if (element && typeof element.querySelectorAll === 'function') {
+            return element;
+        }
+    }
+    
+    // If it's a DocumentFragment, return it (has querySelectorAll)
+    if (html instanceof DocumentFragment) {
+        return html;
+    }
+    
+    // If it's an array-like object, try first element
+    if (html.length && html[0]) {
+        const element = html[0];
+        if (element && typeof element.querySelectorAll === 'function') {
+            return element;
+        }
+    }
+    
+    // Last resort: try to use it directly if it has nodeType
+    if (html.nodeType === Node.ELEMENT_NODE || html.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+        return html;
+    }
+    
+    return null;
+}
+
 function getRootElement() {
     if (!cachedRootElement) {
         cachedRootElement = document.querySelector(':root');
@@ -551,18 +594,8 @@ Hooks.once('init', async function() {
         context: 'blacksmith-skill-check',
         priority: 3, // Normal priority - UI interaction
         callback: (message, html) => {
-            // v13: Handle both jQuery and native DOM (renderChatMessage hook may still pass jQuery)
-            let htmlElement;
-            if (html && typeof html.jquery !== 'undefined') {
-                // It's a jQuery object, get the native DOM element
-                htmlElement = html[0] || html.get?.(0);
-            } else if (html && typeof html.querySelectorAll === 'function') {
-                // It's already a native DOM element
-                htmlElement = html;
-            } else {
-                return;
-            }
-            
+            // v13: renderChatMessage may pass jQuery, DocumentFragment, or HTMLElement
+            const htmlElement = getChatMessageElement(html);
             if (!htmlElement) {
                 return;
             }
@@ -1009,20 +1042,15 @@ const journalDoubleClickHookId = HookManager.registerHook({
             // Remove any existing handler first to prevent accumulation
             // (Event listeners are automatically cleaned up when DOM is replaced)
             
-            // v13: Detect and convert jQuery to native DOM if needed
-            let nativeHtml = html;
-            if (html && (html.jquery || typeof html.find === 'function')) {
-                nativeHtml = html[0] || html.get?.(0) || html;
-            }
-            
+            // v13: Foundry passes native DOM to hook callbacks
             // Use event delegation for dynamically added elements
-            nativeHtml.addEventListener('dblclick', (event) => {
+            html.addEventListener('dblclick', (event) => {
                 if (event.target.closest('.journal-entry-page')) {
                     event.preventDefault();
                     const hasEditPermission = app.document.testUserPermission(currentUser, ENTITY_PERMISSIONS.OWNER);
                     if (hasEditPermission) {
                         // Try to find the edit button more generally
-                        const editButton = nativeHtml.querySelector('.edit-container .editor-edit');
+                        const editButton = html.querySelector('.edit-container .editor-edit');
                         if (editButton) {
                             editButton.click();
                         }
@@ -1066,18 +1094,8 @@ const hideHeaderChatHookId = HookManager.registerHook({
     context: 'blacksmith-hide-header',
     priority: 3, // Normal priority - UI enhancement
     callback: (message, html, data) => {
-        // v13: Handle both jQuery and native DOM (renderChatMessage hook may still pass jQuery)
-        let htmlElement;
-        if (html && typeof html.jquery !== 'undefined') {
-            // It's a jQuery object, get the native DOM element
-            htmlElement = html[0] || html.get?.(0);
-        } else if (html && typeof html.querySelectorAll === 'function') {
-            // It's already a native DOM element
-            htmlElement = html;
-        } else {
-            return;
-        }
-        
+        // v13: renderChatMessage may pass jQuery, DocumentFragment, or HTMLElement
+        const htmlElement = getChatMessageElement(html);
         if (!htmlElement) {
             return;
         }

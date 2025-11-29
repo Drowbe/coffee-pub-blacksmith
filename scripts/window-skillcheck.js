@@ -178,22 +178,18 @@ export class SkillCheckDialog extends Application {
     activateListeners(html) {
         super.activateListeners(html);
 
-        // v13: Handle both jQuery and native DOM (some Application classes may still pass jQuery)
-        // Convert jQuery to native DOM if needed
-        let htmlElement;
-        if (html && typeof html.jquery !== 'undefined') {
-            // It's a jQuery object, get the native DOM element
-            htmlElement = html[0] || html.get?.(0);
-        } else if (html && typeof html.querySelectorAll === 'function') {
-            // It's already a native DOM element
-            htmlElement = html;
-        } else {
-            console.error('SkillCheckDialog.activateListeners: Invalid html parameter', html);
+        // v13: Application.activateListeners may still receive jQuery in some cases
+        // Convert to native DOM if needed
+        let htmlElement = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            htmlElement = html[0] || html.get?.(0) || html;
+        } else if (html && typeof html.querySelectorAll !== 'function') {
+            // Not a valid DOM element
+            postConsoleAndNotification(MODULE.NAME, "SkillCheckDialog.activateListeners: Invalid html parameter", html, true, false);
             return;
         }
         
         if (!htmlElement) {
-            console.error('SkillCheckDialog.activateListeners: Could not extract DOM element');
             return;
         }
 
@@ -233,13 +229,13 @@ export class SkillCheckDialog extends Application {
         if (initialFilterBtn) initialFilterBtn.classList.add('active');
         
         // Apply initial actor filter
-        this._applyFilter(html, initialFilter);
+        this._applyFilter(htmlElement, initialFilter);
         
         // Set initial roll type filter to "quick" and apply it (middle column) (v13: native DOM)
         const secondColumn = htmlElement.querySelector('.cpb-dialog-column:nth-child(2)');
         const quickFilterBtn = secondColumn?.querySelector(`.cpb-filter-btn[data-filter="quick"]`);
         if (quickFilterBtn) quickFilterBtn.classList.add('active');
-        this._applyRollTypeFilter(html, 'quick');
+        this._applyRollTypeFilter(htmlElement, 'quick');
 
         // If tokens are selected on the canvas, pre-select them in the dialog (v13: native DOM)
         if (hasSelectedTokens) {
@@ -394,7 +390,7 @@ export class SkillCheckDialog extends Application {
                     const searchTerm = firstSearchInput ? firstSearchInput.value.toLowerCase() : '';
                     if (searchTerm) {
                         // First apply filter without updating visibility
-                        this._applyFilter(html, filterType, false);
+                        this._applyFilter(htmlElement, filterType, false);
                         
                         // Then apply search within filtered results
                         firstColumn.querySelectorAll('.cpb-actor-list .cpb-actor-item').forEach((el) => {
@@ -408,7 +404,7 @@ export class SkillCheckDialog extends Application {
                         });
                     } else {
                         // No search term, just apply filter
-                        this._applyFilter(html, filterType, true);
+                        this._applyFilter(htmlElement, filterType, true);
                     }
                 });
             });
@@ -427,7 +423,7 @@ export class SkillCheckDialog extends Application {
                     button.classList.add('active');
                     
                     // Handle roll type filtering
-                    this._applyRollTypeFilter(html, filterType);
+                    this._applyRollTypeFilter(htmlElement, filterType);
                 });
             });
         }
@@ -1464,8 +1460,11 @@ export class SkillCheckDialog extends Application {
         const volume = COFFEEPUB.SOUNDVOLUMENORMAL;
         
         playSound(soundPath, volume);
-        // Remove any existing overlay
-        $('#cpb-cinematic-overlay').remove();
+        // Remove any existing overlay (v13: native DOM)
+        const existingOverlay = document.getElementById('cpb-cinematic-overlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
 
         const createActorCardHtml = (actor, index) => {
             const token = canvas.tokens.get(actor.id) || canvas.tokens.placeables.find(t => t.actor?.id === actor.actorId);
@@ -1632,26 +1631,32 @@ export class SkillCheckDialog extends Application {
         rollDetailsHtml += `</div>`;
 
         const containerClass = `cpb-cinematic-actors-container ${messageData.hasMultipleGroups ? 'contested' : ''}`;
-        const overlay = $(`
-            <div id="cpb-cinematic-overlay">
-                <button class="cpb-cinematic-close-btn"><i class="fas fa-times"></i></button>
-                <div id="cpb-cinematic-bar" style="background-image: url('${backgroundImage}');">
-                    ${rollDetailsHtml}
-                    <div class="${containerClass}">
-                        ${actorCardsHtml}
-                    </div>
+        // v13: Create overlay using native DOM instead of jQuery
+        const overlay = document.createElement('div');
+        overlay.id = 'cpb-cinematic-overlay';
+        overlay.dataset.messageId = messageId;
+        overlay.innerHTML = `
+            <button class="cpb-cinematic-close-btn"><i class="fas fa-times"></i></button>
+            <div id="cpb-cinematic-bar" style="background-image: url('${backgroundImage}');">
+                ${rollDetailsHtml}
+                <div class="${containerClass}">
+                    ${actorCardsHtml}
                 </div>
             </div>
-        `);
-        overlay.data('messageId', messageId);
+        `;
 
-        $('body').append(overlay);
+        document.body.appendChild(overlay);
 
-        // Attach click handler for the close button
-        overlay.find('.cpb-cinematic-close-btn').on('click', () => this._hideCinematicDisplay());
+        // Attach click handler for the close button (v13: native DOM)
+        const closeBtn = overlay.querySelector('.cpb-cinematic-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this._hideCinematicDisplay());
+        }
 
-        // Attach click handlers to the new roll buttons
-        overlay.find('.cpb-cinematic-roll-btn, .cpb-cinematic-roll-mod-btn').on('click', async (event) => {
+        // Attach click handlers to the new roll buttons (v13: native DOM)
+        const rollButtons = overlay.querySelectorAll('.cpb-cinematic-roll-btn, .cpb-cinematic-roll-mod-btn');
+        rollButtons.forEach(btn => {
+            btn.addEventListener('click', async (event) => {
             postConsoleAndNotification(MODULE.NAME, `Cinema mode: Dice button clicked`, { eventTarget: event.target }, true, false);
             const diceSound = COFFEEPUB.SOUNDDICEROLL;
             playSound(diceSound, COFFEEPUB.SOUNDVOLUMENORMAL);
@@ -1680,9 +1685,11 @@ export class SkillCheckDialog extends Application {
                 value = isDefender ? messageData.defenderSkillAbbr : messageData.skillAbbr;
             }
 
-            // Visually disable the card's roll area after a choice is made
-            const rollArea = $(card).find('.cpb-cinematic-roll-area');
-            rollArea.empty().append('<div class="cpb-cinematic-wait-icon"><i class="fas fa-dice-d20"></i></div>');
+            // Visually disable the card's roll area after a choice is made (v13: native DOM)
+            const rollArea = card.querySelector('.cpb-cinematic-roll-area');
+            if (rollArea) {
+                rollArea.innerHTML = '<div class="cpb-cinematic-wait-icon"><i class="fas fa-dice-d20"></i></div>';
+            }
 
             const chatMessage = game.messages.get(messageId);
             if (chatMessage) {
@@ -1720,10 +1727,15 @@ export class SkillCheckDialog extends Application {
                 // Deliver the results
                 await deliverRollResults(rollResults, { messageId, tokenId });
             }
+            });
         });
 
-        // Use a timeout to allow the element to be added to the DOM before adding the class for transition
-        setTimeout(() => overlay.addClass('visible'), 50);
+        // Use a timeout to allow the element to be added to the DOM before adding the class for transition (v13: native DOM)
+        setTimeout(() => {
+            if (overlay) {
+                overlay.classList.add('visible');
+            }
+        }, 50);
     }
 
     // OLD SYSTEM DELETED - Cinema updates now handled by new system in manager-rolls.js
@@ -1732,7 +1744,10 @@ export class SkillCheckDialog extends Application {
      * Hides the cinematic display.
      */
     static async _hideCinematicDisplay() {
-        const overlay = $('#cpb-cinematic-overlay');
+        // v13: Use native DOM instead of jQuery
+        const overlay = document.getElementById('cpb-cinematic-overlay');
+        if (!overlay) return;
+        
         if (game.user.isGM) {
             const socket = SocketManager.getSocket();
             if (socket) {
@@ -1741,7 +1756,7 @@ export class SkillCheckDialog extends Application {
                 });
             }
         }
-        overlay.removeClass('visible');
+        overlay.classList.remove('visible');
         setTimeout(() => overlay.remove(), 500); // Remove from DOM after transition
     }
 

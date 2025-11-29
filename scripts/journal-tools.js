@@ -107,22 +107,14 @@ export class JournalTools {
     }
 
     static _isEditMode(html) {
-        // v13: Detect and convert jQuery to native DOM if needed
-        let nativeHtml = html;
-        if (html && (html.jquery || typeof html.find === 'function')) {
-            nativeHtml = html[0] || html.get?.(0) || html;
-        }
-        return nativeHtml.querySelector('.editor-container') !== null;
+        // v13: Foundry passes native DOM to hook callbacks
+        return html.querySelector('.editor-container') !== null;
     }
 
     static _addToolsIcon(html) {
-        // v13: Detect and convert jQuery to native DOM if needed
-        let nativeHtml = html;
-        if (html && (html.jquery || typeof html.find === 'function')) {
-            nativeHtml = html[0] || html.get?.(0) || html;
-        }
+        // v13: Foundry passes native DOM to hook callbacks
         // Find the window header
-        const windowHeader = nativeHtml.querySelector('.window-header');
+        const windowHeader = html.querySelector('.window-header');
         
         if (!windowHeader) {
             return;
@@ -2371,16 +2363,12 @@ export class JournalToolsWindow extends FormApplication {
     }
 
     /**
-     * Get native DOM element from this.element (handles jQuery conversion)
+     * Get native DOM element from this.element
      * @returns {HTMLElement|null} Native DOM element
      */
     _getNativeElement() {
-        if (!this.element) return null;
-        // v13: Detect and convert jQuery to native DOM if needed
-        if (this.element.jquery || typeof this.element.find === 'function') {
-            return this.element[0] || this.element.get?.(0) || this.element;
-        }
-        return this.element;
+        // v13: Foundry sets this.element to native DOM
+        return this.element || null;
     }
 
     static get defaultOptions() {
@@ -2490,61 +2478,56 @@ export class JournalToolsWindow extends FormApplication {
     activateListeners(html) {
         super.activateListeners(html);
         
-        // v13: Detect and convert jQuery to native DOM if needed
-        let nativeHtml = html;
-        if (html && (html.jquery || typeof html.find === 'function')) {
-            nativeHtml = html[0] || html.get?.(0) || html;
-        }
-        
+        // v13: Foundry passes native DOM to activateListeners
         // Add event listeners for the custom buttons
-        const applyToolsButton = nativeHtml.querySelector('.apply-tools');
+        const applyToolsButton = html.querySelector('.apply-tools');
         if (applyToolsButton) {
             applyToolsButton.addEventListener('click', this._onApplyTools.bind(this));
         }
         
-        const cancelToolsButton = nativeHtml.querySelector('.cancel-tools');
+        const cancelToolsButton = html.querySelector('.cancel-tools');
         if (cancelToolsButton) {
             cancelToolsButton.addEventListener('click', this._onCancelTools.bind(this));
         }
         
-        const copyResultsEntityButton = nativeHtml.querySelector('#copy-results-entity');
+        const copyResultsEntityButton = html.querySelector('#copy-results-entity');
         if (copyResultsEntityButton) {
             copyResultsEntityButton.addEventListener('click', this._onCopyStatus.bind(this));
         }
         
-        const openJournalButton = nativeHtml.querySelector('#open-journal-btn');
+        const openJournalButton = html.querySelector('#open-journal-btn');
         if (openJournalButton) {
             openJournalButton.addEventListener('click', this._onOpenJournal.bind(this));
         }
         
         // Tab switching
-        nativeHtml.querySelectorAll('.journal-tools-tab').forEach(tab => {
+        html.querySelectorAll('.journal-tools-tab').forEach(tab => {
             tab.addEventListener('click', this._onTabSwitch.bind(this));
         });
         
         // Search & Replace functionality
-        const clearSearchButton = nativeHtml.querySelector('.clear-search-btn');
+        const clearSearchButton = html.querySelector('.clear-search-btn');
         if (clearSearchButton) {
             clearSearchButton.addEventListener('click', this._onClearSearch.bind(this));
         }
         
-        const runReportButton = nativeHtml.querySelector('.run-report-btn');
+        const runReportButton = html.querySelector('.run-report-btn');
         if (runReportButton) {
             runReportButton.addEventListener('click', this._onRunReport.bind(this));
         }
         
-        const massReplaceButton = nativeHtml.querySelector('.mass-replace-btn');
+        const massReplaceButton = html.querySelector('.mass-replace-btn');
         if (massReplaceButton) {
             massReplaceButton.addEventListener('click', this._onMassReplace.bind(this));
         }
         
-        const copyResultsSearchButton = nativeHtml.querySelector('#copy-results-search');
+        const copyResultsSearchButton = html.querySelector('#copy-results-search');
         if (copyResultsSearchButton) {
             copyResultsSearchButton.addEventListener('click', this._onCopyResults.bind(this));
         }
 
         // Delegated click for dynamically generated result titles
-        nativeHtml.addEventListener('click', (event) => {
+        html.addEventListener('click', (event) => {
             const target = event.target.closest('.replace-title');
             if (target) {
                 this._onResultTitleClick.call(this, event, target);

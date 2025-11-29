@@ -295,14 +295,22 @@ export class MovementConfig extends Application {
     activateListeners(html) {
         super.activateListeners(html);
 
-        // v13: Detect and convert jQuery to native DOM if needed
-        let nativeHtml = html;
+        // v13: Application.activateListeners may still receive jQuery in some cases
+        // Convert to native DOM if needed
+        let htmlElement = html;
         if (html && (html.jquery || typeof html.find === 'function')) {
-            nativeHtml = html[0] || html.get?.(0) || html;
+            htmlElement = html[0] || html.get?.(0) || html;
+        } else if (html && typeof html.querySelectorAll !== 'function') {
+            // Not a valid DOM element
+            return;
+        }
+        
+        if (!htmlElement) {
+            return;
         }
 
         // Add click handler for movement types
-        nativeHtml.querySelectorAll('.movement-type').forEach(button => {
+        htmlElement.querySelectorAll('.movement-type').forEach(button => {
             button.addEventListener('click', async (event) => {
                 const movementId = event.currentTarget.dataset.movementId;
                 await this._handleMovementChange(movementId);
@@ -310,7 +318,7 @@ export class MovementConfig extends Application {
         });
 
         // Add change handler for spacing slider
-        const spacingSlider = nativeHtml.querySelector('.token-spacing-slider');
+        const spacingSlider = htmlElement.querySelector('.token-spacing-slider');
         if (spacingSlider) {
             spacingSlider.addEventListener('input', async (event) => {
                 const spacing = parseInt(event.currentTarget.value);
@@ -318,7 +326,7 @@ export class MovementConfig extends Application {
                 tokenSpacing = spacing; // Update the local variable
                 
                 // Update the display value
-                const spacingValue = nativeHtml.querySelector('.spacing-value');
+                const spacingValue = htmlElement.querySelector('.spacing-value');
                 if (spacingValue) {
                     spacingValue.textContent = spacing;
                 }
@@ -329,7 +337,7 @@ export class MovementConfig extends Application {
                 tokenSpacing = spacing; // Update the local variable
                 
                 // Update the display value
-                const spacingValue = nativeHtml.querySelector('.spacing-value');
+                const spacingValue = html.querySelector('.spacing-value');
                 if (spacingValue) {
                     spacingValue.textContent = spacing;
                 }

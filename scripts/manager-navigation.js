@@ -281,19 +281,26 @@ export class NavigationManager {
         const viewingSceneId = game.scenes.current?.id;
         
         game.scenes.forEach(scene => {
-            const sceneElement = $(`.directory-list .scene[data-entry-id=${scene.id}]`);
-            const sceneNameElement = $(sceneElement).find("a");
+            // v13: Use native DOM instead of jQuery
+            const sceneElement = document.querySelector(`.directory-list .scene[data-entry-id="${scene.id}"]`);
+            if (!sceneElement) return;
             
-            if (sceneNameElement.length === 0) return; // Skip if element not found
+            const sceneNameElement = sceneElement.querySelector("a");
+            if (!sceneNameElement) return;
             
             // Remove all existing icons
-            $(sceneNameElement).find('.fa-solid').remove();
+            const existingIcons = sceneNameElement.querySelectorAll('.fa-solid');
+            existingIcons.forEach(icon => icon.remove());
             
             // Add appropriate icon
             if (scene.id === activeSceneId) {
-                $(sceneNameElement).prepend("<i class='fa-solid fa-bow-arrow tabs-scenes-icon icon-active'></i> ");
+                const icon = document.createElement('i');
+                icon.className = 'fa-solid fa-bow-arrow tabs-scenes-icon icon-active';
+                sceneNameElement.insertBefore(icon, sceneNameElement.firstChild);
             } else if (scene.id === viewingSceneId) {
-                $(sceneNameElement).prepend("<i class='fa-solid fa-eye tabs-scenes-icon icon-viewing'></i> ");
+                const icon = document.createElement('i');
+                icon.className = 'fa-solid fa-eye tabs-scenes-icon icon-viewing';
+                sceneNameElement.insertBefore(icon, sceneNameElement.firstChild);
             }
         });
     }
