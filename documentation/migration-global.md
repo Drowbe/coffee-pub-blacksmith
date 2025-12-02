@@ -23,10 +23,11 @@
 
 ### Key v13 Breaking Changes
 
-FoundryVTT v13 introduces two major breaking changes that affect all modules:
+FoundryVTT v13 introduces three major breaking changes that affect all modules:
 
 1. **jQuery Removal** - jQuery has been completely removed from FoundryVTT
 2. **`getSceneControlButtons` API Change** - Controls structure changed from array to object
+3. **Font Awesome Migration** - Font Awesome 5 Free removed, replaced with Font Awesome 6 subset
 
 ### Migration Strategy
 
@@ -68,6 +69,8 @@ Before starting migration, complete these steps:
 - [ ] Search for jQuery usage: `html.find`, `$()`, `.each()`, `.append()`, etc.
 - [ ] Search for `getSceneControlButtons` hook implementations
 - [ ] Search for deprecated APIs: `Token#target`, `FilePicker`, etc.
+- [ ] Search for Font Awesome 5 usage: `"Font Awesome 5 Free"`, `fas`, `far`, `fal` class prefixes
+- [ ] Search for Font Awesome codepoints in CSS (`content: "\f..."`)
 - [ ] Document all Application classes that extend `Application` or `FormApplication`
 
 ---
@@ -165,6 +168,82 @@ Hooks.on('getSceneControlButtons', (controls) => {
     }
 });
 ```
+
+### 3. Font Awesome Migration
+
+**Impact:** FoundryVTT v13 no longer ships with Font Awesome 5 Free. The platform has moved to a curated subset of Font Awesome 6, and several older FA5 assumptions no longer hold.
+
+**What Will Fail:**
+- **`"Font Awesome 5 Free"` CSS references will silently fail** - Icons won't render, no console errors
+- **FA5 class prefixes (`fas`, `far`, `fal`) may not work** - Icons may not display or show incorrectly
+- **FA5 codepoints in CSS pseudo-elements** - May render wrong icons or nothing at all
+- **FA5 icon names** - Some may have changed in FA6
+
+**What Changed:**
+- **`"Font Awesome 5 Free"` is not included anymore.** Any CSS referencing that family will silently fail.
+- Many **FA5 icon names and codepoints have changed** in FA6.
+- Foundry only bundles a **subset** of FA6, not the full library.
+- Legacy class prefixes like `fas`, `far`, and `fal` are no longer reliable. The FA6 equivalents are `fa-solid`, `fa-regular`, and `fa-light` (if available).
+
+**Affected Areas:**
+- CSS using `font-family: "Font Awesome 5 Free"` → **Will fail silently**
+- Pseudo-elements like `::before`/`::after` that insert FA5 glyphs via codepoints → **Wrong icons or nothing**
+- `<i>` tags that use FA5 class names (`fas`, `far`, `fal`) → **Icons may not display**
+- Any icon references inside Handlebars templates → **Icons may not display**
+- JavaScript code that references FA5 icon classes → **Icons may not display**
+
+**How to Fix:**
+
+1. **Update CSS font-family references:**
+```css
+/* OLD - Will fail silently in v13 */
+.my-icon::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f02e";
+}
+
+/* NEW - Use Foundry's FA6 Pro family (Foundry uses "Font Awesome 6 Pro" by default) */
+.my-icon::before {
+    font-family: "Font Awesome 6 Pro";   /* Foundry's default - verify in DevTools */
+    font-weight: 900;
+    content: "\f02d";   /* Updated FA6 codepoint */
+}
+```
+
+2. **Update HTML/JavaScript class prefixes:**
+```html
+<!-- OLD - May not work in v13 -->
+<i class="fas fa-book"></i>
+<i class="far fa-book"></i>
+
+<!-- NEW - Use FA6 prefixes -->
+<i class="fa-solid fa-book"></i>
+<i class="fa-regular fa-book"></i>
+```
+
+```javascript
+// OLD - May not work in v13
+const icon = '<i class="fas fa-wrench"></i>';
+
+// NEW - Use FA6 prefixes
+const icon = '<i class="fa-solid fa-wrench"></i>';
+```
+
+3. **Update codepoints in CSS:**
+   - FA6 remapped many glyphs, so FA5 codepoints may render the wrong symbol or nothing at all
+   - Use [Font Awesome 6 icon search](https://fontawesome.com/icons) to find correct codepoints
+   - Or inspect Foundry's icons in DevTools to see their codepoints
+
+**How to Find Foundry's Font Family:**
+1. Open FoundryVTT v13 in browser
+2. Open DevTools (F12)
+3. Inspect any Foundry icon (e.g., in scene controls)
+4. Check the `font-family` property in Computed styles
+5. Copy the exact family name for your CSS
+
+**Bottom Line:**
+FA5 is completely removed in v13. Any module code that relies on FA5 fonts, class prefixes, or glyph codepoints **will fail** and needs to be updated for FA6.
 
 ---
 
@@ -491,6 +570,101 @@ function findElement(selector) {
 - Scene navigation elements
 - Any UI that can be "popped out"
 
+### Pattern 13: Font Awesome Class Prefix Update
+
+**Issue:** FA5 class prefixes (`fas`, `far`, `fal`) will fail in v13. Icons may not display or show incorrectly.
+
+**What Will Fail:**
+```html
+<!-- These will fail in v13 -->
+<i class="fas fa-wrench"></i>
+<i class="far fa-book"></i>
+<i class="fal fa-star"></i>
+```
+
+```javascript
+// This will fail in v13
+const icon = '<i class="fas fa-wrench"></i>';
+```
+
+**How to Fix:**
+```html
+<!-- Update to FA6 prefixes -->
+<i class="fa-solid fa-wrench"></i>
+<i class="fa-regular fa-book"></i>
+<i class="fa-light fa-star"></i>  <!-- if available in Foundry's subset -->
+```
+
+```javascript
+// Update to FA6 prefixes
+const icon = '<i class="fa-solid fa-wrench"></i>';
+```
+
+**Conversion:**
+- `fas` → `fa-solid`
+- `far` → `fa-regular`
+- `fal` → `fa-light` (if available in Foundry's subset)
+
+### Pattern 14: Font Awesome CSS Family Update
+
+**Issue:** CSS referencing `"Font Awesome 5 Free"` will silently fail in v13. Icons won't render, and there will be no console errors.
+
+**What Will Fail:**
+```css
+/* This will fail silently in v13 - icons won't render */
+.my-icon::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f02e";
+}
+```
+
+**How to Fix:**
+```css
+/* Use Foundry's FA6 Pro family (Foundry uses "Font Awesome 6 Pro" by default) */
+.my-icon::before {
+    font-family: "Font Awesome 6 Pro";  /* Foundry's default - verify in DevTools */
+    font-weight: 900;
+    content: "\f02d";  /* Updated FA6 codepoint */
+}
+```
+
+**How to Find Foundry's Font Family:**
+1. Open FoundryVTT v13 in browser
+2. Open DevTools (F12)
+3. Inspect any Foundry icon (e.g., in scene controls or journal sidebar)
+4. Check the `font-family` property in Computed styles
+5. Copy the exact family name for your CSS
+6. **Note:** Foundry uses `"Font Awesome 6 Pro"` by default (not "Font Awesome 6 Free")
+
+### Pattern 15: Font Awesome Codepoint Update
+
+**Issue:** FA6 remapped many glyph codepoints, so FA5 codepoints will render wrong icons or nothing at all.
+
+**What Will Fail:**
+```css
+/* This will render wrong icon or nothing in v13 */
+.icon::before {
+    font-family: "Font Awesome 5 Free";  /* Also fails - see Pattern 14 */
+    content: "\f02e";  /* FA5 codepoint - wrong in FA6 */
+}
+```
+
+**How to Fix:**
+```css
+/* Update both family and codepoint */
+.icon::before {
+    font-family: "Font Awesome 6 Pro";  /* Foundry's default - verify in DevTools */
+    content: "\f02d";  /* Updated FA6 codepoint - verify icon matches */
+}
+```
+
+**How to Find FA6 Codepoints:**
+1. Use [Font Awesome 6 icon search](https://fontawesome.com/icons)
+2. Select the icon you need
+3. View the Unicode/codepoint for that icon
+4. Or inspect Foundry's icons in DevTools to see their codepoints
+
 ---
 
 ## Common Conversions
@@ -556,6 +730,51 @@ _getNativeElement() {
 - Track which methods use it and why
 - After migration, audit and remove unnecessary detections
 - Fix call sites that pass jQuery instead of adding detection everywhere
+
+### Font Awesome Conversion
+
+**What Will Fail (CSS):**
+```css
+/* This will fail silently - icons won't render */
+.my-icon::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f02e";  /* Also wrong codepoint for FA6 */
+}
+```
+
+**How to Fix (CSS):**
+```css
+/* Update to FA6 Pro family and codepoint (Foundry uses "Font Awesome 6 Pro" by default) */
+.my-icon::before {
+    font-family: "Font Awesome 6 Pro";  /* Foundry's default - verify in DevTools */
+    font-weight: 900;
+    content: "\f02d";  /* Updated FA6 codepoint */
+}
+```
+
+**What Will Fail (HTML/JavaScript):**
+```html
+<!-- These will fail - icons may not display -->
+<i class="fas fa-wrench"></i>
+<i class="far fa-book"></i>
+```
+
+**How to Fix (HTML/JavaScript):**
+```html
+<!-- Update to FA6 prefixes -->
+<i class="fa-solid fa-wrench"></i>
+<i class="fa-regular fa-book"></i>
+```
+
+**Quick Reference:**
+| Font Awesome 5 (Will Fail) | Font Awesome 6 (Required) |
+|---------------------------|---------------------------|
+| `font-family: "Font Awesome 5 Free"` | `font-family: "Font Awesome 6 Pro"` (Foundry's default - verify in DevTools) |
+| `fas` class prefix | `fa-solid` class prefix |
+| `far` class prefix | `fa-regular` class prefix |
+| `fal` class prefix | `fa-light` class prefix (if available) |
+| FA5 codepoints (e.g., `\f02e`) | FA6 codepoints (may differ, verify) |
 
 ### Scene Controls Conversion
 
@@ -741,6 +960,7 @@ After fixing breaking changes, test:
 - [ ] All hooks that receive `html` parameter work correctly
 - [ ] Combat tracker renders (if applicable)
 - [ ] Scene navigation works (if applicable)
+- [ ] All Font Awesome icons render correctly
 - [ ] No deprecation warnings in console
 
 ### Phase 2: Functionality Testing
@@ -751,6 +971,8 @@ After fixing breaking changes, test:
 - [ ] Forms submit correctly (if applicable)
 - [ ] Dialogs open and close correctly
 - [ ] Settings panels work (if applicable)
+- [ ] All icons display correctly (no missing/broken icons)
+- [ ] CSS pseudo-element icons render correctly
 
 ### Phase 3: Integration Testing
 
@@ -813,6 +1035,23 @@ grep -r "\.target\s*=" scripts/
 grep -r "FilePicker\." scripts/
 ```
 
+**Search for Font Awesome Usage:**
+```bash
+# Find Font Awesome 5 family references
+grep -r "Font Awesome 5" styles/
+grep -r "Font Awesome 5" css/
+
+# Find FA5 class prefixes
+grep -r "\"fas " scripts/
+grep -r "'fas " scripts/
+grep -r "class=\"fas" templates/
+grep -r "class='fas" templates/
+
+# Find FA5 codepoints in CSS
+grep -r "content: \"\\\\f" styles/
+grep -r "content: '\\\\f" styles/
+```
+
 ---
 
 ## Migration Workflow
@@ -820,11 +1059,12 @@ grep -r "FilePicker\." scripts/
 ### Step 1: Audit
 1. Search for all jQuery usage
 2. Search for `getSceneControlButtons` hooks
-3. Search for deprecated APIs
-4. Document all findings
+3. Search for Font Awesome 5 usage (family names, class prefixes, codepoints)
+4. Search for deprecated APIs
+5. Document all findings
 
 ### Step 2: Prioritize
-1. Fix breaking changes first (jQuery in hooks, `getSceneControlButtons`)
+1. Fix breaking changes first (jQuery in hooks, `getSceneControlButtons`, Font Awesome)
 2. Fix deprecation warnings
 3. Remove remaining jQuery usage
 4. Migrate to ApplicationV2 (optional, can be done later)
@@ -902,6 +1142,39 @@ if (html && (html.jquery || typeof html.find === 'function')) {
 
 **Solution:** Search multiple roots when looking for elements that can appear in different locations.
 
+### 9. Font Awesome 5 Family References
+**Issue:** CSS using `font-family: "Font Awesome 5 Free"` will silently fail - icons won't render.
+
+**Solution:** 
+- Inspect Foundry's icons in DevTools to get the exact `font-family` name
+- Update CSS to use Foundry's Font Awesome 6 family name
+- **Foundry uses `"Font Awesome 6 Pro"` by default** (not "Font Awesome 6 Free") - verify in DevTools
+
+### 10. Font Awesome Class Prefixes
+**Issue:** FA5 class prefixes (`fas`, `far`, `fal`) may not work or render incorrectly.
+
+**Solution:** Update all class prefixes:
+- `fas` → `fa-solid`
+- `far` → `fa-regular`
+- `fal` → `fa-light` (if available in Foundry's subset)
+
+### 11. Font Awesome Codepoint Changes
+**Issue:** FA6 remapped many glyph codepoints, so FA5 codepoints may render wrong icons or nothing.
+
+**Solution:**
+- Use [Font Awesome 6 icon search](https://fontawesome.com/icons) to find correct codepoints
+- Or inspect Foundry's icons in DevTools to see their codepoints
+- Update all CSS `content` values with FA6 codepoints
+
+### 12. Font Awesome Subset Limitations
+**Issue:** Foundry only bundles a subset of FA6, not the full library.
+
+**Solution:**
+- Test all icons after migration
+- If an icon doesn't render, it may not be in Foundry's subset
+- Consider using alternative icons that are included
+- Or bundle your own Font Awesome subset if needed (advanced)
+
 ---
 
 ## Best Practices
@@ -917,6 +1190,9 @@ if (html && (html.jquery || typeof html.find === 'function')) {
 9. **Fix Call Sites, Not Add Detection** - If jQuery is being passed, fix the source rather than adding detection everywhere
 10. **Use Helper Methods** - Create `_getNativeElement()` helper in FormApplication classes for consistent jQuery handling during migration
 11. **Test Popout Windows** - Test UI elements in both sidebar and popout windows (they may render to different DOM locations)
+12. **Verify Font Awesome Icons** - After migration, visually inspect all icons to ensure they render correctly
+13. **Inspect Foundry's Font Family** - Use DevTools to get the exact Font Awesome family name Foundry uses
+14. **Test Icon Codepoints** - Verify CSS pseudo-element icons render the correct symbols after codepoint updates
 
 ---
 
