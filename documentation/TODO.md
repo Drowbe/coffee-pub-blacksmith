@@ -83,18 +83,6 @@
 - **Related Settings**: `tokenConvertDeadToLoot`, `tokenLootPileImage`
 
 
-### Track and report our movement distance against the walking speed of the token
-- **Issue**: Need to track and report our movement distance against the walking speed of the token
-- **Status**: PENDING - Needs implementation
-- **Priority**: MEDIUM - Gameplay functionality
-- **Current State**: We are not tracking and reporting our movement distance against the walking speed of the token
-- **Location**: `scripts/token-movement.js` (movement tracking)
-- **Tasks Needed**:
-  - Track our movement distance against the walking speed of the token
-  - Report our movement distance against the walking speed of the token
-- **Related Settings**: None currently
-
-
 ### Hide Dead and Skip Dead Options for Menubar and Combat Tracker
 - **Issue**: Need options to hide and skip dead combatants in menubar and combat tracker
 - **Status**: PENDING - Needs implementation
@@ -213,6 +201,32 @@
   - `scripts/token-handler.js` - Token/item drop handling
   - Query tool templates
 - **Notes**: This is a comprehensive review to ensure the query tool works correctly and has a clear, consistent UX for all features
+
+### Journal Double-Click to Edit - Broken in v13
+- **Issue**: Journal double-click to enter edit mode no longer works in FoundryVTT v13
+- **Status**: PENDING - Needs investigation and fix
+- **Priority**: MEDIUM - Functionality broken due to v13 migration
+- **Current State**: 
+  - Feature worked in v12
+  - `renderJournalSheet` hook is not firing in v13
+  - Likely related to ApplicationV2 migration (Journal Entries migrated to ApplicationV2 in v13)
+  - Direct hooks (`renderJournalSheet`, `renderApplication`) are not being triggered
+  - MutationObserver approach also attempted but not working
+- **Location**: `scripts/blacksmith.js` (journal double-click hook registration)
+- **Tasks Needed**:
+  - Investigate why `renderJournalSheet` hook is not firing in v13
+  - Check if ApplicationV2 uses different hooks or methods
+  - Review ApplicationV2 API documentation for journal sheet hooks
+  - Find alternative approach to attach double-click listeners to journal sheets
+  - Test with existing journal sheets vs newly opened ones
+  - Verify edit button selector is correct (`button[data-action="editPage"]` in `.edit-container`)
+  - Ensure jQuery detection/conversion is working correctly
+- **Related Settings**:
+  - `enableJournalDoubleClick` - Toggle for journal double-click editing
+- **Related Documentation**:
+  - [ApplicationV2 API](https://foundryvtt.wiki/en/development/api/applicationv2)
+  - [ApplicationV2 Conversion Guide](https://foundryvtt.wiki/en/development/guides/applicationV2-conversion-guide)
+- **Notes**: Journal Entries migrated to ApplicationV2 in v13, which may have changed how hooks work. Need to find the correct approach for ApplicationV2 applications.
 
 
 ### Add Enable Setting for Nameplate Styling
