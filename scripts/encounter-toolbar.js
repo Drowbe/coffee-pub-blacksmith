@@ -28,6 +28,35 @@ export class EncounterToolbar {
         // Log hook registration
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalSheet", "encounter-toolbar-journal", true, false);
         
+        // Also try renderJournalPageSheet hook (page-level, may fire in v13 ApplicationV2)
+        const renderJournalPageSheetHookId = HookManager.registerHook({
+            name: 'renderJournalPageSheet',
+            description: 'Encounter Toolbar: Add encounter toolbars to journal pages (v13 ApplicationV2)',
+            context: 'encounter-toolbar-journal-page',
+            priority: 3, // Normal priority - UI enhancement
+            callback: this._onRenderJournalPageSheet.bind(this)
+        });
+        
+        // Log hook registration
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalPageSheet", "encounter-toolbar-journal-page", true, false);
+        
+        // Direct Hooks.on() fallback (in case HookManager doesn't fire in v13)
+        Hooks.on('renderJournalPageSheet', (app, html, data) => {
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: DIRECT renderJournalPageSheet hook fired", 
+                `App: ${app?.constructor?.name}`, true, false);
+            this._onRenderJournalPageSheet(app, html, data);
+        });
+        
+        // Also try direct renderJournalSheet hook as fallback
+        Hooks.on('renderJournalSheet', (app, html, data) => {
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: DIRECT renderJournalSheet hook fired", 
+                `App: ${app?.constructor?.name}`, true, false);
+            this._onRenderJournalSheet(app, html, data);
+        });
+        
+        // Global MutationObserver fallback (when hooks don't fire in v13)
+        this._setupGlobalObserver();
+        
         // Also listen for when journal content is updated (saves)
         const updateJournalEntryPageHookId = HookManager.registerHook({
 			name: 'updateJournalEntryPage',
@@ -194,6 +223,14 @@ export class EncounterToolbar {
         this._processJournalSheet(html, true);
     }
 
+    // Hook for journal page sheet rendering (v13 ApplicationV2 - page-level)
+    static async _onRenderJournalPageSheet(app, html, data) {
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: renderJournalPageSheet hook fired", 
+            `App: ${app?.constructor?.name}`, true, false);
+        // Use unified method with immediate retry
+        this._processJournalSheet(html, true);
+    }
+
     // Hook for when journal entry pages are updated (saves)
     static async _onUpdateJournalEntryPage(page, change, options, userId) {
         // Find the journal sheet and use unified method
@@ -203,6 +240,95 @@ export class EncounterToolbar {
                 this._processJournalSheet(journalSheet.element, false);
             }
         }, 100);
+    }
+
+    // Setup global MutationObserver to catch journal sheets when hooks don't fire
+    static _setupGlobalObserver() {
+        // Check existing journal sheets on ready
+        function checkExistingSheets() {
+            const journalSheets = Object.values(ui.windows).filter(w => 
+                w?.constructor?.name === 'JournalSheet' || 
+                w?.element?.classList?.contains('journal-sheet')
+            );
+            
+            for (const sheet of journalSheets) {
+                if (sheet.element && !sheet.element._encounterToolbarProcessed) {
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found existing journal sheet via observer", 
+                        `Sheet: ${sheet.constructor.name}`, true, false);
+                    sheet.element._encounterToolbarProcessed = true;
+                    this._processJournalSheet(sheet.element, true);
+                }
+            }
+        }
+        
+        // Check on ready
+        if (game.ready) {
+            checkExistingSheets.call(this);
+        } else {
+            Hooks.once('ready', () => checkExistingSheets.call(this));
+        }
+        
+        // Watch for new journal sheets being added
+        const observer = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        // Check if this is a journal sheet (try multiple selectors)
+                        let journalSheet = null;
+                        
+                        // Try direct class check
+                        if (node.classList?.contains('journal-sheet') || node.classList?.contains('journal-entry')) {
+                            journalSheet = node;
+                        }
+                        // Try querySelector for nested sheets
+                        if (!journalSheet) {
+                            journalSheet = node.querySelector?.('.journal-sheet') || 
+                                          node.querySelector?.('.journal-entry');
+                        }
+                        // Try checking if it's a form with journal classes
+                        if (!journalSheet && node.tagName === 'FORM') {
+                            if (node.classList?.contains('journal-sheet') || node.classList?.contains('journal-entry')) {
+                                journalSheet = node;
+                            }
+                        }
+                        
+                        if (journalSheet) {
+                            // Find the corresponding app in ui.windows
+                            const sheetId = journalSheet.id || journalSheet.getAttribute('data-app-id');
+                            const sheet = Object.values(ui.windows).find(w => {
+                                if (!w || !w.element) return false;
+                                const wElement = w.element.jquery ? w.element[0] : w.element;
+                                return wElement === journalSheet || 
+                                       wElement?.id === sheetId ||
+                                       wElement?.contains?.(journalSheet) ||
+                                       journalSheet.contains?.(wElement);
+                            });
+                            
+                            if (sheet && !journalSheet._encounterToolbarProcessed) {
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: New journal sheet detected via observer", 
+                                    `Sheet: ${sheet.constructor.name}, Element: ${journalSheet.tagName}.${journalSheet.className}`, true, false);
+                                journalSheet._encounterToolbarProcessed = true;
+                                this._processJournalSheet(journalSheet, true);
+                            } else if (journalSheet && !journalSheet._encounterToolbarProcessed) {
+                                // Sheet element found but no app - try processing anyway
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Journal sheet element found but no app", 
+                                    `Element: ${journalSheet.tagName}.${journalSheet.className}`, true, false);
+                                journalSheet._encounterToolbarProcessed = true;
+                                this._processJournalSheet(journalSheet, true);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Observe the document body for new journal sheets
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+        
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Global MutationObserver setup complete", "", true, false);
     }
 
     // Unified method to process journal sheets
@@ -344,8 +470,14 @@ export class EncounterToolbar {
     static async _scanJournalContent(html, pageId) {
         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Starting content scan for page", pageId, true, false);
         
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+        
         // Get the journal page content - try different selectors
-        let pageContent = html.querySelector(`article[data-page-id="${pageId}"] section.journal-page-content`);
+        let pageContent = nativeHtml.querySelector(`article[data-page-id="${pageId}"] section.journal-page-content`);
         
         if (!pageContent) {
             // If that doesn't work, try finding the article first, then the section
@@ -536,8 +668,14 @@ export class EncounterToolbar {
             return;
         }
 
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+
         // Get the page ID to scope the toolbar
-        const journalPage = html.querySelector('article.journal-entry-page');
+        const journalPage = nativeHtml.querySelector('article.journal-entry-page');
         const pageId = journalPage ? journalPage.getAttribute('data-page-id') : null;
         
         if (!pageId) {
