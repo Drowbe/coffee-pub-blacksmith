@@ -15,6 +15,30 @@ export class EncounterToolbar {
     // Store hook IDs for proper removal
     static _tokenHookIds = [];
     
+    /**
+     * Get default token data for v13 compatibility
+     * In v13, core.defaultToken setting was removed, so we use CONFIG.Token.defaults
+     * @returns {Object} Default token data object
+     */
+    static _getDefaultTokenData() {
+        // In v13, use CONFIG.Token.defaults if available
+        if (CONFIG.Token?.defaults) {
+            return foundry.utils.deepClone(CONFIG.Token.defaults);
+        }
+        
+        // Fallback: Create a default token data structure
+        // This matches the structure that was in core.defaultToken
+        return {
+            displayName: CONST.TOKEN_DISPLAY_MODES.OWNER_HOVER,
+            displayBars: CONST.TOKEN_DISPLAY_MODES.OWNER_HOVER,
+            disposition: CONST.TOKEN_DISPOSITIONS.NEUTRAL,
+            vision: true,
+            lockRotation: false,
+            actorLink: false,
+            hidden: false
+        };
+    }
+    
     static init() {
         // Listen for journal sheet rendering (normal view only)
         const renderJournalSheetHookId = HookManager.registerHook({
@@ -1100,7 +1124,7 @@ export class EncounterToolbar {
                                 }
                                 
                                 // Update the prototype token to honor GM defaults
-                                const defaultTokenData = foundry.utils.deepClone(game.settings.get("core", "defaultToken"));
+                                const defaultTokenData = this._getDefaultTokenData();
                                 const prototypeTokenData = foundry.utils.mergeObject(defaultTokenData, worldActor.prototypeToken.toObject(), { overwrite: false });
                                 await worldActor.update({ prototypeToken: prototypeTokenData });
                             }
@@ -1129,7 +1153,7 @@ export class EncounterToolbar {
                             
                             // Create token data
                             const tokenData = foundry.utils.mergeObject(
-                                foundry.utils.deepClone(game.settings.get("core", "defaultToken")),
+                                this._getDefaultTokenData(),
                                 worldActor.prototypeToken.toObject(),
                                 { overwrite: false }
                             );
@@ -1144,9 +1168,9 @@ export class EncounterToolbar {
                             tokenData.hidden = isAltHeld ? true : deploymentHidden;
                             
                             // Honor lock rotation setting
-                            const lockRotation = game.settings.get("core", "defaultToken").lockRotation;
-                            if (lockRotation !== undefined) {
-                                tokenData.lockRotation = lockRotation;
+                            const defaultTokenData = this._getDefaultTokenData();
+                            if (defaultTokenData.lockRotation !== undefined) {
+                                tokenData.lockRotation = defaultTokenData.lockRotation;
                             }
                             
                             // Create the token on the canvas
@@ -1303,7 +1327,7 @@ export class EncounterToolbar {
                 }
                 
                 // Update the prototype token to honor GM defaults
-                const defaultTokenData = foundry.utils.deepClone(game.settings.get("core", "defaultToken"));
+                const defaultTokenData = this._getDefaultTokenData();
                 const prototypeTokenData = foundry.utils.mergeObject(defaultTokenData, worldActor.prototypeToken.toObject(), { overwrite: false });
                 await worldActor.update({ prototypeToken: prototypeTokenData });
             }
@@ -1331,7 +1355,7 @@ export class EncounterToolbar {
                 
                 // Create token data
                 const tokenData = foundry.utils.mergeObject(
-                    foundry.utils.deepClone(game.settings.get("core", "defaultToken")),
+                    this._getDefaultTokenData(),
                     worldActor.prototypeToken.toObject(),
                     { overwrite: false }
                 );
@@ -1346,9 +1370,9 @@ export class EncounterToolbar {
                 tokenData.hidden = isAltHeld ? true : deploymentHidden;
                 
                 // Honor lock rotation setting
-                const lockRotation = game.settings.get("core", "defaultToken").lockRotation;
-                if (lockRotation !== undefined) {
-                    tokenData.lockRotation = lockRotation;
+                const defaultTokenData = this._getDefaultTokenData();
+                if (defaultTokenData.lockRotation !== undefined) {
+                    tokenData.lockRotation = defaultTokenData.lockRotation;
                 }
                 
                 // Create the token on the canvas
@@ -1751,7 +1775,7 @@ export class EncounterToolbar {
                         }
                         
                         // Update prototype token settings
-                        const defaultTokenData = game.settings.get("core", "defaultToken");
+                        const defaultTokenData = this._getDefaultTokenData();
                         await worldActor.update({
                             "prototypeToken.displayName": defaultTokenData.displayName,
                             "prototypeToken.displayBars": defaultTokenData.displayBars,
@@ -1795,7 +1819,7 @@ export class EncounterToolbar {
                 const isAltHeld = positionResult.isAltHeld;
                 
                 // Create token data
-                const defaultTokenData = foundry.utils.deepClone(game.settings.get("core", "defaultToken"));
+                const defaultTokenData = this._getDefaultTokenData();
                 const tokenData = foundry.utils.mergeObject(defaultTokenData, actor.prototypeToken.toObject(), { overwrite: false });
                 
                 // Set position and linking
