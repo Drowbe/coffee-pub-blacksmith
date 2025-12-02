@@ -159,14 +159,26 @@ export class EncounterToolbar {
     // Update CR values for all open journal toolbars
     static _updateAllToolbarCRs() {
         try {
-            // Find all open journal sheets
-            const journalSheets = Object.values(ui.windows).filter(w => w instanceof JournalSheet);
+            // Find all open journal sheets (handle both Application and ApplicationV2)
+            const journalSheets = Object.values(ui.windows).filter(w => {
+                // Check if it's a JournalSheet by class name or element class
+                return w instanceof JournalSheet || 
+                       (w.element && (w.element.classList?.contains('journal-sheet') || w.element.classList?.contains('journal-entry')));
+            });
             
             for (const journalSheet of journalSheets) {
+                // Get the native DOM element
+                let sheetElement = journalSheet.element;
+                if (sheetElement && (sheetElement.jquery || typeof sheetElement.find === 'function')) {
+                    sheetElement = sheetElement[0] || sheetElement.get?.(0) || sheetElement;
+                }
+                
+                if (!sheetElement) continue;
+                
                 // Check if this journal has encounter toolbars
-                const toolbars = journalSheet.element.querySelectorAll('.encounter-toolbar');
+                const toolbars = sheetElement.querySelectorAll('.encounter-toolbar');
                 if (toolbars.length > 0) {
-                    this._updateToolbarCRs(journalSheet.element);
+                    this._updateToolbarCRs(sheetElement);
                 }
             }
         } catch (error) {
@@ -891,6 +903,11 @@ export class EncounterToolbar {
                 event.stopPropagation();
                 
                 await EncounterToolbar._cycleDeploymentPattern();
+                
+                // Immediately update THIS button's text
+                const newPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
+                const patternName = EncounterToolbar._getDeploymentPatternName(newPattern);
+                deployTypeBadge.innerHTML = `<i class="fas fa-grid-2-plus"></i>${patternName}`;
             });
         }
 
@@ -903,6 +920,11 @@ export class EncounterToolbar {
                 event.stopPropagation();
                 
                 await EncounterToolbar._toggleDeploymentVisibility();
+                
+                // Immediately update THIS button's text
+                const newHidden = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden');
+                const visibilityName = EncounterToolbar._getDeploymentVisibilityName(newHidden);
+                deployVisibilityBadge.innerHTML = `<i class="fas fa-eye"></i>${visibilityName}`;
             });
         }
 
@@ -1669,7 +1691,7 @@ export class EncounterToolbar {
             // Get the display name for the new pattern
             const newPatternName = this._getDeploymentPatternName(nextPattern);
             
-            // Update all open journal toolbars to reflect the change
+            // Immediately update all open journal toolbars to reflect the change
             this._updateAllToolbarCRs();
             
         } catch (error) {
@@ -1696,9 +1718,8 @@ export class EncounterToolbar {
             // Get the display name for the new visibility
             const newVisibilityName = this._getDeploymentVisibilityName(newHidden);
             
-            // Update all open journal toolbars to reflect the change
+            // Immediately update all open journal toolbars to reflect the change
             this._updateAllToolbarCRs();
-            
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error toggling deployment visibility", error, true, false);
