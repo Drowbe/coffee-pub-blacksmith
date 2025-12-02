@@ -69,6 +69,24 @@
 
 ### MEDIUM PRIORITY ISSUES
 
+### Encounter Toolbar CSS - Dark Mode/Light Mode Support
+- **Issue**: Encounter toolbar CSS needs cleanup to properly support both dark mode and light mode themes
+- **Status**: PENDING - Needs CSS review and updates
+- **Priority**: MEDIUM - UI/UX polish
+- **Current State**: Toolbar may not have proper contrast or styling in both light and dark modes
+- **Location**: Encounter toolbar CSS files (likely in `styles/` directory)
+- **Tasks Needed**:
+  - Review encounter toolbar CSS for dark mode compatibility
+  - Review encounter toolbar CSS for light mode compatibility
+  - Ensure proper contrast ratios for text and backgrounds in both modes
+  - Test toolbar appearance in both light and dark themes
+  - Use Foundry's CSS variables where appropriate for theme-aware styling
+  - Verify toolbar buttons, icons, and text are readable in both modes
+- **Related Files**: 
+  - Encounter toolbar CSS files
+  - `scripts/encounter-toolbar.js` (if inline styles need updating)
+- **Notes**: Foundry v13 has native light/dark mode support. CSS should leverage theme variables and ensure proper styling in both modes.
+
 ### Verify Loot Token Restoration
 - **Issue**: Ensure tokens converted to loot piles reliably restore their original images after revival
 - **Status**: PENDING - Needs validation pass

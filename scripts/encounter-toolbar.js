@@ -40,21 +40,8 @@ export class EncounterToolbar {
         // Log hook registration
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalPageSheet", "encounter-toolbar-journal-page", true, false);
         
-        // Direct Hooks.on() fallback (in case HookManager doesn't fire in v13)
-        Hooks.on('renderJournalPageSheet', (app, html, data) => {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: DIRECT renderJournalPageSheet hook fired", 
-                `App: ${app?.constructor?.name}`, true, false);
-            this._onRenderJournalPageSheet(app, html, data);
-        });
-        
-        // Also try direct renderJournalSheet hook as fallback
-        Hooks.on('renderJournalSheet', (app, html, data) => {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: DIRECT renderJournalSheet hook fired", 
-                `App: ${app?.constructor?.name}`, true, false);
-            this._onRenderJournalSheet(app, html, data);
-        });
-        
         // Global MutationObserver fallback (when hooks don't fire in v13)
+        // Note: This is NOT a hook - it's a DOM observer, so it doesn't go through HookManager
         this._setupGlobalObserver();
         
         // Also listen for when journal content is updated (saves)
