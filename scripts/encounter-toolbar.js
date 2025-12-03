@@ -159,24 +159,14 @@ export class EncounterToolbar {
     // Update CR values for all open journal toolbars
     static _updateAllToolbarCRs() {
         try {
-            // Find all open journal sheets (handle both Application and ApplicationV2)
-            const journalSheets = Object.values(ui.windows).filter(w => {
-                // Check if it's a JournalSheet by class name or element class
-                return w instanceof JournalSheet || 
-                       (w.element && (w.element.classList?.contains('journal-sheet') || w.element.classList?.contains('journal-entry')));
-            });
+            // Find all journal sheet elements in the DOM (same approach as MutationObserver)
+            // This works for both Application and ApplicationV2
+            const journalSheetElements = document.querySelectorAll('.journal-sheet, .journal-entry');
             
-            for (const journalSheet of journalSheets) {
-                // Get the native DOM element
-                let sheetElement = journalSheet.element;
-                if (sheetElement && (sheetElement.jquery || typeof sheetElement.find === 'function')) {
-                    sheetElement = sheetElement[0] || sheetElement.get?.(0) || sheetElement;
-                }
-                
-                if (!sheetElement) continue;
-                
+            for (const sheetElement of journalSheetElements) {
                 // Check if this journal has encounter toolbars
                 const toolbars = sheetElement.querySelectorAll('.encounter-toolbar');
+                
                 if (toolbars.length > 0) {
                     this._updateToolbarCRs(sheetElement);
                 }

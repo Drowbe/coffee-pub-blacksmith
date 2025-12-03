@@ -22,7 +22,7 @@
   flex-direction: column;
   gap: 6px;
   padding: 5px 8px;
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--dnd5e-journal-header-background);
   border-radius: 3px;
   font-family: var(--font-primary);
 }
