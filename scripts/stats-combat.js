@@ -1006,13 +1006,15 @@ class CombatStats {
         this._setupCollapsibleSections();
         
         // Also ensure handler is set up when messages are rendered (in case chat log wasn't ready during init)
+        // v13: renderChatMessage is deprecated, use renderChatMessageHTML instead
         const renderChatMessageHookId = HookManager.registerHook({
-            name: 'renderChatMessage',
+            name: 'renderChatMessageHTML',
             description: 'Combat Stats: Ensure collapsible section handler is set up when messages render',
             context: 'stats-combat-chat',
             priority: 3,
             callback: (message, html) => {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
+                // v13: renderChatMessageHTML always passes HTMLElement (not jQuery)
                 if (message.content.includes('blacksmith-card')) {
                     this._setupCollapsibleSections();
                 }
@@ -1020,7 +1022,7 @@ class CombatStats {
             }
         });
         
-        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessage (collapsible sections)", "stats-combat-chat", true, false);
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML (collapsible sections)", "stats-combat-chat", true, false);
     }
 
     // Set up event delegation for collapsible sections

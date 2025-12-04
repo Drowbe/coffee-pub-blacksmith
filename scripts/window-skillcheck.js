@@ -1040,12 +1040,14 @@ export class SkillCheckDialog extends Application {
             postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Mode flag set to:', messageData.isCinematic, true, false);
 
             // Create the chat message
+            // v13: CONST.CHAT_MESSAGE_TYPES is deprecated, use style instead
+            // Since this is a roll request (not an actual roll), use OTHER style
             const message = await ChatMessage.create({
                 user: game.user.id,
                 speaker: ChatMessage.getSpeaker(),
                 content: await SkillCheckDialog.formatChatMessage(messageData),
                 flags: { 'coffee-pub-blacksmith': messageData },
-                type: CONST.CHAT_MESSAGE_TYPES.ROLL,
+                style: CONST.CHAT_MESSAGE_STYLES.OTHER,
                 rollMode: rollMode
             });
 

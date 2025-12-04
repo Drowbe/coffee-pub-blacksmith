@@ -663,7 +663,8 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             postConsoleAndNotification(MODULE.NAME, `Skill roll formula: ${skillFormula}`, null, true, false);
             
             result = new Roll(skillFormula, actor.getRollData());
-            await result.evaluate({ async: true });
+            // v13: async option removed, evaluate() is async by default when awaited
+            await result.evaluate();
             
             // Create descriptive verbose formula for tooltips
             const verboseParts = [];
@@ -725,7 +726,8 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             postConsoleAndNotification(MODULE.NAME, `Ability roll formula: ${abilityFormula}`, null, true, false);
             
             result = new Roll(abilityFormula, actor.getRollData());
-            await result.evaluate({ async: true });
+            // v13: async option removed, evaluate() is async by default when awaited
+            await result.evaluate();
             
             // Create descriptive verbose formula for tooltips
             const abilityVerboseParts = [];
@@ -764,7 +766,8 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 postConsoleAndNotification(MODULE.NAME, `Death save formula: ${deathFormula}`, null, true, false);
                 
                 result = new Roll(deathFormula, actor.getRollData());
-                await result.evaluate({ async: true });
+                // v13: async option removed, evaluate() is async by default when awaited
+            await result.evaluate();
                 
                 // Create descriptive verbose formula for death saves
                 const deathVerboseParts = [];
@@ -808,7 +811,8 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 postConsoleAndNotification(MODULE.NAME, `Save roll formula: ${saveFormula}`, null, true, false);
                 
                 result = new Roll(saveFormula, actor.getRollData());
-                await result.evaluate({ async: true });
+                // v13: async option removed, evaluate() is async by default when awaited
+            await result.evaluate();
                 
                 // Create descriptive verbose formula for saving throws
                 const saveVerboseParts = [];
@@ -891,7 +895,8 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 postConsoleAndNotification(MODULE.NAME, `Tool roll formula: ${toolFormula}`, null, true, false);
                 
                 result = new Roll(toolFormula, actor.getRollData());
-                await result.evaluate({ async: true });
+                // v13: async option removed, evaluate() is async by default when awaited
+            await result.evaluate();
                 
                 // Create descriptive verbose formula for tool rolls
                 const toolVerboseParts = [];
@@ -934,7 +939,8 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             
             postConsoleAndNotification(MODULE.NAME, `Dice roll formula: ${diceFormula}`, null, true, false);
             result = new Roll(diceFormula, actor.getRollData());
-            await result.evaluate({ async: true });
+            // v13: async option removed, evaluate() is async by default when awaited
+            await result.evaluate();
             
             // Create descriptive verbose formula for dice rolls
             const diceVerboseParts = [];

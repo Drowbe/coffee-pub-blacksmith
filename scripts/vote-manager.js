@@ -92,14 +92,16 @@ export class VoteManager {
         });
 
         // Register click handlers for vote cards
+        // v13: renderChatMessage is deprecated, use renderChatMessageHTML instead
         const renderChatMessageHookId = HookManager.registerHook({
-            name: 'renderChatMessage',
+            name: 'renderChatMessageHTML',
             description: 'Vote Manager: Handle vote card interactions and button styling',
             context: 'vote-manager-chat',
             priority: 3, // Normal priority - UI interaction
             callback: (message, html) => {
                 if (message.flags?.['coffee-pub-blacksmith']?.isVoteCard) {
-                    // v13: Detect and convert jQuery to native DOM if needed
+                    // v13: renderChatMessageHTML always passes HTMLElement (not jQuery)
+                    // Keep jQuery detection as defensive programming, but it should not be needed
                     let nativeHtml = html;
                     if (html && (html.jquery || typeof html.find === 'function')) {
                         nativeHtml = html[0] || html.get?.(0) || html;
@@ -173,7 +175,7 @@ export class VoteManager {
         });
         
         // Log hook registration
-        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessage", "vote-manager-chat", true, false);
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "vote-manager-chat", true, false);
     }
 
     /**

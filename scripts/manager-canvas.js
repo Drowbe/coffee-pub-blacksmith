@@ -382,14 +382,14 @@ export class CanvasTools {
     
                     if (result && result.results && result.results.length > 0) {
                         let strName;
-                        if (result.results[0].text) {
-                            // For newer versions of Foundry VTT
-                            strName = result.results[0].text;
-                        } else if (result.results[0].data && result.results[0].data.text) {
-                            // For older versions of Foundry VTT
-                            strName = result.results[0].data.text;
+                        const firstResult = result.results[0];
+                        // v13: TableResult#text is deprecated, use name or description instead
+                        if (firstResult.name) {
+                            strName = firstResult.name;
+                        } else if (firstResult.description) {
+                            strName = firstResult.description;
                         } else {
-                            // If we can't find the text in either place, use a default value
+                            // If we can't find the name, use a default value
                             strName = "Unknown";
                             postConsoleAndNotification(MODULE.NAME, "Unable to retrieve name from roll table result", "", true, false);
                         }
@@ -508,7 +508,9 @@ export class CanvasTools {
                 
                 // Process each result
                 for (const result of roll.results) {
-                    postConsoleAndNotification(MODULE.NAME, `Processing result - type: ${result.type}, text: ${result.text}, documentCollection: ${result.documentCollection}`, "", true, false);
+                    // v13: TableResult#text is deprecated, use name or description instead
+                    const resultName = result.name || result.description || 'N/A';
+                    postConsoleAndNotification(MODULE.NAME, `Processing result - type: ${result.type}, name: ${resultName}, documentCollection: ${result.documentCollection}`, "", true, false);
                     
                     // Check if this result has a document reference (item from compendium)
                     // Type can be CONST.TABLE_RESULT_TYPES.DOCUMENT (2) or 'pack' depending on version
@@ -552,7 +554,9 @@ export class CanvasTools {
                         }
                     } else if (result.type === CONST.TABLE_RESULT_TYPES.TEXT || result.type === 'text') {
                         // Text result - just log it
-                        postConsoleAndNotification(MODULE.NAME, `Loot table text result: ${result.text}`, "", true, false);
+                        // v13: TableResult#text is deprecated, use name or description instead
+                        const resultName = result.name || result.description || 'N/A';
+                        postConsoleAndNotification(MODULE.NAME, `Loot table text result: ${resultName}`, "", true, false);
                     } else {
                         postConsoleAndNotification(MODULE.NAME, `Unknown result type: ${result.type}`, "", true, false);
                     }

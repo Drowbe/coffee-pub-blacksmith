@@ -588,13 +588,14 @@ Hooks.once('init', async function() {
     // Socket initialization moved to 'ready' hook for proper SocketLib integration
     
     // Register chat message click handler for skill rolls
+    // v13: renderChatMessage is deprecated, use renderChatMessageHTML instead
     const skillCheckChatHookId = HookManager.registerHook({
-        name: 'renderChatMessage',
+        name: 'renderChatMessageHTML',
         description: 'Blacksmith: Handle skill check chat message clicks',
         context: 'blacksmith-skill-check',
         priority: 3, // Normal priority - UI interaction
         callback: (message, html) => {
-            // v13: renderChatMessage may pass jQuery, DocumentFragment, or HTMLElement
+            // v13: renderChatMessageHTML always passes HTMLElement (not jQuery)
             const htmlElement = getChatMessageElement(html);
             if (!htmlElement) {
                 return;
@@ -625,7 +626,7 @@ Hooks.once('init', async function() {
     });
     
     // Log hook registration
-    postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessage", "blacksmith-skill-check", true, false);
+    postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "blacksmith-skill-check", true, false);
     
     // Register window lifecycle hooks for efficient lookups
     const renderApplicationHookId = HookManager.registerHook({
@@ -1088,13 +1089,14 @@ async function runMacro(macroName) {
 // Looks for a specific span code and hides the header of that card
 // <span style="visibility: visible">coffeepub-hide-header</span>
 
+// v13: renderChatMessage is deprecated, use renderChatMessageHTML instead
 const hideHeaderChatHookId = HookManager.registerHook({
-    name: 'renderChatMessage',
+    name: 'renderChatMessageHTML',
     description: 'Blacksmith: Hide chat message headers based on coffeepub-hide-header flag',
     context: 'blacksmith-hide-header',
     priority: 3, // Normal priority - UI enhancement
     callback: (message, html, data) => {
-        // v13: renderChatMessage may pass jQuery, DocumentFragment, or HTMLElement
+        // v13: renderChatMessageHTML always passes HTMLElement (not jQuery)
         const htmlElement = getChatMessageElement(html);
         if (!htmlElement) {
             return;
@@ -1124,7 +1126,7 @@ const hideHeaderChatHookId = HookManager.registerHook({
 });
 
 // Log hook registration
-postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessage", "blacksmith-hide-header", true, false);
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "blacksmith-hide-header", true, false);
 
 // ***************************************************
 // ** RENDER Import Journal Entries
