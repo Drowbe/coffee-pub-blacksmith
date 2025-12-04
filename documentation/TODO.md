@@ -4,6 +4,16 @@
 
 ### CRITICAL PRIORITY ISSUES
 
+
+### V13 TESTS NEEDED
+- import json for actors
+- import json for items
+- import json for tables
+- toolbar dividers and styling
+- nameplate creation
+
+
+
 ### Memory Leak Investigation
 - **Issue**: Browser tab memory grows to 9.5 GB in ~3 hours while heap stays ~950 MB, leading to crashes.
 - **Status**: PENDING — see `documentation/performance.md` for full investigation notes, findings, and next steps.

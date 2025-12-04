@@ -72,6 +72,8 @@ Before starting migration, complete these steps:
 - [ ] Search for Font Awesome 5 usage: `"Font Awesome 5 Free"`, `fas`, `far`, `fal` class prefixes
 - [ ] Search for Font Awesome codepoints in CSS (`content: "\f..."`)
 - [ ] Document all Application classes that extend `Application` or `FormApplication`
+- [ ] Search for RollTable/TableResult usage: `table.roll()`, `result.text`, `result.documentCollection`, `result.uuid` vs `result.documentUuid`
+- [ ] Search for Compendium pack access: `game.packs.get().index`, `pack.index.get()`
 
 ---
 
@@ -904,7 +906,85 @@ if (token.targetArrows || token.targetPips) {
 }
 ```
 
-### 2. FilePicker Deprecation
+### 2. TableResult API Changes
+
+**Deprecated:** `TableResult#text`, `TableResult#documentCollection`, `TableResult#documentId`  
+**Replacement:** `TableResult#name`/`TableResult#description`, `TableResult#documentUuid`  
+**Urgency:** High (deprecated properties may be removed in future versions)
+
+**Important:** In v13, `TableResult#uuid` is the TableResult's UUID, NOT the document's UUID. Use `TableResult#documentUuid` to get the actual Actor/Item document UUID.
+
+**v12 Pattern:**
+```javascript
+let rollResults = await table.roll();
+const result = rollResults.results[0];
+const name = result.text;  // Deprecated
+const collection = result.documentCollection;  // Deprecated
+const docId = result.documentId;  // Deprecated
+const uuid = result.uuid;  // This is the TableResult's UUID, not the document's!
+```
+
+**v13 Pattern:**
+```javascript
+let rollResults = await table.roll();
+const result = rollResults.results[0];
+const name = result.name || result.description;  // Use name or description
+const documentUuid = result.documentUuid;  // Use documentUuid for the actual document
+
+// For creating @UUID links, use documentUuid (not uuid)
+if (documentUuid) {
+    const link = `@UUID[${documentUuid}]{${name}}`;
+    // This will correctly point to the Actor/Item document
+    // NOT to the TableResult itself
+}
+```
+
+**Common Pitfall:**
+- Using `result.uuid` creates links to `RollTable.TableResult` instead of the actual document
+- Example of wrong link: `@UUID[RollTable.v0Uv9JExDXFjP9iD.TableResult.2hdhANlHYgIDxL2y]{Monster Name}`
+- Example of correct link: `@UUID[Compendium.pack-name.Actor.id]{Monster Name}`
+
+### 3. Compendium Pack Access Changes
+
+**Deprecated:** `game.packs.get(packName).index`  
+**Replacement:** `await game.packs.get(packName).getDocuments()`  
+**Urgency:** High (`.index` may be removed in future versions)
+
+**v12 Pattern:**
+```javascript
+const pack = game.packs.get("my-compendium.my-pack");
+if (pack && pack.index) {
+    const document = pack.index.get(packId);
+    // Use document
+}
+```
+
+**v13 Pattern:**
+```javascript
+const pack = game.packs.get("my-compendium.my-pack");
+if (pack) {
+    // v13: Use getDocuments() instead of .index
+    const documents = await pack.getDocuments();
+    const document = documents.find(doc => doc.id === packId || doc.name === documentName);
+    // Use document
+}
+```
+
+**Alternative Pattern (if you need to find by name):**
+```javascript
+const pack = game.packs.get("my-compendium.my-pack");
+if (pack) {
+    const documents = await pack.getDocuments();
+    const document = documents.find(doc => doc.name === "Document Name");
+    if (document) {
+        // Use document
+    }
+}
+```
+
+**Important:** Always check if `pack` exists before calling `getDocuments()`, as `game.packs.get()` may return `undefined` if the pack doesn't exist.
+
+### 4. FilePicker Deprecation
 
 **Deprecated:** Global `FilePicker`  
 **Replacement:** `foundry.applications.apps.FilePicker.implementation`  
@@ -1033,6 +1113,10 @@ grep -r "getSceneControlButtons" scripts/
 ```bash
 grep -r "\.target\s*=" scripts/
 grep -r "FilePicker\." scripts/
+grep -r "\.index\s*=" scripts/  # Compendium pack .index
+grep -r "\.text\s*=" scripts/  # TableResult.text
+grep -r "documentCollection" scripts/  # TableResult.documentCollection
+grep -r "documentId" scripts/  # TableResult.documentId
 ```
 
 **Search for Font Awesome Usage:**
@@ -1065,7 +1149,7 @@ grep -r "content: '\\\\f" styles/
 
 ### Step 2: Prioritize
 1. Fix breaking changes first (jQuery in hooks, `getSceneControlButtons`, Font Awesome)
-2. Fix deprecation warnings
+2. Fix deprecation warnings (TableResult API, Compendium pack access, Token#target, FilePicker)
 3. Remove remaining jQuery usage
 4. Migrate to ApplicationV2 (optional, can be done later)
 
@@ -1116,7 +1200,62 @@ grep -r "content: '\\\\f" styles/
 
 **Solution:** Set `visible: true` or conditional visibility based on permissions.
 
-### 6. jQuery Objects in FormApplication (⚠️ Technical Debt)
+### 6. TableResult UUID Confusion
+**Issue:** `TableResult#uuid` is the TableResult's UUID, not the document's UUID. Using it creates links to `RollTable.TableResult` instead of the actual Actor/Item.
+
+**Solution:** Use `TableResult#documentUuid` to get the actual document UUID for creating `@UUID` links.
+
+**Example:**
+```javascript
+// WRONG - Creates link to TableResult
+const uuid = rollResults.results[0].uuid;
+const link = `@UUID[${uuid}]{${name}}`;  // Points to RollTable.TableResult
+
+// CORRECT - Creates link to actual document
+const documentUuid = rollResults.results[0].documentUuid;
+const link = `@UUID[${documentUuid}]{${name}}`;  // Points to Actor/Item
+```
+
+### 7. TableResult Deprecated Properties
+**Issue:** `TableResult#text`, `TableResult#documentCollection`, and `TableResult#documentId` are deprecated.
+
+**Solution:** Use `TableResult#name` or `TableResult#description` for text, and `TableResult#documentUuid` for document references.
+
+**Example:**
+```javascript
+// WRONG - Uses deprecated properties
+const name = rollResults.results[0].text;  // Deprecated
+const collection = rollResults.results[0].documentCollection;  // Deprecated
+const docId = rollResults.results[0].documentId;  // Deprecated
+
+// CORRECT - Uses new properties
+const name = rollResults.results[0].name || rollResults.results[0].description;
+const documentUuid = rollResults.results[0].documentUuid;
+```
+
+### 8. Compendium Pack .index Deprecation
+**Issue:** `game.packs.get(packName).index` is deprecated and may be removed. Also, `game.packs.get()` may return `undefined` if the pack doesn't exist.
+
+**Solution:** Use `await pack.getDocuments()` instead, then find the document by ID or name. Always check if `pack` exists first.
+
+**Example:**
+```javascript
+// WRONG - Uses deprecated .index and doesn't check for undefined
+const pack = game.packs.get("my-compendium.my-pack");
+const document = pack.index.get(packId);  // May fail if pack is undefined
+
+// CORRECT - Uses getDocuments() and checks for pack existence
+const pack = game.packs.get("my-compendium.my-pack");
+if (pack) {
+    const documents = await pack.getDocuments();
+    const document = documents.find(doc => doc.id === packId || doc.name === documentName);
+    if (document) {
+        // Use document
+    }
+}
+```
+
+### 9. jQuery Objects in FormApplication (⚠️ Technical Debt)
 **Issue:** `this.element` and `html` parameters may still be jQuery objects even in v13.
 
 **Solution (Transitional):** Detect and convert jQuery to native DOM before using native methods:
@@ -1130,19 +1269,19 @@ if (html && (html.jquery || typeof html.find === 'function')) {
 
 **Better Solution (Long-term):** Fix call sites to pass native DOM elements. This detection pattern is technical debt - it normalizes an inconsistency that should be fixed at the source.
 
-### 7. Dialog Callback jQuery (⚠️ Technical Debt)
+### 10. Dialog Callback jQuery (⚠️ Technical Debt)
 **Issue:** Dialog callbacks receive `html` that may be jQuery objects.
 
 **Solution (Transitional):** Apply same jQuery detection pattern in dialog callbacks before using `querySelector`.
 
 **Better Solution (Long-term):** Ensure Dialog callbacks receive native DOM elements. The detection is a workaround, not a permanent fix.
 
-### 8. Multiple DOM Roots
+### 11. Multiple DOM Roots
 **Issue:** Elements may be rendered to different DOM locations (sidebar vs popout).
 
 **Solution:** Search multiple roots when looking for elements that can appear in different locations.
 
-### 9. Font Awesome 5 Family References
+### 12. Font Awesome 5 Family References
 **Issue:** CSS using `font-family: "Font Awesome 5 Free"` will silently fail - icons won't render.
 
 **Solution:** 
@@ -1150,7 +1289,7 @@ if (html && (html.jquery || typeof html.find === 'function')) {
 - Update CSS to use Foundry's Font Awesome 6 family name
 - **Foundry uses `"Font Awesome 6 Pro"` by default** (not "Font Awesome 6 Free") - verify in DevTools
 
-### 10. Font Awesome Class Prefixes
+### 13. Font Awesome Class Prefixes
 **Issue:** FA5 class prefixes (`fas`, `far`, `fal`) may not work or render incorrectly.
 
 **Solution:** Update all class prefixes:
@@ -1158,7 +1297,7 @@ if (html && (html.jquery || typeof html.find === 'function')) {
 - `far` → `fa-regular`
 - `fal` → `fa-light` (if available in Foundry's subset)
 
-### 11. Font Awesome Codepoint Changes
+### 14. Font Awesome Codepoint Changes
 **Issue:** FA6 remapped many glyph codepoints, so FA5 codepoints may render wrong icons or nothing.
 
 **Solution:**
@@ -1166,7 +1305,7 @@ if (html && (html.jquery || typeof html.find === 'function')) {
 - Or inspect Foundry's icons in DevTools to see their codepoints
 - Update all CSS `content` values with FA6 codepoints
 
-### 12. Font Awesome Subset Limitations
+### 15. Font Awesome Subset Limitations
 **Issue:** Foundry only bundles a subset of FA6, not the full library.
 
 **Solution:**

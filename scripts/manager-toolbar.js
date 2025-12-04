@@ -501,11 +501,12 @@ export function addToolbarButton() {
                     button: tool.button,
                     visible: true, // Visibility is already filtered by getVisibleTools()
                     onClick: tool.onClick,
-                    onChange: (active) => {
+                    onChange: (event, active) => {
                         // Handle tool activation/deactivation
                         // This prevents errors when switching between toolbars
-                        // Foundry handles the UI, we just need to provide the handler
+                        // For button tools, we don't want to auto-trigger onClick when the control opens
                         // The 'active' parameter indicates if the tool is being activated (true) or deactivated (false)
+                        // We intentionally don't call onClick here - buttons should only trigger onClick on direct click
                     },
                     order: Object.keys(tools).length
                 };
@@ -563,12 +564,16 @@ export function addToolbarButton() {
                     }
                 });
                 
-                // v13 requirement: activeTool must point to a valid tool key
-                // If current activeTool doesn't exist, set it to the first available tool
+                // v13 requirement: activeTool must point to a valid tool key (cannot be empty string)
+                // Even if all tools are buttons, we must set activeTool to a valid tool key
+                // We'll prevent auto-activation by ensuring the tool's onChange doesn't trigger onClick
                 const toolKeys = Object.keys(existingTools);
                 if (!existingControl.activeTool || !existingTools[existingControl.activeTool]) {
+                    // Set to first available tool (must be a valid key, even if it's a button)
                     existingControl.activeTool = toolKeys.length > 0 ? toolKeys[0] : "";
                 }
+                // Note: We can't use empty string as activeTool - it must be a valid tool key
+                // Button tools won't auto-activate if their onChange handler doesn't call onClick
                 
                 // v13 requirement: control needs onChange handler
                 existingControl.onChange = (event, active) => {
@@ -584,6 +589,9 @@ export function addToolbarButton() {
             } else {
                 // Create new control with v13 required structure
                 const toolKeys = Object.keys(tools);
+                // v13 requirement: activeTool must point to a valid tool key (cannot be empty string)
+                // Even if all tools are buttons, we must set activeTool to a valid tool key
+                // We'll prevent auto-activation by ensuring the tool's onChange doesn't trigger onClick
                 const defaultActiveTool = toolKeys.length > 0 ? toolKeys[0] : "";
                 
                 controls['blacksmith-utilities'] = {
@@ -593,7 +601,7 @@ export function addToolbarButton() {
                     layer: "blacksmith-utilities-layer", // Ensure this matches the registration key
                     order: 99, // v13 requirement
                     visible: true, // v13 requirement
-                    activeTool: defaultActiveTool, // v13 requirement: must point to valid tool key
+                    activeTool: defaultActiveTool, // v13 requirement: must point to valid tool key (or empty for button-only controls)
                     tools: tools, // v13 requirement: must be Record<string, SceneControlTool>
                     onChange: (event, active) => {
                         // v13 requirement: control onChange handler
