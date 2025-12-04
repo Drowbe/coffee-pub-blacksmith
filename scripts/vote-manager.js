@@ -162,11 +162,9 @@ export class VoteManager {
                                 button.style.pointerEvents = 'none';
                             } else if (userVote) {
                                 // Style non-selected options when user has voted
-                                $button.css({
-                                    'opacity': '0.6',
-                                    'cursor': 'not-allowed',
-                                    'pointer-events': 'none'
-                                });
+                                button.style.opacity = '0.6';
+                                button.style.cursor = 'not-allowed';
+                                button.style.pointerEvents = 'none';
                             }
                         });
                     }
