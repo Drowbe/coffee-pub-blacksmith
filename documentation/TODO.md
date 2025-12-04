@@ -9,7 +9,7 @@
 - import json for actors
 - import json for items
 - import json for tables
-- toolbar dividers and styling
+- ~~toolbar dividers and styling~~ - COMPLETED in 13.0.2
 - nameplate creation
 
 

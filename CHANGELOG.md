@@ -22,9 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Merged tools instead of replacing entire tools object to prevent reference loss
 - **Toolbar - Auto-Activation of Tools:** Fixed tools auto-triggering when control opens (e.g., "Request a Roll" dialog opening automatically)
   - Removed `onClick` from `SceneControlTool` objects (v13 compatibility shim auto-calls it from `onChange`)
-  - Updated `onChange` handler to detect actual tool clicks vs control activation
-  - Only triggers tool action when event originates from tool element (`[data-tool]` attribute)
+  - Changed `onChange` handlers to no-ops that never call `tool.onClick`
+  - Implemented `_wireToolClicks()` to attach real DOM click handlers directly to rendered buttons
+  - Tool buttons now respond only to actual user clicks, not control activation
   - Prevents v13 compatibility shim from auto-calling `onClick` on control activation
+- **Toolbar - Tool Button Clicks:** Fixed tool buttons not responding to clicks in CoffeePub toolbar
+  - Implemented direct DOM event handlers via `_wireToolClicks()` function
+  - Handlers attached to rendered `<button data-tool="...">` elements after toolbar renders
+  - Works correctly even when clicks occur on tooltip elements (ASIDE)
+  - Handlers prevent default behavior and stop propagation to avoid conflicts with Foundry's toggle logic
 - **Toolbar - Tool Updates:** Fixed tool updates not preserving Foundry's internal references
   - Changed from replacing entire tools object to merging tools in place
   - Preserves active tool references when updating control
@@ -36,15 +42,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Re-triggers `getSceneControlButtons` hook to rebuild toolbar with new tools
   - Added debug logging for tool registration status
 - **Toolbar - v13 Migration:** Migrated toolbar to v13 `SceneControl` interface
-  - Tools now use `onChange` instead of deprecated `onClick` (with event detection)
+  - Tools use `onChange` as no-ops (v13 requirement) but never call `tool.onClick`
+  - Real click handling done via direct DOM event handlers in `_wireToolClicks()`
   - Control structure matches v13 requirements exactly
-  - All tools have proper `onChange` handlers (even if no-op for button tools)
+  - All tools have proper `onChange` handlers (no-op for button tools)
 
 ### Technical
 - **Toolbar - v13 Compatibility:** Addressed v13 compatibility shim behavior
   - v13 automatically calls `onClick` from inside `onChange` when tool is activated
-  - Solution: Don't define `onClick` on `SceneControlTool`, use `onChange` with event detection instead
-  - Event detection distinguishes between control activation (no `[data-tool]` element) and actual tool clicks
+  - Solution: Don't define `onClick` on `SceneControlTool`, make `onChange` a no-op, and wire real DOM click handlers
+  - `_wireToolClicks()` attaches event listeners directly to rendered buttons, bypassing v13's shim entirely
+  - This approach completely avoids auto-activation issues and provides reliable click handling
 - **Toolbar - Reference Preservation:** Improved tool reference handling
   - Update tools in place using `Object.assign` to preserve Foundry's internal references
   - Merge tools instead of replacing entire object
