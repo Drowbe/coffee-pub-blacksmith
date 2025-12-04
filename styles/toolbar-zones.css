@@ -3,55 +3,58 @@
    ================================================================== */
 
 /* Zone background colors - using CSS classes */
-#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-general {
-    background: rgba(108, 117, 125, 0.7); /* Gray tint for general zone */
+/* v13: Toolbar is #scene-controls-tools, buttons have class "tool" not "control-tool" */
+#scene-controls-tools button.tool.toolbar-zone-general {
+    background: rgba(108, 117, 125, 0.7) !important; /* Gray tint for general zone */
 }
-#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-general:hover {
-    background: rgba(108, 117, 125, 0.9); /* Gray tint for general zone */
-}
-
-#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-rolls {
-    background: rgba(101, 38, 21, 0.7); /* Dark tint for rolls zone */
-}
-#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-rolls:hover {
-    background: rgba(101, 38, 21, 0.9); /* Dark tint for rolls zone */
+#scene-controls-tools button.tool.toolbar-zone-general:hover {
+    background: rgba(108, 117, 125, 0.9) !important; /* Gray tint for general zone */
 }
 
-#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-communication {
-    background: rgba(139, 69, 19, 0.7); /* Brown tint for communication zone */
+#scene-controls-tools button.tool.toolbar-zone-rolls {
+    background: rgba(101, 38, 21, 0.7) !important; /* Dark tint for rolls zone */
 }
-#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-communication:hover {
-    background: rgba(139, 69, 19, 0.9); /* Brown tint for communication zone */
-}
-
-#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-utilities {
-    background: rgba(39, 74, 94, 0.7); /* Blue tint for utilities zone */
-}
-#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-utilities:hover {
-    background: rgba(39, 74, 94, 0.9); /* Blue tint for utilities zone */
+#scene-controls-tools button.tool.toolbar-zone-rolls:hover {
+    background: rgba(101, 38, 21, 0.9) !important; /* Dark tint for rolls zone */
 }
 
-#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-leadertools {
-    background: rgba(75, 0, 130, 0.7); /* Purple tint for leader tools zone */
+#scene-controls-tools button.tool.toolbar-zone-communication {
+    background: rgba(139, 69, 19, 0.7) !important; /* Brown tint for communication zone */
 }
-#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-leadertools:hover {
-    background: rgba(75, 0, 130, 0.9); /* Purple tint for leader tools zone */
+#scene-controls-tools button.tool.toolbar-zone-communication:hover {
+    background: rgba(139, 69, 19, 0.9) !important; /* Brown tint for communication zone */
 }
 
-#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-gmtools {
-    background: rgba(60, 83, 29, 0.7); /* Green tint for GM tools zone */
+#scene-controls-tools button.tool.toolbar-zone-utilities {
+    background: rgba(39, 74, 94, 0.7) !important; /* Blue tint for utilities zone */
 }
-#tools-panel-blacksmith-utilities .control-tool.toolbar-zone-gmtools:hover {
-    background: rgba(60, 83, 29, 0.9); /* Green tint for GM tools zone */
+#scene-controls-tools button.tool.toolbar-zone-utilities:hover {
+    background: rgba(39, 74, 94, 0.9) !important; /* Blue tint for utilities zone */
+}
+
+#scene-controls-tools button.tool.toolbar-zone-leadertools {
+    background: rgba(75, 0, 130, 0.7) !important; /* Purple tint for leader tools zone */
+}
+#scene-controls-tools button.tool.toolbar-zone-leadertools:hover {
+    background: rgba(75, 0, 130, 0.9) !important; /* Purple tint for leader tools zone */
+}
+
+#scene-controls-tools button.tool.toolbar-zone-gmtools {
+    background: rgba(60, 83, 29, 0.7) !important; /* Green tint for GM tools zone */
+}
+#scene-controls-tools button.tool.toolbar-zone-gmtools:hover {
+    background: rgba(60, 83, 29, 0.9) !important; /* Green tint for GM tools zone */
 }
 
 
 /* Zone dividers - injected between zones */
-#tools-panel-blacksmith-utilities .toolbar-zone-divider {
+/* v13: Dividers are <li> elements inside <menu> */
+#scene-controls-tools li.toolbar-zone-divider {
     height: 0px;
     max-height: 0px;
-    max-width: 38px;
+    width: 100%;
     margin: 0px 0px 10px 0px !important;
+    padding: 0 !important;
     border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
     border-bottom: 1px solid rgba(0, 0, 0, 0.3) !important;
     border-radius: 1px;
@@ -61,35 +64,35 @@
         rgba(255, 255, 255, 0.6) 50%, 
         rgba(255, 255, 255, 0.3) 80%, 
         transparent 100%
-    );
+    ) !important;
     box-shadow: 0 3px 4px rgba(0, 0, 0, 0.5);
+    list-style: none;
 }
 
-
 /* Specific divider styles for different zones */
-#tools-panel-blacksmith-utilities .toolbar-zone-divider[data-zone="rolls"] {
+#scene-controls-tools li.toolbar-zone-divider[data-zone="rolls"] {
     background: linear-gradient(90deg, 
         transparent 0%, 
         rgba(255, 255, 255, 0.9) 20%, 
         rgba(255, 255, 255, 0.9) 50%, 
         rgba(255, 255, 255, 0.9) 80%, 
         transparent 100%
-    );
-    border-top: 1px dotted rgba(255, 255, 255, 0.9);
-    border-bottom: 1px dotted rgba(255, 255, 255, 0.9);
+    ) !important;
+    border-top: 1px dotted rgba(255, 255, 255, 0.9) !important;
+    border-bottom: 1px dotted rgba(255, 255, 255, 0.9) !important;
 }
 
-#tools-panel-blacksmith-utilities .toolbar-zone-divider[data-zone="utilities"],
-#tools-panel-blacksmith-utilities .toolbar-zone-divider[data-zone="gmtools"] {
+#scene-controls-tools li.toolbar-zone-divider[data-zone="utilities"],
+#scene-controls-tools li.toolbar-zone-divider[data-zone="gmtools"] {
     background: linear-gradient(90deg, 
         transparent 0%, 
         rgba(255, 255, 255, 0.2) 20%, 
         rgba(255, 255, 255, 0.4) 50%, 
         rgba(255, 255, 255, 0.2) 80%, 
         transparent 100%
-    );
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    ) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
 
 
@@ -98,7 +101,8 @@
 
 
 /* Zone titles - appear below dividers */
-#tools-panel-blacksmith-utilities .toolbar-zone-title {
+/* v13: Titles are <li> elements inside <menu> */
+#scene-controls-tools li.toolbar-zone-title {
     font-size: 7px;
     font-weight: 400;
     text-align: center;
@@ -111,48 +115,50 @@
     border-radius: 4px;
     
     margin: 0px 0px 10px 0px !important;
-    padding: 0px 0px 0px 0px;
+    padding: 2px 0px !important;
 
-    width: 38px;
-    max-width: 38px;
+    width: 100%;
     max-height: 15px;
+    list-style: none;
         
     display: grid;
     place-items: center;
-    margin-left: inherit;
-    margin-right: inherit;
     
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
 }
 
+#scene-controls-tools li.toolbar-zone-title span {
+    display: block;
+    width: 100%;
+}
+
 /* Zone-specific title styling */
-
-#tools-panel-blacksmith-utilities .toolbar-zone-title[data-zone="general"] {
+#scene-controls-tools li.toolbar-zone-title[data-zone="general"] {
     color: rgba(255, 255, 255, 0.8);
-    background: rgba(108, 117, 125, 0.9);
+    background: rgba(108, 117, 125, 0.9) !important;
 }
 
-#tools-panel-blacksmith-utilities .toolbar-zone-title[data-zone="rolls"] {
+#scene-controls-tools li.toolbar-zone-title[data-zone="rolls"] {
     color: rgba(255, 255, 255, 0.8);
-    background: rgba(101, 38, 21, 0.9);
+    background: rgba(101, 38, 21, 0.9) !important;
 }
 
-#tools-panel-blacksmith-utilities .toolbar-zone-title[data-zone="communication"] {
+#scene-controls-tools li.toolbar-zone-title[data-zone="communication"] {
     color: rgba(255, 255, 255, 0.8);
-    background: rgba(139, 69, 19, 0.9);
+    background: rgba(139, 69, 19, 0.9) !important;
 }
 
-#tools-panel-blacksmith-utilities .toolbar-zone-title[data-zone="utilities"] {
+#scene-controls-tools li.toolbar-zone-title[data-zone="utilities"] {
     color: rgba(255, 255, 255, 0.8);
-    background: rgba(39, 74, 94, 0.9);
+    background: rgba(39, 74, 94, 0.9) !important;
 }
 
-#tools-panel-blacksmith-utilities .toolbar-zone-title[data-zone="leadertools"] {
+#scene-controls-tools li.toolbar-zone-title[data-zone="leadertools"] {
     color: rgba(255, 255, 255, 0.8);
-    background: rgba(75, 0, 130, 0.9);
+    background: rgba(75, 0, 130, 0.9) !important;
 }
 
-#tools-panel-blacksmith-utilities .toolbar-zone-title[data-zone="gmtools"] {
+#scene-controls-tools li.toolbar-zone-title[data-zone="gmtools"] {
     color: rgba(255, 255, 255, 0.8);
-    background: rgba(60, 83, 29, 0.9);
+    background: rgba(60, 83, 29, 0.9) !important;
 }

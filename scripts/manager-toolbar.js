@@ -418,8 +418,13 @@ export function addToolbarButton() {
     function _applyZoneClasses() {
         // Wait a bit for the toolbar to be fully rendered
         setTimeout(() => {
-            const toolbar = document.querySelector('#tools-panel-blacksmith-utilities');
-            if (!toolbar) return;
+            // v13: Toolbar is now #scene-controls-tools (contains all tools from all controls)
+            // We need to find our tools within this menu
+            const toolbar = document.querySelector('#scene-controls-tools');
+            if (!toolbar) {
+                postConsoleAndNotification(MODULE.NAME, "Toolbar: #scene-controls-tools not found", "", true, false);
+                return;
+            }
             
             // Get the tools in order
             const visibleTools = getVisibleToolsByZones();
@@ -433,6 +438,7 @@ export function addToolbarButton() {
             // Apply zone classes and inject dividers
             let currentZone = null;
             visibleTools.forEach((tool, index) => {
+                // v13: Tools are buttons inside <li> elements, find by data-tool attribute
                 const toolElement = toolbar.querySelector(`[data-tool="${tool.name}"]`);
                 if (toolElement) {
                     const zoneClass = `toolbar-zone-${tool.zone || 'general'}`;
@@ -444,21 +450,27 @@ export function addToolbarButton() {
                         const showDividers = getSettingSafely(MODULE.ID, 'toolbarShowDividers', true);
                         const showLabels = getSettingSafely(MODULE.ID, 'toolbarShowLabels', false);
                         
-                        // Create divider element if enabled
-                        if (showDividers) {
-                            const divider = document.createElement('div');
-                            divider.className = 'toolbar-zone-divider';
-                            divider.setAttribute('data-zone', tool.zone || 'general');
-                            toolElement.parentNode.insertBefore(divider, toolElement);
-                        }
-                        
-                        // Create title element if enabled
-                        if (showLabels) {
-                            const title = document.createElement('div');
-                            title.className = 'toolbar-zone-title';
-                            title.setAttribute('data-zone', tool.zone || 'general');
-                            title.textContent = _getZoneTitle(tool.zone || 'general');
-                            toolElement.parentNode.insertBefore(title, toolElement);
+                        // v13: Tool element is a button inside an <li>, so we insert before the <li>
+                        const listItem = toolElement.closest('li');
+                        if (listItem) {
+                            // Create divider element if enabled
+                            if (showDividers) {
+                                const divider = document.createElement('li');
+                                divider.className = 'toolbar-zone-divider';
+                                divider.setAttribute('data-zone', tool.zone || 'general');
+                                listItem.parentNode.insertBefore(divider, listItem);
+                            }
+                            
+                            // Create title element if enabled
+                            if (showLabels) {
+                                const title = document.createElement('li');
+                                title.className = 'toolbar-zone-title';
+                                title.setAttribute('data-zone', tool.zone || 'general');
+                                const titleText = document.createElement('span');
+                                titleText.textContent = _getZoneTitle(tool.zone || 'general');
+                                title.appendChild(titleText);
+                                listItem.parentNode.insertBefore(title, listItem);
+                            }
                         }
                     }
                     
