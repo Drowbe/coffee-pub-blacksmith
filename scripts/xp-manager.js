@@ -609,7 +609,7 @@ export class XpManager {
             // Log the final xpData for debugging
     
 
-            const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-xp.hbs', {
+            const content = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-xp.hbs', {
                 xpData: xpData,
                 results: results
             });
@@ -672,7 +672,7 @@ export class XpManager {
                 resultsLength: results.length 
             }, true, false);
             
-            const template = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-xp.hbs', {
+            const template = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-xp.hbs', {
                 xpData: xpData,
                 results: results
             });

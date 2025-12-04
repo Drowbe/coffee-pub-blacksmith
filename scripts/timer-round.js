@@ -151,7 +151,7 @@ export class RoundTimer {
         const totalCombatTime = this._getTotalCombatDuration();
         const formattedTotalTime = formatTime(totalCombatTime || 0, "hh:mm:ss");
         
-        const timerHtml = await renderTemplate(
+        const timerHtml = await foundry.applications.handlebars.renderTemplate(
             'modules/coffee-pub-blacksmith/templates/timer-round.hbs',
             {
                 roundDurationActual: formattedRoundTime,

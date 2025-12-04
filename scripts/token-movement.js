@@ -401,7 +401,7 @@ export class MovementConfig extends Application {
                 movementDescription: movementType.description
             };
 
-            const basicContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', basicTemplateData);
+            const basicContent = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', basicTemplateData);
 
             // Send chat message
             ChatMessage.create({
@@ -1209,7 +1209,7 @@ async function postMarchingOrder() {
     const spacingText = spacing > 0 ? `${spacing} grid space${spacing > 1 ? 's' : ''}` : '';
 
     // Create chat message
-    const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', {
+    const content = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', {
         isPublic: true,
         isMovementChange: true,
         movementIcon: movementType.icon,
@@ -1302,7 +1302,7 @@ const createCombatHookId = HookManager.registerHook({
                 movementDescription: `When combat ends <strong>${prevModeType.name} Mode</strong> will be restored.<br><br>${combatModeType.description}`
             };
 
-            const combatContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', combatTemplateData);
+            const combatContent = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', combatTemplateData);
 
             ChatMessage.create({
                 content: combatContent,
@@ -1370,7 +1370,7 @@ const deleteCombatHookId = HookManager.registerHook({
             movementDescription: `${movementType.name} Mode restored.<br><br>${movementType.description}`
         };
 
-        const endCombatContent = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', endCombatTemplateData);
+        const endCombatContent = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', endCombatTemplateData);
 
         ChatMessage.create({
             content: endCombatContent,

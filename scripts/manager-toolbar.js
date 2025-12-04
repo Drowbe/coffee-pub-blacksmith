@@ -588,8 +588,9 @@ export function addToolbarButton() {
                 const existingTools = existingControl.tools || {};
                 
                 // Get currently active tool name to preserve it
-                const activeControl = ui.controls?.activeControl;
-                const activeTool = ui.controls?.activeTool;
+                // v13: activeControl/activeTool are deprecated, use control?.name and tool?.name
+                const activeControl = ui.controls?.control?.name;
+                const activeTool = ui.controls?.tool?.name;
                 const isOurControlActive = activeControl === existingControl.name;
                 const activeToolName = isOurControlActive ? activeTool : null;
                 
@@ -795,7 +796,8 @@ export function addToolbarButton() {
                 postConsoleAndNotification(MODULE.NAME, "Toolbar | Leader change detected", "Refreshing all toolbars for leader change", true, false);
                 
                 // Clear active tool if it's a leader tool that might be removed
-                const activeTool = ui.controls.activeTool;
+                // v13: activeTool is deprecated, use tool?.name
+                const activeTool = ui.controls.tool?.name;
                 if (activeTool && registeredTools.has(activeTool)) {
                     const tool = registeredTools.get(activeTool);
                     if (tool.leaderOnly && !game.user.isGM) {
@@ -803,7 +805,13 @@ export function addToolbarButton() {
                         const isLeader = leaderData?.userId === game.user.id;
                         if (!isLeader) {
                             // Clear the active tool since it's being removed
-                            ui.controls.activeTool = null;
+                            // v13: Setting activeTool directly may not work; Foundry will handle deactivation when tool is removed
+                            // If needed, we can call ui.controls.deactivate() or let Foundry handle it automatically
+                            try {
+                                ui.controls.activeTool = null;
+                            } catch (e) {
+                                // v13 may not allow direct assignment; Foundry will handle deactivation
+                            }
                         }
                     }
                 }
@@ -829,14 +837,21 @@ export function addToolbarButton() {
             postConsoleAndNotification(MODULE.NAME, "Toolbar | Socket leader change detected", "Refreshing toolbar from socket", true, false);
             
             // Clear active tool if it's a leader tool that might be removed
-            const activeTool = ui.controls.activeTool;
+            // v13: activeTool is deprecated, use tool?.name
+            const activeTool = ui.controls.tool?.name;
             if (activeTool && registeredTools.has(activeTool)) {
                 const tool = registeredTools.get(activeTool);
                 if (tool.leaderOnly && !game.user.isGM) {
                     const isLeader = leaderData?.userId === game.user.id;
                     if (!isLeader) {
                         // Clear the active tool since it's being removed
-                        ui.controls.activeTool = null;
+                        // v13: Setting activeTool directly may not work; Foundry will handle deactivation when tool is removed
+                        // If needed, we can call ui.controls.deactivate() or let Foundry handle it automatically
+                        try {
+                            ui.controls.activeTool = null;
+                        } catch (e) {
+                            // v13 may not allow direct assignment; Foundry will handle deactivation
+                        }
                     }
                 }
             }

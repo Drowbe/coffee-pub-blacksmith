@@ -51,7 +51,7 @@ class MenuBar {
 
     static async initialize() {
         // Load the templates
-        loadTemplates([
+        foundry.applications.handlebars.loadTemplates([
             'modules/coffee-pub-blacksmith/templates/menubar.hbs',
             'modules/coffee-pub-blacksmith/templates/cards-common.hbs',
             'modules/coffee-pub-blacksmith/templates/vote-window.hbs',
@@ -2637,7 +2637,7 @@ class MenuBar {
             };
 
             // Render the template
-            const panelHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/menubar.hbs', templateData);
+            const panelHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/menubar.hbs', templateData);
 
             // Remove click handlers before removing the DOM elements
             this.removeClickHandlers();
@@ -3021,7 +3021,7 @@ class MenuBar {
         if (!gmUser) return;
 
         // Render public message
-        const publicHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', {
+        const publicHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', {
             isPublic: true,
             leaderName: leaderName
         });
@@ -3034,7 +3034,7 @@ class MenuBar {
         });
 
         // Render private message
-        const privateHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', {
+        const privateHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', {
             isPublic: false,
             leaderName: leaderName
         });
@@ -3501,7 +3501,7 @@ class MenuBar {
             ...data
         };
 
-        const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', messageData);
+        const messageHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', messageData);
 
         await ChatMessage.create({
             content: messageHtml,
@@ -3654,7 +3654,7 @@ class MenuBar {
                     playerName: user.name
                 };
 
-                const publicHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', publicData);
+                const publicHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', publicData);
                 await ChatMessage.create({
                     content: publicHtml,
                     style: CONST.CHAT_MESSAGE_STYLES.OTHER,
@@ -3668,7 +3668,7 @@ class MenuBar {
                     leaderName: actor.name
                 };
 
-                const privateHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', privateData);
+                const privateHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', privateData);
                 await ChatMessage.create({
                     content: privateHtml,
                     style: CONST.CHAT_MESSAGE_STYLES.OTHER,

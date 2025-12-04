@@ -383,7 +383,7 @@ class CombatStats {
             };
 
             // Render the template
-            const content = await renderTemplate('modules/' + MODULE.ID + '/templates/cards-common.hbs', {
+            const content = await foundry.applications.handlebars.renderTemplate('modules/' + MODULE.ID + '/templates/cards-common.hbs', {
                 ...templateData,
                 isPublic: true,
                 isRoundAnnouncement: true
@@ -756,7 +756,7 @@ class CombatStats {
         // Render combat summary chat card
         try {
             const template = 'modules/' + MODULE.ID + '/templates/stats-combat.hbs';
-            const content = await renderTemplate(template, combatSummary);
+            const content = await foundry.applications.handlebars.renderTemplate(template, combatSummary);
             const shareStats = game.settings.get(MODULE.ID, 'shareCombatStats');
 
             await ChatMessage.create({
@@ -2284,7 +2284,7 @@ class CombatStats {
     }
 
     static async generateRoundSummary(templateData) {
-        const content = await renderTemplate('modules/' + MODULE.ID + '/templates/stats-round.hbs', templateData);
+        const content = await foundry.applications.handlebars.renderTemplate('modules/' + MODULE.ID + '/templates/stats-round.hbs', templateData);
         return content;
     }
 

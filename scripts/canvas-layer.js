@@ -1,7 +1,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 
-export class BlacksmithLayer extends CanvasLayer {
+export class BlacksmithLayer extends foundry.canvas.layers.CanvasLayer {
     constructor() {
         super();
         postConsoleAndNotification(MODULE.NAME, "BlacksmithLayer: Initialized", "", true, false);

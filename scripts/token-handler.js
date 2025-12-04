@@ -285,7 +285,7 @@ export class TokenHandler {
                 const element = document.querySelector(`#${section.id}`);
                 if (element) {
                     try {
-                        const content = await renderTemplate(section.template, templateData);
+                        const content = await foundry.applications.handlebars.renderTemplate(section.template, templateData);
                         // Create a temporary container and set its HTML to get the DOM element
                         const temp = document.createElement('div');
                         temp.innerHTML = content;

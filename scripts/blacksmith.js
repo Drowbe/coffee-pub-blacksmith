@@ -1980,7 +1980,7 @@ export async function handleSkillRollUpdate(data) {
         contestedRoll
     };
 
-    const content = await renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', updatedMessageData);
+    const content = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', updatedMessageData);
     await message.update({ 
         content,
         flags: {

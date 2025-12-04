@@ -55,7 +55,7 @@ export class WrapperManager {
                     type: 'WRAPPER'
                 },
                 {
-                    target: 'Token.prototype.draw',
+                    target: 'foundry.canvas.placeables.Token.prototype.draw',
                     callback: this._onTokenDraw,
                     type: 'WRAPPER'
                 },

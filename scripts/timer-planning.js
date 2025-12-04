@@ -359,7 +359,7 @@ export class PlanningTimer {
             this.state.remaining = this.state.duration;
         }
         
-        const timerHtml = await renderTemplate(
+        const timerHtml = await foundry.applications.handlebars.renderTemplate(
             'modules/coffee-pub-blacksmith/templates/timer-planning.hbs',
             {
                 label,
@@ -1020,7 +1020,7 @@ export class PlanningTimer {
             ...data
         };
 
-        const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', messageData);
+        const messageHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', messageData);
 
         await ChatMessage.create({
             content: messageHtml,

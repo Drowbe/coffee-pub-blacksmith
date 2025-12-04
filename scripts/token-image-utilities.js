@@ -684,7 +684,7 @@ export class TokenImageUtilities {
                     tokenName: token.name
                 };
 
-                const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', messageData);
+                const messageHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', messageData);
 
                 await ChatMessage.create({
                     content: messageHtml,

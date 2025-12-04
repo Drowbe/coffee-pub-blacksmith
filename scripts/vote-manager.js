@@ -765,7 +765,7 @@ export class VoteManager {
             currentUserIsGM: game.user.isGM
         };
 
-        const content = await renderTemplate(
+        const content = await foundry.applications.handlebars.renderTemplate(
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs',
             messageData,
         );
@@ -803,7 +803,7 @@ export class VoteManager {
             currentUserIsGM: game.user.isGM
         };
 
-        const content = await renderTemplate(
+        const content = await foundry.applications.handlebars.renderTemplate(
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs',
             messageData,
         );

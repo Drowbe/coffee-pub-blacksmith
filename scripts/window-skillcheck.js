@@ -1445,7 +1445,7 @@ export class SkillCheckDialog extends Application {
      * @returns {Promise<string>} The rendered chat message content.
      */
     static async formatChatMessage(messageData) {
-        return renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
+        return foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/skill-check-card.hbs', messageData);
     }
 
     /**

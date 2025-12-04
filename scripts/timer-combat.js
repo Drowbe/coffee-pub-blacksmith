@@ -291,7 +291,7 @@ class CombatTimer {
             }
             
 
-            const timerHtml = await renderTemplate(
+            const timerHtml = await foundry.applications.handlebars.renderTemplate(
                 'modules/coffee-pub-blacksmith/templates/timer-combat.hbs',
                 {
                     enabled: isEnabled,
@@ -1101,7 +1101,7 @@ class CombatTimer {
             messageData.expiredMessage = data.expiredMessage.replace('{name}', name);
         }
 
-        const messageHtml = await renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', messageData);
+        const messageHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', messageData);
 
         await ChatMessage.create({
             content: messageHtml,
