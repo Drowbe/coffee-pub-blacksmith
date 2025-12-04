@@ -6,6 +6,52 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.0.2] - v13 Migration
+
+### Fixed
+- **Toolbar - External Module Tool Registration:** Fixed external modules' tools not appearing in CoffeePub toolbar
+  - Added automatic toolbar refresh when tools are registered via `registerToolbarTool()` API
+  - Tools now appear immediately after registration without requiring manual refresh
+  - Added debug logging to help diagnose tool registration issues
+- **Toolbar - v13 SceneControl Structure:** Fixed `TypeError: Cannot read properties of undefined (reading 'onChange')` when switching toolbars
+  - Updated control structure to match v13 `SceneControl` interface requirements
+  - Added required `activeTool` property (must point to valid tool key)
+  - Added required `onChange` and `onToolChange` handlers on control
+  - Added required `order` and `visible` properties
+  - Changed from deleting/recreating control to updating in place to preserve Foundry's tool references
+  - Merged tools instead of replacing entire tools object to prevent reference loss
+- **Toolbar - Auto-Activation of Tools:** Fixed tools auto-triggering when control opens (e.g., "Request a Roll" dialog opening automatically)
+  - Removed `onClick` from `SceneControlTool` objects (v13 compatibility shim auto-calls it from `onChange`)
+  - Updated `onChange` handler to detect actual tool clicks vs control activation
+  - Only triggers tool action when event originates from tool element (`[data-tool]` attribute)
+  - Prevents v13 compatibility shim from auto-calling `onClick` on control activation
+- **Toolbar - Tool Updates:** Fixed tool updates not preserving Foundry's internal references
+  - Changed from replacing entire tools object to merging tools in place
+  - Preserves active tool references when updating control
+  - Explicitly removes `onClick` from updated tools to prevent shim issues
+
+### Changed
+- **Toolbar API - Tool Registration:** Enhanced `registerToolbarTool()` to automatically refresh toolbar
+  - Toolbar now refreshes automatically after tool registration
+  - Re-triggers `getSceneControlButtons` hook to rebuild toolbar with new tools
+  - Added debug logging for tool registration status
+- **Toolbar - v13 Migration:** Migrated toolbar to v13 `SceneControl` interface
+  - Tools now use `onChange` instead of deprecated `onClick` (with event detection)
+  - Control structure matches v13 requirements exactly
+  - All tools have proper `onChange` handlers (even if no-op for button tools)
+
+### Technical
+- **Toolbar - v13 Compatibility:** Addressed v13 compatibility shim behavior
+  - v13 automatically calls `onClick` from inside `onChange` when tool is activated
+  - Solution: Don't define `onClick` on `SceneControlTool`, use `onChange` with event detection instead
+  - Event detection distinguishes between control activation (no `[data-tool]` element) and actual tool clicks
+- **Toolbar - Reference Preservation:** Improved tool reference handling
+  - Update tools in place using `Object.assign` to preserve Foundry's internal references
+  - Merge tools instead of replacing entire object
+  - Preserve active tools when they're being removed (mark as invisible instead of deleting)
+
+
+
 ## [13.0.1] - v13 Migration
 
 ### Fixed
