@@ -412,6 +412,61 @@ export function addToolbarButton() {
     }
 
     /**
+     * Wire real click handlers to our tools after the toolbar is rendered.
+     * This bypasses the v13 onClick shim entirely.
+     * @private
+     */
+    function _wireToolClicks() {
+        const toolbar = document.querySelector('#scene-controls-tools');
+        if (!toolbar) return;
+
+        const visibleTools = getVisibleToolsByZones();
+
+        for (const tool of visibleTools) {
+            // Only wire up "button" tools that actually have an onClick callback
+            if (!tool.button || typeof tool.onClick !== 'function') continue;
+
+            // Foundry renders these as <button data-tool="name"> inside <li>
+            const buttons = toolbar.querySelectorAll(`button[data-tool="${tool.name}"]`);
+            if (!buttons.length) continue;
+
+            buttons.forEach(btn => {
+                // Remove any previous handler we attached
+                if (btn._blacksmithClickHandler) {
+                    btn.removeEventListener('click', btn._blacksmithClickHandler);
+                }
+
+                const handler = event => {
+                    // Only respond to real user left clicks
+                    if (!event.isTrusted || event.button !== 0) return;
+
+                    // Keep Foundry from interpreting this as a toggle change
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    try {
+                        tool.onClick(event);
+                    } catch (error) {
+                        postConsoleAndNotification(
+                            MODULE.NAME,
+                            `Toolbar: Error in tool onClick for ${tool.name}`,
+                            error,
+                            false,
+                            false
+                        );
+                    }
+
+                    // Optional: blur so the button does not look "stuck" active
+                    btn.blur();
+                };
+
+                btn._blacksmithClickHandler = handler;
+                btn.addEventListener('click', handler);
+            });
+        }
+    }
+
+    /**
      * Apply zone classes to toolbar tools after they're rendered
      * @private
      */
@@ -453,19 +508,19 @@ export function addToolbarButton() {
                         // v13: Tool element is a button inside an <li>, so we insert before the <li>
                         const listItem = toolElement.closest('li');
                         if (listItem) {
-                            // Create divider element if enabled
-                            if (showDividers) {
+                        // Create divider element if enabled
+                        if (showDividers) {
                                 const divider = document.createElement('li');
-                                divider.className = 'toolbar-zone-divider';
-                                divider.setAttribute('data-zone', tool.zone || 'general');
+                            divider.className = 'toolbar-zone-divider';
+                            divider.setAttribute('data-zone', tool.zone || 'general');
                                 listItem.parentNode.insertBefore(divider, listItem);
-                            }
-                            
-                            // Create title element if enabled
-                            if (showLabels) {
+                        }
+                        
+                        // Create title element if enabled
+                        if (showLabels) {
                                 const title = document.createElement('li');
-                                title.className = 'toolbar-zone-title';
-                                title.setAttribute('data-zone', tool.zone || 'general');
+                            title.className = 'toolbar-zone-title';
+                            title.setAttribute('data-zone', tool.zone || 'general');
                                 const titleText = document.createElement('span');
                                 titleText.textContent = _getZoneTitle(tool.zone || 'general');
                                 title.appendChild(titleText);
@@ -515,25 +570,12 @@ export function addToolbarButton() {
                     title: tool.title,
                     button: tool.button,
                     visible: true, // Visibility is already filtered by getVisibleTools()
-                    // IMPORTANT: no onClick here - v13 shim will auto-call it on control activation
-                    onChange: (event, active) => {
-                        // Only care about button tools being ACTIVATED
-                        if (!tool.button || !active || !tool.onClick) return;
-                        
-                        // Distinguish between "clicked the control" vs "clicked the tool"
-                        // When control activates, event target is the control button, not a tool button
-                        // When tool is clicked, event target is inside the tool element with data-tool attribute
-                        const target = event?.currentTarget ?? event?.target;
-                        const toolEl = target?.closest?.('[data-tool]');
-                        if (!toolEl) return; // came from control, not tool
-                        if (toolEl.dataset.tool !== tool.name) return; // wrong tool
-                        
-                        // This is an actual tool click, not control activation
-                        try {
-                            tool.onClick(event);
-                        } catch (error) {
-                            postConsoleAndNotification(MODULE.NAME, "Toolbar: Error in tool onClick", error, false, false);
-                        }
+                    // v13 requires onChange but we keep it as a no-op (or light debug only)
+                    // All real behavior is driven by _wireToolClicks DOM handlers
+                    onChange: (_event, _active) => {
+                        // No-op: onChange never calls tool.onClick anymore
+                        // Optional: keep a light debug if you want to see activations
+                        // postConsoleAndNotification(MODULE.NAME, `Toolbar onChange (noop): ${tool.name}`, "", true, false);
                     },
                     order: index
                 };
@@ -626,11 +668,11 @@ export function addToolbarButton() {
                 // We'll prevent auto-activation by ensuring the tool's onChange doesn't trigger onClick
                 const defaultActiveTool = toolKeys.length > 0 ? toolKeys[0] : "";
                 
-                controls['blacksmith-utilities'] = {
-                    name: "blacksmith-utilities",
-                    title: "Blacksmith Utilities",
-                    icon: "fa-solid fa-mug-hot",
-                    layer: "blacksmith-utilities-layer", // Ensure this matches the registration key
+            controls['blacksmith-utilities'] = {
+                name: "blacksmith-utilities",
+                title: "Blacksmith Utilities",
+                icon: "fa-solid fa-mug-hot",
+                layer: "blacksmith-utilities-layer", // Ensure this matches the registration key
                     order: 99, // v13 requirement
                     visible: true, // v13 requirement
                     activeTool: defaultActiveTool, // v13 requirement: must point to valid tool key (or empty for button-only controls)
@@ -694,7 +736,8 @@ export function addToolbarButton() {
                                 title: tool.title,
                                 button: tool.button,
                                 visible: true,
-                                onClick: tool.onClick,
+                                // Do not use onClick here, we wire clicks in the DOM
+                                onChange: () => {},
                                 order: Object.keys(tokenControl.tools).length
                             };
                         }
@@ -712,9 +755,8 @@ export function addToolbarButton() {
         context: 'manager-toolbar-scene',
         priority: 3, // Normal priority - UI enhancement
         callback: () => {
-            // v13: Foundry handles toolbar activation automatically, we just need to apply styling
-            // Reapply styling when toolbar is rendered (handles click away/back)
             _applyZoneClasses();
+            _wireToolClicks();
         }
     });
 
@@ -733,9 +775,9 @@ export function addToolbarButton() {
             // Also refresh the toolbar after a short delay to ensure all settings are loaded
             setTimeout(() => {
                 postConsoleAndNotification(MODULE.NAME, "Toolbar | Delayed refresh", "Refreshing toolbar after delay", true, false);
-                // Force re-run the getSceneControlButtons hook to rebuild toolbar with current leader status
                 Hooks.callAll('getSceneControlButtons', ui.controls.controls);
                 ui.controls.render();
+                _wireToolClicks();
             }, 100);
         }
     });
