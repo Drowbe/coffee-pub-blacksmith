@@ -1242,7 +1242,12 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
                 icon: "<i class='fa-solid fa-masks-theater'></i>",
                 label: "Import JSON",
                 callback: async (html) => {
-                    const jsonInput = html.querySelector("#json-input");
+                    // v13: html may be a jQuery object, convert to native DOM
+                    let nativeHtml = html;
+                    if (html && (html.jquery || typeof html.find === 'function')) {
+                        nativeHtml = html[0] || html.get?.(0) || html;
+                    }
+                    const jsonInput = nativeHtml.querySelector("#json-input");
                     const jsonData = jsonInput ? jsonInput.value : '';
                     try {
                         // Get the journal 
@@ -1276,11 +1281,16 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
             },
             default: "ok",
             render: (htmlDialog) => {
+            // v13: htmlDialog may be a jQuery object, convert to native DOM
+            let nativeHtmlDialog = htmlDialog;
+            if (htmlDialog && (htmlDialog.jquery || typeof htmlDialog.find === 'function')) {
+                nativeHtmlDialog = htmlDialog[0] || htmlDialog.get?.(0) || htmlDialog;
+            }
             // Attach event listeners for template copy
-            const copyTemplateBtn = htmlDialog.querySelector("#copy-template-btn");
+            const copyTemplateBtn = nativeHtmlDialog.querySelector("#copy-template-btn");
             if (copyTemplateBtn) {
                 copyTemplateBtn.addEventListener('click', async () => {
-                    const templateTypeSelect = htmlDialog.querySelector("#template-type");
+                    const templateTypeSelect = nativeHtmlDialog.querySelector("#template-type");
                     const type = templateTypeSelect ? templateTypeSelect.value : '';
                 if (type === "injury") {
                 copyToClipboard(injuryTemplate);
@@ -2780,7 +2790,12 @@ const renderItemDirectoryHookId = HookManager.registerHook({
                 icon: "<i class='fa-solid fa-boxes-stacked'></i>",
                 label: "Import JSON",
                 callback: async (html) => {
-                    const jsonInput = html.querySelector("#item-json-input");
+                    // v13: html may be a jQuery object, convert to native DOM
+                    let nativeHtml = html;
+                    if (html && (html.jquery || typeof html.find === 'function')) {
+                        nativeHtml = html[0] || html.get?.(0) || html;
+                    }
+                    const jsonInput = nativeHtml.querySelector("#item-json-input");
                     const jsonData = jsonInput ? jsonInput.value : '';
                     let itemsToImport = [];
                     try {
@@ -2804,11 +2819,16 @@ const renderItemDirectoryHookId = HookManager.registerHook({
         },
         default: "ok",
         render: (htmlDialog) => {
+          // v13: htmlDialog may be a jQuery object, convert to native DOM
+          let nativeHtmlDialog = htmlDialog;
+          if (htmlDialog && (htmlDialog.jquery || typeof htmlDialog.find === 'function')) {
+              nativeHtmlDialog = htmlDialog[0] || htmlDialog.get?.(0) || htmlDialog;
+          }
           // Attach event listeners for template copy
-          const copyItemTemplateBtn = htmlDialog.querySelector("#copy-item-template-btn");
+          const copyItemTemplateBtn = nativeHtmlDialog.querySelector("#copy-item-template-btn");
           if (copyItemTemplateBtn) {
               copyItemTemplateBtn.addEventListener('click', async () => {
-                  const itemTemplateTypeSelect = htmlDialog.querySelector("#item-template-type");
+                  const itemTemplateTypeSelect = nativeHtmlDialog.querySelector("#item-template-type");
                   const type = itemTemplateTypeSelect ? itemTemplateTypeSelect.value : '';
             if (type === "loot") {
               const promptWithDefaults = await getItemPromptWithDefaults(lootPrompt);
@@ -2888,7 +2908,12 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
                 icon: "<i class='fa-solid fa-dice-d20'></i>",
                 label: "Import JSON",
                 callback: async (html) => {
-                    const jsonInput = html.querySelector("#table-json-input");
+                    // v13: html may be a jQuery object, convert to native DOM
+                    let nativeHtml = html;
+                    if (html && (html.jquery || typeof html.find === 'function')) {
+                        nativeHtml = html[0] || html.get?.(0) || html;
+                    }
+                    const jsonInput = nativeHtml.querySelector("#table-json-input");
                     const jsonData = jsonInput ? jsonInput.value : '';
                     let tablesToImport = [];
                     try {
@@ -2911,11 +2936,16 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
         },
         default: "ok",
         render: (htmlDialog) => {
+          // v13: htmlDialog may be a jQuery object, convert to native DOM
+          let nativeHtmlDialog = htmlDialog;
+          if (htmlDialog && (htmlDialog.jquery || typeof htmlDialog.find === 'function')) {
+              nativeHtmlDialog = htmlDialog[0] || htmlDialog.get?.(0) || htmlDialog;
+          }
           // Attach event listeners for template copy
-          const copyTableTemplateBtn = htmlDialog.querySelector("#copy-table-template-btn");
+          const copyTableTemplateBtn = nativeHtmlDialog.querySelector("#copy-table-template-btn");
           if (copyTableTemplateBtn) {
               copyTableTemplateBtn.addEventListener('click', async () => {
-                  const tableTemplateTypeSelect = htmlDialog.querySelector("#table-template-type");
+                  const tableTemplateTypeSelect = nativeHtmlDialog.querySelector("#table-template-type");
                   const type = tableTemplateTypeSelect ? tableTemplateTypeSelect.value : '';
             let promptWithDefaults = '';
             
@@ -3013,7 +3043,12 @@ const renderActorDirectoryHookId = HookManager.registerHook({
                 icon: "<i class='fa-solid fa-user-plus'></i>",
                 label: "Import JSON",
                 callback: async (html) => {
-                    const jsonInput = html.querySelector("#actor-json-input");
+                    // v13: html may be a jQuery object, convert to native DOM
+                    let nativeHtml = html;
+                    if (html && (html.jquery || typeof html.find === 'function')) {
+                        nativeHtml = html[0] || html.get?.(0) || html;
+                    }
+                    const jsonInput = nativeHtml.querySelector("#actor-json-input");
                     const jsonData = jsonInput ? jsonInput.value : '';
                     let actorsToImport = [];
                     try {
@@ -3046,11 +3081,16 @@ const renderActorDirectoryHookId = HookManager.registerHook({
         },
         default: "ok",
         render: (htmlDialog) => {
+          // v13: htmlDialog may be a jQuery object, convert to native DOM
+          let nativeHtmlDialog = htmlDialog;
+          if (htmlDialog && (htmlDialog.jquery || typeof htmlDialog.find === 'function')) {
+              nativeHtmlDialog = htmlDialog[0] || htmlDialog.get?.(0) || htmlDialog;
+          }
           // Attach event listeners for template copy
-          const copyActorTemplateBtn = htmlDialog.querySelector("#copy-actor-template-btn");
+          const copyActorTemplateBtn = nativeHtmlDialog.querySelector("#copy-actor-template-btn");
           if (copyActorTemplateBtn) {
               copyActorTemplateBtn.addEventListener('click', async () => {
-                  const actorTemplateTypeSelect = htmlDialog.querySelector("#actor-template-type");
+                  const actorTemplateTypeSelect = nativeHtmlDialog.querySelector("#actor-template-type");
                   const type = actorTemplateTypeSelect ? actorTemplateTypeSelect.value : '';
                   if (type === "npc") {
                       const promptWithDefaults = await getActorPromptWithDefaults(characterPrompt);
