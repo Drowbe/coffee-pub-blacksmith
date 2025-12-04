@@ -384,6 +384,27 @@
   - Useful and actionable stats for GMs/players
 - **Notes**: This is a code quality task - review first, then create specific refactoring plan
 
+
+### LOW PRIORITY ISSUES
+
+### Biography Tab - Add Details Section
+- **Issue**: Add a "details" section to the biography tab (similar to the details section in the narrative template)
+- **Status**: PENDING - Needs implementation
+- **Priority**: LOW - UI/UX enhancement
+- **Current State**: Biography tab only shows biography content, no separate details section
+- **Location**: `templates/partial-character-biography.hbs`, character worksheet templates
+- **Tasks Needed**:
+  - Add a "Details" section to the biography tab
+  - Include similar functionality to the narrative details section (e.g., "Specifics" field)
+  - Ensure proper styling and layout consistency with other sections
+  - Test integration with character worksheet
+- **Related Files**: 
+  - `templates/partial-character-biography.hbs`
+  - `templates/window-query-workspace-character.hbs`
+  - Character worksheet JavaScript (if needed for functionality)
+- **Notes**: This would provide a dedicated space for character-specific details separate from the main biography content
+
+
 ## DEFERRED TASKS
 
 ### Performance - Large Cache Memory & Parallelization
