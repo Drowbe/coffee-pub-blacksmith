@@ -481,6 +481,16 @@ export function addToolbarButton() {
             // Get all visible tools, organized by zones
             const visibleTools = getVisibleToolsByZones();
             
+            // Debug: Log tool registration status
+            const totalRegistered = registeredTools.size;
+            const allVisible = getVisibleTools();
+            postConsoleAndNotification(MODULE.NAME, "Toolbar: Building toolbar", {
+                totalRegistered,
+                visibleCount: allVisible.length,
+                coffeePubCount: visibleTools.length,
+                toolNames: visibleTools.map(t => t.name)
+            }, true, false);
+            
             // Remove existing blacksmith toolbar if it exists (v13: controls is an object)
             if (controls['blacksmith-utilities']) {
                 delete controls['blacksmith-utilities'];
@@ -511,6 +521,12 @@ export function addToolbarButton() {
 
             // Add tools to FoundryVTT native toolbars
             const foundryTools = getFoundryToolbarTools();
+            
+            // Debug: Log Foundry toolbar tools
+            postConsoleAndNotification(MODULE.NAME, "Toolbar: Foundry toolbar tools", {
+                foundryCount: foundryTools.length,
+                foundryToolNames: foundryTools.map(t => t.name)
+            }, true, false);
             
             // Add tools to token toolbar (default behavior for now)
             // v13: controls is an object, access directly by key
@@ -694,7 +710,25 @@ export function addToolbarButton() {
  * @returns {boolean} Success status
  */
 export function registerToolbarTool(toolId, toolData) {
-    return registerTool(toolId, toolData);
+    const success = registerTool(toolId, toolData);
+    if (success) {
+        postConsoleAndNotification(MODULE.NAME, `Toolbar API: Registered tool "${toolId}"`, { 
+            onCoffeePub: toolData.onCoffeePub !== undefined ? toolData.onCoffeePub : true,
+            onFoundry: toolData.onFoundry || false,
+            moduleId: toolData.moduleId || 'blacksmith-core'
+        }, true, false);
+        
+        // Refresh the toolbar to reflect the new tool
+        // Use a small delay to ensure the tool is fully registered
+        setTimeout(() => {
+            if (ui.controls?.controls) {
+                // Re-trigger getSceneControlButtons to rebuild toolbar with new tools
+                Hooks.callAll('getSceneControlButtons', ui.controls.controls);
+                ui.controls.render();
+            }
+        }, 50);
+    }
+    return success;
 }
 
 /**
