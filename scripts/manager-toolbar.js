@@ -491,11 +491,6 @@ export function addToolbarButton() {
                 toolNames: visibleTools.map(t => t.name)
             }, true, false);
             
-            // Remove existing blacksmith toolbar if it exists (v13: controls is an object)
-            if (controls['blacksmith-utilities']) {
-                delete controls['blacksmith-utilities'];
-            }
-            
             // Convert to the format expected by FoundryVTT v13 (tools as object keyed by name)
             const tools = {};
             visibleTools.forEach(tool => {
@@ -506,18 +501,110 @@ export function addToolbarButton() {
                     button: tool.button,
                     visible: true, // Visibility is already filtered by getVisibleTools()
                     onClick: tool.onClick,
+                    onChange: (active) => {
+                        // Handle tool activation/deactivation
+                        // This prevents errors when switching between toolbars
+                        // Foundry handles the UI, we just need to provide the handler
+                        // The 'active' parameter indicates if the tool is being activated (true) or deactivated (false)
+                    },
                     order: Object.keys(tools).length
                 };
             });
 
-            // Add blacksmith utilities control (v13: controls is an object keyed by control name)
-            controls['blacksmith-utilities'] = {
-                name: "blacksmith-utilities",
-                title: "Blacksmith Utilities",
-                icon: "fa-solid fa-mug-hot",
-                layer: "blacksmith-utilities-layer", // Ensure this matches the registration key
-                tools: tools
-            };
+            // Update or create blacksmith utilities control (v13: controls is an object keyed by control name)
+            // v13 requires: activeTool must point to a valid tool key, and all tools need onChange handlers
+            if (controls['blacksmith-utilities']) {
+                const existingControl = controls['blacksmith-utilities'];
+                const existingTools = existingControl.tools || {};
+                
+                // Get currently active tool name to preserve it
+                const activeControl = ui.controls?.activeControl;
+                const activeTool = ui.controls?.activeTool;
+                const isOurControlActive = activeControl === existingControl.name;
+                const activeToolName = isOurControlActive ? activeTool : null;
+                
+                // Remove tools that are no longer visible, BUT preserve the active tool
+                // This prevents Foundry from trying to call onChange on an undefined tool
+                Object.keys(existingTools).forEach(toolName => {
+                    if (!tools[toolName] && toolName !== activeToolName) {
+                        delete existingTools[toolName];
+                    }
+                });
+                
+                // If the active tool is being removed, ensure it has a valid onChange handler
+                // This prevents errors when Foundry tries to deactivate it
+                if (activeToolName && !tools[activeToolName] && existingTools[activeToolName]) {
+                    // Keep the tool but mark it as not visible and ensure it has onChange
+                    existingTools[activeToolName].visible = false;
+                    if (!existingTools[activeToolName].onChange) {
+                        existingTools[activeToolName].onChange = () => {
+                            // Handle deactivation gracefully
+                        };
+                    }
+                }
+                
+                // Add or update tools
+                Object.keys(tools).forEach(toolName => {
+                    if (existingTools[toolName]) {
+                        // Update existing tool in place to preserve Foundry's reference
+                        Object.assign(existingTools[toolName], {
+                            icon: tools[toolName].icon,
+                            name: tools[toolName].name,
+                            title: tools[toolName].title,
+                            button: tools[toolName].button,
+                            visible: tools[toolName].visible,
+                            onClick: tools[toolName].onClick,
+                            onChange: tools[toolName].onChange,
+                            order: tools[toolName].order
+                        });
+                    } else {
+                        // Add new tool
+                        existingTools[toolName] = tools[toolName];
+                    }
+                });
+                
+                // v13 requirement: activeTool must point to a valid tool key
+                // If current activeTool doesn't exist, set it to the first available tool
+                const toolKeys = Object.keys(existingTools);
+                if (!existingControl.activeTool || !existingTools[existingControl.activeTool]) {
+                    existingControl.activeTool = toolKeys.length > 0 ? toolKeys[0] : "";
+                }
+                
+                // v13 requirement: control needs onChange handler
+                existingControl.onChange = (event, active) => {
+                    // Handle control activation/deactivation
+                    // This prevents errors when switching between toolbars
+                };
+                
+                // v13 requirement: control needs onToolChange handler
+                existingControl.onToolChange = (event, tool) => {
+                    // Handle tool change within the control
+                    // This prevents errors when switching tools
+                };
+            } else {
+                // Create new control with v13 required structure
+                const toolKeys = Object.keys(tools);
+                const defaultActiveTool = toolKeys.length > 0 ? toolKeys[0] : "";
+                
+                controls['blacksmith-utilities'] = {
+                    name: "blacksmith-utilities",
+                    title: "Blacksmith Utilities",
+                    icon: "fa-solid fa-mug-hot",
+                    layer: "blacksmith-utilities-layer", // Ensure this matches the registration key
+                    order: 99, // v13 requirement
+                    visible: true, // v13 requirement
+                    activeTool: defaultActiveTool, // v13 requirement: must point to valid tool key
+                    tools: tools, // v13 requirement: must be Record<string, SceneControlTool>
+                    onChange: (event, active) => {
+                        // v13 requirement: control onChange handler
+                        // Handle control activation/deactivation
+                    },
+                    onToolChange: (event, tool) => {
+                        // v13 requirement: control onToolChange handler
+                        // Handle tool change within the control
+                    }
+                };
+            }
 
             // Add tools to FoundryVTT native toolbars
             const foundryTools = getFoundryToolbarTools();
@@ -581,20 +668,11 @@ export function addToolbarButton() {
     // Register renderSceneControls hook
     const renderSceneControlsHookId = HookManager.registerHook({
         name: 'renderSceneControls',
-        description: 'Manager Toolbar: Add click handler and reapply styling when toolbar is rendered',
+        description: 'Manager Toolbar: Reapply styling when toolbar is rendered',
         context: 'manager-toolbar-scene',
         priority: 3, // Normal priority - UI enhancement
         callback: () => {
-            const button = document.querySelector(`[data-control="blacksmith-utilities"]`);
-            if (button) {
-                button.addEventListener('click', () => {
-                    toggleToolbarVisibility();
-                    //activateBlacksmithLayer(); // Ensure this function is called
-                });
-            } else {
-                postConsoleAndNotification(MODULE.NAME, "Toolbar button not found", "", false, false);
-            }
-
+            // v13: Foundry handles toolbar activation automatically, we just need to apply styling
             // Reapply styling when toolbar is rendered (handles click away/back)
             _applyZoneClasses();
         }
@@ -803,40 +881,6 @@ export function setToolbarSettings(settings) {
     }
     // Refresh toolbar to apply changes
     ui.controls.render();
-}
-
-// Function to toggle the "active" class
-function toggleToolbarVisibility() {
-
-
-    // Hide all toolbars first
-    const allToolbars = document.querySelectorAll('.sub-controls.app.control-tools');
-    allToolbars.forEach(toolbar => {
-        toolbar.classList.remove('active');
-    });
-
-    // Show the selected toolbar
-    const toolbar = document.querySelector('#tools-panel-blacksmith-utilities'); // Use the actual ID
-    if (toolbar) {
-        toolbar.classList.toggle('active');
-
-    } else {
-        postConsoleAndNotification(MODULE.NAME, "Toolbar element not found", "", false, false);
-    }
-
-    // Set the Blacksmith button as active
-    const allButtons = document.querySelectorAll('.scene-control');
-    allButtons.forEach(button => {
-        button.classList.remove('active');
-    });
-
-    const blacksmithButton = document.querySelector(`[data-control="blacksmith-utilities"]`);
-    if (blacksmithButton) {
-        blacksmithButton.classList.add('active');
-
-    } else {
-        postConsoleAndNotification(MODULE.NAME, "Blacksmith button not found", "", false, false);
-    }
 }
 
 // Function to activate the Blacksmith layer
