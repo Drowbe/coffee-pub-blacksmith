@@ -492,23 +492,38 @@ export function addToolbarButton() {
             }, true, false);
             
             // Convert to the format expected by FoundryVTT v13 (tools as object keyed by name)
+            // IMPORTANT: Do NOT define onClick on SceneControlTool - v13 has a compatibility shim
+            // that automatically calls onClick from inside onChange, which causes auto-activation issues
+            // Instead, only use onChange and check if the event actually came from the tool element
             const tools = {};
-            visibleTools.forEach(tool => {
+            visibleTools.forEach((tool, index) => {
                 tools[tool.name] = {
                     icon: tool.icon,
                     name: tool.name,
                     title: tool.title,
                     button: tool.button,
                     visible: true, // Visibility is already filtered by getVisibleTools()
-                    onClick: tool.onClick,
+                    // IMPORTANT: no onClick here - v13 shim will auto-call it on control activation
                     onChange: (event, active) => {
-                        // Handle tool activation/deactivation
-                        // This prevents errors when switching between toolbars
-                        // For button tools, we don't want to auto-trigger onClick when the control opens
-                        // The 'active' parameter indicates if the tool is being activated (true) or deactivated (false)
-                        // We intentionally don't call onClick here - buttons should only trigger onClick on direct click
+                        // Only care about button tools being ACTIVATED
+                        if (!tool.button || !active || !tool.onClick) return;
+                        
+                        // Distinguish between "clicked the control" vs "clicked the tool"
+                        // When control activates, event target is the control button, not a tool button
+                        // When tool is clicked, event target is inside the tool element with data-tool attribute
+                        const target = event?.currentTarget ?? event?.target;
+                        const toolEl = target?.closest?.('[data-tool]');
+                        if (!toolEl) return; // came from control, not tool
+                        if (toolEl.dataset.tool !== tool.name) return; // wrong tool
+                        
+                        // This is an actual tool click, not control activation
+                        try {
+                            tool.onClick(event);
+                        } catch (error) {
+                            postConsoleAndNotification(MODULE.NAME, "Toolbar: Error in tool onClick", error, false, false);
+                        }
                     },
-                    order: Object.keys(tools).length
+                    order: index
                 };
             });
 
@@ -548,16 +563,21 @@ export function addToolbarButton() {
                 Object.keys(tools).forEach(toolName => {
                     if (existingTools[toolName]) {
                         // Update existing tool in place to preserve Foundry's reference
+                        // IMPORTANT: Do NOT copy onClick - v13 shim will auto-call it on control activation
                         Object.assign(existingTools[toolName], {
                             icon: tools[toolName].icon,
                             name: tools[toolName].name,
                             title: tools[toolName].title,
                             button: tools[toolName].button,
                             visible: tools[toolName].visible,
-                            onClick: tools[toolName].onClick,
+                            // REMOVE onClick: tools[toolName].onClick, - don't copy it
                             onChange: tools[toolName].onChange,
                             order: tools[toolName].order
                         });
+                        // Explicitly remove onClick if it exists to prevent shim from calling it
+                        if (existingTools[toolName].onClick) {
+                            delete existingTools[toolName].onClick;
+                        }
                     } else {
                         // Add new tool
                         existingTools[toolName] = tools[toolName];
