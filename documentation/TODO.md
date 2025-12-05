@@ -551,45 +551,6 @@
   - Could trigger special token changes for severely injured characters
 - **Notes**: Should be fully opt-in with clear warnings about game balance impact. GMs should have full control over when/how injuries are applied.
 
-### Token Movement Measurement
-- **Issue**: Add functionality to measure and track token movement distances
-- **Status**: FUTURE ENHANCEMENT - Design phase
-- **Priority**: LOW - Quality of life improvement for movement tracking
-- **Description**: Track and display movement distances for tokens, useful for movement-based abilities, spell ranges, and tactical positioning
-- **Requirements**:
-  1. **Movement Tracking**:
-     - Track total distance moved per turn/round
-     - Track distance moved since last action
-     - Track cumulative movement for complex movement abilities
-     - Display movement stats in token tooltip or sidebar
-  2. **Movement Display**:
-     - Show current movement distance in feet/grid units
-     - Color-code based on movement speed (green = normal, yellow = half speed, red = over speed)
-     - Optional movement trail visualization
-     - Movement history for the current turn
-  3. **Integration with Abilities**:
-     - Track movement for dash actions
-     - Monitor movement for opportunity attacks
-     - Calculate remaining movement for complex abilities
-     - Integration with movement-based spells/abilities
-  4. **Settings**:
-     - Toggle to enable/disable movement measurement
-     - Choose display method (tooltip, sidebar, chat message)
-     - Configure movement speed thresholds
-     - Enable/disable movement trail visualization
-- **Location**: `scripts/token-movement.js` or new `scripts/movement-tracker.js`
-- **Technical Considerations**:
-  - Use existing movement hooks to track position changes
-  - Calculate distances using grid size and movement rules
-  - Store movement data per token per turn/round
-  - Handle diagonal movement rules (optional)
-- **Benefits**: Better tactical awareness, easier movement tracking, enhanced combat experience
-- **Challenges**: 
-  - Determining appropriate display methods
-  - Handling complex movement scenarios
-  - Performance with many tokens
-  - Integration with existing movement features
-- **Notes**: Should be subtle and non-intrusive, complementing existing movement sound features
 
 ### Multiple Image Directories for Token Image Replacement
 - **Issue**: Token image replacement currently uses a single image directory
@@ -702,6 +663,10 @@
 - **Status**: TODO - Major feature for future development
 - **Impact**: **REVOLUTIONARY** - Transform AI from chat bot to knowledgeable campaign advisor
 - **Benefits**: Cost efficiency, better context, persistent world knowledge, smart learning
+
+### V13 QOL 
+- **FUTURE**: Remember chat state between sessions
+
 
 ## ARCHITECTURAL CONCERNS
 
