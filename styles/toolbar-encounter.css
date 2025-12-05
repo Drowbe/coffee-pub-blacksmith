@@ -40,17 +40,17 @@
  }
  
  .encounter-toolbar-left {
-   display: flex;
-   align-items: center;
-   gap: 8px;
- }
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
  
  .encounter-toolbar-title {
-   font-weight: bold;
-   font-size: 14px;
-   color: var(--color-text-dark-primary);
-   margin: 0;
- }
+  font-weight: 400;
+  font-size: 10px;
+  color: var(--color-text-primary);
+  margin: 2px 0px 0px 0px;
+}
 
  /* ────────────────────────────────────────────────
    Badge Container (right-aligned)
@@ -76,9 +76,9 @@
 ──────────────────────────────────────────────── */
 .encounter-btn {
   line-height: normal;
-  padding: 4px 6px;
+  padding: 4px 4px;
   margin: 2px 0;
-  font-size: 0.9em;
+  font-size: 0.8em;
   border-radius: 4px;
   text-transform: uppercase;
   text-align: center;
@@ -89,9 +89,9 @@
 }
 
 .encounter-btn:hover {
-  background-color: #EBD04A;
+  background-color: #22c901;
   color: #312E20;
-  border: 1px solid #AB993C;
+  border: 1px solid #1d8d07;
   box-shadow: 0 0 0 1.8px rgba(171, 153, 60, 0.4);
 }
 
@@ -126,8 +126,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   background: rgba(0, 0, 0, 0.7);
   border-radius: 4px;
   cursor: pointer;
@@ -144,13 +144,13 @@
 }
 
 .encounter-icon-none {
-  border: 1px solid rgba(24, 22, 22, 0.9);
+  border: 1px solid rgba(24, 22, 22, 0.4);
 }
 .encounter-icon-npc {
-  border: 1px solid rgba(83, 123, 198, 0.9);
+  border: 1px solid rgba(83, 123, 198, 0.4);
 }
 .encounter-icon-monster {
-  border: 1px solid rgba(254, 0, 0, 0.9);
+  border: 1px solid rgba(254, 0, 0, 0.4);
 }
 
 .encounter-icon-none i,

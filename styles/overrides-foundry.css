@@ -41,26 +41,32 @@
 
 /* These are not in Settings yet */
 
+
 /* Stonger Normal H2 */
 .journal-page-content h2 {
-    font-weight:450;
-    font-size: 1.6em;
+    font-weight: 700;
+    font-size: 1.9em;
+    margin: 16px 0px 8px 0px;
 }
 
 /* Stonger Normal H4 */
 .journal-page-content h4 {
-    font-weight:900;
-    font-size: 1.2em;
+    font-weight: 900;
+    font-size: 1.25em;
 }
 
 /* Stonger Normal H2 */
 .journal-page-content h2 {
-    color: #3e3b30;
-    border-bottom: 1px solid #3e3b30;
+    color: var(--color-text-emphatic);
+    border-bottom: 1px solid var(--color-text-emphatic);
 }
 /* Stonger Normal H4 */
 .journal-page-content h4 {
-    border-bottom: 0px solid #aea585;
+    color: var(--color-text-emphatic);
+    border-bottom: 0px solid var(--color-text-emphatic);
+    margin: 12px 0px 6px 0px;
 }
-
-
+/* Image */
+section.journal-page-content img {
+    border-radius: 4px;
+}
