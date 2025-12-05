@@ -22,7 +22,7 @@
     word-spacing: -0.5px;
 }
 
-#player-list li.player .player-name {
+#players-active ol.players-list li.player .player-name {
     display: flex !important;
     align-items: center;
     flex-wrap: nowrap;

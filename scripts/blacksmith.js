@@ -1229,7 +1229,7 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
         `;
 
         const button = document.createElement('button');
-        button.innerHTML = '<i class="fa-solid fa-masks-theater"></i> Import JSON to Journal';
+        button.innerHTML = '<i class="fa-solid fa-masks-theater"></i> Import';
         button.addEventListener('click', () => {
         new Dialog({
             title: "Paste JSON",
@@ -2798,7 +2798,7 @@ const renderItemDirectoryHookId = HookManager.registerHook({
     `;
 
     const button = document.createElement('button');
-    button.innerHTML = '<i class="fa-solid fa-boxes-stacked"></i> Import JSON to Items';
+    button.innerHTML = '<i class="fa-solid fa-boxes-stacked"></i> Import';
     button.addEventListener('click', () => {
       new Dialog({
         title: "Paste JSON for Items",
@@ -2916,7 +2916,7 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
     `;
 
     const button = document.createElement('button');
-    button.innerHTML = '<i class="fa-solid fa-dice-d20"></i> Import JSON to Tables';
+    button.innerHTML = '<i class="fa-solid fa-dice-d20"></i> Import';
     button.addEventListener('click', () => {
       new Dialog({
         title: "Paste JSON for Tables",
@@ -3051,7 +3051,7 @@ const renderActorDirectoryHookId = HookManager.registerHook({
     `;
 
     const button = document.createElement('button');
-    button.innerHTML = '<i class="fa-solid fa-user-plus"></i> Import JSON to Actors';
+    button.innerHTML = '<i class="fa-solid fa-user-plus"></i> Import';
     button.addEventListener('click', () => {
       new Dialog({
         title: "Paste JSON for Actors/NPCs",

@@ -219,7 +219,11 @@ export class LatencyChecker {
 
     static #updateLatencyDisplay() {
         try {
-            const playerList = document.getElementById("player-list");
+            // v13: New structure uses #players-active > ol.players-list
+            const playersActive = document.getElementById("players-active");
+            if (!playersActive) return;
+            
+            const playerList = playersActive.querySelector("ol.players-list");
             if (!playerList) return;
 
             playerList.querySelectorAll("li.player").forEach(li => {
