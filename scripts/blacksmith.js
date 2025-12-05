@@ -2732,8 +2732,30 @@ async function parseTableToFoundry(flat) {
         tableResult.documentCollection = result.resultDocumentType.charAt(0).toUpperCase() + result.resultDocumentType.slice(1);
       }
       
-      if (tableResult.type === "pack" && result.resultCompendium) {
+      // For compendium (pack) results, look up the documentId from the compendium index
+      if (tableResult.type === "pack" && result.resultCompendium && result.resultText) {
         tableResult.documentCollection = result.resultCompendium;
+        
+        try {
+          const pack = game.packs.get(result.resultCompendium);
+          if (pack) {
+            const index = await pack.getIndex();
+            // Find exact match (case-insensitive)
+            const entry = index.find(e => e.name.toLowerCase() === result.resultText.toLowerCase());
+            if (entry) {
+              tableResult.documentId = entry._id;
+            } else {
+              postConsoleAndNotification(MODULE.NAME, `Table Import: Item not found in compendium`, 
+                `${result.resultText} not found in ${result.resultCompendium}`, false, false);
+            }
+          } else {
+            postConsoleAndNotification(MODULE.NAME, `Table Import: Compendium pack not found`, 
+              result.resultCompendium, false, false);
+          }
+        } catch (error) {
+          postConsoleAndNotification(MODULE.NAME, `Table Import: Error looking up compendium item`, 
+            `${result.resultCompendium}: ${error.message}`, false, false);
+        }
       }
 
       data.results.push(tableResult);

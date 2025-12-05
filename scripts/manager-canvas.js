@@ -378,7 +378,7 @@ export class CanvasTools {
                         postConsoleAndNotification(MODULE.NAME, `Roll table "${strTableName}" not found. Skipping token name modification.`, "", false, false);
                         updatedName = document.actor.name;
                     } else {
-                        const result = await table.roll({async: true});
+                        const result = await table.roll();
     
                     if (result && result.results && result.results.length > 0) {
                         let strName;

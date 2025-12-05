@@ -1014,7 +1014,7 @@ async function _executeToolRollFoundry(actor, toolIdentifier, rollOptions) {
     postConsoleAndNotification(MODULE.NAME, `Manual tool roll formula: ${formula}`, "", true, false);
     
     const roll = new Roll(formula, rollData);
-    await roll.evaluate({ async: true });
+    await roll.evaluate();
     return roll;
 }
 
