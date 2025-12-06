@@ -16,12 +16,14 @@
 }
 
 .form-group:has(label[for*="settings-config-coffee-pub-"]) label {
+    color: rgba(9, 12, 3, 1.0);
     font-weight: 550;
     font-size: 1.0em;
     font-style: normal;
 }
 
 .form-group:has(label[for*="settings-config-coffee-pub-"]) .hint {
+    color: rgba(9, 12, 3, 0.8);
     font-weight: 400;
     font-size: 1.0em;
     font-style: normal;
@@ -38,6 +40,19 @@
 
 .form-group:has(label[for*="settings-config-coffee-pub-"]) p.hint:not(:empty) {
     display: block !important;
+}
+
+/* DARK MODE - NORMAL SETTING OVERRIDES */
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"]) {
+    background-color: rgba(30, 30, 30, 0.15);
+}
+
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"]) label {
+    color: rgba(240, 240, 240, 1.0);
+}
+
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"]) .hint {
+    color: rgba(200, 200, 200, 1.0);
 }
 
 /* HEADINGS H1 - MAIN SECTIONS */
@@ -64,10 +79,23 @@
 }
 
 .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) .hint {
-    color: rgba(227, 225, 216, 1.0);
+    color: rgba(48, 24, 29, 1.0);
     font-weight: 100;
     font-size: 1.0em;
     font-style: normal;
+}
+
+/* DARK MODE - HEADINGS H1 */
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) {
+    background-color: rgba(60, 40, 45, 0.95);
+}
+
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) label {
+    color: rgba(240, 235, 230, 1.0);
+}
+
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) .hint {
+    color: rgba(220, 215, 210, 1.0);
 }
 
 /* HEADINGS H2 - HEADINGS WITHIN THE SECTIONS TO GROUP LIKE SETTINGS */
@@ -99,10 +127,23 @@
 }
 
 .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) .hint {
-    color: rgba(9, 12, 3, 1.0);
+    color: rgba(9, 12, 3, 0.8);
     font-weight: 100;
     font-size: 1.0em;
     font-style: normal;
+}
+
+/* DARK MODE - HEADINGS H2 */
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) {
+    background-color: rgba(50, 70, 35, 0.4);
+}
+
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) label {
+    color: rgba(240, 240, 240, 1.0);
+}
+
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) .hint {
+    color: rgba(220, 220, 220, 1.0);
 }
 
 /* SUBHEADINGS H3 - SUBHEADINGS WITHIN SECTIONS */
@@ -125,6 +166,7 @@
 }
 
 .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) label {
+    color: rgba(9, 12, 3, 1.0);
     font-weight: 550;
     font-size: 1.1em;
     font-style: normal;
@@ -136,9 +178,23 @@
 }
 
 .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) .hint {
+    color: rgba(9, 12, 3, 0.8);
     font-weight: 100;
     font-size: 1.0em;
     font-style: normal;
+}
+
+/* DARK MODE - SUBHEADINGS H3 */
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) {
+    background-color: rgba(40, 50, 30, 0.3);
+}
+
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) label {
+    color: rgba(240, 240, 240, 1.0);
+}
+
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) .hint {
+    color: rgba(200, 200, 200, 1.0);
 }
 
 /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
@@ -157,6 +213,11 @@
 
 .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3simple"]) .hint {
     display: none;	
+}
+
+/* DARK MODE - SUBHEADINGS H3 SIMPLE */
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3simple"]) {
+    background-color: rgba(40, 50, 30, 0.3);
 }
 
 /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
@@ -178,6 +239,7 @@
 }
 
 .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) label {
+    color: rgba(9, 12, 3, 1.0);
     font-weight: 550;
     font-size: 1.1em;
     font-style: normal;
@@ -190,9 +252,23 @@
 }
 
 .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) .hint {
+    color: rgba(9, 12, 3, 0.8);
     font-weight: 100;
     font-size: 0.9em;
     font-style: normal;
+}
+
+/* DARK MODE - BOX TEXT H4 */
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) {
+    border-color: rgba(200, 200, 200, 0.4);
+}
+
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) label {
+    color: rgba(240, 240, 240, 1.0);
+}
+
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) .hint {
+    color: rgba(200, 200, 200, 1.0);
 }
 
 /* HORIZONTAL RULE HR */
@@ -227,6 +303,11 @@
     margin: 0;
 }
 
+/* DARK MODE - HORIZONTAL RULE HR */
+html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingHR"]) {
+    border-top-color: rgba(150, 150, 150, 0.2);
+}
+
 /* SP SPACER */
 
 .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingSP"]) {
@@ -257,3 +338,9 @@
     padding: 0;
     margin: 0;
 }
+
+/* ==================================================================================================================== */
+/* DARK MODE FALLBACK - System Preference (when Foundry hasn't explicitly set theme) */
+/* ==================================================================================================================== */
+
+/* REMOVED FOR NOW TO TEST */
