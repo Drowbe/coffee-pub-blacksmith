@@ -3,8 +3,9 @@
 /* ------------------------------------ */
 
 /* NORMAL SETTING OVERRIDES */
+/* v13: Target via label[for] or input[id] since data-setting-id no longer exists */
 
-div[data-setting-id*="coffee-pub-"] {
+.form-group:has(label[for*="settings-config-coffee-pub-"]) {
     background-color: rgba(9, 12, 3, 0.05);
     padding: inherited;
     border-radius: 4px;
@@ -14,59 +15,64 @@ div[data-setting-id*="coffee-pub-"] {
     padding-right: 10px;
 }
 
-div[data-setting-id*="coffee-pub-"] label {
+.form-group:has(label[for*="settings-config-coffee-pub-"]) label {
     font-weight: 550;
     font-size: 1.0em;
     font-style: normal;
 }
-div[data-setting-id*="coffee-pub-"] .notes{
+
+.form-group:has(label[for*="settings-config-coffee-pub-"]) .hint {
     font-weight: 400;
     font-size: 1.0em;
     font-style: normal;
     padding: inherited;
 }
 
-div[data-setting-id*="coffee-pub-"] .form-fields{
+.form-group:has(label[for*="settings-config-coffee-pub-"]) .form-fields {
     margin: 4px 0px 4px 0px;
 }
 
-div[data-setting-id*="coffee-pub-"] p.notes {
-  display: none !important;
+.form-group:has(label[for*="settings-config-coffee-pub-"]) p.hint {
+    display: none !important;
 }
-div[data-setting-id*="coffee-pub-"] p.notes:not(:empty) {
-  display: block !important;
+
+.form-group:has(label[for*="settings-config-coffee-pub-"]) p.hint:not(:empty) {
+    display: block !important;
 }
 
 /* HEADINGS H1 - MAIN SECTIONS */
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH1"] {
-
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) {
     background-color: rgba(52, 28, 32, 0.9);
     border-radius: 4px;	
 }
-.form-group[data-setting-id*="coffee-pub-"][data-setting-id*="headingH1"] .form-fields,
-.form-group[data-setting-id*="coffee-pub-"][data-setting-id*="headingH1"] input {
-  display: none !important;
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) .form-fields,
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) input {
+    display: none !important;
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH1"] label {
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) label {
     color: rgba(227, 225, 216, 1.0);
     font-weight: 550;
     font-size: 1.4em;
     font-style: normal;
     text-transform: uppercase;
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH1"] i {
-	display: none;	
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) i {
+    display: none;	
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH1"] .notes {
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) .hint {
     color: rgba(227, 225, 216, 1.0);
-    font-weight:100;
+    font-weight: 100;
     font-size: 1.0em;
     font-style: normal;
 }
 
 /* HEADINGS H2 - HEADINGS WITHIN THE SECTIONS TO GROUP LIKE SETTINGS */
 
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH2"] {
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) {
     background-color: rgba(45, 63, 17, 0.2);
     padding-top: 4px;
     padding-bottom: 4px;
@@ -74,33 +80,37 @@ div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH2"] {
     padding-right: 8px;
     border-radius: 4px;	
 }
-.form-group[data-setting-id*="coffee-pub-"][data-setting-id*="headingH2"] .form-fields,
-.form-group[data-setting-id*="coffee-pub-"][data-setting-id*="headingH2"] input {
-  display: none !important;
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) .form-fields,
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) input {
+    display: none !important;
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH2"] label {
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) label {
     color: rgba(9, 12, 3, 1.0);
-    font-weight:550;
+    font-weight: 550;
     font-size: 1.3em;
     font-style: normal;
     text-transform: uppercase;
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH2"] i {
-	display: none;	
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) i {
+    display: none;	
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH2"] .notes {
-	color: rgba(9, 12, 3, 1.0);
-	font-weight:100;
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) .hint {
+    color: rgba(9, 12, 3, 1.0);
+    font-weight: 100;
     font-size: 1.0em;
     font-style: normal;
 }
 
-/* SUBHEADINGS H3 - SUBHEADDINGS WITHIN SECTIONS */
+/* SUBHEADINGS H3 - SUBHEADINGS WITHIN SECTIONS */
 /* There are two types: simple and normal. */
-/* Simple H3simplle: subheadings do not have notes associated with them. */
+/* Simple H3simple: subheadings do not have notes associated with them. */
 /* Normal H3: subheadings have notes associated with them. */
 
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH3"] {
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) {
     background-color: rgba(9, 12, 3, 0.15);
     padding-top: 4px;
     padding-bottom: 4px;
@@ -108,21 +118,25 @@ div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH3"] {
     padding-right: 8px;
     border-radius: 4px;	
 }
-.form-group[data-setting-id*="coffee-pub-"][data-setting-id*="headingH3"] .form-fields,
-.form-group[data-setting-id*="coffee-pub-"][data-setting-id*="headingH3"] input {
-  display: none !important;
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) .form-fields,
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) input {
+    display: none !important;
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH3"] label {
-    font-weight:550;
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) label {
+    font-weight: 550;
     font-size: 1.1em;
     font-style: normal;
     text-transform: uppercase;
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH3"] i {
-	display: none;	
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) i {
+    display: none;	
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH3"] .notes {
-    font-weight:100;
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) .hint {
+    font-weight: 100;
     font-size: 1.0em;
     font-style: normal;
 }
@@ -131,17 +145,20 @@ div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH3"] .notes {
 /* SUBHEADINGS H3 - SIMPLE - !!!  REMOVE THIS WHEN ALL MODULES ARE TRANSITIONED !!!! */
 /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH3simple"] {
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3simple"]) {
     background-color: rgba(9, 12, 3, 0.15);
     border-radius: 4px;	
 }
-.form-group[data-setting-id*="coffee-pub-"][data-setting-id*="headingH3simple"] .form-fields,
-.form-group[data-setting-id*="coffee-pub-"][data-setting-id*="headingH3simple"] input {
-  display: none !important;
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3simple"]) .form-fields,
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3simple"]) input {
+    display: none !important;
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH3simple"] .notes {
-	display: none;	
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3simple"]) .hint {
+    display: none;	
 }
+
 /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
@@ -149,54 +166,62 @@ div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH3simple"] .notes {
 
 /* BOX TEXT H4 - This puts a dotted box around the setting label and the notes.*/
 
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH4"] {
-	border: 1px dotted rgba(9, 12, 3, 0.4);
-	border-radius: 4px;	
-	padding: 6px 8px 6px 8px;
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) {
+    border: 1px dotted rgba(9, 12, 3, 0.4);
+    border-radius: 4px;	
+    padding: 6px 8px 6px 8px;
 }
-.form-group[data-setting-id*="coffee-pub-"][data-setting-id*="headingH4"] .form-fields,
-.form-group[data-setting-id*="coffee-pub-"][data-setting-id*="headingH4"] input {
-  display: none !important;
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) .form-fields,
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) input {
+    display: none !important;
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH4"] label {
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) label {
     font-weight: 550;
     font-size: 1.1em;
     font-style: normal;
     margin: 0px 0px 6px 0px;
     border-radius: 4px;
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH4"] i {
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) i {
     display: none;	
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingH4"] .notes {
-    font-weight:100;
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) .hint {
+    font-weight: 100;
     font-size: 0.9em;
     font-style: normal;
 }
 
-/* HORIZANTAL RULE HR */
+/* HORIZONTAL RULE HR */
 
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingHR"] {
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingHR"]) {
     border-top: 1px dotted rgba(0, 0, 0, 0.1);
     padding: 0;
-    margin: 8px 0px 8px 0px ;
+    margin: 8px 0px 8px 0px;
     max-height: 0px;
 }
-.form-group[data-setting-id*="coffee-pub-"][data-setting-id*="headingHR"] .form-fields,
-.form-group[data-setting-id*="coffee-pub-"][data-setting-id*="headingHR"] input {
-  display: none !important;
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingHR"]) .form-fields,
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingHR"]) input {
+    display: none !important;
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingHR"] label {
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingHR"]) label {
     display: none;	
     padding: 0;
     margin: 0;
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingHR"] i {
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingHR"]) i {
     display: none;
     padding: 0;
     margin: 0;	
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingHR"] .notes {
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingHR"]) .hint {
     display: none;	
     padding: 0;
     margin: 0;
@@ -204,26 +229,30 @@ div[data-setting-id*="coffee-pub-"][data-setting-id*="headingHR"] .notes {
 
 /* SP SPACER */
 
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingSP"] {
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingSP"]) {
     padding: 0;
-    margin: 8px 0px 8px 0px ;
+    margin: 8px 0px 8px 0px;
     max-height: 0px;
 }
-.form-group[data-setting-id*="coffee-pub-"][data-setting-id*="headingSP"] .form-fields,
-.form-group[data-setting-id*="coffee-pub-"][data-setting-id*="headingSP"] input {
-  display: none !important;
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingSP"]) .form-fields,
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingSP"]) input {
+    display: none !important;
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingSP"] label {
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingSP"]) label {
     display: none;	
     padding: 0;
     margin: 0;
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingSP"] i {
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingSP"]) i {
     display: none;
     padding: 0;
     margin: 0;	
 }
-div[data-setting-id*="coffee-pub-"][data-setting-id*="headingSP"] .notes {
+
+.form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingSP"]) .hint {
     display: none;	
     padding: 0;
     margin: 0;
