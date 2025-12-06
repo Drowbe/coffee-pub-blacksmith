@@ -35,6 +35,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed from replacing entire tools object to merging tools in place
   - Preserves active tool references when updating control
   - Explicitly removes `onClick` from updated tools to prevent shim issues
+- **Settings UI - v13 CSS Selectors:** Fixed settings styling not applying due to v13 DOM structure changes
+  - Replaced `data-setting-id` attribute selectors (removed in v13) with `:has()` selectors targeting `label[for]` attributes
+  - Updated all selectors from `div[data-setting-id*="coffee-pub-"]` to `.form-group:has(label[for*="settings-config-coffee-pub-"])`
+  - Changed `.notes` class references to `.hint` (v13 renamed the class)
+  - Added missing color declarations for light mode (labels, hints) that were previously inherited from Foundry defaults
+  - Settings now properly styled in v13's new HTML structure
+- **Settings UI - Dark Mode Support:** Fixed dark mode styles not applying
+  - Changed dark mode selectors from `html.theme-dark` to `[data-theme="dark"]` to match Foundry v13's theme attribute on `<body>`
+  - Added comprehensive dark mode color overrides for all heading levels (H1, H2, H3, H4) and general settings
+  - Dark mode now properly detects and applies theme-specific colors for backgrounds, text, and borders
+  - Settings UI now fully supports both light and dark themes
 
 ### Changed
 - **Toolbar API - Tool Registration:** Enhanced `registerToolbarTool()` to automatically refresh toolbar
@@ -46,6 +57,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Real click handling done via direct DOM event handlers in `_wireToolClicks()`
   - Control structure matches v13 requirements exactly
   - All tools have proper `onChange` handlers (no-op for button tools)
+- **Settings UI - v13 CSS Migration:** Migrated settings CSS to v13 HTML structure
+  - Replaced deprecated `data-setting-id` attribute targeting with `:has()` pseudo-class selectors
+  - Updated class names from `.notes` to `.hint` to match v13 naming
+  - Added explicit color declarations for all text elements (previously relied on Foundry defaults)
+  - Implemented dark mode support using `[data-theme="dark"]` attribute selector
+  - All heading types (H1, H2, H3, H4, HR, SP) now have proper light and dark mode styling
 
 ### Technical
 - **Toolbar - v13 Compatibility:** Addressed v13 compatibility shim behavior
@@ -57,6 +74,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Update tools in place using `Object.assign` to preserve Foundry's internal references
   - Merge tools instead of replacing entire object
   - Preserve active tools when they're being removed (mark as invisible instead of deleting)
+- **Settings UI - v13 Theme Detection:** Updated theme detection mechanism
+  - Foundry v13 uses `data-theme="dark"` attribute on `<body>` element instead of `html.theme-dark` class
+  - Changed all dark mode selectors from `html.theme-dark` to `[data-theme="dark"]`
+  - Theme detection now correctly matches Foundry's v13 implementation
+  - Why: v13 changed from class-based theme detection to data attribute-based detection for better flexibility
 
 
 

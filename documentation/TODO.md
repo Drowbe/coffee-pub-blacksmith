@@ -10,6 +10,7 @@
 - import json for items
 - import json for tables
 - ~~toolbar dividers and styling~~ - COMPLETED in 13.0.2
+- ~~settings CSS v13 migration and dark mode support~~ - COMPLETED in 13.0.2
 - nameplate creation
 
 
