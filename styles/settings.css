@@ -43,15 +43,15 @@
 }
 
 /* DARK MODE - NORMAL SETTING OVERRIDES */
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"]) {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"]) {
     background-color: rgba(30, 30, 30, 0.15);
 }
 
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"]) label {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"]) label {
     color: rgba(240, 240, 240, 1.0);
 }
 
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"]) .hint {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"]) .hint {
     color: rgba(200, 200, 200, 1.0);
 }
 
@@ -79,22 +79,22 @@ html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"]) .hint
 }
 
 .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) .hint {
-    color: rgba(48, 24, 29, 1.0);
+    color: rgba(227, 225, 216, 1.0);
     font-weight: 100;
     font-size: 1.0em;
     font-style: normal;
 }
 
 /* DARK MODE - HEADINGS H1 */
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) {
     background-color: rgba(60, 40, 45, 0.95);
 }
 
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) label {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) label {
     color: rgba(240, 235, 230, 1.0);
 }
 
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) .hint {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) .hint {
     color: rgba(220, 215, 210, 1.0);
 }
 
@@ -134,15 +134,15 @@ html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="
 }
 
 /* DARK MODE - HEADINGS H2 */
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) {
     background-color: rgba(50, 70, 35, 0.4);
 }
 
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) label {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) label {
     color: rgba(240, 240, 240, 1.0);
 }
 
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) .hint {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) .hint {
     color: rgba(220, 220, 220, 1.0);
 }
 
@@ -185,15 +185,15 @@ html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="
 }
 
 /* DARK MODE - SUBHEADINGS H3 */
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) {
     background-color: rgba(40, 50, 30, 0.3);
 }
 
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) label {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) label {
     color: rgba(240, 240, 240, 1.0);
 }
 
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) .hint {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) .hint {
     color: rgba(200, 200, 200, 1.0);
 }
 
@@ -216,7 +216,7 @@ html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="
 }
 
 /* DARK MODE - SUBHEADINGS H3 SIMPLE */
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3simple"]) {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3simple"]) {
     background-color: rgba(40, 50, 30, 0.3);
 }
 
@@ -259,15 +259,15 @@ html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="
 }
 
 /* DARK MODE - BOX TEXT H4 */
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) {
     border-color: rgba(200, 200, 200, 0.4);
 }
 
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) label {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) label {
     color: rgba(240, 240, 240, 1.0);
 }
 
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) .hint {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) .hint {
     color: rgba(200, 200, 200, 1.0);
 }
 
@@ -304,7 +304,7 @@ html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="
 }
 
 /* DARK MODE - HORIZONTAL RULE HR */
-html.theme-dark .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingHR"]) {
+[data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingHR"]) {
     border-top-color: rgba(150, 150, 150, 0.2);
 }
 
