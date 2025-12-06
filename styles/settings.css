@@ -44,7 +44,8 @@
 
 /* DARK MODE - NORMAL SETTING OVERRIDES */
 [data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"]) {
-    background-color: rgba(30, 30, 30, 0.15);
+    background-color: rgba(60, 60, 60, 0.2);
+    border: 1px solid rgba(60, 60, 60, 0.4);
 }
 
 [data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"]) label {
@@ -87,7 +88,7 @@
 
 /* DARK MODE - HEADINGS H1 */
 [data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) {
-    background-color: rgba(60, 40, 45, 0.95);
+    background-color: rgba(48, 24, 29, 0.95);
 }
 
 [data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH1"]) label {
@@ -135,7 +136,7 @@
 
 /* DARK MODE - HEADINGS H2 */
 [data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) {
-    background-color: rgba(50, 70, 35, 0.4);
+    background-color: rgba(29, 69, 33, 0.6);
 }
 
 [data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH2"]) label {
@@ -186,7 +187,7 @@
 
 /* DARK MODE - SUBHEADINGS H3 */
 [data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) {
-    background-color: rgba(40, 50, 30, 0.3);
+    background-color: rgba(0, 0, 0, 0.3);
 }
 
 [data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) label {
@@ -260,7 +261,7 @@
 
 /* DARK MODE - BOX TEXT H4 */
 [data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) {
-    border-color: rgba(200, 200, 200, 0.4);
+    border-color: rgba(200, 200, 200, 0.56);
 }
 
 [data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH4"]) label {
@@ -305,7 +306,7 @@
 
 /* DARK MODE - HORIZONTAL RULE HR */
 [data-theme="dark"] .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingHR"]) {
-    border-top-color: rgba(150, 150, 150, 0.2);
+    border-top-color: rgba(150, 150, 150, 0.3);
 }
 
 /* SP SPACER */
