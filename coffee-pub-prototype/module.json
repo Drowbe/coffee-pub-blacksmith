@@ -1,0 +1,68 @@
+{
+  "id": "coffee-pub-prototype",
+  "title": "Coffee Pub Prototype",
+  "description": "Module description placeholder",
+  "version": "1.0.0",
+  
+  "manifest": "https://github.com/Drowbe/coffee-pub-prototype/releases/latest/download/module.json",
+  "download": "https://github.com/Drowbe/coffee-pub-prototype/releases/latest/download/coffee-pub-prototype.zip",
+  "url": "https://github.com/Drowbe/coffee-pub-prototype",
+  "bugs": "https://github.com/Drowbe/coffee-pub-prototype/issues",
+  "readme": "README.md",
+  "changelog": "CHANGELOG.md",
+  "license": "LICENSE",
+  
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13",
+    "maximum": "13"
+  },
+  "socket": false,
+  "library": false,
+
+  "authors": [
+    {
+      "name": "COFFEE PUB",
+      "discord": "drowbe",
+      "url": "https://github.com/Drowbe",
+      "patreon": "Coffee Pub",
+      "github": "Drowbe",
+      "flags": {
+        "isMaintainer": true,
+        "contribution": "owner"
+      }
+    }
+  ],
+  
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json",
+      "flags": {}
+    }
+  ],
+  "styles": [
+    "styles/default.css"
+  ],
+  "esmodules": [
+    "scripts/const.js",
+    "scripts/settings.js",
+    "scripts/prototype.js"
+  ],
+  "packs": [],
+  
+  "relationships": {
+    "systems": [],
+    "requires": [
+      {
+        "id": "coffee-pub-blacksmith",
+        "type": "module",
+        "manifest": "https://github.com/Drowbe/coffee-pub-blacksmith/releases/latest/download/module.json",
+        "compatibility": {}
+      }
+    ],
+    "conflicts": []
+  }
+}
+

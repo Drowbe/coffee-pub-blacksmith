@@ -1,0 +1,9 @@
+{
+	"coffee-pub-prototype": {
+		
+		"enableFeature-Label": "Enable Feature",
+		"enableFeature-Hint": "Enable or disable the main feature of this module."
+		
+	}
+}
+
