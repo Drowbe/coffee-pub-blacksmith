@@ -56,21 +56,23 @@ Before starting your module, familiarize yourself with:
 ### Step 2: Use AI Assistant to Customize
 1. Open the renamed folder in your code editor
 2. Open the AI chat in your editor (Cursor, VS Code with Copilot, etc.)
-3. Copy the prompt from `documentation/SETUP_PROMPT.md`
+3. **Copy the complete prompt** from `documentation/SETUP_PROMPT.md`
 4. Paste it into the AI chat
 5. Provide your module details when prompted:
    - Module name (e.g., "Sketch")
    - Module ID (e.g., "coffee-pub-sketch")
    - Description
    - Any specific requirements
+6. The AI will systematically replace all placeholders throughout all files
 
 ### Step 3: Verify and Test
 1. The AI will help you replace all "prototype" references
 2. Review the changes to ensure everything is updated correctly
-3. Restart FoundryVTT
-4. Enable your new module in the module settings
-5. Check the console for any errors
-6. Verify Blacksmith integration is working
+3. Save all files
+4. In FoundryVTT, press **F5** to reload the application
+5. Enable your new module in the module settings
+6. Check the browser console (F12) for any errors
+7. Verify Blacksmith integration is working (look for registration success message)
 
 ## What Gets Replaced
 
@@ -245,23 +247,76 @@ blacksmith.registerToolbarTool('my-tool', {
 });
 ```
 
+## Development Workflow
+
+### Testing Your Changes
+1. **Make changes** to your code
+2. **Save files**
+3. **Reload FoundryVTT** (press F5 in browser)
+4. **Check console** (F12 → Console tab) for errors
+5. **Test functionality** in-game
+
+### Debugging Tips
+- **Always check the console first** - Most errors show up there
+- **Use Blacksmith's logging utilities** - They provide better debugging info
+- **Filter console by module name** - Makes finding your logs easier
+- **Enable debug mode** - If available, enables verbose logging
+
+### Console Commands for Testing
+Blacksmith provides console commands to verify integration:
+```javascript
+// Show all registered hooks
+BlacksmithAPIHooks();
+
+// Show detailed hook information
+BlacksmithAPIHookDetails();
+
+// Test if Blacksmith APIs are available
+console.log('HookManager:', typeof BlacksmithHookManager);
+console.log('Utils:', typeof BlacksmithUtils);
+console.log('ModuleManager:', typeof BlacksmithModuleManager);
+```
+
+### Hot Reloading
+- **FoundryVTT doesn't support hot reload** - Always do a full page refresh (F5)
+- **Module changes require reload** - Changes to `module.json` require full reload
+- **JavaScript changes** - Usually just need F5, but sometimes need to disable/re-enable module
+
 ## Troubleshooting
 
 ### Module Not Loading
-- Check `module.json` for syntax errors
+- Check `module.json` for syntax errors (validate JSON)
 - Verify all file paths in `esmodules` array are correct
+- Ensure file names match exactly (case-sensitive)
 - Check browser console for JavaScript errors
+- Verify the folder name matches the module ID in `module.json`
 
 ### Blacksmith Integration Failing
 - Ensure Coffee Pub Blacksmith is installed and enabled
 - Check that you're using the `ready` hook (not `init`)
 - Verify module registration code is correct
 - Check console for Blacksmith availability warnings
+- Try running `console.log(typeof BlacksmithModuleManager)` in console to verify availability
+- Ensure you've imported the Blacksmith API bridge file
 
 ### Settings Not Appearing
 - Ensure `registerSettings()` is called in the `ready` hook
 - Check that settings are registered before being accessed
 - Verify localization keys match in `lang/en.json`
+- Settings require page reload to appear after registration
+- Check that settings use the correct `MODULE.ID` prefix
+
+### Common JavaScript Errors
+- **"Cannot read property of undefined"** - Check that objects exist before accessing properties
+- **"Module not found"** - Verify file paths in `module.json` are correct
+- **"Blacksmith not available"** - Blacksmith must load before your module; ensure you're using `ready` hook
+- **Syntax errors** - Check for missing brackets, quotes, or semicolons
+
+### Performance Issues
+- Check console for performance warnings
+- Use FoundryVTT's performance profiler (F12 → Performance tab)
+- Look for memory leaks in Chrome DevTools
+- Consider debouncing/throttling frequent operations
 
 ## Resources
 
@@ -290,6 +345,111 @@ If you run into issues:
 3. Check FoundryVTT console for error messages
 4. Use Blacksmith's debugging utilities to trace issues
 
+## Quick Reference
+
+### Essential Code Patterns
+
+#### Module Registration Pattern
+```javascript
+Hooks.once('ready', async () => {
+    registerSettings();
+    
+    if (typeof BlacksmithModuleManager !== 'undefined') {
+        BlacksmithModuleManager.registerModule(MODULE.ID, {
+            name: MODULE.NAME,
+            version: MODULE.VERSION
+        });
+    }
+    
+    initializeModule();
+});
+```
+
+#### Settings Pattern
+```javascript
+game.settings.register(MODULE.ID, 'settingName', {
+    name: MODULE.ID + '.settingName-Label',
+    hint: MODULE.ID + '.settingName-Hint',
+    scope: 'world',
+    config: true,
+    default: true,
+    type: Boolean
+});
+```
+
+#### Hook Registration Pattern
+```javascript
+BlacksmithHookManager.registerHook({
+    name: 'hookName',
+    description: 'Description of what this hook does',
+    context: MODULE.ID, // Use module ID for context
+    priority: 3, // 1=Critical, 2=High, 3=Normal, 4=Low, 5=Lowest
+    callback: (args) => {
+        // BEGIN - HOOKMANAGER CALLBACK
+            // Your hook logic here
+        // END - HOOKMANAGER CALLBACK
+    }
+});
+```
+
+#### Error Handling Pattern
+```javascript
+try {
+    // Your code here
+} catch (error) {
+    console.error(`${MODULE.NAME}: Error description`, error);
+    // Or use Blacksmith's logging:
+    BlacksmithUtils.postConsoleAndNotification(
+        MODULE.NAME,
+        'Error description',
+        error.message,
+        false,
+        true // Show notification for errors
+    );
+}
+```
+
+## File Organization Guidelines
+
+### Where to Put Things
+
+- **Main logic**: `scripts/[module-name].js`
+- **Settings**: `scripts/settings.js`
+- **Utilities/Helpers**: `scripts/utils-[feature].js` or `scripts/[feature]-utils.js`
+- **UI Windows**: `scripts/window-[feature].js`
+- **Managers**: `scripts/manager-[feature].js`
+- **Templates**: `templates/` directory
+- **Styles**: `styles/` directory (import via `default.css`)
+- **Localization**: `lang/en.json`
+
+### Naming Conventions
+- **Files**: Use kebab-case (e.g., `window-query.js`, `manager-rolls.js`)
+- **Classes**: Use PascalCase (e.g., `class QueryWindow`)
+- **Functions**: Use camelCase (e.g., `function registerSettings()`)
+- **Constants**: Use UPPER_SNAKE_CASE (e.g., `const MODULE_ID = '...'`)
+
+## Version Compatibility
+
+### FoundryVTT v13 Requirements
+- All modules built from this prototype target **FoundryVTT v13+**
+- Uses ApplicationV2 patterns where applicable
+- Native DOM (no jQuery)
+- Updated hook signatures
+- Modern JavaScript patterns
+
+### API Version
+The prototype sets `APIVERSION: "13.0.0"` in `const.js`. Update this if you target a different API version.
+
+## Important Files Reference
+
+- **`module.json`** - Module manifest (FoundryVTT reads this)
+- **`scripts/const.js`** - Module constants (auto-reads from module.json)
+- **`scripts/[module-name].js`** - Main entry point
+- **`scripts/settings.js`** - Settings registration
+- **`lang/en.json`** - Localization strings
+- **`styles/default.css`** - Main stylesheet (import others here)
+- **`documentation/SETUP_PROMPT.md`** - AI prompt for initial setup
+
 ## Conclusion
 
 This prototype gives you a solid foundation for building Coffee Pub modules. By following the patterns and using Blacksmith's APIs, you can focus on your module's unique features rather than boilerplate code.
@@ -300,6 +460,7 @@ Remember:
 - **Follow patterns** - Consistency helps everyone
 - **Test thoroughly** - Especially Blacksmith integration
 - **Document as you go** - Future you will thank you
+- **Use the setup prompt** - Copy from `documentation/SETUP_PROMPT.md` for AI assistance
 
 Good luck with your module development!
 
