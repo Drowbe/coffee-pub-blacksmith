@@ -776,7 +776,9 @@ export function addToolbarButton() {
             // Also refresh the toolbar after a short delay to ensure all settings are loaded
             setTimeout(() => {
                 postConsoleAndNotification(MODULE.NAME, "Toolbar | Delayed refresh", "Refreshing toolbar after delay", true, false);
-                Hooks.callAll('getSceneControlButtons', ui.controls.controls);
+                // Use Foundry's built-in initialize() instead of manually calling hooks
+                // This properly handles hook calling through Foundry's system
+                ui.controls.initialize();
                 ui.controls.render();
                 _wireToolClicks();
             }, 100);
@@ -896,9 +898,11 @@ export function registerToolbarTool(toolId, toolData) {
         // Refresh the toolbar to reflect the new tool
         // Use a small delay to ensure the tool is fully registered
         setTimeout(() => {
-            if (ui.controls?.controls) {
-                // Re-trigger getSceneControlButtons to rebuild toolbar with new tools
-                Hooks.callAll('getSceneControlButtons', ui.controls.controls);
+            if (ui.controls) {
+                // Use Foundry's built-in initialize() instead of manually calling hooks
+                // This properly handles hook calling through Foundry's system and avoids
+                // triggering incompatible modules' hooks directly
+                ui.controls.initialize();
                 ui.controls.render();
             }
         }, 50);
