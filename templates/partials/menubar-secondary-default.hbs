@@ -4,7 +4,10 @@
     <div class="secondary-bar-item {{#if active}}active{{/if}}" 
          data-item-id="{{itemId}}"
          data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
-         title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}">
+         title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
+         {{#if (or buttonColor borderColor)}}
+         style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
+         {{/if}}>
         <i class="{{icon}}"></i>
         {{#if label}}
         <span class="secondary-bar-item-label">{{label}}</span>

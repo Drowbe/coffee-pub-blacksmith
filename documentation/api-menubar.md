@@ -891,6 +891,8 @@ blacksmith.registerSecondaryBarItem('cartographer', 'eraser-tool', {
   - `tooltip` (string, optional): Tooltip text on hover. If omitted, uses `label` as tooltip.
   - `active` (boolean, optional): Whether item is active/selected. Adds `active` CSS class when `true` (default: `false`)
   - `order` (number, optional): Sort order for displaying items (lower numbers appear first). Items without `order` appear after items with `order`, sorted alphabetically by `itemId`.
+  - `buttonColor` (string, optional): Background color for the button. Can be any valid CSS color (e.g., `'rgba(100, 150, 200, 0.3)'`, `'#64aaff'`, `'blue'`). If omitted, uses the default from `--blacksmith-menubar-secondary-buttoncolor`.
+  - `borderColor` (string, optional): Border color for the button. Can be any valid CSS color. If omitted, uses the default from `--blacksmith-menubar-secondary-bordercolor`.
   - `onClick` (Function, required): Click handler function `(event) => {}`. Receives the click event as parameter.
   - Additional properties: Any other properties are preserved and passed through, but not used by the default template.
 
@@ -904,6 +906,8 @@ blacksmith.registerSecondaryBarItem('cartographer', 'pencil-tool', {
     tooltip: 'Draw with pencil tool',     // Optional: Custom tooltip
     active: false,                        // Optional: Active state
     order: 10,                           // Optional: Display order
+    buttonColor: 'rgba(100, 150, 200, 0.3)',  // Optional: Custom button background color
+    borderColor: 'rgba(100, 150, 200, 0.5)',  // Optional: Custom border color
     onClick: (event) => {                // Required: Click handler
         console.log('Pencil tool clicked');
         // Update active state
@@ -956,12 +960,32 @@ The default secondary bar items use CSS classes that you can override in your mo
 - `.blacksmith-menubar-secondary .secondary-bar-toolbar` - Container for all items
 
 **CSS Variables Available:**
-- `--blacksmith-menubar-fontcolor` - Text color
-- `--blacksmith-menubar-fontsize` - Font size
-- `--blacksmith-menubar-iconsize` - Icon size
-- `--blacksmith-menubar-secondary-height` - Bar height
+- `--blacksmith-menubar-fontcolor` - Primary bar text color
+- `--blacksmith-menubar-fontsize` - Primary bar font size
+- `--blacksmith-menubar-iconsize` - Primary bar icon size
+- `--blacksmith-menubar-secondary-height` - Secondary bar height
+- `--blacksmith-menubar-secondary-fontcolor` - Secondary bar text color
+- `--blacksmith-menubar-secondary-fontsize` - Secondary bar font size
+- `--blacksmith-menubar-secondary-iconsize` - Secondary bar icon size
+- `--blacksmith-menubar-secondary-buttoncolor` - Default button background color (used when `buttonColor` not specified)
+- `--blacksmith-menubar-secondary-bordercolor` - Default border color (used when `borderColor` not specified)
 
 **Custom Styling Example:**
+
+You can customize styling in two ways:
+
+1. **Per-item colors** (recommended for individual button styling):
+```javascript
+blacksmith.registerSecondaryBarItem('cartographer', 'pencil-tool', {
+    icon: 'fa-solid fa-pencil',
+    label: 'Pencil',
+    buttonColor: 'rgba(100, 150, 200, 0.3)',  // Custom background
+    borderColor: 'rgba(100, 150, 200, 0.5)',  // Custom border
+    onClick: () => {}
+});
+```
+
+2. **CSS overrides** (for global styling of all items in a bar type):
 ```css
 /* In your module's CSS file */
 .blacksmith-menubar-secondary[data-bar-type="cartographer"] .secondary-bar-item {
@@ -975,7 +999,10 @@ The default secondary bar items use CSS classes that you can override in your mo
 }
 ```
 
-**Note:** Styles are defined in `styles/menubar.css` in the Blacksmith module. You can override them using more specific selectors in your module's CSS.
+**Note:** 
+- Per-item colors (via `buttonColor` and `borderColor` parameters) are applied as inline styles and take precedence over CSS rules
+- CSS hover/active states will still apply on top of the inline styles
+- Styles are defined in `styles/menubar.css` in the Blacksmith module. You can override them using more specific selectors in your module's CSS.
 
 ### Creating a Custom Secondary Bar Template
 
