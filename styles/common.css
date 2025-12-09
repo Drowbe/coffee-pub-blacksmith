@@ -49,17 +49,7 @@ li.table-result img.result-image  {
 }
 
 /* Scene Directory (Sidebar) - v13 Structure */
-/* Folder headers - applies to folder names in the sidebar */
-.folder-header .folder-name {
-    text-align: var(--strSceneTextAlign) !important;
-    padding-left: var(--strScenePaddingLeft);
-    padding-right: var(--strScenePaddingRight);
-    padding-top: var(--strScenePaddingTop);
-    padding-bottom: var(--strScenePaddingBottom);
-    font-size: var(--strSceneFontSize);
-}
-
-/* Scene entry names - applies to scene names in the sidebar */
+/* Scene entry names ONLY - applies to scene panels (not folder names) */
 .directory-item.scene .entry-name,
 .subdirectory .directory-item.scene .entry-name,
 #scenes .directory-item.scene .entry-name {
