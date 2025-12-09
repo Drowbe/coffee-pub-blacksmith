@@ -43,6 +43,7 @@ class MenuBar {
     static secondaryBarGroups = new Map(); // Map<typeId, Map<groupId, groupConfig>> - stores group configurations
     static secondaryBarActiveStates = new Map(); // Map<typeId, Map<groupId, itemId>> - tracks active items per group (for switch mode)
     static pendingSecondaryBarItems = new Map(); // Map<typeId, Map<itemId, itemData>> - items registered before bar type exists
+    static secondaryBarToolMapping = new Map(); // Map<typeId, toolId> - maps secondary bar types to their toggle tool IDs
     static renderTimeout = null;
     
     // Timer interval tracking for cleanup
@@ -1003,12 +1004,15 @@ class MenuBar {
             order: 7,
             moduleId: "blacksmith-core",
             gmOnly: false, // Available to all players
+            toggleable: true, // Enable toggleable to show active state
+            active: false, // Will be synced with combat bar state
             visible: () => {
                 // Show if there's an active combat OR if there are combatants in any combat
                 const activeCombat = game.combats.active;
                 return activeCombat !== null && activeCombat !== undefined && activeCombat.combatants.size > 0;
             },
             onClick: () => {
+                // Toggle the combat bar - active state is synced in openCombatBar/closeCombatBar
                 this.toggleSecondaryBar('combat');
             }
         });
@@ -1148,7 +1152,8 @@ class MenuBar {
                 leaderOnly: toolData.leaderOnly || false,
                 visible: toolData.visible !== undefined ? toolData.visible : true,
                 toggleable: toolData.toggleable || false,
-                active: toolData.active || false
+                active: toolData.active || false,
+                iconColor: toolData.iconColor || null
             };
 
             // Register the tool
@@ -1314,12 +1319,20 @@ class MenuBar {
             if (isVisible) {
                 const zone = tool.zone || 'left';
                 
-                // Process title and tooltip if they are functions
+                // Process title, tooltip, and active if they are functions
+                let activeState = tool.active;
+                if (typeof tool.active === 'function') {
+                    activeState = tool.active();
+                } else {
+                    activeState = tool.active || false;
+                }
+                
                 const processedTool = {
                     toolId,
                     ...tool,
                     title: typeof tool.title === 'function' ? tool.title() : tool.title,
-                    tooltip: typeof tool.tooltip === 'function' ? tool.tooltip() : tool.tooltip
+                    tooltip: typeof tool.tooltip === 'function' ? tool.tooltip() : tool.tooltip,
+                    active: activeState
                 };
                 
                 if (zone === 'middle') {
@@ -2024,7 +2037,7 @@ class MenuBar {
             }
 
             this.secondaryBarTypes.set(typeId, barType);
-            
+
             // Initialize items storage for this bar type
             if (!this.secondaryBarItems.has(typeId)) {
                 this.secondaryBarItems.set(typeId, new Map());
@@ -2108,7 +2121,8 @@ class MenuBar {
                     itemId: itemId,
                     barTypeId: barTypeId,
                     group: groupId,
-                    toggleable: itemData.toggleable || false
+                    toggleable: itemData.toggleable || false,
+                    iconColor: itemData.iconColor || null
                 });
                 postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Item queued (bar type not registered yet)", 
                     { barTypeId, itemId }, true, false);
@@ -2132,7 +2146,8 @@ class MenuBar {
                 itemId: itemId,
                 barTypeId: barTypeId,
                 group: groupId,
-                toggleable: toggleable
+                toggleable: toggleable,
+                iconColor: itemData.iconColor || null
             });
             
             // Ensure group exists (in case item registered before group config)
@@ -2347,8 +2362,11 @@ class MenuBar {
                 return true;
             }
 
-            // Close any existing secondary bar first
-            this.closeSecondaryBar();
+            // Get the previously open bar type before closing
+            const previousType = this.secondaryBar.type;
+            
+            // Close any existing secondary bar first (skip button sync - we'll do it after)
+            this.closeSecondaryBar(false);
 
             const barType = this.secondaryBarTypes.get(typeId);
             if (!barType) {
@@ -2359,6 +2377,9 @@ class MenuBar {
             // Set up the secondary bar
             this.secondaryBar.isOpen = true;
             this.secondaryBar.type = typeId;
+            
+            // Update button states: deactivate previous bar's button, activate new bar's button
+            this._syncSecondaryBarButtonStates(previousType, typeId);
             this.secondaryBar.height = options.height || this.getSecondaryBarHeight(typeId);
             this.secondaryBar.persistence = options.persistence || barType.persistence;
             this.secondaryBar.data = options.data || {};
@@ -2391,6 +2412,9 @@ class MenuBar {
                 this._setAutoCloseTimeout();
             }
 
+            // Sync button states: deactivate previous bar's button, activate new bar's button
+            this._syncSecondaryBarButtonStates(previousType, typeId);
+
             postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Opened", { typeId, height: this.secondaryBar.height }, true, false);
 
             // Re-render the menubar to show the secondary bar
@@ -2408,7 +2432,7 @@ class MenuBar {
      * Close the secondary bar
      * @returns {boolean} Success status
      */
-    static closeSecondaryBar(userInitiated = false) {
+    static closeSecondaryBar(userInitiated = false, syncButtons = true) {
         try {
             if (!this.secondaryBar.isOpen) {
                 return true; // Already closed
@@ -2425,10 +2449,18 @@ class MenuBar {
                 this.secondaryBar.autoCloseTimeout = null;
             }
 
+            // Get the closing bar type before resetting
+            const closingType = this.secondaryBar.type;
+
             // Reset secondary bar state
             this.secondaryBar.isOpen = false;
             this.secondaryBar.type = null;
             this.secondaryBar.data = {};
+            
+            // Update button state: deactivate the closing bar's button
+            if (syncButtons && closingType) {
+                this._syncSecondaryBarButtonStates(closingType, null);
+            }
 
             // Reset the CSS variables for secondary bar height and total height
             document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', '0px');
@@ -2508,7 +2540,7 @@ class MenuBar {
             if (this.secondaryBar.type === 'combat') {
                 this.secondaryBar.data = data;
             } else {
-                this.secondaryBar.data = { ...this.secondaryBar.data, ...data };
+            this.secondaryBar.data = { ...this.secondaryBar.data, ...data };
             }
 
             this.renderMenubar(true);
@@ -2572,7 +2604,7 @@ class MenuBar {
 
             const data = combatData || this.getCombatData(combat);
             
-            
+            // openSecondaryBar handles button state syncing automatically via _syncSecondaryBarButtonStates
             return this.openSecondaryBar('combat', {
                 data: data,
                 persistence: 'manual'
@@ -2588,12 +2620,51 @@ class MenuBar {
             if (this._isUserExcluded(game.user)) return true;
             if (this.secondaryBar.isOpen && this.secondaryBar.type === 'combat') {
                 this.secondaryBar.userClosed = false;
+                
+                // closeSecondaryBar handles button state syncing automatically
                 return this.closeSecondaryBar();
             }
             return true;
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error closing combat bar", { error }, false, false);
             return false;
+        }
+    }
+
+    /**
+     * Sync button active states when secondary bars change
+     * @private
+     * @param {string|null} previousType - The previously open bar type (or null if none)
+     * @param {string|null} newType - The newly opening bar type (or null if closing)
+     */
+    static _syncSecondaryBarButtonStates(previousType, newType) {
+        try {
+            // Deactivate previous bar's button if it exists
+            if (previousType) {
+                const previousToolId = this.secondaryBarToolMapping.get(previousType);
+                if (previousToolId) {
+                    const previousTool = this.toolbarIcons.get(previousToolId);
+                    if (previousTool && previousTool.toggleable) {
+                        previousTool.active = false;
+                    }
+                }
+            }
+            
+            // Activate new bar's button if it exists
+            if (newType) {
+                const newToolId = this.secondaryBarToolMapping.get(newType);
+                if (newToolId) {
+                    const newTool = this.toolbarIcons.get(newToolId);
+                    if (newTool && newTool.toggleable) {
+                        newTool.active = true;
+                    }
+                }
+            }
+            
+            // Re-render to show updated states
+            this.renderMenubar(true);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error syncing button states", { previousType, newType, error }, false, false);
         }
     }
 
@@ -3344,7 +3415,7 @@ class MenuBar {
                 // Re-render to update active state
                 this.renderMenubar(true);
             }
-            
+
             // Execute the tool's onClick function
             if (typeof tool.onClick === 'function') {
                 try {

@@ -10,7 +10,7 @@
              {{#if (or buttonColor borderColor)}}
              style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
              {{/if}}>
-            <i class="{{icon}}"></i>
+            <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
             {{#if label}}
             <span class="secondary-bar-item-label">{{label}}</span>
             {{/if}}

@@ -3,7 +3,7 @@
     <div class="blacksmith-menubar-left">
         {{#each toolsByZone.left}}
         <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
-            <i class="{{icon}}"></i>
+            <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
             {{#if (eq name "settings")}}
             {{else if (eq name "refresh")}}
             {{else}}
@@ -18,7 +18,7 @@
         {{!-- General buttons (all players/gm) --}}
         {{#each toolsByZone.middle.general}}
         <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
-            <i class="{{icon}}"></i>
+            <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
             <span class="{{name}}-label">{{title}}</span>
         </div>
         {{/each}}
@@ -31,7 +31,7 @@
         {{!-- Leader buttons (leader/gm) --}}
         {{#each toolsByZone.middle.leader}}
         <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
-            <i class="{{icon}}"></i>
+            <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
             <span class="{{name}}-label">{{title}}</span>
         </div>
         {{/each}}
@@ -44,7 +44,7 @@
         {{!-- GM buttons (gm only) --}}
         {{#each toolsByZone.middle.gm}}
         <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
-            <i class="{{icon}}"></i>
+            <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
             <span class="{{name}}-label">{{title}}</span>
         </div>
         {{/each}}
@@ -91,8 +91,8 @@
      style="height: {{secondaryBar.height}}px;">
     {{#if secondaryBar.hasCustomTemplate}}
         {{!-- Custom template (e.g., combat bar) --}}
-        {{#if (eq secondaryBar.type "combat")}}
-            {{> "menubar-combat" secondaryBar.data}}
+    {{#if (eq secondaryBar.type "combat")}}
+        {{> "menubar-combat" secondaryBar.data}}
         {{else}}
             {{!-- Dynamic custom template --}}
             {{> (lookup . (concat "menubar-" secondaryBar.type)) secondaryBar.data}}

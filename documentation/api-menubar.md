@@ -212,6 +212,7 @@ Registers a new tool with the Blacksmith menubar system.
 - `visible` (boolean|Function, optional): Whether tool is visible (default: true)
 - `toggleable` (boolean, optional): Whether tool can be toggled on/off (default: false)
 - `active` (boolean, optional): Initial active state for toggleable tools (default: false)
+- `iconColor` (string, optional): Icon color. Can be any valid CSS color (e.g., `'#ff0000'`, `'rgba(255, 0, 0, 0.8)'`, `'red'`). If omitted, uses default icon color.
 
 #### `updateMenubarToolActive(toolId, active)`
 
@@ -1068,6 +1069,7 @@ blacksmith.registerSecondaryBarItem('cartographer', 'medium-line', {
   - `toggleable` (boolean, optional): Whether item can be toggled on/off (only applies to `'default'` mode groups). In `'switch'` mode groups, items are automatically managed.
   - `active` (boolean, optional): Whether item is active/selected. Adds `active` CSS class when `true`. For `'switch'` mode groups, the first item is automatically made active if none is active.
   - `order` (number, optional): Sort order for displaying items within the group (lower numbers appear first). Items without `order` appear after items with `order`, sorted alphabetically by `itemId`.
+  - `iconColor` (string, optional): Icon color. Can be any valid CSS color (e.g., `'#ff0000'`, `'rgba(255, 0, 0, 0.8)'`, `'red'`). If omitted, uses default icon color.
   - `buttonColor` (string, optional): Background color for the button. Can be any valid CSS color (e.g., `'rgba(100, 150, 200, 0.3)'`, `'#64aaff'`, `'blue'`). If omitted, uses the default from `--blacksmith-menubar-secondary-buttoncolor`.
   - `borderColor` (string, optional): Border color for the button. Can be any valid CSS color. If omitted, uses the default from `--blacksmith-menubar-secondary-bordercolor`.
   - `onClick` (Function, required): Click handler function `(event) => {}`. Receives the click event as parameter.
@@ -1090,6 +1092,7 @@ blacksmith.registerSecondaryBarItem('cartographer', 'pencil-tool', {
     tooltip: 'Draw with pencil tool',     // Optional: Custom tooltip
     active: false,                        // Optional: Active state
     order: 10,                           // Optional: Display order
+    iconColor: '#3498db',                // Optional: Icon color
     buttonColor: 'rgba(100, 150, 200, 0.3)',  // Optional: Custom button background color
     borderColor: 'rgba(100, 150, 200, 0.5)',  // Optional: Custom border color
     onClick: (event) => {                // Required: Click handler
@@ -1128,6 +1131,47 @@ blacksmith.updateSecondaryBarItemActive('cartographer', 'pencil-tool', true);
 blacksmith.updateSecondaryBarItemActive('cartographer', 'medium-line', true);
 // This automatically deactivates 'small-line' and 'large-line' in the same group
 ```
+
+### Registering Secondary Bar Toggle Tool
+
+If you create a main toolbar button to toggle your secondary bar, register it so the button's active state automatically syncs when the bar opens/closes:
+
+```javascript
+// 1. Register your secondary bar type
+await blacksmith.registerSecondaryBarType('cartographer', {
+    height: 60,
+    persistence: 'manual'
+});
+
+// 2. Register your toggle button
+blacksmith.registerMenubarTool('cartographer-toggle', {
+    icon: 'fa-solid fa-map',
+    name: 'cartographer-toggle',
+    title: 'Toggle Cartographer Tools',
+    zone: 'left',
+    toggleable: true,  // Important: Make it toggleable
+    onClick: () => {
+        blacksmith.toggleSecondaryBar('cartographer');
+    }
+});
+
+// 3. Register the mapping so button state syncs automatically
+blacksmith.registerSecondaryBarTool('cartographer', 'cartographer-toggle');
+```
+
+**Parameters:**
+- `barTypeId` (string, required): The secondary bar type ID
+- `toolId` (string, required): The menubar tool ID that toggles this bar
+
+**Returns:** `boolean` - Success status
+
+**Note:** 
+- The tool must be registered with `toggleable: true` for the active state to work
+- When a different secondary bar opens, your button will automatically deactivate
+- When your secondary bar opens, your button will automatically activate
+- When your secondary bar closes, your button will automatically deactivate
+
+**Why use this?** Without registration, you'd need to manually sync button states in your `onClick` handler. With registration, Blacksmith handles it automatically when bars open/close/switching.
 
 ### Unregistering Secondary Bar Items
 
@@ -1348,6 +1392,7 @@ Hooks.once('ready', async () => {
         icon: 'fa-solid fa-circle',
         label: 'Red',
         group: 'colors',
+        iconColor: '#ff0000',              // Red icon color
         buttonColor: 'rgba(255, 0, 0, 0.5)',
         order: 10,
         onClick: () => {
@@ -1359,6 +1404,7 @@ Hooks.once('ready', async () => {
         icon: 'fa-solid fa-circle',
         label: 'Blue',
         group: 'colors',
+        iconColor: '#0000ff',              // Blue icon color
         buttonColor: 'rgba(0, 0, 255, 0.5)',
         order: 20,
         onClick: () => {
@@ -1374,10 +1420,14 @@ Hooks.once('ready', async () => {
         zone: 'left',
         order: 20,
         moduleId: 'coffee-pub-cartographer',
+        toggleable: true,  // Enable toggleable to show active state
         onClick: () => {
             blacksmith.toggleSecondaryBar('cartographer');
         }
     });
+    
+    // 6. Register the tool-to-bar mapping for automatic button state syncing
+    blacksmith.registerSecondaryBarTool('cartographer', 'cartographer-toggle');
 });
 ```
 

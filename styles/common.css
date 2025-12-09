@@ -56,7 +56,7 @@ li.table-result img.result-image  {
     text-align: var(--strSceneTextAlign) !important;
     padding-left: var(--strScenePaddingLeft);
     padding-right: var(--strScenePaddingRight);
-    font-size: var(--strSceneFontSize);
+   font-size: var(--strSceneFontSize);
 }
 
 

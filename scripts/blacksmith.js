@@ -789,6 +789,7 @@ Hooks.once('init', async function() {
         module.api.closeSecondaryBar = MenuBar.closeSecondaryBar.bind(MenuBar);
         module.api.toggleSecondaryBar = MenuBar.toggleSecondaryBar.bind(MenuBar);
         module.api.updateSecondaryBar = MenuBar.updateSecondaryBar.bind(MenuBar);
+        module.api.registerSecondaryBarTool = MenuBar.registerSecondaryBarTool.bind(MenuBar);
         
         // Combat Bar API
         module.api.openCombatBar = MenuBar.openCombatBar.bind(MenuBar);
@@ -1117,15 +1118,15 @@ function _onRenderJournalDoubleClick(app, html, data) {
             return;
         }
         
-        // Enable the double-click
-        const ENTITY_PERMISSIONS = { 
-            "NONE": 0,
-            "LIMITED": 1,
-            "OBSERVER": 2,
-            "OWNER": 3
-        };
-        const currentUser = game.user;
-        
+            // Enable the double-click
+            const ENTITY_PERMISSIONS = { 
+                "NONE": 0,
+                "LIMITED": 1,
+                "OBSERVER": 2,
+                "OWNER": 3
+            };
+            const currentUser = game.user;
+            
         // Get the journal document from app (handles both ApplicationV1 and ApplicationV2)
         const journalDocument = app.document || app.object;
         if (!journalDocument) {
@@ -1154,7 +1155,7 @@ function _onRenderJournalDoubleClick(app, html, data) {
                 return;
             }
             
-            event.preventDefault();
+                    event.preventDefault();
             event.stopPropagation();
             
             // Check edit permissions
@@ -1208,7 +1209,7 @@ function _onRenderJournalDoubleClick(app, html, data) {
             
             for (const selector of selectors) {
                 editButton = nativeHtml.querySelector(selector);
-                if (editButton) {
+                        if (editButton) {
                     selectorUsed = selector;
                     break;
                 }
@@ -1217,7 +1218,7 @@ function _onRenderJournalDoubleClick(app, html, data) {
             if (editButton) {
                 postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Edit button found", 
                     `Selector: ${selectorUsed}, Button: ${editButton.className}`, true, false);
-                editButton.click();
+                            editButton.click();
                 postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Edit button clicked", "", true, false);
             } else {
                 postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Edit button NOT found", 
@@ -1234,7 +1235,7 @@ function _onRenderJournalDoubleClick(app, html, data) {
                     postConsoleAndNotification(MODULE.NAME, `Journal Double-Click: Button ${idx}`, 
                         `data-action: ${action}, classes: ${classes}`, true, false);
                 });
-            }
+    }
         };
         
         // Attach the event listener using event delegation on the native DOM element

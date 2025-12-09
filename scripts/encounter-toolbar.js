@@ -331,7 +331,7 @@ export class EncounterToolbar {
 
     // Track active page IDs per journal sheet to detect navigation
     static _activePageTracker = new Map();
-    
+
     // Setup global MutationObserver to catch journal sheets when hooks don't fire
     static _setupGlobalObserver() {
         // Check existing journal sheets on ready
@@ -426,7 +426,7 @@ export class EncounterToolbar {
                         if (journalSheet) {
                             postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found parent journal sheet", 
                                 `Sheet: ${journalSheet.tagName}.${journalSheet.className}`, true, false);
-                            
+        
                             // Find the corresponding app
                             const sheet = Object.values(ui.windows).find(w => {
                                 if (!w || !w.element) return false;
