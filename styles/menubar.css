@@ -7,6 +7,7 @@
 :root {
     
     /* PRIMARY BAR VARIABLES */
+    
     --blacksmith-menubar-primary-height: 26px;
     --blacksmith-menubar-secondary-height: 0px;
     --blacksmith-menubar-total-height: calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height));
@@ -26,8 +27,15 @@
     --blacksmith-menubar-fontcolor: rgba(240, 240, 224, 0.8);
     
     /* SECONDARY BAR VARIABLES */
+    
     --blacksmith-menubar-secondary-default-height: 0px;
     --blacksmith-menubar-secondary-combat-height: 60px;
+
+    --blacksmith-menubar-secondary-fontsize: .9em;
+    --blacksmith-menubar-secondary-iconsize: 2.6em;
+    --blacksmith-menubar-secondary-fontcolor: rgba(240, 240, 224, 0.8);
+    --blacksmith-menubar-secondary-buttoncolor: rgba(255, 255, 255, 0.2);
+    --blacksmith-menubar-secondary-bordercolor: rgba(255, 255, 255, 0.1);
 }
 
 /* Push main interface down to account for fixed menubar */
@@ -437,10 +445,10 @@
     margin: 0;
 }
 
+
 /* ------------------------------------------------------ */
 /* --- SECONDARY MENUBAR - WRAPSS ALL BARS -------------- */
 /* ------------------------------------------------------ */
-
 
 .blacksmith-menubar-secondary {
     --menubar-secondary-text-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.15);
@@ -487,15 +495,16 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 6px 12px;
-    background-color: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    padding: 2px 6px;
+    background-color: var(--blacksmith-menubar-secondary-buttoncolor);
+    border: 1px solid var(--blacksmith-menubar-secondary-bordercolor);
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
-    color: var(--blacksmith-menubar-fontcolor);
-    font-size: var(--blacksmith-menubar-fontsize);
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+    font-size: var(--blacksmith-menubar-secondary-fontsize);
     min-height: calc(var(--blacksmith-menubar-secondary-height) - 12px);
+    min-width: calc(var(--blacksmith-menubar-secondary-height) - 12px);
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item:hover {
@@ -515,7 +524,7 @@
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item i {
-    font-size: var(--blacksmith-menubar-iconsize);
+    font-size: var(--blacksmith-menubar-secondary-iconsize);
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-label {
@@ -599,7 +608,7 @@ Combat Tracker Tunables
   .blacksmith-menubar-secondary .combat-endcap-left .combat-endcap-top {
       opacity: 0.6;
       font-size: var(--combatbar-subtext-font-size);
-      color: var(--blacksmith-menubar-fontcolor);
+      color: var(--blacksmith-menubar-secondary-fontcolor);
   }
   
   /* ENDCAP Bottom */
@@ -608,29 +617,10 @@ Combat Tracker Tunables
       font-weight: 900;
       text-transform: uppercase;
       font-size: var(--combatbar-text-font-size);
-      color: var(--blacksmith-menubar-fontcolor);
+      color: var(--blacksmith-menubar-secondary-fontcolor);
       margin: 0px 0px .2em 0px;
   
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

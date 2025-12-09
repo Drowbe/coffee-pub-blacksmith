@@ -886,14 +886,33 @@ blacksmith.registerSecondaryBarItem('cartographer', 'eraser-tool', {
 - `barTypeId` (string, required): The bar type ID to register the item to
 - `itemId` (string, required): Unique identifier for the item
 - `itemData` (Object, required): Item configuration
-  - `icon` (string, required): FontAwesome icon class (e.g., `'fa-solid fa-pencil'`)
-  - `label` (string, optional): Text label for the item
-  - `tooltip` (string, optional): Tooltip text on hover
-  - `active` (boolean, optional): Whether item is active/selected (default: `false`)
-  - `order` (number, optional): Sort order (lower numbers appear first)
-  - `onClick` (Function, required): Click handler function `(event) => {}`
+  - `icon` (string, required): FontAwesome icon class (e.g., `'fa-solid fa-pencil'`, `'fas fa-eraser'`)
+  - `label` (string, optional): Text label displayed next to the icon. If omitted, only the icon is shown.
+  - `tooltip` (string, optional): Tooltip text on hover. If omitted, uses `label` as tooltip.
+  - `active` (boolean, optional): Whether item is active/selected. Adds `active` CSS class when `true` (default: `false`)
+  - `order` (number, optional): Sort order for displaying items (lower numbers appear first). Items without `order` appear after items with `order`, sorted alphabetically by `itemId`.
+  - `onClick` (Function, required): Click handler function `(event) => {}`. Receives the click event as parameter.
+  - Additional properties: Any other properties are preserved and passed through, but not used by the default template.
 
 **Returns:** `boolean` - Success status
+
+**Example:**
+```javascript
+blacksmith.registerSecondaryBarItem('cartographer', 'pencil-tool', {
+    icon: 'fa-solid fa-pencil',          // Required: FontAwesome icon
+    label: 'Pencil',                      // Optional: Text label
+    tooltip: 'Draw with pencil tool',     // Optional: Custom tooltip
+    active: false,                        // Optional: Active state
+    order: 10,                           // Optional: Display order
+    onClick: (event) => {                // Required: Click handler
+        console.log('Pencil tool clicked');
+        // Update active state
+        blacksmith.updateSecondaryBar({
+            activeTool: 'pencil'
+        });
+    }
+});
+```
 
 **Timing-Safe:** You can register items before the bar type is registered. Items will be queued and applied when the bar type is registered.
 
@@ -922,6 +941,41 @@ const items = blacksmith.getSecondaryBarItems('cartographer');
 - `barTypeId` (string, required): The bar type ID
 
 **Returns:** `Array<Object>` - Array of registered item data objects
+
+### Styling Secondary Bar Items
+
+The default secondary bar items use CSS classes that you can override in your module's stylesheet:
+
+**CSS Classes:**
+- `.blacksmith-menubar-secondary .secondary-bar-item` - Base item button
+- `.blacksmith-menubar-secondary .secondary-bar-item.active` - Active/selected item
+- `.blacksmith-menubar-secondary .secondary-bar-item:hover` - Hover state
+- `.blacksmith-menubar-secondary .secondary-bar-item:active` - Clicked/pressed state
+- `.blacksmith-menubar-secondary .secondary-bar-item i` - Icon element
+- `.blacksmith-menubar-secondary .secondary-bar-item-label` - Label text
+- `.blacksmith-menubar-secondary .secondary-bar-toolbar` - Container for all items
+
+**CSS Variables Available:**
+- `--blacksmith-menubar-fontcolor` - Text color
+- `--blacksmith-menubar-fontsize` - Font size
+- `--blacksmith-menubar-iconsize` - Icon size
+- `--blacksmith-menubar-secondary-height` - Bar height
+
+**Custom Styling Example:**
+```css
+/* In your module's CSS file */
+.blacksmith-menubar-secondary[data-bar-type="cartographer"] .secondary-bar-item {
+    background-color: rgba(100, 150, 200, 0.3);
+    border-radius: 5px;
+}
+
+.blacksmith-menubar-secondary[data-bar-type="cartographer"] .secondary-bar-item.active {
+    background-color: rgba(100, 150, 200, 0.6);
+    box-shadow: 0 0 8px rgba(100, 150, 200, 0.4);
+}
+```
+
+**Note:** Styles are defined in `styles/menubar.css` in the Blacksmith module. You can override them using more specific selectors in your module's CSS.
 
 ### Creating a Custom Secondary Bar Template
 

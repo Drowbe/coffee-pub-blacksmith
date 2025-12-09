@@ -2075,11 +2075,26 @@ class MenuBar {
     /**
      * Get all items for a secondary bar type
      * @param {string} barTypeId - The bar type to get items for
-     * @returns {Array} Array of item data objects
+     * @returns {Array} Array of item data objects, sorted by order (then by itemId)
      */
     static getSecondaryBarItems(barTypeId) {
         const items = this.secondaryBarItems.get(barTypeId);
-        return items ? Array.from(items.values()) : [];
+        if (!items) return [];
+        
+        // Convert to array and sort by order, then by itemId for consistent ordering
+        const itemsArray = Array.from(items.values());
+        return itemsArray.sort((a, b) => {
+            // Items with order come first, sorted by order value
+            const aOrder = a.order !== undefined ? a.order : Infinity;
+            const bOrder = b.order !== undefined ? b.order : Infinity;
+            
+            if (aOrder !== bOrder) {
+                return aOrder - bOrder;
+            }
+            
+            // If same order or no order, sort alphabetically by itemId
+            return (a.itemId || '').localeCompare(b.itemId || '');
+        });
     }
 
     /**
