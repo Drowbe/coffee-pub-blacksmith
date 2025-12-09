@@ -701,9 +701,11 @@ For issues or questions about the Blacksmith Menubar API:
 
 The menubar supports **secondary bars** - additional toolbars that appear below the main menubar, similar to tabs. Only one secondary bar can be open at a time. When you open a new secondary bar, the existing one automatically closes.
 
+**Important:** **Always use the default tool system** unless your use case absolutely requires a custom template. The default tool system is simpler, faster to implement, timing-safe, and sufficient for most toolbars. Only use custom templates for complex UIs that cannot be achieved with simple button-based tools.
+
 **Common Use Cases:**
-- Combat tracker (built-in)
-- Drawing tools (Cartographer)
+- Combat tracker (built-in, uses custom template for complex portraits/health rings)
+- Drawing tools (Cartographer, uses default tool system)
 - Specialized toolbars for specific activities
 
 ### Secondary Bar Behavior
@@ -715,20 +717,42 @@ The menubar supports **secondary bars** - additional toolbars that appear below 
 
 ### Registering a Secondary Bar Type
 
-Before you can open a secondary bar, you must register its type:
+Before you can open a secondary bar, you must register its type. The system supports two approaches:
+
+1. **Default Tool System** (recommended - use this unless custom template is absolutely necessary) - Register individual tools/items
+2. **Custom Template** (only when default system cannot meet your needs) - Provide a custom Handlebars template
+
+**Choose the default tool system unless you need:**
+- Complex nested HTML structures
+- Custom graphics/SVG elements (like health rings)
+- Dynamic data-driven layouts that buttons can't handle
+- Highly specialized UI components
+
+**Use default tool system for:**
+- Simple button-based toolbars
+- Drawing tools, filters, toggles
+- Any toolbar that can be represented as a row of buttons/controls
 
 ```javascript
 const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
 
-// Register a new secondary bar type
+// Option 1: Register a bar type using the default tool system (no template needed)
 const success = blacksmith.registerSecondaryBarType('cartographer', {
     height: 60,                    // Height in pixels
     persistence: 'manual',         // 'manual' or 'auto'
     autoCloseDelay: 10000          // Auto-close delay in ms (if persistence is 'auto')
+    // No templatePath = uses default tool system
+});
+
+// Option 2: Register a bar type with a custom template (for complex UIs)
+const success = blacksmith.registerSecondaryBarType('combat', {
+    height: 60,
+    persistence: 'manual',
+    templatePath: 'modules/my-module/templates/menubar-combat.hbs'  // Custom template path
 });
 
 if (success) {
-    console.log("Cartographer bar type registered!");
+    console.log("Secondary bar type registered!");
 }
 ```
 
@@ -738,8 +762,11 @@ if (success) {
   - `height` (number, optional): Height in pixels (default: 50)
   - `persistence` (string, optional): `'manual'` or `'auto'` (default: `'manual'`)
   - `autoCloseDelay` (number, optional): Auto-close delay in milliseconds (default: 10000)
+  - `templatePath` (string, optional): Path to custom Handlebars template partial. If not provided, uses the default tool system.
 
-**Returns:** `boolean` - Success status
+**Returns:** `Promise<boolean>` - Success status (async method)
+
+**Note:** This method is async because it loads custom templates. Use `await` or `.then()` when using custom templates.
 
 ### Opening a Secondary Bar
 
@@ -826,50 +853,122 @@ const success = blacksmith.updateSecondaryBar({
 
 **Note:** This only works if a secondary bar is currently open.
 
-### Creating a Secondary Bar Template
+### Registering Secondary Bar Items (Default Tool System)
 
-To display your secondary bar, you need to create a Handlebars partial template. The template should be located at:
+For simple toolbars, use the default tool registration system. This avoids needing to create custom templates:
 
-```
-templates/menubar-{your-type-id}.hbs
+```javascript
+// Register items for a secondary bar (default tool system)
+blacksmith.registerSecondaryBarItem('cartographer', 'pencil-tool', {
+    icon: 'fa-solid fa-pencil',
+    label: 'Pencil',
+    tooltip: 'Draw with pencil tool',
+    active: false,                    // Optional: whether item is active/selected
+    order: 10,                        // Optional: sort order
+    onClick: (event) => {
+        // Handle click
+        console.log('Pencil tool clicked');
+    }
+});
+
+blacksmith.registerSecondaryBarItem('cartographer', 'eraser-tool', {
+    icon: 'fa-solid fa-eraser',
+    label: 'Eraser',
+    tooltip: 'Erase drawings',
+    order: 20,
+    onClick: (event) => {
+        console.log('Eraser tool clicked');
+    }
+});
 ```
 
-For example, for a `cartographer` bar type, create:
-```
-templates/menubar-cartographer.hbs
+**Parameters:**
+- `barTypeId` (string, required): The bar type ID to register the item to
+- `itemId` (string, required): Unique identifier for the item
+- `itemData` (Object, required): Item configuration
+  - `icon` (string, required): FontAwesome icon class (e.g., `'fa-solid fa-pencil'`)
+  - `label` (string, optional): Text label for the item
+  - `tooltip` (string, optional): Tooltip text on hover
+  - `active` (boolean, optional): Whether item is active/selected (default: `false`)
+  - `order` (number, optional): Sort order (lower numbers appear first)
+  - `onClick` (Function, required): Click handler function `(event) => {}`
+
+**Returns:** `boolean` - Success status
+
+**Timing-Safe:** You can register items before the bar type is registered. Items will be queued and applied when the bar type is registered.
+
+### Unregistering Secondary Bar Items
+
+```javascript
+// Remove an item from a secondary bar
+blacksmith.unregisterSecondaryBarItem('cartographer', 'pencil-tool');
 ```
 
-**Template Example:**
+**Parameters:**
+- `barTypeId` (string, required): The bar type ID
+- `itemId` (string, required): The item ID to remove
+
+**Returns:** `boolean` - Success status
+
+### Getting Secondary Bar Items
+
+```javascript
+// Get all registered items for a bar type
+const items = blacksmith.getSecondaryBarItems('cartographer');
+// Returns: Array of item data objects
+```
+
+**Parameters:**
+- `barTypeId` (string, required): The bar type ID
+
+**Returns:** `Array<Object>` - Array of registered item data objects
+
+### Creating a Custom Secondary Bar Template
+
+For complex UIs (like the combat bar with portraits and health rings), you can provide a custom Handlebars template:
+
+1. **Create your template file:**
+```
+templates/partials/menubar-{your-type-id}.hbs
+```
+
+2. **Register the bar type with `templatePath`:**
+```javascript
+await blacksmith.registerSecondaryBarType('my-complex-bar', {
+    height: 80,
+    persistence: 'manual',
+    templatePath: 'modules/my-module/templates/partials/menubar-my-complex-bar.hbs'
+});
+```
+
+3. **Template Example:**
 ```handlebars
-{{!-- templates/menubar-cartographer.hbs --}}
-<div class="cartographer-toolbar">
+{{!-- templates/partials/menubar-my-complex-bar.hbs --}}
+<div class="my-complex-toolbar">
     <div class="toolbar-header">
-        <h3>Cartographer Tools</h3>
+        <h3>{{title}}</h3>
     </div>
-    <div class="toolbar-tools">
-        {{#each tools}}
-        <button class="tool-button {{#if (eq this ../activeTool)}}active{{/if}}" 
-                data-tool="{{this}}">
-            {{this}}
-        </button>
+    <div class="toolbar-content">
+        {{#each items}}
+        <div class="complex-item">
+            {{name}}: {{value}}
+        </div>
         {{/each}}
     </div>
 </div>
 ```
 
-**Important:** You'll also need to update the main menubar template (`templates/menubar.hbs`) to include your partial. Add this inside the secondary bar section:
+**Important:** 
+- Custom templates receive `secondaryBar.data` as their context
+- Templates are automatically registered as Handlebars partials: `menubar-{typeId}`
+- You do NOT need to modify Blacksmith's main template - it handles custom templates automatically
 
-```handlebars
-{{#if (eq secondaryBar.type "cartographer")}}
-    {{> "menubar-cartographer" secondaryBar.data}}
-{{/if}}
-```
+### Complete Examples
 
-### Complete Example: Cartographer Secondary Bar
+#### Example 1: Simple Toolbar (Default Tool System)
 
 ```javascript
-// 1. Register the bar type
-Hooks.once('ready', () => {
+Hooks.once('ready', async () => {
     const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
     
     if (!blacksmith) {
@@ -877,32 +976,114 @@ Hooks.once('ready', () => {
         return;
     }
     
-    // Register the cartographer bar type
-    blacksmith.registerSecondaryBarType('cartographer', {
+    // 1. Register the bar type (no templatePath = uses default tool system)
+    await blacksmith.registerSecondaryBarType('cartographer', {
         height: 60,
         persistence: 'manual',
         autoCloseDelay: 10000
     });
     
-    // Register a menubar tool to toggle the cartographer bar
-    blacksmith.registerMenubarTool('cartographer-toggle', {
+    // 2. Register tools/items for the bar
+    blacksmith.registerSecondaryBarItem('cartographer', 'pencil-tool', {
         icon: 'fa-solid fa-pencil',
+        label: 'Pencil',
+        tooltip: 'Draw with pencil',
+        order: 10,
+        onClick: () => {
+            console.log('Pencil tool activated');
+            // Update active state
+            blacksmith.updateSecondaryBar({
+                activeTool: 'pencil'
+            });
+        }
+    });
+    
+    blacksmith.registerSecondaryBarItem('cartographer', 'eraser-tool', {
+        icon: 'fa-solid fa-eraser',
+        label: 'Eraser',
+        tooltip: 'Erase drawings',
+        order: 20,
+        onClick: () => {
+            console.log('Eraser tool activated');
+        }
+    });
+    
+    // 3. Register a menubar tool to toggle the secondary bar
+    blacksmith.registerMenubarTool('cartographer-toggle', {
+        icon: 'fa-solid fa-map',
         name: 'cartographer-toggle',
         title: 'Toggle Cartographer Tools',
         zone: 'left',
         order: 20,
         moduleId: 'coffee-pub-cartographer',
         onClick: () => {
-            blacksmith.toggleSecondaryBar('cartographer', {
-                data: {
-                    tools: ['pencil', 'eraser', 'line', 'rectangle'],
-                    activeTool: 'pencil'
-                }
-            });
+            blacksmith.toggleSecondaryBar('cartographer');
         }
     });
 });
 ```
+
+#### Example 2: Complex Toolbar (Custom Template)
+
+```javascript
+Hooks.once('ready', async () => {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    
+    // Register with custom template
+    await blacksmith.registerSecondaryBarType('my-complex-bar', {
+        height: 80,
+        persistence: 'manual',
+        templatePath: 'modules/my-module/templates/partials/menubar-my-complex-bar.hbs'
+    });
+    
+    // Open the bar with data for the template
+    blacksmith.openSecondaryBar('my-complex-bar', {
+        data: {
+            title: 'Complex Toolbar',
+            items: [
+                { name: 'Item 1', value: 100 },
+                { name: 'Item 2', value: 200 }
+            ]
+        }
+    });
+});
+```
+
+#### Example 3: Timing-Safe Registration (Items Before Bar Type)
+
+```javascript
+// Items can be registered before the bar type - they'll be queued and applied later
+Hooks.once('ready', async () => {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    
+    // Register items first (they'll be queued)
+    blacksmith.registerSecondaryBarItem('cartographer', 'pencil-tool', {
+        icon: 'fa-solid fa-pencil',
+        label: 'Pencil',
+        onClick: () => console.log('Pencil')
+    });
+    
+    // Register bar type later - items will be automatically applied
+    await blacksmith.registerSecondaryBarType('cartographer', {
+        height: 60,
+        persistence: 'manual'
+    });
+    // Items are now active!
+});
+```
+
+### Default Tool System vs. Custom Templates
+
+| Feature | Default Tool System | Custom Template |
+|---------|---------------------|-----------------|
+| **Recommended** | ✅ **Use this by default** | ❌ Only when absolutely necessary |
+| **Complexity** | Simple toolbars with buttons | Complex UIs (portraits, health rings, etc.) |
+| **Setup** | Register items, no template needed | Create Handlebars template partial |
+| **Flexibility** | Standardized button layout | Full control over HTML/CSS |
+| **Use Case** | Drawing tools, simple controls | Combat bar, complex dashboards |
+| **Template Path** | Not needed (omit `templatePath`) | Required (`templatePath` in config) |
+| **Example** | Cartographer drawing tools | Combat tracker with portraits |
+| **Maintenance** | Low - API handles everything | Higher - maintain template, ensure compatibility |
 
 ### Secondary Bar vs. Regular Tools
 
@@ -912,15 +1093,20 @@ Hooks.once('ready', () => {
 | **Space** | Limited (icon + label) | Full-width toolbar |
 | **Multiple** | Many tools can be visible | Only one bar can be open |
 | **Use Case** | Quick actions, status indicators | Complex toolbars, specialized interfaces |
-| **Template** | Not needed | Requires Handlebars partial |
+| **Template** | Not needed | Optional (default tool system) or custom template |
 
 ### Best Practices
 
-1. **Register early**: Register your secondary bar type in a `ready` hook
-2. **Unique type IDs**: Use descriptive, unique type IDs (e.g., `'cartographer'`, not `'tools'`)
-3. **Template organization**: Keep your template simple and focused
-4. **Data structure**: Pass structured data to your template for flexibility
-5. **Cleanup**: Consider closing your bar when your module is disabled
+1. **Default to default tool system**: Always use the default tool system unless you absolutely need a custom template
+2. **Register early**: Register your secondary bar type in a `ready` hook (async if using custom templates)
+3. **Choose the right approach**: 
+   - ✅ **Default tool system**: Use for all simple toolbars (drawing tools, filters, toggles, etc.)
+   - ❌ **Custom templates**: Only use for complex UIs that cannot be achieved with buttons (portraits, health rings, complex nested layouts)
+4. **Unique type IDs**: Use descriptive, unique type IDs (e.g., `'cartographer'`, not `'tools'`)
+5. **Timing-safe registration**: Items can be registered before bar types - they'll be queued automatically
+6. **Template organization**: If using custom templates, keep them simple and focused
+7. **Data structure**: For custom templates, pass structured data for flexibility
+8. **Cleanup**: Consider closing your bar and unregistering items when your module is disabled
 
 ### Troubleshooting
 
@@ -930,15 +1116,23 @@ Hooks.once('ready', () => {
 - Verify the template partial exists and is named correctly
 
 **Template not rendering:**
-- Ensure the partial is registered with Handlebars
-- Check that the menubar template includes your partial
-- Verify the `secondaryBar.type` matches your type ID
+- For custom templates: Ensure the template path is correct and the file exists
+- Verify `templatePath` is provided in `registerSecondaryBarType` config
+- For default tool system: Ensure items are registered with `registerSecondaryBarItem`
+- Check that the bar type is registered before opening
 
 **Bar closes unexpectedly:**
 - Check the `persistence` setting (auto bars close after delay)
 - Verify no other code is calling `closeSecondaryBar()`
 
 ## Version History
+
+- **v13.0.0+**: Hybrid Secondary Bar System
+  - Added default tool system (`registerSecondaryBarItem`, `unregisterSecondaryBarItem`, `getSecondaryBarItems`)
+  - Added `templatePath` parameter to `registerSecondaryBarType` for custom templates
+  - Timing-safe registration: items can be registered before bar types
+  - Automatic template handling for both default and custom templates
+  - Backward compatible with existing combat bar implementation
 
 - **v12.1.8**: Secondary Bar API
   - Added `registerSecondaryBarType()` method
