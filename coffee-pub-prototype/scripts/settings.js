@@ -130,6 +130,11 @@ export const registerSettings = () => {
 
 
     // *** REPORT SETTINGS LOADED ***
-    console.log(`${MODULE.NAME}: Settings registered.`);
+    // Note: BlacksmithUtils is available globally after importing BlacksmithAPI in the main file
+    if (typeof BlacksmithUtils !== 'undefined' && BlacksmithUtils.postConsoleAndNotification) {
+        BlacksmithUtils.postConsoleAndNotification(MODULE.NAME, `${MODULE.NAME}: Settings registered.`, null, false, false);
+    } else {
+        console.log(`${MODULE.NAME}: Settings registered.`);
+    }
 };
 

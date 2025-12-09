@@ -59,7 +59,9 @@ Update the following fields:
 ### 2. Rename `scripts/prototype.js`
 - Rename file to: `scripts/[module-name].js` (e.g., `scripts/cartographer.js`)
 - The MODULE constants are auto-populated from `module.json` via `const.js`, so they will update automatically once `module.json` is updated
-- No code changes needed in this file unless there are hardcoded references
+- **IMPORTANT**: The file already includes the required import: `import { registerSettings } from './settings.js';` - **DO NOT remove this import**
+- The file includes a comprehensive API testing block (lines 45-264) that you can remove or keep for testing Blacksmith API integration
+- No other code changes needed in this file unless there are hardcoded references
 
 ### 3. Update `README.md`
 - Replace module name in title (e.g., "# Coffee Pub Cartographer")
@@ -98,10 +100,15 @@ Update the following fields:
 ## Important Notes
 
 - The `scripts/const.js` file automatically reads from `module.json`, so updating `module.json` will automatically update all `MODULE` constants throughout the codebase
+- **CRITICAL**: The main JS file (`prototype.js`) **MUST** include `import { registerSettings } from './settings.js';` at the top - this import is already present in the prototype
 - Maintain the same structure and patterns as shown in the prototype
 - All files follow Coffee Pub module conventions
 - Integration with Coffee Pub Blacksmith is already set up in the main JS file
 - The folder name must match the module ID exactly (case-sensitive)
+- The prototype includes:
+  - **Comprehensive API testing block** in the main JS file (can be removed after setup or kept for testing)
+  - **Robust settings structure** with workflow groups, helper functions, and header registration
+  - **Proper localization structure** matching the settings hierarchy
 
 ## Verification Checklist
 
@@ -119,6 +126,8 @@ After completing the setup, verify:
 - [ ] Documentation files in `documentation/` folder are unchanged
 - [ ] No broken file references remain
 - [ ] All "prototype" references in code/config files are replaced (except documentation)
+- [ ] The `import { registerSettings } from './settings.js';` import is present in the main JS file
+- [ ] Settings structure in `lang/en.json` matches the settings structure in `settings.js`
 
 ## Context-Aware Replacements
 
