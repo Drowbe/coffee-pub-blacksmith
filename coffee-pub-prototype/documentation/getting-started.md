@@ -97,6 +97,11 @@ When you customize the prototype, the following will be updated:
 - `README.md`: Module name and description
 - `CHANGELOG.md`: Initial release entry
 
+### GitHub Workflow
+- `.github/workflows/release.yml`: Release automation workflow
+  - Zip file name: `coffee-pub-prototype.zip` → `coffee-pub-[your-module-name].zip`
+  - Default version updated if needed
+
 ## Understanding the Structure
 
 ### Core Files
@@ -448,6 +453,7 @@ The prototype sets `APIVERSION: "13.0.0"` in `const.js`. Update this if you targ
 - **`scripts/settings.js`** - Settings registration
 - **`lang/en.json`** - Localization strings
 - **`styles/default.css`** - Main stylesheet (import others here)
+- **`.github/workflows/release.yml`** - GitHub Actions release automation workflow
 - **`documentation/SETUP_PROMPT.md`** - AI prompt for initial setup
 
 ## Conclusion

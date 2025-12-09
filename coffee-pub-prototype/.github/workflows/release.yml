@@ -1,0 +1,75 @@
+name: Release Creation
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (without v prefix)'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Get version from tag or manual input
+      - name: Get Version
+        id: get-version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+      
+      # Create zip file
+      - name: Create Zip File
+        run: |
+          # Ensure the zip excludes unnecessary files
+          zip -r coffee-pub-prototype.zip \
+            module.json \
+            LICENSE \
+            README.md \
+            CHANGELOG.md \
+            scripts/ \
+            styles/ \
+            templates/ \
+            lang/ \
+            images/ \
+            sounds/ \
+            packs/ \
+            prompts/ \
+            resources/ \
+            api/ \
+            utilities/ \
+            -x "*.git*" -x "*.github*" -x "*node_modules*" -x "*.vscode*" -x "*.code-workspace*" -x "documentation/*"
+
+      # Create release
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            coffee-pub-prototype.zip
+            module.json
+          draft: false
+          prerelease: false
+          name: Release ${{ steps.get-version.outputs.version }}
+          body: |
+            Release version ${{ steps.get-version.outputs.version }}
+            
+            ## What's Changed
+            * Automated release from tag v${{ steps.get-version.outputs.version }}
+            
+            For full changes, see the [changelog](CHANGELOG.md). 
