@@ -601,40 +601,46 @@ export function postConsoleAndNotification(
     // ----- Configurable style packs per module label (key must be uppercase) -----
     const moduleStyles = {
       BLACKSMITH: {
-        titleColor: "color: #FF7340",
+        titleColor: "color:rgb(255, 86, 64)",
         captionBorder: "border: 1px dotted #A4C76A",
         captionBackground: "background: #2D3F11",
-        captionFontColor: "color: #A4C76A",
+        captionFontColor: "color:rgb(164, 199, 106)",
       },
       CRIER: {
-        titleColor: "color: #9999ff",
-        captionBorder: "border: 1px dotted #7B7BBF",
-        captionBackground: "background: #2B2B94",
-        captionFontColor: "color: #9999ff",
+        titleColor: "color:rgb(136, 9, 161)",
+        captionBorder: "border: 1px dotted rgb(191, 123, 191)",
+        captionBackground: "background: rgb(191, 123, 191)",
+        captionFontColor: "color: rgb(164, 199, 106)",
       },
       BIBLIOSOPH: {
-        titleColor: "color: #cccc00",
+        titleColor: "color:rgb(186, 189, 5)",
         captionBorder: "border: 1px dotted #E9E936",
         captionBackground: "background: #64640A",
-        captionFontColor: "color: #cccc00",
+        captionFontColor: "color: rgb(164, 199, 106)",
       },
       SCRIBE: {
         titleColor: "color: #33cccc",
         captionBorder: "border: 1px dotted #2C9090",
         captionBackground: "background: #104545",
-        captionFontColor: "color: #33cccc",
+        captionFontColor: "color: rgb(164, 199, 106)",
       },
       SQUIRE: {
-        titleColor: "color: #A333CC",
-        captionBorder: "border: 1px dotted #732D88",
-        captionBackground: "background: #670B83",
-        captionFontColor: "color: #CAA5DA",
+        titleColor: "color:rgb(196, 21, 5)",
+        captionBorder: "border: 1px dotted rgb(175, 55, 25)",
+        captionBackground: "background: rgb(175, 55, 25)",
+        captionFontColor: "color: rgb(164, 199, 106)",
+      },
+      CARTOGRAPHER: {
+        titleColor: "color:rgb(44, 78, 233)",
+        captionBorder: "border: 1px dotted rgb(45, 35, 194)",
+        captionBackground: "background: rgb(27, 21, 119)",
+        captionFontColor: "color: rgb(164, 199, 106)",
       },
       BUBO: {
         titleColor: "color: #ff3377",
         captionBorder: "border: 1px dotted #ED6B96",
         captionBackground: "background: #550922",
-        captionFontColor: "color: #ff3377",
+        captionFontColor: "color: rgb(164, 199, 106)",
       },
     };
   

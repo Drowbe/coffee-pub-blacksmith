@@ -1,9 +1,24 @@
 {
-	"coffee-pub-prototype": {
+	"coffee-pub-cartographer": {
+
+		"headingH1GettingStarted-Label": "Getting Started",
+		"headingH1GettingStarted-Hint": "This is the getting started section of the module.",
+		"headingH4Introduction-Label": "Introduction",
+		"headingH4Introduction-Hint": "This is the introduction section of the module.",	
+
+		"headingHR-Label": "",
+		"headingHR-Hint": "",
+
+		"headingH2CommonSettings-Label": "Common Settings",
+		"headingH2CommonSettings-Hint": "This is the common settings section of the module.",
+
+		"headingH3ExampleSubheader-Label": "Example Subheader",
+		"headingH3ExampleSubheader-Hint": "This is an example subheader for the module.",
+
+
 		
-		"enableFeature-Label": "Enable Feature",
-		"enableFeature-Hint": "Enable or disable the main feature of this module."
-		
+		"exampleSetting-Label": "Example Setting",
+		"exampleSetting-Hint": "This is an example setting for the module."
 	}
 }
 

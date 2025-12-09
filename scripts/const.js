@@ -41,7 +41,7 @@ export const MODULE = {
     VERSION: moduleData.version, 
     AUTHOR: moduleData.authors[0]?.name || 'COFFEE PUB',
     DESCRIPTION: moduleData.description,
-    APIVERSION: "12.2.0"
+    APIVERSION: "13.0.0"
 };
 
 export const BLACKSMITH = {
