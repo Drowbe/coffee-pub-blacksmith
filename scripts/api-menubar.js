@@ -2263,7 +2263,13 @@ class MenuBar {
                 return false;
             }
 
-            this.secondaryBar.data = { ...this.secondaryBar.data, ...data };
+            // For combat bars, completely replace the data (don't merge)
+            // For other bars, merge the data
+            if (this.secondaryBar.type === 'combat') {
+                this.secondaryBar.data = data;
+            } else {
+                this.secondaryBar.data = { ...this.secondaryBar.data, ...data };
+            }
 
             this.renderMenubar(true);
 
@@ -2542,7 +2548,9 @@ class MenuBar {
                 totalTurns,
                 currentCombatant: currentCombatantName,
                 totalCombatDuration: formatTime(totalCombatDurationMs || 0, 'hh:mm:ss'),
-                currentRoundDuration: formatTime(currentRoundDurationMs || 0, 'hh:mm:ss')
+                currentRoundDuration: formatTime(currentRoundDurationMs || 0, 'hh:mm:ss'),
+                isGM: game.user.isGM,
+                isActive: combat.started || false
             };
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error gathering combat data", { error }, false, false);
