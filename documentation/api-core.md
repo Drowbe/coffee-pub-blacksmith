@@ -36,6 +36,7 @@ const utils = BlacksmithUtils;
 - **Data Structure**: `id`/`value`/`path` separation for enhanced asset management
 - **Menubar API**: Register tools and send notifications to the global menubar
 - **Compendium Configuration**: Access configured compendium arrays for all document types (v12.1.19+)
+- **Canvas Layer API**: Access to BlacksmithLayer for canvas drawing and UI overlays (available after canvasReady)
 
 ## **Integration Philosophy**
 
@@ -2297,6 +2298,10 @@ const persistentId = menubarAPI.addNotification(
 
 For full menubar API documentation, see: **`documentation/api-menubar.md`**
 
+For full canvas layer API documentation, see: **`documentation/api-canvas.md`**
+
+---
+
 # **Support and Community**
 
 ## **Getting Help**
@@ -2326,6 +2331,7 @@ For full menubar API documentation, see: **`documentation/api-menubar.md`**
 - **Stats API**: Combat and player statistics access
 - **BLACKSMITH Object**: Global constants and choice arrays
 - **Compendium Arrays**: Access configured compendiums for all document types (v12.1.19+)
+- **Canvas Layer API**: Access to BlacksmithLayer for canvas drawing and UI overlays
 
 ## **⚠️ Common Mistakes to Avoid:**
 - **Missing Import**: Always import the bridge file first
@@ -2348,10 +2354,11 @@ For full menubar API documentation, see: **`documentation/api-menubar.md`**
 
 - **[OpenAI API Documentation](api-openai.md)** - AI-powered functionality and content generation
 - **[Toolbar API Documentation](api-toolbar.md)** - Dynamic toolbar system for external modules
+- **[Cartographer Module Guide](cartographer.md)** - Drawing on BlacksmithLayer guide
 
 ---
 
-**Last Updated**: v12.1.19 - Added Compendium Configuration API  
+**Last Updated**: v13.0.0 - Added Canvas Layer API  
 **Status**: Production ready with comprehensive integration support  
 **Next Milestone**: Enhanced API features and ecosystem integration
 

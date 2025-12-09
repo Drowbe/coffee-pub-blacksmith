@@ -493,17 +493,27 @@ function initializeSettingsDependentFeatures() {
                 // Log hook registration
                 postConsoleAndNotification(MODULE.NAME, "Hook Manager | canvasInit", "blacksmith-canvas-init", true, false);
 
-                // Register canvasReady hook for layer checking
+                // Register canvasReady hook for layer checking and API exposure
                 const canvasReadyLayerHookId = HookManager.registerHook({
                     name: 'canvasReady',
-                    description: 'Blacksmith: Check for blacksmith utilities layer availability',
+                    description: 'Blacksmith: Check for blacksmith utilities layer availability and expose to API',
                     context: 'blacksmith-canvas-layer-check',
                     priority: 3, // Normal priority - layer verification
                     callback: (canvas) => {
                         //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                         
                         const blacksmithLayer = canvas['blacksmith-utilities-layer'];
-                        // Layer availability checked silently
+                        if (blacksmithLayer) {
+                            // Expose BlacksmithLayer to API
+                            const module = game.modules.get(MODULE.ID);
+                            if (module?.api) {
+                                module.api.CanvasLayer = blacksmithLayer;
+                                module.api.getCanvasLayer = () => {
+                                    return canvas['blacksmith-utilities-layer'] || null;
+                                };
+                                postConsoleAndNotification(MODULE.NAME, "BlacksmithLayer exposed to API", "", true, false);
+                            }
+                        }
                         
                         //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
                     }
@@ -853,7 +863,10 @@ Hooks.once('init', async function() {
         openCombatBar: null,
         closeCombatBar: null,
         updateCombatBar: null,
-        testNotificationSystem: null
+        testNotificationSystem: null,
+        // ✅ NEW: Canvas Layer API for external modules
+        CanvasLayer: null,  // BlacksmithLayer instance (available after canvasReady)
+        getCanvasLayer: null  // Helper function to get BlacksmithLayer
     };
     
     // Toolbar management is now handled directly in manager-toolbar.js

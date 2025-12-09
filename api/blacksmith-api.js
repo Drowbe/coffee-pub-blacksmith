@@ -128,6 +128,30 @@ export class BlacksmithAPI {
     }
 
     /**
+     * Get the BlacksmithCanvasLayer (available after canvasReady)
+     * @returns {Promise<Object|null>} BlacksmithLayer instance or null if not available
+     */
+    static getCanvasLayer() {
+        return this.waitForReady().then(() => {
+            try {
+                const api = this._getAPI();
+                // Try API first
+                if (api.getCanvasLayer) {
+                    return api.getCanvasLayer();
+                }
+                // Fallback to direct canvas access
+                if (typeof canvas !== 'undefined' && canvas['blacksmith-utilities-layer']) {
+                    return canvas['blacksmith-utilities-layer'];
+                }
+                return null;
+            } catch (error) {
+                // Layer might not be ready yet, return null
+                return null;
+            }
+        });
+    }
+
+    /**
      * Get the API version
      * @returns {Promise<string>} API version string
      */
@@ -176,6 +200,10 @@ export class BlacksmithAPI {
                 window.BlacksmithModuleManager = api.ModuleManager;
                 window.BlacksmithStats = api.stats;
                 window.BlacksmithConstants = api.BLACKSMITH;
+                // CanvasLayer is available after canvasReady
+                if (api.CanvasLayer) {
+                    window.BlacksmithCanvasLayer = api.CanvasLayer;
+                }
             }
             
             this.readyCallbacks.forEach(callback => callback(api));
