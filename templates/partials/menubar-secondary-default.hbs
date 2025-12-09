@@ -1,0 +1,15 @@
+{{!-- Default Secondary Bar Template - Tool-based system --}}
+<div class="secondary-bar-toolbar">
+    {{#each items}}
+    <div class="secondary-bar-item {{#if active}}active{{/if}}" 
+         data-item-id="{{itemId}}"
+         data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
+         title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}">
+        <i class="{{icon}}"></i>
+        {{#if label}}
+        <span class="secondary-bar-item-label">{{label}}</span>
+        {{/if}}
+    </div>
+    {{/each}}
+</div>
+

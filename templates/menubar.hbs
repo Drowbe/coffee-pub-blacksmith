@@ -89,8 +89,17 @@
 <div class="blacksmith-menubar-secondary" 
      data-bar-type="{{secondaryBar.type}}"
      style="height: {{secondaryBar.height}}px;">
-    {{#if (eq secondaryBar.type "combat")}}
-        {{> "menubar-combat" secondaryBar.data}}
+    {{#if secondaryBar.hasCustomTemplate}}
+        {{!-- Custom template (e.g., combat bar) --}}
+        {{#if (eq secondaryBar.type "combat")}}
+            {{> "menubar-combat" secondaryBar.data}}
+        {{else}}
+            {{!-- Dynamic custom template --}}
+            {{> (lookup . (concat "menubar-" secondaryBar.type)) secondaryBar.data}}
+        {{/if}}
+    {{else}}
+        {{!-- Default tool-based template --}}
+        {{> "menubar-secondary-default" secondaryBar}}
     {{/if}}
 </div>
 {{/if}}

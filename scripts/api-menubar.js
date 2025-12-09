@@ -39,6 +39,8 @@ class MenuBar {
         userClosed: false // Track if user manually closed the combat bar
     };
     static secondaryBarTypes = new Map();
+    static secondaryBarItems = new Map(); // Map<typeId, Map<itemId, itemData>> - stores items for default tool system
+    static pendingSecondaryBarItems = new Map(); // Map<typeId, Map<itemId, itemData>> - items registered before bar type exists
     static renderTimeout = null;
     
     // Timer interval tracking for cleanup
@@ -96,7 +98,7 @@ class MenuBar {
             MenuBar.registerDefaultTools();
 
             // Register secondary bar types
-            this.registerSecondaryBarTypes();
+            await this.registerSecondaryBarTypes();
 
             // Render the menubar
             this.renderMenubar();
@@ -138,6 +140,10 @@ class MenuBar {
             // Load and register the combat bar partial
             const combatBarTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs').then(response => response.text());
             Handlebars.registerPartial('menubar-combat', combatBarTemplate);
+            
+            // Load and register the default secondary bar template
+            const defaultBarTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partials/menubar-secondary-default.hbs').then(response => response.text());
+            Handlebars.registerPartial('menubar-secondary-default', defaultBarTemplate);
             
             postConsoleAndNotification(MODULE.NAME, "Menubar: Partials registered successfully", "", false, false);
         } catch (error) {
@@ -1064,12 +1070,15 @@ class MenuBar {
     /**
      * Register secondary bar types
      */
-    static registerSecondaryBarTypes() {
-        // Register combat tracker secondary bar
-        this.registerSecondaryBarType('combat', {
+    static async registerSecondaryBarTypes() {
+        // Register combat tracker secondary bar (custom template)
+        // Note: The combat template is already registered as a partial in _registerPartials(),
+        // but we still need to mark it as a custom template for the rendering logic
+        await this.registerSecondaryBarType('combat', {
             height: this.getSecondaryBarHeight('combat'),
             persistence: 'manual',
-            autoCloseDelay: 10000
+            autoCloseDelay: 10000,
+            templatePath: 'modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs'
         });
 
         postConsoleAndNotification(MODULE.NAME, "Menubar: Secondary bar types registered", "", true, false);
@@ -1901,7 +1910,7 @@ class MenuBar {
      * @param {number} config.autoCloseDelay - Delay in ms for auto-close (default: 10000)
      * @returns {boolean} Success status
      */
-    static registerSecondaryBarType(typeId, config) {
+    static async registerSecondaryBarType(typeId, config) {
         try {
             if (!typeId || typeof typeId !== 'string') {
                 postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Invalid typeId provided", { typeId }, false, false);
@@ -1917,18 +1926,160 @@ class MenuBar {
                 typeId: typeId,
                 height: config.height || 50,
                 persistence: config.persistence || 'manual',
-                autoCloseDelay: config.autoCloseDelay || 10000
+                autoCloseDelay: config.autoCloseDelay || 10000,
+                templatePath: config.templatePath || null,
+                hasCustomTemplate: !!config.templatePath
             };
 
-            this.secondaryBarTypes.set(typeId, barType);
+            // If custom template provided, load and register it
+            if (config.templatePath) {
+                try {
+                    const templateContent = await fetch(config.templatePath).then(r => r.text());
+                    const partialName = `menubar-${typeId}`;
+                    Handlebars.registerPartial(partialName, templateContent);
+                    postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Custom template registered", 
+                        { typeId, partialName }, true, false);
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Failed to load template", 
+                        { typeId, templatePath: config.templatePath, error }, false, true);
+                    return false;
+                }
+            }
 
-            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Type registered successfully", { typeId }, true, false);
+            this.secondaryBarTypes.set(typeId, barType);
+            
+            // Initialize items storage for this bar type
+            if (!this.secondaryBarItems.has(typeId)) {
+                this.secondaryBarItems.set(typeId, new Map());
+            }
+            
+            // Apply any pending items that were registered before this bar type existed
+            const pendingItems = this.pendingSecondaryBarItems.get(typeId);
+            if (pendingItems && pendingItems.size > 0) {
+                postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Applying pending items", 
+                    { typeId, count: pendingItems.size }, true, false);
+                const items = this.secondaryBarItems.get(typeId);
+                pendingItems.forEach((itemData, itemId) => {
+                    items.set(itemId, itemData);
+                });
+                this.pendingSecondaryBarItems.delete(typeId);
+            }
+
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Type registered successfully", 
+                { typeId, hasCustomTemplate: barType.hasCustomTemplate }, true, false);
             return true;
 
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error registering type", { typeId, error }, false, false);
             return false;
         }
+    }
+
+    /**
+     * Register an item to a secondary bar (for default tool system)
+     * @param {string} barTypeId - The bar type to register the item to
+     * @param {string} itemId - Unique identifier for the item
+     * @param {Object} itemData - Item configuration
+     * @returns {boolean} Success status
+     */
+    static registerSecondaryBarItem(barTypeId, itemId, itemData) {
+        try {
+            // Validate item data
+            if (!itemId || !itemData || !itemData.icon || typeof itemData.onClick !== 'function') {
+                postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Invalid item data", 
+                    { barTypeId, itemId, hasIcon: !!itemData?.icon, hasOnClick: typeof itemData?.onClick === 'function' }, false, false);
+                return false;
+            }
+
+            // Check if bar type exists
+            const barType = this.secondaryBarTypes.get(barTypeId);
+            if (!barType) {
+                // Bar type doesn't exist yet - store in pending queue
+                if (!this.pendingSecondaryBarItems.has(barTypeId)) {
+                    this.pendingSecondaryBarItems.set(barTypeId, new Map());
+                }
+                const pendingItems = this.pendingSecondaryBarItems.get(barTypeId);
+                pendingItems.set(itemId, {
+                    ...itemData,
+                    itemId: itemId,
+                    barTypeId: barTypeId
+                });
+                postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Item queued (bar type not registered yet)", 
+                    { barTypeId, itemId }, true, false);
+                return true;
+            }
+
+            // Bar type exists - check if it supports items (not custom template)
+            if (barType.hasCustomTemplate) {
+                postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Cannot register items to custom template bar", 
+                    { barTypeId, itemId }, false, false);
+                return false;
+            }
+
+            // Store item
+            const items = this.secondaryBarItems.get(barTypeId);
+            items.set(itemId, {
+                ...itemData,
+                itemId: itemId,
+                barTypeId: barTypeId
+            });
+
+            // If bar is currently open, re-render
+            if (this.secondaryBar.isOpen && this.secondaryBar.type === barTypeId) {
+                this.renderMenubar(true);
+            }
+
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Item registered", 
+                { barTypeId, itemId }, true, false);
+            return true;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error registering item", 
+                { barTypeId, itemId, error }, false, false);
+            return false;
+        }
+    }
+
+    /**
+     * Unregister an item from a secondary bar
+     * @param {string} barTypeId - The bar type to unregister the item from
+     * @param {string} itemId - Unique identifier for the item
+     * @returns {boolean} Success status
+     */
+    static unregisterSecondaryBarItem(barTypeId, itemId) {
+        try {
+            // Remove from active items
+            const items = this.secondaryBarItems.get(barTypeId);
+            if (items) {
+                items.delete(itemId);
+            }
+
+            // Remove from pending items
+            const pendingItems = this.pendingSecondaryBarItems.get(barTypeId);
+            if (pendingItems) {
+                pendingItems.delete(itemId);
+            }
+
+            // Re-render if bar is open
+            if (this.secondaryBar.isOpen && this.secondaryBar.type === barTypeId) {
+                this.renderMenubar(true);
+            }
+
+            return true;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error unregistering item", 
+                { barTypeId, itemId, error }, false, false);
+            return false;
+        }
+    }
+
+    /**
+     * Get all items for a secondary bar type
+     * @param {string} barTypeId - The bar type to get items for
+     * @returns {Array} Array of item data objects
+     */
+    static getSecondaryBarItems(barTypeId) {
+        const items = this.secondaryBarItems.get(barTypeId);
+        return items ? Array.from(items.values()) : [];
     }
 
     /**
@@ -1977,6 +2128,17 @@ class MenuBar {
                 const combat = game.combat;
                 if (combat) {
                     this.secondaryBar.data = this.getCombatData(combat);
+                } else {
+                    // Initialize empty data structure if no combat
+                    this.secondaryBar.data = {
+                        combatants: [],
+                        currentRound: 0,
+                        currentTurn: 0,
+                        currentCombatant: '',
+                        isGM: game.user.isGM,
+                        isActive: false,
+                        actionButton: null
+                    };
                 }
             }
 
@@ -2551,6 +2713,61 @@ class MenuBar {
         document.documentElement.style.setProperty('--blacksmith-menubar-total-height', 'var(--blacksmith-menubar-primary-height)');
     }
 
+    /**
+     * Prepare secondary bar data for template rendering
+     * @returns {Object} Prepared secondary bar data
+     * @private
+     */
+    static _prepareSecondaryBarData() {
+        const data = { ...this.secondaryBar };
+        
+        if (!data.isOpen || !data.type) {
+            data.hasCustomTemplate = false;
+            return data;
+        }
+
+        const barType = this.secondaryBarTypes.get(data.type);
+        if (!barType) {
+            data.hasCustomTemplate = false;
+            return data;
+        }
+
+        // Set hasCustomTemplate flag based on bar type
+        data.hasCustomTemplate = barType.hasCustomTemplate || false;
+
+        // If custom template, use existing data preparation (combat bar)
+        if (barType.hasCustomTemplate) {
+            // For combat bar, data is already prepared in updateCombatBar or openSecondaryBar
+            // Ensure data.data exists (combat data) - this is what gets passed to the template
+            if (!data.data && data.type === 'combat') {
+                // Fallback: try to get combat data if it's missing
+                const combat = game.combat;
+                if (combat) {
+                    data.data = this.getCombatData(combat);
+                } else {
+                    data.data = {
+                        combatants: [],
+                        currentRound: 0,
+                        currentTurn: 0,
+                        currentCombatant: '',
+                        isGM: game.user.isGM,
+                        isActive: false,
+                        actionButton: null
+                    };
+                }
+            } else if (!data.data) {
+                data.data = {};
+            }
+            return data;
+        }
+
+        // For default template, prepare items array
+        const items = this.getSecondaryBarItems(data.type);
+        data.items = items;
+
+        return data;
+    }
+
     static async renderMenubar(immediate = false) {
         try {
 
@@ -2623,6 +2840,9 @@ class MenuBar {
                 gmToolsInMiddle: toolsByZone.middle.gm.length
             }, true, false);
 
+            // Prepare secondary bar data
+            const secondaryBarData = this._prepareSecondaryBarData();
+
             const templateData = {
                 isGM: game.user.isGM,
                 isLeader: isLeader,
@@ -2632,7 +2852,7 @@ class MenuBar {
                 currentMovement: currentMovementData,
                 toolsByZone: toolsByZone,
                 notifications: Array.from(this.notifications.values()),
-                secondaryBar: this.secondaryBar,
+                secondaryBar: secondaryBarData,
                 isInterfaceHidden: this.isInterfaceHidden()
             };
 
@@ -2739,6 +2959,30 @@ class MenuBar {
                 }
             }
             
+            // Check if this is a secondary bar item click (default template)
+            const secondaryBarItem = event.target.closest('.secondary-bar-item[data-item-id]');
+            if (secondaryBarItem) {
+                const itemId = secondaryBarItem.getAttribute('data-item-id');
+                const barType = this.secondaryBar.type;
+                
+                if (itemId && barType) {
+                    const items = this.secondaryBarItems.get(barType);
+                    if (items) {
+                        const item = items.get(itemId);
+                        if (item && typeof item.onClick === 'function') {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            try {
+                                item.onClick(event);
+                            } catch (error) {
+                                postConsoleAndNotification(MODULE.NAME, `Error executing secondary bar item ${itemId}:`, error, false, false);
+                            }
+                        }
+                    }
+                }
+                return;
+            }
+            
             // Check if this is a menubar tool click
             const toolElement = event.target.closest('[data-tool]');
             if (!toolElement) return;
@@ -2776,8 +3020,14 @@ class MenuBar {
         this._clickHandler = clickHandler;
         this._clickHandlerContainer = menubarContainer;
 
-        // Add the event listener
+        // Add the event listener to both menubar and secondary bar
         menubarContainer.addEventListener('click', clickHandler);
+        
+        // Also attach to secondary bar if it exists
+        const secondaryBar = document.querySelector('.blacksmith-menubar-secondary');
+        if (secondaryBar) {
+            secondaryBar.addEventListener('click', clickHandler);
+        }
 
         // Note: Right zone tools (leader-section, movement, timer-section) are now handled
         // by the dynamic click system above via their data-tool attributes
