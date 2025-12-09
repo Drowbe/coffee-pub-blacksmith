@@ -8,7 +8,7 @@ import { HookManager } from './manager-hooks.js';
 
 export class JournalTools {
     static async init() {
-        // Register renderJournalSheet hook
+        // Register renderJournalSheet hook (fires on initial journal sheet render)
         const renderJournalSheetHookId = HookManager.registerHook({
             name: 'renderJournalSheet',
             description: 'Journal Tools: Add tools icon to journal sheets',
@@ -19,6 +19,18 @@ export class JournalTools {
         
         // Log hook registration
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalSheet", "journal-tools-sheet", true, false);
+        
+        // Register renderJournalPageSheet hook (fires when journal pages are switched in v13 ApplicationV2)
+        const renderJournalPageSheetHookId = HookManager.registerHook({
+            name: 'renderJournalPageSheet',
+            description: 'Journal Tools: Add tools icon to journal pages (v13 ApplicationV2)',
+            context: 'journal-tools-sheet-page',
+            priority: 3, // Normal priority - UI enhancement
+            callback: this._onRenderJournalSheet.bind(this)
+        });
+        
+        // Log hook registration
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalPageSheet", "journal-tools-sheet-page", true, false);
         
         // Register settingChange hook
         const settingChangeHookId = HookManager.registerHook({

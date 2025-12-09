@@ -1111,16 +1111,11 @@ function _onRenderJournalDoubleClick(app, html, data) {
             postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Double-click detected", 
                 `Target: ${event.target?.tagName}.${event.target?.className}`, true, false);
             
-            // Check if double-click is on a journal entry page
-            const journalPageElement = event.target.closest('.journal-entry-page');
-            if (!journalPageElement) {
-                postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Not on journal-entry-page", 
-                    `Closest element: ${event.target?.closest('article')?.className}`, true, false);
+            // Don't trigger on interactive elements (buttons, links, etc.)
+            if (event.target.closest('button, a, input, select, textarea')) {
+                postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Skipped - clicked on interactive element", "", true, false);
                 return;
             }
-            
-            postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Found journal-entry-page", 
-                `Page ID: ${journalPageElement.dataset?.pageId}`, true, false);
             
             event.preventDefault();
             event.stopPropagation();
@@ -1135,36 +1130,51 @@ function _onRenderJournalDoubleClick(app, html, data) {
             
             postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Edit permission confirmed", "", true, false);
             
-            // Try multiple selectors to find the edit button (v13 ApplicationV2 compatibility)
-            // Search within the clicked journal page element first (where the button is located)
-            let editButton = journalPageElement.querySelector('.edit-container button[data-action="editPage"]');
-            let selectorUsed = 'journalPageElement .edit-container button[data-action="editPage"]';
+            // Method 1: Try using the app's built-in methods (v13 ApplicationV2 approach)
+            if (app) {
+                // Try activateEditor if it exists
+                if (typeof app.activateEditor === 'function') {
+                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Using app.activateEditor() method", "", true, false);
+                    app.activateEditor();
+                    return;
+                }
+                
+                // Try accessing current page and activating editor
+                if (app.currentPage && typeof app.currentPage.activateEditor === 'function') {
+                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Using app.currentPage.activateEditor() method", "", true, false);
+                    app.currentPage.activateEditor();
+                    return;
+                }
+                
+                // Try document's sheet activateEditor
+                if (journalDocument && journalDocument.sheet && typeof journalDocument.sheet.activateEditor === 'function') {
+                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Using document.sheet.activateEditor() method", "", true, false);
+                    journalDocument.sheet.activateEditor();
+                    return;
+                }
+            }
             
-            if (!editButton) {
-                editButton = journalPageElement.querySelector('.edit-container .editor-edit');
-                selectorUsed = 'journalPageElement .edit-container .editor-edit';
-            }
-            if (!editButton) {
-                editButton = journalPageElement.querySelector('button[data-action="editPage"]');
-                selectorUsed = 'journalPageElement button[data-action="editPage"]';
-            }
+            // Method 2: Try to find edit button using common selectors
+            let editButton = null;
+            let selectorUsed = '';
             
-            // Fallback: search in the entire journal sheet
-            if (!editButton) {
-                editButton = nativeHtml.querySelector('.edit-container button[data-action="editPage"]');
-                selectorUsed = 'nativeHtml .edit-container button[data-action="editPage"]';
-            }
-            if (!editButton) {
-                editButton = nativeHtml.querySelector('.edit-container .editor-edit');
-                selectorUsed = 'nativeHtml .edit-container .editor-edit';
-            }
-            if (!editButton) {
-                editButton = nativeHtml.querySelector('button[data-action="editPage"]');
-                selectorUsed = 'nativeHtml button[data-action="editPage"]';
-            }
-            if (!editButton) {
-                editButton = nativeHtml.querySelector('.editor-edit');
-                selectorUsed = 'nativeHtml .editor-edit';
+            const selectors = [
+                '.edit-container button[data-action="editPage"]',
+                '.edit-container .editor-edit',
+                'button[data-action="editPage"]',
+                '.editor-edit',
+                '.edit-container button',
+                'header button[data-action="editPage"]',
+                '.window-header button[data-action="editPage"]',
+                '.editor button[data-action="editPage"]'
+            ];
+            
+            for (const selector of selectors) {
+                editButton = nativeHtml.querySelector(selector);
+                if (editButton) {
+                    selectorUsed = selector;
+                    break;
+                }
             }
             
             if (editButton) {
@@ -1174,20 +1184,19 @@ function _onRenderJournalDoubleClick(app, html, data) {
                 postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Edit button clicked", "", true, false);
             } else {
                 postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Edit button NOT found", 
-                    `Tried selectors: .edit-container button[data-action="editPage"], .edit-container .editor-edit, button[data-action="editPage"], .editor-edit`, false, true);
+                    `Tried selectors: ${selectors.join(', ')}`, false, true);
                 
-                // Debug: log what edit containers exist
-                const editContainers = nativeHtml.querySelectorAll('.edit-container');
-                postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Debug - edit-container count", 
-                    `Found ${editContainers.length} edit-container(s)`, true, false);
+                // Debug: log what buttons exist in the journal sheet
+                const allButtons = nativeHtml.querySelectorAll('button');
+                postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Debug - all buttons", 
+                    `Found ${allButtons.length} button(s)`, true, false);
                 
-                if (editContainers.length > 0) {
-                    editContainers.forEach((container, idx) => {
-                        const buttons = container.querySelectorAll('button');
-                        postConsoleAndNotification(MODULE.NAME, `Journal Double-Click: Debug - edit-container ${idx}`, 
-                            `Buttons: ${buttons.length}, HTML: ${container.innerHTML.substring(0, 200)}`, true, false);
-                    });
-                }
+                allButtons.forEach((btn, idx) => {
+                    const action = btn.getAttribute('data-action');
+                    const classes = btn.className;
+                    postConsoleAndNotification(MODULE.NAME, `Journal Double-Click: Button ${idx}`, 
+                        `data-action: ${action}, classes: ${classes}`, true, false);
+                });
             }
         };
         
@@ -1198,170 +1207,22 @@ function _onRenderJournalDoubleClick(app, html, data) {
     // END - HOOKMANAGER CALLBACK
 }
 
-// Register renderJournalSheet hook (ApplicationV1 and v12 compatibility)
-const journalDoubleClickHookId = HookManager.registerHook({
+// Register renderJournalSheet hook (fires on initial journal sheet render)
+HookManager.registerHook({
     name: 'renderJournalSheet',
     description: 'Blacksmith: Enable journal double-click editing for GMs',
     context: 'blacksmith-journal-double-click',
-    priority: 3, // Normal priority - UI enhancement
+    priority: 3,
     callback: _onRenderJournalDoubleClick
 });
 
-// Log hook registration
-postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalSheet", "blacksmith-journal-double-click", true, false);
-
-// Also register renderJournalPageSheet hook (v13 ApplicationV2 - page-level)
-const journalPageDoubleClickHookId = HookManager.registerHook({
+// Register renderJournalPageSheet hook (fires when journal pages are switched in v13 ApplicationV2)
+HookManager.registerHook({
     name: 'renderJournalPageSheet',
-    description: 'Blacksmith: Enable journal double-click editing for GMs (v13 ApplicationV2)',
+    description: 'Blacksmith: Enable journal double-click editing for GMs (page-level)',
     context: 'blacksmith-journal-double-click-page',
-    priority: 3, // Normal priority - UI enhancement
+    priority: 3,
     callback: _onRenderJournalDoubleClick
-});
-
-// Log hook registration
-postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalPageSheet", "blacksmith-journal-double-click-page", true, false);
-
-// Also register direct Foundry hooks as fallback (in case HookManager doesn't work in v13)
-Hooks.on('renderJournalSheet', _onRenderJournalDoubleClick);
-Hooks.on('renderJournalPageSheet', _onRenderJournalDoubleClick);
-postConsoleAndNotification(MODULE.NAME, "Direct Hooks | Registered renderJournalSheet and renderJournalPageSheet", "Fallback for v13 ApplicationV2", true, false);
-
-// Setup MutationObserver fallback for when hooks don't fire (v13 ApplicationV2)
-function _setupJournalDoubleClickObserver() {
-    // Check existing journal sheets on ready
-    function checkExistingSheets() {
-        if (!game.user.isGM) return;
-        
-        const blnJournalDoubleClick = game.settings.get(MODULE.ID, 'enableJournalDoubleClick');
-        if (!blnJournalDoubleClick) return;
-        
-        const journalSheets = Object.values(ui.windows).filter(w => 
-            w?.constructor?.name === 'JournalSheet' || 
-            w?.element?.classList?.contains('journal-sheet') ||
-            w?.element?.classList?.contains('journal-entry')
-        );
-        
-        for (const sheet of journalSheets) {
-            if (sheet.element && !sheet.element._journalDoubleClickProcessed) {
-                postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Found existing journal sheet via observer", 
-                    `Sheet: ${sheet.constructor.name}`, true, false);
-                
-                // Convert to native DOM
-                let nativeHtml = sheet.element;
-                if (nativeHtml.jquery || typeof nativeHtml.find === 'function') {
-                    nativeHtml = nativeHtml[0] || nativeHtml.get?.(0) || nativeHtml;
-                }
-                
-                if (nativeHtml && typeof nativeHtml.addEventListener === 'function') {
-                    // Process with app context
-                    const app = sheet;
-                    _onRenderJournalDoubleClick(app, nativeHtml, {});
-                    nativeHtml._journalDoubleClickProcessed = true;
-                }
-            }
-        }
-    }
-    
-    // Check on ready
-    if (game.ready) {
-        checkExistingSheets();
-    } else {
-        Hooks.once('ready', () => checkExistingSheets());
-    }
-    
-    // Watch for new journal sheets being added
-    const observer = new MutationObserver((mutations) => {
-        if (!game.user.isGM) return;
-        
-        const blnJournalDoubleClick = game.settings.get(MODULE.ID, 'enableJournalDoubleClick');
-        if (!blnJournalDoubleClick) return;
-        
-        for (const mutation of mutations) {
-            for (const node of mutation.addedNodes) {
-                if (node.nodeType === Node.ELEMENT_NODE) {
-                    // Check if this is a journal sheet (try multiple selectors)
-                    let journalSheet = null;
-                    
-                    // Try direct class check
-                    if (node.classList?.contains('journal-sheet') || node.classList?.contains('journal-entry')) {
-                        journalSheet = node;
-                    }
-                    // Try querySelector for nested sheets
-                    if (!journalSheet) {
-                        journalSheet = node.querySelector?.('.journal-sheet') || 
-                                      node.querySelector?.('.journal-entry');
-                    }
-                    // Try checking if it's a form with journal classes
-                    if (!journalSheet && node.tagName === 'FORM') {
-                        if (node.classList?.contains('journal-sheet') || node.classList?.contains('journal-entry')) {
-                            journalSheet = node;
-                        }
-                    }
-                    
-                    if (journalSheet && !journalSheet._journalDoubleClickProcessed) {
-                        // Find the corresponding app in ui.windows
-                        const sheetId = journalSheet.id || journalSheet.getAttribute('data-app-id');
-                        const sheet = Object.values(ui.windows).find(w => {
-                            if (!w || !w.element) return false;
-                            const wElement = w.element.jquery ? w.element[0] : w.element;
-                            return wElement === journalSheet || 
-                                   wElement?.id === sheetId ||
-                                   wElement?.contains?.(journalSheet) ||
-                                   journalSheet.contains?.(wElement);
-                        });
-                        
-                        if (sheet) {
-                            postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: New journal sheet detected via observer", 
-                                `Sheet: ${sheet.constructor.name}, Element: ${journalSheet.tagName}.${journalSheet.className}`, true, false);
-                            
-                            // Convert to native DOM
-                            let nativeHtml = journalSheet;
-                            if (nativeHtml.jquery || typeof nativeHtml.find === 'function') {
-                                nativeHtml = nativeHtml[0] || nativeHtml.get?.(0) || nativeHtml;
-                            }
-                            
-                            if (nativeHtml && typeof nativeHtml.addEventListener === 'function') {
-                                // Process with app context
-                                _onRenderJournalDoubleClick(sheet, nativeHtml, {});
-                                journalSheet._journalDoubleClickProcessed = true;
-                            }
-                        } else if (journalSheet && typeof journalSheet.addEventListener === 'function') {
-                            // Sheet element found but no app - try processing anyway with a delay
-                            setTimeout(() => {
-                                const sheet = Object.values(ui.windows).find(w => {
-                                    if (!w || !w.element) return false;
-                                    const wElement = w.element.jquery ? w.element[0] : w.element;
-                                    return wElement?.contains?.(journalSheet) || journalSheet.contains?.(wElement);
-                                });
-                                
-                                if (sheet) {
-                                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Journal sheet found after delay", 
-                                        `Sheet: ${sheet.constructor.name}`, true, false);
-                                    _onRenderJournalDoubleClick(sheet, journalSheet, {});
-                                    journalSheet._journalDoubleClickProcessed = true;
-                                }
-                            }, 100);
-                        }
-                    }
-                }
-            }
-        }
-    });
-    
-    // Observe the document body for new journal sheets
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-    
-    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: MutationObserver setup complete", "", true, false);
-}
-
-// Initialize the observer when ready
-Hooks.once('ready', () => {
-    _setupJournalDoubleClickObserver();
-    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Ready hook - observer initialized", "", true, false);
 });
 
 // ***************************************************

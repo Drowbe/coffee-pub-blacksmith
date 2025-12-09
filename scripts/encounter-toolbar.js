@@ -239,9 +239,83 @@ export class EncounterToolbar {
     // Hook for journal page sheet rendering (v13 ApplicationV2 - page-level)
     static async _onRenderJournalPageSheet(app, html, data) {
         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: renderJournalPageSheet hook fired", 
-            `App: ${app?.constructor?.name}`, true, false);
+            `App: ${app?.constructor?.name}, HTML type: ${html?.constructor?.name}, Tag: ${html?.tagName}`, true, false);
+        
+        // In v13 ApplicationV2, html is the page element, not the sheet element
+        // We need to get the parent journal sheet element to process it correctly
+        let sheetElement = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            sheetElement = html[0] || html.get?.(0) || html;
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Converted jQuery to native DOM", 
+                `Sheet element: ${sheetElement?.tagName}.${sheetElement?.className}`, true, false);
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Initial sheetElement", 
+            `Tag: ${sheetElement?.tagName}, Classes: ${sheetElement?.className}`, true, false);
+        
+        // If html is just the page (article), find the parent journal sheet
+        if (sheetElement && (sheetElement.tagName === 'ARTICLE' || sheetElement.classList?.contains('journal-entry-page'))) {
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Detected page element (article), finding parent sheet", "", true, false);
+            
+            // Try to get the sheet element from the app
+            if (app && app.element) {
+                let appElement = app.element;
+                if (appElement && (appElement.jquery || typeof appElement.find === 'function')) {
+                    appElement = appElement[0] || appElement.get?.(0) || appElement;
+                }
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: App.element", 
+                    `Tag: ${appElement?.tagName}, Classes: ${appElement?.className}`, true, false);
+                
+                if (appElement && (appElement.classList?.contains('journal-sheet') || appElement.classList?.contains('journal-entry'))) {
+                    sheetElement = appElement;
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Using app.element for journal sheet", 
+                        `Sheet element: ${sheetElement.tagName}.${sheetElement.className}`, true, false);
+                } else {
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: app.element is not journal sheet, trying DOM traversal", "", true, false);
+                    // Try traversing up the DOM tree
+                    let parent = sheetElement.parentElement;
+                    let depth = 0;
+                    while (parent && !parent.classList?.contains('journal-sheet') && !parent.classList?.contains('journal-entry') && depth < 10) {
+                        parent = parent.parentElement;
+                        depth++;
+                    }
+                    if (parent) {
+                        sheetElement = parent;
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found journal sheet via DOM traversal", 
+                            `Sheet element: ${sheetElement.tagName}.${sheetElement.className}, Depth: ${depth}`, true, false);
+                    } else {
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Could not find journal sheet via DOM traversal", 
+                            `Stopped at depth ${depth}`, false, true);
+                    }
+                }
+            } else {
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No app.element available, trying DOM traversal", "", true, false);
+                // Try traversing up the DOM tree
+                let parent = sheetElement.parentElement;
+                let depth = 0;
+                while (parent && !parent.classList?.contains('journal-sheet') && !parent.classList?.contains('journal-entry') && depth < 10) {
+                    parent = parent.parentElement;
+                    depth++;
+                }
+                if (parent) {
+                    sheetElement = parent;
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found journal sheet via DOM traversal", 
+                        `Sheet element: ${sheetElement.tagName}.${sheetElement.className}, Depth: ${depth}`, true, false);
+                } else {
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Could not find journal sheet via DOM traversal", 
+                        `Stopped at depth ${depth}`, false, true);
+                }
+            }
+        } else {
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: SheetElement is NOT an article/page element", 
+                `Tag: ${sheetElement?.tagName}, Classes: ${sheetElement?.className}`, true, false);
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Final sheetElement before processing", 
+            `Tag: ${sheetElement?.tagName}, Classes: ${sheetElement?.className}, Has journal-header: ${sheetElement?.querySelector?.('.journal-header') ? 'yes' : 'no'}`, true, false);
+        
         // Use unified method with immediate retry
-        this._processJournalSheet(html, true);
+        this._processJournalSheet(sheetElement, true);
     }
 
     // Hook for when journal entry pages are updated (saves)
@@ -255,6 +329,9 @@ export class EncounterToolbar {
         }, 100);
     }
 
+    // Track active page IDs per journal sheet to detect navigation
+    static _activePageTracker = new Map();
+    
     // Setup global MutationObserver to catch journal sheets when hooks don't fire
     static _setupGlobalObserver() {
         // Check existing journal sheets on ready
@@ -281,9 +358,10 @@ export class EncounterToolbar {
             Hooks.once('ready', () => checkExistingSheets.call(this));
         }
         
-        // Watch for new journal sheets being added
+        // Watch for new journal sheets being added AND page navigation within existing sheets
         const observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
+                // Watch for added nodes (new journal sheets)
                 for (const node of mutation.addedNodes) {
                     if (node.nodeType === Node.ELEMENT_NODE) {
                         // Check if this is a journal sheet (try multiple selectors)
@@ -332,16 +410,147 @@ export class EncounterToolbar {
                         }
                     }
                 }
+                
+                // Watch for attribute changes on journal page articles (page navigation)
+                // ONLY log if it's actually journal-related to reduce noise
+                if (mutation.type === 'attributes' && mutation.target) {
+                    const target = mutation.target;
+                    
+                    // Filter: Only check journal-related elements
+                    if (target.tagName === 'ARTICLE' && target.classList?.contains('journal-entry-page')) {
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Journal page article attribute change detected", 
+                            `Page ID: ${target.getAttribute('data-page-id')}, Attribute: ${mutation.attributeName}`, true, false);
+                        
+                        // Check if this is within a journal sheet
+                        const journalSheet = target.closest('.journal-sheet, .journal-entry');
+                        if (journalSheet) {
+                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found parent journal sheet", 
+                                `Sheet: ${journalSheet.tagName}.${journalSheet.className}`, true, false);
+                            
+                            // Find the corresponding app
+                            const sheet = Object.values(ui.windows).find(w => {
+                                if (!w || !w.element) return false;
+                                const wElement = w.element.jquery ? w.element[0] : w.element;
+                                return wElement === journalSheet || wElement?.contains?.(journalSheet);
+                            });
+                            
+                            if (sheet) {
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found corresponding app window", 
+                                    `App: ${sheet.constructor.name}`, true, false);
+                                
+                                // Debounce rapid page changes
+                                if (journalSheet._pageChangeTimer) {
+                                    clearTimeout(journalSheet._pageChangeTimer);
+                                }
+                                journalSheet._pageChangeTimer = setTimeout(() => {
+                                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Page navigation detected via observer", 
+                                        `Page ID: ${target.getAttribute('data-page-id')}`, true, false);
+                                    this._processJournalSheet(journalSheet, true);
+                                }, 100);
+                            } else {
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No corresponding app window found", "", true, false);
+                            }
+                        }
+                    }
+                    // Skip logging for non-journal elements - they're just noise
+                }
+                
+                // Also watch for added nodes that might be journal pages
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'ARTICLE' && node.classList?.contains('journal-entry-page')) {
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: New journal page article added", 
+                            `Page ID: ${node.getAttribute('data-page-id')}`, true, false);
+                        
+                        const journalSheet = node.closest('.journal-sheet, .journal-entry');
+                        if (journalSheet) {
+                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Processing new page in existing journal sheet", 
+                                `Page ID: ${node.getAttribute('data-page-id')}`, true, false);
+                            
+                            // Debounce rapid page changes
+                            if (journalSheet._pageChangeTimer) {
+                                clearTimeout(journalSheet._pageChangeTimer);
+                            }
+                            journalSheet._pageChangeTimer = setTimeout(() => {
+                                this._processJournalSheet(journalSheet, true);
+                            }, 200);
+                        }
+                    }
+                }
             }
         });
         
-        // Observe the document body for new journal sheets
+        // Observe the document body for new journal sheets and page navigation
         observer.observe(document.body, {
             childList: true,
-            subtree: true
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class', 'data-page-id'] // Watch for class changes (active page) and page ID changes
         });
         
         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Global MutationObserver setup complete", "", true, false);
+        
+        // Also set up a periodic check for active page changes (since hooks don't fire)
+        // This is a fallback when renderJournalPageSheet doesn't fire
+        this._setupActivePageChecker();
+        
+        // Listen for clicks on journal page navigation buttons
+        this._setupPageNavigationListener();
+    }
+    
+    // Set up periodic check for active page changes
+    static _setupActivePageChecker() {
+        setInterval(() => {
+            // Check all open journal sheets for active page changes
+            const journalSheets = Object.values(ui.windows).filter(w => 
+                w?.constructor?.name === 'JournalSheet' || 
+                (w?.element && (w.element.jquery ? w.element[0] : w.element).classList?.contains('journal-sheet'))
+            );
+            
+            for (const sheet of journalSheets) {
+                const sheetElement = sheet.element?.jquery ? sheet.element[0] : sheet.element;
+                if (!sheetElement) continue;
+                
+                // Find the currently active/visible page
+                const activePage = sheetElement.querySelector('article.journal-entry-page.active, article.journal-entry-page:not([style*="display: none"])');
+                if (activePage) {
+                    const pageId = activePage.getAttribute('data-page-id');
+                    const sheetKey = sheetElement.id || sheet.document?.id || 'unknown';
+                    const lastKnownPage = this._activePageTracker.get(sheetKey);
+                    
+                    if (pageId && pageId !== lastKnownPage) {
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Active page changed detected", 
+                            `Sheet: ${sheetKey}, Old Page: ${lastKnownPage}, New Page: ${pageId}`, true, false);
+                        
+                        this._activePageTracker.set(sheetKey, pageId);
+                        this._processJournalSheet(sheetElement, true);
+                    }
+                }
+            }
+        }, 500); // Check every 500ms
+    }
+    
+    // Listen for clicks on journal page navigation
+    static _setupPageNavigationListener() {
+        document.addEventListener('click', (event) => {
+            // Check if click is on a journal page navigation button/tab
+            const target = event.target.closest('a[data-page-id], .journal-page-nav a, .journal-entry-page-header a');
+            if (target && target.getAttribute('data-page-id')) {
+                const pageId = target.getAttribute('data-page-id');
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Journal page navigation clicked", 
+                    `Page ID: ${pageId}`, true, false);
+                
+                // Find the journal sheet containing this navigation
+                const journalSheet = target.closest('.journal-sheet, .journal-entry');
+                if (journalSheet) {
+                    // Small delay to let the page render
+                    setTimeout(() => {
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Processing after page navigation click", 
+                            `Page ID: ${pageId}`, true, false);
+                        this._processJournalSheet(journalSheet, true);
+                    }, 200);
+                }
+            }
+        }, true); // Use capture phase to catch early
     }
 
     // Unified method to process journal sheets
