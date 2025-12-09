@@ -686,6 +686,12 @@ Hooks.once('init', async function() {
             if (moduleId === MODULE.ID) {
                 clearSettingsCache();
                 
+                // Update scene styles when scene-related settings change
+                const sceneSettingPattern = /^(sceneTextAlign|sceneFontSize|sceneTitlePadding|scenePanelHeight)$/;
+                if (sceneSettingPattern.test(settingKey)) {
+                    updateSceneStyles();
+                }
+                
                 // Rebuild selected compendium arrays if compendium settings changed
                 // Match any numCompendiums* setting, any *Compendium{number} setting, or searchWorld*First/Last settings
                 const compendiumSettingPattern = /^(numCompendiums|.+Compendium\d+|searchWorld.+First|searchWorld.+Last)$/;

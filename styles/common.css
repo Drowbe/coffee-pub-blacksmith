@@ -48,15 +48,25 @@ li.table-result img.result-image  {
     --sidebar-scene-height: var(--intScenePanelHeight) !important;
 }
 
-.subdirectory h3 {
+/* Scene Directory (Sidebar) - v13 Structure */
+/* Folder headers - applies to folder names in the sidebar */
+.folder-header .folder-name {
     text-align: var(--strSceneTextAlign) !important;
     padding-left: var(--strScenePaddingLeft);
     padding-right: var(--strScenePaddingRight);
     padding-top: var(--strScenePaddingTop);
     padding-bottom: var(--strScenePaddingBottom);
+    font-size: var(--strSceneFontSize);
 }
-.subdirectory h3 a {
-   font-size: var(--strSceneFontSize);
+
+/* Scene entry names - applies to scene names in the sidebar */
+.directory-item.scene .entry-name,
+.subdirectory .directory-item.scene .entry-name,
+#scenes .directory-item.scene .entry-name {
+    text-align: var(--strSceneTextAlign) !important;
+    padding-left: var(--strScenePaddingLeft);
+    padding-right: var(--strScenePaddingRight);
+    font-size: var(--strSceneFontSize);
 }
 
 
