@@ -697,7 +697,256 @@ For issues or questions about the Blacksmith Menubar API:
 3. Test with a simple tool registration
 4. Contact the Blacksmith development team
 
+## Secondary Bar API
+
+The menubar supports **secondary bars** - additional toolbars that appear below the main menubar, similar to tabs. Only one secondary bar can be open at a time. When you open a new secondary bar, the existing one automatically closes.
+
+**Common Use Cases:**
+- Combat tracker (built-in)
+- Drawing tools (Cartographer)
+- Specialized toolbars for specific activities
+
+### Secondary Bar Behavior
+
+- **Tab-like behavior**: Only one secondary bar can be open at a time
+- **Automatic switching**: Opening a new secondary bar closes the currently open one
+- **Persistence modes**: `'manual'` (user closes) or `'auto'` (auto-closes after delay)
+- **Height customization**: Each bar type can have its own height
+
+### Registering a Secondary Bar Type
+
+Before you can open a secondary bar, you must register its type:
+
+```javascript
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+
+// Register a new secondary bar type
+const success = blacksmith.registerSecondaryBarType('cartographer', {
+    height: 60,                    // Height in pixels
+    persistence: 'manual',         // 'manual' or 'auto'
+    autoCloseDelay: 10000          // Auto-close delay in ms (if persistence is 'auto')
+});
+
+if (success) {
+    console.log("Cartographer bar type registered!");
+}
+```
+
+**Parameters:**
+- `typeId` (string, required): Unique identifier for the bar type (e.g., 'cartographer', 'combat')
+- `config` (Object, required): Configuration object
+  - `height` (number, optional): Height in pixels (default: 50)
+  - `persistence` (string, optional): `'manual'` or `'auto'` (default: `'manual'`)
+  - `autoCloseDelay` (number, optional): Auto-close delay in milliseconds (default: 10000)
+
+**Returns:** `boolean` - Success status
+
+### Opening a Secondary Bar
+
+```javascript
+// Open your secondary bar
+const success = blacksmith.openSecondaryBar('cartographer', {
+    data: {
+        // Your custom data to pass to the template
+        tools: ['pencil', 'eraser', 'line'],
+        activeTool: 'pencil'
+    },
+    height: 60,                    // Optional: override registered height
+    persistence: 'manual'          // Optional: override registered persistence
+});
+
+if (success) {
+    console.log("Cartographer bar opened!");
+}
+```
+
+**Parameters:**
+- `typeId` (string, required): The registered bar type ID
+- `options` (Object, optional): Options for the bar
+  - `data` (Object, optional): Data to pass to the bar template
+  - `height` (number, optional): Override the registered height
+  - `persistence` (string, optional): Override the registered persistence mode
+
+**Returns:** `boolean` - Success status
+
+**Note:** Opening a secondary bar automatically closes any currently open secondary bar.
+
+### Closing a Secondary Bar
+
+```javascript
+// Close the currently open secondary bar
+const success = blacksmith.closeSecondaryBar();
+
+if (success) {
+    console.log("Secondary bar closed!");
+}
+```
+
+**Returns:** `boolean` - Success status
+
+### Toggling a Secondary Bar
+
+```javascript
+// Toggle the cartographer bar (opens if closed, closes if open)
+const success = blacksmith.toggleSecondaryBar('cartographer', {
+    data: {
+        tools: ['pencil', 'eraser'],
+        activeTool: 'pencil'
+    }
+});
+```
+
+**Parameters:**
+- `typeId` (string, required): The bar type to toggle
+- `options` (Object, optional): Options for the bar (same as `openSecondaryBar`)
+
+**Returns:** `boolean` - Success status
+
+**Behavior:**
+- If the bar is closed, it opens
+- If the bar is open and matches the type, it closes
+- If a different bar is open, it closes that bar and opens the requested one
+
+### Updating a Secondary Bar
+
+Update the data of an already-open secondary bar without closing/reopening:
+
+```javascript
+// Update the cartographer bar data
+const success = blacksmith.updateSecondaryBar({
+    activeTool: 'eraser',
+    color: '#ff0000'
+});
+```
+
+**Parameters:**
+- `data` (Object, required): New data to merge with existing data
+
+**Returns:** `boolean` - Success status
+
+**Note:** This only works if a secondary bar is currently open.
+
+### Creating a Secondary Bar Template
+
+To display your secondary bar, you need to create a Handlebars partial template. The template should be located at:
+
+```
+templates/menubar-{your-type-id}.hbs
+```
+
+For example, for a `cartographer` bar type, create:
+```
+templates/menubar-cartographer.hbs
+```
+
+**Template Example:**
+```handlebars
+{{!-- templates/menubar-cartographer.hbs --}}
+<div class="cartographer-toolbar">
+    <div class="toolbar-header">
+        <h3>Cartographer Tools</h3>
+    </div>
+    <div class="toolbar-tools">
+        {{#each tools}}
+        <button class="tool-button {{#if (eq this ../activeTool)}}active{{/if}}" 
+                data-tool="{{this}}">
+            {{this}}
+        </button>
+        {{/each}}
+    </div>
+</div>
+```
+
+**Important:** You'll also need to update the main menubar template (`templates/menubar.hbs`) to include your partial. Add this inside the secondary bar section:
+
+```handlebars
+{{#if (eq secondaryBar.type "cartographer")}}
+    {{> "menubar-cartographer" secondaryBar.data}}
+{{/if}}
+```
+
+### Complete Example: Cartographer Secondary Bar
+
+```javascript
+// 1. Register the bar type
+Hooks.once('ready', () => {
+    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+    
+    if (!blacksmith) {
+        console.error('Blacksmith API not available');
+        return;
+    }
+    
+    // Register the cartographer bar type
+    blacksmith.registerSecondaryBarType('cartographer', {
+        height: 60,
+        persistence: 'manual',
+        autoCloseDelay: 10000
+    });
+    
+    // Register a menubar tool to toggle the cartographer bar
+    blacksmith.registerMenubarTool('cartographer-toggle', {
+        icon: 'fa-solid fa-pencil',
+        name: 'cartographer-toggle',
+        title: 'Toggle Cartographer Tools',
+        zone: 'left',
+        order: 20,
+        moduleId: 'coffee-pub-cartographer',
+        onClick: () => {
+            blacksmith.toggleSecondaryBar('cartographer', {
+                data: {
+                    tools: ['pencil', 'eraser', 'line', 'rectangle'],
+                    activeTool: 'pencil'
+                }
+            });
+        }
+    });
+});
+```
+
+### Secondary Bar vs. Regular Tools
+
+| Feature | Regular Tools | Secondary Bar |
+|---------|--------------|---------------|
+| **Location** | In main menubar (left/middle/right zones) | Below main menubar |
+| **Space** | Limited (icon + label) | Full-width toolbar |
+| **Multiple** | Many tools can be visible | Only one bar can be open |
+| **Use Case** | Quick actions, status indicators | Complex toolbars, specialized interfaces |
+| **Template** | Not needed | Requires Handlebars partial |
+
+### Best Practices
+
+1. **Register early**: Register your secondary bar type in a `ready` hook
+2. **Unique type IDs**: Use descriptive, unique type IDs (e.g., `'cartographer'`, not `'tools'`)
+3. **Template organization**: Keep your template simple and focused
+4. **Data structure**: Pass structured data to your template for flexibility
+5. **Cleanup**: Consider closing your bar when your module is disabled
+
+### Troubleshooting
+
+**Bar doesn't open:**
+- Verify the bar type is registered: Check console for registration success
+- Check if another bar is open (it should close automatically)
+- Verify the template partial exists and is named correctly
+
+**Template not rendering:**
+- Ensure the partial is registered with Handlebars
+- Check that the menubar template includes your partial
+- Verify the `secondaryBar.type` matches your type ID
+
+**Bar closes unexpectedly:**
+- Check the `persistence` setting (auto bars close after delay)
+- Verify no other code is calling `closeSecondaryBar()`
+
 ## Version History
+
+- **v12.1.8**: Secondary Bar API
+  - Added `registerSecondaryBarType()` method
+  - Added `openSecondaryBar()`, `closeSecondaryBar()`, `toggleSecondaryBar()` methods
+  - Added `updateSecondaryBar()` method for real-time updates
+  - Tab-like behavior: only one secondary bar open at a time
+  - Automatic switching between secondary bars
+  - Persistence modes (manual/auto) with auto-close support
 
 - **v12.1.7**: Enhanced notification system
   - Added `updateNotification()` method for real-time notification updates
@@ -716,6 +965,6 @@ For issues or questions about the Blacksmith Menubar API:
 
 ---
 
-**Last Updated**: Current session - Enhanced notification system with full lifecycle management  
+**Last Updated**: Current session - Secondary Bar API with tab-like switching  
 **Status**: Production ready with comprehensive integration support  
 **Next Milestone**: Enhanced menubar features and ecosystem integration

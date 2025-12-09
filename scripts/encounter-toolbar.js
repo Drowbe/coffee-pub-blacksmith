@@ -501,10 +501,13 @@ export class EncounterToolbar {
     static _setupActivePageChecker() {
         setInterval(() => {
             // Check all open journal sheets for active page changes
-            const journalSheets = Object.values(ui.windows).filter(w => 
-                w?.constructor?.name === 'JournalSheet' || 
-                (w?.element && (w.element.jquery ? w.element[0] : w.element).classList?.contains('journal-sheet'))
-            );
+            const journalSheets = Object.values(ui.windows).filter(w => {
+                if (!w) return false;
+                if (w?.constructor?.name === 'JournalSheet') return true;
+                if (!w?.element) return false;
+                const element = w.element.jquery ? w.element[0] : w.element;
+                return element && element.classList && element.classList.contains('journal-sheet');
+            });
             
             for (const sheet of journalSheets) {
                 const sheetElement = sheet.element?.jquery ? sheet.element[0] : sheet.element;

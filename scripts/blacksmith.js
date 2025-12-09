@@ -1040,7 +1040,7 @@ export function buildButtonEventRegent(worksheet = 'default') {
 function _onRenderJournalDoubleClick(app, html, data) {
     // BEGIN - HOOKMANAGER CALLBACK
         postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Hook called", 
-            `App: ${app?.constructor?.name}, HTML type: ${html?.constructor?.name}`, true, false);
+            `App: ${app?.constructor?.name}, HTML type: ${html?.constructor?.name}, Tag: ${html?.tagName}`, true, false);
         
         // Only GMs can enable journal double-click editing
         if (!game.user.isGM) {
@@ -1065,6 +1065,38 @@ function _onRenderJournalDoubleClick(app, html, data) {
             nativeHtml = html[0] || html.get?.(0) || html;
             postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: jQuery detected and converted", 
                 `Native HTML: ${nativeHtml?.constructor?.name}`, true, false);
+        }
+        
+        // In v13 ApplicationV2, renderJournalPageSheet may pass just the page element (article)
+        // We need to find the parent journal sheet element
+        if (nativeHtml && (nativeHtml.tagName === 'ARTICLE' || nativeHtml.classList?.contains('journal-entry-page'))) {
+            postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Detected page element, finding parent sheet", "", true, false);
+            
+            // Try to get the sheet element from the app
+            if (app && app.element) {
+                let appElement = app.element;
+                if (appElement && (appElement.jquery || typeof appElement.find === 'function')) {
+                    appElement = appElement[0] || appElement.get?.(0) || appElement;
+                }
+                if (appElement && (appElement.classList?.contains('journal-sheet') || appElement.classList?.contains('journal-entry'))) {
+                    nativeHtml = appElement;
+                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Using app.element for journal sheet", 
+                        `Sheet element: ${nativeHtml.tagName}.${nativeHtml.className}`, true, false);
+                } else {
+                    // Try traversing up the DOM tree
+                    let parent = nativeHtml.parentElement;
+                    let depth = 0;
+                    while (parent && !parent.classList?.contains('journal-sheet') && !parent.classList?.contains('journal-entry') && depth < 10) {
+                        parent = parent.parentElement;
+                        depth++;
+                    }
+                    if (parent) {
+                        nativeHtml = parent;
+                        postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Found journal sheet via DOM traversal", 
+                            `Sheet element: ${nativeHtml.tagName}.${nativeHtml.className}, Depth: ${depth}`, true, false);
+                    }
+                }
+            }
         }
         
         if (!nativeHtml || typeof nativeHtml.addEventListener !== 'function') {
@@ -1223,6 +1255,76 @@ HookManager.registerHook({
     context: 'blacksmith-journal-double-click-page',
     priority: 3,
     callback: _onRenderJournalDoubleClick
+});
+
+// Set up periodic checker and click listener for page navigation (since hooks don't fire reliably)
+Hooks.once('ready', () => {
+    // Track processed journal sheets to avoid duplicate handlers
+    const processedSheets = new WeakSet();
+    
+    // Periodic check for active page changes
+    setInterval(() => {
+        if (!game.user.isGM) return;
+        if (!game.settings.get(MODULE.ID, 'enableJournalDoubleClick')) return;
+        
+        const journalSheets = Object.values(ui.windows).filter(w => {
+            if (!w) return false;
+            if (w?.constructor?.name === 'JournalSheet') return true;
+            if (!w?.element) return false;
+            const element = w.element.jquery ? w.element[0] : w.element;
+            return element && element.classList && element.classList.contains('journal-sheet');
+        });
+        
+        for (const sheet of journalSheets) {
+            const sheetElement = sheet.element?.jquery ? sheet.element[0] : sheet.element;
+            if (!sheetElement || processedSheets.has(sheetElement)) continue;
+            
+            // Check if already in edit mode
+            if (sheetElement.querySelector('.editor-container')) continue;
+            
+            // Check if handler already attached
+            if (sheetElement._journalDoubleClickHandler) continue;
+            
+            postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Periodic check - processing journal sheet", 
+                `Sheet: ${sheet.constructor.name}`, true, false);
+            
+            _onRenderJournalDoubleClick(sheet, sheetElement, {});
+            processedSheets.add(sheetElement);
+        }
+    }, 1000); // Check every second
+    
+    // Listen for clicks on journal page navigation
+    document.addEventListener('click', (event) => {
+        if (!game.user.isGM) return;
+        if (!game.settings.get(MODULE.ID, 'enableJournalDoubleClick')) return;
+        
+        // Check if click is on a journal page navigation button/tab
+        const target = event.target.closest('a[data-page-id], .journal-page-nav a, .journal-entry-page-header a');
+        if (target && target.getAttribute('data-page-id')) {
+            postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Page navigation clicked", 
+                `Page ID: ${target.getAttribute('data-page-id')}`, true, false);
+            
+            // Find the journal sheet containing this navigation
+            const journalSheet = target.closest('.journal-sheet, .journal-entry');
+            if (journalSheet) {
+                // Find the corresponding app
+                const sheet = Object.values(ui.windows).find(w => {
+                    if (!w || !w.element) return false;
+                    const wElement = w.element.jquery ? w.element[0] : w.element;
+                    return wElement === journalSheet || wElement?.contains?.(journalSheet);
+                });
+                
+                if (sheet) {
+                    // Small delay to let the page render
+                    setTimeout(() => {
+                        postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Processing after page navigation", 
+                            `Page ID: ${target.getAttribute('data-page-id')}`, true, false);
+                        _onRenderJournalDoubleClick(sheet, journalSheet, {});
+                    }, 200);
+                }
+            }
+        }
+    }, true); // Use capture phase to catch early
 });
 
 // ***************************************************
