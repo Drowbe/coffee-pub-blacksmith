@@ -1,18 +1,24 @@
 {{!-- Default Secondary Bar Template - Tool-based system --}}
 <div class="secondary-bar-toolbar">
-    {{#each items}}
-    <div class="secondary-bar-item {{#if active}}active{{/if}}" 
-         data-item-id="{{itemId}}"
-         data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
-         title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
-         {{#if (or buttonColor borderColor)}}
-         style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
-         {{/if}}>
-        <i class="{{icon}}"></i>
-        {{#if label}}
-        <span class="secondary-bar-item-label">{{label}}</span>
-        {{/if}}
-    </div>
+    {{#each groups}}
+        {{#each items}}
+        <div class="secondary-bar-item {{#if active}}active{{/if}}" 
+             data-item-id="{{itemId}}"
+             data-group-id="{{../id}}"
+             data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
+             title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
+             {{#if (or buttonColor borderColor)}}
+             style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
+             {{/if}}>
+            <i class="{{icon}}"></i>
+            {{#if label}}
+            <span class="secondary-bar-item-label">{{label}}</span>
+            {{/if}}
+        </div>
+        {{/each}}
+        {{#unless @last}}
+        <div class="secondary-bar-group-divider"></div>
+        {{/unless}}
     {{/each}}
 </div>
 

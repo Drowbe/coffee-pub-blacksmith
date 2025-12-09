@@ -782,8 +782,10 @@ Hooks.once('init', async function() {
         module.api.registerSecondaryBarType = MenuBar.registerSecondaryBarType.bind(MenuBar);
         module.api.registerSecondaryBarItem = MenuBar.registerSecondaryBarItem.bind(MenuBar);
         module.api.unregisterSecondaryBarItem = MenuBar.unregisterSecondaryBarItem.bind(MenuBar);
+        module.api.updateSecondaryBarItemActive = MenuBar.updateSecondaryBarItemActive.bind(MenuBar);
         module.api.getSecondaryBarItems = MenuBar.getSecondaryBarItems.bind(MenuBar);
         module.api.openSecondaryBar = MenuBar.openSecondaryBar.bind(MenuBar);
+        module.api.updateMenubarToolActive = MenuBar.updateMenubarToolActive.bind(MenuBar);
         module.api.closeSecondaryBar = MenuBar.closeSecondaryBar.bind(MenuBar);
         module.api.toggleSecondaryBar = MenuBar.toggleSecondaryBar.bind(MenuBar);
         module.api.updateSecondaryBar = MenuBar.updateSecondaryBar.bind(MenuBar);

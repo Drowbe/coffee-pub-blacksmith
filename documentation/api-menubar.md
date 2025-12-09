@@ -210,6 +210,26 @@ Registers a new tool with the Blacksmith menubar system.
 - `gmOnly` (boolean, optional): Whether tool is GM-only (default: false)
 - `leaderOnly` (boolean, optional): Whether tool is leader-only (default: false)
 - `visible` (boolean|Function, optional): Whether tool is visible (default: true)
+- `toggleable` (boolean, optional): Whether tool can be toggled on/off (default: false)
+- `active` (boolean, optional): Initial active state for toggleable tools (default: false)
+
+#### `updateMenubarToolActive(toolId, active)`
+
+Updates the active state of a toggleable tool.
+
+**Parameters:**
+- `toolId` (string): Unique identifier for the tool
+- `active` (boolean): The active state to set
+
+**Returns:** `boolean` - Success status
+
+**Note:** Only works for tools registered with `toggleable: true`.
+
+**Example:**
+```javascript
+// Update a toggleable tool's active state programmatically
+blacksmith.updateMenubarToolActive('my-toggle-tool', true);
+```
 
 #### `unregisterMenubarTool(toolId)`
 
@@ -525,6 +545,35 @@ blacksmith.registerMenubarTool('my-status-tool', {
 });
 ```
 
+### Toggleable Tool
+
+```javascript
+// Register a toggleable tool that shows active/inactive state
+blacksmith.registerMenubarTool('my-toggle-tool', {
+    icon: "fa-solid fa-toggle-on",
+    name: "my-toggle-tool",
+    title: "Toggle Feature",
+    zone: "left",
+    order: 15,
+    moduleId: "my-module",
+    toggleable: true,              // Enable toggleable behavior
+    active: false,                 // Initial state (optional, defaults to false)
+    onClick: () => {
+        // The active state is automatically toggled by the system
+        // Check the current state if needed
+        const tool = blacksmith.getRegisteredMenubarTools().get('my-toggle-tool');
+        if (tool.active) {
+            console.log("Feature is now active");
+        } else {
+            console.log("Feature is now inactive");
+        }
+    }
+});
+
+// Update active state programmatically
+blacksmith.updateMenubarToolActive('my-toggle-tool', true);
+```
+
 ### Module Cleanup
 
 ```javascript
@@ -737,10 +786,24 @@ Before you can open a secondary bar, you must register its type. The system supp
 const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
 
 // Option 1: Register a bar type using the default tool system (no template needed)
-const success = blacksmith.registerSecondaryBarType('cartographer', {
+const success = await blacksmith.registerSecondaryBarType('cartographer', {
     height: 60,                    // Height in pixels
     persistence: 'manual',         // 'manual' or 'auto'
-    autoCloseDelay: 10000          // Auto-close delay in ms (if persistence is 'auto')
+    autoCloseDelay: 10000,         // Auto-close delay in ms (if persistence is 'auto')
+    groups: {                      // Optional: Group configuration
+        'line-size': {
+            mode: 'switch',        // 'switch' or 'default'
+            order: 10
+        },
+        'colors': {
+            mode: 'switch',
+            order: 20
+        },
+        'tools': {
+            mode: 'default',       // Default mode allows mixed behaviors
+            order: 0
+        }
+    }
     // No templatePath = uses default tool system
 });
 
@@ -763,10 +826,23 @@ if (success) {
   - `persistence` (string, optional): `'manual'` or `'auto'` (default: `'manual'`)
   - `autoCloseDelay` (number, optional): Auto-close delay in milliseconds (default: 10000)
   - `templatePath` (string, optional): Path to custom Handlebars template partial. If not provided, uses the default tool system.
+  - `groups` (Object, optional): Group configuration object. Maps group IDs to group configs:
+    - `groupId` (string): Unique identifier for the group (e.g., 'line-size', 'colors')
+    - `mode` (string, optional): Group behavior mode - `'default'` or `'switch'` (default: `'default'`)
+      - `'default'`: Independent buttons (can have toggleable buttons)
+      - `'switch'`: Only one button active at a time, one always active
+    - `order` (number, optional): Display order for the group (lower numbers appear first, default: 999)
 
 **Returns:** `Promise<boolean>` - Success status (async method)
 
 **Note:** This method is async because it loads custom templates. Use `await` or `.then()` when using custom templates.
+
+**Group Configuration:**
+- Groups allow you to organize buttons into logical sections
+- Multiple modules can contribute groups to the same bar type (groups are merged)
+- Groups with different IDs will have dividers between them
+- The `'default'` group always exists if no group is specified for an item
+- Group modes determine how buttons within that group behave (see Secondary Bar Groups section below)
 
 ### Opening a Secondary Bar
 
@@ -853,6 +929,92 @@ const success = blacksmith.updateSecondaryBar({
 
 **Note:** This only works if a secondary bar is currently open.
 
+### Secondary Bar Groups
+
+Secondary bars support **groups** - logical collections of buttons that are visually separated by dividers. Groups support two behavior modes:
+
+#### Group Modes
+
+**`'default'` mode** (default):
+- Buttons are independent
+- Each button can be toggleable (use `toggleable: true` in item registration)
+- Buttons can perform actions independently
+- Use case: Tool buttons, action buttons, filters
+
+**`'switch'` mode**:
+- Radio-button behavior: only one button active at a time
+- One button must always be active (first item becomes active by default)
+- Clicking a button automatically deactivates others in the group
+- Use case: Line size selection, color pickers, mode selection
+
+#### Group Configuration
+
+Groups are configured when registering the bar type:
+
+```javascript
+await blacksmith.registerSecondaryBarType('cartographer', {
+    groups: {
+        'tools': {
+            mode: 'default',    // Independent buttons
+            order: 0            // Display order (lower = first)
+        },
+        'line-size': {
+            mode: 'switch',     // Radio-button behavior
+            order: 10
+        }
+    }
+});
+```
+
+#### Assigning Items to Groups
+
+When registering items, specify the `group` parameter:
+
+```javascript
+// Item in 'tools' group (default mode)
+blacksmith.registerSecondaryBarItem('cartographer', 'pencil', {
+    group: 'tools',
+    toggleable: true,    // Can toggle on/off
+    // ...
+});
+
+// Item in 'line-size' group (switch mode)
+blacksmith.registerSecondaryBarItem('cartographer', 'small', {
+    group: 'line-size',
+    // toggleable not needed - switch mode handles it automatically
+    // ...
+});
+```
+
+#### Visual Layout
+
+Groups are rendered with dividers between them:
+```
+[Group 1 Items] | [Group 2 Items] | [Group 3 Items]
+```
+
+Items within the same group appear together without dividers.
+
+#### Multiple Module Support
+
+Multiple modules can contribute groups to the same bar type. Groups are merged when the bar type is registered:
+
+```javascript
+// Module A registers the bar type with groups
+await blacksmith.registerSecondaryBarType('cartographer', {
+    groups: {
+        'tools': { mode: 'default', order: 0 }
+    }
+});
+
+// Module B can add more groups (merged, not replaced)
+await blacksmith.registerSecondaryBarType('cartographer', {
+    groups: {
+        'colors': { mode: 'switch', order: 20 }  // Added to existing groups
+    }
+});
+```
+
 ### Registering Secondary Bar Items (Default Tool System)
 
 For simple toolbars, use the default tool registration system. This avoids needing to create custom templates:
@@ -863,21 +1025,34 @@ blacksmith.registerSecondaryBarItem('cartographer', 'pencil-tool', {
     icon: 'fa-solid fa-pencil',
     label: 'Pencil',
     tooltip: 'Draw with pencil tool',
-    active: false,                    // Optional: whether item is active/selected
-    order: 10,                        // Optional: sort order
+    group: 'tools',                  // Optional: Group ID (default: 'default')
+    toggleable: false,               // Optional: Whether item can be toggled (default: false)
+    active: false,                   // Optional: whether item is active/selected
+    order: 10,                       // Optional: sort order within group
     onClick: (event) => {
         // Handle click
         console.log('Pencil tool clicked');
     }
 });
 
-blacksmith.registerSecondaryBarItem('cartographer', 'eraser-tool', {
-    icon: 'fa-solid fa-eraser',
-    label: 'Eraser',
-    tooltip: 'Erase drawings',
+blacksmith.registerSecondaryBarItem('cartographer', 'small-line', {
+    icon: 'fa-solid fa-minus',
+    label: 'Small',
+    group: 'line-size',              // Part of the 'line-size' switch group
+    order: 10,
+    onClick: (event) => {
+        // In switch groups, clicking automatically activates this item and deactivates others
+        console.log('Small line size selected');
+    }
+});
+
+blacksmith.registerSecondaryBarItem('cartographer', 'medium-line', {
+    icon: 'fa-solid fa-equals',
+    label: 'Medium',
+    group: 'line-size',
     order: 20,
     onClick: (event) => {
-        console.log('Eraser tool clicked');
+        console.log('Medium line size selected');
     }
 });
 ```
@@ -889,14 +1064,23 @@ blacksmith.registerSecondaryBarItem('cartographer', 'eraser-tool', {
   - `icon` (string, required): FontAwesome icon class (e.g., `'fa-solid fa-pencil'`, `'fas fa-eraser'`)
   - `label` (string, optional): Text label displayed next to the icon. If omitted, only the icon is shown.
   - `tooltip` (string, optional): Tooltip text on hover. If omitted, uses `label` as tooltip.
-  - `active` (boolean, optional): Whether item is active/selected. Adds `active` CSS class when `true` (default: `false`)
-  - `order` (number, optional): Sort order for displaying items (lower numbers appear first). Items without `order` appear after items with `order`, sorted alphabetically by `itemId`.
+  - `group` (string, optional): Group ID to place the item in. If not specified, uses `'default'` group. Groups with different IDs will have dividers between them.
+  - `toggleable` (boolean, optional): Whether item can be toggled on/off (only applies to `'default'` mode groups). In `'switch'` mode groups, items are automatically managed.
+  - `active` (boolean, optional): Whether item is active/selected. Adds `active` CSS class when `true`. For `'switch'` mode groups, the first item is automatically made active if none is active.
+  - `order` (number, optional): Sort order for displaying items within the group (lower numbers appear first). Items without `order` appear after items with `order`, sorted alphabetically by `itemId`.
   - `buttonColor` (string, optional): Background color for the button. Can be any valid CSS color (e.g., `'rgba(100, 150, 200, 0.3)'`, `'#64aaff'`, `'blue'`). If omitted, uses the default from `--blacksmith-menubar-secondary-buttoncolor`.
   - `borderColor` (string, optional): Border color for the button. Can be any valid CSS color. If omitted, uses the default from `--blacksmith-menubar-secondary-bordercolor`.
   - `onClick` (Function, required): Click handler function `(event) => {}`. Receives the click event as parameter.
   - Additional properties: Any other properties are preserved and passed through, but not used by the default template.
 
 **Returns:** `boolean` - Success status
+
+**Group Behavior:**
+- Items are organized into groups specified by the `group` parameter
+- Groups are separated by visual dividers
+- Group behavior is controlled by the group's `mode` (set in `registerSecondaryBarType`):
+  - **`'default'` mode**: Independent buttons. Each button can be toggleable or perform actions independently.
+  - **`'switch'` mode**: Radio-button behavior. Only one button in the group can be active at a time, and one must always be active.
 
 **Example:**
 ```javascript
@@ -920,6 +1104,31 @@ blacksmith.registerSecondaryBarItem('cartographer', 'pencil-tool', {
 
 **Timing-Safe:** You can register items before the bar type is registered. Items will be queued and applied when the bar type is registered.
 
+### Updating Secondary Bar Item Active State
+
+```javascript
+// Update an item's active state programmatically
+blacksmith.updateSecondaryBarItemActive('cartographer', 'pencil-tool', true);
+```
+
+**Parameters:**
+- `barTypeId` (string, required): The bar type ID
+- `itemId` (string, required): The item ID to update
+- `active` (boolean, required): The active state to set
+
+**Returns:** `boolean` - Success status
+
+**Note:** 
+- For `'switch'` mode groups, setting an item active will automatically deactivate other items in the same group.
+- You cannot deactivate all items in a `'switch'` mode group (one must always be active).
+
+**Example:**
+```javascript
+// Activate a tool in a switch group
+blacksmith.updateSecondaryBarItemActive('cartographer', 'medium-line', true);
+// This automatically deactivates 'small-line' and 'large-line' in the same group
+```
+
 ### Unregistering Secondary Bar Items
 
 ```javascript
@@ -932,6 +1141,8 @@ blacksmith.unregisterSecondaryBarItem('cartographer', 'pencil-tool');
 - `itemId` (string, required): The item ID to remove
 
 **Returns:** `boolean` - Success status
+
+**Note:** If the removed item was active in a `'switch'` mode group, the first remaining item in that group will automatically become active.
 
 ### Getting Secondary Bar Items
 
@@ -1046,7 +1257,7 @@ await blacksmith.registerSecondaryBarType('my-complex-bar', {
 
 ### Complete Examples
 
-#### Example 1: Simple Toolbar (Default Tool System)
+#### Example 1: Simple Toolbar with Groups (Default Tool System)
 
 ```javascript
 Hooks.once('ready', async () => {
@@ -1057,39 +1268,105 @@ Hooks.once('ready', async () => {
         return;
     }
     
-    // 1. Register the bar type (no templatePath = uses default tool system)
+    // 1. Register the bar type with group configuration
     await blacksmith.registerSecondaryBarType('cartographer', {
         height: 60,
         persistence: 'manual',
-        autoCloseDelay: 10000
+        autoCloseDelay: 10000,
+        groups: {
+            'tools': {
+                mode: 'default',      // Independent buttons
+                order: 0
+            },
+            'line-size': {
+                mode: 'switch',       // Only one active at a time
+                order: 10
+            },
+            'colors': {
+                mode: 'switch',       // Only one active at a time
+                order: 20
+            }
+        }
     });
     
-    // 2. Register tools/items for the bar
+    // 2. Register tools in the 'tools' group (default mode - independent)
     blacksmith.registerSecondaryBarItem('cartographer', 'pencil-tool', {
         icon: 'fa-solid fa-pencil',
         label: 'Pencil',
-        tooltip: 'Draw with pencil',
+        group: 'tools',
+        toggleable: true,             // Can be toggled on/off
         order: 10,
         onClick: () => {
-            console.log('Pencil tool activated');
-            // Update active state
-            blacksmith.updateSecondaryBar({
-                activeTool: 'pencil'
-            });
+            console.log('Pencil tool toggled');
         }
     });
     
     blacksmith.registerSecondaryBarItem('cartographer', 'eraser-tool', {
         icon: 'fa-solid fa-eraser',
         label: 'Eraser',
-        tooltip: 'Erase drawings',
+        group: 'tools',
+        toggleable: true,
         order: 20,
         onClick: () => {
-            console.log('Eraser tool activated');
+            console.log('Eraser tool toggled');
         }
     });
     
-    // 3. Register a menubar tool to toggle the secondary bar
+    // 3. Register line size options (switch group - only one active)
+    blacksmith.registerSecondaryBarItem('cartographer', 'small-line', {
+        icon: 'fa-solid fa-minus',
+        label: 'Small',
+        group: 'line-size',
+        order: 10,
+        onClick: () => {
+            console.log('Small line size selected');
+        }
+    });
+    
+    blacksmith.registerSecondaryBarItem('cartographer', 'medium-line', {
+        icon: 'fa-solid fa-equals',
+        label: 'Medium',
+        group: 'line-size',
+        order: 20,
+        onClick: () => {
+            console.log('Medium line size selected');
+        }
+    });
+    
+    blacksmith.registerSecondaryBarItem('cartographer', 'large-line', {
+        icon: 'fa-solid fa-grip-lines',
+        label: 'Large',
+        group: 'line-size',
+        order: 30,
+        onClick: () => {
+            console.log('Large line size selected');
+        }
+    });
+    
+    // 4. Register color options (switch group)
+    blacksmith.registerSecondaryBarItem('cartographer', 'color-red', {
+        icon: 'fa-solid fa-circle',
+        label: 'Red',
+        group: 'colors',
+        buttonColor: 'rgba(255, 0, 0, 0.5)',
+        order: 10,
+        onClick: () => {
+            console.log('Red color selected');
+        }
+    });
+    
+    blacksmith.registerSecondaryBarItem('cartographer', 'color-blue', {
+        icon: 'fa-solid fa-circle',
+        label: 'Blue',
+        group: 'colors',
+        buttonColor: 'rgba(0, 0, 255, 0.5)',
+        order: 20,
+        onClick: () => {
+            console.log('Blue color selected');
+        }
+    });
+    
+    // 5. Register a menubar tool to toggle the secondary bar
     blacksmith.registerMenubarTool('cartographer-toggle', {
         icon: 'fa-solid fa-map',
         name: 'cartographer-toggle',
@@ -1103,6 +1380,13 @@ Hooks.once('ready', async () => {
     });
 });
 ```
+
+This creates a toolbar with:
+- **Tools group** (left): Pencil and Eraser (independent toggleable buttons)
+- **Divider**
+- **Line Size group** (middle): Small, Medium, Large (switch mode - only one active)
+- **Divider**
+- **Colors group** (right): Red, Blue (switch mode - only one active)
 
 #### Example 2: Complex Toolbar (Custom Template)
 
@@ -1208,12 +1492,25 @@ Hooks.once('ready', async () => {
 
 ## Version History
 
-- **v13.0.0+**: Hybrid Secondary Bar System
-  - Added default tool system (`registerSecondaryBarItem`, `unregisterSecondaryBarItem`, `getSecondaryBarItems`)
-  - Added `templatePath` parameter to `registerSecondaryBarType` for custom templates
-  - Timing-safe registration: items can be registered before bar types
-  - Automatic template handling for both default and custom templates
-  - Backward compatible with existing combat bar implementation
+- **v13.0.0+**: Enhanced Menubar Features
+  - **Main Toolbar Toggleable**: Added `toggleable` and `active` parameters to `registerMenubarTool`
+  - Added `updateMenubarToolActive()` method for programmatic state updates
+  - **Secondary Bar Groups**: Added group system with two modes:
+    - `'default'` mode: Independent buttons (supports toggleable)
+    - `'switch'` mode: Radio-button behavior (only one active, one always active)
+  - Added `groups` parameter to `registerSecondaryBarType` for group configuration
+  - Added `group` parameter to `registerSecondaryBarItem` for organizing items
+  - Added `toggleable` parameter to `registerSecondaryBarItem` for default-mode groups
+  - Added `updateSecondaryBarItemActive()` method for programmatic state updates
+  - Visual dividers between groups
+  - Group ordering and sorting
+  - Multiple modules can contribute groups to the same bar type
+  - Hybrid Secondary Bar System:
+    - Added default tool system (`registerSecondaryBarItem`, `unregisterSecondaryBarItem`, `getSecondaryBarItems`)
+    - Added `templatePath` parameter to `registerSecondaryBarType` for custom templates
+    - Timing-safe registration: items can be registered before bar types
+    - Automatic template handling for both default and custom templates
+    - Backward compatible with existing combat bar implementation
 
 - **v12.1.8**: Secondary Bar API
   - Added `registerSecondaryBarType()` method

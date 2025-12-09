@@ -171,6 +171,16 @@
     cursor: pointer;
 }
 
+/* Active state for toggleable tools in left zone */
+.blacksmith-menubar-left .button-active.tool-active {
+    background-color: rgba(48, 24, 29, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.blacksmith-menubar-left .button-active.tool-active:hover {
+    background-color: rgba(48, 24, 29, 0.8);
+}
+
 /* MIDDLE BUTTONS */
 
 /* Base styles for all tools */
@@ -206,6 +216,16 @@
     background: rgba(0, 0, 0, 0.8);
 }
 
+/* Active state for toggleable tools in middle zone */
+.blacksmith-menubar-middle .button-active.tool-active {
+    background-color: rgba(48, 24, 29, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.blacksmith-menubar-middle .button-active.tool-active:hover {
+    background-color: rgba(48, 24, 29, 1);
+}
+
 /* RIGHT BUTTONS */
 
 /* Base styles for all tools */
@@ -239,6 +259,16 @@
 .blacksmith-menubar-right .button-active:hover span {
     color: rgba(255, 100, 0, 0.9);
     cursor: pointer;
+}
+
+/* Active state for toggleable tools in right zone */
+.blacksmith-menubar-right .button-active.tool-active {
+    background-color: rgba(48, 24, 29, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.blacksmith-menubar-right .button-active.tool-active:hover {
+    background-color: rgba(48, 24, 29, 0.8);
 }
 
 /* Notifications */
@@ -530,6 +560,14 @@
 .blacksmith-menubar-secondary .secondary-bar-item-label {
     white-space: nowrap;
     user-select: none;
+}
+
+/* Secondary Bar Group Dividers */
+.blacksmith-menubar-secondary .secondary-bar-group-divider {
+    width: 1px;
+    height: calc(var(--blacksmith-menubar-secondary-height) - 12px);
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: 0 4px;
 }
 
 /* ---------------------------------------------------- */
