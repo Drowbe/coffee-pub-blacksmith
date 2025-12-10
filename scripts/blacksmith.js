@@ -911,11 +911,21 @@ Hooks.once('init', async function() {
                             SocketManager._externalEventHandlers = new Map();
                         }
                         SocketManager._externalEventHandlers.set(eventName, handler);
-                        postConsoleAndNotification(MODULE.NAME, `Socket API: Registered event '${eventName}' (SocketLib)`, "", true, false);
+                        // Removed verbose logging - only log on first registration per event
+                        if (!SocketManager._registeredEvents) SocketManager._registeredEvents = new Set();
+                        if (!SocketManager._registeredEvents.has(eventName)) {
+                            SocketManager._registeredEvents.add(eventName);
+                            postConsoleAndNotification(MODULE.NAME, `Socket API: Registered event '${eventName}' (SocketLib)`, "", true, false);
+                        }
                     } else if (typeof socket.register === 'function') {
                         // Native socket fallback - register directly
                         socket.register(eventName, handler);
-                        postConsoleAndNotification(MODULE.NAME, `Socket API: Registered event '${eventName}' (native)`, "", true, false);
+                        // Removed verbose logging - only log on first registration per event
+                        if (!SocketManager._registeredEvents) SocketManager._registeredEvents = new Set();
+                        if (!SocketManager._registeredEvents.has(eventName)) {
+                            SocketManager._registeredEvents.add(eventName);
+                            postConsoleAndNotification(MODULE.NAME, `Socket API: Registered event '${eventName}' (native)`, "", true, false);
+                        }
                     } else {
                         throw new Error('Socket register method not found');
                     }
