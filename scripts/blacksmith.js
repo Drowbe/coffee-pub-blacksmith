@@ -1158,13 +1158,289 @@ function _onRenderJournalDoubleClick(app, html, data) {
             return;
         }
         
-        // Skip if already in edit mode
+        // Check if already in edit mode
         const isEditMode = nativeHtml.querySelector('.editor-container');
-        if (isEditMode) return;
         
         // Find the content area - this is where users actually click to edit
         const contentArea = nativeHtml.querySelector('.journal-entry-content, .journal-entry-page-content, .editor-content, .prosemirror-editor, [contenteditable="true"]');
         const targetElement = contentArea || nativeHtml; // Use content area if found, otherwise use the whole sheet
+        
+        // If in edit mode, attach a handler specifically for image double-clicks
+        // Prosemirror may not have built-in image double-click handling, so we'll add it
+        if (isEditMode) {
+            const editModeImageHandler = (event) => {
+                postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Edit mode handler fired", 
+                    `Target: ${event.target?.tagName}, Class: ${event.target?.className}`, true, false);
+                
+                // Check if double-clicking an image - try multiple methods
+                // In prosemirror, the image might be inside a paragraph or other element
+                let clickedImage = null;
+                
+                // First, check if target is directly an image
+                if (event.target.tagName === 'IMG') {
+                    clickedImage = event.target;
+                }
+                
+                // If not, try closest
+                if (!clickedImage) {
+                    clickedImage = event.target.closest('img');
+                }
+                
+                // If still not found, search within the clicked element
+                if (!clickedImage && event.target) {
+                    clickedImage = event.target.querySelector('img');
+                }
+                
+                // If still not found, try searching from the event point
+                if (!clickedImage && event.clientX && event.clientY) {
+                    const elementAtPoint = document.elementFromPoint(event.clientX, event.clientY);
+                    if (elementAtPoint?.tagName === 'IMG') {
+                        clickedImage = elementAtPoint;
+                    } else {
+                        clickedImage = elementAtPoint?.closest('img');
+                    }
+                }
+                
+                if (!clickedImage) {
+                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Not an image (tried multiple methods)", 
+                        `Target: ${event.target?.tagName}, HTML: ${event.target?.outerHTML?.substring(0, 100)}`, true, false);
+                    return; // Not an image, ignore
+                }
+                
+                postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Image double-click in edit mode detected", 
+                    `Image: ${clickedImage.src}`, true, false);
+                
+                // Find the prosemirror editor instance
+                const editorElement = nativeHtml.querySelector('.editor-container, .prosemirror-editor, [contenteditable="true"]');
+                if (!editorElement) {
+                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: No editor element found", "", false, true);
+                    return;
+                }
+                
+                // Try multiple methods to find the prosemirror view/state
+                let prosemirrorView = null;
+                
+                // Method 1: Direct properties on editor element
+                prosemirrorView = editorElement._view || editorElement.__view || editorElement.__prosemirror_view;
+                
+                // Method 2: From the journal sheet's editor instance
+                if (!prosemirrorView) {
+                    const sheetElement = nativeHtml.closest('.journal-sheet');
+                    if (sheetElement) {
+                        // Try various properties where Foundry might store the editor
+                        const journalApp = sheetElement._app || sheetElement.__app;
+                        if (journalApp) {
+                            prosemirrorView = journalApp._editor?.view || journalApp.editor?.view || journalApp._currentPage?._editor?.view;
+                        }
+                        // Also try direct sheet properties
+                        prosemirrorView = prosemirrorView || sheetElement._editor?.view || sheetElement.__editor?.view;
+                    }
+                }
+                
+                // Method 3: Search through the app object if we have it
+                if (!prosemirrorView && app) {
+                    prosemirrorView = app._editor?.view || app.editor?.view || app._currentPage?._editor?.view || app.currentPage?._editor?.view;
+                }
+                
+                // Method 4: Search within the editor container's parent tree
+                if (!prosemirrorView) {
+                    let searchElement = editorElement.parentElement;
+                    let depth = 0;
+                    while (searchElement && depth < 5) {
+                        prosemirrorView = searchElement._view || searchElement.__view || searchElement.__prosemirror_view;
+                        if (prosemirrorView) break;
+                        searchElement = searchElement.parentElement;
+                        depth++;
+                    }
+                }
+                
+                // If we still haven't found it, try alternative approaches
+                if (!prosemirrorView) {
+                    // Try to find it through the app's current page editor
+                    if (app) {
+                        // Try accessing the editor through various paths in ApplicationV2
+                        try {
+                            // In ApplicationV2, the editor might be on the current page
+                            const currentPage = app.currentPage || app._currentPage;
+                            if (currentPage) {
+                                // The editor might be stored as _editor or editor
+                                prosemirrorView = currentPage._editor?.view || currentPage.editor?.view;
+                                if (prosemirrorView) {
+                                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Found prosemirror view via currentPage", "", true, false);
+                                }
+                            }
+                            
+                            // Try direct access through app
+                            if (!prosemirrorView) {
+                                prosemirrorView = app._editor?.view || app.editor?.view;
+                                if (prosemirrorView) {
+                                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Found prosemirror view via app", "", true, false);
+                                }
+                            }
+                        } catch (e) {
+                            // Continue to next method
+                        }
+                    }
+                    
+                    // Try finding via the clicked image's data attributes or parent chain
+                    if (!prosemirrorView) {
+                        // Prosemirror often stores the view on the DOM element that contains the editor
+                        let node = clickedImage;
+                        for (let i = 0; i < 15 && node && node !== document.body; i++) {
+                            // Check for prosemirror-specific attributes or properties
+                            if (node.__view || node._view) {
+                                prosemirrorView = node.__view || node._view;
+                                if (prosemirrorView && prosemirrorView.state) {
+                                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Found prosemirror view via DOM traversal", 
+                                        `Node: ${node.tagName}`, true, false);
+                                    break;
+                                }
+                            }
+                            // Also check parent nodes
+                            node = node.parentElement;
+                        }
+                    }
+                    
+                    // Last resort: Try to trigger the image button action instead
+                    if (!prosemirrorView) {
+                        postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Could not find prosemirror view, trying alternative method", "", true, false);
+                        
+                        // Try to find and click the image button in the toolbar to open the dialog
+                        // But first, we need to select the image node in prosemirror so it knows which image to edit
+                        // Actually, let's try a different approach - maybe we can find the editor through Foundry's internals
+                        const journalSheet = nativeHtml.closest('.journal-sheet');
+                        if (journalSheet) {
+                            // Try to get the app from the sheet element
+                            const sheetApp = journalSheet._app || journalSheet.__app || 
+                                           (journalSheet.id ? ui.windows[journalSheet.id] : null);
+                            
+                            if (sheetApp) {
+                                // Try to access the editor through the sheet app
+                                const editor = sheetApp._editor || sheetApp.editor || 
+                                             (sheetApp.currentPage?._editor || sheetApp.currentPage?.editor);
+                                if (editor && editor.view) {
+                                    prosemirrorView = editor.view;
+                                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Found prosemirror view via sheet app", "", true, false);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Prosemirror view check", 
+                    `Has view: ${!!prosemirrorView}, Has state: ${!!(prosemirrorView?.state)}, Editor element: ${editorElement.tagName}`, true, false);
+                
+                if (prosemirrorView && prosemirrorView.state) {
+                    // Try to open image config using prosemirror's methods
+                    try {
+                        // Find the image node in the prosemirror document
+                        const pos = prosemirrorView.posAtDOM(clickedImage, 0);
+                        postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Image position in document", 
+                            `Pos: ${pos}`, true, false);
+                        
+                        if (pos !== null && pos >= 0) {
+                            const $pos = prosemirrorView.state.doc.resolve(pos);
+                            const node = $pos.nodeAfter || $pos.nodeBefore;
+                            
+                            postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Node check", 
+                                `Has node: ${!!node}, Node type: ${node?.type?.name}`, true, false);
+                            
+                            if (node && node.type.name === 'image') {
+                                // Try to trigger prosemirror's image config
+                                // This might be in the journal sheet's editor instance
+                                if (app && typeof app.openImageConfig === 'function') {
+                                    app.openImageConfig($pos);
+                                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Opened image config via app.openImageConfig", "", true, false);
+                                    return;
+                                }
+                                
+                                // Try via current page if available
+                                if (app?.currentPage && typeof app.currentPage.openImageConfig === 'function') {
+                                    app.currentPage.openImageConfig($pos);
+                                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Opened image config via currentPage.openImageConfig", "", true, false);
+                                    return;
+                                }
+                                
+                                postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Image node found but no openImageConfig method", 
+                                    `App: ${app?.constructor?.name}, CurrentPage: ${!!app?.currentPage}`, false, true);
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`[${MODULE.NAME}] Journal Double-Click: Error opening image config`, error);
+                        postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Error opening image config", error.message, false, true);
+                    }
+                }
+                
+                // Fallback: If we couldn't find prosemirror view, try clicking the image button directly
+                // The image is already selected (ProseMirror-selectednode class), so this should work
+                postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Attempting fallback - clicking image toolbar button", "", true, false);
+                
+                try {
+                    // Find the image button in the editor toolbar
+                    const imageButton = nativeHtml.querySelector('button[data-action="image"]');
+                    if (imageButton) {
+                        // The image should already be selected since it has ProseMirror-selectednode class
+                        // Click the button to open the image config dialog
+                        imageButton.click();
+                        postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Successfully clicked image button", "", true, false);
+                        return;
+                    } else {
+                        // Try searching more broadly for the button
+                        const toolbar = nativeHtml.querySelector('.editor-toolbar, .prosemirror-menubar, [class*="toolbar"]');
+                        if (toolbar) {
+                            const button = toolbar.querySelector('button[data-action="image"], button[data-tooltip*="Image"], button[data-tooltip*="image"]');
+                            if (button) {
+                                button.click();
+                                postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Found and clicked image button in toolbar", "", true, false);
+                                return;
+                            }
+                        }
+                        postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Image button not found in toolbar", 
+                            `Has toolbar: ${!!toolbar}`, false, true);
+                    }
+                } catch (e) {
+                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Error clicking image button", e.message, false, true);
+                }
+                
+                postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Image double-click in edit mode (could not open image config)", 
+                    `Image: ${clickedImage.src}`, false, true);
+            };
+            
+            // Find the editor container where images actually are
+            const editorContainer = nativeHtml.querySelector('.editor-container, .prosemirror-editor, [contenteditable="true"]');
+            const attachTarget = editorContainer || targetElement;
+            
+            // Check if handler already attached
+            if (attachTarget._journalEditModeImageHandler) {
+                attachTarget.removeEventListener('dblclick', attachTarget._journalEditModeImageHandler, { capture: false });
+            }
+            
+            // Attach handler to the editor container where images are
+            attachTarget.addEventListener('dblclick', editModeImageHandler, { capture: false });
+            attachTarget._journalEditModeImageHandler = editModeImageHandler;
+            
+            // Also attach to targetElement as fallback
+            if (attachTarget !== targetElement && targetElement._journalEditModeImageHandler !== editModeImageHandler) {
+                if (targetElement._journalEditModeImageHandler) {
+                    targetElement.removeEventListener('dblclick', targetElement._journalEditModeImageHandler, { capture: false });
+                }
+                targetElement.addEventListener('dblclick', editModeImageHandler, { capture: false });
+                targetElement._journalEditModeImageHandler = editModeImageHandler;
+            }
+            
+            // Also attach to nativeHtml as fallback
+            if (nativeHtml !== attachTarget && nativeHtml !== targetElement && nativeHtml._journalEditModeImageHandler !== editModeImageHandler) {
+                if (nativeHtml._journalEditModeImageHandler) {
+                    nativeHtml.removeEventListener('dblclick', nativeHtml._journalEditModeImageHandler, { capture: false });
+                }
+                nativeHtml.addEventListener('dblclick', editModeImageHandler, { capture: false });
+                nativeHtml._journalEditModeImageHandler = editModeImageHandler;
+            }
+            
+            postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Edit mode detected - image double-click handler attached", 
+                `Editor container: ${attachTarget.tagName}.${attachTarget.className}, Target: ${targetElement.tagName}, Has handler: ${!!attachTarget._journalEditModeImageHandler}`, true, false);
+            return;
+        }
         
             // Enable the double-click
             const ENTITY_PERMISSIONS = { 
@@ -1229,7 +1505,14 @@ function _onRenderJournalDoubleClick(app, html, data) {
         
         // Create and store the handler
         targetElement._journalDoubleClickHandler = (event) => {
-            // Only log if double-click actually happens (user action)
+            // Check if we're in edit mode FIRST - if so, don't interfere at all
+            const isEditMode = nativeHtml.querySelector('.editor-container');
+            if (isEditMode) {
+                // In edit mode - let prosemirror handle everything, don't interfere
+                return; // Don't prevent default, don't stop propagation, just get out of the way
+            }
+            
+            // Only log if double-click actually happens (user action) and we're not in edit mode
             postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Double-click detected", 
                 `Target: ${event.target?.tagName}`, true, false);
             
@@ -1238,6 +1521,7 @@ function _onRenderJournalDoubleClick(app, html, data) {
                 return;
             }
             
+            // Not in edit mode - activate editor
             event.preventDefault();
             event.stopPropagation();
             
@@ -1253,38 +1537,38 @@ function _onRenderJournalDoubleClick(app, html, data) {
             
             // Method 1: Try using the app's built-in methods (v13 ApplicationV2 approach)
             if (app) {
-                // Try activateEditor if it exists
-                if (typeof app.activateEditor === 'function') {
-                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Using app.activateEditor() method", "", true, false);
-                    try {
-                        app.activateEditor();
-                        return;
-                    } catch (error) {
-                        console.error(`[${MODULE.NAME}] Journal Double-Click: Error calling app.activateEditor()`, error);
-                    }
-                }
-                
-                // Try accessing current page and activating editor
-                if (app.currentPage && typeof app.currentPage.activateEditor === 'function') {
-                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Using app.currentPage.activateEditor() method", "", true, false);
-                    try {
-                        app.currentPage.activateEditor();
-                        return;
-                    } catch (error) {
-                        console.error(`[${MODULE.NAME}] Journal Double-Click: Error calling app.currentPage.activateEditor()`, error);
-                    }
-                }
-                
-                // Try document's sheet activateEditor
-                if (journalDocument && journalDocument.sheet && typeof journalDocument.sheet.activateEditor === 'function') {
-                    postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Using document.sheet.activateEditor() method", "", true, false);
-                    try {
-                        journalDocument.sheet.activateEditor();
-                        return;
-                    } catch (error) {
-                        console.error(`[${MODULE.NAME}] Journal Double-Click: Error calling document.sheet.activateEditor()`, error);
-                    }
-                }
+              // Try activateEditor if it exists
+              if (typeof app.activateEditor === 'function') {
+                  postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Using app.activateEditor() method", "", true, false);
+                  try {
+                      app.activateEditor();
+                      return;
+                  } catch (error) {
+                      console.error(`[${MODULE.NAME}] Journal Double-Click: Error calling app.activateEditor()`, error);
+                  }
+              }
+              
+              // Try accessing current page and activating editor
+              if (app.currentPage && typeof app.currentPage.activateEditor === 'function') {
+                  postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Using app.currentPage.activateEditor() method", "", true, false);
+                  try {
+                      app.currentPage.activateEditor();
+                      return;
+                  } catch (error) {
+                      console.error(`[${MODULE.NAME}] Journal Double-Click: Error calling app.currentPage.activateEditor()`, error);
+                  }
+              }
+              
+              // Try document's sheet activateEditor
+              if (journalDocument && journalDocument.sheet && typeof journalDocument.sheet.activateEditor === 'function') {
+                  postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Using document.sheet.activateEditor() method", "", true, false);
+                  try {
+                      journalDocument.sheet.activateEditor();
+                      return;
+                  } catch (error) {
+                      console.error(`[${MODULE.NAME}] Journal Double-Click: Error calling document.sheet.activateEditor()`, error);
+                  }
+              }
             }
             
             // Method 2: Try to find edit button using common selectors
@@ -1334,6 +1618,7 @@ function _onRenderJournalDoubleClick(app, html, data) {
         };
         
         // Attach the event listener to the target element (content area or sheet)
+        // Use capture: false (bubble phase) so prosemirror's handlers can run first if needed
         targetElement.addEventListener('dblclick', targetElement._journalDoubleClickHandler, { capture: false });
         
         // Also attach to the sheet element if different, for fallback
@@ -1343,6 +1628,43 @@ function _onRenderJournalDoubleClick(app, html, data) {
         
         // Also mark the sheet element so we can detect it's been processed
         nativeHtml._journalDoubleClickHandler = targetElement._journalDoubleClickHandler; // Reference the same handler
+        
+        // Watch for when edit mode is activated - remove view mode handler and attach edit mode handler
+        const editModeObserver = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                if (mutation.type === 'childList' || (mutation.type === 'attributes' && mutation.attributeName === 'class')) {
+                    const hasEditor = nativeHtml.querySelector('.editor-container');
+                    if (hasEditor) {
+                        // Edit mode activated - remove view mode handler
+                        if (targetElement._journalDoubleClickHandler) {
+                            targetElement.removeEventListener('dblclick', targetElement._journalDoubleClickHandler, { capture: false });
+                            delete targetElement._journalDoubleClickHandler;
+                        }
+                        if (nativeHtml !== targetElement && nativeHtml._journalDoubleClickHandler) {
+                            nativeHtml.removeEventListener('dblclick', nativeHtml._journalDoubleClickHandler, { capture: false });
+                            delete nativeHtml._journalDoubleClickHandler;
+                        }
+                        
+                        editModeObserver.disconnect();
+                        postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Edit mode activated - switching to image double-click handler", "", true, false);
+                        
+                        // Attach edit mode handler for image double-clicks
+                        // Use setTimeout to ensure editor is fully initialized
+                        setTimeout(() => {
+                            _onRenderJournalDoubleClick(app, nativeHtml, data || {});
+                        }, 100);
+                    }
+                }
+            }
+        });
+        
+        // Watch for editor-container being added
+        editModeObserver.observe(nativeHtml, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class']
+        });
         
         // Only log when called from hook (not periodic checker)
         if (isFromHook) {
@@ -1397,10 +1719,9 @@ Hooks.once('ready', () => {
         if (!game.settings.get(MODULE.ID, 'enableJournalDoubleClick')) return;
         if (!sheetElement || processedSheetElements.has(sheetElement)) return;
         
-        // Check if already in edit mode - skip these entirely
-        if (sheetElement.querySelector('.editor-container')) {
-            return;
-        }
+        // Note: We now process both edit mode and view mode sheets
+        // Edit mode sheets get handlers for image double-clicks
+        // View mode sheets get handlers to activate edit mode
         
         // Check if handler already attached (most reliable check)
         const contentArea = sheetElement.querySelector('.journal-entry-content, .journal-entry-page-content');
