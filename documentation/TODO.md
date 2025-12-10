@@ -112,12 +112,6 @@
 
 ### MEDIUM PRIORITY ISSUES
 
-### Encounter Toolbar - Loading Failing
-- **Issue**: Encounter toolbar only show up o nthe initial jopurnal load and not on page changes.
-- **Status**: PENDING
-- **Priority**: High
-
-
 ### Verify Loot Token Restoration
 - **Issue**: Ensure tokens converted to loot piles reliably restore their original images after revival
 - **Status**: PENDING - Needs validation pass
