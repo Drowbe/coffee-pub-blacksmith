@@ -427,7 +427,7 @@ export class EncounterToolbar {
                             postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found parent journal sheet", 
                                 `Sheet: ${journalSheet.tagName}.${journalSheet.className}`, true, false);
         
-                            // Find the corresponding app
+                            // Find the corresponding app (optional - we can process without it)
                             const sheet = Object.values(ui.windows).find(w => {
                                 if (!w || !w.element) return false;
                                 const wElement = w.element.jquery ? w.element[0] : w.element;
@@ -437,25 +437,28 @@ export class EncounterToolbar {
                             if (sheet) {
                                 postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found corresponding app window", 
                                     `App: ${sheet.constructor.name}`, true, false);
-                                
-                                // Debounce rapid page changes
-                                if (journalSheet._pageChangeTimer) {
-                                    clearTimeout(journalSheet._pageChangeTimer);
-                                }
-                                journalSheet._pageChangeTimer = setTimeout(() => {
-                                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Page navigation detected via observer", 
-                                        `Page ID: ${target.getAttribute('data-page-id')}`, true, false);
-                                    this._processJournalSheet(journalSheet, true);
-                                }, 100);
                             } else {
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No corresponding app window found", "", true, false);
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No corresponding app window found, processing anyway", "", true, false);
                             }
+                            
+                            // Process the journal sheet regardless of whether we found the app
+                            // (The app lookup is optional - _processJournalSheet works with just the DOM element)
+                            // Use longer delay to ensure active page class has settled
+                            if (journalSheet._pageChangeTimer) {
+                                clearTimeout(journalSheet._pageChangeTimer);
+                            }
+                            journalSheet._pageChangeTimer = setTimeout(() => {
+                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Page navigation detected via observer", 
+                                    `Page ID: ${target.getAttribute('data-page-id')}`, true, false);
+                                this._processJournalSheet(journalSheet, true);
+                            }, 300);
                         }
                     }
                     // Skip logging for non-journal elements - they're just noise
                 }
                 
                 // Also watch for added nodes that might be journal pages
+                // Note: This catches when new pages are added, but attribute changes catch when pages become active
                 for (const node of mutation.addedNodes) {
                     if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'ARTICLE' && node.classList?.contains('journal-entry-page')) {
                         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: New journal page article added", 
@@ -466,13 +469,13 @@ export class EncounterToolbar {
                             postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Processing new page in existing journal sheet", 
                                 `Page ID: ${node.getAttribute('data-page-id')}`, true, false);
                             
-                            // Debounce rapid page changes
+                            // Debounce rapid page changes - use longer delay to let active page class settle
                             if (journalSheet._pageChangeTimer) {
                                 clearTimeout(journalSheet._pageChangeTimer);
                             }
                             journalSheet._pageChangeTimer = setTimeout(() => {
                                 this._processJournalSheet(journalSheet, true);
-                            }, 200);
+                            }, 300);
                         }
                     }
                 }
@@ -899,13 +902,24 @@ export class EncounterToolbar {
             nativeHtml = html[0] || html.get?.(0) || html;
         }
 
-        // Get the page ID to scope the toolbar
-        const journalPage = nativeHtml.querySelector('article.journal-entry-page');
+        // Get the ACTIVE page ID to scope the toolbar
+        // Find the active/visible page (not just any page)
+        const journalPage = nativeHtml.querySelector('article.journal-entry-page.active, article.journal-entry-page:not([style*="display: none"])');
         const pageId = journalPage ? journalPage.getAttribute('data-page-id') : null;
         
         if (!pageId) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No page ID found", "", true, false);
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No active page ID found", "", true, false);
             return; // Can't create toolbar without page ID
+        }
+        
+        // Clean up any old toolbars from other pages (only one toolbar should exist at a time)
+        const allToolbars = nativeHtml.querySelectorAll('.encounter-toolbar');
+        for (const oldToolbar of allToolbars) {
+            const oldPageId = oldToolbar.getAttribute('data-page-id');
+            if (oldPageId && oldPageId !== pageId) {
+                oldToolbar.remove();
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Removed old toolbar", `Old Page ID: ${oldPageId}`, true, false);
+            }
         }
         
         // Check if toolbar already exists for this specific page, if not create it
