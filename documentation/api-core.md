@@ -37,6 +37,7 @@ const utils = BlacksmithUtils;
 - **Menubar API**: Register tools and send notifications to the global menubar
 - **Compendium Configuration**: Access configured compendium arrays for all document types (v12.1.19+)
 - **Canvas Layer API**: Access to BlacksmithLayer for canvas drawing and UI overlays (available after canvasReady)
+- **Socket API**: Unified socket management with SocketLib integration and native fallback (see `api-sockets.md`)
 
 ## **Integration Philosophy**
 
@@ -2354,6 +2355,9 @@ For full canvas layer API documentation, see: **`documentation/api-canvas.md`**
 
 - **[OpenAI API Documentation](api-openai.md)** - AI-powered functionality and content generation
 - **[Toolbar API Documentation](api-toolbar.md)** - Dynamic toolbar system for external modules
+- **[Menubar API Documentation](api-menubar.md)** - Global menubar and secondary bars for external modules
+- **[Socket API Documentation](api-sockets.md)** - Unified socket management with SocketLib integration
+- **[Canvas Layer API Documentation](api-canvas.md)** - Access to BlacksmithLayer for canvas drawing
 - **[Cartographer Module Guide](cartographer.md)** - Drawing on BlacksmithLayer guide
 
 ---

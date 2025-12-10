@@ -869,6 +869,9 @@ Hooks.once('init', async function() {
         registerSecondaryBarType: null,
         openSecondaryBar: null,
         closeSecondaryBar: null,
+        
+        // ✅ NEW: Socket API for external modules (set after SocketManager initializes)
+        sockets: null,
         toggleSecondaryBar: null,
         updateSecondaryBar: null,
         // ✅ NEW: Combat Bar API for external modules
@@ -878,8 +881,63 @@ Hooks.once('init', async function() {
         testNotificationSystem: null,
         // ✅ NEW: Canvas Layer API for external modules
         CanvasLayer: null,  // BlacksmithLayer instance (available after canvasReady)
-        getCanvasLayer: null  // Helper function to get BlacksmithLayer
+        getCanvasLayer: null,  // Helper function to get BlacksmithLayer
+        
+        // ✅ NEW: Socket API for external modules (set after SocketManager initializes)
+        sockets: null
     };
+    
+    // Set up Socket API after module.api is defined
+    import('./manager-sockets.js').then(({ SocketManager }) => {
+        // Expose SocketManager API methods for external modules
+        module.api.sockets = {
+            // Wait for socket to be ready
+            waitForReady: SocketManager.waitForReady.bind(SocketManager),
+            
+            // Register a socket event handler
+            register: (eventName, handler) => {
+                return SocketManager.waitForReady().then(() => {
+                    const socket = SocketManager.getSocket();
+                    if (socket && typeof socket.register === 'function') {
+                        socket.register(eventName, handler);
+                        postConsoleAndNotification(MODULE.NAME, `Socket API: Registered event '${eventName}'`, "", true, false);
+                        return true;
+                    }
+                    throw new Error('Socket not available or register method not found');
+                });
+            },
+            
+            // Emit a socket message
+            emit: (eventName, data, options = {}) => {
+                return SocketManager.waitForReady().then(() => {
+                    const socket = SocketManager.getSocket();
+                    if (socket && typeof socket.emit === 'function') {
+                        // SocketLib emit signature: emit(eventName, data, options)
+                        socket.emit(eventName, data, options);
+                        return true;
+                    }
+                    throw new Error('Socket not available or emit method not found');
+                });
+            },
+            
+            // Check if socket is ready
+            isReady: () => {
+                return SocketManager.isSocketReady || false;
+            },
+            
+            // Check if using SocketLib (vs native fallback)
+            isUsingSocketLib: SocketManager.isUsingSocketLib.bind(SocketManager),
+            
+            // Get the underlying socket instance (advanced use only)
+            getSocket: () => {
+                return SocketManager.getSocket();
+            }
+        };
+        
+        postConsoleAndNotification(MODULE.NAME, "Socket API: Exposed for external modules", "", true, false);
+    }).catch(error => {
+        postConsoleAndNotification(MODULE.NAME, "Failed to expose Socket API", error, false, false);
+    });
     
     // Toolbar management is now handled directly in manager-toolbar.js
     // =========================================================================
@@ -1159,10 +1217,54 @@ function _onRenderJournalDoubleClick(app, html, data) {
             const currentUser = game.user;
             
         // Get the journal document from app (handles both ApplicationV1 and ApplicationV2)
-        const journalDocument = app.document || app.object;
+        let journalDocument = null;
+        
+        if (app && typeof app === 'object' && 'document' in app) {
+            // app is an Application instance
+            journalDocument = app.document || app.object;
+            console.log(`[${MODULE.NAME}] Journal Double-Click: Got document from app`, journalDocument?.id);
+        }
+        
+        // If no document from app, try to find it from the DOM element
+        if (!journalDocument && nativeHtml) {
+            // Try data attributes
+            const journalId = nativeHtml.dataset?.documentId || 
+                             nativeHtml.querySelector('[data-document-id]')?.dataset?.documentId ||
+                             nativeHtml.closest('[data-document-id]')?.dataset?.documentId;
+            
+            if (journalId) {
+                journalDocument = game.journal?.get(journalId);
+                console.log(`[${MODULE.NAME}] Journal Double-Click: Found journal document via data attribute`, journalId);
+            }
+            
+            // Try to find journal that has this element as its sheet element
+            if (!journalDocument) {
+                for (const journal of game.journal || []) {
+                    if (journal.sheet?.element) {
+                        const journalElement = journal.sheet.element?.jquery ? journal.sheet.element[0] : journal.sheet.element;
+                        if (journalElement === nativeHtml || journalElement?.contains?.(nativeHtml)) {
+                            journalDocument = journal;
+                            console.log(`[${MODULE.NAME}] Journal Double-Click: Found journal document via sheet element match`, journal.id);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
         if (!journalDocument) {
+            console.error(`[${MODULE.NAME}] Journal Double-Click: No journal document found`, {
+                hasApp: !!app,
+                appType: app?.constructor?.name,
+                appIsObject: typeof app === 'object',
+                hasAppDocument: app && 'document' in app,
+                appDocument: app?.document,
+                appObject: app?.object,
+                elementTag: nativeHtml?.tagName,
+                elementClasses: nativeHtml?.className
+            });
             postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: No journal document found", 
-                `App.document: ${app.document}, App.object: ${app.object}`, false, true);
+                `App: ${app?.constructor?.name || 'none'}, Element: ${nativeHtml?.tagName}`, false, true);
             return;
         }
         
@@ -1369,7 +1471,9 @@ Hooks.once('ready', () => {
     });
     
     // Track processed journal sheets to avoid duplicate handlers
-    const processedSheets = new WeakSet();
+    // Use Set of journal IDs + element references to handle DOM changes
+    const processedJournalIds = new Set();
+    const processedSheetElements = new WeakSet();
     
     // Periodic check for active page changes
     setInterval(() => {
@@ -1420,21 +1524,106 @@ Hooks.once('ready', () => {
         
         for (const sheet of foundJournalSheets) {
             const sheetElement = sheet.element?.jquery ? sheet.element[0] : sheet.element;
-            console.log(`[${MODULE.NAME}] Journal Double-Click: Processing sheet`, sheet.constructor.name, sheetElement ? 'has element' : 'no element', processedSheets.has(sheetElement) ? 'already processed' : 'new');
-            if (!sheetElement || processedSheets.has(sheetElement)) continue;
+            if (!sheetElement) continue;
             
-            // Check if already in edit mode
-            if (sheetElement.querySelector('.editor-container')) continue;
+            // Check if already in edit mode - skip these entirely
+            if (sheetElement.querySelector('.editor-container')) {
+                console.log(`[${MODULE.NAME}] Journal Double-Click: Skipping sheet - already in edit mode`);
+                continue;
+            }
             
-            // Check if handler already attached
-            if (sheetElement._journalDoubleClickHandler) continue;
+            // Check if handler already attached (most reliable check)
+            const contentArea = sheetElement.querySelector('.journal-entry-content, .journal-entry-page-content');
+            const targetElement = contentArea || sheetElement;
+            if (targetElement._journalDoubleClickHandler) {
+                // Handler already attached, mark as processed and skip
+                processedSheetElements.add(sheetElement);
+                continue;
+            }
+            
+            // Check WeakSet for this specific element
+            if (processedSheetElements.has(sheetElement)) {
+                continue;
+            }
+            
+            // Try to find the actual Application instance for this element
+            let actualApp = sheet.app;
+            let journalId = null;
+            
+            if (!actualApp && sheetElement) {
+                // Try to find app by matching element
+                const allApps = Object.values(ui.applications || {});
+                actualApp = allApps.find(app => {
+                    if (!app || !app.element) return false;
+                    const appElement = app.element?.jquery ? app.element[0] : app.element;
+                    return appElement === sheetElement || appElement?.contains?.(sheetElement);
+                });
+                
+                // If we found an app, get the journal ID from it
+                if (actualApp && actualApp.document) {
+                    journalId = actualApp.document.id;
+                }
+            }
+            
+            // If still no app, try to get journal document from data attributes or by querying
+            if (!actualApp && sheetElement) {
+                journalId = sheetElement.dataset?.documentId || sheetElement.querySelector('[data-document-id]')?.dataset?.documentId;
+                if (journalId) {
+                    const journalDoc = game.journal?.get(journalId);
+                    if (journalDoc && journalDoc.sheet) {
+                        actualApp = journalDoc.sheet;
+                        console.log(`[${MODULE.NAME}] Journal Double-Click: Found app via document ID`, journalId);
+                    }
+                }
+            }
+            
+            // Try to get journal ID by matching sheet element to journal.sheet.element
+            if (!journalId && sheetElement) {
+                for (const journal of game.journal || []) {
+                    if (journal.sheet?.element) {
+                        const journalElement = journal.sheet.element?.jquery ? journal.sheet.element[0] : journal.sheet.element;
+                        if (journalElement === sheetElement || journalElement?.contains?.(sheetElement)) {
+                            journalId = journal.id;
+                            if (!actualApp) actualApp = journal.sheet;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Check if this journal ID was already processed (to avoid processing edit mode sheets)
+            if (journalId && processedJournalIds.has(journalId)) {
+                // Double-check if handler exists on any element for this journal
+                const journal = game.journal?.get(journalId);
+                if (journal?.sheet?.element) {
+                    const journalElement = journal.sheet.element?.jquery ? journal.sheet.element[0] : journal.sheet.element;
+                    const checkArea = journalElement.querySelector('.journal-entry-content, .journal-entry-page-content');
+                    const checkTarget = checkArea || journalElement;
+                    if (checkTarget._journalDoubleClickHandler) {
+                        continue; // Handler exists on another element for this journal
+                    }
+                }
+            }
+            
+            console.log(`[${MODULE.NAME}] Journal Double-Click: Processing sheet`, sheet.constructor.name, sheetElement ? 'has element' : 'no element', journalId ? `Journal ID: ${journalId}` : '');
             
             postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Periodic check - processing journal sheet", 
-                `Sheet: ${sheet.constructor.name}`, true, false);
+                `Sheet: ${sheet.constructor.name}${journalId ? `, Journal: ${journalId}` : ''}`, true, false);
             
-            // Call with the app if we found it, otherwise pass sheetElement as app (will be handled in callback)
-            _onRenderJournalDoubleClick(sheetApp || sheetElement, sheetElement, {});
-            processedSheets.add(sheetElement);
+            console.log(`[${MODULE.NAME}] Journal Double-Click: Calling handler`, {
+                hasApp: !!actualApp,
+                appType: actualApp?.constructor?.name,
+                hasElement: !!sheetElement
+            });
+            
+            // Call with the app if we found it, otherwise pass null (callback will try to find it)
+            _onRenderJournalDoubleClick(actualApp || null, sheetElement, {});
+            
+            // Mark as processed
+            processedSheetElements.add(sheetElement);
+            if (journalId) {
+                processedJournalIds.add(journalId);
+            }
         }
     }, 1000); // Check every second
     

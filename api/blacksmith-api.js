@@ -152,6 +152,24 @@ export class BlacksmithAPI {
     }
 
     /**
+     * Get the Socket API
+     * @returns {Promise<Object>} Socket API instance
+     */
+    static getSockets() {
+        return this.waitForReady().then(() => {
+            try {
+                const api = this._getAPI();
+                if (!api.sockets) {
+                    throw new Error('Socket API not yet initialized. Use sockets.waitForReady() first.');
+                }
+                return api.sockets;
+            } catch (error) {
+                throw new Error(`Failed to get Socket API: ${error.message}`);
+            }
+        });
+    }
+
+    /**
      * Get the API version
      * @returns {Promise<string>} API version string
      */
