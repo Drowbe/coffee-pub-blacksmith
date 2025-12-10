@@ -156,11 +156,22 @@ export class BlacksmithAPI {
      * @returns {Promise<Object>} Socket API instance
      */
     static getSockets() {
-        return this.waitForReady().then(() => {
+        return this.waitForReady().then(async () => {
             try {
                 const api = this._getAPI();
+                
+                // If sockets isn't set yet, wait for it (it's initialized asynchronously)
                 if (!api.sockets) {
-                    throw new Error('Socket API not yet initialized. Use sockets.waitForReady() first.');
+                    // Wait up to 2 seconds for socket API to be exposed
+                    let attempts = 0;
+                    while (!api.sockets && attempts < 20) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        attempts++;
+                    }
+                    
+                    if (!api.sockets) {
+                        throw new Error('Socket API not yet initialized. It may still be loading. Try again in a moment.');
+                    }
                 }
                 return api.sockets;
             } catch (error) {
@@ -218,6 +229,16 @@ export class BlacksmithAPI {
                 window.BlacksmithModuleManager = api.ModuleManager;
                 window.BlacksmithStats = api.stats;
                 window.BlacksmithConstants = api.BLACKSMITH;
+                
+                // Create global Blacksmith object if it doesn't exist
+                if (!window.Blacksmith) {
+                    window.Blacksmith = {};
+                }
+                // Expose socket API on global Blacksmith object (may be set asynchronously later)
+                if (api.sockets) {
+                    window.Blacksmith.socket = api.sockets;
+                }
+                
                 // CanvasLayer is available after canvasReady
                 if (api.CanvasLayer) {
                     window.BlacksmithCanvasLayer = api.CanvasLayer;

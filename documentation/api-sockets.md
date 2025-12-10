@@ -42,6 +42,15 @@ if (blacksmith?.sockets) {
 }
 ```
 
+### Method 3: Global Blacksmith Object (if available)
+
+```javascript
+// Note: This is set asynchronously, may not be available immediately
+if (window.Blacksmith?.socket) {
+    const sockets = window.Blacksmith.socket;
+}
+```
+
 ## API Methods
 
 ### `sockets.waitForReady()`
@@ -264,28 +273,54 @@ The socket system initializes automatically when Blacksmith loads. However, ther
 2. **Fallback Check**: If SocketLib isn't found, it waits before falling back to native sockets
 3. **Ready Hook**: Emits `blacksmith.socketReady` hook when ready
 
+**Important**: The socket API (`module.api.sockets`) is initialized **asynchronously** after `module.api` is created. Use one of these patterns:
+
 **Recommended Approach:**
 ```javascript
-// Option 1: Wait in ready hook
+// Option 1: Use BlacksmithAPI.getSockets() (handles timing automatically)
 Hooks.once('ready', async () => {
-    const sockets = (await BlacksmithAPI.get()).sockets;
+    const sockets = await BlacksmithAPI.getSockets();
     await sockets.waitForReady();
     // Now safe to use sockets
+    await sockets.register('myModule.event', (data) => { ... });
 });
 
-// Option 2: Listen for the ready hook
+// Option 2: Wait for Blacksmith API, then wait for sockets
+Hooks.once('ready', async () => {
+    const blacksmith = await BlacksmithAPI.get();
+    // Note: blacksmith.sockets may be null initially - wait for it
+    if (!blacksmith.sockets) {
+        // Wait up to 2 seconds for socket API to be exposed
+        let attempts = 0;
+        while (!blacksmith.sockets && attempts < 20) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+    }
+    if (blacksmith.sockets) {
+        await blacksmith.sockets.waitForReady();
+        // Now safe to use sockets
+    }
+});
+
+// Option 3: Listen for the ready hook
 Hooks.once('blacksmith.socketReady', async () => {
-    const sockets = (await BlacksmithAPI.get()).sockets;
+    const sockets = await BlacksmithAPI.getSockets();
     // Socket is ready, safe to use
 });
 
-// Option 3: Check before each use
-if (sockets.isReady()) {
-    await sockets.emit('event', data);
-} else {
-    await sockets.waitForReady();
-    await sockets.emit('event', data);
-}
+// Option 4: Direct module access with polling
+Hooks.once('ready', async () => {
+    const module = game.modules.get('coffee-pub-blacksmith');
+    if (module?.api) {
+        // Wait for socket API to be exposed
+        while (!module.api.sockets) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        await module.api.sockets.waitForReady();
+        // Now safe to use
+    }
+});
 ```
 
 ## SocketLib vs Native Fallback

@@ -21,6 +21,7 @@ class SocketManager {
     static isSocketReady = false;
     static _fallbackTimer = null;
     static _usingSocketLib = false; // Track which socket system we're using
+    static _externalEventHandlers = null; // Map for external module event handlers (SocketLib pattern)
 
     static initialize() {
         postConsoleAndNotification(MODULE.NAME, "SocketManager: Initializing socket system", "", true, false);
@@ -137,7 +138,58 @@ class SocketManager {
                 source: globalThis.socketlib ? 'global' : 'module'
             }, true, false);
             
-            this.socket = sl.registerModule(MODULE.ID);
+            const socketlibSocket = sl.registerModule(MODULE.ID);
+            
+            // Wrap SocketLib socket to provide emit() method for external modules
+            // SocketLib uses executeForOthers/executeForAll pattern, but we want emit() API
+            // We'll use a generic handler that routes events by name
+            const eventHandlerName = '__blacksmithGenericEvent';
+            
+            // Register a generic event handler that will route events to external module handlers
+            if (!this._externalEventHandlers) {
+                this._externalEventHandlers = new Map();
+            }
+            
+            socketlibSocket.register(eventHandlerName, (payload) => {
+                // payload contains: { eventName, data, userId, options }
+                // Route the event to the appropriate handler registered by external modules
+                if (payload && this._externalEventHandlers && this._externalEventHandlers.has(payload.eventName)) {
+                    const handler = this._externalEventHandlers.get(payload.eventName);
+                    try {
+                        // Call handler with data and userId (matching the expected signature)
+                        handler(payload.data, payload.userId);
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, `SocketManager: Error in external event handler for ${payload.eventName}`, error.message, false, true);
+                    }
+                }
+            });
+            
+            // Wrap the SocketLib socket to provide emit() method
+            this.socket = {
+                register: socketlibSocket.register.bind(socketlibSocket),
+                emit: (eventName, data, options = {}) => {
+                    // Use SocketLib's execute methods to send events
+                    // SocketLib has: executeForOthers, executeForAll (also called executeForEveryone)
+                    // Note: SocketLib doesn't have executeForUser/executeForUsers, so we use executeForOthers for all cases
+                    // and rely on the handler to filter based on options if needed
+                    const payload = {
+                        eventName: eventName,
+                        data: data,
+                        userId: game.user.id,
+                        options: options
+                    };
+                    
+                    // SocketLib only supports executeForOthers (broadcast to all other clients)
+                    // For targeted messaging (options.userId or options.recipients), we broadcast to all
+                    // and the receiving modules can filter if needed
+                    return socketlibSocket.executeForOthers(eventHandlerName, payload);
+                },
+                executeForOthers: socketlibSocket.executeForOthers.bind(socketlibSocket),
+                executeForAll: (socketlibSocket.executeForAll || socketlibSocket.executeForEveryone)?.bind(socketlibSocket),
+                executeForEveryone: socketlibSocket.executeForEveryone?.bind(socketlibSocket) || socketlibSocket.executeForAll?.bind(socketlibSocket),
+                executeAsGM: socketlibSocket.executeAsGM?.bind(socketlibSocket)
+            };
+            
             postConsoleAndNotification(MODULE.NAME, "SocketManager: _initializeSocket: Module registered successfully", { socketType: typeof this.socket }, true, false);
             
             this.registerSocketFunctions();
@@ -165,14 +217,48 @@ class SocketManager {
         try {
             postConsoleAndNotification(MODULE.NAME, "SocketManager: Initializing native Foundry socket fallback", "", true, false);
             
-            // Create a mock socket object that mimics SocketLib's interface
+            // Initialize handlers map
+            if (!this._nativeHandlers) {
+                this._nativeHandlers = new Map();
+            }
+            
+            // Set up native socket listener for incoming messages
+            const socketPrefix = `module.${MODULE.ID}.`;
+            game.socket.on(socketPrefix, (payload) => {
+                // payload should have: { eventName, data, userId }
+                if (payload && payload.eventName && this._nativeHandlers.has(payload.eventName)) {
+                    const handler = this._nativeHandlers.get(payload.eventName);
+                    try {
+                        handler(payload.data, payload.userId);
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, `SocketManager: Error in native socket handler for ${payload.eventName}`, error.message, false, true);
+                    }
+                }
+            });
+            
+            // Create a socket object that mimics SocketLib's interface
             this.socket = {
                 register: (name, func) => {
                     postConsoleAndNotification(MODULE.NAME, `SocketManager: Native fallback - registered ${name}`, "", true, false);
                     // Store the function for later use
-                    if (!this._nativeHandlers) this._nativeHandlers = new Map();
                     this._nativeHandlers.set(name, func);
                 },
+                
+                emit: (eventName, data, options = {}) => {
+                    // Use Foundry's native socket system
+                    // Native sockets use the format: 'module.{moduleId}.{eventName}'
+                    const socketEventName = socketPrefix;
+                    const payload = {
+                        eventName: eventName,
+                        data: data,
+                        userId: game.user.id
+                    };
+                    
+                    // Emit to all other clients (native sockets don't support targeted messaging)
+                    game.socket.emit(socketEventName, payload);
+                    postConsoleAndNotification(MODULE.NAME, `SocketManager: Native fallback - emitted ${eventName}`, "", true, false);
+                },
+                
                 executeForOthers: (handler, ...args) => {
                     const func = this._nativeHandlers.get(handler);
                     if (func) {
@@ -367,8 +453,21 @@ class SocketManager {
 
     static getSocket() {
         if (!this.isSocketReady) {
-            postConsoleAndNotification(MODULE.NAME, "SocketManager: Error: Socket not ready", "", true, false);
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Error: Socket not ready", 
+                `isSocketReady: ${this.isSocketReady}, isInitialized: ${this.isInitialized}`, false, true);
             return null;
+        }
+        if (!this.socket) {
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Error: Socket is null", 
+                `isSocketReady: ${this.isSocketReady}, isInitialized: ${this.isInitialized}, usingSocketLib: ${this._usingSocketLib}`, false, true);
+            return null;
+        }
+        // Diagnostic: check if socket has required methods
+        const hasEmit = typeof this.socket.emit === 'function';
+        const hasRegister = typeof this.socket.register === 'function';
+        if (!hasEmit) {
+            postConsoleAndNotification(MODULE.NAME, "SocketManager: Warning: Socket missing emit method", 
+                `socket type: ${typeof this.socket}, has register: ${hasRegister}, socket keys: ${Object.keys(this.socket).join(', ')}`, false, true);
         }
         return this.socket;
     }

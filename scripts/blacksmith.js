@@ -888,6 +888,7 @@ Hooks.once('init', async function() {
     };
     
     // Set up Socket API after module.api is defined
+    // Use the same dynamic import that initializes SocketManager
     import('./manager-sockets.js').then(({ SocketManager }) => {
         // Expose SocketManager API methods for external modules
         module.api.sockets = {
@@ -898,12 +899,27 @@ Hooks.once('init', async function() {
             register: (eventName, handler) => {
                 return SocketManager.waitForReady().then(() => {
                     const socket = SocketManager.getSocket();
-                    if (socket && typeof socket.register === 'function') {
-                        socket.register(eventName, handler);
-                        postConsoleAndNotification(MODULE.NAME, `Socket API: Registered event '${eventName}'`, "", true, false);
-                        return true;
+                    if (!socket) {
+                        throw new Error('Socket not available');
                     }
-                    throw new Error('Socket not available or register method not found');
+                    
+                    // For SocketLib, we store handlers in a map and route through the generic handler
+                    // For native sockets, we use register directly
+                    if (SocketManager.isUsingSocketLib && SocketManager.isUsingSocketLib()) {
+                        // Store handler in the external handlers map
+                        if (!SocketManager._externalEventHandlers) {
+                            SocketManager._externalEventHandlers = new Map();
+                        }
+                        SocketManager._externalEventHandlers.set(eventName, handler);
+                        postConsoleAndNotification(MODULE.NAME, `Socket API: Registered event '${eventName}' (SocketLib)`, "", true, false);
+                    } else if (typeof socket.register === 'function') {
+                        // Native socket fallback - register directly
+                        socket.register(eventName, handler);
+                        postConsoleAndNotification(MODULE.NAME, `Socket API: Registered event '${eventName}' (native)`, "", true, false);
+                    } else {
+                        throw new Error('Socket register method not found');
+                    }
+                    return true;
                 });
             },
             
@@ -911,12 +927,36 @@ Hooks.once('init', async function() {
             emit: (eventName, data, options = {}) => {
                 return SocketManager.waitForReady().then(() => {
                     const socket = SocketManager.getSocket();
-                    if (socket && typeof socket.emit === 'function') {
-                        // SocketLib emit signature: emit(eventName, data, options)
+                    if (!socket) {
+                        postConsoleAndNotification(MODULE.NAME, "Socket API: getSocket() returned null", 
+                            `isSocketReady: ${SocketManager.isSocketReady}, isInitialized: ${SocketManager.isInitialized}, usingSocketLib: ${SocketManager.isUsingSocketLib?.()}`, false, true);
+                        throw new Error('Socket not available - getSocket() returned null');
+                    }
+                    if (typeof socket.emit !== 'function') {
+                        // Try to get more info about the socket object
+                        const socketInfo = {
+                            type: typeof socket,
+                            constructor: socket?.constructor?.name,
+                            keys: Object.keys(socket || {}),
+                            hasEmit: 'emit' in socket,
+                            emitType: typeof socket.emit,
+                            hasRegister: 'register' in socket,
+                            registerType: typeof socket.register
+                        };
+                        postConsoleAndNotification(MODULE.NAME, "Socket API: socket object missing emit method", 
+                            JSON.stringify(socketInfo, null, 2), false, true);
+                        throw new Error(`Socket emit method not found. Socket info: ${JSON.stringify(socketInfo)}`);
+                    }
+                    // SocketLib emit signature: emit(eventName, data, options)
+                    // Native fallback also uses emit(eventName, data, options)
+                    try {
                         socket.emit(eventName, data, options);
                         return true;
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, "Socket API: Error calling socket.emit", 
+                            `eventName: ${eventName}, error: ${error.message}`, false, true);
+                        throw error;
                     }
-                    throw new Error('Socket not available or emit method not found');
                 });
             },
             
@@ -933,6 +973,14 @@ Hooks.once('init', async function() {
                 return SocketManager.getSocket();
             }
         };
+        
+        // Also expose on global Blacksmith object if it exists (for backward compatibility)
+        if (typeof window !== 'undefined' && !window.Blacksmith) {
+            window.Blacksmith = {};
+        }
+        if (typeof window !== 'undefined' && window.Blacksmith) {
+            window.Blacksmith.socket = module.api.sockets;
+        }
         
         postConsoleAndNotification(MODULE.NAME, "Socket API: Exposed for external modules", "", true, false);
     }).catch(error => {
