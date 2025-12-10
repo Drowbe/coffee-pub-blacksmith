@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.0.3] - Sockets
+
+### Fixed
+- **Journal Double-Click Image Editing**: Simplified image double-click handler in edit mode to directly click the image toolbar button instead of attempting to access Prosemirror internals. This provides a more reliable and maintainable solution that works consistently.
+- **Socket API Timing Issues**: Fixed race condition where `module.api.sockets` was set asynchronously after `module.api` was created, causing external modules to fail when accessing the socket API. Added polling mechanism in `BlacksmithAPI.getSockets()` to wait up to 2 seconds for socket API initialization.
+- **Socket API SocketLib Compatibility**: Fixed socket API to properly work with SocketLib sockets, which use `executeForOthers()` pattern instead of `emit()`. Added wrapper that translates `emit()` calls to SocketLib's execution pattern for external modules while maintaining backward compatibility with internal Blacksmith code.
+- **Socket API Native Fallback**: Fixed native socket fallback to include `emit()` method, ensuring the socket API works whether SocketLib is available or not. Native fallback now properly implements the full socket interface.
+- **Socket API Global Access**: Added `window.Blacksmith.socket` global alias for backward compatibility with documented access patterns.
+
+### Changed
+- **Socket API Logging**: Reduced verbose logging for socket event registration to only log on first registration per event name to reduce console spam.
+
+### Added
+- **Socket API Documentation**: Updated `api-sockets.md` with multiple access patterns and timing-aware initialization examples to help external modules properly use the socket API, including proper handling of asynchronous socket initialization.
 
 ## [13.0.2] - v13 Migration
 

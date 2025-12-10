@@ -43,8 +43,6 @@
 - import json for actors
 - import json for items
 - import json for tables
-- ~~toolbar dividers and styling~~ - COMPLETED in 13.0.2
-- ~~settings CSS v13 migration and dark mode support~~ - COMPLETED in 13.0.2
 - nameplate creation
 
 
@@ -264,33 +262,6 @@
   - `scripts/token-handler.js` - Token/item drop handling
   - Query tool templates
 - **Notes**: This is a comprehensive review to ensure the query tool works correctly and has a clear, consistent UX for all features
-
-### Journal Double-Click to Edit - Broken in v13
-- **Issue**: Journal double-click to enter edit mode no longer works in FoundryVTT v13
-- **Status**: PENDING - Needs investigation and fix
-- **Priority**: MEDIUM - Functionality broken due to v13 migration
-- **Current State**: 
-  - Feature worked in v12
-  - `renderJournalSheet` hook is not firing in v13
-  - Likely related to ApplicationV2 migration (Journal Entries migrated to ApplicationV2 in v13)
-  - Direct hooks (`renderJournalSheet`, `renderApplication`) are not being triggered
-  - MutationObserver approach also attempted but not working
-- **Location**: `scripts/blacksmith.js` (journal double-click hook registration)
-- **Tasks Needed**:
-  - Investigate why `renderJournalSheet` hook is not firing in v13
-  - Check if ApplicationV2 uses different hooks or methods
-  - Review ApplicationV2 API documentation for journal sheet hooks
-  - Find alternative approach to attach double-click listeners to journal sheets
-  - Test with existing journal sheets vs newly opened ones
-  - Verify edit button selector is correct (`button[data-action="editPage"]` in `.edit-container`)
-  - Ensure jQuery detection/conversion is working correctly
-- **Related Settings**:
-  - `enableJournalDoubleClick` - Toggle for journal double-click editing
-- **Related Documentation**:
-  - [ApplicationV2 API](https://foundryvtt.wiki/en/development/api/applicationv2)
-  - [ApplicationV2 Conversion Guide](https://foundryvtt.wiki/en/development/guides/applicationV2-conversion-guide)
-- **Notes**: Journal Entries migrated to ApplicationV2 in v13, which may have changed how hooks work. Need to find the correct approach for ApplicationV2 applications.
-
 
 ### Add Enable Setting for Nameplate Styling
 - **Issue**: Nameplate styling settings should operate independently from nameplate content/formatting
