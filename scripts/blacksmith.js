@@ -1045,21 +1045,40 @@ export function buildButtonEventRegent(worksheet = 'default') {
 // Unified callback for journal double-click editing (used by both hooks)
 function _onRenderJournalDoubleClick(app, html, data) {
     // BEGIN - HOOKMANAGER CALLBACK
+        // CRITICAL: Log immediately with minimal checks - this must always fire if hook is called
+        console.log(`[${MODULE.NAME}] Journal Double-Click: Hook called - START`);
+        try {
+            console.log(`[${MODULE.NAME}] Journal Double-Click: Hook called`, {
+                appName: app?.constructor?.name,
+                htmlType: html?.constructor?.name,
+                htmlTag: html?.tagName,
+                isGM: game?.user?.isGM,
+                setting: game?.settings?.get(MODULE.ID, 'enableJournalDoubleClick'),
+                argsLength: arguments.length
+            });
+        } catch (e) {
+            console.error(`[${MODULE.NAME}] Journal Double-Click: Error in initial log`, e);
+            return; // Don't continue if basic logging fails
+        }
+        
         postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Hook called", 
             `App: ${app?.constructor?.name}, HTML type: ${html?.constructor?.name}, Tag: ${html?.tagName}`, true, false);
         
         // Only GMs can enable journal double-click editing
         if (!game.user.isGM) {
+            console.log(`[${MODULE.NAME}] Journal Double-Click: Skipped - not GM`);
             postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Skipped - not GM", "", true, false);
             return;
         }
         
         let blnJournalDoubleClick = game.settings.get(MODULE.ID, 'enableJournalDoubleClick');
+        console.log(`[${MODULE.NAME}] Journal Double-Click: Setting check`, blnJournalDoubleClick);
         postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Setting check", 
             `enableJournalDoubleClick: ${blnJournalDoubleClick}`, true, false);
         
         // See if they want to enable double-click
         if (!blnJournalDoubleClick) {
+            console.log(`[${MODULE.NAME}] Journal Double-Click: Skipped - setting disabled`);
             postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Skipped - setting disabled", "", true, false);
             return;
         }
@@ -1106,6 +1125,7 @@ function _onRenderJournalDoubleClick(app, html, data) {
         }
         
         if (!nativeHtml || typeof nativeHtml.addEventListener !== 'function') {
+            console.error(`[${MODULE.NAME}] Journal Double-Click: Invalid HTML element`, nativeHtml?.constructor?.name);
             postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Invalid HTML element", 
                 `Type: ${nativeHtml?.constructor?.name}`, false, true);
             return;
@@ -1114,9 +1134,20 @@ function _onRenderJournalDoubleClick(app, html, data) {
         // Skip if already in edit mode
         const isEditMode = nativeHtml.querySelector('.editor-container');
         if (isEditMode) {
+            console.log(`[${MODULE.NAME}] Journal Double-Click: Skipped - already in edit mode`);
             postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Skipped - already in edit mode", "", true, false);
             return;
         }
+        
+        // Find the content area - this is where users actually click to edit
+        const contentArea = nativeHtml.querySelector('.journal-entry-content, .journal-entry-page-content, .editor-content, .prosemirror-editor, [contenteditable="true"]');
+        const targetElement = contentArea || nativeHtml; // Use content area if found, otherwise use the whole sheet
+        
+        console.log(`[${MODULE.NAME}] Journal Double-Click: Target element determined`, {
+            usingContentArea: !!contentArea,
+            targetTag: targetElement.tagName,
+            targetClass: targetElement.className
+        });
         
             // Enable the double-click
             const ENTITY_PERMISSIONS = { 
@@ -1139,18 +1170,33 @@ function _onRenderJournalDoubleClick(app, html, data) {
             `Journal: ${journalDocument.name || journalDocument.id}`, true, false);
         
         // Remove any existing handler to prevent accumulation
-        if (nativeHtml._journalDoubleClickHandler) {
-            nativeHtml.removeEventListener('dblclick', nativeHtml._journalDoubleClickHandler);
+        if (targetElement._journalDoubleClickHandler) {
+            targetElement.removeEventListener('dblclick', targetElement._journalDoubleClickHandler);
+            console.log(`[${MODULE.NAME}] Journal Double-Click: Removed existing handler`);
             postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Removed existing handler", "", true, false);
         }
         
+        // Also remove from nativeHtml if it exists there
+        if (nativeHtml._journalDoubleClickHandler && nativeHtml !== targetElement) {
+            nativeHtml.removeEventListener('dblclick', nativeHtml._journalDoubleClickHandler);
+        }
+        
         // Create and store the handler
-        nativeHtml._journalDoubleClickHandler = (event) => {
+        targetElement._journalDoubleClickHandler = (event) => {
+            // Always log to console to ensure visibility
+            console.log(`[${MODULE.NAME}] Journal Double-Click: Double-click detected`, {
+                target: event.target?.tagName,
+                targetClass: event.target?.className,
+                currentTarget: event.currentTarget?.tagName,
+                currentTargetClass: event.currentTarget?.className
+            });
+            
             postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Double-click detected", 
                 `Target: ${event.target?.tagName}.${event.target?.className}`, true, false);
             
             // Don't trigger on interactive elements (buttons, links, etc.)
             if (event.target.closest('button, a, input, select, textarea')) {
+                console.log(`[${MODULE.NAME}] Journal Double-Click: Skipped - clicked on interactive element`);
                 postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Skipped - clicked on interactive element", "", true, false);
                 return;
             }
@@ -1170,25 +1216,48 @@ function _onRenderJournalDoubleClick(app, html, data) {
             
             // Method 1: Try using the app's built-in methods (v13 ApplicationV2 approach)
             if (app) {
+                console.log(`[${MODULE.NAME}] Journal Double-Click: Checking app methods`, {
+                    hasActivateEditor: typeof app.activateEditor === 'function',
+                    hasCurrentPage: !!app.currentPage,
+                    currentPageHasActivateEditor: app.currentPage && typeof app.currentPage.activateEditor === 'function',
+                    hasDocumentSheet: !!(journalDocument && journalDocument.sheet),
+                    documentSheetHasActivateEditor: journalDocument && journalDocument.sheet && typeof journalDocument.sheet.activateEditor === 'function'
+                });
+                
                 // Try activateEditor if it exists
                 if (typeof app.activateEditor === 'function') {
+                    console.log(`[${MODULE.NAME}] Journal Double-Click: Calling app.activateEditor()`);
                     postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Using app.activateEditor() method", "", true, false);
-                    app.activateEditor();
-                    return;
+                    try {
+                        app.activateEditor();
+                        return;
+                    } catch (error) {
+                        console.error(`[${MODULE.NAME}] Journal Double-Click: Error calling app.activateEditor()`, error);
+                    }
                 }
                 
                 // Try accessing current page and activating editor
                 if (app.currentPage && typeof app.currentPage.activateEditor === 'function') {
+                    console.log(`[${MODULE.NAME}] Journal Double-Click: Calling app.currentPage.activateEditor()`);
                     postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Using app.currentPage.activateEditor() method", "", true, false);
-                    app.currentPage.activateEditor();
-                    return;
+                    try {
+                        app.currentPage.activateEditor();
+                        return;
+                    } catch (error) {
+                        console.error(`[${MODULE.NAME}] Journal Double-Click: Error calling app.currentPage.activateEditor()`, error);
+                    }
                 }
                 
                 // Try document's sheet activateEditor
                 if (journalDocument && journalDocument.sheet && typeof journalDocument.sheet.activateEditor === 'function') {
+                    console.log(`[${MODULE.NAME}] Journal Double-Click: Calling document.sheet.activateEditor()`);
                     postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Using document.sheet.activateEditor() method", "", true, false);
-                    journalDocument.sheet.activateEditor();
-                    return;
+                    try {
+                        journalDocument.sheet.activateEditor();
+                        return;
+                    } catch (error) {
+                        console.error(`[${MODULE.NAME}] Journal Double-Click: Error calling document.sheet.activateEditor()`, error);
+                    }
                 }
             }
             
@@ -1238,51 +1307,120 @@ function _onRenderJournalDoubleClick(app, html, data) {
     }
         };
         
-        // Attach the event listener using event delegation on the native DOM element
-        nativeHtml.addEventListener('dblclick', nativeHtml._journalDoubleClickHandler);
+        // Attach the event listener to the target element (content area or sheet)
+        targetElement.addEventListener('dblclick', targetElement._journalDoubleClickHandler, { capture: false });
+        
+        // Also attach to the sheet element if different, for fallback
+        if (nativeHtml !== targetElement) {
+            nativeHtml.addEventListener('dblclick', targetElement._journalDoubleClickHandler, { capture: false });
+        }
+        
+        console.log(`[${MODULE.NAME}] Journal Double-Click: Event listener attached`, {
+            targetElement: targetElement.tagName,
+            targetClass: targetElement.className || 'no-class',
+            targetId: targetElement.id || 'no-id',
+            alsoOnSheet: nativeHtml !== targetElement
+        });
         postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Event listener attached", 
-            `Element: ${nativeHtml.tagName}.${nativeHtml.className || 'no-class'}`, true, false);
+            `Element: ${targetElement.tagName}.${targetElement.className || 'no-class'}`, true, false);
     // END - HOOKMANAGER CALLBACK
 }
 
-// Register renderJournalSheet hook (fires on initial journal sheet render)
-HookManager.registerHook({
-    name: 'renderJournalSheet',
-    description: 'Blacksmith: Enable journal double-click editing for GMs',
-    context: 'blacksmith-journal-double-click',
-    priority: 3,
-    callback: _onRenderJournalDoubleClick
-});
-
-// Register renderJournalPageSheet hook (fires when journal pages are switched in v13 ApplicationV2)
-HookManager.registerHook({
-    name: 'renderJournalPageSheet',
-    description: 'Blacksmith: Enable journal double-click editing for GMs (page-level)',
-    context: 'blacksmith-journal-double-click-page',
-    priority: 3,
-    callback: _onRenderJournalDoubleClick
-});
-
 // Set up periodic checker and click listener for page navigation (since hooks don't fire reliably)
 Hooks.once('ready', () => {
+    // Register renderJournalSheet hook (fires on initial journal sheet render)
+    // Use both HookManager and direct Hooks.on for maximum compatibility
+    HookManager.registerHook({
+        name: 'renderJournalSheet',
+        description: 'Blacksmith: Enable journal double-click editing for GMs',
+        context: 'blacksmith-journal-double-click',
+        priority: 3,
+        callback: _onRenderJournalDoubleClick
+    });
+
+    // Also register direct hook as fallback (in case HookManager doesn't fire)
+    // Wrap in a function to add logging
+    Hooks.on('renderJournalSheet', (app, html, data) => {
+        console.log(`[${MODULE.NAME}] Journal Double-Click: Direct Hooks.on('renderJournalSheet') fired`);
+        _onRenderJournalDoubleClick(app, html, data);
+    });
+
+    // Register renderJournalPageSheet hook (fires when journal pages are switched in v13 ApplicationV2)
+    HookManager.registerHook({
+        name: 'renderJournalPageSheet',
+        description: 'Blacksmith: Enable journal double-click editing for GMs (page-level)',
+        context: 'blacksmith-journal-double-click-page',
+        priority: 3,
+        callback: _onRenderJournalDoubleClick
+    });
+
+    // Also register direct hook as fallback
+    Hooks.on('renderJournalPageSheet', (app, html, data) => {
+        console.log(`[${MODULE.NAME}] Journal Double-Click: Direct Hooks.on('renderJournalPageSheet') fired`);
+        _onRenderJournalDoubleClick(app, html, data);
+    });
+
+    // Log registration
+    console.log(`[${MODULE.NAME}] Journal Double-Click: Hooks registered (both HookManager and direct Hooks.on)`);
+    
+    // TEST: Add a simple test hook to see if ANY renderJournalSheet hook fires
+    Hooks.on('renderJournalSheet', (app, html, data) => {
+        console.log(`[${MODULE.NAME}] Journal: renderJournalSheet hook fired!`, app?.constructor?.name);
+    });
+    
     // Track processed journal sheets to avoid duplicate handlers
     const processedSheets = new WeakSet();
     
     // Periodic check for active page changes
     setInterval(() => {
-        if (!game.user.isGM) return;
-        if (!game.settings.get(MODULE.ID, 'enableJournalDoubleClick')) return;
+        if (!game.user.isGM) {
+            console.log(`[${MODULE.NAME}] Journal Double-Click: Periodic check skipped - not GM`);
+            return;
+        }
+        if (!game.settings.get(MODULE.ID, 'enableJournalDoubleClick')) {
+            console.log(`[${MODULE.NAME}] Journal Double-Click: Periodic check skipped - setting disabled`);
+            return;
+        }
         
-        const journalSheets = Object.values(ui.windows).filter(w => {
-            if (!w) return false;
-            if (w?.constructor?.name === 'JournalSheet') return true;
-            if (!w?.element) return false;
-            const element = w.element.jquery ? w.element[0] : w.element;
-            return element && element.classList && element.classList.contains('journal-sheet');
+        console.log(`[${MODULE.NAME}] Journal Double-Click: Periodic check running...`);
+        
+        // In v13 ApplicationV2, journals might not be in ui.windows
+        // Query DOM directly for journal sheet elements (most reliable method)
+        const domJournalSheets = document.querySelectorAll('.journal-sheet, .journal-entry');
+        console.log(`[${MODULE.NAME}] Journal Double-Click: DOM journal sheets found: ${domJournalSheets.length}`);
+        
+        // Try to find corresponding apps
+        const applications = Object.values(ui.applications || {});
+        const journalApps = applications.filter(app => {
+            const className = app?.constructor?.name;
+            return className && (className.includes('Journal') || className === 'JournalSheet');
         });
+        console.log(`[${MODULE.NAME}] Journal Double-Click: ui.applications journal apps: ${journalApps.length}`, journalApps.map(a => a?.constructor?.name));
         
-        for (const sheet of journalSheets) {
+        // Build journal sheets array from DOM elements
+        const foundJournalSheets = [];
+        for (const domElement of domJournalSheets) {
+            // Find the corresponding app if possible
+            let app = null;
+            for (const journalApp of journalApps) {
+                if (journalApp.element && (journalApp.element === domElement || journalApp.element.contains?.(domElement))) {
+                    app = journalApp;
+                    break;
+                }
+            }
+            
+            foundJournalSheets.push({
+                element: domElement,
+                app: app,
+                constructor: { name: app?.constructor?.name || 'Unknown' }
+            });
+        }
+        
+        console.log(`[${MODULE.NAME}] Journal Double-Click: Found ${foundJournalSheets.length} journal sheet(s)`);
+        
+        for (const sheet of foundJournalSheets) {
             const sheetElement = sheet.element?.jquery ? sheet.element[0] : sheet.element;
+            console.log(`[${MODULE.NAME}] Journal Double-Click: Processing sheet`, sheet.constructor.name, sheetElement ? 'has element' : 'no element', processedSheets.has(sheetElement) ? 'already processed' : 'new');
             if (!sheetElement || processedSheets.has(sheetElement)) continue;
             
             // Check if already in edit mode
@@ -1294,7 +1432,8 @@ Hooks.once('ready', () => {
             postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Periodic check - processing journal sheet", 
                 `Sheet: ${sheet.constructor.name}`, true, false);
             
-            _onRenderJournalDoubleClick(sheet, sheetElement, {});
+            // Call with the app if we found it, otherwise pass sheetElement as app (will be handled in callback)
+            _onRenderJournalDoubleClick(sheetApp || sheetElement, sheetElement, {});
             processedSheets.add(sheetElement);
         }
     }, 1000); // Check every second
