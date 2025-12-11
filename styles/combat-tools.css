@@ -65,10 +65,10 @@ body:not(.gm) #combat-tracker .combatant {
 
 /* v13: Health ring container is now part of the combatant structure */
 /* Container positioned to align ring center with image center */
-/* Image: margin 8px, size 32px → center at (24px, 24px) */
-/* Ring: size 40px → needs top-left at (4px, 4px) to center at (24px, 24px) */
+/* Position is set dynamically via JavaScript to match image's vertical position */
 .combatant .health-ring-container,
-#combat-tracker .combatant .health-ring-container {
+#combat-tracker .combatant .health-ring-container,
+.combat-tracker .combatant .health-ring-container {
     position: absolute;
     top: 0;
     left: 0;
