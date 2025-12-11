@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [13.0.4]
+
+### Fixed
+- **Combat Tracker Health Ring Alignment**: Fixed health rings misaligning with portraits when combatant names wrap to multiple lines. The ring container now takes the full height of the combatant and centers the ring vertically using CSS-only solution, eliminating the need for JavaScript positioning calculations and ResizeObserver.
+
 ## [13.0.3] - Sockets
 
 ### Fixed
