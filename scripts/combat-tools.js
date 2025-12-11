@@ -274,44 +274,6 @@ Hooks.once('ready', () => {
                 // Update the ring and handle dead state (v13: native DOM)
                 container.innerHTML = '';
                 container.appendChild(svg);
-                
-                // Position ring container to align ring center with image center
-                // Image: 32px tall, center is at imageTop + 16px
-                // Ring container: 48px tall, SVG is 40px at top: 12px, so SVG center is at containerTop + 32px
-                // To align centers: containerTop + 32px = imageTop + 16px
-                // Therefore: containerTop = imageTop - 16px
-                if (tokenImage) {
-                    const updateRingPosition = () => {
-                        // Get the image's position relative to the combatant container
-                        const imageRect = tokenImage.getBoundingClientRect();
-                        const combatantRect = element.getBoundingClientRect();
-                        const imageTop = imageRect.top - combatantRect.top;
-                        const imageHeight = imageRect.height;
-                        const imageCenter = imageTop + (imageHeight / 2);
-                        
-                        // Ring container is 48px tall, SVG is 40px at top: 12px within container
-                        // SVG center is at 12px + 20px = 32px from container top
-                        const ringContainerHeight = 48;
-                        const svgCenterOffset = 32; // 12px (top) + 20px (half of 40px SVG)
-                        const containerTop = imageCenter - svgCenterOffset;
-                        
-                        container.style.top = `${containerTop}px`;
-                    };
-                    
-                    // Update position immediately
-                    updateRingPosition();
-                    
-                    // Update position when image loads (for lazy-loaded images)
-                    if (!tokenImage.complete) {
-                        tokenImage.addEventListener('load', updateRingPosition, { once: true });
-                    }
-                    
-                    // Update position when combatant container resizes (for text wrapping)
-                    const resizeObserver = new ResizeObserver(() => {
-                        updateRingPosition();
-                    });
-                    resizeObserver.observe(element);
-                }
 
                 // Add dead class and skull overlay if HP is 0 or less (v13: native DOM)
                 if (currentHP <= 0 && getSettingSafely(MODULE.ID, 'combatTrackerShowPortraits', false)) {
