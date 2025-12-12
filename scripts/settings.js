@@ -1405,7 +1405,19 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	// -- Show Health Bar --
+	
+	// -- Hide HEalth Bars for Enemy Combatants --
+	game.settings.register(MODULE.ID, 'combatTrackerHideHealthBars', {
+		name: MODULE.ID + '.combatTrackerHideHealthBars-Label',
+		hint: MODULE.ID + '.combatTrackerHideHealthBars-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Show Portraits --
 	game.settings.register(MODULE.ID, 'combatTrackerShowPortraits', {
 		name: MODULE.ID + '.combatTrackerShowPortraits-Label',
 		hint: MODULE.ID + '.combatTrackerShowPortraits-Hint',

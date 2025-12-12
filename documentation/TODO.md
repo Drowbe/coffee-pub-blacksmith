@@ -4,41 +4,6 @@
 
 ### CRITICAL PRIORITY ISSUES
 
-### getSceneControlButtons Hook Compatibility Issues with Third-Party Modules
-- **Issue**: Third-party modules (ATL, foundryvtt-simple-calendar) are throwing errors when our module re-triggers the `getSceneControlButtons` hook
-- **Status**: PENDING - Needs investigation and compatibility fix
-- **Priority**: CRITICAL - Errors flooding console, may break other modules
-- **Current State**: 
-  - Errors occur when we manually call `Hooks.callAll('getSceneControlButtons', ui.controls.controls)` at `manager-toolbar.js:779` and `manager-toolbar.js:901`
-  - ATL (Active Token Lighting v0.8.1) throws: `TypeError: buttons.find is not a function` at `activeLighting.js:274:35`
-  - foundryvtt-simple-calendar (v2.4.18) throws: `TypeError: e.find is not a function` at `index.js:1:172029`
-  - Both modules are using jQuery/array methods (`.find()`) on what is now an object in v13
-  - These modules have not been updated for FoundryVTT v13's API change where `controls` changed from array to object
-- **Root Cause**: 
-  - FoundryVTT v13 changed `getSceneControlButtons` hook signature: `controls` parameter changed from `Array<SceneControl>` to `Record<string, SceneControl>` (object keyed by name)
-  - Our module correctly passes the v13 object format, but other modules haven't been updated and still expect arrays
-  - Our manual re-triggering of the hook exposes this incompatibility
-- **Location**: `scripts/manager-toolbar.js` lines 779 and 901
-- **Tasks Needed**:
-  - **Option 1 (Recommended)**: Wrap our hook calls in try-catch to suppress errors from incompatible modules
-  - **Option 2**: Check if other modules are v13-compatible before re-triggering, or check module versions
-  - **Option 3**: Use Foundry's built-in refresh mechanisms instead of manual hook re-triggering where possible
-  - **Option 4**: Create compatibility shim that converts object back to array for legacy modules (not recommended, breaks v13 intent)
-  - Add error handling around `Hooks.callAll('getSceneControlButtons', ...)` calls
-  - Consider using `ui.controls.initialize()` instead of manually calling the hook (if that doesn't cause issues)
-  - Document which modules are incompatible and may need updates
-- **Affected Modules**:
-  - ATL (Active Token Lighting) v0.8.1 - Needs v13 update
-  - foundryvtt-simple-calendar v2.4.18 - Needs v13 update
-- **Related Files**:
-  - `scripts/manager-toolbar.js` - Hook re-triggering calls
-  - `documentation/migration-v13.md` - v13 API changes documentation
-- **Notes**: 
-  - This is fundamentally an issue with the other modules not being v13-compatible
-  - However, our manual hook re-triggering makes the errors visible
-  - We should handle this gracefully to avoid breaking user experience
-  - Long-term solution: These modules need to be updated by their maintainers for v13 compatibility
-
 ### V13 TESTS NEEDED
 - import json for actors
 - import json for items
@@ -424,19 +389,6 @@
 
 ### Targeted By
 - **Issue**: Add some way to see who is tarteting things
-
-
-### Drawing Tools
-- **Issue**: Give the users tools to plot and draw on the canvas
-- **Status**: FUTURE ENHANCEMENT - Design phase
-- **Priority**: LOW - Quality of life improvement
-- **Description**: Allow for drawing tools
-- **Requirements**:
-  1. **Sketching Tools**:
-     - Drawing tools should be configurable
-  2. **Objects**:
-     - arrows, circles, lines, rectangles, polygons, text, images, etc.
-  3. **Sticky Notes**:
 
 ### Token Outfits
 - **Issue**: Allow for token outfits

@@ -210,6 +210,21 @@ Hooks.once('ready', () => {
 
             // Only create health ring if the setting is enabled
             if (getSettingSafely(MODULE.ID, 'combatTrackerShowHealthBar', false)) {
+                // Check if we should hide NPC health rings for non-GM users
+                const hideNpcHealthSetting = getSettingSafely(MODULE.ID, 'combatTrackerHideHealthBars', false);
+                const hideNpcHealth = hideNpcHealthSetting && !game.user.isGM;
+                const isNpc = !actor.hasPlayerOwner;
+                
+                // Skip creating health ring if hiding NPC health and this is an NPC
+                if (hideNpcHealth && isNpc) {
+                    // Remove any existing health ring container
+                    const existingContainer = element.querySelector('.health-ring-container');
+                    if (existingContainer) {
+                        existingContainer.remove();
+                    }
+                    return; // Skip to next combatant
+                }
+                
                 // Calculate health percentage
                 const hp = actor.system.attributes.hp;
                 const currentHP = hp.value;

@@ -367,6 +367,79 @@ async function registerDefaultTools() {
     });
 }
 
+/**
+ * Deep clone an object (for cloning controls structure)
+ */
+function deepClone(obj) {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (obj instanceof Date) return new Date(obj.getTime());
+    if (obj instanceof Array) return obj.map(item => deepClone(item));
+    if (typeof obj === 'object') {
+        const cloned = {};
+        Object.keys(obj).forEach(key => {
+            cloned[key] = deepClone(obj[key]);
+        });
+        return cloned;
+    }
+    return obj;
+}
+
+/**
+ * Refresh the SceneControls by rebuilding controls and rendering
+ * Replaces deprecated initialize() + render() pattern with v13+ render({controls, tool})
+ * 
+ * This function:
+ * 1. Deep clones existing controls from ui.controls (which includes Foundry's base controls)
+ * 2. Calls getSceneControlButtons hook to update controls (our custom hooks modify existing)
+ * 3. Renders with the updated controls, preserving the active tool
+ * 
+ * Note: We start with existing controls rather than an empty object to avoid errors
+ * from other modules' hooks that expect Foundry's base controls to exist. We deep clone
+ * to avoid mutating the original controls object.
+ */
+function refreshSceneControls() {
+    if (!ui.controls) return;
+    
+    // Start with existing controls from ui.controls (includes Foundry's base structure)
+    // Deep clone to avoid mutating the original and to ensure nested objects (tools) are copied
+    const existingControls = ui.controls.controls || {};
+    const controls = deepClone(existingControls);
+    
+    // Call the hook to update controls (our hooks will modify/add to existing structure)
+    // Some modules may have incompatible hooks (v12 code expecting arrays), so we need
+    // to handle errors gracefully. Hooks.callAll will continue even if individual hooks error.
+    // We wrap in try-catch as an extra safety measure.
+    try {
+        Hooks.callAll('getSceneControlButtons', controls);
+    } catch (error) {
+        // Log but don't fail - some modules may have incompatible hooks
+        // Individual hook errors are already caught by Foundry, but this catches any
+        // unexpected errors in the hook system itself
+        console.warn(`${MODULE.NAME} | Toolbar refresh hook error (non-fatal):`, error);
+    }
+    
+    // Get current active tool/control to preserve selection
+    const activeControl = ui.controls.control?.name;
+    const activeTool = ui.controls.tool?.name;
+    
+    // Determine which tool to activate after render
+    // If we have an active control and tool, try to preserve it
+    let toolToActivate = undefined;
+    if (activeControl && activeTool) {
+        // Check if the control and tool still exist in the updated controls
+        const control = controls[activeControl];
+        if (control && control.tools && control.tools[activeTool]) {
+            toolToActivate = activeTool;
+        }
+    }
+    
+    // Render with the updated controls and preserve active tool if it still exists
+    ui.controls.render({
+        controls: controls,
+        tool: toolToActivate
+    });
+}
+
 export function addToolbarButton() {
     // Initialize default tools
     registerDefaultTools();
@@ -776,10 +849,8 @@ export function addToolbarButton() {
             // Also refresh the toolbar after a short delay to ensure all settings are loaded
             setTimeout(() => {
                 postConsoleAndNotification(MODULE.NAME, "Toolbar | Delayed refresh", "Refreshing toolbar after delay", true, false);
-                // Use Foundry's built-in initialize() instead of manually calling hooks
-                // This properly handles hook calling through Foundry's system
-                ui.controls.initialize();
-                ui.controls.render();
+                // Use v13+ render({controls, tool}) instead of deprecated initialize()
+                refreshSceneControls();
                 _wireToolClicks();
             }, 100);
         }
@@ -818,11 +889,8 @@ export function addToolbarButton() {
                     }
                 }
                 
-                // Rebuild the controls list (fires getSceneControlButtons for all tools)
-                ui.controls.initialize();
-                
-                // Re-render the toolbar
-                ui.controls.render(true);
+                // Rebuild and render controls using v13+ API (replaces deprecated initialize())
+                refreshSceneControls();
             }
             // --- END - HOOKMANAGER CALLBACK ---
         }
@@ -899,11 +967,8 @@ export function registerToolbarTool(toolId, toolData) {
         // Use a small delay to ensure the tool is fully registered
         setTimeout(() => {
             if (ui.controls) {
-                // Use Foundry's built-in initialize() instead of manually calling hooks
-                // This properly handles hook calling through Foundry's system and avoids
-                // triggering incompatible modules' hooks directly
-                ui.controls.initialize();
-                ui.controls.render();
+                // Use v13+ render({controls, tool}) instead of deprecated initialize()
+                refreshSceneControls();
             }
         }, 50);
     }

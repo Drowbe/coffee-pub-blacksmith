@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Combat Tracker Health Ring Alignment**: Fixed health rings misaligning with portraits when combatant names wrap to multiple lines. The ring container now takes the full height of the combatant and centers the ring vertically using CSS-only solution, eliminating the need for JavaScript positioning calculations and ResizeObserver.
+- **SceneControls Deprecation Warning**: Replaced deprecated `SceneControls.initialize()` calls with v13+ `render({controls, tool})` API. Created `refreshSceneControls()` helper function that rebuilds controls via `getSceneControlButtons` hook and renders with the updated controls, preserving active tool state. This eliminates deprecation warnings and ensures compatibility with Foundry v15.
+- **Combat Tracker NPC Health Ring Visibility**: Fixed NPC health rings being visible to players in the combat tracker. Health rings for NPCs are now hidden from non-GM users when the `combatTrackerHideHealthBars` setting is enabled, matching the menubar behavior. GMs always see health rings for all combatants regardless of the setting.
 
 ## [13.0.3] - Sockets
 

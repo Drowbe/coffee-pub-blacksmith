@@ -198,6 +198,9 @@
 				"combatTrackerShowHealthBar-Label": "Show Health Bar",
 				"combatTrackerShowHealthBar-Hint": "",
 
+				"combatTrackerHideHealthBars-Label": "Hide Enemy Health Bars",
+				"combatTrackerHideHealthBars-Hint": "When enabled, the health bars of enemy combatants will be hidden from players in the combat tracker.",
+
 				"combatTrackerShowPortraits-Label": "Show Portraits",
 				"combatTrackerShowPortraits-Hint": "",
 
