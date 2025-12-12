@@ -285,9 +285,11 @@ class MenuBar {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
                 // Check if initiative was updated
                 const initiativeUpdated = updateData.initiative !== undefined;
+                // Check if hidden status was updated (GM visibility toggle)
+                const hiddenUpdated = 'hidden' in updateData;
                 
-                
-                // Update combat bar when combatant data changes (especially initiative)
+                // Update combat bar when combatant data changes (especially initiative or hidden status)
+                // Hidden status changes need immediate update so tokens appear/disappear for players
                 if (MenuBar.secondaryBar.isOpen && MenuBar.secondaryBar.type === 'combat') {
                     MenuBar.updateCombatBar();
                     
@@ -2700,10 +2702,21 @@ class MenuBar {
 
             const hideNpcHealthSetting = game.settings.get(MODULE.ID, 'menubarCombatHideHealthBars');
             const hideNpcHealth = hideNpcHealthSetting && !game.user.isGM;
+            const isGM = game.user.isGM;
 
             const combatants = combat.combatants.map(combatant => {
                 const token = combatant.token;
                 const actor = combatant.actor;
+                
+                // For non-GM users, filter out hidden combatants and hidden tokens (same rules as combat tracker)
+                // Combatant.hidden = GM visibility toggle in combat tracker
+                // Token.hidden = token visibility on canvas
+                // Both cause the combatant to disappear from players' view immediately
+                if (!isGM) {
+                    if (combatant.hidden || token?.hidden) {
+                        return null; // Filter this out later
+                    }
+                }
                 
                 let currentHP = 0;
                 let maxHP = 0;
@@ -2792,9 +2805,10 @@ class MenuBar {
                    };
 
                 return combatantData;
-            });
+            }).filter(combatant => combatant !== null); // Remove hidden tokens for non-GM users
 
             // Sort combatants by initiative (highest first)
+            // Initiative order is preserved - hidden tokens are filtered but order doesn't change
             combatants.sort((a, b) => b.initiative - a.initiative);
 
             // Determine action button based on user role and combat state
@@ -2930,7 +2944,13 @@ class MenuBar {
         try {
             postConsoleAndNotification(MODULE.NAME, 'Menubar: updateToken received', { tokenId: token?.id, updateData }, true, false);
             if (!MenuBar._isCombatBarActive()) return;
-            if (!MenuBar._didHpChange(updateData)) return;
+            
+            // Check if HP changed OR if hidden status changed
+            const hpChanged = MenuBar._didHpChange(updateData);
+            const hiddenChanged = 'hidden' in updateData;
+            
+            // If neither HP nor hidden status changed, no need to update
+            if (!hpChanged && !hiddenChanged) return;
 
             const combat = game.combats?.active;
             if (!combat) return;
@@ -2941,13 +2961,15 @@ class MenuBar {
             const isCombatant = combat.combatants.some(combatant => {
                 return combatant.token?.id === tokenId || combatant.actor?.id === actorId;
             });
-            postConsoleAndNotification(MODULE.NAME, 'Menubar: Token HP change evaluated', { isCombatant }, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Token change evaluated', { isCombatant, hpChanged, hiddenChanged }, true, false);
 
             if (!isCombatant) return;
 
+            // Refresh menubar immediately when hidden status changes (same as combat tracker)
+            // Hidden tokens disappear/appear immediately for players
             MenuBar.updateCombatBar();
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Menubar: Failed to process token HP change', { tokenId: token?.id, error }, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Failed to process token change', { tokenId: token?.id, error }, true, false);
         }
     }
 
