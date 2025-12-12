@@ -2708,14 +2708,16 @@ class MenuBar {
                 const token = combatant.token;
                 const actor = combatant.actor;
                 
+                // Check if combatant or token is hidden
+                const isHidden = combatant.hidden || token?.hidden;
+                
                 // For non-GM users, filter out hidden combatants and hidden tokens (same rules as combat tracker)
+                // GMs always see all combatants (with hidden class for styling)
                 // Combatant.hidden = GM visibility toggle in combat tracker
                 // Token.hidden = token visibility on canvas
                 // Both cause the combatant to disappear from players' view immediately
-                if (!isGM) {
-                    if (combatant.hidden || token?.hidden) {
-                        return null; // Filter this out later
-                    }
+                if (!isGM && isHidden) {
+                    return null; // Filter this out later for non-GM users only
                 }
                 
                 let currentHP = 0;
@@ -2799,6 +2801,7 @@ class MenuBar {
                        svgCenter: size / 2,
                        svgRadius: radius,
                        svgStrokeWidth: strokeWidth,
+                       isHidden: isHidden, // For GMs to see which combatants are hidden
                        tooltip: healthRingHidden 
                            ? `${token?.name || actor?.name || 'Unknown'} - Initiative: ${combatant.initiative || 0}`
                            : `${token?.name || actor?.name || 'Unknown'} - Initiative: ${combatant.initiative || 0} - HP: ${currentHP}/${maxHP}`

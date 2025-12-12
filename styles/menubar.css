@@ -688,7 +688,7 @@ Combat Tracker Tunables
   /* =========================
      Portrait Container
      ========================= */
-     .blacksmith-menubar-secondary .combat-portrait-container {
+    .blacksmith-menubar-secondary .combat-portrait-container {
         position: relative;
         width: var(--portrait-container-width);
         height: var(--portrait-container-height);
@@ -698,8 +698,16 @@ Combat Tracker Tunables
         border: 2px solid rgba(0, 0, 0, 0.0);
         background: rgba(0, 0, 0, 0.3);
         border-radius: 3px;
-      }
-  
+    }
+
+    .blacksmith-menubar-secondary .combat-portrait-container.combat-token-hidden {
+        opacity: 0.8;
+        border: 1px dotted rgba(255, 255, 255, 0.4);
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+
+
   /* =========================
      Portrait Image
      ========================= */
@@ -717,41 +725,48 @@ Combat Tracker Tunables
     
   }
   
-  .blacksmith-menubar-secondary .combat-portrait-image {
-    overflow: hidden;
-    z-index: 1;
-    border: none;
-    width: var(--portrait-size);
-    height: var(--portrait-size);
-    background: rgba(0, 0, 0, 0.75);
-  }
+    .blacksmith-menubar-secondary .combat-portrait-image {
+        overflow: hidden;
+        z-index: 1;
+        border: none;
+        width: var(--portrait-size);
+        height: var(--portrait-size);
+        background: rgba(0, 0, 0, 0.75);
+    }
   
-  .blacksmith-menubar-secondary .combat-portrait-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    border-radius: 50%;
-    -webkit-user-drag: none;
-    user-select: none;
-    border: 0px solid rgba(0, 0, 0, 0.05);
-  }
-  
-  
-/* =========================
+    .blacksmith-menubar-secondary .combat-portrait-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        border-radius: 50%;
+        -webkit-user-drag: none;
+        user-select: none;
+        border: 0px solid rgba(0, 0, 0, 0.05);
+    }
+
+
+    /* =========================
     States
     ========================= */
-.blacksmith-menubar-secondary .combat-portrait-container:hover {
-    transform: scale(1.0);
-    border-color: rgba(223, 98, 20, 0.9);
-    background: rgba(223, 98, 20, 0.2);
-}
-    
-.blacksmith-menubar-secondary .combat-portrait-container.current {
-    border-color: rgba(223, 98, 24, 0.1);
-    background: rgba(153, 106, 38, 0.7);
-}
-    
+    .blacksmith-menubar-secondary .combat-portrait-container:hover {
+        transform: scale(1.0);
+        border-color: rgba(223, 98, 20, 0.9);
+        background: rgba(223, 98, 20, 0.2);
+    }
+        
+    .blacksmith-menubar-secondary .combat-portrait-container.current {
+        border-color: rgba(223, 98, 24, 0.1);
+        background: rgba(153, 106, 38, 0.7);
+    }
+        
+
+    .blacksmith-menubar-secondary .combat-portrait-container.current.combat-token-hidden  {
+        opacity: 0.8;
+        border: 1px dotted rgba(255, 255, 255, 0.7);
+        background: rgba(153, 106, 38, 0.6);
+    }
+
     .blacksmith-menubar-secondary .combat-portrait-container.defeated {
     opacity: .9;
     background: rgba(53, 28, 32, 0.7);

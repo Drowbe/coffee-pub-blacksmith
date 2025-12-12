@@ -48,7 +48,7 @@
         {{!-- Combat Portraits --}}
         <div class="combat-portraits">
         {{#each combatants}}
-               <div class="combat-portrait-container {{#if isCurrent}}current{{/if}} {{#if isDefeated}}defeated{{/if}}"
+               <div class="combat-portrait-container {{#if isCurrent}}current{{/if}} {{#if isDefeated}}defeated{{/if}} {{#if isHidden}}combat-token-hidden{{/if}}"
                     data-combatant-id="{{id}}"
                     data-tooltip="{{tooltip}}">
                    <div class="combat-portrait-healthring">

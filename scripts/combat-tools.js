@@ -173,10 +173,38 @@ Hooks.once('ready', () => {
         html.querySelectorAll('.combatant').forEach((element) => {
             // v13: Use dataset instead of jQuery data()
             const combatantId = element.dataset.combatantId;
-            const actor = game.combat?.combatants.get(combatantId)?.actor;
+            const combatant = game.combat?.combatants.get(combatantId);
+            const actor = combatant?.actor;
 
             // Only proceed if we have a valid actor
             if (!actor) return;
+            
+            // Check if combatant or token is hidden
+            const token = combatant?.token;
+            const isHidden = combatant.hidden || token?.hidden;
+            
+            // For non-GM users, hide combatants that are hidden or whose tokens are hidden
+            // This matches the menubar behavior - hidden combatants/tokens disappear from combat tracker
+            // GMs always see all combatants regardless of hidden status
+            if (!game.user.isGM) {
+                if (isHidden) {
+                    // Hide the combatant element (same as combatant.hidden behavior)
+                    element.style.display = 'none';
+                    element.classList.add('hide');
+                    return; // Skip processing for hidden combatants/tokens
+                } else {
+                    // Ensure visible combatants are shown
+                    element.style.display = '';
+                    element.classList.remove('hide');
+                }
+            } else {
+                // For GMs, add/remove hide class for styling but don't hide the element
+                if (isHidden) {
+                    element.classList.add('hide');
+                } else {
+                    element.classList.remove('hide');
+                }
+            }
 
             // Handle portrait vs token image
             if (getSettingSafely(MODULE.ID, 'combatTrackerShowPortraits', false)) {
