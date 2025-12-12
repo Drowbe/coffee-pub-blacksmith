@@ -3270,93 +3270,47 @@ class MenuBar {
      */
     static panToCombatant(combatantId) {
         try {
-            postConsoleAndNotification(MODULE.NAME, "MENUBAR | Panning: Starting pan to combatant", combatantId, true, false);
-            
             const combat = game.combat;
-            if (!combat) {
-                postConsoleAndNotification(MODULE.NAME, "MENUBAR | Panning: No active combat", "", true, false);
-                return;
-            }
+            if (!combat) return;
 
             const combatant = combat.combatants.get(combatantId);
-            if (!combatant) {
-                postConsoleAndNotification(MODULE.NAME, "MENUBAR | Panning: Combatant not found", combatantId, true, false);
-                return;
-            }
+            if (!combatant) return;
 
             const token = combatant.token;
-            if (!token) {
-                postConsoleAndNotification(MODULE.NAME, "MENUBAR | Panning: Token not found for combatant", combatant.name, true, false);
-                return;
-            }
+            if (!token) return;
 
             // Check if token is on the canvas
             const canvasToken = canvas.tokens.get(token.id);
-            if (!canvasToken) {
-                postConsoleAndNotification(MODULE.NAME, "MENUBAR | Panning: Token not on canvas", token.name, true, false);
-                return;
-            }
-
-            postConsoleAndNotification(MODULE.NAME, "MENUBAR | Panning: Token found on canvas", {
-                tokenName: token.name,
-                tokenId: token.id,
-                isGM: game.user.isGM,
-                tokenHidden: canvasToken.document?.hidden || false
-            }, true, false);
+            if (!canvasToken) return;
 
             // Check if token is visible to the current user
             // For GMs, always allow panning (they can see everything)
             // For players, only pan if they can see the token on the canvas
             if (!game.user.isGM) {
                 try {
-                    // First check if token is visible on the canvas (not hidden)
+                    // First check if token is hidden
                     const isHidden = canvasToken.document?.hidden || false;
-                    if (isHidden) {
-                        postConsoleAndNotification(MODULE.NAME, "MENUBAR | Panning: Token is hidden, skipping pan", token.name, true, false);
-                        return;
-                    }
+                    if (isHidden) return;
                     
                     // Check if token is actually visible on the canvas (rendered and visible)
-                    // canvasToken.visible checks if the token is visible in the current view
-                    if (!canvasToken.visible) {
-                        postConsoleAndNotification(MODULE.NAME, "MENUBAR | Panning: Token not visible on canvas, skipping pan", token.name, true, false);
-                        return;
-                    }
+                    if (!canvasToken.visible) return;
                     
                     // Use canvasToken.document for user visibility checks (permissions, vision, etc.)
                     const tokenDocument = canvasToken.document || token;
                     if (tokenDocument?.testUserVisibility) {
                         const isVisible = tokenDocument.testUserVisibility(game.user);
-                        postConsoleAndNotification(MODULE.NAME, "MENUBAR | Panning: Visibility check result", {
-                            tokenName: token.name,
-                            isVisible: isVisible,
-                            canvasVisible: canvasToken.visible,
-                            hidden: isHidden
-                        }, true, false);
-                        if (!isVisible) {
-                            // Token is not visible to this user, don't pan
-                            postConsoleAndNotification(MODULE.NAME, "MENUBAR | Panning: Token not visible to user (vision/walls), skipping pan", token.name, true, false);
-                            return;
-                        }
+                        if (!isVisible) return;
                     }
                 } catch (error) {
                     // If visibility check fails, don't pan (safer for players)
-                    postConsoleAndNotification(MODULE.NAME, "MENUBAR | Panning: Error checking token visibility", error, true, false);
                     return;
                 }
             }
-
-            postConsoleAndNotification(MODULE.NAME, "MENUBAR | Panning: Panning to token", {
-                tokenName: token.name,
-                x: canvasToken.x,
-                y: canvasToken.y
-            }, true, false);
 
             // Pan to the token using canvasToken coordinates
             canvas.animatePan({ x: canvasToken.x, y: canvasToken.y });
             
             // Optionally highlight the token briefly if it's visible
-            // Use setHighlight instead of highlight() method
             if (canvasToken.visible && typeof canvasToken.setHighlight === 'function') {
                 canvasToken.setHighlight();
                 setTimeout(() => {
@@ -3374,10 +3328,8 @@ class MenuBar {
                 }, 2000);
             }
 
-            postConsoleAndNotification(MODULE.NAME, "MENUBAR | Panning: Pan complete", token.name, true, false);
-
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "MENUBAR | Panning: Error panning to combatant", error, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Error panning to combatant", error, false, false);
         }
     }
 
