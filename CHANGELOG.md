@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.0.5]
+
+### Fixed
+- **Journal Tools querySelector Error**: Fixed `TypeError: nativeElement.querySelector is not a function` in Journal Tools window. Updated `_getNativeElement()` method to include jQuery detection and validation, ensuring it returns a valid native DOM element with `querySelector` method before use. Matches the pattern used in other windows for v13 compatibility.
+
 ## [13.0.4]
 
 ### Fixed

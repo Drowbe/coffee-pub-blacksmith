@@ -2375,12 +2375,20 @@ export class JournalToolsWindow extends FormApplication {
     }
 
     /**
-     * Get native DOM element from this.element
+     * Get native DOM element from this.element (handles jQuery conversion)
      * @returns {HTMLElement|null} Native DOM element
      */
     _getNativeElement() {
-        // v13: Foundry sets this.element to native DOM
-        return this.element || null;
+        if (!this.element) return null;
+        // v13: Detect and convert jQuery to native DOM if needed
+        if (this.element.jquery || typeof this.element.find === 'function') {
+            return this.element[0] || this.element.get?.(0) || this.element;
+        }
+        // Ensure it's a valid DOM element with querySelector
+        if (typeof this.element.querySelector === 'function') {
+            return this.element;
+        }
+        return null;
     }
 
     static get defaultOptions() {
