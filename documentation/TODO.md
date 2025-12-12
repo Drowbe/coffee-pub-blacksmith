@@ -21,6 +21,9 @@
 ### Movement
 - **Issue**: Tokens no longer follow in conga or other modes
 
+### Menubar
+- **Hidden**: verify we do not show "hidden" creatures on the menubar to players.
+
 
 ### Combat Stats - Critical Bugs and Design Alignment
 - **Issue**: Multiple critical bugs in combat stats system and design inconsistencies between round summaries and combat summary
