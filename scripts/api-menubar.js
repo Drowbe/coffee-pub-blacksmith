@@ -2785,7 +2785,10 @@ class MenuBar {
                        svgSize: size,
                        svgCenter: size / 2,
                        svgRadius: radius,
-                       svgStrokeWidth: strokeWidth
+                       svgStrokeWidth: strokeWidth,
+                       tooltip: healthRingHidden 
+                           ? `${token?.name || actor?.name || 'Unknown'} - Initiative: ${combatant.initiative || 0}`
+                           : `${token?.name || actor?.name || 'Unknown'} - Initiative: ${combatant.initiative || 0} - HP: ${currentHP}/${maxHP}`
                    };
 
                 return combatantData;

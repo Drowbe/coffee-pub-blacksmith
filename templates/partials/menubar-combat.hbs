@@ -50,7 +50,7 @@
         {{#each combatants}}
                <div class="combat-portrait-container {{#if isCurrent}}current{{/if}} {{#if isDefeated}}defeated{{/if}}"
                     data-combatant-id="{{id}}"
-                    data-tooltip="{{name}} - Initiative: {{initiative}} - HP: {{currentHP}}/{{maxHP}}">
+                    data-tooltip="{{tooltip}}">
                    <div class="combat-portrait-healthring">
                        {{#if healthRingHidden}}
                            <svg width="{{svgSize}}" height="{{svgSize}}" viewBox="0 0 {{svgSize}} {{svgSize}}" class="{{healthClass}}">

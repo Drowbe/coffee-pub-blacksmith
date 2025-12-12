@@ -400,8 +400,13 @@ function deepClone(obj) {
 function refreshSceneControls() {
     if (!ui.controls) return;
     
+    // Scene controls are only available for GMs
+    // Players don't have access to scene controls, so skip refresh for them
+    if (!game.user.isGM) {
+        return;
+    }
+    
     // Ensure controls object exists and is initialized
-    // For players, controls might not be fully initialized yet
     const existingControls = ui.controls.controls;
     if (!existingControls || typeof existingControls !== 'object') {
         // Controls not ready yet, skip refresh
@@ -418,7 +423,6 @@ function refreshSceneControls() {
     
     // Ensure ui.controls has been rendered at least once
     // This indicates Foundry has fully initialized the controls structure
-    // For players, controls might not be rendered until later
     if (!ui.controls.rendered) {
         // Controls haven't been rendered yet - not ready
         return;
