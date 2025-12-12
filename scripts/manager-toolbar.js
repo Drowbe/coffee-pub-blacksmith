@@ -400,9 +400,31 @@ function deepClone(obj) {
 function refreshSceneControls() {
     if (!ui.controls) return;
     
-    // Start with existing controls from ui.controls (includes Foundry's base structure)
+    // Ensure controls object exists and is initialized
+    // For players, controls might not be fully initialized yet
+    const existingControls = ui.controls.controls;
+    if (!existingControls || typeof existingControls !== 'object') {
+        // Controls not ready yet, skip refresh
+        return;
+    }
+    
+    // Check if controls object is actually populated (not just empty)
+    // An empty object means Foundry hasn't initialized controls yet
+    const controlKeys = Object.keys(existingControls);
+    if (controlKeys.length === 0) {
+        // Controls object exists but is empty - not ready yet
+        return;
+    }
+    
+    // Ensure ui.controls has been rendered at least once
+    // This indicates Foundry has fully initialized the controls structure
+    // For players, controls might not be rendered until later
+    if (!ui.controls.rendered) {
+        // Controls haven't been rendered yet - not ready
+        return;
+    }
+    
     // Deep clone to avoid mutating the original and to ensure nested objects (tools) are copied
-    const existingControls = ui.controls.controls || {};
     const controls = deepClone(existingControls);
     
     // Call the hook to update controls (our hooks will modify/add to existing structure)

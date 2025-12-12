@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Journal Tools querySelector Error**: Fixed `TypeError: nativeElement.querySelector is not a function` in Journal Tools window. Updated `_getNativeElement()` method to include jQuery detection and validation, ensuring it returns a valid native DOM element with `querySelector` method before use. Matches the pattern used in other windows for v13 compatibility.
+- **SceneControls Initialization Errors**: Fixed `TypeError: Cannot read properties of undefined (reading 'tools')` errors from third-party modules (tile-sort, monks-wall-enhancement, walledtemplates) when `refreshSceneControls()` was called before controls were fully initialized. Added validation checks to ensure controls object exists, is populated, and `ui.controls` has been rendered before calling `getSceneControlButtons` hook. Prevents errors for players when controls are not ready yet.
 
 ## [13.0.4]
 
