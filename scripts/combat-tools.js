@@ -399,17 +399,16 @@ class CombatTools {
             if (isResizable) {
                 document.body.classList.add('combat-tracker-resizable');
 
-                // Add resize handle if it doesn't exist
-                if (!combatPopout.querySelector('.window-resizable-handle')) {
+                // Add resize handle if it doesn't exist (using Foundry's standard class name)
+                if (!combatPopout.querySelector('.window-resize-handle')) {
                     const resizeHandle = document.createElement('div');
-                    resizeHandle.className = 'window-resizable-handle';
-                    resizeHandle.innerHTML = '<i class="fas fa-arrows-alt-h"></i>';
+                    resizeHandle.className = 'window-resize-handle';
                     combatPopout.appendChild(resizeHandle);
                 }
             } else {
                 document.body.classList.remove('combat-tracker-resizable');
                 // Remove resize handle if it exists
-                const existingHandle = combatPopout.querySelector('.window-resizable-handle');
+                const existingHandle = combatPopout.querySelector('.window-resize-handle');
                 if (existingHandle) {
                     existingHandle.remove();
                 }

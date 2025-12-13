@@ -171,42 +171,13 @@ body:not(.gm) #combat-tracker .combatant {
 .combat-tracker-resizable #combat-popout {
     resize: both !important;
     overflow: auto !important;
-    min-width: 250px !important;
+    min-width: 360px !important;
     min-height: 200px !important;
     max-width: 80vw !important;
     max-height: 80vh !important;
 }
 
-/* Style the resize handle */
-.combat-tracker-resizable #combat-popout::-webkit-resizer {
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-radius: 2px;
-    width: 16px !important;
-    height: 16px !important;
-}
 
-/* Style the resize handle to match FoundryVTT's standard */
-.combat-tracker-resizable #combat-popout .window-resizable-handle {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 16px;
-    height: 16px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: nw-resize;
-    z-index: 1000;
-}
-
-.combat-tracker-resizable #combat-popout .window-resizable-handle i {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 10px;
-}
 
 /* Ensure the combat tracker list fills the available space */
 .combat-tracker-resizable #combat-popout .window-content {
