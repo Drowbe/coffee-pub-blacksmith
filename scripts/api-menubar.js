@@ -6,6 +6,7 @@ import { HookManager } from './manager-hooks.js';
 import { TokenImageReplacementWindow } from './token-image-replacement.js';
 import { MovementConfig } from './token-movement.js';
 import { PerformanceUtility } from './utility-performance.js';
+import { QuickViewUtility } from './utility-quickview.js';
 import { VoteConfig } from './vote-config.js';
 import { XpManager } from './xp-manager.js';
 import { CSSEditor } from './window-gmtools.js';
@@ -868,6 +869,30 @@ class MenuBar {
             },
             onClick: () => {
                 PerformanceUtility.showPerformanceCheck();
+            }
+        });
+
+        this.registerMenubarTool('quickview', {
+            icon: () => {
+                return QuickViewUtility.getIcon();
+            },
+            name: "quickview",
+            title: () => {
+                return QuickViewUtility.getTitle();
+            },
+            tooltip: "Toggle Clarity Mode: Increase brightness, reveal fog, show all tokens",
+            zone: "left",
+            order: 4,
+            moduleId: "blacksmith-core",
+            gmOnly: true,
+            toggleable: true,
+            active: () => {
+                return QuickViewUtility.isActive();
+            },
+            onClick: () => {
+                QuickViewUtility.toggle();
+                // Refresh menubar to update icon and active state
+                MenuBar.renderMenubar();
             }
         });
 
