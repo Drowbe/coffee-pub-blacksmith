@@ -1,15 +1,14 @@
-/* ------------------------------------ */
-/* --- COMBAT TIMER ---------- */
-/* ------------------------------------ */
-
 /* Combat Timer Container */
 .combat-timer-container {
-    padding-top: 8px;
-	padding-bottom: 6px;
-	padding-left: 6px;
-	padding-right: 6px;
-    height: 33px;
-	border: solid 0px #ffffff;
+    padding: 8px 6px 6px 6px;
+
+    /* critical: don't force a fixed height into a measured scroll area */
+    height: auto;
+    box-sizing: border-box;
+
+    /* critical: never allow horizontal bleed */
+    max-width: 100%;
+    overflow-x: clip; /* use hidden if clip isn't supported */
 }
 
 .combat-timer-container.hidden {
@@ -24,24 +23,33 @@
     overflow: hidden;
     position: relative;
     cursor: pointer;
+
+    /* critical in Foundry layouts (flex parents): allow shrinking */
+    min-width: 0;
+    max-width: 100%;
 }
 
 /* Timer Bar */
 .combat-timer-bar {
-    width: 100%;
     height: 100%;
     background: #0e8a0e;
     transition: width 1s linear;
+
+    /* avoid any rounding weirdness from a stale width:100% */
+    width: 0%;
 }
 
 /* Timer Text */
 .combat-timer-text {
     position: absolute;
-    width: 100%;
-    text-align: center;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 8px;
+    box-sizing: border-box;
+
     color: white;
     font-size: 12px;
     text-transform: uppercase;
@@ -49,15 +57,25 @@
     pointer-events: none;
     user-select: none;
     z-index: 2;
+
+    /* ellipsis */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    /* critical: flex shrink behavior inside weird parents */
+    min-width: 0;
+    max-width: 100%;
 }
 
-/* Pause Indicator */
+/* Pause Indicator (cleaned up so it can actually be hidden) */
 .combat-timer-pause-indicator {
     display: none;
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+
     color: white;
     text-shadow: 1px 1px 2px black;
     font-weight: bold;
@@ -66,31 +84,22 @@
     pointer-events: none;
 }
 
+.combat-timer-pause-indicator.is-paused {
+    display: flex;
+}
+
 /* Timer Bar Colors */
-.combat-timer-bar.high {
-    background-color: #0e8a0e;
-}
-
-.combat-timer-bar.medium {
-    background-color: #b6b630;
-}
-
-.combat-timer-bar.low {
-    background-color: #920e0e;
-}
-
-.combat-timer-bar.expired {
-    background-color: #4a0707;  /* Darker red for expired state */
-}
+.combat-timer-bar.high { background-color: #0e8a0e; }
+.combat-timer-bar.medium { background-color: #b6b630; }
+.combat-timer-bar.low { background-color: #920e0e; }
+.combat-timer-bar.expired { background-color: #4a0707; }
 
 /* Progress Bar States */
-.combat-timer-progress.expired {
-    background-color: #4a0707;  /* Darker red for expired state */
-}
+.combat-timer-progress.expired { background-color: #4a0707; }
 
 /* Player Turn Hover State */
 .combat-timer-progress.player-turn:hover {
-    background-color: #1e3f8f;  /* Blue background */
+    background-color: #1e3f8f;
     cursor: pointer;
 }
 
@@ -99,74 +108,55 @@
 }
 
 /* End Turn Overlay */
-.combat-timer-end-turn-overlay {
+.combat-timer-end-turn-overlay,
+.combat-timer-hurry-overlay {
     display: none;
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #3c6685;  /* Blue background */
+    inset: 0;
     z-index: 10;
     cursor: pointer;
     border-radius: 3px;
+
+    /* never bleed */
+    max-width: 100%;
+    overflow: hidden;
 }
 
-.combat-timer-end-turn-overlay .overlay-text {
+.combat-timer-end-turn-overlay { background-color: #3c6685; }
+.combat-timer-hurry-overlay { background-color: #aa6000; }
+
+.combat-timer-end-turn-overlay .overlay-text,
+.combat-timer-hurry-overlay .overlay-text {
     position: absolute;
-    width: 100%;
-    text-align: center;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 8px;
+    box-sizing: border-box;
+
     color: white;
     font-weight: bold;
     font-size: 12px;
     text-transform: uppercase;
     text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    min-width: 0;
+    max-width: 100%;
 }
 
-.combat-timer-end-turn-overlay .overlay-text i {
-    margin-left: 5px;
-}
+.combat-timer-end-turn-overlay .overlay-text i { margin-left: 5px; }
+.combat-timer-hurry-overlay .overlay-text i { margin-right: 5px; }
 
 .combat-timer-progress.player-turn:hover .combat-timer-end-turn-overlay {
     display: block;
 }
 
-/* Hurry Up Overlay */
-.combat-timer-hurry-overlay {
-    display: none;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #aa6000;  /* Orange background */
-    z-index: 10;
-    cursor: pointer;
-    border-radius: 3px;
-}
-
-.combat-timer-hurry-overlay .overlay-text {
-    position: absolute;
-    width: 100%;
-    text-align: center;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: white;
-    font-weight: bold;
-    font-size: 12px;
-    text-transform: uppercase;
-    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
-}
-
-.combat-timer-hurry-overlay .overlay-text i {
-    margin-right: 5px;
-}
-
 .combat-timer-progress.other-player-turn:hover .combat-timer-hurry-overlay {
     display: block;
 }
-
