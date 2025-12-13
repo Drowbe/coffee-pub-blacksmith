@@ -145,127 +145,113 @@ export class QuickViewUtility {
     }
     
     /**
-     * Show all tokens with a visual indicator (different from hatch pattern)
-     * Uses a subtle glow/outline effect instead
-     * When a token is selected, show tokens in dark areas that would be visible to that token
+     * Show all tokens with hatched overlay
+     * When a token is selected, show ALL tokens with hatches, even if the selected token can't see them
      */
     static _showAllTokens() {
         if (!canvas.tokens) return;
         
         const tokens = canvas.tokens.placeables;
         const selectedTokens = canvas.tokens.controlled;
+        const hasSelectedToken = selectedTokens.length > 0;
+        
+        if (!hasSelectedToken) return;
         
         tokens.forEach(token => {
-            // Always add overlay to all tokens in clarity mode
+            // Add hatched overlay to all tokens when a token is selected
             if (token.mesh) {
-                this._addTokenOverlay(token);
-            }
-            
-            // If clarity mode is on and a token is selected:
-            // Make tokens in dark areas visible (they'll have outlines from the overlay above)
-            if (selectedTokens.length > 0 && selectedTokens[0]) {
-                try {
-                    // Check if token is in a dark area (not currently visible due to lighting/vision)
-                    // We need to check if the token would be visible to the selected token
-                    const isCurrentlyHidden = !token.visible || !token.renderable;
-                    
-                    if (isCurrentlyHidden) {
-                        // Store original visibility state if not already stored
-                        if (!this._tokenVisibilityOverrides.has(token.id)) {
-                            this._tokenVisibilityOverrides.set(token.id, {
-                                originalVisible: token.visible,
-                                originalRenderable: token.renderable
-                            });
-                        }
-                        
-                        // Temporarily make token visible so it shows in dark areas
-                        // The outline overlay will make it clear it's in clarity mode
-                        if (token.mesh) {
-                            token.mesh.visible = true;
-                            token.mesh.renderable = true;
-                            // Also update the token's visible property if possible
-                            if (token.visible !== undefined) {
-                                token.visible = true;
-                            }
-                        }
-                    }
-                } catch (error) {
-                    // Continue if visibility check fails
-                }
+                // Use async but don't await - let it load in background
+                this._addTokenOverlay(token).catch(err => {
+                    // Silently handle errors - overlay is optional
+                });
             }
         });
     }
     
     /**
-     * Add visual overlay to a token to indicate it's visible in clarity mode
-     * Uses a PIXI graphics outline/glow effect (v13 tokens are PIXI sprites, not DOM elements)
+     * Apply a hatched overlay to a token using a masked PIXI.Sprite
+     * Based on the provided code pattern
+     * @param {Token} token
      */
-    static _addTokenOverlay(token) {
-        if (!token.mesh || this._tokenOverlays.has(token.id)) {
+    static async _addTokenOverlay(token) {
+        const mesh = token.mesh;
+        if (!mesh) return;
+        
+        // Check if already has overlay
+        if (this._tokenOverlays.has(token.id)) {
+            return;
+        }
+        
+        // Check if token already has a clarity overlay
+        const existingOverlay = mesh.getChildByName("clarity-token-overlay");
+        if (existingOverlay) {
             return;
         }
         
         try {
-            // Check if token already has a clarity overlay
-            if (token.mesh.children) {
-                const existingIndicator = token.mesh.children.find(child => child.name === 'clarity-indicator');
-                if (existingIndicator) {
-                    return; // Already has indicator
-                }
-            }
+            // Load texture from the image file
+            const strTokenMaskImage = 'modules/coffee-pub-blacksmith/images/overlays/overlay-crosshatch-01.webp';
+            const texture = await loadTexture(strTokenMaskImage);
             
-            // Create a PIXI Graphics overlay for the outline/glow effect
-            // v13: Tokens are PIXI sprites, so we need to use PIXI graphics, not DOM elements
-            const graphics = new PIXI.Graphics();
-            graphics.name = 'clarity-indicator';
+            // Create overlay sprite
+            const overlay = new PIXI.Sprite(texture);
+            overlay.name = "clarity-token-overlay";
             
-            // Get token dimensions (use document dimensions for accuracy)
-            const width = token.w || token.document?.width || 100;
-            const height = token.h || token.document?.height || 100;
-            const radius = Math.max(width, height) / 2;
+            // Match token dimensions - ensure full coverage
+            // Use actual mesh dimensions
+            const tokenWidth = mesh.width || token.w * canvas.grid.size || 100;
+            const tokenHeight = mesh.height || token.h * canvas.grid.size || 100;
             
-            // Draw a blue outline/glow around the token
-            // Outer glow (softer, wider)
-            graphics.lineStyle(6, 0x64C8FF, 0.5); // Blue, semi-transparent, thicker
-            graphics.drawCircle(0, 0, radius + 6);
+            // Scale overlay to match token size exactly (no tiling needed)
+            // Pattern should be large enough to cover largest tokens (4x4 grid = ~400px for 100px grid)
+            // For now, scale the texture to match token dimensions
+            overlay.width = tokenWidth;
+            overlay.height = tokenHeight;
             
-            // Middle glow
-            graphics.lineStyle(4, 0x64C8FF, 0.6); // Blue, more opaque
-            graphics.drawCircle(0, 0, radius + 3);
+            // Position at center of token
+            overlay.anchor.set(0.5);
+            overlay.position.set(tokenWidth / 2, tokenHeight / 2);
             
-            // Inner outline (sharper, more visible)
-            graphics.lineStyle(2, 0x64C8FF, 0.9); // Blue, very opaque
-            graphics.drawCircle(0, 0, radius + 1);
+            // Visual tuning - make it much more visible
+            overlay.alpha = 0.9; // Increased for better visibility
+            overlay.blendMode = PIXI.BLEND_MODES.NORMAL; // Use normal blend for maximum visibility, or try OVERLAY
             
-            // Position the graphics overlay at the token center (0,0 is center in token's local space)
-            graphics.x = 0;
-            graphics.y = 0;
-            graphics.visible = true;
-            graphics.renderable = true;
+            // Attach to token
+            mesh.addChild(overlay);
             
-            // Ensure graphics is on top by setting a high z-index or adding last
-            if (token.mesh.addChild) {
-                token.mesh.addChild(graphics);
-                // Move to top of children
-                if (token.mesh.children) {
-                    const index = token.mesh.children.indexOf(graphics);
-                    if (index >= 0 && index < token.mesh.children.length - 1) {
-                        token.mesh.removeChild(graphics);
-                        token.mesh.addChild(graphics);
-                    }
-                }
-            }
+            // Mask to token shape
+            // TEMPORARILY DISABLED TO DEBUG: overlay.mask = mesh;
+            // If tokens show without mask, we'll fix masking separately
+            
+            // Ensure it renders above the token art
+            overlay.zIndex = (mesh.zIndex || 0) + 1;
+            
+            // GM-only visibility
+            overlay.visible = game.user.isGM;
             
             // Store reference for cleanup
             this._tokenOverlays.set(token.id, {
                 token: token,
-                graphics: graphics,
+                overlay: overlay,
                 addedAt: Date.now()
             });
-            
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Quick View: Error adding overlay to token ${token.name}`, error, true, false);
         }
+    }
+    
+    /**
+     * Remove hatched overlay from a token
+     * Based on the provided code pattern
+     */
+    static _removeTokenOverlay(token) {
+        const mesh = token.mesh;
+        if (!mesh) return;
+        
+        const overlay = mesh.getChildByName("clarity-token-overlay");
+        if (!overlay) return;
+        
+        overlay.destroy({ children: true });
     }
     
     /**
@@ -273,20 +259,13 @@ export class QuickViewUtility {
      */
     static _hideAllTokens() {
         // Remove visual indicators from all tokens
-        this._tokenOverlays.forEach((overlay, tokenId) => {
+        this._tokenOverlays.forEach((overlayData, tokenId) => {
             try {
-                const token = overlay.token;
-                const graphics = overlay.graphics;
+                const token = overlayData.token;
                 
-                // Remove PIXI graphics overlay
-                if (token && token.mesh && graphics) {
-                    if (token.mesh.removeChild) {
-                        token.mesh.removeChild(graphics);
-                    }
-                    // Destroy the graphics object
-                    if (graphics.destroy) {
-                        graphics.destroy();
-                    }
+                // Remove hatched overlay
+                if (token && token.mesh) {
+                    this._removeTokenOverlay(token);
                 }
             } catch (error) {
                 // Token may have been removed
@@ -304,6 +283,9 @@ export class QuickViewUtility {
                     }
                     if (originalState.originalRenderable !== undefined) {
                         token.mesh.renderable = originalState.originalRenderable;
+                    }
+                    if (originalState.originalAlpha !== undefined) {
+                        token.mesh.alpha = originalState.originalAlpha;
                     }
                 }
             } catch (error) {
@@ -392,4 +374,5 @@ export class QuickViewUtility {
         return this._isActive ? "Clarity Mode: ON" : "Clarity Mode: OFF";
     }
 }
+
 
