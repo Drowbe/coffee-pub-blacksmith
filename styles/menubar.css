@@ -43,6 +43,11 @@
     margin-top: var(--blacksmith-menubar-interface-offset);
 }
 
+/* Push effects panel down to account for fixed menubar */
+#effects-panel {
+    top: calc(5px + var(--blacksmith-menubar-interface-offset)) !important;
+}
+
 /* Secondary bar height adjustment */
 .blacksmith-menubar-container.has-secondary {
     --blacksmith-menubar-height: calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height));
