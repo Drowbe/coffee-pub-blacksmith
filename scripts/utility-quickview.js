@@ -252,7 +252,7 @@ static async _addTokenOverlay(token, opts = {}) {
       image: "",
       above: true,
       fixedPatternScale: true,
-      alpha: 0.55,
+      alpha: 0.9,
       blendMode: PIXI.BLEND_MODES.MULTIPLY,
       rotate: true,
       maskToArt: true
@@ -519,6 +519,111 @@ static async _addTokenOverlay(token, opts = {}) {
         return s;
       }
       
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Best-effort: create a sprite mask that matches the token art as-rendered.
+ * Never throws outward. Returns the mask sprite, or null if we should skip masking.
+ *
+ * Why this is safe:
+ * - If we can't confidently build a mask, we return null and leave overlay unmasked.
+ * - We use transform math (world -> local) so rotation/scale/parenting don't matter.
+ */
+static _buildArtMaskSprite({ token, mesh, overlay }) {
+    try {
+      // Mesh must have a usable texture
+      const tex = mesh?.texture;
+      const base = tex?.baseTexture;
+      if (!tex || !base || base.valid !== true) return null;
+  
+      // Clone art texture into a sprite to use as the alpha mask
+      const maskSprite = new PIXI.Sprite(tex);
+      maskSprite.name = "clarity-token-overlay-mask";
+  
+      // IMPORTANT: masks need to be rendered into the stencil.
+      // So don't set visible=false or renderable=false.
+      // Keep it effectively invisible but still renderable.
+      maskSprite.alpha = 0.001;
+  
+      // Prevent interaction just in case
+      maskSprite.eventMode = "none";
+  
+      // ---- Transform alignment (the important part) ----
+      // We want the mask sprite to match the mesh exactly in *overlay's local space*.
+      // Compute: overlayLocal = inverse(overlayWorld) * meshWorld
+      const ow = overlay.worldTransform;
+      const mw = mesh.worldTransform;
+  
+      if (!ow || !mw) return null;
+  
+      const m = ow.clone().invert().append(mw);
+      maskSprite.transform.setFromMatrix(m);
+  
+      return maskSprite;
+    } catch (err) {
+      console.warn("Clarity: maskToArt skipped (mask build failed)", err);
+      return null;
+    }
+  }
+  
+  /**
+   * Best-effort: apply an art mask to the overlay.
+   * Never blanks the overlay: if mask can't be created, overlay remains unmasked.
+   */
+  static _applyMaskToOverlay({ token, mesh, overlay }) {
+    try {
+      // Clean up any existing mask first
+      const existing = overlay.getChildByName("clarity-token-overlay-mask");
+      if (existing) existing.destroy({ children: true });
+  
+      overlay.mask = null;
+  
+      const maskSprite = this._buildArtMaskSprite({ token, mesh, overlay });
+      if (!maskSprite) return false;
+  
+      overlay.addChild(maskSprite);
+      overlay.mask = maskSprite;
+  
+      return true;
+    } catch (err) {
+      console.warn("Clarity: maskToArt skipped (apply failed)", err);
+      overlay.mask = null;
+      return false;
+    }
+  }
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
