@@ -156,218 +156,196 @@ export class QuickViewUtility {
 
 
 
-
-/**
- * Show all tokens with hatched overlay
- * When a token is selected, show ALL tokens with hatches, even if the selected token can't see them
- */
-static _showAllTokens() {
-    console.log("Clarity debug — _showAllTokens called");
-  
-    if (!canvas.tokens) {
-      console.log("Clarity debug — no canvas.tokens");
-      return;
-    }
-  
-    const tokens = canvas.tokens.placeables;
-    const selectedTokens = canvas.tokens.controlled;
-    const hasSelectedToken = selectedTokens.length > 0;
-  
-    console.log(
-      "Clarity debug — tokens count:",
-      tokens.length,
-      "selected tokens:",
-      selectedTokens.length,
-      "hasSelectedToken:",
-      hasSelectedToken
-    );
-  
-    if (!hasSelectedToken) {
-      console.log("Clarity debug — returning early, no token selected");
-      return;
-    }
-  
-    console.log("Clarity debug — processing tokens, will call _addTokenOverlay");
-  
-    tokens.forEach(token => {
-      if (token.mesh) {
-        console.log("Clarity debug — calling _addTokenOverlay for:", token.name);
-        postConsoleAndNotification(
-          MODULE.NAME,
-          `Clarity: Adding overlay for ${token.name}`,
-          token.mesh,
-          true,
-          false
+    static _showAllTokens() {
+        console.log("Clarity debug — _showAllTokens called");
+      
+        if (!canvas.tokens) {
+          console.log("Clarity debug — no canvas.tokens");
+          return;
+        }
+      
+        const tokens = canvas.tokens.placeables;
+        const selectedTokens = canvas.tokens.controlled;
+        const hasSelectedToken = selectedTokens.length > 0;
+      
+        console.log(
+          "Clarity debug — tokens count:",
+          tokens.length,
+          "selected tokens:",
+          selectedTokens.length,
+          "hasSelectedToken:",
+          hasSelectedToken
         );
-  
-        // IMPORTANT: don't rely on `this` here. Call the class directly.
-        const p = QuickViewUtility._addTokenOverlay(token).catch(err => {
-          console.error("Clarity debug — _addTokenOverlay error:", err);
+      
+        if (!hasSelectedToken) {
+          console.log("Clarity debug — returning early, no token selected");
+          return;
+        }
+      
+        console.log("Clarity debug — processing tokens, will call _addTokenOverlay");
+      
+        tokens.forEach(token => {
+          if (!token?.mesh) {
+            console.log("Clarity debug — token has no mesh:", token?.name);
+            return;
+          }
+      
+          console.log("Clarity debug — calling _addTokenOverlay for:", token.name);
+      
+          postConsoleAndNotification(
+            MODULE.NAME,
+            `Clarity: Adding overlay for ${token.name}`,
+            token.mesh,
+            true,
+            false
+          );
+      
+          // Keep your explicit debug opts, but pass them as opts (not inside an object with token)
+          const opts = {
+            image: "modules/coffee-pub-blacksmith/images/overlays/overlay-pattern-01.webp",
+            above: true,
+            rotate: false,
+            blendMode: "multiply",
+            fixedPatternScale: true,
+            alpha: 0.55,      // bring back alpha
+            maskToArt: true   // bring back maskToArt (best-effort)
+          };
+      
+          console.log("Clarity debug — overlay opts:", { token: token.name, ...opts });
+      
+          const p = QuickViewUtility._addTokenOverlay(token, opts).catch(err => {
+            console.error("Clarity debug — _addTokenOverlay error:", err);
+          });
+      
+          console.log("Clarity debug — overlay promise created?", !!p);
         });
-  
-        console.log("Clarity debug — overlay promise created?", !!p);
-      } else {
-        console.log("Clarity debug — token has no mesh:", token.name);
       }
-    });
-  }
+      
   
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  
+  
+  
 
 /**
- * Apply a hatched overlay to a token using a TilingSprite.
- * - Attaches to token.mesh so it never "hatches the scene"
- * - Sizes using mesh local bounds (correct coordinate space)
- * - Optional screen-space density (pattern stays same density regardless of token size/scale)
+ * Add a hatched overlay to a token that matches the token's selection bounds.
  *
  * @param {Token} token
  * @param {object} opts
  * @param {string} opts.image Overlay texture path
  * @param {boolean} opts.above If true, draw above token art; else below
- * @param {boolean} opts.screenSpace If true, keep pattern density fixed in screen/world space
+ * @param {boolean} opts.fixedPatternScale If true, keep pattern density fixed (screen/world-space feel)
  * @param {number} opts.alpha Overlay alpha
- * @param {number} opts.blendMode PIXI.BLEND_MODES.*
+ * @param {number|string} opts.blendMode PIXI.BLEND_MODES.* or string alias ("multiply", etc.)
+ * @param {boolean} opts.rotate If true, overlay rotates with token; if false, counter-rotate to stay upright
  * @param {boolean} opts.maskToArt If true, attempts to mask to token art alpha (advanced)
  */
-static async _addTokenOverlay(
-    token,
-    {
-      image = "modules/coffee-pub-blacksmith/images/overlays/overlay-pattern-01.webp",
-      above = true,
-      screenSpace = true,
-      alpha = 0.6,
-      blendMode = PIXI.BLEND_MODES.MULTIPLY,
-      maskToArt = false
-    } = {}
-  ) {
-    console.log("Clarity debug — _addTokenOverlay START:", token?.name);
-  
+static async _addTokenOverlay(token, opts = {}) {
     const mesh = token?.mesh;
-    if (!mesh) {
-      console.warn("Clarity debug — no token.mesh:", token);
+    if (!token || !mesh) return;
+  
+    const defaults = {
+      image: "",
+      above: true,
+      fixedPatternScale: true,
+      alpha: 0.55,
+      blendMode: PIXI.BLEND_MODES.MULTIPLY,
+      rotate: true,
+      maskToArt: true
+    };
+  
+    const o = { ...defaults, ...opts };
+    o.blendMode = this._normalizeBlendMode(o.blendMode);
+  
+    // Prevent stacking
+    this._removeTokenOverlay(token);
+  
+    console.log("Clarity debug — _addTokenOverlay START:", token.name, {
+      image: o.image,
+      above: o.above,
+      rotate: o.rotate,
+      blendMode: o.blendMode,
+      fixedPatternScale: o.fixedPatternScale,
+      alpha: o.alpha,
+      maskToArt: o.maskToArt
+    });
+  
+    if (!o.image) return;
+  
+    const texture = await this._loadTexture(o.image);
+  
+    // IMPORTANT: Use token container coordinates (matches orange selection box)
+    const w = token.w;
+    const h = token.h;
+  
+    if (!w || !h) {
+      console.warn("Clarity debug — token w/h invalid:", token.name, { w, h });
       return;
     }
   
-    // Remove any existing overlay on THIS mesh (prevents duplicates, prevents scene-level overlays)
-    const existing = mesh.getChildByName?.("clarity-token-overlay");
-    if (existing) {
-      console.log("Clarity debug — removing existing overlay from mesh:", token.name);
-      existing.destroy({ children: true });
-    }
-    this._tokenOverlays?.delete(token.id);
-  
-    // --- Load texture ---
-    console.log("Clarity debug — loading texture:", image);
-    const texture = await loadTexture(image);
-    console.log("Clarity debug — texture loaded:", texture);
-  
-    // --- Use mesh local bounds so sizing is correct in mesh space ---
-    // This is the big win: no guessing token.w/h, no multiplying by grid size, no world->local confusion.
-    const b = mesh.getLocalBounds();
-    const w = Math.max(1, b.width);
-    const h = Math.max(1, b.height);
-  
-    console.log("Clarity debug — mesh local bounds:", b);
-    console.log("Clarity debug — overlay w/h (local):", w, h);
-  
-    // --- Create tiling overlay in mesh space ---
     const overlay = new PIXI.TilingSprite(texture, w, h);
     overlay.name = "clarity-token-overlay";
+    overlay.alpha = o.alpha;
+    overlay.blendMode = o.blendMode;
   
-    // Position overlay to cover the mesh local bounds
-    overlay.position.set(b.x, b.y);
+    // Token container local space: top-left is (0,0)
+    overlay.position.set(0, 0);
   
-    // Visuals
-    overlay.alpha = alpha;
-    overlay.blendMode = blendMode;
+    // Rotation behavior
+    // - rotate=true: let it inherit token rotation (since it's a child of token container)
+    // - rotate=false: counter-rotate so hatch stays “upright”
+    if (o.rotate === false) overlay.rotation = -token.rotation;
   
-    // --- Screen-space density: cancel out mesh world scale so pattern density stays consistent ---
-    // Without this: big tokens look like "bigger pattern"
-    if (screenSpace) {
-      // Compute world scale from worldTransform (handles uniform scale + rotation safely)
-      const wt = mesh.worldTransform;
-      const sx = Math.hypot(wt.a, wt.b);
-      const sy = Math.hypot(wt.c, wt.d);
-  
-      // Avoid divide-by-zero
-      const invX = sx ? 1 / sx : 1;
-      const invY = sy ? 1 / sy : 1;
-  
+    // Fixed pattern density (neutralize world scale)
+    if (o.fixedPatternScale) {
+      const { sx, sy } = this._getWorldScale(token);
+      const invX = sx > 0.0001 ? 1 / sx : 1;
+      const invY = sy > 0.0001 ? 1 / sy : 1;
       overlay.tileScale.set(invX, invY);
   
-      console.log("Clarity debug — screenSpace ON");
-      console.log("Clarity debug — world scale sx/sy:", sx, sy);
-      console.log("Clarity debug — tileScale set to:", overlay.tileScale.x, overlay.tileScale.y);
+      console.log("Clarity debug — fixedPatternScale ON:", { sx, sy, tileScaleX: invX, tileScaleY: invY });
+    }
+  
+    // Make sure it never intercepts pointer events
+    overlay.eventMode = "none";
+  
+    // Insert overlay as sibling of mesh (visible in token stack)
+    token.sortableChildren = true;
+  
+    const meshIndex = token.children?.indexOf(mesh) ?? -1;
+  
+    if (o.above) {
+      // Above the art
+      if (meshIndex >= 0) token.addChildAt(overlay, meshIndex + 1);
+      else token.addChild(overlay);
     } else {
-      overlay.tileScale.set(1, 1);
-      console.log("Clarity debug — screenSpace OFF (tileScale 1,1)");
+      // Below the art
+      if (meshIndex >= 0) token.addChildAt(overlay, Math.max(0, meshIndex));
+      else token.addChildAt(overlay, 0);
     }
   
-    // Add overlay to mesh (token space), and order it
-    if (above) mesh.addChild(overlay);
-    else mesh.addChildAt(overlay, 0);
+    // TEMP: disable masking until we confirm visibility
+    // Once you see it, we can reintroduce maskToArt safely.
+    overlay.mask = null;
   
-    // Make sure it sorts above token art if needed
-    overlay.zIndex = above ? 9999 : -9999;
-    mesh.sortableChildren = true;
+    // Track for cleanup
+    this._tokenOverlays.set(token.id, { token, overlay });
   
-    // Optional: attempt mask-to-art alpha (see note below)
-    if (maskToArt) {
-      try {
-        // Mask must be in the same display tree, and NOT be an ancestor.
-        // Create a mask sprite from the same texture used by the token mesh.
-        const maskSprite = new PIXI.Sprite(mesh.texture);
-        maskSprite.anchor?.set?.(mesh.anchor?.x ?? 0.5, mesh.anchor?.y ?? 0.5);
+    console.log("Clarity debug — overlay ADDED OK:", {
+      token: token.name,
+      tokenChildren: token.children?.length ?? 0,
+      meshIndex,
+      overlayIndex: token.children?.indexOf?.(overlay)
+    });
   
-        // Match overlay's bounds placement
-        // We place it using the same local bounds box, so it aligns to the art area.
-        maskSprite.position.set(b.x + w / 2, b.y + h / 2);
-        maskSprite.width = w;
-        maskSprite.height = h;
-  
-        // Mask sprite should not render
-        maskSprite.renderable = false;
-        maskSprite.name = "clarity-token-overlay-mask";
-  
-        mesh.addChild(maskSprite);
-        overlay.mask = maskSprite;
-  
-        console.log("Clarity debug — maskToArt enabled, maskSprite added");
-      } catch (e) {
-        console.warn("Clarity debug — maskToArt failed, continuing without mask", e);
-      }
-    }
-  
-    // Store reference for cleanup
-    this._tokenOverlays = this._tokenOverlays || new Map();
-    this._tokenOverlays.set(token.id, { token, overlay, addedAt: Date.now() });
-  
-    console.log("Clarity debug — overlay added OK:", token.name);
-    console.log("Clarity debug — mesh children:", mesh.children?.length);
-    console.log("Clarity debug — overlay index:", mesh.getChildIndex?.(overlay));
+    // DEBUG: if you still see nothing, force an obvious mode for one run
+    // overlay.blendMode = PIXI.BLEND_MODES.NORMAL;
+    // overlay.alpha = 1.0;
   }
-  
   
   
       
@@ -390,15 +368,41 @@ static async _addTokenOverlay(
      * Remove hatched overlay from a token
      * Based on the provided code pattern
      */
+    
+
+
+    /**
+     * Remove hatched overlay from a token
+     */
     static _removeTokenOverlay(token) {
-        const mesh = token.mesh;
-        if (!mesh) return;
-        
-        const overlay = mesh.getChildByName("clarity-token-overlay");
-        if (!overlay) return;
-        
-        overlay.destroy({ children: true });
-    }
+        if (!token) return;
+      
+        const overlay = token.getChildByName?.("clarity-token-overlay");
+        if (overlay) {
+          try {
+            token.removeChild(overlay);
+            overlay.destroy({ children: true, texture: false, baseTexture: false });
+          } catch (e) {}
+        }
+      
+        const mask = token.getChildByName?.("clarity-token-overlay-mask");
+        if (mask) {
+          try {
+            token.removeChild(mask);
+            mask.destroy({ children: true, texture: false, baseTexture: false });
+          } catch (e) {}
+        }
+      
+        this._tokenOverlays.delete(token.id);
+      }
+      
+  
+
+
+
+
+
+
     
     /**
      * Remove all token overlays and restore original visibility
@@ -443,6 +447,95 @@ static async _addTokenOverlay(
         this._tokenVisibilityOverrides.clear();
     }
     
+
+
+
+
+
+
+
+    static _normalizeBlendMode(blendMode) {
+        if (typeof blendMode === "number") return blendMode;
+      
+        if (typeof blendMode === "string") {
+          const key = blendMode.trim().toLowerCase();
+          const map = {
+            multiply: PIXI.BLEND_MODES.MULTIPLY,
+            normal: PIXI.BLEND_MODES.NORMAL,
+            screen: PIXI.BLEND_MODES.SCREEN,
+            overlay: PIXI.BLEND_MODES.OVERLAY,
+            add: PIXI.BLEND_MODES.ADD
+          };
+          return map[key] ?? PIXI.BLEND_MODES.MULTIPLY;
+        }
+      
+        return PIXI.BLEND_MODES.MULTIPLY;
+      }
+      
+      static async _loadTexture(src) {
+        // Foundry-friendly texture loading
+        return await loadTexture(src);
+      }
+      
+      static _getWorldScale(obj) {
+        const wt = obj.worldTransform;
+        const sx = Math.hypot(wt.a, wt.b);
+        const sy = Math.hypot(wt.c, wt.d);
+        return { sx, sy };
+      }
+      
+      static _createBoundsMask(mesh, b) {
+        const g = new PIXI.Graphics();
+        g.beginFill(0xffffff, 1);
+        g.drawRect(b.x, b.y, b.width, b.height);
+        g.endFill();
+        mesh.addChild(g);
+        return g;
+      }
+      
+      /**
+       * Best-effort art alpha mask.
+       * This can’t be perfect across every token mesh setup, so it falls back to bounds.
+       */
+      static _tryCreateArtAlphaMask(mesh, b) {
+        // Try a few common places to find a sprite/texture
+        const tex =
+          mesh.texture ??
+          mesh?.primary?.texture ??
+          mesh?.children?.find?.(c => c?.texture)?.texture ??
+          null;
+      
+        if (!tex) return null;
+      
+        const s = new PIXI.Sprite(tex);
+        s.position.set(b.x, b.y);
+        s.width = b.width;
+        s.height = b.height;
+      
+        // Keep it from drawing while still usable as a mask (implementation varies, but this is safe enough)
+        s.renderable = false;
+      
+        mesh.addChild(s);
+        return s;
+      }
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     /**
      * Handle scene changes - deactivate clarity mode when scene changes
      */
