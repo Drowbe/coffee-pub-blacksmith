@@ -119,16 +119,6 @@ export class QuickViewUtility {
       // Update scene darkness (await to ensure it completes)
       await canvas.scene.update({ darkness: newDarkness });
 
-      // Refresh perception to apply the brightness change
-      // Use a safe call without unsupported render flags
-      if (canvas.perception) {
-        if (typeof canvas.perception.refresh === 'function') {
-          await canvas.perception.refresh();
-        } else if (typeof canvas.perception.update === 'function') {
-          await canvas.perception.update();
-        }
-      }
-
       // Verify the change took effect
       const actualDarkness = canvas.scene.darkness;
       console.log('Clarity debug — darkness after update:', actualDarkness);
@@ -153,15 +143,6 @@ export class QuickViewUtility {
 
       // Restore original darkness
       await canvas.scene.update({ darkness: this._originalBrightness });
-
-      // Refresh perception to apply the change
-      if (canvas.perception) {
-        if (typeof canvas.perception.refresh === 'function') {
-          await canvas.perception.refresh();
-        } else if (typeof canvas.perception.update === 'function') {
-          await canvas.perception.update();
-        }
-      }
 
       this._originalBrightness = null;
     } catch (error) {
@@ -451,8 +432,10 @@ export class QuickViewUtility {
       }
     });
 
-    Hooks.on('controlToken', () => {
+    Hooks.on('controlToken', async () => {
       if (this._isActive) {
+        // Reapply brightness so the scene stays bright even when a token is selected
+        await this._applyBrightness();
         this._hideAllTokens();
         this._showAllTokens();
       }
