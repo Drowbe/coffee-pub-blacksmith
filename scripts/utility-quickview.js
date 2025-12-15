@@ -14,6 +14,8 @@ export class QuickViewUtility {
   static _originalBrightness = null;
   static _originalFogExplored = null;
   static _originalFogOpacity = undefined;
+  static _originalTokenVision = null;
+  static _originalGlobalLight = null;
 
   static _tokenOverlays = new Map();
 
@@ -53,6 +55,9 @@ export class QuickViewUtility {
       // Apply brightness increase (always-on, regardless of token selection)
       await this._applyBrightness();
 
+      // Allow GM to see the whole scene (disable token-only vision)
+      this._applyTokenVisionOverride();
+
       // Make fog more transparent
       this._applyFogTransparency();
 
@@ -75,6 +80,9 @@ export class QuickViewUtility {
     try {
       // Restore original brightness
       await this._restoreBrightness();
+
+      // Restore token vision requirement
+      this._restoreTokenVisionOverride();
 
       // Restore fog opacity
       this._restoreFogTransparency();
@@ -101,30 +109,35 @@ export class QuickViewUtility {
     if (!canvas.scene) return;
 
     try {
-      // Store original darkness if not already stored (scene darkness: 0 = bright, 1 = dark)
-      const currentDarkness = canvas.scene.darkness ?? 0;
-      if (this._originalBrightness === null) {
-        this._originalBrightness = currentDarkness;
-      }
+      // Store original darkness/global light if not already stored
+      const env = canvas.scene.environment ?? {};
+      const currentDarkness = env.darknessLevel ?? 0;
+      const currentGlobalLight = env.globalLight ?? false;
+      if (this._originalBrightness === null) this._originalBrightness = currentDarkness;
+      if (this._originalGlobalLight === null) this._originalGlobalLight = currentGlobalLight;
 
-      // Reduce darkness by 0.5 (clamped to [0, 1]) for a noticeable lift
-      const newDarkness = Math.max(0, Math.min(currentDarkness - 0.5, 1));
+      // Target: lower darkness to at least -0.5 and enable global light so the whole scene is lit for GM
+      const targetDarkness = Math.max(0, Math.min(currentDarkness - 0.5, 1));
+      const targetGlobalLight = true;
 
       console.log('Clarity debug — applying brightness:', {
         original: this._originalBrightness,
         current: currentDarkness,
-        new: newDarkness
+        new: targetDarkness
       });
 
-      // Update scene darkness (await to ensure it completes)
-      await canvas.scene.update({ darkness: newDarkness });
+      // Update scene darkness and enable global light (await to ensure it completes)
+      await canvas.scene.update({
+        "environment.darknessLevel": targetDarkness,
+        "environment.globalLight": targetGlobalLight
+      });
 
       // Verify the change took effect
-      const actualDarkness = canvas.scene.darkness;
+      const actualDarkness = canvas.scene.environment?.darknessLevel;
       console.log('Clarity debug — darkness after update:', actualDarkness);
 
-      if (Math.abs(actualDarkness - newDarkness) > 0.01) {
-        console.warn('Clarity debug — darkness update may not have taken effect. Expected:', newDarkness, 'Got:', actualDarkness);
+      if (Math.abs(actualDarkness - targetDarkness) > 0.01) {
+        console.warn('Clarity debug — darkness update may not have taken effect. Expected:', targetDarkness, 'Got:', actualDarkness);
       }
     } catch (error) {
       console.error('Clarity debug — error applying brightness:', error);
@@ -141,10 +154,15 @@ export class QuickViewUtility {
     try {
       console.log('Clarity debug — restoring darkness:', this._originalBrightness);
 
-      // Restore original darkness
-      await canvas.scene.update({ darkness: this._originalBrightness });
+      // Restore original darkness and global light
+      const restorePayload = { "environment.darknessLevel": this._originalBrightness };
+      if (this._originalGlobalLight !== null) {
+        restorePayload["environment.globalLight"] = this._originalGlobalLight;
+      }
+      await canvas.scene.update(restorePayload);
 
       this._originalBrightness = null;
+      this._originalGlobalLight = null;
     } catch (error) {
       console.error('Clarity debug — error restoring brightness:', error);
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Error restoring brightness', error, false, false);
@@ -193,6 +211,41 @@ export class QuickViewUtility {
   }
 
   // ==================================================================
+  // ===== TOKEN VISION OVERRIDE =====================================
+  // ==================================================================
+
+  /**
+   * Let GM see the whole scene by disabling token-only vision
+   */
+  static _applyTokenVisionOverride() {
+    try {
+      if (!canvas.sight) return;
+      if (this._originalTokenVision === null) {
+        this._originalTokenVision = canvas.sight.tokenVision;
+      }
+      canvas.sight.tokenVision = false;
+      // No explicit refresh call to avoid deprecation warnings; rely on perception updates elsewhere
+    } catch (error) {
+      console.error('Clarity debug — error applying token vision override:', error);
+    }
+  }
+
+  /**
+   * Restore original token-only vision behavior
+   */
+  static _restoreTokenVisionOverride() {
+    try {
+      if (!canvas.sight) return;
+      if (this._originalTokenVision !== null) {
+        canvas.sight.tokenVision = this._originalTokenVision;
+      }
+      this._originalTokenVision = null;
+    } catch (error) {
+      console.error('Clarity debug — error restoring token vision override:', error);
+    }
+  }
+
+  // ==================================================================
   // ===== TOKEN OVERLAY ==============================================
   // ==================================================================
 
@@ -234,7 +287,7 @@ export class QuickViewUtility {
       console.log('Clarity debug — calling _addTokenOverlay for:', token.name);
 
       const opts = {
-        image: 'modules/coffee-pub-blacksmith/images/overlays/overlay-pattern-03.webp',
+        image: 'modules/coffee-pub-blacksmith/images/overlays/overlay-pattern-04.webp',
         // FOR NOW: below the art is the indicator
         above: false,
         rotate: false,
@@ -436,6 +489,8 @@ export class QuickViewUtility {
       if (this._isActive) {
         // Reapply brightness so the scene stays bright even when a token is selected
         await this._applyBrightness();
+        // Keep GM full-scene visibility
+        this._applyTokenVisionOverride();
         this._hideAllTokens();
         this._showAllTokens();
       }
