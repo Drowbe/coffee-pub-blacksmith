@@ -11,11 +11,10 @@ import { postConsoleAndNotification } from './api-core.js';
  */
 export class QuickViewUtility {
   static _isActive = false;
-  static _originalBrightness = null;
   static _originalFogExplored = null;
   static _originalFogOpacity = undefined;
   static _originalTokenVision = null;
-  static _originalGlobalLight = null;
+  static _brightnessFilter = null;
 
   static _tokenOverlays = new Map();
 
@@ -102,43 +101,26 @@ export class QuickViewUtility {
   // ==================================================================
 
   /**
-   * Apply brightness increase to the scene
-   * Increases brightness by 50% (capped at 1.0) and refreshes perception
+   * Apply brightness increase locally (GM-only) using a screen filter.
+   * Does not update the scene, so players are unaffected.
    */
   static async _applyBrightness() {
-    if (!canvas.scene) return;
+    if (!canvas.app?.stage) return;
 
     try {
-      // Store original darkness/global light if not already stored
-      const env = canvas.scene.environment ?? {};
-      const currentDarkness = env.darknessLevel ?? 0;
-      const currentGlobalLight = env.globalLight ?? false;
-      if (this._originalBrightness === null) this._originalBrightness = currentDarkness;
-      if (this._originalGlobalLight === null) this._originalGlobalLight = currentGlobalLight;
+      // If filter already applied, skip
+      if (this._brightnessFilter) return;
 
-      // Target: lower darkness to at least -0.5 and enable global light so the whole scene is lit for GM
-      const targetDarkness = Math.max(0, Math.min(currentDarkness - 0.5, 1));
-      const targetGlobalLight = true;
+      // Create a color matrix filter to brighten the view (local-only)
+      const filter = new PIXI.filters.ColorMatrixFilter();
+      filter.brightness(1.5, false); // 50% brighter, preserve colors
 
-      console.log('Clarity debug — applying brightness:', {
-        original: this._originalBrightness,
-        current: currentDarkness,
-        new: targetDarkness
-      });
+      // Apply to stage filters
+      const existing = canvas.app.stage.filters ?? [];
+      canvas.app.stage.filters = [...existing, filter];
+      this._brightnessFilter = filter;
 
-      // Update scene darkness and enable global light (await to ensure it completes)
-      await canvas.scene.update({
-        "environment.darknessLevel": targetDarkness,
-        "environment.globalLight": targetGlobalLight
-      });
-
-      // Verify the change took effect
-      const actualDarkness = canvas.scene.environment?.darknessLevel;
-      console.log('Clarity debug — darkness after update:', actualDarkness);
-
-      if (Math.abs(actualDarkness - targetDarkness) > 0.01) {
-        console.warn('Clarity debug — darkness update may not have taken effect. Expected:', targetDarkness, 'Got:', actualDarkness);
-      }
+      console.log('Clarity debug — local brightness filter applied (GM-only)');
     } catch (error) {
       console.error('Clarity debug — error applying brightness:', error);
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Error applying brightness', error, false, false);
@@ -146,23 +128,18 @@ export class QuickViewUtility {
   }
 
   /**
-   * Restore original scene brightness
+   * Restore original brightness (remove local filter)
    */
   static async _restoreBrightness() {
-    if (this._originalBrightness === null || !canvas.scene) return;
+    if (!canvas.app?.stage) return;
 
     try {
-      console.log('Clarity debug — restoring darkness:', this._originalBrightness);
-
-      // Restore original darkness and global light
-      const restorePayload = { "environment.darknessLevel": this._originalBrightness };
-      if (this._originalGlobalLight !== null) {
-        restorePayload["environment.globalLight"] = this._originalGlobalLight;
+      if (this._brightnessFilter) {
+        const filters = canvas.app.stage.filters ?? [];
+        canvas.app.stage.filters = filters.filter(f => f !== this._brightnessFilter);
+        this._brightnessFilter = null;
+        console.log('Clarity debug — local brightness filter removed');
       }
-      await canvas.scene.update(restorePayload);
-
-      this._originalBrightness = null;
-      this._originalGlobalLight = null;
     } catch (error) {
       console.error('Clarity debug — error restoring brightness:', error);
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Error restoring brightness', error, false, false);
