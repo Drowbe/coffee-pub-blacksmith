@@ -175,7 +175,7 @@ export class QuickViewUtility {
       );
 
       const opts = {
-        image: 'modules/coffee-pub-blacksmith/images/overlays/overlay-pattern-01.webp',
+        image: 'modules/coffee-pub-blacksmith/images/overlays/overlay-pattern-03.webp',
         above: true,
         rotate: false,
         blendMode: 'multiply',
