@@ -21,9 +21,9 @@ export class QuickViewUtility {
    * Toggle clarity mode on/off
    * @returns {boolean} New active state
    */
-  static toggle() {
-    if (this._isActive) this.deactivate();
-    else this.activate();
+  static async toggle() {
+    if (this._isActive) await this.deactivate();
+    else await this.activate();
     return this._isActive;
   }
 
@@ -38,7 +38,7 @@ export class QuickViewUtility {
   /**
    * Activate clarity mode
    */
-  static activate() {
+  static async activate() {
     if (!game.user.isGM) {
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Only GMs can use clarity mode', '', false, false);
       return;
@@ -50,28 +50,13 @@ export class QuickViewUtility {
     }
 
     try {
-      // Store original values
-      this._originalBrightness = canvas.scene.brightness;
-      this._originalFogExplored = canvas.scene.fogExplored;
+      // Apply brightness increase (always-on, regardless of token selection)
+      await this._applyBrightness();
 
-      // Increase brightness by 50% (cap at 1.0)
-      const currentBrightness = canvas.scene.brightness || 0;
-      const newBrightness = Math.min(currentBrightness * 1.5, 1.0);
-      canvas.scene.update({ brightness: newBrightness });
+      // Make fog more transparent
+      this._applyFogTransparency();
 
-      // Optional fog tweaks (nice-to-have)
-      if (canvas.fog) {
-        try {
-          if (canvas.fog.layer && canvas.fog.layer.alpha !== undefined) {
-            if (this._originalFogOpacity === undefined) this._originalFogOpacity = canvas.fog.layer.alpha;
-            canvas.fog.layer.alpha = 0.1;
-          }
-        } catch (e) {
-          // do nothing
-        }
-      }
-
-      // Show overlays
+      // Show overlays (only if token is selected)
       this._showAllTokens();
 
       this._isActive = true;
@@ -84,20 +69,17 @@ export class QuickViewUtility {
   /**
    * Deactivate clarity mode
    */
-  static deactivate() {
+  static async deactivate() {
     if (!this._isActive) return;
 
     try {
-      if (this._originalBrightness !== null && canvas.scene) {
-        canvas.scene.update({ brightness: this._originalBrightness });
-        this._originalBrightness = null;
-      }
+      // Restore original brightness
+      await this._restoreBrightness();
 
-      if (this._originalFogOpacity !== undefined && canvas.fog && canvas.fog.layer) {
-        canvas.fog.layer.alpha = this._originalFogOpacity;
-        this._originalFogOpacity = undefined;
-      }
+      // Restore fog opacity
+      this._restoreFogTransparency();
 
+      // Remove token overlays
       this._hideAllTokens();
 
       this._isActive = false;
@@ -106,6 +88,132 @@ export class QuickViewUtility {
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Error deactivating clarity mode', error, false, true);
     }
   }
+
+  // ==================================================================
+  // ===== BRIGHTNESS MANAGEMENT ======================================
+  // ==================================================================
+
+  /**
+   * Apply brightness increase to the scene
+   * Increases brightness by 50% (capped at 1.0) and refreshes perception
+   */
+  static async _applyBrightness() {
+    if (!canvas.scene) return;
+
+    try {
+      // Store original darkness if not already stored (scene darkness: 0 = bright, 1 = dark)
+      const currentDarkness = canvas.scene.darkness ?? 0;
+      if (this._originalBrightness === null) {
+        this._originalBrightness = currentDarkness;
+      }
+
+      // Reduce darkness by 0.5 (clamped to [0, 1]) for a noticeable lift
+      const newDarkness = Math.max(0, Math.min(currentDarkness - 0.5, 1));
+
+      console.log('Clarity debug — applying brightness:', {
+        original: this._originalBrightness,
+        current: currentDarkness,
+        new: newDarkness
+      });
+
+      // Update scene darkness (await to ensure it completes)
+      await canvas.scene.update({ darkness: newDarkness });
+
+      // Refresh perception to apply the brightness change
+      // Use a safe call without unsupported render flags
+      if (canvas.perception) {
+        if (typeof canvas.perception.refresh === 'function') {
+          await canvas.perception.refresh();
+        } else if (typeof canvas.perception.update === 'function') {
+          await canvas.perception.update();
+        }
+      }
+
+      // Verify the change took effect
+      const actualDarkness = canvas.scene.darkness;
+      console.log('Clarity debug — darkness after update:', actualDarkness);
+
+      if (Math.abs(actualDarkness - newDarkness) > 0.01) {
+        console.warn('Clarity debug — darkness update may not have taken effect. Expected:', newDarkness, 'Got:', actualDarkness);
+      }
+    } catch (error) {
+      console.error('Clarity debug — error applying brightness:', error);
+      postConsoleAndNotification(MODULE.NAME, 'Quick View: Error applying brightness', error, false, false);
+    }
+  }
+
+  /**
+   * Restore original scene brightness
+   */
+  static async _restoreBrightness() {
+    if (this._originalBrightness === null || !canvas.scene) return;
+
+    try {
+      console.log('Clarity debug — restoring darkness:', this._originalBrightness);
+
+      // Restore original darkness
+      await canvas.scene.update({ darkness: this._originalBrightness });
+
+      // Refresh perception to apply the change
+      if (canvas.perception) {
+        if (typeof canvas.perception.refresh === 'function') {
+          await canvas.perception.refresh();
+        } else if (typeof canvas.perception.update === 'function') {
+          await canvas.perception.update();
+        }
+      }
+
+      this._originalBrightness = null;
+    } catch (error) {
+      console.error('Clarity debug — error restoring brightness:', error);
+      postConsoleAndNotification(MODULE.NAME, 'Quick View: Error restoring brightness', error, false, false);
+    }
+  }
+
+  // ==================================================================
+  // ===== FOG MANAGEMENT ============================================
+  // ==================================================================
+
+  /**
+   * Make fog of war more transparent (10% opacity)
+   */
+  static _applyFogTransparency() {
+    if (!canvas.fog) return;
+
+    try {
+      if (canvas.fog.layer && canvas.fog.layer.alpha !== undefined) {
+        // Store original opacity if not already stored
+        if (this._originalFogOpacity === undefined) {
+          this._originalFogOpacity = canvas.fog.layer.alpha;
+        }
+        // Make fog nearly transparent
+        canvas.fog.layer.alpha = 0.1;
+        console.log('Clarity debug — fog opacity set to 0.1 (original:', this._originalFogOpacity, ')');
+      }
+    } catch (error) {
+      console.error('Clarity debug — error applying fog transparency:', error);
+      // Don't block activation if fog manipulation fails
+    }
+  }
+
+  /**
+   * Restore original fog opacity
+   */
+  static _restoreFogTransparency() {
+    if (this._originalFogOpacity === undefined || !canvas.fog || !canvas.fog.layer) return;
+
+    try {
+      canvas.fog.layer.alpha = this._originalFogOpacity;
+      console.log('Clarity debug — fog opacity restored to:', this._originalFogOpacity);
+      this._originalFogOpacity = undefined;
+    } catch (error) {
+      console.error('Clarity debug — error restoring fog transparency:', error);
+    }
+  }
+
+  // ==================================================================
+  // ===== TOKEN OVERLAY ==============================================
+  // ==================================================================
 
   /**
    * Show all tokens with hatched overlay
@@ -373,7 +481,7 @@ export class QuickViewUtility {
    * @returns {string} Button title
    */
   static getTitle() {
-    return this._isActive ? 'Clarity Mode: ON' : 'Clarity Mode: OFF';
+    return this._isActive ? 'ON' : 'OFF';
   }
 
   // ==================================================================

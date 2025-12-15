@@ -889,8 +889,8 @@ class MenuBar {
             active: () => {
                 return QuickViewUtility.isActive();
             },
-            onClick: () => {
-                QuickViewUtility.toggle();
+            onClick: async () => {
+                await QuickViewUtility.toggle();
                 // Refresh menubar to update icon and active state
                 MenuBar.renderMenubar();
             }
