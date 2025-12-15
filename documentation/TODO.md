@@ -610,6 +610,14 @@
 ### V13 QOL 
 - **FUTURE**: Remember chat state between sessions
 
+### Clarity / Quickview (GM-only vision aid)
+- [ ] Verify a player client sees no change when GM toggles clarity (brightness, fog, overlays unaffected)
+- [ ] Decide overlay behavior with no token selected (keep current “only when selected” vs always-on)
+- [ ] Confirm 10% fog opacity feels right; adjust if needed and ensure restore on deactivate/scene change
+- [ ] Sanity check lifecycle: deactivate and scene change leave no lingering filters or overrides; test after reload
+- [ ] Remove clarity debug logging once behavior is final
+- [ ] Add changelog entry for GM-only local brightness filter + token vision override (v13.0.5+)
+
 
 ## ARCHITECTURAL CONCERNS
 
