@@ -58,7 +58,7 @@ export class CompendiumManager {
             'feature': 'numCompendiumsFeature',
             'actor': 'numCompendiumsActor'
         };
-        const numCompendiums = game.settings.get(MODULE.ID, numSettingMap[type]) || 1;
+        const numCompendiums = game.settings.get(MODULE.ID, numSettingMap[type]) ?? 1;
 
         for (let i = 1; i <= numCompendiums; i++) {
             const settingKey = `${mappedType.compendium}Compendium${i}`;

@@ -68,8 +68,8 @@ export class JournalTools {
      */
     static getCompendiumSettingKeys(type) {
         const numCompendiums = type === 'actor' 
-            ? (game.settings.get(MODULE.ID, 'numCompendiumsActor') || 1)
-            : (game.settings.get(MODULE.ID, 'numCompendiumsItem') || 1);
+            ? (game.settings.get(MODULE.ID, 'numCompendiumsActor') ?? 1)
+            : (game.settings.get(MODULE.ID, 'numCompendiumsItem') ?? 1);
         
         const prefix = type === 'actor' ? 'monsterCompendium' : 'itemCompendium';
         const keys = [];

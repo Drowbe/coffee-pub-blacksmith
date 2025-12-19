@@ -399,7 +399,7 @@ function registerDynamicCompendiumTypes() {
                 config: true,
                 scope: 'world',
                 default: 1,
-                range: { min: 1, max: 20 },
+                range: { min: 0, max: 15, step: 1 },
                 requiresReload: true,
                 group: WORKFLOW_GROUPS.MANAGE_CONTENT
             });
@@ -434,7 +434,7 @@ function registerDynamicCompendiumTypes() {
         }
         
         // Register compendium priority settings
-        const numCompendiums = game.settings.get(MODULE.ID, numSetting) || 1;
+        const numCompendiums = game.settings.get(MODULE.ID, numSetting) ?? 1;
         for (let i = 1; i <= numCompendiums; i++) {
             const settingKey = `${settingPrefix}${i}`;
             
@@ -481,7 +481,7 @@ export function buildSelectedCompendiumArrays() {
             continue; // Skip if settings not registered yet
         }
         
-        const numCompendiums = game.settings.get(MODULE.ID, numSetting) || 1;
+        const numCompendiums = game.settings.get(MODULE.ID, numSetting) ?? 1;
         const selected = [];
         
         for (let i = 1; i <= numCompendiums; i++) {
@@ -2743,7 +2743,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
 
-	// -- Default Image Path --
+	// -- Default Image Path (with FilePicker) --
 	game.settings.register(MODULE.ID, 'narrativeDefaultImagePath', {
 		name: MODULE.ID + '.narrativeDefaultImagePath-Label',
 		hint: MODULE.ID + '.narrativeDefaultImagePath-Hint',
@@ -2752,6 +2752,7 @@ export const registerSettings = () => {
 		requiresReload: false,
 		type: String,
 		default: '',
+		filePicker: true,  // Enable FilePicker for image file selection
 		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
 
@@ -2915,7 +2916,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
 
-	// -- Default Encounter Image Path --
+	// -- Default Encounter Image Path (with FilePicker) --
 	game.settings.register(MODULE.ID, 'encounterDefaultImagePath', {
 		name: MODULE.ID + '.encounterDefaultImagePath-Label',
 		hint: MODULE.ID + '.encounterDefaultImagePath-Hint',
@@ -2924,6 +2925,7 @@ export const registerSettings = () => {
 		requiresReload: false,
 		type: String,
 		default: '',
+		filePicker: true,  // Enable FilePicker for image file selection
 		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
 
@@ -3411,7 +3413,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('DeadExperience', 'headingH3DeadExperience-Label', 'headingH3DeadExperience-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
-	// Dead Token Image Path (NPC/Monster)
+	// Dead Token Image Path (NPC/Monster) (with FilePicker)
 	game.settings.register(MODULE.ID, 'deadTokenImagePath', {
 		name: MODULE.ID + '.deadTokenImagePath-Label',
 		hint: MODULE.ID + '.deadTokenImagePath-Hint',
@@ -3420,6 +3422,7 @@ export const registerSettings = () => {
 		type: String,
 		default: 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-npc.webp',
 		requiresReload: false,
+		filePicker: true,  // Enable FilePicker for image file selection
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
@@ -3435,7 +3438,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
-	// Dead Token Image Path (Player Character)
+	// Dead Token Image Path (Player Character) (with FilePicker)
 	game.settings.register(MODULE.ID, 'deadTokenImagePathPC', {
 		name: MODULE.ID + '.deadTokenImagePathPC-Label',
 		hint: MODULE.ID + '.deadTokenImagePathPC-Hint',
@@ -3444,6 +3447,7 @@ export const registerSettings = () => {
 		type: String,
 		default: 'modules/coffee-pub-blacksmith/images/tokens/death/pog-round-pc.webp',
 		requiresReload: false,
+		filePicker: true,  // Enable FilePicker for image file selection
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
@@ -3511,7 +3515,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
-	// -- Loot Pile Image --
+	// -- Loot Pile Image (with FilePicker) --
 	game.settings.register(MODULE.ID, 'tokenLootPileImage', {
 		name: MODULE.ID + '.tokenLootPileImage-Label',
 		hint: MODULE.ID + '.tokenLootPileImage-Hint',
@@ -3520,6 +3524,7 @@ export const registerSettings = () => {
         type: String,
 		requiresReload: false,
         default: 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-loot-sack.webp',
+		filePicker: true,  // Enable FilePicker for image file selection
 		group: WORKFLOW_GROUPS.AUTOMATION
     });
 

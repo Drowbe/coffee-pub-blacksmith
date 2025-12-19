@@ -2787,7 +2787,7 @@ function getWorldItemsList() {
 // Helper to get comma-delimited list of selected item compendium IDs
 function getItemCompendiumsList() {
   try {
-    const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsItem') || 1;
+    const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsItem') ?? 1;
     const compendiums = [];
     
     for (let i = 1; i <= numCompendiums; i++) {
@@ -2807,7 +2807,7 @@ function getItemCompendiumsList() {
 // Helper to get comma-delimited list of selected actor compendium IDs
 function getActorCompendiumsList() {
   try {
-    const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsActor') || 1;
+    const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsActor') ?? 1;
     const compendiums = [];
     
     for (let i = 1; i <= numCompendiums; i++) {
@@ -2827,7 +2827,7 @@ function getActorCompendiumsList() {
 // Helper to get formatted list of items from all selected item compendiums
 async function getCompendiumItemsList() {
   try {
-    const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsItem') || 1;
+    const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsItem') ?? 1;
     const compendiumItems = [];
     
     for (let i = 1; i <= numCompendiums; i++) {
@@ -2867,7 +2867,7 @@ async function getCompendiumItemsList() {
 // Helper to get formatted list of actors from all selected actor compendiums
 async function getCompendiumActorsList() {
   try {
-    const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsActor') || 1;
+    const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsActor') ?? 1;
     const compendiumActors = [];
     
     for (let i = 1; i <= numCompendiums; i++) {
