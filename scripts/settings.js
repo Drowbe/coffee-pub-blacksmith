@@ -4214,7 +4214,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('TokenImageReplacementConfiguration', 'headingH3TokenImageReplacementConfiguration-Label', 'headingH3TokenImageReplacementConfiguration-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
-	// Image Replacement Folder
+	// Image Replacement Folder (with FilePicker)
 	game.settings.register(MODULE.ID, 'tokenImageReplacementPath', {
 		name: MODULE.ID + '.tokenImageReplacementPath-Label',
 		hint: MODULE.ID + '.tokenImageReplacementPath-Hint',
@@ -4223,6 +4223,7 @@ export const registerSettings = () => {
 		requiresReload: false,
 		scope: 'world',
 		default: '',
+		filePicker: 'folder',  // Enable FilePicker for folder selection
 		onChange: (value) => {
 			// Trigger cache rebuild when path changes
 			if (value && game.modules.get(MODULE.ID)?.active) {
