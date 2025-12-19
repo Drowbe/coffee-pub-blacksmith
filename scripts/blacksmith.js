@@ -39,7 +39,7 @@ import {
     copyToClipboard 
 } from './common.js';
 // -- Import special page variables --
-import { registerSettings, buildSelectedCompendiumArrays, getTokenImageReplacementCacheStats } from './settings.js';
+import { registerSettings, buildSelectedCompendiumArrays, getTokenImageReplacementCacheStats, reorderCompendiumsForType, extractTypeFromCompendiumSetting } from './settings.js';
 import { BlacksmithWindowQuery } from './window-query.js';
 import { BlacksmithLayer } from './canvas-layer.js';
 import { addToolbarButton } from './manager-toolbar.js';
@@ -696,6 +696,14 @@ Hooks.once('init', async function() {
                 // Match any numCompendiums* setting, any *Compendium{number} setting, or searchWorld*First/Last settings
                 const compendiumSettingPattern = /^(numCompendiums|.+Compendium\d+|searchWorld.+First|searchWorld.+Last)$/;
                 if (compendiumSettingPattern.test(settingKey)) {
+                    // If this is a compendium priority setting (e.g., "actorCompendium1"), trigger reordering
+                    const type = extractTypeFromCompendiumSetting(settingKey);
+                    if (type) {
+                        // Use setTimeout to avoid race conditions and ensure setting is saved
+                        setTimeout(async () => {
+                            await reorderCompendiumsForType(type);
+                        }, 200);
+                    }
                     buildSelectedCompendiumArrays();
                 }
                 

@@ -297,6 +297,136 @@ function getNumCompendiumsSettingName(type) {
     return `numCompendiums${type}`;
 }
 
+// Track reordering in progress to prevent recursive calls
+const _reorderingInProgress = new Set();
+
+/**
+ * Extract compendium type from a setting key (e.g., "actorCompendium1" → "Actor")
+ * @param {string} settingKey - Setting key like "actorCompendium1" or "itemCompendium2"
+ * @returns {string|null} Foundry compendium type or null if not a compendium setting
+ */
+export function extractTypeFromCompendiumSetting(settingKey) {
+    // Match pattern: {type}Compendium{number}
+    const match = settingKey.match(/^(.+?)Compendium\d+$/);
+    if (!match) {
+        return null;
+    }
+    
+    const typeLower = match[1];
+    // Convert to proper case: "actor" → "Actor", "journalEntry" → "JournalEntry"
+    const firstChar = typeLower.charAt(0).toUpperCase();
+    const rest = typeLower.slice(1);
+    const type = firstChar + rest;
+    
+    // Return the type - validation will happen in reorderCompendiumsForType
+    return type;
+}
+
+/**
+ * Reorder compendiums for a type so configured ones come first, "none" ones last
+ * This shifts configured compendiums up and moves "none" values to the end
+ * @param {string} type - Foundry compendium type
+ */
+export async function reorderCompendiumsForType(type) {
+    // Prevent recursive calls
+    if (_reorderingInProgress.has(type)) {
+        console.log(`[Blacksmith] Reordering already in progress for ${type}, skipping`);
+        return;
+    }
+    
+    _reorderingInProgress.add(type);
+    
+    try {
+    const numSetting = getNumCompendiumsSettingName(type);
+    const settingPrefix = getCompendiumSettingPrefix(type);
+    
+    // Check if setting exists
+    if (!game.settings.settings.has(`${MODULE.ID}.${numSetting}`)) {
+        console.log(`[Blacksmith] No numCompendiums setting found for ${type}`);
+        return;
+    }
+    
+    const numCompendiums = game.settings.get(MODULE.ID, numSetting) ?? 1;
+    if (numCompendiums === 0) {
+        console.log(`[Blacksmith] No compendiums to reorder for ${type}`);
+        return; // No compendiums to reorder
+    }
+    
+    // Collect all compendium values in current order
+    const currentValues = [];
+    for (let i = 1; i <= numCompendiums; i++) {
+        const settingKey = `${settingPrefix}${i}`;
+        if (game.settings.settings.has(`${MODULE.ID}.${settingKey}`)) {
+            const value = game.settings.get(MODULE.ID, settingKey) || 'none';
+            currentValues.push(value);
+        } else {
+            currentValues.push('none');
+        }
+    }
+    
+    console.log(`[Blacksmith] Reordering ${type}: current values:`, currentValues);
+    
+    // Separate configured from "none"
+    const configured = currentValues.filter(v => v && v !== 'none' && v !== '');
+    const none = currentValues.filter(v => !v || v === 'none' || v === '');
+    
+    console.log(`[Blacksmith] Configured:`, configured, `None:`, none);
+    
+    // Check if reordering is needed (if any "none" appears before a configured one)
+    let needsReorder = false;
+    let firstNoneIndex = -1;
+    let lastConfiguredIndex = -1;
+    
+    for (let i = 0; i < currentValues.length; i++) {
+        if (currentValues[i] && currentValues[i] !== 'none' && currentValues[i] !== '') {
+            lastConfiguredIndex = i;
+            if (firstNoneIndex !== -1) {
+                needsReorder = true;
+                break;
+            }
+        } else {
+            if (firstNoneIndex === -1) {
+                firstNoneIndex = i;
+            }
+        }
+    }
+    
+    // Also check if last configured comes after first none
+    if (!needsReorder && firstNoneIndex !== -1 && lastConfiguredIndex !== -1) {
+        needsReorder = firstNoneIndex < lastConfiguredIndex;
+    }
+    
+    console.log(`[Blacksmith] Needs reorder:`, needsReorder, `firstNoneIndex:`, firstNoneIndex, `lastConfiguredIndex:`, lastConfiguredIndex);
+    
+    if (!needsReorder) {
+        console.log(`[Blacksmith] ${type} already in correct order, skipping`);
+        return; // Already in correct order
+    }
+    
+    // Build new order: configured first, then none
+    const newValues = [...configured, ...none];
+    
+    console.log(`[Blacksmith] New order for ${type}:`, newValues);
+    
+    // Update all settings (even if value didn't change, to ensure consistency)
+    for (let i = 0; i < numCompendiums; i++) {
+        const settingKey = `${settingPrefix}${i + 1}`;
+        const newValue = newValues[i] || 'none';
+        const currentValue = game.settings.get(MODULE.ID, settingKey) || 'none';
+        
+        // Only update if value actually changed
+        if (currentValue !== newValue) {
+            console.log(`[Blacksmith] Updating ${settingKey}: "${currentValue}" → "${newValue}"`);
+            await game.settings.set(MODULE.ID, settingKey, newValue);
+        }
+    }
+    
+    console.log(`[Blacksmith] Finished reordering ${type}`);
+    } finally {
+        _reorderingInProgress.delete(type);
+    }
+}
+
 /**
  * Get choices array key for a compendium type
  * @param {string} type - Foundry compendium type
@@ -451,6 +581,16 @@ function registerDynamicCompendiumTypes() {
                 requiresReload: false,
                 default: "none",
                 choices: BLACKSMITH[choicesKey] || {"none": "-- None --"},
+                onChange: async (value) => {
+                    // Reorder compendiums when one is changed to "none" or configured
+                    // Use setTimeout to avoid race conditions with multiple simultaneous changes
+                    // and to ensure the setting has been saved before we read all values
+                    setTimeout(async () => {
+                        await reorderCompendiumsForType(type);
+                        // Rebuild arrays after reordering
+                        buildSelectedCompendiumArrays();
+                    }, 150);
+                },
                 group: WORKFLOW_GROUPS.MANAGE_CONTENT
             });
         }
