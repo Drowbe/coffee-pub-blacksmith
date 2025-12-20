@@ -330,7 +330,6 @@ export function extractTypeFromCompendiumSetting(settingKey) {
 export async function reorderCompendiumsForType(type) {
     // Prevent recursive calls
     if (_reorderingInProgress.has(type)) {
-        console.log(`[Blacksmith] Reordering already in progress for ${type}, skipping`);
         return;
     }
     
@@ -342,13 +341,11 @@ export async function reorderCompendiumsForType(type) {
     
     // Check if setting exists
     if (!game.settings.settings.has(`${MODULE.ID}.${numSetting}`)) {
-        console.log(`[Blacksmith] No numCompendiums setting found for ${type}`);
         return;
     }
     
     const numCompendiums = game.settings.get(MODULE.ID, numSetting) ?? 1;
     if (numCompendiums === 0) {
-        console.log(`[Blacksmith] No compendiums to reorder for ${type}`);
         return; // No compendiums to reorder
     }
     
@@ -364,13 +361,9 @@ export async function reorderCompendiumsForType(type) {
         }
     }
     
-    console.log(`[Blacksmith] Reordering ${type}: current values:`, currentValues);
-    
     // Separate configured from "none"
     const configured = currentValues.filter(v => v && v !== 'none' && v !== '');
     const none = currentValues.filter(v => !v || v === 'none' || v === '');
-    
-    console.log(`[Blacksmith] Configured:`, configured, `None:`, none);
     
     // Check if reordering is needed (if any "none" appears before a configured one)
     let needsReorder = false;
@@ -396,17 +389,12 @@ export async function reorderCompendiumsForType(type) {
         needsReorder = firstNoneIndex < lastConfiguredIndex;
     }
     
-    console.log(`[Blacksmith] Needs reorder:`, needsReorder, `firstNoneIndex:`, firstNoneIndex, `lastConfiguredIndex:`, lastConfiguredIndex);
-    
     if (!needsReorder) {
-        console.log(`[Blacksmith] ${type} already in correct order, skipping`);
         return; // Already in correct order
     }
     
     // Build new order: configured first, then none
     const newValues = [...configured, ...none];
-    
-    console.log(`[Blacksmith] New order for ${type}:`, newValues);
     
     // Update all settings (even if value didn't change, to ensure consistency)
     for (let i = 0; i < numCompendiums; i++) {
@@ -416,12 +404,9 @@ export async function reorderCompendiumsForType(type) {
         
         // Only update if value actually changed
         if (currentValue !== newValue) {
-            console.log(`[Blacksmith] Updating ${settingKey}: "${currentValue}" → "${newValue}"`);
             await game.settings.set(MODULE.ID, settingKey, newValue);
         }
     }
-    
-    console.log(`[Blacksmith] Finished reordering ${type}`);
     } finally {
         _reorderingInProgress.delete(type);
     }
@@ -595,6 +580,85 @@ function registerDynamicCompendiumTypes() {
             });
         }
     }
+}
+
+/**
+ * Dynamically register numbered image replacement path settings
+ * Similar to registerDynamicCompendiumTypes() but for image paths
+ */
+function registerImageReplacementPaths() {
+    const numSetting = 'numImageReplacementPaths';
+    
+    // Check if setting exists
+    if (!game.settings.settings.has(`${MODULE.ID}.${numSetting}`)) {
+        return; // numImageReplacementPaths not registered yet
+    }
+    
+    const numPaths = game.settings.get(MODULE.ID, numSetting) ?? 1;
+    
+    // Register numbered path settings (1 to numPaths)
+    for (let i = 1; i <= numPaths; i++) {
+        const settingKey = `tokenImageReplacementPath${i}`;
+        
+        // Skip if already registered
+        if (game.settings.settings.has(`${MODULE.ID}.${settingKey}`)) {
+            continue;
+        }
+        
+        game.settings.register(MODULE.ID, settingKey, {
+            name: `${MODULE.ID}.tokenImageReplacementPath${i}-Label`,
+            hint: `${MODULE.ID}.tokenImageReplacementPath${i}-Hint`,
+            type: String,
+            config: true,
+            scope: 'world',
+            default: '',
+            filePicker: 'folder',  // Enable FilePicker for folder selection
+            requiresReload: false,
+            group: WORKFLOW_GROUPS.AUTOMATION
+        });
+    }
+}
+
+/**
+ * Get all configured image replacement paths in priority order
+ * Handles migration from old single path setting
+ * @returns {string[]} Array of configured paths (empty paths filtered out)
+ */
+export function getImagePaths() {
+    const numPaths = game.settings.get(MODULE.ID, 'numImageReplacementPaths') ?? 1;
+    const paths = [];
+    
+    // Migration: Check old single path setting first
+    const oldPath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath') || '';
+    if (oldPath && oldPath.trim() !== '') {
+        // Check if first numbered path is empty
+        const firstPath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath1') || '';
+        if (!firstPath || firstPath.trim() === '') {
+            // Migrate old path to new setting
+            game.settings.set(MODULE.ID, 'tokenImageReplacementPath1', oldPath);
+            paths.push(oldPath.trim());
+            // If numPaths > 1, continue to check other paths
+            if (numPaths > 1) {
+                for (let i = 2; i <= numPaths; i++) {
+                    const path = game.settings.get(MODULE.ID, `tokenImageReplacementPath${i}`) || '';
+                    if (path && path.trim() !== '') {
+                        paths.push(path.trim());
+                    }
+                }
+            }
+            return paths;
+        }
+    }
+    
+    // Get all numbered paths
+    for (let i = 1; i <= numPaths; i++) {
+        const path = game.settings.get(MODULE.ID, `tokenImageReplacementPath${i}`) || '';
+        if (path && path.trim() !== '') {
+            paths.push(path.trim());
+        }
+    }
+    
+    return paths;
 }
 
 /**
@@ -4359,23 +4423,32 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('TokenImageReplacementConfiguration', 'headingH3TokenImageReplacementConfiguration-Label', 'headingH3TokenImageReplacementConfiguration-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
-	// Image Replacement Folder (with FilePicker)
+	// Number of Image Replacement Paths (0-15 slider)
+	game.settings.register(MODULE.ID, 'numImageReplacementPaths', {
+		name: MODULE.ID + '.numImageReplacementPaths-Label',
+		hint: MODULE.ID + '.numImageReplacementPaths-Hint',
+		type: Number,
+		config: true,
+		scope: 'world',
+		default: 1,
+		range: { min: 0, max: 15, step: 1 },
+		requiresReload: true,  // Need reload to show/hide path fields
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Register numbered image replacement path settings dynamically
+	registerImageReplacementPaths();
+
+	// Legacy single path setting (kept for backward compatibility and migration)
 	game.settings.register(MODULE.ID, 'tokenImageReplacementPath', {
 		name: MODULE.ID + '.tokenImageReplacementPath-Label',
 		hint: MODULE.ID + '.tokenImageReplacementPath-Hint',
 		type: String,
-		config: true,
+		config: false,  // Hidden - only used for migration
 		requiresReload: false,
 		scope: 'world',
 		default: '',
-		filePicker: 'folder',  // Enable FilePicker for folder selection
-		onChange: (value) => {
-			// Trigger cache rebuild when path changes
-			if (value && game.modules.get(MODULE.ID)?.active) {
-				// We'll implement this in Phase 2
-				console.log('Token image replacement path changed to:', value);
-			}
-		},
+		filePicker: 'folder',
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 

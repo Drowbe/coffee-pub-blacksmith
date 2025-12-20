@@ -8,6 +8,7 @@ import { HookManager } from './manager-hooks.js';
 import { TokenImageReplacementWindow } from './token-image-replacement.js';
 import { TokenImageUtilities } from './token-image-utilities.js';
 import { ImageMatching } from './manager-image-matching.js';
+import { getImagePaths } from './settings.js';
 
 /**
  * Token Image Replacement Cache Management System
@@ -908,9 +909,12 @@ export class ImageCacheManager {
             // Do incremental update if cache exists
             if (choice === 'incremental') {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Starting incremental update...", "", true, false);
-                const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
-                if (basePath) {
-                    await this._doIncrementalUpdate(basePath);
+                const basePaths = getImagePaths();
+                if (basePaths.length > 0) {
+                    // For incremental updates, process each path
+                    for (const basePath of basePaths) {
+                        await this._doIncrementalUpdate(basePath);
+                    }
                 }
                 return;
             }
@@ -926,10 +930,8 @@ export class ImageCacheManager {
         // Reset pause state when scanning
         this.cache.isPaused = false;
         
-        const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
-        if (basePath) {
-            await this._scanFolderStructure(basePath);
-        }
+        // Use getImagePaths() to get all configured paths (or empty array if none)
+        await this._scanFolderStructure(); // Will use getImagePaths() internally
     }
     
     /**
@@ -1140,8 +1142,9 @@ export class ImageCacheManager {
             return;
         }
         
-        const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
-        if (!basePath) {
+        // Get all configured image paths (handles migration from old single path)
+        const basePaths = getImagePaths();
+        if (basePaths.length === 0) {
             return;
         }
         
@@ -1157,8 +1160,10 @@ export class ImageCacheManager {
             // Update the cache status setting for display
             this._updateCacheStatusSetting();
             
-            // Check if we need incremental updates
-            await this._checkForIncrementalUpdates(basePath);
+            // Check if we need incremental updates (use first path for fingerprint check)
+            if (basePaths.length > 0) {
+                await this._checkForIncrementalUpdates(basePaths[0]);
+            }
             
             return;
         }
@@ -1173,14 +1178,15 @@ export class ImageCacheManager {
         
         // Start background scan if no valid cache found and auto-update is enabled
         if (autoUpdate) {
-            await this._scanFolderStructure(basePath);
+            await this._scanFolderStructure(); // Will use getImagePaths() internally
         }
     }
     
     /**
      * Scan the folder structure and build the cache
+     * @param {string|string[]} basePathOrPaths - Single path (for backward compatibility) or array of paths
      */
-    static async _scanFolderStructure(basePath) {
+    static async _scanFolderStructure(basePathOrPaths) {
         if (this.cache.isScanning) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scan already in progress - please wait for it to complete", "", true, false);
             postConsoleAndNotification(MODULE.NAME, "You can check progress in the console above", "", true, false);
@@ -1190,6 +1196,24 @@ export class ImageCacheManager {
         // Check if we were paused
         if (this.cache.isPaused) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scan was paused. Use 'Refresh Cache' to resume.", "", true, false);
+            return;
+        }
+        
+        // Convert single path to array, or use getImagePaths() if not provided
+        let basePaths = [];
+        if (basePathOrPaths) {
+            if (Array.isArray(basePathOrPaths)) {
+                basePaths = basePathOrPaths;
+            } else {
+                basePaths = [basePathOrPaths];
+            }
+        } else {
+            // No path provided, use getImagePaths() to get all configured paths
+            basePaths = getImagePaths();
+        }
+        
+        if (basePaths.length === 0) {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No image paths configured", "", true, false);
             return;
         }
         
@@ -1234,7 +1258,7 @@ export class ImageCacheManager {
         this.cache.overallProgress = 0;
         this.cache.currentStepName = '';
         
-        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Starting folder scan...", "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Starting folder scan across ${basePaths.length} path(s)...`, "", true, false);
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: This may take a few minutes for large token collections...", "", true, false);
         
         try {
@@ -1243,11 +1267,24 @@ export class ImageCacheManager {
                 this.window.updateScanProgress(0, 100, "Starting directory scan...");
             }
             
-            // Use Foundry's FilePicker to get directory contents
-            const files = await this._getDirectoryContents(basePath);
+            // Scan each path in priority order (1, 2, 3, etc.)
+            let totalFiles = 0;
+            for (let pathIndex = 0; pathIndex < basePaths.length; pathIndex++) {
+                const basePath = basePaths[pathIndex];
+                const sourceIndex = pathIndex + 1; // 1-based index (matches setting number)
+                
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Scanning path ${sourceIndex}/${basePaths.length}: ${basePath}`, "", true, false);
+                
+                // Use Foundry's FilePicker to get directory contents for this path
+                const files = await this._getDirectoryContents(basePath, sourceIndex);
+                
+                if (files.length > 0) {
+                    totalFiles += files.length;
+                }
+            }
             
-            if (files.length === 0) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No supported image files found", "", true, false);
+            if (totalFiles === 0) {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No supported image files found in any configured paths", "", true, false);
                 return;
             }
             
@@ -1413,8 +1450,10 @@ export class ImageCacheManager {
     
     /**
      * Get directory contents using Foundry's FilePicker API
+     * @param {string} basePath - Base path to scan
+     * @param {number} sourceIndex - 1-based index of the source path (for priority tracking)
      */
-    static async _getDirectoryContents(basePath) {
+    static async _getDirectoryContents(basePath, sourceIndex = 1) {
         const files = [];
         
         try {
@@ -1432,7 +1471,7 @@ export class ImageCacheManager {
                 
                 const baseFiles = [];
                 for (const filePath of response.files) {
-                    const fileInfo = await this._processFileInfo(filePath, basePath);
+                    const fileInfo = await this._processFileInfo(filePath, basePath, sourceIndex);
                     if (fileInfo) {
                         files.push(fileInfo);
                         baseFiles.push(fileInfo);
@@ -1441,7 +1480,7 @@ export class ImageCacheManager {
                 
                 // Process base directory files into cache immediately
                 if (baseFiles.length > 0) {
-                    await this._processFiles(baseFiles, basePath, false); // Don't clear cache, just add files
+                    await this._processFiles(baseFiles, basePath, false, sourceIndex); // Don't clear cache, just add files
                 }
             }
             
@@ -1511,12 +1550,12 @@ export class ImageCacheManager {
                     }
                     
                     // Progress logging is now handled above
-                    const subDirFiles = await this._scanSubdirectory(subDir, basePath);
+                    const subDirFiles = await this._scanSubdirectory(subDir, basePath, sourceIndex);
                     files.push(...subDirFiles);
                     
                     // Process files into cache immediately so they're available for incremental saves
                     if (subDirFiles.length > 0) {
-                        await this._processFiles(subDirFiles, basePath, false); // Don't clear cache, just add files
+                        await this._processFiles(subDirFiles, basePath, false, sourceIndex); // Don't clear cache, just add files
                         
                         // Save more frequently for large subdirectories (every 500 files)
                         if (this.cache.files.size % 500 === 0 && this.cache.files.size > 0) {
@@ -1570,8 +1609,11 @@ export class ImageCacheManager {
     
     /**
      * Scan a subdirectory recursively
+     * @param {string} subDir - Subdirectory path to scan
+     * @param {string} basePath - Base path for this source folder
+     * @param {number} sourceIndex - 1-based index of the source path (for priority tracking)
      */
-    static async _scanSubdirectory(subDir, basePath) {
+    static async _scanSubdirectory(subDir, basePath, sourceIndex = 1) {
         const files = [];
         
         try {
@@ -1612,7 +1654,7 @@ export class ImageCacheManager {
                         await new Promise(resolve => setTimeout(resolve, 10));
                     }
                     
-                    const fileInfo = await this._processFileInfo(filePath, basePath);
+                    const fileInfo = await this._processFileInfo(filePath, basePath, sourceIndex);
                     if (fileInfo) {
                         files.push(fileInfo);
                     }
@@ -1640,7 +1682,7 @@ export class ImageCacheManager {
                         this.window.updateScanProgress(i + 1, response.dirs.length, statusText);
                     }
                     
-                    const deeperFiles = await this._scanSubdirectory(deeperDir, basePath);
+                    const deeperFiles = await this._scanSubdirectory(deeperDir, basePath, sourceIndex);
                     files.push(...deeperFiles);
                     
                     // Categories will be generated from folder structure when window opens
@@ -1662,8 +1704,11 @@ export class ImageCacheManager {
     
     /**
      * Process file information and filter for supported formats
+     * @param {string} filePath - Full path to the file
+     * @param {string} basePath - Base path for this source folder
+     * @param {number} sourceIndex - 1-based index of the source path (for priority tracking)
      */
-    static async _processFileInfo(filePath, basePath) {
+    static async _processFileInfo(filePath, basePath, sourceIndex = 1) {
         
         // Check if file has supported extension
         const extension = filePath.split('.').pop()?.toLowerCase();
@@ -1702,6 +1747,10 @@ export class ImageCacheManager {
         // Extract metadata from filename and path
         const metadata = ImageCacheManager._extractMetadata(fileName, relativePath);
         
+        // Add source tracking to metadata
+        metadata.sourcePath = basePath;
+        metadata.sourceIndex = sourceIndex;
+        
         
         return {
             name: fileName,
@@ -1737,8 +1786,12 @@ export class ImageCacheManager {
     
     /**
      * Process and categorize files for the cache
+     * @param {Array} files - Array of file info objects
+     * @param {string} basePath - Base path for this source folder
+     * @param {boolean} clearCache - Whether to clear cache before processing
+     * @param {number} sourceIndex - 1-based index of the source path (for priority tracking)
      */
-    static async _processFiles(files, basePath, clearCache = false) {
+    static async _processFiles(files, basePath, clearCache = false, sourceIndex = 1) {
         
         // Only clear existing cache if explicitly requested (for complete rescans)
         if (clearCache) {
@@ -1749,6 +1802,7 @@ export class ImageCacheManager {
         
         let validFiles = 0;
         let skippedFiles = 0;
+        let duplicateFiles = 0;
         
         for (const file of files) {
             // Extract filename and path information
@@ -1763,23 +1817,41 @@ export class ImageCacheManager {
             }
             
             // Validate the full path before storing
-            const fullPath = `${basePath}/${filePath}`;
+            const fullPath = file.fullPath || `${basePath}/${filePath}`;
             if (this._isInvalidFilePath(fullPath)) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Skipping invalid full path: ${fullPath}`, "", true, false);
                 skippedFiles++;
                 continue;
             }
             
-            // Process file info to generate metadata
-            const fileInfo = await this._processFileInfo(fullPath, basePath);
-            if (!fileInfo) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Skipping file that failed processing: ${fullPath}`, "", true, false);
-                skippedFiles++;
-                continue;
+            // Process file info to generate metadata (if not already processed)
+            let fileInfo = file;
+            if (!fileInfo.metadata || !fileInfo.metadata.sourcePath) {
+                fileInfo = await this._processFileInfo(fullPath, basePath, sourceIndex);
+                if (!fileInfo) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Skipping file that failed processing: ${fullPath}`, "", true, false);
+                    skippedFiles++;
+                    continue;
+                }
+            }
+            
+            // Handle duplicate filenames: first path (lower sourceIndex) wins
+            const cacheKey = fileName.toLowerCase();
+            const existingFile = this.cache.files.get(cacheKey);
+            if (existingFile) {
+                // Check if existing file has lower sourceIndex (higher priority)
+                const existingSourceIndex = existingFile.metadata?.sourceIndex || 1;
+                if (existingSourceIndex < sourceIndex) {
+                    // Existing file has higher priority, skip this one
+                    duplicateFiles++;
+                    continue;
+                }
+                // This file has higher priority, replace the existing one
+                duplicateFiles++;
             }
             
             // Store in main files cache with metadata
-            this.cache.files.set(fileName.toLowerCase(), fileInfo);
+            this.cache.files.set(cacheKey, fileInfo);
             
             validFiles++;
             
@@ -1791,7 +1863,11 @@ export class ImageCacheManager {
             this._enhanceFileTagsPostCategorization(fileName, filePath);
         }
         
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache built with ${validFiles} valid files, skipped ${skippedFiles} invalid files`, "", true, false);
+        if (duplicateFiles > 0) {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache built with ${validFiles} valid files, skipped ${skippedFiles} invalid files, ${duplicateFiles} duplicates handled (first path wins)`, "", true, false);
+        } else {
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache built with ${validFiles} valid files, skipped ${skippedFiles} invalid files`, "", true, false);
+        }
     }
     
     /**
@@ -2043,10 +2119,8 @@ export class ImageCacheManager {
      * Refresh the cache
      */
     static async refreshCache() {
-        const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
-        if (basePath) {
-            await this._scanFolderStructure(basePath);
-        }
+        // Use getImagePaths() to get all configured paths
+        await this._scanFolderStructure(); // Will use getImagePaths() internally
     }
     
     
@@ -2054,9 +2128,11 @@ export class ImageCacheManager {
      * Check overall integration status
      */
     static getIntegrationStatus() {
+        const basePaths = getImagePaths();
         const status = {
             featureEnabled: game.settings.get(MODULE.ID, 'tokenImageReplacementEnabled'),
-            basePathConfigured: !!game.settings.get(MODULE.ID, 'tokenImageReplacementPath'),
+            basePathConfigured: basePaths.length > 0,
+            basePaths: basePaths,
             cacheReady: this.cache.files.size > 0,
             hookRegistered: false,
             totalFiles: this.cache.files.size,
@@ -2086,15 +2162,18 @@ export class ImageCacheManager {
      */
     static async _saveCacheToStorage(isIncremental = false) {
         try {
-            const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_saveCacheToStorage) - Retrieved basePath: "${basePath}"`, "", true, false);
+            // Get all configured image paths
+            const basePaths = getImagePaths();
+            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_saveCacheToStorage) - Retrieved ${basePaths.length} path(s)`, "", true, false);
             
             // Only generate fingerprint for final saves, not incremental ones (performance)
+            // For multiple paths, we'll generate a combined fingerprint
             let folderFingerprint = null;
-            if (!isIncremental) {
+            if (!isIncremental && basePaths.length > 0) {
                 try {
-                    // Add timeout to prevent hanging on large directories
-                    const fingerprintPromise = this._generateFolderFingerprint(basePath);
+                    // Generate fingerprint for first path (or combine all if needed)
+                    // For now, use first path for fingerprint (can be enhanced later)
+                    const fingerprintPromise = this._generateFolderFingerprint(basePaths[0]);
                     const timeoutPromise = new Promise((_, reject) => 
                         setTimeout(() => reject(new Error('Fingerprint generation timeout after 30 seconds')), 30000)
                     );
@@ -2115,7 +2194,7 @@ export class ImageCacheManager {
             }
             
             // Build cache data with streaming compression to avoid memory issues
-            const compressedData = await this._buildCompressedCacheData(basePath, folderFingerprint, isIncremental);
+            const compressedData = await this._buildCompressedCacheData(basePaths, folderFingerprint, isIncremental);
             const compressedSizeMB = (new Blob([compressedData]).size / (1024 * 1024)).toFixed(2);
             
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache saved: ${compressedSizeMB}MB (${this.cache.files.size} files)`, "", false, false);
@@ -2148,28 +2227,34 @@ export class ImageCacheManager {
     
     /**
      * Build compressed cache data without creating full JSON in memory
-     * @param {string} basePath - The base path for the cache
+     * @param {string|string[]} basePathOrPaths - Single path (for backward compatibility) or array of paths
      * @param {string} folderFingerprint - The folder fingerprint
      * @param {boolean} isIncremental - Whether this is an incremental save
      * @returns {Promise<string>} Compressed cache data
      */
-    static async _buildCompressedCacheData(basePath, folderFingerprint, isIncremental) {
+    static async _buildCompressedCacheData(basePathOrPaths, folderFingerprint, isIncremental) {
         try {
+            // Convert single path to array for consistency
+            const basePaths = Array.isArray(basePathOrPaths) ? basePathOrPaths : [basePathOrPaths];
+            
             // Build cache data in streaming fashion to avoid memory issues
             let compressedData = '{';
             
             // Add metadata first (small objects)
+            // Store basePaths as array (bp can be string for old caches, array for new)
             const metadata = {
-                v: '1.4',
+                v: '1.5',  // Updated version for multiple paths support
                 ls: this.cache.lastScan || Date.now(),
-                bp: basePath,
+                bp: basePaths,  // Array of paths
                 ff: folderFingerprint,
                 ii: isIncremental,
                 tf: this.cache.totalFiles,
                 ifc: this.cache.ignoredFilesCount || 0
             };
             
-            compressedData += `"v":"${metadata.v}","ls":${metadata.ls},"bp":"${metadata.bp}","ff":"${metadata.ff}","ii":${metadata.ii},"tf":${metadata.tf},"ifc":${metadata.ifc},`;
+            // Serialize basePaths array as JSON string for compression
+            const bpString = JSON.stringify(basePaths);
+            compressedData += `"v":"${metadata.v}","ls":${metadata.ls},"bp":${bpString},"ff":"${metadata.ff}","ii":${metadata.ii},"tf":${metadata.tf},"ifc":${metadata.ifc},`;
             
             // Add files in chunks to avoid memory issues
             compressedData += '"f":[';
@@ -2215,10 +2300,12 @@ export class ImageCacheManager {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Streaming compression failed: ${error.message}. Falling back to standard method.`, "", false, false);
             
             // Fallback to standard method (may still fail on very large caches)
+            // Convert single path to array for consistency
+            const basePaths = Array.isArray(basePathOrPaths) ? basePathOrPaths : [basePathOrPaths];
             const cacheData = {
-                version: '1.4',
+                version: '1.5',  // Updated version for multiple paths support
                 lastScan: this.cache.lastScan || Date.now(),
-                basePath: basePath,
+                basePath: basePaths,  // Array of paths
                 folderFingerprint: folderFingerprint,
                 isIncremental: isIncremental,
                 totalFiles: this.cache.totalFiles,
@@ -2440,12 +2527,31 @@ export class ImageCacheManager {
                 return false;
             }
             
-            // Check if base path changed
-            const currentBasePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
+            // Check if base paths changed (handle both old single path and new array format)
+            const currentBasePaths = getImagePaths();
             const cacheBasePath = cacheData.basePath || cacheData.bp;
-            if (cacheBasePath !== currentBasePath) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Base path changed, will rescan", "", true, false);
+            
+            // Handle old cache format (single string) vs new format (array)
+            let cachePaths = [];
+            if (Array.isArray(cacheBasePath)) {
+                cachePaths = cacheBasePath;
+            } else if (cacheBasePath) {
+                // Old format: single path string
+                cachePaths = [cacheBasePath];
+            }
+            
+            // Compare paths (order matters for priority)
+            if (currentBasePaths.length !== cachePaths.length) {
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Number of paths changed, will rescan", "", true, false);
                 return false;
+            }
+            
+            // Check if any paths changed
+            for (let i = 0; i < currentBasePaths.length; i++) {
+                if (currentBasePaths[i] !== cachePaths[i]) {
+                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Path configuration changed, will rescan", "", true, false);
+                    return false;
+                }
             }
             
             // Check if cache is still valid (less than 30 days old)
@@ -2472,11 +2578,15 @@ export class ImageCacheManager {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Saved cache has invalid fingerprint (${savedFingerprint}), will update cache`, "", false, false);
                     // Don't force rescan, just need to update fingerprint via incremental update
                 } else {
-                const currentFingerprint = await this._generateFolderFingerprint(currentBasePath);
-                    if (savedFingerprint !== currentFingerprint) {
-                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, will rescan", "", true, false);
-                    return false;
-                }
+                    // Use first path for fingerprint check (fingerprint is per-path, but we check first one for now)
+                    const firstPath = currentBasePaths.length > 0 ? currentBasePaths[0] : null;
+                    if (firstPath) {
+                        const currentFingerprint = await this._generateFolderFingerprint(firstPath);
+                        if (savedFingerprint !== currentFingerprint) {
+                            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, will rescan", "", true, false);
+                            return false;
+                        }
+                    }
                 }
             } else if (!cacheData.folderFingerprint && !cacheData.isIncremental) {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Saved cache missing fingerprint (likely from failed scan), cache may be incomplete", "", false, false);
@@ -2484,12 +2594,16 @@ export class ImageCacheManager {
             
             // Check if we need to update the cache
             const autoUpdate = getSettingSafely(MODULE.ID, 'tokenImageReplacementAutoUpdate', false);
-            const needsUpdate = await this._checkForIncrementalUpdates(currentBasePath);
+            const firstPath = currentBasePaths.length > 0 ? currentBasePaths[0] : null;
+            const needsUpdate = firstPath ? await this._checkForIncrementalUpdates(firstPath) : false;
             
             if (needsUpdate && autoUpdate) {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Changes detected, performing automatic incremental update", "", false, false);
                 ui.notifications.info("Token Image Replacement changes detected: Performing incremental update.");
-                await this._doIncrementalUpdate(currentBasePath);
+                // For incremental updates, process each path
+                for (const basePath of currentBasePaths) {
+                    await this._doIncrementalUpdate(basePath);
+                }
                 return true; // Cache was updated, proceed with loaded cache
             } else if (needsUpdate && !autoUpdate) {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Changes detected, manual update needed", "", false, true);
@@ -2635,10 +2749,8 @@ export class ImageCacheManager {
     static async forceRefreshCache() {
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Force refreshing cache...", "", false, false);
         this._clearCacheFromStorage();
-        const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', 'assets/images/tokens');
-        if (basePath) {
-            await this._scanFolderStructure(basePath);
-        }
+        // Use getImagePaths() to get all configured paths
+        await this._scanFolderStructure(); // Will use getImagePaths() internally
     }
     
     /**

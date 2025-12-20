@@ -8,6 +8,7 @@ import { HookManager } from './manager-hooks.js';
 import { ImageCacheManager } from './manager-image-cache.js';
 import { ImageMatching } from './manager-image-matching.js';
 import { TokenImageUtilities } from './token-image-utilities.js';
+import { getImagePaths } from './settings.js';
 
 /**
  * Token Image Replacement Window
@@ -373,8 +374,11 @@ export class TokenImageReplacementWindow extends Application {
             // Extract relative path from fullPath if path is empty
             let path = file.path || '';
             if (!path && file.fullPath) {
-                const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
-                path = file.fullPath.replace(`${basePath}/`, '');
+                // Use sourcePath from metadata if available, otherwise try first configured path
+                const basePath = file.metadata?.sourcePath || (getImagePaths()[0] || '');
+                if (basePath) {
+                    path = file.fullPath.replace(`${basePath}/`, '');
+                }
             }
             const fileName = file.name || '';
             
@@ -2574,8 +2578,11 @@ export class TokenImageReplacementWindow extends Application {
             // Extract relative path from fullPath if path is empty
             let relativePath = fileInfo.path || '';
             if (!relativePath && fileInfo.fullPath) {
-                const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
-                relativePath = fileInfo.fullPath.replace(`${basePath}/`, '');
+                // Use sourcePath from metadata if available, otherwise try first configured path
+                const basePath = fileInfo.metadata?.sourcePath || (getImagePaths()[0] || '');
+                if (basePath) {
+                    relativePath = fileInfo.fullPath.replace(`${basePath}/`, '');
+                }
             }
             
             // First part of relative path is the category
@@ -2619,8 +2626,11 @@ export class TokenImageReplacementWindow extends Application {
                         // Extract relative path from fullPath if path is empty
                         let path = file.path || '';
                         if (!path && file.fullPath) {
-                            const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
-                            path = file.fullPath.replace(`${basePath}/`, '');
+                            // Use sourcePath from metadata if available, otherwise try first configured path
+                            const basePath = file.metadata?.sourcePath || (getImagePaths()[0] || '');
+                            if (basePath) {
+                                path = file.fullPath.replace(`${basePath}/`, '');
+                            }
                         }
                         const fileName = file.name || '';
                         const fileText = `${path} ${fileName}`.toLowerCase();
@@ -2638,8 +2648,11 @@ export class TokenImageReplacementWindow extends Application {
                     // Extract relative path from fullPath if path is empty
                     let path = file.path || '';
                     if (!path && file.fullPath) {
-                        const basePath = getSettingSafely(MODULE.ID, 'tokenImageReplacementPath', '');
-                        path = file.fullPath.replace(`${basePath}/`, '');
+                        // Use sourcePath from metadata if available, otherwise try first configured path
+                        const basePath = file.metadata?.sourcePath || (getImagePaths()[0] || '');
+                        if (basePath) {
+                            path = file.fullPath.replace(`${basePath}/`, '');
+                        }
                     }
                     // First part of relative path is the category
                     const pathParts = path.split('/').filter(p => p);
