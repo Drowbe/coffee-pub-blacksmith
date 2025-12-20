@@ -620,6 +620,62 @@ function registerImageReplacementPaths() {
 }
 
 /**
+ * Dynamically register numbered portrait image replacement path settings
+ * Similar to registerImageReplacementPaths() but for portrait paths
+ */
+function registerPortraitImageReplacementPaths() {
+    const numSetting = 'numPortraitImageReplacementPaths';
+    
+    // Check if setting exists
+    if (!game.settings.settings.has(`${MODULE.ID}.${numSetting}`)) {
+        return; // numPortraitImageReplacementPaths not registered yet
+    }
+    
+    const numPaths = game.settings.get(MODULE.ID, numSetting) ?? 1;
+    
+    // Register numbered path settings (1 to numPaths)
+    for (let i = 1; i <= numPaths; i++) {
+        const settingKey = `portraitImageReplacementPath${i}`;
+        
+        // Skip if already registered
+        if (game.settings.settings.has(`${MODULE.ID}.${settingKey}`)) {
+            continue;
+        }
+        
+        game.settings.register(MODULE.ID, settingKey, {
+            name: `${MODULE.ID}.portraitImageReplacementPath${i}-Label`,
+            hint: `${MODULE.ID}.portraitImageReplacementPath${i}-Hint`,
+            type: String,
+            config: true,
+            scope: 'world',
+            default: '',
+            filePicker: 'folder',  // Enable FilePicker for folder selection
+            requiresReload: false,
+            group: WORKFLOW_GROUPS.AUTOMATION
+        });
+    }
+}
+
+/**
+ * Get all configured portrait image replacement paths in priority order
+ * @returns {string[]} Array of configured paths (empty paths filtered out)
+ */
+export function getPortraitImagePaths() {
+    const numPaths = game.settings.get(MODULE.ID, 'numPortraitImageReplacementPaths') ?? 1;
+    const paths = [];
+    
+    // Get all numbered paths
+    for (let i = 1; i <= numPaths; i++) {
+        const path = game.settings.get(MODULE.ID, `portraitImageReplacementPath${i}`) || '';
+        if (path && path.trim() !== '') {
+            paths.push(path.trim());
+        }
+    }
+    
+    return paths;
+}
+
+/**
  * Get all configured image replacement paths in priority order
  * Handles migration from old single path setting
  * @returns {string[]} Array of configured paths (empty paths filtered out)
@@ -4549,6 +4605,70 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
+	// --------------------------------------
+	// -- H2: Portrait Image Replacement
+	// --------------------------------------
+	registerHeader('PortraitImageReplacement', 'headingH2PortraitImageReplacement-Label', 'headingH2PortraitImageReplacement-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
+
+	// Portrait Image Replacement Enabled
+	game.settings.register(MODULE.ID, 'portraitImageReplacementEnabled', {
+		name: MODULE.ID + '.portraitImageReplacementEnabled-Label',
+		hint: MODULE.ID + '.portraitImageReplacementEnabled-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// --------------------------------------
+	// -- H3: Portrait Image Replacement Configuration
+	// --------------------------------------
+	registerHeader('PortraitImageReplacementConfiguration', 'headingH3PortraitImageReplacementConfiguration-Label', 'headingH3PortraitImageReplacementConfiguration-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+
+	// Number of Portrait Image Replacement Paths (0-15 slider)
+	game.settings.register(MODULE.ID, 'numPortraitImageReplacementPaths', {
+		name: MODULE.ID + '.numPortraitImageReplacementPaths-Label',
+		hint: MODULE.ID + '.numPortraitImageReplacementPaths-Hint',
+		type: Number,
+		config: true,
+		scope: 'world',
+		default: 1,
+		range: { min: 0, max: 15, step: 1 },
+		requiresReload: true,  // Need reload to show/hide path fields
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Register numbered portrait image replacement path settings dynamically
+	registerPortraitImageReplacementPaths();
+
+	// --------------------------------------
+	// -- H2: Portrait Image Replacement Cache
+	// --------------------------------------
+	registerHeader('PortraitImageReplacementCache', 'headingH2PortraitImageReplacementCache-Label', 'headingH2PortraitImageReplacementCache-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
+
+	// Portrait Image Replacement Cache (server-side storage) - HIDDEN SETTING
+	game.settings.register(MODULE.ID, 'portraitImageReplacementCache', {
+		scope: 'world',
+		config: false, // Hidden from users - internal use only
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Last used mode (token or portrait) - HIDDEN SETTING
+	game.settings.register(MODULE.ID, 'tokenImageReplacementLastMode', {
+		scope: 'world',
+		config: false, // Hidden - internal use only
+		type: String,
+		default: 'token',
+		choices: {
+			'token': 'Token',
+			'portrait': 'Portrait'
+		},
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
 
 	// --------------------------------------
 	// -- H3: Image Replacement Data Weights

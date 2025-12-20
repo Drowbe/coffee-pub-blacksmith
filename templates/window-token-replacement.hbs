@@ -44,6 +44,16 @@
                         <label for="fuzzySearch" class="tir-toggle-slider"></label>
                     </div>
                 </div>
+                {{#if portraitEnabled}}
+                <!-- Mode Toggle (Token/Portrait) -->
+                <div class="tir-toggle-container">
+                    <span class="tir-toggle-label">{{#if isTokenMode}}Token{{else}}Portrait{{/if}} Mode</span>
+                    <div class="tir-toggle">
+                        <input type="checkbox" name="modeToggle" id="modeToggle" {{#if isPortraitMode}}checked{{/if}}>
+                        <label for="modeToggle" class="tir-toggle-slider"></label>
+                    </div>
+                </div>
+                {{/if}}
                 <!-- Update Dropped Tokens Toggle -->
                 <div class="tir-toggle-container">
                     <span class="tir-toggle-label">Update Dropped</span>

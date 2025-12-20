@@ -8,7 +8,7 @@ import { HookManager } from './manager-hooks.js';
 import { TokenImageReplacementWindow } from './token-image-replacement.js';
 import { TokenImageUtilities } from './token-image-utilities.js';
 import { ImageMatching } from './manager-image-matching.js';
-import { getImagePaths } from './settings.js';
+import { getImagePaths, getPortraitImagePaths } from './settings.js';
 
 /**
  * Token Image Replacement Cache Management System
@@ -22,7 +22,13 @@ export class ImageCacheManager {
         return foundry.applications.apps.FilePicker.implementation;
     }
     
-    // Cache structure for storing file information
+    // Mode constants
+    static MODES = {
+        TOKEN: 'token',
+        PORTRAIT: 'portrait'
+    };
+    
+    // Cache structure for storing file information (token mode)
     static cache = {
         files: new Map(),           // filename -> full path mapping
         folders: new Map(),         // folder path -> array of files
@@ -44,6 +50,60 @@ export class ImageCacheManager {
         currentFileName: '',       // current file being processed
         ignoredFilesCount: 0       // count of files ignored by ignored words filter
     };
+    
+    // Cache structure for storing file information (portrait mode)
+    static portraitCache = {
+        files: new Map(),           // filename -> full path mapping
+        folders: new Map(),         // folder path -> array of files
+        creatureTypes: new Map(),   // creature type -> array of files
+        categoryIndex: new Map(),   // category -> Set(fileId)
+        tagIndex: new Map(),        // tag -> Set(fileId)
+        lastScan: null,            // timestamp of last scan
+        isScanning: false,         // prevent multiple simultaneous scans
+        isPaused: false,           // pause state for scanning
+        justCompleted: false,      // flag to show completion notification
+        completionData: null,      // data for completion notification
+        totalFiles: 0,             // total count for progress tracking
+        overallProgress: 0,        // current step in overall process
+        totalSteps: 0,             // total steps in overall process
+        currentStepName: '',       // name of current step/folder
+        currentStepProgress: 0,    // current item in current step
+        currentStepTotal: 0,       // total items in current step
+        currentPath: '',           // remaining folder path (e.g., "Creatures | Humanoid")
+        currentFileName: '',       // current file being processed
+        ignoredFilesCount: 0       // count of files ignored by ignored words filter
+    };
+    
+    /**
+     * Get the cache object for the specified mode
+     * @param {string} mode - 'token' or 'portrait'
+     * @returns {Object} The cache object for the specified mode
+     */
+    static getCache(mode = 'token') {
+        return mode === this.MODES.PORTRAIT ? this.portraitCache : this.cache;
+    }
+    
+    /**
+     * Get the cache storage setting key for the specified mode
+     * @param {string} mode - 'token' or 'portrait'
+     * @returns {string} The setting key for the cache
+     */
+    static getCacheSettingKey(mode = 'token') {
+        return mode === this.MODES.PORTRAIT 
+            ? 'portraitImageReplacementCache' 
+            : 'tokenImageReplacementCache';
+    }
+    
+    /**
+     * Get the image paths for the specified mode
+     * @param {string} mode - 'token' or 'portrait'
+     * @returns {string[]} Array of configured paths
+     */
+    static getImagePathsForMode(mode = 'token') {
+        return mode === this.MODES.PORTRAIT 
+            ? getPortraitImagePaths() 
+            : getImagePaths();
+    }
     
     // Supported image formats
     static SUPPORTED_FORMATS = ['.webp', '.png', '.jpg', '.jpeg'];
@@ -728,7 +788,9 @@ export class ImageCacheManager {
         await this._loadtargetedIndicatorEnabled();
         
         // Initialize the caching system immediately since we're already in the ready hook
-        await this._initializeCache();
+        // Initialize both token and portrait caches
+        await this._initializeCache(this.MODES.TOKEN);
+        await this._initializeCache(this.MODES.PORTRAIT);
         
         // Register createToken hook for image replacement
         const createTokenHookId = HookManager.registerHook({
@@ -812,51 +874,53 @@ export class ImageCacheManager {
     /**
      * Clean up invalid file paths from the cache
      */
-    static _cleanupInvalidPaths() {
+    static _cleanupInvalidPaths(mode = 'token') {
+        const cache = this.getCache(mode);
         let cleanedCount = 0;
         const invalidPaths = [];
         
         // Clean up files cache
-        for (const [fileName, fileInfo] of this.cache.files.entries()) {
+        for (const [fileName, fileInfo] of cache.files.entries()) {
             if (this._isInvalidFilePath(fileInfo.fullPath)) {
                 invalidPaths.push(fileInfo.fullPath);
-                this.cache.files.delete(fileName);
+                cache.files.delete(fileName);
                 cleanedCount++;
             }
         }
         
         // Clean up folders cache
-        for (const [folderPath, files] of this.cache.folders.entries()) {
+        for (const [folderPath, files] of cache.folders.entries()) {
             if (!Array.isArray(files)) continue; // Skip if not an array
             const validFiles = files.filter(fileName => {
-                const fileInfo = this.cache.files.get(fileName.toLowerCase());
+                const fileInfo = cache.files.get(fileName.toLowerCase());
                 return fileInfo && !this._isInvalidFilePath(fileInfo.fullPath);
             });
             
             if (validFiles.length !== files.length) {
-                this.cache.folders.set(folderPath, validFiles);
+                cache.folders.set(folderPath, validFiles);
                 cleanedCount += (files.length - validFiles.length);
             }
         }
         
         // Clean up creature types cache
-        for (const [creatureType, files] of this.cache.creatureTypes.entries()) {
+        for (const [creatureType, files] of cache.creatureTypes.entries()) {
             if (!Array.isArray(files)) continue; // Skip if not an array
             const validFiles = files.filter(fileName => {
-                const fileInfo = this.cache.files.get(fileName.toLowerCase());
+                const fileInfo = cache.files.get(fileName.toLowerCase());
                 return fileInfo && !this._isInvalidFilePath(fileInfo.fullPath);
             });
             
             if (validFiles.length !== files.length) {
-                this.cache.creatureTypes.set(creatureType, validFiles);
+                cache.creatureTypes.set(creatureType, validFiles);
                 cleanedCount += (files.length - validFiles.length);
             }
         }
         
         if (cleanedCount > 0) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cleaned up ${cleanedCount} invalid file paths from cache`, "", true, false);
+            const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cleaned up ${cleanedCount} invalid file paths from cache`, "", true, false);
             if (invalidPaths.length > 0) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Invalid paths found: ${invalidPaths.join(', ')}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Invalid paths found: ${invalidPaths.join(', ')}`, "", true, false);
             }
         }
         
@@ -1135,34 +1199,39 @@ export class ImageCacheManager {
     
     /**
      * Initialize the cache system
+     * @param {string} mode - 'token' or 'portrait'
      */
-    static async _initializeCache() {
-        // Only initialize if the feature is enabled
-        if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementEnabled', false)) {
+    static async _initializeCache(mode = 'token') {
+        // Check if feature is enabled for the mode
+        const enabledSetting = mode === this.MODES.PORTRAIT 
+            ? 'portraitImageReplacementEnabled' 
+            : 'tokenImageReplacementEnabled';
+        if (!getSettingSafely(MODULE.ID, enabledSetting, false)) {
             return;
         }
         
-        // Get all configured image paths (handles migration from old single path)
-        const basePaths = getImagePaths();
+        // Get all configured image paths for this mode
+        const basePaths = this.getImagePathsForMode(mode);
         if (basePaths.length === 0) {
             return;
         }
         
         // Try to load cache from storage first
-        if (await this._loadCacheFromStorage()) {
+        if (await this._loadCacheFromStorage(mode)) {
+            const cache = this.getCache(mode);
             // Clean up any invalid paths that might be in the cached data
-            const cleanedCount = this._cleanupInvalidPaths();
+            const cleanedCount = this._cleanupInvalidPaths(mode);
             if (cleanedCount > 0) {
                 // Save the cleaned cache back to storage
-                await this._saveCacheToStorage();
+                await this._saveCacheToStorage(mode);
             }
             
             // Update the cache status setting for display
-            this._updateCacheStatusSetting();
+            this._updateCacheStatusSetting(mode);
             
             // Check if we need incremental updates (use first path for fingerprint check)
             if (basePaths.length > 0) {
-                await this._checkForIncrementalUpdates(basePaths[0]);
+                await this._checkForIncrementalUpdates(basePaths[0], mode);
             }
             
             return;
@@ -1170,36 +1239,41 @@ export class ImageCacheManager {
         
         // No cache found - show appropriate notification
         const autoUpdate = getSettingSafely(MODULE.ID, 'tokenImageReplacementAutoUpdate', false);
+        const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
         if (autoUpdate) {
-            ui.notifications.info("No Token Image Replacement images found. Scanning for images.");
+            ui.notifications.info(`No ${modeLabel} Image Replacement images found. Scanning for images.`);
         } else {
-            ui.notifications.info("No Token Image Replacement images found. You need to scan for images before replacements will work.");
+            ui.notifications.info(`No ${modeLabel} Image Replacement images found. You need to scan for images before replacements will work.`);
         }
         
         // Start background scan if no valid cache found and auto-update is enabled
         if (autoUpdate) {
-            await this._scanFolderStructure(); // Will use getImagePaths() internally
+            await this._scanFolderStructure(mode); // Will use getImagePathsForMode() internally
         }
     }
     
     /**
      * Scan the folder structure and build the cache
+     * @param {string} mode - 'token' or 'portrait'
      * @param {string|string[]} basePathOrPaths - Single path (for backward compatibility) or array of paths
      */
-    static async _scanFolderStructure(basePathOrPaths) {
-        if (this.cache.isScanning) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scan already in progress - please wait for it to complete", "", true, false);
+    static async _scanFolderStructure(mode = 'token', basePathOrPaths = null) {
+        const cache = this.getCache(mode);
+        const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
+        
+        if (cache.isScanning) {
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Scan already in progress - please wait for it to complete`, "", true, false);
             postConsoleAndNotification(MODULE.NAME, "You can check progress in the console above", "", true, false);
             return;
         }
         
         // Check if we were paused
-        if (this.cache.isPaused) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scan was paused. Use 'Refresh Cache' to resume.", "", true, false);
+        if (cache.isPaused) {
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Scan was paused. Use 'Refresh Cache' to resume.`, "", true, false);
             return;
         }
         
-        // Convert single path to array, or use getImagePaths() if not provided
+        // Convert single path to array, or use getImagePathsForMode() if not provided
         let basePaths = [];
         if (basePathOrPaths) {
             if (Array.isArray(basePathOrPaths)) {
@@ -1208,20 +1282,20 @@ export class ImageCacheManager {
                 basePaths = [basePathOrPaths];
             }
         } else {
-            // No path provided, use getImagePaths() to get all configured paths
-            basePaths = getImagePaths();
+            // No path provided, use getImagePathsForMode() to get all configured paths for this mode
+            basePaths = this.getImagePathsForMode(mode);
         }
         
         if (basePaths.length === 0) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No image paths configured", "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: No image paths configured`, "", true, false);
             return;
         }
         
-        this.cache.isScanning = true;
-        this.cache.isPaused = false;
-        this.cache.justCompleted = false;
-        this.cache.completionData = null; // Reset pause state when starting
-        this.cache.ignoredFilesCount = 0; // Reset ignored files counter
+        cache.isScanning = true;
+        cache.isPaused = false;
+        cache.justCompleted = false;
+        cache.completionData = null; // Reset pause state when starting
+        cache.ignoredFilesCount = 0; // Reset ignored files counter
         
         // Force window render to show progress bars immediately
         const windows = Object.values(ui.windows).filter(w => w instanceof TokenImageReplacementWindow);
@@ -1235,11 +1309,11 @@ export class ImageCacheManager {
         // Set up timeout protection (3 hours max)
         const maxScanTime = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
         const timeoutId = setTimeout(() => {
-            if (this.cache.isScanning) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: SCAN TIMEOUT - Forcing completion after 3 hours", "", true, false);
-                this.cache.isScanning = false;
-                this.cache.overallProgress = this.cache.totalSteps;
-                this.cache.currentStepName = "Timeout - Forced Complete";
+            if (cache.isScanning) {
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: SCAN TIMEOUT - Forcing completion after 3 hours`, "", true, false);
+                cache.isScanning = false;
+                cache.overallProgress = cache.totalSteps;
+                cache.currentStepName = "Timeout - Forced Complete";
                 
                 // Force window update
                 const windows = Object.values(ui.windows).filter(w => w instanceof TokenImageReplacementWindow);
@@ -1251,23 +1325,23 @@ export class ImageCacheManager {
         
         // Preserve favorites before clearing cache
         const preservedFavorites = new Map();
-        for (const [fileName, fileInfo] of this.cache.files.entries()) {
+        for (const [fileName, fileInfo] of cache.files.entries()) {
             if (fileInfo.metadata?.tags?.includes('FAVORITE')) {
                 preservedFavorites.set(fileName.toLowerCase(), true);
             }
         }
         
         // Clear cache at the start of a complete scan
-        this.cache.files.clear();
-        this.cache.folders.clear();
-        this.cache.creatureTypes.clear();
+        cache.files.clear();
+        cache.folders.clear();
+        cache.creatureTypes.clear();
         
         // Initialize overall progress tracking
-        this.cache.overallProgress = 0;
-        this.cache.currentStepName = '';
+        cache.overallProgress = 0;
+        cache.currentStepName = '';
         
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Starting folder scan across ${basePaths.length} path(s)...`, "", true, false);
-        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: This may take a few minutes for large token collections...", "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Starting folder scan across ${basePaths.length} path(s)...`, "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: This may take a few minutes for large image collections...`, "", true, false);
         
         try {
             // Update window with initial scan status
@@ -1281,10 +1355,10 @@ export class ImageCacheManager {
                 const basePath = basePaths[pathIndex];
                 const sourceIndex = pathIndex + 1; // 1-based index (matches setting number)
                 
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Scanning path ${sourceIndex}/${basePaths.length}: ${basePath}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Scanning path ${sourceIndex}/${basePaths.length}: ${basePath}`, "", true, false);
                 
                 // Use Foundry's FilePicker to get directory contents for this path
-                const files = await this._getDirectoryContents(basePath, sourceIndex);
+                const files = await this._getDirectoryContents(basePath, sourceIndex, mode);
                 
                 if (files.length > 0) {
                     totalFiles += files.length;
@@ -1292,7 +1366,7 @@ export class ImageCacheManager {
             }
             
             if (totalFiles === 0) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No supported image files found in any configured paths", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: No supported image files found in any configured paths`, "", true, false);
                 return;
             }
             
@@ -1301,23 +1375,23 @@ export class ImageCacheManager {
                 this.window.updateScanProgress(95, 100, `Scan completed - files already processed incrementally`);
             }
             
-            this.cache.lastScan = Date.now();
-            this.cache.totalFiles = this.cache.files.size;
+            cache.lastScan = Date.now();
+            cache.totalFiles = cache.files.size;
             
             const scanTime = ((Date.now() - startTime) / 1000).toFixed(2);
             const minutes = Math.floor(scanTime / 60);
             const seconds = (scanTime % 60).toFixed(1);
             const timeString = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
             
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✅ SCAN COMPLETE!`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${this.cache.totalFiles} files across ${this.cache.folders.size} folders in ${timeString}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: ✅ SCAN COMPLETE!`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Found ${cache.totalFiles} files across ${cache.folders.size} folders in ${timeString}`, "", true, false);
             
             // Restore favorites for files that still exist
             if (preservedFavorites.size > 0) {
                 let restoredCount = 0;
                 let removedCount = 0;
                 for (const [fileName, wasFavorite] of preservedFavorites.entries()) {
-                    const fileInfo = this.cache.files.get(fileName);
+                    const fileInfo = cache.files.get(fileName);
                     if (fileInfo) {
                         // File still exists, restore favorite status
                         if (!fileInfo.metadata) {
@@ -1336,17 +1410,17 @@ export class ImageCacheManager {
                     }
                 }
                 if (restoredCount > 0 || removedCount > 0) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Restored ${restoredCount} favorite(s), ${removedCount} favorite(s) removed (files no longer exist)`, "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Restored ${restoredCount} favorite(s), ${removedCount} favorite(s) removed (files no longer exist)`, "", false, false);
                 }
             }
             
             // Log some statistics about the cache
-            this._logCacheStatistics();
+            this._logCacheStatistics(mode);
             
             // Save cache to persistent storage (final save)
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Performing final cache save...", "", false, false);
-            await this._saveCacheToStorage(false); // false = final save
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Final cache save completed!", "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Performing final cache save...`, "", false, false);
+            await this._saveCacheToStorage(mode, false); // false = final save
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Final cache save completed!`, "", false, false);
             
             // Note: Window refresh will happen when UI is next accessed
             
@@ -1357,7 +1431,7 @@ export class ImageCacheManager {
             
             // Show completion notification in the window
             if (this.window && this.window.showCompletionNotification) {
-                this.window.showCompletionNotification(this.cache.totalFiles, this.cache.folders.size, timeString);
+                this.window.showCompletionNotification(cache.totalFiles, cache.folders.size, timeString);
             }
             
             // Complete the scan and update window state
@@ -1378,22 +1452,22 @@ export class ImageCacheManager {
             }
             
             // Validate completion before setting final state
-            if (this.cache.overallProgress !== this.cache.totalSteps) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: WARNING - Progress mismatch detected. Expected ${this.cache.totalSteps} steps but completed ${this.cache.overallProgress}`, "", true, false);
+            if (cache.overallProgress !== cache.totalSteps) {
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: WARNING - Progress mismatch detected. Expected ${cache.totalSteps} steps but completed ${cache.overallProgress}`, "", true, false);
                 // Force completion
-                this.cache.overallProgress = this.cache.totalSteps;
+                cache.overallProgress = cache.totalSteps;
             }
             
             // Set scanning to false before final render
-            this.cache.isScanning = false;
+            cache.isScanning = false;
             
             // Set completion state for in-window notification
-            this.cache.justCompleted = true;
-            this.cache.completionData = {
-                totalFiles: this.cache.totalFiles,
-                totalFolders: this.cache.totalFoldersScanned || this.cache.folders.size,
+            cache.justCompleted = true;
+            cache.completionData = {
+                totalFiles: cache.totalFiles,
+                totalFolders: cache.totalFoldersScanned || cache.folders.size,
                 timeString: timeString,
-                ignoredFiles: this.cache.ignoredFilesCount
+                ignoredFiles: cache.ignoredFilesCount
             };
             
             // Completion notification will be sent by the button handler
@@ -1405,27 +1479,27 @@ export class ImageCacheManager {
             
             // Clear completion state after 5 seconds
             setTimeout(() => {
-                this.cache.justCompleted = false;
-                this.cache.completionData = null;
+                cache.justCompleted = false;
+                cache.completionData = null;
                 if (this.window && this.window.render) {
                     this.window.render();
                 }
             }, 5000);
             
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error scanning folders: ${error.message}`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Error scanning folders: ${error.message}`, "", false, false);
             
             // CRITICAL FIX: Save whatever cache data we have with proper fingerprint
             // This prevents losing incremental progress when errors occur
             try {
-                this.cache.lastScan = Date.now();
-                this.cache.totalFiles = this.cache.files.size;
+                cache.lastScan = Date.now();
+                cache.totalFiles = cache.files.size;
                 
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Saving partial cache (${this.cache.files.size} files) despite error...`, "", false, false);
-                await this._saveCacheToStorage(false); // false = final save with fingerprint
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Partial cache saved successfully", "", false, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Saving partial cache (${cache.files.size} files) despite error...`, "", false, false);
+                await this._saveCacheToStorage(mode, false); // false = final save with fingerprint
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Partial cache saved successfully`, "", false, false);
             } catch (saveError) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Failed to save partial cache: ${saveError.message}`, "", false, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Failed to save partial cache: ${saveError.message}`, "", false, false);
             }
             
             // Show error notification in the window
@@ -1446,12 +1520,12 @@ export class ImageCacheManager {
             }
             
             // Ensure scanning is false even if there was an error
-            if (this.cache.isScanning) {
-                this.cache.isScanning = false;
+            if (cache.isScanning) {
+                cache.isScanning = false;
             }
             
             // Update cache status setting for display
-            this._updateCacheStatusSetting();
+            this._updateCacheStatusSetting(mode);
                 
                 // Force window refresh to show updated notification and button state
                 const windows = Object.values(ui.windows).filter(w => w instanceof TokenImageReplacementWindow);
@@ -1488,22 +1562,24 @@ export class ImageCacheManager {
      * Get directory contents using Foundry's FilePicker API
      * @param {string} basePath - Base path to scan
      * @param {number} sourceIndex - 1-based index of the source path (for priority tracking)
+     * @param {string} mode - 'token' or 'portrait'
      */
-    static async _getDirectoryContents(basePath, sourceIndex = 1) {
+    static async _getDirectoryContents(basePath, sourceIndex = 1, mode = 'token') {
         const files = [];
+        const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
         
         try {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Scanning directory: ${basePath}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Scanning directory: ${basePath}`, "", true, false);
             
             // Use Foundry's FilePicker to browse the directory (v13: use namespaced FilePicker)
             const response = await ImageCacheManager.FilePicker.browse("data", basePath);
             
             // Log what we found for debugging
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Directory scan results - Files: ${response.files?.length || 0}, Subdirectories: ${response.dirs?.length || 0}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Directory scan results - Files: ${response.files?.length || 0}, Subdirectories: ${response.dirs?.length || 0}`, "", true, false);
             
             // Process files in the base directory (if any)
             if (response.files && response.files.length > 0) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${response.files.length} files in base directory`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Found ${response.files.length} files in base directory`, "", true, false);
                 
                 const baseFiles = [];
                 for (const filePath of response.files) {
@@ -1516,14 +1592,15 @@ export class ImageCacheManager {
                 
                 // Process base directory files into cache immediately
                 if (baseFiles.length > 0) {
-                    await this._processFiles(baseFiles, basePath, false, sourceIndex); // Don't clear cache, just add files
+                    await this._processFiles(baseFiles, basePath, false, sourceIndex, mode); // Don't clear cache, just add files
                 }
             }
             
-            // Always scan subdirectories (this is where most token files will be)
+            // Always scan subdirectories (this is where most image files will be)
             if (response.dirs && response.dirs.length > 0) {
+                const cache = this.getCache(mode);
                 // Log all directories found
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${response.dirs.length} subdirectories:`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Found ${response.dirs.length} subdirectories:`, "", true, false);
                 const ignoredDirs = [];
                 const scanDirs = [];
                 for (let i = 0; i < response.dirs.length; i++) {
@@ -1535,9 +1612,9 @@ export class ImageCacheManager {
                         scanDirs.push(dirName);
                     }
                 }
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Will scan: [${scanDirs.join(', ')}]`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Will scan: [${scanDirs.join(', ')}]`, "", true, false);
                 if (ignoredDirs.length > 0) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Ignoring: [${ignoredDirs.join(', ')}]`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Ignoring: [${ignoredDirs.join(', ')}]`, "", true, false);
                 }
                 
                 // Count non-ignored directories for accurate progress tracking
@@ -1546,18 +1623,18 @@ export class ImageCacheManager {
                     return !ImageCacheManager._isFolderIgnored(dirName);
                 });
                 
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ${nonIgnoredDirs.length} directories will be scanned (${response.dirs.length - nonIgnoredDirs.length} ignored)`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: ${nonIgnoredDirs.length} directories will be scanned (${response.dirs.length - nonIgnoredDirs.length} ignored)`, "", true, false);
                 
                 // Set total steps for overall progress (non-ignored subdirectories only)
-                this.cache.totalSteps = nonIgnoredDirs.length;
-                this.cache.overallProgress = 0;
-                this.cache.totalFoldersScanned = nonIgnoredDirs.length; // Track actual folder count
+                cache.totalSteps = nonIgnoredDirs.length;
+                cache.overallProgress = 0;
+                cache.totalFoldersScanned = nonIgnoredDirs.length; // Track actual folder count
                 
                 let processedCount = 0;
                 for (let i = 0; i < response.dirs.length; i++) {
                     // Check if we should pause
-                    if (this.cache.isPaused) {
-                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scan paused by user.", "", true, false);
+                    if (cache.isPaused) {
+                        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Scan paused by user.`, "", true, false);
                         return;
                     }
                     
@@ -1566,16 +1643,16 @@ export class ImageCacheManager {
                     
                     // Check if this folder should be ignored
                     if (ImageCacheManager._isFolderIgnored(subDirName)) {
-                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Ignoring folder: ${subDirName}`, "", true, false);
+                        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Ignoring folder: ${subDirName}`, "", true, false);
                         continue;
                     }
                     
                     // Update overall progress (only count non-ignored directories)
                     processedCount++;
-                    this.cache.overallProgress = processedCount;
-                    this.cache.currentStepName = subDirName;
+                    cache.overallProgress = processedCount;
+                    cache.currentStepName = subDirName;
                     
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Processing folder ${processedCount}/${nonIgnoredDirs.length}: ${subDirName}`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Processing folder ${processedCount}/${nonIgnoredDirs.length}: ${subDirName}`, "", true, false);
                     
                     // Update window progress if it exists
                     if (this.window && this.window.updateScanProgress) {
@@ -1591,15 +1668,15 @@ export class ImageCacheManager {
                     
                     // Process files into cache immediately so they're available for incremental saves
                     if (subDirFiles.length > 0) {
-                        await this._processFiles(subDirFiles, basePath, false, sourceIndex); // Don't clear cache, just add files
+                        await this._processFiles(subDirFiles, basePath, false, sourceIndex, mode); // Don't clear cache, just add files
                         
                         // Save more frequently for large subdirectories (every 500 files)
-                        if (this.cache.files.size % 500 === 0 && this.cache.files.size > 0) {
-                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Frequent save checkpoint - ${this.cache.files.size} files processed`, "", false, false);
+                        if (cache.files.size % 500 === 0 && cache.files.size > 0) {
+                            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Frequent save checkpoint - ${cache.files.size} files processed`, "", false, false);
                             try {
-                                await this._saveCacheToStorage(true); // Incremental save
+                                await this._saveCacheToStorage(mode, true); // Incremental save
                             } catch (saveError) {
-                                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Checkpoint save failed: ${saveError.message}`, "", false, false);
+                                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Checkpoint save failed: ${saveError.message}`, "", false, false);
                                 // Continue with scan
                             }
                         }
@@ -1607,19 +1684,19 @@ export class ImageCacheManager {
                     
                     // Save cache incrementally after each main folder to prevent data loss
                     if (subDirFiles.length > 0) {
-                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Saving progress after ${subDirName} (${subDirFiles.length} files)...`, "", false, false);
+                        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Saving progress after ${subDirName} (${subDirFiles.length} files)...`, "", false, false);
                         try {
-                        await this._saveCacheToStorage(true); // true = incremental save
-                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Successfully saved progress after ${subDirName}`, "", false, false);
+                        await this._saveCacheToStorage(mode, true); // true = incremental save
+                            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Successfully saved progress after ${subDirName}`, "", false, false);
                         } catch (saveError) {
-                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL - Failed to save progress after ${subDirName}: ${saveError.message}`, "", false, false);
+                            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: CRITICAL - Failed to save progress after ${subDirName}: ${saveError.message}`, "", false, false);
                             // Continue with scan even if save fails
                         }
                     }
                     
                     // Log progress with percentage and file count
                     const progressPercent = Math.round((processedCount / nonIgnoredDirs.length) * 100);
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: [${progressPercent}%] Completed ${subDirName} - ${files.length} files total`, "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: [${progressPercent}%] Completed ${subDirName} - ${files.length} files total`, "", false, false);
                 }
             }
             
@@ -1826,14 +1903,17 @@ export class ImageCacheManager {
      * @param {string} basePath - Base path for this source folder
      * @param {boolean} clearCache - Whether to clear cache before processing
      * @param {number} sourceIndex - 1-based index of the source path (for priority tracking)
+     * @param {string} mode - 'token' or 'portrait'
      */
-    static async _processFiles(files, basePath, clearCache = false, sourceIndex = 1) {
+    static async _processFiles(files, basePath, clearCache = false, sourceIndex = 1, mode = 'token') {
+        const cache = this.getCache(mode);
+        const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
         
         // Only clear existing cache if explicitly requested (for complete rescans)
         if (clearCache) {
-            this.cache.files.clear();
-            this.cache.folders.clear();
-            this.cache.creatureTypes.clear();
+            cache.files.clear();
+            cache.folders.clear();
+            cache.creatureTypes.clear();
         }
         
         let validFiles = 0;
@@ -1848,14 +1928,14 @@ export class ImageCacheManager {
             // Check if file should be ignored based on ignored words patterns
             if (this._shouldIgnoreFile(fileName)) {
                 skippedFiles++;
-                this.cache.ignoredFilesCount++;
+                cache.ignoredFilesCount++;
                 continue;
             }
             
             // Validate the full path before storing
             const fullPath = file.fullPath || `${basePath}/${filePath}`;
             if (this._isInvalidFilePath(fullPath)) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Skipping invalid full path: ${fullPath}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Skipping invalid full path: ${fullPath}`, "", true, false);
                 skippedFiles++;
                 continue;
             }
@@ -1865,7 +1945,7 @@ export class ImageCacheManager {
             if (!fileInfo.metadata || !fileInfo.metadata.sourcePath) {
                 fileInfo = await this._processFileInfo(fullPath, basePath, sourceIndex);
                 if (!fileInfo) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Skipping file that failed processing: ${fullPath}`, "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Skipping file that failed processing: ${fullPath}`, "", true, false);
                     skippedFiles++;
                     continue;
                 }
@@ -1873,7 +1953,7 @@ export class ImageCacheManager {
             
             // Handle duplicate filenames: first path (lower sourceIndex) wins
             const cacheKey = fileName.toLowerCase();
-            const existingFile = this.cache.files.get(cacheKey);
+            const existingFile = cache.files.get(cacheKey);
             if (existingFile) {
                 // Check if existing file has lower sourceIndex (higher priority)
                 const existingSourceIndex = existingFile.metadata?.sourceIndex || 1;
@@ -1887,22 +1967,22 @@ export class ImageCacheManager {
             }
             
             // Store in main files cache with metadata
-            this.cache.files.set(cacheKey, fileInfo);
+            cache.files.set(cacheKey, fileInfo);
             
             validFiles++;
             
             // Categorize by folder (determines creature types and folders)
-            this._categorizeFile(fileName, filePath);
+            this._categorizeFile(fileName, filePath, mode);
             
             // OPTIMIZATION: Enhance metadata tags with creature types and category
             // This prevents recalculating these on every tag filter operation
-            this._enhanceFileTagsPostCategorization(fileName, filePath);
+            this._enhanceFileTagsPostCategorization(fileName, filePath, mode);
         }
         
         if (duplicateFiles > 0) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache built with ${validFiles} valid files, skipped ${skippedFiles} invalid files, ${duplicateFiles} duplicates handled (first path wins)`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cache built with ${validFiles} valid files, skipped ${skippedFiles} invalid files, ${duplicateFiles} duplicates handled (first path wins)`, "", true, false);
         } else {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache built with ${validFiles} valid files, skipped ${skippedFiles} invalid files`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cache built with ${validFiles} valid files, skipped ${skippedFiles} invalid files`, "", true, false);
         }
     }
     
@@ -1911,9 +1991,11 @@ export class ImageCacheManager {
      * Adds creature type and category folder tags to prevent recalculation during filtering
      * @param {string} fileName - The filename
      * @param {string} filePath - The relative file path
+     * @param {string} mode - 'token' or 'portrait'
      */
-    static _enhanceFileTagsPostCategorization(fileName, filePath) {
-        const fileInfo = this.cache.files.get(fileName.toLowerCase());
+    static _enhanceFileTagsPostCategorization(fileName, filePath, mode = 'token') {
+        const cache = this.getCache(mode);
+        const fileInfo = cache.files.get(fileName.toLowerCase());
         if (!fileInfo || !fileInfo.metadata) {
             return;
         }
@@ -1924,7 +2006,7 @@ export class ImageCacheManager {
         }
         
         // Add creature type tags if file was categorized
-        for (const [creatureType, files] of this.cache.creatureTypes.entries()) {
+        for (const [creatureType, files] of cache.creatureTypes.entries()) {
             if (Array.isArray(files) && files.includes(fileName)) {
                 const cleanType = creatureType.toLowerCase().replace(/\s+/g, '');
                 if (!fileInfo.metadata.tags.includes(cleanType.toUpperCase())) {
@@ -2001,25 +2083,33 @@ export class ImageCacheManager {
     
     /**
      * Categorize a file by its folder structure
+     * @param {string} fileName - The filename
+     * @param {string} filePath - The relative file path
+     * @param {string} mode - 'token' or 'portrait'
      */
-    static _categorizeFile(fileName, filePath) {
+    static _categorizeFile(fileName, filePath, mode = 'token') {
+        const cache = this.getCache(mode);
         // Extract folder path
         const folderPath = filePath.split('/').slice(0, -1).join('/');
         
         // Add to folders cache
-        if (!this.cache.folders.has(folderPath)) {
-            this.cache.folders.set(folderPath, []);
+        if (!cache.folders.has(folderPath)) {
+            cache.folders.set(folderPath, []);
         }
-        this.cache.folders.get(folderPath).push(fileName);
+        cache.folders.get(folderPath).push(fileName);
         
         // Try to categorize by creature type based on folder names
-        this._categorizeByCreatureType(fileName, folderPath);
+        this._categorizeByCreatureType(fileName, folderPath, mode);
     }
     
     /**
      * Categorize files by creature type based on folder structure and filename
+     * @param {string} fileName - The filename
+     * @param {string} folderPath - The folder path
+     * @param {string} mode - 'token' or 'portrait'
      */
-    static _categorizeByCreatureType(fileName, folderPath) {
+    static _categorizeByCreatureType(fileName, folderPath, mode = 'token') {
+        const cache = this.getCache(mode);
         const folderLower = folderPath.toLowerCase();
         const fileNameLower = fileName.toLowerCase();
         
@@ -2027,10 +2117,10 @@ export class ImageCacheManager {
         for (const [creatureType, folderNames] of Object.entries(this.CREATURE_TYPE_FOLDERS)) {
             for (const folderName of folderNames) {
                 if (folderLower.includes(folderName.toLowerCase())) {
-                    if (!this.cache.creatureTypes.has(creatureType)) {
-                        this.cache.creatureTypes.set(creatureType, []);
+                    if (!cache.creatureTypes.has(creatureType)) {
+                        cache.creatureTypes.set(creatureType, []);
                     }
-                    this.cache.creatureTypes.get(creatureType).push(fileName);
+                    cache.creatureTypes.get(creatureType).push(fileName);
                     return; // Found a match, no need to check other types
                 }
             }
@@ -2052,10 +2142,10 @@ export class ImageCacheManager {
         for (const [creatureType, keywords] of Object.entries(creatureKeywords)) {
             for (const keyword of keywords) {
                 if (fileNameLower.includes(keyword)) {
-                    if (!this.cache.creatureTypes.has(creatureType)) {
-                        this.cache.creatureTypes.set(creatureType, []);
+                    if (!cache.creatureTypes.has(creatureType)) {
+                        cache.creatureTypes.set(creatureType, []);
                     }
-                    this.cache.creatureTypes.get(creatureType).push(fileName);
+                    cache.creatureTypes.get(creatureType).push(fileName);
                     return; // Found a match, no need to check other types
                 }
             }
@@ -2196,11 +2286,14 @@ export class ImageCacheManager {
      * Save cache to localStorage
      * @param {boolean} isIncremental - If true, this is an incremental save during scanning
      */
-    static async _saveCacheToStorage(isIncremental = false) {
+    static async _saveCacheToStorage(mode = 'token', isIncremental = false) {
         try {
-            // Get all configured image paths
-            const basePaths = getImagePaths();
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_saveCacheToStorage) - Retrieved ${basePaths.length} path(s)`, "", true, false);
+            const cache = this.getCache(mode);
+            const cacheSettingKey = this.getCacheSettingKey(mode);
+            const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
+            // Get all configured image paths for this mode
+            const basePaths = this.getImagePathsForMode(mode);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: DEBUG (_saveCacheToStorage) - Retrieved ${basePaths.length} path(s)`, "", true, false);
             
             // Only generate fingerprint for final saves, not incremental ones (performance)
             // For multiple paths, we'll generate a combined fingerprint
@@ -2218,57 +2311,61 @@ export class ImageCacheManager {
                     
                     // CRITICAL FIX: Validate fingerprint for final saves
                     if (!folderFingerprint || folderFingerprint === 'error' || folderFingerprint === 'no-path') {
-                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: WARNING - Invalid fingerprint generated: ${folderFingerprint}. This may cause issues on next load.`, "", false, false);
+                        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: WARNING - Invalid fingerprint generated: ${folderFingerprint}. This may cause issues on next load.`, "", false, false);
                     }
                 } catch (fingerprintError) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Fingerprint generation failed: ${fingerprintError.message}. Using timestamp-based fingerprint.`, "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Fingerprint generation failed: ${fingerprintError.message}. Using timestamp-based fingerprint.`, "", false, false);
                     // Use timestamp as fallback fingerprint
                     folderFingerprint = `timestamp_${Date.now()}`;
                 }
             } else {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Incremental save - fingerprint will be null (will be generated on final save)", "", false, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Incremental save - fingerprint will be null (will be generated on final save)`, "", false, false);
             }
             
             // Build cache data with streaming compression to avoid memory issues
-            const compressedData = await this._buildCompressedCacheData(basePaths, folderFingerprint, isIncremental);
+            const compressedData = await this._buildCompressedCacheData(mode, basePaths, folderFingerprint, isIncremental);
             const compressedSizeMB = (new Blob([compressedData]).size / (1024 * 1024)).toFixed(2);
             
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache saved: ${compressedSizeMB}MB (${this.cache.files.size} files)`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cache saved: ${compressedSizeMB}MB (${cache.files.size} files)`, "", false, false);
             
             try {
                 // Store cache in game.settings (server-side) instead of localStorage (browser-side)
                 // This persists across browser refreshes and different players on Molten hosting
-                await game.settings.set(MODULE.ID, 'tokenImageReplacementCache', compressedData);
+                await game.settings.set(MODULE.ID, cacheSettingKey, compressedData);
                 
                 if (isIncremental) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Progress saved (${this.cache.files.size} files so far)`, "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Progress saved (${cache.files.size} files so far)`, "", false, false);
                 } else {
-                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache saved to persistent storage", "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cache saved to persistent storage`, "", false, false);
                 }
             } catch (storageError) {
                 if (storageError.name === 'QuotaExceededError') {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL - Storage quota exceeded even after compression! Cache size: ${compressedSizeMB}MB. Consider reducing image collection size.`, "", false, false);
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Files in cache: ${this.cache.files.size}, Folders: ${this.cache.folders.size}`, "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: CRITICAL - Storage quota exceeded even after compression! Cache size: ${compressedSizeMB}MB. Consider reducing image collection size.`, "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Files in cache: ${cache.files.size}, Folders: ${cache.folders.size}`, "", false, false);
                 } else {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL - Storage error: ${storageError.message}`, "", false, false);
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error name: ${storageError.name}, Stack: ${storageError.stack}`, "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: CRITICAL - Storage error: ${storageError.message}`, "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Error name: ${storageError.name}, Stack: ${storageError.stack}`, "", false, false);
                 }
                 throw storageError;
             }
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: CRITICAL ERROR saving cache: ${error.message}`, "", false, false);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache data - Files: ${this.cache.files.size}, Folders: ${this.cache.folders.size}, isIncremental: ${isIncremental}`, "", false, false);
+            const cache = this.getCache(mode);
+            const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: CRITICAL ERROR saving cache: ${error.message}`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cache data - Files: ${cache.files.size}, Folders: ${cache.folders.size}, isIncremental: ${isIncremental}`, "", false, false);
         }
     }
     
     /**
      * Build compressed cache data without creating full JSON in memory
+     * @param {string} mode - 'token' or 'portrait'
      * @param {string|string[]} basePathOrPaths - Single path (for backward compatibility) or array of paths
      * @param {string} folderFingerprint - The folder fingerprint
      * @param {boolean} isIncremental - Whether this is an incremental save
      * @returns {Promise<string>} Compressed cache data
      */
-    static async _buildCompressedCacheData(basePathOrPaths, folderFingerprint, isIncremental) {
+    static async _buildCompressedCacheData(mode, basePathOrPaths, folderFingerprint, isIncremental) {
+        const cache = this.getCache(mode);
         try {
             // Convert single path to array for consistency
             const basePaths = Array.isArray(basePathOrPaths) ? basePathOrPaths : [basePathOrPaths];
@@ -2280,12 +2377,12 @@ export class ImageCacheManager {
             // Store basePaths as array (bp can be string for old caches, array for new)
             const metadata = {
                 v: '1.5',  // Updated version for multiple paths support
-                ls: this.cache.lastScan || Date.now(),
+                ls: cache.lastScan || Date.now(),
                 bp: basePaths,  // Array of paths
                 ff: folderFingerprint,
                 ii: isIncremental,
-                tf: this.cache.totalFiles,
-                ifc: this.cache.ignoredFilesCount || 0
+                tf: cache.totalFiles,
+                ifc: cache.ignoredFilesCount || 0
             };
             
             // Serialize basePaths array as JSON string for compression
@@ -2295,7 +2392,7 @@ export class ImageCacheManager {
             // Add files in chunks to avoid memory issues
             compressedData += '"f":[';
             let firstFile = true;
-            for (const [fileName, fileData] of this.cache.files.entries()) {
+            for (const [fileName, fileData] of cache.files.entries()) {
                 if (!firstFile) compressedData += ',';
                 firstFile = false;
                 
@@ -2515,13 +2612,17 @@ export class ImageCacheManager {
     
     /**
      * Load cache from localStorage
+     * @param {string} mode - 'token' or 'portrait'
      */
-    static async _loadCacheFromStorage() {
+    static async _loadCacheFromStorage(mode = 'token') {
         try {
+            const cache = this.getCache(mode);
+            const cacheSettingKey = this.getCacheSettingKey(mode);
+            const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
             // Load cache from game.settings (server-side) instead of localStorage (browser-side)
-            const savedCache = game.settings.get(MODULE.ID, 'tokenImageReplacementCache');
+            const savedCache = game.settings.get(MODULE.ID, cacheSettingKey);
             if (!savedCache) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No cache data found in server settings", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: No cache data found in server settings`, "", true, false);
                 return false;
             }
             
@@ -2564,7 +2665,7 @@ export class ImageCacheManager {
             }
             
             // Check if base paths changed (handle both old single path and new array format)
-            const currentBasePaths = getImagePaths();
+            const currentBasePaths = this.getImagePathsForMode(mode);
             const cacheBasePath = cacheData.basePath || cacheData.bp;
             
             // Handle old cache format (single string) vs new format (array)
@@ -2631,47 +2732,47 @@ export class ImageCacheManager {
             // Check if we need to update the cache
             const autoUpdate = getSettingSafely(MODULE.ID, 'tokenImageReplacementAutoUpdate', false);
             const firstPath = currentBasePaths.length > 0 ? currentBasePaths[0] : null;
-            const needsUpdate = firstPath ? await this._checkForIncrementalUpdates(firstPath) : false;
+            const needsUpdate = firstPath ? await this._checkForIncrementalUpdates(firstPath, mode) : false;
             
             if (needsUpdate && autoUpdate) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Changes detected, performing automatic incremental update", "", false, false);
-                ui.notifications.info("Token Image Replacement changes detected: Performing incremental update.");
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Changes detected, performing automatic incremental update`, "", false, false);
+                ui.notifications.info(`${modeLabel} Image Replacement changes detected: Performing incremental update.`);
                 // For incremental updates, process each path
                 for (const basePath of currentBasePaths) {
-                    await this._doIncrementalUpdate(basePath);
+                    await this._doIncrementalUpdate(basePath, mode);
                 }
                 return true; // Cache was updated, proceed with loaded cache
             } else if (needsUpdate && !autoUpdate) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Changes detected, manual update needed", "", false, true);
-                ui.notifications.info("Token Image Replacement changes detected. You should scan for images to get the latest images.");
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Changes detected, manual update needed`, "", false, true);
+                ui.notifications.info(`${modeLabel} Image Replacement changes detected. You should scan for images to get the latest images.`);
                 // Still load existing cache, just notify user
             }
             
             // Restore cache (handle both old and new compressed formats)
-            this.cache.files = new Map();
+            cache.files = new Map();
             const filesData = cacheData.files || cacheData.f;
             for (const [fileName, fileInfo] of filesData) {
-                this.cache.files.set(fileName, fileInfo);
+                cache.files.set(fileName, fileInfo);
             }
             
-            this.cache.folders = new Map(cacheData.folders || cacheData.fo);
+            cache.folders = new Map(cacheData.folders || cacheData.fo);
             
             // Debug: Log creature types data structure
             const creatureTypesData = cacheData.creatureTypes || cacheData.ct || cacheData.creatureType;
            
-            this.cache.creatureTypes = new Map(creatureTypesData);
+            cache.creatureTypes = new Map(creatureTypesData);
             
-            this.cache.lastScan = cacheData.lastScan || cacheData.ls;
-            this.cache.totalFiles = cacheData.totalFiles || cacheData.tf;
-            this.cache.ignoredFilesCount = cacheData.ignoredFilesCount || cacheData.ifc || 0;
+            cache.lastScan = cacheData.lastScan || cacheData.ls;
+            cache.totalFiles = cacheData.totalFiles || cacheData.tf;
+            cache.ignoredFilesCount = cacheData.ignoredFilesCount || cacheData.ifc || 0;
             
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache restored from storage: ${this.cache.files.size} files, last scan: ${new Date(this.cache.lastScan).toLocaleString()}`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cache restored from storage: ${cache.files.size} files, last scan: ${new Date(cache.lastScan).toLocaleString()}`, "", false, false);
             
             // Update the cache status setting for display
-            this._updateCacheStatusSetting();
+            this._updateCacheStatusSetting(mode);
             
             // Log final cache status after loading from storage
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache loading completed. Files: ${this.cache.files.size}, Folders: ${this.cache.folders.size}, Creature Types: ${this.cache.creatureTypes.size}`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cache loading completed. Files: ${cache.files.size}, Folders: ${cache.folders.size}, Creature Types: ${cache.creatureTypes.size}`, "", false, false);
             
             return true;
             
@@ -2806,14 +2907,15 @@ export class ImageCacheManager {
                 decompressedCache = this._decompressCacheData(savedCache);
             } catch (decompressionError) {
                 // If decompression fails, try parsing as-is (might be uncompressed)
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Decompression failed, trying uncompressed format: ${decompressionError.message}`, "", true, false);
+                const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Decompression failed, trying uncompressed format: ${decompressionError.message}`, "", true, false);
                 decompressedCache = savedCache;
             }
             
             const cacheData = JSON.parse(decompressedCache);
             
             // Handle the case where lastScan is null, 0, or invalid
-            let lastScanTime = cacheData.lastScan;
+            let lastScanTime = cacheData.lastScan || cacheData.ls;
             if (!lastScanTime || lastScanTime === 0) {
                 lastScanTime = Date.now(); // Use current time as fallback
             }
@@ -2841,16 +2943,22 @@ export class ImageCacheManager {
 
     /**
      * Update the cache status setting for display in module settings
+     * @param {string} mode - 'token' or 'portrait'
      */
-    static _updateCacheStatusSetting() {
+    static _updateCacheStatusSetting(mode = 'token') {
         try {
             if (game.settings && game.settings.set) {
-                const status = this.getCacheStorageStatus();
-                game.settings.set('coffee-pub-blacksmith', 'tokenImageReplacementDisplayCacheStatus', status.message);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache status updated: ${status.message}`, "", false, false);
+                const status = this.getCacheStorageStatus(mode);
+                const statusSettingKey = mode === this.MODES.PORTRAIT 
+                    ? 'portraitImageReplacementDisplayCacheStatus' 
+                    : 'tokenImageReplacementDisplayCacheStatus';
+                game.settings.set('coffee-pub-blacksmith', statusSettingKey, status.message);
+                const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cache status updated: ${status.message}`, "", false, false);
             }
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error updating cache status setting: ${error.message}`, "", false, false);
+            const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Error updating cache status setting: ${error.message}`, "", false, false);
         }
     }
 
