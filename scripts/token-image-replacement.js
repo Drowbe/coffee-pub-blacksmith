@@ -365,7 +365,9 @@ export class TokenImageReplacementWindow extends Application {
         // Cache search terms for "selected" filter to avoid repeated calls
         let processedTerms = null;
         if (this.currentFilter === 'selected' && this.selectedToken) {
-            const searchTerms = ImageCacheManager._getSearchTerms(this.selectedToken.document);
+            const searchTerms = this.mode === ImageCacheManager.MODES.PORTRAIT 
+                ? ImageCacheManager._getSearchTerms(this.selectedToken, this.mode)
+                : ImageCacheManager._getSearchTerms(this.selectedToken.document, this.mode);
             processedTerms = searchTerms
                 .filter(term => term && term.length >= 2)
                 .map(term => term.toLowerCase());
@@ -440,7 +442,9 @@ export class TokenImageReplacementWindow extends Application {
                     
                     // Use cached search terms if available, otherwise get them
                     if (!this._cachedSearchTerms) {
-                        const searchTerms = ImageCacheManager._getSearchTerms(this.selectedToken.document);
+                        const searchTerms = this.mode === ImageCacheManager.MODES.PORTRAIT 
+                ? ImageCacheManager._getSearchTerms(this.selectedToken, this.mode)
+                : ImageCacheManager._getSearchTerms(this.selectedToken.document, this.mode);
                         this._cachedSearchTerms = searchTerms
                             .filter(term => term && term.length >= 2)
                             .map(term => term.toLowerCase());
@@ -653,7 +657,14 @@ export class TokenImageReplacementWindow extends Application {
             }
             
             // Add current image as the second card
-            const currentImageSrc = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
+            let currentImageSrc = '';
+            if (this.mode === ImageCacheManager.MODES.PORTRAIT) {
+                // Portrait mode: get from actor.img
+                currentImageSrc = this.selectedToken?.img || '';
+            } else {
+                // Token mode: get from token texture
+                currentImageSrc = this.selectedToken?.texture?.src || this.selectedToken?.document?.texture?.src || '';
+            }
             if (currentImageSrc) {
                 const currentImage = {
                     name: currentImageSrc.split('/').pop() || 'Current Image',
@@ -744,7 +755,9 @@ export class TokenImageReplacementWindow extends Application {
                 if (this.selectedToken && this.allMatches.length > 0) {
                     const currentImage = this.allMatches.find(match => match.isCurrent);
                     if (currentImage) {
-                        const searchTerms = ImageCacheManager._getSearchTerms(this.selectedToken.document);
+                        const searchTerms = this.mode === ImageCacheManager.MODES.PORTRAIT 
+                ? ImageCacheManager._getSearchTerms(this.selectedToken, this.mode)
+                : ImageCacheManager._getSearchTerms(this.selectedToken.document, this.mode);
                         const fileInfo = this._getFileInfoFromCache(currentImage.name) || {
                             name: currentImage.name,
                             path: currentImage.fullPath,
@@ -952,13 +965,26 @@ export class TokenImageReplacementWindow extends Application {
         const cache = ImageCacheManager.getCache(this.mode);
         const fileCount = cache.files.size;
         
-        // Show confirmation dialog
-        const confirmed = await Dialog.confirm({
-            title: `Delete ${modeLabel} Cache`,
-            content: `<p>Are you sure you want to delete the entire ${modeLabel.toLowerCase()} image cache?</p><p>This will remove ${fileCount} cached ${modeLabel.toLowerCase()} images.</p><p><strong>This action cannot be undone.</strong></p>`,
-            yes: () => true,
-            no: () => false,
-            defaultYes: false
+        // Show confirmation dialog using ApplicationV2-compatible approach
+        const confirmed = await new Promise((resolve) => {
+            new Dialog({
+                title: `Delete ${modeLabel} Cache`,
+                content: `<p>Are you sure you want to delete the entire ${modeLabel.toLowerCase()} image cache?</p><p>This will remove ${fileCount} cached ${modeLabel.toLowerCase()} images.</p><p><strong>This action cannot be undone.</strong></p>`,
+                buttons: {
+                    yes: {
+                        icon: '<i class="fas fa-check"></i>',
+                        label: 'Delete',
+                        callback: () => resolve(true)
+                    },
+                    no: {
+                        icon: '<i class="fas fa-times"></i>',
+                        label: 'Cancel',
+                        callback: () => resolve(false)
+                    }
+                },
+                default: 'no',
+                close: () => resolve(false)
+            }).render(true);
         });
 
         if (confirmed) {
@@ -1582,7 +1608,9 @@ export class TokenImageReplacementWindow extends Application {
         if (this.selectedToken && this.allMatches.length > 0) {
             const currentImage = this.allMatches.find(match => match.isCurrent);
             if (currentImage) {
-                const searchTerms = ImageCacheManager._getSearchTerms(this.selectedToken.document);
+                const searchTerms = this.mode === ImageCacheManager.MODES.PORTRAIT 
+                ? ImageCacheManager._getSearchTerms(this.selectedToken, this.mode)
+                : ImageCacheManager._getSearchTerms(this.selectedToken.document, this.mode);
                 const fileInfo = this._getFileInfoFromCache(currentImage.name) || {
                     name: currentImage.name,
                     path: currentImage.fullPath,
@@ -2002,24 +2030,50 @@ export class TokenImageReplacementWindow extends Application {
             return null;
         }
         
-        // First try exact match (case-insensitive)
-        const exactKey = fileName.toLowerCase();
-        let fileInfo = ImageCacheManager.getCache(this.mode).files.get(exactKey);
+        const cache = ImageCacheManager.getCache(this.mode);
+        const fileNameKey = fileName.toLowerCase();
+        
+        // First try using filesByFileName index (supports multiple files with same name)
+        if (cache.filesByFileName && cache.filesByFileName.has(fileNameKey)) {
+            const cacheKeys = cache.filesByFileName.get(fileNameKey);
+            // Return the first file found (or could return all if needed)
+            if (cacheKeys.length > 0) {
+                const fileInfo = cache.files.get(cacheKeys[0]);
+                if (fileInfo) {
+                    return fileInfo;
+                }
+            }
+        }
+        
+        // Try exact match by filename (case-insensitive) - for backward compatibility
+        let fileInfo = cache.files.get(fileNameKey);
         if (fileInfo) {
             return fileInfo;
         }
         
         // Try removing special characters and matching
         const cleanFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase();
-        if (cleanFileName !== exactKey) {
-            fileInfo = ImageCacheManager.getCache(this.mode).files.get(cleanFileName);
+        if (cleanFileName !== fileNameKey) {
+            if (cache.filesByFileName && cache.filesByFileName.has(cleanFileName)) {
+                const cacheKeys = cache.filesByFileName.get(cleanFileName);
+                if (cacheKeys.length > 0) {
+                    fileInfo = cache.files.get(cacheKeys[0]);
+                    if (fileInfo) {
+                        return fileInfo;
+                    }
+                }
+            }
+            fileInfo = cache.files.get(cleanFileName);
             if (fileInfo) {
                 return fileInfo;
             }
         }
         
         // Try fuzzy matching by iterating through cache keys
+        // Now cache keys include path, so we need to check the filename part
         for (const [cacheKey, cacheValue] of ImageCacheManager.getCache(this.mode).files.entries()) {
+            // Extract filename from cache key (last part after /)
+            const keyFileName = cacheKey.split('/').pop();
             // Remove special characters from both names for comparison
             const cleanCacheKey = cacheKey.replace(/[^a-zA-Z0-9._-]/g, '');
             const cleanMatchName = fileName.replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase();
@@ -2728,7 +2782,9 @@ export class TokenImageReplacementWindow extends Application {
                 if (!this.selectedToken) {
                     categoryFiles = []; // No files if no token selected
                 } else {
-                    const searchTerms = ImageCacheManager._getSearchTerms(this.selectedToken.document);
+                    const searchTerms = this.mode === ImageCacheManager.MODES.PORTRAIT 
+                ? ImageCacheManager._getSearchTerms(this.selectedToken, this.mode)
+                : ImageCacheManager._getSearchTerms(this.selectedToken.document, this.mode);
                     const processedTerms = searchTerms
                         .filter(term => term && term.length >= 2)
                         .map(term => term.toLowerCase());

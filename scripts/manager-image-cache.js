@@ -217,8 +217,12 @@ export class ImageCacheManager {
     /**
      * Check if a folder should be ignored based on settings
      */
-    static _isFolderIgnored(folderName) {
-        const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '_gsdata_,Build_a_Token,.DS_Store');
+    static _isFolderIgnored(folderName, mode = 'token') {
+        // Get mode-specific ignored folders setting
+        const ignoredFoldersKey = mode === this.MODES.PORTRAIT 
+            ? 'portraitImageReplacementIgnoredFolders' 
+            : 'tokenImageReplacementIgnoredFolders';
+        const ignoredFoldersSetting = getSettingSafely(MODULE.ID, ignoredFoldersKey, '_gsdata_,Build_a_Token,.DS_Store');
         const ignoredFolders = ignoredFoldersSetting.split(',').map(folder => folder.trim().toLowerCase());
         const folderNameLower = folderName.toLowerCase();
         const isIgnored = ignoredFolders.includes(folderNameLower);
@@ -892,7 +896,20 @@ export class ImageCacheManager {
         for (const [folderPath, files] of cache.folders.entries()) {
             if (!Array.isArray(files)) continue; // Skip if not an array
             const validFiles = files.filter(fileName => {
-                const fileInfo = cache.files.get(fileName.toLowerCase());
+                // Look up by filename - may return multiple files with same name in different folders
+                const fileNameKey = fileName.toLowerCase();
+                if (cache.filesByFileName && cache.filesByFileName.has(fileNameKey)) {
+                    const cacheKeys = cache.filesByFileName.get(fileNameKey);
+                    // Return the first valid file found
+                    for (const key of cacheKeys) {
+                        const fileInfo = cache.files.get(key);
+                        if (fileInfo && !this._isInvalidFilePath(fileInfo.fullPath)) {
+                            return fileInfo;
+                        }
+                    }
+                }
+                // Fallback to old lookup method for backward compatibility
+                const fileInfo = cache.files.get(fileNameKey);
                 return fileInfo && !this._isInvalidFilePath(fileInfo.fullPath);
             });
             
@@ -906,7 +923,20 @@ export class ImageCacheManager {
         for (const [creatureType, files] of cache.creatureTypes.entries()) {
             if (!Array.isArray(files)) continue; // Skip if not an array
             const validFiles = files.filter(fileName => {
-                const fileInfo = cache.files.get(fileName.toLowerCase());
+                // Look up by filename - may return multiple files with same name in different folders
+                const fileNameKey = fileName.toLowerCase();
+                if (cache.filesByFileName && cache.filesByFileName.has(fileNameKey)) {
+                    const cacheKeys = cache.filesByFileName.get(fileNameKey);
+                    // Return the first valid file found
+                    for (const key of cacheKeys) {
+                        const fileInfo = cache.files.get(key);
+                        if (fileInfo && !this._isInvalidFilePath(fileInfo.fullPath)) {
+                            return fileInfo;
+                        }
+                    }
+                }
+                // Fallback to old lookup method for backward compatibility
+                const fileInfo = cache.files.get(fileNameKey);
                 return fileInfo && !this._isInvalidFilePath(fileInfo.fullPath);
             });
             
@@ -1137,24 +1167,42 @@ export class ImageCacheManager {
         return false;
     }
 
-    
     /**
-     * Pause the current cache scanning process
+     * Delete the entire cache for the specified mode
+     * @param {string} mode - 'token' or 'portrait'
      */
-    static pauseCache() {
-        if (this.cache.isScanning) {
-            this.cache.isPaused = true;
-            this.cache.isScanning = false;
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache scanning paused. You can resume by refreshing the cache.", "", true, false);
-            
-            // Update window if it exists
-            if (this.window && this.window.updateScanProgress) {
-                this.window.updateScanProgress(0, 100, "Scanning paused");
-            }
-            
-            return true;
+    static async deleteCache(mode = 'token') {
+        const cache = this.getCache(mode);
+        const cacheSettingKey = this.getCacheSettingKey(mode);
+        const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
+        
+        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Deleting cache...`, "", true, false);
+        
+        // Stop any ongoing scan
+        if (cache.isScanning) {
+            cache.isScanning = false;
         }
-        return false;
+        
+        // Clear memory cache
+        cache.files.clear();
+        cache.folders.clear();
+        cache.creatureTypes.clear();
+        cache.lastScan = null;
+        cache.totalFiles = 0;
+        cache.isPaused = false;
+        
+        // Clear persistent storage
+        await game.settings.set(MODULE.ID, cacheSettingKey, '');
+        
+        // Update status
+        this._updateCacheStatusSetting(mode);
+        
+        // Force window refresh to show updated cache status
+        if (this.window && this.window.render) {
+            this.window.render();
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cache deleted successfully`, "", true, false);
     }
     
     /**
@@ -1222,7 +1270,11 @@ export class ImageCacheManager {
         }
         
         // No cache found - show appropriate notification
-        const autoUpdate = getSettingSafely(MODULE.ID, 'tokenImageReplacementAutoUpdate', false);
+        // Get mode-specific auto update setting
+        const autoUpdateKey = mode === this.MODES.PORTRAIT 
+            ? 'portraitImageReplacementAutoUpdate' 
+            : 'tokenImageReplacementAutoUpdate';
+        const autoUpdate = getSettingSafely(MODULE.ID, autoUpdateKey, false);
         const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
         if (autoUpdate) {
             ui.notifications.info(`No ${modeLabel} Image Replacement images found. Scanning for images.`);
@@ -1521,18 +1573,22 @@ export class ImageCacheManager {
     
     /**
      * Log cache statistics for debugging
+     * @param {string} mode - 'token' or 'portrait'
      */
-    static _logCacheStatistics() {
-        if (this.cache.creatureTypes.size > 0) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Creature type breakdown:", "", true, false);
-            for (const [creatureType, files] of this.cache.creatureTypes) {
+    static _logCacheStatistics(mode = 'token') {
+        const cache = this.getCache(mode);
+        const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
+        
+        if (cache.creatureTypes.size > 0) {
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Creature type breakdown:`, "", true, false);
+            for (const [creatureType, files] of cache.creatureTypes) {
                 postConsoleAndNotification(MODULE.NAME, `  ${creatureType}: ${files.length} files`, "", true, false);
             }
         }
         
-        if (this.cache.folders.size > 0) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Top folders by file count:`, "", true, false);
-            const sortedFolders = Array.from(this.cache.folders.entries())
+        if (cache.folders.size > 0) {
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Top folders by file count:`, "", true, false);
+            const sortedFolders = Array.from(cache.folders.entries())
                 .sort((a, b) => b[1].length - a[1].length)
                 .slice(0, 5);
             
@@ -1551,6 +1607,7 @@ export class ImageCacheManager {
     static async _getDirectoryContents(basePath, sourceIndex = 1, mode = 'token') {
         const files = [];
         const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
+        const cache = this.getCache(mode);
         
         try {
             postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Scanning directory: ${basePath}`, "", true, false);
@@ -1582,14 +1639,13 @@ export class ImageCacheManager {
             
             // Always scan subdirectories (this is where most image files will be)
             if (response.dirs && response.dirs.length > 0) {
-                const cache = this.getCache(mode);
                 // Log all directories found
                 postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Found ${response.dirs.length} subdirectories:`, "", true, false);
                 const ignoredDirs = [];
                 const scanDirs = [];
                 for (let i = 0; i < response.dirs.length; i++) {
                     const dirName = response.dirs[i].split('/').pop();
-                    const isIgnored = ImageCacheManager._isFolderIgnored(dirName);
+                    const isIgnored = ImageCacheManager._isFolderIgnored(dirName, mode);
                     if (isIgnored) {
                         ignoredDirs.push(dirName);
                     } else {
@@ -1604,7 +1660,7 @@ export class ImageCacheManager {
                 // Count non-ignored directories for accurate progress tracking
                 const nonIgnoredDirs = response.dirs.filter(dir => {
                     const dirName = dir.split('/').pop();
-                    return !ImageCacheManager._isFolderIgnored(dirName);
+                    return !ImageCacheManager._isFolderIgnored(dirName, mode);
                 });
                 
                 postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: ${nonIgnoredDirs.length} directories will be scanned (${response.dirs.length - nonIgnoredDirs.length} ignored)`, "", true, false);
@@ -1614,7 +1670,9 @@ export class ImageCacheManager {
                 cache.overallProgress = 0;
                 cache.totalFoldersScanned = nonIgnoredDirs.length; // Track actual folder count
                 
+                // Declare processedCount inside the if block where nonIgnoredDirs is available
                 let processedCount = 0;
+                
                 for (let i = 0; i < response.dirs.length; i++) {
                     // Check if we should pause
                     if (cache.isPaused) {
@@ -1626,7 +1684,7 @@ export class ImageCacheManager {
                     const subDirName = subDir.split('/').pop();
                     
                     // Check if this folder should be ignored
-                    if (ImageCacheManager._isFolderIgnored(subDirName)) {
+                    if (ImageCacheManager._isFolderIgnored(subDirName, mode)) {
                         postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Ignoring folder: ${subDirName}`, "", true, false);
                         continue;
                     }
@@ -1647,7 +1705,7 @@ export class ImageCacheManager {
                     }
                     
                     // Progress logging is now handled above
-                    const subDirFiles = await this._scanSubdirectory(subDir, basePath, sourceIndex);
+                    const subDirFiles = await this._scanSubdirectory(subDir, basePath, sourceIndex, mode);
                     files.push(...subDirFiles);
                     
                     // Process files into cache immediately so they're available for incremental saves
@@ -1682,23 +1740,23 @@ export class ImageCacheManager {
                     const progressPercent = Math.round((processedCount / nonIgnoredDirs.length) * 100);
                     postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: [${progressPercent}%] Completed ${subDirName} - ${files.length} files total`, "", false, false);
                 }
+                
+                // Validate that we've processed all expected directories
+                if (processedCount !== nonIgnoredDirs.length) {
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: WARNING - Expected to process ${nonIgnoredDirs.length} directories but only processed ${processedCount}`, "", true, false);
+                }
+                
+                // Ensure progress is complete
+                cache.overallProgress = nonIgnoredDirs.length;
+                cache.currentStepName = "Complete";
             }
-            
-            // Validate that we've processed all expected directories
-            if (processedCount !== nonIgnoredDirs.length) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: WARNING - Expected to process ${nonIgnoredDirs.length} directories but only processed ${processedCount}`, "", true, false);
-            }
-            
-            // Ensure progress is complete
-            this.cache.overallProgress = nonIgnoredDirs.length;
-            this.cache.currentStepName = "Complete";
             
             if (files.length === 0) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No supported image files found in ${basePath} or its subdirectories`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: No supported image files found in ${basePath} or its subdirectories`, "", true, false);
             }
             
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error scanning directory ${basePath}: ${error.message}`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Error scanning directory ${basePath}: ${error.message}`, "", false, false);
         }
         
         return files;
@@ -1709,31 +1767,35 @@ export class ImageCacheManager {
      * @param {string} subDir - Subdirectory path to scan
      * @param {string} basePath - Base path for this source folder
      * @param {number} sourceIndex - 1-based index of the source path (for priority tracking)
+     * @param {string} mode - 'token' or 'portrait'
      */
-    static async _scanSubdirectory(subDir, basePath, sourceIndex = 1) {
+    static async _scanSubdirectory(subDir, basePath, sourceIndex = 1, mode = 'token') {
         const files = [];
+        const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
         
         try {
             // v13: use namespaced FilePicker
             const response = await ImageCacheManager.FilePicker.browse("data", subDir);
             
             if (response.files && response.files.length > 0) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${response.files.length} files in ${subDir}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Found ${response.files.length} files in ${subDir}`, "", true, false);
                 
                 // Categories will be generated from folder structure when window opens
                 
+                const cache = this.getCache(mode);
+                
                 // Update progress tracking for current step
-                this.cache.currentStepTotal = response.files.length;
-                this.cache.currentStepProgress = 0;
+                cache.currentStepTotal = response.files.length;
+                cache.currentStepProgress = 0;
                 
                 // Build the current path for display
                 const pathParts = subDir.replace(basePath + '/', '').split('/');
-                this.cache.currentPath = pathParts.join(' | ');
+                cache.currentPath = pathParts.join(' | ');
                 
                 for (let i = 0; i < response.files.length; i++) {
                     // Check if we should pause
-                    if (this.cache.isPaused) {
-                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scan paused by user during file processing.", "", true, false);
+                    if (cache.isPaused) {
+                        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Scan paused by user during file processing.`, "", true, false);
                         return files;
                     }
                     
@@ -1741,12 +1803,12 @@ export class ImageCacheManager {
                     const fileName = filePath.split('/').pop();
                     
                     // Update current file being processed
-                    this.cache.currentStepProgress = i + 1;
-                    this.cache.currentFileName = fileName;
+                    cache.currentStepProgress = i + 1;
+                    cache.currentFileName = fileName;
                     
                     // Update window with detailed progress
                     if (this.window && this.window.updateScanProgress) {
-                        this.window.updateScanProgress(i + 1, response.files.length, `${this.cache.currentPath} | ${i + 1} of ${response.files.length} | ${fileName}`);
+                        this.window.updateScanProgress(i + 1, response.files.length, `${cache.currentPath} | ${i + 1} of ${response.files.length} | ${fileName}`);
                         // Small delay to make progress visible
                         await new Promise(resolve => setTimeout(resolve, 10));
                     }
@@ -1761,15 +1823,15 @@ export class ImageCacheManager {
             // Recursively scan deeper subdirectories
             if (response.dirs && response.dirs.length > 0) {
                 const parentDirName = subDir.split('/').pop();
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${response.dirs.length} deeper subdirectories in ${parentDirName}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Found ${response.dirs.length} deeper subdirectories in ${parentDirName}`, "", true, false);
                 
                 for (let i = 0; i < response.dirs.length; i++) {
                     const deeperDir = response.dirs[i];
                     const deeperDirName = deeperDir.split('/').pop();
                     
                     // Check if this folder should be ignored
-                    if (ImageCacheManager._isFolderIgnored(deeperDirName)) {
-                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Ignoring subfolder: ${parentDirName}/${deeperDirName}`, "", true, false);
+                    if (ImageCacheManager._isFolderIgnored(deeperDirName, mode)) {
+                        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Ignoring subfolder: ${parentDirName}/${deeperDirName}`, "", true, false);
                         continue;
                     }
                     
@@ -1779,7 +1841,7 @@ export class ImageCacheManager {
                         this.window.updateScanProgress(i + 1, response.dirs.length, statusText);
                     }
                     
-                    const deeperFiles = await this._scanSubdirectory(deeperDir, basePath, sourceIndex);
+                    const deeperFiles = await this._scanSubdirectory(deeperDir, basePath, sourceIndex, mode);
                     files.push(...deeperFiles);
                     
                     // Categories will be generated from folder structure when window opens
@@ -1910,7 +1972,7 @@ export class ImageCacheManager {
             const filePath = file.path || file;
             
             // Check if file should be ignored based on ignored words patterns
-            if (this._shouldIgnoreFile(fileName)) {
+            if (this._shouldIgnoreFile(fileName, mode)) {
                 skippedFiles++;
                 cache.ignoredFilesCount++;
                 continue;
@@ -1935,22 +1997,29 @@ export class ImageCacheManager {
                 }
             }
             
-            // Handle duplicate filenames: first path (lower sourceIndex) wins
-            const cacheKey = fileName.toLowerCase();
+            // Use relative path + filename as cache key to allow same-named files in different folders
+            // For portraits, this allows style-anime/portrait1.webp and style-blue/portrait1.webp to both exist
+            const relativePath = fileInfo.path || filePath;
+            const cacheKey = relativePath ? `${relativePath}/${fileName}`.toLowerCase() : fileName.toLowerCase();
+            
+            // Also store by filename only for backward compatibility and lookup
+            const fileNameKey = fileName.toLowerCase();
+            if (!cache.filesByFileName) {
+                cache.filesByFileName = new Map();
+            }
+            if (!cache.filesByFileName.has(fileNameKey)) {
+                cache.filesByFileName.set(fileNameKey, []);
+            }
+            cache.filesByFileName.get(fileNameKey).push(cacheKey);
+            
             const existingFile = cache.files.get(cacheKey);
             if (existingFile) {
-                // Check if existing file has lower sourceIndex (higher priority)
-                const existingSourceIndex = existingFile.metadata?.sourceIndex || 1;
-                if (existingSourceIndex < sourceIndex) {
-                    // Existing file has higher priority, skip this one
-                    duplicateFiles++;
-                    continue;
-                }
-                // This file has higher priority, replace the existing one
+                // File with same path+name already exists, skip duplicate
                 duplicateFiles++;
+                continue;
             }
             
-            // Store in main files cache with metadata
+            // Store in main files cache with metadata (keyed by path+filename)
             cache.files.set(cacheKey, fileInfo);
             
             validFiles++;
@@ -1979,7 +2048,20 @@ export class ImageCacheManager {
      */
     static _enhanceFileTagsPostCategorization(fileName, filePath, mode = 'token') {
         const cache = this.getCache(mode);
-        const fileInfo = cache.files.get(fileName.toLowerCase());
+        // Look up by filename - may return multiple files with same name in different folders
+        const fileNameKey = fileName.toLowerCase();
+        let fileInfo = null;
+        if (cache.filesByFileName && cache.filesByFileName.has(fileNameKey)) {
+            const cacheKeys = cache.filesByFileName.get(fileNameKey);
+            // Use the first file found (or could return all if needed)
+            if (cacheKeys.length > 0) {
+                fileInfo = cache.files.get(cacheKeys[0]);
+            }
+        }
+        // Fallback to old lookup method for backward compatibility
+        if (!fileInfo) {
+            fileInfo = cache.files.get(fileNameKey);
+        }
         if (!fileInfo || !fileInfo.metadata) {
             return;
         }
@@ -2003,7 +2085,11 @@ export class ImageCacheManager {
         const pathParts = filePath.split('/').filter(p => p);
         if (pathParts.length > 0) {
             const category = pathParts[0];
-            const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
+            // Get mode-specific ignored folders setting
+            const ignoredFoldersKey = mode === this.MODES.PORTRAIT 
+                ? 'portraitImageReplacementIgnoredFolders' 
+                : 'tokenImageReplacementIgnoredFolders';
+            const ignoredFoldersSetting = getSettingSafely(MODULE.ID, ignoredFoldersKey, '');
             const ignoredFolders = ignoredFoldersSetting 
                 ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
                 : [];
@@ -2021,10 +2107,15 @@ export class ImageCacheManager {
      * Check if a filename matches any ignored word patterns
      * Supports wildcards: "spirit" (exact), "*spirit" (ends with), "spirit*" (starts with), "*spirit*" (contains)
      * @param {string} fileName - The filename to check
+     * @param {string} mode - 'token' or 'portrait'
      * @returns {boolean} True if the file should be ignored
      */
-    static _shouldIgnoreFile(fileName) {
-        const ignoredWords = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredWords', '');
+    static _shouldIgnoreFile(fileName, mode = 'token') {
+        // Get mode-specific ignored words setting
+        const ignoredWordsKey = mode === this.MODES.PORTRAIT 
+            ? 'portraitImageReplacementIgnoredWords' 
+            : 'tokenImageReplacementIgnoredWords';
+        const ignoredWords = getSettingSafely(MODULE.ID, ignoredWordsKey, '');
         if (!ignoredWords || ignoredWords.trim() === '') {
             return false;
         }
@@ -2137,51 +2228,61 @@ export class ImageCacheManager {
     }
     
     /**
-     * Get search terms for finding a matching image (always uses exact matching for token data)
+     * Get search terms for finding a matching image
+     * @param {Object} source - Either tokenDocument (for token mode) or actor (for portrait mode)
+     * @param {string} mode - 'token' or 'portrait'
      */
-    static _getSearchTerms(tokenDocument) {
+    static _getSearchTerms(source, mode = 'token') {
+        // Handle both token.document and actor objects
+        const isActor = mode === this.MODES.PORTRAIT || (source && !source.document && source.name);
+        const actor = isActor ? source : (source?.actor || null);
+        const name = isActor ? source.name : (source?.name || '');
+        
         // Cache search terms to avoid repeated logging
-        const cacheKey = `${tokenDocument.id || tokenDocument.name}`;
+        const cacheKey = `${source?.id || source?.name || 'unknown'}`;
         if (this._searchTermsCache && this._searchTermsCache[cacheKey]) {
             return this._searchTermsCache[cacheKey];
         }
         
         const terms = [];
         
-        // Priority 1: Represented Actor name (most reliable for determining what the token is)
-        if (tokenDocument.actor && tokenDocument.actor.name) {
-            terms.push(tokenDocument.actor.name);
+        // Priority 1: Actor name (most reliable for determining what the token/portrait is)
+        if (actor && actor.name) {
+            terms.push(actor.name);
         }
         
-        
-        // Priority 2: Token name (may contain additional context)
-        terms.push(tokenDocument.name);
+        // Priority 2: Token/actor name (may contain additional context)
+        if (name) {
+            terms.push(name);
+        }
         
         // Priority 3: Creature subtype from the actor's system data
-        if (tokenDocument.actor?.system?.details?.type) {
-            const creatureType = tokenDocument.actor.system.details.type;
+        if (actor?.system?.details?.type) {
+            const creatureType = actor.system.details.type;
             if (typeof creatureType === 'object' && creatureType.subtype) {
                 terms.push(creatureType.subtype);
             }
         }
         
-        // Priority 4: Base name from represented actor (remove parentheticals and numbers)
-        if (tokenDocument.actor && tokenDocument.actor.name) {
-            const baseName = tokenDocument.actor.name.replace(/\([^)]*\)/g, '').replace(/\s*\d+$/, '').trim();
-            if (baseName && baseName !== tokenDocument.actor.name) {
-            terms.push(baseName);
+        // Priority 4: Base name from actor (remove parentheticals and numbers)
+        if (actor && actor.name) {
+            const baseName = actor.name.replace(/\([^)]*\)/g, '').replace(/\s*\d+$/, '').trim();
+            if (baseName && baseName !== actor.name) {
+                terms.push(baseName);
             }
         }
         
-        // Priority 5: Individual words from the represented actor name for better matching
-        if (tokenDocument.actor && tokenDocument.actor.name) {
-            const words = tokenDocument.actor.name.toLowerCase().split(/[\s\-_()]+/).filter(word => word.length > 2);
-        terms.push(...words);
+        // Priority 5: Individual words from the actor name for better matching
+        if (actor && actor.name) {
+            const words = actor.name.toLowerCase().split(/[\s\-_()]+/).filter(word => word.length > 2);
+            terms.push(...words);
         }
         
-        // Priority 6: Individual words from token name (as fallback)
-        const tokenWords = tokenDocument.name.toLowerCase().split(/[\s\-_()]+/).filter(word => word.length > 2);
-        terms.push(...tokenWords);
+        // Priority 6: Individual words from token/actor name (as fallback)
+        if (name) {
+            const nameWords = name.toLowerCase().split(/[\s\-_()]+/).filter(word => word.length > 2);
+            terms.push(...nameWords);
+        }
         
         // Remove duplicates and empty terms
         const filteredTerms = [...new Set(terms.filter(term => term && typeof term === 'string' && term.trim().length > 0))];
@@ -2734,9 +2835,25 @@ export class ImageCacheManager {
             
             // Restore cache (handle both old and new compressed formats)
             cache.files = new Map();
+            if (!cache.filesByFileName) {
+                cache.filesByFileName = new Map();
+            }
             const filesData = cacheData.files || cacheData.f;
-            for (const [fileName, fileInfo] of filesData) {
-                cache.files.set(fileName, fileInfo);
+            for (const [cacheKey, fileInfo] of filesData) {
+                // Determine the actual cache key (may be old format with just filename, or new format with path+filename)
+                const actualKey = cacheKey; // Use the key as stored
+                cache.files.set(actualKey, fileInfo);
+                
+                // Rebuild filesByFileName index
+                if (fileInfo && fileInfo.name) {
+                    const fileNameKey = fileInfo.name.toLowerCase();
+                    if (!cache.filesByFileName.has(fileNameKey)) {
+                        cache.filesByFileName.set(fileNameKey, []);
+                    }
+                    if (!cache.filesByFileName.get(fileNameKey).includes(actualKey)) {
+                        cache.filesByFileName.get(fileNameKey).push(actualKey);
+                    }
+                }
             }
             
             cache.folders = new Map(cacheData.folders || cacheData.fo);
@@ -3046,20 +3163,6 @@ export class ImageCacheManager {
         
         // File is directly in base path (no category)
         return null;
-    }
-
-    /**
-     * Check if a folder should be ignored based on user settings
-     * @param {string} folderName - The folder name to check
-     * @returns {boolean} True if the folder should be ignored
-     */
-    static _isFolderIgnored(folderName) {
-        const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
-        const ignoredFolders = ignoredFoldersSetting 
-            ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
-            : [];
-        
-        return ignoredFolders.includes(folderName);
     }
 
 }

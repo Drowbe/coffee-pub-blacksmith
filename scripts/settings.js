@@ -4461,6 +4461,15 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
+	// Portrait Image Replacement Display Cache Status (for UI display)
+	game.settings.register(MODULE.ID, 'portraitImageReplacementDisplayCacheStatus', {
+		scope: 'world',
+		config: false,
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
 	// Cache Stats
 	game.settings.register(MODULE.ID, "headingH4tokenImageReplacementCacheStats", {
 		name: MODULE.ID + '.tokenImageReplacementCacheStats-Label',
@@ -4642,6 +4651,54 @@ export const registerSettings = () => {
 
 	// Register numbered portrait image replacement path settings dynamically
 	registerPortraitImageReplacementPaths();
+
+	// Portrait Image Replacement Ignored Folders
+	game.settings.register(MODULE.ID, 'portraitImageReplacementIgnoredFolders', {
+		name: MODULE.ID + '.portraitImageReplacementIgnoredFolders-Label',
+		hint: MODULE.ID + '.portraitImageReplacementIgnoredFolders-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '.DS_Store',
+		requiresReload: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Automatically Update Portrait Image Cache
+	game.settings.register(MODULE.ID, 'portraitImageReplacementAutoUpdate', {
+		name: MODULE.ID + '.portraitImageReplacementAutoUpdate-Label',
+		hint: MODULE.ID + '.portraitImageReplacementAutoUpdate-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Portrait Deprioritized Words
+	game.settings.register(MODULE.ID, 'portraitImageReplacementDeprioritizedWords', {
+		name: MODULE.ID + '.portraitImageReplacementDeprioritizedWords-Label',
+		hint: MODULE.ID + '.portraitImageReplacementDeprioritizedWords-Hint',
+		type: String,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: '',
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Portrait Ignored Words (File Exclusion)
+	game.settings.register(MODULE.ID, 'portraitImageReplacementIgnoredWords', {
+		name: MODULE.ID + '.portraitImageReplacementIgnoredWords-Label',
+		hint: MODULE.ID + '.portraitImageReplacementIgnoredWords-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '',
+		requiresReload: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
 
 	// --------------------------------------
 	// -- H2: Portrait Image Replacement Cache

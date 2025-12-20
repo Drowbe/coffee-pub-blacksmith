@@ -1,4 +1,35 @@
 <div class="token-replacement-window">
+    {{!-- Global Controls (apply to both Token and Portrait modes) --}}
+    <div class="tir-global-controls">
+        {{#if portraitEnabled}}
+        <!-- Mode Toggle (Token/Portrait) -->
+        <div class="tir-toggle-container">
+            <span class="tir-toggle-label">{{#if isTokenMode}}Token{{else}}Portrait{{/if}} Mode</span>
+            <div class="tir-toggle">
+                <input type="checkbox" name="modeToggle" id="modeToggle" {{#if isPortraitMode}}checked{{/if}}>
+                <label for="modeToggle" class="tir-toggle-slider"></label>
+            </div>
+        </div>
+        {{/if}}
+        {{#if itemPilesInstalled}}
+        <!-- Loot Piles Toggle -->
+        <div class="tir-toggle-container">
+            <span class="tir-toggle-label">Loot Piles</span>
+            <div class="tir-toggle">
+                <input type="checkbox" name="convertDeadToLoot" id="convertDeadToLoot" {{#if convertDeadToLoot}}checked{{/if}}>
+                <label for="convertDeadToLoot" class="tir-toggle-slider"></label>
+            </div>
+        </div>
+        {{/if}}
+        <!-- Convert Dead Toggle -->
+        <div class="tir-toggle-container">
+            <span class="tir-toggle-label">Convert Dead</span>
+            <div class="tir-toggle">
+                <input type="checkbox" name="deadTokenReplacement" id="deadTokenReplacement" {{#if deadTokenReplacement}}checked{{/if}}>
+                <label for="deadTokenReplacement" class="tir-toggle-slider"></label>
+            </div>
+        </div>
+    </div>
     {{!-- Custom Header --}}
     <div class="tir-header">
         <div class="tir-header-content">
@@ -44,43 +75,12 @@
                         <label for="fuzzySearch" class="tir-toggle-slider"></label>
                     </div>
                 </div>
-                {{#if portraitEnabled}}
-                <!-- Mode Toggle (Token/Portrait) -->
-                <div class="tir-toggle-container">
-                    <span class="tir-toggle-label">{{#if isTokenMode}}Token{{else}}Portrait{{/if}} Mode</span>
-                    <div class="tir-toggle">
-                        <input type="checkbox" name="modeToggle" id="modeToggle" {{#if isPortraitMode}}checked{{/if}}>
-                        <label for="modeToggle" class="tir-toggle-slider"></label>
-                    </div>
-                </div>
-                {{/if}}
                 <!-- Update Dropped Tokens Toggle -->
                 <div class="tir-toggle-container">
                     <span class="tir-toggle-label">Update Dropped</span>
                     <div class="tir-toggle">
                         <input type="checkbox" name="updateDropped" id="updateDropped" {{#if updateDropped}}checked{{/if}}>
                         <label for="updateDropped" class="tir-toggle-slider"></label>
-                    </div>
-                </div>
-
-
-                {{#if itemPilesInstalled}}
-                <!-- Update Loot Tokens Toggle -->
-                <div class="tir-toggle-container">
-                    <span class="tir-toggle-label">Loot Piles</span>
-                    <div class="tir-toggle">
-                        <input type="checkbox" name="convertDeadToLoot" id="convertDeadToLoot" {{#if convertDeadToLoot}}checked{{/if}}>
-                        <label for="convertDeadToLoot" class="tir-toggle-slider"></label>
-                    </div>
-                </div>
-                {{/if}}
-
-                <!-- Update Dropped Tokens Toggle -->
-                <div class="tir-toggle-container">
-                    <span class="tir-toggle-label">Convert Dead</span>
-                    <div class="tir-toggle">
-                        <input type="checkbox" name="deadTokenReplacement" id="deadTokenReplacement" {{#if deadTokenReplacement}}checked{{/if}}>
-                        <label for="deadTokenReplacement" class="tir-toggle-slider"></label>
                     </div>
                 </div>
 

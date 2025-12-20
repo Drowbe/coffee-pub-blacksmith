@@ -959,7 +959,7 @@
 				"tokenImageReplacementDeprioritizedWords-Hint": "Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., 'spirit,ghost,undead,shadow').",
 				
 				"tokenImageReplacementIgnoredWords-Label": "Ignored Words",
-				"tokenImageReplacementIgnoredWords-Hint": "Comma-separated list of patterns to completely exclude files from cache. Supports wildcards: 'spirit' (exact), '*spirit' (ends with), 'spirit*' (starts with), '*spirit*' (contains), '*.png' (extension). Files matching any pattern will not be scanned or cached.",	
+				"tokenImageReplacementIgnoredWords-Hint": "Comma-separated list of patterns to completely exclude files from cache. Supports wildcards: 'spirit' (exact), '*spirit' (ends with), 'spirit*' (starts with), '*spirit*' (contains), '*.png' (extension). Files matching any pattern will not be scanned or cached.",
 
 
 			"headingH3TokenImageReplacementDisplay-Label": "Window Display",
@@ -996,7 +996,79 @@
 				"tokenImageReplacementWeightEquipment-Hint": "",	
 				
 				"tokenImageReplacementWeightSize-Label": "Size",
-				"tokenImageReplacementWeightSize-Hint": "",	
+				"tokenImageReplacementWeightSize-Hint": "",
+
+		"headingH2PortraitImageReplacement-Label": "Portrait Replacement",
+		"headingH2PortraitImageReplacement-Hint": "Automatically replace actor portrait images based on matching criteria.",
+
+			"portraitImageReplacementEnabled-Label": "Replace Portraits",
+			"portraitImageReplacementEnabled-Hint": "Enable the portrait image replacement features and functions.",
+
+			"headingH3PortraitImageReplacementConfiguration-Label": "Configuration",
+			"headingH3PortraitImageReplacementConfiguration-Hint": "",
+
+				"numPortraitImageReplacementPaths-Label": "Number of Image Folders",
+				"numPortraitImageReplacementPaths-Hint": "Number of image folders to scan for portrait images (0-15). Folders are checked in priority order.",
+
+				"portraitImageReplacementPath1-Label": "Portrait Images Folder 1",
+				"portraitImageReplacementPath1-Hint": "Base folder path for replacement portrait images (priority 1). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+
+				"portraitImageReplacementPath2-Label": "Portrait Images Folder 2",
+				"portraitImageReplacementPath2-Hint": "Base folder path for replacement portrait images (priority 2). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+
+				"portraitImageReplacementPath3-Label": "Portrait Images Folder 3",
+				"portraitImageReplacementPath3-Hint": "Base folder path for replacement portrait images (priority 3). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+
+				"portraitImageReplacementPath4-Label": "Portrait Images Folder 4",
+				"portraitImageReplacementPath4-Hint": "Base folder path for replacement portrait images (priority 4). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+
+				"portraitImageReplacementPath5-Label": "Portrait Images Folder 5",
+				"portraitImageReplacementPath5-Hint": "Base folder path for replacement portrait images (priority 5). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+
+				"portraitImageReplacementPath6-Label": "Portrait Images Folder 6",
+				"portraitImageReplacementPath6-Hint": "Base folder path for replacement portrait images (priority 6). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+
+				"portraitImageReplacementPath7-Label": "Portrait Images Folder 7",
+				"portraitImageReplacementPath7-Hint": "Base folder path for replacement portrait images (priority 7). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+
+				"portraitImageReplacementPath8-Label": "Portrait Images Folder 8",
+				"portraitImageReplacementPath8-Hint": "Base folder path for replacement portrait images (priority 8). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+
+				"portraitImageReplacementPath9-Label": "Portrait Images Folder 9",
+				"portraitImageReplacementPath9-Hint": "Base folder path for replacement portrait images (priority 9). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+
+				"portraitImageReplacementPath10-Label": "Portrait Images Folder 10",
+				"portraitImageReplacementPath10-Hint": "Base folder path for replacement portrait images (priority 10). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+
+				"portraitImageReplacementPath11-Label": "Portrait Images Folder 11",
+				"portraitImageReplacementPath11-Hint": "Base folder path for replacement portrait images (priority 11). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+
+				"portraitImageReplacementPath12-Label": "Portrait Images Folder 12",
+				"portraitImageReplacementPath12-Hint": "Base folder path for replacement portrait images (priority 12). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+
+				"portraitImageReplacementPath13-Label": "Portrait Images Folder 13",
+				"portraitImageReplacementPath13-Hint": "Base folder path for replacement portrait images (priority 13). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+
+				"portraitImageReplacementPath14-Label": "Portrait Images Folder 14",
+				"portraitImageReplacementPath14-Hint": "Base folder path for replacement portrait images (priority 14). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+
+				"portraitImageReplacementPath15-Label": "Portrait Images Folder 15",
+				"portraitImageReplacementPath15-Hint": "Base folder path for replacement portrait images (priority 15). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+
+				"portraitImageReplacementIgnoredFolders-Label": "Ignored Folders",
+				"portraitImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for portrait images. These folders will be completely skipped during the scan process. Examples: _gsdata_, .DS_Store",
+
+				"portraitImageReplacementAutoUpdate-Label": "Monitor Image Folder for Changes",
+				"portraitImageReplacementAutoUpdate-Hint": "If enabled, the module will monitor the image folder for changes and update the cache accordingly. If disabled, the module will only update the cache when the 'Update Images' button is clicked.",
+
+				"portraitImageReplacementDeprioritizedWords-Label": "Deprioritized Words",
+				"portraitImageReplacementDeprioritizedWords-Hint": "Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., 'spirit,ghost,undead,shadow').",
+
+				"portraitImageReplacementIgnoredWords-Label": "Ignored Words",
+				"portraitImageReplacementIgnoredWords-Hint": "Comma-separated list of patterns to completely exclude files from cache. Supports wildcards: 'spirit' (exact), '*spirit' (ends with), 'spirit*' (starts with), '*spirit*' (contains), '*.png' (extension). Files matching any pattern will not be scanned or cached.",
+
+		"headingH2PortraitImageReplacementCache-Label": "Portrait Image Cache",
+		"headingH2PortraitImageReplacementCache-Hint": "The cache is where we store the image references that are used for portrait image replacement. It also contains the tags, categories and other metadata for the images.",
 
 		"headingH2AutomatedEncounters-Label": "Encounters",
 		"headingH2AutomatedEncounters-Hint": "A toolbar can be added to journal entries with potential encounter data. It provides tools for deploying monsters, calcualtating real-time CR, and creating combat encounters.",
