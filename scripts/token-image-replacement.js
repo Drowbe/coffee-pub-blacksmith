@@ -913,39 +913,49 @@ export class TokenImageReplacementWindow extends Application {
         this.render();
 
         try {
-            await ImageCacheManager.scanForImages();
+            await ImageCacheManager.scanForImages(this.mode);
             
             // Check if we have completion data to show
-            if (ImageCacheManager.getCache(this.mode).justCompleted && ImageCacheManager.getCache(this.mode).completionData) {
-                const data = ImageCacheManager.getCache(this.mode).completionData;
-                let message = `Token Image Replacement: Scan completed! Found ${data.totalFiles} files across ${data.totalFolders} folders in ${data.timeString}`;
+            const cache = ImageCacheManager.getCache(this.mode);
+            const modeLabel = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'Portrait' : 'Token';
+            
+            if (cache.justCompleted && cache.completionData) {
+                const data = cache.completionData;
+                let message = `${modeLabel} Image Replacement: Scan completed! Found ${data.totalFiles} files across ${data.totalFolders} folders in ${data.timeString}`;
                 if (data.ignoredFiles > 0) {
                     message += ` (${data.ignoredFiles} files ignored by filter)`;
                 }
                 ui.notifications.info(message);
             } else {
-                ui.notifications.info("Image scan completed");
+                ui.notifications.info(`${modeLabel} image scan completed`);
             }
         } catch (error) {
-            ui.notifications.error(`Image scan failed: ${error.message}`);
+            const modeLabel = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'Portrait' : 'Token';
+            ui.notifications.error(`${modeLabel} image scan failed: ${error.message}`);
         }
     }
 
     async _onPauseCache() {
-        const paused = ImageCacheManager.pauseCache();
+        const paused = ImageCacheManager.pauseCache(this.mode);
+        const modeLabel = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'Portrait' : 'Token';
+        
         if (paused) {
             this.render();
-            ui.notifications.info("Cache scanning paused");
+            ui.notifications.info(`${modeLabel} cache scanning paused`);
         } else {
-            ui.notifications.warn("No active scan to pause");
+            ui.notifications.warn(`No active ${modeLabel.toLowerCase()} scan to pause`);
         }
     }
 
     async _onDeleteCache() {
+        const modeLabel = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'Portrait' : 'Token';
+        const cache = ImageCacheManager.getCache(this.mode);
+        const fileCount = cache.files.size;
+        
         // Show confirmation dialog
         const confirmed = await Dialog.confirm({
-            title: "Delete Cache",
-            content: "<p>Are you sure you want to delete the entire token image cache?</p><p><strong>This action cannot be undone.</strong></p>",
+            title: `Delete ${modeLabel} Cache`,
+            content: `<p>Are you sure you want to delete the entire ${modeLabel.toLowerCase()} image cache?</p><p>This will remove ${fileCount} cached ${modeLabel.toLowerCase()} images.</p><p><strong>This action cannot be undone.</strong></p>`,
             yes: () => true,
             no: () => false,
             defaultYes: false
@@ -953,11 +963,11 @@ export class TokenImageReplacementWindow extends Application {
 
         if (confirmed) {
             try {
-                await ImageCacheManager.deleteCache();
-                ui.notifications.info("Cache deleted successfully");
+                await ImageCacheManager.deleteCache(this.mode);
+                ui.notifications.info(`${modeLabel} cache deleted successfully`);
                 this.render();
             } catch (error) {
-                ui.notifications.error(`Failed to delete cache: ${error.message}`);
+                ui.notifications.error(`Failed to delete ${modeLabel.toLowerCase()} cache: ${error.message}`);
             }
         }
     }
@@ -2646,8 +2656,8 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     _getCategories() {
-        // Use the new cache-based category discovery
-        const discoveredCategories = ImageCacheManager.getDiscoveredCategories();
+        // Use the new cache-based category discovery with mode
+        const discoveredCategories = ImageCacheManager.getDiscoveredCategories(this.mode);
         
         // Convert to array of category objects for template
         const categories = [];

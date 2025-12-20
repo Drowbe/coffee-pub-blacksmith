@@ -207,10 +207,119 @@ This document outlines the migration plan to fully separate Token and Portrait i
 - [ ] Loot Dead applies to both modes
 - [ ] Global controls always visible regardless of mode
 
+## Phase 6: Bulk Migration Tool (New Feature)
+
+### 6.1 Migration Button and UI
+- [ ] **Add Migration Button** - Add to window UI (likely in settings or as a separate action)
+  - Button label: "Migrate Tokens" / "Migrate Portraits" (mode-specific)
+  - Should be accessible from the main window or settings
+  - Requires confirmation dialog before running
+
+- [ ] **Migration Settings** - Add settings for migration configuration
+  - Compendium selection (dropdown/checkbox list)
+  - Option to include world actors/tokens
+  - Option to migrate tokens only, portraits only, or both
+  - Option to create backup before migration
+
+### 6.2 Migration Logic
+- [ ] **Scan World and Compendiums** - Find all tokens/actors to migrate
+  - Iterate through world actors (if enabled)
+  - Iterate through selected compendiums (if enabled)
+  - Extract current image paths from tokens/actors
+  - Extract filenames from image paths
+
+- [ ] **Match by Filename** - Match existing images to cache
+  - For each token/actor image:
+    - Extract filename from current image path
+    - Search image replacement cache for matching filename
+    - Use case-insensitive matching
+    - Handle path variations (different base paths, etc.)
+
+- [ ] **Apply Migration** - Update tokens/actors with matched images
+  - For token mode: Update `token.document.texture.src` with matched image
+  - For portrait mode: Update `actor.img` with matched image
+  - Show progress indicator (X of Y migrated)
+  - Log all changes for review
+
+- [ ] **Migration Report** - Show results after migration
+  - Total tokens/actors scanned
+  - Number successfully migrated
+  - Number not found in cache
+  - List of unmatched items (optional)
+  - Option to export report
+
+### 6.3 Implementation Details
+- [ ] **Migration Function** - Create `migrateTokensToImageReplacement(mode, options)`
+  - Parameters:
+    - `mode`: 'token' or 'portrait'
+    - `options`: { compendiums: [], includeWorld: boolean, createBackup: boolean }
+  - Returns: Migration report object
+
+- [ ] **Filename Matching** - Robust filename extraction and matching
+  - Extract filename from various path formats
+  - Handle URL-encoded paths
+  - Handle different file extensions (.webp, .png, .jpg, etc.)
+  - Case-insensitive comparison
+  - Handle duplicate filenames (use first match or priority)
+
+- [ ] **Progress Tracking** - Show migration progress
+  - Progress bar for large migrations
+  - Real-time count updates
+  - Ability to cancel long-running migrations
+
+- [ ] **Error Handling** - Graceful error handling
+  - Continue migration even if individual items fail
+  - Log errors for review
+  - Don't break on permission errors (skip and continue)
+
+### 6.4 Safety Features
+- [ ] **Backup Option** - Create backup before migration
+  - Save original image paths to a backup structure
+  - Option to restore from backup
+  - Backup stored in module settings or separate file
+
+- [ ] **Dry Run Mode** - Preview migration without applying
+  - Show what would be migrated
+  - Show matches and non-matches
+  - Allow user to review before applying
+
+- [ ] **Confirmation Dialog** - Require explicit confirmation
+  - Show summary of what will be migrated
+  - Show number of items affected
+  - Require typing "MIGRATE" or similar to confirm
+
+### 6.5 UI Integration
+- [ ] **Migration Button Placement** - Add to appropriate location
+  - Option 1: Settings panel (module settings)
+  - Option 2: Image Replacement window (toolbar or menu)
+  - Option 3: Separate migration dialog/window
+
+- [ ] **Migration Dialog** - Create migration configuration dialog
+  - Checkboxes for compendiums
+  - Checkbox for "Include World Actors"
+  - Radio buttons for mode (Token/Portrait/Both)
+  - Checkbox for "Create Backup"
+  - Checkbox for "Dry Run" (preview only)
+  - Start/Cancel buttons
+
+- [ ] **Progress Window** - Show migration progress
+  - Progress bar
+  - Current item being processed
+  - Success/failure counts
+  - Cancel button
+
+- [ ] **Results Window** - Show migration results
+  - Summary statistics
+  - List of migrated items
+  - List of unmatched items
+  - Export button (CSV/JSON)
+  - Close button
+
 ## Notes
 
 - **Code Reuse**: Maintain shared code where appropriate (search logic, matching, UI components)
 - **Cache Separation**: Ensure no cross-contamination between token and portrait caches
 - **User Experience**: Mode switching should feel seamless, with appropriate state management
 - **Performance**: Both caches can be initialized independently, no performance impact from separation
+- **Migration Safety**: Always provide backup and dry-run options for bulk operations
 

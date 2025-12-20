@@ -937,13 +937,16 @@ export class ImageCacheManager {
     /**
      * Scan for images and update the cache (non-destructive)
      */
-    static async scanForImages() {
+    static async scanForImages(mode = 'token') {
+        const cache = this.getCache(mode);
+        const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
+        
         // Check if we already have a working cache
-        if (this.cache.files.size > 0) {
+        if (cache.files.size > 0) {
             const choice = await new Promise((resolve) => {
                 new Dialog({
-                    title: "Token Image Replacement",
-                    content: `<p>You already have ${this.cache.files.size} images in your cache.</p><p>Choose your scan type:</p><ul><li><strong>Incremental Update:</strong> Only scan for new/changed images (faster)</li><li><strong>Full Rescan:</strong> Start over and scan everything (slower)</li></ul>`,
+                    title: `${modeLabel} Image Replacement`,
+                    content: `<p>You already have ${cache.files.size} images in your ${modeLabel.toLowerCase()} cache.</p><p>Choose your scan type:</p><ul><li><strong>Incremental Update:</strong> Only scan for new/changed images (faster)</li><li><strong>Full Rescan:</strong> Start over and scan everything (slower)</li></ul>`,
                     buttons: {
                         incremental: {
                             icon: '<i class="fas fa-sync-alt"></i>',
@@ -966,51 +969,56 @@ export class ImageCacheManager {
             });
             
             if (choice === false) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Scan cancelled by user", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Scan cancelled by user`, "", true, false);
                 return;
             }
             
             // Do incremental update if cache exists
             if (choice === 'incremental') {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Starting incremental update...", "", true, false);
-                const basePaths = getImagePaths();
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Starting incremental update...`, "", true, false);
+                const basePaths = this.getImagePathsForMode(mode);
                 if (basePaths.length > 0) {
                     // For incremental updates, process each path
                     for (const basePath of basePaths) {
-                        await this._doIncrementalUpdate(basePath);
+                        await this._doIncrementalUpdate(basePath, mode);
                     }
                 }
                 return;
             }
         }
         
-        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Starting full scan...", "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Starting full scan...`, "", true, false);
         
-        if (this.cache.isScanning) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Stopping current scan and starting fresh...", "", true, false);
-            this.cache.isScanning = false; // Stop current scan
+        if (cache.isScanning) {
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Stopping current scan and starting fresh...`, "", true, false);
+            cache.isScanning = false; // Stop current scan
         }
         
         // Reset pause state when scanning
-        this.cache.isPaused = false;
+        cache.isPaused = false;
         
-        // Use getImagePaths() to get all configured paths (or empty array if none)
-        await this._scanFolderStructure(); // Will use getImagePaths() internally
+        // Use getImagePathsForMode() to get all configured paths for this mode
+        await this._scanFolderStructure(mode); // Will use getImagePathsForMode() internally
     }
     
     /**
      * Do an incremental update without clearing existing cache
+     * @param {string} basePath - Base path to scan
+     * @param {string} mode - 'token' or 'portrait'
      */
-    static async _doIncrementalUpdate(basePath) {
-        if (this.cache.isScanning) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Stopping current scan for incremental update...", "", true, false);
-            this.cache.isScanning = false;
+    static async _doIncrementalUpdate(basePath, mode = 'token') {
+        const cache = this.getCache(mode);
+        const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
+        
+        if (cache.isScanning) {
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Stopping current scan for incremental update...`, "", true, false);
+            cache.isScanning = false;
         }
         
-        this.cache.isScanning = true;
-        this.cache.isPaused = false;
-        this.cache.justCompleted = false;
-        this.cache.completionData = null;
+        cache.isScanning = true;
+        cache.isPaused = false;
+        cache.justCompleted = false;
+        cache.completionData = null;
         
         // Force window render to show progress bars immediately
         const windows = Object.values(ui.windows).filter(w => w instanceof TokenImageReplacementWindow);
@@ -1046,31 +1054,31 @@ export class ImageCacheManager {
             
             if (needsUpdate) {
                 // If structure changed, we need to do a full rescan
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Changes detected - falling back to full scan", "", true, false);
-                this.cache.isScanning = false; // Stop incremental mode
-                await this._scanFolderStructure(basePath); // Do full scan
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Changes detected - falling back to full scan`, "", true, false);
+                cache.isScanning = false; // Stop incremental mode
+                await this._scanFolderStructure(mode, basePath); // Do full scan
                 return;
             } else {
                 // No changes detected, just update the timestamp
-                const originalFileCount = this.cache.files.size;
+                const originalFileCount = cache.files.size;
                 const startTime = Date.now();
                 
                 // Update lastScan timestamp to current time
-                this.cache.lastScan = Date.now();
-                this.cache.totalFiles = this.cache.files.size;
+                cache.lastScan = Date.now();
+                cache.totalFiles = cache.files.size;
                 
                 // Save the updated cache with new timestamp
-                await this._saveCacheToStorage(false); // false = final save
+                await this._saveCacheToStorage(mode, false); // false = final save
                 
                 // Update the cache status setting for display
-                this._updateCacheStatusSetting();
+                this._updateCacheStatusSetting(mode);
                 
                 // Set completion state for UI updates
-                this.cache.isScanning = false;
-                this.cache.justCompleted = true;
-                this.cache.completionData = {
+                cache.isScanning = false;
+                cache.justCompleted = true;
+                cache.completionData = {
                     totalFiles: originalFileCount,
-                    totalFolders: this.cache.totalFoldersScanned || this.cache.folders.size,
+                    totalFolders: cache.totalFoldersScanned || cache.folders.size,
                     timeString: "less than a second" // Incremental updates are very fast
                 };
                 
@@ -1081,23 +1089,23 @@ export class ImageCacheManager {
                 
                 // Clear completion state after 3 seconds (shorter for incremental)
                 setTimeout(() => {
-                    this.cache.justCompleted = false;
-                    this.cache.completionData = null;
+                    cache.justCompleted = false;
+                    cache.completionData = null;
                     if (this.window && this.window.render) {
                         this.window.render();
                     }
                 }, 3000);
                 
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✅ INCREMENTAL UPDATE COMPLETE!`, "", false, false);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No changes detected. Cache still contains ${originalFileCount} files.`, "", false, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: ✅ INCREMENTAL UPDATE COMPLETE!`, "", false, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: No changes detected. Cache still contains ${originalFileCount} files.`, "", false, false);
             }
             
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error during incremental update: ${error.message}`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Error during incremental update: ${error.message}`, "", false, false);
         } finally {
             // Ensure scanning is false even if there was an error
-            if (this.cache.isScanning) {
-                this.cache.isScanning = false;
+            if (cache.isScanning) {
+                cache.isScanning = false;
                 
                 // Force window refresh to show updated button state
                 if (this.window && this.window.render) {
@@ -1110,49 +1118,25 @@ export class ImageCacheManager {
     /**
      * Pause the current cache scanning process
      */
-    static pauseCache() {
-        if (this.cache.isScanning) {
-            this.cache.isPaused = true;
-            this.cache.isScanning = false;
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache scanning paused. You can resume by refreshing the cache.", "", true, false);
+    static pauseCache(mode = 'token') {
+        const cache = this.getCache(mode);
+        const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
+        
+        if (cache.isScanning) {
+            cache.isPaused = true;
+            cache.isScanning = false;
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cache scanning paused. You can resume by refreshing the cache.`, "", true, false);
+            
+            // Update window if it exists
+            if (this.window && this.window.updateScanProgress) {
+                this.window.updateScanProgress(0, 100, "Scanning paused");
+            }
+            
             return true;
         }
         return false;
     }
 
-    /**
-     * Delete the entire cache
-     */
-    static async deleteCache() {
-        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Deleting cache...", "", true, false);
-        
-        // Stop any ongoing scan
-        if (this.cache.isScanning) {
-            this.cache.isScanning = false;
-        }
-        
-        // Clear memory cache
-        this.cache.files.clear();
-        this.cache.folders.clear();
-        this.cache.creatureTypes.clear();
-        this.cache.lastScan = null;
-        this.cache.totalFiles = 0;
-        this.cache.isPaused = false;
-        
-        // Clear persistent storage (both localStorage and game.settings)
-        this._clearCacheFromStorage();
-        await game.settings.set(MODULE.ID, 'tokenImageReplacementCache', '');
-        
-        // Update status
-        this._updateCacheStatusSetting();
-        
-        // Force window refresh to show updated cache status
-        if (this.window && this.window.render) {
-            this.window.render();
-        }
-        
-        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache deleted successfully", "", true, false);
-    }
     
     /**
      * Pause the current cache scanning process
@@ -2244,9 +2228,9 @@ export class ImageCacheManager {
     /**
      * Refresh the cache
      */
-    static async refreshCache() {
-        // Use getImagePaths() to get all configured paths
-        await this._scanFolderStructure(); // Will use getImagePaths() internally
+    static async refreshCache(mode = 'token') {
+        // Use getImagePathsForMode() to get all configured paths for this mode
+        await this._scanFolderStructure(mode); // Will use getImagePathsForMode() internally
     }
     
     
@@ -2974,32 +2958,43 @@ export class ImageCacheManager {
 
     /**
      * Check for incremental updates to the cache
+     * @param {string} basePath - Base path to check
+     * @param {string} mode - 'token' or 'portrait'
      */
-    static async _checkForIncrementalUpdates(basePath) {
+    static async _checkForIncrementalUpdates(basePath, mode = 'token') {
+        const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
+        const cacheSettingKey = this.getCacheSettingKey(mode);
+        
         try {
             // Check if folder fingerprint changed (file system changes)
             const currentFingerprint = await this._generateFolderFingerprint(basePath);
-            const savedCache = localStorage.getItem('tokenImageReplacement_cache');
+            const savedCache = game.settings.get(MODULE.ID, cacheSettingKey);
             
             if (savedCache) {
-                const cacheData = JSON.parse(savedCache);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_checkForIncrementalUpdates) - Comparing paths: cached="${cacheData.basePath}" vs current="${basePath}"`, "", true, false);
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: DEBUG (_checkForIncrementalUpdates) - Comparing fingerprints: cached="${cacheData.folderFingerprint}" vs current="${currentFingerprint}"`, "", true, false);
-                if (cacheData.folderFingerprint !== currentFingerprint) {
+                let cacheData;
+                try {
+                    cacheData = JSON.parse(this._decompressCacheData(savedCache));
+                } catch (e) {
+                    cacheData = JSON.parse(savedCache);
+                }
+                const savedFingerprint = cacheData.folderFingerprint || cacheData.ff;
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: DEBUG (_checkForIncrementalUpdates) - Comparing paths: cached="${cacheData.basePath || cacheData.bp}" vs current="${basePath}"`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: DEBUG (_checkForIncrementalUpdates) - Comparing fingerprints: cached="${savedFingerprint}" vs current="${currentFingerprint}"`, "", true, false);
+                if (savedFingerprint !== currentFingerprint) {
                     // Only start scan if auto-update is enabled
                     const autoUpdate = getSettingSafely(MODULE.ID, 'tokenImageReplacementAutoUpdate', false);
                     if (autoUpdate) {
-                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, performing incremental update...", "", false, false);
-                        await this._doIncrementalUpdate(basePath);
+                        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Folder structure changed, performing incremental update...`, "", false, false);
+                        await this._doIncrementalUpdate(basePath, mode);
                     } else {
-                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, manual update needed", "", false, true);
+                        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Folder structure changed, manual update needed`, "", false, true);
                     }
                 } else {
-                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache is up to date", "", true, false);
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cache is up to date`, "", true, false);
                 }
             }
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error checking for incremental updates: ${error.message}`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Error checking for incremental updates: ${error.message}`, "", false, false);
         }
     }
 
@@ -3008,7 +3003,8 @@ export class ImageCacheManager {
      * Returns the actual folder names found in the cache, respecting user settings
      * @returns {Array<string>} Array of category folder names
      */
-    static getDiscoveredCategories() {
+    static getDiscoveredCategories(mode = 'token') {
+        const cache = this.getCache(mode);
         const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
         const ignoredFolders = ignoredFoldersSetting 
             ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
@@ -3018,7 +3014,7 @@ export class ImageCacheManager {
         
         // Cache stores RELATIVE paths (without base path)
         // Category is the FIRST part of the relative path
-        for (const folderPath of this.cache.folders.keys()) {
+        for (const folderPath of cache.folders.keys()) {
             const parts = folderPath.split('/').filter(p => p);
             
             // First part is the category (since paths are relative to base)
