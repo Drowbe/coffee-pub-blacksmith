@@ -11,6 +11,20 @@
 - nameplate creation
 
 
+### Toolbar
+- **Issue**: other modules registering tools with the toolbar are not showing up.
+- **Status**: PENDING - Needs investigation and fixes
+- **Priority**: HIGH - Module integration
+- **Current State**: Other modules registering tools with the toolbar are not showing up.
+- **Location**: `scripts/manager-toolbar.js`
+- **Tasks Needed**:
+  - Review toolbar registration logic
+  - Ensure toolbar registration is working correctly
+  - Verify toolbar is showing all registered tools
+  - Add debug logging to toolbar registration
+
+
+
 
 ### Memory Leak Investigation
 - **Issue**: Browser tab memory grows to 9.5 GB in ~3 hours while heap stays ~950 MB, leading to crashes.
