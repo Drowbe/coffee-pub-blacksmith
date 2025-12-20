@@ -1249,6 +1249,14 @@ export class ImageCacheManager {
             }
         }, maxScanTime);
         
+        // Preserve favorites before clearing cache
+        const preservedFavorites = new Map();
+        for (const [fileName, fileInfo] of this.cache.files.entries()) {
+            if (fileInfo.metadata?.tags?.includes('FAVORITE')) {
+                preservedFavorites.set(fileName.toLowerCase(), true);
+            }
+        }
+        
         // Clear cache at the start of a complete scan
         this.cache.files.clear();
         this.cache.folders.clear();
@@ -1303,6 +1311,34 @@ export class ImageCacheManager {
             
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: ✅ SCAN COMPLETE!`, "", true, false);
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found ${this.cache.totalFiles} files across ${this.cache.folders.size} folders in ${timeString}`, "", true, false);
+            
+            // Restore favorites for files that still exist
+            if (preservedFavorites.size > 0) {
+                let restoredCount = 0;
+                let removedCount = 0;
+                for (const [fileName, wasFavorite] of preservedFavorites.entries()) {
+                    const fileInfo = this.cache.files.get(fileName);
+                    if (fileInfo) {
+                        // File still exists, restore favorite status
+                        if (!fileInfo.metadata) {
+                            fileInfo.metadata = {};
+                        }
+                        if (!Array.isArray(fileInfo.metadata.tags)) {
+                            fileInfo.metadata.tags = [];
+                        }
+                        if (!fileInfo.metadata.tags.includes('FAVORITE')) {
+                            fileInfo.metadata.tags.push('FAVORITE');
+                            restoredCount++;
+                        }
+                    } else {
+                        // File no longer exists, favorite is lost
+                        removedCount++;
+                    }
+                }
+                if (restoredCount > 0 || removedCount > 0) {
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Restored ${restoredCount} favorite(s), ${removedCount} favorite(s) removed (files no longer exist)`, "", false, false);
+                }
+            }
             
             // Log some statistics about the cache
             this._logCacheStatistics();
