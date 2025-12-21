@@ -282,6 +282,8 @@
     justify-content: center;
     background: rgba(0, 0, 0, 0.6);
     gap: 5px;
+    padding: 0;
+    margin: 0;
 }
 
 .cpb-cinematic-card .cpb-cinematic-roll-result {
@@ -385,7 +387,7 @@
     flex-shrink: 0;
 }
 .cpb-cinematic-roll-btn i {
-    padding-left: 3px;
+    /* Icon is centered via flexbox, no padding needed */
 }
 
 .cpb-cinematic-roll-mod-btn {
@@ -407,8 +409,15 @@
     align-items: center;
     flex-shrink: 0;
 }
+.cpb-cinematic-roll-mod-btn.disadvantage {
+    background: rgba(148, 9, 9, 0.5);
+}
+.cpb-cinematic-roll-mod-btn.advantage {
+    background: rgba(22, 77, 11, 0.5);
+}
+
 .cpb-cinematic-roll-mod-btn i {
-    padding-left: 3px;
+    /* Icon is centered via flexbox, no padding needed */
 }
 
 .cpb-cinematic-roll-btn:hover,

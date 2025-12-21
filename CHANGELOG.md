@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Image Replacement Global Controls Layout**: Restructured the global controls header in the image replacement window. The Token/Portrait mode toggle is now left-aligned with "Tokens" label on the left and "Portraits" label on the right of the toggle for clarity. Other global controls (Loot Piles, Convert Dead) are right-aligned. Added CSS styling for the new layout structure.
 - **Image Replacement Match Display**: Updated matching logic so that match percentages are always displayed when a token or actor is selected, regardless of which filter button is active (ALL, category buttons, SELECTED). Previously, match percentages only appeared on the SELECTED tab. This ensures consistent visual feedback across all filter modes.
+- **Cinematic Roll Button Visual Feedback**: Added color-coded background styling for advantage/disadvantage modifier buttons in cinematic roll window. Disadvantage buttons now have a red tint (`rgba(148, 9, 9, 0.5)`) and advantage buttons have a green tint (`rgba(22, 77, 11, 0.5)`) to provide clear visual distinction between roll types.
+
+### Fixed
+- **Cinematic Window Circular Buttons**: Fixed circular buttons (dice roll buttons and close button) in the cinematic roll window appearing elliptical/horizontally compressed after v13 migration. Added `box-sizing: border-box`, `min-width`, `min-height`, and `aspect-ratio: 1` to ensure buttons maintain perfect circular shape. Buttons now display correctly as circles regardless of flex container constraints.
+- **Cinematic Button Icon Alignment**: Fixed icon misalignment in cinematic roll buttons caused by unnecessary `padding-left: 3px` on icons. Removed padding since flexbox centering (`justify-content: center` and `align-items: center`) already properly centers icons. Added explicit `padding: 0` and `margin: 0` to roll area container to prevent any default spacing issues.
+- **Unused Code Cleanup**: Removed unused `getResultSound()` function from `window-skillcheck.js` that was never called. Sound logic is handled directly in `deliverRollResults()` and `updateCinemaOverlay()` functions.
 
 ## [13.0.5]
 

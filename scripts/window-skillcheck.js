@@ -1454,13 +1454,13 @@ export class SkillCheckDialog extends Application {
             if (hasPermission && !result) {
                 rollAreaHtml = `
                     <div class="cpb-cinematic-roll-area">
-                        <button class="cpb-cinematic-roll-mod-btn" data-roll-type="disadvantage" title="Roll with Disadvantage">
+                        <button class="cpb-cinematic-roll-mod-btn disadvantage" data-roll-type="disadvantage" title="Roll with Disadvantage">
                             <i class="fas fa-minus"></i>
                         </button>
                         <button class="cpb-cinematic-roll-btn" data-roll-type="normal" title="Roll Normal">
                             <i class="fas fa-dice-d20"></i>
                         </button>
-                        <button class="cpb-cinematic-roll-mod-btn" data-roll-type="advantage" title="Roll with Advantage">
+                        <button class="cpb-cinematic-roll-mod-btn advantage" data-roll-type="advantage" title="Roll with Advantage">
                             <i class="fas fa-plus"></i>
                         </button>
                     </div>
