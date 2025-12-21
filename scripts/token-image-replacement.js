@@ -2436,21 +2436,76 @@ export class TokenImageReplacementWindow extends Application {
             `Now searching for ${modeLabel.toLowerCase()} images`, 
             false, false);
         
-        // Clear current selection
-        this.selectedToken = null;
-        this.currentFilter = 'all';
+        // Clear cached search terms and results
         this._cachedSearchTerms = null;
         this.matches = [];
         this.allMatches = [];
+        this.currentPage = 0;
         
-        // Redetect selected token/actor in new mode
+        // Redetect selected token/actor in new mode (this will set currentFilter and call _findMatches)
         await this._checkForSelectedToken();
         
-        // Update threshold slider and fuzzy search toggle to reflect new mode's values
+        // Update threshold slider to reflect new mode's values
         this._initializeThresholdSlider();
         
-        // Re-render to update UI
-        this.render();
+        // Re-render to update UI (this will update filter button states via getData)
+        await this.render();
+        
+        // Update filter button states after render completes
+        this._updateFilterButtonStates();
+        
+        // Re-populate results after render (render() clears the DOM, so we need to update results again)
+        // Ensure pagination is applied before updating results
+        this._applyPagination();
+        
+        // Use requestAnimationFrame to ensure DOM is fully ready
+        requestAnimationFrame(() => {
+            // Double-check element exists and has the grid
+            const element = this.element;
+            if (element) {
+                let nativeElement = element;
+                if (element.jquery || typeof element.find === 'function') {
+                    nativeElement = element[0] || element.get?.(0);
+                }
+                if (nativeElement && nativeElement.querySelector('.tir-thumbnails-grid')) {
+                    this._updateResults();
+                } else {
+                    // If grid not found, try again after a short delay
+                    setTimeout(() => {
+                        if (this.element) {
+                            this._applyPagination();
+                            this._updateResults();
+                        }
+                    }, 100);
+                }
+            }
+        });
+    }
+    
+    /**
+     * Update filter button active states in the UI
+     */
+    _updateFilterButtonStates() {
+        // v13: Handle both jQuery and native DOM
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            element = this.element;
+        } else {
+            return;
+        }
+        
+        if (!element) return;
+        
+        // Remove active class from all filter categories
+        const filterButtons = element.querySelectorAll('#tir-filter-category-container .tir-filter-category');
+        filterButtons.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.category === this.currentFilter) {
+                btn.classList.add('active');
+            }
+        });
     }
 
     /**

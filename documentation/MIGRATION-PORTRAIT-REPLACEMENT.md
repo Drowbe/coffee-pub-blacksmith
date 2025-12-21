@@ -120,13 +120,13 @@ This document outlines the migration plan to fully separate Token and Portrait i
   - ✅ These controls are global and affect both modes
   - ✅ Structure implemented as specified
 
-### 3.2 Mode-Specific Controls
-- [ ] **Move Mode-Specific Controls** - Keep in main header
-  - Fuzzy Search (applies to current mode)
-  - Update Dropped (applies to current mode)
-  - Matching Threshold (applies to current mode)
-  - Scan for Images button (mode-specific)
-  - Delete Cache button (mode-specific)
+### 3.2 Mode-Specific Controls ✅
+- [x] **Move Mode-Specific Controls** - Keep in main header
+  - ✅ Fuzzy Search (applies to current mode) - Mode-specific settings implemented
+  - ✅ Update Dropped (applies to current mode) - Separate toggles for tokens and portraits
+  - ✅ Matching Threshold (applies to current mode) - Mode-specific settings implemented
+  - ✅ Scan for Images button (mode-specific) - Already mode-aware
+  - ✅ Delete Cache button (mode-specific) - Already mode-aware
 
 ### 3.3 Button Labels ✅
 - [x] **Mode-Specific Button Labels**
