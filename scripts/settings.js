@@ -4743,6 +4743,18 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
+	// Portrait Image Replacement Update Dropped
+	game.settings.register(MODULE.ID, 'portraitImageReplacementUpdateDropped', {
+		name: MODULE.ID + '.portraitImageReplacementUpdateDropped-Label',
+		hint: MODULE.ID + '.portraitImageReplacementUpdateDropped-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
 	// Last used mode (token or portrait) - HIDDEN SETTING
 	game.settings.register(MODULE.ID, 'tokenImageReplacementLastMode', {
 		scope: 'world',

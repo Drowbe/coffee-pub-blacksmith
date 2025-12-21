@@ -75,9 +75,9 @@
                         <label for="fuzzySearch" class="tir-toggle-slider"></label>
                     </div>
                 </div>
-                <!-- Update Dropped Tokens Toggle -->
+                <!-- Update Dropped Tokens/Portraits Toggle -->
                 <div class="tir-toggle-container">
-                    <span class="tir-toggle-label">Update Dropped</span>
+                    <span class="tir-toggle-label">Update Dropped {{#if isPortraitMode}}Portraits{{else}}Tokens{{/if}}</span>
                     <div class="tir-toggle">
                         <input type="checkbox" name="updateDropped" id="updateDropped" {{#if updateDropped}}checked{{/if}}>
                         <label for="updateDropped" class="tir-toggle-slider"></label>

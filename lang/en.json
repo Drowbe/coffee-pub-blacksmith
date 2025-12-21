@@ -1067,6 +1067,9 @@
 				"portraitImageReplacementFuzzySearch-Label": "Fuzzy Search",
 				"portraitImageReplacementFuzzySearch-Hint": "When enabled, searches for individual words independently in portrait images. When disabled, searches for exact string matches.",
 
+				"portraitImageReplacementUpdateDropped-Label": "Update Dropped Portraits",
+				"portraitImageReplacementUpdateDropped-Hint": "When enabled, actor portraits will be automatically updated with the best matching portrait when tokens are created on the canvas.",
+
 				"portraitImageReplacementDeprioritizedWords-Label": "Deprioritized Words",
 				"portraitImageReplacementDeprioritizedWords-Hint": "Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., 'spirit,ghost,undead,shadow').",
 

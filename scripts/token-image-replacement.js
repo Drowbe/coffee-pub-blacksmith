@@ -575,7 +575,7 @@ export class TokenImageReplacementWindow extends Application {
             currentPath: ImageCacheManager.getCache(this.mode).currentPath,
             currentFileName: ImageCacheManager.getCache(this.mode).currentFileName,
             cacheStatus: this._getCacheStatus(),
-            updateDropped: getSettingSafely(MODULE.ID, 'tokenImageReplacementUpdateDropped', true),
+            updateDropped: getSettingSafely(MODULE.ID, this.mode === ImageCacheManager.MODES.PORTRAIT ? 'portraitImageReplacementUpdateDropped' : 'tokenImageReplacementUpdateDropped', true),
             fuzzySearch: getSettingSafely(MODULE.ID, this.mode === ImageCacheManager.MODES.PORTRAIT ? 'portraitImageReplacementFuzzySearch' : 'tokenImageReplacementFuzzySearch', false),
             tagSortMode: getSettingSafely(MODULE.ID, 'tokenImageReplacementTagSortMode', 'count'),
             convertDeadToLoot: getSettingSafely(MODULE.ID, 'tokenConvertDeadToLoot', false),
@@ -2386,14 +2386,16 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     /**
-     * Handle Update Dropped Tokens toggle change
+     * Handle Update Dropped Tokens/Portraits toggle change
      */
     async _onUpdateDroppedToggle(event) {
         const isEnabled = event.target.checked;
-        await game.settings.set(MODULE.ID, 'tokenImageReplacementUpdateDropped', isEnabled);
+        const updateDroppedSettingKey = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'portraitImageReplacementUpdateDropped' : 'tokenImageReplacementUpdateDropped';
+        await game.settings.set(MODULE.ID, updateDroppedSettingKey, isEnabled);
         
-        postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Update Dropped Tokens ${isEnabled ? 'enabled' : 'disabled'}`, 
-            isEnabled ? 'Tokens dropped on canvas will be automatically updated' : 'Only manual updates via this window will work', 
+        const modeLabel = this._getModeLabel().toLowerCase();
+        postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Update Dropped ${modeLabel === 'portrait' ? 'Portraits' : 'Tokens'} ${isEnabled ? 'enabled' : 'disabled'}`, 
+            isEnabled ? `${modeLabel === 'portrait' ? 'Portraits' : 'Tokens'} will be automatically updated when ${modeLabel === 'portrait' ? 'actors are created' : 'tokens are dropped'}` : 'Only manual updates via this window will work', 
             false, false);
     }
 
@@ -3299,21 +3301,47 @@ export class TokenImageReplacementWindow extends Application {
             return;
         }
         
-        // Store the original image before any updates
+        // Store the original image before any updates (for token mode)
         await TokenImageUtilities.storeOriginalImage(tokenDocument);
         
+        // Get the actor from the token
+        const actor = tokenDocument.actor;
+        if (!actor) {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - token has no actor", "", true, false);
+            return;
+        }
+        
+        // Check if token image replacement is enabled
         if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementEnabled', false)) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - feature disabled", "", true, false);
             return;
         }
         
         // Check if Update Dropped Tokens is enabled
-        if (!getSettingSafely(MODULE.ID, 'tokenImageReplacementUpdateDropped', true)) {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - Update Dropped Tokens disabled", "", true, false);
-            return;
+        const updateDroppedTokens = getSettingSafely(MODULE.ID, 'tokenImageReplacementUpdateDropped', true);
+        
+        // Check if Update Dropped Portraits is enabled
+        const updateDroppedPortraits = getSettingSafely(MODULE.ID, 'portraitImageReplacementUpdateDropped', true);
+        
+        // Check if portrait image replacement is enabled
+        const portraitEnabled = getSettingSafely(MODULE.ID, 'portraitImageReplacementEnabled', false);
+        
+        // Process token image replacement if enabled
+        if (updateDroppedTokens) {
+            await TokenImageReplacementWindow._processTokenImageReplacement(tokenDocument);
         }
         
-        // Check if cache is ready (this hook is always for token mode)
+        // Process portrait image replacement if enabled
+        if (portraitEnabled && updateDroppedPortraits) {
+            await TokenImageReplacementWindow._processPortraitImageReplacement(actor);
+        }
+    }
+    
+    /**
+     * Process token image replacement for a dropped token
+     */
+    static async _processTokenImageReplacement(tokenDocument) {
+        // Check if cache is ready
         const tokenMode = ImageCacheManager.MODES.TOKEN;
         if (ImageCacheManager.getCache(tokenMode).files.size === 0) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - cache not ready", "", true, false);
@@ -3323,107 +3351,90 @@ export class TokenImageReplacementWindow extends Application {
         // Extract token data
         const tokenData = ImageCacheManager._extractTokenData(tokenDocument);
         
-        // Log formatted breakdown (simplified for new scoring system)        
         // Wait a moment for the token to be fully created on the canvas
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Find matching image using unified matching system (same as SELECTED mode)
-        // Get all files from cache (no UI filtering for dropped tokens)
+        // Find matching image using unified matching system
         const allFiles = Array.from(ImageCacheManager.getCache(tokenMode).files.values());
-        
-        // Use unified matching with token mode (same parameters as SELECTED mode)
         const matches = await ImageMatching._applyUnifiedMatching(allFiles, null, tokenDocument, 'token', ImageCacheManager.getCache(tokenMode), ImageCacheManager._extractTokenData, true);
         
         // Get the best match (highest score)
         const matchingImage = matches.length > 0 ? matches[0] : null;
         
         if (matchingImage) {
-            // Validate the image path before applying
+            // Validate and apply token image
             if (ImageCacheManager._isInvalidFilePath(matchingImage.fullPath)) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cannot apply invalid image path to ${tokenDocument.name}: ${matchingImage.fullPath}`, "", true, false);
-                
-                // Clean up the invalid path from cache to prevent future issues
                 ImageCacheManager.getCache(tokenMode).files.delete(matchingImage.name.toLowerCase());
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Removed invalid path from cache: ${matchingImage.name}`, "", true, false);
-                
-                // Try to find an alternative match using unified matching system
-                // Get current filter from any open window
-                let currentFilter = 'all';
-                const openWindow = Object.values(ui.windows).find(w => w instanceof TokenImageReplacementWindow);
-                if (openWindow) {
-                    currentFilter = openWindow.currentFilter;
-                }
-                
-                // Get all files from cache (no UI filtering for error recovery)
-                const filesToSearch = Array.from(ImageCacheManager.getCache(tokenMode).files.values());
-                // Apply threshold based on current filter (like main window)
-                const applyThreshold = currentFilter === 'selected';
-                const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', ImageCacheManager.getCache(tokenMode), ImageCacheManager._extractTokenData, applyThreshold);
-                const alternativeMatch = matches.length > 0 ? matches[0] : null;
-                if (alternativeMatch && !ImageCacheManager._isInvalidFilePath(alternativeMatch.fullPath)) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found alternative match for ${tokenDocument.name}: ${alternativeMatch.name}`, "", true, false);
-                    try {
-                        await tokenDocument.update({
-                            'texture.src': alternativeMatch.fullPath
-                        });
-                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied alternative image ${alternativeMatch.name} to ${tokenDocument.name}`, "", true, false);
-                    } catch (altError) {
-                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error applying alternative image: ${altError.message}`, "", true, false);
-                    }
-                }
                 return;
             }
             
-            // Apply the image replacement
             try {
                 await tokenDocument.update({
                     'texture.src': matchingImage.fullPath
                 });
-                
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied ${matchingImage.name} to ${tokenDocument.name} (Score: ${((matchingImage.score || 0) * 100).toFixed(1)}%)`, "", true, false);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error applying image: ${error.message}`, "", false, false);
-                
-                // Check if the error is due to an invalid asset path
-                if (error.message.includes('Invalid Asset') || error.message.includes('loadTexture')) {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Invalid asset detected, removing from cache: ${matchingImage.fullPath}`, "", false, false);
-                    ImageCacheManager.getCache(tokenMode).files.delete(matchingImage.name.toLowerCase());
-                    
-                    // Try to find an alternative match using unified matching system
-                    // Get current filter from any open window
-                    let currentFilter = 'all';
-                    const openWindow = Object.values(ui.windows).find(w => w instanceof TokenImageReplacementWindow);
-                    if (openWindow) {
-                        currentFilter = openWindow.currentFilter;
-                    }
-                    
-                    // Get all files from cache (no UI filtering for error recovery)
-                    const filesToSearch = Array.from(ImageCacheManager.getCache(tokenMode).files.values());
-                    // Apply threshold based on current filter (like main window)
-                    const applyThreshold = currentFilter === 'selected';
-                    const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', ImageCacheManager.getCache(tokenMode), ImageCacheManager._extractTokenData, applyThreshold);
-                    const alternativeMatch = matches.length > 0 ? matches[0] : null;
-                    if (alternativeMatch && !ImageCacheManager._isInvalidFilePath(alternativeMatch.fullPath)) {
-                        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found alternative match for ${tokenDocument.name}: ${alternativeMatch.name}`, "", false, false);
-                        try {
-                            await tokenDocument.update({
-                                'texture.src': alternativeMatch.fullPath
-                            });
-                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied alternative image ${alternativeMatch.name} to ${tokenDocument.name}`, "", false, false);
-                        } catch (altError) {
-                            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error applying alternative image: ${altError.message}`, "", false, false);
-                        }
-                    }
-                }
-                
-                // Notify the GM about the failure
-                if (game.user.isGM) {
-                    ui.notifications.warn(`Token Image Replacement failed for ${tokenDocument.name}. Check console for details.`);
-                }
             }
         } else {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No matching image found for ${tokenDocument.name}`, "", true, false);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Search Summary - Token Data: representedActor="${tokenData.representedActor}", creatureType="${tokenData.creatureType}", creatureSubtype="${tokenData.creatureSubtype}", equipment=[${tokenData.equipment?.join(', ') || 'none'}]`, "", true, false);
+        }
+    }
+    
+    /**
+     * Process portrait image replacement for a dropped token's actor
+     */
+    static async _processPortraitImageReplacement(actor) {
+        // Check if cache is ready
+        const portraitMode = ImageCacheManager.MODES.PORTRAIT;
+        if (ImageCacheManager.getCache(portraitMode).files.size === 0) {
+            postConsoleAndNotification(MODULE.NAME, "Portrait Image Replacement: Skipping - cache not ready", "", true, false);
+            return;
+        }
+        
+        // Store original portrait if not already stored
+        const existingOriginal = actor.getFlag(MODULE.ID, 'originalPortrait');
+        if (!existingOriginal && actor.img) {
+            const originalPortrait = {
+                path: actor.img,
+                name: actor.img.split('/').pop(),
+                timestamp: Date.now()
+            };
+            await actor.setFlag(MODULE.ID, 'originalPortrait', originalPortrait);
+        }
+        
+        // Create a fake tokenDocument-like object for matching
+        const tokenDocument = { actor: actor };
+        
+        // Wait a moment for the actor to be fully ready
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Find matching image using unified matching system
+        const allFiles = Array.from(ImageCacheManager.getCache(portraitMode).files.values());
+        const matches = await ImageMatching._applyUnifiedMatching(allFiles, null, tokenDocument, 'token', ImageCacheManager.getCache(portraitMode), ImageCacheManager._extractTokenData, true);
+        
+        // Get the best match (highest score)
+        const matchingImage = matches.length > 0 ? matches[0] : null;
+        
+        if (matchingImage) {
+            // Validate and apply portrait image
+            if (ImageCacheManager._isInvalidFilePath(matchingImage.fullPath)) {
+                postConsoleAndNotification(MODULE.NAME, `Portrait Image Replacement: Cannot apply invalid image path to ${actor.name}: ${matchingImage.fullPath}`, "", true, false);
+                ImageCacheManager.getCache(portraitMode).files.delete(matchingImage.name.toLowerCase());
+                return;
+            }
+            
+            try {
+                await actor.update({
+                    img: matchingImage.fullPath
+                });
+                postConsoleAndNotification(MODULE.NAME, `Portrait Image Replacement: Applied ${matchingImage.name} to ${actor.name} (Score: ${((matchingImage.score || 0) * 100).toFixed(1)}%)`, "", true, false);
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Portrait Image Replacement: Error applying image: ${error.message}`, "", false, false);
+            }
+        } else {
+            postConsoleAndNotification(MODULE.NAME, `Portrait Image Replacement: No matching image found for ${actor.name}`, "", true, false);
         }
     }
 
