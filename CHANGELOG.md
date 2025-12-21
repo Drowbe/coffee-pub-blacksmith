@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+
+## [13.0.6]
+
+### Added
+- **Image Replacement Variability**: Added variability feature for both token and portrait image replacement. When enabled, the system randomly selects from all images with the highest matching score instead of always using the same top match. This adds visual variety when multiple tokens or actors of the same type are created. Variability is enabled by default for both tokens and portraits, with separate settings (`tokenImageReplacementVariability` and `portraitImageReplacementVariability`) that can be toggled independently. The feature respects the existing matching threshold setting, only considering matches above the threshold.
+- **Portrait Image Replacement Update Dropped**: Added portrait-specific "Update Dropped Portraits" toggle that works independently from token image replacement. When enabled, actor portraits are automatically updated with the best matching portrait when tokens are created on the canvas. This complements the existing token image replacement feature, allowing both token images and actor portraits to be updated automatically when tokens are dropped.
+
+### Changed
+- **Image Replacement Global Controls Layout**: Restructured the global controls header in the image replacement window. The Token/Portrait mode toggle is now left-aligned with "Tokens" label on the left and "Portraits" label on the right of the toggle for clarity. Other global controls (Loot Piles, Convert Dead) are right-aligned. Added CSS styling for the new layout structure.
+- **Image Replacement Match Display**: Updated matching logic so that match percentages are always displayed when a token or actor is selected, regardless of which filter button is active (ALL, category buttons, SELECTED). Previously, match percentages only appeared on the SELECTED tab. This ensures consistent visual feedback across all filter modes.
+
 ## [13.0.5]
 
 ### Fixed

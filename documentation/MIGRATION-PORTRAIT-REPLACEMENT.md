@@ -19,6 +19,35 @@ This document outlines the migration plan to fully separate Token and Portrait i
 
 ### ❌ What's Missing
 
+## Variability Feature ✅ **COMPLETE**
+
+### Variability Implementation ✅
+- [x] **Token Image Variability** - Random selection from top-scoring matches
+  - ✅ Added `tokenImageReplacementVariability` setting (default: true)
+  - ✅ Randomly selects from all matches with the highest score
+  - ✅ Applied to automatic token image updates when tokens are dropped
+  - ✅ Respects existing threshold setting
+
+- [x] **Portrait Image Variability** - Random selection from top-scoring matches
+  - ✅ Added `portraitImageReplacementVariability` setting (default: true)
+  - ✅ Randomly selects from all matches with the highest score
+  - ✅ Applied to automatic portrait updates when tokens are dropped
+  - ✅ Respects existing threshold setting
+
+- [x] **Variability Selection Logic**
+  - ✅ Created `_selectMatchingImage()` static method
+  - ✅ Finds all matches with the highest score
+  - ✅ Randomly selects one from that set
+  - ✅ Falls back to best match if variability is disabled
+  - ✅ Works for both token and portrait modes
+
+- [x] **Update Dropped Portraits**
+  - ✅ Added `portraitImageReplacementUpdateDropped` setting (default: true)
+  - ✅ Portrait-specific toggle in UI
+  - ✅ Automatically updates actor portraits when tokens are created
+  - ✅ Works independently from token image replacement
+  - ✅ Uses variability when enabled
+
 ## Phase 1: Core Functionality (Critical - Do First) ✅ **COMPLETE**
 
 ### 1.1 Scan and Cache Management ✅
@@ -73,12 +102,11 @@ This document outlines the migration plan to fully separate Token and Portrait i
 
 ### 2.3 Category Labels ✅
 - [x] **Category Button Labels** - Make mode-specific
-  - ✅ **Requirement**: Category buttons should be labeled differently in portrait mode
-  - ✅ Keep same folder-based names but add mode context
-  - ✅ Added "Portrait: " prefix to category names in portrait mode
+  - ✅ **Requirement**: Category buttons should use folder names without prefix
+  - ✅ Keep same folder-based names (no "Portrait: " prefix)
   - ✅ Token mode: Shows "Humanoids", "Goblins", etc.
-  - ✅ Portrait mode: Shows "Portrait: Humanoids", "Portrait: Goblins", etc.
-  - ✅ Updated `_getCategories()` to add mode prefix when in portrait mode
+  - ✅ Portrait mode: Shows "Humanoids", "Goblins", etc. (same folder names, different cache)
+  - ✅ Updated `_getCategories()` to use mode-specific cache without prefix
 
 ## Phase 3: UI Restructure (Important) ✅ **COMPLETE**
 
@@ -178,19 +206,23 @@ This document outlines the migration plan to fully separate Token and Portrait i
 - [x] Scan for images scans token cache only
 - [x] Categories show token-specific folders
 - [x] Tags are from token cache only
-- [ ] Thumbnails show token info (Phase 2.2 - pending)
+- [x] Thumbnails show token info
 - [x] Search terms extracted from token
 - [x] Apply updates token texture
 - [x] Delete cache deletes token cache only
+- [x] Variability randomly selects from top-scoring matches
+- [x] Update Dropped toggle works independently
 
 ### Portrait Mode ✅
 - [x] Scan for images scans portrait cache only
 - [x] Categories show portrait-specific folders
 - [x] Tags are from portrait cache only
-- [ ] Thumbnails show actor info (Phase 2.2 - pending)
+- [x] Thumbnails show actor info
 - [x] Search terms extracted from actor
 - [x] Apply updates actor portrait
 - [x] Delete cache deletes portrait cache only
+- [x] Variability randomly selects from top-scoring matches
+- [x] Update Dropped toggle works independently
 
 ### Mode Switching ✅
 - [x] Switching modes preserves selection state appropriately
