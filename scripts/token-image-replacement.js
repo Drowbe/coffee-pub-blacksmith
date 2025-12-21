@@ -794,8 +794,9 @@ export class TokenImageReplacementWindow extends Application {
                     // SEARCH MODE: Use search term matching (highest priority)
                     searchMode = 'search';
                     searchTerms = this.searchTerm;
-                } else if (this.currentFilter === 'selected' && this.selectedToken) {
-                    // SELECTED TAB + token/actor selected: Use token/actor-based matching
+                } else if (this.selectedToken) {
+                    // TOKEN/ACTOR SELECTED: Always use token/actor-based matching to show match percentages
+                    // This applies regardless of which filter button is active (ALL, category, etc.)
                     searchMode = 'token';
                     searchTerms = null; // Use token/actor-based matching instead of search terms
                     
@@ -819,14 +820,12 @@ export class TokenImageReplacementWindow extends Application {
                     this._updateResults();
                     return;
                 } else {
-                    // ALL tabs or other tabs: Use browse mode (no scores)
+                    // No token/actor selected and not in search mode: Use browse mode (no scores)
                     searchMode = 'browse';
                 }
                 
-                // Otherwise: BROWSE MODE (no search terms)
-                
                 // Apply unified matching
-                // Apply threshold only on SELECTED tab
+                // Apply threshold only on SELECTED tab (but still calculate scores for all tabs when token/actor is selected)
                 const applyThreshold = this.currentFilter === 'selected';
                 const matchedResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerms, tokenDocument, searchMode, ImageCacheManager.getCache(this.mode), ImageCacheManager._extractTokenData, applyThreshold);
                 
