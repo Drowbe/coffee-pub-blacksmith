@@ -6,59 +6,60 @@ This document outlines the migration plan to fully separate Token and Portrait i
 ## Current State Assessment
 
 ### ✅ What's Working
-1. **Separate Caches** - `portraitCache` and `cache` are separate
-2. **Mode Toggle** - UI toggle exists to switch between token/portrait
-3. **Mode-Specific Selection** - Portrait checks actor directory, token checks canvas
-4. **Mode-Specific Application** - Portrait uses `actor.update({ img })`, token uses `token.update({ texture.src })`
-5. **Tags** - Already mode-aware via `getCache(this.mode)`
+1. **Separate Caches** - `portraitCache` and `cache` are separate ✅
+2. **Mode Toggle** - UI toggle exists to switch between token/portrait ✅
+3. **Mode-Specific Selection** - Portrait checks actor directory, token checks canvas ✅
+4. **Mode-Specific Application** - Portrait uses `actor.update({ img })`, token uses `token.update({ texture.src })` ✅
+5. **Tags** - Already mode-aware via `getCache(this.mode)` ✅
+6. **Cache Operations** - All scan, refresh, delete, pause operations are mode-aware ✅
+7. **Global Controls** - Mode toggle, Convert Dead, and Loot Dead moved to global controls header ✅
+8. **Search Terms** - `_getSearchTerms()` handles both token and portrait modes ✅
+9. **Settings** - All portrait-specific settings added (ignored folders, auto-update, deprioritized words, ignored words) ✅
+10. **Cache Key Structure** - Fixed to use path+filename, allowing same-named files in different folders ✅
 
 ### ❌ What's Missing
 
-## Phase 1: Core Functionality (Critical - Do First)
+## Phase 1: Core Functionality (Critical - Do First) ✅ **COMPLETE**
 
-### 1.1 Scan and Cache Management
-- [ ] **`scanForImages(mode)`** - Update to accept mode parameter
-  - Currently uses `this.cache` directly
-  - Should scan the correct cache based on mode
-  - Dialog should show mode-specific file count
-  - Update: `await ImageCacheManager.scanForImages(this.mode)`
+### 1.1 Scan and Cache Management ✅
+- [x] **`scanForImages(mode)`** - Update to accept mode parameter
+  - ✅ Updated to scan the correct cache based on mode
+  - ✅ Dialog shows mode-specific file count
+  - ✅ Uses `await ImageCacheManager.scanForImages(this.mode)`
 
-- [ ] **`refreshCache(mode)`** - Update to accept mode parameter
-  - Currently uses `this.cache` directly
-  - Should refresh the correct cache based on mode
-  - Update: `await ImageCacheManager.refreshCache(this.mode)`
+- [x] **`refreshCache(mode)`** - Update to accept mode parameter
+  - ✅ Updated to refresh the correct cache based on mode
+  - ✅ Uses `await ImageCacheManager.refreshCache(this.mode)`
 
-- [ ] **`_onScanImages()`** - Pass mode to scan function
-  - Currently calls `scanForImages()` without mode
-  - Update: `await ImageCacheManager.scanForImages(this.mode)`
+- [x] **`_onScanImages()`** - Pass mode to scan function
+  - ✅ Updated to pass `this.mode` to `scanForImages()`
 
-- [ ] **Delete Cache** - Make mode-aware
-  - Should delete only the current mode's cache
-  - Update `_onDeleteCache()` to use `this.mode`
+- [x] **Delete Cache** - Make mode-aware
+  - ✅ Deletes only the current mode's cache
+  - ✅ `_onDeleteCache()` uses `this.mode`
+  - ✅ Updated Dialog.confirm to use ApplicationV2-compatible approach
 
-- [ ] **Pause Cache** - Make mode-aware
-  - Should pause only the current mode's scan
-  - Update `_onPauseCache()` to use `this.mode`
+- [x] **Pause Cache** - Make mode-aware
+  - ✅ Pauses only the current mode's scan
+  - ✅ `_onPauseCache()` uses `this.mode`
 
-### 1.2 Categories
-- [ ] **`getDiscoveredCategories(mode)`** - Update to accept mode parameter
-  - Currently uses `this.cache.folders` directly
-  - Should use `getCache(mode).folders`
-  - Update: `ImageCacheManager.getDiscoveredCategories(this.mode)`
+### 1.2 Categories ✅
+- [x] **`getDiscoveredCategories(mode)`** - Update to accept mode parameter
+  - ✅ Uses `getCache(mode).folders`
+  - ✅ Returns mode-specific categories
 
-- [ ] **`_getCategories()`** - Pass mode to category discovery
-  - Currently calls `getDiscoveredCategories()` without mode
-  - Update: `ImageCacheManager.getDiscoveredCategories(this.mode)`
+- [x] **`_getCategories()`** - Pass mode to category discovery
+  - ✅ Passes `this.mode` to `getDiscoveredCategories()`
 
 ## Phase 2: Search and Matching (Important)
 
-### 2.1 Search Terms
-- [ ] **`_getSearchTerms()`** - Update to handle portrait mode
-  - **Requirement**: Extract from actor name, type, and other actor fields (same as token extraction)
-  - Currently extracts from `token.document`
-  - Portrait mode should extract from `actor` object
-  - Used in `_getAggregatedTags()` and filtering logic
-  - Update signature: `_getSearchTerms(source, mode)` where source is token.document or actor
+### 2.1 Search Terms ✅
+- [x] **`_getSearchTerms()`** - Update to handle portrait mode
+  - ✅ Updated signature: `_getSearchTerms(source, mode)` where source is token.document or actor
+  - ✅ Portrait mode extracts from `actor` object
+  - ✅ Token mode extracts from `token.document`
+  - ✅ All call sites updated to pass mode parameter
+  - ✅ Used in `_getAggregatedTags()` and filtering logic
 
 ### 2.2 Thumbnail Display
 - [ ] **Thumbnail Context** - Show mode-appropriate info
@@ -75,27 +76,17 @@ This document outlines the migration plan to fully separate Token and Portrait i
   - Example: "Humanoids" in token mode vs "Portrait: Humanoids" in portrait mode
   - Or: Add mode indicator to category display
 
-## Phase 3: UI Restructure (Important)
+## Phase 3: UI Restructure (Important) ✅ **COMPLETE**
 
-### 3.1 Global Controls Header
-- [ ] **New Header Section** - Add above `<div class="tir-header">`
-  - **Requirement**: Create new div above existing header for global controls
-  - Contains switches that apply to both tokens and portraits:
-    - Token/Portrait mode toggle (moved from current header)
-    - "Convert Dead" toggle
-    - "Loot Dead" toggle
-  - These controls are global and affect both modes
-  - Structure:
-    ```html
-    <div class="tir-global-controls">
-      <!-- Mode Toggle -->
-      <!-- Convert Dead Toggle -->
-      <!-- Loot Dead Toggle -->
-    </div>
-    <div class="tir-header">
-      <!-- Existing header content -->
-    </div>
-    ```
+### 3.1 Global Controls Header ✅
+- [x] **New Header Section** - Add above `<div class="tir-header">`
+  - ✅ Created new `tir-global-controls` div above existing header
+  - ✅ Contains switches that apply to both tokens and portraits:
+    - ✅ Token/Portrait mode toggle (moved from current header)
+    - ✅ "Convert Dead" toggle
+    - ✅ "Loot Dead" toggle
+  - ✅ These controls are global and affect both modes
+  - ✅ Structure implemented as specified
 
 ### 3.2 Mode-Specific Controls
 - [ ] **Move Mode-Specific Controls** - Keep in main header
@@ -105,28 +96,29 @@ This document outlines the migration plan to fully separate Token and Portrait i
   - Scan for Images button (mode-specific)
   - Delete Cache button (mode-specific)
 
-### 3.3 Button Labels
-- [ ] **Mode-Specific Button Labels**
-  - "Scan for Images" → "Scan for Tokens" / "Scan for Portraits"
-  - Update based on current mode
-  - All action buttons should reflect current mode
+### 3.3 Button Labels ✅
+- [x] **Mode-Specific Button Labels**
+  - ✅ "Scan for Images" button shows mode-specific label in template
+  - ✅ "Delete Cache" button shows mode-specific label
+  - ✅ All action buttons reflect current mode
 
-## Phase 4: Cache Operations (Critical)
+## Phase 4: Cache Operations (Critical) ✅ **COMPLETE**
 
-### 4.1 Delete Cache Behavior
-- [ ] **Delete Cache** - Mode-specific behavior
-  - **Requirement**: Buttons act only on the mode they are in
-  - If in token mode: Delete deletes token cache only
-  - If in portrait mode: Delete deletes portrait cache only
-  - Update `_onDeleteCache()` to use `this.mode`
-  - Update `ImageCacheManager.deleteCache(mode)` if needed
+### 4.1 Delete Cache Behavior ✅
+- [x] **Delete Cache** - Mode-specific behavior
+  - ✅ Buttons act only on the mode they are in
+  - ✅ If in token mode: Delete deletes token cache only
+  - ✅ If in portrait mode: Delete deletes portrait cache only
+  - ✅ `_onDeleteCache()` uses `this.mode`
+  - ✅ `ImageCacheManager.deleteCache(mode)` implemented
 
-### 4.2 All Cache Operations
-- [ ] **All Operations Mode-Aware**
-  - **Requirement**: Entire experience should behave mode-specifically
-  - Scan, refresh, delete, pause all operate on current mode's cache
-  - Categories, tags, search results all from current mode's cache
-  - No cross-contamination between modes
+### 4.2 All Cache Operations ✅
+- [x] **All Operations Mode-Aware**
+  - ✅ Entire experience behaves mode-specifically
+  - ✅ Scan, refresh, delete, pause all operate on current mode's cache
+  - ✅ Categories, tags, search results all from current mode's cache
+  - ✅ No cross-contamination between modes
+  - ✅ Fixed duplicate file detection to use path+filename as cache key (allows same-named files in different folders)
 
 ## Phase 5: Status Messages and Notifications
 
@@ -176,36 +168,36 @@ This document outlines the migration plan to fully separate Token and Portrait i
 
 ## Testing Checklist
 
-### Token Mode
-- [ ] Scan for images scans token cache only
-- [ ] Categories show token-specific folders
-- [ ] Tags are from token cache only
-- [ ] Thumbnails show token info
-- [ ] Search terms extracted from token
-- [ ] Apply updates token texture
-- [ ] Delete cache deletes token cache only
+### Token Mode ✅
+- [x] Scan for images scans token cache only
+- [x] Categories show token-specific folders
+- [x] Tags are from token cache only
+- [ ] Thumbnails show token info (Phase 2.2 - pending)
+- [x] Search terms extracted from token
+- [x] Apply updates token texture
+- [x] Delete cache deletes token cache only
 
-### Portrait Mode
-- [ ] Scan for images scans portrait cache only
-- [ ] Categories show portrait-specific folders
-- [ ] Tags are from portrait cache only
-- [ ] Thumbnails show actor info
-- [ ] Search terms extracted from actor
-- [ ] Apply updates actor portrait
-- [ ] Delete cache deletes portrait cache only
+### Portrait Mode ✅
+- [x] Scan for images scans portrait cache only
+- [x] Categories show portrait-specific folders
+- [x] Tags are from portrait cache only
+- [ ] Thumbnails show actor info (Phase 2.2 - pending)
+- [x] Search terms extracted from actor
+- [x] Apply updates actor portrait
+- [x] Delete cache deletes portrait cache only
 
-### Mode Switching
-- [ ] Switching modes preserves selection state appropriately
-- [ ] Categories update when switching modes
-- [ ] Tags update when switching modes
-- [ ] Search results clear/reset appropriately
-- [ ] Cache operations work correctly after mode switch
+### Mode Switching ✅
+- [x] Switching modes preserves selection state appropriately
+- [x] Categories update when switching modes
+- [x] Tags update when switching modes
+- [x] Search results clear/reset appropriately
+- [x] Cache operations work correctly after mode switch
 
-### Global Controls
-- [ ] Mode toggle works and saves preference
-- [ ] Convert Dead applies to both modes
-- [ ] Loot Dead applies to both modes
-- [ ] Global controls always visible regardless of mode
+### Global Controls ✅
+- [x] Mode toggle works and saves preference
+- [x] Convert Dead applies to both modes
+- [x] Loot Dead applies to both modes
+- [x] Global controls always visible regardless of mode
 
 ## Phase 6: Bulk Migration Tool (New Feature)
 
