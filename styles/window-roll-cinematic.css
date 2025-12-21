@@ -371,7 +371,11 @@
     color: #fff;
     width: 50px;
     height: 50px;
+    min-width: 50px;
+    min-height: 50px;
     border-radius: 50%;
+    box-sizing: border-box;
+    aspect-ratio: 1;
     font-size: 1.8em;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -390,7 +394,11 @@
     color: #ddd;
     width: 20px;
     height: 20px;
+    min-width: 20px;
+    min-height: 20px;
     border-radius: 50%;
+    box-sizing: border-box;
+    aspect-ratio: 1;
     font-size: 1.0em;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -453,11 +461,18 @@
     color: #fff;
     width: 30px;
     height: 30px;
+    min-width: 30px;
+    min-height: 30px;
     border-radius: 50%;
+    box-sizing: border-box;
+    aspect-ratio: 1;
     font-size: 1.5em;
     cursor: pointer;
     transition: all 0.3s ease;
     z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .cpb-cinematic-close-btn:hover {
