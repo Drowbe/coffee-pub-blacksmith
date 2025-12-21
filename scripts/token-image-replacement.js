@@ -49,6 +49,8 @@ export class TokenImageReplacementWindow extends Application {
         
         // Tag filtering system
         this.selectedTags = new Set(); // Track which tags are currently selected as filters
+        
+        // Tag sort mode
         this.tagSortMode = getSettingSafely(MODULE.ID, 'tokenImageReplacementTagSortMode', 'count'); // Current tag sort mode
         
         // Search result caching (Phase 1.1 Optimization)
@@ -62,6 +64,22 @@ export class TokenImageReplacementWindow extends Application {
         this._teardownExecuted = false;
         this._hookRegistrationTimeoutId = null;
         this._activeImageElements = new Set();
+    }
+
+    /**
+     * Get mode-specific label for messages
+     * @returns {string} "Token" or "Portrait"
+     */
+    _getModeLabel() {
+        return this.mode === ImageCacheManager.MODES.PORTRAIT ? 'Portrait' : 'Token';
+    }
+
+    /**
+     * Get mode-specific prefix for log messages
+     * @returns {string} "Portrait Image Replacement:" or "Token Image Replacement:"
+     */
+    _getModePrefix() {
+        return `${this._getModeLabel()} Image Replacement:`;
     }
 
     /**
@@ -211,7 +229,7 @@ export class TokenImageReplacementWindow extends Application {
             try {
                 disposer();
             } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error clearing DOM event: ${error.message}`, "", false, false);
+                postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Error clearing DOM event: ${error.message}`, "", false, false);
             }
         }
     }
@@ -345,7 +363,7 @@ export class TokenImageReplacementWindow extends Application {
     _getFilteredFiles() {
         // Safety check for cache
         if (!ImageCacheManager.getCache(this.mode) || !ImageCacheManager.getCache(this.mode).files) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache not available in _getFilteredFiles`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Cache not available in _getFilteredFiles`, "", true, false);
             return [];
         }
         
@@ -491,8 +509,40 @@ export class TokenImageReplacementWindow extends Application {
         // Update notification data dynamically based on current state
         this._updateNotificationData();
         
+        // Prepare selectedToken data for template - format differently based on mode
+        let selectedTokenData = null;
+        if (this.selectedToken) {
+            if (this.mode === ImageCacheManager.MODES.PORTRAIT) {
+                // Portrait mode: this.selectedToken is actually an Actor
+                const actor = this.selectedToken;
+                selectedTokenData = {
+                    name: actor.name || 'Unknown Actor',
+                    actor: {
+                        name: actor.name || '',
+                        type: actor.type || '',
+                        system: {
+                            details: {
+                                type: {
+                                    value: actor.system?.details?.type?.value || '',
+                                    subtype: actor.system?.details?.type?.subtype || ''
+                                }
+                            }
+                        }
+                    },
+                    document: {
+                        texture: {
+                            src: actor.img || ''
+                        }
+                    }
+                };
+            } else {
+                // Token mode: this.selectedToken is a Token
+                selectedTokenData = this.selectedToken;
+            }
+        }
+        
         return {
-            selectedToken: this.selectedToken,
+            selectedToken: selectedTokenData,
             matches: this.matches,
             isScanning: systemScanning,
             scanProgress: this.scanProgress,
@@ -679,7 +729,7 @@ export class TokenImageReplacementWindow extends Application {
 
         // Check cache status
         if (!ImageCacheManager.getCache(this.mode)) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache not initialized in _findMatches`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Cache not initialized in _findMatches`, "", true, false);
             this.notificationIcon = 'fas fa-exclamation-triangle';
             this.notificationText = 'Cache not initialized. Please wait for cache to load.';
             this._updateResults();
@@ -693,7 +743,7 @@ export class TokenImageReplacementWindow extends Application {
             this.notificationIcon = 'fas fa-sync-alt';
             this.notificationText = 'Images are being scanned to build the image cache and may impact performance.';
         } else if (ImageCacheManager.getCache(this.mode).files.size === 0) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache check - files.size: ${ImageCacheManager.getCache(this.mode).files.size}, cache exists: ${!!ImageCacheManager.getCache(this.mode)}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Cache check - files.size: ${ImageCacheManager.getCache(this.mode).files.size}, cache exists: ${!!ImageCacheManager.getCache(this.mode)}`, "", true, false);
             this.notificationIcon = 'fas fa-exclamation-triangle';
             this.notificationText = 'No Image Cache Found - Please scan for images.';
         } else {
@@ -786,8 +836,8 @@ export class TokenImageReplacementWindow extends Application {
         // Update results to show proper tags
         this._updateResults();
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error in _findMatches: ${error.message}`, "", true, false);
-            console.error('Token Image Replacement: Error in _findMatches:', error);
+            postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Error in _findMatches: ${error.message}`, "", true, false);
+            console.error(`${this._getModePrefix()} Error in _findMatches:`, error);
             // Show error state in UI
             this.notificationIcon = 'fas fa-exclamation-triangle';
             this.notificationText = `Error loading matches: ${error.message}`;
@@ -878,13 +928,25 @@ export class TokenImageReplacementWindow extends Application {
         try {
             if (this.mode === ImageCacheManager.MODES.PORTRAIT) {
                 // Portrait mode: update actor's portrait image
-                if (!this.selectedToken || !this.selectedToken.update) {
-                    ui.notifications.error('No actor selected for portrait replacement');
+                // Re-check for selected actor if not already set
+                let selectedActor = this.selectedToken;
+                
+                if (!selectedActor || typeof selectedActor.update !== 'function') {
+                    // Try to find the actor from actor directory or selected token
+                    if (ui.actors?.viewed?.length > 0) {
+                        selectedActor = ui.actors.viewed[0];
+                    } else if (canvas.tokens.controlled.length > 0) {
+                        selectedActor = canvas.tokens.controlled[0].actor;
+                    }
+                }
+                
+                if (!selectedActor || typeof selectedActor.update !== 'function') {
+                    ui.notifications.error('No actor selected for portrait replacement. Please select an actor from the directory or a token on the canvas.');
                     return;
                 }
                 
                 // Update the actor's portrait
-                await this.selectedToken.update({
+                await selectedActor.update({
                     img: imagePath
                 });
                 
@@ -1137,10 +1199,10 @@ export class TokenImageReplacementWindow extends Application {
             this._hookRegistrationTimeoutId = this._scheduleTrackedTimeout(async () => {
                 this._hookRegistrationTimeoutId = null;
                 if (!this._tokenHookRegistered) {
-                    postConsoleAndNotification(MODULE.NAME, 'Token Image Replacement: Registering controlToken hook', 'token-image-replacement-selection', true, false);
+                    postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Registering controlToken hook`, 'token-image-replacement-selection', true, false);
                     this._tokenHookId = HookManager.registerHook({
                         name: 'controlToken',
-                        description: 'Token Image Replacement: Handle token selection changes',
+                        description: `${this._getModePrefix()} Handle token selection changes`,
                         context: 'token-image-replacement-selection',
                         priority: 3,
                         callback: async (token, controlled) => {
@@ -1175,7 +1237,7 @@ export class TokenImageReplacementWindow extends Application {
         // Tear down DOM, listeners, and cached references
         this._teardownWindowResources();
         
-        postConsoleAndNotification(MODULE.NAME, 'Token Image Replacement: Window closed, memory cleaned up', '', true, false);
+        postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Window closed, memory cleaned up`, '', true, false);
         
         return super.close(options);
     }
@@ -1207,7 +1269,7 @@ export class TokenImageReplacementWindow extends Application {
             
             // Prevent processing the same token multiple times
             if (newTokenId === this._lastProcessedTokenId) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Skipping duplicate token selection for ${newTokenId}`, "", true, false);
+                postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Skipping duplicate token selection for ${newTokenId}`, "", true, false);
                 return;
             }
             
@@ -1242,7 +1304,7 @@ export class TokenImageReplacementWindow extends Application {
             this._hideSearchSpinner();
             
             // Log the error for debugging
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error during token selection: ${error.message}`, "", false, false);
+            postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Error during token selection: ${error.message}`, "", false, false);
         }
     }
 
@@ -1288,52 +1350,76 @@ export class TokenImageReplacementWindow extends Application {
         }
         if (!element) return;
         
-        // Update token name and image in header
+        // Update token/actor name and image in header
         if (this.selectedToken) {
-            const tokenName = this.selectedToken.name || 'Unknown Token';
-            const tokenImage = this.selectedToken.texture?.src || this.selectedToken.document.texture?.src || '';
+            let displayName, displayImage, subtitle;
             
-            // Update token name
+            if (this.mode === ImageCacheManager.MODES.PORTRAIT) {
+                // Portrait mode: this.selectedToken is actually an Actor
+                const actor = this.selectedToken;
+                displayName = actor.name || 'Unknown Actor';
+                displayImage = actor.img || '';
+                
+                // Build subtitle from actor info
+                const actorName = actor.name || '';
+                const actorType = actor.type || '';
+                const actorSubtype = actor.system?.details?.type?.subtype || '';
+                const actorValue = actor.system?.details?.type?.value || '';
+                
+                subtitle = '';
+                if (actorName) subtitle += actorName;
+                if (actorType) subtitle += (subtitle ? '  •  ' : '') + actorType;
+                if (actorValue) subtitle += (subtitle ? '  •  ' : '') + actorValue;
+                if (actorSubtype) subtitle += (subtitle ? '  •  ' : '') + actorSubtype;
+            } else {
+                // Token mode: this.selectedToken is a Token
+                displayName = this.selectedToken.name || 'Unknown Token';
+                displayImage = this.selectedToken.texture?.src || this.selectedToken.document?.texture?.src || '';
+                
+                // Build subtitle from token's actor info
+                const actorName = this.selectedToken.actor?.name || '';
+                const actorType = this.selectedToken.actor?.type || '';
+                const actorSubtype = this.selectedToken.actor?.system?.details?.type?.subtype || '';
+                const actorValue = this.selectedToken.actor?.system?.details?.type?.value || '';
+                
+                subtitle = '';
+                if (actorName) subtitle += actorName;
+                if (actorType) subtitle += (subtitle ? '  •  ' : '') + actorType;
+                if (actorValue) subtitle += (subtitle ? '  •  ' : '') + actorValue;
+                if (actorSubtype) subtitle += (subtitle ? '  •  ' : '') + actorSubtype;
+            }
+            
+            // Update name
             const mainTitle = element.querySelector('.tir-main-title');
-            if (mainTitle) mainTitle.textContent = tokenName;
+            if (mainTitle) mainTitle.textContent = displayName;
             
-            // Update token image - ensure image element exists and is visible
+            // Update image - ensure image element exists and is visible
             const headerIcon = element.querySelector('.tir-header-icon');
             if (headerIcon) {
-                let tokenImageEl = headerIcon.querySelector('img');
+                let imageEl = headerIcon.querySelector('img');
                 
-                if (!tokenImageEl) {
+                if (!imageEl) {
                     // Create image element if it doesn't exist
-                    tokenImageEl = document.createElement('img');
-                    headerIcon.appendChild(tokenImageEl);
+                    imageEl = document.createElement('img');
+                    headerIcon.appendChild(imageEl);
                 }
                 
                 // Hide the icon and show the image
                 const icon = headerIcon.querySelector('i');
                 if (icon) icon.style.display = 'none';
-                tokenImageEl.setAttribute('src', tokenImage);
-                tokenImageEl.style.display = '';
+                imageEl.setAttribute('src', displayImage);
+                imageEl.style.display = '';
             }
             
-            // Update subtitle with actor info
-            const actorName = this.selectedToken.actor?.name || '';
-            const actorType = this.selectedToken.actor?.type || '';
-            const actorSubtype = this.selectedToken.actor?.system?.details?.type?.subtype || '';
-            const actorValue = this.selectedToken.actor?.system?.details?.type?.value || '';
-            
-            let subtitle = '';
-            if (actorName) subtitle += actorName;
-            if (actorType) subtitle += (subtitle ? '  •  ' : '') + actorType;
-            if (actorValue) subtitle += (subtitle ? '  •  ' : '') + actorValue;
-            if (actorSubtype) subtitle += (subtitle ? '  •  ' : '') + actorSubtype;
-            
+            // Update subtitle
             const subtitleElement = element.querySelector('.tir-subtitle');
             if (subtitleElement) subtitleElement.textContent = subtitle;
         } else {
-            // Clear token info when no token selected
+            // Clear token/actor info when nothing selected
             const mainTitle = element.querySelector('.tir-main-title');
             const subtitleElement = element.querySelector('.tir-subtitle');
-            if (mainTitle) mainTitle.textContent = 'No Token Selected';
+            const modeLabel = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'Actor' : 'Token';
+            if (mainTitle) mainTitle.textContent = `No ${modeLabel} Selected`;
             if (subtitleElement) subtitleElement.textContent = 'Select a token on the canvas';
             
             // Hide the image and show the icon
@@ -1508,12 +1594,12 @@ export class TokenImageReplacementWindow extends Application {
      */
     _invalidateSearchCache() {
         this._searchResultCache.clear();
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Search cache cleared`, "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Search cache cleared`, "", true, false);
     }
 
     async _performSearch(searchTerm) {
         if (ImageCacheManager.getCache(this.mode).files.size === 0) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache empty, cannot perform search`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Cache empty, cannot perform search`, "", true, false);
             this.matches = [];
             this.allMatches = [];
             this.currentPage = 0;
@@ -1527,8 +1613,8 @@ export class TokenImageReplacementWindow extends Application {
         // Check cache first
         const cachedResults = this._getCachedSearchResults(cacheKey);
         if (cachedResults) {
-            console.time('Token Image Replacement: Search (cached)');
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Using cached results for search`, "", true, false);
+            console.time(`${this._getModePrefix()} Search (cached)`);
+            postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Using cached results for search`, "", true, false);
             
             this.allMatches = cachedResults;
             this.currentPage = 0;
@@ -1539,12 +1625,12 @@ export class TokenImageReplacementWindow extends Application {
             this._updateResults();
             
             this.isSearching = false;
-            console.timeEnd('Token Image Replacement: Search (cached)');
+            console.timeEnd(`${this._getModePrefix()} Search (cached)`);
             return;
         }
 
         // Cache miss - perform full search
-        console.time('Token Image Replacement: Search (full)');
+        console.time(`${this._getModePrefix()} Search (full)`);
         
         // Clear previous results
         this.allMatches = [];
@@ -1595,7 +1681,7 @@ export class TokenImageReplacementWindow extends Application {
                 result.searchScore !== null && result.searchScore > 0
             );
             this.allMatches.push(...exactMatches);
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Exact search found ${exactMatches.length} matches out of ${filteredResults.length} files`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Exact search found ${exactMatches.length} matches out of ${filteredResults.length} files`, "", true, false);
         } else {
             // Fuzzy search mode: show all results (including 0% matches)
         this.allMatches.push(...filteredResults);
@@ -1633,7 +1719,7 @@ export class TokenImageReplacementWindow extends Application {
         this._applyPagination();
         this._updateResults();
         
-        console.timeEnd('Token Image Replacement: Search (full)');
+        console.timeEnd(`${this._getModePrefix()} Search (full)`);
     }
 
     _updateResults() {
@@ -1746,7 +1832,7 @@ export class TokenImageReplacementWindow extends Application {
                                 ` : `
                                     <div class="tir-thumbnail-overlay">
                                         <i class="fas fa-check"></i>
-                                        <span class="tir-overlay-text">Apply to Token</span>
+                                        <span class="tir-overlay-text">Apply to ${this.mode === ImageCacheManager.MODES.PORTRAIT ? 'Portrait' : 'Token'}</span>
                                     </div>
                                 `}
                                 ${match.metadata?.tags?.includes('FAVORITE') ? `
@@ -1836,12 +1922,12 @@ export class TokenImageReplacementWindow extends Application {
                             </div>
                             <div class="tir-thumbnail-overlay">
                                 <i class="fas fa-check"></i>
-                                <span class="tir-overlay-text">Apply to Token</span>
+                                <span class="tir-overlay-text">Apply to ${this.mode === ImageCacheManager.MODES.PORTRAIT ? 'Portrait' : 'Token'}</span>
                             </div>
                         ` : `
                             <div class="tir-thumbnail-overlay">
                                 <i class="fas fa-check"></i>
-                                <span class="tir-overlay-text">Apply to Token</span>
+                                <span class="tir-overlay-text">Apply to ${this.mode === ImageCacheManager.MODES.PORTRAIT ? 'Portrait' : 'Token'}</span>
                             </div>
                         `}
                         ${match.metadata?.tags?.includes('FAVORITE') ? `
@@ -2189,7 +2275,7 @@ export class TokenImageReplacementWindow extends Application {
         const isEnabled = event.target.checked;
         await game.settings.set(MODULE.ID, 'tokenImageReplacementUpdateDropped', isEnabled);
         
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Update Dropped Tokens ${isEnabled ? 'enabled' : 'disabled'}`, 
+        postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Update Dropped Tokens ${isEnabled ? 'enabled' : 'disabled'}`, 
             isEnabled ? 'Tokens dropped on canvas will be automatically updated' : 'Only manual updates via this window will work', 
             false, false);
     }
@@ -2201,7 +2287,7 @@ export class TokenImageReplacementWindow extends Application {
         const isEnabled = event.target.checked;
         game.settings.set(MODULE.ID, 'tokenImageReplacementFuzzySearch', isEnabled);
         
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Fuzzy Search ${isEnabled ? 'enabled' : 'disabled'}`, 
+        postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Fuzzy Search ${isEnabled ? 'enabled' : 'disabled'}`, 
             isEnabled ? 'Searching for individual words independently' : 'Searching for exact string matches', 
             false, false);
         
@@ -2555,10 +2641,10 @@ export class TokenImageReplacementWindow extends Application {
 
     async _onCategoryFilterClick(event) {
         const category = event.currentTarget.dataset.category;
-        postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Category filter clicked: ${category}`, "", true, false);
+        postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Category filter clicked: ${category}`, "", true, false);
         
         if (!category || category === this.currentFilter) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Filter click ignored - category: ${category}, current: ${this.currentFilter}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Filter click ignored - category: ${category}, current: ${this.currentFilter}`, "", true, false);
             return;
         }
         
@@ -2586,7 +2672,7 @@ export class TokenImageReplacementWindow extends Application {
             this._cachedSearchTerms = null; // Clear cache when filter changes
             this._invalidateSearchCache(); // Invalidate search cache when filter changes
             
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Filter changed to: ${category}`, "", true, false);
+            postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Filter changed to: ${category}`, "", true, false);
             
             // Re-run search with new filter
             await this._findMatches();
@@ -2686,22 +2772,25 @@ export class TokenImageReplacementWindow extends Application {
 
     _updateNotificationData() {
         // Only show notifications when there's something the user needs to know about
-        if (ImageCacheManager.getCache(this.mode).isPaused) {
+        const modeLabel = this._getModeLabel();
+        const cache = ImageCacheManager.getCache(this.mode);
+        
+        if (cache.isPaused) {
             this.notificationIcon = 'fas fa-pause';
-            this.notificationText = 'Cache scanning paused. Use "Refresh Cache" to resume.';
-        } else if (ImageCacheManager.getCache(this.mode).isScanning) {
+            this.notificationText = `${modeLabel} cache scanning paused. Use "Refresh Cache" to resume.`;
+        } else if (cache.isScanning) {
             this.notificationIcon = 'fas fa-sync-alt';
-            this.notificationText = 'Images are being scanned to build the image cache and may impact performance.';
-        } else if (ImageCacheManager.getCache(this.mode).justCompleted && ImageCacheManager.getCache(this.mode).completionData) {
+            this.notificationText = `${modeLabel} images are being scanned to build the image cache and may impact performance.`;
+        } else if (cache.justCompleted && cache.completionData) {
             this.notificationIcon = 'fas fa-check-circle';
-            let notificationText = `Scan Complete! Found ${ImageCacheManager.getCache(this.mode).completionData.totalFiles} files across ${ImageCacheManager.getCache(this.mode).completionData.totalFolders} folders in ${ImageCacheManager.getCache(this.mode).completionData.timeString}`;
-            if (ImageCacheManager.getCache(this.mode).completionData.ignoredFiles > 0) {
-                notificationText += ` (${ImageCacheManager.getCache(this.mode).completionData.ignoredFiles} files ignored)`;
+            let notificationText = `${modeLabel} scan complete! Found ${cache.completionData.totalFiles} files across ${cache.completionData.totalFolders} folders in ${cache.completionData.timeString}`;
+            if (cache.completionData.ignoredFiles > 0) {
+                notificationText += ` (${cache.completionData.ignoredFiles} files ignored)`;
             }
             this.notificationText = notificationText;
-        } else if (ImageCacheManager.getCache(this.mode).files.size === 0) {
+        } else if (cache.files.size === 0) {
             this.notificationIcon = 'fas fa-exclamation-triangle';
-            this.notificationText = 'No Image Cache Found - Please scan for images.';
+            this.notificationText = `No ${modeLabel.toLowerCase()} image cache found - Please scan for images.`;
         } else {
             // Cache exists and is working normally - no notification needed
             this.notificationIcon = null;
@@ -2715,12 +2804,15 @@ export class TokenImageReplacementWindow extends Application {
         
         // Convert to array of category objects for template
         const categories = [];
+        const modePrefix = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'Portrait: ' : '';
+        
         for (const categoryName of discoveredCategories) {
             // Count files in this category
             const fileCount = this._countFilesInCategory(categoryName);
+            const cleanName = ImageCacheManager._cleanCategoryName(categoryName);
             
             categories.push({
-                name: ImageCacheManager._cleanCategoryName(categoryName),
+                name: modePrefix + cleanName,
                 key: categoryName.toLowerCase(),
                 count: fileCount,
                 isActive: this.currentFilter === categoryName.toLowerCase()
@@ -3084,8 +3176,9 @@ export class TokenImageReplacementWindow extends Application {
             return;
         }
         
-        // Check if cache is ready
-        if (ImageCacheManager.getCache(this.mode).files.size === 0) {
+        // Check if cache is ready (this hook is always for token mode)
+        const tokenMode = ImageCacheManager.MODES.TOKEN;
+        if (ImageCacheManager.getCache(tokenMode).files.size === 0) {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - cache not ready", "", true, false);
             return;
         }
@@ -3099,10 +3192,10 @@ export class TokenImageReplacementWindow extends Application {
         
         // Find matching image using unified matching system (same as SELECTED mode)
         // Get all files from cache (no UI filtering for dropped tokens)
-        const allFiles = Array.from(ImageCacheManager.getCache(this.mode).files.values());
+        const allFiles = Array.from(ImageCacheManager.getCache(tokenMode).files.values());
         
         // Use unified matching with token mode (same parameters as SELECTED mode)
-        const matches = await ImageMatching._applyUnifiedMatching(allFiles, null, tokenDocument, 'token', ImageCacheManager.getCache(this.mode), ImageCacheManager._extractTokenData, true);
+        const matches = await ImageMatching._applyUnifiedMatching(allFiles, null, tokenDocument, 'token', ImageCacheManager.getCache(tokenMode), ImageCacheManager._extractTokenData, true);
         
         // Get the best match (highest score)
         const matchingImage = matches.length > 0 ? matches[0] : null;
@@ -3113,7 +3206,7 @@ export class TokenImageReplacementWindow extends Application {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cannot apply invalid image path to ${tokenDocument.name}: ${matchingImage.fullPath}`, "", true, false);
                 
                 // Clean up the invalid path from cache to prevent future issues
-                ImageCacheManager.getCache(this.mode).files.delete(matchingImage.name.toLowerCase());
+                ImageCacheManager.getCache(tokenMode).files.delete(matchingImage.name.toLowerCase());
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Removed invalid path from cache: ${matchingImage.name}`, "", true, false);
                 
                 // Try to find an alternative match using unified matching system
@@ -3125,10 +3218,10 @@ export class TokenImageReplacementWindow extends Application {
                 }
                 
                 // Get all files from cache (no UI filtering for error recovery)
-                const filesToSearch = Array.from(ImageCacheManager.getCache(this.mode).files.values());
+                const filesToSearch = Array.from(ImageCacheManager.getCache(tokenMode).files.values());
                 // Apply threshold based on current filter (like main window)
                 const applyThreshold = currentFilter === 'selected';
-                const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', ImageCacheManager.getCache(this.mode), ImageCacheManager._extractTokenData, applyThreshold);
+                const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', ImageCacheManager.getCache(tokenMode), ImageCacheManager._extractTokenData, applyThreshold);
                 const alternativeMatch = matches.length > 0 ? matches[0] : null;
                 if (alternativeMatch && !ImageCacheManager._isInvalidFilePath(alternativeMatch.fullPath)) {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found alternative match for ${tokenDocument.name}: ${alternativeMatch.name}`, "", true, false);
@@ -3157,7 +3250,7 @@ export class TokenImageReplacementWindow extends Application {
                 // Check if the error is due to an invalid asset path
                 if (error.message.includes('Invalid Asset') || error.message.includes('loadTexture')) {
                     postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Invalid asset detected, removing from cache: ${matchingImage.fullPath}`, "", false, false);
-                    ImageCacheManager.getCache(this.mode).files.delete(matchingImage.name.toLowerCase());
+                    ImageCacheManager.getCache(tokenMode).files.delete(matchingImage.name.toLowerCase());
                     
                     // Try to find an alternative match using unified matching system
                     // Get current filter from any open window
@@ -3168,10 +3261,10 @@ export class TokenImageReplacementWindow extends Application {
                     }
                     
                     // Get all files from cache (no UI filtering for error recovery)
-                    const filesToSearch = Array.from(ImageCacheManager.getCache(this.mode).files.values());
+                    const filesToSearch = Array.from(ImageCacheManager.getCache(tokenMode).files.values());
                     // Apply threshold based on current filter (like main window)
                     const applyThreshold = currentFilter === 'selected';
-                    const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', ImageCacheManager.getCache(this.mode), ImageCacheManager._extractTokenData, applyThreshold);
+                    const matches = await ImageMatching._applyUnifiedMatching(filesToSearch, null, tokenDocument, 'token', ImageCacheManager.getCache(tokenMode), ImageCacheManager._extractTokenData, applyThreshold);
                     const alternativeMatch = matches.length > 0 ? matches[0] : null;
                     if (alternativeMatch && !ImageCacheManager._isInvalidFilePath(alternativeMatch.fullPath)) {
                         postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Found alternative match for ${tokenDocument.name}: ${alternativeMatch.name}`, "", false, false);

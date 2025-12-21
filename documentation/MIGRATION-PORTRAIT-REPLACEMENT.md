@@ -61,20 +61,24 @@ This document outlines the migration plan to fully separate Token and Portrait i
   - ✅ All call sites updated to pass mode parameter
   - ✅ Used in `_getAggregatedTags()` and filtering logic
 
-### 2.2 Thumbnail Display
-- [ ] **Thumbnail Context** - Show mode-appropriate info
-  - **Requirement**: Portrait thumbnails should show actor info instead of token info
-  - Token mode: Show token name, actor type, etc. (current behavior)
-  - Portrait mode: Show actor name, type, etc.
-  - Update template data in `getData()` to include mode-specific thumbnail context
-  - Update template rendering to conditionally show token vs actor info
+### 2.2 Thumbnail Display ✅
+- [x] **Thumbnail Context** - Show mode-appropriate info
+  - ✅ **Requirement**: Portrait thumbnails should show actor info instead of token info
+  - ✅ Token mode: Show token name, actor type, etc. (current behavior)
+  - ✅ Portrait mode: Show actor name, type, etc.
+  - ✅ Updated `getData()` to format `selectedToken` data structure for both modes (actor data in portrait mode, token data in token mode)
+  - ✅ Updated `_updateTokenInfo()` to handle both token and actor modes
+  - ✅ Updated template to show mode-appropriate "No Actor/Token Selected" messages
+  - ✅ Updated `_renderResults()` to show "Apply to Portrait" vs "Apply to Token" in overlay text
 
-### 2.3 Category Labels
-- [ ] **Category Button Labels** - Make mode-specific
-  - **Requirement**: Category buttons should be labeled differently in portrait mode
-  - Keep same folder-based names but add mode context
-  - Example: "Humanoids" in token mode vs "Portrait: Humanoids" in portrait mode
-  - Or: Add mode indicator to category display
+### 2.3 Category Labels ✅
+- [x] **Category Button Labels** - Make mode-specific
+  - ✅ **Requirement**: Category buttons should be labeled differently in portrait mode
+  - ✅ Keep same folder-based names but add mode context
+  - ✅ Added "Portrait: " prefix to category names in portrait mode
+  - ✅ Token mode: Shows "Humanoids", "Goblins", etc.
+  - ✅ Portrait mode: Shows "Portrait: Humanoids", "Portrait: Goblins", etc.
+  - ✅ Updated `_getCategories()` to add mode prefix when in portrait mode
 
 ## Phase 3: UI Restructure (Important) ✅ **COMPLETE**
 
@@ -120,19 +124,21 @@ This document outlines the migration plan to fully separate Token and Portrait i
   - ✅ No cross-contamination between modes
   - ✅ Fixed duplicate file detection to use path+filename as cache key (allows same-named files in different folders)
 
-## Phase 5: Status Messages and Notifications
+## Phase 5: Status Messages and Notifications ✅
 
-### 5.1 Mode-Specific Messages
-- [ ] **All Notifications** - Include mode context
-  - "Token Image Replacement: ..." vs "Portrait Image Replacement: ..."
-  - Update all `postConsoleAndNotification()` calls to include mode label
-  - Update all `ui.notifications` calls to include mode context
+### 5.1 Mode-Specific Messages ✅
+- [x] **All Notifications** - Include mode context
+  - ✅ Created `_getModeLabel()` and `_getModePrefix()` helper methods
+  - ✅ Updated all `postConsoleAndNotification()` calls in `token-image-replacement.js` to use mode-specific labels
+  - ✅ Updated `_updateNotificationData()` to show mode-specific notification text
+  - ✅ Updated all `ui.notifications` calls to include mode context (already using `modeLabel` variable)
+  - ✅ Hook handler messages remain "Token Image Replacement:" since they're specifically for token replacement
 
-### 5.2 Progress Indicators
-- [ ] **Scan Progress** - Mode-specific
-  - Progress bars show mode-specific scan progress
-  - Status text: "Scanning Token Images..." vs "Scanning Portrait Images..."
-  - Already partially implemented, verify completeness
+### 5.2 Progress Indicators ✅
+- [x] **Scan Progress** - Mode-specific
+  - ✅ Progress bars show mode-specific scan progress (already implemented)
+  - ✅ Status text: "Scanning Token Images..." vs "Scanning Portrait Images..." (already implemented in constructor)
+  - ✅ Verified completeness - all progress indicators are mode-aware
 
 ## Implementation Order
 

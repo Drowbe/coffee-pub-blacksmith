@@ -50,8 +50,8 @@
                         {{#if selectedToken.actor.system.details.type.subtype}}  •  {{selectedToken.actor.system.details.type.subtype}}{{/if}}
                     </div>
                 {{else}}
-                    <div class="tir-main-title">No Token Selected</div>
-                    <div class="tir-subtitle">Select a token on the canvas</div>
+                    <div class="tir-main-title">{{#if isPortraitMode}}No Actor Selected{{else}}No Token Selected{{/if}}</div>
+                    <div class="tir-subtitle">{{#if isPortraitMode}}Select an actor from the directory or a token on the canvas{{else}}Select a token on the canvas{{/if}}</div>
                 {{/if}}
             </div>
             <div class="tir-header-controls">
