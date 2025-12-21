@@ -1,18 +1,18 @@
 <span style="visibility: hidden">coffeepub-hide-header</span>
 {{#unless hideHeader}}
-<div class="dnd5e chat-card item-card cpb-chat-card cpb-item-card" data-actor-id="{{actorId}}">
-    <header class="card-header flexrow cpb-card-header">
+<div class="blacksmith-card theme-default cpb-chat-card cpb-item-card" data-actor-id="{{actorId}}">
+    <div class="section-header">
         {{#if label}}
-            <h3 class="item-name"><i class="fas fa-dice"></i> {{label}}</h3>
+            <i class="fas fa-dice"></i> {{label}}
         {{else}}
             {{#if hasMultipleGroups}}
-                <h3 class="item-name"><i class="fas fa-people-arrows"></i> {{rollTitle}} VS {{#if defenderSkillName}}{{defenderSkillName}}{{else}}{{rollTitle}}{{/if}}</h3>
+                <i class="fas fa-people-arrows"></i> {{rollTitle}} VS {{#if defenderSkillName}}{{defenderSkillName}}{{else}}{{rollTitle}}{{/if}}
             {{else}}
-                <h3 class="item-name"><i class="fas fa-dice"></i> {{rollTitle}}</h3>
+                <i class="fas fa-dice"></i> {{rollTitle}}
             {{/if}}
         {{/if}}
-    </header>
-    <div class="card-content cpb-card-content">
+    </div>
+    <div class="section-content">
 
         {{!-- FINAL RESULTS --}}  
         {{!-- Contested Roll --}}  
@@ -114,7 +114,7 @@
                     {{else}}
                         <div class="pending-roll cpb-roll-result">
                             <button class="cpb-skill-roll" data-token-id="{{this.id}}" data-actor-id="{{this.actorId}}" data-type="{{../rollType}}" data-value="{{../skillAbbr}}" data-roll-title="{{../rollTitle}}">
-                                <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
+                                <i class="fas fa-dice-d20"></i><span class="cpb-button-name">&nbsp;{{this.name}}</span>
                             </button>
                         </div>
                     {{/if}}
@@ -175,7 +175,7 @@
                     {{else}}
                         <div class="pending-roll cpb-roll-result">
                             <button class="cpb-skill-roll" data-token-id="{{this.id}}" data-actor-id="{{this.actorId}}" data-type="{{#if ../defenderRollType}}{{../defenderRollType}}{{else}}{{../rollType}}{{/if}}" data-value="{{#if ../defenderSkillAbbr}}{{../defenderSkillAbbr}}{{else}}{{../skillAbbr}}{{/if}}" data-roll-title="{{../defenderSkillName}}">
-                                <i class="fas fa-dice-d20"></i>&nbsp;{{this.name}}
+                                <i class="fas fa-dice-d20"></i><span class="cpb-button-name">&nbsp;{{this.name}}</span>
                             </button>
                         </div>
                     {{/if}}
@@ -194,7 +194,7 @@
         </div>
         {{/if}}
 
-
     </div>
 </div>
-{{/unless}} 
+{{/unless}}
+

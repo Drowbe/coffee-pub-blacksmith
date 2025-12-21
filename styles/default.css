@@ -37,6 +37,7 @@
 @import "cards-common.css";
 @import "cards-xp.css";
 @import "cards-stats.css";
+@import "card-skill-check.css";
 
 /* --- Menubar ---------------------- */
 @import "menubar.css";
