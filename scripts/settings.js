@@ -4714,6 +4714,35 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
+	// Portrait Image Replacement Matching Threshold
+	game.settings.register(MODULE.ID, 'portraitImageReplacementThreshold', {
+		name: MODULE.ID + '.portraitImageReplacementThreshold-Label',
+		hint: MODULE.ID + '.portraitImageReplacementThreshold-Hint',
+		type: Number,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		range: {
+			min: 0.1,
+			max: 1.0,
+			step: 0.05
+		},
+		default: 0.3,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Portrait Image Replacement Fuzzy Search
+	game.settings.register(MODULE.ID, 'portraitImageReplacementFuzzySearch', {
+		name: MODULE.ID + '.portraitImageReplacementFuzzySearch-Label',
+		hint: MODULE.ID + '.portraitImageReplacementFuzzySearch-Hint',
+		type: Boolean,
+		config: true, // Hidden setting - controlled by UI toggle
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
 	// Last used mode (token or portrait) - HIDDEN SETTING
 	game.settings.register(MODULE.ID, 'tokenImageReplacementLastMode', {
 		scope: 'world',

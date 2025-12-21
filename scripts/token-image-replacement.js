@@ -576,7 +576,7 @@ export class TokenImageReplacementWindow extends Application {
             currentFileName: ImageCacheManager.getCache(this.mode).currentFileName,
             cacheStatus: this._getCacheStatus(),
             updateDropped: getSettingSafely(MODULE.ID, 'tokenImageReplacementUpdateDropped', true),
-            fuzzySearch: getSettingSafely(MODULE.ID, 'tokenImageReplacementFuzzySearch', false),
+            fuzzySearch: getSettingSafely(MODULE.ID, this.mode === ImageCacheManager.MODES.PORTRAIT ? 'portraitImageReplacementFuzzySearch' : 'tokenImageReplacementFuzzySearch', false),
             tagSortMode: getSettingSafely(MODULE.ID, 'tokenImageReplacementTagSortMode', 'count'),
             convertDeadToLoot: getSettingSafely(MODULE.ID, 'tokenConvertDeadToLoot', false),
             deadTokenReplacement: getSettingSafely(MODULE.ID, 'enableDeadTokenReplacement', false),
@@ -658,8 +658,9 @@ export class TokenImageReplacementWindow extends Application {
         // Threshold slider
         this._registerDomEvent(htmlElement, '.tir-rangeslider-input', 'input', this._onThresholdSliderChange);
         
-        // Set initial threshold value in label
-        const currentThreshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
+        // Set initial threshold value in label (mode-specific)
+        const thresholdSettingKey = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'portraitImageReplacementThreshold' : 'tokenImageReplacementThreshold';
+        const currentThreshold = game.settings.get(MODULE.ID, thresholdSettingKey) || 0.3;
         const thresholdPercentage = Math.round(currentThreshold * 100);
         const thresholdValue = htmlElement.querySelector('.tir-threshold-value');
         if (thresholdValue) thresholdValue.textContent = `${thresholdPercentage}%`;
@@ -1786,7 +1787,8 @@ export class TokenImageReplacementWindow extends Application {
         const filteredResults = searchResults.filter(result => !result.isCurrent);
         
         // In exact search mode (fuzzy search OFF), filter out 0% matches
-        const fuzzySearch = getSettingSafely(MODULE.ID, 'tokenImageReplacementFuzzySearch', false);
+        const fuzzySearchSettingKey = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'portraitImageReplacementFuzzySearch' : 'tokenImageReplacementFuzzySearch';
+        const fuzzySearch = getSettingSafely(MODULE.ID, fuzzySearchSettingKey, false);
         if (!fuzzySearch) {
             // Exact search mode: only show files that actually match the search term
             const exactMatches = filteredResults.filter(result => 
@@ -1983,7 +1985,8 @@ export class TokenImageReplacementWindow extends Application {
         
         if (this.matches.length === 0) {
             // Check if we're in search mode with no results
-            const fuzzySearch = getSettingSafely(MODULE.ID, 'tokenImageReplacementFuzzySearch', false);
+            const fuzzySearchSettingKey = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'portraitImageReplacementFuzzySearch' : 'tokenImageReplacementFuzzySearch';
+        const fuzzySearch = getSettingSafely(MODULE.ID, fuzzySearchSettingKey, false);
             
             let message = "No alternative images found for this token";
             let tag = "NO MATCHES";
@@ -2329,7 +2332,9 @@ export class TokenImageReplacementWindow extends Application {
         }
         if (!element) return;
         
-        const currentThreshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
+        // Get mode-specific threshold
+        const thresholdSettingKey = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'portraitImageReplacementThreshold' : 'tokenImageReplacementThreshold';
+        const currentThreshold = game.settings.get(MODULE.ID, thresholdSettingKey) || 0.3;
         const percentage = Math.round(currentThreshold * 100);
         
         const slider = element.querySelector('.tir-rangeslider');
@@ -2373,8 +2378,9 @@ export class TokenImageReplacementWindow extends Application {
         if (thumb) thumb.style.left = `${percentage}%`;
         if (thresholdValue) thresholdValue.textContent = `${percentage}%`;
         
-        // Update the setting
-        game.settings.set(MODULE.ID, 'tokenImageReplacementThreshold', threshold);
+        // Update the mode-specific setting
+        const thresholdSettingKey = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'portraitImageReplacementThreshold' : 'tokenImageReplacementThreshold';
+        await game.settings.set(MODULE.ID, thresholdSettingKey, threshold);
         
         // Refresh results with new threshold
         await this._findMatches();
@@ -2397,7 +2403,8 @@ export class TokenImageReplacementWindow extends Application {
      */
     async _onFuzzySearchToggle(event) {
         const isEnabled = event.target.checked;
-        game.settings.set(MODULE.ID, 'tokenImageReplacementFuzzySearch', isEnabled);
+        const fuzzySearchSettingKey = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'portraitImageReplacementFuzzySearch' : 'tokenImageReplacementFuzzySearch';
+        await game.settings.set(MODULE.ID, fuzzySearchSettingKey, isEnabled);
         
         postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Fuzzy Search ${isEnabled ? 'enabled' : 'disabled'}`, 
             isEnabled ? 'Searching for individual words independently' : 'Searching for exact string matches', 
@@ -2437,6 +2444,9 @@ export class TokenImageReplacementWindow extends Application {
         
         // Redetect selected token/actor in new mode
         await this._checkForSelectedToken();
+        
+        // Update threshold slider and fuzzy search toggle to reflect new mode's values
+        this._initializeThresholdSlider();
         
         // Re-render to update UI
         this.render();
@@ -2515,7 +2525,8 @@ export class TokenImageReplacementWindow extends Application {
         // Use the same parameters as the window system for token/actor-based matching
         // searchTerms = null for token/actor-based matching (same as window system)
         const searchTerms = null;
-        const threshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
+        const thresholdSettingKey = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'portraitImageReplacementThreshold' : 'tokenImageReplacementThreshold';
+        const threshold = game.settings.get(MODULE.ID, thresholdSettingKey) || 0.3;
         
         // Get the appropriate document for matching
         let tokenDocument = null;

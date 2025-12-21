@@ -1061,6 +1061,12 @@
 				"portraitImageReplacementAutoUpdate-Label": "Monitor Image Folder for Changes",
 				"portraitImageReplacementAutoUpdate-Hint": "If enabled, the module will monitor the image folder for changes and update the cache accordingly. If disabled, the module will only update the cache when the 'Update Images' button is clicked.",
 
+				"portraitImageReplacementThreshold-Label": "Matching Threshold",
+				"portraitImageReplacementThreshold-Hint": "How strict the matching algorithm should be for portrait images. Lower values = more fuzzy matching, higher values = more exact matching.",
+
+				"portraitImageReplacementFuzzySearch-Label": "Fuzzy Search",
+				"portraitImageReplacementFuzzySearch-Hint": "When enabled, searches for individual words independently in portrait images. When disabled, searches for exact string matches.",
+
 				"portraitImageReplacementDeprioritizedWords-Label": "Deprioritized Words",
 				"portraitImageReplacementDeprioritizedWords-Hint": "Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., 'spirit,ghost,undead,shadow').",
 
