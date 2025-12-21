@@ -4755,6 +4755,30 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
+	// Token Image Replacement Variability
+	game.settings.register(MODULE.ID, 'tokenImageReplacementVariability', {
+		name: MODULE.ID + '.tokenImageReplacementVariability-Label',
+		hint: MODULE.ID + '.tokenImageReplacementVariability-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Portrait Image Replacement Variability
+	game.settings.register(MODULE.ID, 'portraitImageReplacementVariability', {
+		name: MODULE.ID + '.portraitImageReplacementVariability-Label',
+		hint: MODULE.ID + '.portraitImageReplacementVariability-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
 	// Last used mode (token or portrait) - HIDDEN SETTING
 	game.settings.register(MODULE.ID, 'tokenImageReplacementLastMode', {
 		scope: 'world',

@@ -3358,8 +3358,8 @@ export class TokenImageReplacementWindow extends Application {
         const allFiles = Array.from(ImageCacheManager.getCache(tokenMode).files.values());
         const matches = await ImageMatching._applyUnifiedMatching(allFiles, null, tokenDocument, 'token', ImageCacheManager.getCache(tokenMode), ImageCacheManager._extractTokenData, true);
         
-        // Get the best match (highest score)
-        const matchingImage = matches.length > 0 ? matches[0] : null;
+        // Get the matching image (with variability if enabled)
+        const matchingImage = TokenImageReplacementWindow._selectMatchingImage(matches, ImageCacheManager.MODES.TOKEN);
         
         if (matchingImage) {
             // Validate and apply token image
@@ -3373,13 +3373,48 @@ export class TokenImageReplacementWindow extends Application {
                 await tokenDocument.update({
                     'texture.src': matchingImage.fullPath
                 });
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied ${matchingImage.name} to ${tokenDocument.name} (Score: ${((matchingImage.score || 0) * 100).toFixed(1)}%)`, "", true, false);
+                const score = matchingImage.searchScore || matchingImage.score || 0;
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Applied ${matchingImage.name} to ${tokenDocument.name} (Score: ${(score * 100).toFixed(1)}%)`, "", true, false);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Error applying image: ${error.message}`, "", false, false);
             }
         } else {
             postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: No matching image found for ${tokenDocument.name}`, "", true, false);
         }
+    }
+    
+    /**
+     * Select a matching image from the results, applying variability if enabled
+     * @param {Array} matches - Array of matched images (already sorted by score, highest first)
+     * @param {string} mode - 'token' or 'portrait'
+     * @returns {Object|null} Selected image match or null if no matches
+     */
+    static _selectMatchingImage(matches, mode) {
+        if (!matches || matches.length === 0) {
+            return null;
+        }
+        
+        // Check if variability is enabled for this mode
+        const variabilitySetting = mode === ImageCacheManager.MODES.PORTRAIT 
+            ? 'portraitImageReplacementVariability' 
+            : 'tokenImageReplacementVariability';
+        const variabilityEnabled = getSettingSafely(MODULE.ID, variabilitySetting, true);
+        
+        if (!variabilityEnabled) {
+            // Variability disabled: always return the best match (first one)
+            return matches[0];
+        }
+        
+        // Variability enabled: randomly select from all matches with the highest score
+        const topScore = matches[0].searchScore || matches[0].score || 0;
+        const topMatches = matches.filter(match => {
+            const matchScore = match.searchScore || match.score || 0;
+            return matchScore === topScore;
+        });
+        
+        // Randomly select from top matches
+        const randomIndex = Math.floor(Math.random() * topMatches.length);
+        return topMatches[randomIndex];
     }
     
     /**
@@ -3414,8 +3449,8 @@ export class TokenImageReplacementWindow extends Application {
         const allFiles = Array.from(ImageCacheManager.getCache(portraitMode).files.values());
         const matches = await ImageMatching._applyUnifiedMatching(allFiles, null, tokenDocument, 'token', ImageCacheManager.getCache(portraitMode), ImageCacheManager._extractTokenData, true);
         
-        // Get the best match (highest score)
-        const matchingImage = matches.length > 0 ? matches[0] : null;
+        // Get the matching image (with variability if enabled)
+        const matchingImage = TokenImageReplacementWindow._selectMatchingImage(matches, ImageCacheManager.MODES.PORTRAIT);
         
         if (matchingImage) {
             // Validate and apply portrait image
@@ -3429,7 +3464,8 @@ export class TokenImageReplacementWindow extends Application {
                 await actor.update({
                     img: matchingImage.fullPath
                 });
-                postConsoleAndNotification(MODULE.NAME, `Portrait Image Replacement: Applied ${matchingImage.name} to ${actor.name} (Score: ${((matchingImage.score || 0) * 100).toFixed(1)}%)`, "", true, false);
+                const score = matchingImage.searchScore || matchingImage.score || 0;
+                postConsoleAndNotification(MODULE.NAME, `Portrait Image Replacement: Applied ${matchingImage.name} to ${actor.name} (Score: ${(score * 100).toFixed(1)}%)`, "", true, false);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Portrait Image Replacement: Error applying image: ${error.message}`, "", false, false);
             }

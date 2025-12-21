@@ -1070,6 +1070,12 @@
 				"portraitImageReplacementUpdateDropped-Label": "Update Dropped Portraits",
 				"portraitImageReplacementUpdateDropped-Hint": "When enabled, actor portraits will be automatically updated with the best matching portrait when tokens are created on the canvas.",
 
+				"tokenImageReplacementVariability-Label": "Token Image Variability",
+				"tokenImageReplacementVariability-Hint": "When enabled, tokens will randomly select from all images with the highest matching score instead of always using the same top match. This adds visual variety when multiple tokens of the same type are created.",
+
+				"portraitImageReplacementVariability-Label": "Portrait Image Variability",
+				"portraitImageReplacementVariability-Hint": "When enabled, portraits will randomly select from all images with the highest matching score instead of always using the same top match. This adds visual variety when multiple actors of the same type are created.",
+
 				"portraitImageReplacementDeprioritizedWords-Label": "Deprioritized Words",
 				"portraitImageReplacementDeprioritizedWords-Hint": "Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., 'spirit,ghost,undead,shadow').",
 
