@@ -2490,7 +2490,7 @@ export class ImageCacheManager {
             // Add folders in chunks
             compressedData += '"fo":[';
             let firstFolder = true;
-            for (const [folderPath, folderData] of this.cache.folders.entries()) {
+            for (const [folderPath, folderData] of cache.folders.entries()) {
                 if (!firstFolder) compressedData += ',';
                 firstFolder = false;
                 
@@ -2502,7 +2502,7 @@ export class ImageCacheManager {
             // Add creature types in chunks
             compressedData += '"ct":[';
             let firstCreature = true;
-            for (const [creatureType, creatureData] of this.cache.creatureTypes.entries()) {
+            for (const [creatureType, creatureData] of cache.creatureTypes.entries()) {
                 if (!firstCreature) compressedData += ',';
                 firstCreature = false;
                 
@@ -2515,22 +2515,23 @@ export class ImageCacheManager {
             
             return compressedData;
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Streaming compression failed: ${error.message}. Falling back to standard method.`, "", false, false);
+            const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Streaming compression failed: ${error.message}. Falling back to standard method.`, "", false, false);
             
             // Fallback to standard method (may still fail on very large caches)
             // Convert single path to array for consistency
             const basePaths = Array.isArray(basePathOrPaths) ? basePathOrPaths : [basePathOrPaths];
             const cacheData = {
                 version: '1.5',  // Updated version for multiple paths support
-                lastScan: this.cache.lastScan || Date.now(),
+                lastScan: cache.lastScan || Date.now(),
                 basePath: basePaths,  // Array of paths
                 folderFingerprint: folderFingerprint,
                 isIncremental: isIncremental,
-                totalFiles: this.cache.totalFiles,
-                ignoredFilesCount: this.cache.ignoredFilesCount || 0,
-                files: Array.from(this.cache.files.entries()),
-                folders: Array.from(this.cache.folders.entries()),
-                creatureTypes: Array.from(this.cache.creatureTypes.entries())
+                totalFiles: cache.totalFiles,
+                ignoredFilesCount: cache.ignoredFilesCount || 0,
+                files: Array.from(cache.files.entries()),
+                folders: Array.from(cache.folders.entries()),
+                creatureTypes: Array.from(cache.creatureTypes.entries())
             };
             
             const cacheJson = JSON.stringify(cacheData);
@@ -3122,7 +3123,12 @@ export class ImageCacheManager {
      */
     static getDiscoveredCategories(mode = 'token') {
         const cache = this.getCache(mode);
-        const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
+        
+        // Get mode-specific ignored folders setting
+        const ignoredFoldersKey = mode === this.MODES.PORTRAIT 
+            ? 'portraitImageReplacementIgnoredFolders' 
+            : 'tokenImageReplacementIgnoredFolders';
+        const ignoredFoldersSetting = getSettingSafely(MODULE.ID, ignoredFoldersKey, '');
         const ignoredFolders = ignoredFoldersSetting 
             ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
             : [];
