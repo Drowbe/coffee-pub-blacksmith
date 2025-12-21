@@ -404,7 +404,6 @@ export class ImageCacheManager {
             }
         }
         
-        
         // Generate tags from metadata
         metadata.tags = this._generateTagsFromMetadata(metadata);
         
@@ -2082,8 +2081,10 @@ export class ImageCacheManager {
         }
         
         // Add category folder tag (first part of relative path)
+        // Only add category tag if there's actually a folder structure (pathParts.length > 1)
+        // If pathParts.length === 1, it means the filePath is just the filename, not a folder path
         const pathParts = filePath.split('/').filter(p => p);
-        if (pathParts.length > 0) {
+        if (pathParts.length > 1) {
             const category = pathParts[0];
             // Get mode-specific ignored folders setting
             const ignoredFoldersKey = mode === this.MODES.PORTRAIT 
