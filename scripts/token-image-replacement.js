@@ -690,11 +690,27 @@ export class TokenImageReplacementWindow extends Application {
         this.currentPage = 0;
         this.recommendedToken = null; // Reset recommended token
 
-        // If we have a selected token, add original and current images as the first matches
-        // ALWAYS show original/current images when a token is selected, regardless of search mode
+        // If we have a selected token/actor, add original and current images as the first matches
+        // ALWAYS show original/current images when a token/actor is selected, regardless of search mode
         if (this.selectedToken) {
             // Add original image as the very first card
-            const originalImage = TokenImageUtilities.getOriginalImage(this.selectedToken.document);
+            let originalImage = null;
+            if (this.mode === ImageCacheManager.MODES.PORTRAIT) {
+                // Portrait mode: get from actor flags
+                // Ensure we have an Actor document (not a token)
+                let actor = this.selectedToken;
+                if (actor.actor) {
+                    // If it's a token, get the actor
+                    actor = actor.actor;
+                }
+                if (actor && typeof actor.getFlag === 'function') {
+                    originalImage = actor.getFlag(MODULE.ID, 'originalPortrait') || null;
+                }
+            } else {
+                // Token mode: get from token flags
+                originalImage = TokenImageUtilities.getOriginalImage(this.selectedToken.document);
+            }
+            
             if (originalImage) {
                 const originalImageCard = {
                     name: originalImage.name || originalImage.path?.split('/').pop() || 'Original Image',
@@ -710,7 +726,13 @@ export class TokenImageReplacementWindow extends Application {
             let currentImageSrc = '';
             if (this.mode === ImageCacheManager.MODES.PORTRAIT) {
                 // Portrait mode: get from actor.img
-                currentImageSrc = this.selectedToken?.img || '';
+                // Ensure we have an Actor document (not a token)
+                let actor = this.selectedToken;
+                if (actor && actor.actor) {
+                    // If it's a token, get the actor
+                    actor = actor.actor;
+                }
+                currentImageSrc = actor?.img || '';
             } else {
                 // Token mode: get from token texture
                 currentImageSrc = this.selectedToken?.texture?.src || this.selectedToken?.document?.texture?.src || '';
@@ -772,12 +794,26 @@ export class TokenImageReplacementWindow extends Application {
                     searchMode = 'search';
                     searchTerms = this.searchTerm;
                 } else if (this.currentFilter === 'selected' && this.selectedToken) {
-                    // SELECTED TAB + token selected: Use token-based matching
+                    // SELECTED TAB + token/actor selected: Use token/actor-based matching
                     searchMode = 'token';
-                    searchTerms = null; // Use token-based matching instead of search terms
-                    tokenDocument = this.selectedToken.document;
+                    searchTerms = null; // Use token/actor-based matching instead of search terms
+                    
+                    if (this.mode === ImageCacheManager.MODES.PORTRAIT) {
+                        // Portrait mode: create a fake tokenDocument-like object from actor
+                        // _extractTokenData expects tokenDocument.actor, so we create a wrapper
+                        let actor = this.selectedToken;
+                        if (actor && actor.actor) {
+                            // If it's a token, get the actor
+                            actor = actor.actor;
+                        }
+                        // Create a fake tokenDocument that has an actor property
+                        tokenDocument = { actor: actor };
+                    } else {
+                        // Token mode: use token document
+                        tokenDocument = this.selectedToken.document;
+                    }
                 } else if (this.currentFilter === 'selected' && !this.selectedToken) {
-                    // SELECTED TAB but no token selected: Show no results
+                    // SELECTED TAB but no token/actor selected: Show no results
                     this.allMatches = [];
                     this._updateResults();
                     return;
@@ -943,6 +979,17 @@ export class TokenImageReplacementWindow extends Application {
                 if (!selectedActor || typeof selectedActor.update !== 'function') {
                     ui.notifications.error('No actor selected for portrait replacement. Please select an actor from the directory or a token on the canvas.');
                     return;
+                }
+                
+                // Store original portrait if not already stored
+                const existingOriginal = selectedActor.getFlag(MODULE.ID, 'originalPortrait');
+                if (!existingOriginal && selectedActor.img) {
+                    const originalPortrait = {
+                        path: selectedActor.img,
+                        name: selectedActor.img.split('/').pop(),
+                        timestamp: Date.now()
+                    };
+                    await selectedActor.setFlag(MODULE.ID, 'originalPortrait', originalPortrait);
                 }
                 
                 // Update the actor's portrait
@@ -1263,34 +1310,87 @@ export class TokenImageReplacementWindow extends Application {
      */
     async _handleTokenSwitch() {
         try {
-            // Get the newly selected token
-            const selectedTokens = canvas?.tokens?.controlled || [];
-            const newTokenId = selectedTokens.length > 0 ? selectedTokens[0].id : null;
-            
-            // Prevent processing the same token multiple times
-            if (newTokenId === this._lastProcessedTokenId) {
-                postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Skipping duplicate token selection for ${newTokenId}`, "", true, false);
-                return;
-            }
-            
-            this._lastProcessedTokenId = newTokenId;
-            
-            if (selectedTokens.length > 0) {
-                this.selectedToken = selectedTokens[0];
+            if (this.mode === ImageCacheManager.MODES.PORTRAIT) {
+                // Portrait mode: check for actor directory or selected token's actor
+                let selectedActor = null;
                 
-                // When a token is selected, switch to "selected" tab and update results
-                this.currentFilter = 'selected';
-                this._cachedSearchTerms = null; // Clear cache for new token
-                this._showSearchSpinner();
-                await this._findMatches();
-                this._hideSearchSpinner();
+                // First check if actor directory is open
+                if (ui.actors?.viewed?.length > 0) {
+                    selectedActor = ui.actors.viewed[0];
+                } 
+                // Fallback: check for selected token's actor
+                else if (canvas.tokens.controlled.length > 0) {
+                    selectedActor = canvas.tokens.controlled[0].actor;
+                }
+                
+                const newActorId = selectedActor ? selectedActor.id : null;
+                
+                // Prevent processing the same actor multiple times
+                if (newActorId === this._lastProcessedTokenId) {
+                    postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Skipping duplicate actor selection for ${newActorId}`, "", true, false);
+                    return;
+                }
+                
+                this._lastProcessedTokenId = newActorId;
+                
+                if (selectedActor) {
+                    this.selectedToken = selectedActor;
+                    
+                    // Store original portrait if not already stored
+                    const existingOriginal = selectedActor.getFlag(MODULE.ID, 'originalPortrait');
+                    if (!existingOriginal && selectedActor.img) {
+                        const originalPortrait = {
+                            path: selectedActor.img,
+                            name: selectedActor.img.split('/').pop(),
+                            timestamp: Date.now()
+                        };
+                        await selectedActor.setFlag(MODULE.ID, 'originalPortrait', originalPortrait);
+                    }
+                    
+                    // When an actor is selected, switch to "selected" tab and update results
+                    this.currentFilter = 'selected';
+                    this._cachedSearchTerms = null; // Clear cache for new actor
+                    this._showSearchSpinner();
+                    await this._findMatches();
+                    this._hideSearchSpinner();
+                } else {
+                    this.selectedToken = null;
+                    // When no actor is selected, switch to "all" tab and update results
+                    this.currentFilter = 'all';
+                    this._showSearchSpinner();
+                    await this._findMatches();
+                    this._hideSearchSpinner();
+                }
             } else {
-                this.selectedToken = null;
-                // When no token is selected, switch to "all" tab and update results
-                this.currentFilter = 'all';
-                this._showSearchSpinner();
-                await this._findMatches();
-                this._hideSearchSpinner();
+                // Token mode: check for controlled tokens
+                const selectedTokens = canvas?.tokens?.controlled || [];
+                const newTokenId = selectedTokens.length > 0 ? selectedTokens[0].id : null;
+                
+                // Prevent processing the same token multiple times
+                if (newTokenId === this._lastProcessedTokenId) {
+                    postConsoleAndNotification(MODULE.NAME, `${this._getModePrefix()} Skipping duplicate token selection for ${newTokenId}`, "", true, false);
+                    return;
+                }
+                
+                this._lastProcessedTokenId = newTokenId;
+                
+                if (selectedTokens.length > 0) {
+                    this.selectedToken = selectedTokens[0];
+                    
+                    // When a token is selected, switch to "selected" tab and update results
+                    this.currentFilter = 'selected';
+                    this._cachedSearchTerms = null; // Clear cache for new token
+                    this._showSearchSpinner();
+                    await this._findMatches();
+                    this._hideSearchSpinner();
+                } else {
+                    this.selectedToken = null;
+                    // When no token is selected, switch to "all" tab and update results
+                    this.currentFilter = 'all';
+                    this._showSearchSpinner();
+                    await this._findMatches();
+                    this._hideSearchSpinner();
+                }
             }
             
             // Update the header with new token info and active tab without full re-render
@@ -1463,6 +1563,18 @@ export class TokenImageReplacementWindow extends Application {
                 if (selectedActor) {
                     // Store the selected actor and set filter
                     this.selectedToken = selectedActor; // Reuse selectedToken property for actor
+                    
+                    // Store original portrait if not already stored
+                    const existingOriginal = selectedActor.getFlag(MODULE.ID, 'originalPortrait');
+                    if (!existingOriginal && selectedActor.img) {
+                        const originalPortrait = {
+                            path: selectedActor.img,
+                            name: selectedActor.img.split('/').pop(),
+                            timestamp: Date.now()
+                        };
+                        await selectedActor.setFlag(MODULE.ID, 'originalPortrait', originalPortrait);
+                    }
+                    
                     this.currentFilter = 'selected';
                     this._cachedSearchTerms = null; // Clear cache for new actor
                     this._showSearchSpinner();
@@ -2316,14 +2428,14 @@ export class TokenImageReplacementWindow extends Application {
             `Now searching for ${modeLabel.toLowerCase()} images`, 
             false, false);
         
-        // Clear current selection and refresh
+        // Clear current selection
         this.selectedToken = null;
         this.currentFilter = 'all';
         this._cachedSearchTerms = null;
         this.matches = [];
         this.allMatches = [];
         
-        // Check for selected token/actor in new mode
+        // Redetect selected token/actor in new mode
         await this._checkForSelectedToken();
         
         // Re-render to update UI
@@ -2392,7 +2504,7 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     /**
-     * Calculate the recommended token for automatic replacement
+     * Calculate the recommended token/portrait for automatic replacement
      * Uses the same unified matching logic as the window system
      */
     async _calculateRecommendedToken() {
@@ -2400,10 +2512,26 @@ export class TokenImageReplacementWindow extends Application {
             return null;
         }
         
-        // Use the same parameters as the window system for token-based matching
-        // searchTerms = null for token-based matching (same as window system)
+        // Use the same parameters as the window system for token/actor-based matching
+        // searchTerms = null for token/actor-based matching (same as window system)
         const searchTerms = null;
         const threshold = game.settings.get(MODULE.ID, 'tokenImageReplacementThreshold') || 0.3;
+        
+        // Get the appropriate document for matching
+        let tokenDocument = null;
+        if (this.mode === ImageCacheManager.MODES.PORTRAIT) {
+            // Portrait mode: create a fake tokenDocument-like object from actor
+            let actor = this.selectedToken;
+            if (actor && actor.actor) {
+                // If it's a token, get the actor
+                actor = actor.actor;
+            }
+            // Create a fake tokenDocument that has an actor property
+            tokenDocument = { actor: actor };
+        } else {
+            // Token mode: use token document
+            tokenDocument = this.selectedToken.document;
+        }
         
         let bestMatch = null;
         let bestScore = 0;
@@ -2418,7 +2546,7 @@ export class TokenImageReplacementWindow extends Application {
             const fileInfo = this._getFileInfoFromCache(match.name);
             if (!fileInfo) {
                 // Try using the match object directly as fallback
-                const score = await ImageMatching._calculateRelevanceScore(match, searchTerms, this.selectedToken.document, 'token', ImageCacheManager.getCache(this.mode));
+                const score = await ImageMatching._calculateRelevanceScore(match, searchTerms, tokenDocument, 'token', ImageCacheManager.getCache(this.mode));
                 
                 if (score > bestScore && score >= threshold) {
                     bestScore = score;
@@ -2428,7 +2556,7 @@ export class TokenImageReplacementWindow extends Application {
             }
             
             // Calculate score using unified algorithm
-            const score = await ImageMatching._calculateRelevanceScore(fileInfo, searchTerms, this.selectedToken.document, 'token', ImageCacheManager.getCache(this.mode));
+            const score = await ImageMatching._calculateRelevanceScore(fileInfo, searchTerms, tokenDocument, 'token', ImageCacheManager.getCache(this.mode));
             
             if (score > bestScore && score >= threshold) {
                 bestScore = score;
@@ -2436,9 +2564,9 @@ export class TokenImageReplacementWindow extends Application {
             }
         }
         
-        // Log recommended token breakdown if we found a match
+        // Log recommended token/portrait breakdown if we found a match
         if (bestMatch) {
-            const tokenData = ImageCacheManager._extractTokenData(this.selectedToken.document);
+            const tokenData = ImageCacheManager._extractTokenData(tokenDocument);
             const weights = {
                 actorName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightActorName') / 100,
                 tokenName: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightTokenName') / 100,
@@ -2804,7 +2932,6 @@ export class TokenImageReplacementWindow extends Application {
         
         // Convert to array of category objects for template
         const categories = [];
-        const modePrefix = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'Portrait: ' : '';
         
         for (const categoryName of discoveredCategories) {
             // Count files in this category
@@ -2812,7 +2939,7 @@ export class TokenImageReplacementWindow extends Application {
             const cleanName = ImageCacheManager._cleanCategoryName(categoryName);
             
             categories.push({
-                name: modePrefix + cleanName,
+                name: cleanName,
                 key: categoryName.toLowerCase(),
                 count: fileCount,
                 isActive: this.currentFilter === categoryName.toLowerCase()
