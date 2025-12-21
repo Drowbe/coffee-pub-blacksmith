@@ -31,6 +31,55 @@
 }
   
 
+/* Global Controls */
+.tir-global-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 12px;
+}
+
+/* Mode Toggle - Left Aligned with Labels on Both Sides */
+.tir-mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.tir-toggle-label-left,
+.tir-toggle-label-right {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.tir-toggle-label-left {
+    order: 1;
+}
+
+.tir-mode-toggle .tir-toggle {
+    order: 2;
+}
+
+.tir-toggle-label-right {
+    order: 3;
+}
+
+/* Global Controls Right - Right Aligned */
+.tir-global-controls-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
 /* Window Header */
 .tir-header {
     background: rgba(0, 0, 0, 0.8);

@@ -3,30 +3,33 @@
     <div class="tir-global-controls">
         {{#if portraitEnabled}}
         <!-- Mode Toggle (Token/Portrait) -->
-        <div class="tir-toggle-container">
-            <span class="tir-toggle-label">{{#if isTokenMode}}Token{{else}}Portrait{{/if}} Mode</span>
+        <div class="tir-toggle-container tir-mode-toggle">
+            <span class="tir-toggle-label-left">Tokens</span>
             <div class="tir-toggle">
                 <input type="checkbox" name="modeToggle" id="modeToggle" {{#if isPortraitMode}}checked{{/if}}>
                 <label for="modeToggle" class="tir-toggle-slider"></label>
             </div>
+            <span class="tir-toggle-label-right">Portraits</span>
         </div>
         {{/if}}
-        {{#if itemPilesInstalled}}
-        <!-- Loot Piles Toggle -->
-        <div class="tir-toggle-container">
-            <span class="tir-toggle-label">Loot Piles</span>
-            <div class="tir-toggle">
-                <input type="checkbox" name="convertDeadToLoot" id="convertDeadToLoot" {{#if convertDeadToLoot}}checked{{/if}}>
-                <label for="convertDeadToLoot" class="tir-toggle-slider"></label>
+        <div class="tir-global-controls-right">
+            {{#if itemPilesInstalled}}
+            <!-- Loot Piles Toggle -->
+            <div class="tir-toggle-container">
+                <span class="tir-toggle-label">Loot Piles</span>
+                <div class="tir-toggle">
+                    <input type="checkbox" name="convertDeadToLoot" id="convertDeadToLoot" {{#if convertDeadToLoot}}checked{{/if}}>
+                    <label for="convertDeadToLoot" class="tir-toggle-slider"></label>
+                </div>
             </div>
-        </div>
-        {{/if}}
-        <!-- Convert Dead Toggle -->
-        <div class="tir-toggle-container">
-            <span class="tir-toggle-label">Convert Dead</span>
-            <div class="tir-toggle">
-                <input type="checkbox" name="deadTokenReplacement" id="deadTokenReplacement" {{#if deadTokenReplacement}}checked{{/if}}>
-                <label for="deadTokenReplacement" class="tir-toggle-slider"></label>
+            {{/if}}
+            <!-- Convert Dead Toggle -->
+            <div class="tir-toggle-container">
+                <span class="tir-toggle-label">Convert Dead</span>
+                <div class="tir-toggle">
+                    <input type="checkbox" name="deadTokenReplacement" id="deadTokenReplacement" {{#if deadTokenReplacement}}checked{{/if}}>
+                    <label for="deadTokenReplacement" class="tir-toggle-slider"></label>
+                </div>
             </div>
         </div>
     </div>
