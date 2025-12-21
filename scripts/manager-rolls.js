@@ -1662,7 +1662,7 @@ export async function updateCinemaOverlay(rollResults, context) {
                             groupSound = COFFEEPUB.SOUNDVERSUS; // For ties
                         }
                         
-                        playSound(groupSound, COFFEEPUB.SOUNDVOLUMENORMAL);
+                        playSound(groupSound, COFFEEPUB.SOUNDVOLUMELOW);
                         
                         // Auto-close after showing group results
                         setTimeout(() => {

@@ -1413,35 +1413,6 @@ export class SkillCheckDialog extends Application {
     }
 
     /**
-     * Centralized logic to determine which sound to play for a skill check result.
-     * @param {object} messageData - The chat message data (flags) for the skill check.
-     * @param {string} tokenId - The token ID whose result was just posted.
-     * @returns {string} The COFFEEPUB sound constant to play.
-     */
-    static getResultSound(messageData, tokenId) {
-        const isGroupRoll = messageData.isGroupRoll;
-        const dc = messageData.dc;
-        let actorResult = null;
-        if (Array.isArray(messageData.actors) && messageData.actors.length > 0) {
-            actorResult = messageData.actors.find(a => a.id === tokenId && a.result && typeof a.result.total === 'number');
-        }
-        if (!isGroupRoll) {
-            if (dc && actorResult && typeof actorResult.result.total === 'number') {
-                if (actorResult.result.total >= Number(dc)) {
-                    return COFFEEPUB.SOUNDSUCCESS; // Success
-                } else {
-                    return COFFEEPUB.SOUNDFAILURE; // Failure
-                }
-            } else {
-                return COFFEEPUB.SOUNDSUCCESS; // Default to success sound
-            }
-        } else {
-            // Existing group roll sound logic (unchanged)
-            return COFFEEPUB.SOUNDFAILURE;
-        }
-    }
-
-    /**
      * Centralized chat message formatting for skill check results.
      * @param {object} messageData - The chat message data (flags) for the skill check.
      * @returns {Promise<string>} The rendered chat message content.
