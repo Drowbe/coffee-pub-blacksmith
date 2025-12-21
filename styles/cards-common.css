@@ -104,6 +104,17 @@
     margin-bottom: 10px;
 }
 
+
+/* Section Header Icons */
+.section-header:not(.collapsed) i,
+.section-header i {
+    margin-right: 10px;
+    margin-top: -2px;
+    font-size: 1.0em;
+}
+
+
+
 /* Section Content */
 .section-content {
     font-family: var(--dnd5e-font-roboto); 
