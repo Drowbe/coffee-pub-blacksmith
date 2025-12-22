@@ -4779,6 +4779,66 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
+	// Update Monsters (Portrait)
+	game.settings.register(MODULE.ID, 'portraitImageReplacementUpdateMonsters', {
+		name: MODULE.ID + '.portraitImageReplacementUpdateMonsters-Label',
+		hint: MODULE.ID + '.portraitImageReplacementUpdateMonsters-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Update NPCs (Portrait)
+	game.settings.register(MODULE.ID, 'portraitImageReplacementUpdateNPCs', {
+		name: MODULE.ID + '.portraitImageReplacementUpdateNPCs-Label',
+		hint: MODULE.ID + '.portraitImageReplacementUpdateNPCs-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Update Vehicles (Portrait)
+	game.settings.register(MODULE.ID, 'portraitImageReplacementUpdateVehicles', {
+		name: MODULE.ID + '.portraitImageReplacementUpdateVehicles-Label',
+		hint: MODULE.ID + '.portraitImageReplacementUpdateVehicles-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Update Actors (Portrait)
+	game.settings.register(MODULE.ID, 'portraitImageReplacementUpdateActors', {
+		name: MODULE.ID + '.portraitImageReplacementUpdateActors-Label',
+		hint: MODULE.ID + '.portraitImageReplacementUpdateActors-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Skip Linked Tokens (Portrait)
+	game.settings.register(MODULE.ID, 'portraitImageReplacementSkipLinked', {
+		name: MODULE.ID + '.portraitImageReplacementSkipLinked-Label',
+		hint: MODULE.ID + '.portraitImageReplacementSkipLinked-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
 	// Last used mode (token or portrait) - HIDDEN SETTING
 	game.settings.register(MODULE.ID, 'tokenImageReplacementLastMode', {
 		scope: 'world',

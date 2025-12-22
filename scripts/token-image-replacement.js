@@ -3388,14 +3388,106 @@ export class TokenImageReplacementWindow extends Application {
         
         // Process portrait image replacement if enabled
         if (portraitEnabled && updateDroppedPortraits) {
-            await TokenImageReplacementWindow._processPortraitImageReplacement(actor);
+            await TokenImageReplacementWindow._processPortraitImageReplacement(actor, tokenDocument);
         }
+    }
+    
+    /**
+     * Check if an actor should be updated based on type and settings
+     * @param {Object} actor - The actor to check
+     * @param {Object} tokenDocument - The token document (optional, for checking linked status)
+     * @param {string} mode - 'token' or 'portrait'
+     * @returns {boolean} True if the actor should be updated, false otherwise
+     */
+    static _shouldUpdateActor(actor, tokenDocument, mode) {
+        if (!actor) return false;
+        
+        const isPortrait = mode === ImageCacheManager.MODES.PORTRAIT;
+        const settingPrefix = isPortrait ? 'portraitImageReplacement' : 'tokenImageReplacement';
+        
+        // Check if token is linked and we should skip linked tokens
+        const skipLinked = getSettingSafely(MODULE.ID, `${settingPrefix}SkipLinked`, true);
+        if (skipLinked) {
+            // Check if token is linked to an actor (linked tokens share data with the actor)
+            if (tokenDocument && tokenDocument.actorLink === true) {
+                postConsoleAndNotification(MODULE.NAME, `${isPortrait ? 'Portrait' : 'Token'} Image Replacement: Skipping - token is linked to actor`, "", true, false);
+                return false;
+            }
+            // Also skip player characters (actors with player owners)
+            if (actor.hasPlayerOwner) {
+                postConsoleAndNotification(MODULE.NAME, `${isPortrait ? 'Portrait' : 'Token'} Image Replacement: Skipping - actor has player owner`, "", true, false);
+                return false;
+            }
+        }
+        
+        // Determine actor type
+        const actorType = actor.type || 'npc';
+        const disposition = tokenDocument?.disposition ?? actor.prototypeToken?.disposition ?? 0;
+        
+        // Determine if it's a monster (NPC with hostile disposition) or NPC (NPC with friendly/neutral disposition)
+        let isMonster = false;
+        let isNPC = false;
+        let isVehicle = false;
+        let isCharacter = false;
+        
+        if (actorType === 'vehicle') {
+            isVehicle = true;
+        } else if (actorType === 'character') {
+            isCharacter = true;
+        } else if (actorType === 'npc') {
+            // NPCs with hostile disposition are monsters, others are NPCs
+            if (disposition < 0) {
+                isMonster = true;
+            } else {
+                isNPC = true;
+            }
+        }
+        
+        // Check the appropriate setting for each type
+        if (isMonster) {
+            const updateMonsters = getSettingSafely(MODULE.ID, `${settingPrefix}UpdateMonsters`, true);
+            if (!updateMonsters) {
+                postConsoleAndNotification(MODULE.NAME, `${isPortrait ? 'Portrait' : 'Token'} Image Replacement: Skipping - Update Monsters disabled`, "", true, false);
+                return false;
+            }
+        } else if (isNPC) {
+            const updateNPCs = getSettingSafely(MODULE.ID, `${settingPrefix}UpdateNPCs`, true);
+            if (!updateNPCs) {
+                postConsoleAndNotification(MODULE.NAME, `${isPortrait ? 'Portrait' : 'Token'} Image Replacement: Skipping - Update NPCs disabled`, "", true, false);
+                return false;
+            }
+        } else if (isVehicle) {
+            const updateVehicles = getSettingSafely(MODULE.ID, `${settingPrefix}UpdateVehicles`, true);
+            if (!updateVehicles) {
+                postConsoleAndNotification(MODULE.NAME, `${isPortrait ? 'Portrait' : 'Token'} Image Replacement: Skipping - Update Vehicles disabled`, "", true, false);
+                return false;
+            }
+        } else if (isCharacter) {
+            const updateActors = getSettingSafely(MODULE.ID, `${settingPrefix}UpdateActors`, false);
+            if (!updateActors) {
+                postConsoleAndNotification(MODULE.NAME, `${isPortrait ? 'Portrait' : 'Token'} Image Replacement: Skipping - Update Actors disabled`, "", true, false);
+                return false;
+            }
+        }
+        
+        return true;
     }
     
     /**
      * Process token image replacement for a dropped token
      */
     static async _processTokenImageReplacement(tokenDocument) {
+        // Check if this actor should be updated based on type and settings
+        const actor = tokenDocument.actor;
+        if (!actor) {
+            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Skipping - token has no actor", "", true, false);
+            return;
+        }
+        
+        if (!TokenImageReplacementWindow._shouldUpdateActor(actor, tokenDocument, ImageCacheManager.MODES.TOKEN)) {
+            return;
+        }
+        
         // Check if cache is ready
         const tokenMode = ImageCacheManager.MODES.TOKEN;
         if (ImageCacheManager.getCache(tokenMode).files.size === 0) {
@@ -3475,7 +3567,17 @@ export class TokenImageReplacementWindow extends Application {
     /**
      * Process portrait image replacement for a dropped token's actor
      */
-    static async _processPortraitImageReplacement(actor) {
+    static async _processPortraitImageReplacement(actor, tokenDocument = null) {
+        // Check if this actor should be updated based on type and settings
+        if (!actor) {
+            postConsoleAndNotification(MODULE.NAME, "Portrait Image Replacement: Skipping - no actor provided", "", true, false);
+            return;
+        }
+        
+        if (!TokenImageReplacementWindow._shouldUpdateActor(actor, tokenDocument, ImageCacheManager.MODES.PORTRAIT)) {
+            return;
+        }
+        
         // Check if cache is ready
         const portraitMode = ImageCacheManager.MODES.PORTRAIT;
         if (ImageCacheManager.getCache(portraitMode).files.size === 0) {
@@ -3494,15 +3596,15 @@ export class TokenImageReplacementWindow extends Application {
             await actor.setFlag(MODULE.ID, 'originalPortrait', originalPortrait);
         }
         
-        // Create a fake tokenDocument-like object for matching
-        const tokenDocument = { actor: actor };
+        // Create a fake tokenDocument-like object for matching if not provided
+        const matchingTokenDocument = tokenDocument || { actor: actor };
         
         // Wait a moment for the actor to be fully ready
         await new Promise(resolve => setTimeout(resolve, 100));
         
         // Find matching image using unified matching system
         const allFiles = Array.from(ImageCacheManager.getCache(portraitMode).files.values());
-        const matches = await ImageMatching._applyUnifiedMatching(allFiles, null, tokenDocument, 'token', ImageCacheManager.getCache(portraitMode), ImageCacheManager._extractTokenData, true);
+        const matches = await ImageMatching._applyUnifiedMatching(allFiles, null, matchingTokenDocument, 'token', ImageCacheManager.getCache(portraitMode), ImageCacheManager._extractTokenData, true);
         
         // Get the matching image (with variability if enabled)
         const matchingImage = TokenImageReplacementWindow._selectMatchingImage(matches, ImageCacheManager.MODES.PORTRAIT);
