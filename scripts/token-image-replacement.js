@@ -8,7 +8,7 @@ import { HookManager } from './manager-hooks.js';
 import { ImageCacheManager } from './manager-image-cache.js';
 import { ImageMatching } from './manager-image-matching.js';
 import { TokenImageUtilities } from './token-image-utilities.js';
-import { getImagePaths, getPortraitImagePaths } from './settings.js';
+import { getTokenImagePaths, getPortraitImagePaths } from './settings.js';
 
 /**
  * Token Image Replacement Window
@@ -397,7 +397,7 @@ export class TokenImageReplacementWindow extends Application {
             let path = file.path || '';
             if (!path && file.fullPath) {
                 // Use sourcePath from metadata if available, otherwise try first configured path
-                const imagePaths = this.mode === ImageCacheManager.MODES.PORTRAIT ? getPortraitImagePaths() : getImagePaths();
+                const imagePaths = this.mode === ImageCacheManager.MODES.PORTRAIT ? getPortraitImagePaths() : getTokenImagePaths();
                 const basePath = file.metadata?.sourcePath || (imagePaths[0] || '');
                 if (basePath) {
                     path = file.fullPath.replace(`${basePath}/`, '');
@@ -3029,7 +3029,7 @@ export class TokenImageReplacementWindow extends Application {
             let relativePath = fileInfo.path || '';
             if (!relativePath && fileInfo.fullPath) {
                 // Use sourcePath from metadata if available, otherwise try first configured path
-                const imagePaths = this.mode === ImageCacheManager.MODES.PORTRAIT ? getPortraitImagePaths() : getImagePaths();
+                const imagePaths = this.mode === ImageCacheManager.MODES.PORTRAIT ? getPortraitImagePaths() : getTokenImagePaths();
                 const basePath = fileInfo.metadata?.sourcePath || (imagePaths[0] || '');
                 if (basePath) {
                     relativePath = fileInfo.fullPath.replace(`${basePath}/`, '');
@@ -3080,7 +3080,7 @@ export class TokenImageReplacementWindow extends Application {
                         let path = file.path || '';
                         if (!path && file.fullPath) {
                             // Use sourcePath from metadata if available, otherwise try first configured path
-                            const basePath = file.metadata?.sourcePath || (getImagePaths()[0] || '');
+                            const basePath = file.metadata?.sourcePath || (getTokenImagePaths()[0] || '');
                             if (basePath) {
                                 path = file.fullPath.replace(`${basePath}/`, '');
                             }
@@ -3102,7 +3102,7 @@ export class TokenImageReplacementWindow extends Application {
                     let path = file.path || '';
                     if (!path && file.fullPath) {
                         // Use sourcePath from metadata if available, otherwise try first configured path
-                        const basePath = file.metadata?.sourcePath || (getImagePaths()[0] || '');
+                        const basePath = file.metadata?.sourcePath || (getTokenImagePaths()[0] || '');
                         if (basePath) {
                             path = file.fullPath.replace(`${basePath}/`, '');
                         }

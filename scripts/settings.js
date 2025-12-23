@@ -606,8 +606,8 @@ function registerImageReplacementPaths() {
         }
         
         game.settings.register(MODULE.ID, settingKey, {
-            name: `${MODULE.ID}.tokenImageReplacementPath${i}-Label`,
-            hint: `${MODULE.ID}.tokenImageReplacementPath${i}-Hint`,
+            name: `Folder ${i}`,
+            hint: ``,
             type: String,
             config: true,
             scope: 'world',
@@ -643,8 +643,8 @@ function registerPortraitImageReplacementPaths() {
         }
         
         game.settings.register(MODULE.ID, settingKey, {
-            name: `${MODULE.ID}.portraitImageReplacementPath${i}-Label`,
-            hint: `${MODULE.ID}.portraitImageReplacementPath${i}-Hint`,
+            name: `Folder ${i}`,
+            hint: ``,
             type: String,
             config: true,
             scope: 'world',
@@ -680,31 +680,9 @@ export function getPortraitImagePaths() {
  * Handles migration from old single path setting
  * @returns {string[]} Array of configured paths (empty paths filtered out)
  */
-export function getImagePaths() {
+export function getTokenImagePaths() {
     const numPaths = game.settings.get(MODULE.ID, 'numImageReplacementPaths') ?? 1;
     const paths = [];
-    
-    // Migration: Check old single path setting first
-    const oldPath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath') || '';
-    if (oldPath && oldPath.trim() !== '') {
-        // Check if first numbered path is empty
-        const firstPath = game.settings.get(MODULE.ID, 'tokenImageReplacementPath1') || '';
-        if (!firstPath || firstPath.trim() === '') {
-            // Migrate old path to new setting
-            game.settings.set(MODULE.ID, 'tokenImageReplacementPath1', oldPath);
-            paths.push(oldPath.trim());
-            // If numPaths > 1, continue to check other paths
-            if (numPaths > 1) {
-                for (let i = 2; i <= numPaths; i++) {
-                    const path = game.settings.get(MODULE.ID, `tokenImageReplacementPath${i}`) || '';
-                    if (path && path.trim() !== '') {
-                        paths.push(path.trim());
-                    }
-                }
-            }
-            return paths;
-        }
-    }
     
     // Get all numbered paths
     for (let i = 1; i <= numPaths; i++) {
@@ -4294,42 +4272,16 @@ export const registerSettings = () => {
 
 
 
-
-
-
-
-
-
-	
-
-
-
-
-
+	// --------------------------------------
+	// -- H2: Token Replace Shared
+	// --------------------------------------
+	registerHeader('TokenImagePortraitReplacement', 'headingH2TokenImagePortraitReplacement-Label', 'headingH2TokenImagePortraitReplacement-Hint', 'H2	', WORKFLOW_GROUPS.AUTOMATION);
 
 
 	// --------------------------------------
-	// -- H2: TokenImage Replacement
+	// -- H3: Token Replace Shared
 	// --------------------------------------
-	registerHeader('TokenImageReplacement', 'headingH2TokenImageReplacement-Label', 'headingH2TokenImageReplacement-Hint', 'H2	', WORKFLOW_GROUPS.AUTOMATION);
-
-	// --------------------------------------
-	// -- H3: Token Replace Types
-	// --------------------------------------
-	registerHeader('TokenReplaceTypes', 'headingH3TokenReplaceTypes-Label', 'headingH3TokenReplaceTypes-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
-
-
-	// -- Enable Overall Image Replacement Features --
-	game.settings.register(MODULE.ID, 'tokenImageReplacementEnabled', {
-		name: MODULE.ID + '.tokenImageReplacementEnabled-Label',
-		hint: MODULE.ID + '.tokenImageReplacementEnabled-Hint',
-		type: Boolean,
-	config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
+	registerHeader('headingH3TokenReplaceShared', 'headingH3TokenReplaceShared-Label', 'headingH3TokenReplaceShared-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
 	game.settings.register(MODULE.ID, 'tokenImageReplacementShowInCoffeePubToolbar', {
 		name: MODULE.ID + '.tokenImageReplacementShowInCoffeePubToolbar-Label',
@@ -4353,281 +4305,6 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
-	// Update Dropped Tokens
-	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateDropped', {
-		name: MODULE.ID + '.tokenImageReplacementUpdateDropped-Label',
-		hint: MODULE.ID + '.tokenImageReplacementUpdateDropped-Hint',
-	type: Boolean,
-	config: true,
-	requiresReload: false,
-	scope: 'world',
-	default: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Matching Threshold
-	game.settings.register(MODULE.ID, 'tokenImageReplacementThreshold', {
-		name: MODULE.ID + '.tokenImageReplacementThreshold-Label',
-		hint: MODULE.ID + '.tokenImageReplacementThreshold-Hint',
-		type: Number,
-	config: true,
-	requiresReload: false,
-		scope: 'world',
-		range: {
-			min: 0.1,
-			max: 1.0,
-			step: 0.05
-		},
-		default: 0.3,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-
-
-	// --------------------------------------
-	// -- H3: Token Replace Types
-	// --------------------------------------
-	registerHeader('TokenReplaceTypes', 'headingH3TokenReplaceTypes-Label', 'headingH3TokenReplaceTypes-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
-
-
-
-	// Update Monsters
-	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateMonsters', {
-		name: MODULE.ID + '.tokenImageReplacementUpdateMonsters-Label',
-		hint: MODULE.ID + '.tokenImageReplacementUpdateMonsters-Hint',
-	type: Boolean,
-	config: true,
-	requiresReload: false,
-	scope: 'world',
-	default: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Update NPCs
-	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateNPCs', {
-		name: MODULE.ID + '.tokenImageReplacementUpdateNPCs-Label', 
-		hint: MODULE.ID + '.tokenImageReplacementUpdateNPCs-Hint',
-	type: Boolean,
-	config: true,
-	requiresReload: false,
-	scope: 'world',
-	default: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Update Vehicles
-	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateVehicles', {
-		name: MODULE.ID + '.tokenImageReplacementUpdateVehicles-Label',
-		hint: MODULE.ID + '.tokenImageReplacementUpdateVehicles-Hint',
-	type: Boolean,
-	config: true,
-	requiresReload: false,
-	scope: 'world',
-		default: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Update Actors
-	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateActors', {
-		name: MODULE.ID + '.tokenImageReplacementUpdateActors-Label',
-		hint: MODULE.ID + '.tokenImageReplacementUpdateActors-Hint',
-		type: Boolean,
-	config: true,
-	requiresReload: false,
-	scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Skip Linked Tokens
-	game.settings.register(MODULE.ID, 'tokenImageReplacementSkipLinked', {
-		name: MODULE.ID + '.tokenImageReplacementSkipLinked-Label',
-		hint: MODULE.ID + '.tokenImageReplacementSkipLinked-Hint',
-		type: Boolean,
-	config: true,
-	requiresReload: false,
-	scope: 'world',
-		default: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	// --------------------------------------
-	// -- H2: Token Image Replacement Cache
-	// --------------------------------------
-	registerHeader('TokenImageReplacementCache', 'headingH2TokenImageReplacementCache-Label', 'headingH2TokenImageReplacementCache-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
-
-	// Token Image Replacement Cache (server-side storage) - HIDDEN SETTING
-	game.settings.register(MODULE.ID, 'tokenImageReplacementCache', {
-		scope: 'world',
-		config: false, // Hidden from users - internal use only
-		type: String,
-		default: '',
-		requiresReload: false
-	});
-
-
-	// TOKEN IMAGE REPLACEMENT WINDOW STATE - HIDDEN SETTING
-	game.settings.register(MODULE.ID, 'tokenImageReplacementWindowState', {
-		scope: 'client',
-		config: false,
-		type: Object,
-		default: {},
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-
-	// Cache Status - HIDDEN SETTING
-	game.settings.register(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus', {
-		scope: 'world',
-		config: false,
-		type: String,
-		default: '',
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Portrait Image Replacement Display Cache Status - HIDDEN SETTING
-	game.settings.register(MODULE.ID, 'portraitImageReplacementDisplayCacheStatus', {
-		scope: 'world',
-		config: false,
-		type: String,
-		default: '',
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Cache Stats
-	game.settings.register(MODULE.ID, "headingH4tokenImageReplacementCacheStats", {
-		name: MODULE.ID + '.tokenImageReplacementCacheStats-Label',
-		hint: getTokenImageReplacementCacheStats() + ". (Updated on client load and cache operations)", 
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-	// --------------------------------------
-	// -- H3: Image Replacement Configuration
-	// --------------------------------------
-	registerHeader('TokenImageReplacementConfiguration', 'headingH3TokenImageReplacementConfiguration-Label', 'headingH3TokenImageReplacementConfiguration-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
-
-	// Number of Image Replacement Paths (0-15 slider)
-	game.settings.register(MODULE.ID, 'numImageReplacementPaths', {
-		name: MODULE.ID + '.numImageReplacementPaths-Label',
-		hint: MODULE.ID + '.numImageReplacementPaths-Hint',
-		type: Number,
-		config: true,
-		scope: 'world',
-		default: 1,
-		range: { min: 0, max: 15, step: 1 },
-		requiresReload: true,  // Need reload to show/hide path fields
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Register numbered image replacement path settings dynamically
-	registerImageReplacementPaths();
-
-	// Legacy single path setting (kept for backward compatibility and migration)
-	game.settings.register(MODULE.ID, 'tokenImageReplacementPath', {
-		name: MODULE.ID + '.tokenImageReplacementPath-Label',
-		hint: MODULE.ID + '.tokenImageReplacementPath-Hint',
-		type: String,
-		config: false,  // Hidden - only used for migration
-		requiresReload: false,
-		scope: 'world',
-		default: '',
-		filePicker: 'folder',
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// IGNORED FOLDERS 
-	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredFolders', {
-		name: MODULE.ID + '.tokenImageReplacementIgnoredFolders-Label',
-		hint: MODULE.ID + '.tokenImageReplacementIgnoredFolders-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '.DS_Store',
-		requiresReload: true
-	});
-
-	// Automatically Update Image Cache
-	game.settings.register(MODULE.ID, 'tokenImageReplacementAutoUpdate', {
-		name: MODULE.ID + '.tokenImageReplacementAutoUpdate-Label',
-		hint: MODULE.ID + '.tokenImageReplacementAutoUpdate-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Deprioritized Words
-	game.settings.register(MODULE.ID, 'tokenImageReplacementDeprioritizedWords', {
-		name: MODULE.ID + '.tokenImageReplacementDeprioritizedWords-Label',
-		hint: MODULE.ID + '.tokenImageReplacementDeprioritizedWords-Hint',
-		type: String,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: 'spirit',
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Ignored Words (File Exclusion)
-	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredWords', {
-		name: MODULE.ID + '.tokenImageReplacementIgnoredWords-Label',
-		hint: MODULE.ID + '.tokenImageReplacementIgnoredWords-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '',
-		requiresReload: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// --------------------------------------
-	// -- H3: Image Replacement Display
-	// --------------------------------------
-	registerHeader('TokenImageReplacementDisplay', 'headingH3TokenImageReplacementDisplay-Label', 'headingH3TokenImageReplacementDisplay-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
-
 	// Cateogry Style
 	game.settings.register(MODULE.ID, 'tokenImageReplacementCategoryStyle', {
 		name: MODULE.ID + '.tokenImageReplacementCategoryStyle-Label',
@@ -4644,6 +4321,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
+
 	// Tag Sort Mode
 	game.settings.register(MODULE.ID, 'tokenImageReplacementTagSortMode', {
 		name: MODULE.ID + '.tokenImageReplacementTagSortMode-Label',
@@ -4658,243 +4336,6 @@ export const registerSettings = () => {
 		},
 		default: 'count',
 		requiresReload: false,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Fuzzy Search
-	game.settings.register(MODULE.ID, 'tokenImageReplacementFuzzySearch', {
-		name: MODULE.ID + '.tokenImageReplacementFuzzySearch-Label',
-		hint: MODULE.ID + '.tokenImageReplacementFuzzySearch-Hint',
-		type: Boolean,
-		config: true, // Hidden setting - controlled by UI toggle
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// --------------------------------------
-	// -- H2: Portrait Image Replacement
-	// --------------------------------------
-	registerHeader('PortraitImageReplacement', 'headingH2PortraitImageReplacement-Label', 'headingH2PortraitImageReplacement-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
-
-	// Portrait Image Replacement Enabled
-	game.settings.register(MODULE.ID, 'portraitImageReplacementEnabled', {
-		name: MODULE.ID + '.portraitImageReplacementEnabled-Label',
-		hint: MODULE.ID + '.portraitImageReplacementEnabled-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// --------------------------------------
-	// -- H3: Portrait Image Replacement Configuration
-	// --------------------------------------
-	registerHeader('PortraitImageReplacementConfiguration', 'headingH3PortraitImageReplacementConfiguration-Label', 'headingH3PortraitImageReplacementConfiguration-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
-
-	// Number of Portrait Image Replacement Paths (0-15 slider)
-	game.settings.register(MODULE.ID, 'numPortraitImageReplacementPaths', {
-		name: MODULE.ID + '.numPortraitImageReplacementPaths-Label',
-		hint: MODULE.ID + '.numPortraitImageReplacementPaths-Hint',
-		type: Number,
-		config: true,
-		scope: 'world',
-		default: 1,
-		range: { min: 0, max: 15, step: 1 },
-		requiresReload: true,  // Need reload to show/hide path fields
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Register numbered portrait image replacement path settings dynamically
-	registerPortraitImageReplacementPaths();
-
-	// Portrait Image Replacement Ignored Folders
-	game.settings.register(MODULE.ID, 'portraitImageReplacementIgnoredFolders', {
-		name: MODULE.ID + '.portraitImageReplacementIgnoredFolders-Label',
-		hint: MODULE.ID + '.portraitImageReplacementIgnoredFolders-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '.DS_Store',
-		requiresReload: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Automatically Update Portrait Image Cache
-	game.settings.register(MODULE.ID, 'portraitImageReplacementAutoUpdate', {
-		name: MODULE.ID + '.portraitImageReplacementAutoUpdate-Label',
-		hint: MODULE.ID + '.portraitImageReplacementAutoUpdate-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Portrait Deprioritized Words
-	game.settings.register(MODULE.ID, 'portraitImageReplacementDeprioritizedWords', {
-		name: MODULE.ID + '.portraitImageReplacementDeprioritizedWords-Label',
-		hint: MODULE.ID + '.portraitImageReplacementDeprioritizedWords-Hint',
-		type: String,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: '',
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Portrait Ignored Words (File Exclusion)
-	game.settings.register(MODULE.ID, 'portraitImageReplacementIgnoredWords', {
-		name: MODULE.ID + '.portraitImageReplacementIgnoredWords-Label',
-		hint: MODULE.ID + '.portraitImageReplacementIgnoredWords-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '',
-		requiresReload: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// --------------------------------------
-	// -- H2: Portrait Image Replacement Cache
-	// --------------------------------------
-	registerHeader('PortraitImageReplacementCache', 'headingH2PortraitImageReplacementCache-Label', 'headingH2PortraitImageReplacementCache-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
-
-	// Portrait Image Replacement Cache (server-side storage) - HIDDEN SETTING
-	game.settings.register(MODULE.ID, 'portraitImageReplacementCache', {
-		scope: 'world',
-		config: false, // Hidden from users - internal use only
-		type: String,
-		default: '',
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Portrait Image Replacement Matching Threshold
-	game.settings.register(MODULE.ID, 'portraitImageReplacementThreshold', {
-		name: MODULE.ID + '.portraitImageReplacementThreshold-Label',
-		hint: MODULE.ID + '.portraitImageReplacementThreshold-Hint',
-		type: Number,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		range: {
-			min: 0.1,
-			max: 1.0,
-			step: 0.05
-		},
-		default: 0.3,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Portrait Image Replacement Fuzzy Search
-	game.settings.register(MODULE.ID, 'portraitImageReplacementFuzzySearch', {
-		name: MODULE.ID + '.portraitImageReplacementFuzzySearch-Label',
-		hint: MODULE.ID + '.portraitImageReplacementFuzzySearch-Hint',
-		type: Boolean,
-		config: true, // Hidden setting - controlled by UI toggle
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Portrait Image Replacement Update Dropped
-	game.settings.register(MODULE.ID, 'portraitImageReplacementUpdateDropped', {
-		name: MODULE.ID + '.portraitImageReplacementUpdateDropped-Label',
-		hint: MODULE.ID + '.portraitImageReplacementUpdateDropped-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Token Image Replacement Variability
-	game.settings.register(MODULE.ID, 'tokenImageReplacementVariability', {
-		name: MODULE.ID + '.tokenImageReplacementVariability-Label',
-		hint: MODULE.ID + '.tokenImageReplacementVariability-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Portrait Image Replacement Variability
-	game.settings.register(MODULE.ID, 'portraitImageReplacementVariability', {
-		name: MODULE.ID + '.portraitImageReplacementVariability-Label',
-		hint: MODULE.ID + '.portraitImageReplacementVariability-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Update Monsters (Portrait)
-	game.settings.register(MODULE.ID, 'portraitImageReplacementUpdateMonsters', {
-		name: MODULE.ID + '.portraitImageReplacementUpdateMonsters-Label',
-		hint: MODULE.ID + '.portraitImageReplacementUpdateMonsters-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Update NPCs (Portrait)
-	game.settings.register(MODULE.ID, 'portraitImageReplacementUpdateNPCs', {
-		name: MODULE.ID + '.portraitImageReplacementUpdateNPCs-Label',
-		hint: MODULE.ID + '.portraitImageReplacementUpdateNPCs-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Update Vehicles (Portrait)
-	game.settings.register(MODULE.ID, 'portraitImageReplacementUpdateVehicles', {
-		name: MODULE.ID + '.portraitImageReplacementUpdateVehicles-Label',
-		hint: MODULE.ID + '.portraitImageReplacementUpdateVehicles-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Update Actors (Portrait)
-	game.settings.register(MODULE.ID, 'portraitImageReplacementUpdateActors', {
-		name: MODULE.ID + '.portraitImageReplacementUpdateActors-Label',
-		hint: MODULE.ID + '.portraitImageReplacementUpdateActors-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Skip Linked Tokens (Portrait)
-	game.settings.register(MODULE.ID, 'portraitImageReplacementSkipLinked', {
-		name: MODULE.ID + '.portraitImageReplacementSkipLinked-Label',
-		hint: MODULE.ID + '.portraitImageReplacementSkipLinked-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
@@ -4925,6 +4366,7 @@ export const registerSettings = () => {
 		default: {},
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
+
 
 	// Actor Name Weight (NEW - most important for clean creature names)
 	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightActorName', {
@@ -5010,6 +4452,473 @@ export const registerSettings = () => {
 		default: 3,
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
+
+
+	// --------------------------------------
+	// -- H3: TOKEN REPLACEMENT
+	// --------------------------------------
+	registerHeader('headingH3TokenReplacement', 'headingH3TokenReplacement-Label', 'headingH3TokenReplacement-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+
+
+	// -- Enable Overall Image Replacement Features --
+	game.settings.register(MODULE.ID, 'tokenImageReplacementEnabled', {
+		name: MODULE.ID + '.tokenImageReplacementEnabled-Label',
+		hint: MODULE.ID + '.tokenImageReplacementEnabled-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+
+	// Update Tokens of Dropped Tokens
+	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateDropped', {
+		name: MODULE.ID + '.tokenImageReplacementUpdateDropped-Label',
+		hint: MODULE.ID + '.tokenImageReplacementUpdateDropped-Hint',
+	type: Boolean,
+	config: true,
+	requiresReload: false,
+	scope: 'world',
+	default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Matching Threshold
+	game.settings.register(MODULE.ID, 'tokenImageReplacementThreshold', {
+		name: MODULE.ID + '.tokenImageReplacementThreshold-Label',
+		hint: MODULE.ID + '.tokenImageReplacementThreshold-Hint',
+		type: Number,
+	config: true,
+	requiresReload: false,
+		scope: 'world',
+		range: {
+			min: 0.1,
+			max: 1.0,
+			step: 0.05
+		},
+		default: 0.3,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Fuzzy Search
+	game.settings.register(MODULE.ID, 'tokenImageReplacementFuzzySearch', {
+		name: MODULE.ID + '.tokenImageReplacementFuzzySearch-Label',
+		hint: MODULE.ID + '.tokenImageReplacementFuzzySearch-Hint',
+		type: Boolean,
+		config: true, // Hidden setting - controlled by UI toggle
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+
+	// Token Image Replacement Variability
+	game.settings.register(MODULE.ID, 'tokenImageReplacementVariability', {
+		name: MODULE.ID + '.tokenImageReplacementVariability-Label',
+		hint: MODULE.ID + '.tokenImageReplacementVariability-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Update Monsters
+	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateMonsters', {
+		name: MODULE.ID + '.tokenImageReplacementUpdateMonsters-Label',
+		hint: MODULE.ID + '.tokenImageReplacementUpdateMonsters-Hint',
+	type: Boolean,
+	config: true,
+	requiresReload: false,
+	scope: 'world',
+	default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Update NPCs
+	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateNPCs', {
+		name: MODULE.ID + '.tokenImageReplacementUpdateNPCs-Label', 
+		hint: MODULE.ID + '.tokenImageReplacementUpdateNPCs-Hint',
+	type: Boolean,
+	config: true,
+	requiresReload: false,
+	scope: 'world',
+	default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Update Vehicles
+	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateVehicles', {
+		name: MODULE.ID + '.tokenImageReplacementUpdateVehicles-Label',
+		hint: MODULE.ID + '.tokenImageReplacementUpdateVehicles-Hint',
+	type: Boolean,
+	config: true,
+	requiresReload: false,
+	scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Update Actors
+	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateActors', {
+		name: MODULE.ID + '.tokenImageReplacementUpdateActors-Label',
+		hint: MODULE.ID + '.tokenImageReplacementUpdateActors-Hint',
+		type: Boolean,
+	config: true,
+	requiresReload: false,
+	scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Skip Linked Tokens
+	game.settings.register(MODULE.ID, 'tokenImageReplacementSkipLinked', {
+		name: MODULE.ID + '.tokenImageReplacementSkipLinked-Label',
+		hint: MODULE.ID + '.tokenImageReplacementSkipLinked-Hint',
+		type: Boolean,
+	config: true,
+	requiresReload: false,
+	scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+
+	// --------------------------------------
+	// -- H2: Token Image Replacement Cache
+	// --------------------------------------
+	registerHeader('TokenImageReplacementCache', 'headingH3TokenImageReplacementCache-Label', 'headingH3TokenImageReplacementCache-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+
+	// Token Image Replacement Cache (server-side storage) - HIDDEN SETTING
+	game.settings.register(MODULE.ID, 'tokenImageReplacementCache', {
+		scope: 'world',
+		config: false, // Hidden from users - internal use only
+		type: String,
+		default: '',
+		requiresReload: false
+	});
+
+
+	// TOKEN IMAGE REPLACEMENT WINDOW STATE - HIDDEN SETTING
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWindowState', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {},
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+
+	// Cache Status - HIDDEN SETTING
+	game.settings.register(MODULE.ID, 'tokenImageReplacementDisplayCacheStatus', {
+		scope: 'world',
+		config: false,
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Portrait Image Replacement Display Cache Status - HIDDEN SETTING
+	game.settings.register(MODULE.ID, 'portraitImageReplacementDisplayCacheStatus', {
+		scope: 'world',
+		config: false,
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Cache Stats
+	game.settings.register(MODULE.ID, "headingH4tokenImageReplacementCacheStats", {
+		name: MODULE.ID + '.tokenImageReplacementCacheStats-Label',
+		hint: getTokenImageReplacementCacheStats() + ". (Updated on client load and cache operations)", 
+		scope: "world",
+		config: true,
+		default: "",
+		type: String,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+
+	// Number of Image Replacement Paths (0-15 slider)
+	game.settings.register(MODULE.ID, 'numImageReplacementPaths', {
+		name: MODULE.ID + '.numImageReplacementPaths-Label',
+		hint: MODULE.ID + '.numImageReplacementPaths-Hint',
+		type: Number,
+		config: true,
+		scope: 'world',
+		default: 1,
+		range: { min: 0, max: 15, step: 1 },
+		requiresReload: true,  // Need reload to show/hide path fields
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Register numbered image replacement path settings dynamically
+	registerImageReplacementPaths();
+
+	// IGNORED FOLDERS 
+	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredFolders', {
+		name: MODULE.ID + '.tokenImageReplacementIgnoredFolders-Label',
+		hint: MODULE.ID + '.tokenImageReplacementIgnoredFolders-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '.DS_Store',
+		requiresReload: true
+	});
+
+	// Automatically Update Image Cache
+	game.settings.register(MODULE.ID, 'tokenImageReplacementAutoUpdate', {
+		name: MODULE.ID + '.tokenImageReplacementAutoUpdate-Label',
+		hint: MODULE.ID + '.tokenImageReplacementAutoUpdate-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Deprioritized Words
+	game.settings.register(MODULE.ID, 'tokenImageReplacementDeprioritizedWords', {
+		name: MODULE.ID + '.tokenImageReplacementDeprioritizedWords-Label',
+		hint: MODULE.ID + '.tokenImageReplacementDeprioritizedWords-Hint',
+		type: String,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: 'spirit',
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Ignored Words (File Exclusion)
+	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredWords', {
+		name: MODULE.ID + '.tokenImageReplacementIgnoredWords-Label',
+		hint: MODULE.ID + '.tokenImageReplacementIgnoredWords-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '',
+		requiresReload: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+
+	// --------------------------------------
+	// -- H3: Portrait Image Replacement
+	// --------------------------------------
+	registerHeader('PortraitImageReplacement', 'headingH3PortraitImageReplacement-Label', 'headingH3PortraitImageReplacement-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+
+	// Portrait Image Replacement Enabled
+	game.settings.register(MODULE.ID, 'portraitImageReplacementEnabled', {
+		name: MODULE.ID + '.portraitImageReplacementEnabled-Label',
+		hint: MODULE.ID + '.portraitImageReplacementEnabled-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Portrait Image Replacement Update Dropped
+	game.settings.register(MODULE.ID, 'portraitImageReplacementUpdateDropped', {
+		name: MODULE.ID + '.portraitImageReplacementUpdateDropped-Label',
+		hint: MODULE.ID + '.portraitImageReplacementUpdateDropped-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Portrait Image Replacement Matching Threshold
+	game.settings.register(MODULE.ID, 'portraitImageReplacementThreshold', {
+		name: MODULE.ID + '.portraitImageReplacementThreshold-Label',
+		hint: MODULE.ID + '.portraitImageReplacementThreshold-Hint',
+		type: Number,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		range: {
+			min: 0.1,
+			max: 1.0,
+			step: 0.05
+		},
+		default: 0.3,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Portrait Image Replacement Fuzzy Search
+	game.settings.register(MODULE.ID, 'portraitImageReplacementFuzzySearch', {
+		name: MODULE.ID + '.portraitImageReplacementFuzzySearch-Label',
+		hint: MODULE.ID + '.portraitImageReplacementFuzzySearch-Hint',
+		type: Boolean,
+		config: true, // Hidden setting - controlled by UI toggle
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Portrait Image Replacement Variability
+	game.settings.register(MODULE.ID, 'portraitImageReplacementVariability', {
+		name: MODULE.ID + '.portraitImageReplacementVariability-Label',
+		hint: MODULE.ID + '.portraitImageReplacementVariability-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Update Monsters (Portrait)
+	game.settings.register(MODULE.ID, 'portraitImageReplacementUpdateMonsters', {
+		name: MODULE.ID + '.portraitImageReplacementUpdateMonsters-Label',
+		hint: MODULE.ID + '.portraitImageReplacementUpdateMonsters-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Update NPCs (Portrait)
+	game.settings.register(MODULE.ID, 'portraitImageReplacementUpdateNPCs', {
+		name: MODULE.ID + '.portraitImageReplacementUpdateNPCs-Label',
+		hint: MODULE.ID + '.portraitImageReplacementUpdateNPCs-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Update Vehicles (Portrait)
+	game.settings.register(MODULE.ID, 'portraitImageReplacementUpdateVehicles', {
+		name: MODULE.ID + '.portraitImageReplacementUpdateVehicles-Label',
+		hint: MODULE.ID + '.portraitImageReplacementUpdateVehicles-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Update Actors (Portrait)
+	game.settings.register(MODULE.ID, 'portraitImageReplacementUpdateActors', {
+		name: MODULE.ID + '.portraitImageReplacementUpdateActors-Label',
+		hint: MODULE.ID + '.portraitImageReplacementUpdateActors-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Skip Linked Tokens (Portrait)
+	game.settings.register(MODULE.ID, 'portraitImageReplacementSkipLinked', {
+		name: MODULE.ID + '.portraitImageReplacementSkipLinked-Label',
+		hint: MODULE.ID + '.portraitImageReplacementSkipLinked-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+
+	// --------------------------------------
+	// -- H3: Portrait Image Replacement Cache
+	// --------------------------------------
+	registerHeader('PortraitImageReplacementCache', 'headingH3PortraitImageReplacementCache-Label', 'headingH3PortraitImageReplacementCache-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+
+	// Portrait Image Replacement Cache (server-side storage) - HIDDEN SETTING
+	game.settings.register(MODULE.ID, 'portraitImageReplacementCache', {
+		scope: 'world',
+		config: false, // Hidden from users - internal use only
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+
+	// Number of Portrait Image Replacement Paths (0-15 slider)
+	game.settings.register(MODULE.ID, 'numPortraitImageReplacementPaths', {
+		name: MODULE.ID + '.numPortraitImageReplacementPaths-Label',
+		hint: MODULE.ID + '.numPortraitImageReplacementPaths-Hint',
+		type: Number,
+		config: true,
+		scope: 'world',
+		default: 1,
+		range: { min: 0, max: 15, step: 1 },
+		requiresReload: true,  // Need reload to show/hide path fields
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Register numbered portrait image replacement path settings dynamically
+	registerPortraitImageReplacementPaths();
+
+
+	// Portrait Image Replacement Ignored Folders
+	game.settings.register(MODULE.ID, 'portraitImageReplacementIgnoredFolders', {
+		name: MODULE.ID + '.portraitImageReplacementIgnoredFolders-Label',
+		hint: MODULE.ID + '.portraitImageReplacementIgnoredFolders-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '.DS_Store',
+		requiresReload: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Automatically Update Portrait Image Cache
+	game.settings.register(MODULE.ID, 'portraitImageReplacementAutoUpdate', {
+		name: MODULE.ID + '.portraitImageReplacementAutoUpdate-Label',
+		hint: MODULE.ID + '.portraitImageReplacementAutoUpdate-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Portrait Deprioritized Words
+	game.settings.register(MODULE.ID, 'portraitImageReplacementDeprioritizedWords', {
+		name: MODULE.ID + '.portraitImageReplacementDeprioritizedWords-Label',
+		hint: MODULE.ID + '.portraitImageReplacementDeprioritizedWords-Hint',
+		type: String,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: '',
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Portrait Ignored Words (File Exclusion)
+	game.settings.register(MODULE.ID, 'portraitImageReplacementIgnoredWords', {
+		name: MODULE.ID + '.portraitImageReplacementIgnoredWords-Label',
+		hint: MODULE.ID + '.portraitImageReplacementIgnoredWords-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '',
+		requiresReload: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+
 
 
 	// --------------------------------------

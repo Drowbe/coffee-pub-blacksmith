@@ -900,103 +900,30 @@
 				"nameplateOutlineColor-Label": " Outline Color",
 				"nameplateOutlineColor-Hint": "Sets the outline color for nameplates under tokens. Default: #111111.",
 
-		"headingH2TokenImageReplacement-Label": "Token Image Replacement",
-		"headingH2TokenImageReplacement-Hint": "When tokens are dropped on the canvas, this module will automatically replace the token image with the best matching image from the cache.",
+		"headingH2TokenImagePortraitReplacement-Label": "Token and Portrait Image Replacement",
+		"headingH2TokenImagePortraitReplacement-Hint": "When tokens are dropped on the canvas, this module will automatically replace the token image with the best matching image from the cache.",
 
 
-
-			"headingH3TokenReplaceGeneral-Label": "General",
-			"headingH3TokenReplaceGeneral-Hint": "",
-
-				"tokenImageReplacementEnabled-Label": "Enable Token Image Replacement",
-				"tokenImageReplacementEnabled-Hint": "",
+			"headingH3TokenReplaceShared-Label": "Shared Settings",
+			"headingH3TokenReplaceShared-Hint": "",
 
 				"tokenImageReplacementShowInCoffeePubToolbar-Label": "Show in CoffeePub Toolbar",
 				"tokenImageReplacementShowInCoffeePubToolbar-Hint": "",
 
 				"tokenImageReplacementShowInFoundryToolbar-Label": "Show in FoundryVTT Toolbar",
 				"tokenImageReplacementShowInFoundryToolbar-Hint": "",
-
-				"tokenImageReplacementUpdateDropped-Label": "Update Dropped Token Images",
-				"tokenImageReplacementUpdateDropped-Hint": "",
-
-				"tokenImageReplacementThreshold-Label": "Matching Threshold",
-				"tokenImageReplacementThreshold-Hint": "How strict the matching algorithm should be. Lower values = more fuzzy matching, higher values = more exact matching.",
-
-			
-			"headingH3TokenReplaceTypes-Label": "Replacements",
-			"headingH3TokenReplaceTypes-Hint": "",
-
-
-				"tokenImageReplacementUpdateMonsters-Label": "Update Monsters",
-				"tokenImageReplacementUpdateMonsters-Hint": "",
-			
-				"tokenImageReplacementUpdateNPCs-Label": "Update NPCs",
-				"tokenImageReplacementUpdateNPCs-Hint": "",
-			
-				"tokenImageReplacementUpdateVehicles-Label": "Update Vehicles",
-				"tokenImageReplacementUpdateVehicles-Hint": "",
-			
-				"tokenImageReplacementUpdateActors-Label": "Update Actors",
-				"tokenImageReplacementUpdateActors-Hint": "",
-			
-				"tokenImageReplacementSkipLinked-Label": "Skip Linked Tokens",
-				"tokenImageReplacementSkipLinked-Hint": "",
-
-		"headingH2TokenImageReplacementCache-Label": "Token Image Cache",
-		"headingH2TokenImageReplacementCache-Hint": "The cache is where we store the image references that are used for token image replacement. It also contains the tags, cateogries and other metadata for the images.",
-
-			"tokenImageReplacementCacheStats-Label": "Token Cache Status",
-
-
-
-
-
-
-
-
-
-
-
-
-
-			"headingH3TokenImageReplacementConfiguration-Label": "Folder Configuration",
-			"headingH3TokenImageReplacementConfiguration-Hint": "",
-
 				
-				"tokenImageReplacementPath-Label": "Images Folder",
-				"tokenImageReplacementPath-Hint": "Base folder path for replacement images. For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
-			
-				
-				"tokenImageReplacementIgnoredFolders-Label": "Ignored Folders",
-				"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for token images. These folders will be completely skipped during the scan process. Examples: _gsdata_, .DS_Store",
-
-
-				"tokenImageReplacementAutoUpdate-Label": "Monitor Image Folder for Changes",
-				"tokenImageReplacementAutoUpdate-Hint": "If enabled, the module will monitor the image folder for changes and update the cache accordingly. If disabled, the module will only update the cache when the 'Update Images' button is clicked.",
-
-
-				"tokenImageReplacementDeprioritizedWords-Label": "Deprioritized Words",
-				"tokenImageReplacementDeprioritizedWords-Hint": "Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., 'spirit,ghost,undead,shadow').",
-				
-				"tokenImageReplacementIgnoredWords-Label": "Ignored Words",
-				"tokenImageReplacementIgnoredWords-Hint": "Comma-separated list of patterns to completely exclude files from cache. Supports wildcards: 'spirit' (exact), '*spirit' (ends with), 'spirit*' (starts with), '*spirit*' (contains), '*.png' (extension). Files matching any pattern will not be scanned or cached.",
-
-
-			"headingH3TokenImageReplacementDisplay-Label": "Window Display",
-			"headingH3TokenImageReplacementDisplay-Hint": "",
-			
 				"tokenImageReplacementCategoryStyle-Label": "Category Style",
 				"tokenImageReplacementCategoryStyle-Hint": "Choose how category filters are displayed in the Token Image Replacement window. Buttons show as clickable buttons, Tabs show as traditional tab interface.",
 
 				"tokenImageReplacementTagSortMode-Label": "Tag Sort Mode",
 				"tokenImageReplacementTagSortMode-Hint": "",
 
-				"tokenImageReplacementFuzzySearch-Label": "Fuzzy Search",
-				"tokenImageReplacementFuzzySearch-Hint": "When enabled, searches for individual words independently. When disabled, searches for exact string matches.",
+
+
 
 			"headingH3TokenImageReplacementDataWeights-Label": "Token Data Weighting",
-			"headingH3TokenImageReplacementDataWeights-Hint": "The weighting for the data used to calculate the best match for a token image replacement. These weights are used to determine the importance of the data when calculating the best match for a token image replacement.",
+			"headingH3TokenImageReplacementDataWeights-Hint": "The weighting for the data used to calculate the best match for a token and portrait image replacement.",
 
 				"tokenImageReplacementWeightActorName-Label": "Actor Name",
 				"tokenImageReplacementWeightActorName-Hint": "",
@@ -1019,68 +946,73 @@
 				"tokenImageReplacementWeightSize-Label": "Size",
 				"tokenImageReplacementWeightSize-Hint": "",
 
-		"headingH2PortraitImageReplacement-Label": "Portrait Replacement",
-		"headingH2PortraitImageReplacement-Hint": "Automatically replace actor portrait images based on matching criteria.",
+			"headingH3TokenReplacement-Label": "Token Image Replacement",
+			"headingH3TokenReplacement-Hint": "",
+			
+				"tokenImageReplacementEnabled-Label": "Enable Token Image Replacement",
+				"tokenImageReplacementEnabled-Hint": "",
 
-			"portraitImageReplacementEnabled-Label": "Replace Portraits",
-			"portraitImageReplacementEnabled-Hint": "Enable the portrait image replacement features and functions.",
+				"tokenImageReplacementUpdateDropped-Label": "Update Dropped Token Images",
+				"tokenImageReplacementUpdateDropped-Hint": "",
 
-			"headingH3PortraitImageReplacementConfiguration-Label": "Configuration",
-			"headingH3PortraitImageReplacementConfiguration-Hint": "",
+				"tokenImageReplacementThreshold-Label": "Matching Threshold",
+				"tokenImageReplacementThreshold-Hint": "How strict the matching algorithm should be. Lower values = more fuzzy matching, higher values = more exact matching.",
 
-				"numPortraitImageReplacementPaths-Label": "Number of Image Folders",
-				"numPortraitImageReplacementPaths-Hint": "Number of image folders to scan for portrait images (0-15). Folders are checked in priority order.",
+				"tokenImageReplacementFuzzySearch-Label": "Fuzzy Search",
+				"tokenImageReplacementFuzzySearch-Hint": "When enabled, searches for individual words independently. When disabled, searches for exact string matches.",
 
-				"portraitImageReplacementPath1-Label": "Portrait Images Folder 1",
-				"portraitImageReplacementPath1-Hint": "Base folder path for replacement portrait images (priority 1). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+				"tokenImageReplacementVariability-Label": "Token Image Variability",
+				"tokenImageReplacementVariability-Hint": "When enabled, tokens will randomly select from all images with the highest matching score instead of always using the same top match. This adds visual variety when multiple tokens of the same type are created.",
 
-				"portraitImageReplacementPath2-Label": "Portrait Images Folder 2",
-				"portraitImageReplacementPath2-Hint": "Base folder path for replacement portrait images (priority 2). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+				"tokenImageReplacementUpdateMonsters-Label": "Update Monsters",
+				"tokenImageReplacementUpdateMonsters-Hint": "",
+			
+				"tokenImageReplacementUpdateNPCs-Label": "Update NPCs",
+				"tokenImageReplacementUpdateNPCs-Hint": "",
+			
+				"tokenImageReplacementUpdateVehicles-Label": "Update Vehicles",
+				"tokenImageReplacementUpdateVehicles-Hint": "",
+			
+				"tokenImageReplacementUpdateActors-Label": "Update Actors",
+				"tokenImageReplacementUpdateActors-Hint": "",
+			
+				"tokenImageReplacementSkipLinked-Label": "Skip Linked Tokens",
+				"tokenImageReplacementSkipLinked-Hint": "",
 
-				"portraitImageReplacementPath3-Label": "Portrait Images Folder 3",
-				"portraitImageReplacementPath3-Hint": "Base folder path for replacement portrait images (priority 3). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+			"headingH3TokenImageReplacementCache-Label": "Token Image Cache",
+			"headingH3TokenImageReplacementCache-Hint": "The cache is where we store the image references that are used for token image replacement. It also contains the tags, cateogries and other metadata for the images.",
 
-				"portraitImageReplacementPath4-Label": "Portrait Images Folder 4",
-				"portraitImageReplacementPath4-Hint": "Base folder path for replacement portrait images (priority 4). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+			"tokenImageReplacementCacheStats-Label": "Token Cache Status",
 
-				"portraitImageReplacementPath5-Label": "Portrait Images Folder 5",
-				"portraitImageReplacementPath5-Hint": "Base folder path for replacement portrait images (priority 5). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+				"numImageReplacementPaths-Label": "Number of Image Folders",
+				"numImageReplacementPaths-Hint": "Number of image folders to scan for token images (0-15). Folders are checked in priority order. You must save to see the new folder selections below.",
 
-				"portraitImageReplacementPath6-Label": "Portrait Images Folder 6",
-				"portraitImageReplacementPath6-Hint": "Base folder path for replacement portrait images (priority 6). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
 
-				"portraitImageReplacementPath7-Label": "Portrait Images Folder 7",
-				"portraitImageReplacementPath7-Hint": "Base folder path for replacement portrait images (priority 7). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+				"tokenImageReplacementIgnoredFolders-Label": "Ignored Folders",
+				"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for token images. These folders will be completely skipped during the scan process. Examples: _gsdata_, .DS_Store",
 
-				"portraitImageReplacementPath8-Label": "Portrait Images Folder 8",
-				"portraitImageReplacementPath8-Hint": "Base folder path for replacement portrait images (priority 8). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
 
-				"portraitImageReplacementPath9-Label": "Portrait Images Folder 9",
-				"portraitImageReplacementPath9-Hint": "Base folder path for replacement portrait images (priority 9). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+				"tokenImageReplacementAutoUpdate-Label": "Monitor Image Folder for Changes",
+				"tokenImageReplacementAutoUpdate-Hint": "Monitor the image folder for changes and update the cache accordingly. (experimental)",
 
-				"portraitImageReplacementPath10-Label": "Portrait Images Folder 10",
-				"portraitImageReplacementPath10-Hint": "Base folder path for replacement portrait images (priority 10). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+				"tokenImageReplacementDeprioritizedWords-Label": "Deprioritized Words",
+				"tokenImageReplacementDeprioritizedWords-Hint": "Comma-separated list of words that should reduce the match score of images containing them.",
+				
+				"tokenImageReplacementIgnoredWords-Label": "Ignored Words",
+				"tokenImageReplacementIgnoredWords-Hint": "Comma-separated list of patterns to completely exclude files from cache. Supports the * wildcard.",
 
-				"portraitImageReplacementPath11-Label": "Portrait Images Folder 11",
-				"portraitImageReplacementPath11-Hint": "Base folder path for replacement portrait images (priority 11). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
 
-				"portraitImageReplacementPath12-Label": "Portrait Images Folder 12",
-				"portraitImageReplacementPath12-Hint": "Base folder path for replacement portrait images (priority 12). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
 
-				"portraitImageReplacementPath13-Label": "Portrait Images Folder 13",
-				"portraitImageReplacementPath13-Hint": "Base folder path for replacement portrait images (priority 13). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+			"headingH3PortraitImageReplacement-Label": "Portrait Replacement",
+			"headingH3PortraitImageReplacement-Hint": "Automatically replace actor portrait images based on matching criteria.",
 
-				"portraitImageReplacementPath14-Label": "Portrait Images Folder 14",
-				"portraitImageReplacementPath14-Hint": "Base folder path for replacement portrait images (priority 14). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+				"portraitImageReplacementEnabled-Label": "Replace Portraits",
+				"portraitImageReplacementEnabled-Hint": "Enable the portrait image replacement features and functions.",
 
-				"portraitImageReplacementPath15-Label": "Portrait Images Folder 15",
-				"portraitImageReplacementPath15-Hint": "Base folder path for replacement portrait images (priority 15). For user data folders, use 'data/rest-of-folder-path'. For core modules, use 'modules/module-name/rest-of-folder-path'. The path should be relative to Foundry's root directory.",
+				"portraitImageReplacementUpdateDropped-Label": "Update Dropped Portraits",
+				"portraitImageReplacementUpdateDropped-Hint": "When enabled, actor portraits will be automatically updated with the best matching portrait when tokens are created on the canvas.",
 
-				"portraitImageReplacementIgnoredFolders-Label": "Ignored Folders",
-				"portraitImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for portrait images. These folders will be completely skipped during the scan process. Examples: _gsdata_, .DS_Store",
 
-				"portraitImageReplacementAutoUpdate-Label": "Monitor Image Folder for Changes",
-				"portraitImageReplacementAutoUpdate-Hint": "If enabled, the module will monitor the image folder for changes and update the cache accordingly. If disabled, the module will only update the cache when the 'Update Images' button is clicked.",
 
 				"portraitImageReplacementThreshold-Label": "Matching Threshold",
 				"portraitImageReplacementThreshold-Hint": "How strict the matching algorithm should be for portrait images. Lower values = more fuzzy matching, higher values = more exact matching.",
@@ -1088,38 +1020,47 @@
 				"portraitImageReplacementFuzzySearch-Label": "Fuzzy Search",
 				"portraitImageReplacementFuzzySearch-Hint": "When enabled, searches for individual words independently in portrait images. When disabled, searches for exact string matches.",
 
-				"portraitImageReplacementUpdateDropped-Label": "Update Dropped Portraits",
-				"portraitImageReplacementUpdateDropped-Hint": "When enabled, actor portraits will be automatically updated with the best matching portrait when tokens are created on the canvas.",
+				
+				"portraitImageReplacementVariability-Label": "Portrait Image Variability",
+				"portraitImageReplacementVariability-Hint": "When enabled, portraits will randomly select from all images with the highest matching score instead of always using the same top match. This adds visual variety when multiple actors of the same type are created.",
 
-				"tokenImageReplacementVariability-Label": "Token Image Variability",
-				"tokenImageReplacementVariability-Hint": "When enabled, tokens will randomly select from all images with the highest matching score instead of always using the same top match. This adds visual variety when multiple tokens of the same type are created.",
+				"portraitImageReplacementUpdateMonsters-Label": "Update Monsters",
+				"portraitImageReplacementUpdateMonsters-Hint": "Replace images for monster portraits.",
 
-			"portraitImageReplacementVariability-Label": "Portrait Image Variability",
-			"portraitImageReplacementVariability-Hint": "When enabled, portraits will randomly select from all images with the highest matching score instead of always using the same top match. This adds visual variety when multiple actors of the same type are created.",
+				"portraitImageReplacementUpdateNPCs-Label": "Update NPCs",
+				"portraitImageReplacementUpdateNPCs-Hint": "Replace images for NPC portraits.",
 
-			"portraitImageReplacementUpdateMonsters-Label": "Update Monsters",
-			"portraitImageReplacementUpdateMonsters-Hint": "Replace images for monster portraits.",
+				"portraitImageReplacementUpdateVehicles-Label": "Update Vehicles",
+				"portraitImageReplacementUpdateVehicles-Hint": "Replace images for vehicle portraits.",
 
-			"portraitImageReplacementUpdateNPCs-Label": "Update NPCs",
-			"portraitImageReplacementUpdateNPCs-Hint": "Replace images for NPC portraits.",
+				"portraitImageReplacementUpdateActors-Label": "Update Actors",
+				"portraitImageReplacementUpdateActors-Hint": "Replace images for actor portraits.",
 
-			"portraitImageReplacementUpdateVehicles-Label": "Update Vehicles",
-			"portraitImageReplacementUpdateVehicles-Hint": "Replace images for vehicle portraits.",
+				"portraitImageReplacementSkipLinked-Label": "Skip Linked Tokens",
+				"portraitImageReplacementSkipLinked-Hint": "Do not replace portrait images for linked actors (usually player characters).",
 
-			"portraitImageReplacementUpdateActors-Label": "Update Actors",
-			"portraitImageReplacementUpdateActors-Hint": "Replace images for actor portraits.",
 
-			"portraitImageReplacementSkipLinked-Label": "Skip Linked Tokens",
-			"portraitImageReplacementSkipLinked-Hint": "Do not replace images for portraits linked to actors (usually player characters).",
+			"headingH3PortraitImageReplacementCache-Label": "Portrait Image Cache",
+			"headingH3PortraitImageReplacementCache-Hint": "The cache is where we store the image references that are used for portrait image replacement. It also contains the tags, categories and other metadata for the images.",
 
-			"portraitImageReplacementDeprioritizedWords-Label": "Deprioritized Words",
+
+
+				"numPortraitImageReplacementPaths-Label": "Number of Image Folders",
+				"numPortraitImageReplacementPaths-Hint": "Number of image folders to scan for portrait images (0-15). Folders are checked in priority order. You must save to see the new folder selections below.",
+
+				"portraitImageReplacementIgnoredFolders-Label": "Ignored Folders",
+				"portraitImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for portrait images. These folders will be completely skipped during the scan process. Examples: _gsdata_, .DS_Store",
+
+				"portraitImageReplacementAutoUpdate-Label": "Monitor Image Folder for Changes",
+				"portraitImageReplacementAutoUpdate-Hint": "If enabled, the module will monitor the image folder for changes and update the cache accordingly. If disabled, the module will only update the cache when the 'Update Images' button is clicked.",
+
+				"portraitImageReplacementDeprioritizedWords-Label": "Deprioritized Words",
 				"portraitImageReplacementDeprioritizedWords-Hint": "Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., 'spirit,ghost,undead,shadow').",
 
 				"portraitImageReplacementIgnoredWords-Label": "Ignored Words",
 				"portraitImageReplacementIgnoredWords-Hint": "Comma-separated list of patterns to completely exclude files from cache. Supports wildcards: 'spirit' (exact), '*spirit' (ends with), 'spirit*' (starts with), '*spirit*' (contains), '*.png' (extension). Files matching any pattern will not be scanned or cached.",
 
-		"headingH2PortraitImageReplacementCache-Label": "Portrait Image Cache",
-		"headingH2PortraitImageReplacementCache-Hint": "The cache is where we store the image references that are used for portrait image replacement. It also contains the tags, categories and other metadata for the images.",
+
 
 		"headingH2AutomatedEncounters-Label": "Encounters",
 		"headingH2AutomatedEncounters-Hint": "A toolbar can be added to journal entries with potential encounter data. It provides tools for deploying monsters, calcualtating real-time CR, and creating combat encounters.",

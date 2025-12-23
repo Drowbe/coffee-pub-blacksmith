@@ -95,7 +95,7 @@ function registerImageReplacementPaths() {
 }
 
 // Helper function to get all configured paths
-static getImagePaths() {
+static getTokenImagePaths() {
     const numPaths = getSettingSafely(MODULE.ID, 'numImageReplacementPaths', 1);
     const paths = [];
     
@@ -188,7 +188,7 @@ static async _scanFolderStructure(basePath) {
 **Proposed:**
 ```javascript
 static async _scanFolderStructure(basePaths = null) {
-    const paths = basePaths || this.getImagePaths();
+    const paths = basePaths || this.getTokenImagePaths();
     
     if (paths.length === 0) {
         postConsoleAndNotification(MODULE.NAME, "No image paths configured", "", true, false);
@@ -443,7 +443,7 @@ if (this.mode === 'portrait') {
    - Migration logic for old single path (copy to `tokenImageReplacementPath1`)
 
 2. **`scripts/manager-image-cache.js`**
-   - Add `getImagePaths()` helper
+   - Add `getTokenImagePaths()` helper
    - Update `_scanFolderStructure()` to handle multiple paths
    - Add `sourcePath` to file metadata
    - Add mode support (`token` vs `portrait`)

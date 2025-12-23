@@ -8,7 +8,7 @@ import { HookManager } from './manager-hooks.js';
 import { TokenImageReplacementWindow } from './token-image-replacement.js';
 import { TokenImageUtilities } from './token-image-utilities.js';
 import { ImageMatching } from './manager-image-matching.js';
-import { getImagePaths, getPortraitImagePaths } from './settings.js';
+import { getTokenImagePaths, getPortraitImagePaths } from './settings.js';
 
 /**
  * Token Image Replacement Cache Management System
@@ -99,10 +99,10 @@ export class ImageCacheManager {
      * @param {string} mode - 'token' or 'portrait'
      * @returns {string[]} Array of configured paths
      */
-    static getImagePathsForMode(mode = 'token') {
+    static getTokenImagePathsForMode(mode = 'token') {
         return mode === this.MODES.PORTRAIT 
             ? getPortraitImagePaths() 
-            : getImagePaths();
+            : getTokenImagePaths();
     }
     
     // Supported image formats
@@ -1005,7 +1005,7 @@ export class ImageCacheManager {
             // Do incremental update if cache exists
             if (choice === 'incremental') {
                 postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Starting incremental update...`, "", true, false);
-                const basePaths = this.getImagePathsForMode(mode);
+                const basePaths = this.getTokenImagePathsForMode(mode);
                 if (basePaths.length > 0) {
                     // For incremental updates, process each path
                     for (const basePath of basePaths) {
@@ -1026,8 +1026,8 @@ export class ImageCacheManager {
         // Reset pause state when scanning
         cache.isPaused = false;
         
-        // Use getImagePathsForMode() to get all configured paths for this mode
-        await this._scanFolderStructure(mode); // Will use getImagePathsForMode() internally
+        // Use getTokenImagePathsForMode() to get all configured paths for this mode
+        await this._scanFolderStructure(mode); // Will use getTokenImagePathsForMode() internally
     }
     
     /**
@@ -1242,7 +1242,7 @@ export class ImageCacheManager {
         }
         
         // Get all configured image paths for this mode
-        const basePaths = this.getImagePathsForMode(mode);
+        const basePaths = this.getTokenImagePathsForMode(mode);
         if (basePaths.length === 0) {
             return;
         }
@@ -1283,7 +1283,7 @@ export class ImageCacheManager {
         
         // Start background scan if no valid cache found and auto-update is enabled
         if (autoUpdate) {
-            await this._scanFolderStructure(mode); // Will use getImagePathsForMode() internally
+            await this._scanFolderStructure(mode); // Will use getTokenImagePathsForMode() internally
         }
     }
     
@@ -1308,7 +1308,7 @@ export class ImageCacheManager {
             return;
         }
         
-        // Convert single path to array, or use getImagePathsForMode() if not provided
+        // Convert single path to array, or use getTokenImagePathsForMode() if not provided
         let basePaths = [];
         if (basePathOrPaths) {
             if (Array.isArray(basePathOrPaths)) {
@@ -1317,8 +1317,8 @@ export class ImageCacheManager {
                 basePaths = [basePathOrPaths];
             }
         } else {
-            // No path provided, use getImagePathsForMode() to get all configured paths for this mode
-            basePaths = this.getImagePathsForMode(mode);
+            // No path provided, use getTokenImagePathsForMode() to get all configured paths for this mode
+            basePaths = this.getTokenImagePathsForMode(mode);
         }
         
         if (basePaths.length === 0) {
@@ -2331,8 +2331,8 @@ export class ImageCacheManager {
      * Refresh the cache
      */
     static async refreshCache(mode = 'token') {
-        // Use getImagePathsForMode() to get all configured paths for this mode
-        await this._scanFolderStructure(mode); // Will use getImagePathsForMode() internally
+        // Use getTokenImagePathsForMode() to get all configured paths for this mode
+        await this._scanFolderStructure(mode); // Will use getTokenImagePathsForMode() internally
     }
     
     
@@ -2340,7 +2340,7 @@ export class ImageCacheManager {
      * Check overall integration status
      */
     static getIntegrationStatus() {
-        const basePaths = getImagePaths();
+        const basePaths = getTokenImagePaths();
         const status = {
             featureEnabled: game.settings.get(MODULE.ID, 'tokenImageReplacementEnabled'),
             basePathConfigured: basePaths.length > 0,
@@ -2378,7 +2378,7 @@ export class ImageCacheManager {
             const cacheSettingKey = this.getCacheSettingKey(mode);
             const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
             // Get all configured image paths for this mode
-            const basePaths = this.getImagePathsForMode(mode);
+            const basePaths = this.getTokenImagePathsForMode(mode);
             postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: DEBUG (_saveCacheToStorage) - Retrieved ${basePaths.length} path(s)`, "", true, false);
             
             // Only generate fingerprint for final saves, not incremental ones (performance)
@@ -2752,7 +2752,7 @@ export class ImageCacheManager {
             }
             
             // Check if base paths changed (handle both old single path and new array format)
-            const currentBasePaths = this.getImagePathsForMode(mode);
+            const currentBasePaths = this.getTokenImagePathsForMode(mode);
             const cacheBasePath = cacheData.basePath || cacheData.bp;
             
             // Handle old cache format (single string) vs new format (array)
@@ -2989,8 +2989,8 @@ export class ImageCacheManager {
     static async forceRefreshCache() {
         postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Force refreshing cache...", "", false, false);
         this._clearCacheFromStorage();
-        // Use getImagePaths() to get all configured paths
-        await this._scanFolderStructure(); // Will use getImagePaths() internally
+        // Use getTokenImagePaths() to get all configured paths
+        await this._scanFolderStructure(); // Will use getTokenImagePaths() internally
     }
     
     /**
