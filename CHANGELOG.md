@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.0.7]
+
+### Added
+- **Portrait Replacement Filtering Options**: Added the same filtering options for portrait image replacement that were previously available for token replacement. Portrait replacement now supports independent toggles for:
+  - Update Monsters (`portraitImageReplacementUpdateMonsters`)
+  - Update NPCs (`portraitImageReplacementUpdateNPCs`)
+  - Update Vehicles (`portraitImageReplacementUpdateVehicles`)
+  - Update Actors (`portraitImageReplacementUpdateActors`)
+  - Skip Linked Tokens (`portraitImageReplacementSkipLinked`)
+  These settings allow fine-grained control over which actor types have their portraits automatically replaced, matching the functionality available for token image replacement.
+
+### Changed
+- **Token and Portrait Replacement Filtering**: Enhanced both token and portrait image replacement processing to respect actor type and linked token settings. Both systems now check actor type (monster, NPC, vehicle, character) and linked token status before processing replacements, ensuring consistent behavior across both replacement modes. Added `_shouldUpdateActor()` helper function that centralizes the filtering logic for both token and portrait replacement.
 
 ## [13.0.6]
 
