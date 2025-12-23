@@ -4091,7 +4091,7 @@ export const registerSettings = () => {
 	registerHeader('DroppedTokens', 'headingH2DroppedTokens-Label', 'headingH2DroppedTokens-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
 
 	// --------------------------------------
-	// -- H3: Token Movement Overrides
+	// -- H3: Token Overrides
 	// --------------------------------------
 	registerHeader('TokenOverrides', 'headingH3TokenOverrides-Label', 'headingH3TokenOverrides-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
 
@@ -4293,10 +4293,31 @@ export const registerSettings = () => {
 	});
 
 
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
 	// --------------------------------------
-	// -- H3: Image Replacement
+	// -- H2: TokenImage Replacement
 	// --------------------------------------
-	registerHeader('TokenImageReplacement', 'headingH3TokenImageReplacement-Label', 'headingH3TokenImageReplacement-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('TokenImageReplacement', 'headingH2TokenImageReplacement-Label', 'headingH2TokenImageReplacement-Hint', 'H2	', WORKFLOW_GROUPS.AUTOMATION);
+
+	// --------------------------------------
+	// -- H3: Token Replace Types
+	// --------------------------------------
+	registerHeader('TokenReplaceTypes', 'headingH3TokenReplaceTypes-Label', 'headingH3TokenReplaceTypes-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+
 
 	// -- Enable Overall Image Replacement Features --
 	game.settings.register(MODULE.ID, 'tokenImageReplacementEnabled', {
@@ -4310,8 +4331,6 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
-
-	
 	game.settings.register(MODULE.ID, 'tokenImageReplacementShowInCoffeePubToolbar', {
 		name: MODULE.ID + '.tokenImageReplacementShowInCoffeePubToolbar-Label',
 		hint: MODULE.ID + '.tokenImageReplacementShowInCoffeePubToolbar-Hint',
@@ -4333,7 +4352,6 @@ export const registerSettings = () => {
 		default: false,
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
-
 
 	// Update Dropped Tokens
 	game.settings.register(MODULE.ID, 'tokenImageReplacementUpdateDropped', {
@@ -4363,6 +4381,14 @@ export const registerSettings = () => {
 		default: 0.3,
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
+
+
+
+	// --------------------------------------
+	// -- H3: Token Replace Types
+	// --------------------------------------
+	registerHeader('TokenReplaceTypes', 'headingH3TokenReplaceTypes-Label', 'headingH3TokenReplaceTypes-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+
 
 
 	// Update Monsters
@@ -4427,8 +4453,25 @@ export const registerSettings = () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	// --------------------------------------
-	// -- H2: Image Replacement Cache
+	// -- H2: Token Image Replacement Cache
 	// --------------------------------------
 	registerHeader('TokenImageReplacementCache', 'headingH2TokenImageReplacementCache-Label', 'headingH2TokenImageReplacementCache-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
 
@@ -4461,7 +4504,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
-	// Portrait Image Replacement Display Cache Status (for UI display)
+	// Portrait Image Replacement Display Cache Status - HIDDEN SETTING
 	game.settings.register(MODULE.ID, 'portraitImageReplacementDisplayCacheStatus', {
 		scope: 'world',
 		config: false,
@@ -4480,6 +4523,22 @@ export const registerSettings = () => {
 		type: String,
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 	

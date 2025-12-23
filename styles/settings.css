@@ -153,7 +153,7 @@
 /* Normal H3: subheadings have notes associated with them. */
 
 .form-group:has(label[for*="settings-config-coffee-pub-"][for*="headingH3"]) {
-    background-color: rgba(9, 12, 3, 0.15);
+    background-color: rgba(199, 191, 76, 0.25) !important;
     padding-top: 4px;
     padding-bottom: 4px;
     padding-left: 8px;

@@ -849,10 +849,10 @@
 				"tokenLootTableEpicOdds-Hint": "Percentage chance that the epic loot table will be rolled. A value of 0 means it will never be rolled, a value of 1000 means it will always be rolled.",
 
 		"headingH2DroppedTokens-Label": "Dropped Tokens",
-		"headingH2DroppedTokens-Hint": "Configure the options for dropped tokens on the canvas.",
+		"headingH2DroppedTokens-Hint": "When tokens are dropped on the canvas, several automations can take place including renaming the token, changing the token image or portrait, and setting tkane charateristics like rotation, scale, and more.",
 
 
-			"headingH3TokenOverrides-Label": "Overrides",
+			"headingH3TokenOverrides-Label": "Token Overrides",
 			"headingH3TokenOverrides-Hint": "",
 
 				"unlockTokenRotation-Label": "Unlock Token Rotation",
@@ -867,7 +867,7 @@
 				"setTokenImageFitMode-Label": "Image Fit Mode",
 				"setTokenImageFitMode-Hint": "Set the image fit mode for dropped tokens. (default is Contain)",
 
-			"headingH3TokenRenamingOptions-Label": "Renaming",
+			"headingH3TokenRenamingOptions-Label": "Token Renaming",
 			"headingH3TokenRenamingOptions-Hint": "",
 		
 				"tokenNameFormat-Label": "Format",
@@ -882,7 +882,7 @@
 				"tokenNameTable-Label": "Random Name Table",
 				"tokenNameTable-Hint": "If using a random name from a table, select the table that should be used to rename the token.",
 
-			"headingH3TokenNameplateStyle-Label": "Nameplate Style",
+			"headingH3TokenNameplateStyle-Label": "Token Nameplate Style",
 			"headingH3TokenNameplateStyle-Hint": "",
 
 				"nameplateFontSize-Label": "Font Size",
@@ -900,46 +900,67 @@
 				"nameplateOutlineColor-Label": " Outline Color",
 				"nameplateOutlineColor-Hint": "Sets the outline color for nameplates under tokens. Default: #111111.",
 
-			"headingH3TokenImageReplacement-Label": "Token Replacement",
-			"headingH3TokenImageReplacement-Hint": "",
+		"headingH2TokenImageReplacement-Label": "Token Image Replacement",
+		"headingH2TokenImageReplacement-Hint": "When tokens are dropped on the canvas, this module will automatically replace the token image with the best matching image from the cache.",
 
-				"tokenImageReplacementEnabled-Label": "Replace Images",
-				"tokenImageReplacementEnabled-Hint": "Enable the image replacement features and functions.",
+
+
+			"headingH3TokenReplaceGeneral-Label": "General",
+			"headingH3TokenReplaceGeneral-Hint": "",
+
+				"tokenImageReplacementEnabled-Label": "Enable Token Image Replacement",
+				"tokenImageReplacementEnabled-Hint": "",
 
 				"tokenImageReplacementShowInCoffeePubToolbar-Label": "Show in CoffeePub Toolbar",
-				"tokenImageReplacementShowInCoffeePubToolbar-Hint": "Show the Token Image Replacement button in the CoffeePub toolbar.",
+				"tokenImageReplacementShowInCoffeePubToolbar-Hint": "",
 
 				"tokenImageReplacementShowInFoundryToolbar-Label": "Show in FoundryVTT Toolbar",
-				"tokenImageReplacementShowInFoundryToolbar-Hint": "Show the Token Image Replacement button in the FoundryVTT native toolbar.",
+				"tokenImageReplacementShowInFoundryToolbar-Hint": "",
 
-				"tokenImageReplacementUpdateDropped-Label": "Update Dropped Tokens",
-				"tokenImageReplacementUpdateDropped-Hint": "Automatically update token images when tokens are dropped on the canvas. When disabled, only manual updates via the Image Replacements window will work. This feature is also available in the Image Replacements window.",
+				"tokenImageReplacementUpdateDropped-Label": "Update Dropped Token Images",
+				"tokenImageReplacementUpdateDropped-Hint": "",
 
 				"tokenImageReplacementThreshold-Label": "Matching Threshold",
 				"tokenImageReplacementThreshold-Hint": "How strict the matching algorithm should be. Lower values = more fuzzy matching, higher values = more exact matching.",
 
 			
+			"headingH3TokenReplaceTypes-Label": "Replacements",
+			"headingH3TokenReplaceTypes-Hint": "",
+
+
 				"tokenImageReplacementUpdateMonsters-Label": "Update Monsters",
-				"tokenImageReplacementUpdateMonsters-Hint": "Replace images for monster tokens.",
+				"tokenImageReplacementUpdateMonsters-Hint": "",
 			
 				"tokenImageReplacementUpdateNPCs-Label": "Update NPCs",
-				"tokenImageReplacementUpdateNPCs-Hint": "Replace images for NPC tokens.",
+				"tokenImageReplacementUpdateNPCs-Hint": "",
 			
 				"tokenImageReplacementUpdateVehicles-Label": "Update Vehicles",
-				"tokenImageReplacementUpdateVehicles-Hint": "Replace images for vehicle tokens.",
+				"tokenImageReplacementUpdateVehicles-Hint": "",
 			
 				"tokenImageReplacementUpdateActors-Label": "Update Actors",
-				"tokenImageReplacementUpdateActors-Hint": "Replace images for actor tokens.",
+				"tokenImageReplacementUpdateActors-Hint": "",
 			
 				"tokenImageReplacementSkipLinked-Label": "Skip Linked Tokens",
-				"tokenImageReplacementSkipLinked-Hint": "Do not replace images for tokens linked to actors (usually player characters).",
+				"tokenImageReplacementSkipLinked-Hint": "",
 
-		"headingH2TokenImageReplacementCache-Label": "Image Cache",
+		"headingH2TokenImageReplacementCache-Label": "Token Image Cache",
 		"headingH2TokenImageReplacementCache-Hint": "The cache is where we store the image references that are used for token image replacement. It also contains the tags, cateogries and other metadata for the images.",
 
-			"tokenImageReplacementCacheStats-Label": "Cache Status",
+			"tokenImageReplacementCacheStats-Label": "Token Cache Status",
 
-			"headingH3TokenImageReplacementConfiguration-Label": "Configuration",
+
+
+
+
+
+
+
+
+
+
+
+
+			"headingH3TokenImageReplacementConfiguration-Label": "Folder Configuration",
 			"headingH3TokenImageReplacementConfiguration-Hint": "",
 
 				
