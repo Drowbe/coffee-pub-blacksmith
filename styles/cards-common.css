@@ -86,10 +86,10 @@
     margin-right: 3px;
 }
 
-/* SECTIONS */
+/* ********** CARD ********** */
 
-/* Section Headers */
-.section-header {
+/* CARD Headers */
+.blacksmith-card .card-header {
     font-family: "Modesto Condensed"; 
     font-size: 1.5em;
     font-weight: 900;
@@ -100,23 +100,63 @@
 }
 
 /* Only add margin when section is not collapsed */
-.section-header:not(.collapsed) {
+.blacksmith-card .card-header:not(.collapsed) {
     margin-bottom: 10px;
 }
 
 
 /* Section Header Icons */
-.section-header:not(.collapsed) i,
-.section-header i {
+.blacksmith-card .card-header:not(.collapsed) i,
+.blacksmith-card .card-header i {
     margin-right: 10px;
     margin-top: -2px;
     font-size: 1.0em;
 }
 
+/* ********** SECTION HEADERS ********** */
 
 
-/* Section Content */
-.section-content {
+.blacksmith-card .section-header {
+    border-top: 0px dotted rgba(0, 0, 0, 0.2);
+    border-bottom: 1px dotted rgba(0, 0, 0, 0.2);
+    margin-top: 10px;
+    margin-bottom: 6px;
+    padding-top: 0px;
+    padding-bottom: 3px;
+    font-size: 1.0em;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #481515;
+}
+
+.blacksmith-card .section-header i {
+    margin-right: 3px;
+    padding-top: 2px;
+}
+.blacksmith-card .section-subheader {
+    color: #481515;
+    text-align: center;
+    font-weight: 900;
+    font-size: 1.3em;
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.1);
+    border: 0px solid rgba(170, 2, 0, 0.4);
+    border-radius: 4px;
+    margin-top: 10px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+.blacksmith-card .section-subheader i {
+    margin-right: 3px;
+    padding-top: 2px;
+}
+
+
+
+
+
+/* ********** SECTION CONTENT ********** */
+.blacksmith-card .section-content {
     font-family: var(--dnd5e-font-roboto); 
     font-size: 1.0em;
     max-height: 1000px;
@@ -125,27 +165,27 @@
     color: #594a3c;
 }
 
-.section-content.collapsed {
+.blacksmith-card .section-content.collapsed {
     max-height: 0;
     padding-top: 0;
     transition: max-height 0.3s ease-out, padding-top 0.3s ease-out;
 }
 
-.section-content p {
+.blacksmith-card .section-content p {
     margin: 0 0 8px 0;
 }
 
-.section-content ul {
+.blacksmith-card .section-content ul {
     margin: 5px 0;
     padding-left: 20px;
 }
 
-.section-content li {
+.blacksmith-card .section-content li {
     margin: 2px 0;
 }
 
 
-.section-label {
+.blacksmith-card .section-label {
     font-weight: bold;
     color: var(--color-text-dark-primary);
     margin: 4px 0;
@@ -153,7 +193,7 @@
     font-size: var(--font-size-13);
 }
 
-.section-description {
+.blacksmith-card .section-description {
     font-style: italic;
     color: var(--color-text-dark-secondary);
     margin: 4px 0;
@@ -163,7 +203,7 @@
 }
 
 /* Collapsible Sections */
-.blacksmith-card .section-header.collapsible {
+.blacksmith-card .card-header.collapsible {
     cursor: pointer;
     user-select: none;
     display: flex;
@@ -171,17 +211,17 @@
     justify-content: space-between; /* pushes chevron to the right */
 }
 
-.blacksmith-card .section-header.collapsible:hover {
+.blacksmith-card .card-header.collapsible:hover {
     color: #c15701;
     transition: color 0.2s ease;
 }
 
-.blacksmith-card .section-header.collapsible:hover i {
+.blacksmith-card .card-header.collapsible:hover i {
     color: #c15701;
     transition: color 0.2s ease;
 }
 
-.blacksmith-card .section-header .collapse-indicator {
+.blacksmith-card .card-header .collapse-indicator {
     margin-left: auto; /* ensures it hugs the right edge */
     font-size: 0.65em;
 }

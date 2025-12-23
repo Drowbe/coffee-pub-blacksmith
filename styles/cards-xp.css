@@ -6,40 +6,8 @@
     font-family: var(--font-primary);
 }
 
-.cpb-xp-card .card-header {
-    background: rgba(0, 0, 0, 0.05);
-    padding: 3px 5px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.cpb-xp-card .card-header h3 {
-    padding-left: 8px;
-    margin: 0;
-}
-
-.cpb-xp-card .card-header i {
-    padding-right: 4px;
-}
-
-.cpb-xp-card .card-content {
+.blacksmith-card.cpb-xp-card .section-content {
     padding: 8px;
-}
-
-.cpb-xp-card-section-header {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-    margin-top: 10px;
-    margin-bottom: 6px;
-    padding-bottom: 3px;
-    font-size: 1.0em;
-    font-weight: 900;
-    text-transform: uppercase;
-    color: #481515;
-    display: flex;
-    align-items: center;
-}
-
-.cpb-xp-card-section-header i {
-    margin-right: 6px;
 }
 
 .cpb-xp-card .xp-card-content-wrapper {

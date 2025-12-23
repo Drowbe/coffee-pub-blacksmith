@@ -5,7 +5,7 @@
   {{!-- PLANNING START --}}
   {{#if isPlanningStart}}
     <div class="blacksmith-card theme-blue">
-      <div class="section-header">
+      <div class="card-header">
         <i class="fas fa-hourglass-start"></i> Planning Phase Started
       </div>
       <div class="section-content">
@@ -16,7 +16,7 @@
   {{!-- PLANNING PAUSED --}}
   {{else if isPlanningPaused}}
     <div class="blacksmith-card theme-default">
-      <div class="section-header">
+      <div class="card-header">
         <i class="fas fa-pause"></i> Planning Phase Paused
       </div>
       <div class="section-content">
@@ -27,7 +27,7 @@
   {{!-- PLANNING RESUMED --}}
   {{else if isPlanningResumed}}
     <div class="blacksmith-card theme-default">
-      <div class="section-header">
+      <div class="card-header">
         <i class="fas fa-play"></i> Planning Phase Resumed
       </div>
       <div class="section-content">
@@ -38,7 +38,7 @@
   {{!-- COMBAT TIMER --}}
   {{else if isTimer}}
     <div class="blacksmith-card {{#if theme}}theme-{{theme}}{{else}}theme-default{{/if}}">
-      <div class="section-header">
+      <div class="card-header">
         {{#if isTimerSet}}
           <i class="fas fa-clock"></i> {{timerLabel}} Timer Updated
         {{else if isTimerStart}}
@@ -81,7 +81,7 @@
   {{!-- ROUND ANNOUNCEMENT --}}
   {{else if isRoundAnnouncement}}
     <div class="blacksmith-card theme-default">
-      <div class="section-header">
+      <div class="card-header">
         <i class="fas fa-swords"></i> Round {{roundNumber}} Has Started
       </div>
       <div class="section-content"></div>
@@ -90,7 +90,7 @@
   {{!-- LOOT DROP --}}
   {{else if isLootDrop}}
     <div class="blacksmith-card theme-default">
-      <div class="section-header">
+      <div class="card-header">
         <i class="fas fa-coins"></i> Loot Dropped!
       </div>
       <div class="section-content">
@@ -101,7 +101,7 @@
   {{!-- MOVEMENT CHANGE --}}
   {{else if isMovementChange}}
       <div class="blacksmith-card theme-default">
-          <div class="section-header">
+          <div class="card-header">
               <i class="fas {{movementIcon}}"></i> {{movementLabel}} Mode Active
           </div>
           <div class="section-content">
@@ -123,7 +123,7 @@
   {{!-- LEADER CHANGE --}}
   {{else if isLeaderChange}}
       <div class="blacksmith-card theme-default">
-          <div class="section-header">
+          <div class="card-header">
               <i class="fas fa-crown"></i> {{leaderName}} is Party Leader
           </div>
           <div class="section-content">
@@ -140,7 +140,7 @@
   {{!-- TRANSFER REQUEST --}}
   {{else if (eq cardType "transfer-request")}}
     <div class="blacksmith-card theme-green">
-      <div class="section-header">
+      <div class="card-header">
         <i class="{{strCardIcon}}"></i> {{strCardTitle}}
       </div>
       <div class="section-content">
@@ -159,7 +159,7 @@
   {{!-- TRANSFER COMPLETE --}}
   {{else if (eq cardType "transfer-complete")}}
     <div class="blacksmith-card theme-default">
-      <div class="section-header">
+      <div class="card-header">
         <i class="{{strCardIcon}}"></i> {{strCardTitle}}
       </div>
       <div class="section-content">
@@ -180,7 +180,7 @@
   {{!-- TRANSFER REJECTED --}}
   {{else if (eq cardType "transfer-rejected")}}
     <div class="blacksmith-card theme-default">
-      <div class="section-header">
+      <div class="card-header">
         <i class="{{strCardIcon}}"></i> {{strCardTitle}}
       </div>
       <div class="section-content">
@@ -199,7 +199,7 @@
   {{!-- TRANSFER GM --}}
   {{else if (eq cardType "transfer-gm")}}
     <div class="blacksmith-card theme-default">
-      <div class="section-header">
+      <div class="card-header">
         <i class="{{strCardIcon}}"></i> {{strCardTitle}}
       </div>
       <div class="section-content">
@@ -210,7 +210,7 @@
   {{!-- GENERAL & ERROR CONDITION --}}
   {{else}}
     <div class="blacksmith-card theme-default">
-      <div class="section-header">
+      <div class="card-header">
         {{#if strCardTitle}}
           <i class="{{strCardIcon}}"></i> {{strCardTitle}}
         {{else}}
@@ -233,7 +233,7 @@
   {{!-- LEADER CHANGE --}}
   {{#if isLeaderChange}}
       <div class="blacksmith-card theme-red">
-          <div class="section-header">
+          <div class="card-header">
               <i class="fas fa-crown"></i> You Are Party Leader!
           </div>
           <div class="section-content">
@@ -244,7 +244,7 @@
   {{!-- TRANSFER REQUEST --}}
   {{else if (eq cardType "transfer-request")}}
     <div class="blacksmith-card theme-green">
-      <div class="section-header">
+      <div class="card-header">
         <i class="{{strCardIcon}}"></i> {{strCardTitle}} 
       </div>
       <div class="section-content">
@@ -263,7 +263,7 @@
   {{!-- TRANSFER COMPLETE --}}
   {{else if (eq cardType "transfer-complete")}}
     <div class="blacksmith-card theme-default">
-      <div class="section-header">
+      <div class="card-header">
         <i class="{{strCardIcon}}"></i> {{strCardTitle}}
       </div>
       <div class="section-content">
@@ -284,7 +284,7 @@
   {{!-- TRANSFER REJECTED --}}
   {{else if (eq cardType "transfer-rejected")}}
     <div class="blacksmith-card theme-default">
-      <div class="section-header">
+      <div class="card-header">
         <i class="{{strCardIcon}}"></i> {{strCardTitle}}
       </div>
       <div class="section-content">
@@ -303,7 +303,7 @@
   {{!-- TRANSFER GM --}}
   {{else if (eq cardType "transfer-gm")}}
     <div class="blacksmith-card theme-default">
-      <div class="section-header">
+      <div class="card-header">
         <i class="{{strCardIcon}}"></i> {{strCardTitle}}
       </div>
       <div class="section-content">
@@ -314,7 +314,7 @@
   {{!-- GENERAL & ERROR CONDITION --}}  
   {{else}}
     <div class="blacksmith-card theme-default">
-      <div class="section-header">
+      <div class="card-header">
         {{#if strCardTitle}}
           <i class="{{strCardIcon}}"></i> {{strCardTitle}}
         {{else}}

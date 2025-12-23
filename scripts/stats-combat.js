@@ -1039,7 +1039,7 @@ class CombatStats {
     // Handle collapsible section clicks using event delegation
     static _handleCollapsibleSectionClick(event) {
         // Check if the click target is a collapsible section header or its children
-        const header = event.target.closest('.section-header.collapsible');
+        const header = event.target.closest('.card-header.collapsible');
         if (!header) return;
         
         event.preventDefault();
