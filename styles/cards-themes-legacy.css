@@ -1,0 +1,412 @@
+/* ------------------------------------ */
+/* --- CARD COLORS -------------------- */
+/* ------------------------------------ */
+
+/******** DARK CARDS ********/
+#cards-wrapper-cardsdark {
+    color: #faf6e6;
+    background: #222121;
+    border-left: 2px solid #504A4A;
+    border-right: 2px solid #504A4A;
+    border-top: 2px solid #504A4A;
+    border-bottom: 2px solid #504A4A;
+}
+#cards-title-cardsdark {
+	color: #faf6e6;
+    background: #121212;
+}
+#cards-title-cardsdark .fas {
+	color: #faf6e6;
+}
+#cards-content-light-cardsdark {
+	color:#323030;
+    background: #faf6e6;
+}
+#cards-content-dark-cardsdark {
+	color: #faf6e6;
+    background: #121212;
+}
+#cards-button-cardsdark {
+    background-color: #0e0c0c;
+    color: #ffffff;
+    border: 1px solid #4b4b4b;
+}
+#cards-button-cardsdark:hover {
+    background-color: #000000;
+    color: #AEADAD;
+    border: 1px solid #767676;
+    box-shadow: none;
+}
+#cards-content-light-cardsdark a.inline-result{
+	color:#f0f0f0;
+    background: #d15006;
+}
+#cards-content-dark-cardsdark a.inline-result{
+	color:#f0f0f0;
+    background: #d15006;
+}
+#cards-image-cardsdark {
+    border-left:0px solid #180505;
+    border-right: 0px solid #180505;
+    border-top: 0px solid #180505;
+    border-bottom:0px solid #180505;
+}
+#cards-image-cardsdark img {
+    border-left: 0px solid #180505;
+    border-right: 0px solid #180505;
+    border-top: 0px solid #180505;
+    border-bottom: 0px solid #180505;
+}
+#cards-user-cardsdark {
+	color: #faf6e6;
+    background: #121212;
+}
+/******** RED CARDS ********/
+#cards-wrapper-cardsred {
+    color:#323030;
+    background: #511314;
+    border-left: 2px solid #771410;
+    border-right: 2px solid #771410;
+    border-top: 2px solid #771410;
+    border-bottom: 2px solid #771410;
+}
+#cards-title-cardsred {
+	color: #faf6e6;
+    background: #35100F;
+}
+#cards-title-cardsred .fas {
+	color: #faf6e6;
+}
+#cards-content-light-cardsred {
+	color:#323030;
+    background: #faf6e6;
+}
+#cards-content-dark-cardsred {
+    color: #faf6e6;
+    background: #35100F;
+}
+#cards-content-light-cardsred a.inline-result{
+	color:#f0f0f0;
+    background: #d15006;
+}
+#cards-content-dark-cardsred a.inline-result{
+	color:#f0f0f0;
+    background: #d15006;
+}
+#cards-button-cardsred {
+    background-color: #230604;
+    color: #ffffff;
+    border: 1px solid #94312A;
+}
+#cards-button-cardsred:hover {
+    background-color: #1A0402;
+    color: #CA7770;
+    border: 1px solid #CA7770;
+    box-shadow: none;
+}
+
+#cards-image-cardsred {
+    border-left: 0px solid #35100F;
+    border-right: 0px solid #35100F;
+    border-top: 0px solid #35100F;
+    border-bottom: 0px solid #35100F;
+}
+#cards-image-cardsred img {
+    border-left: 0px solid #35100F;
+    border-right: 0px solid #35100F;
+    border-top: 0px solid #35100F;
+    border-bottom: 0px solid #35100F;
+}
+#cards-user-cardsred {
+    color: #faf6e6;
+    background: #35100F;
+}
+
+/******** GREEN CARDS ********/
+#cards-wrapper-cardsgreen {
+    color:#323030;
+    background: #3A4A03;
+    border-left: 1px solid #688507;
+    border-right: 1px solid #688507;
+    border-top: 1px solid #688507;
+    border-bottom: 1px solid #688507;
+}
+#cards-title-cardsgreen {
+	color: #faf6e6;
+	background: #222C02;
+}
+#cards-title-cardsgreen .fas {
+	color: #faf6e6;
+}
+#cards-content-light-cardsgreen {
+	color:#323030;
+    background: #faf6e6;
+}
+#cards-content-dark-cardsgreen {
+	color: #faf6e6;
+	background: #222C02;
+}
+#cards-content-light-cardsgreen a.inline-result{
+	color:#f0f0f0;
+    background: #d15006;
+}
+#cards-content-dark-cardsgreen a.inline-result{
+	color:#f0f0f0;
+    background: #d15006;
+}
+#cards-button-cardsgreen {
+    background-color: #181E04;
+    color: #ffffff;
+    border: 1px solid #647822;
+}
+#cards-button-cardsgreen:hover {
+    background-color: #121701;
+    color: #909E63;
+    border: 1px solid #909E63;
+    box-shadow: none;
+}
+#cards-image-cardsgreen {
+    border-left: 0px solid #222C02;
+    border-right: 0px solid #222C02;
+    border-top: 0px solid #222C02;
+    border-bottom: 0px solid #222C02;
+}
+#cards-image-cardsgreen img {
+    border-left: 0px solid #222C02;
+    border-right: 0px solid #222C02;
+    border-top: 0px solid #222C02;
+    border-bottom: 0px solid #222C02;
+}
+#cards-user-cardsgreen {
+	color: #faf6e6;
+	background: #222C02;
+}
+/******** BLUE CARDS ********/
+#cards-wrapper-cardsblue {
+    color:#323030;
+    background: #003F58;
+    border-left: 2px solid #026E99;
+    border-right: 2px solid #026E99;
+    border-top: 2px solid #026E99;
+    border-bottom: 2px solid #026E99;
+}
+#cards-title-cardsblue {
+	color: #faf6e6;
+	background: #022838;
+}
+#cards-title-cardsblue .fas {
+	color: #faf6e6;
+}
+#cards-content-light-cardsblue {
+    color:#323030;
+	background: #faf6e6;
+}
+#cards-content-dark-cardsblue {
+    color: #faf6e6;
+	background: #022838;
+}
+#cards-content-light-cardsblue a.inline-result{
+	color:#f0f0f0;
+    background: #d15006;
+}
+#cards-content-dark-cardsblue a.inline-result{
+	color:#f0f0f0;
+    background: #d15006;
+}
+#cards-button-cardsblue {
+    background-color: #041723;
+    color: #ffffff;
+    border: 1px solid #30739C;
+}
+#cards-button-cardsblue:hover {
+    background-color: #01060A;
+    color: #5C8DB4;
+    border: 1px solid #5C8DB4;
+    box-shadow: none;
+}
+#cards-image-cardsblue {
+    border-left: 0px solid #022838;
+    border-right: 0px solid #022838;
+    border-top: 0px solid #022838;
+    border-bottom: 0px solid #022838;
+}
+#cards-image-cardsblue img {
+    border-left: 0px solid #022838;
+    border-right: 0px solid #022838;
+    border-top: 0px solid #022838;
+    border-bottom: 0px solid #022838;
+}
+#cards-user-cardsblue {
+    color: #faf6e6;
+	background: #022838;
+}
+/******** LIGHT CONTENT CARD OVERRIES ********/
+
+#cards-content-light-cardsdark h1,
+#cards-content-light-cardsred h1,
+#cards-content-light-cardsgreen h1,
+#cards-content-light-cardsblue h1,
+#cards-content-light-cardsdark h2,
+#cards-content-light-cardsred h2,
+#cards-content-light-cardsgreen h2,
+#cards-content-light-cardsblue h2,
+#cards-content-light-cardsdark h3,
+#cards-content-light-cardsred h3,
+#cards-content-light-cardsgreen h3,
+#cards-content-light-cardsblue h3,
+#cards-content-light-cardsdark p,
+#cards-content-light-cardsred p,
+#cards-content-light-cardsgreen p,
+#cards-content-light-cardsblue p,
+#cards-content-light-cardsdark pre,
+#cards-content-light-cardsred pre,
+#cards-content-light-cardsgreen pre,
+#cards-content-light-cardsblue pre,
+#cards-content-light-cardsdark li,
+#cards-content-light-cardsred li,
+#cards-content-light-cardsgreen li,
+#cards-content-light-cardsblue li,
+#cards-content-light-cardsdark table,
+#cards-content-light-cardsred table,
+#cards-content-light-cardsgreen table,
+#cards-content-light-cardsblue table,
+#cards-content-light-cardsdark table tr,
+#cards-content-light-cardsred table tr,
+#cards-content-light-cardsgreen table tr,
+#cards-content-light-cardsblue table tr,
+#cards-content-light-cardsdark table th,
+#cards-content-light-cardsred table th,
+#cards-content-light-cardsgreen table th,
+#cards-content-light-cardsblue table th,
+#cards-content-light-cardsdark table td,
+#cards-content-light-cardsred table td,
+#cards-content-light-cardsgreen table td,
+#cards-content-light-cardsblue table td {
+    border: none;
+    color:#0E0E0E;
+}
+#cards-content-light-cardsdark hr,
+#cards-content-light-cardsred hr,
+#cards-content-light-cardsgreen hr,
+#cards-content-light-cardsblue hr {
+	border: none;
+    border-top: 1px dotted #323030;
+}
+#cards-content-light-cardsdark pre,
+#cards-content-light-cardsred pre,
+#cards-content-light-cardsgreen pre,
+#cards-content-light-cardsblue pre {
+	border-top: 0px solid #7A7972;
+	border-bottom: 0px solid #7A7972;
+	border-left: 0px dotted #BDB7A0;
+	border-right: 0px dotted #BDB7A0;
+}
+#cards-content-light-cardsdark table,
+#cards-content-light-cardsred table,
+#cards-content-light-cardsgreen table,
+#cards-content-light-cardsblue table {
+	border-top: 1px solid #BDB7A0;
+	border-bottom: 1px solid #BDB7A0;
+	border-left: 1px dotted #BDB7A0;
+	border-right: 1px dotted #BDB7A0;
+}
+#cards-content-light-cardsdark table tr,
+#cards-content-light-cardsred table tr,
+#cards-content-light-cardsgreen table tr,
+#cards-content-light-cardsblue table tr {
+	background: #F3F1E9;
+    border-bottom: 1px dotted #CAC5B0;
+}
+#cards-content-light-cardsdark table th,
+#cards-content-light-cardsred table th,
+#cards-content-light-cardsgreen table th,
+#cards-content-light-cardsblue table th {
+	background: #E5E1D5;
+	border-bottom: 1px solid #BDB7A0;
+}
+
+/******** DARK CONTENT CARD OVERRIES ********/
+
+#cards-content-dark-cardsdark h1,
+#cards-content-dark-cardsred h1,
+#cards-content-dark-cardsgreen h1,
+#cards-content-dark-cardsblue h1,
+#cards-content-dark-cardsdark h2,
+#cards-content-dark-cardsred h2,
+#cards-content-dark-cardsgreen h2,
+#cards-content-dark-cardsblue h2,
+#cards-content-dark-cardsdark h3,
+#cards-content-dark-cardsred h3,
+#cards-content-dark-cardsgreen h3,
+#cards-content-dark-cardsblue h3,
+#cards-content-dark-cardsdark p,
+#cards-content-dark-cardsred p,
+#cards-content-dark-cardsgreen p,
+#cards-content-dark-cardsblue p, 
+#cards-content-dark-cardsdark pre,
+#cards-content-dark-cardsred pre,
+#cards-content-dark-cardsgreen pre,
+#cards-content-dark-cardsblue pre,
+#cards-content-dark-cardsdark li,
+#cards-content-dark-cardsred li,
+#cards-content-dark-cardsgreen li,
+#cards-content-dark-cardsblue li,
+#cards-content-dark-cardsdark table,
+#cards-content-dark-cardsred table,
+#cards-content-dark-cardsgreen table,
+#cards-content-dark-cardsblue table,
+#cards-content-dark-cardsdark table tr,
+#cards-content-dark-cardsred table tr,
+#cards-content-dark-cardsgreen table tr,
+#cards-content-dark-cardsblue table tr,
+#cards-content-dark-cardsdark table th,
+#cards-content-dark-cardsred table th,
+#cards-content-dark-cardsgreen table th,
+#cards-content-dark-cardsblue table th,
+#cards-content-dark-cardsdark table td,
+#cards-content-dark-cardsred table td,
+#cards-content-dark-cardsgreen table td,
+#cards-content-dark-cardsblue table td {
+    border: none;
+    color: #F3F0E3;
+}
+
+#cards-content-dark-cardsdark hr,
+#cards-content-dark-cardsred hr,
+#cards-content-dark-cardsgreen hr,
+#cards-content-dark-cardsblue hr {
+  	border: none;
+	border-bottom: 1px dotted #9A9997;
+}
+#cards-content-dark-cardsdark pre,
+#cards-content-dark-cardsred pre,
+#cards-content-dark-cardsgreen pre,
+#cards-content-dark-cardsblue pre {
+	border-top: 0px solid #7A7972;
+	border-bottom: 0px solid #7A7972;
+	border-left: 0px dotted #BDB7A0;
+	border-right: 0px dotted #BDB7A0;
+}
+#cards-content-dark-cardsdark table,
+#cards-content-dark-cardsred table,
+#cards-content-dark-cardsgreen table,
+#cards-content-dark-cardsblue table {
+	border-top: 1px solid #373636;
+	border-bottom: 1px solid #373636;
+	border-left: 1px dotted #373636;
+	border-right: 1px dotted #373636;
+}
+#cards-content-dark-cardsdark table tr,
+#cards-content-dark-cardsred table tr,
+#cards-content-dark-cardsgreen table tr,
+#cards-content-dark-cardsblue table tr {
+	background: #222020;
+    border-bottom: 1px dotted #373636;
+}
+#cards-content-dark-cardsdark table th,
+#cards-content-dark-cardsred table th,
+#cards-content-dark-cardsgreen table th,
+#cards-content-dark-cardsblue table th {
+	background: #0A0A0A;
+	border-bottom: 1px solid #373636;
+}

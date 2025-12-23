@@ -1,602 +1,320 @@
-/* ******************************************** */
-/* *****           VARIABLES              ***** */
-/* ******************************************** */
-:root {
-    --intCardMarginTop: 0px;
-    --intCardMarginBottom: 0px;
-    --intCardMarginLeft: 0px;
-    --intCardMarginRight: 0px;
+/* ------------------------------------ */
+/* --- CHAT CARDS - COMMON ------------ */
+/* ------------------------------------ */
+
+/* 
+    This is the new, clean, simplified card structure. 
+    It's used for all the new cards, and the old cards are being converted to match it.
+    The new SPECIFIC cards are:
+    - Round Summary
+    - Turn Details
+    - Party Stats
+    - Skill Rolls    
+*/
+
+
+/* COMMON STYLES */
+
+/* Base Container */
+.blacksmith-card {
+    padding: 0;
+    margin: 0;
+    font-family: var(--dnd5e-font-roboto); 
+    background-color: #ffffff;
+    border: 1px solid #594a3c;
+    border-radius: 5px;
+    padding: 0.5em;
+    margin-bottom: 0.5em;
 }
-/* ******************************************** */
-/* *****          ALL CARDS             ***** */
-/* ******************************************** */
-/* Wrapper */
-#cards-wrapper-cardsgreen,
-#cards-wrapper-cardsblue,
-#cards-wrapper-cardsdark,
-#cards-wrapper-cardsred {
+
+/* Common Icon Styles */
+.blacksmith-card .fas {
+    width: 14px;
+    text-align: center;
+    margin-right: 4px;
+    padding-top: 2px;
+}
+
+/* THEMES */
+.blacksmith-card.theme-default {
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.07);
+}
+.blacksmith-card.theme-orange {
+    background-color: rgba(247, 140, 1, 0.1);
+    border: 1px solid rgba(247, 140, 1, 0.07);
+}
+.blacksmith-card.theme-red {
+    background-color: rgba(118, 31, 19, 0.1);
+    border: 1px solid rgba(118, 31, 19, 0.07);
+}
+.blacksmith-card.theme-blue {
+    background-color: rgba(0, 120, 212, 0.1);
+    border: 1px solid rgba(0, 120, 212, 0.07);
+}
+.blacksmith-card.theme-green {
+    background-color: rgba(0, 212, 64, 0.1);
+    border: 1px solid rgba(0, 212, 64, 0.07);
+}
+.blacksmith-card.theme-default,
+.blacksmith-card.theme-orange,
+.blacksmith-card.theme-red,
+.blacksmith-card.theme-blue,
+.blacksmith-card.theme-green {
+    border-radius: 4px;
+    padding: 6px;
+    margin-bottom: 0px;
+}
+
+.blacksmith-card.theme-default p,
+.blacksmith-card.theme-orange p,
+.blacksmith-card.theme-red p,
+.blacksmith-card.theme-blue p,
+.blacksmith-card.theme-green p {
+    color: #594a3c;
+    text-shadow: none;
+    margin: 0;
+    padding: 0;
+}
+
+.blacksmith-card.theme-default i,
+.blacksmith-card.theme-blue i,
+.blacksmith-card.theme-green i, 
+.blacksmith-card.theme-red i,
+.blacksmith-card.theme-orange i,
+.blacksmith-card i {
+    margin-right: 3px;
+}
+
+/* ********** CARD ********** */
+
+/* CARD Headers */
+.blacksmith-card .card-header {
+    font-family: "Modesto Condensed"; 
+    font-size: 1.5em;
+    font-weight: 900;
+    color: #594a3c;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Only add margin when section is not collapsed */
+.blacksmith-card .card-header:not(.collapsed) {
+    margin-bottom: 10px;
+}
+
+
+/* Section Header Icons */
+.blacksmith-card .card-header:not(.collapsed) i,
+.blacksmith-card .card-header i {
+    margin-right: 10px;
+    margin-top: -2px;
     font-size: 1.0em;
-    font-style: normal;
-    border-radius: 5px 5px 5px 5px;
-    padding-top: 5px;
-    padding-bottom: 5px;
-    padding-left: 5px;
-    padding-right: 5px;
-    margin-top: var(--intCardMarginTop);
-    margin-bottom: var(--intCardMarginBottom);
-    margin-left: var(--intCardMarginLeft);
-    margin-right: var(--intCardMarginRight);
 }
-/* Icon */
-#cards-icon-cardsgreen,
-#cards-icon-cardsblue,
-#cards-icon-cardsdark,
-#cards-icon-cardsred {
-	font-weight:550;
+
+/* ********** SECTION HEADERS ********** */
+
+
+.blacksmith-card .section-header {
+    border-top: 0px dotted rgba(0, 0, 0, 0.2);
+    border-bottom: 1px dotted rgba(0, 0, 0, 0.2);
+    margin-top: 10px;
+    margin-bottom: 6px;
+    padding-top: 0px;
+    padding-bottom: 3px;
     font-size: 1.0em;
-	margin-top: 0px;
-	margin-bottom: 0px;
-	margin-left: 0px;
-	margin-right: 10px;
-	padding-top: 0px;
-    padding-bottom: 0px;
-    padding-left: 0px;
-    padding-right: 0px;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #481515;
 }
-/* Title */
-#cards-title-cardsgreen,
-#cards-title-cardsblue,
-#cards-title-cardsdark,
-#cards-title-cardsred {
-    border-radius: 4px 4px 4px 4px;
-	font-weight:500;
-    font-size: 1.2em;
-	text-transform: uppercase;
-	padding-top: 5px;
-    padding-bottom: 5px;
-    padding-left: 10px;
-    padding-right: 10px;
-    margin-top: 0px;
+
+.blacksmith-card .section-header i {
+    margin-right: 3px;
+    padding-top: 2px;
+}
+.blacksmith-card .section-subheader {
+    color: #481515;
+    text-align: center;
+    font-weight: 900;
+    font-size: 1.3em;
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.1);
+    border: 0px solid rgba(170, 2, 0, 0.4);
+    border-radius: 4px;
+    margin-top: 10px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+.blacksmith-card .section-subheader i {
+    margin-right: 3px;
+    padding-top: 2px;
+}
+
+
+
+
+
+/* ********** SECTION CONTENT ********** */
+.blacksmith-card .section-content {
+    font-family: var(--dnd5e-font-roboto); 
+    font-size: 1.0em;
+    max-height: 1000px;
+    transition: max-height 0.3s ease-out;
+    overflow: hidden;
+    color: #594a3c;
+}
+
+.blacksmith-card .section-content.collapsed {
+    max-height: 0;
+    padding-top: 0;
+    transition: max-height 0.3s ease-out, padding-top 0.3s ease-out;
+}
+
+.blacksmith-card .section-content p {
+    margin: 0 0 8px 0;
+}
+
+.blacksmith-card .section-content ul {
+    margin: 5px 0;
+    padding-left: 20px;
+}
+
+.blacksmith-card .section-content li {
+    margin: 2px 0;
+}
+
+
+.blacksmith-card .section-label {
+    font-weight: bold;
+    color: var(--color-text-dark-primary);
+    margin: 4px 0;
+    padding: 4px 8px;
+    font-size: var(--font-size-13);
+}
+
+.blacksmith-card .section-description {
+    font-style: italic;
+    color: var(--color-text-dark-secondary);
+    margin: 4px 0;
+    padding: 4px 8px;
+    font-size: var(--font-size-13);
+    border-left: 3px solid var(--color-border-light-tertiary);
+}
+
+/* Collapsible Sections */
+.blacksmith-card .card-header.collapsible {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* pushes chevron to the right */
+}
+
+.blacksmith-card .card-header.collapsible:hover {
+    color: #c15701;
+    transition: color 0.2s ease;
+}
+
+.blacksmith-card .card-header.collapsible:hover i {
+    color: #c15701;
+    transition: color 0.2s ease;
+}
+
+.blacksmith-card .card-header .collapse-indicator {
+    margin-left: auto; /* ensures it hugs the right edge */
+    font-size: 0.65em;
+}
+
+
+/* Data Tables */
+.section-table {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.00);
+    border: 0px solid rgba(0, 0, 0, 0.07);
+    border-radius: 4px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.row-label {
+    font-weight: 400;
+    background: rgba(0, 0, 0, 0.3);
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0px 0;
+    padding: 4px 6px;
+    font-size: 1.0em;
+    text-align: right;
+    border-radius: 4px 0px 0px 4px;
+}   
+
+.label-dimmed {
+    background: rgba(101, 18, 1, 0.3);
+    color: rgba(255, 255, 255, 0.8);
+}   
+
+.label-highlighted {
+    background: rgba(64, 99, 1, 0.4);
+    color: rgba(255, 255, 255, 0.8);
+}   
+
+.row-content {
+    font-style: inherit;
+    font-weight: 600;
+    font-size: 1.0em;
+    background: rgba(0, 0, 0, 0.05);
+    color: rgba(0, 0, 0, 0.7);
+    margin: 0px 0;
+    padding: 4px 6px;
+    border-radius: 0px 4px 4px 0px;
+}
+
+
+
+/* GLOBAL BUTTONS */
+
+
+.blacksmith-chat-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+    border: 0px solid #999;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.05);
+    margin-top: 10px;
     margin-bottom: 0px;
     margin-left: 0px;
     margin-right: 0px;
+    gap: 2px;
 }
-/* Content - Light and Dark Back */
-#cards-content-dark-cardsgreen,
-#cards-content-dark-cardsblue,
-#cards-content-dark-cardsdark,
-#cards-content-dark-cardsred,
-#cards-content-light-cardsgreen,
-#cards-content-light-cardsblue,
-#cards-content-light-cardsdark,
-#cards-content-light-cardsred {
-    border-radius: 4px 4px 4px 4px;
-	padding-top: 10px;
-    padding-bottom: 10px;
-    padding-left: 10px;
-    padding-right: 10px;
-    margin-top: 5px;
-    margin-bottom:5px;
-    margin-left: 0px;
-    margin-right: 0px;
-}
-
-/* Button */
-#cards-button-cardsgreen,
-#cards-button-cardsblue,
-#cards-button-cardsdark,
-#cards-button-cardsred {
-    text-transform: uppercase;
-    border-radius: 4px 4px 4px 4px;
-    padding-top: 5px;
-    padding-bottom: 5px;
-    padding-left: 10px;
-    padding-right: 10px;
-    margin-top: 5px;
-    margin-bottom:0px;
-    margin-left: 0px;
-    margin-right: 0px;
-}
-
-/* Inline Rolls */
-#cards-content-light-cardsgreen a.inline-result,
-#cards-content-light-cardsblue a.inline-result,
-#cards-content-light-cardsdark a.inline-result,
-#cards-content-light-cardsred a.inline-result,
-#cards-content-dark-cardsgreen a.inline-result,
-#cards-content-dark-cardsblue a.inline-result,
-#cards-content-dark-cardsdark a.inline-result,
-#cards-content-dark-cardsred a.inline-result {
-    border-radius: 4px 4px 4px 4px;
-	padding-top: 1px;
-    padding-bottom: 1px;
-    padding-left: 4px;
-    padding-right: 4px;
-    margin-top: 1px;
-    margin-bottom: 1px;
+.blacksmith-chat-buttons button.chat-button {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 1px solid #999;
+    padding: 1px 6px;
+    margin-top: 2px;
+    margin-bottom: 2px;
     margin-left: 2px;
     margin-right: 2px;
-}
-/* token Image */
-#cards-token-cardsgreen,
-#cards-token-cardsblue,
-#cards-token-cardsdark,
-#cards-token-cardsred {
-    border-radius: 4px 4px 4px 4px !important;
-    width: 30px;
-	padding-top: 0px;
-    padding-bottom: 0px;
-    padding-left: 0px;
-    padding-right: 0px;
-    margin-top: 5px;
-    margin-bottom: 5px;
-    margin-left: 0px;
-    margin-right: 0px;
-}
-/* Image Wrapper */
-#cards-image-cardsgreen,
-#cards-image-cardsblue,
-#cards-image-cardsdark,
-#cards-image-cardsred {
-    border-radius: 4px 4px 4px 4px !important;
-	padding-top: 0px;
-    padding-bottom: 0px;
-    padding-left: 0px;
-    padding-right: 0px;
-    margin-top: 5px;
-    margin-bottom: 5px;
-    margin-left: 0px;
-    margin-right: 0px;
-}
-/* Image */
-#cards-image-cardsgreen img,
-#cards-image-cardsblue img,
-#cards-image-cardsdark img,
-#cards-image-cardsred img {
-    border-radius: 4px 4px 4px 4px !important;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 0px;
-    margin-bottom: 0px;
-    padding-top: 0px;
-    padding-bottom: 0px;
-    padding-left: 0px;
-    padding-right:0px;
-}
-
-/* HR */
-#cards-wrapper-cardsgreen hr,
-#cards-wrapper-cardsblue hr,
-#cards-wrapper-cardsdark hr,
-#cards-wrapper-cardsred hr {
-    margin-top: 4px;
-	margin-bottom: 4px;
-	margin-left: 0px;
-	margin-right: 0px;
-	padding-top: 0px;
-    padding-bottom: 0px;
-    padding-left: 0px;
-    padding-right: 0px;
-}
-/* H1 */
-#cards-wrapper-cardsgreen h1,
-#cards-wrapper-cardsblue h1,
-#cards-wrapper-cardsdark h1,
-#cards-wrapper-cardsred h1 {
-    font-weight:550;
-    font-size: 1.2em;
-    font-style: normal;
+    font-size: var(--font-size-13);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    color: #594a3c;
+    font-weight: bold;
     text-transform: uppercase;
-	display: inline; 
-    margin-top: 4px;
-	margin-bottom: 4px;
-	margin-left: 0px;
-	margin-right: 0px;
-	padding-top: 0px;
-    padding-bottom: 4px;
-    padding-left: 0px;
-    padding-right: 0px;
 }
-/* H2 */
-#cards-wrapper-cardsgreen h2,
-#cards-wrapper-cardsblue h2,
-#cards-wrapper-cardsdark h2,
-#cards-wrapper-cardsred h2 {
-	font-weight:550;
-    font-size: 1.0em;
-	text-transform: uppercase;
-    margin-top: 4px;
-	margin-bottom: 4px;
-	margin-left: 0px;
-	margin-right: 0px;
-	padding-top: 0px;
-    padding-bottom: 0px;
-    padding-left: 0px;
-    padding-right: 0px;
+.blacksmith-chat-buttons button.chat-button:hover {
+    background: rgba(0, 0, 0, 0.1);
 }
-/* H3 */
-#cards-wrapper-cardsgreen h3,
-#cards-wrapper-cardsblue h3,
-#cards-wrapper-cardsdark h3,
-#cards-wrapper-cardsred h3 {
-	font-weight:400;
-    font-size: 0.85em;
-    margin-top: 10px;
-	margin-bottom: 0px;
-	margin-left: 0px;
-	margin-right: 0px;
-	padding-top: 0px;
-    padding-bottom: 0px;
-    padding-left: 0px;
-    padding-right: 0px;
-}
-/* Lists */
-#cards-wrapper-cardsgreen ol,
-#cards-wrapper-cardsgreen ul,
-#cards-wrapper-cardsblue ol,
-#cards-wrapper-cardsblue ul,
-#cards-wrapper-cardsdark ol,
-#cards-wrapper-cardsdark ul,
-#cards-wrapper-cardsred ol,
-#cards-wrapper-cardsred ul {
-	font-weight:400;
-    font-size: 1.0em;
-    margin-top: 5px;
-	margin-bottom: 5px;
-	margin-left: 20px;
-	margin-right: 0px;
-	padding-top: 0px;
-    padding-bottom: 0px;
-    padding-left: 0px;
-    padding-right: 0px;	
-}
-/* List Items */
-#cards-wrapper-cardsgreen li,
-#cards-wrapper-cardsblue li,
-#cards-wrapper-cardsdark li,
-#cards-wrapper-cardsred li {
-	font-weight:400;
-    font-size: 0.9em;
-    margin-top: 2px;
-	margin-bottom: 0px;
-	margin-left: 0px;
-	margin-right: 0px;
-	padding-top: 0px;
-    padding-bottom: 0px;
-    padding-left: 0px;
-    padding-right: 0px;	
-}
-/* Paragraph */
-#cards-wrapper-cardsgreen p,
-#cards-wrapper-cardsblue p,
-#cards-wrapper-cardsdark p,
-#cards-wrapper-cardsred p {
-	font-weight:400;
-    font-size: 1.0em;
+.blacksmith-chat-buttons button.chat-button i {
+    color: #594a3c;
     margin-top: 0px;
-	margin-bottom: 0px;
-	padding-top: 2px;
-    padding-bottom: 2px;
-    padding-left: 0px;
-    padding-right: 0px;	
-}
-/* Table */
-#cards-wrapper-cardsgreen table,
-#cards-wrapper-cardsblue table,
-#cards-wrapper-cardsdark table, 
-#cards-wrapper-cardsred table {
-    font-size: 0.8em;
-	margin-top: 8px;
-	margin-bottom: 8px;
-	margin-left: 0px;
-	margin-right: 0px;
-}
-/* Table Heading */
-#cards-wrapper-cardsgreen table th,
-#cards-wrapper-cardsblue table th,
-#cards-wrapper-cardsdark table th,
-#cards-wrapper-cardsred table th {
-    font-size: 1.0em;
-	vertical-align: bottom;
-	padding-top: 3px;
-    padding-bottom: 3px;
-    padding-left: 8px;
-    padding-right: 8px;	
-}
-/* Table Row */
-#cards-wrapper-cardsgreen table tr,
-#cards-wrapper-cardsblue table tr,
-#cards-wrapper-cardsdark table tr,
-#cards-wrapper-cardsred table tr {
-    font-size: 1.0em;
-	padding-top: 3px;
-    padding-bottom: 3px;
-    padding-left: 4px;
-    padding-right: 4px;	
-}
-/* Table Cell */
-#cards-wrapper-cardsgreen table td,
-#cards-wrapper-cardsblue table td,
-#cards-wrapper-cardsdark table td,
-#cards-wrapper-cardsred table td {
-    font-size: 1.0em;
-	padding-top: 3px;
-    padding-bottom: 3px;
-    padding-left: 8px;
-    padding-right: 8px;	
-}
-/* Preformatted */
-#cards-wrapper-cardsgreen pre,
-#cards-wrapper-cardsblue pre,
-#cards-wrapper-cardsdark pre,
-#cards-wrapper-cardsred pre {
-    white-space: pre-wrap;
-	font-size: 0.8em;
-	font-family: var(--font-primary);
-	margin-top: 0px;
-	margin-bottom: 0px;
-	margin-left: 0px;
-	margin-right: 0px;
-	padding-top: 3px;
-    padding-bottom: 3px;
-    padding-left: 0px;
-    padding-right: 0px;	
-}
-/* ******************************************** */
-/* *****        COMMON ELEMENTS           ***** */
-/* ******************************************** */
-.token-background-themecolor,
-.token-background-brick,
-.token-background-cobblestone,
-.token-background-dessert,
-.token-background-parchment,
-.token-background-rock,
-.token-background-stone,
-.token-background-clothdark,
-.token-background-clothlight,
-.token-background-stonefloor,
-.token-background-grass,
-.token-background-dirt {
-    background-repeat: repeat;
-    background-size: cover;
-}
-.token-background-themecolor {
-	background-color: transparent;
-}
-.token-background-dirt {
-	background-image: url(../images/tiles/tile-dirt.webp);
-}
-.token-background-grass {
-	background-image: url(../images/tiles/tile-grass.webp);
-}
-.token-background-parchment {
-	background-image: url(../images/tiles/tile-parchment.webp);
-}
-.token-background-clothlight {
-	background-image: url(../images/tiles/tile-clothlight.webp);
-}
-.token-background-clothdark {
-	background-image: url(../images/tiles/tile-clothdark.webp);
-}
-.token-background-brick {
-	background-image: url(../images/tiles/tile-brick.webp);
-}
-.token-background-cobblestone {
-	background-image: url(../images/tiles/tile-cobblestone.webp);
-}
-.token-background-dessert {
-	background-image: url(../images/tiles/tile-dessert.webp);
-}
-.token-background-stonefloor {
-	background-image: url(../images/tiles/tile-stonefloor.webp);
-}
-.token-background-rock {
-	background-image: url(../images/tiles/tile-rock.webp);
-}
-.token-background-stone {
-	background-image: url(../images/tiles/tile-stone.webp);
-}
-/* ******************************************** */
-/* *****      MARKDOWN OVERRIDES          ***** */
-/* ******************************************** */
-#cards-wrapper-cardsgreen #coffee-pub-bibliosoph-markdown-div,
-#cards-wrapper-cardsblue #coffee-pub-bibliosoph-markdown-div,
-#cards-wrapper-cardsdark #coffee-pub-bibliosoph-markdown-div,
-#cards-wrapper-cardsred #coffee-pub-bibliosoph-markdown-div {
-	font-size: 1.0em;
-}
-#cards-wrapper-cardsgreen .coffee-pub-bibliosoph-markdown-h1,
-#cards-wrapper-cardsblue .coffee-pub-bibliosoph-markdown-h1,
-#cards-wrapper-cardsdark .coffee-pub-bibliosoph-markdown-h1,
-#cards-wrapper-cardsred .coffee-pub-bibliosoph-markdown-h1 {
-	font-size: 1.3em;
-	font-weight:900;
-}
-#cards-wrapper-cardsgreen .coffee-pub-bibliosoph-markdown-h2,
-#cards-wrapper-cardsblue .coffee-pub-bibliosoph-markdown-h2,
-#cards-wrapper-cardsdark .coffee-pub-bibliosoph-markdown-h2,
-#cards-wrapper-cardsred .coffee-pub-bibliosoph-markdown-h2 {
-	font-size: 1.1em;
-	font-weight:900;
-}
-#cards-wrapper-cardsgreen .coffee-pub-bibliosoph-markdown-h3,
-#cards-wrapper-cardsblue .coffee-pub-bibliosoph-markdown-h3,
-#cards-wrapper-cardsdark .coffee-pub-bibliosoph-markdown-h3,
-#cards-wrapper-cardsred .coffee-pub-bibliosoph-markdown-h3 {
-	font-size: 0.9em;
-	font-weight:900;
-}
-#cards-wrapper-cardsgreen .coffee-pub-bibliosoph-markdown-p,
-#cards-wrapper-cardsblue .coffee-pub-bibliosoph-markdown-p,
-#cards-wrapper-cardsdark .coffee-pub-bibliosoph-markdown-p,
-#cards-wrapper-cardsred .coffee-pub-bibliosoph-markdown-p {
-	font-size: 1.0em;
-	font-weight:400;
-	margin-top: 4px;
-	margin-bottom: 4px;
-	margin-left: 0px;
-	margin-right: 0px;
-}
-#cards-wrapper-cardsgreen .coffee-pub-bibliosoph-markdown-blockquote,
-#cards-wrapper-cardsblue .coffee-pub-bibliosoph-markdown-blockquote,
-#cards-wrapper-cardsdark .coffee-pub-bibliosoph-markdown-blockquote,
-#cards-wrapper-cardsred .coffee-pub-bibliosoph-markdown-blockquote {
-	background-color: #f0ecdd;
-	padding-top: 3px;
-	padding-bottom:3px;
-	padding-left: 8px;
-	padding-right: 8px;
-	margin-top: 10px;
-	margin-bottom: 10px;
-	margin-left: 0px;
-	margin-right: 0px;
-	border-left: 5px solid #8a857c;
-    border-right: 0px solid #8a857c;
-    border-top: 0px solid #8a857c;
-    border-bottom: 0px solid #8a857c;
-	box-shadow: 0 0 0 0px #8a857c;
-	border-radius: 2px;
-}
-#cards-wrapper-cardsgreen .coffee-pub-bibliosoph-markdown-ul,
-#cards-wrapper-cardsblue .coffee-pub-bibliosoph-markdown-ul,
-#cards-wrapper-cardsdark .coffee-pub-bibliosoph-markdown-ul,
-#cards-wrapper-cardsred .coffee-pub-bibliosoph-markdown-ul {
-	font-size: 1.1em;
-	font-weight:400;
-	padding-top: 3px;
-	padding-bottom:3px;
-	padding-left: 0px;
-	padding-right: 8px;
-	margin-top: 4px;
-	margin-bottom: 4px;
-	margin-right: 0px;
-	list-style-type: disc;
-}
-#cards-wrapper-cardsgreen .coffee-pub-bibliosoph-markdown-ul,
-#cards-wrapper-cardsblue .coffee-pub-bibliosoph-markdown-ul,
-#cards-wrapper-cardsdark .coffee-pub-bibliosoph-markdown-ul,
-#cards-wrapper-cardsred .coffee-pub-bibliosoph-markdown-ul {
-	font-size: 1.0em;
-	font-weight:400;
-	padding-top: 3px;
-	padding-bottom:3px;
-	padding-left: 0px;
-	padding-right: 8px;
-	margin-top: 4px;
-	margin-bottom: 4px;
-	margin-right: 0px;
-	list-style-type: disc;
-}
-#cards-wrapper-cardsgreen .coffee-pub-bibliosoph-markdown-ol,
-#cards-wrapper-cardsblue .coffee-pub-bibliosoph-markdown-ol,
-#cards-wrapper-cardsdark .coffee-pub-bibliosoph-markdown-ol,
-#cards-wrapper-cardsred .coffee-pub-bibliosoph-markdown-ol {
-	font-size: 1.0em;
-	font-weight:400;
-	padding-top: 3px;
-	padding-bottom:3px;
-	padding-left: 0px;
-	padding-right: 8px;
-	margin-top: 4px;
-	margin-bottom: 4px;
-	margin-right: 0px;
-	list-style-type: decimal-leading-zero;
-}
-#cards-wrapper-cardsgreen .coffee-pub-bibliosoph-markdown-hr,
-#cards-wrapper-cardsblue .coffee-pub-bibliosoph-markdown-hr,
-#cards-wrapper-cardsdark .coffee-pub-bibliosoph-markdown-hr,
-#cards-wrapper-cardsred .coffee-pub-bibliosoph-markdown-hr {
-	border-top: 1px dotted #8a857c;
-	margin-top: 0px;
-	margin-bottom: 0px;
-	margin-right: 0px;
+    margin-right: 4px;
+    flex-shrink: 0;
 }
 
-/* ------------------------------------ */
-/* --- CARD LAYOUTS ------------------- */
-/* ------------------------------------ */
-
-/* User Cards */
-#cards-user-cardsgreen,
-#cards-user-cardsblue,
-#cards-user-cardsdark,
-#cards-user-cardsred {
-    border-radius: 4px 4px 4px 4px;
-	padding-top: 6px;
-    padding-bottom: 6px;
-    padding-left: 6px;
-    padding-right: 6px;
-    margin-top: 5px;
-    margin-bottom:5px;
-    margin-left: 0px;
-    margin-right: 0px;
-	display: flex;
-}
-/* token Image */
-#cards-token-image-cardsgreen,
-#cards-token-image-cardsblue,
-#cards-token-image-cardsdark,
-#cards-token-image-cardsred {
-    border-radius: 4px 4px 4px 4px !important;
-    height: 40px;
-	padding-top: 0px;
-    padding-bottom: 0px;
-    padding-left: 0px;
-    padding-right: 0px;
-    margin-top: 0px;
-    margin-bottom: 0px;
-    margin-left: 0px;
-    margin-right: 8px;
-	vertical-align: middle;
-	float: left;
-}
-/* token Text Wrapper */
-#cards-token-text-wrapper-cardsgreen,
-#cards-token-text-wrapper-cardsblue,
-#cards-token-text-wrapper-cardsdark,
-#cards-token-text-wrapper-cardsred {
-	
-	padding-top: 0px;
-    padding-bottom: 0px;
-    padding-left: 0px;
-    padding-right: 0px;
-    margin-top: 4px;
-    margin-bottom: 0px;
-    margin-left: 0px;
-	margin-right: 0px;
-	/* Use a flexbox layout */
-	display: block;
-	flex-direction: column;
-	align-items: left;
-}
-/* token Text Name */
-#cards-token-name-cardsgreen,
-#cards-token-name-cardsblue,
-#cards-token-name-cardsdark,
-#cards-token-name-cardsred {
-	font-weight:100;
-    font-size: 1.1em;
-	padding-top: 0px;
-    padding-bottom: 0px;
-    padding-left: 0px;
-    padding-right: 0px;
-    margin-top: 0px;
-    margin-bottom: 0px;
-    margin-left: 0px;
-}
-/* token Text Character */
-#cards-token-character-cardsgreen,
-#cards-token-character-cardsblue,
-#cards-token-character-cardsdark,
-#cards-token-character-cardsred {
-	font-weight:100;
-    font-size: 0.7em;
-	padding-top: 0px;
-    padding-bottom: 0px;
-    padding-left: 0px;
-    padding-right: 0px;
-    margin-top: 0px;
-    margin-bottom: 0px;
-    margin-left: 0px;
-}
