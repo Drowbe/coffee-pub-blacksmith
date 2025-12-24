@@ -15,13 +15,32 @@
 
 /* COMMON STYLES */
 
+/* CSS Variables - Default Theme Colors (can be overridden by themes) */
+:root {
+    --blacksmith-card-bg: #ffffff;
+    --blacksmith-card-border: #594a3c;
+    --blacksmith-card-text: #594a3c;
+    --blacksmith-card-header-text: #594a3c;
+    --blacksmith-card-section-header-text: #481515;
+    --blacksmith-card-section-header-border: rgba(0, 0, 0, 0.2);
+    --blacksmith-card-section-subheader-text: #481515;
+    --blacksmith-card-section-subheader-bg: rgba(0, 0, 0, 0.1);
+    --blacksmith-card-section-content-text: #594a3c;
+    --blacksmith-card-hover-color: #c15701;
+    --blacksmith-card-button-text: #594a3c;
+    --blacksmith-card-button-border: #999;
+    --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
+    --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
+}
+
 /* Base Container */
 .blacksmith-card {
+    /* Layout Properties */
     padding: 0;
     margin: 0;
     font-family: var(--dnd5e-font-roboto); 
-    background-color: #ffffff;
-    border: 1px solid #594a3c;
+    background-color: var(--blacksmith-card-bg);
+    border: 1px solid var(--blacksmith-card-border);
     border-radius: 5px;
     padding: 0.5em;
     margin-bottom: 0.5em;
@@ -35,53 +54,20 @@
     padding-top: 2px;
 }
 
-/* THEMES */
-.blacksmith-card.theme-default {
-    background: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.07);
-}
-.blacksmith-card.theme-orange {
-    background-color: rgba(247, 140, 1, 0.1);
-    border: 1px solid rgba(247, 140, 1, 0.07);
-}
-.blacksmith-card.theme-red {
-    background-color: rgba(118, 31, 19, 0.1);
-    border: 1px solid rgba(118, 31, 19, 0.07);
-}
-.blacksmith-card.theme-blue {
-    background-color: rgba(0, 120, 212, 0.1);
-    border: 1px solid rgba(0, 120, 212, 0.07);
-}
-.blacksmith-card.theme-green {
-    background-color: rgba(0, 212, 64, 0.1);
-    border: 1px solid rgba(0, 212, 64, 0.07);
-}
-.blacksmith-card.theme-default,
-.blacksmith-card.theme-orange,
-.blacksmith-card.theme-red,
-.blacksmith-card.theme-blue,
-.blacksmith-card.theme-green {
+/* Layout adjustments when any theme is applied */
+.blacksmith-card[class*="theme-"] {
     border-radius: 4px;
     padding: 6px;
     margin-bottom: 0px;
 }
 
-.blacksmith-card.theme-default p,
-.blacksmith-card.theme-orange p,
-.blacksmith-card.theme-red p,
-.blacksmith-card.theme-blue p,
-.blacksmith-card.theme-green p {
-    color: #594a3c;
+.blacksmith-card p {
+    color: var(--blacksmith-card-text);
     text-shadow: none;
     margin: 0;
     padding: 0;
 }
 
-.blacksmith-card.theme-default i,
-.blacksmith-card.theme-blue i,
-.blacksmith-card.theme-green i, 
-.blacksmith-card.theme-red i,
-.blacksmith-card.theme-orange i,
 .blacksmith-card i {
     margin-right: 3px;
 }
@@ -93,7 +79,7 @@
     font-family: "Modesto Condensed"; 
     font-size: 1.5em;
     font-weight: 900;
-    color: #594a3c;
+    color: var(--blacksmith-card-header-text);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -117,8 +103,8 @@
 
 
 .blacksmith-card .section-header {
-    border-top: 0px dotted rgba(0, 0, 0, 0.2);
-    border-bottom: 1px dotted rgba(0, 0, 0, 0.2);
+    border-top: 0px dotted var(--blacksmith-card-section-header-border);
+    border-bottom: 1px dotted var(--blacksmith-card-section-header-border);
     margin-top: 10px;
     margin-bottom: 6px;
     padding-top: 0px;
@@ -126,7 +112,7 @@
     font-size: 1.0em;
     font-weight: 900;
     text-transform: uppercase;
-    color: #481515;
+    color: var(--blacksmith-card-section-header-text);
 }
 
 .blacksmith-card .section-header i {
@@ -134,12 +120,12 @@
     padding-top: 2px;
 }
 .blacksmith-card .section-subheader {
-    color: #481515;
+    color: var(--blacksmith-card-section-subheader-text);
     text-align: center;
     font-weight: 900;
     font-size: 1.3em;
     padding: 6px;
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--blacksmith-card-section-subheader-bg);
     border: 0px solid rgba(170, 2, 0, 0.4);
     border-radius: 4px;
     margin-top: 10px;
@@ -162,7 +148,7 @@
     max-height: 1000px;
     transition: max-height 0.3s ease-out;
     overflow: hidden;
-    color: #594a3c;
+    color: var(--blacksmith-card-section-content-text);
 }
 
 .blacksmith-card .section-content.collapsed {
@@ -212,12 +198,12 @@
 }
 
 .blacksmith-card .card-header.collapsible:hover {
-    color: #c15701;
+    color: var(--blacksmith-card-hover-color);
     transition: color 0.2s ease;
 }
 
 .blacksmith-card .card-header.collapsible:hover i {
-    color: #c15701;
+    color: var(--blacksmith-card-hover-color);
     transition: color 0.2s ease;
 }
 
@@ -281,9 +267,9 @@
     align-items: center;
     justify-content: space-between;
     padding: 0;
-    border: 0px solid #999;
+    border: 0px solid var(--blacksmith-card-button-border);
     border-radius: 3px;
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--blacksmith-card-button-container-bg);
     margin-top: 10px;
     margin-bottom: 0px;
     margin-left: 0px;
@@ -294,7 +280,7 @@
     width: 100%;
     text-align: left;
     background: none;
-    border: 1px solid #999;
+    border: 1px solid var(--blacksmith-card-button-border);
     padding: 1px 6px;
     margin-top: 2px;
     margin-bottom: 2px;
@@ -304,15 +290,15 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    color: #594a3c;
+    color: var(--blacksmith-card-button-text);
     font-weight: bold;
     text-transform: uppercase;
 }
 .blacksmith-chat-buttons button.chat-button:hover {
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--blacksmith-card-button-hover-bg);
 }
 .blacksmith-chat-buttons button.chat-button i {
-    color: #594a3c;
+    color: var(--blacksmith-card-button-text);
     margin-top: 0px;
     margin-right: 4px;
     flex-shrink: 0;

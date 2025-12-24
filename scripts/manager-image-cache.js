@@ -1015,6 +1015,23 @@ export class ImageCacheManager {
                     for (const basePath of basePaths) {
                         await this._doIncrementalUpdate(basePath, mode);
                     }
+                    
+                    // After all paths are scanned, clean up empty folders
+                    const cache = this.getCache(mode);
+                    const foldersToRemove = [];
+                    for (const [folderPath, folderFiles] of cache.folders.entries()) {
+                        // Remove folders that are empty or have invalid data
+                        if (!Array.isArray(folderFiles) || folderFiles.length === 0) {
+                            foldersToRemove.push(folderPath);
+                        }
+                    }
+                    // Remove empty/invalid folders
+                    for (const folderPath of foldersToRemove) {
+                        cache.folders.delete(folderPath);
+                    }
+                    if (foldersToRemove.length > 0) {
+                        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cleaned up ${foldersToRemove.length} empty folder(s)`, "", true, false);
+                    }
                 }
                 return;
             }
@@ -1061,77 +1078,178 @@ export class ImageCacheManager {
         }
         
         try {
-            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Starting incremental update...", "", true, false);
+            const originalFileCount = cache.files.size;
+            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Starting incremental update for ${basePath}...`, "", true, false);
             
-            // Check if folder structure has changed
-            const currentFingerprint = await this._generateFolderFingerprint(basePath);
-            const savedCache = localStorage.getItem('tokenImageReplacement_cache');
+            // Get the source index for this path
+            const basePaths = this.getTokenImagePathsForMode(mode);
+            const sourceIndex = basePaths.indexOf(basePath) + 1; // 1-based index
             
-            let needsUpdate = false;
-            if (savedCache) {
-                const cacheData = JSON.parse(savedCache);
-                const savedFingerprint = cacheData.folderFingerprint;
-                
-                // CRITICAL FIX: Handle null/invalid fingerprints from previous failed scans
-                if (!savedFingerprint || savedFingerprint === 'null' || savedFingerprint === 'error' || savedFingerprint === 'no-path') {
-                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Saved cache has invalid fingerprint, will update it", "", true, false);
-                    // Don't trigger full rescan, just update the fingerprint
-                    needsUpdate = false;
-                } else if (savedFingerprint !== currentFingerprint) {
-                    needsUpdate = true;
-                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, files need to be rescanned", "", true, false);
-                } else {
-                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: No changes detected in folder structure", "", true, false);
+            // Initialize folder tracking for incremental update
+            cache.totalFolders = basePaths.length;
+            cache.currentFolderIndex = sourceIndex;
+            
+            // Track files that exist before scanning this path
+            const filesBeforeScan = new Set();
+            for (const [cacheKey, fileInfo] of cache.files.entries()) {
+                if (fileInfo.metadata?.sourcePath === basePath) {
+                    filesBeforeScan.add(cacheKey);
                 }
             }
             
-            if (needsUpdate) {
-                // If structure changed, we need to do a full rescan
-                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Changes detected - falling back to full scan`, "", true, false);
-                cache.isScanning = false; // Stop incremental mode
-                await this._scanFolderStructure(mode, basePath); // Do full scan
-                return;
-            } else {
-                // No changes detected, just update the timestamp
-                const originalFileCount = cache.files.size;
-                const startTime = Date.now();
-                
-                // Update lastScan timestamp to current time
-                cache.lastScan = Date.now();
-                cache.totalFiles = cache.files.size;
-                
-                // Save the updated cache with new timestamp
-                await this._saveCacheToStorage(mode, false); // false = final save
-                
-                // Update the cache status setting for display
-                this._updateCacheStatusSetting(mode);
-                
-                // Set completion state for UI updates
+            // Scan the directory - _getDirectoryContents already processes files into cache
+            // It will skip duplicates automatically via _processFiles
+            // Skip delays for incremental updates to make them faster
+            const files = await this._getDirectoryContents(basePath, sourceIndex, mode, basePaths.length, true);
+            
+            if (files.length === 0 && filesBeforeScan.size === 0) {
+                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: No files found in ${basePath}`, "", true, false);
                 cache.isScanning = false;
-                cache.justCompleted = true;
-                cache.completionData = {
-                    totalFiles: originalFileCount,
-                    totalFolders: cache.totalFoldersScanned || cache.folders.size,
-                    timeString: "less than a second" // Incremental updates are very fast
-                };
-                
-                // Force window refresh to show updated cache status and button state
+                return;
+            }
+            
+            // Track files that exist after scanning this path
+            const filesAfterScan = new Set();
+            for (const [cacheKey, fileInfo] of cache.files.entries()) {
+                if (fileInfo.metadata?.sourcePath === basePath) {
+                    filesAfterScan.add(cacheKey);
+                }
+            }
+            
+            // Calculate added and removed files
+            const removedFilesSet = new Set();
+            for (const cacheKey of filesBeforeScan) {
+                if (!filesAfterScan.has(cacheKey)) {
+                    removedFilesSet.add(cacheKey);
+                }
+            }
+            
+            const addedFilesSet = new Set();
+            for (const cacheKey of filesAfterScan) {
+                if (!filesBeforeScan.has(cacheKey)) {
+                    addedFilesSet.add(cacheKey);
+                }
+            }
+            
+            const addedFiles = addedFilesSet.size;
+            
+            // Remove deleted files from cache
+            let removedFiles = 0;
+            for (const cacheKey of removedFilesSet) {
+                const fileInfo = cache.files.get(cacheKey);
+                if (!fileInfo) continue;
+                if (fileInfo) {
+                    // Remove from main cache
+                    cache.files.delete(cacheKey);
+                    
+                    // Remove from filesByFileName index
+                    const fileName = fileInfo.name || '';
+                    const fileNameKey = fileName.toLowerCase();
+                    if (cache.filesByFileName && cache.filesByFileName.has(fileNameKey)) {
+                        const keys = cache.filesByFileName.get(fileNameKey);
+                        const index = keys.indexOf(cacheKey);
+                        if (index > -1) {
+                            keys.splice(index, 1);
+                            if (keys.length === 0) {
+                                cache.filesByFileName.delete(fileNameKey);
+                            }
+                        }
+                    }
+                    
+                    // Remove from folders cache
+                    const relativePath = fileInfo.path || '';
+                    const folderPath = relativePath.split('/').slice(0, -1).join('/');
+                    // If file was in root, use root folder name as folderPath
+                    let actualFolderPath = folderPath;
+                    if (!folderPath && basePath) {
+                        const sourceParts = basePath.split('/').filter(p => p);
+                        if (sourceParts.length > 0) {
+                            actualFolderPath = sourceParts[sourceParts.length - 1];
+                        }
+                    }
+                    if (cache.folders.has(actualFolderPath)) {
+                        const folderFiles = cache.folders.get(actualFolderPath);
+                        // Ensure it's an array (defensive check)
+                        if (Array.isArray(folderFiles)) {
+                            const fileIndex = folderFiles.indexOf(fileName);
+                            if (fileIndex > -1) {
+                                folderFiles.splice(fileIndex, 1);
+                                if (folderFiles.length === 0) {
+                                    cache.folders.delete(actualFolderPath);
+                                }
+                            }
+                        } else {
+                            // If it's not an array, delete the entry and recreate it
+                            cache.folders.delete(actualFolderPath);
+                        }
+                    }
+                    
+                    // Remove from creatureTypes cache
+                    for (const [creatureType, typeFiles] of cache.creatureTypes.entries()) {
+                        const fileIndex = typeFiles.indexOf(fileName);
+                        if (fileIndex > -1) {
+                            typeFiles.splice(fileIndex, 1);
+                            if (typeFiles.length === 0) {
+                                cache.creatureTypes.delete(creatureType);
+                            }
+                        }
+                    }
+                    
+                    removedFiles++;
+                }
+            }
+            
+            const finalFileCount = cache.files.size;
+            
+            // Update lastScan timestamp
+            cache.lastScan = Date.now();
+            cache.totalFiles = finalFileCount;
+            
+            // Save the updated cache
+            await this._saveCacheToStorage(mode, false); // false = final save
+            
+            // Update the cache status setting for display
+            this._updateCacheStatusSetting(mode);
+            
+            // Set completion state for UI updates
+            cache.isScanning = false;
+            cache.justCompleted = true;
+            cache.completionData = {
+                totalFiles: finalFileCount,
+                totalFolders: cache.totalFoldersScanned || cache.folders.size,
+                timeString: "less than a second" // Incremental updates are very fast
+            };
+            
+            // Force window refresh to show updated cache status and button state
+            if (this.window && this.window.render) {
+                this.window.render();
+            }
+            
+            // Clear completion state after 3 seconds (shorter for incremental)
+            setTimeout(() => {
+                cache.justCompleted = false;
+                cache.completionData = null;
                 if (this.window && this.window.render) {
                     this.window.render();
                 }
-                
-                // Clear completion state after 3 seconds (shorter for incremental)
-                setTimeout(() => {
-                    cache.justCompleted = false;
-                    cache.completionData = null;
-                    if (this.window && this.window.render) {
-                        this.window.render();
-                    }
-                }, 3000);
-                
-                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: ✅ INCREMENTAL UPDATE COMPLETE!`, "", false, false);
-                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: No changes detected. Cache still contains ${originalFileCount} files.`, "", false, false);
+            }, 3000);
+            
+            // Report results
+            let resultMessage = `${modeLabel} Image Replacement: ✅ INCREMENTAL UPDATE COMPLETE!`;
+            const changes = [];
+            if (addedFiles > 0) {
+                changes.push(`Added ${addedFiles} new file(s)`);
             }
+            if (removedFiles > 0) {
+                changes.push(`Removed ${removedFiles} deleted file(s)`);
+            }
+            if (changes.length > 0) {
+                resultMessage += ` ${changes.join(', ')}.`;
+            } else {
+                resultMessage += ` No changes detected.`;
+            }
+            resultMessage += ` Cache now contains ${finalFileCount} files.`;
+            postConsoleAndNotification(MODULE.NAME, resultMessage, "", false, false);
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Error during incremental update: ${error.message}`, "", false, false);
@@ -1612,7 +1730,7 @@ export class ImageCacheManager {
      * @param {number} sourceIndex - 1-based index of the source path (for priority tracking)
      * @param {string} mode - 'token' or 'portrait'
      */
-    static async _getDirectoryContents(basePath, sourceIndex = 1, mode = 'token', totalFolders = 1) {
+    static async _getDirectoryContents(basePath, sourceIndex = 1, mode = 'token', totalFolders = 1, skipDelays = false) {
         const files = [];
         const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
         const cache = this.getCache(mode);
@@ -1632,6 +1750,20 @@ export class ImageCacheManager {
                 
                 const baseFiles = [];
                 for (const filePath of response.files) {
+                    const fileName = filePath.split('/').pop()?.toLowerCase() || '';
+                    
+                    // Skip system files early
+                    const systemFiles = ['desktop.ini', 'thumbs.db', '.ds_store', 'folder.jpg', 'folder.png', '.gitignore', '.gitkeep'];
+                    if (systemFiles.includes(fileName)) {
+                        continue; // Skip this file entirely
+                    }
+                    
+                    // Check if file has supported extension (skip early to avoid processing)
+                    const extension = filePath.split('.').pop()?.toLowerCase();
+                    if (!ImageCacheManager.SUPPORTED_FORMATS.includes(`.${extension}`)) {
+                        continue; // Skip non-image files
+                    }
+                    
                     const fileInfo = await this._processFileInfo(filePath, basePath, sourceIndex);
                     if (fileInfo) {
                         files.push(fileInfo);
@@ -1708,12 +1840,14 @@ export class ImageCacheManager {
                     if (this.window && this.window.updateScanProgress) {
                         const statusText = this._truncateStatusText(`Scanning ${subDirName}: ${files.length} files found`);
                         this.window.updateScanProgress(processedCount, nonIgnoredDirs.length, statusText);
-                        // Small delay to make progress visible
-                        await new Promise(resolve => setTimeout(resolve, 50));
+                        // Small delay to make progress visible (skip for incremental updates)
+                        if (!skipDelays) {
+                            await new Promise(resolve => setTimeout(resolve, 50));
+                        }
                     }
                     
                     // Progress logging is now handled above
-                    const subDirFiles = await this._scanSubdirectory(subDir, basePath, sourceIndex, mode, totalFolders);
+                    const subDirFiles = await this._scanSubdirectory(subDir, basePath, sourceIndex, mode, totalFolders, skipDelays);
                     files.push(...subDirFiles);
                     
                     // Process files into cache immediately so they're available for incremental saves
@@ -1777,7 +1911,7 @@ export class ImageCacheManager {
      * @param {number} sourceIndex - 1-based index of the source path (for priority tracking)
      * @param {string} mode - 'token' or 'portrait'
      */
-    static async _scanSubdirectory(subDir, basePath, sourceIndex = 1, mode = 'token', totalFolders = 1) {
+    static async _scanSubdirectory(subDir, basePath, sourceIndex = 1, mode = 'token', totalFolders = 1, skipDelays = false) {
         const files = [];
         const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
         
@@ -1809,6 +1943,19 @@ export class ImageCacheManager {
                     
                     const filePath = response.files[i];
                     const fileName = filePath.split('/').pop();
+                    const fileNameLower = fileName?.toLowerCase() || '';
+                    
+                    // Skip system files early (before updating progress display)
+                    const systemFiles = ['desktop.ini', 'thumbs.db', '.ds_store', 'folder.jpg', 'folder.png', '.gitignore', '.gitkeep'];
+                    if (systemFiles.includes(fileNameLower)) {
+                        continue; // Skip this file entirely
+                    }
+                    
+                    // Check if file has supported extension (skip early to avoid processing)
+                    const extension = filePath.split('.').pop()?.toLowerCase();
+                    if (!ImageCacheManager.SUPPORTED_FORMATS.includes(`.${extension}`)) {
+                        continue; // Skip non-image files
+                    }
                     
                     // Update current file being processed
                     cache.currentStepProgress = i + 1;
@@ -1817,8 +1964,10 @@ export class ImageCacheManager {
                     // Update window with detailed progress
                     if (this.window && this.window.updateScanProgress) {
                         this.window.updateScanProgress(i + 1, response.files.length, `${cache.currentPath} | ${i + 1} of ${response.files.length} | ${fileName}`);
-                        // Small delay to make progress visible
-                        await new Promise(resolve => setTimeout(resolve, 10));
+                        // Small delay to make progress visible (skip for incremental updates)
+                        if (!skipDelays) {
+                            await new Promise(resolve => setTimeout(resolve, 10));
+                        }
                     }
                     
                     const fileInfo = await this._processFileInfo(filePath, basePath, sourceIndex);
@@ -1849,7 +1998,7 @@ export class ImageCacheManager {
                         this.window.updateScanProgress(i + 1, response.dirs.length, statusText);
                     }
                     
-                    const deeperFiles = await this._scanSubdirectory(deeperDir, basePath, sourceIndex, mode, totalFolders);
+                    const deeperFiles = await this._scanSubdirectory(deeperDir, basePath, sourceIndex, mode, totalFolders, skipDelays);
                     files.push(...deeperFiles);
                     
                     // Categories will be generated from folder structure when window opens
@@ -1876,6 +2025,13 @@ export class ImageCacheManager {
      * @param {number} sourceIndex - 1-based index of the source path (for priority tracking)
      */
     static async _processFileInfo(filePath, basePath, sourceIndex = 1) {
+        const fileName = filePath.split('/').pop()?.toLowerCase() || '';
+        
+        // Skip common system files
+        const systemFiles = ['desktop.ini', 'thumbs.db', '.ds_store', 'folder.jpg', 'folder.png', '.gitignore', '.gitkeep'];
+        if (systemFiles.includes(fileName)) {
+            return null;
+        }
         
         // Check if file has supported extension
         const extension = filePath.split('.').pop()?.toLowerCase();
@@ -1891,7 +2047,7 @@ export class ImageCacheManager {
         
         // Extract relative path from base path
         const relativePath = filePath.replace(`${basePath}/`, '');
-        const fileName = filePath.split('/').pop();
+        // fileName already declared at the top of the function
         
         // Get file stats if possible
         let fileSize = 0;
@@ -2191,6 +2347,11 @@ export class ImageCacheManager {
         
         // Add to folders cache
         if (!cache.folders.has(folderPath)) {
+            cache.folders.set(folderPath, []);
+        }
+        const folderFiles = cache.folders.get(folderPath);
+        // Ensure it's an array (defensive check)
+        if (!Array.isArray(folderFiles)) {
             cache.folders.set(folderPath, []);
         }
         cache.folders.get(folderPath).push(fileName);
