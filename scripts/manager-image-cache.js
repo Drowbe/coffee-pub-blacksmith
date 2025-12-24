@@ -3179,13 +3179,23 @@ export class ImageCacheManager {
      * @param {string} filePath - The file path to analyze (relative to base path)
      * @returns {string|null} The category name or null if no category
      */
-    static getCategoryFromFilePath(filePath) {
+    static getCategoryFromFilePath(filePath, sourcePath = null) {
         if (!filePath) return null;
         
         // Cache stores RELATIVE paths, so first part is the category
         const pathParts = filePath.split('/').filter(p => p);
         
         if (pathParts.length > 0) {
+            // Check if this is a root file (just filename, no folder path)
+            // If so, get category from sourcePath (root folder name)
+            if (pathParts.length === 1 && pathParts[0].includes('.') && sourcePath) {
+                // This looks like just a filename (has extension), extract root folder name
+                const sourceParts = sourcePath.split('/').filter(p => p);
+                if (sourceParts.length > 0) {
+                    return sourceParts[sourceParts.length - 1];
+                }
+            }
+            // Normal subfolder file - first part is the category
             return pathParts[0];
         }
         

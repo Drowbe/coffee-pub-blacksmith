@@ -428,7 +428,34 @@ export class TokenImageReplacementWindow extends Application {
                     // Category is first part of relative path
                     let categoryFolder = null;
                     if (pathParts.length > 0) {
-                        categoryFolder = pathParts[0];
+                        // Check if this is a root file (just filename, no folder path)
+                        // If path has only one part and no slashes, it might be a root file
+                        if (pathParts.length === 1 && !path.includes('/')) {
+                            // Check cache.folders to see which folder contains this filename
+                            // Root files are stored with root folder name as the folderPath key
+                            const cache = ImageCacheManager.getCache(this.mode);
+                            for (const [folderPath, files] of cache.folders.entries()) {
+                                // If folderPath has no slashes, it's a root folder category
+                                if (!folderPath.includes('/') && files.includes(pathParts[0])) {
+                                    categoryFolder = folderPath;
+                                    break;
+                                }
+                            }
+                            // Fallback: get category from sourcePath if not found in cache
+                            if (!categoryFolder) {
+                                const sourcePath = file.metadata?.sourcePath;
+                                if (sourcePath) {
+                                    // Extract root folder name from sourcePath (last part)
+                                    const sourceParts = sourcePath.split('/').filter(p => p);
+                                    if (sourceParts.length > 0) {
+                                        categoryFolder = sourceParts[sourceParts.length - 1];
+                                    }
+                                }
+                            }
+                        } else {
+                            // Normal subfolder file - first part is the category
+                            categoryFolder = pathParts[0];
+                        }
                     }
                     
                     return categoryFolder ? categoryFolder.toLowerCase() === this.currentFilter : false;
@@ -3043,7 +3070,34 @@ export class TokenImageReplacementWindow extends Application {
             const pathParts = relativePath.split('/').filter(p => p);
             let fileCategory = null;
             if (pathParts.length > 0) {
-                fileCategory = pathParts[0];
+                // Check if this is a root file (just filename, no folder path)
+                // If path has only one part and no slashes, it might be a root file
+                if (pathParts.length === 1 && !relativePath.includes('/')) {
+                    // Check cache.folders to see which folder contains this filename
+                    // Root files are stored with root folder name as the folderPath key
+                    const cache = ImageCacheManager.getCache(this.mode);
+                    for (const [folderPath, files] of cache.folders.entries()) {
+                        // If folderPath has no slashes, it's a root folder category
+                        if (!folderPath.includes('/') && files.includes(pathParts[0])) {
+                            fileCategory = folderPath;
+                            break;
+                        }
+                    }
+                    // Fallback: get category from sourcePath if not found in cache
+                    if (!fileCategory) {
+                        const sourcePath = fileInfo.metadata?.sourcePath;
+                        if (sourcePath) {
+                            // Extract root folder name from sourcePath (last part)
+                            const sourceParts = sourcePath.split('/').filter(p => p);
+                            if (sourceParts.length > 0) {
+                                fileCategory = sourceParts[sourceParts.length - 1];
+                            }
+                        }
+                    }
+                } else {
+                    // Normal subfolder file - first part is the category
+                    fileCategory = pathParts[0];
+                }
             }
             
             if (fileCategory === categoryName) {
