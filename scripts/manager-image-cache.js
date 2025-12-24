@@ -43,6 +43,8 @@ export class ImageCacheManager {
         totalFiles: 0,             // total count for progress tracking
         overallProgress: 0,        // current step in overall process
         totalSteps: 0,             // total steps in overall process
+        currentFolderIndex: 0,     // current folder number (1-based, from settings)
+        totalFolders: 0,          // total number of folders configured
         currentStepName: '',       // name of current step/folder
         currentStepProgress: 0,    // current item in current step
         currentStepTotal: 0,       // total items in current step
@@ -66,6 +68,8 @@ export class ImageCacheManager {
         totalFiles: 0,             // total count for progress tracking
         overallProgress: 0,        // current step in overall process
         totalSteps: 0,             // total steps in overall process
+        currentFolderIndex: 0,     // current folder number (1-based, from settings)
+        totalFolders: 0,          // total number of folders configured
         currentStepName: '',       // name of current step/folder
         currentStepProgress: 0,    // current item in current step
         currentStepTotal: 0,       // total items in current step
@@ -1374,6 +1378,8 @@ export class ImageCacheManager {
         // Initialize overall progress tracking
         cache.overallProgress = 0;
         cache.currentStepName = '';
+        cache.totalFolders = basePaths.length;
+        cache.currentFolderIndex = 0;
         
         postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Starting folder scan across ${basePaths.length} path(s)...`, "", true, false);
         postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: This may take a few minutes for large image collections...`, "", true, false);
@@ -1390,10 +1396,13 @@ export class ImageCacheManager {
                 const basePath = basePaths[pathIndex];
                 const sourceIndex = pathIndex + 1; // 1-based index (matches setting number)
                 
+                // Update current folder index in cache for template display
+                cache.currentFolderIndex = sourceIndex;
+                
                 postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Scanning path ${sourceIndex}/${basePaths.length}: ${basePath}`, "", true, false);
                 
                 // Use Foundry's FilePicker to get directory contents for this path
-                const files = await this._getDirectoryContents(basePath, sourceIndex, mode);
+                const files = await this._getDirectoryContents(basePath, sourceIndex, mode, basePaths.length);
                 
                 if (files.length > 0) {
                     totalFiles += files.length;
@@ -1603,7 +1612,7 @@ export class ImageCacheManager {
      * @param {number} sourceIndex - 1-based index of the source path (for priority tracking)
      * @param {string} mode - 'token' or 'portrait'
      */
-    static async _getDirectoryContents(basePath, sourceIndex = 1, mode = 'token') {
+    static async _getDirectoryContents(basePath, sourceIndex = 1, mode = 'token', totalFolders = 1) {
         const files = [];
         const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
         const cache = this.getCache(mode);
@@ -1704,7 +1713,7 @@ export class ImageCacheManager {
                     }
                     
                     // Progress logging is now handled above
-                    const subDirFiles = await this._scanSubdirectory(subDir, basePath, sourceIndex, mode);
+                    const subDirFiles = await this._scanSubdirectory(subDir, basePath, sourceIndex, mode, totalFolders);
                     files.push(...subDirFiles);
                     
                     // Process files into cache immediately so they're available for incremental saves
@@ -1768,7 +1777,7 @@ export class ImageCacheManager {
      * @param {number} sourceIndex - 1-based index of the source path (for priority tracking)
      * @param {string} mode - 'token' or 'portrait'
      */
-    static async _scanSubdirectory(subDir, basePath, sourceIndex = 1, mode = 'token') {
+    static async _scanSubdirectory(subDir, basePath, sourceIndex = 1, mode = 'token', totalFolders = 1) {
         const files = [];
         const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
         
@@ -1840,7 +1849,7 @@ export class ImageCacheManager {
                         this.window.updateScanProgress(i + 1, response.dirs.length, statusText);
                     }
                     
-                    const deeperFiles = await this._scanSubdirectory(deeperDir, basePath, sourceIndex, mode);
+                    const deeperFiles = await this._scanSubdirectory(deeperDir, basePath, sourceIndex, mode, totalFolders);
                     files.push(...deeperFiles);
                     
                     // Categories will be generated from folder structure when window opens
@@ -2024,7 +2033,9 @@ export class ImageCacheManager {
             validFiles++;
             
             // Categorize by folder (determines creature types and folders)
-            this._categorizeFile(fileName, filePath, mode);
+            // Pass sourcePath so root files can use root folder name as category
+            const sourcePath = fileInfo.metadata?.sourcePath || basePath;
+            this._categorizeFile(fileName, filePath, mode, sourcePath);
             
             // OPTIMIZATION: Enhance metadata tags with creature types and category
             // This prevents recalculating these on every tag filter operation
@@ -2163,10 +2174,20 @@ export class ImageCacheManager {
      * @param {string} filePath - The relative file path
      * @param {string} mode - 'token' or 'portrait'
      */
-    static _categorizeFile(fileName, filePath, mode = 'token') {
+    static _categorizeFile(fileName, filePath, mode = 'token', sourcePath = null) {
         const cache = this.getCache(mode);
         // Extract folder path
-        const folderPath = filePath.split('/').slice(0, -1).join('/');
+        let folderPath = filePath.split('/').slice(0, -1).join('/');
+        
+        // If file is in root (empty folderPath), use root folder name as category
+        if (!folderPath && sourcePath) {
+            // Extract root folder name from sourcePath (last part of the path)
+            // e.g., "modules/forgotten-adventures-tokens" -> "forgotten-adventures-tokens"
+            const sourceParts = sourcePath.split('/').filter(p => p);
+            if (sourceParts.length > 0) {
+                folderPath = sourceParts[sourceParts.length - 1];
+            }
+        }
         
         // Add to folders cache
         if (!cache.folders.has(folderPath)) {

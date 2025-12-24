@@ -37,9 +37,11 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.3);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(16, 40, 18, 0.9);
+    border-bottom: 1px solid rgba(88, 81, 65, 0.9);
     gap: 12px;
+    font-size: 1.3em;
+    text-transform: uppercase;
 }
 
 /* Mode Toggle - Left Aligned with Labels on Both Sides */

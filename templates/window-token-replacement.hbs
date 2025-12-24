@@ -98,7 +98,7 @@
                     <div class="tir-progress-fill" style="width: {{overallProgressPercentage}}%"></div>
                     <div class="tir-progress-text">
                         <i class="fas fa-sync-alt fa-spin"></i>
-                        <span class="tir-progress-total">{{#if totalSteps}}Phase {{overallProgress}} of {{totalSteps}}{{else}}Initializing...{{/if}}</span> | <span class="tir-progress-details">{{currentStepName}}</span>
+                        <span class="tir-progress-total">{{#if totalSteps}}{{#if showFolderInfo}}Folder {{currentFolderIndex}} of {{totalFolders}} | {{/if}}Phase {{overallProgress}} of {{totalSteps}}{{else}}Initializing...{{/if}}</span> | <span class="tir-progress-details">{{currentStepName}}</span>
                     </div>
                 </div>
             </div>
