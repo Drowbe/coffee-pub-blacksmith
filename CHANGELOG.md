@@ -15,9 +15,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Update Actors (`portraitImageReplacementUpdateActors`)
   - Skip Linked Tokens (`portraitImageReplacementSkipLinked`)
   These settings allow fine-grained control over which actor types have their portraits automatically replaced, matching the functionality available for token image replacement.
+- **Card Theme System Documentation**: Added `migration-cards.md` documentation outlining the migration plan for converting hardcoded colors in card-specific CSS files to use the new CSS variable theme system.
+- **Folder Progress Display**: Added folder number display to scan progress messages. Progress now shows "Folder X of Y | Phase X of Y" when scanning multiple image folders, indicating which configured folder is currently being processed.
 
 ### Changed
 - **Token and Portrait Replacement Filtering**: Enhanced both token and portrait image replacement processing to respect actor type and linked token settings. Both systems now check actor type (monster, NPC, vehicle, character) and linked token status before processing replacements, ensuring consistent behavior across both replacement modes. Added `_shouldUpdateActor()` helper function that centralizes the filtering logic for both token and portrait replacement.
+- **Card CSS Architecture Refactoring**: Refactored card CSS system to use CSS variables for complete themeability. Separated layout and theme concerns:
+  - `cards-layout.css` - Contains all layout, spacing, typography, and structure (uses CSS variables)
+  - `cards-themes.css` - Contains only color definitions via CSS variables
+  - All CSS variables are namespaced with `blacksmith-card-` prefix to avoid conflicts with other modules
+  - Default variable values defined in `:root {}` for proper CSS inheritance
+  - Theme classes only override CSS variable values, never layout properties
+  - Used attribute selector `[class*="theme-"]` for theme-specific layout adjustments to automatically support new themes
+- **XP Card Theme Migration**: Migrated XP distribution chat cards to use the `blacksmith-card` theme system, matching the structure used by skill check cards. Cards now use `.card-header` and `.section-content` classes from the theme system for consistent styling.
+- **Card CSS Namespacing**: All card-related CSS classes are now properly namespaced with `.blacksmith-card` prefix to avoid conflicts with other modules. Section headers, content areas, and all card components are scoped to `.blacksmith-card` selectors.
+- **Root Folder Categorization**: Improved categorization logic for files located directly in the root of image directories. Files in the root are now categorized by the root folder name instead of appearing under "all". If a root directory contains only files (no subfolders), the root directory name is used as the category. If a root directory contains both files and subfolders, root files use the root directory name as their category while subfolder files behave normally.
+
+### Fixed
+- **Incremental Update Performance**: Fixed incremental updates being significantly slower than full scans by removing artificial delays during incremental update operations. Incremental updates now skip delays that were intended for UI visibility during full scans, making them faster than full rescans.
+- **Incremental Update Accuracy**: Fixed incremental update system to properly detect and remove deleted files and renamed folders. The system now correctly identifies files that no longer exist in the file system and removes them from the cache, preventing empty categories from appearing.
+- **Empty Folder Cleanup**: Fixed orphaned folder entries remaining in categories after files are deleted. Added cleanup logic that runs after all incremental updates complete to remove empty or invalid folder entries from the cache.
+- **Category Button Updates**: Fixed category buttons not updating correctly after incremental scans. Categories now properly reflect the current state of the file system, with deleted folders removed and new categories added as needed.
+- **System File Scanning**: Fixed system files (desktop.ini, thumbs.db, .DS_Store, folder.jpg, folder.png, .gitignore, .gitkeep) being scanned and displayed in progress messages. System files are now filtered out early in the scanning process before being displayed or processed.
+- **Incremental Update Errors**: Fixed `newFileCount is not defined` error in incremental update completion messages by using the correct `finalFileCount` variable.
+- **Folder Cache Type Errors**: Fixed `cache.folders.get(...).push is not a function` errors by adding defensive checks to ensure folder entries are always arrays before calling array methods.
 
 ## [13.0.6]
 
