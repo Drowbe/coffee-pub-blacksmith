@@ -636,6 +636,12 @@ export function postConsoleAndNotification(
         captionBackground: "background: rgb(27, 21, 119)",
         captionFontColor: "color: rgb(164, 199, 106)",
       },
+      ARTIFICER: {
+        titleColor: "color:rgb(72, 192, 3)",
+        captionBorder: "border: 1px dotted rgb(60, 151, 8)",
+        captionBackground: "background: rgb(45, 117, 3)",
+        captionFontColor: "color: rgb(164, 199, 106)",
+      },
       BUBO: {
         titleColor: "color: #ff3377",
         captionBorder: "border: 1px dotted #ED6B96",
