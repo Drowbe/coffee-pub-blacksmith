@@ -56,21 +56,8 @@ function getVisibleTools() {
         // Check custom visibility function or boolean
         if (typeof tool.visible === 'function') {
             try {
-                const v = tool.visible();
-                if (!v) {
-                    console.warn('Coffee Pub Toolbar: TOOL NOT VISIBLE (fn returned false)', {
-                        name: tool.name,
-                        moduleId: tool.moduleId,
-                        zone: tool.zone
-                    });
-                }
-                return v;
+                return tool.visible();
             } catch (error) {
-                console.warn('Coffee Pub Toolbar: TOOL NOT VISIBLE (fn threw)', {
-                    name: tool.name,
-                    moduleId: tool.moduleId,
-                    zone: tool.zone
-                }, error);
                 postConsoleAndNotification(MODULE.NAME, "Coffee Pub Toolbar: Error evaluating visibility", error, false, false);
                 return false;
             }
@@ -691,21 +678,11 @@ function _applyZoneClasses(html) {
     // Find the toolbar container - v13 uses #scene-controls-tools
     const toolbar = root.querySelector('#scene-controls-tools');
     if (!toolbar) {
-        console.warn('Coffee Pub Toolbar: Toolbar container #scene-controls-tools not found in DOM');
         return;
     }
     
-    // v13: Find all tool buttons - Foundry renders them as button[data-tool] or button.tool[data-tool]
-    const allToolElements = toolbar.querySelectorAll('button[data-tool]');
-    
-    // Diagnostic: Log what Foundry actually rendered
-    const domToolList = [...allToolElements].map(el => el.dataset.tool).filter(Boolean);
-    console.warn('Coffee Pub Toolbar: DOM tool list (what Foundry rendered):', domToolList);
-    
     // Get the tools in order
     const visibleTools = getVisibleToolsByZones();
-    const expectedToolNames = visibleTools.map(t => t.name);
-    console.warn('Coffee Pub Toolbar: Expected tool names:', expectedToolNames);
     
     // Always clear existing dividers and titles, then recreate them (simple approach)
     const existingDividers = toolbar.querySelectorAll('.toolbar-zone-divider');
@@ -765,16 +742,6 @@ function _applyZoneClasses(html) {
         }
     });
     
-    // Log tools not found in DOM for debugging (only once, no retries to avoid spam)
-    if (toolsNotFound.length > 0) {
-        console.warn('Coffee Pub Toolbar: Tools not found in DOM', {
-            notFoundCount: toolsNotFound.length,
-            notFoundTools: toolsNotFound,
-            foundCount: toolsFound.length,
-            domToolList: domToolList,
-            expectedToolNames: expectedToolNames
-        });
-    }
 }
 
 export async function addToolbarButton() {
@@ -829,35 +796,8 @@ export async function addToolbarButton() {
                 activeTool = null;
             }
 
-            // Debug: Log toolbar state before building tools
-            debugToolbarState('inside getSceneControlButtons');
-            
             // Get all visible tools, organized by zones
             const visibleTools = getVisibleToolsByZones();
-            
-            // Debug: Log tool registration status
-            const totalRegistered = registeredTools.size;
-            const allVisible = getVisibleTools();
-            
-            // Debug: Check onCoffeePub for external modules
-            const externalTools = allVisible.filter(t => t.moduleId && t.moduleId !== 'blacksmith-core');
-            const externalToolsWithOnCoffeePub = externalTools.map(t => ({
-                name: t.name,
-                moduleId: t.moduleId,
-                onCoffeePub: t.onCoffeePub,
-                onCoffeePubType: typeof t.onCoffeePub,
-                willPassFilter: isOnCoffeePub(t),
-                visible: typeof t.visible === 'function' ? 'fn' : t.visible
-            }));
-            
-            postConsoleAndNotification(MODULE.NAME, "Coffee Pub Toolbar: Building toolbar", {
-                totalRegistered,
-                visibleCount: allVisible.length,
-                coffeePubCount: visibleTools.length,
-                toolNames: visibleTools.map(t => t.name),
-                externalToolsCount: externalTools.length,
-                externalToolsWithOnCoffeePub: externalToolsWithOnCoffeePub
-            }, true, false);
             
             // Convert to the format expected by FoundryVTT v13 (tools as object keyed by name)
             // IMPORTANT: Do NOT define onClick on SceneControlTool - v13 has a compatibility shim
@@ -882,9 +822,6 @@ export async function addToolbarButton() {
                     order: index
                 };
             });
-            
-            // Debug: Log tool keys (no DOM access in getSceneControlButtons)
-            console.warn('Coffee Pub Toolbar: BLACKSMITH TOOL KEYS:', Object.keys(tools));
 
             // Update or create blacksmith utilities control (v13: controls is an object keyed by control name)
             // v13 requires: activeTool must point to a valid tool key, and all tools need onChange handlers
@@ -922,15 +859,6 @@ export async function addToolbarButton() {
                 // v13: Create a new tools object instead of modifying in place
                 // This ensures Foundry detects the change and re-renders the control
                 const newTools = {};
-                
-                // Debug: Log what tools we're working with
-                const toolsFromVisibleTools = Object.keys(tools);
-                const existingToolNames = Object.keys(existingTools);
-                postConsoleAndNotification(MODULE.NAME, "Coffee Pub Toolbar: Building newTools", {
-                    toolsFromVisibleTools: toolsFromVisibleTools,
-                    existingToolNames: existingToolNames,
-                    existingControlActiveTool: existingControlActiveTool
-                }, true, false);
                 
                 // First, copy existing tools that should be preserved (e.g., active tool being removed)
                 Object.keys(existingTools).forEach(toolName => {
@@ -1277,38 +1205,6 @@ export async function addToolbarButton() {
 // ================================================================== 
 
 /**
- * Debug helper to inspect toolbar state at any point
- * @param {string} label - Label for this debug output
- */
-function debugToolbarState(label = 'debug') {
-    try {
-        const all = Array.from(registeredTools.values());
-        const vis = getVisibleTools();
-        const coffee = getVisibleToolsByZones();
-        console.warn(`=== Coffee Pub Toolbar: ${label} ===`);
-        console.warn('registeredTools.size', registeredTools.size);
-        console.warn('all', all.map(t => ({
-            name: t.name, 
-            moduleId: t.moduleId,
-            onCoffeePub: typeof t.onCoffeePub,
-            onCoffeePubPass: isOnCoffeePub(t),
-            visible: typeof t.visible,
-            zone: t.zone,
-            button: t.button
-        })));
-        console.warn('visible', vis.map(t => t.name));
-        console.warn('coffeePub', coffee.map(t => t.name));
-        
-        // Safely access ui.controls - it may not be ready during early initialization
-        const activeControl = safeActiveControlName();
-        const activeControlDisplay = activeControl ?? 'not ready';
-        console.warn('activeControl', activeControlDisplay);
-    } catch (error) {
-        console.warn(`Coffee Pub Toolbar: Error in debugToolbarState(${label}):`, error);
-    }
-}
-
-/**
  * Register a tool for the Blacksmith toolbar
  * @param {string} toolId - Unique identifier for the tool
  * @param {Object} toolData - Tool configuration object
@@ -1322,9 +1218,6 @@ export function registerToolbarTool(toolId, toolData) {
             onFoundry: toolData.onFoundry || false,
             moduleId: toolData.moduleId || 'blacksmith-core'
         }, true, false);
-        
-        // Debug: Log toolbar state after registration
-        debugToolbarState('after external register');
         
         // Refresh the toolbar to reflect the new tool
         // Use a small delay to ensure the tool is fully registered
