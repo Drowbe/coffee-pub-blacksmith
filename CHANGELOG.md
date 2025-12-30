@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [13.0.8]
+
+### Fixed
+- **External Module Tools Not Appearing**: Fixed external module tools (e.g., bibliosoph) not appearing in the CoffeePub toolbar. The issue was caused by:
+  - `onCoffeePub` property filtering not properly handling function values - added `isOnCoffeePub()` helper to evaluate both boolean and function values
+  - Missing `name` property defaults for external tools - now defaults to `toolId` if not provided
+  - Missing `button`, `title`, and `icon` property defaults - now provides sensible defaults for v13 compatibility
+- **Foundry Toolbar Labels and Formatting Missing**: Fixed zone labels, dividers, and formatting not appearing on the core Foundry toolbar (tokens control). Updated `_applyZoneClasses()` to handle both CoffeePub toolbar (`blacksmith-utilities` control) and Foundry toolbar (`tokens` control) by checking the active control and applying zone classes accordingly.
+- **SceneControls Rendering Lifecycle (v13)**: Fixed toolbar tools not persisting after registration by correctly implementing FoundryVTT v13's SceneControls rendering lifecycle:
+  - Replaced manual `controls` object manipulation with `ui.controls.render({ reset: true })` to trigger Foundry's internal rebuild pipeline
+  - Removed problematic `ui.controls.controls = controls` assignment (read-only getter in v13)
+  - Added debounced `requestControlsRender()` to prevent render loops
+- **Early Initialization Errors**: Fixed `TypeError: Cannot read properties of undefined (reading 'tokens')` and similar errors during early initialization by:
+  - Adding `safeActiveToolName()` and `safeActiveControlName()` helper functions that wrap `ui.controls` access in try-catch blocks
+  - Replacing all direct `ui.controls.control?.name` and `ui.controls.tool?.name` accesses with safe helpers
+  - Removing `game.activeTool` and `game.activeControl` references that don't exist in v13
+- **ReferenceError: activeTool is not defined**: Fixed `activeTool` variable not being declared in `getSceneControlButtons` hook callback scope.
+- **Excessive Debug Logging**: Removed all debug logging related to toolbar state, tool registration, and DOM manipulation that was added during troubleshooting.
+
 ## [13.0.7]
 
 ### Added

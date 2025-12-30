@@ -518,7 +518,7 @@ function _getZoneTitle(zone) {
         'leadertools': 'leader',
         'gmtools': 'gm'
     };
-    return zoneTitles[zone] || 'General';
+    return zoneTitles[zone] || 'gen';
 }
 
 /**

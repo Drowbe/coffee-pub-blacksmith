@@ -6,55 +6,67 @@
 /* v13: Toolbar is #scene-controls-tools, buttons have class "tool" not "control-tool" */
 
 /* GENERAL */
+#scene-controls-tools button.toolbar-zone-general,
 #scene-controls-tools button.tool.toolbar-zone-general {
     background: rgba(108, 117, 125, 0.7) !important; /* Gray tint for general zone */
     border-color: rgba(68, 78, 87, 0.9) !important;
 }
+#scene-controls-tools button.toolbar-zone-general:hover,
 #scene-controls-tools button.tool.toolbar-zone-general:hover {
     background: rgba(108, 117, 125, 0.9) !important; /* Gray tint for general zone */
 }
 
 /* ROLS */
+#scene-controls-tools button.toolbar-zone-rolls,
 #scene-controls-tools button.tool.toolbar-zone-rolls {
     background: rgba(101, 38, 21, 0.7) !important; /* Dark tint for rolls zone */
     border-color: rgba(101, 38, 21, 0.9) !important;
 }
+#scene-controls-tools button.toolbar-zone-rolls:hover,
 #scene-controls-tools button.tool.toolbar-zone-rolls:hover {
     background: rgba(101, 38, 21, 0.9) !important; /* Dark tint for rolls zone */
 }
 
 /* COMMUNICATION */
+#scene-controls-tools button.toolbar-zone-communication,
 #scene-controls-tools button.tool.toolbar-zone-communication {
     background: rgba(139, 69, 19, 0.7) !important; /* Brown tint for communication zone */
     border-color: rgba(122, 58, 13, 0.9) !important;
 }
+#scene-controls-tools button.toolbar-zone-communication:hover,
 #scene-controls-tools button.tool.toolbar-zone-communication:hover {
     background: rgba(139, 69, 19, 0.9) !important; /* Brown tint for communication zone */
 }
 
 /* UTILITIES */
+#scene-controls-tools button.toolbar-zone-utilities,
 #scene-controls-tools button.tool.toolbar-zone-utilities {
     background: rgba(39, 74, 94, 0.7) !important; /* Blue tint for utilities zone */
     border-color: rgba(24, 46, 59, 0.9) !important;
 }
+#scene-controls-tools button.toolbar-zone-utilities:hover,
 #scene-controls-tools button.tool.toolbar-zone-utilities:hover {
     background: rgba(39, 74, 94, 0.9) !important; /* Blue tint for utilities zone */
 }
 
 /* LEADER TOOLS */
+#scene-controls-tools button.toolbar-zone-leadertools,
 #scene-controls-tools button.tool.toolbar-zone-leadertools {
     background: rgba(75, 0, 130, 0.7) !important; /* Purple tint for leader tools zone */
     border-color: rgba(58, 11, 93, 0.9) !important;
 }
+#scene-controls-tools button.toolbar-zone-leadertools:hover,
 #scene-controls-tools button.tool.toolbar-zone-leadertools:hover {
     background: rgba(75, 0, 130, 0.9) !important; /* Purple tint for leader tools zone */
 }
 
 /* GM TOOLS */
+#scene-controls-tools button.toolbar-zone-gmtools,
 #scene-controls-tools button.tool.toolbar-zone-gmtools {
     background: rgba(60, 83, 29, 0.7) !important; /* Green tint for GM tools zone */
     border-color: rgba(39, 49, 23, 0.9) !important;
 }
+#scene-controls-tools button.toolbar-zone-gmtools:hover,
 #scene-controls-tools button.tool.toolbar-zone-gmtools:hover {
     background: rgba(60, 83, 29, 0.9) !important; /* Green tint for GM tools zone */
 }

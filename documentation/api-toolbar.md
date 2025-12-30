@@ -26,20 +26,20 @@ if (blacksmith?.registerToolbarTool) {
 ### 2. Register a Tool
 
 ```javascript
-// Register a custom tool
+// Register a custom tool (minimal example - many properties have defaults)
 const success = blacksmith.registerToolbarTool('my-custom-tool', {
-    icon: "fa-solid fa-dice-d20",
-    name: "my-custom-tool",
-    title: "My Custom Tool",
-    button: true,           // REQUIRED: Must be true for toolbar display
-    visible: true,          // REQUIRED: Must be true for visibility
-    zone: "rolls",          // Optional: general, rolls, communication, utilities, leadertools, gmtools
-    order: 5,               // Optional: order within zone (lower numbers appear first)
-    moduleId: "my-module",  // Optional: your module ID
-    gmOnly: false,          // Optional: whether tool is GM-only
-    leaderOnly: false,      // Optional: whether tool is leader-only
-    onCoffeePub: true,      // Optional: show in Blacksmith toolbar (default: true)
-    onFoundry: false,       // Optional: show in FoundryVTT toolbar (default: false)
+    icon: "fa-solid fa-dice-d20",  // Optional: defaults to "fa-solid fa-square-question"
+    name: "my-custom-tool",         // Optional: defaults to toolId if not provided
+    title: "My Custom Tool",        // Optional: defaults to name or toolId
+    button: true,                   // Optional: defaults to true (v13 requirement)
+    visible: true,                   // Optional: defaults to true
+    zone: "rolls",                  // Optional: defaults to "general"
+    order: 5,                       // Optional: defaults to 999
+    moduleId: "my-module",          // Optional: defaults to "blacksmith-core"
+    gmOnly: false,                  // Optional: defaults to false
+    leaderOnly: false,               // Optional: defaults to false
+    onCoffeePub: true,              // Optional: defaults to true (can be boolean or function)
+    onFoundry: false,                // Optional: defaults to false (can be boolean or function)
     onClick: () => {
         // Your tool logic here
         console.log("My custom tool clicked!");
@@ -52,6 +52,8 @@ if (success) {
     console.log("Failed to register tool");
 }
 ```
+
+**Note for FoundryVTT v13**: The `button` property defaults to `true` and is required for toolbar display. The `name` property defaults to `toolId` if not provided, which is especially important for external modules to ensure proper tool identification.
 
 ## API Reference
 
@@ -68,19 +70,20 @@ Registers a new tool with the Blacksmith toolbar system.
 **Returns:** `boolean` - Success status
 
 **Tool Data Properties:**
-- `icon` (string, required): FontAwesome icon class (e.g., "fa-solid fa-dice-d20")
-- `name` (string, required): Tool name (used for data-tool attribute)
-- `title` (string, required): Tooltip text displayed on hover
+- `icon` (string, optional): FontAwesome icon class (e.g., "fa-solid fa-dice-d20"). Defaults to `"fa-solid fa-square-question"` if not provided.
+- `name` (string, optional): Tool name (used for data-tool attribute). **Defaults to `toolId` if not provided** - this is especially important for external modules to ensure proper tool identification in FoundryVTT v13.
+- `title` (string, optional): Tooltip text displayed on hover. Defaults to `toolData.name` or `toolId` if not provided.
 - `onClick` (Function, required): Function to execute when tool is clicked
-- `button` (boolean, required): Whether to show as button (MUST be true for toolbar display)
-- `visible` (boolean|Function, required): Whether tool is visible (MUST be true for visibility)
+- `button` (boolean, optional): Whether to show as button. **Defaults to `true`** - FoundryVTT v13 requires `button: true` for toolbar display. Must be `true` for tools to appear in toolbars.
+- `toggle` (boolean, optional): Automatically set to `false` for all tools. Not user-configurable.
+- `visible` (boolean|Function, optional): Whether tool is visible. Defaults to `true` if not provided. Can be a function that returns a boolean for dynamic visibility.
 - `zone` (string, optional): Zone for organization (default: "general")
 - `order` (number, optional): Order within zone (default: 999)
 - `moduleId` (string, optional): Module identifier (default: "blacksmith-core")
 - `gmOnly` (boolean, optional): Whether tool is GM-only (default: false)
 - `leaderOnly` (boolean, optional): Whether tool is leader-only (default: false)
-- `onCoffeePub` (boolean, optional): Whether to show in Blacksmith toolbar (default: true)
-- `onFoundry` (boolean, optional): Whether to show in FoundryVTT native toolbar (default: false)
+- `onCoffeePub` (boolean|Function, optional): Whether to show in Blacksmith toolbar. Can be a boolean or a function that returns a boolean for dynamic visibility. Defaults to `true` for backward compatibility.
+- `onFoundry` (boolean|Function, optional): Whether to show in FoundryVTT native toolbar. Can be a boolean or a function that returns a boolean for dynamic visibility. Defaults to `false`.
 
 #### `unregisterToolbarTool(toolId)`
 
@@ -174,8 +177,22 @@ blacksmith.registerToolbarTool('both-toolbars', {
 ```
 
 ### Default Behavior:
-- **`onCoffeePub`**: `true` (backward compatibility)
-- **`onFoundry`**: `false` (current behavior)
+- **`onCoffeePub`**: `true` (backward compatibility) - Can be a boolean or function
+- **`onFoundry`**: `false` (current behavior) - Can be a boolean or function
+
+### Dynamic Visibility:
+Both `onCoffeePub` and `onFoundry` support function values for dynamic visibility:
+
+```javascript
+// Tool that only appears in CoffeePub toolbar when a setting is enabled
+blacksmith.registerToolbarTool('conditional-tool', {
+    // ... other properties
+    onCoffeePub: () => {
+        return game.settings.get('my-module', 'enableToolbarTool');
+    },
+    onFoundry: false
+});
+```
 
 ## Tool Zones
 
@@ -224,21 +241,43 @@ Tools within each zone are ordered by their `order` property:
 
 ## Example Usage
 
+### Minimal Tool Registration (v13)
+
+```javascript
+// Minimal example - many properties have defaults
+// Only onClick is truly required
+blacksmith.registerToolbarTool('my-utility', {
+    icon: "fa-solid fa-calculator",  // Optional: has default
+    onClick: () => {
+        // Your utility logic
+        ui.notifications.info("Utility tool activated!");
+    }
+    // name defaults to 'my-utility' (toolId)
+    // title defaults to name or toolId
+    // button defaults to true (v13 requirement)
+    // visible defaults to true
+    // zone defaults to "general"
+    // order defaults to 999
+    // onCoffeePub defaults to true
+    // onFoundry defaults to false
+});
+```
+
 ### Basic Tool Registration
 
 ```javascript
 // Register a simple utility tool (Blacksmith toolbar only)
 blacksmith.registerToolbarTool('my-utility', {
     icon: "fa-solid fa-calculator",
-    name: "my-utility",
-    title: "My Utility Tool",
-    button: true,           // REQUIRED for toolbar display
-    visible: true,          // REQUIRED for visibility
+    name: "my-utility",              // Optional: defaults to toolId
+    title: "My Utility Tool",        // Optional: defaults to name or toolId
+    button: true,                     // Optional: defaults to true (v13 requirement)
+    visible: true,                    // Optional: defaults to true
     zone: "utilities",
     order: 10,
     moduleId: "my-module",
-    onCoffeePub: true,      // Show in Blacksmith toolbar
-    onFoundry: false,       // Don't show in FoundryVTT toolbar
+    onCoffeePub: true,               // Optional: defaults to true
+    onFoundry: false,                // Optional: defaults to false
     onClick: () => {
         // Your utility logic
         ui.notifications.info("Utility tool activated!");
@@ -395,7 +434,9 @@ The API includes robust error handling:
 ### Tool Not Appearing
 - Check if tool is registered: `blacksmith.isToolRegistered('tool-id')`
 - Verify visibility settings (gmOnly, leaderOnly, visible function)
-- **Ensure required properties are set**: `button: true` and `visible: true` are mandatory
+- **For FoundryVTT v13**: Ensure `name` property is set (defaults to `toolId` if not provided)
+- **For FoundryVTT v13**: `button` property defaults to `true` but must be `true` for toolbar display
+- Verify `onCoffeePub` or `onFoundry` functions return `true` if using function values
 - Check console for error messages
 - Ensure API is loaded: `blacksmith?.registerToolbarTool`
 
@@ -424,6 +465,13 @@ For issues or questions about the Blacksmith Toolbar API:
 4. Contact the Blacksmith development team
 
 ## Version History
+
+- **v13.0.8**: FoundryVTT v13 compatibility updates
+  - **Property defaults**: Added automatic defaults for `name` (defaults to `toolId`), `title`, `icon`, and `button` (defaults to `true`)
+  - **Dynamic visibility**: `onCoffeePub` and `onFoundry` now support function values for dynamic visibility evaluation
+  - **v13 requirements**: `button: true` is now required for toolbar display (defaults to `true` if not provided)
+  - **External module support**: Improved defaults ensure external modules work correctly even if properties are missing
+  - Updated API documentation to reflect v13 requirements and defaults
 
 - **v12.1.3**: Enhanced toolbar targeting
   - Added `onCoffeePub` and `onFoundry` parameters for toolbar targeting
