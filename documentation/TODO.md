@@ -12,35 +12,24 @@
 
 
 ### Toolbar - Foundry Toolbar Timing Issue
-- **Issue**: Tools with `onFoundry()` functions that read settings don't appear in Foundry toolbar (default Foundry toolbar, not CoffeePub toolbar)
-- **Status**: PENDING - Root cause identified, needs fix
+- **Issue**: Blacksmith's own buttons (e.g., request roll, replace image, etc.) are not showing up in the core Foundry toolbar when they use `onFoundry()` functions that read settings
+- **Status**: IN PROGRESS - Root cause identified, investigating timing issue
 - **Priority**: HIGH - Foundry toolbar integration
 - **Current State**: 
   - Hardcoding `onFoundry: true` works → button-adding code is fine
-  - Using `onFoundry: () => getSettingSafely(...)` doesn't work → timing issue
+  - Using `onFoundry: () => { return game.settings.get(...) }` doesn't work → timing issue
   - CoffeePub toolbar works because it evaluates `visible()` functions later
   - Foundry toolbar evaluates `onFoundry()` when `getSceneControlButtons` hook runs, which may be before settings are registered
+  - There's already retry logic in place (lines 1019-1040 and 1130-1153) but it may not be working correctly
 - **Root Cause**: The `getSceneControlButtons` hook runs when Foundry builds the toolbar, which may be before `tokenImageReplacementShowInFoundryToolbar` setting is registered. When `onFoundry()` is called, the setting doesn't exist yet, so it returns `false` and the tool is filtered out. Even though the function later returns `true`, the toolbar was already built without the tool.
-- **Location**: `scripts/manager-toolbar.js` - `getFoundryToolbarTools()`, `getSceneControlButtons` hook
-- **Solution Needed**: Ensure toolbar refreshes after settings are available, or delay toolbar build until settings are registered
-- **Related**: CoffeePub toolbar works because `visible()` functions are evaluated at render time, not at hook time
-
-### Toolbar - External Module Tools Not Showing in CoffeePub Toolbar
-- **Issue**: Other modules registering tools with the toolbar are not showing up in CoffeePub toolbar (v13 regression - worked in v12)
-- **Status**: PENDING - Needs investigation and fixes
-- **Priority**: HIGH - Module integration
-- **Current State**: 
-  - Tools are being registered (logs show "Toolbar API: Registered tool")
-  - Tools are being added to foundryTools array (logs show "Added tool bibliosoph-*")
-  - Tools are NOT appearing in CoffeePub toolbar DOM (logs show "Tool bibliosoph-* not found in DOM")
-  - Only Blacksmith core tools appear in CoffeePub toolbar
-- **Location**: `scripts/manager-toolbar.js` - `getVisibleToolsByZones()`, `getVisibleTools()`, CoffeePub toolbar rendering
-- **Tasks Needed**:
-  - Investigate why external module tools pass `getVisibleTools()` but don't appear in DOM
-  - Check if `onCoffeePub` property is being set correctly for external modules
-  - Check if `visible` property evaluation differs for external modules
-  - Verify CoffeePub toolbar rendering logic includes external module tools
-  - Compare v12 vs v13 toolbar rendering differences
+- **Location**: `scripts/manager-toolbar.js` - `getFoundryToolbarTools()`, `getSceneControlButtons` hook, `registerDefaultTools()` (lines 343-375 for token-replacement tool)
+- **Investigation Needed**:
+  - Verify when `registerSettings()` is called vs when `addToolbarButton()` is called
+  - Check if the retry logic in `ready` hook (lines 1130-1153) is actually triggering
+  - Check if the retry logic in `getSceneControlButtons` hook (lines 1019-1040) is working
+  - Consider using `getSettingSafely()` helper instead of direct `game.settings.get()` calls
+  - May need to ensure toolbar refresh happens after settings are confirmed available
+- **Related**: CoffeePub toolbar works because `visible()` functions are evaluated at render time, not at hook time. Also, `getFoundryToolbarTools()` now organizes tools by zone (fixed in v13.0.8), which may help with this issue.
 
 
 
