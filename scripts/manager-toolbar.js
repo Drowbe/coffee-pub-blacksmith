@@ -668,21 +668,35 @@ function _applyZoneClasses(html) {
     const root = html?.[0] ?? html;
     if (!root) return;
     
-    // Only apply zone classes when blacksmith-utilities control is active
-    // This prevents "Tools not found" spam when other controls (Tokens, etc.) are active
-    const activeControlName = safeActiveControlName();
-    if (activeControlName !== "blacksmith-utilities") {
-        return;
-    }
-    
     // Find the toolbar container - v13 uses #scene-controls-tools
     const toolbar = root.querySelector('#scene-controls-tools');
     if (!toolbar) {
         return;
     }
     
-    // Get the tools in order
-    const visibleTools = getVisibleToolsByZones();
+    // Get the active control to determine which tools to style
+    const activeControlName = safeActiveControlName();
+    
+    // Get tools based on which control is active
+    let visibleTools = [];
+    if (activeControlName === "blacksmith-utilities") {
+        // CoffeePub toolbar - get CoffeePub tools
+        visibleTools = getVisibleToolsByZones();
+    } else if (activeControlName === "tokens") {
+        // Foundry toolbar - get Foundry tools
+        visibleTools = getFoundryToolbarTools();
+        // Sort by zone and order for consistent display
+        visibleTools.sort((a, b) => {
+            const zoneOrder = ['general', 'rolls', 'communication', 'utilities', 'leadertools', 'gmtools'];
+            const aZone = zoneOrder.indexOf(a.zone || 'general');
+            const bZone = zoneOrder.indexOf(b.zone || 'general');
+            if (aZone !== bZone) return aZone - bZone;
+            return (a.order || 999) - (b.order || 999);
+        });
+    } else {
+        // Other controls - don't apply zone classes
+        return;
+    }
     
     // Always clear existing dividers and titles, then recreate them (simple approach)
     const existingDividers = toolbar.querySelectorAll('.toolbar-zone-divider');
