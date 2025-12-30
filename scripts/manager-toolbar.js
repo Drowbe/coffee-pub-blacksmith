@@ -31,7 +31,6 @@ function isLeader() {
         if (error.message && error.message.includes('not a registered game setting')) {
             return false;
         }
-        postConsoleAndNotification(MODULE.NAME, "Toolbar | Leader check error", error, false, false);
         return false;
     }
 }
@@ -59,10 +58,11 @@ function getVisibleTools() {
             try {
                 return tool.visible();
             } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, "Toolbar Manager: Error evaluating visibility", error, false, false);
+                postConsoleAndNotification(MODULE.NAME, "Coffee Pub Toolbar: Error evaluating visibility", error, false, false);
                 return false;
             }
         }
+        
         return tool.visible;
     });
 }
@@ -104,14 +104,29 @@ function getVisibleToolsByZones() {
 
 /**
  * Get tools that should appear in FoundryVTT native toolbars
+ * Note: This checks onFoundry() directly and only filters by gmOnly/leaderOnly
+ * It does NOT check tool.visible() because that's for CoffeePub toolbar visibility
  */
 function getFoundryToolbarTools() {
-    return getVisibleTools().filter(tool => {
+    const isGM = game.user.isGM;
+    const isLeaderUser = isLeader();
+    
+    return Array.from(registeredTools.values()).filter(tool => {
+        // Check GM-only visibility
+        if (tool.gmOnly && !isGM) {
+            return false;
+        }
+        
+        // Check leader-only visibility (GMs can see leader tools too)
+        if (tool.leaderOnly && !isLeaderUser && !isGM) {
+            return false;
+        }
+        
+        // Check onFoundry (this controls Foundry toolbar visibility)
         if (typeof tool.onFoundry === 'function') {
             try {
                 return tool.onFoundry();
             } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, "Toolbar Manager: Error evaluating onFoundry", error, false, false);
                 return false;
             }
         }
@@ -126,31 +141,31 @@ function registerTool(toolId, toolData) {
     try {
         // Basic validation
         if (!toolId || typeof toolId !== 'string') {
-            postConsoleAndNotification(MODULE.NAME, "Toolbar Manager: toolId must be a non-empty string", "", false, false);
             return false;
         }
         
         if (!toolData || typeof toolData !== 'object') {
-            postConsoleAndNotification(MODULE.NAME, "Toolbar Manager: toolData must be an object", "", false, false);
             return false;
         }
         
         // Store the tool with defaults
-        registeredTools.set(toolId, {
+        const storedTool = {
             ...toolData,
             moduleId: toolData.moduleId || 'blacksmith-core',
             zone: toolData.zone || 'general',
             order: toolData.order || 999,
             gmOnly: toolData.gmOnly || false,
             leaderOnly: toolData.leaderOnly || false,
+            visible: toolData.visible !== undefined ? toolData.visible : true, // Default to true if not provided
             onCoffeePub: toolData.onCoffeePub !== undefined ? toolData.onCoffeePub : true, // Default to true for backward compatibility
-            onFoundry: toolData.onFoundry || false, // Default to false
+            onFoundry: toolData.onFoundry !== undefined ? toolData.onFoundry : false, // Preserve function if provided, default to false
             registeredAt: Date.now()
-        });
+        };
+        
+        registeredTools.set(toolId, storedTool);
         
         return true;
     } catch (error) {
-        postConsoleAndNotification(MODULE.NAME, "Toolbar Manager: Error registering tool", error, false, false);
         return false;
     }
 }
@@ -280,7 +295,18 @@ async function registerDefaultTools() {
         visible: () => getSettingSafely(MODULE.ID, 'tokenImageReplacementShowInCoffeePubToolbar', true),
         gmOnly: true,
         onCoffeePub: true,
-        onFoundry: () => getSettingSafely(MODULE.ID, 'tokenImageReplacementShowInFoundryToolbar', false),
+        onFoundry: () => {
+            // Check if setting exists and return its value
+            const settingKey = `${MODULE.ID}.tokenImageReplacementShowInFoundryToolbar`;
+            try {
+                if (game?.settings?.settings?.has(settingKey)) {
+                    return game.settings.get(MODULE.ID, 'tokenImageReplacementShowInFoundryToolbar');
+                }
+                return false;
+            } catch (error) {
+                return false;
+            }
+        },
                 onClick: async () => {
             try {
                 const { TokenImageReplacementWindow } = await import('./token-image-replacement.js');
@@ -466,56 +492,28 @@ function refreshSceneControls() {
     });
 }
 
-export function addToolbarButton() {
-    // Initialize default tools
-    registerDefaultTools();
+/**
+ * Get the display title for a zone
+ * @private
+ */
+function _getZoneTitle(zone) {
+    const zoneTitles = {
+        'general': 'gen',
+        'rolls': 'rolls',
+        'communication': 'comms',
+        'utilities': 'utils',
+        'leadertools': 'leader',
+        'gmtools': 'gm'
+    };
+    return zoneTitles[zone] || 'General';
+}
 
-    // Debounce timer for divider updates
-    let dividerUpdateTimer = null;
-    
-    // Flag to prevent infinite loops
-    let isUpdatingDividers = false;
-
-    /**
-     * Count how many dividers should exist based on zone changes
-     * @private
-     */
-    function _countExpectedDividers(visibleTools) {
-        let dividerCount = 0;
-        let currentZone = null;
-        
-        visibleTools.forEach(tool => {
-            if (currentZone !== null && currentZone !== tool.zone) {
-                dividerCount++;
-            }
-            currentZone = tool.zone || 'general';
-        });
-        
-        return dividerCount;
-    }
-
-    /**
-     * Get the display title for a zone
-     * @private
-     */
-    function _getZoneTitle(zone) {
-        const zoneTitles = {
-            'general': 'gen',
-            'rolls': 'rolls',
-            'communication': 'comms',
-            'utilities': 'utils',
-            'leadertools': 'leader',
-            'gmtools': 'gm'
-        };
-        return zoneTitles[zone] || 'General';
-    }
-
-    /**
-     * Wire real click handlers to our tools after the toolbar is rendered.
-     * This bypasses the v13 onClick shim entirely.
-     * @private
-     */
-    function _wireToolClicks() {
+/**
+ * Wire real click handlers to our tools after the toolbar is rendered.
+ * This bypasses the v13 onClick shim entirely.
+ * @private
+ */
+function _wireToolClicks() {
         const toolbar = document.querySelector('#scene-controls-tools');
         if (!toolbar) return;
 
@@ -565,18 +563,26 @@ export function addToolbarButton() {
         }
     }
 
-    /**
-     * Apply zone classes to toolbar tools after they're rendered
-     * @private
-     */
-    function _applyZoneClasses() {
+/**
+ * Apply zone classes to toolbar tools after they're rendered
+ * @private
+ */
+function _applyZoneClasses() {
         // Wait a bit for the toolbar to be fully rendered
-        setTimeout(() => {
+        // Use a longer delay and retry mechanism to ensure tools are in the DOM
+        let retries = 0;
+        const maxRetries = 5;
+        const retryDelay = 100;
+        
+        const tryApplyZoneClasses = () => {
             // v13: Toolbar is now #scene-controls-tools (contains all tools from all controls)
             // We need to find our tools within this menu
             const toolbar = document.querySelector('#scene-controls-tools');
             if (!toolbar) {
-                postConsoleAndNotification(MODULE.NAME, "Toolbar: #scene-controls-tools not found", "", true, false);
+                if (retries < maxRetries) {
+                    retries++;
+                    setTimeout(tryApplyZoneClasses, retryDelay);
+                }
                 return;
             }
             
@@ -591,49 +597,102 @@ export function addToolbarButton() {
             
             // Apply zone classes and inject dividers
             let currentZone = null;
+            const showDividers = getSettingSafely(MODULE.ID, 'toolbarShowDividers', true);
+            const showLabels = getSettingSafely(MODULE.ID, 'toolbarShowLabels', false);
+            const toolsFound = [];
+            const toolsNotFound = [];
+            
             visibleTools.forEach((tool, index) => {
                 // v13: Tools are buttons inside <li> elements, find by data-tool attribute
                 const toolElement = toolbar.querySelector(`[data-tool="${tool.name}"]`);
+                const toolZone = tool.zone || 'general';
+                
                 if (toolElement) {
-                    const zoneClass = `toolbar-zone-${tool.zone || 'general'}`;
+                    toolsFound.push(tool.name);
+                    const zoneClass = `toolbar-zone-${toolZone}`;
                     toolElement.classList.add(zoneClass);
                     
-                    // Check if we need to add a divider and title (zone change)
-                    if (currentZone !== null && currentZone !== tool.zone) {
-                        // Get settings
-                        const showDividers = getSettingSafely(MODULE.ID, 'toolbarShowDividers', true);
-                        const showLabels = getSettingSafely(MODULE.ID, 'toolbarShowLabels', false);
-                        
-                        // v13: Tool element is a button inside an <li>, so we insert before the <li>
-                        const listItem = toolElement.closest('li');
-                        if (listItem) {
+                    // Get the list item for inserting dividers/labels
+                    const listItem = toolElement.closest('li');
+                    
+                    // Check if we need to add a divider and title (zone change OR first tool)
+                    const isZoneChange = currentZone !== null && currentZone !== toolZone;
+                    const isFirstTool = currentZone === null;
+                    
+                    if ((isZoneChange || isFirstTool) && listItem) {
                         // Create divider element if enabled
-                        if (showDividers) {
-                                const divider = document.createElement('li');
+                        if (showDividers && isZoneChange) {
+                            const divider = document.createElement('li');
                             divider.className = 'toolbar-zone-divider';
-                            divider.setAttribute('data-zone', tool.zone || 'general');
-                                listItem.parentNode.insertBefore(divider, listItem);
+                            divider.setAttribute('data-zone', toolZone);
+                            listItem.parentNode.insertBefore(divider, listItem);
                         }
                         
                         // Create title element if enabled
                         if (showLabels) {
-                                const title = document.createElement('li');
+                            const title = document.createElement('li');
                             title.className = 'toolbar-zone-title';
-                            title.setAttribute('data-zone', tool.zone || 'general');
-                                const titleText = document.createElement('span');
-                                titleText.textContent = _getZoneTitle(tool.zone || 'general');
-                                title.appendChild(titleText);
-                                listItem.parentNode.insertBefore(title, listItem);
-                            }
+                            title.setAttribute('data-zone', toolZone);
+                            const titleText = document.createElement('span');
+                            titleText.textContent = _getZoneTitle(toolZone);
+                            title.appendChild(titleText);
+                            listItem.parentNode.insertBefore(title, listItem);
                         }
                     }
                     
-                    currentZone = tool.zone || 'general';
+                    currentZone = toolZone;
+                } else {
+                    toolsNotFound.push({ name: tool.name, zone: toolZone, moduleId: tool.moduleId });
                 }
             });
             
-            // postConsoleAndNotification(MODULE.NAME, `Toolbar | Applied zone classes and dividers to ${visibleTools.length} tools`, "", true, false);
-        }, 50); // Very short delay to ensure toolbar is rendered
+            // Log tools not found in DOM for debugging
+            if (toolsNotFound.length > 0) {
+                // If tools are missing and we haven't exhausted retries, try again
+                if (retries < maxRetries) {
+                    retries++;
+                    setTimeout(tryApplyZoneClasses, retryDelay);
+                    return;
+                }
+                
+                postConsoleAndNotification(MODULE.NAME, "Coffee Pub Toolbar: Tools not found in DOM", {
+                    notFoundCount: toolsNotFound.length,
+                    notFoundTools: toolsNotFound,
+                    foundCount: toolsFound.length,
+                    retries: retries
+                }, true, false);
+            }
+        };
+        
+        setTimeout(tryApplyZoneClasses, 50); // Initial delay to ensure toolbar is rendered
+}
+
+export function addToolbarButton() {
+    // Initialize default tools
+    registerDefaultTools();
+
+    // Debounce timer for divider updates
+    let dividerUpdateTimer = null;
+    
+    // Flag to prevent infinite loops
+    let isUpdatingDividers = false;
+
+    /**
+     * Count how many dividers should exist based on zone changes
+     * @private
+     */
+    function _countExpectedDividers(visibleTools) {
+        let dividerCount = 0;
+        let currentZone = null;
+        
+        visibleTools.forEach(tool => {
+            if (currentZone !== null && currentZone !== tool.zone) {
+                dividerCount++;
+            }
+            currentZone = tool.zone || 'general';
+        });
+        
+        return dividerCount;
     }
 
     const getSceneControlButtonsHookId = HookManager.registerHook({
@@ -650,11 +709,24 @@ export function addToolbarButton() {
             // Debug: Log tool registration status
             const totalRegistered = registeredTools.size;
             const allVisible = getVisibleTools();
-            postConsoleAndNotification(MODULE.NAME, "Toolbar: Building toolbar", {
+            
+            // Debug: Check onCoffeePub for external modules
+            const externalTools = allVisible.filter(t => t.moduleId && t.moduleId !== 'blacksmith-core');
+            const externalToolsWithOnCoffeePub = externalTools.map(t => ({
+                name: t.name,
+                moduleId: t.moduleId,
+                onCoffeePub: t.onCoffeePub,
+                onCoffeePubType: typeof t.onCoffeePub,
+                willPassFilter: t.onCoffeePub === true
+            }));
+            
+            postConsoleAndNotification(MODULE.NAME, "Coffee Pub Toolbar: Building toolbar", {
                 totalRegistered,
                 visibleCount: allVisible.length,
                 coffeePubCount: visibleTools.length,
-                toolNames: visibleTools.map(t => t.name)
+                toolNames: visibleTools.map(t => t.name),
+                externalToolsCount: externalTools.length,
+                externalToolsWithOnCoffeePub: externalToolsWithOnCoffeePub
             }, true, false);
             
             // Convert to the format expected by FoundryVTT v13 (tools as object keyed by name)
@@ -713,36 +785,89 @@ export function addToolbarButton() {
                     }
                 }
                 
-                // Add or update tools
+                // v13: Create a new tools object instead of modifying in place
+                // This ensures Foundry detects the change and re-renders the control
+                const newTools = {};
+                
+                // Debug: Log what tools we're working with
+                const toolsFromVisibleTools = Object.keys(tools);
+                const existingToolNames = Object.keys(existingTools);
+                postConsoleAndNotification(MODULE.NAME, "Coffee Pub Toolbar: Building newTools", {
+                    toolsFromVisibleTools: toolsFromVisibleTools,
+                    existingToolNames: existingToolNames,
+                    activeToolName: activeToolName,
+                    existingControlActiveTool: existingControl.activeTool
+                }, true, false);
+                
+                // First, copy existing tools that should be preserved (e.g., active tool being removed)
+                Object.keys(existingTools).forEach(toolName => {
+                    // Only preserve tools that are in the new tools list OR are the active tool
+                    if (tools[toolName] || toolName === activeToolName) {
+                        if (tools[toolName]) {
+                            // Tool exists in new list - create new tool object
+                            newTools[toolName] = {
+                                icon: tools[toolName].icon,
+                                name: tools[toolName].name,
+                                title: tools[toolName].title,
+                                button: tools[toolName].button,
+                                visible: tools[toolName].visible,
+                                onChange: tools[toolName].onChange,
+                                order: tools[toolName].order
+                            };
+                            // Explicitly ensure onClick is not present
+                            if (newTools[toolName].onClick) {
+                                delete newTools[toolName].onClick;
+                            }
+                        } else {
+                            // Tool is being removed but is active - keep it but mark as not visible
+                            newTools[toolName] = {
+                                ...existingTools[toolName],
+                                visible: false
+                            };
+                            if (!newTools[toolName].onChange) {
+                                newTools[toolName].onChange = () => {
+                                    // Handle deactivation gracefully
+                                };
+                            }
+                        }
+                    }
+                });
+                
+                // Add any new tools that weren't in existingTools
                 Object.keys(tools).forEach(toolName => {
-                    if (existingTools[toolName]) {
-                        // Update existing tool in place to preserve Foundry's reference
-                        // IMPORTANT: Do NOT copy onClick - v13 shim will auto-call it on control activation
-                        Object.assign(existingTools[toolName], {
+                    if (!newTools[toolName]) {
+                        newTools[toolName] = {
                             icon: tools[toolName].icon,
                             name: tools[toolName].name,
                             title: tools[toolName].title,
                             button: tools[toolName].button,
                             visible: tools[toolName].visible,
-                            // REMOVE onClick: tools[toolName].onClick, - don't copy it
                             onChange: tools[toolName].onChange,
                             order: tools[toolName].order
-                        });
-                        // Explicitly remove onClick if it exists to prevent shim from calling it
-                        if (existingTools[toolName].onClick) {
-                            delete existingTools[toolName].onClick;
+                        };
+                        // Explicitly ensure onClick is not present
+                        if (newTools[toolName].onClick) {
+                            delete newTools[toolName].onClick;
                         }
-                    } else {
-                        // Add new tool
-                        existingTools[toolName] = tools[toolName];
                     }
                 });
+                
+                // Debug: Log final newTools
+                const finalToolNames = Object.keys(newTools);
+                postConsoleAndNotification(MODULE.NAME, "Coffee Pub Toolbar: Final newTools", {
+                    finalToolNames: finalToolNames,
+                    newToolsCount: finalToolNames.length,
+                    toolsCount: toolsFromVisibleTools.length
+                }, true, false);
+                
+                // Replace the entire tools object to trigger v13 change detection
+                existingControl.tools = newTools;
                 
                 // v13 requirement: activeTool must point to a valid tool key (cannot be empty string)
                 // Even if all tools are buttons, we must set activeTool to a valid tool key
                 // We'll prevent auto-activation by ensuring the tool's onChange doesn't trigger onClick
-                const toolKeys = Object.keys(existingTools);
-                if (!existingControl.activeTool || !existingTools[existingControl.activeTool]) {
+                const toolKeys = Object.keys(newTools);
+                if (!existingControl.activeTool || !newTools[existingControl.activeTool]) {
                     // Set to first available tool (must be a valid key, even if it's a button)
                     existingControl.activeTool = toolKeys.length > 0 ? toolKeys[0] : "";
                 }
@@ -791,62 +916,176 @@ export function addToolbarButton() {
             // Add tools to FoundryVTT native toolbars
             const foundryTools = getFoundryToolbarTools();
             
-            // Debug: Log Foundry toolbar tools
-            postConsoleAndNotification(MODULE.NAME, "Toolbar: Foundry toolbar tools", {
-                foundryCount: foundryTools.length,
-                foundryToolNames: foundryTools.map(t => t.name)
-            }, true, false);
+            // Check if settings are available - if not, schedule a refresh once they are
+            const settingKey = `${MODULE.ID}.tokenImageReplacementShowInFoundryToolbar`;
+            if (!game.settings.settings.has(settingKey)) {
+                // Setting not available yet - schedule a one-time refresh
+                // Use a flag to prevent multiple scheduled refreshes
+                if (!window._blacksmithToolbarRefreshScheduled) {
+                    window._blacksmithToolbarRefreshScheduled = true;
+                    let retries = 0;
+                    const maxRetries = 10;
+                    const checkInterval = setInterval(() => {
+                        if (game.settings.settings.has(settingKey) || retries >= maxRetries) {
+                            clearInterval(checkInterval);
+                            window._blacksmithToolbarRefreshScheduled = false;
+                            if (game.settings.settings.has(settingKey)) {
+                                refreshSceneControls();
+                            }
+                        }
+                        retries++;
+                    }, 100);
+                }
+            }
             
             // Add tools to token toolbar (default behavior for now)
             // v13: controls is an object, access directly by key
             const tokenControl = controls.tokens;
-            if (tokenControl && foundryTools.length > 0) {
+            if (tokenControl) {
                 // v13: tools is always an object keyed by tool name
                 if (!tokenControl.tools) {
                     tokenControl.tools = {};
                 }
                 
-                foundryTools.forEach(tool => {
-                    // Check if tool already exists (v13: tools is an object)
-                    if (!tokenControl.tools[tool.name]) {
-                        // Check visibility using the same logic as our toolbar
-                        const isGM = game.user.isGM;
-                        const isLeaderUser = isLeader();
-                        let shouldShow = true;
+                // Get all registered tool names for cleanup
+                const registeredToolNames = new Set(registeredTools.keys());
+                
+                // Create a set of tools that should be shown in Foundry toolbar
+                const toolsToShow = new Set();
+                
+                // Check visibility and add/update tools that should be shown
+                const isGM = game.user.isGM;
+                const isLeaderUser = isLeader();
+                
+                // Get base order offset from existing Foundry tools (before we add ours)
+                const baseOrder = Object.keys(tokenControl.tools).length;
+                
+                foundryTools.forEach((tool, index) => {
+                    // For Foundry toolbar tools, we only need to check GM/leader visibility
+                    // The tool is already in foundryTools, which means:
+                    // 1. It passed getFoundryToolbarTools() (which checks onFoundry, gmOnly, leaderOnly)
+                    // So we only need to re-check gmOnly/leaderOnly in case user status changed
+                    // We should NOT check tool.visible() again because that's for CoffeePub toolbar visibility
+                    let shouldShow = true;
+                    
+                    if (tool.gmOnly && !isGM) {
+                        shouldShow = false;
+                    } else if (tool.leaderOnly && !isLeaderUser && !isGM) {
+                        shouldShow = false;
+                    }
+                    // Note: We intentionally skip checking tool.visible() here because:
+                    // - For Foundry toolbar, visibility is controlled by onFoundry()
+                    // - tool.visible() is for CoffeePub toolbar visibility
+                    // - The tool is already in foundryTools, so onFoundry() returned true
+                    
+                    if (shouldShow) {
+                        toolsToShow.add(tool.name);
                         
-                        if (tool.gmOnly && !isGM) {
-                            shouldShow = false;
-                        } else if (tool.leaderOnly && !isLeaderUser && !isGM) {
-                            shouldShow = false;
-                        } else if (typeof tool.visible === 'function') {
-                            try {
-                                shouldShow = tool.visible();
-                            } catch (error) {
-                                shouldShow = false;
-                            }
-                        } else {
-                            shouldShow = tool.visible;
-                        }
+                        // Add or update the tool (always update to ensure properties are current)
+                        // Use baseOrder + index to ensure consistent ordering
+                        // Note: Foundry v13 may require onClick property even if we wire clicks separately
+                        const toolObject = {
+                            icon: tool.icon,
+                            name: tool.name,
+                            title: tool.title,
+                            button: tool.button,
+                            visible: true,
+                            // Include onClick for Foundry compatibility (even though we wire clicks separately)
+                            onClick: tool.onClick || (() => {}),
+                            onChange: () => {},
+                            order: baseOrder + index
+                        };
                         
-                        if (shouldShow) {
-                            // v13: tools is an object, assign by key
-                            tokenControl.tools[tool.name] = {
-                                icon: tool.icon,
-                                name: tool.name,
-                                title: tool.title,
-                                button: tool.button,
-                                visible: true,
-                                // Do not use onClick here, we wire clicks in the DOM
-                                onChange: () => {},
-                                order: Object.keys(tokenControl.tools).length
-                            };
-                        }
+                        tokenControl.tools[tool.name] = toolObject;
+                    }
+                });
+                
+                // Remove tools that should no longer be shown (only our registered tools)
+                Object.keys(tokenControl.tools).forEach(toolName => {
+                    if (registeredToolNames.has(toolName) && !toolsToShow.has(toolName)) {
+                        delete tokenControl.tools[toolName];
                     }
                 });
             }
             // --- END - HOOKMANAGER CALLBACK ---
         }
 	});
+
+    /**
+     * Wire click handlers for Foundry toolbar tools
+     * @private
+     */
+    function _wireFoundryToolClicks() {
+        // Get all tools that should be in Foundry toolbar
+        const foundryTools = getFoundryToolbarTools();
+        
+        // Wire click handlers for each Foundry toolbar tool
+        foundryTools.forEach(tool => {
+            if (!tool.button || typeof tool.onClick !== 'function') return;
+            
+            // Try multiple selectors - Foundry might use different attributes
+            // First try within #controls
+            let buttons = document.querySelectorAll(`#controls [data-tool="${tool.name}"]`);
+            if (buttons.length === 0) {
+                buttons = document.querySelectorAll(`#controls [data-name="${tool.name}"]`);
+            }
+            if (buttons.length === 0) {
+                buttons = document.querySelectorAll(`#controls #${tool.name}`);
+            }
+            
+            // If still not found, try searching entire document (maybe Foundry renders elsewhere)
+            if (buttons.length === 0) {
+                buttons = document.querySelectorAll(`[data-tool="${tool.name}"]`);
+            }
+            if (buttons.length === 0) {
+                buttons = document.querySelectorAll(`[data-name="${tool.name}"]`);
+            }
+            if (buttons.length === 0) {
+                buttons = document.querySelectorAll(`#${tool.name}`);
+            }
+            
+            // Last resort: search by class name or icon
+            if (buttons.length === 0 && tool.icon) {
+                const iconClass = tool.icon.replace('fa-', '').replace('fa-solid ', '').replace('fa-brands ', '');
+                buttons = document.querySelectorAll(`.${iconClass}`);
+            }
+            
+            
+            buttons.forEach(btn => {
+                // Remove any previous handler we attached
+                if (btn._blacksmithFoundryClickHandler) {
+                    btn.removeEventListener('click', btn._blacksmithFoundryClickHandler);
+                }
+                
+                const handler = event => {
+                    // Only respond to real user left clicks
+                    if (!event.isTrusted || event.button !== 0) return;
+                    
+                    // Keep Foundry from interpreting this as a toggle change
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    try {
+                        tool.onClick(event);
+                    } catch (error) {
+                        postConsoleAndNotification(
+                            MODULE.NAME,
+                            `Toolbar: Error in Foundry toolbar tool onClick for ${tool.name}`,
+                            error,
+                            false,
+                            false
+                        );
+                    }
+                    
+                    // Optional: blur so the button does not look "stuck" active
+                    btn.blur();
+                };
+                
+                btn._blacksmithFoundryClickHandler = handler;
+                btn.addEventListener('click', handler);
+            });
+        });
+    }
 
     // Register renderSceneControls hook
     const renderSceneControlsHookId = HookManager.registerHook({
@@ -857,6 +1096,7 @@ export function addToolbarButton() {
         callback: () => {
             _applyZoneClasses();
             _wireToolClicks();
+            _wireFoundryToolClicks();
         }
     });
 
@@ -866,57 +1106,69 @@ export function addToolbarButton() {
         description: 'Manager Toolbar: Apply zone classes and dividers when UI is ready',
         context: 'manager-toolbar-ready',
         priority: 3,
-        callback: () => {
-            postConsoleAndNotification(MODULE.NAME, "Toolbar | Ready hook called", "Applying zone classes and refreshing toolbar", true, false);
-            
+        callback: async () => {
             // Apply zone classes to toolbar tools
             _applyZoneClasses();
             
-            // Also refresh the toolbar after a short delay to ensure all settings are loaded
-            setTimeout(() => {
-                postConsoleAndNotification(MODULE.NAME, "Toolbar | Delayed refresh", "Refreshing toolbar after delay", true, false);
-                // Use v13+ render({controls, tool}) instead of deprecated initialize()
-                refreshSceneControls();
-                _wireToolClicks();
-            }, 100);
+            // Wait for settings to be registered before building toolbar
+            // This ensures onFoundry() functions can read setting values correctly
+            const settingKey = `${MODULE.ID}.tokenImageReplacementShowInFoundryToolbar`;
+            let retries = 0;
+            const maxRetries = 10;
+            const retryDelay = 100;
+            
+            while (!game.settings.settings.has(settingKey) && retries < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                retries++;
+            }
+            
+            // Refresh the toolbar now that settings should be available
+            // Use v13+ render({controls, tool}) instead of deprecated initialize()
+            refreshSceneControls();
+            _wireToolClicks();
+            _wireFoundryToolClicks();
         }
     });
 
-    // Register setting change hook to refresh toolbar when party leader changes
+    // Register setting change hook to refresh toolbar when party leader or toolbar visibility settings change
     const settingChangeHookId = HookManager.registerHook({
         name: 'settingChange',
-        description: 'Manager Toolbar: Refresh toolbar when party leader changes',
+        description: 'Manager Toolbar: Refresh toolbar when party leader or toolbar visibility settings change',
         context: 'manager-toolbar-setting',
         priority: 3,
         callback: (module, key, value) => {
             // --- BEGIN - HOOKMANAGER CALLBACK ---
-            if (module === MODULE.ID && key === 'partyLeader') {
-                // Refresh all toolbars when party leader changes
-                postConsoleAndNotification(MODULE.NAME, "Toolbar | Leader change detected", "Refreshing all toolbars for leader change", true, false);
-                
-                // Clear active tool if it's a leader tool that might be removed
-                // v13: activeTool is deprecated, use tool?.name
-                const activeTool = ui.controls.tool?.name;
-                if (activeTool && registeredTools.has(activeTool)) {
-                    const tool = registeredTools.get(activeTool);
-                    if (tool.leaderOnly && !game.user.isGM) {
-                        const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
-                        const isLeader = leaderData?.userId === game.user.id;
-                        if (!isLeader) {
-                            // Clear the active tool since it's being removed
-                            // v13: Setting activeTool directly may not work; Foundry will handle deactivation when tool is removed
-                            // If needed, we can call ui.controls.deactivate() or let Foundry handle it automatically
-                            try {
-                                ui.controls.activeTool = null;
-                            } catch (e) {
-                                // v13 may not allow direct assignment; Foundry will handle deactivation
+            if (module === MODULE.ID) {
+                if (key === 'partyLeader') {
+                    // Refresh all toolbars when party leader changes
+                    // Clear active tool if it's a leader tool that might be removed
+                    // v13: activeTool is deprecated, use tool?.name
+                    const activeTool = ui.controls.tool?.name;
+                    if (activeTool && registeredTools.has(activeTool)) {
+                        const tool = registeredTools.get(activeTool);
+                        if (tool.leaderOnly && !game.user.isGM) {
+                            const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
+                            const isLeader = leaderData?.userId === game.user.id;
+                            if (!isLeader) {
+                                // Clear the active tool since it's being removed
+                                // v13: Setting activeTool directly may not work; Foundry will handle deactivation when tool is removed
+                                // If needed, we can call ui.controls.deactivate() or let Foundry handle it automatically
+                                try {
+                                    ui.controls.activeTool = null;
+                                } catch (e) {
+                                    // v13 may not allow direct assignment; Foundry will handle deactivation
+                                }
                             }
                         }
                     }
+                    
+                    // Rebuild and render controls using v13+ API (replaces deprecated initialize())
+                    refreshSceneControls();
+                } else if (key === 'tokenImageReplacementShowInFoundryToolbar' || key === 'tokenImageReplacementShowInCoffeePubToolbar') {
+                    // Refresh toolbar when toolbar visibility settings change
+                    // Rebuild and render controls using v13+ API (replaces deprecated initialize())
+                    refreshSceneControls();
                 }
-                
-                // Rebuild and render controls using v13+ API (replaces deprecated initialize())
-                refreshSceneControls();
             }
             // --- END - HOOKMANAGER CALLBACK ---
         }
@@ -930,8 +1182,6 @@ export function addToolbarButton() {
         priority: 3,
         callback: (leaderData) => {
             // --- BEGIN - HOOKMANAGER CALLBACK ---
-            postConsoleAndNotification(MODULE.NAME, "Toolbar | Socket leader change detected", "Refreshing toolbar from socket", true, false);
-            
             // Clear active tool if it's a leader tool that might be removed
             // v13: activeTool is deprecated, use tool?.name
             const activeTool = ui.controls.tool?.name;
@@ -963,8 +1213,6 @@ export function addToolbarButton() {
         options: {}
     });
     
-    // Log hook registration
-    postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderSceneControls", "manager-toolbar-scene", true, false);
 
     
 }
@@ -983,7 +1231,7 @@ export function addToolbarButton() {
 export function registerToolbarTool(toolId, toolData) {
     const success = registerTool(toolId, toolData);
     if (success) {
-        postConsoleAndNotification(MODULE.NAME, `Toolbar API: Registered tool "${toolId}"`, { 
+        postConsoleAndNotification(MODULE.NAME, `Coffee Pub Toolbar API: Registered tool "${toolId}"`, { 
             onCoffeePub: toolData.onCoffeePub !== undefined ? toolData.onCoffeePub : true,
             onFoundry: toolData.onFoundry || false,
             moduleId: toolData.moduleId || 'blacksmith-core'
@@ -995,6 +1243,9 @@ export function registerToolbarTool(toolId, toolData) {
             if (ui.controls) {
                 // Use v13+ render({controls, tool}) instead of deprecated initialize()
                 refreshSceneControls();
+                // Wire up click handlers and apply zone classes for CoffeePub toolbar
+                _wireToolClicks();
+                _applyZoneClasses();
             }
         }, 50);
     }
@@ -1016,7 +1267,6 @@ export function unregisterToolbarTool(toolId) {
         }
         return false;
     } catch (error) {
-        postConsoleAndNotification(MODULE.NAME, "Toolbar API: Error unregistering tool", error, false, false);
         return false;
     }
 }
