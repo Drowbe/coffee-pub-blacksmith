@@ -11,17 +11,36 @@
 - nameplate creation
 
 
-### Toolbar
-- **Issue**: other modules registering tools with the toolbar are not showing up.
+### Toolbar - Foundry Toolbar Timing Issue
+- **Issue**: Tools with `onFoundry()` functions that read settings don't appear in Foundry toolbar (default Foundry toolbar, not CoffeePub toolbar)
+- **Status**: PENDING - Root cause identified, needs fix
+- **Priority**: HIGH - Foundry toolbar integration
+- **Current State**: 
+  - Hardcoding `onFoundry: true` works → button-adding code is fine
+  - Using `onFoundry: () => getSettingSafely(...)` doesn't work → timing issue
+  - CoffeePub toolbar works because it evaluates `visible()` functions later
+  - Foundry toolbar evaluates `onFoundry()` when `getSceneControlButtons` hook runs, which may be before settings are registered
+- **Root Cause**: The `getSceneControlButtons` hook runs when Foundry builds the toolbar, which may be before `tokenImageReplacementShowInFoundryToolbar` setting is registered. When `onFoundry()` is called, the setting doesn't exist yet, so it returns `false` and the tool is filtered out. Even though the function later returns `true`, the toolbar was already built without the tool.
+- **Location**: `scripts/manager-toolbar.js` - `getFoundryToolbarTools()`, `getSceneControlButtons` hook
+- **Solution Needed**: Ensure toolbar refreshes after settings are available, or delay toolbar build until settings are registered
+- **Related**: CoffeePub toolbar works because `visible()` functions are evaluated at render time, not at hook time
+
+### Toolbar - External Module Tools Not Showing in CoffeePub Toolbar
+- **Issue**: Other modules registering tools with the toolbar are not showing up in CoffeePub toolbar (v13 regression - worked in v12)
 - **Status**: PENDING - Needs investigation and fixes
 - **Priority**: HIGH - Module integration
-- **Current State**: Other modules registering tools with the toolbar are not showing up.
-- **Location**: `scripts/manager-toolbar.js`
+- **Current State**: 
+  - Tools are being registered (logs show "Toolbar API: Registered tool")
+  - Tools are being added to foundryTools array (logs show "Added tool bibliosoph-*")
+  - Tools are NOT appearing in CoffeePub toolbar DOM (logs show "Tool bibliosoph-* not found in DOM")
+  - Only Blacksmith core tools appear in CoffeePub toolbar
+- **Location**: `scripts/manager-toolbar.js` - `getVisibleToolsByZones()`, `getVisibleTools()`, CoffeePub toolbar rendering
 - **Tasks Needed**:
-  - Review toolbar registration logic
-  - Ensure toolbar registration is working correctly
-  - Verify toolbar is showing all registered tools
-  - Add debug logging to toolbar registration
+  - Investigate why external module tools pass `getVisibleTools()` but don't appear in DOM
+  - Check if `onCoffeePub` property is being set correctly for external modules
+  - Check if `visible` property evaluation differs for external modules
+  - Verify CoffeePub toolbar rendering logic includes external module tools
+  - Compare v12 vs v13 toolbar rendering differences
 
 
 

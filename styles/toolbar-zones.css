@@ -4,43 +4,56 @@
 
 /* Zone background colors - using CSS classes */
 /* v13: Toolbar is #scene-controls-tools, buttons have class "tool" not "control-tool" */
+
+/* GENERAL */
 #scene-controls-tools button.tool.toolbar-zone-general {
     background: rgba(108, 117, 125, 0.7) !important; /* Gray tint for general zone */
+    border-color: rgba(68, 78, 87, 0.9) !important;
 }
 #scene-controls-tools button.tool.toolbar-zone-general:hover {
     background: rgba(108, 117, 125, 0.9) !important; /* Gray tint for general zone */
 }
 
+/* ROLS */
 #scene-controls-tools button.tool.toolbar-zone-rolls {
     background: rgba(101, 38, 21, 0.7) !important; /* Dark tint for rolls zone */
+    border-color: rgba(101, 38, 21, 0.9) !important;
 }
 #scene-controls-tools button.tool.toolbar-zone-rolls:hover {
     background: rgba(101, 38, 21, 0.9) !important; /* Dark tint for rolls zone */
 }
 
+/* COMMUNICATION */
 #scene-controls-tools button.tool.toolbar-zone-communication {
     background: rgba(139, 69, 19, 0.7) !important; /* Brown tint for communication zone */
+    border-color: rgba(122, 58, 13, 0.9) !important;
 }
 #scene-controls-tools button.tool.toolbar-zone-communication:hover {
     background: rgba(139, 69, 19, 0.9) !important; /* Brown tint for communication zone */
 }
 
+/* UTILITIES */
 #scene-controls-tools button.tool.toolbar-zone-utilities {
     background: rgba(39, 74, 94, 0.7) !important; /* Blue tint for utilities zone */
+    border-color: rgba(24, 46, 59, 0.9) !important;
 }
 #scene-controls-tools button.tool.toolbar-zone-utilities:hover {
     background: rgba(39, 74, 94, 0.9) !important; /* Blue tint for utilities zone */
 }
 
+/* LEADER TOOLS */
 #scene-controls-tools button.tool.toolbar-zone-leadertools {
     background: rgba(75, 0, 130, 0.7) !important; /* Purple tint for leader tools zone */
+    border-color: rgba(58, 11, 93, 0.9) !important;
 }
 #scene-controls-tools button.tool.toolbar-zone-leadertools:hover {
     background: rgba(75, 0, 130, 0.9) !important; /* Purple tint for leader tools zone */
 }
 
+/* GM TOOLS */
 #scene-controls-tools button.tool.toolbar-zone-gmtools {
     background: rgba(60, 83, 29, 0.7) !important; /* Green tint for GM tools zone */
+    border-color: rgba(39, 49, 23, 0.9) !important;
 }
 #scene-controls-tools button.tool.toolbar-zone-gmtools:hover {
     background: rgba(60, 83, 29, 0.9) !important; /* Green tint for GM tools zone */
@@ -105,32 +118,37 @@
 
 /* Zone titles - appear below dividers */
 /* v13: Titles are <li> elements inside <menu> */
+
 #scene-controls-tools li.toolbar-zone-title {
-    font-size: 7px;
-    font-weight: 400;
+    font-size: 0.5em;
+    font-weight: 200;
     text-align: center;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.01em;
     color: rgba(255, 255, 255, 0.8);
     background: rgba(0, 0, 0, 0.3);
     
-    border: 0px solid rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
     
-    margin: 0px 0px 10px 0px !important;
-    padding: 2px 4px !important;
+    margin: 0px 0px 0px 0px !important;
+    padding: 0px 0px !important;
 
     width: auto;
-    min-width: 38px;
-    max-width: 38px;
-    max-height: 15px;
+    height: 15px !important;
+    min-width: 32px;
+    max-width: 32px;
+    min-height: 15px !important;
+    max-height: 15px !important;
     list-style: none;
+    
+    line-height: 5px !important;
         
     display: flex;
     align-items: center;
     justify-content: center;
     
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 3px 3px rgba(0, 0, 0, 0.0);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -144,33 +162,42 @@
     white-space: nowrap;
 }
 
+
+
+
 /* Zone-specific title styling */
 #scene-controls-tools li.toolbar-zone-title[data-zone="general"] {
     color: rgba(255, 255, 255, 0.8);
     background: rgba(108, 117, 125, 0.9) !important;
+    border-color: rgba(108, 117, 125, 0.9) !important;
 }
 
 #scene-controls-tools li.toolbar-zone-title[data-zone="rolls"] {
     color: rgba(255, 255, 255, 0.8);
     background: rgba(101, 38, 21, 0.9) !important;
+    border-color: rgba(93, 38, 24, 0.9) !important;
 }
 
 #scene-controls-tools li.toolbar-zone-title[data-zone="communication"] {
     color: rgba(255, 255, 255, 0.8);
     background: rgba(139, 69, 19, 0.9) !important;
+    border-color: rgba(118, 58, 16, 0.9) !important;
 }
 
 #scene-controls-tools li.toolbar-zone-title[data-zone="utilities"] {
     color: rgba(255, 255, 255, 0.8);
     background: rgba(39, 74, 94, 0.9) !important;
+    border-color: rgba(39, 65, 81, 0.9) !important;
 }
 
 #scene-controls-tools li.toolbar-zone-title[data-zone="leadertools"] {
     color: rgba(255, 255, 255, 0.8);
     background: rgba(75, 0, 130, 0.9) !important;
+    border-color: rgba(76, 11, 119, 0.9) !important;
 }
 
 #scene-controls-tools li.toolbar-zone-title[data-zone="gmtools"] {
     color: rgba(255, 255, 255, 0.8);
     background: rgba(60, 83, 29, 0.9) !important;
+    border-color: rgba(39, 49, 23, 0.9) !important;
 }
