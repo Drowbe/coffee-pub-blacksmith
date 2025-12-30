@@ -742,7 +742,7 @@ Hooks.once('init', async function() {
 
     // BLACKSMITH TOOLBAR MANAGER
     // Register toolbar button and expose API
-    addToolbarButton();
+    await addToolbarButton();
     
     // Import and expose toolbar API functions
     import('./manager-toolbar.js').then(({ 
