@@ -639,14 +639,26 @@
 	"headingH1RollingAndProgression-Label": "Rolling and Progression",
 	"headingH1RollingAndProgression-Hint": "Roll systems, XP distribution, and character progression",
 
-		"headingH2diceRollTool-Label": "Roll System",
-		"headingH2diceRollTool-Hint": "Configure the unified roll system and its integrations with other modules.",
+		"headingH2diceRollTool-Label": "Roll Tools",
+		"headingH2diceRollTool-Hint": "Configure the Blacksmith roll tools and integrations",
+
+			"headingH3RequestRolls-Label": "Request Rolls",
+			"headingH3RequestRolls-Hint": "Configure the request roll tool and its integrations with other modules.",
+
+				"requestRollShowInFoundryToolbar-Label": "Show in Foundry Toolbar",
+				"requestRollShowInFoundryToolbar-Hint": "Show the request roll tool in the Foundry toolbar.",
+
+				"requestRollShowInMenubar-Label": "Show in Menubar",
+				"requestRollShowInMenubar-Hint": "Show the request roll tool in the menubar.",
+
+			"headingH3diceRollSystem-Label": "Roll System",
+			"headingH3diceRollSystem-Hint": "Configure the unified roll system and its integrations with other modules.",
 
 				"diceRollToolSystem-Label": "Rolls from Chat Cards",
 				"diceRollToolSystem-Hint": "Set the system you wish to use when rolling from the chat card.",
 
 			"headingH3diceRollToolIntegrations-Label": "Module Integrations",
-			"headingH3diceRollToolIntegrations-Hint": "Blacksmit Dice Rolls and work with some other modules. Selecte the modules you wish to leverage. (They must be installed and enabled.)",
+			"headingH3diceRollToolIntegrations-Hint": "Blacksmith Dice Rolls work with some other modules. Selecte the modules you wish to leverage. (They must be installed and enabled.)",
 
 				"diceRollToolEnableDiceSoNice-Label": "Dice So Nice Rolls",
 				"diceRollToolEnableDiceSoNice-Hint": "Use Dice So Nice for animated dice rolls.",

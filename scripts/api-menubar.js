@@ -918,6 +918,9 @@ class MenuBar {
             order: 2,
             moduleId: "blacksmith-core",
             gmOnly: true,
+            visible: () => {
+                return getSettingSafely(MODULE.ID, 'requestRollShowInMenubar', true);
+            },
             onClick: () => {
                 new SkillCheckDialog().render(true);
             }

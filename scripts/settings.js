@@ -3195,6 +3195,35 @@ export const registerSettings = () => {
 
 
 
+
+	registerHeader('headingH3RequestRolls', 'headingH3RequestRolls-Label', 'headingH3RequestRolls-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
+
+
+	// -- Show Request Roll in Foundry Toolbar --
+	game.settings.register(MODULE.ID, 'requestRollShowInFoundryToolbar', {
+		name: MODULE.ID + '.requestRollShowInFoundryToolbar-Label',
+		hint: MODULE.ID + '.requestRollShowInFoundryToolbar-Hint',
+		type: Boolean,
+	config: true,
+	requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
+	});
+
+	// -- Show Request Roll in Menubar --
+	game.settings.register(MODULE.ID, 'requestRollShowInMenubar', {
+		name: MODULE.ID + '.requestRollShowInMenubar-Label',
+		hint: MODULE.ID + '.requestRollShowInMenubar-Hint',
+		type: Boolean,
+	config: true,
+	requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
+	});
+
+
 	// -- Skill Check Preferences - HIDDEN SETTING --
 	game.settings.register(MODULE.ID, 'skillCheckPreferences', {
 		name: 'Skill Check Preferences',
@@ -3210,6 +3239,8 @@ export const registerSettings = () => {
 		},
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 	});
+
+	registerHeader('headingH3diceRollSystem', 'headingH3diceRollSystem-Label', 'headingH3diceRollSystem-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
 
 	// -- Chat Roll System Choice --
 	game.settings.register(MODULE.ID, 'diceRollToolSystem', {
@@ -4304,6 +4335,8 @@ export const registerSettings = () => {
 		default: false,
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
+
+
 
 	// Cateogry Style
 	game.settings.register(MODULE.ID, 'tokenImageReplacementCategoryStyle', {

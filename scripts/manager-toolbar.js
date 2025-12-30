@@ -349,16 +349,9 @@ async function registerDefaultTools() {
         gmOnly: true,
         onCoffeePub: true,
         onFoundry: () => {
-            // Check if setting exists and return its value
-            const settingKey = `${MODULE.ID}.tokenImageReplacementShowInFoundryToolbar`;
-            try {
-                if (game?.settings?.settings?.has(settingKey)) {
-                    return game.settings.get(MODULE.ID, 'tokenImageReplacementShowInFoundryToolbar');
-                }
-                return false;
-            } catch (error) {
-                return false;
-            }
+            // Use getSettingSafely to handle timing issues - returns default (false) if setting not ready yet
+            // Toolbar will refresh once settings are available via retry logic in getSceneControlButtons hook
+            return getSettingSafely(MODULE.ID, 'tokenImageReplacementShowInFoundryToolbar', false);
         },
                 onClick: async () => {
             try {
@@ -418,13 +411,17 @@ async function registerDefaultTools() {
         visible: true,
         gmOnly: true, // Only GMs can request rolls
         onCoffeePub: true, // Show in Blacksmith toolbar
-        onFoundry: true, // Show in FoundryVTT toolbar
+        onFoundry: () => {
+            // Use getSettingSafely to handle timing issues - returns default (false) if setting not ready yet
+            // Toolbar will refresh once settings are available via retry logic in getSceneControlButtons hook
+            return getSettingSafely(MODULE.ID, 'requestRollShowInFoundryToolbar', false);
+        },
         onClick: () => {
             const dialog = new SkillCheckDialog();
             dialog.render(true);
         },
         moduleId: 'blacksmith-core',
-        zone: 'rolls',
+        zone: 'gmtools',
         order: 10
     });
     
@@ -1017,9 +1014,14 @@ export async function addToolbarButton() {
             const foundryTools = getFoundryToolbarTools();
             
             // Check if settings are available - if not, schedule a refresh once they are
-            const settingKey = `${MODULE.ID}.tokenImageReplacementShowInFoundryToolbar`;
-            if (!game.settings.settings.has(settingKey)) {
-                // Setting not available yet - schedule a one-time refresh
+            const settingKeys = [
+                `${MODULE.ID}.tokenImageReplacementShowInFoundryToolbar`,
+                `${MODULE.ID}.requestRollShowInFoundryToolbar`
+            ];
+            const missingSettings = settingKeys.filter(key => !game.settings.settings.has(key));
+            
+            if (missingSettings.length > 0) {
+                // Settings not available yet - schedule a one-time refresh
                 // Use a flag to prevent multiple scheduled refreshes
                 if (!window._blacksmithToolbarRefreshScheduled) {
                     window._blacksmithToolbarRefreshScheduled = true;
@@ -1027,10 +1029,11 @@ export async function addToolbarButton() {
                     const maxRetries = 10;
                     // Use debounced render instead of setInterval to avoid render loops
                     const checkInterval = setInterval(() => {
-                        if (game.settings.settings.has(settingKey) || retries >= maxRetries) {
+                        const stillMissing = settingKeys.filter(key => !game.settings.settings.has(key));
+                        if (stillMissing.length === 0 || retries >= maxRetries) {
                             clearInterval(checkInterval);
                             window._blacksmithToolbarRefreshScheduled = false;
-                            if (game.settings.settings.has(settingKey)) {
+                            if (stillMissing.length === 0) {
                                 requestControlsRender();
                             }
                         }
@@ -1135,12 +1138,19 @@ export async function addToolbarButton() {
         callback: async () => {
             // Wait for settings to be registered before building toolbar
             // This ensures onFoundry() functions can read setting values correctly
-            const settingKey = `${MODULE.ID}.tokenImageReplacementShowInFoundryToolbar`;
+            const settingKeys = [
+                `${MODULE.ID}.tokenImageReplacementShowInFoundryToolbar`,
+                `${MODULE.ID}.requestRollShowInFoundryToolbar`
+            ];
             let retries = 0;
             const maxRetries = 10;
             const retryDelay = 100;
             
-            while (!game.settings.settings.has(settingKey) && retries < maxRetries) {
+            while (retries < maxRetries) {
+                const missingSettings = settingKeys.filter(key => !game.settings.settings.has(key));
+                if (missingSettings.length === 0) {
+                    break; // All settings are available
+                }
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
                 retries++;
             }
@@ -1186,7 +1196,9 @@ export async function addToolbarButton() {
                     
                     // Rebuild and render controls using v13+ API (replaces deprecated initialize())
                     requestControlsRender();
-                } else if (key === 'tokenImageReplacementShowInFoundryToolbar' || key === 'tokenImageReplacementShowInCoffeePubToolbar') {
+                } else if (key === 'tokenImageReplacementShowInFoundryToolbar' || 
+                           key === 'tokenImageReplacementShowInCoffeePubToolbar' ||
+                           key === 'requestRollShowInFoundryToolbar') {
                     // Refresh toolbar when toolbar visibility settings change
                     // Rebuild and render controls using v13+ API (replaces deprecated initialize())
                     requestControlsRender();
