@@ -179,9 +179,14 @@ function registerTool(toolId, toolData) {
         
         // Store the tool with defaults
         // CRITICAL: Default name to toolId if not provided - external modules may forget to set it
+        // CRITICAL: Default button to true - v13 requires explicit button: true for button tools
         const storedTool = {
             ...toolData,
             name: toolData.name || toolId, // Default name to toolId for external modules
+            title: toolData.title || toolData.name || toolId, // Add fallback for title
+            icon: toolData.icon || "fa-solid fa-square-question", // Add fallback for icon
+            button: toolData.button ?? true, // CRITICAL: Default to true for button tools (v13 requirement)
+            toggle: toolData.toggle ?? false, // Explicitly set toggle to false
             moduleId: toolData.moduleId || 'blacksmith-core',
             zone: toolData.zone || 'general',
             order: toolData.order || 999,
@@ -442,7 +447,32 @@ function deepClone(obj) {
 }
 
 /**
+ * Safely get active tool name (wraps getter that can throw during early init)
+ * @private
+ */
+function safeActiveToolName() {
+    try {
+        return ui?.controls?.tool?.name ?? null;
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Safely get active control name (wraps getter that can throw during early init)
+ * @private
+ */
+function safeActiveControlName() {
+    try {
+        return ui?.controls?.control?.name ?? null;
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
  * Debounced render request to prevent render loops
+ * Triggers Foundry to re-prepare controls (which re-runs getSceneControlButtons)
  * @private
  */
 let _renderQueued = false;
@@ -452,94 +482,40 @@ function requestControlsRender() {
     
     queueMicrotask(() => {
         _renderQueued = false;
-        if (ui?.controls?.rendered) {
-            refreshSceneControls();
-        }
+        refreshSceneControls();
     });
 }
 
 /**
- * Refresh the SceneControls by rebuilding controls and rendering
- * Replaces deprecated initialize() + render() pattern with v13+ render({controls, tool})
- * 
- * This function:
- * 1. Deep clones existing controls from ui.controls (which includes Foundry's base controls)
- * 2. Calls getSceneControlButtons hook to update controls (our custom hooks modify existing)
- * 3. Renders with the updated controls, preserving the active tool
- * 
- * Note: We start with existing controls rather than an empty object to avoid errors
- * from other modules' hooks that expect Foundry's base controls to exist. We deep clone
- * to avoid mutating the original controls object.
+ * Refresh the SceneControls by triggering Foundry to re-prepare controls
+ * v13: Use reset: true to trigger Foundry to rebuild controls and re-run getSceneControlButtons
+ * This is the only way to make newly registered tools appear in the DOM
  */
 function refreshSceneControls() {
-    if (!ui.controls) return false;
+    if (!ui?.controls) return false;
     
-    // Scene controls are only available for GMs
-    // Players don't have access to scene controls, so skip refresh for them
-    if (!game.user.isGM) {
-        return false;
-    }
+    // Scene controls are GM-only
+    if (!game.user.isGM) return false;
     
-    // Ensure controls object exists and is initialized
-    const existingControls = ui.controls.controls;
-    if (!existingControls || typeof existingControls !== 'object') {
-        // Controls not ready yet, skip refresh
-        return false;
-    }
+    // If controls haven't rendered yet, don't poke it
+    if (!ui.controls.rendered) return false;
     
-    // Check if controls object is actually populated (not just empty)
-    // An empty object means Foundry hasn't initialized controls yet
-    const controlKeys = Object.keys(existingControls);
-    if (controlKeys.length === 0) {
-        // Controls object exists but is empty - not ready yet
-        return false;
-    }
+    const activeControl = safeActiveControlName();
+    const activeTool = safeActiveToolName();
     
-    // Ensure ui.controls has been rendered at least once
-    // This indicates Foundry has fully initialized the controls structure
-    if (!ui.controls.rendered) {
-        // Controls haven't been rendered yet - not ready
-        return false;
-    }
-    
-    // Deep clone to avoid mutating the original and to ensure nested objects (tools) are copied
-    const controls = deepClone(existingControls);
-    
-    // Call the hook to update controls (our hooks will modify/add to existing structure)
-    // Some modules may have incompatible hooks (v12 code expecting arrays), so we need
-    // to handle errors gracefully. Hooks.callAll will continue even if individual hooks error.
-    // We wrap in try-catch as an extra safety measure.
+    // v13: reset=true triggers Foundry to rebuild controls and call getSceneControlButtons again
+    // This is the only way to make newly registered tools appear in the DOM
     try {
-        Hooks.callAll('getSceneControlButtons', controls);
-    } catch (error) {
-        // Log but don't fail - some modules may have incompatible hooks
-        // Individual hook errors are already caught by Foundry, but this catches any
-        // unexpected errors in the hook system itself
-        console.warn(`${MODULE.NAME} | Toolbar refresh hook error (non-fatal):`, error);
+        ui.controls.render({
+            reset: true,
+            control: activeControl ?? undefined,
+            tool: activeTool ?? undefined
+        });
+        return true;
+    } catch (e) {
+        console.warn(`${MODULE.NAME} | refreshSceneControls failed`, e);
+        return false;
     }
-    
-    // Get current active tool/control to preserve selection
-    const activeControl = ui.controls.control?.name;
-    const activeTool = ui.controls.tool?.name;
-    
-    // Determine which tool to activate after render
-    // If we have an active control and tool, try to preserve it
-    let toolToActivate = undefined;
-    if (activeControl && activeTool) {
-        // Check if the control and tool still exist in the updated controls
-        const control = controls[activeControl];
-        if (control && control.tools && control.tools[activeTool]) {
-            toolToActivate = activeTool;
-        }
-    }
-    
-    // Render with the updated controls and preserve active tool if it still exists
-    ui.controls.render({
-        controls: controls,
-        tool: toolToActivate
-    });
-    
-    return true; // Successfully refreshed
 }
 
 /**
@@ -705,6 +681,13 @@ function _applyZoneClasses(html) {
     const root = html?.[0] ?? html;
     if (!root) return;
     
+    // Only apply zone classes when blacksmith-utilities control is active
+    // This prevents "Tools not found" spam when other controls (Tokens, etc.) are active
+    const activeControlName = safeActiveControlName();
+    if (activeControlName !== "blacksmith-utilities") {
+        return;
+    }
+    
     // Find the toolbar container - v13 uses #scene-controls-tools
     const toolbar = root.querySelector('#scene-controls-tools');
     if (!toolbar) {
@@ -830,6 +813,22 @@ export async function addToolbarButton() {
 		callback: (controls) => {
 			// --- BEGIN - HOOKMANAGER CALLBACK ---
 
+            // v13: Get active control and tool - do NOT use game.activeTool/activeControl here
+            // as they can crash during early initialization. Safely access ui.controls with try-catch
+            // because the getter can throw during early init when internal properties don't exist yet
+            let activeControl = null;
+            let activeTool = null;
+            try {
+                activeControl = ui?.controls?.control?.name ?? null;
+                activeTool = ui?.controls?.tool?.name ?? null;
+            } catch (e) {
+                // During early initialization, ui.controls.control getter may throw
+                // when trying to access internal properties that don't exist yet
+                // Just use null values - the hook will work fine without them
+                activeControl = null;
+                activeTool = null;
+            }
+
             // Debug: Log toolbar state before building tools
             debugToolbarState('inside getSceneControlButtons');
             
@@ -867,10 +866,11 @@ export async function addToolbarButton() {
             const tools = {};
             visibleTools.forEach((tool, index) => {
                 tools[tool.name] = {
-                    icon: tool.icon,
+                    icon: tool.icon || "fa-solid fa-square-question",
                     name: tool.name,
-                    title: tool.title,
-                    button: tool.button,
+                    title: tool.title || tool.name,
+                    button: tool.button === true, // CRITICAL: Force to boolean - v13 requires explicit true for button tools
+                    toggle: false, // Explicitly set toggle to false to keep them out of toggle-mode
                     visible: true, // Visibility is already filtered by getVisibleTools()
                     // v13 requires onChange but we keep it as a no-op (or light debug only)
                     // All real behavior is driven by _wireToolClicks DOM handlers
@@ -939,10 +939,11 @@ export async function addToolbarButton() {
                         if (tools[toolName]) {
                             // Tool exists in new list - create new tool object
                             newTools[toolName] = {
-                                icon: tools[toolName].icon,
+                                icon: tools[toolName].icon || "fa-solid fa-square-question",
                                 name: tools[toolName].name,
-                                title: tools[toolName].title,
-                                button: tools[toolName].button,
+                                title: tools[toolName].title || tools[toolName].name,
+                                button: tools[toolName].button === true, // Force to boolean
+                                toggle: false, // Explicitly set toggle to false
                                 visible: tools[toolName].visible,
                                 onChange: tools[toolName].onChange,
                                 order: tools[toolName].order
@@ -970,10 +971,11 @@ export async function addToolbarButton() {
                 Object.keys(tools).forEach(toolName => {
                     if (!newTools[toolName]) {
                         newTools[toolName] = {
-                            icon: tools[toolName].icon,
+                            icon: tools[toolName].icon || "fa-solid fa-square-question",
                             name: tools[toolName].name,
-                            title: tools[toolName].title,
-                            button: tools[toolName].button,
+                            title: tools[toolName].title || tools[toolName].name,
+                            button: tools[toolName].button === true, // Force to boolean
+                            toggle: false, // Explicitly set toggle to false
                             visible: tools[toolName].visible,
                             onChange: tools[toolName].onChange,
                             order: tools[toolName].order
@@ -1197,8 +1199,8 @@ export async function addToolbarButton() {
                 if (key === 'partyLeader') {
                     // Refresh all toolbars when party leader changes
                     // Clear active tool if it's a leader tool that might be removed
-                    // v13: activeTool is deprecated, use tool?.name
-                    const activeTool = ui.controls.tool?.name;
+                    // v13: activeTool is deprecated, use tool?.name (safely)
+                    const activeTool = safeActiveToolName();
                     if (activeTool && registeredTools.has(activeTool)) {
                         const tool = registeredTools.get(activeTool);
                         if (tool.leaderOnly && !game.user.isGM) {
@@ -1239,7 +1241,7 @@ export async function addToolbarButton() {
             // --- BEGIN - HOOKMANAGER CALLBACK ---
             // Clear active tool if it's a leader tool that might be removed
             // v13: activeTool is deprecated, use tool?.name
-            const activeTool = ui.controls.tool?.name;
+            const activeTool = safeActiveToolName();
             if (activeTool && registeredTools.has(activeTool)) {
                 const tool = registeredTools.get(activeTool);
                 if (tool.leaderOnly && !game.user.isGM) {
@@ -1298,19 +1300,9 @@ function debugToolbarState(label = 'debug') {
         console.warn('coffeePub', coffee.map(t => t.name));
         
         // Safely access ui.controls - it may not be ready during early initialization
-        let activeControl = 'not ready';
-        try {
-            if (ui?.controls?.control?.name) {
-                activeControl = ui.controls.control.name;
-            } else if (ui?.controls) {
-                activeControl = 'controls exist but no active control';
-            } else {
-                activeControl = 'ui.controls not initialized';
-            }
-        } catch (e) {
-            activeControl = `error accessing: ${e.message}`;
-        }
-        console.warn('activeControl', activeControl);
+        const activeControl = safeActiveControlName();
+        const activeControlDisplay = activeControl ?? 'not ready';
+        console.warn('activeControl', activeControlDisplay);
     } catch (error) {
         console.warn(`Coffee Pub Toolbar: Error in debugToolbarState(${label}):`, error);
     }
@@ -1336,27 +1328,8 @@ export function registerToolbarTool(toolId, toolData) {
         
         // Refresh the toolbar to reflect the new tool
         // Use a small delay to ensure the tool is fully registered
-        setTimeout(() => {
-            if (ui.controls) {
-                // Use v13+ render({controls, tool}) instead of deprecated initialize()
-                const didRefresh = refreshSceneControls();
-                
-                if (didRefresh === false) {
-                    // Controls not ready yet - queue a retry on next renderSceneControls
-                    Hooks.once('renderSceneControls', () => {
-                        refreshSceneControls();
-                        _wireToolClicks();
-                        _applyZoneClasses();
-                        _wireFoundryToolClicks();
-                    });
-                } else {
-                    // Successfully refreshed - wire up handlers
-                    _wireToolClicks();
-                    _applyZoneClasses();
-                    _wireFoundryToolClicks();
-                }
-            }
-        }, 50);
+        // Request a render - let Foundry handle the full lifecycle properly
+        requestControlsRender();
     }
     return success;
 }
@@ -1370,8 +1343,8 @@ export function unregisterToolbarTool(toolId) {
     try {
         if (registeredTools.has(toolId)) {
             registeredTools.delete(toolId);
-            // Refresh the toolbar to reflect changes
-            ui.controls.render();
+            // Refresh the toolbar to reflect changes using debounced render
+            requestControlsRender();
             return true;
         }
         return false;
@@ -1430,8 +1403,8 @@ export function setToolbarSettings(settings) {
     if (settings.showLabels !== undefined) {
         game.settings.set(MODULE.ID, 'toolbarShowLabels', settings.showLabels);
     }
-    // Refresh toolbar to apply changes
-    ui.controls.render();
+    // Refresh toolbar to apply changes using debounced render
+    requestControlsRender();
 }
 
 // Function to activate the Blacksmith layer
