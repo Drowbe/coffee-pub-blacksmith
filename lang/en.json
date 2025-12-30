@@ -104,11 +104,8 @@
 			"headingH3Toolbar-Label": "Foundry Toolbar",
 			"headingH3Toolbar-Hint": "",
 		
-				"toolbarShowDividers-Label": "Coffee Pub Dividers",
-				"toolbarShowDividers-Hint": "",
-		
-				"toolbarShowLabels-Label": "Coffee Pub Labels",
-				"toolbarShowLabels-Hint": "",
+				"toolbarDisplayStyle-Label": "Display Style",
+				"toolbarDisplayStyle-Hint": "Choose how to display category organization in the toolbar: Foundry Default (no organization), Category Dividers (visual separators), or Category Labels (text labels).",
 
 			"headingH3Scenes-Label": "Scenes",
 			"headingH3Scenes-Hint": "",

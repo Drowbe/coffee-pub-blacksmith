@@ -1264,25 +1264,19 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('Toolbar', 'headingH3Toolbar-Label', 'headingH3Toolbar-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
-	// -- Show Toolbar Dividers --
-	game.settings.register(MODULE.ID, 'toolbarShowDividers', {
-		name: MODULE.ID + '.toolbarShowDividers-Label',
-		hint: MODULE.ID + '.toolbarShowDividers-Hint',
+	// -- Toolbar Display Style --
+	game.settings.register(MODULE.ID, 'toolbarDisplayStyle', {
+		name: MODULE.ID + '.toolbarDisplayStyle-Label',
+		hint: MODULE.ID + '.toolbarDisplayStyle-Hint',
 		scope: "client",
 		config: true,
-		default: true,
-		type: Boolean,
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
-
-	// -- Show Toolbar Labels --
-	game.settings.register(MODULE.ID, 'toolbarShowLabels', {
-		name: MODULE.ID + '.toolbarShowLabels-Label',
-		hint: MODULE.ID + '.toolbarShowLabels-Hint',
-		scope: "client",
-		config: true,
-		default: false,
-		type: Boolean,
+		default: 'labels',
+		type: String,
+		choices: {
+			'none': 'Foundry Default',
+			'dividers': 'Category Dividers',
+			'labels': 'Category Labels'
+		},
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 

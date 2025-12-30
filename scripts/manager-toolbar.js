@@ -726,8 +726,9 @@ function _applyZoneClasses(html) {
     
     // Apply zone classes and inject dividers
     let currentZone = null;
-    const showDividers = getSettingSafely(MODULE.ID, 'toolbarShowDividers', true);
-    const showLabels = getSettingSafely(MODULE.ID, 'toolbarShowLabels', false);
+    const displayStyle = getSettingSafely(MODULE.ID, 'toolbarDisplayStyle', 'labels');
+    const showDividers = displayStyle === 'dividers';
+    const showLabels = displayStyle === 'labels';
     const toolsFound = [];
     const toolsNotFound = [];
     
@@ -1327,23 +1328,18 @@ export function isToolRegistered(toolId) {
  */
 export function getToolbarSettings() {
     return {
-        showDividers: game.settings.get(MODULE.ID, 'toolbarShowDividers'),
-        showLabels: game.settings.get(MODULE.ID, 'toolbarShowLabels')
+        displayStyle: game.settings.get(MODULE.ID, 'toolbarDisplayStyle') || 'labels'
     };
 }
 
 /**
  * Set toolbar settings
  * @param {Object} settings - Settings object
- * @param {boolean} settings.showDividers - Whether to show toolbar dividers
- * @param {boolean} settings.showLabels - Whether to show toolbar labels
+ * @param {string} settings.displayStyle - Toolbar display style: 'none', 'dividers', or 'labels'
  */
 export function setToolbarSettings(settings) {
-    if (settings.showDividers !== undefined) {
-        game.settings.set(MODULE.ID, 'toolbarShowDividers', settings.showDividers);
-    }
-    if (settings.showLabels !== undefined) {
-        game.settings.set(MODULE.ID, 'toolbarShowLabels', settings.showLabels);
+    if (settings.displayStyle !== undefined) {
+        game.settings.set(MODULE.ID, 'toolbarDisplayStyle', settings.displayStyle);
     }
     // Refresh toolbar to apply changes using debounced render
     requestControlsRender();

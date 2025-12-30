@@ -72,56 +72,43 @@
 }
 
 
+
+
+
+
+
 /* Zone dividers - injected between zones */
 /* v13: Dividers are <li> elements inside <menu> */
+
 #scene-controls-tools li.toolbar-zone-divider {
     height: 0px;
     max-height: 0px;
-    width: 38px;
-    min-width: 38px;
-    max-width: 38px;
-    margin: 0px 0px 10px 0px !important;
+    width: 32px;
+    min-width: 32px;
+    max-width: 32px;
+    margin: 6px 0px 6px 0px !important;
     padding: 0 !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.3) !important;
-    border-radius: 1px;
-    background: linear-gradient(90deg, 
-        transparent 0%, 
-        rgba(255, 255, 255, 0.3) 20%, 
-        rgba(255, 255, 255, 0.6) 50%, 
-        rgba(255, 255, 255, 0.3) 80%, 
-        transparent 100%
-    ) !important;
-    box-shadow: 0 3px 4px rgba(0, 0, 0, 0.5);
+    border-top: 0px dotted rgba(255, 255, 255, 0.4) !important;
+    border-bottom: 2px dotted rgba(255, 255, 255, 0.4) !important;;
     list-style: none;
     display: block !important;
 }
 
 /* Specific divider styles for different zones */
-#scene-controls-tools li.toolbar-zone-divider[data-zone="rolls"] {
-    background: linear-gradient(90deg, 
-        transparent 0%, 
-        rgba(255, 255, 255, 0.9) 20%, 
-        rgba(255, 255, 255, 0.9) 50%, 
-        rgba(255, 255, 255, 0.9) 80%, 
-        transparent 100%
-    ) !important;
-    border-top: 1px dotted rgba(255, 255, 255, 0.9) !important;
-    border-bottom: 1px dotted rgba(255, 255, 255, 0.9) !important;
+
+#scene-controls-tools li.toolbar-zone-divider[data-zone="general"],
+#scene-controls-tools li.toolbar-zone-divider[data-zone="rolls"],
+#scene-controls-tools li.toolbar-zone-divider[data-zone="communication"],
+#scene-controls-tools li.toolbar-zone-divider[data-zone="utilities"],
+#scene-controls-tools li.toolbar-zone-divider[data-zone="leadertools"],
+#scene-controls-tools li.toolbar-zone-divider[data-zone="gmtools"] {
+    border-top: 0px dotted rgba(255, 255, 255, 0.4) !important;
+    border-bottom: 1px dotted rgba(255, 255, 255, 0.4) !important;
 }
 
-#scene-controls-tools li.toolbar-zone-divider[data-zone="utilities"],
-#scene-controls-tools li.toolbar-zone-divider[data-zone="gmtools"] {
-    background: linear-gradient(90deg, 
-        transparent 0%, 
-        rgba(255, 255, 255, 0.2) 20%, 
-        rgba(255, 255, 255, 0.4) 50%, 
-        rgba(255, 255, 255, 0.2) 80%, 
-        transparent 100%
-    ) !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
-}
+
+
+
 
 
 
