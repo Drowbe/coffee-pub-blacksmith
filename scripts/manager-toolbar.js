@@ -122,12 +122,14 @@ function getVisibleToolsByZones() {
  * Get tools that should appear in FoundryVTT native toolbars
  * Note: This checks onFoundry() directly and only filters by gmOnly/leaderOnly
  * It does NOT check tool.visible() because that's for CoffeePub toolbar visibility
+ * Returns tools organized by zone and sorted by order (similar to getVisibleToolsByZones)
  */
 function getFoundryToolbarTools() {
     const isGM = game.user.isGM;
     const isLeaderUser = isLeader();
     
-    return Array.from(registeredTools.values()).filter(tool => {
+    // Filter tools that should appear in Foundry toolbar
+    const foundryTools = Array.from(registeredTools.values()).filter(tool => {
         // Check GM-only visibility
         if (tool.gmOnly && !isGM) {
             return false;
@@ -148,6 +150,34 @@ function getFoundryToolbarTools() {
         }
         return tool.onFoundry === true;
     });
+    
+    // Group tools by zone (same logic as getVisibleToolsByZones)
+    const toolsByZone = {};
+    foundryTools.forEach(tool => {
+        const zone = tool.zone || 'general';
+        if (!toolsByZone[zone]) {
+            toolsByZone[zone] = [];
+        }
+        toolsByZone[zone].push(tool);
+    });
+    
+    // Sort tools within each zone by order
+    Object.keys(toolsByZone).forEach(zone => {
+        toolsByZone[zone].sort((a, b) => a.order - b.order);
+    });
+    
+    // Define zone order (same as getVisibleToolsByZones)
+    const zoneOrder = ['general', 'rolls', 'communication', 'utilities', 'leadertools', 'gmtools'];
+    
+    // Flatten tools in zone order
+    const result = [];
+    zoneOrder.forEach(zone => {
+        if (toolsByZone[zone]) {
+            result.push(...toolsByZone[zone]);
+        }
+    });
+    
+    return result;
 }
 
 /**
@@ -684,15 +714,8 @@ function _applyZoneClasses(html) {
         visibleTools = getVisibleToolsByZones();
     } else if (activeControlName === "tokens") {
         // Foundry toolbar - get Foundry tools
+        // getFoundryToolbarTools() now returns tools already organized by zone and sorted by order
         visibleTools = getFoundryToolbarTools();
-        // Sort by zone and order for consistent display
-        visibleTools.sort((a, b) => {
-            const zoneOrder = ['general', 'rolls', 'communication', 'utilities', 'leadertools', 'gmtools'];
-            const aZone = zoneOrder.indexOf(a.zone || 'general');
-            const bZone = zoneOrder.indexOf(b.zone || 'general');
-            if (aZone !== bZone) return aZone - bZone;
-            return (a.order || 999) - (b.order || 999);
-        });
     } else {
         // Other controls - don't apply zone classes
         return;
@@ -1060,7 +1083,7 @@ export async function addToolbarButton() {
                         toolsToShow.add(tool.name);
                         
                         // Add or update the tool (always update to ensure properties are current)
-                        // Use baseOrder + index to ensure consistent ordering
+                        // Use baseOrder + index to preserve zone-based ordering from getFoundryToolbarTools()
                         // Note: Foundry v13 may require onClick property even if we wire clicks separately
                         const toolObject = {
                             icon: tool.icon,
