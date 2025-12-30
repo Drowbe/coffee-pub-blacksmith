@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Missing `name` property defaults for external tools - now defaults to `toolId` if not provided
   - Missing `button`, `title`, and `icon` property defaults - now provides sensible defaults for v13 compatibility
 - **Foundry Toolbar Labels and Formatting Missing**: Fixed zone labels, dividers, and formatting not appearing on the core Foundry toolbar (tokens control). Updated `_applyZoneClasses()` to handle both CoffeePub toolbar (`blacksmith-utilities` control) and Foundry toolbar (`tokens` control) by checking the active control and applying zone classes accordingly.
+- **Foundry Toolbar Zone Organization**: Fixed tools appearing in wrong zones between CoffeePub toolbar and Foundry toolbar. Updated `getFoundryToolbarTools()` to organize tools by zone and sort by order (matching `getVisibleToolsByZones()` logic), ensuring consistent zone grouping across both toolbars.
+- **Foundry Toolbar Timing Issue**: Fixed Blacksmith's own buttons (request roll, replace image) not showing up in the core Foundry toolbar when using `onFoundry()` functions that read settings. Changed `onFoundry` implementations to use `getSettingSafely()` helper instead of manually checking setting availability, preventing tools from being filtered out before settings are registered.
+- **General Zone CSS Styling**: Fixed "general" zone tools not receiving proper styling. Added fallback CSS selectors that don't require the `tool` class, ensuring zone classes apply correctly even when buttons don't have the expected class structure.
 - **SceneControls Rendering Lifecycle (v13)**: Fixed toolbar tools not persisting after registration by correctly implementing FoundryVTT v13's SceneControls rendering lifecycle:
   - Replaced manual `controls` object manipulation with `ui.controls.render({ reset: true })` to trigger Foundry's internal rebuild pipeline
   - Removed problematic `ui.controls.controls = controls` assignment (read-only getter in v13)
@@ -24,6 +27,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removing `game.activeTool` and `game.activeControl` references that don't exist in v13
 - **ReferenceError: activeTool is not defined**: Fixed `activeTool` variable not being declared in `getSceneControlButtons` hook callback scope.
 - **Excessive Debug Logging**: Removed all debug logging related to toolbar state, tool registration, and DOM manipulation that was added during troubleshooting.
+
+### Changed
+- **Request Roll Tool Organization**: Moved "Request a Roll" tool from "rolls" zone to "gmtools" zone to better reflect its GM-only nature.
+- **Request Roll Toolbar Visibility**: Changed request roll tool from hardcoded `onFoundry: true` to read from `requestRollShowInFoundryToolbar` setting, allowing users to control Foundry toolbar visibility independently.
+- **Toolbar Display Settings**: Replaced two separate boolean settings (`toolbarShowDividers` and `toolbarShowLabels`) with a single dropdown setting (`toolbarDisplayStyle`) with three options:
+  - "Foundry Default" (no organization)
+  - "Category Dividers" (visual separators)
+  - "Category Labels" (text labels)
+  - Default is "Category Labels"
+  - Prevents users from enabling both dividers and labels simultaneously
+- **Request Roll Menubar Visibility**: Added `requestRollShowInMenubar` setting to control request roll tool visibility in the menubar, allowing independent control from toolbar visibility.
+
+### Added
+- **Request Roll Toolbar Settings**: Added two new settings for controlling request roll tool visibility:
+  - `requestRollShowInFoundryToolbar` - Control visibility in Foundry toolbar (default: false)
+  - `requestRollShowInMenubar` - Control visibility in menubar (default: true)
+- **Toolbar Display Style Setting**: Added `toolbarDisplayStyle` dropdown setting to replace the previous two boolean settings, providing a cleaner interface for toolbar organization preferences.
 
 ## [13.0.7]
 

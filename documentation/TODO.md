@@ -13,23 +13,18 @@
 
 ### Toolbar - Foundry Toolbar Timing Issue
 - **Issue**: Blacksmith's own buttons (e.g., request roll, replace image, etc.) are not showing up in the core Foundry toolbar when they use `onFoundry()` functions that read settings
-- **Status**: IN PROGRESS - Root cause identified, investigating timing issue
+- **Status**: COMPLETE ✅
 - **Priority**: HIGH - Foundry toolbar integration
-- **Current State**: 
-  - Hardcoding `onFoundry: true` works → button-adding code is fine
-  - Using `onFoundry: () => { return game.settings.get(...) }` doesn't work → timing issue
-  - CoffeePub toolbar works because it evaluates `visible()` functions later
-  - Foundry toolbar evaluates `onFoundry()` when `getSceneControlButtons` hook runs, which may be before settings are registered
-  - There's already retry logic in place (lines 1019-1040 and 1130-1153) but it may not be working correctly
-- **Root Cause**: The `getSceneControlButtons` hook runs when Foundry builds the toolbar, which may be before `tokenImageReplacementShowInFoundryToolbar` setting is registered. When `onFoundry()` is called, the setting doesn't exist yet, so it returns `false` and the tool is filtered out. Even though the function later returns `true`, the toolbar was already built without the tool.
-- **Location**: `scripts/manager-toolbar.js` - `getFoundryToolbarTools()`, `getSceneControlButtons` hook, `registerDefaultTools()` (lines 343-375 for token-replacement tool)
-- **Investigation Needed**:
-  - Verify when `registerSettings()` is called vs when `addToolbarButton()` is called
-  - Check if the retry logic in `ready` hook (lines 1130-1153) is actually triggering
-  - Check if the retry logic in `getSceneControlButtons` hook (lines 1019-1040) is working
-  - Consider using `getSettingSafely()` helper instead of direct `game.settings.get()` calls
-  - May need to ensure toolbar refresh happens after settings are confirmed available
-- **Related**: CoffeePub toolbar works because `visible()` functions are evaluated at render time, not at hook time. Also, `getFoundryToolbarTools()` now organizes tools by zone (fixed in v13.0.8), which may help with this issue.
+- **Resolution**: 
+  - Changed `onFoundry` implementations to use `getSettingSafely()` helper instead of manually checking setting availability
+  - Updated `token-replacement` tool to use `getSettingSafely(MODULE.ID, 'tokenImageReplacementShowInFoundryToolbar', false)`
+  - Updated `request-roll` tool to use `getSettingSafely(MODULE.ID, 'requestRollShowInFoundryToolbar', false)` instead of hardcoded `true`
+  - Added `requestRollShowInFoundryToolbar` and `requestRollShowInMenubar` settings
+  - Updated retry logic to check for both settings
+  - Updated setting change hook to listen for new settings
+  - Moved request-roll tool to "gmtools" zone
+  - Fixed zone organization in Foundry toolbar to match CoffeePub toolbar
+  - Fixed general zone CSS styling with fallback selectors
 
 
 
