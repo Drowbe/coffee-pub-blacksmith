@@ -11,23 +11,6 @@
 - nameplate creation
 
 
-### Toolbar - Foundry Toolbar Timing Issue
-- **Issue**: Blacksmith's own buttons (e.g., request roll, replace image, etc.) are not showing up in the core Foundry toolbar when they use `onFoundry()` functions that read settings
-- **Status**: COMPLETE ✅
-- **Priority**: HIGH - Foundry toolbar integration
-- **Resolution**: 
-  - Changed `onFoundry` implementations to use `getSettingSafely()` helper instead of manually checking setting availability
-  - Updated `token-replacement` tool to use `getSettingSafely(MODULE.ID, 'tokenImageReplacementShowInFoundryToolbar', false)`
-  - Updated `request-roll` tool to use `getSettingSafely(MODULE.ID, 'requestRollShowInFoundryToolbar', false)` instead of hardcoded `true`
-  - Added `requestRollShowInFoundryToolbar` and `requestRollShowInMenubar` settings
-  - Updated retry logic to check for both settings
-  - Updated setting change hook to listen for new settings
-  - Moved request-roll tool to "gmtools" zone
-  - Fixed zone organization in Foundry toolbar to match CoffeePub toolbar
-  - Fixed general zone CSS styling with fallback selectors
-
-
-
 
 ### Memory Leak Investigation
 - **Issue**: Browser tab memory grows to 9.5 GB in ~3 hours while heap stays ~950 MB, leading to crashes.
@@ -37,10 +20,6 @@
 
 ### Movement
 - **Issue**: Tokens no longer follow in conga or other modes
-
-### Menubar
-- **Hidden**: verify we do not show "hidden" creatures on the menubar to players.
-
 
 ### Combat Stats - Critical Bugs and Design Alignment
 - **Issue**: Multiple critical bugs in combat stats system and design inconsistencies between round summaries and combat summary
