@@ -103,8 +103,6 @@ export class XpManager {
      * Show the XP distribution window
      */
     static async showXpDistributionWindow(combat) {
-
-        
         const xpData = await this.calculateXpData(combat);
         
         postConsoleAndNotification(MODULE.NAME, 'XP data calculated', { 
@@ -113,11 +111,80 @@ export class XpManager {
             players: xpData.players.length 
         }, true, false);
         
+        // Check if auto-distribute is enabled
+        const autoDistribute = game.settings.get(MODULE.ID, 'autoDistributeXp');
+        if (autoDistribute) {
+            // Auto-distribute without showing the window
+            await this.autoDistributeXp(xpData);
+            return;
+        }
+        
         // Create and show the XP distribution window
         const xpWindow = new XpDistributionWindow(xpData);
         xpWindow.render(true);
-        
+    }
 
+    /**
+     * Automatically distribute XP without showing the window
+     * This mimics clicking the distribute button with default values
+     */
+    static async autoDistributeXp(xpData) {
+        try {
+            // Initialize milestone data with defaults (if milestone mode is active)
+            if (!xpData.milestoneData) {
+                xpData.milestoneData = {
+                    category: 'narrative',
+                    title: '',
+                    description: '',
+                    xpAmount: '0'
+                };
+            }
+            
+            // Initialize all players as included with no adjustments (default state)
+            xpData.players = xpData.players.map(player => ({
+                ...player,
+                included: true, // All players included by default
+                adjustment: 0,  // No adjustments by default
+                adjustmentSign: '+',
+                signedAdjustment: 0,
+                calculatedXp: 0, // Will be calculated
+                finalXp: 0       // Will be calculated
+            }));
+            
+            // Create a temporary window instance to use its calculation methods
+            // We won't render it, just use it for calculations
+            const tempWindow = new XpDistributionWindow(xpData);
+            
+            // Update XP calculations (this sets xpPerPlayer and combinedXp)
+            tempWindow.updateXpCalculations();
+            
+            // Calculate final XP for each player (all included, no adjustments)
+            xpData.players = xpData.players.map(player => {
+                const finalXp = Math.max(0, xpData.xpPerPlayer + (player.signedAdjustment || 0));
+                return {
+                    ...player,
+                    calculatedXp: finalXp,
+                    finalXp: finalXp
+                };
+            });
+            
+            // Apply XP to players
+            const results = await this.applyXpToPlayersFromData(xpData);
+            
+            // Post results to chat
+            await this.postXpResults(xpData, results);
+            
+            // Create notification message based on active modes
+            let modeText = [];
+            if (xpData.modeExperiencePoints) modeText.push('Experience Points');
+            if (xpData.modeMilestone) modeText.push('Milestones');
+            const modeString = modeText.length > 0 ? ` (${modeText.join(' + ')})` : '';
+            
+            ui.notifications.info(`XP distributed automatically! Total XP: ${xpData.combinedXp}${modeString}`);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Error auto-distributing XP', error, false, true);
+            ui.notifications.error(`Error auto-distributing XP: ${error.message}`);
+        }
     }
 
     /**
