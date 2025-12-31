@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Auto-Distribute XP Functionality**: Fixed `autoDistributeXp` setting to properly bypass the XP distribution window and automatically distribute XP when enabled. When the setting is enabled, the system now automatically distributes XP based on default values (all players included, no adjustments) without showing the distribution window, effectively mimicking clicking the distribute button without any changes. The implementation uses the same calculation and distribution logic as the manual window, ensuring consistent behavior.
+- **Query Window Toolbar Buttons**: Fixed "Send to Chat" and "Copy to Clipboard" toolbar buttons in the query window not finding message content. The issue was caused by attempting to scope queries to the window element after v13 migration, which failed when multiple query windows were open or when viewing recent queries. Simplified the implementation to use `document.querySelector` with `data-message-id` attribute selectors, which works reliably since each message has a unique messageId. Updated all three toolbar button handlers (`_onSendToChat`, `_onCopyToClipboard`, `_onSendToJson`) to use the simplified approach with proper button parameter handling.
 
 ## [13.0.8]
 
