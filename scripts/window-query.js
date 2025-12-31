@@ -397,19 +397,19 @@ export class BlacksmithWindowQuery extends FormApplication {
         htmlElement.addEventListener('click', (event) => {
             const target = event.target.closest('#blacksmith-chat-button-json');
             if (target) {
-                this._onSendToJson.call(this, event);
+                this._onSendToJson.call(this, event, target);
             }
         });
         htmlElement.addEventListener('click', (event) => {
             const target = event.target.closest('#blacksmith-chat-button-chat');
             if (target) {
-                this._onSendToChat.call(this, event);
+                this._onSendToChat.call(this, event, target);
             }
         });
         htmlElement.addEventListener('click', (event) => {
             const target = event.target.closest('#blacksmith-chat-button-copy');
             if (target) {
-                this._onCopyToClipboard.call(this, event);
+                this._onCopyToClipboard.call(this, event, target);
             }
         });
         const form = htmlElement.querySelector('form');
@@ -1431,9 +1431,10 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ** EVENT onSendToJson
     // ************************************
 
-    async _onSendToJson(event) {
+    async _onSendToJson(event, buttonOverride) {
         event.preventDefault();
-        const button = event.currentTarget;
+        const button = buttonOverride || event.target.closest('#blacksmith-chat-button-json');
+        if (!button) return;
         const messageId = button.getAttribute('data-message-id');
         const contentElement = document.querySelector(`#blacksmith-message-wrapper[data-message-id="${messageId}"]`);
         let content = contentElement ? contentElement.innerHTML : null;
@@ -1476,9 +1477,10 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ** EVENT onSendToChat
     // ************************************
 
-    async _onSendToChat(event) {
+    async _onSendToChat(event, buttonOverride) {
         event.preventDefault();
-        const button = event.currentTarget;
+        const button = buttonOverride || event.target.closest('#blacksmith-chat-button-chat');
+        if (!button) return;
         const messageId = button.getAttribute('data-message-id');
         const contentElement = document.querySelector(`#blacksmith-message-wrapper[data-message-id="${messageId}"]`);
         const content = contentElement ? contentElement.innerHTML : null;
@@ -1501,9 +1503,10 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ** EVENT onCopyToClipboard
     // ************************************
 
-    async _onCopyToClipboard(event) {
+    async _onCopyToClipboard(event, buttonOverride) {
         event.preventDefault();
-        const button = event.currentTarget;
+        const button = buttonOverride || event.target.closest('#blacksmith-chat-button-copy');
+        if (!button) return;
         const messageId = button.getAttribute('data-message-id');
         const contentElement = document.querySelector(`#blacksmith-message-content[data-message-id="${messageId}"]`);
         let content = contentElement ? contentElement.innerHTML : null;
@@ -3244,8 +3247,5 @@ function formatCharacterData(tokenData) {
     
     return characterText;
 }
-
-
-
 
 
