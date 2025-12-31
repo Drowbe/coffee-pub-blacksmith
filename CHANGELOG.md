@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.0.9]
+
+### Fixed
+- **Auto-Distribute XP Functionality**: Fixed `autoDistributeXp` setting to properly bypass the XP distribution window and automatically distribute XP when enabled. When the setting is enabled, the system now automatically distributes XP based on default values (all players included, no adjustments) without showing the distribution window, effectively mimicking clicking the distribute button without any changes. The implementation uses the same calculation and distribution logic as the manual window, ensuring consistent behavior.
+
 ## [13.0.8]
 
 ### Fixed
