@@ -18,8 +18,6 @@
 - **Priority**: CRITICAL
 - **Next Step**: Verify token image window cleanup in live play, then tackle menubar rerenders (per performance.md). Update this entry when the linked doc advances.
 
-### Movement
-- **Issue**: Tokens no longer follow in conga or other modes
 
 ### Combat Stats - Critical Bugs and Design Alignment
 - **Issue**: Multiple critical bugs in combat stats system and design inconsistencies between round summaries and combat summary
