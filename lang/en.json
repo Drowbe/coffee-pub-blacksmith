@@ -667,19 +667,19 @@
 			"headingH3XpConfiguration-Hint": "",
 
 				"enableXpDistribution-Label": "Enable Distribution",
-				"enableXpDistribution-Hint": "Automatically show XP distribution window when combat ends",
+				"enableXpDistribution-Hint": "Automatically show XP distribution window when combat ends.",
 
-				"autoDistributeXp-Label": "Auto-distribute",
-				"autoDistributeXp-Hint": "Sutomatically distribute XP without showing the distribution window",
+				"autoDistributeXp-Label": "Auto Distribute",
+				"autoDistributeXp-Hint": "Automatically distribute XP after combat without showing the distribution window.",
 
 				"shareXpResults-Label": "Share Results",
 				"shareXpResults-Hint": "If enabled, distribution results will be shared to all players. If disabled, only the GM will see them.",
 
 				"xpCalculationMethod-Label": "Calculation Method",
-				"xpCalculationMethod-Hint": "Choose the method for calculating XP from monster CR",
+				"xpCalculationMethod-Hint": "Choose the method for calculating XP from monster CR.",
 
 				"xpPartySizeHandling-Label": "Party Size Handling",
-				"xpPartySizeHandling-Hint": "How to handle XP distribution with varying party sizes",
+				"xpPartySizeHandling-Hint": "How to handle XP distribution with varying party sizes.",
 			
 			"headingH3XpMultipliers-Label": "Multipliers",
 			"headingH3XpMultipliers-Hint": "One size does not have to fit all. You can customize the multipliers for each resolution type to fit your needs, and adjust for the playstyle of your group.",
