@@ -226,9 +226,31 @@
     position: relative;
 }
 
+.ratio-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+}
+
+.ratio-icon-left,
+.ratio-icon-right {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.6);
+    flex-shrink: 0;
+}
+
+.ratio-icon-left {
+    color: #8b0000;
+}
+
+.ratio-icon-right {
+    color: #4a8f52;
+}
+
 .ratio-bar-background {
     display: flex;
-    width: 100%;
+    flex: 1;
     height: 6px;
     border-radius: 3px;
     overflow: hidden;
@@ -238,24 +260,24 @@
 .ratio-segment {
     flex: 1;
     height: 100%;
-    border-right: 1px solid rgba(0, 0, 0, 0.1);
+    border-right: 1px dotted rgba(255, 255, 255, 0.4);
 }
 
 .ratio-segment:last-child {
     border-right: none;
 }
 
-.ratio-segment-green {
-    background: #4a8f52;
-}
-
 .ratio-segment-red {
     background: #8b0000;
 }
 
+.ratio-segment-green {
+    background: #4a8f52;
+}
+
 .ratio-marker {
     position: absolute;
-    top: -4px;
+    top: -2px;
     width: 0;
     height: 0;
     border-left: 6px solid transparent;

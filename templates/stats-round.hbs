@@ -322,19 +322,23 @@
                     {{/if}}
                 </div>
                 <div class="damage-ratio-bar" data-debug="Marker: {{this.damageRatioGreen}}%">
-                    <div class="ratio-bar-background">
-                        <div class="ratio-segment ratio-segment-green"></div>
-                        <div class="ratio-segment ratio-segment-green"></div>
-                        <div class="ratio-segment ratio-segment-green"></div>
-                        <div class="ratio-segment ratio-segment-green"></div>
-                        <div class="ratio-segment ratio-segment-green"></div>
-                        <div class="ratio-segment ratio-segment-red"></div>
-                        <div class="ratio-segment ratio-segment-red"></div>
-                        <div class="ratio-segment ratio-segment-red"></div>
-                        <div class="ratio-segment ratio-segment-red"></div>
-                        <div class="ratio-segment ratio-segment-red"></div>
+                    <div class="ratio-bar-container">
+                        <i class="fa-solid fa-heart-crack ratio-icon-left"></i>
+                        <div class="ratio-bar-background">
+                            <div class="ratio-segment ratio-segment-red"></div>
+                            <div class="ratio-segment ratio-segment-red"></div>
+                            <div class="ratio-segment ratio-segment-red"></div>
+                            <div class="ratio-segment ratio-segment-red"></div>
+                            <div class="ratio-segment ratio-segment-red"></div>
+                            <div class="ratio-segment ratio-segment-green"></div>
+                            <div class="ratio-segment ratio-segment-green"></div>
+                            <div class="ratio-segment ratio-segment-green"></div>
+                            <div class="ratio-segment ratio-segment-green"></div>
+                            <div class="ratio-segment ratio-segment-green"></div>
+                            <div class="ratio-marker" style="left: {{this.damageRatioGreen}}%;"></div>
+                        </div>
+                        <i class="fa-solid fa-swords ratio-icon-right"></i>
                     </div>
-                    <div class="ratio-marker" style="left: {{this.damageRatioGreen}}%;"></div>
                 </div>
                 <div class="turn-stats">MVP: {{this.score}}  •  DMG: {{this.damage.dealt}}  •  Hits: {{this.combat.attacks.hits}}/{{this.combat.attacks.attempts}}</div>
             </div>
