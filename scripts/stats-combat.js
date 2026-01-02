@@ -1246,7 +1246,51 @@ class CombatStats {
     // GM-side processors (shared by hooks + sockets)
     // -------------------------------------------------------------------------
 
-    static async _processAttackRoll({ item, rollTotal, d20Result = null, targetAC = null, timestamp = null }) {
+    // Extract the active/kept d20 result from a roll
+    static _getD20ResultFromRoll(roll) {
+        if (!roll) return null;
+
+        // DiceTerm may appear in roll.dice or roll.terms depending on context/system
+        const d20Term =
+            roll.dice?.find(t => t?.faces === 20) ??
+            roll.terms?.find(t => t?.faces === 20) ??
+            null;
+
+        if (!d20Term?.results?.length) return null;
+
+        // Foundry marks kept die results as active
+        const active = d20Term.results.find(r => r?.active);
+        if (active?.result != null) return active.result;
+
+        // Fallback: if nothing is marked active, take the first numeric result
+        const first = d20Term.results.find(r => typeof r?.result === "number");
+        return first?.result ?? null;
+    }
+
+    // Get crit/fumble flags from roll, context, or d20 result
+    static _getCritFumbleFlags({ roll, context, d20Result }) {
+        // If the system tells us directly, trust it
+        const ctxCrit = context?.isCritical ?? context?.critical;
+        const ctxFumble = context?.isFumble ?? context?.fumble;
+
+        // Some rolls expose helpers
+        const rollCrit = roll?.isCritical;
+        const rollFumble = roll?.isFumble;
+
+        const isCritical =
+            (typeof ctxCrit === "boolean" ? ctxCrit : undefined) ??
+            (typeof rollCrit === "boolean" ? rollCrit : undefined) ??
+            (typeof d20Result === "number" ? d20Result === 20 : false);
+
+        const isFumble =
+            (typeof ctxFumble === "boolean" ? ctxFumble : undefined) ??
+            (typeof rollFumble === "boolean" ? rollFumble : undefined) ??
+            (typeof d20Result === "number" ? d20Result === 1 : false);
+
+        return { isCritical, isFumble };
+    }
+
+    static async _processAttackRoll({ item, rollTotal, d20Result = null, isCritical = null, isFumble = null, targetAC = null, timestamp = null }) {
         if (!game.user.isGM) return;
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
@@ -1263,8 +1307,9 @@ class CombatStats {
         this._ensureCombatTotals();
         const combatTotals = this.combatStats.totals;
 
-        const isCritical = d20Result === 20;
-        const isFumble = d20Result === 1;
+        // Use provided flags if available, otherwise derive from d20Result
+        const crit = (typeof isCritical === "boolean") ? isCritical : (d20Result === 20);
+        const fumble = (typeof isFumble === "boolean") ? isFumble : (d20Result === 1);
 
         // If you cannot reliably know AC, treat "hit" as unknown and only track attempts/crits/fumbles
         // Keep your previous heuristic (>= 10) but allow a passed AC
@@ -1273,8 +1318,8 @@ class CombatStats {
 
         const hitInfo = {
             attackRoll: rollTotal,
-            isCritical,
-            isFumble,
+            isCritical: crit,
+            isFumble: fumble,
             isHit,
             timestamp: timestamp ?? Date.now(),
             actorId: actor.id,
@@ -1286,6 +1331,19 @@ class CombatStats {
         attackerCombatStats.combat.attacks.attempts++;
         combatTotals.attacks.attempts++;
 
+        // Count crits and fumbles regardless of hit status (nat20/nat1 always count)
+        if (crit) {
+            attackerStats.combat.attacks.crits++;
+            attackerCombatStats.combat.attacks.crits++;
+            combatTotals.attacks.crits++;
+        }
+
+        if (fumble) {
+            attackerStats.combat.attacks.fumbles++;
+            attackerCombatStats.combat.attacks.fumbles++;
+            combatTotals.attacks.fumbles++;
+        }
+
         if (isHit) {
             this._boundedPush(this.currentStats.hits, hitInfo);
             if (Array.isArray(attackerStats.hits)) this._boundedPush(attackerStats.hits, hitInfo);
@@ -1293,12 +1351,6 @@ class CombatStats {
             attackerStats.combat.attacks.hits++;
             attackerCombatStats.combat.attacks.hits++;
             combatTotals.attacks.hits++;
-
-            if (isCritical) {
-                attackerStats.combat.attacks.crits++;
-                attackerCombatStats.combat.attacks.crits++;
-                combatTotals.attacks.crits++;
-            }
         } else {
             this._boundedPush(this.currentStats.misses, hitInfo);
             if (Array.isArray(attackerStats.misses)) this._boundedPush(attackerStats.misses, hitInfo);
@@ -1308,13 +1360,7 @@ class CombatStats {
             combatTotals.attacks.misses++;
         }
 
-        if (isFumble) {
-            attackerStats.combat.attacks.fumbles++;
-            attackerCombatStats.combat.attacks.fumbles++;
-            combatTotals.attacks.fumbles++;
-        }
-
-        this._lastRollWasCritical = isCritical;
+        this._lastRollWasCritical = crit;
 
         if (this._isPlayerCharacter(actor)) {
             if (isHit) this.currentStats.partyStats.hits++;
@@ -1672,12 +1718,15 @@ class CombatStats {
         if (!game.user.isGM) {
             const socket = SocketManager.getSocket();
             if (socket?.executeAsGM) {
-                const d20Result = rollObj.dice?.find(d => d.faces === 20)?.results?.[0]?.result ?? null;
+                const d20Result = this._getD20ResultFromRoll(rollObj);
+                const { isCritical, isFumble } = this._getCritFumbleFlags({ roll: rollObj, context, d20Result });
 
                 await socket.executeAsGM("cpbTrackAttack", {
                     itemUuid: item.uuid,
                     rollTotal: rollObj.total,
-                    d20Result: d20Result
+                    d20Result: d20Result,
+                    isCritical: isCritical,
+                    isFumble: isFumble
                 });
             }
             return;
@@ -1688,7 +1737,18 @@ class CombatStats {
         if (!actor) return;
 
         const rollTotal = rollObj.total;
-        const d20Result = rollObj.dice?.find(d => d.faces === 20)?.results?.[0]?.result ?? null;
+        const d20Result = this._getD20ResultFromRoll(rollObj);
+        const { isCritical, isFumble } = this._getCritFumbleFlags({ roll: rollObj, context, d20Result });
+
+        // Debug log to verify d20 extraction
+        const d20Term = rollObj.dice?.find(t => t?.faces === 20) ?? rollObj.terms?.find(t => t?.faces === 20);
+        postConsoleAndNotification(MODULE.NAME, "Attack d20 debug", {
+            total: rollObj.total,
+            d20Result,
+            isCritical,
+            isFumble,
+            d20Results: d20Term?.results?.map(r => ({ result: r.result, active: r.active, discarded: r.discarded })),
+        }, true, false);
 
         // You still don't really have target AC here.
         // Keep your current heuristic by not passing targetAC (processor falls back to 10).
@@ -1696,6 +1756,8 @@ class CombatStats {
             item,
             rollTotal,
             d20Result,
+            isCritical,
+            isFumble,
             timestamp: Date.now()
         });
     }
