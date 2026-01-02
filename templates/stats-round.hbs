@@ -321,11 +321,20 @@
                     <span class="turn-time">{{formatTime this.turnDuration}}</span>
                     {{/if}}
                 </div>
-                <div class="damage-ratio-bar" data-debug="Green: {{this.damageRatioGreen}}, Red: {{this.damageRatioRed}}">
-                    <div class="progress-bar">
-                        <div class="progress-fill progress-given" style="width: {{this.damageRatioGreen}}%; left: 0;"></div>
-                        <div class="progress-fill progress-taken" style="width: {{this.damageRatioRed}}%; left: {{this.damageRatioGreen}}%;"></div>
+                <div class="damage-ratio-bar" data-debug="Marker: {{this.damageRatioGreen}}%">
+                    <div class="ratio-bar-background">
+                        <div class="ratio-segment ratio-segment-green"></div>
+                        <div class="ratio-segment ratio-segment-green"></div>
+                        <div class="ratio-segment ratio-segment-green"></div>
+                        <div class="ratio-segment ratio-segment-green"></div>
+                        <div class="ratio-segment ratio-segment-green"></div>
+                        <div class="ratio-segment ratio-segment-red"></div>
+                        <div class="ratio-segment ratio-segment-red"></div>
+                        <div class="ratio-segment ratio-segment-red"></div>
+                        <div class="ratio-segment ratio-segment-red"></div>
+                        <div class="ratio-segment ratio-segment-red"></div>
                     </div>
+                    <div class="ratio-marker" style="left: {{this.damageRatioGreen}}%;"></div>
                 </div>
                 <div class="turn-stats">MVP: {{this.score}}  •  DMG: {{this.damage.dealt}}  •  Hits: {{this.combat.attacks.hits}}/{{this.combat.attacks.attempts}}</div>
             </div>

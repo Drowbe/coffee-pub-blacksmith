@@ -217,50 +217,54 @@
 .quick-turn { color: #4a8f52; font-weight: bold; }
 .expired-turn { color: #8b0000; font-weight: bold; }
 
-/* Progress Bars */
+/* Damage Ratio Bar - Segmented Background with Triangle Marker */
 .damage-ratio-bar {
     margin-top: 4px;
     margin-bottom: 4px;
-    min-height: 4px;
+    min-height: 8px;
     display: block;
+    position: relative;
 }
 
-.progress-bar {
-    height: 6px !important;
-    min-height: 6px !important;
-    background: #d5ccc7 !important;
+.ratio-bar-background {
+    display: flex;
+    width: 100%;
+    height: 6px;
     border-radius: 3px;
-    margin-top: 0px;
-    margin-bottom: 0px;
-    overflow: hidden !important;
-    position: relative !important;
-    display: block !important;
-    width: 100% !important;
-    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
 }
 
-.progress-fill {
-    height: 100% !important;
-    min-height: 6px !important;
-    position: absolute !important;
-    top: 0 !important;
-    transition: width 0.3s ease;
-    display: block !important;
-    box-sizing: border-box;
+.ratio-segment {
+    flex: 1;
+    height: 100%;
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.progress-fill.progress-given {
-    background: #4a8f52 !important; /* Green for damage dealt */
-    left: 0 !important;
-    border-radius: 3px 0 0 3px;
-    z-index: 1;
+.ratio-segment:last-child {
+    border-right: none;
 }
 
-.progress-fill.progress-taken {
-    background: #8b0000 !important; /* Red for damage taken */
-    border-radius: 0 3px 3px 0;
-    z-index: 2;
-    /* left position is set inline from template */
+.ratio-segment-green {
+    background: #4a8f52;
+}
+
+.ratio-segment-red {
+    background: #8b0000;
+}
+
+.ratio-marker {
+    position: absolute;
+    top: -4px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #ffffff;
+    transform: translateX(-50%);
+    z-index: 10;
+    pointer-events: none;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
 /* === Notable Moments === */
