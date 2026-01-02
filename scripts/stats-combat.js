@@ -2257,21 +2257,15 @@ class CombatStats {
             // Set the round number for the template
             templateData.roundNumber = finalRoundNumber;
 
-            // Add MVP data to template
+            // Add MVP data to template (always exists, even if score is 0)
             if (roundMvpResult.mvp) {
                 templateData.roundMVP = roundMvpResult.mvp;
+                // Also provide description at root level for fallback cases
+                templateData.description = roundMvpResult.mvp.description;
             }
 
-            // Render the template
-            const content = await this.generateRoundSummary(templateData);
-
-            // Post to chat
-            const isShared = game.settings.get(MODULE.ID, 'shareCombatStats');
-            const chatMessage = await ChatMessage.create({
-                content: content,
-                whisper: isShared ? [] : [game.user.id],
-                speaker: { alias: "Game Master", user: game.user.id }
-            });
+            // Send each card as a separate chat message in order
+            await this._sendRoundCards(templateData, finalRoundNumber);
 
             // Reset current stats
             this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
@@ -2567,6 +2561,67 @@ class CombatStats {
             hasNotableMoments: Object.values(this.currentStats.notableMoments)
                 .some(moment => moment.amount > 0 || moment.duration > 0)
         };
+    }
+
+    /**
+     * Send round cards as separate chat messages
+     * Order: Round End, Round Summary, Round MVP, Notable Moments, Party Breakdown
+     */
+    static async _sendRoundCards(templateData, roundNumber) {
+        const isShared = game.settings.get(MODULE.ID, 'shareCombatStats');
+        const whisper = isShared ? [] : [game.user.id];
+        const speaker = { alias: "Game Master", user: game.user.id };
+
+        // 1. Round End Card (always send if no other cards are being sent)
+        const showAnyCard = templateData.settings.showRoundSummary || 
+                           templateData.settings.showRoundMVP || 
+                           templateData.settings.showNotableMoments || 
+                           templateData.settings.showPartyBreakdown;
+        
+        if (!showAnyCard) {
+            const endContent = await foundry.applications.handlebars.renderTemplate(
+                'modules/' + MODULE.ID + '/templates/card-stats-round-end.hbs',
+                { roundNumber }
+            );
+            await ChatMessage.create({ content: endContent, whisper, speaker });
+            return;
+        }
+
+        // 2. Round Summary Card
+        if (templateData.settings.showRoundSummary) {
+            const summaryContent = await foundry.applications.handlebars.renderTemplate(
+                'modules/' + MODULE.ID + '/templates/card-stats-round-summary.hbs',
+                templateData
+            );
+            await ChatMessage.create({ content: summaryContent, whisper, speaker });
+        }
+
+        // 3. Round MVP Card
+        if (templateData.settings.showRoundMVP) {
+            const mvpContent = await foundry.applications.handlebars.renderTemplate(
+                'modules/' + MODULE.ID + '/templates/card-stats-round-mvp.hbs',
+                templateData
+            );
+            await ChatMessage.create({ content: mvpContent, whisper, speaker });
+        }
+
+        // 4. Notable Moments Card
+        if (templateData.settings.showNotableMoments) {
+            const momentsContent = await foundry.applications.handlebars.renderTemplate(
+                'modules/' + MODULE.ID + '/templates/card-stats-round-moments.hbs',
+                templateData
+            );
+            await ChatMessage.create({ content: momentsContent, whisper, speaker });
+        }
+
+        // 5. Party Breakdown Card
+        if (templateData.settings.showPartyBreakdown) {
+            const breakdownContent = await foundry.applications.handlebars.renderTemplate(
+                'modules/' + MODULE.ID + '/templates/card-stats-round-breakdown.hbs',
+                templateData
+            );
+            await ChatMessage.create({ content: breakdownContent, whisper, speaker });
+        }
     }
 
     static async generateRoundSummary(templateData) {

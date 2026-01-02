@@ -1,0 +1,60 @@
+<span style="visibility: hidden">coffeepub-hide-header</span>
+
+{{!-- Round Summary --}}
+<div class="blacksmith-card theme-default">
+    <div class="card-header collapsible {{sectionStates.roundSummary}}" data-section="roundSummary-{{roundNumber}}" data-card-id="round-{{roundNumber}}">
+        <i class="fa-solid fa-swords"></i> Round {{roundNumber}} Summary 
+        <i class="fa-solid fa-chevron-{{#if (eq sectionStates.roundSummary 'collapsed')}}right{{else}}down{{/if}} collapse-indicator"></i>
+    </div>
+    <div class="section-content {{#if (eq sectionStates.roundSummary 'collapsed')}}collapsed{{/if}}">
+        <div class="party-stats-grid">
+            {{#if settings.showRoundTimer}}
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-clock"></i> Elapsed</h4>
+                <div class="round-stat-value">{{formatTime roundDurationActual}}</div>
+                <div class="round-stat-detail">Total Time</div>
+            </div>
+            {{/if}}
+            {{#if (and settings.planningTimerEnabled settings.combatTimerEnabled)}}
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-hand-fist"></i> Active</h4>
+                <div class="round-stat-value">{{formatTime roundDurationActive}}</div>
+                <div class="round-stat-detail">Party Time</div>
+            </div>
+            {{/if}}
+
+            {{#if settings.planningTimerEnabled}}
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-brain"></i> Strategy</h4>
+                <div class="round-stat-value">{{formatTime planningDuration}}</div>
+                <div class="round-stat-detail">Planning Time</div>
+            </div>
+            {{/if}}
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-bullseye"></i> Accuracy</h4>
+                <div class="round-stat-value">{{round partyStats.hitMissRatio}}%</div>
+                <div class="round-stat-detail">Hits: {{partyStats.totalHits}} | Misses: {{partyStats.totalMisses}}</div>
+            </div>
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-swords"></i> Damage</h4>
+                <div class="round-stat-value">{{formatDamage partyStats.damageDealt}} hp</div>
+                <div class="round-stat-detail">Dealt</div>
+            </div>
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-shield"></i> Defense</h4>
+                <div class="round-stat-value">{{formatDamage partyStats.damageTaken}} hp</div>
+                <div class="round-stat-detail">Taken</div>
+            </div>
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-heart"></i> Healing</h4>
+                <div class="round-stat-value">{{formatDamage partyStats.healingDone true}} hp</div>
+                <div class="round-stat-detail">Restored</div>
+            </div>
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-fire-flame"></i> Finesse</h4>
+                <div class="round-stat-value">{{partyStats.criticalHits}} | {{partyStats.fumbles}}</div>
+                <div class="round-stat-detail">Crits | Fumbles</div>
+            </div>
+        </div>
+    </div>
+</div>

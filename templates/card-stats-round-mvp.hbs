@@ -1,0 +1,77 @@
+<span style="visibility: hidden">coffeepub-hide-header</span>
+
+{{!-- Round MVP --}}
+<div class="blacksmith-card theme-default">
+    <div class="card-header collapsible {{sectionStates.roundMVP}}" data-section="roundMVP-{{roundNumber}}" data-card-id="round-{{roundNumber}}">
+        <i class="fa-solid fa-trophy"></i> Round {{roundNumber}} MVP 
+        <i class="fa-solid fa-chevron-{{#if (eq sectionStates.roundMVP 'collapsed')}}right{{else}}down{{/if}} collapse-indicator"></i>
+    </div>
+    <div class="section-content {{#if (eq sectionStates.roundMVP 'collapsed')}}collapsed{{/if}}">
+        {{#if roundMVP}}
+            {{#if roundMVP.score}}
+            {{#with roundMVP}}
+            <div class="mvp-details">
+                <img src="{{tokenImg}}" alt="{{name}}" />
+                <div class="mvp-info">
+                    <div class="player-name">{{name}}</div>
+                    <p class="mvp-description">{{description}}</p>
+                </div>
+            </div>
+            <div class="mvp-stats">
+                <div class="mvp-stat-card">
+                    <h4><i class="fas fa-swords"></i> Combat</h4>
+                    <div class="moment-content">
+   
+                            <span class="detail">Hits:</span>
+                            <span class="amount">{{combat.attacks.hits}}/{{combat.attacks.attempts}}</span>
+        
+                            <span class="detail">Crits:</span>
+                            <span class="amount">{{combat.attacks.crits}}</span>
+
+                            <span class="detail">Fumbles:</span>
+                            <span class="amount">{{combat.attacks.fumbles}}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mvp-stat-card">
+                    <h4><i class="fas fa-droplet"></i> Damage</h4>
+                    <div class="moment-content">
+
+                            <span class="detail">Dealt:</span>
+                            <span class="amount">{{damage.dealt}}</span>
+
+                            <span class="detail">Taken:</span>
+                            <span class="amount">{{damage.taken}}</span>
+
+                    </div>
+                </div>
+                <div class="mvp-stat-card">
+                    <h4><i class="fas fa-heart"></i> Healing</h4>
+                    <div class="moment-content">
+
+                            <span class="detail">Given:</span>
+                            <span class="amount">{{healing.given}}</span>
+
+                            <span class="detail">Received:</span>
+                            <span class="amount">{{healing.received}}</span>
+
+                    </div>
+                </div>
+            </div>
+            {{/with}}
+            {{else}}
+            <div class="mvp-details">
+                <div class="mvp-info">
+                    <p class="mvp-description">{{roundMVP.description}}</p>
+                </div>
+            </div>
+            {{/if}}
+        {{else}}
+            <div class="mvp-details">
+                <div class="mvp-info">
+                    <p class="mvp-description">{{description}}</p>
+                </div>
+            </div>
+        {{/if}}
+    </div>
+</div>
