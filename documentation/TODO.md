@@ -21,49 +21,53 @@
 
 ### Combat Stats - Critical Bugs and Design Alignment
 - **Issue**: Multiple critical bugs in combat stats system and design inconsistencies between round summaries and combat summary
-- **Status**: PENDING - Needs investigation and fixes
+- **Status**: PARTIALLY FIXED - Some issues resolved, others still need work
 - **Priority**: CRITICAL - Broken functionality and design inconsistencies
 - **Current State**: 
-  - Error preventing damage/healing tracking from working correctly
-  - Round summary cards missing data and UI elements
-  - Combat summary card missing data, portraits, and proper layout
-  - Design inconsistency between round summaries and combat summary
+  - Some issues have been fixed (scene name, notable moments section, progress bars, round summary portraits)
+  - Critical bug with `healing.received` still needs defensive check
+  - Combat summary MVP and participant portraits still need work
+  - Notable moments format needs alignment between round and combat summaries
 - **Location**: `scripts/stats-combat.js`, `templates/stats-round.hbs`, `templates/stats-combat.hbs`
 - **Overall Goal**: End-of-combat results should match round results design but aggregated for the whole combat session
 - **Tasks Needed**:
   - **CRITICAL BUGS:**
-    - Fix `TypeError: Cannot read properties of undefined (reading 'received')` at `stats-combat.js:1381` in `_onDamageRoll` method
-      - Error occurs when accessing `healing.received` property that doesn't exist
-      - Need to add safe property access with defaults
+    - ✅ **FIXED** - Scene name display: `sceneName` is properly set and displayed in combat summary header (line 6 of `stats-combat.hbs`)
+    - ⚠️ **STILL NEEDS WORK** - Fix `TypeError: Cannot read properties of undefined (reading 'received')` at `stats-combat.js:1383` in `_onDamageRoll` method
+      - Error occurs when accessing `healing.received` property that doesn't exist on `targetCurrentStats` or `targetCombatStats`
+      - Need to add defensive check similar to line 1324: `targetCurrentStats.healing = targetCurrentStats.healing || { given: 0, received: 0 };`
+      - Issue: At line 218, if `this.DEFAULTS.roundStats.participantStats` doesn't exist (it doesn't), it clones `{}`, and healing may not be initialized
   - **ROUND SUMMARY CARD ISSUES:**
-    - Fix MVP display showing portrait and data but saying "no mvp" message
-      - MVP calculation/description generation is incorrect when MVP exists
-      - Need to verify MVP detection logic and description generation
-    - Fix missing player names in Round 1 party breakdown
+    - ✅ **FIXED** - Progress bar: `.progress-bar` and `.progress-fill` elements exist in template (lines 326-327 of `stats-round.hbs`)
+    - ✅ **FIXED** - Token images: `tokenImg` is set in `_prepareTemplateData` (line 2175) and displayed in round template (line 313)
+    - ⚠️ **NEEDS VERIFICATION** - MVP display showing portrait and data but saying "no mvp" message
+      - MVP calculation/description generation may be incorrect when MVP exists
+      - Need to verify MVP detection logic and description generation in live testing
+    - ⚠️ **NEEDS VERIFICATION** - Missing player names in Round 1 party breakdown
       - Player names not displaying in turn details for first round
-      - Check `_prepareTemplateData` and template rendering
-    - Restore missing time bar in party breakdown for all round cards
-      - Progress bar for turn timers no longer displays
-      - Check template and CSS for `.progress-bar` and `.progress-fill` elements
+      - Code appears correct in `_prepareTemplateData` - needs live testing to confirm
   - **COMBAT SUMMARY CARD ISSUES:**
-    - Fix missing scene name display
-      - Scene name should be shown in combat summary header
-      - Verify `sceneName` is being passed to template correctly
-    - Add same notable moments display as round cards
-      - Combat summary should show "Notable Moments" section with same format as round summaries
-      - Include biggest hit, weakest hit, most damage, biggest heal, most hurt, longest turn
-    - Fix MVP layout to match round card MVP design
-      - Current MVP section is sparse and incomplete
+    - ✅ **FIXED** - Scene name display: `sceneName` is set in `_generateCombatSummary` (line 499) and displayed (line 6 of `stats-combat.hbs`)
+    - ⚠️ **PARTIALLY FIXED** - Notable moments display exists but format doesn't match round summaries
+      - Combat summary has "Notable Moments" section (lines 119-163 of `stats-combat.hbs`)
+      - Shows `topHits` and `topHeals` but format is simpler than round summaries
+      - Round summaries show portraits, actor names, and more detail (lines 169-294 of `stats-round.hbs`)
+      - Need to align format: add portraits, actor images, and match the detailed format from round summaries
+    - ⚠️ **STILL NEEDS WORK** - Fix MVP layout to match round card MVP design
+      - Combat summary MVP (lines 62-67 of `stats-combat.hbs`) missing portrait image
+      - Round MVP shows `<img src="{{tokenImg}}" />` (line 83 of `stats-round.hbs`) but combat summary doesn't
+      - Combat summary shows `"Score {{notableMoments.mvp.score}}"` instead of proper description
       - Should include portrait, name, description, and detailed stats (Combat, Damage, Healing) like round cards
-    - Add portraits to party breakdown section
-      - Party breakdown should show token portraits like round summaries do
-      - Need to add `tokenImg` data to participant summaries and update template
+    - ⚠️ **STILL NEEDS WORK** - Add portraits to party breakdown section
+      - `participantSummaries` in `_generateCombatSummary` (lines 502-525) doesn't include `tokenImg`
+      - Round template shows portraits (line 313 of `stats-round.hbs`) but combat summary template (lines 173-186 of `stats-combat.hbs`) doesn't display them
+      - Need to add `tokenImg` to participant summaries and update template to display portraits
   - **DESIGN ALIGNMENT:**
-    - Ensure combat summary uses same visual design as round summaries
-      - Same card structure, section headers, stat cards, and layout
-      - Same portrait sizes and placements
-      - Same notable moments format
-      - Same MVP display format
+    - ⚠️ **PARTIALLY FIXED** - Combat summary uses similar structure but notable moments and MVP formats need alignment
+      - Same card structure and section headers ✅
+      - Same portrait sizes and placements ⚠️ (missing in MVP and participants)
+      - Same notable moments format ⚠️ (exists but simpler format)
+      - Same MVP display format ⚠️ (missing portrait and proper description)
 - **Related Files**:
   - `scripts/stats-combat.js` - Data generation and processing
   - `templates/stats-round.hbs` - Round summary template
@@ -293,6 +297,31 @@
 - **Notes**: This is a code quality task - review first, then create specific refactoring plan
 
 
+### LOW PRIORITY ISSUES
+
+### Migrate Combat Hooks to lib-wrapper
+- **Issue**: We are using Foundry hooks for Combat methods that should be wrapped with lib-wrapper instead
+- **Status**: PENDING - Needs implementation
+- **Priority**: LOW - Code quality and best practices alignment
+- **Current State**: Using hooks (`combatStart`, `updateCombat`, `endCombat`, `deleteCombat`) instead of lib-wrapper wrappers for Combat prototype methods
+- **Location**: `scripts/stats-combat.js`, `scripts/combat-tracker.js`, `scripts/timer-combat.js`, `scripts/manager-libwrapper.js`
+- **Tasks Needed**:
+  - Replace `combatStart` hook with `Combat.prototype.start` wrapper in `WrapperManager`
+  - Replace `updateCombat` hook with `Combat.prototype.update` wrapper in `WrapperManager`
+  - Replace `endCombat` hook with `Combat.prototype.end` wrapper in `WrapperManager`
+  - Replace `deleteCombat` hook with `Combat.prototype.delete` wrapper in `WrapperManager`
+  - Update all files that currently use these hooks to work with the new wrappers
+  - Test that combat tracking, timers, and stats still work correctly after migration
+  - Verify wrapper callbacks receive correct parameters and can access combat state
+- **Related Files**:
+  - `scripts/manager-libwrapper.js` - Add new wrapper registrations
+  - `scripts/stats-combat.js` - Remove hook registrations, update to use wrapper callbacks
+  - `scripts/combat-tracker.js` - Remove hook registrations, update to use wrapper callbacks
+  - `scripts/timer-combat.js` - Remove hook registrations, update to use wrapper callbacks
+- **Notes**: 
+  - We already use lib-wrapper for `Combat.prototype.nextTurn`, `Combat.prototype.nextRound`, `ChatMessage.create`, and `Token.prototype.draw`
+  - System-specific hooks like `dnd5e.rollAttack` and `dnd5e.rollDamage` may need to stay as hooks if there are no direct prototype methods to wrap
+  - This aligns with the intended architecture of using lib-wrapper for all Foundry core method modifications
 
 
 ## DEFERRED TASKS

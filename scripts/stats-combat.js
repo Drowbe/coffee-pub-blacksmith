@@ -1248,12 +1248,13 @@ class CombatStats {
 
     // Add new method to track damage rolls
     static async _onDamageRoll(item, roll) {
-        // Only process damage rolls if this is the GM
-        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
-        if (!game.combat?.started) {
-            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping damage roll (combat not started)', "", true, false);
-            return;
-        }
+        try {
+            // Only process damage rolls if this is the GM
+            if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+            if (!game.combat?.started) {
+                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping damage roll (combat not started)', "", true, false);
+                return;
+            }
 
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Processing Damage Roll (FULL):', {
             roll,
@@ -1265,8 +1266,8 @@ class CombatStats {
             item: {
                 name: item.name,
                 type: item.type,
-                actionType: item.system.actionType,
-                damage: item.system.damage
+                actionType: item.system?.actionType,
+                damage: item.system?.damage
             }
         }, true, false);
 
@@ -1501,6 +1502,11 @@ class CombatStats {
             },
             attackerStats
         }, true, false);
+        } catch (error) {
+            // Catch any errors to prevent breaking the hook chain for other modules (e.g., midi-qol)
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Error in _onDamageRoll:', error, false, false);
+            console.error('Combat Stats - _onDamageRoll error:', error);
+        }
     }
 
     // Add new method to track pre-damage rolls
