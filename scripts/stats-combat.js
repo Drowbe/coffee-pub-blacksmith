@@ -216,24 +216,19 @@ class CombatStats {
 
         if (includeCurrent) {
             if (!this.currentStats.participantStats[actor.id]) {
-                this.currentStats.participantStats[actor.id] = foundry.utils.deepClone(this.DEFAULTS.roundStats.participantStats || {});
+                // Use real defaults, not this.DEFAULTS.roundStats.participantStats (it doesn't exist)
+                this.currentStats.participantStats[actor.id] = foundry.utils.deepClone(defaultCurrentParticipantStats);
             }
-            if (!this.currentStats.participantStats[actor.id].combat?.attacks) {
-                this.currentStats.participantStats[actor.id].combat = this.currentStats.participantStats[actor.id].combat || {};
-                this.currentStats.participantStats[actor.id].combat.attacks = {
-                    hits: this.currentStats.participantStats[actor.id].combat.attacks?.hits || 0,
-                    misses: this.currentStats.participantStats[actor.id].combat.attacks?.misses || 0,
-                    crits: this.currentStats.participantStats[actor.id].combat.attacks?.crits || 0,
-                    fumbles: this.currentStats.participantStats[actor.id].combat.attacks?.fumbles || 0,
-                    attempts: this.currentStats.participantStats[actor.id].combat.attacks?.attempts || 0
-                };
-            }
-            if (!Array.isArray(this.currentStats.participantStats[actor.id].hits)) {
-                this.currentStats.participantStats[actor.id].hits = [];
-            }
-            if (!Array.isArray(this.currentStats.participantStats[actor.id].misses)) {
-                this.currentStats.participantStats[actor.id].misses = [];
-            }
+
+            // Guarantee required shape
+            const ps = this.currentStats.participantStats[actor.id];
+            ps.name ??= actor.name;
+            ps.damage ??= { dealt: 0, taken: 0 };
+            ps.healing ??= { given: 0, received: 0 };
+            ps.combat ??= {};
+            ps.combat.attacks ??= { hits: 0, misses: 0, crits: 0, fumbles: 0, attempts: 0 };
+            ps.hits = Array.isArray(ps.hits) ? ps.hits : [];
+            ps.misses = Array.isArray(ps.misses) ? ps.misses : [];
         }
 
         if (includeCombat) {
@@ -1247,6 +1242,271 @@ class CombatStats {
         return description.trim();
     }
 
+    // -------------------------------------------------------------------------
+    // GM-side processors (shared by hooks + sockets)
+    // -------------------------------------------------------------------------
+
+    static async _processAttackRoll({ item, rollTotal, d20Result = null, targetAC = null, timestamp = null }) {
+        if (!game.user.isGM) return;
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.combat?.started) return;
+        if (!item?.parent) return;
+
+        const actor = item.parent;
+        const { current: attackerStats, combat: attackerCombatStats } = this._ensureParticipantStats(actor, {
+            includeCurrent: true,
+            includeCombat: true
+        });
+
+        if (!this.currentStats.hits) this.currentStats.hits = [];
+        if (!this.currentStats.misses) this.currentStats.misses = [];
+        this._ensureCombatTotals();
+        const combatTotals = this.combatStats.totals;
+
+        const isCritical = d20Result === 20;
+        const isFumble = d20Result === 1;
+
+        // If you cannot reliably know AC, treat "hit" as unknown and only track attempts/crits/fumbles
+        // Keep your previous heuristic (>= 10) but allow a passed AC
+        const ac = (typeof targetAC === "number") ? targetAC : 10;
+        const isHit = rollTotal >= ac;
+
+        const hitInfo = {
+            attackRoll: rollTotal,
+            isCritical,
+            isFumble,
+            isHit,
+            timestamp: timestamp ?? Date.now(),
+            actorId: actor.id,
+            actorName: actor.name,
+            itemName: item.name
+        };
+
+        attackerStats.combat.attacks.attempts++;
+        attackerCombatStats.combat.attacks.attempts++;
+        combatTotals.attacks.attempts++;
+
+        if (isHit) {
+            this._boundedPush(this.currentStats.hits, hitInfo);
+            if (Array.isArray(attackerStats.hits)) this._boundedPush(attackerStats.hits, hitInfo);
+
+            attackerStats.combat.attacks.hits++;
+            attackerCombatStats.combat.attacks.hits++;
+            combatTotals.attacks.hits++;
+
+            if (isCritical) {
+                attackerStats.combat.attacks.crits++;
+                attackerCombatStats.combat.attacks.crits++;
+                combatTotals.attacks.crits++;
+            }
+        } else {
+            this._boundedPush(this.currentStats.misses, hitInfo);
+            if (Array.isArray(attackerStats.misses)) this._boundedPush(attackerStats.misses, hitInfo);
+
+            attackerStats.combat.attacks.misses++;
+            attackerCombatStats.combat.attacks.misses++;
+            combatTotals.attacks.misses++;
+        }
+
+        if (isFumble) {
+            attackerStats.combat.attacks.fumbles++;
+            attackerCombatStats.combat.attacks.fumbles++;
+            combatTotals.attacks.fumbles++;
+        }
+
+        this._lastRollWasCritical = isCritical;
+
+        if (this._isPlayerCharacter(actor)) {
+            if (isHit) this.currentStats.partyStats.hits++;
+            else this.currentStats.partyStats.misses++;
+        }
+    }
+
+    static async _processDamageOrHealing({
+        item,
+        amount,
+        isHealing = false,
+        isCritical = false,
+        targetActorIds = [],
+        targetTokenUuids = [],
+        timestamp = null
+    }) {
+        if (!game.user.isGM) return;
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.combat?.started) return;
+        if (!item?.parent) return;
+
+        const actor = item.parent;
+        const { current: attackerStats, combat: attackerCombatStats } = this._ensureParticipantStats(actor, {
+            includeCurrent: true,
+            includeCombat: true
+        });
+
+        attackerStats.damage ??= { dealt: 0, taken: 0 };
+        attackerStats.healing ??= { given: 0, received: 0 };
+        attackerCombatStats.damage ??= { dealt: 0, taken: 0 };
+        attackerCombatStats.healing ??= { given: 0, received: 0 };
+
+        this._ensureCombatTotals();
+        const combatTotals = this.combatStats.totals;
+
+        const when = timestamp ?? Date.now();
+
+        // Resolve targets in a stable way:
+        // - Prefer explicit actor ids (most reliable)
+        // - Then token uuids
+        // - Then GM targets (only works when GM is the roller)
+        const resolvedTargetActors = [];
+
+        if (Array.isArray(targetActorIds) && targetActorIds.length) {
+            for (const id of targetActorIds) {
+                const a = game.actors.get(id);
+                if (a) resolvedTargetActors.push(a);
+            }
+        }
+
+        if (!resolvedTargetActors.length && Array.isArray(targetTokenUuids) && targetTokenUuids.length) {
+            for (const uuid of targetTokenUuids) {
+                const doc = fromUuidSync?.(uuid);
+                const tokenDoc = doc?.documentName === "Token" ? doc : doc?.document ?? doc;
+                const a = tokenDoc?.actor ?? doc?.actor;
+                if (a) resolvedTargetActors.push(a);
+            }
+        }
+
+        if (!resolvedTargetActors.length) {
+            for (const t of Array.from(game.user.targets || [])) {
+                if (t?.actor) resolvedTargetActors.push(t.actor);
+            }
+        }
+
+        // Healing
+        if (isHealing) {
+            attackerStats.healing.given += amount;
+            attackerCombatStats.healing.given += amount;
+            combatTotals.healing.given += amount;
+
+            this.combatStats.topHeals ??= [];
+
+            if (resolvedTargetActors.length) {
+                for (const targetActor of resolvedTargetActors) {
+                    const healEvent = {
+                        healer: actor.name,
+                        healerId: actor.id,
+                        healerName: actor.name,
+                        target: targetActor.name,
+                        targetName: targetActor.name,
+                        targetId: targetActor.id,
+                        amount,
+                        timestamp: when
+                    };
+                    this._maintainTopN(this.combatStats.topHeals, healEvent, h => h.amount || 0, 5);
+
+                    const { current: tCur, combat: tCom } = this._ensureParticipantStats(targetActor, {
+                        includeCurrent: true,
+                        includeCombat: true
+                    });
+
+                    tCur.healing ??= { given: 0, received: 0 };
+                    tCom.healing ??= { given: 0, received: 0 };
+
+                    tCur.healing.received += amount;
+                    tCom.healing.received += amount;
+                    combatTotals.healing.received += amount;
+
+                    this._updateNotableMoments('healing', {
+                        healerId: actor.id,
+                        healer: actor.name,
+                        targetId: targetActor.id,
+                        targetName: targetActor.name,
+                        amount
+                    });
+                }
+            } else {
+                // self-heal fallback
+                attackerStats.healing.received += amount;
+                attackerCombatStats.healing.received += amount;
+                combatTotals.healing.received += amount;
+
+                const healEvent = {
+                    healer: actor.name,
+                    healerId: actor.id,
+                    healerName: actor.name,
+                    target: actor.name,
+                    targetName: actor.name,
+                    targetId: actor.id,
+                    amount,
+                    timestamp: when
+                };
+                this._maintainTopN(this.combatStats.topHeals, healEvent, h => h.amount || 0, 5);
+
+                this._updateNotableMoments('healing', {
+                    healerId: actor.id,
+                    healer: actor.name,
+                    targetId: actor.id,
+                    targetName: actor.name,
+                    amount
+                });
+            }
+
+            if (this._isPlayerCharacter(actor)) {
+                this.currentStats.partyStats.healingDone += amount;
+            }
+
+            return;
+        }
+
+        // Damage
+        attackerStats.damage.dealt += amount;
+        attackerCombatStats.damage.dealt += amount;
+        combatTotals.damage.dealt += amount;
+
+        this.combatStats.topHits ??= [];
+
+        if (resolvedTargetActors.length) {
+            for (const targetActor of resolvedTargetActors) {
+                const hitEvent = {
+                    attacker: actor.name,
+                    attackerId: actor.id,
+                    attackerName: actor.name,
+                    target: targetActor.name,
+                    targetName: targetActor.name,
+                    targetId: targetActor.id,
+                    amount,
+                    weapon: item.name || 'Unknown',
+                    isCritical: !!isCritical,
+                    timestamp: when
+                };
+                this._maintainTopN(this.combatStats.topHits, hitEvent, h => h.amount || 0, 5);
+
+                const { current: tCur, combat: tCom } = this._ensureParticipantStats(targetActor, {
+                    includeCurrent: true,
+                    includeCombat: true
+                });
+
+                tCur.damage ??= { dealt: 0, taken: 0 };
+                tCom.damage ??= { dealt: 0, taken: 0 };
+
+                tCur.damage.taken += amount;
+                tCom.damage.taken += amount;
+                combatTotals.damage.taken += amount;
+
+                this._updateNotableMoments('damage', {
+                    attackerId: actor.id,
+                    attacker: actor.name,
+                    targetId: targetActor.id,
+                    targetName: targetActor.name,
+                    amount,
+                    isCritical: !!isCritical
+                });
+            }
+        }
+
+        if (this._isPlayerCharacter(actor)) {
+            this.currentStats.partyStats.damageDealt += amount;
+        }
+    }
+
     // Normalize roll hook arguments for dnd5e v5.2.x
     // In v5.2.x: first arg is array of Rolls, second arg is context object
     static _normalizeRollHookArgs(a, b) {
@@ -1303,246 +1563,66 @@ class CombatStats {
                 return;
             }
 
+            // Get amount - sum all rolls if multiple damage lines
+            const amount = validRolls.reduce((sum, r) => sum + r.total, 0);
+            
+            // Determine if healing - check multiple sources
+            const itemNameLower = (item.name || "").toLowerCase();
+            const actionType = (item.system?.actionType ?? "").toString().toLowerCase();
+            
+            // Check activities system (dnd5e v5.2.4) for healing activities
+            const hasHealingActivity = item.system?.activities && Object.values(item.system.activities).some(activity => {
+                const activityType = (activity.type || "").toLowerCase();
+                return activityType === "heal" || activity.healing || activity.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
+            });
+            
+            // Check damage parts for healing type
+            const hasHealingDamage = item.system?.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
+            
+            // Check item name for healing keywords
+            const nameIndicatesHealing = itemNameLower.includes("heal") || itemNameLower.includes("cure") || itemNameLower.includes("restore");
+            
+            const isHealing =
+                actionType === "heal" || actionType === "healing" ||
+                hasHealingActivity ||
+                hasHealingDamage ||
+                nameIndicatesHealing;
+
             // Forward to GM if needed
             if (!game.user.isGM) {
                 const socket = SocketManager.getSocket();
                 if (socket?.executeAsGM) {
+                    const targetTokenUuids = Array.from(game.user.targets || [])
+                        .map(t => t?.document?.uuid)
+                        .filter(Boolean);
+
                     await socket.executeAsGM("cpbTrackDamage", {
                         itemUuid: item.uuid,
+                        total: amount,
                         rolls: validRolls.map(r => ({ total: r.total, formula: r.formula })),
-                        total: validRolls.reduce((s, r) => s + r.total, 0)
+                        targetTokenUuids
                     });
                 }
                 return;
             }
 
-        const actor = item.parent;
-        if (!actor) {
-            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping damage roll (no actor)', "", true, false);
-            return;
-        }
-        
-        // Get amount - sum all rolls if multiple damage lines
-        const amount = validRolls.reduce((sum, r) => sum + r.total, 0);
-        
-        // Determine if healing - check actionType, damage parts, and item name
-        const actionType = (item.system?.actionType ?? "").toString().toLowerCase();
-        const isHealing =
-            actionType === "heal" || actionType === "healing" ||
-            item.system?.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing") ||
-            item.name?.toLowerCase()?.includes("cure");
+            // Resolve targets for GM roller case
+            const targetActorIds = Array.from(game.user.targets || [])
+                .map(t => t?.actor?.id)
+                .filter(Boolean);
 
-        // Initialize stats objects if they don't exist
-        if (!this.currentStats) {
-            this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
-        }
-        if (!this.combatStats) {
-            this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
-        }
+            // If this call arrived from socket, you will have context.targetTokenUuids
+            const targetTokenUuids = context?.targetTokenUuids || [];
 
-        // Initialize participant stats if needed
-        if (!this.currentStats.participantStats) this.currentStats.participantStats = {};
-        if (!this.combatStats.participantStats) this.combatStats.participantStats = {};
-        
-        if (!this.currentStats.participantStats[actor.id]) {
-            this.currentStats.participantStats[actor.id] = foundry.utils.deepClone(this.DEFAULTS.roundStats.participantStats || {});
-        }
-        if (!this.currentStats.participantStats[actor.id].combat?.attacks) {
-            this.currentStats.participantStats[actor.id].combat = this.currentStats.participantStats[actor.id].combat || {};
-            this.currentStats.participantStats[actor.id].combat.attacks = {
-                hits: this.currentStats.participantStats[actor.id].combat.attacks?.hits || 0,
-                misses: this.currentStats.participantStats[actor.id].combat.attacks?.misses || 0,
-                crits: this.currentStats.participantStats[actor.id].combat.attacks?.crits || 0,
-                fumbles: this.currentStats.participantStats[actor.id].combat.attacks?.fumbles || 0,
-                attempts: this.currentStats.participantStats[actor.id].combat.attacks?.attempts || 0
-            };
-        }
-        if (!Array.isArray(this.currentStats.participantStats[actor.id].hits)) {
-            this.currentStats.participantStats[actor.id].hits = [];
-        }
-        if (!Array.isArray(this.currentStats.participantStats[actor.id].misses)) {
-            this.currentStats.participantStats[actor.id].misses = [];
-        }
-
-        const { current: attackerStats, combat: attackerCombatStats } = this._ensureParticipantStats(actor, {
-            includeCurrent: true,
-            includeCombat: true
-        });
-
-        attackerStats.damage = attackerStats.damage || { dealt: 0, taken: 0 };
-        attackerStats.healing = attackerStats.healing || { given: 0, received: 0 };
-        attackerCombatStats.damage = attackerCombatStats.damage || { dealt: 0, taken: 0 };
-        attackerCombatStats.healing = attackerCombatStats.healing || { given: 0, received: 0 };
-        this._ensureCombatTotals();
-        const combatTotals = this.combatStats.totals;
-
-
-        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Roll Details:', {
-            actor: actor.name,
-            isHealing,
-            amount,
-            currentDamageDealt: attackerStats.damage.dealt,
-            statsBeforeUpdate: { ...attackerStats }
-        }, true, false);
-
-        // Update the appropriate stats
-        if (isHealing) {
-            // Update healing stats for the healer
-            attackerStats.healing.given += amount;
-            attackerCombatStats.healing.given += amount;
-            combatTotals.healing.given += amount;
-
-            // Initialize topHeals if needed
-            if (!this.combatStats.topHeals) {
-                this.combatStats.topHeals = [];
-            }
-
-            // Get targets safely
-            const targets = game.user.targets;
-            if (targets.size > 0) {
-                targets.forEach(target => {
-                    const targetActor = target.actor;
-                    if (!targetActor) return;
-
-                    // Track top heals for combat summary
-                    const healEvent = {
-                        healer: actor.name,
-                        healerId: actor.id,
-                        healerName: actor.name,
-                        target: targetActor.name,
-                        targetName: targetActor.name,
-                        targetId: targetActor.id,
-                        amount: amount,
-                        timestamp: Date.now()
-                    };
-                    this._maintainTopN(this.combatStats.topHeals, healEvent, (h) => h.amount || 0, 5);
-
-                    const { current: targetCurrentStats, combat: targetCombatStats } = this._ensureParticipantStats(targetActor, {
-                        includeCurrent: true,
-                        includeCombat: true
-                    });
-
-                    targetCurrentStats.healing.received += amount;
-                    targetCombatStats.healing.received += amount;
-                    combatTotals.healing.received += amount;
-
-                    // Add notable moment tracking for healing for each target
-                    this._updateNotableMoments('healing', {
-                        healerId: actor.id,
-                        healer: actor.name,
-                        targetId: targetActor.id,
-                        targetName: targetActor.name,
-                        amount: amount
-                    });
-                });
-            } else {
-                // Self-healing case
-                this._updateNotableMoments('healing', {
-                    healerId: actor.id,
-                    healer: actor.name,
-                    targetId: actor.id,
-                    targetName: actor.name,
-                    amount: amount
-                });
-
-                // Track self-heal in top heals
-                if (!this.combatStats.topHeals) {
-                    this.combatStats.topHeals = [];
-                }
-                const healEvent = {
-                    healer: actor.name,
-                    healerId: actor.id,
-                    healerName: actor.name,
-                    target: actor.name,
-                    targetName: actor.name,
-                    targetId: actor.id,
-                    amount: amount,
-                    timestamp: Date.now()
-                };
-                this._maintainTopN(this.combatStats.topHeals, healEvent, (h) => h.amount || 0, 5);
-                combatTotals.healing.received += amount;
-            }
-
-            if (this._isPlayerCharacter(actor)) {
-                this.currentStats.partyStats.healingDone += amount;
-            }
-        } else {
-            // Update damage stats for the attacker
-            attackerStats.damage.dealt += amount;
-            attackerCombatStats.damage.dealt += amount;
-            combatTotals.damage.dealt += amount;
-
-            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Updated Damage Stats:', {
-                actor: actor.name,
-                newDamageDealt: attackerStats.damage.dealt,
+            await this._processDamageOrHealing({
+                item,
                 amount,
-                statsAfterUpdate: { ...attackerStats }
-            }, true, false);
-
-            // Initialize topHits if needed
-            if (!this.combatStats.topHits) {
-                this.combatStats.topHits = [];
-            }
-
-            // Get targets safely
-            const targets = game.user.targets;
-            if (targets.size > 0) {
-                targets.forEach(target => {
-                    const targetActor = target.actor;
-                    if (!targetActor) return;
-
-                    // Track top hits for combat summary
-                    const hitEvent = {
-                        attacker: actor.name,
-                        attackerId: actor.id,
-                        attackerName: actor.name,
-                        target: targetActor.name,
-                        targetName: targetActor.name,
-                        targetId: targetActor.id,
-                        amount: amount,
-                        weapon: item.name || 'Unknown',
-                        isCritical: this._lastRollWasCritical || false,
-                        timestamp: Date.now()
-                    };
-                    this._maintainTopN(this.combatStats.topHits, hitEvent, (h) => h.amount || 0, 5);
-
-                    const { current: targetCurrentStats, combat: targetCombatStats } = this._ensureParticipantStats(targetActor, {
-                        includeCurrent: true,
-                        includeCombat: true
-                    });
-
-                    targetCurrentStats.damage = targetCurrentStats.damage || { dealt: 0, taken: 0 };
-                    targetCombatStats.damage = targetCombatStats.damage || { dealt: 0, taken: 0 };
-
-                    targetCurrentStats.damage.taken += amount;
-                    targetCombatStats.damage.taken += amount;
-                    combatTotals.damage.taken += amount;
-
-                    // Add notable moment tracking for damage for each target
-                    this._updateNotableMoments('damage', {
-                        attackerId: actor.id,
-                        attacker: actor.name,
-                        targetId: targetActor.id,
-                        targetName: targetActor.name,
-                        amount: amount,
-                        isCritical: this._lastRollWasCritical || false
-                    });
-                });
-            }
-
-            if (this._isPlayerCharacter(actor)) {
-                this.currentStats.partyStats.damageDealt += amount;
-            }
-        }
-
-        postConsoleAndNotification(MODULE.NAME, isHealing ? "Healing Roll Processed | Combat:" : "Damage Roll Processed | Combat:", {
-            actor: actor.name,
-            roll: {
-                total: amount,
-                isHealing
-            },
-            attackerStats
-        }, true, false);
+                isHealing,
+                isCritical: this._lastRollWasCritical || false,
+                targetActorIds,
+                targetTokenUuids,
+                timestamp: Date.now()
+            });
         } catch (error) {
             // Catch any errors to prevent breaking the hook chain for other modules (e.g., midi-qol)
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Error in _onDamageRoll:', error, false, false);
@@ -1592,102 +1672,32 @@ class CombatStats {
         if (!game.user.isGM) {
             const socket = SocketManager.getSocket();
             if (socket?.executeAsGM) {
+                const d20Result = rollObj.dice?.find(d => d.faces === 20)?.results?.[0]?.result ?? null;
+
                 await socket.executeAsGM("cpbTrackAttack", {
                     itemUuid: item.uuid,
                     rollTotal: rollObj.total,
-                    d20: rollObj.dice?.find(d => d.faces === 20)?.results?.[0]?.result ?? null
+                    d20Result: d20Result
                 });
             }
             return;
         }
 
-        // Get the actor from the item's parent
+        // GM path: normalize hook data, then process
         const actor = item.parent;
         if (!actor) return;
 
-        const { current: attackerStats, combat: attackerCombatStats } = this._ensureParticipantStats(actor, {
-            includeCurrent: true,
-            includeCombat: true
+        const rollTotal = rollObj.total;
+        const d20Result = rollObj.dice?.find(d => d.faces === 20)?.results?.[0]?.result ?? null;
+
+        // You still don't really have target AC here.
+        // Keep your current heuristic by not passing targetAC (processor falls back to 10).
+        await this._processAttackRoll({
+            item,
+            rollTotal,
+            d20Result,
+            timestamp: Date.now()
         });
-
-        if (!this.currentStats.hits) this.currentStats.hits = [];
-        if (!this.currentStats.misses) this.currentStats.misses = [];
-        this._ensureCombatTotals();
-        const combatTotals = this.combatStats.totals;
-
-        // Store attack roll information
-        const attackRoll = rollObj.total;
-        const d20Result = rollObj.dice?.find(d => d.faces === 20)?.results?.[0]?.result;
-        const isCritical = d20Result === 20;
-        const isFumble = d20Result === 1;
-        const isHit = rollObj.total >= (rollObj.options?.target || 10);
-
-        // Store hit/miss information
-        const hitInfo = {
-            attackRoll: rollObj.total,
-            isCritical,
-            isFumble,
-            isHit,
-            timestamp: Date.now(),
-            actorId: actor.id,
-            actorName: actor.name
-        };
-
-        // Update combat stats
-        attackerStats.combat.attacks.attempts++;
-        attackerCombatStats.combat.attacks.attempts++;
-        combatTotals.attacks.attempts++;
-
-        if (isHit) {
-            this._boundedPush(this.currentStats.hits, hitInfo);
-            if (Array.isArray(attackerStats.hits)) {
-                this._boundedPush(attackerStats.hits, hitInfo);
-            }
-            attackerStats.combat.attacks.hits++;
-            attackerCombatStats.combat.attacks.hits++;
-            combatTotals.attacks.hits++;
-            if (isCritical) {
-                attackerStats.combat.attacks.crits++;
-                attackerCombatStats.combat.attacks.crits++;
-                combatTotals.attacks.crits++;
-            }
-        } else {
-            this._boundedPush(this.currentStats.misses, hitInfo);
-            attackerStats.combat.attacks.misses++;
-            attackerCombatStats.combat.attacks.misses++;
-            combatTotals.attacks.misses++;
-            if (Array.isArray(attackerStats.misses)) {
-                this._boundedPush(attackerStats.misses, hitInfo);
-            }
-        }
-
-        if (isFumble) {
-            attackerStats.combat.attacks.fumbles++;
-            attackerCombatStats.combat.attacks.fumbles++;
-            combatTotals.attacks.fumbles++;
-        }
-
-        // Store the critical hit state for damage roll
-        this._lastRollWasCritical = isCritical;
-
-        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Roll processed', {
-            actor: actor.name,
-            roll: {
-                total: rollObj.total,
-                isCritical,
-                isFumble,
-                isHit
-            },
-            attackerStats
-        }, true, false);
-
-        if (this._isPlayerCharacter(actor)) {
-            if (isHit) {
-                this.currentStats.partyStats.hits++;
-            } else {
-                this.currentStats.partyStats.misses++;
-            }
-        }
     }
 
     // Register all necessary hooks
@@ -1840,22 +1850,50 @@ class CombatStats {
 
     // Socket handler for damage rolls forwarded from non-GM clients
     static async _onSocketTrackDamage(payload) {
-        if (!game.user.isGM) return; // Only GM processes
+        if (!game.user.isGM) return;
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
         try {
             const item = await fromUuid(payload.itemUuid);
-            if (!item || !item.id) {
-                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Socket damage: item not found', { itemUuid: payload.itemUuid }, true, false);
-                return;
-            }
+            if (!item) return;
 
-            // Reconstruct rolls array from payload
-            const rolls = payload.rolls?.map(r => ({ total: r.total, formula: r.formula })) || [{ total: payload.total }];
+            const amount =
+                typeof payload.total === "number"
+                    ? payload.total
+                    : (payload.rolls || []).reduce((s, r) => s + (Number(r.total) || 0), 0);
+
+            // Determine healing on GM side (or accept payload.isHealing if you include it)
+            const itemNameLower = (item.name || "").toLowerCase();
+            const actionType = (item.system?.actionType ?? "").toString().toLowerCase();
             
-            // Call the main handler with normalized parameters (rolls array, context)
-            await this._onDamageRoll(rolls, { item });
+            // Check activities system (dnd5e v5.2.4) for healing activities
+            const hasHealingActivity = item.system?.activities && Object.values(item.system.activities).some(activity => {
+                const activityType = (activity.type || "").toLowerCase();
+                return activityType === "heal" || activity.healing || activity.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
+            });
+            
+            // Check damage parts for healing type
+            const hasHealingDamage = item.system?.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
+            
+            // Check item name for healing keywords
+            const nameIndicatesHealing = itemNameLower.includes("heal") || itemNameLower.includes("cure") || itemNameLower.includes("restore");
+            
+            const isHealing =
+                payload.isHealing === true ||
+                actionType === "heal" || actionType === "healing" ||
+                hasHealingActivity ||
+                hasHealingDamage ||
+                nameIndicatesHealing;
+
+            await this._processDamageOrHealing({
+                item,
+                amount,
+                isHealing,
+                isCritical: this._lastRollWasCritical || false,
+                targetTokenUuids: payload.targetTokenUuids || [],
+                timestamp: Date.now()
+            });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Error in socket damage handler:', error, false, false);
             console.error(error);
@@ -1875,21 +1913,12 @@ class CombatStats {
                 return;
             }
 
-            // Create a mock roll object for processing
-            const mockRoll = {
-                total: payload.rollTotal,
-                dice: payload.isCritical || payload.isFumble ? [{
-                    faces: 20,
-                    results: [{
-                        result: payload.isCritical ? 20 : (payload.isFumble ? 1 : null),
-                        active: true
-                    }]
-                }] : [],
-                options: { target: 10 }
-            };
-
-            // Call the main handler with normalized parameters
-            await this._onAttackRoll(item, mockRoll);
+            await this._processAttackRoll({
+                item,
+                rollTotal: Number(payload.rollTotal) || 0,
+                d20Result: (payload.d20Result ?? null),
+                timestamp: Date.now()
+            });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Error in socket attack handler:', error, false, false);
             console.error(error);
