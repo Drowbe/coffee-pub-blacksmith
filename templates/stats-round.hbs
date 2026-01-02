@@ -322,8 +322,8 @@
                     {{/if}}
                 </div>
                 <div class="damage-ratio-bar" data-debug="Marker: {{this.damageRatioGreen}}%">
+                    <i class="fa-solid fa-heart-crack ratio-icon-left"></i>
                     <div class="ratio-bar-container">
-                        <i class="fa-solid fa-heart-crack ratio-icon-left"></i>
                         <div class="ratio-bar-background">
                             <div class="ratio-segment ratio-segment-red"></div>
                             <div class="ratio-segment ratio-segment-red"></div>
@@ -336,9 +336,9 @@
                             <div class="ratio-segment ratio-segment-green"></div>
                             <div class="ratio-segment ratio-segment-green"></div>
                         </div>
-                        <i class="fa-solid fa-swords ratio-icon-right"></i>
+                        <div class="ratio-marker" style="--marker-position: {{this.damageRatioGreen}}%;"></div>
                     </div>
-                    <div class="ratio-marker" style="left: calc(16px + (100% - 32px) * {{this.damageRatioGreen}} / 100);"></div>
+                    <i class="fa-solid fa-swords ratio-icon-right"></i>
                 </div>
                 <div class="turn-stats">MVP: {{this.score}}  •  DMG: {{this.damage.dealt}}  •  Hits: {{this.combat.attacks.hits}}/{{this.combat.attacks.attempts}}</div>
             </div>
