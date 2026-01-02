@@ -300,11 +300,11 @@
 }
 
 .ratio-segment-red {
-    background: rgba(160, 38, 27, 0.9);
+    background: rgba(160, 38, 27, 0.6);
 }
 
 .ratio-segment-green {
-    background: rgba(58, 138, 67, 0.9);
+    background: rgba(58, 138, 67, 0.6);
 }
 
 .ratio-marker {
@@ -331,6 +331,11 @@
     transform: translateX(-50%);
     filter: drop-shadow(0 1px 1px rgba(10, 10, 10, 0.3));
 }
+
+
+
+
+
 
 /* === Notable Moments === */
 
