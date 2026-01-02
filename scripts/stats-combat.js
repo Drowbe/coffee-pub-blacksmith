@@ -2421,22 +2421,29 @@ class CombatStats {
             // If both are 0, default to 50/50 split
             const damageDealt = stats.damage?.dealt || 0;
             const damageTaken = stats.damage?.taken || 0;
-            const totalDamage = damageDealt + damageTaken;
+            // Include healing given as "damage given" for the ratio
+            const healingGiven = stats.healing?.given || 0;
+            const totalGiven = damageDealt + healingGiven;
+            const totalTaken = damageTaken;
+            const totalActivity = totalGiven + totalTaken;
             
-            // Calculate percentages: green = dealt, red = taken
+            // Calculate percentages: green = given (damage + healing), red = taken
             // Default to 50/50 if both are 0
-            const greenPercent = totalDamage > 0 
-                ? (damageDealt / totalDamage) * 100 
+            const greenPercent = totalActivity > 0 
+                ? (totalGiven / totalActivity) * 100 
                 : 50;
-            const redPercent = totalDamage > 0 
-                ? (damageTaken / totalDamage) * 100 
+            const redPercent = totalActivity > 0 
+                ? (totalTaken / totalActivity) * 100 
                 : 50;
             
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Ratio Calculation:', {
                 name: stats.name,
                 damageDealt,
+                healingGiven,
+                totalGiven,
                 damageTaken,
-                totalDamage,
+                totalTaken,
+                totalActivity,
                 greenPercent: greenPercent.toFixed(2),
                 redPercent: redPercent.toFixed(2)
             }, true, false);
