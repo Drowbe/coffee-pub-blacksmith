@@ -117,10 +117,10 @@ class CombatTimer {
 						if (!game.combat?.started) return;
 						
 						const currentActor = game.combat.combatant?.actor;
-						if (!currentActor || !item.actor) return;
+						if (!currentActor || !item.parent) return;
 						
 						// Check if this is the current combatant's action
-						if (item.actor.id === currentActor.id && CombatTimer.state.isPaused) {
+						if (item.parent.id === currentActor.id && CombatTimer.state.isPaused) {
 							CombatTimer.state.showingMessage = false;
 							const timerText = document.querySelector('.combat-timer-text');
 							if (timerText) timerText.textContent = '';
@@ -142,10 +142,10 @@ class CombatTimer {
 						if (!game.combat?.started) return;
 						
 						const currentActor = game.combat.combatant?.actor;
-						if (!currentActor || !item.actor) return;
+						if (!currentActor || !item.parent) return;
 						
 						// Check if this is the current combatant's action
-						if (item.actor.id === currentActor.id && CombatTimer.state.isPaused) {
+						if (item.parent.id === currentActor.id && CombatTimer.state.isPaused) {
 							CombatTimer.state.showingMessage = false;
 							const timerText = document.querySelector('.combat-timer-text');
 							if (timerText) timerText.textContent = '';

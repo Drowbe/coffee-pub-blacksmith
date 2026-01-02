@@ -389,7 +389,7 @@ class CPBPlayerStats {
     static async _onAttackRoll(item, roll, ammo) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
-        const actor = item.actor;
+        const actor = item.parent;
         if (!actor || !actor.hasPlayerOwner || actor.isToken) return;
 
         try {
@@ -426,7 +426,7 @@ class CPBPlayerStats {
     static async _onDamageRoll(item, roll) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
-        const actor = item.actor;
+        const actor = item.parent;
         if (!actor || !actor.hasPlayerOwner || actor.isToken) return;
 
         try {

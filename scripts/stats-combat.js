@@ -11,6 +11,7 @@ import { getPortraitImage, isPlayerCharacter, postConsoleAndNotification, playSo
 import { PlanningTimer } from './timer-planning.js';
 import { CombatTimer } from './timer-combat.js';
 import { HookManager } from './manager-hooks.js';
+import { SocketManager } from './manager-sockets.js';
 //import { MVPDescriptionGenerator } from './mvp-description-generator.js';
 import { MVPTemplates } from '../resources/assets.js';
 
@@ -1246,43 +1247,90 @@ class CombatStats {
         return description.trim();
     }
 
+    // Normalize roll hook arguments for dnd5e v5.2.x
+    // In v5.2.x: first arg is array of Rolls, second arg is context object
+    static _normalizeRollHookArgs(a, b) {
+        const rolls =
+            Array.isArray(a) ? a :
+            Array.isArray(b) ? b :
+            [a, b].filter(r => r && typeof r.total === "number");
+
+        const context =
+            Array.isArray(a) ? b :
+            Array.isArray(b) ? a :
+            (b && typeof b === "object" ? b : null);
+
+        // Try hard to find the Item
+        const item =
+            (a instanceof Item) ? a :
+            (b instanceof Item) ? b :
+            context?.item ??
+            context?.subject?.item ??
+            context?.subject?.parent?.parent ??   // activity -> activities -> item
+            context?.activity?.parent ??
+            null;
+
+        return { rolls, context, item };
+    }
+
     // Add new method to track damage rolls
-    static async _onDamageRoll(item, roll) {
+    static async _onDamageRoll(a, b) {
         try {
-            // Only process damage rolls if this is the GM
-            if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+            if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
             if (!game.combat?.started) {
                 postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping damage roll (combat not started)', "", true, false);
                 return;
             }
 
-        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Processing Damage Roll (FULL):', {
-            roll,
-            rollJSON: roll[0]?.toJSON(),
-            terms: roll[0]?.terms,
-            total: roll[0]?.total,
-            result: roll[0]?.result,
-            formula: roll[0]?.formula,
-            item: {
-                name: item.name,
-                type: item.type,
-                actionType: item.system?.actionType,
-                damage: item.system?.damage
-            }
-        }, true, false);
+            const { rolls, context, item } = this._normalizeRollHookArgs(a, b);
 
-        const actor = item.actor;
+            if (!item || !item.id) {
+                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping damage roll (no item)', {
+                    aType: a?.constructor?.name,
+                    bType: b?.constructor?.name,
+                    contextKeys: context ? Object.keys(context) : null,
+                    subjectType: context?.subject?.constructor?.name
+                }, true, false);
+                return;
+            }
+
+            const validRolls = (rolls || []).filter(r => r && typeof r.total === "number");
+            if (!validRolls.length) {
+                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping damage roll (no valid rolls)', {
+                    item: item.name,
+                    rollsInfo: (rolls || []).map(r => ({ t: r?.total, c: r?.constructor?.name }))
+                }, true, false);
+                return;
+            }
+
+            // Forward to GM if needed
+            if (!game.user.isGM) {
+                const socket = SocketManager.getSocket();
+                if (socket?.executeAsGM) {
+                    await socket.executeAsGM("cpbTrackDamage", {
+                        itemUuid: item.uuid,
+                        rolls: validRolls.map(r => ({ total: r.total, formula: r.formula })),
+                        total: validRolls.reduce((s, r) => s + r.total, 0)
+                    });
+                }
+                return;
+            }
+
+        const actor = item.parent;
         if (!actor) {
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping damage roll (no actor)', "", true, false);
             return;
         }
         
-        const actionType = item.system?.actionType
-            || item.system?.activities?.default?.type
-            || Object.values(item.system?.activities || {})[0]?.type
-            || '';
-
-        const normalizedActionType = typeof actionType === 'string' ? actionType.toLowerCase() : '';
+        // Get amount - sum all rolls if multiple damage lines
+        const amount = validRolls.reduce((sum, r) => sum + r.total, 0);
+        
+        // Determine if healing - check actionType, damage parts, and item name
+        const actionType = (item.system?.actionType ?? "").toString().toLowerCase();
+        const isHealing =
+            actionType === "heal" || actionType === "healing" ||
+            item.system?.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing") ||
+            item.name?.toLowerCase()?.includes("cure");
 
         // Initialize stats objects if they don't exist
         if (!this.currentStats) {
@@ -1328,13 +1376,6 @@ class CombatStats {
         this._ensureCombatTotals();
         const combatTotals = this.combatStats.totals;
 
-        // Determine if this is healing or damage
-        const isHealing = normalizedActionType === 'heal' || 
-                         item.name.toLowerCase().includes('heal') || 
-                         item.name.toLowerCase().includes('cure');
-
-        // Get the amount - roll is an array of rolls, get the first one's total
-        const amount = roll[0]?.total || 0;
 
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Roll Details:', {
             actor: actor.name,
@@ -1521,12 +1562,47 @@ class CombatStats {
     }
 
     // Add new method to track attack rolls
-    static async _onAttackRoll(item, roll) {
-        // Only process attack rolls if this is the GM
-        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+    static async _onAttackRoll(a, b) {
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
-        const actor = item.actor;
+        const { rolls, context, item } = this._normalizeRollHookArgs(a, b);
+        const rollObj = rolls?.[0];
+
+        if (!rollObj || rollObj.total === undefined) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping attack roll (invalid roll)', {
+                aType: a?.constructor?.name,
+                bType: b?.constructor?.name,
+                rollKeys: rollObj ? Object.keys(rollObj) : null,
+                contextKeys: context ? Object.keys(context) : null
+            }, true, false);
+            return;
+        }
+
+        if (!item || !item.id) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping attack roll (no item)', {
+                aType: a?.constructor?.name,
+                bType: b?.constructor?.name,
+                contextKeys: context ? Object.keys(context) : null
+            }, true, false);
+            return;
+        }
+
+        // Forward to GM if needed
+        if (!game.user.isGM) {
+            const socket = SocketManager.getSocket();
+            if (socket?.executeAsGM) {
+                await socket.executeAsGM("cpbTrackAttack", {
+                    itemUuid: item.uuid,
+                    rollTotal: rollObj.total,
+                    d20: rollObj.dice?.find(d => d.faces === 20)?.results?.[0]?.result ?? null
+                });
+            }
+            return;
+        }
+
+        // Get the actor from the item's parent
+        const actor = item.parent;
         if (!actor) return;
 
         const { current: attackerStats, combat: attackerCombatStats } = this._ensureParticipantStats(actor, {
@@ -1540,15 +1616,15 @@ class CombatStats {
         const combatTotals = this.combatStats.totals;
 
         // Store attack roll information
-        const attackRoll = roll.total;
-        const d20Results = roll.terms[0].results.map(r => r.result);
-        const isCritical = d20Results.includes(20);
-        const isFumble = d20Results.includes(1) && d20Results.length === 1;
-        const isHit = roll.total >= (item.target?.value || 10);
+        const attackRoll = rollObj.total;
+        const d20Result = rollObj.dice?.find(d => d.faces === 20)?.results?.[0]?.result;
+        const isCritical = d20Result === 20;
+        const isFumble = d20Result === 1;
+        const isHit = rollObj.total >= (rollObj.options?.target || 10);
 
         // Store hit/miss information
         const hitInfo = {
-            attackRoll: roll.total,
+            attackRoll: rollObj.total,
             isCritical,
             isFumble,
             isHit,
@@ -1597,7 +1673,7 @@ class CombatStats {
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Roll processed', {
             actor: actor.name,
             roll: {
-                total: attackRoll,
+                total: rollObj.total,
                 isCritical,
                 isFumble,
                 isHit
@@ -1681,10 +1757,17 @@ class CombatStats {
 			description: 'Combat Stats: Monitor attack rolls for statistics tracking',
 			context: 'stats-combat-attack-rolls',
 			priority: 3,
-			callback: (item, roll) => {
+			callback: (a, b) => {
 				// --- BEGIN - HOOKMANAGER CALLBACK ---
-				postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Roll detected:', { item, roll }, true, false);
-				this._onAttackRoll(item, roll);
+				const { rolls, context, item } = this._normalizeRollHookArgs(a, b);
+				postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Roll detected:', {
+					aType: a?.constructor?.name,
+					bType: b?.constructor?.name,
+					rolls: rolls?.map(r => r?.total),
+					contextKeys: context ? Object.keys(context) : null,
+					itemName: item?.name
+				}, true, false);
+				this._onAttackRoll(a, b);
 				// --- END - HOOKMANAGER CALLBACK ---
 			}
 		});
@@ -1708,10 +1791,17 @@ class CombatStats {
 			description: 'Combat Stats: Monitor damage rolls for statistics tracking',
 			context: 'stats-combat-damage-rolls',
 			priority: 3,
-			callback: (item, roll) => {
+			callback: (a, b) => {
 				// --- BEGIN - HOOKMANAGER CALLBACK ---
-				postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Roll detected:', { item, roll }, true, false);
-				this._onDamageRoll(item, roll);
+				const { rolls, context, item } = this._normalizeRollHookArgs(a, b);
+				postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Roll detected:', {
+					aType: a?.constructor?.name,
+					bType: b?.constructor?.name,
+					rolls: rolls?.map(r => r?.total),
+					contextKeys: context ? Object.keys(context) : null,
+					itemName: item?.name
+				}, true, false);
+				this._onDamageRoll(a, b);
 				// --- END - HOOKMANAGER CALLBACK ---
 			}
 		});
@@ -1736,6 +1826,74 @@ class CombatStats {
 		});
 
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Hooks registered', "", true, false);
+        
+        // Register socket handlers for non-GM clients to forward combat data
+        SocketManager.waitForReady().then(() => {
+            const socket = SocketManager.getSocket();
+            if (socket && socket.register) {
+                socket.register("cpbTrackDamage", this._onSocketTrackDamage.bind(this));
+                socket.register("cpbTrackAttack", this._onSocketTrackAttack.bind(this));
+                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Socket handlers registered', "", true, false);
+            }
+        });
+    }
+
+    // Socket handler for damage rolls forwarded from non-GM clients
+    static async _onSocketTrackDamage(payload) {
+        if (!game.user.isGM) return; // Only GM processes
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.combat?.started) return;
+
+        try {
+            const item = await fromUuid(payload.itemUuid);
+            if (!item || !item.id) {
+                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Socket damage: item not found', { itemUuid: payload.itemUuid }, true, false);
+                return;
+            }
+
+            // Reconstruct rolls array from payload
+            const rolls = payload.rolls?.map(r => ({ total: r.total, formula: r.formula })) || [{ total: payload.total }];
+            
+            // Call the main handler with normalized parameters (rolls array, context)
+            await this._onDamageRoll(rolls, { item });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Error in socket damage handler:', error, false, false);
+            console.error(error);
+        }
+    }
+
+    // Socket handler for attack rolls forwarded from non-GM clients
+    static async _onSocketTrackAttack(payload) {
+        if (!game.user.isGM) return; // Only GM processes
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.combat?.started) return;
+
+        try {
+            const item = await fromUuid(payload.itemUuid);
+            if (!item || !item.id) {
+                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Socket attack: item not found', { itemUuid: payload.itemUuid }, true, false);
+                return;
+            }
+
+            // Create a mock roll object for processing
+            const mockRoll = {
+                total: payload.rollTotal,
+                dice: payload.isCritical || payload.isFumble ? [{
+                    faces: 20,
+                    results: [{
+                        result: payload.isCritical ? 20 : (payload.isFumble ? 1 : null),
+                        active: true
+                    }]
+                }] : [],
+                options: { target: 10 }
+            };
+
+            // Call the main handler with normalized parameters
+            await this._onAttackRoll(item, mockRoll);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Error in socket attack handler:', error, false, false);
+            console.error(error);
+        }
     }
 
 
