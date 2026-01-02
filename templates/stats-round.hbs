@@ -335,10 +335,10 @@
                             <div class="ratio-segment ratio-segment-green"></div>
                             <div class="ratio-segment ratio-segment-green"></div>
                             <div class="ratio-segment ratio-segment-green"></div>
-                            <div class="ratio-marker" style="left: {{this.damageRatioGreen}}%;"></div>
                         </div>
                         <i class="fa-solid fa-swords ratio-icon-right"></i>
                     </div>
+                    <div class="ratio-marker" style="left: calc(16px + (100% - 32px) * {{this.damageRatioGreen}} / 100);"></div>
                 </div>
                 <div class="turn-stats">MVP: {{this.score}}  •  DMG: {{this.damage.dealt}}  •  Hits: {{this.combat.attacks.hits}}/{{this.combat.attacks.attempts}}</div>
             </div>

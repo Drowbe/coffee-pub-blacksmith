@@ -217,11 +217,13 @@
 .quick-turn { color: #4a8f52; font-weight: bold; }
 .expired-turn { color: #8b0000; font-weight: bold; }
 
+
+
+
 /* Damage Ratio Bar - Segmented Background with Triangle Marker */
 .damage-ratio-bar {
-    margin-top: 4px;
-    margin-bottom: 4px;
-    min-height: 8px;
+    margin: -2px 0px -2px 0px !important;
+    min-height:4px;
     display: block;
     position: relative;
 }
@@ -231,13 +233,16 @@
     align-items: center;
     gap: 4px;
     width: 100%;
+    position: relative;
+   
 }
 
 .ratio-icon-left,
 .ratio-icon-right {
-    font-size: 12px;
+    font-size: 0.8em;
     color: rgba(0, 0, 0, 0.6);
     flex-shrink: 0;
+    margin: 0px 0px -1px 0px !important;
 }
 
 .ratio-icon-left {
@@ -277,16 +282,17 @@
 
 .ratio-marker {
     position: absolute;
-    top: -2px;
+    top: 0;
     width: 0;
     height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 8px solid #ffffff;
+    opacity: 0.9;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 6px solid #ffffff;
     transform: translateX(-50%);
     z-index: 10;
     pointer-events: none;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+    filter: drop-shadow(1 1px 2px rgba(10, 10, 10, 0.8));
 }
 
 /* === Notable Moments === */
