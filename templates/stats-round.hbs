@@ -321,13 +321,12 @@
                     <span class="turn-time">{{formatTime this.turnDuration}}</span>
                     {{/if}}
                 </div>
-                {{#if ../settings.combatTimerEnabled}}
-                <div class="turn-timer">
+                <div class="damage-ratio-bar" data-debug="Green: {{this.damageRatioGreen}}, Red: {{this.damageRatioRed}}">
                     <div class="progress-bar">
-                        <div class="progress-fill {{#if this.lastTurnExpired}}expired{{/if}}" style="width: {{multiply (divide this.turnDuration ../timerDuration) 100}}%" data-debug="Turn: {{this.turnDuration}}, Max: {{../timerDuration}}, Calc: {{multiply (divide this.turnDuration ../timerDuration) 100}}%"></div>
+                        <div class="progress-fill progress-given" style="width: {{this.damageRatioGreen}}%; left: 0;"></div>
+                        <div class="progress-fill progress-taken" style="width: {{this.damageRatioRed}}%; left: {{this.damageRatioGreen}}%;"></div>
                     </div>
                 </div>
-                {{/if}}
                 <div class="turn-stats">MVP: {{this.score}}  •  DMG: {{this.damage.dealt}}  •  Hits: {{this.combat.attacks.hits}}/{{this.combat.attacks.attempts}}</div>
             </div>
         </div>

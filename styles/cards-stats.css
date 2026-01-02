@@ -218,19 +218,49 @@
 .expired-turn { color: #8b0000; font-weight: bold; }
 
 /* Progress Bars */
+.damage-ratio-bar {
+    margin-top: 4px;
+    margin-bottom: 4px;
+    min-height: 4px;
+    display: block;
+}
+
 .progress-bar {
-    height: 4px;
-    background: #d5ccc7;
-    border-radius: 2px;
+    height: 6px !important;
+    min-height: 6px !important;
+    background: #d5ccc7 !important;
+    border-radius: 3px;
     margin-top: 0px;
     margin-bottom: 0px;
-    overflow: hidden;
+    overflow: hidden !important;
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box;
 }
 
 .progress-fill {
-    height: 100%;
-    background: #4a8f52;
-    border-radius: 2px;
+    height: 100% !important;
+    min-height: 6px !important;
+    position: absolute !important;
+    top: 0 !important;
+    transition: width 0.3s ease;
+    display: block !important;
+    box-sizing: border-box;
+}
+
+.progress-fill.progress-given {
+    background: #4a8f52 !important; /* Green for damage dealt */
+    left: 0 !important;
+    border-radius: 3px 0 0 3px;
+    z-index: 1;
+}
+
+.progress-fill.progress-taken {
+    background: #8b0000 !important; /* Red for damage taken */
+    border-radius: 0 3px 3px 0;
+    z-index: 2;
+    /* left position is set inline from template */
 }
 
 /* === Notable Moments === */

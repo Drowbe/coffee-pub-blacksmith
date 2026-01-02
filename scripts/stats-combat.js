@@ -210,8 +210,7 @@ class CombatStats {
                     attempts: 0
                 }
             },
-            turnDuration: 0,
-            lastTurnExpired: false
+            turnDuration: 0
         };
 
         if (includeCurrent) {
@@ -986,6 +985,11 @@ class CombatStats {
         // Helper to add numbers
         Handlebars.registerHelper('add', function(a, b) {
             return a + b;
+        });
+
+        // Helper to subtract numbers
+        Handlebars.registerHelper('subtract', function(a, b) {
+            return a - b;
         });
 
         // Helper to check equality
@@ -2293,7 +2297,6 @@ class CombatStats {
         }, true, false);
 
         const participantMap = new Map();
-        const timerDuration = game.settings.get(MODULE.ID, 'combatTimerDuration');
 
         // First pass: Get all player characters from the combat
         if (game.combat?.turns) {
@@ -2333,7 +2336,6 @@ class CombatStats {
                     hits: [],
                     misses: [],
                     turnDuration: turnDuration,
-                    lastTurnExpired: turnDuration >= (timerDuration * 1000),
                     combatantId
                 };
 
@@ -2355,7 +2357,6 @@ class CombatStats {
                     hits: [],
                     misses: [],
                     turnDuration: turnDuration,
-                    lastTurnExpired: turnDuration >= (timerDuration * 1000),
                     combatantIds: new Set()
                 };
 
@@ -2415,8 +2416,30 @@ class CombatStats {
                 return getActorPortrait(combatant);
             })();
 
-            // Convert timerDuration to milliseconds for comparison
-            const timerDurationMs = timerDuration * 1000;
+            // Calculate damage ratio: show green (dealt) vs red (taken)
+            // 50/50 = balanced, more green = more DPS, more red = more tank
+            // If both are 0, default to 50/50 split
+            const damageDealt = stats.damage?.dealt || 0;
+            const damageTaken = stats.damage?.taken || 0;
+            const totalDamage = damageDealt + damageTaken;
+            
+            // Calculate percentages: green = dealt, red = taken
+            // Default to 50/50 if both are 0
+            const greenPercent = totalDamage > 0 
+                ? (damageDealt / totalDamage) * 100 
+                : 50;
+            const redPercent = totalDamage > 0 
+                ? (damageTaken / totalDamage) * 100 
+                : 50;
+            
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Ratio Calculation:', {
+                name: stats.name,
+                damageDealt,
+                damageTaken,
+                totalDamage,
+                greenPercent: greenPercent.toFixed(2),
+                redPercent: redPercent.toFixed(2)
+            }, true, false);
             
             return {
                 actorId: stats.actorId,
@@ -2429,7 +2452,8 @@ class CombatStats {
                 score,
                 tokenImg,
                 turnDuration: stats.turnDuration,
-                lastTurnExpired: stats.turnDuration >= timerDurationMs
+                damageRatioGreen: Math.round(greenPercent * 100) / 100, // Round to 2 decimals
+                damageRatioRed: Math.round(redPercent * 100) / 100    // Round to 2 decimals
             };
         }).sort((a, b) => b.score - a.score);
 
@@ -2451,7 +2475,6 @@ class CombatStats {
             planningDuration: this.currentStats.activePlanningTime,  // Pass raw number
             turnDetails: sortedParticipants,
             roundMVP: sortedParticipants[0],
-            timerDuration: timerDuration * 1000,  // Convert to milliseconds to match turnDuration
             totalPartyTime: totalPartyTime,
             partyStats: {
                 hitMissRatio: this.currentStats.partyStats.hits /
@@ -2510,7 +2533,6 @@ class CombatStats {
             planningDuration: this.currentStats.activePlanningTime,  // Pass raw number
             turnDetails: sortedParticipants,
             roundMVP: sortedParticipants[0],
-            timerDuration: timerDuration * 1000,  // Convert to milliseconds to match turnDuration
             totalPartyTime: totalPartyTime,
             partyStats: {
                 hitMissRatio: this.currentStats.partyStats.hits /
