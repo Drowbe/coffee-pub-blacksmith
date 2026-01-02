@@ -141,12 +141,15 @@
     gap: 3px;
 }
 
+
+
+
 .turn-name {
     display: flex;
     align-items: center;
     justify-content: space-between;
     font-weight: normal;
-    font-size: 1.0em;
+    font-size: 0.9em;
     margin-bottom: 2px;
 }
 
@@ -163,21 +166,24 @@
     left: 2px;
     background-color: #629602;
     color: white;
-    padding: 2px 6px;
+    padding: 1px 4px;
     border-radius: 3px;
-    font-weight: bold;
+    font-weight: 900;
+    font-size: .8em;
     z-index: 1;
 }
 
 .turn-time {
     margin-left: auto;
     color: #594a3c;
+    font-weight: 400;
+    font-size: .8em;
     white-space: nowrap;
 }
 
 .turn-time.expired {
     color: #8b0000;
-    font-weight: bold;
+    font-weight: 900;
 }
 
 .turn-time.skipped {
@@ -195,19 +201,40 @@
     margin-right: 4px;
 }
 
+
+
+
 .turn-stats {
     display: flex;
     align-items: center;
     white-space: nowrap;
-    font-size: 0.9em;
-    color: #594a3c;
-    margin-top: 1px;
+    margin-top: 0px;
 }
 
-.turn-stats .stat-value {
+.stat-separator {
     display: inline;
-    margin: 0;
+    margin: 0px 4px 0px 4px;
+    font-size: 1.2em;
+    font-weight: 900;
+    color: rgba(89, 74, 60, 0.4);
 }
+.stat-label {
+    display: inline;
+    margin: 0px 2px 0px 2px;
+    font-weight: 200;
+    font-size: 0.8em;
+    color: rgba(86, 39, 39, 0.9);
+}
+.stat-value {
+    display: inline;
+    margin: 0px 2px 0px 2px;
+    font-weight: 900;
+    font-size: 0.8em;
+    color: rgba(89, 74, 60, 0.9);
+}
+
+
+
 
 
 
@@ -246,11 +273,11 @@
 }
 
 .ratio-icon-left {
-    color: #8b0000;
+    color: rgba(122, 29, 21, 0.9);
 }
 
 .ratio-icon-right {
-    color: #4a8f52;
+     color: rgba(36, 86, 42, 0.9);
 }
 
 .ratio-bar-background {
@@ -273,20 +300,20 @@
 }
 
 .ratio-segment-red {
-    background: #8b0000;
+    background: rgba(160, 38, 27, 0.9);
 }
 
 .ratio-segment-green {
-    background: #4a8f52;
+    background: rgba(58, 138, 67, 0.9);
 }
 
 .ratio-marker {
     position: absolute;
-    top: 0;
+    top: -4px;
     left: 0;
     width: 100%;
     height: 0;
-    opacity: 0.9;
+    opacity: 1.0;
     z-index: 10;
     pointer-events: none;
 }
@@ -300,9 +327,9 @@
     height: 0;
     border-left: 4px solid transparent;
     border-right: 4px solid transparent;
-    border-top: 6px solid #ffffff;
+    border-top: 8px solid rgba(255, 129, 0, 0.95);
     transform: translateX(-50%);
-    filter: drop-shadow(1 1px 2px rgba(10, 10, 10, 0.8));
+    filter: drop-shadow(0 1px 1px rgba(10, 10, 10, 0.3));
 }
 
 /* === Notable Moments === */

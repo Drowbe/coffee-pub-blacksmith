@@ -338,9 +338,15 @@
                         </div>
                         <div class="ratio-marker" style="--marker-position: {{this.damageRatioGreen}}%;"></div>
                     </div>
-                    <i class="fa-solid fa-swords ratio-icon-right"></i>
+                    <i class="fa-solid fa-droplet ratio-icon-right"></i>
                 </div>
-                <div class="turn-stats">MVP: {{this.score}}  •  DMG: {{this.damage.dealt}}  •  Hits: {{this.combat.attacks.hits}}/{{this.combat.attacks.attempts}}</div>
+                <div class="turn-stats">
+                    <span class="stat-label">MVP:</span><span class="stat-value">{{this.score}}</span>
+                    <span class="stat-separator">•</span>
+                    <span class="stat-label">DMG:</span><span class="stat-value">{{this.damage.dealt}}</span>
+                    <span class="stat-separator">•</span>
+                    <span class="stat-label">Hits:</span><span class="stat-value">{{this.combat.attacks.hits}}/{{this.combat.attacks.attempts}}</span>
+                </div>
             </div>
         </div>
         {{/each}}
