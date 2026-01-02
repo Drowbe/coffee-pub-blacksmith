@@ -1,5 +1,11 @@
-2026/01/01-17:19:18.430 a5b8 Log #2461: 0 ops saved to Table #2462 OK
-2026/01/01-17:19:18.432 a5b8 Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-tables/002461.log: OK
-2026/01/01-17:19:18.432 a5b8 Table #2363: 205 entries OK
-2026/01/01-17:19:18.437 a5b8 Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-tables/MANIFEST-002368: OK
-2026/01/01-17:19:18.441 a5b8 **** Repaired leveldb C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-tables; recovered 1 files; 36836 bytes. Some data may have been lost. ****
+2026/01/01-17:19:18.454 a5b8 Delete type=3 #1
+2026/01/01-17:21:09.082 d2c4 Level-0 table #2466: started
+2026/01/01-17:21:09.082 d2c4 Level-0 table #2466: 0 bytes OK
+2026/01/01-17:21:09.083 d2c4 Delete type=0 #2464
+2026/01/01-17:21:09.086 d2c4 Manual compaction at level-0 from '!folders!kOaw01a1lQdaYDrk' @ 72057594037927935 : 1 .. '!tables.results!UXuB64TkxyNVbrSZ.yG3psrPEeXulekbF' @ 0 : 0; will stop at '!tables.results!UXuB64TkxyNVbrSZ.yG3psrPEeXulekbF' @ 408 : 1
+2026/01/01-17:21:09.086 d2c4 Compacting 1@0 + 0@1 files
+2026/01/01-17:21:09.090 d2c4 Generated table #2467@0: 205 keys, 36836 bytes
+2026/01/01-17:21:09.091 d2c4 Compacted 1@0 + 0@1 files => 36836 bytes
+2026/01/01-17:21:09.091 d2c4 compacted to: files[ 0 1 0 0 0 0 0 ]
+2026/01/01-17:21:09.092 d2c4 Delete type=2 #2363
+2026/01/01-17:21:09.105 d2c4 Manual compaction at level-0 from '!tables.results!UXuB64TkxyNVbrSZ.yG3psrPEeXulekbF' @ 408 : 1 .. '!tables.results!UXuB64TkxyNVbrSZ.yG3psrPEeXulekbF' @ 0 : 0; will stop at (end)

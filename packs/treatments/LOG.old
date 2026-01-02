@@ -1,4 +1,5 @@
-2026/01/01-17:19:18.400 b910 Log #2444: 0 ops saved to Table #2445 OK
-2026/01/01-17:19:18.402 b910 Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\treatments/002444.log: OK
-2026/01/01-17:19:18.407 b910 Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\treatments/MANIFEST-000237: OK
-2026/01/01-17:19:18.412 b910 **** Repaired leveldb C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\treatments; recovered 0 files; 0 bytes. Some data may have been lost. ****
+2026/01/01-17:19:18.423 b910 Delete type=3 #1
+2026/01/01-17:21:09.071 d2c4 Level-0 table #2449: started
+2026/01/01-17:21:09.072 d2c4 Level-0 table #2449: 0 bytes OK
+2026/01/01-17:21:09.073 d2c4 Delete type=0 #2447
+2026/01/01-17:21:09.076 d2c4 Manual compaction at level-0 from 'undefined' @ 72057594037927935 : 1 .. 'undefined' @ 0 : 0; will stop at (end)
