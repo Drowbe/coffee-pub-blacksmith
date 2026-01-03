@@ -862,6 +862,8 @@ export function postConsoleAndNotification(
  * Set up global collapsible card functionality for all blacksmith cards
  * Uses event delegation on the chat log to handle clicks on any card header
  */
+let chatLogObserver = null;
+
 export function setupCollapsibleCards() {
     // Try to set up event delegation on chat log if it exists
     const chatLog = document.querySelector('#chat-log');
@@ -870,8 +872,31 @@ export function setupCollapsibleCards() {
         chatLog.addEventListener('click', handleCollapsibleCardClick, true);
         // Mark that we've added the handler to prevent duplicates
         chatLog.setAttribute('data-blacksmith-collapsible-handler', 'true');
-        console.log('Blacksmith: Collapsible card handler attached to #chat-log');
+        console.log('Blacksmith: Collapsible card handler attached to #chat-log (event delegation)');
+        
+        // Stop observing once we have event delegation set up
+        if (chatLogObserver) {
+            chatLogObserver.disconnect();
+            chatLogObserver = null;
+        }
+        
         return true;
+    }
+    
+    // If chat log doesn't exist yet, set up a MutationObserver to watch for it
+    if (!chatLog && !chatLogObserver) {
+        chatLogObserver = new MutationObserver((mutations, observer) => {
+            const chatLog = document.querySelector('#chat-log');
+            if (chatLog) {
+                setupCollapsibleCards(); // Will set up delegation and disconnect observer
+            }
+        });
+        
+        // Watch the document body for when chat log is added
+        chatLogObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
     }
     
     // If chat log doesn't exist, we'll attach handlers directly to cards when they render
@@ -880,10 +905,20 @@ export function setupCollapsibleCards() {
 
 /**
  * Attach collapsible handler directly to a card element
- * Called when a card is rendered and we can't use event delegation
+ * Called when a card is rendered and we can't use event delegation yet
+ * Note: Once event delegation is set up, direct handlers are no longer needed
+ * but they're harmless and will be cleaned up when the DOM element is removed
  */
 export function attachCollapsibleHandlerToCard(cardElement) {
     if (!cardElement || cardElement.hasAttribute('data-blacksmith-collapsible-handled')) {
+        return;
+    }
+    
+    // If event delegation is already set up, we don't need direct handlers
+    const chatLog = document.querySelector('#chat-log');
+    if (chatLog && chatLog.hasAttribute('data-blacksmith-collapsible-handler')) {
+        // Event delegation is active, mark this card as handled but don't attach direct handler
+        cardElement.setAttribute('data-blacksmith-collapsible-handled', 'true');
         return;
     }
     
@@ -892,9 +927,9 @@ export function attachCollapsibleHandlerToCard(cardElement) {
         return;
     }
     
+    // Only attach direct handler if event delegation isn't available
     header.addEventListener('click', handleCollapsibleCardClick);
     cardElement.setAttribute('data-blacksmith-collapsible-handled', 'true');
-    console.log('Blacksmith: Collapsible handler attached directly to card', cardElement);
 }
 
 /**
@@ -942,8 +977,6 @@ function handleCollapsibleCardClick(event) {
     // Determine current state - check if content is collapsed
     const isCollapsed = content.classList.contains('collapsed');
     
-    console.log('Blacksmith: Toggling section', { sectionId, isCollapsed, content, icon });
-    
     if (isCollapsed) {
         // Expand - remove collapsed class from section-content
         content.classList.remove('collapsed');
@@ -961,11 +994,4 @@ function handleCollapsibleCardClick(event) {
             icon.classList.add('fa-chevron-right');
         }
     }
-    
-    console.log('Blacksmith: After toggle', { 
-        sectionId, 
-        hasCollapsed: content.classList.contains('collapsed'),
-        contentClasses: content.className,
-        iconClasses: icon?.className
-    });
 }
