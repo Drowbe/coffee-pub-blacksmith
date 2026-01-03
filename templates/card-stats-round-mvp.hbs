@@ -6,7 +6,7 @@
         <i class="fa-solid fa-trophy"></i> Round {{roundNumber}} MVP 
         <i class="fa-solid fa-chevron-{{#if (eq sectionStates.roundMVP 'collapsed')}}right{{else}}down{{/if}} collapse-indicator"></i>
     </div>
-    <div class="section-content {{#if (eq sectionStates.roundMVP 'collapsed')}}collapsed{{/if}}">
+    <div class="section-content {{#if (eq sectionStates.roundMVP 'collapsed')}}collapsed{{/if}}" data-section="roundMVP-{{roundNumber}}">
         {{#if roundMVP}}
             {{#if roundMVP.score}}
             {{#with roundMVP}}

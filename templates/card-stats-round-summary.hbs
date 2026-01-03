@@ -6,7 +6,7 @@
         <i class="fa-solid fa-swords"></i> Round {{roundNumber}} Summary 
         <i class="fa-solid fa-chevron-{{#if (eq sectionStates.roundSummary 'collapsed')}}right{{else}}down{{/if}} collapse-indicator"></i>
     </div>
-    <div class="section-content {{#if (eq sectionStates.roundSummary 'collapsed')}}collapsed{{/if}}">
+    <div class="section-content {{#if (eq sectionStates.roundSummary 'collapsed')}}collapsed{{/if}}" data-section="roundSummary-{{roundNumber}}">
         <div class="party-stats-grid">
             {{#if settings.showRoundTimer}}
             <div class="round-stat-card">

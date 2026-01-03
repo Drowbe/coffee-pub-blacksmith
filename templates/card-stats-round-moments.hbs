@@ -6,7 +6,7 @@
         <i class="fa-solid fa-medal"></i> Notable Moments 
         <i class="fa-solid fa-chevron-{{#if (eq sectionStates.notableMoments 'collapsed')}}right{{else}}down{{/if}} collapse-indicator"></i>
     </div>
-    <div class="section-content {{#if (eq sectionStates.notableMoments 'collapsed')}}collapsed{{/if}}">
+    <div class="section-content {{#if (eq sectionStates.notableMoments 'collapsed')}}collapsed{{/if}}" data-section="notableMoments-{{roundNumber}}">
         <!-- Debug Info -->
         <div style="display: none;">
             Has Moments: {{hasNotableMoments}}<br>

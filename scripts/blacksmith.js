@@ -29,7 +29,9 @@ import {
     generateFormattedDate, 
     toSentenceCase, 
     convertSecondsToRounds, 
-    getSettingSafely
+    getSettingSafely,
+    setupCollapsibleCards,
+    attachCollapsibleHandlerToCard
 } from './api-core.js';
 // -- Common Imports --
 import { 
@@ -328,6 +330,37 @@ Hooks.once('ready', async () => {
 
         // Initialize XP manager
         XpManager.initialize();
+
+        // Set up global collapsible card functionality
+        // Try immediately (chat log might exist)
+        setupCollapsibleCards();
+        
+        // Also ensure handler is set up when messages are rendered
+        HookManager.registerHook({
+            name: 'renderChatMessageHTML',
+            description: 'Blacksmith: Attach collapsible card handlers when messages render',
+            context: 'blacksmith-cards',
+            priority: 3,
+            callback: (message, html) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                // v13: renderChatMessageHTML always passes HTMLElement (not jQuery)
+                if (message.content && message.content.includes('blacksmith-card')) {
+                    // Try event delegation first (if chat log exists now)
+                    setupCollapsibleCards();
+                    
+                    // Also attach handlers directly to cards in this message
+                    // v13: html is HTMLElement, not jQuery
+                    const htmlElement = html instanceof HTMLElement ? html : html[0] || html;
+                    if (htmlElement) {
+                        const cards = htmlElement.querySelectorAll ? htmlElement.querySelectorAll('.blacksmith-card') : [];
+                        cards.forEach(card => {
+                            attachCollapsibleHandlerToCard(card);
+                        });
+                    }
+                }
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
 
         // Apply any existing custom CSS
         const editor = new CSSEditor();
