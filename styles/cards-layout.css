@@ -43,10 +43,11 @@
     border: 1px solid var(--blacksmith-card-border);
     border-radius: 5px;
     padding: 0.5em;
-    margin-bottom: 0.5em;
+    margin-bottom: 0em;
 }
 
 /* Common Icon Styles */
+.blacksmith-card .fa-solid,
 .blacksmith-card .fas {
     width: 14px;
     text-align: center;
@@ -74,29 +75,29 @@
 
 /* ********** CARD ********** */
 
-/* CARD Headers */
 .blacksmith-card .card-header {
-    font-family: "Modesto Condensed"; 
+    font-family: "Modesto Condensed";
     font-size: 1.5em;
     font-weight: 900;
     color: var(--blacksmith-card-header-text);
+    line-height: 1.1;
     display: flex;
-    align-items: center;
+    align-items: center; /* vertical center */
     gap: 6px;
 }
 
 /* Only add margin when section is not collapsed */
 .blacksmith-card .card-header:not(.collapsed) {
-    margin-bottom: 10px;
+    margin-bottom: 0px;
 }
 
 
 /* Section Header Icons */
 .blacksmith-card .card-header:not(.collapsed) i,
 .blacksmith-card .card-header i {
-    margin-right: 10px;
+    margin-right: 5px;
     margin-top: -2px;
-    font-size: 1.0em;
+    font-size: 0.85em;
 }
 
 /* ********** SECTION HEADERS ********** */
@@ -148,6 +149,7 @@
     max-height: 1000px;
     transition: max-height 0.3s ease-out;
     overflow: hidden;
+    margin-top: 10px !important;
     color: var(--blacksmith-card-section-content-text);
 }
 
@@ -213,7 +215,7 @@
 
 .blacksmith-card .card-header .collapse-indicator {
     margin-left: auto; /* ensures it hugs the right edge */
-    font-size: 0.65em;
+    font-size: 0.60em !important;
 }
 
 
