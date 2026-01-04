@@ -143,16 +143,16 @@
 
 
 /* ********** SECTION CONTENT ********** */
-.blacksmith-card .section-content {
+/* Section content styling - works with both old and new collapsible structures */
+.blacksmith-card .section-content,
+.blacksmith-card .collapsible-content {
     font-family: var(--dnd5e-font-roboto); 
     font-size: 1.0em;
-    max-height: 1000px;
-    transition: max-height 0.3s ease-out;
-    overflow: hidden;
     margin-top: 10px !important;
     color: var(--blacksmith-card-section-content-text);
 }
 
+/* Foundry handles collapsing, but we keep this for backward compatibility */
 .blacksmith-card .section-content.collapsed {
     max-height: 0 !important;
     padding-top: 0 !important;
@@ -163,16 +163,19 @@
     transition: max-height 0.3s ease-out, padding-top 0.3s ease-out, padding-bottom 0.3s ease-out;
 }
 
-.blacksmith-card .section-content p {
+.blacksmith-card .section-content p,
+.blacksmith-card .collapsible-content p {
     margin: 0 0 8px 0;
 }
 
-.blacksmith-card .section-content ul {
+.blacksmith-card .section-content ul,
+.blacksmith-card .collapsible-content ul {
     margin: 5px 0;
     padding-left: 20px;
 }
 
-.blacksmith-card .section-content li {
+.blacksmith-card .section-content li,
+.blacksmith-card .collapsible-content li {
     margin: 2px 0;
 }
 
@@ -194,13 +197,32 @@
     border-left: 3px solid var(--color-border-light-tertiary);
 }
 
-/* Collapsible Sections */
+/* Collapsible Sections - Foundry's built-in collapsible */
+.blacksmith-card .collapsible .summary {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.blacksmith-card .collapsible .summary:hover {
+    color: var(--blacksmith-card-hover-color);
+    transition: color 0.2s ease;
+}
+
+.blacksmith-card .collapsible .summary:hover i {
+    color: var(--blacksmith-card-hover-color);
+    transition: color 0.2s ease;
+}
+
+/* Backward compatibility for old structure */
 .blacksmith-card .card-header.collapsible {
     cursor: pointer;
     user-select: none;
     display: flex;
     align-items: center;
-    justify-content: space-between; /* pushes chevron to the right */
+    justify-content: space-between;
 }
 
 .blacksmith-card .card-header.collapsible:hover {
@@ -211,11 +233,6 @@
 .blacksmith-card .card-header.collapsible:hover i {
     color: var(--blacksmith-card-hover-color);
     transition: color 0.2s ease;
-}
-
-.blacksmith-card .card-header .collapse-indicator {
-    margin-left: auto; /* ensures it hugs the right edge */
-    font-size: 0.60em !important;
 }
 
 
