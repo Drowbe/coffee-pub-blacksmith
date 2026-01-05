@@ -8,9 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.0.9]
 
+### Added
+- **Combat Stats Card State Persistence**: Added state persistence for combat stats card types (Round Summary, Round MVP, Notable Moments, Party Breakdown). Cards now remember their collapsed/expanded state per card type across page refreshes. If you collapse one "Notable Moments" card, all "Notable Moments" cards will load collapsed going forward. State is stored in a client setting (`combatStatsCardStates`) and persists across sessions.
+
+### Changed
+- **Combat Stats Collapsible System**: Migrated combat stats cards from custom JavaScript collapsible implementation to FoundryVTT's built-in collapsible system. Cards now use the standard `<section class="collapsible">`, `<header class="summary">`, and `<section class="details collapsible-content">` structure, leveraging Foundry's automatic state management and chevron icon handling. Removed all custom collapsible JavaScript code (`setupCollapsibleCards`, `attachCollapsibleHandlerToCard`, `handleCollapsibleCardClick`) and related hooks.
+
 ### Fixed
 - **Auto-Distribute XP Functionality**: Fixed `autoDistributeXp` setting to properly bypass the XP distribution window and automatically distribute XP when enabled. When the setting is enabled, the system now automatically distributes XP based on default values (all players included, no adjustments) without showing the distribution window, effectively mimicking clicking the distribute button without any changes. The implementation uses the same calculation and distribution logic as the manual window, ensuring consistent behavior.
 - **Query Window Toolbar Buttons**: Fixed "Send to Chat" and "Copy to Clipboard" toolbar buttons in the query window not finding message content. The issue was caused by attempting to scope queries to the window element after v13 migration, which failed when multiple query windows were open or when viewing recent queries. Simplified the implementation to use `document.querySelector` with `data-message-id` attribute selectors, which works reliably since each message has a unique messageId. Updated all three toolbar button handlers (`_onSendToChat`, `_onCopyToClipboard`, `_onSendToJson`) to use the simplified approach with proper button parameter handling.
+- **Toolbar Button Double Events**: Fixed external module toolbar buttons generating duplicate events (2 chat cards) when a tool was registered for both CoffeePub and Foundry toolbars. The issue was caused by both `_wireToolClicks` and `_wireFoundryToolClicks` attaching handlers to the same buttons regardless of which toolbar was active. Added active control checks to each function so `_wireToolClicks` only wires handlers when the CoffeePub toolbar (`blacksmith-utilities` control) is active, and `_wireFoundryToolClicks` only wires handlers when the Foundry toolbar (`tokens` control) is active. This prevents double-wiring when tools appear in both toolbars, ensuring each button click generates only one event.
+- **Combat Stats Round Number**: Fixed round number in combat stats cards to use the actual round number from `game.combat.round` instead of maintaining our own counter. Cards now correctly display the current combat round matching the Encounter Tracker.
+- **Combat Stats Card Chevron Icons**: Fixed missing chevron icons on combat stats cards. Chevron icons are now properly included in the template HTML, and Foundry's collapsible system automatically handles toggling between chevron-down (expanded) and chevron-right (collapsed) states.
 
 ## [13.0.8]
 
