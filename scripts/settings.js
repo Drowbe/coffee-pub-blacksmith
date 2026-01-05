@@ -1917,20 +1917,6 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	// -- Card Type Collapsed States (Client-side) --
-	game.settings.register(MODULE.ID, 'combatStatsCardStates', {
-		name: 'Combat Stats Card States',
-		hint: 'Internal storage for collapsed/expanded state of combat stats card types',
-		scope: 'client',
-		config: false,  // Hidden setting - internal use only
-		type: Object,
-		default: {
-			roundSummary: false,      // false = expanded, true = collapsed
-			roundMVP: false,
-			notableMoments: false,
-			partyBreakdown: false
-		}
-	});
 
 
 	// --------------------------------------

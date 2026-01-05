@@ -2,14 +2,11 @@
 
 {{!-- Round Summary --}}
 <div class="blacksmith-card theme-default">
-    <section class="collapsible {{#if (eq sectionStates.roundSummary 'collapsed')}}collapsed{{/if}}">
-        <header class="summary">
-            <h2><i class="fa-solid fa-swords"></i> Round {{roundNumber}} Summary</h2>
-            <i class="fa-solid fa-chevron-down fa-fw"></i>
-        </header>
-        <section class="details collapsible-content">
-            <div class="wrapper">
-                <div class="party-stats-grid">
+    <div class="card-header">
+        <i class="fa-solid fa-swords"></i> Round {{roundNumber}} Summary
+    </div>
+    <div class="section-content">
+        <div class="party-stats-grid">
             {{#if settings.showRoundTimer}}
             <div class="round-stat-card">
                 <h4><i class="fa-solid fa-clock"></i> Elapsed</h4>
@@ -56,8 +53,7 @@
                 <h4><i class="fa-solid fa-fire-flame"></i> Finesse</h4>
                 <div class="round-stat-value">{{partyStats.criticalHits}} | {{partyStats.fumbles}}</div>
                 <div class="round-stat-detail">Crits | Fumbles</div>
-                </div>
             </div>
-        </section>
-    </section>
+        </div>
+    </div>
 </div>

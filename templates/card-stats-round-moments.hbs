@@ -2,13 +2,10 @@
 
 {{!-- Notable Moments Section --}}
 <div class="blacksmith-card theme-default">
-    <section class="collapsible {{#if (eq sectionStates.notableMoments 'collapsed')}}collapsed{{/if}}">
-        <header class="summary">
-            <h2><i class="fa-solid fa-medal"></i> Notable Moments</h2>
-            <i class="fa-solid fa-chevron-down fa-fw"></i>
-        </header>
-        <section class="details collapsible-content">
-            <div class="wrapper">
+    <div class="card-header">
+        <i class="fa-solid fa-medal"></i> Notable Moments
+    </div>
+    <div class="section-content">
                 <!-- Debug Info -->
         <div style="display: none;">
             Has Moments: {{hasNotableMoments}}<br>
@@ -149,7 +146,5 @@
                 {{else}}
                     <div class="no-moments">Sorry, nothing notable this round. Try a bit harder next time.</div>
                 {{/if}}
-            </div>
-        </section>
-    </section>
+    </div>
 </div>

@@ -2,13 +2,10 @@
 
 {{!-- Party Details --}}
 <div class="blacksmith-card theme-default">
-    <section class="collapsible {{#if (eq sectionStates.partyBreakdown 'collapsed')}}collapsed{{/if}}">
-        <header class="summary">
-            <h2><i class="fa-solid fa-users"></i> Party Breakdown</h2>
-            <i class="fa-solid fa-chevron-down fa-fw"></i>
-        </header>
-        <section class="details collapsible-content">
-            <div class="wrapper">
+    <div class="card-header">
+        <i class="fa-solid fa-users"></i> Party Breakdown
+    </div>
+    <div class="section-content">
                 {{#each turnDetails}}
         <div class="turn-row">
             <img class="turn-portrait" src="{{this.tokenImg}}" title="{{this.name}}" />
@@ -58,7 +55,5 @@
             </div>
         </div>
                 {{/if}}
-            </div>
-        </section>
-    </section>
+    </div>
 </div> 

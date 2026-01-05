@@ -91,16 +91,6 @@ class CombatStats {
     // Utility helpers
     // -------------------------------------------------------------------------
 
-    // Store section states - loaded from client setting
-    static sectionStates = {
-        roundSummary: 'expanded',
-        roundMVP: 'expanded',
-        notableMoments: 'expanded',
-        partyBreakdown: 'expanded',
-        roundTimingStats: 'expanded',
-        roundTurnTimes: 'expanded'
-    };
-
     // Bounded push helper to prevent unbounded array growth
     static _boundedPush(array, item, maxSize = 1000) {
         array.push(item);
@@ -254,24 +244,6 @@ class CombatStats {
 
         postConsoleAndNotification(MODULE.NAME, "Initializing Combat Stats | trackCombatStats:", getSettingSafely(MODULE.ID, 'trackCombatStats', false), true, false);
 
-        // Load card type collapsed states from client setting
-        const cardStates = getSettingSafely(MODULE.ID, 'combatStatsCardStates', {
-            roundSummary: false,
-            roundMVP: false,
-            notableMoments: false,
-            partyBreakdown: false
-        });
-        
-        // Convert boolean states to 'expanded'/'collapsed' strings
-        this.sectionStates = {
-            roundSummary: cardStates.roundSummary ? 'collapsed' : 'expanded',
-            roundMVP: cardStates.roundMVP ? 'collapsed' : 'expanded',
-            notableMoments: cardStates.notableMoments ? 'collapsed' : 'expanded',
-            partyBreakdown: cardStates.partyBreakdown ? 'collapsed' : 'expanded',
-            roundTimingStats: 'expanded',
-            roundTurnTimes: 'expanded'
-        };
-
         // Check for existing stats in combat flags
         const existingStats = game.combat?.getFlag(MODULE.ID, 'stats');
         
@@ -294,9 +266,6 @@ class CombatStats {
 
         // Register hooks
         this._registerHooks();
-        
-        // Register hook to track collapsible state changes
-        this._registerCollapsibleStateTracking();
     }
 
     static async _onUpdateCombat(combat, changed, options, userId) {
@@ -1860,96 +1829,6 @@ class CombatStats {
         });
     }
 
-    /**
-     * Register hook to track collapsible state changes for card types
-     */
-    static _registerCollapsibleStateTracking() {
-        HookManager.registerHook({
-            name: 'renderChatMessageHTML',
-            description: 'Combat Stats: Track collapsible state changes for card types',
-            context: 'stats-combat-collapsible',
-            priority: 5, // Higher priority to run after initial rendering
-            callback: (message, html) => {
-                // --- BEGIN - HOOKMANAGER CALLBACK ---
-                const htmlElement = html instanceof HTMLElement ? html : html[0] || html;
-                if (!htmlElement) return;
-
-                // Find all blacksmith cards with collapsible sections
-                const cards = htmlElement.querySelectorAll('.blacksmith-card .collapsible');
-                if (!cards.length) return;
-
-                cards.forEach(collapsibleSection => {
-                    const summary = collapsibleSection.querySelector('.summary h2');
-                    if (!summary) return;
-
-                    const headerText = summary.textContent.trim();
-                    
-                    // Determine card type from header text
-                    let cardType = null;
-                    if (headerText.includes('Summary')) cardType = 'roundSummary';
-                    else if (headerText.includes('MVP')) cardType = 'roundMVP';
-                    else if (headerText.includes('Notable Moments')) cardType = 'notableMoments';
-                    else if (headerText.includes('Party Breakdown')) cardType = 'partyBreakdown';
-                    
-                    if (!cardType) return;
-
-                    // Skip if we've already set up tracking for this element
-                    if (collapsibleSection.hasAttribute('data-state-tracker')) return;
-
-                    // Apply stored state on initial render (override Foundry's per-element state)
-                    const storedStates = getSettingSafely(MODULE.ID, 'combatStatsCardStates', {
-                        roundSummary: false,
-                        roundMVP: false,
-                        notableMoments: false,
-                        partyBreakdown: false
-                    });
-
-                    const isCollapsed = storedStates[cardType];
-                    if (isCollapsed && !collapsibleSection.classList.contains('collapsed')) {
-                        collapsibleSection.classList.add('collapsed');
-                    } else if (!isCollapsed && collapsibleSection.classList.contains('collapsed')) {
-                        collapsibleSection.classList.remove('collapsed');
-                    }
-
-                    // Mark this element as tracked
-                    collapsibleSection.setAttribute('data-state-tracker', cardType);
-
-                    // Use MutationObserver to watch for class changes (when Foundry toggles)
-                    const observer = new MutationObserver((mutations) => {
-                        mutations.forEach((mutation) => {
-                            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                                const isCurrentlyCollapsed = collapsibleSection.classList.contains('collapsed');
-                                const currentStates = getSettingSafely(MODULE.ID, 'combatStatsCardStates', {
-                                    roundSummary: false,
-                                    roundMVP: false,
-                                    notableMoments: false,
-                                    partyBreakdown: false
-                                });
-                                
-                                if (currentStates[cardType] !== isCurrentlyCollapsed) {
-                                    currentStates[cardType] = isCurrentlyCollapsed;
-                                    game.settings.set(MODULE.ID, 'combatStatsCardStates', currentStates);
-                                    
-                                    // Update our static sectionStates
-                                    this.sectionStates[cardType] = isCurrentlyCollapsed ? 'collapsed' : 'expanded';
-                                }
-                            }
-                        });
-                    });
-
-                    // Start observing the collapsible section for class changes
-                    observer.observe(collapsibleSection, {
-                        attributes: true,
-                        attributeFilter: ['class']
-                    });
-
-                    // Store observer on element so it gets cleaned up if element is removed
-                    collapsibleSection._stateObserver = observer;
-                });
-                // --- END - HOOKMANAGER CALLBACK ---
-            }
-        });
-    }
 
     // Socket handler for damage rolls forwarded from non-GM clients
     static async _onSocketTrackDamage(payload) {
@@ -2518,7 +2397,6 @@ class CombatStats {
                 planningTimerEnabled: game.settings.get(MODULE.ID, 'planningTimerEnabled'),
                 combatTimerEnabled: game.settings.get(MODULE.ID, 'combatTimerEnabled')
             },
-            sectionStates: this.sectionStates,
             notableMoments: await this._enrichNotableMomentsWithPortraits(this.currentStats.notableMoments),
             hasNotableMoments: Object.values(this.currentStats.notableMoments)
                 .some(moment => moment.amount > 0 || moment.duration > 0)
@@ -2576,7 +2454,6 @@ class CombatStats {
                 planningTimerEnabled: game.settings.get(MODULE.ID, 'planningTimerEnabled'),
                 combatTimerEnabled: game.settings.get(MODULE.ID, 'combatTimerEnabled')
             },
-            sectionStates: this.sectionStates,
             notableMoments: await this._enrichNotableMomentsWithPortraits(this.currentStats.notableMoments),
             hasNotableMoments: Object.values(this.currentStats.notableMoments)
                 .some(moment => moment.amount > 0 || moment.duration > 0)
