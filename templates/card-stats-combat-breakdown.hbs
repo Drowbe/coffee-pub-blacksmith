@@ -1,0 +1,50 @@
+<span style="visibility: hidden">coffeepub-hide-header</span>
+
+{{!-- Combat Party Breakdown --}}
+<div class="blacksmith-card theme-default">
+    <div class="card-header">
+        <i class="fa-solid fa-users"></i> Party Breakdown
+    </div>
+    <div class="section-content">
+        {{#if participants}}
+        {{#each participants}}
+        <div class="turn-row">
+            <div class="turn-info">
+                <div class="turn-name">
+                    <span class="status-tag rank">{{add @index 1}}</span>
+                    <strong>{{name}}</strong>
+                    <span class="turn-time">{{hits}} hits / {{totalAttacks}} attempts</span>
+                </div>
+                {{#if damageRatioGreen}}
+                <div class="damage-ratio-bar" data-debug="Marker: {{damageRatioGreen}}%">
+                    <i class="fa-solid fa-heart-crack ratio-icon-left"></i>
+                    <div class="ratio-bar-container">
+                        <div class="ratio-bar-background">
+                            <div class="ratio-segment ratio-segment-red"></div>
+                            <div class="ratio-segment ratio-segment-red"></div>
+                            <div class="ratio-segment ratio-segment-red"></div>
+                            <div class="ratio-segment ratio-segment-red"></div>
+                            <div class="ratio-segment ratio-segment-red"></div>
+                            <div class="ratio-segment ratio-segment-green"></div>
+                            <div class="ratio-segment ratio-segment-green"></div>
+                            <div class="ratio-segment ratio-segment-green"></div>
+                            <div class="ratio-segment ratio-segment-green"></div>
+                            <div class="ratio-segment ratio-segment-green"></div>
+                        </div>
+                        <div class="ratio-marker" style="--marker-position: {{damageRatioGreen}}%;"></div>
+                    </div>
+                    <i class="fa-solid fa-droplet ratio-icon-right"></i>
+                </div>
+                {{/if}}
+                <div class="turn-stats">
+                    DMG {{damageDealt}} • Taken {{damageTaken}} • Heals {{healingGiven}} • Crits {{criticals}} • Fumbles {{fumbles}}
+                </div>
+            </div>
+        </div>
+        {{/each}}
+        {{else}}
+        <div class="no-moments">No participant data available for this combat.</div>
+        {{/if}}
+    </div>
+</div>
+

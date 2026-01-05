@@ -100,11 +100,13 @@ export class StatsWindow extends Application {
         const hitRateValue = Number(totals.hitRate ?? 0).toFixed(1);
         const durationSeconds = summary?.durationSeconds ?? Math.round((summary?.duration || 0) / 1000);
         const mvp = summary?.notableMoments?.mvp || { name: '—', score: 0 };
+        const rounds = summary?.totalRounds ?? 0;
 
         return {
             combatId: summary?.combatId || `combat-${index}`,
             label: summary?.sceneName || `Combat ${totalCombats - index}`,
             dateFormatted: summary?.date ? this._formatDate(summary.date) : '—',
+            rounds: rounds > 0 ? rounds.toString() : '—',
             hitRate: `${hitRateValue}%`,
             mvpName: mvp?.name || '—',
             mvpScore: Number(mvp?.score ?? 0).toFixed(1),

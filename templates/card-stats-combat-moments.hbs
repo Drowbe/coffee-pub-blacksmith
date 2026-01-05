@@ -1,0 +1,49 @@
+<span style="visibility: hidden">coffeepub-hide-header</span>
+
+{{!-- Combat Notable Moments --}}
+<div class="blacksmith-card theme-default">
+    <div class="card-header">
+        <i class="fa-solid fa-medal"></i> Notable Moments
+    </div>
+    <div class="section-content">
+        {{#if (or notableMoments.topHits.length notableMoments.topHeals.length)}}
+        <div class="notable-moments-grid">
+            {{#each notableMoments.topHits}}
+            <div class="moment-card">
+                <h4><i class="fas fa-burst"></i> Top Hit #{{add @index 1}}</h4>
+                <div class="moment-info">
+                    <div>
+                        <span class="actor">{{attacker}}</span>
+                        <span class="detail">hit</span>
+                        <span class="target">{{target}}</span>
+                    </div>
+                    <div>
+                        <span class="amount">{{formatDamage amount}} hp</span>
+                        {{#if isCritical}}<span class="detail">• Critical!</span>{{/if}}
+                    </div>
+                </div>
+            </div>
+            {{/each}}
+
+            {{#each notableMoments.topHeals}}
+            <div class="moment-card">
+                <h4><i class="fas fa-heart"></i> Top Heal #{{add @index 1}}</h4>
+                <div class="moment-info">
+                    <div>
+                        <span class="actor">{{healer}}</span>
+                        <span class="detail">healed</span>
+                        <span class="target">{{target}}</span>
+                    </div>
+                    <div>
+                        <span class="amount">{{formatDamage amount true}} hp</span>
+                    </div>
+                </div>
+            </div>
+            {{/each}}
+        </div>
+        {{else}}
+        <div class="no-moments">Sorry, nothing notable this combat. Try a bit harder next time.</div>
+        {{/if}}
+    </div>
+</div>
+

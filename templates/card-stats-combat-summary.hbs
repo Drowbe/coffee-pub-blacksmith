@@ -1,0 +1,53 @@
+<span style="visibility: hidden">coffeepub-hide-header</span>
+
+{{!-- Combat Summary --}}
+<div class="blacksmith-card theme-default">
+    <div class="card-header">
+        <i class="fa-solid fa-flag-checkered"></i> Combat Summary: {{sceneName}}
+    </div>
+    <div class="section-content">
+        <div class="party-stats-grid">
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-clock"></i> Duration</h4>
+                <div class="round-stat-value">{{formatTime duration}}</div>
+                <div class="round-stat-detail">{{durationSeconds}} seconds</div>
+            </div>
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-arrows-rotate"></i> Rounds</h4>
+                <div class="round-stat-value">{{totalRounds}}</div>
+                <div class="round-stat-detail">Total rounds fought</div>
+            </div>
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-bullseye"></i> Hit Rate</h4>
+                <div class="round-stat-value">{{totals.hitRate}}%</div>
+                <div class="round-stat-detail">Hits {{totals.hits}} / Misses {{totals.misses}}</div>
+            </div>
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-swords"></i> Damage Dealt</h4>
+                <div class="round-stat-value">{{formatDamage totals.damageDealt}} hp</div>
+                <div class="round-stat-detail">Party total</div>
+            </div>
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-shield-halved"></i> Damage Taken</h4>
+                <div class="round-stat-value">{{formatDamage totals.damageTaken}} hp</div>
+                <div class="round-stat-detail">Enemies inflicted</div>
+            </div>
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-heart"></i> Healing Given</h4>
+                <div class="round-stat-value">{{formatDamage totals.healingGiven true}} hp</div>
+                <div class="round-stat-detail">Total restored</div>
+            </div>
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-burst"></i> Crits</h4>
+                <div class="round-stat-value">{{totals.criticals}}</div>
+                <div class="round-stat-detail">Across the party</div>
+            </div>
+            <div class="round-stat-card">
+                <h4><i class="fa-solid fa-skull-crossbones"></i> Fumbles</h4>
+                <div class="round-stat-value">{{totals.fumbles}}</div>
+                <div class="round-stat-detail">Oops moments</div>
+            </div>
+        </div>
+    </div>
+</div>
+

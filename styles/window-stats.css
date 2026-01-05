@@ -303,11 +303,12 @@ div#blacksmith-stats-window .window-content {
 .stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-6 { width: 15%; }
 
 /* Combat history column widths (5 columns) */
-.stats-table-wrapper[data-table-type="combats"] .stats-table-col-1 { width: 30%; }
-.stats-table-wrapper[data-table-type="combats"] .stats-table-col-2 { width: 25%; }
-.stats-table-wrapper[data-table-type="combats"] .stats-table-col-3 { width: 15%; }
-.stats-table-wrapper[data-table-type="combats"] .stats-table-col-4 { width: 20%; }
-.stats-table-wrapper[data-table-type="combats"] .stats-table-col-5 { width: 10%; }
+.stats-table-wrapper[data-table-type="combats"] .stats-table-col-1 { width: 25%; }
+.stats-table-wrapper[data-table-type="combats"] .stats-table-col-2 { width: 20%; }
+.stats-table-wrapper[data-table-type="combats"] .stats-table-col-3 { width: 10%; }
+.stats-table-wrapper[data-table-type="combats"] .stats-table-col-4 { width: 12%; }
+.stats-table-wrapper[data-table-type="combats"] .stats-table-col-5 { width: 18%; }
+.stats-table-wrapper[data-table-type="combats"] .stats-table-col-6 { width: 15%; }
 
 .stats-table-row .stats-table-col-2 {
   gap: 8px;

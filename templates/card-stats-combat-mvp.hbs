@@ -1,0 +1,72 @@
+<span style="visibility: hidden">coffeepub-hide-header</span>
+
+{{!-- Combat MVP --}}
+<div class="blacksmith-card theme-default">
+    <div class="card-header">
+        <i class="fa-solid fa-trophy"></i> Combat MVP: {{notableMoments.mvp.name}}
+    </div>
+    <div class="section-content">
+        {{#if notableMoments.mvp}}
+        <div class="mvp-details">
+            <div class="mvp-info">
+                <div class="player-name">{{notableMoments.mvp.name}}</div>
+                <p class="mvp-description">Score {{notableMoments.mvp.score}}</p>
+            </div>
+        </div>
+        <div class="mvp-stats">
+            <div class="mvp-stat-card">
+                <h4><i class="fas fa-swords"></i> Combat</h4>
+                <div class="moment-content">
+                    <span class="detail">Hits:</span>
+                    <span class="amount">{{notableMoments.mvp.hits}} / {{notableMoments.mvp.totalAttacks}}</span>
+                    <span class="detail">Crits:</span>
+                    <span class="amount">{{notableMoments.mvp.crits}}</span>
+                    <span class="detail">Fumbles:</span>
+                    <span class="amount">{{notableMoments.mvp.fumbles}}</span>
+                </div>
+            </div>
+            <div class="mvp-stat-card">
+                <h4><i class="fas fa-droplet"></i> Damage</h4>
+                <div class="moment-content">
+                    <span class="detail">Dealt:</span>
+                    <span class="amount">{{notableMoments.mvp.damageDealt}}</span>
+                    <span class="detail">Taken:</span>
+                    <span class="amount">{{notableMoments.mvp.damageTaken}}</span>
+                </div>
+            </div>
+            <div class="mvp-stat-card">
+                <h4><i class="fas fa-heart"></i> Healing</h4>
+                <div class="moment-content">
+                    <span class="detail">Given:</span>
+                    <span class="amount">{{notableMoments.mvp.healingGiven}}</span>
+                    <span class="detail">Received:</span>
+                    <span class="amount">{{notableMoments.mvp.healingReceived}}</span>
+                </div>
+            </div>
+        </div>
+        {{#if mvpRankings}}
+        <div class="mvp-ranking-table">
+            {{#each mvpRankings}}
+            <div class="turn-row">
+                <div class="turn-info">
+                    <div class="turn-name">
+                        <span class="status-tag rank">{{add @index 1}}</span>
+                        <strong>{{name}}</strong>
+                        <span class="turn-time">Score {{score}}</span>
+                    </div>
+                    <div class="turn-stats">DMG {{damageDealt}} • Hits {{hits}}/{{totalAttacks}} • Crits {{crits}} • Heals {{healingGiven}}</div>
+                </div>
+            </div>
+            {{/each}}
+        </div>
+        {{/if}}
+        {{else}}
+        <div class="mvp-details">
+            <div class="mvp-info">
+                <p class="mvp-description">No MVP data available for this combat.</p>
+            </div>
+        </div>
+        {{/if}}
+    </div>
+</div>
+

@@ -480,8 +480,10 @@ class CombatStats {
      */
     static _generateCombatSummary(combat) {
         const combatDuration = Date.now() - this.combatStats.startTime;
-        const scene = combat.scene ? game.scenes.get(combat.scene) : null;
-        const sceneName = scene ? scene.name : 'Unknown Scene';
+        // Try multiple ways to get the scene
+        const sceneId = combat.sceneId || combat.scene || (canvas?.scene?.id);
+        const scene = sceneId ? game.scenes.get(sceneId) : null;
+        const sceneName = scene?.name || canvas?.scene?.name || 'Unknown Scene';
 
         // Extract participant summaries (aggregates only, no arrays)
         const participantSummaries = Object.entries(this.combatStats.participantStats || {}).map(([actorId, stats]) => {
@@ -738,20 +740,11 @@ class CombatStats {
             postConsoleAndNotification(MODULE.NAME, "Error storing combat summary", error, false, false);
         });
 
-        // Render combat summary chat card
-        try {
-            const template = 'modules/' + MODULE.ID + '/templates/stats-combat.hbs';
-            const content = await foundry.applications.handlebars.renderTemplate(template, combatSummary);
-            const shareStats = game.settings.get(MODULE.ID, 'shareCombatStats');
+        // Prepare template data with damage ratios for breakdown card
+        const templateData = await this._prepareCombatTemplateData(combatSummary);
 
-            await ChatMessage.create({
-                content,
-                whisper: shareStats ? [] : [game.user.id],
-                speaker: { alias: "Game Master", user: game.user.id }
-            });
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Error rendering combat summary chat card', error, false, false);
-        }
+        // Send combat cards as separate chat messages (similar to round cards)
+        await this._sendCombatCards(templateData);
 
         // Reset stats after summary is generated and exposed
         this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
@@ -2524,6 +2517,115 @@ class CombatStats {
     static async generateRoundSummary(templateData) {
         const content = await foundry.applications.handlebars.renderTemplate('modules/' + MODULE.ID + '/templates/stats-round.hbs', templateData);
         return content;
+    }
+
+    /**
+     * Prepare template data for combat cards with damage ratios
+     * @param {Object} combatSummary - The combat summary object
+     * @returns {Object} Template data with enriched participant data
+     */
+    static async _prepareCombatTemplateData(combatSummary) {
+        // Enrich participants with damage ratios and token images
+        const enrichedParticipants = (combatSummary.participants || []).map(participant => {
+            // Get token image
+            const actor = game.actors.get(participant.actorId);
+            const tokenImg = actor ? getPortraitImage(actor) : "icons/svg/mystery-man.svg";
+
+            // Calculate damage ratio: show green (dealt + healing) vs red (taken)
+            const damageDealt = participant.damageDealt || 0;
+            const damageTaken = participant.damageTaken || 0;
+            const healingGiven = participant.healingGiven || 0;
+            const totalGiven = damageDealt + healingGiven;
+            const totalTaken = damageTaken;
+            const totalActivity = totalGiven + totalTaken;
+
+            // Calculate percentages: green = given (damage + healing), red = taken
+            // Default to 50/50 if both are 0
+            const greenPercent = totalActivity > 0
+                ? (totalGiven / totalActivity) * 100
+                : 50;
+
+            return {
+                ...participant,
+                tokenImg,
+                damageRatioGreen: Math.round(greenPercent * 100) / 100
+            };
+        });
+
+        return {
+            ...combatSummary,
+            participants: enrichedParticipants,
+            mvpRankings: combatSummary.notableMoments?.mvpRankings || [],
+            settings: {
+                showCombatSummary: game.settings.get(MODULE.ID, 'showCombatSummary'),
+                showCombatMVP: game.settings.get(MODULE.ID, 'showCombatMVP'),
+                showCombatNotableMoments: game.settings.get(MODULE.ID, 'showCombatNotableMoments'),
+                showCombatPartyBreakdown: game.settings.get(MODULE.ID, 'showCombatPartyBreakdown')
+            }
+        };
+    }
+
+    /**
+     * Send combat cards as separate chat messages
+     * Order: Combat Summary, Combat MVP, Notable Moments, Party Breakdown
+     * @param {Object} templateData - Prepared template data
+     */
+    static async _sendCombatCards(templateData) {
+        const isShared = game.settings.get(MODULE.ID, 'shareCombatStats');
+        const whisper = isShared ? [] : [game.user.id];
+        const speaker = { alias: "Game Master", user: game.user.id };
+
+        // 1. Combat Summary Card
+        if (templateData.settings.showCombatSummary) {
+            try {
+                const summaryContent = await foundry.applications.handlebars.renderTemplate(
+                    'modules/' + MODULE.ID + '/templates/card-stats-combat-summary.hbs',
+                    templateData
+                );
+                await ChatMessage.create({ content: summaryContent, whisper, speaker });
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, 'Error rendering combat summary card', error, false, false);
+            }
+        }
+
+        // 2. Combat MVP Card
+        if (templateData.settings.showCombatMVP && templateData.notableMoments?.mvp) {
+            try {
+                const mvpContent = await foundry.applications.handlebars.renderTemplate(
+                    'modules/' + MODULE.ID + '/templates/card-stats-combat-mvp.hbs',
+                    templateData
+                );
+                await ChatMessage.create({ content: mvpContent, whisper, speaker });
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, 'Error rendering combat MVP card', error, false, false);
+            }
+        }
+
+        // 3. Notable Moments Card
+        if (templateData.settings.showCombatNotableMoments) {
+            try {
+                const momentsContent = await foundry.applications.handlebars.renderTemplate(
+                    'modules/' + MODULE.ID + '/templates/card-stats-combat-moments.hbs',
+                    templateData
+                );
+                await ChatMessage.create({ content: momentsContent, whisper, speaker });
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, 'Error rendering combat notable moments card', error, false, false);
+            }
+        }
+
+        // 4. Party Breakdown Card
+        if (templateData.settings.showCombatPartyBreakdown && templateData.participants?.length) {
+            try {
+                const breakdownContent = await foundry.applications.handlebars.renderTemplate(
+                    'modules/' + MODULE.ID + '/templates/card-stats-combat-breakdown.hbs',
+                    templateData
+                );
+                await ChatMessage.create({ content: breakdownContent, whisper, speaker });
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, 'Error rendering combat party breakdown card', error, false, false);
+            }
+        }
     }
 
     // Add new method to track notable moments

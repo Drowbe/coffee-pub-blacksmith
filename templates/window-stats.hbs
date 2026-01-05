@@ -42,9 +42,10 @@
         <div class="stats-table-header">
           <span class="stats-table-col-1 stats-table-col-header">Combat</span>
           <span class="stats-table-col-2 stats-table-col-header">Date</span>
-          <span class="stats-table-col-3 stats-table-col-header">Hit Rate</span>
-          <span class="stats-table-col-4 stats-table-col-header">MVP</span>
-          <span class="stats-table-col-5 stats-table-col-header">Duration</span>
+          <span class="stats-table-col-3 stats-table-col-header">Rounds</span>
+          <span class="stats-table-col-4 stats-table-col-header">Hit Rate</span>
+          <span class="stats-table-col-5 stats-table-col-header">MVP</span>
+          <span class="stats-table-col-6 stats-table-col-header">Duration</span>
         </div>
         <div class="stats-table-body">
           {{#if combats.length}}
@@ -52,9 +53,10 @@
               <div class="stats-table-row" data-row-type="combat" data-combat-id="{{combatId}}">
                 <span class="stats-table-col-1">{{label}}</span>
                 <span class="stats-table-col-2">{{dateFormatted}}</span>
-                <span class="stats-table-col-3">{{hitRate}}</span>
-                <span class="stats-table-col-4">{{mvpName}} ({{mvpScore}})</span>
-                <span class="stats-table-col-5">{{duration}}</span>
+                <span class="stats-table-col-3">{{rounds}}</span>
+                <span class="stats-table-col-4">{{hitRate}}</span>
+                <span class="stats-table-col-5">{{mvpName}} ({{mvpScore}})</span>
+                <span class="stats-table-col-6">{{duration}}</span>
               </div>
             {{/each}}
           {{else}}
