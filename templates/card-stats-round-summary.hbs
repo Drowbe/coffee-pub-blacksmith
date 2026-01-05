@@ -2,7 +2,7 @@
 
 {{!-- Round Summary --}}
 <div class="blacksmith-card theme-default">
-    <section class="collapsible collapsed">
+    <section class="collapsible {{#if (eq sectionStates.roundSummary 'collapsed')}}collapsed{{/if}}">
         <header class="summary">
             <h2><i class="fa-solid fa-swords"></i> Round {{roundNumber}} Summary</h2>
             <i class="fa-solid fa-chevron-down fa-fw"></i>

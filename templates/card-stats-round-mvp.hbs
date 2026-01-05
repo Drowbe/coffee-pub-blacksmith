@@ -2,7 +2,7 @@
 
 {{!-- Round MVP --}}
 <div class="blacksmith-card theme-default">
-    <section class="collapsible collapsed">
+    <section class="collapsible {{#if (eq sectionStates.roundMVP 'collapsed')}}collapsed{{/if}}">
         <header class="summary">
             <h2><i class="fa-solid fa-trophy"></i> Round {{roundNumber}} MVP</h2>
             <i class="fa-solid fa-chevron-down fa-fw"></i>

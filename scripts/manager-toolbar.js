@@ -569,6 +569,10 @@ function _wireToolClicks(html) {
     const root = html?.[0] ?? html;
     if (!root) return;
     
+    // Only wire handlers when CoffeePub toolbar is active
+    const activeControlName = safeActiveControlName();
+    if (activeControlName !== "blacksmith-utilities") return;
+    
     // Find the toolbar container
     const toolbar = root.querySelector('#scene-controls-tools');
     if (!toolbar) return;
@@ -630,6 +634,10 @@ function _wireFoundryToolClicks(html) {
     // v13: Use html root from renderSceneControls, not document.querySelector
     const root = html?.[0] ?? html;
     if (!root) return;
+    
+    // Only wire handlers when Foundry toolbar is active
+    const activeControlName = safeActiveControlName();
+    if (activeControlName !== "tokens") return;
     
     // Get all tools that should be in Foundry toolbar
     const foundryTools = getFoundryToolbarTools();

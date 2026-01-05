@@ -2,7 +2,7 @@
 
 {{!-- Party Details --}}
 <div class="blacksmith-card theme-default">
-    <section class="collapsible collapsed">
+    <section class="collapsible {{#if (eq sectionStates.partyBreakdown 'collapsed')}}collapsed{{/if}}">
         <header class="summary">
             <h2><i class="fa-solid fa-users"></i> Party Breakdown</h2>
             <i class="fa-solid fa-chevron-down fa-fw"></i>
