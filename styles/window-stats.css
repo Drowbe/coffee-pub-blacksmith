@@ -286,18 +286,28 @@ div#blacksmith-stats-window .window-content {
 }
 
 .stats-table-wrapper[data-table-type="leaderboard"] .stats-table-header,
-.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-row {
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-row,
+.stats-table-wrapper[data-table-type="combats"] .stats-table-header,
+.stats-table-wrapper[data-table-type="combats"] .stats-table-row {
   display: flex;
   align-items: center;
   gap: 0;
 }
 
+/* Leaderboard column widths (6 columns) */
 .stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-1 { width: 10%; }
-.stats-table-col-2 { width: 30%; }
-.stats-table-col-3 { width: 15%; }
-.stats-table-col-4 { width: 15%; }
-.stats-table-col-5 { width: 15%; }
-.stats-table-col-6 { width: 15%; }
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-2 { width: 30%; }
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-3 { width: 15%; }
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-4 { width: 15%; }
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-5 { width: 15%; }
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-6 { width: 15%; }
+
+/* Combat history column widths (5 columns) */
+.stats-table-wrapper[data-table-type="combats"] .stats-table-col-1 { width: 30%; }
+.stats-table-wrapper[data-table-type="combats"] .stats-table-col-2 { width: 25%; }
+.stats-table-wrapper[data-table-type="combats"] .stats-table-col-3 { width: 15%; }
+.stats-table-wrapper[data-table-type="combats"] .stats-table-col-4 { width: 20%; }
+.stats-table-wrapper[data-table-type="combats"] .stats-table-col-5 { width: 10%; }
 
 .stats-table-row .stats-table-col-2 {
   gap: 8px;
