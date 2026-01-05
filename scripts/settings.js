@@ -1920,12 +1920,54 @@ export const registerSettings = () => {
 
 
 	// --------------------------------------
-	// -- H3: Round Summary Sharing
+	// -- H3: Combat Summary Sharing
 	// --------------------------------------
 	registerHeader('CombatSummarySharing', 'headingH3CombatSummarySharing-Label', 'headingH3CombatSummarySharing-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
 
 
+// -- Show Round Summary --
+game.settings.register(MODULE.ID, 'showCombatSummary', {
+	name: MODULE.ID + '.showCombatSummary-Label',
+	hint: MODULE.ID + '.showCombatSummary-Hint',
+	scope: 'world',
+	config: true,
+	type: Boolean,
+	default: true,
+	group: WORKFLOW_GROUPS.RUN_THE_GAME
+}); 
 
+// -- Show Round MVP --
+game.settings.register(MODULE.ID, 'showCombatMVP', {
+	name: MODULE.ID + '.showCombatMVP-Label',
+	hint: MODULE.ID + '.showCombatMVP-Hint',
+	scope: 'world',
+	config: true,
+	type: Boolean,
+	default: true,
+	group: WORKFLOW_GROUPS.RUN_THE_GAME
+}); 
+
+// -- Show Notable Moments --
+game.settings.register(MODULE.ID, 'showCombatNotableMoments', {
+	name: MODULE.ID + '.showCombatNotableMoments-Label',
+	hint: MODULE.ID + '.showCombatNotableMoments-Hint',
+	scope: 'world',
+	config: true,
+	type: Boolean,
+	default: true,
+	group: WORKFLOW_GROUPS.RUN_THE_GAME
+}); 
+
+// -- Show Party Breakdown --
+game.settings.register(MODULE.ID, 'showCombatPartyBreakdown', {
+	name: MODULE.ID + '.showCombatPartyBreakdown-Label',
+	hint: MODULE.ID + '.showCombatPartyBreakdown-Hint',
+	scope: 'world',
+	config: true,
+	type: Boolean,
+	default: true,
+	group: WORKFLOW_GROUPS.RUN_THE_GAME
+});
 
 
 

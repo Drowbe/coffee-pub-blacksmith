@@ -282,8 +282,17 @@
 			"headingH3CombatSummarySharing-Label": "Combat Summary Sharing",
 			"headingH3CombatSummarySharing-Hint": "",
 
+				"showCombatSummary-Label": "Combat Summary",
+				"showCombatSummary-Hint": "Show a combat round summary with key metrics like turn duration, planning duration, accuracy, and other measures.",
 
+				"showCombatMVP-Label": "Combat MVP",
+				"showCombatMVP-Hint": "Share the combat round MVP, highlighting the best performer of the round, in the chat at the end of the round.",
 
+				"showCombatNotableMoments-Label": "Combat Notable Moments",
+				"showCombatNotableMoments-Hint": "Share the combat notable moments in the chat at the end of the round.",
+
+				"showCombatPartyBreakdown-Label": "Combat Party Breakdown",
+				"showCombatPartyBreakdown-Hint": "Share a detailed breakdown of each party member's performance in the chat at the end of the round.",
 
 
 
