@@ -2521,46 +2521,106 @@ class CombatStats {
 
     /**
      * Prepare template data for combat cards with damage ratios
+     * Formats participants exactly like round breakdown (turnDetails structure)
      * @param {Object} combatSummary - The combat summary object
      * @returns {Object} Template data with enriched participant data
      */
     static async _prepareCombatTemplateData(combatSummary) {
-        // Enrich participants with damage ratios and token images
-        const enrichedParticipants = (combatSummary.participants || []).map(participant => {
-            // Get token image
-            const actor = game.actors.get(participant.actorId);
-            const tokenImg = actor ? getPortraitImage(actor) : "icons/svg/mystery-man.svg";
+        // Filter to only player characters and format like turnDetails
+        const turnDetails = (combatSummary.participants || [])
+            .filter(participant => {
+                const actor = game.actors.get(participant.actorId);
+                return actor && this._isPlayerCharacter(actor);
+            })
+            .map(participant => {
+                const actor = game.actors.get(participant.actorId);
+                
+                // Get token image
+                const tokenImg = actor ? getPortraitImage(actor) : "icons/svg/mystery-man.svg";
 
-            // Calculate damage ratio: show green (dealt + healing) vs red (taken)
-            const damageDealt = participant.damageDealt || 0;
-            const damageTaken = participant.damageTaken || 0;
-            const healingGiven = participant.healingGiven || 0;
-            const totalGiven = damageDealt + healingGiven;
-            const totalTaken = damageTaken;
-            const totalActivity = totalGiven + totalTaken;
+                // Calculate MVP score (same formula as round)
+                const score = this._computeMvpScore({
+                    hits: participant.hits || 0,
+                    crits: participant.criticals || 0,
+                    fumbles: participant.fumbles || 0,
+                    damage: participant.damageDealt || 0,
+                    healing: participant.healingGiven || 0
+                });
 
-            // Calculate percentages: green = given (damage + healing), red = taken
-            // Default to 50/50 if both are 0
-            const greenPercent = totalActivity > 0
-                ? (totalGiven / totalActivity) * 100
-                : 50;
+                // Calculate damage ratio: show green (dealt + healing) vs red (taken)
+                const damageDealt = participant.damageDealt || 0;
+                const damageTaken = participant.damageTaken || 0;
+                const healingGiven = participant.healingGiven || 0;
+                const totalGiven = damageDealt + healingGiven;
+                const totalTaken = damageTaken;
+                const totalActivity = totalGiven + totalTaken;
 
-            return {
-                ...participant,
-                tokenImg,
-                damageRatioGreen: Math.round(greenPercent * 100) / 100
-            };
-        });
+                // Calculate percentages: green = given (damage + healing), red = taken
+                // Default to 50/50 if both are 0
+                const greenPercent = totalActivity > 0
+                    ? (totalGiven / totalActivity) * 100
+                    : 50;
+
+                // Get total turn duration for this actor across all rounds
+                // Try to get from combatStats, but if not available, default to 0
+                // (Turn durations are tracked per round, so we'd need to accumulate them)
+                let turnDuration = 0;
+                const combatStatsForActor = this.combatStats?.participantStats?.[participant.actorId];
+                if (combatStatsForActor?.turnDuration) {
+                    turnDuration = combatStatsForActor.turnDuration;
+                }
+                // Note: If turn durations aren't accumulated in combatStats, they'll be 0
+                // This is acceptable as combat-level turn tracking may not be fully implemented
+
+                // Format exactly like turnDetails from round breakdown
+                return {
+                    actorId: participant.actorId,
+                    name: participant.name,
+                    tokenImg,
+                    score,
+                    damage: {
+                        dealt: participant.damageDealt || 0,
+                        taken: participant.damageTaken || 0
+                    },
+                    healing: {
+                        given: participant.healingGiven || 0,
+                        received: participant.healingReceived || 0
+                    },
+                    combat: {
+                        attacks: {
+                            hits: participant.hits || 0,
+                            misses: participant.misses || 0,
+                            attempts: participant.totalAttacks || 0,
+                            crits: participant.criticals || 0,
+                            fumbles: participant.fumbles || 0
+                        }
+                    },
+                    turnDuration,
+                    damageRatioGreen: Math.round(greenPercent * 100) / 100
+                };
+            })
+            .sort((a, b) => b.score - a.score); // Sort by MVP score descending
+
+        // Calculate total party time and average turn time
+        const totalPartyTime = turnDetails.reduce((sum, p) => sum + (p.turnDuration || 0), 0);
+        const totalTurns = turnDetails.length;
+        const averageTurnTime = totalTurns > 0 ? totalPartyTime / totalTurns : 0;
 
         return {
             ...combatSummary,
-            participants: enrichedParticipants,
+            turnDetails, // Use turnDetails like round version
+            participants: turnDetails, // Keep for backward compatibility
+            totalPartyTime,
+            partyStats: {
+                averageTurnTime: this._formatTime(averageTurnTime)
+            },
             mvpRankings: combatSummary.notableMoments?.mvpRankings || [],
             settings: {
                 showCombatSummary: game.settings.get(MODULE.ID, 'showCombatSummary'),
                 showCombatMVP: game.settings.get(MODULE.ID, 'showCombatMVP'),
                 showCombatNotableMoments: game.settings.get(MODULE.ID, 'showCombatNotableMoments'),
-                showCombatPartyBreakdown: game.settings.get(MODULE.ID, 'showCombatPartyBreakdown')
+                showCombatPartyBreakdown: game.settings.get(MODULE.ID, 'showCombatPartyBreakdown'),
+                combatTimerEnabled: game.settings.get(MODULE.ID, 'combatTimerEnabled')
             }
         };
     }
@@ -2574,6 +2634,18 @@ class CombatStats {
         const isShared = game.settings.get(MODULE.ID, 'shareCombatStats');
         const whisper = isShared ? [] : [game.user.id];
         const speaker = { alias: "Game Master", user: game.user.id };
+
+        // Debug: Log settings and data availability
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Sending combat cards', {
+            showCombatSummary: templateData.settings.showCombatSummary,
+            showCombatMVP: templateData.settings.showCombatMVP,
+            showCombatNotableMoments: templateData.settings.showCombatNotableMoments,
+            showCombatPartyBreakdown: templateData.settings.showCombatPartyBreakdown,
+            hasMVP: !!templateData.notableMoments?.mvp,
+            hasTopHits: Array.isArray(templateData.notableMoments?.topHits) && templateData.notableMoments.topHits.length > 0,
+            hasTopHeals: Array.isArray(templateData.notableMoments?.topHeals) && templateData.notableMoments.topHeals.length > 0,
+            participantsCount: templateData.participants?.length || 0
+        }, true, false);
 
         // 1. Combat Summary Card
         if (templateData.settings.showCombatSummary) {
@@ -2589,7 +2661,7 @@ class CombatStats {
         }
 
         // 2. Combat MVP Card
-        if (templateData.settings.showCombatMVP && templateData.notableMoments?.mvp) {
+        if (templateData.settings.showCombatMVP) {
             try {
                 const mvpContent = await foundry.applications.handlebars.renderTemplate(
                     'modules/' + MODULE.ID + '/templates/card-stats-combat-mvp.hbs',
@@ -2615,7 +2687,7 @@ class CombatStats {
         }
 
         // 4. Party Breakdown Card
-        if (templateData.settings.showCombatPartyBreakdown && templateData.participants?.length) {
+        if (templateData.settings.showCombatPartyBreakdown) {
             try {
                 const breakdownContent = await foundry.applications.handlebars.renderTemplate(
                     'modules/' + MODULE.ID + '/templates/card-stats-combat-breakdown.hbs',

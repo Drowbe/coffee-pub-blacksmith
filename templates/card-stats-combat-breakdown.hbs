@@ -6,17 +6,21 @@
         <i class="fa-solid fa-users"></i> Party Breakdown
     </div>
     <div class="section-content">
-        {{#if participants}}
-        {{#each participants}}
+        {{#if turnDetails}}
+        {{#each turnDetails}}
         <div class="turn-row">
+            <img class="turn-portrait" src="{{this.tokenImg}}" title="{{this.name}}" />
             <div class="turn-info">
                 <div class="turn-name">
                     <span class="status-tag rank">{{add @index 1}}</span>
-                    <strong>{{name}}</strong>
-                    <span class="turn-time">{{hits}} hits / {{totalAttacks}} attempts</span>
+                    {{#if (gt this.combat.attacks.crits 0)}}<i class="fa-solid fa-swords crit"></i>{{/if}}
+                    {{#if (gt this.combat.attacks.fumbles 0)}}<i class="fa-solid fa-skull-crossbones fumble"></i>{{/if}}
+                    <strong>{{this.name}}</strong>
+                    {{#if ../settings.combatTimerEnabled}}
+                    <span class="turn-time">{{formatTime this.turnDuration}}</span>
+                    {{/if}}
                 </div>
-                {{#if damageRatioGreen}}
-                <div class="damage-ratio-bar" data-debug="Marker: {{damageRatioGreen}}%">
+                <div class="damage-ratio-bar" data-debug="Marker: {{this.damageRatioGreen}}%">
                     <i class="fa-solid fa-heart-crack ratio-icon-left"></i>
                     <div class="ratio-bar-container">
                         <div class="ratio-bar-background">
@@ -31,17 +35,27 @@
                             <div class="ratio-segment ratio-segment-green"></div>
                             <div class="ratio-segment ratio-segment-green"></div>
                         </div>
-                        <div class="ratio-marker" style="--marker-position: {{damageRatioGreen}}%;"></div>
+                        <div class="ratio-marker" style="--marker-position: {{this.damageRatioGreen}}%;"></div>
                     </div>
                     <i class="fa-solid fa-droplet ratio-icon-right"></i>
                 </div>
-                {{/if}}
                 <div class="turn-stats">
-                    DMG {{damageDealt}} • Taken {{damageTaken}} • Heals {{healingGiven}} • Crits {{criticals}} • Fumbles {{fumbles}}
+                    <span class="stat-label">MVP:</span><span class="stat-value">{{this.score}}</span>
+                    <span class="stat-separator">•</span>
+                    <span class="stat-label">DMG:</span><span class="stat-value">{{this.damage.dealt}}</span>
+                    <span class="stat-separator">•</span>
+                    <span class="stat-label">Hits:</span><span class="stat-value">{{this.combat.attacks.hits}}/{{this.combat.attacks.attempts}}</span>
                 </div>
             </div>
         </div>
         {{/each}}
+        {{#if settings.combatTimerEnabled}}
+        <div class="party-timing-stats">
+            <div class="timing-stat">
+                <span class="label">Party Total: </span><span class="value">{{formatTime totalPartyTime}}</span>  •  <span class="label">Average Turn: </span><span class="value">{{partyStats.averageTurnTime}}</span>
+            </div>
+        </div>
+        {{/if}}
         {{else}}
         <div class="no-moments">No participant data available for this combat.</div>
         {{/if}}

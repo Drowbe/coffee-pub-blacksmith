@@ -3,7 +3,7 @@
 {{!-- Combat MVP --}}
 <div class="blacksmith-card theme-default">
     <div class="card-header">
-        <i class="fa-solid fa-trophy"></i> Combat MVP: {{notableMoments.mvp.name}}
+        <i class="fa-solid fa-trophy"></i> Combat MVP{{#if notableMoments.mvp}}: {{notableMoments.mvp.name}}{{/if}}
     </div>
     <div class="section-content">
         {{#if notableMoments.mvp}}
