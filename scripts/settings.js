@@ -1233,6 +1233,20 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
+
+	// -- Sidebar UI --
+	game.settings.register(MODULE.ID, 'sidebarPinUI', {
+		name: MODULE.ID + '.sidebarPinUI-Label',
+		hint: MODULE.ID + '.sidebarPinUI-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'client',
+		default: false,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
+
 	// --------------------------------------
 	// -- H3: MENUBAR
 	// --------------------------------------
