@@ -68,6 +68,7 @@ import { HookManager } from './manager-hooks.js';
 import { ConstantsGenerator } from './constants-generator.js';
 import { assetLookup } from './asset-lookup.js';
 import { registerWindowQueryPartials } from './window-query-registration.js';
+import { SidebarPin } from './sidebar-pin.js';
 import './combat-tools.js'; 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -392,6 +393,9 @@ Hooks.once('ready', async () => {
         
         // ENCOUNTER TOOLBAR
         EncounterToolbar.init();
+
+        // SIDEBAR PIN
+        SidebarPin.initialize();
 
     } catch (error) {
         console.error('Error during Blacksmith initialization:', error);

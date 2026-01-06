@@ -66,3 +66,6 @@
 /* --- Utilities ---------------------- */
 @import "utility-quickview.css";
 
+/* --- Sidebar Pin ---------------------- */
+@import "sidebar-pin.css";
+

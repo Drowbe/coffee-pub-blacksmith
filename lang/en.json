@@ -92,8 +92,9 @@
 				"canvasToolsHideBottomUI-Label": "Hide Bottom UI",
 				"canvasToolsHideBottomUI-Hint": "When enabled, the bottom of the interface, including the macrobar, will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
 
-				"sidebarPinUI-Label": "Pin Sidebar Open",
-				"sidebarPinUI-Hint": "When enabled, the sidebar will be pinned in place when the toggle is activated.",
+			"sidebarPinUI-Label": "Pin Sidebar Open",
+			"sidebarPinUI-Hint": "When enabled, the sidebar will be pinned in place when the toggle is activated.",
+			"sidebarPinUI-Unpinned": "Sidebar pin has been unpinned.",
 
 			"headingH3menubar-Label": "Blacksmith Menubar",
 			"headingH3menubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
