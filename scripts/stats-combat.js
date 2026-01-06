@@ -2606,15 +2606,125 @@ class CombatStats {
         const totalTurns = turnDetails.length;
         const averageTurnTime = totalTurns > 0 ? totalPartyTime / totalTurns : 0;
 
+        // Calculate notable moments from combat data (same structure as round version)
+        const topHits = combatSummary.notableMoments?.topHits || [];
+        const topHeals = combatSummary.notableMoments?.topHeals || [];
+        
+        // Biggest hit (already calculated as topHits[0])
+        const biggestHit = topHits.length > 0 ? {
+            actorId: topHits[0].attackerId,
+            actorName: topHits[0].attacker,
+            targetId: topHits[0].targetId,
+            targetName: topHits[0].target,
+            amount: topHits[0].amount,
+            isCritical: topHits[0].isCritical
+        } : { amount: 0 };
+
+        // Weakest hit (smallest non-zero hit)
+        const weakestHit = (() => {
+            const nonZeroHits = topHits.filter(h => h.amount > 0);
+            if (nonZeroHits.length === 0) return { amount: 0 };
+            const weakest = nonZeroHits.reduce((min, hit) => hit.amount < min.amount ? hit : min, nonZeroHits[0]);
+            return {
+                actorId: weakest.attackerId,
+                actorName: weakest.attacker,
+                targetId: weakest.targetId,
+                targetName: weakest.target,
+                amount: weakest.amount
+            };
+        })();
+
+        // Most damage (participant with highest damageDealt)
+        const mostDamage = (() => {
+            if (turnDetails.length === 0) return { amount: 0 };
+            const top = turnDetails.reduce((max, p) => (p.damage.dealt || 0) > (max.damage.dealt || 0) ? p : max, turnDetails[0]);
+            return {
+                actorId: top.actorId,
+                actorName: top.name,
+                amount: top.damage.dealt || 0
+            };
+        })();
+
+        // Most hurt (participant with highest damageTaken)
+        const mostHurt = (() => {
+            if (turnDetails.length === 0) return { amount: 0 };
+            const top = turnDetails.reduce((max, p) => (p.damage.taken || 0) > (max.damage.taken || 0) ? p : max, turnDetails[0]);
+            return {
+                actorId: top.actorId,
+                actorName: top.name,
+                amount: top.damage.taken || 0
+            };
+        })();
+
+        // Biggest heal (already calculated as topHeals[0])
+        const biggestHeal = topHeals.length > 0 ? {
+            actorId: topHeals[0].healerId,
+            actorName: topHeals[0].healer,
+            targetId: topHeals[0].targetId,
+            targetName: topHeals[0].target,
+            amount: topHeals[0].amount
+        } : { amount: 0 };
+
+        // Longest turn (from combatStats)
+        let longestTurn = combatSummary.notableMoments?.longestTurn || { duration: 0 };
+        // Ensure it has actorName if it has actorId
+        if (longestTurn.actorId && !longestTurn.actorName) {
+            const actor = game.actors.get(longestTurn.actorId);
+            if (actor) {
+                longestTurn.actorName = actor.name;
+            }
+        }
+
+        // Build notable moments object (same structure as round version)
+        // Preserve MVP and mvpRankings from original combat summary
+        const notableMoments = {
+            biggestHit,
+            weakestHit,
+            mostDamage,
+            mostHurt,
+            biggestHeal,
+            longestTurn,
+            // Preserve MVP data from combat summary
+            mvp: combatSummary.notableMoments?.mvp || null,
+            mvpRankings: combatSummary.notableMoments?.mvpRankings || []
+        };
+
+        // Enrich with portraits
+        const enrichedNotableMoments = await this._enrichNotableMomentsWithPortraits(notableMoments);
+        
+        // Check if there are any notable moments
+        const hasNotableMoments = Object.values(enrichedNotableMoments)
+            .some(moment => moment && ((moment.amount > 0) || (moment.duration > 0)));
+
+        // Format combat MVP like round MVP (use top participant from turnDetails)
+        let combatMVP = null;
+        if (turnDetails.length > 0 && turnDetails[0].score > 0) {
+            const topParticipant = turnDetails[0];
+            // Generate description using MVPDescriptionGenerator
+            const description = MVPDescriptionGenerator.generateDescription({
+                combat: topParticipant.combat,
+                damage: topParticipant.damage,
+                healing: topParticipant.healing
+            });
+            
+            combatMVP = {
+                ...topParticipant,
+                description
+            };
+        }
+
         return {
             ...combatSummary,
             turnDetails, // Use turnDetails like round version
             participants: turnDetails, // Keep for backward compatibility
+            combatMVP, // Single MVP formatted like roundMVP
             totalPartyTime,
             partyStats: {
                 averageTurnTime: this._formatTime(averageTurnTime)
             },
-            mvpRankings: combatSummary.notableMoments?.mvpRankings || [],
+            notableMoments: enrichedNotableMoments,
+            hasNotableMoments,
+            mvpRankings: enrichedNotableMoments.mvpRankings || [],
             settings: {
                 showCombatSummary: game.settings.get(MODULE.ID, 'showCombatSummary'),
                 showCombatMVP: game.settings.get(MODULE.ID, 'showCombatMVP'),

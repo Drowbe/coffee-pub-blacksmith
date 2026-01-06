@@ -6,40 +6,142 @@
         <i class="fa-solid fa-medal"></i> Notable Moments
     </div>
     <div class="section-content">
-        {{#if (or notableMoments.topHits.length notableMoments.topHeals.length)}}
+        <!-- Debug Info -->
+        <div style="display: none;">
+            Has Moments: {{hasNotableMoments}}<br>
+            Biggest Hit: {{notableMoments.biggestHit.amount}}<br>
+            Most Damage: {{notableMoments.mostDamage.amount}}<br>
+            Biggest Heal: {{notableMoments.biggestHeal.amount}}<br>
+            Longest Turn: {{notableMoments.longestTurn.duration}}<br>
+            Most Hurt: {{notableMoments.mostHurt.amount}}<br>
+            Weakest Hit: {{notableMoments.weakestHit.amount}}
+        </div>
+        {{#if hasNotableMoments}}
         <div class="notable-moments-grid">
-            {{#each notableMoments.topHits}}
+            {{#if notableMoments.biggestHit.amount}}
             <div class="moment-card">
-                <h4><i class="fas fa-burst"></i> Top Hit #{{add @index 1}}</h4>
-                <div class="moment-info">
-                    <div>
-                        <span class="actor">{{attacker}}</span>
-                        <span class="detail">hit</span>
-                        <span class="target">{{target}}</span>
-                    </div>
-                    <div>
-                        <span class="amount">{{formatDamage amount}} hp</span>
-                        {{#if isCritical}}<span class="detail">• Critical!</span>{{/if}}
+                <h4><i class="fas fa-burst"></i> Biggest Hit</h4>
+                <div class="moment-content">
+                    {{#if notableMoments.biggestHit.actorImg}}
+                    <img src="{{notableMoments.biggestHit.actorImg}}" alt="{{notableMoments.biggestHit.actorName}}" class="moment-portrait" />
+                    {{/if}}
+                    <div class="moment-info">
+                        <div>
+                            <span class="actor">{{notableMoments.biggestHit.actorName}}</span>
+                        </div>
+                        <div>
+                            <span class="detail">Dealt</span>
+                            <span class="amount">{{formatDamage notableMoments.biggestHit.amount}} hp</span>
+                            <span class="detail">damage to</span>
+                            <span class="target">{{notableMoments.biggestHit.targetName}}</span>!
+                        </div>
                     </div>
                 </div>
             </div>
-            {{/each}}
+            {{/if}}
 
-            {{#each notableMoments.topHeals}}
+            {{#if notableMoments.weakestHit.amount}}
             <div class="moment-card">
-                <h4><i class="fas fa-heart"></i> Top Heal #{{add @index 1}}</h4>
-                <div class="moment-info">
-                    <div>
-                        <span class="actor">{{healer}}</span>
-                        <span class="detail">healed</span>
-                        <span class="target">{{target}}</span>
-                    </div>
-                    <div>
-                        <span class="amount">{{formatDamage amount true}} hp</span>
+                <h4><i class="fas fa-feather"></i> Weakest Hit</h4>
+                <div class="moment-content">
+                    {{#if notableMoments.weakestHit.actorImg}}
+                    <img src="{{notableMoments.weakestHit.actorImg}}" alt="{{notableMoments.weakestHit.actorName}}" class="moment-portrait" />
+                    {{/if}}
+                    <div class="moment-info">
+                        <div>
+                            <span class="actor">{{notableMoments.weakestHit.actorName}}</span>
+                        </div>
+                        <div>
+                            <span class="detail">Dealt a mere </span>
+                            <span class="amount">{{formatDamage notableMoments.weakestHit.amount}} hp</span>
+                            <span class="detail">to</span>
+                            <span class="target">{{notableMoments.weakestHit.targetName}}</span>.
+                        </div>
                     </div>
                 </div>
             </div>
-            {{/each}}
+            {{/if}}
+            {{#if notableMoments.mostDamage.amount}}
+            <div class="moment-card">
+                <h4><i class="fas fa-fire-flame-curved"></i> Most Damage</h4>
+                <div class="moment-content">
+                    {{#if notableMoments.mostDamage.actorImg}}
+                    <img src="{{notableMoments.mostDamage.actorImg}}" alt="{{notableMoments.mostDamage.actorName}}" class="moment-portrait" />
+                    {{/if}}
+                    <div class="moment-info">
+                        <div>
+                            <span class="actor">{{notableMoments.mostDamage.actorName}}</span>
+                        </div>
+                        <div>
+                            <span class="detail">Dealt a total of</span>
+                            <span class="amount">{{formatDamage notableMoments.mostDamage.amount}} hp</span>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{/if}}
+
+            {{#if notableMoments.biggestHeal.amount}}
+            <div class="moment-card">
+                <h4><i class="fas fa-heart"></i> Biggest Heal</h4>
+                <div class="moment-content">
+                    {{#if notableMoments.biggestHeal.actorImg}}
+                    <img src="{{notableMoments.biggestHeal.actorImg}}" alt="{{notableMoments.biggestHeal.actorName}}" class="moment-portrait" />
+                    {{/if}}
+                    <div class="moment-info">
+                        <div>
+                            <span class="actor">{{notableMoments.biggestHeal.actorName}}</span>
+                        </div>
+                        <div>
+                            <span class="detail">Sent </span>
+                            <span class="amount">{{formatDamage notableMoments.biggestHeal.amount true}} hp</span>
+                            <span class="detail">of healing to</span>
+                            <span class="target">{{notableMoments.biggestHeal.targetName}}</span>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{/if}}
+
+            {{#if notableMoments.mostHurt.amount}}
+            <div class="moment-card">
+                <h4><i class="fas fa-skull"></i> Most Hurt</h4>
+                <div class="moment-content">
+                    {{#if notableMoments.mostHurt.actorImg}}
+                    <img src="{{notableMoments.mostHurt.actorImg}}" alt="{{notableMoments.mostHurt.actorName}}" class="moment-portrait" />
+                    {{/if}}
+                    <div class="moment-info">
+                        <div>
+                            <span class="actor">{{notableMoments.mostHurt.actorName}}</span>
+                        </div>
+                        <div>
+                            <span class="detail">Took a total of</span>
+                            <span class="amount">{{formatDamage notableMoments.mostHurt.amount}} hp</span>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{/if}}
+
+            {{#if (and notableMoments.longestTurn.duration settings.combatTimerEnabled)}}
+            <div class="moment-card">
+                <h4><i class="fas fa-hourglass-end"></i> Longest Turn</h4>
+                <div class="moment-content">
+                    {{#if notableMoments.longestTurn.actorImg}}
+                    <img src="{{notableMoments.longestTurn.actorImg}}" alt="{{notableMoments.longestTurn.actorName}}" class="moment-portrait" />
+                    {{/if}}
+                    <div class="moment-info">
+                        <div>
+                            <span class="actor">{{notableMoments.longestTurn.actorName}}</span>
+                        </div>
+                        <div>
+                            <span class="detail">Managed to spend</span>
+                            <span class="amount">{{formatTime notableMoments.longestTurn.duration}}</span> taking their turn.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{/if}}
         </div>
         {{else}}
         <div class="no-moments">Sorry, nothing notable this combat. Try a bit harder next time.</div>
