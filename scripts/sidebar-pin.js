@@ -12,6 +12,7 @@ export class SidebarPin {
     static collapseButton = null;
     static sidebarContent = null;
     static observer = null;
+    static _bypassCollapseIntercept = false;
 
     /**
      * Initialize the sidebar pin functionality
@@ -52,8 +53,11 @@ export class SidebarPin {
                 
                 if (moduleId === MODULE.ID && settingKey === 'sidebarPinUI') {
                     this._updatePinUI(value);
-                    this._updateSidebarExpanded(value);
-                    this._updateCollapseButtonState();
+                    if (value) {
+                        // Pinning - ensure sidebar is expanded
+                        this._ensureSidebarExpanded();
+                    }
+                    // Unpinning - no action needed, Foundry handles it
                 }
                 
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
@@ -152,7 +156,6 @@ export class SidebarPin {
             this._createPinButton();
             this._setupEventHandlers();
             this._applyInitialState();
-            this._updateCollapseButtonState();
             return true;
         }
 
@@ -216,44 +219,42 @@ export class SidebarPin {
             this._togglePin();
         });
 
-        // Intercept collapse button click
+        // Intercept collapse button click when pinned
         if (this.collapseButton) {
             this.collapseButton.addEventListener('click', (event) => {
+                // Bypass interceptor for programmatic clicks
+                if (SidebarPin._bypassCollapseIntercept) {
+                    return;
+                }
+
                 const isPinned = getSettingSafely(MODULE.ID, 'sidebarPinUI', false);
                 
                 if (isPinned) {
-                    // Pin is enabled - honor the collapse, unpin, and show notification
-                    // Remove expanded class to allow collapse (in capture phase, before Foundry's handler)
-                    if (this.sidebarContent) {
-                        this.sidebarContent.classList.remove('expanded');
-                    }
+                    // Pin is enabled - prevent collapse, unpin, then allow collapse
+                    event.preventDefault();
+                    event.stopPropagation();
                     
-                    // Unpin (async, but don't wait)
-                    this._setPinState(false);
+                    // Update pin button UI immediately (synchronously)
+                    this._updatePinUI(false);
                     
-                    // Show notification
-                    ui.notifications.info(game.i18n.format('coffee-pub-blacksmith.sidebarPinUI-Unpinned'));
+                    // Unpin setting (async, but don't wait)
+                    this._setPinState(false).catch(() => {
+                        // Ignore errors
+                    });
                     
-                    // Don't prevent default - let Foundry's collapse handler run normally
+                    // Now trigger the collapse by clicking the button again
+                    // This time it will proceed because we're no longer pinned
+                    setTimeout(() => {
+                        this.collapseButton.click();
+                    }, 10);
+                    
+                    // Show notification after a brief delay to not interfere with collapse
+                    setTimeout(() => {
+                        ui.notifications.info(game.i18n.format('coffee-pub-blacksmith.sidebarPinUI-Unpinned'));
+                    }, 100);
                 }
-                
-                // Update collapse button state after a short delay to allow Foundry's handler to run
-                setTimeout(() => {
-                    this._updateCollapseButtonState();
-                }, 50);
+                // If not pinned, let Foundry's handler run normally
             }, true); // Use capture phase to run before Foundry's handler
-        }
-
-        // Watch for sidebar state changes to update collapse button
-        if (this.sidebarContent) {
-            const sidebarObserver = new MutationObserver(() => {
-                this._updateCollapseButtonState();
-            });
-            
-            sidebarObserver.observe(this.sidebarContent, {
-                attributes: true,
-                attributeFilter: ['class']
-            });
         }
     }
 
@@ -272,8 +273,12 @@ export class SidebarPin {
     static async _setPinState(isPinned) {
         await setSettingSafely(MODULE.ID, 'sidebarPinUI', isPinned);
         this._updatePinUI(isPinned);
-        this._updateSidebarExpanded(isPinned);
-        this._updateCollapseButtonState();
+        
+        if (isPinned) {
+            // When pinning: ensure sidebar is expanded by triggering Foundry's expand if needed
+            this._ensureSidebarExpanded();
+        }
+        // When unpinning: no action needed - Foundry handles collapse normally
     }
 
     /**
@@ -297,55 +302,38 @@ export class SidebarPin {
     }
 
     /**
-     * Update the sidebar expanded class based on pin state
-     * @param {boolean} isPinned - Whether the sidebar should be expanded
+     * Ensure sidebar is expanded by triggering Foundry's expand button if needed
      */
-    static _updateSidebarExpanded(isPinned) {
-        if (!this.sidebarContent) {
+    static _ensureSidebarExpanded() {
+        // Prefer Foundry's API if available
+        if (ui?.sidebar?.expand && ui?.sidebar?.collapsed) {
+            ui.sidebar.expand();
             return;
         }
 
-        if (isPinned) {
-            this.sidebarContent.classList.add('expanded');
-        } else {
-            // Only remove if not already expanded by other means
-            // We don't want to interfere with normal sidebar behavior when unpinned
-            // The expanded class will be managed by Foundry's normal collapse/expand
+        // Fallback to button click if API not available
+        if (!this.collapseButton) {
+            return;
         }
+
+        // Check if sidebar is collapsed using button attributes (more reliable than icon classes)
+        const label = this.collapseButton.getAttribute('aria-label') || '';
+        const tooltip = this.collapseButton.getAttribute('data-tooltip') || '';
+        const isCollapsed = label === 'Expand' || tooltip.toLowerCase().includes('expand');
+
+        if (isCollapsed) {
+            // Sidebar is collapsed - trigger Foundry's expand button
+            // Use bypass flag to avoid our interceptor
+            SidebarPin._bypassCollapseIntercept = true;
+            try {
+                this.collapseButton.click();
+            } finally {
+                SidebarPin._bypassCollapseIntercept = false;
+            }
+        }
+        // If already expanded, Foundry is already handling it - no action needed
     }
 
-    /**
-     * Update the collapse button icon and tooltip based on sidebar state
-     */
-    static _updateCollapseButtonState() {
-        if (!this.collapseButton || !this.sidebarContent) {
-            return;
-        }
-
-        // Check if sidebar is expanded (has expanded class or is visible)
-        const isExpanded = this.sidebarContent.classList.contains('expanded') || 
-                          !this.sidebarContent.classList.contains('collapsed');
-
-        // Get the icon element
-        const icon = this.collapseButton.querySelector('i');
-        if (!icon) {
-            return;
-        }
-
-        if (isExpanded) {
-            // Sidebar is expanded - show collapse icon (caret-right)
-            icon.classList.remove('fa-caret-left');
-            icon.classList.add('fa-caret-right');
-            this.collapseButton.setAttribute('data-tooltip', 'Collapse');
-            this.collapseButton.setAttribute('aria-label', 'Collapse');
-        } else {
-            // Sidebar is collapsed - show expand icon (caret-left)
-            icon.classList.remove('fa-caret-right');
-            icon.classList.add('fa-caret-left');
-            this.collapseButton.setAttribute('data-tooltip', 'Expand');
-            this.collapseButton.setAttribute('aria-label', 'Expand');
-        }
-    }
 
     /**
      * Apply initial state on load
@@ -354,8 +342,7 @@ export class SidebarPin {
         const isPinned = getSettingSafely(MODULE.ID, 'sidebarPinUI', false);
         if (isPinned) {
             this._updatePinUI(true);
-            this._updateSidebarExpanded(true);
-            this._updateCollapseButtonState();
+            this._ensureSidebarExpanded();
         }
     }
 }

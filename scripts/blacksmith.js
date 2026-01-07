@@ -69,6 +69,7 @@ import { ConstantsGenerator } from './constants-generator.js';
 import { assetLookup } from './asset-lookup.js';
 import { registerWindowQueryPartials } from './window-query-registration.js';
 import { SidebarPin } from './sidebar-pin.js';
+import { SidebarStyle } from './sidebar-style.js';
 import './combat-tools.js'; 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
@@ -396,6 +397,12 @@ Hooks.once('ready', async () => {
 
         // SIDEBAR PIN
         SidebarPin.initialize();
+
+        // SIDEBAR STYLE
+        SidebarStyle.initialize();
+
+        // SIDEBAR STYLE
+        SidebarStyle.initialize();
 
     } catch (error) {
         console.error('Error during Blacksmith initialization:', error);
