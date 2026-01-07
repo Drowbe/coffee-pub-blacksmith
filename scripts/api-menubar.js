@@ -1047,6 +1047,35 @@ class MenuBar {
             }
         });
 
+        this.registerMenubarTool('party', {
+            icon: "fas fa-users",
+            name: "party",
+            title: () => {
+                // Dynamic title based on party bar state
+                const isPartyBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'party';
+                return isPartyBarOpen ? "Hide Party Bar" : "Show Party Bar";
+            },
+            tooltip: () => {
+                // Dynamic tooltip based on party bar state
+                const isPartyBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'party';
+                return isPartyBarOpen ? "Hide party tools secondary bar" : "Show party tools secondary bar";
+            },
+            zone: "middle",
+            order: 8,
+            moduleId: "blacksmith-core",
+            leaderOnly: true, // Available to leader/GM
+            toggleable: true,
+            active: false, // Will be synced with party bar state
+            onClick: () => {
+                // Toggle the party bar
+                this.toggleSecondaryBar('party');
+            }
+        });
+
+        // Map secondary bars to their toggle tools for button state syncing
+        this.secondaryBarToolMapping.set('combat', 'combat-tracker');
+        this.secondaryBarToolMapping.set('party', 'party');
+
         // Right zone tools
         this.registerMenubarTool('leader-section', {
             icon: "fa-solid fa-crown",
@@ -1121,7 +1150,39 @@ class MenuBar {
             templatePath: 'modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs'
         });
 
+        // Register party secondary bar (default tool system)
+        await this.registerSecondaryBarType('party', {
+            height: 50,
+            persistence: 'manual'
+        });
+
+        // Register party tools after bar type is registered
+        await this._registerPartyTools();
+
         postConsoleAndNotification(MODULE.NAME, "Menubar: Secondary bar types registered", "", true, false);
+    }
+
+    /**
+     * Register party tools in the party secondary bar
+     * @private
+     */
+    static async _registerPartyTools() {
+        // Import party utilities
+        const { deployParty } = await import('./utility-party.js');
+        
+        // Register Deploy Party tool
+        this.registerSecondaryBarItem('party', 'deploy-party', {
+            icon: 'fas fa-map-marker-alt',
+            title: 'Deploy Party',
+            tooltip: 'Deploy all party members to the canvas',
+            group: 'default',
+            order: 1,
+            onClick: async () => {
+                await deployParty();
+            }
+        });
+
+        postConsoleAndNotification(MODULE.NAME, "Menubar: Party tools registered", "", true, false);
     }
 
     // MENUBAR API METHODS 

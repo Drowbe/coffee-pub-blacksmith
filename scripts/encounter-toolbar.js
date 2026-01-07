@@ -6,6 +6,7 @@ import { MODULE } from './const.js';
 import { getCachedTemplate } from './blacksmith.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { deployTokens, getDefaultTokenData, validateActorUUID, getTargetPosition, calculateCirclePosition, calculateScatterPosition, calculateSquarePosition, getDeploymentPatternName } from './api-tokens.js';
 
 export class EncounterToolbar {
     
@@ -19,24 +20,10 @@ export class EncounterToolbar {
      * Get default token data for v13 compatibility
      * In v13, core.defaultToken setting was removed, so we use CONFIG.Token.defaults
      * @returns {Object} Default token data object
+     * @deprecated Use getDefaultTokenData from api-tokens.js instead
      */
     static _getDefaultTokenData() {
-        // In v13, use CONFIG.Token.defaults if available
-        if (CONFIG.Token?.defaults) {
-            return foundry.utils.deepClone(CONFIG.Token.defaults);
-        }
-        
-        // Fallback: Create a default token data structure
-        // This matches the structure that was in core.defaultToken
-        return {
-            displayName: CONST.TOKEN_DISPLAY_MODES.OWNER_HOVER,
-            displayBars: CONST.TOKEN_DISPLAY_MODES.OWNER_HOVER,
-            disposition: CONST.TOKEN_DISPOSITIONS.NEUTRAL,
-            vision: true,
-            lockRotation: false,
-            actorLink: false,
-            hidden: false
-        };
+        return getDefaultTokenData();
     }
     
     static init() {
@@ -596,27 +583,12 @@ export class EncounterToolbar {
     }
 
     // Helper method to validate UUIDs
+    /**
+     * Validate a UUID
+     * @deprecated Use validateActorUUID from api-tokens.js instead
+     */
     static async _validateUUID(uuid) {
-        try {
-            // Check if it's a valid UUID format for actors
-            // Accept both compendium references (Compendium.module.collection.Actor.id) and world actors (Actor.id)
-            if (!uuid.includes('Compendium.') && !uuid.startsWith('Actor.')) {
-                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Invalid UUID format`, uuid, false, false);
-                return null;
-            }
-            
-            // Try to load the actor to validate it exists
-            const actor = await fromUuid(uuid);
-            if (!actor) {
-                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Could not load actor with UUID`, uuid, false, false);
-                return null;
-            }
-            
-            return uuid;
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Error validating UUID`, { uuid, error }, false, false);
-            return null;
-        }
+        return await validateActorUUID(uuid);
     }
 
     // Helper method to determine if an actor is a monster (vs NPC)
@@ -1224,252 +1196,95 @@ export class EncounterToolbar {
         const deploymentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment pattern", deploymentPattern, true, false);
 
-        // Create tooltip for non-sequential deployments
-        let tooltip = null;
-        let mouseMoveHandler = null;
-        const deployedTokens = [];
-
-        try {
-            
-            if (deploymentPattern !== "sequential") {
-                tooltip = document.createElement('div');
-                tooltip.className = 'encounter-tooltip';
-                document.body.appendChild(tooltip);
-                
-                mouseMoveHandler = (event) => {
-                    tooltip.style.left = (event.data.global.x + 15) + 'px';
-                    tooltip.style.top = (event.data.global.y - 40) + 'px';
-                };
-                
-                // Show initial tooltip
-                const patternName = this._getDeploymentPatternName(deploymentPattern);
-                
-                // Check if this is a single token deployment
-                if (allTokens.length === 1) {
-                    // For single token, get the details for the tooltip
-                    const tokenDetails = await this._getMonsterDetails(allTokens);
-                    if (tokenDetails.length > 0) {
-                        const token = tokenDetails[0];
-                        tooltip.innerHTML = `
-                            <div class="monster-name">Deploy ${token.name} (CR ${token.cr})</div>
-                            <div class="progress">${patternName} - Click to place</div>
-                        `;
-                    } else {
-                        tooltip.innerHTML = `
-                            <div class="monster-name">Deploying Token</div>
-                            <div class="progress">${patternName} - Click to place</div>
-                        `;
-                    }
-                } else {
-                    // For multiple tokens, show the original tooltip
-                    tooltip.innerHTML = `
-                        <div class="monster-name">Deploying Tokens</div>
-                        <div class="progress">${patternName} - Click to place ${allTokens.length} tokens</div>
-                    `;
-                }
-                tooltip.classList.add('show');
-                canvas.stage.on('mousemove', mouseMoveHandler);
-            }
-
-            // Handle sequential deployment
-            if (deploymentPattern === "sequential") {
-                return await this._deploySequential(metadata, null);
-            } else {
-                // Check if this is a single token deployment (for CTRL functionality)
-                const isSingleToken = allTokens.length === 1;
-                
-                // Get the target position (where the user clicked)
-                const positionResult = await this._getTargetPosition(isSingleToken);
-                
-                                    if (!positionResult) {
-                        // User cancelled or no position obtained
-                        if (isSingleToken) {
-                            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Token deployment cancelled.`, '', true, false);
-                        } else {
-                            postConsoleAndNotification(MODULE.NAME, `Please click on the canvas to place tokens.`, '', false, false);
-                        }
-                        return [];
-                    }
-                
-                const position = positionResult.position;
-                const isAltHeld = positionResult.isAltHeld;
-                
-                // First, count valid tokens to get the total
-                let validTokenCount = 0;
-                for (let i = 0; i < allTokens.length; i++) {
-                    const tokenId = allTokens[i];
-                    const validatedId = await this._validateUUID(tokenId);
-                    if (validatedId) {
-                        const actor = await fromUuid(validatedId);
-                        if (actor) {
-                            validTokenCount++;
-                        }
-                    }
-                }
-                
-                // Deploy each token at this position
-                let validTokenIndex = 0; // Counter for valid tokens only
-                for (let i = 0; i < allTokens.length; i++) {
-                    const tokenId = allTokens[i];
-                    
-                    try {
-                        // Validate the UUID
-                        const validatedId = await this._validateUUID(tokenId);
-                        if (!validatedId) {
-                            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Could not validate UUID, skipping`, tokenId, true, false);
-                            continue;
-                        }
-                        
-                        const actor = await fromUuid(validatedId);
-                        
-                        if (actor) {
-                            // First, create a world copy of the actor if it's from a compendium
-                            let worldActor = actor;
-                            if (actor.pack) {
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating world copy of compendium actor", "", true, false);
-                                const actorData = actor.toObject();
-                                
-                                // Get or create the encounter folder
-                                const folderName = game.settings.get(MODULE.ID, 'encounterFolder');
-                                let encounterFolder = null;
-                                
-                                // Only create/find folder if folderName is not empty
-                                if (folderName && folderName.trim() !== '') {
-                                    encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
-                                    
-                                    if (!encounterFolder) {
-                                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating encounter folder", folderName, true, false);
-                                        encounterFolder = await Folder.create({
-                                            name: folderName,
-                                            type: 'Actor',
-                                            color: '#ff0000'
-                                        });
-                                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Encounter folder created", encounterFolder.id, true, false);
-                                    }
-                                }
-                                
-                                // Create the world actor
-                                const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
-                                worldActor = await Actor.create(actorData, createOptions);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: World actor created", worldActor.id, true, false);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Actor folder", worldActor.folder, true, false);
-                                
-                                // Ensure folder is assigned (sometimes it doesn't get set during creation)
-                                if (encounterFolder && !worldActor.folder) {
-                                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Folder not assigned during creation, updating actor...", "", true, false);
-                                    await worldActor.update({ folder: encounterFolder.id });
-                                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Actor folder after update", worldActor.folder, true, false);
-                                }
-                                
-                                // Update the prototype token to honor GM defaults
-                                const defaultTokenData = this._getDefaultTokenData();
-                                const prototypeTokenData = foundry.utils.mergeObject(defaultTokenData, worldActor.prototypeToken.toObject(), { overwrite: false });
-                                await worldActor.update({ prototypeToken: prototypeTokenData });
-                            }
-                            
-                            // Get the deployment pattern setting for positioning
-                            const deploymentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
-                            const deploymentHidden = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden');
-                            
-                            // Calculate position based on pattern
-                            let tokenPosition;
-                            if (deploymentPattern === "circle") {
-                                tokenPosition = this._calculateCirclePosition(position, validTokenIndex, validTokenCount);
-                            } else if (deploymentPattern === "scatter") {
-                                tokenPosition = this._calculateScatterPosition(position, validTokenIndex, validTokenCount);
-                            } else if (deploymentPattern === "grid") {
-                                tokenPosition = this._calculateSquarePosition(position, validTokenIndex, validTokenCount);
-                            } else {
-                                // Default to line formation - place in grid square centers
-                                const gridSize = canvas.scene.grid.size;
-                                // The position is already the center of a grid square, so we just offset by grid size
-                                tokenPosition = {
-                                    x: position.x + (validTokenIndex * gridSize),
-                                    y: position.y
-                                };
-                            }
-                            
-                            // Create token data
-                            const tokenData = foundry.utils.mergeObject(
-                                this._getDefaultTokenData(),
-                                worldActor.prototypeToken.toObject(),
-                                { overwrite: false }
-                            );
-                            
-                            // Set token properties
-                            tokenData.x = tokenPosition.x;
-                            tokenData.y = tokenPosition.y;
-                            tokenData.actorId = worldActor.id;
-                            // Honor the original actor's linked setting
-                            tokenData.actorLink = worldActor.prototypeToken.actorLink;
-                            // Set hidden based on ALT key or deployment setting
-                            tokenData.hidden = isAltHeld ? true : deploymentHidden;
-                            
-                            // Honor lock rotation setting
-                            const defaultTokenData = this._getDefaultTokenData();
-                            if (defaultTokenData.lockRotation !== undefined) {
-                                tokenData.lockRotation = defaultTokenData.lockRotation;
-                            }
-                            
-                            // Create the token on the canvas
-                            const createdTokens = await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
-                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token creation result", createdTokens, true, false);
-                            
-                            // Verify the token was created and is visible
-                            if (createdTokens && createdTokens.length > 0) {
-                                const token = createdTokens[0];
-                                deployedTokens.push(token);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created token", token, true, false);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token position", {x: token.x, y: token.y}, true, false);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token visible", token.visible, true, false);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token actor", token.actor, true, false);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Token actorId", token.actorId, true, false);
-                                
-                                // Increment the valid token index for pattern positioning
-                                validTokenIndex++;
-                            }
-                        }
-                    } catch (error) {
-                        postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Failed to deploy monster ${monsterId}`, error, false, true);
-                    }
-                }
-                
-                // Update tooltip to show completion
-                if (tooltip) {
-                    const patternName = this._getDeploymentPatternName(deploymentPattern);
-                    tooltip.innerHTML = `
-                        <div class="monster-name">Deployment Complete</div>
-                        <div class="progress">${patternName} - Deployed ${metadata.monsters.length} monsters</div>
-                    `;
-                    
-                    // Remove tooltip after a short delay
-                    setTimeout(() => {
-                        if (tooltip && tooltip.parentNode) {
-                            tooltip.remove();
-                        }
-                        if (mouseMoveHandler) {
-                            canvas.stage.off('mousemove', mouseMoveHandler);
-                        }
-                    }, 2000);
-                }
-                
-                return deployedTokens;
-            }
-            
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error deploying monsters", error, false, true);
-            return [];
-        } finally {
-            // Clean up tooltip and handlers for non-sequential deployments
-            if (deploymentPattern !== "sequential" && tooltip) {
-                if (tooltip.parentNode) {
-                    tooltip.remove();
-                }
-                if (mouseMoveHandler) {
-                    canvas.stage.off('mousemove', mouseMoveHandler);
-                }
-            }
+        // Handle sequential deployment (still uses custom logic)
+        if (deploymentPattern === "sequential") {
+            return await this._deploySequential(metadata, null);
         }
+        
+        // Use shared deployment API for non-sequential deployments
+        const deploymentHidden = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden');
+        const isSingleToken = allTokens.length === 1;
+        
+        // Custom tooltip content function
+        const getTooltipContent = async (tokenCount, patternName) => {
+            if (tokenCount === 1) {
+                // For single token, get the details for the tooltip
+                const tokenDetails = await this._getMonsterDetails(allTokens);
+                if (tokenDetails.length > 0) {
+                    const token = tokenDetails[0];
+                    return `
+                        <div class="monster-name">Deploy ${token.name} (CR ${token.cr})</div>
+                        <div class="progress">${patternName} - Click to place</div>
+                    `;
+                } else {
+                    return `
+                        <div class="monster-name">Deploying Token</div>
+                        <div class="progress">${patternName} - Click to place</div>
+                    `;
+                }
+            } else {
+                return `
+                    <div class="monster-name">Deploying Tokens</div>
+                    <div class="progress">${patternName} - Click to place ${tokenCount} tokens</div>
+                `;
+            }
+        };
+        
+        // Actor preparation callback - handles compendium actors and encounter folder
+        const onActorPrepared = async (actor, worldActor) => {
+            // First, create a world copy of the actor if it's from a compendium
+            if (actor.pack) {
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating world copy of compendium actor", "", true, false);
+                const actorData = actor.toObject();
+                
+                // Get or create the encounter folder
+                const folderName = game.settings.get(MODULE.ID, 'encounterFolder');
+                let encounterFolder = null;
+                
+                // Only create/find folder if folderName is not empty
+                if (folderName && folderName.trim() !== '') {
+                    encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
+                    
+                    if (!encounterFolder) {
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating encounter folder", folderName, true, false);
+                        encounterFolder = await Folder.create({
+                            name: folderName,
+                            type: 'Actor',
+                            color: '#ff0000'
+                        });
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Encounter folder created", encounterFolder.id, true, false);
+                    }
+                }
+                
+                // Create the world actor
+                const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
+                worldActor = await Actor.create(actorData, createOptions);
+                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: World actor created", worldActor.id, true, false);
+                
+                // Ensure folder is assigned (sometimes it doesn't get set during creation)
+                if (encounterFolder && !worldActor.folder) {
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Folder not assigned during creation, updating actor...", "", true, false);
+                    await worldActor.update({ folder: encounterFolder.id });
+                }
+                
+                // Update the prototype token to honor GM defaults
+                const defaultTokenData = getDefaultTokenData();
+                const prototypeTokenData = foundry.utils.mergeObject(defaultTokenData, worldActor.prototypeToken.toObject(), { overwrite: false });
+                await worldActor.update({ prototypeToken: prototypeTokenData });
+            }
+            
+            return worldActor;
+        };
+        
+        // Deploy using shared API
+        const deployedTokens = await deployTokens(allTokens, {
+            deploymentPattern: deploymentPattern,
+            deploymentHidden: deploymentHidden,
+            getTooltipContent: getTooltipContent,
+            onActorPrepared: onActorPrepared
+        });
+        
+        return deployedTokens;
     }
 
     // Deploy a single token multiple times with CTRL key support
@@ -1694,111 +1509,25 @@ export class EncounterToolbar {
         }
     }
 
+    /**
+     * Calculate circle position
+     * @deprecated Use calculateCirclePosition from api-tokens.js instead
+     */
     static _calculateCirclePosition(centerPosition, index, totalTokens) {
-        if (index === 0) {
-            return { x: centerPosition.x, y: centerPosition.y };
-        }
-        const radius = 100;
-        const angleStep = (2 * Math.PI) / (totalTokens - 1);
-        const angle = (index - 1) * angleStep;
-        const x = centerPosition.x + (radius * Math.cos(angle));
-        const y = centerPosition.y + (radius * Math.sin(angle));
-        return { x, y };
+        return calculateCirclePosition(centerPosition, index, totalTokens);
     }
 
+    /**
+     * Calculate scatter position
+     * @deprecated Use calculateScatterPosition from api-tokens.js instead
+     */
     static _calculateScatterPosition(centerPosition, index, totalTokens) {
-        // Calculate scatter formation using grid-based random placement
-        const gridSize = canvas.scene.grid.size;
-        
-        // If this is the first token (index 0), place it exactly at the clicked position
-        if (index === 0) {
-            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Scatter position ${index} (first token at clicked position)`, centerPosition, false, false);
-            return centerPosition;
-        }
-        
-        // For subsequent tokens, use random scatter placement with no overlaps
-        // Create a grid where width and height equal the number of tokens
-        const gridWidth = totalTokens;
-        const gridHeight = totalTokens;
-        
-        // Calculate the total grid area
-        const totalGridCells = gridWidth * gridHeight;
-        
-        postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Scatter grid setup`, `Tokens: ${totalTokens}, Grid: ${gridWidth}x${gridHeight}, Cells: ${totalGridCells}, GridSize: ${gridSize}px`, true, false);
-        
-        // Create an array of all possible positions
-        const allPositions = [];
-        for (let row = 0; row < gridHeight; row++) {
-            for (let col = 0; col < gridWidth; col++) {
-                allPositions.push({ row, col });
-            }
-        }
-        
-        // Shuffle the positions randomly
-        for (let i = allPositions.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [allPositions[i], allPositions[j]] = [allPositions[j], allPositions[i]];
-        }
-        
-        // Take exactly the number of tokens we need (excluding the first token which is already placed)
-        const selectedPositions = allPositions.slice(0, totalTokens - 1);
-        
-        // Get the position for this specific token (index - 1 because first token is already placed)
-        const tokenPosition = selectedPositions[index - 1];
-        
-        postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Scatter position selection`, `Token ${index}: Grid cell (${tokenPosition.row}, ${tokenPosition.col})`, false, false);
-        
-        // Calculate the actual position using scene grid size - snap to top-left of grid squares
-        // Calculate the base position in grid coordinates (offset from center)
-        let x = centerPosition.x + ((tokenPosition.col - Math.floor(gridWidth / 2)) * gridSize);
-        let y = centerPosition.y + ((tokenPosition.row - Math.floor(gridHeight / 2)) * gridSize);
-        
-        // Snap to top-left of the grid square
-        x = Math.floor(x / gridSize) * gridSize;
-        y = Math.floor(y / gridSize) * gridSize;
-        
-        // Check if this position is already occupied by an existing token
-        if (this._isGridSquareOccupied(x, y, gridSize)) {
-            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Position occupied, trying next available position`, { x, y }, true, false);
-            
-            // Find the next available position
-            for (let i = index; i < selectedPositions.length; i++) {
-                const nextPosition = selectedPositions[i];
-                let nextX = centerPosition.x + ((nextPosition.col - Math.floor(gridWidth / 2)) * gridSize);
-                let nextY = centerPosition.y + ((nextPosition.row - Math.floor(gridHeight / 2)) * gridSize);
-                
-                nextX = Math.floor(nextX / gridSize) * gridSize;
-                nextY = Math.floor(nextY / gridSize) * gridSize;
-                
-                if (!this._isGridSquareOccupied(nextX, nextY, gridSize)) {
-                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Found available position`, { x: nextX, y: nextY }, true, false);
-                    return { x: nextX, y: nextY };
-                }
-            }
-            
-            // If no position found in the grid, place it at a random offset
-            const randomOffset = Math.floor(Math.random() * 3) + 1; // 1-3 grid squares away
-            const randomDirection = Math.floor(Math.random() * 4); // 0-3 for different directions
-            
-            let fallbackX = x;
-            let fallbackY = y;
-            
-            switch (randomDirection) {
-                case 0: fallbackX += randomOffset * gridSize; break; // Right
-                case 1: fallbackX -= randomOffset * gridSize; break; // Left
-                case 2: fallbackY += randomOffset * gridSize; break; // Down
-                case 3: fallbackY -= randomOffset * gridSize; break; // Up
-            }
-            
-            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Using fallback position`, { x: fallbackX, y: fallbackY }, true, false);
-            return { x: fallbackX, y: fallbackY };
-        }
-        
-        postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Scatter position ${index} (grid ${gridWidth}x${gridHeight}, cell ${tokenPosition.row},${tokenPosition.col}, gridSize: ${gridSize}px)`, { x, y }, false, false);
-        return { x, y };
+        return calculateScatterPosition(centerPosition, index, totalTokens);
     }
 
     // Helper function to check if a grid square is occupied
+    // Note: This is still used internally by calculateScatterPosition, so we keep it
+    // but it's also exported from api-tokens.js as isGridSquareOccupied
     static _isGridSquareOccupied(x, y, gridSize) {
         const snappedX = Math.floor(x / gridSize) * gridSize;
         const snappedY = Math.floor(y / gridSize) * gridSize;
@@ -1810,40 +1539,20 @@ export class EncounterToolbar {
         });
     }
 
+    /**
+     * Calculate square position
+     * @deprecated Use calculateSquarePosition from api-tokens.js instead
+     */
     static _calculateSquarePosition(centerPosition, index, totalTokens) {
-        // Calculate square formation - grid-based square block
-        const gridSize = canvas.scene.grid.size; // Use actual scene grid size
-        const spacing = gridSize; // Use exact grid size for proper grid alignment
-        
-        // Calculate the dimensions of the square
-        const sideLength = Math.ceil(Math.sqrt(totalTokens));
-        
-        // Calculate row and column for this token
-        const row = Math.floor(index / sideLength);
-        const col = index % sideLength;
-        
-        // Calculate position in grid square centers
-        // Calculate the base position in grid coordinates
-        let x = centerPosition.x + (col * spacing);
-        let y = centerPosition.y + (row * spacing);
-        
-        // Snap to top-left of the grid square
-        x = Math.floor(x / gridSize) * gridSize;
-        y = Math.floor(y / gridSize) * gridSize;
-        
-        postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Square position ${index} (row ${row}, col ${col}, sideLength ${sideLength}, gridSize ${gridSize})`, { x, y }, false, false);
-        return { x, y };
+        return calculateSquarePosition(centerPosition, index, totalTokens);
     }
 
+    /**
+     * Get deployment pattern name
+     * @deprecated Use getDeploymentPatternName from api-tokens.js instead
+     */
     static _getDeploymentPatternName(pattern) {
-        const patternNames = {
-            "circle": "Circle",
-            "line": "Linear", 
-            "scatter": "Scattered",
-            "grid": "Grid",
-            "sequential": "Sequential"
-        };
-        return patternNames[pattern] || "Unknown Pattern";
+        return getDeploymentPatternName(pattern);
     }
 
     static _getDeploymentVisibilityName(isHidden) {
@@ -2089,101 +1798,12 @@ export class EncounterToolbar {
         return deployedTokens;
     }
 
+    /**
+     * Get target position from canvas
+     * @deprecated Use getTargetPosition from api-tokens.js instead
+     */
     static async _getTargetPosition(allowMultiple = false) {
-        return new Promise((resolve) => {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Setting up click handler for target position", `Allow multiple: ${allowMultiple}`, true, false);
-            
-            // Use FoundryVTT's canvas pointer handling
-            const handler = (event) => {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Canvas pointer event! Event type", event.type, true, false);
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Event global", event.global, true, false);
-                
-                // Only handle pointerdown events (clicks)
-                if (event.type !== 'pointerdown') {
-                    return;
-                }
-                
-                // Ignore right-clicks (button 2) - let the rightClickHandler deal with them
-                if (event.data.originalEvent && event.data.originalEvent.button === 2) {
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Right-click ignored by main handler", "", true, false);
-                    return;
-                }
-                
-                // Use FoundryVTT's built-in coordinate conversion
-                // Convert global coordinates to scene coordinates using canvas stage
-                const stage = canvas.stage;
-                const globalPoint = new PIXI.Point(event.global.x, event.global.y);
-                const localPoint = stage.toLocal(globalPoint);
-                
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Event global coordinates", event.global, true, false);
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Local coordinates from stage", localPoint, true, false);
-                
-                // Use the exact click position first, then snap to grid square center
-                let position = { x: localPoint.x, y: localPoint.y };
-                
-                // Get the grid size and calculate grid square center
-                const gridSize = canvas.scene.grid.size;
-                
-                // Snap to top-left of the grid square (token coordinates are top-left, not center)
-                const snappedX = Math.floor(localPoint.x / gridSize) * gridSize;
-                const snappedY = Math.floor(localPoint.y / gridSize) * gridSize;
-                
-                position = { x: snappedX, y: snappedY };
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Grid square top-left position", position, true, false);
-                
-                // Check if CTRL is held down for multiple deployments
-                const isCtrlHeld = event.data.originalEvent && event.data.originalEvent.ctrlKey;
-                // Check if ALT is held down for invisible deployment
-                const isAltHeld = event.data.originalEvent && event.data.originalEvent.altKey;
-                
-                // If not allowing multiple or CTRL not held, remove the handler
-                if (!allowMultiple || !isCtrlHeld) {
-                    canvas.stage.off('pointerdown', handler);
-                    document.removeEventListener('keyup', keyUpHandler);
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Click handler removed, resolving position", "", true, false);
-                } else {
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: CTRL held, keeping handler for multiple deployments", "", true, false);
-                }
-                
-                // Resolve with the position and key states
-                if (position) {
-                    const result = {
-                        position: position,
-                        isAltHeld: isAltHeld
-                    };
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Resolving position", result, true, false);
-                    resolve(result);
-                } else {
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No valid position obtained, resolving null", "", true, false);
-                    resolve(null);
-                }
-            };
-            
-            // Key up handler to detect when CTRL is released
-            const keyUpHandler = (event) => {
-                if (event.key === 'Control' && allowMultiple) {
-                    canvas.stage.off('pointerdown', handler);
-                    document.removeEventListener('keyup', keyUpHandler);
-                    resolve(null);
-                }
-            };
-            
-            // Right-click handler to detect cancellation
-            const rightClickHandler = (event) => {
-                if (event.data.originalEvent && event.data.originalEvent.button === 2) { // Right mouse button
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Right-click detected, cancelling deployment", "", true, false);
-                    canvas.stage.off('pointerdown', handler);
-                    canvas.stage.off('pointerdown', rightClickHandler);
-                    document.removeEventListener('keyup', keyUpHandler);
-                    resolve(null);
-                }
-            };
-            
-            // Add the event listeners
-            canvas.stage.on('pointerdown', handler);
-            canvas.stage.on('pointerdown', rightClickHandler);
-            document.addEventListener('keyup', keyUpHandler);
-        });
+        return await getTargetPosition(allowMultiple);
     }
 
 
