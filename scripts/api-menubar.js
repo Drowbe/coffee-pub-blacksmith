@@ -15,6 +15,8 @@ import { CombatTracker } from './combat-tracker.js';
 import { StatsWindow } from './window-stats.js';
 import { RoundTimer } from './timer-round.js';
 import { deployParty } from './utility-party.js';
+import { getDeploymentPatternName } from './api-tokens.js';
+import { EncounterToolbar } from './encounter-toolbar.js';
 
 class MenuBar {
     static ID = 'menubar';
@@ -1168,6 +1170,44 @@ class MenuBar {
      * @private
      */
     static _registerPartyTools() {
+        // Helper function to get current deployment pattern name
+        const getCurrentPatternName = () => {
+            const currentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
+            return getDeploymentPatternName(currentPattern);
+        };
+        
+        // Register Deployment Pattern button (cycles through patterns)
+        this.registerSecondaryBarItem('party', 'deployment-pattern', {
+            icon: 'fas fa-grid-2-plus',
+            label: getCurrentPatternName(),
+            tooltip: `Click to cycle deployment pattern (Current: ${getCurrentPatternName()})`,
+            group: 'default',
+            order: 0,
+            onClick: async () => {
+                postConsoleAndNotification(MODULE.NAME, "Party Tools: Cycling deployment pattern", "", true, false);
+                try {
+                    // Use the same cycle function from encounter toolbar
+                    await EncounterToolbar._cycleDeploymentPattern();
+                    
+                    // Update the button label to show new pattern
+                    const items = this.secondaryBarItems.get('party');
+                    if (items) {
+                        const patternItem = items.get('deployment-pattern');
+                        if (patternItem) {
+                            patternItem.label = getCurrentPatternName();
+                            patternItem.tooltip = `Click to cycle deployment pattern (Current: ${getCurrentPatternName()})`;
+                            // Re-render if party bar is open
+                            if (this.secondaryBar.isOpen && this.secondaryBar.type === 'party') {
+                                this.renderMenubar(true);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Party Tools: Error cycling deployment pattern", error.message, false, false);
+                }
+            }
+        });
+        
         // Register Deploy Party tool
         this.registerSecondaryBarItem('party', 'deploy-party', {
             icon: 'fas fa-map-marker-alt',
@@ -1182,6 +1222,35 @@ class MenuBar {
                 } catch (error) {
                     postConsoleAndNotification(MODULE.NAME, "Party Tools: Error in deployParty", error.message, false, false);
                 }
+            }
+        });
+        
+        // Listen for deployment pattern setting changes to update the button label
+        HookManager.registerHook({
+            name: 'settingChange',
+            description: 'Party Tools: Update deployment pattern button label when pattern changes',
+            context: 'party-deployment-pattern',
+            priority: 5,
+            key: 'encounterToolbarDeploymentPattern',
+            callback: async (moduleId, settingKey, value) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                
+                if (moduleId === MODULE.ID && settingKey === 'encounterToolbarDeploymentPattern') {
+                    const items = this.secondaryBarItems.get('party');
+                    if (items) {
+                        const patternItem = items.get('deployment-pattern');
+                        if (patternItem) {
+                            patternItem.label = getCurrentPatternName();
+                            patternItem.tooltip = `Click to cycle deployment pattern (Current: ${getCurrentPatternName()})`;
+                            // Re-render if party bar is open
+                            if (this.secondaryBar.isOpen && this.secondaryBar.type === 'party') {
+                                this.renderMenubar(true);
+                            }
+                        }
+                    }
+                }
+                
+                //  ------------------- END - HOOKMANAGER CALLBACK -------------------
             }
         });
 
