@@ -14,6 +14,7 @@ import { SkillCheckDialog } from './window-skillcheck.js';
 import { CombatTracker } from './combat-tracker.js';
 import { StatsWindow } from './window-stats.js';
 import { RoundTimer } from './timer-round.js';
+import { deployParty } from './utility-party.js';
 
 class MenuBar {
     static ID = 'menubar';
@@ -1157,7 +1158,7 @@ class MenuBar {
         });
 
         // Register party tools after bar type is registered
-        await this._registerPartyTools();
+        this._registerPartyTools();
 
         postConsoleAndNotification(MODULE.NAME, "Menubar: Secondary bar types registered", "", true, false);
     }
@@ -1166,19 +1167,21 @@ class MenuBar {
      * Register party tools in the party secondary bar
      * @private
      */
-    static async _registerPartyTools() {
-        // Import party utilities
-        const { deployParty } = await import('./utility-party.js');
-        
+    static _registerPartyTools() {
         // Register Deploy Party tool
         this.registerSecondaryBarItem('party', 'deploy-party', {
             icon: 'fas fa-map-marker-alt',
-            title: 'Deploy Party',
+            label: 'Deploy Party',
             tooltip: 'Deploy all party members to the canvas',
             group: 'default',
             order: 1,
             onClick: async () => {
-                await deployParty();
+                postConsoleAndNotification(MODULE.NAME, "Party Tools: Deploy Party button clicked", "", true, false);
+                try {
+                    await deployParty();
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Party Tools: Error in deployParty", error.message, false, false);
+                }
             }
         });
 

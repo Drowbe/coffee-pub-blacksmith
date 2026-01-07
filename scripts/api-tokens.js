@@ -389,9 +389,20 @@ export async function deployTokens(actorUUIDs, options = {}) {
             canvas.stage.on('mousemove', mouseMoveHandler);
         }
         
-        // Handle sequential deployment (not supported in shared API - return empty)
+        // Handle sequential deployment (one-by-one placement)
         if (deploymentPattern === "sequential") {
-            postConsoleAndNotification(MODULE.NAME, "Token API: Sequential deployment not supported in shared API", "", false, false);
+            return await deployTokensSequential(actorUUIDs, options);
+        }
+        
+        // Validate we have a scene
+        if (!canvas.scene) {
+            postConsoleAndNotification(MODULE.NAME, "Token API: No active scene for deployment", "", false, false);
+            if (tooltip && tooltip.parentNode) {
+                tooltip.remove();
+            }
+            if (mouseMoveHandler) {
+                canvas.stage.off('mousemove', mouseMoveHandler);
+            }
             return [];
         }
         
@@ -403,14 +414,17 @@ export async function deployTokens(actorUUIDs, options = {}) {
                 position: options.position,
                 isAltHeld: options.isAltHeld || false
             };
+            postConsoleAndNotification(MODULE.NAME, "Token API: Using provided position", positionResult.position, true, false);
         } else {
             // Get position from canvas click
             const isSingleToken = actorUUIDs.length === 1;
+            postConsoleAndNotification(MODULE.NAME, "Token API: Waiting for canvas click", `Single token: ${isSingleToken}`, true, false);
             positionResult = await getTargetPosition(isSingleToken);
         }
         
         if (!positionResult) {
             // User cancelled or no position obtained
+            postConsoleAndNotification(MODULE.NAME, "Token API: Position selection cancelled or failed", "", false, false);
             if (tooltip && tooltip.parentNode) {
                 tooltip.remove();
             }
@@ -419,6 +433,8 @@ export async function deployTokens(actorUUIDs, options = {}) {
             }
             return [];
         }
+        
+        postConsoleAndNotification(MODULE.NAME, "Token API: Position obtained", positionResult.position, true, false);
         
         const position = positionResult.position;
         const isAltHeld = positionResult.isAltHeld;
@@ -432,8 +448,25 @@ export async function deployTokens(actorUUIDs, options = {}) {
                 const actor = await fromUuid(validatedId);
                 if (actor) {
                     validTokenCount++;
+                } else {
+                    postConsoleAndNotification(MODULE.NAME, `Token API: Could not load actor from UUID`, uuid, true, false);
                 }
+            } else {
+                postConsoleAndNotification(MODULE.NAME, `Token API: Invalid UUID format`, uuid, true, false);
             }
+        }
+        
+        postConsoleAndNotification(MODULE.NAME, `Token API: Valid token count`, `${validTokenCount} of ${actorUUIDs.length}`, true, false);
+        
+        if (validTokenCount === 0) {
+            postConsoleAndNotification(MODULE.NAME, "Token API: No valid actors found for deployment", "", false, false);
+            if (tooltip && tooltip.parentNode) {
+                tooltip.remove();
+            }
+            if (mouseMoveHandler) {
+                canvas.stage.off('mousemove', mouseMoveHandler);
+            }
+            return [];
         }
         
         // Deploy each token at this position
@@ -555,6 +588,186 @@ export async function deployTokens(actorUUIDs, options = {}) {
                 canvas.stage.off('mousemove', mouseMoveHandler);
             }
         }
+    }
+}
+
+/**
+ * Deploy tokens sequentially (one-by-one placement)
+ * @param {string[]} actorUUIDs - Array of actor UUIDs to deploy
+ * @param {Object} options - Deployment options
+ * @param {boolean} options.deploymentHidden - Whether tokens should be hidden
+ * @param {Function} options.onActorPrepared - Callback before token creation: (actor, worldActor) => void
+ * @param {Function} options.onTokenCreated - Callback after token creation: (token) => void
+ * @param {Function} options.getTooltipContent - Function to get tooltip content for each token: (actorName, index, total) => string
+ * @returns {Promise<Array>} Array of created token documents
+ */
+export async function deployTokensSequential(actorUUIDs, options = {}) {
+    // Check if user has permission to create tokens
+    if (!game.user.isGM) {
+        return [];
+    }
+    
+    if (!actorUUIDs || actorUUIDs.length === 0) {
+        return [];
+    }
+    
+    // Validate we have a scene
+    if (!canvas.scene) {
+        postConsoleAndNotification(MODULE.NAME, "Token API: No active scene for deployment", "", false, false);
+        return [];
+    }
+    
+    const deploymentHidden = options.deploymentHidden || false;
+    
+    // Set cursor to indicate placement mode
+    canvas.stage.cursor = 'crosshair';
+    
+    // Create tooltip element
+    const tooltip = document.createElement('div');
+    tooltip.className = 'encounter-tooltip';
+    document.body.appendChild(tooltip);
+    
+    // Mouse move handler for tooltip
+    const mouseMoveHandler = (event) => {
+        tooltip.style.left = (event.data.global.x + 15) + 'px';
+        tooltip.style.top = (event.data.global.y - 40) + 'px';
+    };
+    
+    const deployedTokens = [];
+    
+    try {
+        // Prepare all actors first (without placing tokens)
+        const actors = [];
+        for (let i = 0; i < actorUUIDs.length; i++) {
+            const uuid = actorUUIDs[i];
+            
+            try {
+                // Validate the UUID
+                const validatedId = await validateActorUUID(uuid);
+                if (!validatedId) {
+                    postConsoleAndNotification(MODULE.NAME, `Token API: Could not validate UUID, skipping`, uuid, true, false);
+                    continue;
+                }
+                
+                const actor = await fromUuid(validatedId);
+                
+                if (actor) {
+                    // Call onActorPrepared callback if provided (for compendium handling, folder creation, etc.)
+                    let worldActor = actor;
+                    if (options.onActorPrepared) {
+                        worldActor = await options.onActorPrepared(actor, worldActor) || worldActor;
+                    }
+                    
+                    // Update prototype token settings if needed
+                    if (worldActor !== actor || actor.pack) {
+                        const defaultTokenData = getDefaultTokenData();
+                        const prototypeTokenData = foundry.utils.mergeObject(defaultTokenData, worldActor.prototypeToken.toObject(), { overwrite: false });
+                        await worldActor.update({ prototypeToken: prototypeTokenData });
+                    }
+                    
+                    actors.push(worldActor);
+                }
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Token API: Error preparing actor ${uuid}`, error, true, false);
+            }
+        }
+        
+        if (actors.length === 0) {
+            postConsoleAndNotification(MODULE.NAME, "Token API: No valid actors prepared for sequential deployment", "", false, false);
+            return [];
+        }
+        
+        // Now place tokens one by one
+        for (let i = 0; i < actors.length; i++) {
+            const actor = actors[i];
+            const actorName = actor.name;
+            
+            // Update tooltip content
+            let tooltipContent = '';
+            if (options.getTooltipContent) {
+                tooltipContent = options.getTooltipContent(actorName, i + 1, actors.length);
+            } else {
+                tooltipContent = `
+                    <div class="monster-name">${actorName}</div>
+                    <div class="progress">Click to place (${i + 1} of ${actors.length})</div>
+                `;
+            }
+            
+            tooltip.innerHTML = tooltipContent;
+            tooltip.classList.add('show');
+            
+            // Add mouse move handler
+            canvas.stage.on('mousemove', mouseMoveHandler);
+            
+            // Get position for this token
+            const positionResult = await getTargetPosition(false);
+            
+            // Remove mouse move handler
+            canvas.stage.off('mousemove', mouseMoveHandler);
+            
+            // Check if user cancelled
+            if (!positionResult) {
+                postConsoleAndNotification(MODULE.NAME, "Token API: Sequential deployment cancelled by user", "", false, false);
+                break; // Exit the loop and return deployed tokens so far
+            }
+            
+            const position = positionResult.position;
+            const isAltHeld = positionResult.isAltHeld;
+            
+            // Create token data
+            const defaultTokenData = getDefaultTokenData();
+            const tokenData = foundry.utils.mergeObject(defaultTokenData, actor.prototypeToken.toObject(), { overwrite: false });
+            
+            // Set position and linking
+            tokenData.x = position.x;
+            tokenData.y = position.y;
+            tokenData.actorId = actor.id;
+            tokenData.actorLink = actor.prototypeToken.actorLink;
+            tokenData.hidden = isAltHeld ? true : deploymentHidden;
+            
+            // Honor lock rotation setting
+            if (defaultTokenData.lockRotation !== undefined) {
+                tokenData.lockRotation = defaultTokenData.lockRotation;
+            }
+            
+            // Create the token
+            const createdTokens = await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
+            if (createdTokens && createdTokens.length > 0) {
+                const token = createdTokens[0];
+                deployedTokens.push(token);
+                
+                // Call onTokenCreated callback if provided
+                if (options.onTokenCreated) {
+                    await options.onTokenCreated(token);
+                }
+            }
+        }
+        
+        // Show completion tooltip briefly
+        if (deployedTokens.length > 0) {
+            tooltip.innerHTML = `
+                <div class="monster-name">Deployment Complete</div>
+                <div class="progress">Deployed ${deployedTokens.length} of ${actors.length} tokens</div>
+            `;
+            setTimeout(() => {
+                if (tooltip && tooltip.parentNode) {
+                    tooltip.remove();
+                }
+            }, 2000);
+        }
+        
+        return deployedTokens;
+        
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, "Token API: Error in sequential deployment", error, false, false);
+        return [];
+    } finally {
+        // Clean up
+        canvas.stage.off('mousemove', mouseMoveHandler);
+        if (tooltip && tooltip.parentNode) {
+            tooltip.remove();
+        }
+        canvas.stage.cursor = 'default';
     }
 }
 

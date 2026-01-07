@@ -6,7 +6,7 @@ import { MODULE } from './const.js';
 import { getCachedTemplate } from './blacksmith.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
-import { deployTokens, getDefaultTokenData, validateActorUUID, getTargetPosition, calculateCirclePosition, calculateScatterPosition, calculateSquarePosition, getDeploymentPatternName } from './api-tokens.js';
+import { deployTokens, deployTokensSequential, getDefaultTokenData, validateActorUUID, getTargetPosition, calculateCirclePosition, calculateScatterPosition, calculateSquarePosition, getDeploymentPatternName } from './api-tokens.js';
 
 export class EncounterToolbar {
     
@@ -1196,9 +1196,63 @@ export class EncounterToolbar {
         const deploymentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment pattern", deploymentPattern, true, false);
 
-        // Handle sequential deployment (still uses custom logic)
+        // Handle sequential deployment (now uses shared API)
         if (deploymentPattern === "sequential") {
-            return await this._deploySequential(metadata, null);
+            // Actor preparation callback - handles compendium actors and encounter folder
+            const onActorPrepared = async (actor, worldActor) => {
+                // First, create a world copy of the actor if it's from a compendium
+                if (actor.pack) {
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating world copy of compendium actor", "", true, false);
+                    const actorData = actor.toObject();
+                    
+                    // Get or create the encounter folder
+                    const folderName = game.settings.get(MODULE.ID, 'encounterFolder');
+                    let encounterFolder = null;
+                    
+                    // Only create/find folder if folderName is not empty
+                    if (folderName && folderName.trim() !== '') {
+                        encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
+                        
+                        if (!encounterFolder) {
+                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating encounter folder", folderName, true, false);
+                            encounterFolder = await Folder.create({
+                                name: folderName,
+                                type: 'Actor',
+                                color: '#ff0000'
+                            });
+                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Encounter folder created", encounterFolder.id, true, false);
+                        }
+                    }
+                    
+                    // Create the world actor
+                    const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
+                    worldActor = await Actor.create(actorData, createOptions);
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: World actor created", worldActor.id, true, false);
+                    
+                    // Ensure folder is assigned
+                    if (encounterFolder && !worldActor.folder) {
+                        await worldActor.update({ folder: encounterFolder.id });
+                    }
+                }
+                
+                return worldActor;
+            };
+            
+            // Custom tooltip content for sequential deployment
+            const getTooltipContent = (actorName, index, total) => {
+                return `
+                    <div class="monster-name">${actorName}</div>
+                    <div class="progress">Click to place (${index} of ${total})</div>
+                `;
+            };
+            
+            const deploymentHidden = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden');
+            
+            return await deployTokensSequential(allTokens, {
+                deploymentHidden: deploymentHidden,
+                onActorPrepared: onActorPrepared,
+                getTooltipContent: getTooltipContent
+            });
         }
         
         // Use shared deployment API for non-sequential deployments
@@ -1651,151 +1705,15 @@ export class EncounterToolbar {
         }
     }
 
+    /**
+     * @deprecated Use deployTokensSequential from api-tokens.js instead
+     * This method is kept for backwards compatibility but is no longer used
+     */
     static async _deploySequential(metadata, initialPosition) {
-        // Set cursor to indicate placement mode
-        canvas.stage.cursor = 'crosshair';
-        
-        // Create tooltip element
-        const tooltip = document.createElement('div');
-        tooltip.className = 'encounter-tooltip';
-        document.body.appendChild(tooltip);
-        
-        // Mouse move handler for tooltip
-        const mouseMoveHandler = (event) => {
-            tooltip.style.left = (event.data.global.x + 15) + 'px';
-            tooltip.style.top = (event.data.global.y - 40) + 'px';
-        };
-        
-        const deployedTokens = [];
-        
-        try {
-            // Combine monsters and NPCs for sequential deployment
-            const allTokens = [...(metadata.monsters || []), ...(metadata.npcs || [])];
-            
-            // Create all actors first (without placing tokens)
-            const actors = [];
-            for (let i = 0; i < allTokens.length; i++) {
-                const tokenId = allTokens[i];
-                
-                                        // Validate the UUID
-                        const validatedId = await this._validateUUID(tokenId);
-                        if (!validatedId) {
-                            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Could not validate UUID, skipping`, tokenId, true, false);
-                            continue;
-                        }
-                
-                const actor = await fromUuid(validatedId);
-                
-                if (actor) {
-                    // Create world copy if from compendium
-                    let worldActor = actor;
-                    if (actor.pack) {
-                        const actorData = actor.toObject();
-                        
-                        // Get or create the encounter folder
-                        const folderName = game.settings.get(MODULE.ID, 'encounterFolder');
-                        let encounterFolder = null;
-                        
-                        if (folderName && folderName.trim() !== '') {
-                            encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
-                            
-                            if (!encounterFolder) {
-                                try {
-                                    encounterFolder = await Folder.create({
-                                        name: folderName,
-                                        type: 'Actor',
-                                        color: '#ff0000'
-                                    });
-                                } catch (error) {
-                                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Failed to create encounter folder", error, true, false);
-                                    encounterFolder = null;
-                                }
-                            }
-                        }
-                        
-                        const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
-                        worldActor = await Actor.create(actorData, createOptions);
-                        
-                        if (encounterFolder && !worldActor.folder) {
-                            await worldActor.update({ folder: encounterFolder.id });
-                        }
-                        
-                        // Update prototype token settings
-                        const defaultTokenData = this._getDefaultTokenData();
-                        await worldActor.update({
-                            "prototypeToken.displayName": defaultTokenData.displayName,
-                            "prototypeToken.displayBars": defaultTokenData.displayBars,
-                            "prototypeToken.disposition": defaultTokenData.disposition,
-                            "prototypeToken.vision": defaultTokenData.vision
-                        });
-                    }
-                    
-                    actors.push(worldActor);
-                }
-            }
-            
-            // Now place tokens one by one
-            for (let i = 0; i < actors.length; i++) {
-                const actor = actors[i];
-                const monsterName = actor.name;
-                
-                // Update tooltip content
-                tooltip.innerHTML = `
-                    <div class="monster-name">${monsterName}</div>
-                    <div class="progress">Click to place (${i + 1} of ${actors.length})</div>
-                `;
-                tooltip.classList.add('show');
-                
-                // Add mouse move handler
-                canvas.stage.on('mousemove', mouseMoveHandler);
-                
-                // Get position for this token
-                const positionResult = await this._getTargetPosition();
-                
-                // Remove mouse move handler
-                canvas.stage.off('mousemove', mouseMoveHandler);
-                
-                // Check if user cancelled (ESC pressed)
-                if (!positionResult) {
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Sequential deployment cancelled by user", "", true, false);
-                    break; // Exit the loop and return deployed tokens so far
-                }
-                
-                const position = positionResult.position;
-                const isAltHeld = positionResult.isAltHeld;
-                
-                // Create token data
-                const defaultTokenData = this._getDefaultTokenData();
-                const tokenData = foundry.utils.mergeObject(defaultTokenData, actor.prototypeToken.toObject(), { overwrite: false });
-                
-                // Set position and linking
-                tokenData.x = position.x;
-                tokenData.y = position.y;
-                tokenData.actorId = actor.id;
-                // Honor the original actor's linked setting
-                tokenData.actorLink = actor.prototypeToken.actorLink;
-                
-                // Set hidden based on ALT key or deployment setting
-                const deploymentHidden = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden');
-                tokenData.hidden = isAltHeld ? true : deploymentHidden;
-                
-                // Create the token
-                const createdTokens = await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
-                if (createdTokens && createdTokens.length > 0) {
-                    deployedTokens.push(createdTokens[0]);
-                }
-            }
-                     
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error in sequential deployment", error, true, false);
-        } finally {
-            // Clean up
-            canvas.stage.off('mousemove', mouseMoveHandler);
-            tooltip.remove();
-            canvas.stage.cursor = 'default';
-        }
-        
-        return deployedTokens;
+        // This method is deprecated - sequential deployment is now handled by the shared API
+        // Keeping this stub to prevent breaking any external references
+        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: _deploySequential is deprecated, use deployTokensSequential from api-tokens.js", "", true, false);
+        return [];
     }
 
     /**
