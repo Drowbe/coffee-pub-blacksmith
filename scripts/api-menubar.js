@@ -827,7 +827,9 @@ class MenuBar {
         // Prevent renders during tool registration
         MenuBar._isRegisteringTools = true; 
 
-        // Left zone tools
+        // **************** LEFT ZONE ****************
+        
+        // SETTINGS
         this.registerMenubarTool('settings', {
             icon: "fa-solid fa-gear",
             name: "settings",
@@ -843,6 +845,7 @@ class MenuBar {
             }
         });
 
+        // REFRESH
         this.registerMenubarTool('refresh', {
             icon: "fa-solid fa-rotate",
             name: "refresh", 
@@ -858,6 +861,7 @@ class MenuBar {
             }
         });
 
+        // MEMORY MONITOR
         this.registerMenubarTool('memory-monitor', {
             icon: "fa-solid fa-chart-simple",
             name: "memory-monitor",
@@ -875,6 +879,7 @@ class MenuBar {
             }
         });
 
+        // QUICKVIEW
         this.registerMenubarTool('quickview', {
             icon: () => {
                 return QuickViewUtility.getIcon();
@@ -899,7 +904,58 @@ class MenuBar {
             }
         });
 
-        // Middle zone tools
+        // TOGGLE UI
+        this.registerMenubarTool('interface', {
+            icon: "fa-solid fa-sidebar",
+            name: "interface",
+            title: () => {
+                // Dynamic title based on current UI state
+                const isHidden = this.isInterfaceHidden();
+                return isHidden ? "Show UI" : "Hide UI";
+            },
+            tooltip: "Toggle Core Foundry Interface including toolbars, party window, and macros",
+            zone: "left",
+            order: 5,
+            moduleId: "blacksmith-core",
+            onClick: () => {
+                this.toggleInterface();
+            }
+        });
+
+        // **************** MIDDLE ZONE ****************
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // VOTE
         this.registerMenubarTool('vote', {
             icon: "fa-solid fa-check-to-slot",
             name: "vote",
@@ -913,6 +969,12 @@ class MenuBar {
             }
         });
 
+
+
+
+
+
+        // SKILL CHECK
         this.registerMenubarTool('skillcheck', {
             icon: "fa-solid fa-dice",
             name: "skillcheck",
@@ -929,6 +991,7 @@ class MenuBar {
             }
         });
 
+        // REPLACE IMAGE
         this.registerMenubarTool('imagereplace', {
             icon: "fa-solid fa-images",
             name: "imagereplace",
@@ -942,23 +1005,9 @@ class MenuBar {
             }
         });
 
-        this.registerMenubarTool('interface', {
-            icon: "fa-solid fa-sidebar",
-            name: "interface",
-            title: () => {
-                // Dynamic title based on current UI state
-                const isHidden = this.isInterfaceHidden();
-                return isHidden ? "Show UI" : "Hide UI";
-            },
-            tooltip: "Toggle Core Foundry Interface including toolbars, party window, and macros",
-            zone: "middle",
-            order: 4,
-            moduleId: "blacksmith-core",
-            onClick: () => {
-                this.toggleInterface();
-            }
-        });
 
+
+        // XP DISTRIBUTION
         this.registerMenubarTool('xp-distribution', {
             icon: "fas fa-star",
             name: "xp-distribution",
@@ -973,6 +1022,16 @@ class MenuBar {
             }
         });
 
+
+
+
+
+
+
+
+
+
+        // PARTY STATISTICS
         this.registerMenubarTool('party-stats', {
             icon: "fas fa-chart-line",
             name: "party-stats",
@@ -987,6 +1046,13 @@ class MenuBar {
             }
         });
 
+
+
+
+
+
+
+        // CREATE COMBAT
         this.registerMenubarTool('create-combat', {
             icon: "fas fa-swords",
             name: "create-combat",
@@ -1001,11 +1067,12 @@ class MenuBar {
             }
         });
 
+        // COMBAT TRACKER
         this.registerMenubarTool('combat-window', {
             icon: "fas fa-swords",
             name: "combat-window",
-            title: "Toggle Combat Tracker",
-            tooltip: "Toggle the FoundryVTT Combat Tracker window visibility",
+            title: "Show Combat Tracker",
+            tooltip: "Show the FoundryVTT Combat Tracker window visibility",
             zone: "middle",
             order: 8,
             moduleId: "blacksmith-core",
@@ -1020,13 +1087,14 @@ class MenuBar {
             }
         });
 
+        // COMBAT BAR
         this.registerMenubarTool('combat-tracker', {
             icon: "fas fa-swords",
             name: "combat-tracker",
             title: () => {
                 // Dynamic title based on combat bar state
                 const isCombatBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'combat';
-                return isCombatBarOpen ? "Hide Combat Bar" : "Show Combat Bar";
+                return isCombatBarOpen ? "Hide Combat" : "Show Combat";
             },
             tooltip: () => {
                 // Dynamic tooltip based on combat bar state
@@ -1050,13 +1118,14 @@ class MenuBar {
             }
         });
 
+        // PARTY
         this.registerMenubarTool('party', {
             icon: "fas fa-users",
             name: "party",
             title: () => {
                 // Dynamic title based on party bar state
                 const isPartyBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'party';
-                return isPartyBarOpen ? "Hide Party Bar" : "Show Party Bar";
+                return isPartyBarOpen ? "Hide Party" : "Show Party";
             },
             tooltip: () => {
                 // Dynamic tooltip based on party bar state
@@ -1075,11 +1144,19 @@ class MenuBar {
             }
         });
 
+
+
+
         // Map secondary bars to their toggle tools for button state syncing
         this.secondaryBarToolMapping.set('combat', 'combat-tracker');
         this.secondaryBarToolMapping.set('party', 'party');
 
-        // Right zone tools
+
+
+
+        // **************** RIGHT ZONE ****************
+        
+        // SELECT LEADER
         this.registerMenubarTool('leader-section', {
             icon: "fa-solid fa-crown",
             name: "leader-section",
@@ -1095,6 +1172,7 @@ class MenuBar {
             }
         });
 
+        // CHANGE MOVEMENT
         this.registerMenubarTool('movement', {
             icon: "fa-solid fa-person-walking",
             name: "movement",
@@ -1108,6 +1186,7 @@ class MenuBar {
             }
         });
 
+        // SESSION TIMER
         this.registerMenubarTool('timer-section', {
             icon: "fa-solid fa-eclipse",
             name: "timer-section",

@@ -18,7 +18,7 @@
     --blacksmith-menubar-backgroundcolor-middle: rgba(48, 24, 29, 0.9);
     --blacksmith-menubar-backgroundcolor-endzones: rgba(16, 8, 8, 0.9);
     --blacksmith-menubar-border-endzones: 3px solid rgba(48, 24, 29, 0.9);
-    --blacksmith-menubar-backgroundcolor-divider: rgba(255, 255, 255, 0.1);
+    --blacksmith-menubar-backgroundcolor-divider: rgba(255, 255, 255, 0.3);
     --blacksmith-menubar-gap-endzones: 12px;
     
     --blacksmith-menubar-gap-middle: 4px;
@@ -30,9 +30,7 @@
     
     --blacksmith-menubar-secondary-default-height: 0px;
     --blacksmith-menubar-secondary-combat-height: 60px;
-
-    --blacksmith-menubar-secondary-fontsize: .9em;
-    --blacksmith-menubar-secondary-iconsize: 2.6em;
+    
     --blacksmith-menubar-secondary-fontcolor: rgba(240, 240, 224, 0.8);
     --blacksmith-menubar-secondary-buttoncolor: rgba(255, 255, 255, 0.2);
     --blacksmith-menubar-secondary-bordercolor: rgba(255, 255, 255, 0.1);
@@ -486,9 +484,42 @@
 /* ------------------------------------------------------ */
 
 .blacksmith-menubar-secondary {
-    --menubar-secondary-text-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.15);
-    --menubar-secondary-subtext-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.10);
     --blacksmith-menubar-secondary-backgroundcolor: rgba(0, 0, 0, 0.6);
+
+    /* Default toolbar FONT SIZE */
+    --secondary-bar-item-font-size: clamp(
+        12px,
+        calc(var(--blacksmith-menubar-secondary-height) * 0.40),
+        100px
+    );
+
+    /* Default toolbar ICON SIZE - Child of Font Size */
+    --secondary-bar-item-icon-size: clamp(
+        8px,
+        calc(var(--blacksmith-menubar-secondary-height) * 0.40),
+        50px
+    );
+
+    /* Default toolbar HORIZANTAL PADDING */
+    --secondary-bar-item-padding-hor: clamp(
+        6px,
+        calc(var(--blacksmith-menubar-secondary-height) * 0.12),
+        10px
+    );
+    
+    /* Default toolbar VERTICLE PADDING */
+    --secondary-bar-item-padding-ver: clamp(
+        2px,
+        calc(var(--blacksmith-menubar-secondary-height) * 0.1),
+        8px
+    );
+
+    /* Default toolbar GAP between icon and label */
+    --secondary-bar-item-gap: clamp(
+        4px,
+        calc(var(--blacksmith-menubar-secondary-height) * 0.10),
+        12px
+    );
 }
 
 .blacksmith-menubar-secondary {
@@ -507,7 +538,7 @@
     align-items: center;
     padding: 0;
     overflow: hidden;
-    font-size: var(--menubar-secondary-text-font-size);
+    /* Remove base font-size - let items set their own sizes */
 }
 
 /* ---------------------------------------------------- */
@@ -529,15 +560,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 2px 6px;
+    gap: var(--secondary-bar-item-gap);
+    padding: var(--secondary-bar-item-padding-ver) var(--secondary-bar-item-padding-hor) var(--secondary-bar-item-padding-ver) var(--secondary-bar-item-padding-hor);
     background-color: var(--blacksmith-menubar-secondary-buttoncolor);
     border: 1px solid var(--blacksmith-menubar-secondary-bordercolor);
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
     color: var(--blacksmith-menubar-secondary-fontcolor);
-    font-size: var(--blacksmith-menubar-secondary-fontsize);
+    font-size: var(--secondary-bar-item-font-size);
     min-height: calc(var(--blacksmith-menubar-secondary-height) - 12px);
     min-width: calc(var(--blacksmith-menubar-secondary-height) - 12px);
 }
@@ -559,12 +590,13 @@
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item i {
-    font-size: var(--blacksmith-menubar-secondary-iconsize);
+    font-size: var(--secondary-bar-item-icon-size);
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-label {
     white-space: nowrap;
     user-select: none;
+    font-size: var(--secondary-bar-item-font-size); /* Use variable directly to ensure proper sizing */
 }
 
 /* Secondary Bar Group Dividers */
@@ -574,6 +606,14 @@
     background-color: rgba(255, 255, 255, 0.1);
     margin: 0 4px;
 }
+
+
+
+
+
+
+
+
 
 /* ---------------------------------------------------- */
 /* --- SECONDARY MENUBAR: COMBAT TRACKER -------------- */
@@ -707,28 +747,28 @@ Combat Tracker Tunables
 
     .blacksmith-menubar-secondary .combat-portrait-container.combat-token-hidden {
         opacity: 0.8;
-        border: 1px dotted rgba(255, 255, 255, 0.4);
+        border: 1px dotted rgba(14, 11, 11, 0.4);
         background: rgba(255, 255, 255, 0.2);
     }
 
 
 
-  /* =========================
-     Portrait Image
-     ========================= */
-  .blacksmith-menubar-secondary .combat-portrait-image,
-  .blacksmith-menubar-secondary .combat-portrait-healthring {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-  }
-  .blacksmith-menubar-secondary .combat-portrait-healthring {
-    width: var(--healthbar-size);
-    height: var(--healthbar-size);
-    
-  }
+    /* =========================
+        Portrait Image
+    ========================= */
+    .blacksmith-menubar-secondary .combat-portrait-image,
+    .blacksmith-menubar-secondary .combat-portrait-healthring {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+    }
+    .blacksmith-menubar-secondary .combat-portrait-healthring {
+        width: var(--healthbar-size);
+        height: var(--healthbar-size);
+        
+    }
   
     .blacksmith-menubar-secondary .combat-portrait-image {
         overflow: hidden;
@@ -802,32 +842,32 @@ Combat Tracker Tunables
     shape-rendering: geometricPrecision;
   }
   
-  /* Health Ring Colors (match your tracker states) */
-  .blacksmith-menubar-secondary .combat-portrait-ring-healthy   circle { 
-      stroke: #44b428; 
-  }
-  .blacksmith-menubar-secondary .combat-portrait-ring-injured   circle { 
-      stroke: #c09e16; 
-  }
-  .blacksmith-menubar-secondary .combat-portrait-ring-bloodied  circle { 
-      stroke: #c06312; 
-  }
-  .blacksmith-menubar-secondary .combat-portrait-ring-critical  circle { 
-      stroke: #a11c1b; 
-  }
-  .blacksmith-menubar-secondary .combat-portrait-ring-hidden circle {
-    stroke: rgba(61, 39, 41, 0.2);
-  }
+    /* Health Ring Colors (match your tracker states) */
+    .blacksmith-menubar-secondary .combat-portrait-ring-healthy   circle { 
+        stroke:  rgba(68, 180, 40, 0.9);
+    }
+    .blacksmith-menubar-secondary .combat-portrait-ring-injured   circle { 
+        stroke:  rgba(192, 158, 22, 0.9);
+    }
+    .blacksmith-menubar-secondary .combat-portrait-ring-bloodied  circle { 
+        stroke:  rgba(192, 99, 18, 0.9);
+    }
+    .blacksmith-menubar-secondary .combat-portrait-ring-critical  circle { 
+        stroke:  rgba(161, 28, 27, 0.9);
+    }
+    .blacksmith-menubar-secondary .combat-portrait-ring-hidden circle {
+        stroke:  rgba(220, 168, 8, 0.9);
+    }
   
-  /* Dead pulsing */
-  @keyframes blacksmith-pulse-dead {
-    0%   { stroke: #a11c1b; filter: drop-shadow(0 0 1px #a11c1b); }
-    50%  { stroke: #d81010; filter: drop-shadow(0 0 2px #d81010); }
-    100% { stroke: #a11c1b; filter: drop-shadow(0 0 1px #a11c1b); }
-  }
-   .blacksmith-menubar-secondary .combat-portrait-ring-dead circle {
-     animation: blacksmith-pulse-dead 2s ease-in-out infinite;
-}
+    /* Dead pulsing */
+    @keyframes blacksmith-pulse-dead {
+        0%   { stroke: #a11c1b; filter: drop-shadow(0 0 1px #a11c1b); }
+        50%  { stroke: #d81010; filter: drop-shadow(0 0 2px #d81010); }
+        100% { stroke: #a11c1b; filter: drop-shadow(0 0 1px #a11c1b); }
+    }
+    .blacksmith-menubar-secondary .combat-portrait-ring-dead circle {
+        animation: blacksmith-pulse-dead 2s ease-in-out infinite;
+    }
 
  
 /* =========================
