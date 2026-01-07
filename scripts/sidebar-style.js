@@ -62,6 +62,9 @@ export class SidebarStyle {
     static _applySidebarStyle() {
         const isEnabled = getSettingSafely(MODULE.ID, 'sidebarStyleUI', false);
         const sidebar = document.getElementById('sidebar');
+        const sidebarTabs = document.getElementById('sidebar-tabs');
+        const chatControls = document.getElementById('chat-controls');
+        const rollPrivacy = document.getElementById('roll-privacy');
         
         if (!sidebar) {
             // Sidebar not found yet, try again after a delay
@@ -73,8 +76,26 @@ export class SidebarStyle {
 
         if (isEnabled) {
             sidebar.classList.add(this.styleClass);
+            if (sidebarTabs) {
+                sidebarTabs.classList.add(this.styleClass);
+            }
+            if (chatControls) {
+                chatControls.classList.add(this.styleClass);
+            }
+            if (rollPrivacy && rollPrivacy.classList.contains('vertical')) {
+                rollPrivacy.classList.add(this.styleClass);
+            }
         } else {
             sidebar.classList.remove(this.styleClass);
+            if (sidebarTabs) {
+                sidebarTabs.classList.remove(this.styleClass);
+            }
+            if (chatControls) {
+                chatControls.classList.remove(this.styleClass);
+            }
+            if (rollPrivacy) {
+                rollPrivacy.classList.remove(this.styleClass);
+            }
         }
     }
 }

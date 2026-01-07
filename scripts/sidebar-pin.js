@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, getSettingSafely, setSettingSafely } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely, setSettingSafely, playSound } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 
 export class SidebarPin {
@@ -172,10 +172,16 @@ export class SidebarPin {
             return;
         }
 
-        // Find the parent list item of the collapse button
-        const collapseButtonParent = this.collapseButton.closest('li');
-        if (!collapseButtonParent) {
-            postConsoleAndNotification(MODULE.NAME, "Sidebar Pin: Could not find collapse button parent", "", false, false);
+        // Find the chat button's parent list item (first button in the sidebar)
+        const chatButton = document.querySelector('button[data-action="tab"][data-tab="chat"]');
+        if (!chatButton) {
+            postConsoleAndNotification(MODULE.NAME, "Sidebar Pin: Could not find chat button", "", false, false);
+            return;
+        }
+
+        const chatButtonParent = chatButton.closest('li');
+        if (!chatButtonParent) {
+            postConsoleAndNotification(MODULE.NAME, "Sidebar Pin: Could not find chat button parent", "", false, false);
             return;
         }
 
@@ -198,8 +204,8 @@ export class SidebarPin {
         // Append button to list item
         pinButtonLi.appendChild(pinButton);
         
-        // Insert after the collapse button's parent
-        collapseButtonParent.insertAdjacentElement('afterend', pinButtonLi);
+        // Insert before the chat button's parent (at the top)
+        chatButtonParent.insertAdjacentElement('beforebegin', pinButtonLi);
         
         this.pinButton = pinButton;
     }
@@ -273,6 +279,11 @@ export class SidebarPin {
     static async _setPinState(isPinned) {
         await setSettingSafely(MODULE.ID, 'sidebarPinUI', isPinned);
         this._updatePinUI(isPinned);
+        
+        // Play sound when pinning or unpinning
+        if (COFFEEPUB?.SOUNDPOP02) {
+            playSound(COFFEEPUB.SOUNDPOP02, COFFEEPUB.SOUNDVOLUMESOFT || 0.5, false, false);
+        }
         
         if (isPinned) {
             // When pinning: ensure sidebar is expanded by triggering Foundry's expand if needed

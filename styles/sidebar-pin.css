@@ -4,26 +4,37 @@
 
 /* Pin button styling */
 .blacksmith-sidebar-pin {
-    color: var(--color-text-light-5);
+    color: rgba(255, 255, 255, 1.0);
     transition: all 0.2s ease;
+    background-color: rgba(255, 255, 255, 0.0);
+    border: 0px solid var(--color-text-primary);
+    text-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+    transform: rotate(90deg);
 }
 
 .blacksmith-sidebar-pin:hover {
-    color: var(--color-text-light-0);
+    color: rgba(201, 89, 63, 1.0);
+    transform: rotate(45deg);
+    text-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+    border: 0px solid var(--color-text-primary);
 }
 
 .blacksmith-sidebar-pin.pinned {
-    color: var(--color-text-primary);
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid var(--color-text-primary);
+    color: rgba(255, 255, 255, 1.0) !important;
+    opacity: 1 !important;
+    background-color: rgba(255, 255, 255, 0.0);
+    border: 0px solid var(--color-text-primary);
     border-radius: 3px;
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+    transform: rotate(0deg);
 }
 
 .blacksmith-sidebar-pin.pinned:hover {
-    color: var(--color-text-primary);
-    background-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+    color: rgba(201, 89, 63, 1.0);
+    transform: rotate(-45deg);
+    background-color: rgba(255, 255, 255, 0.0);
+    text-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+    border: 0px solid var(--color-text-primary);
     opacity: 1;
 }
 

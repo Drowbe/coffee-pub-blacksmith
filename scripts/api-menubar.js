@@ -2410,7 +2410,7 @@ class MenuBar {
             
             // Update button states: deactivate previous bar's button, activate new bar's button
             this._syncSecondaryBarButtonStates(previousType, typeId);
-            this.secondaryBar.height = options.height || this.getSecondaryBarHeight(typeId);
+            this.secondaryBar.height = options.height || barType.height || this.getSecondaryBarHeight(typeId);
             this.secondaryBar.persistence = options.persistence || barType.persistence;
             this.secondaryBar.data = options.data || {};
 

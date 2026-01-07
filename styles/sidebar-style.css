@@ -4,28 +4,47 @@
 
 /* These styles are applied conditionally via JavaScript when sidebarStyleUI setting is enabled */
 
-.blacksmith-sidebar-styled #sidebar {
-    background: rgba(0, 0, 0, 0.5);   
-    padding: 4px 12px 2px 4px;
-    border-radius: 10px 0px 0px 10px;
+#sidebar.blacksmith-sidebar-styled {
+    background: rgba(0, 0, 0, 0.8) !important; 
+    padding: 4px 0px 2px 4px;
+    border-radius: 8px 0px 0px 8px;
 }
 
-.blacksmith-sidebar-styled #sidebar-tabs {
-    background: rgba(255, 255, 255, 0.4);
-    padding: 12px 4px 12px 4px;
-    margin: 0 16px 0 0;
+#sidebar-tabs.blacksmith-sidebar-styled {
+    background: rgba(0, 0, 0, 0.0) !important;
+    padding: 8px 12px 8px 8px;
+    margin: 0 0px 0 0;
     border-radius: 10px 0 0 10px;
-    height: 100%;
+    height: auto;
 
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
 }
 
+/* CHAT BOX STYLES */
+
 .blacksmith-sidebar-styled .chat-form {
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(0, 0, 0, 0.2);
     padding: 6px 6px 6px 6px;
-    border-radius: 6px 6px 6px 6px;
+    border-radius: 6px 0px 0px 6px;
 }
 
+#chat-controls.blacksmith-sidebar-styled #roll-privacy.vertical {
+    margin: 0px 0px 12px 12px;
+    gap: 4px;
+    border: 0px solid rgba(0, 0, 0, 0.9);
+}
+#chat-controls.blacksmith-sidebar-styled #roll-privacy.vertical .ui-control.icon {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+#chat-controls.blacksmith-sidebar-styled 
+#roll-privacy.vertical 
+.ui-control.icon[aria-pressed="true"] {
+    background: rgba(201, 89, 63, 0.2);
+    border: 1px solid rgba(201, 89, 63, 0.9);
+    border-radius: 3px;
+}
