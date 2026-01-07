@@ -376,7 +376,9 @@ export async function deployTokens(actorUUIDs, options = {}) {
             let tooltipContent = '';
             
             if (options.getTooltipContent) {
-                tooltipContent = options.getTooltipContent(actorUUIDs.length, patternName);
+                // Handle both async and sync getTooltipContent functions
+                const result = options.getTooltipContent(actorUUIDs.length, patternName);
+                tooltipContent = result instanceof Promise ? await result : result;
             } else {
                 tooltipContent = `
                     <div class="monster-name">Deploying Tokens</div>
@@ -665,7 +667,21 @@ export async function deployTokensSequential(actorUUIDs, options = {}) {
                         await worldActor.update({ prototypeToken: prototypeTokenData });
                     }
                     
-                    actors.push(worldActor);
+                    // Always refresh the actor from the world collection to ensure it's fully synced
+                    // This is especially important after Actor.create() or update()
+                    if (worldActor?.id) {
+                        const refreshedActor = game.actors.get(worldActor.id);
+                        if (refreshedActor) {
+                            worldActor = refreshedActor;
+                        }
+                    }
+                    
+                    // Ensure we have a valid actor with a name before adding to array
+                    if (worldActor && typeof worldActor.name === 'string') {
+                        actors.push(worldActor);
+                    } else {
+                        postConsoleAndNotification(MODULE.NAME, `Token API: Actor missing name property, skipping`, worldActor?.id || 'unknown', true, false);
+                    }
                 }
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Token API: Error preparing actor ${uuid}`, error, true, false);
@@ -680,7 +696,28 @@ export async function deployTokensSequential(actorUUIDs, options = {}) {
         // Now place tokens one by one
         for (let i = 0; i < actors.length; i++) {
             const actor = actors[i];
-            const actorName = actor.name;
+            
+            // Ensure we have a fresh reference and get the name
+            // Refresh from world collection to ensure all properties are synced
+            let currentActor = actor;
+            if (actor?.id) {
+                const freshActor = game.actors.get(actor.id);
+                if (freshActor) {
+                    currentActor = freshActor;
+                }
+            }
+            
+            // Get actor name - ensure it's a string, not a Promise
+            let actorName = currentActor?.name;
+            if (typeof actorName !== 'string') {
+                // If name is not a string, try to get it from the actor's data
+                actorName = currentActor?.system?.name || currentActor?.data?.name || 'Unknown Actor';
+            }
+            
+            // Final fallback
+            if (!actorName || typeof actorName !== 'string') {
+                actorName = 'Unknown Actor';
+            }
             
             // Update tooltip content
             let tooltipContent = '';
@@ -770,4 +807,5 @@ export async function deployTokensSequential(actorUUIDs, options = {}) {
         canvas.stage.cursor = 'default';
     }
 }
+
 
