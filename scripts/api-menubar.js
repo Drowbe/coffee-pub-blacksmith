@@ -1155,7 +1155,7 @@ class MenuBar {
 
         // Register party secondary bar (default tool system)
         await this.registerSecondaryBarType('party', {
-            height: 50,
+            height: 30,
             persistence: 'manual'
         });
 
