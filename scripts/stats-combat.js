@@ -2477,13 +2477,16 @@ class CombatStats {
             return;
         }
 
+        // Collect all message promises to send them simultaneously
+        const messagePromises = [];
+
         // 2. Round Summary Card
         if (templateData.settings.showRoundSummary) {
             const summaryContent = await foundry.applications.handlebars.renderTemplate(
                 'modules/' + MODULE.ID + '/templates/card-stats-round-summary.hbs',
                 templateData
             );
-            await ChatMessage.create({ content: summaryContent, whisper, speaker });
+            messagePromises.push(ChatMessage.create({ content: summaryContent, whisper, speaker }));
         }
 
         // 3. Round MVP Card
@@ -2492,7 +2495,7 @@ class CombatStats {
                 'modules/' + MODULE.ID + '/templates/card-stats-round-mvp.hbs',
                 templateData
             );
-            await ChatMessage.create({ content: mvpContent, whisper, speaker });
+            messagePromises.push(ChatMessage.create({ content: mvpContent, whisper, speaker }));
         }
 
         // 4. Notable Moments Card
@@ -2501,7 +2504,7 @@ class CombatStats {
                 'modules/' + MODULE.ID + '/templates/card-stats-round-moments.hbs',
                 templateData
             );
-            await ChatMessage.create({ content: momentsContent, whisper, speaker });
+            messagePromises.push(ChatMessage.create({ content: momentsContent, whisper, speaker }));
         }
 
         // 5. Party Breakdown Card
@@ -2510,8 +2513,11 @@ class CombatStats {
                 'modules/' + MODULE.ID + '/templates/card-stats-round-breakdown.hbs',
                 templateData
             );
-            await ChatMessage.create({ content: breakdownContent, whisper, speaker });
+            messagePromises.push(ChatMessage.create({ content: breakdownContent, whisper, speaker }));
         }
+
+        // Send all messages simultaneously
+        await Promise.all(messagePromises);
     }
 
     static async generateRoundSummary(templateData) {
@@ -2757,6 +2763,9 @@ class CombatStats {
             participantsCount: templateData.participants?.length || 0
         }, true, false);
 
+        // Collect all message promises to send them simultaneously
+        const messagePromises = [];
+
         // 1. Combat Summary Card
         if (templateData.settings.showCombatSummary) {
             try {
@@ -2764,7 +2773,7 @@ class CombatStats {
                     'modules/' + MODULE.ID + '/templates/card-stats-combat-summary.hbs',
                     templateData
                 );
-                await ChatMessage.create({ content: summaryContent, whisper, speaker });
+                messagePromises.push(ChatMessage.create({ content: summaryContent, whisper, speaker }));
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, 'Error rendering combat summary card', error, false, false);
             }
@@ -2777,7 +2786,7 @@ class CombatStats {
                     'modules/' + MODULE.ID + '/templates/card-stats-combat-mvp.hbs',
                     templateData
                 );
-                await ChatMessage.create({ content: mvpContent, whisper, speaker });
+                messagePromises.push(ChatMessage.create({ content: mvpContent, whisper, speaker }));
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, 'Error rendering combat MVP card', error, false, false);
             }
@@ -2790,7 +2799,7 @@ class CombatStats {
                     'modules/' + MODULE.ID + '/templates/card-stats-combat-moments.hbs',
                     templateData
                 );
-                await ChatMessage.create({ content: momentsContent, whisper, speaker });
+                messagePromises.push(ChatMessage.create({ content: momentsContent, whisper, speaker }));
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, 'Error rendering combat notable moments card', error, false, false);
             }
@@ -2803,11 +2812,14 @@ class CombatStats {
                     'modules/' + MODULE.ID + '/templates/card-stats-combat-breakdown.hbs',
                     templateData
                 );
-                await ChatMessage.create({ content: breakdownContent, whisper, speaker });
+                messagePromises.push(ChatMessage.create({ content: breakdownContent, whisper, speaker }));
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, 'Error rendering combat party breakdown card', error, false, false);
             }
         }
+
+        // Send all messages simultaneously
+        await Promise.all(messagePromises);
     }
 
     // Add new method to track notable moments
