@@ -6,8 +6,9 @@
 
 :root {
     
-    /* PRIMARY BAR VARIABLES */
+    /* ----- PRIMARY BAR VARIABLES ----- */
     
+    /* Menubar Container */
     --blacksmith-menubar-primary-height: 26px;
     --blacksmith-menubar-secondary-height: 0px;
     --blacksmith-menubar-total-height: calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height));
@@ -15,18 +16,30 @@
     --blacksmith-menubar-interface-offset: calc(var(--blacksmith-menubar-total-height) + 2px);
     --blacksmith-menubar-divider-height: calc(var(--blacksmith-menubar-primary-height) - 12px);
 
+    
     --blacksmith-menubar-backgroundcolor-middle: rgba(48, 24, 29, 0.9);
     --blacksmith-menubar-backgroundcolor-endzones: rgba(16, 8, 8, 0.9);
     --blacksmith-menubar-border-endzones: 3px solid rgba(48, 24, 29, 0.9);
     --blacksmith-menubar-backgroundcolor-divider: rgba(255, 255, 255, 0.3);
     --blacksmith-menubar-gap-endzones: 12px;
     
+
     --blacksmith-menubar-gap-middle: 4px;
     --blacksmith-menubar-fontsize: .9em;
     --blacksmith-menubar-iconsize: .85em;
     --blacksmith-menubar-fontcolor: rgba(240, 240, 224, 0.8);
+
+    /* Buttons */
+    --blacksmith-menubar-middle-buttoncolor: rgba(21, 9, 1, 0.9);
+    --blacksmith-menubar-middle-bordercolor: rgba(255, 255, 255, 0.1);
+    --blacksmith-menubar-middle-color: rgba(240, 240, 224, 0.9);
+    --blacksmith-menubar-middle-hover-buttoncolor: rgba(97, 41, 4, 0.4);
+    --blacksmith-menubar-middle-hover-color: rgba(255, 100, 0, 0.7);
+    --blacksmith-menubar-middle-active-buttoncolor: rgba(124, 62, 10, 0.8);
+    --blacksmith-menubar-middle-active-bordercolor: rgba(0, 0, 0, 0.1);
+    --blacksmith-menubar-middle-active-hover-buttoncolor: rgba(48, 24, 29, 1);
     
-    /* SECONDARY BAR VARIABLES */
+    /* ----- SECONDARY BAR VARIABLES ----- */
     
     --blacksmith-menubar-secondary-default-height: 0px;
     --blacksmith-menubar-secondary-combat-height: 60px;
@@ -186,6 +199,7 @@
 
 /* MIDDLE BUTTONS */
 
+
 /* Base styles for all tools */
 .blacksmith-menubar-middle .button-active, 
 .blacksmith-menubar-middle .tool-readonly {
@@ -195,13 +209,14 @@
     border-radius: 4px;
     padding:  2px 8px 2px 8px;
     position: relative;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--blacksmith-menubar-middle-buttoncolor);
+    border: 1px solid var(--blacksmith-menubar-middle-bordercolor);
     background-clip: padding-box;
     white-space: nowrap;
 }
 .blacksmith-menubar-middle .button-active i, 
 .blacksmith-menubar-middle .tool-readonly i {
-    color: rgba(240, 240, 224, 0.9);
+    color: var(--blacksmith-menubar-middle-color);
     margin: 0px 4px 0px 0px;
 }
 
@@ -214,19 +229,19 @@
 .blacksmith-menubar-middle .button-active:hover,
 .blacksmith-menubar-middle .button-active:hover i,
 .blacksmith-menubar-middle .button-active:hover span {
-    color: rgba(255, 100, 0, 0.9);
+    color: var(--blacksmith-menubar-middle-hover-color);
     cursor: pointer;
-    background: rgba(0, 0, 0, 0.8);
+    background: var(--blacksmith-menubar-middle-hover-buttoncolor);
 }
 
 /* Active state for toggleable tools in middle zone */
 .blacksmith-menubar-middle .button-active.tool-active {
-    background-color: rgba(48, 24, 29, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background-color: var(--blacksmith-menubar-middle-active-buttoncolor);
+    border: 1px solid var(--blacksmith-menubar-middle-active-bordercolor);
 }
 
 .blacksmith-menubar-middle .button-active.tool-active:hover {
-    background-color: rgba(48, 24, 29, 1);
+    background-color: var(--blacksmith-menubar-middle-active-hover-buttoncolor);
 }
 
 /* RIGHT BUTTONS */

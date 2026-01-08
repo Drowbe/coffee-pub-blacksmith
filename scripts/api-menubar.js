@@ -861,7 +861,9 @@ class MenuBar {
             },
             toggleable: false,
             active: false,
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
 
         // REFRESH
@@ -885,7 +887,9 @@ class MenuBar {
             },
             toggleable: false,
             active: false,
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
 
         // TOGGLE UI
@@ -911,7 +915,9 @@ class MenuBar {
             visible: true,
             toggleable: false,
             active: false,
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
 
         // QUICKVIEW
@@ -967,7 +973,9 @@ class MenuBar {
             },
             toggleable: false,
             active: false,
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
 
         // **************** MIDDLE ZONE ****************
@@ -995,7 +1003,9 @@ class MenuBar {
             visible: true,
             toggleable: false,
             active: false,
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
 
         // COMBAT TRACKER
@@ -1021,7 +1031,9 @@ class MenuBar {
             },
             toggleable: false,
             active: false,
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
 
         // COMBAT BAR
@@ -1078,7 +1090,9 @@ class MenuBar {
             visible: true,
             toggleable: false,
             active: false,
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
 
 
@@ -1106,7 +1120,9 @@ class MenuBar {
             },
             toggleable: false,
             active: false,
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
 
         // REPLACE IMAGE
@@ -1128,7 +1144,9 @@ class MenuBar {
             visible: true,
             toggleable: false,
             active: false,
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
 
 
@@ -1154,7 +1172,9 @@ class MenuBar {
             visible: true,
             toggleable: false,
             active: false,
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
 
         // PARTY
@@ -1207,7 +1227,9 @@ class MenuBar {
             visible: true,
             toggleable: false,
             active: false,
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
 
         // *** GROUP: GENERAL (Default/overflow group)***
@@ -1249,7 +1271,9 @@ class MenuBar {
             visible: false,
             toggleable: false,
             active: false,
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
 
         // CHANGE MOVEMENT
@@ -1271,7 +1295,9 @@ class MenuBar {
             visible: false,
             toggleable: false,
             active: false,
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
 
         // SESSION TIMER
@@ -1295,7 +1321,9 @@ class MenuBar {
             visible: false,
             toggleable: false,
             active: false,
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
         
         // Reset flag and render once after all tools are registered
@@ -1519,7 +1547,9 @@ class MenuBar {
                 visible: toolData.visible !== undefined ? toolData.visible : true,
                 toggleable: toolData.toggleable || false,
                 active: toolData.active || false,
-                iconColor: toolData.iconColor || null
+                iconColor: toolData.iconColor || null,
+                buttonNormalTint: toolData.buttonNormalTint || null,  // RGBA string: "255, 122, 120, 0.9"
+                buttonSelectedTint: toolData.buttonSelectedTint || null  // RGBA string: "255, 122, 120, 0.9"
             };
 
             // Register the tool
@@ -1692,12 +1722,24 @@ class MenuBar {
                     activeState = tool.active || false;
                 }
                 
+                // Convert RGBA strings to CSS rgba() format for template
+                let normalTintStyle = '';
+                let selectedTintStyle = '';
+                if (tool.buttonNormalTint) {
+                    normalTintStyle = `rgba(${tool.buttonNormalTint})`;
+                }
+                if (tool.buttonSelectedTint) {
+                    selectedTintStyle = `rgba(${tool.buttonSelectedTint})`;
+                }
+                
                 const processedTool = {
                     toolId,
                     ...tool,
                     title: typeof tool.title === 'function' ? tool.title() : tool.title,
                     tooltip: typeof tool.tooltip === 'function' ? tool.tooltip() : tool.tooltip,
-                    active: activeState
+                    active: activeState,
+                    buttonNormalTintStyle: normalTintStyle,
+                    buttonSelectedTintStyle: selectedTintStyle
                 };
                 
                 // Initialize zone/group/module structure if needed
