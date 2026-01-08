@@ -6,7 +6,7 @@
         {{#each toolsByZone.left}}
             {{#each this}}
                 {{#each tools}}
-                <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}"{{#if buttonNormalTintStyle}} style="--button-normal-tint: {{buttonNormalTintStyle}};"{{/if}}{{#if buttonSelectedTintStyle}} data-selected-tint="{{buttonSelectedTintStyle}}"{{/if}}>
+                <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}"{{#if (or buttonNormalTint buttonSelectedTint)}} style="{{#if buttonNormalTint}}--button-normal-tint: {{buttonNormalTint}};{{/if}}{{#if buttonSelectedTint}} --button-selected-tint: {{buttonSelectedTint}};{{/if}}"{{/if}}>
                     <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
                     {{#if (eq name "settings")}}
                     {{else if (eq name "refresh")}}
@@ -24,7 +24,7 @@
         {{#each toolsByZone.middle}}
             {{#each this}}
                 {{#each tools}}
-                <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}"{{#if buttonNormalTintStyle}} style="--button-normal-tint: {{buttonNormalTintStyle}};"{{/if}}{{#if buttonSelectedTintStyle}} data-selected-tint="{{buttonSelectedTintStyle}}"{{/if}}>
+                <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}"{{#if (or buttonNormalTint buttonSelectedTint)}} style="{{#if buttonNormalTint}}--button-normal-tint: {{buttonNormalTint}};{{/if}}{{#if buttonSelectedTint}} --button-selected-tint: {{buttonSelectedTint}};{{/if}}"{{/if}}>
                     <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
                     <span class="{{name}}-label">{{title}}</span>
                 </div>

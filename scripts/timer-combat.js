@@ -510,6 +510,10 @@ class CombatTimer {
         // Skip if combat doesn't exist (combat might have been deleted)
         if (!combat || !game.combats.has(combat.id)) return;
 
+        // Only process timer logic when combat is actually started
+        // This prevents timers from starting during combat creation
+        if (!combat.started) return;
+
         // Handle round changes first - detect by explicit round property change or using our tracking
         const isRoundChanged = ("round" in changed) || (combat.round > 0 && combat.round !== this._lastProcessedRound);
         

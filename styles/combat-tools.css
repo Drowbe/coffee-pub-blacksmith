@@ -144,6 +144,11 @@ body:not(.gm) #combat-tracker .combatant {
     animation: pulse-dead 2s ease-in-out infinite;
 }
 
+/* Player Ring - Solid ring for non-GM users */
+.health-ring-player circle {
+    stroke: rgba(247, 243, 232, 0.3);
+}
+
 .token-initiative {
     position: relative;
 }

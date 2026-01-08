@@ -901,7 +901,7 @@ class MenuBar {
                 const isHidden = this.isInterfaceHidden();
                 return isHidden ? "" : "";
             },
-            tooltip: "Toggle Core Foundry Interface including toolbars, party window, and macros",
+            tooltip: "Hide/Show Core Foundry Interface including toolbars, party window, and macros",
             onClick: () => {
                 this.toggleInterface();
             },
@@ -947,7 +947,9 @@ class MenuBar {
             active: () => {
                 return QuickViewUtility.isActive();
             },
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
 
         // MEMORY MONITOR
@@ -989,7 +991,7 @@ class MenuBar {
             icon: "fas fa-swords",
             name: "create-combat",
             title: "Create Combat",
-            tooltip: "Create combat encounter with selected tokens or all tokens on canvas",
+            tooltip: "Create combat encounter with selected or all tokens on canvas",
             onClick: () => {
                 this.createCombat();
             },
@@ -1003,6 +1005,43 @@ class MenuBar {
             visible: true,
             toggleable: false,
             active: false,
+            iconColor: " rgba(255, 255, 255, 0.6)",
+            buttonNormalTint: "rgba(194, 41, 17, 0.9)",
+            buttonSelectedTint: null
+        });
+
+        // COMBAT BAR
+        this.registerMenubarTool('combat-tracker', {
+            icon: "fas fa-swords",
+            name: "combat-tracker",
+            title: () => {
+                // Dynamic title based on combat bar state
+                const isCombatBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'combat';
+                return isCombatBarOpen ? "Combat Bar" : "Combat Bar";
+            },
+            tooltip: () => {
+                // Dynamic tooltip based on combat bar state
+                const isCombatBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'combat';
+                return isCombatBarOpen ? "Hide combat tracker secondary bar" : "Show combat tracker secondary bar";
+            },
+            onClick: () => {
+                // Toggle the combat bar - active state is synced in openCombatBar/closeCombatBar
+                this.toggleSecondaryBar('combat');
+            },
+            zone: "middle",
+            group: "combat",
+            groupOrder: this.GROUP_ORDER.COMBAT,
+            order: 2,
+            moduleId: "blacksmith-core",
+            gmOnly: false,
+            leaderOnly: false,
+            visible: () => {
+                // Show if there's an active combat OR if there are combatants in any combat
+                const activeCombat = game.combats.active;
+                return activeCombat !== null && activeCombat !== undefined && activeCombat.combatants.size > 0;
+            },
+            toggleable: true,
+            active: false,
             iconColor: null,
             buttonNormalTint: null,
             buttonSelectedTint: null
@@ -1012,15 +1051,15 @@ class MenuBar {
         this.registerMenubarTool('combat-window', {
             icon: "fas fa-swords",
             name: "combat-window",
-            title: "Show Combat Tracker",
-            tooltip: "Show the FoundryVTT Combat Tracker window visibility",
+            title: "Combat Tracker",
+            tooltip: "Show the FoundryVTT Combat Tracker window",
             onClick: () => {
                 this.toggleCombatTracker();
             },
             zone: "middle",
             group: "combat",
             groupOrder: this.GROUP_ORDER.COMBAT,
-            order: 2,
+            order: 3,
             moduleId: "blacksmith-core",
             gmOnly: false,
             leaderOnly: false,
@@ -1036,40 +1075,7 @@ class MenuBar {
             buttonSelectedTint: null
         });
 
-        // COMBAT BAR
-        this.registerMenubarTool('combat-tracker', {
-            icon: "fas fa-swords",
-            name: "combat-tracker",
-            title: () => {
-                // Dynamic title based on combat bar state
-                const isCombatBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'combat';
-                return isCombatBarOpen ? "Hide Combat" : "Show Combat";
-            },
-            tooltip: () => {
-                // Dynamic tooltip based on combat bar state
-                const isCombatBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'combat';
-                return isCombatBarOpen ? "Hide combat tracker secondary bar" : "Show combat tracker secondary bar";
-            },
-            onClick: () => {
-                // Toggle the combat bar - active state is synced in openCombatBar/closeCombatBar
-                this.toggleSecondaryBar('combat');
-            },
-            zone: "middle",
-            group: "combat",
-            groupOrder: this.GROUP_ORDER.COMBAT,
-            order: 3,
-            moduleId: "blacksmith-core",
-            gmOnly: false,
-            leaderOnly: false,
-            visible: () => {
-                // Show if there's an active combat OR if there are combatants in any combat
-                const activeCombat = game.combats.active;
-                return activeCombat !== null && activeCombat !== undefined && activeCombat.combatants.size > 0;
-            },
-            toggleable: true,
-            active: false,
-            iconColor: null
-        });
+        
 
         // XP DISTRIBUTION
         this.registerMenubarTool('xp-distribution', {
@@ -1153,30 +1159,6 @@ class MenuBar {
         // *** GROUP: PARTY ***
 
 
-        // PARTY STATISTICS
-        this.registerMenubarTool('party-stats', {
-            icon: "fas fa-chart-line",
-            name: "party-stats",
-            title: "Party Statistics",
-            tooltip: "Open combat history and MVP leaderboard",
-            onClick: () => {
-                this.openStatsWindow();
-            },
-            zone: "middle",
-            group: "party",
-            groupOrder: this.GROUP_ORDER.COMBAT,
-            order: 1,
-            moduleId: "blacksmith-core",
-            gmOnly: false,
-            leaderOnly: false,
-            visible: true,
-            toggleable: false,
-            active: false,
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
-
         // PARTY
         this.registerMenubarTool('party', {
             icon: "fas fa-users",
@@ -1198,14 +1180,41 @@ class MenuBar {
             zone: "middle",
             group: "party",
             groupOrder: this.GROUP_ORDER.PARTY,
-            order: 2,
+            order: 1,
             moduleId: "blacksmith-core",
             gmOnly: false,
             leaderOnly: true,
             visible: true,
             toggleable: true,
             active: false,
-            iconColor: null
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
+        });
+
+        
+        // PARTY STATISTICS
+        this.registerMenubarTool('party-stats', {
+            icon: "fas fa-chart-line",
+            name: "party-stats",
+            title: "Party Statistics",
+            tooltip: "Open combat history and MVP leaderboard",
+            onClick: () => {
+                this.openStatsWindow();
+            },
+            zone: "middle",
+            group: "party",
+            groupOrder: this.GROUP_ORDER.COMBAT,
+            order: 2,
+            moduleId: "blacksmith-core",
+            gmOnly: false,
+            leaderOnly: false,
+            visible: true,
+            toggleable: false,
+            active: false,
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
         });
 
         // VOTE
@@ -1547,9 +1556,9 @@ class MenuBar {
                 visible: toolData.visible !== undefined ? toolData.visible : true,
                 toggleable: toolData.toggleable || false,
                 active: toolData.active || false,
-                iconColor: toolData.iconColor || null,
-                buttonNormalTint: toolData.buttonNormalTint || null,  // RGBA string: "255, 122, 120, 0.9"
-                buttonSelectedTint: toolData.buttonSelectedTint || null  // RGBA string: "255, 122, 120, 0.9"
+                iconColor: toolData.iconColor || null,  // Any valid CSS color (e.g., "#ff0000", "rgba(255, 0, 0, 0.8)", "red")
+                buttonNormalTint: toolData.buttonNormalTint || null,  // Any valid CSS color (e.g., "#ff0000", "rgba(255, 0, 0, 0.8)", "red")
+                buttonSelectedTint: toolData.buttonSelectedTint || null  // Any valid CSS color (e.g., "#ff0000", "rgba(255, 0, 0, 0.8)", "red")
             };
 
             // Register the tool
@@ -1722,24 +1731,12 @@ class MenuBar {
                     activeState = tool.active || false;
                 }
                 
-                // Convert RGBA strings to CSS rgba() format for template
-                let normalTintStyle = '';
-                let selectedTintStyle = '';
-                if (tool.buttonNormalTint) {
-                    normalTintStyle = `rgba(${tool.buttonNormalTint})`;
-                }
-                if (tool.buttonSelectedTint) {
-                    selectedTintStyle = `rgba(${tool.buttonSelectedTint})`;
-                }
-                
                 const processedTool = {
                     toolId,
                     ...tool,
                     title: typeof tool.title === 'function' ? tool.title() : tool.title,
                     tooltip: typeof tool.tooltip === 'function' ? tool.tooltip() : tool.tooltip,
-                    active: activeState,
-                    buttonNormalTintStyle: normalTintStyle,
-                    buttonSelectedTintStyle: selectedTintStyle
+                    active: activeState
                 };
                 
                 // Initialize zone/group/module structure if needed

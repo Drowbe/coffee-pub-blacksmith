@@ -484,3 +484,22 @@
 .round-stat-detail {
     font-size: 0.7em;
 }
+
+/* party footer */
+.party-timing-stats .timing-stat {
+    background: rgba(162, 157, 154, 0.2);
+    border: 1px solid rgba(162, 157, 154, 0.1);
+    padding: 2px 4px 2px 4px;
+    border-radius: 4px;
+}
+.party-timing-stats .timing-stat .label {
+    font-size: .85em;
+    color: rgba(159, 150, 141, 0.9);
+    padding: 0px 2px 0px 2px;
+}
+.party-timing-stats .timing-stat .value{
+    font-size: .85em;
+    font-weight: 900;
+    color: rgba(89, 74, 60, 0.9);
+    padding: 0px 2px 0px 2px;
+}

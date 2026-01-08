@@ -238,46 +238,11 @@ Hooks.once('ready', () => {
 
             // Only create health ring if the setting is enabled
             if (getSettingSafely(MODULE.ID, 'combatTrackerShowHealthBar', false)) {
-                // Check if we should hide NPC health rings for non-GM users
-                const hideNpcHealthSetting = getSettingSafely(MODULE.ID, 'combatTrackerHideHealthBars', false);
-                const hideNpcHealth = hideNpcHealthSetting && !game.user.isGM;
-                const isNpc = !actor.hasPlayerOwner;
-                
-                // Skip creating health ring if hiding NPC health and this is an NPC
-                if (hideNpcHealth && isNpc) {
-                    // Remove any existing health ring container
-                    const existingContainer = element.querySelector('.health-ring-container');
-                    if (existingContainer) {
-                        existingContainer.remove();
-                    }
-                    return; // Skip to next combatant
-                }
-                
-                // Calculate health percentage
-                const hp = actor.system.attributes.hp;
-                const currentHP = hp.value;
-                const maxHP = hp.max;
-                
-                // Get health color based on percentage
-                const getHealthClass = (percent, currentHP) => {
-                    if (currentHP <= 0) return 'health-ring-dead';
-                    if (percent >= 75) return 'health-ring-healthy';
-                    if (percent >= 50) return 'health-ring-injured';
-                    if (percent >= 25) return 'health-ring-bloodied';
-                    return 'health-ring-critical';
-                };
-
                 // Fixed dimensions for the ring
                 const size = 40; // Ring size
                 const strokeWidth = 2;
                 const radius = 19; // (40 - 2) / 2
                 const circumference = 2 * Math.PI * radius;
-                
-                // When dead (HP <= 0), show full ring, otherwise calculate normally
-                const healthPercent = Math.max(0, Math.min(100, (currentHP / maxHP) * 100));
-                const dashOffset = currentHP <= 0 ? 0 : circumference - (healthPercent / 100) * circumference;
-                
-                const healthClass = getHealthClass(healthPercent, currentHP);
 
                 // Create container div if it doesn't exist (v13: native DOM)
                 // Insert it right before the token image to ensure proper stacking
@@ -293,45 +258,133 @@ Hooks.once('ready', () => {
                     }
                 }
 
-                // Create SVG for health ring (v13: native DOM)
-                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                svg.setAttribute('width', size);
-                svg.setAttribute('height', size);
-                // SVG elements use setAttribute for class, not className property
-                svg.setAttribute('class', healthClass);
+                // Check if we should hide NPC health rings for non-GM users
+                const hideNpcHealthSetting = getSettingSafely(MODULE.ID, 'combatTrackerHideHealthBars', false);
+                const hideNpcHealth = hideNpcHealthSetting && !game.user.isGM;
+                const isNpc = !actor.hasPlayerOwner;
+                const isPlayer = actor.hasPlayerOwner;
                 
-                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                circle.setAttribute('cx', size/2);
-                circle.setAttribute('cy', size/2);
-                circle.setAttribute('r', radius);
-                circle.setAttribute('fill', 'none');
-                circle.setAttribute('stroke-width', strokeWidth);
-                circle.setAttribute('stroke-dasharray', circumference);
-                circle.setAttribute('stroke-dashoffset', dashOffset);
-                circle.setAttribute('transform', `rotate(-90, ${size/2}, ${size/2})`);
-                if (currentHP > 0) {
-                    circle.setAttribute('style', 'transition: stroke-dashoffset 0.3s ease-in-out, stroke 0.3s ease-in-out');
+                // Determine if we should show health ring or solid ring
+                let showHealthRing = true;
+                if (!game.user.isGM) {
+                    // Players: show health rings for other players, solid ring for NPCs (if setting enabled)
+                    if (hideNpcHealth && isNpc) {
+                        showHealthRing = false; // Show solid ring for NPCs
+                    }
+                    // Players always see health rings for other players (isPlayer = true)
+                } else {
+                    // GM: show health rings for everyone, unless hiding NPC health and this is an NPC
+                    if (hideNpcHealth && isNpc) {
+                        // Remove any existing health ring container
+                        container.remove();
+                        return; // Skip to next combatant
+                    }
                 }
-                svg.appendChild(circle);
+                
+                if (showHealthRing) {
+                    // Calculate health percentage
+                    const hp = actor.system.attributes.hp;
+                    const currentHP = hp.value;
+                    const maxHP = hp.max;
+                    
+                    // Get health color based on percentage
+                    const getHealthClass = (percent, currentHP) => {
+                        if (currentHP <= 0) return 'health-ring-dead';
+                        if (percent >= 75) return 'health-ring-healthy';
+                        if (percent >= 50) return 'health-ring-injured';
+                        if (percent >= 25) return 'health-ring-bloodied';
+                        return 'health-ring-critical';
+                    };
+                    
+                    // When dead (HP <= 0), show full ring, otherwise calculate normally
+                    const healthPercent = Math.max(0, Math.min(100, (currentHP / maxHP) * 100));
+                    const dashOffset = currentHP <= 0 ? 0 : circumference - (healthPercent / 100) * circumference;
+                    
+                    const healthClass = getHealthClass(healthPercent, currentHP);
 
-                // Update the ring and handle dead state (v13: native DOM)
-                container.innerHTML = '';
-                container.appendChild(svg);
+                    // Create SVG for health ring (v13: native DOM)
+                    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svg.setAttribute('width', size);
+                    svg.setAttribute('height', size);
+                    // SVG elements use setAttribute for class, not className property
+                    svg.setAttribute('class', healthClass);
+                    
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', size/2);
+                    circle.setAttribute('cy', size/2);
+                    circle.setAttribute('r', radius);
+                    circle.setAttribute('fill', 'none');
+                    circle.setAttribute('stroke-width', strokeWidth);
+                    circle.setAttribute('stroke-dasharray', circumference);
+                    circle.setAttribute('stroke-dashoffset', dashOffset);
+                    circle.setAttribute('transform', `rotate(-90, ${size/2}, ${size/2})`);
+                    if (currentHP > 0) {
+                        circle.setAttribute('style', 'transition: stroke-dashoffset 0.3s ease-in-out, stroke 0.3s ease-in-out');
+                    }
+                    svg.appendChild(circle);
+
+                    // Update the ring and handle dead state (v13: native DOM)
+                    container.innerHTML = '';
+                    container.appendChild(svg);
+                } else {
+                    // Players see solid ring for NPCs (when NPC health is hidden)
+                    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svg.setAttribute('width', size);
+                    svg.setAttribute('height', size);
+                    svg.setAttribute('class', 'health-ring-player');
+                    
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', size/2);
+                    circle.setAttribute('cy', size/2);
+                    circle.setAttribute('r', radius);
+                    circle.setAttribute('fill', 'none');
+                    circle.setAttribute('stroke-width', strokeWidth);
+                    circle.setAttribute('stroke', 'rgba(247, 243, 232, 0.3)');
+                    circle.setAttribute('stroke-dasharray', circumference);
+                    circle.setAttribute('stroke-dashoffset', 0); // Solid ring (no offset)
+                    circle.setAttribute('transform', `rotate(-90, ${size/2}, ${size/2})`);
+                    svg.appendChild(circle);
+
+                    // Update the ring (v13: native DOM)
+                    container.innerHTML = '';
+                    container.appendChild(svg);
+                }
 
                 // Add dead class and skull overlay if HP is 0 or less (v13: native DOM)
-                if (currentHP <= 0 && getSettingSafely(MODULE.ID, 'combatTrackerShowPortraits', false)) {
-                    element.classList.add('portrait-dead');
-                    // Add skull overlay to the initiative div if it doesn't exist
-                    const initiativeDiv = element.querySelector('.token-initiative');
-                    if (initiativeDiv && !initiativeDiv.querySelector('.portrait-dead-overlay')) {
-                        const skullOverlay = document.createElement('i');
-                        skullOverlay.className = 'fas fa-skull portrait-dead-overlay';
-                        initiativeDiv.appendChild(skullOverlay);
+                if (showHealthRing) {
+                    // For health rings, we have access to HP values
+                    const hp = actor.system.attributes.hp;
+                    const currentHP = hp.value;
+                    if (currentHP <= 0 && getSettingSafely(MODULE.ID, 'combatTrackerShowPortraits', false)) {
+                        element.classList.add('portrait-dead');
+                        // Add skull overlay to the initiative div if it doesn't exist
+                        const initiativeDiv = element.querySelector('.token-initiative');
+                        if (initiativeDiv && !initiativeDiv.querySelector('.portrait-dead-overlay')) {
+                            const skullOverlay = document.createElement('i');
+                            skullOverlay.className = 'fas fa-skull portrait-dead-overlay';
+                            initiativeDiv.appendChild(skullOverlay);
+                        }
+                    } else {
+                        element.classList.remove('portrait-dead');
+                        const overlay = element.querySelector('.portrait-dead-overlay');
+                        if (overlay) overlay.remove();
                     }
                 } else {
-                    element.classList.remove('portrait-dead');
-                    const overlay = element.querySelector('.portrait-dead-overlay');
-                    if (overlay) overlay.remove();
+                    // For solid rings (NPCs when health is hidden), check if combatant is defeated
+                    if (combatant.isDefeated && getSettingSafely(MODULE.ID, 'combatTrackerShowPortraits', false)) {
+                        element.classList.add('portrait-dead');
+                        // Add skull overlay to the initiative div if it doesn't exist
+                        const initiativeDiv = element.querySelector('.token-initiative');
+                        if (initiativeDiv && !initiativeDiv.querySelector('.portrait-dead-overlay')) {
+                            const skullOverlay = document.createElement('i');
+                            skullOverlay.className = 'fas fa-skull portrait-dead-overlay';
+                            initiativeDiv.appendChild(skullOverlay);
+                        }
+                    } else {
+                        element.classList.remove('portrait-dead');
+                        const overlay = element.querySelector('.portrait-dead-overlay');
+                        if (overlay) overlay.remove();
+                    }
                 }
             }
         });

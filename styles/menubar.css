@@ -9,7 +9,7 @@
     /* ----- PRIMARY BAR VARIABLES ----- */
     
     /* Menubar Container */
-    --blacksmith-menubar-primary-height: 26px;
+    --blacksmith-menubar-primary-height: 30px;
     --blacksmith-menubar-secondary-height: 0px;
     --blacksmith-menubar-total-height: calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height));
     --blacksmith-menubar-zone-height: calc(var(--blacksmith-menubar-primary-height) - 2px);
@@ -209,7 +209,7 @@
     border-radius: 4px;
     padding:  2px 8px 2px 8px;
     position: relative;
-    background: var(--blacksmith-menubar-middle-buttoncolor);
+    background: var(--button-normal-tint, var(--blacksmith-menubar-middle-buttoncolor));
     border: 1px solid var(--blacksmith-menubar-middle-bordercolor);
     background-clip: padding-box;
     white-space: nowrap;
@@ -236,7 +236,7 @@
 
 /* Active state for toggleable tools in middle zone */
 .blacksmith-menubar-middle .button-active.tool-active {
-    background-color: var(--blacksmith-menubar-middle-active-buttoncolor);
+    background: var(--button-selected-tint, var(--blacksmith-menubar-middle-active-buttoncolor));
     border: 1px solid var(--blacksmith-menubar-middle-active-bordercolor);
 }
 
@@ -871,7 +871,7 @@ Combat Tracker Tunables
         stroke:  rgba(161, 28, 27, 0.9);
     }
     .blacksmith-menubar-secondary .combat-portrait-ring-hidden circle {
-        stroke:  rgba(220, 168, 8, 0.9);
+        stroke:  rgba(247, 243, 232, 0.3);
     }
   
     /* Dead pulsing */
@@ -888,14 +888,14 @@ Combat Tracker Tunables
 /* =========================
 Control Buttons
 ========================= */
+
 .blacksmith-menubar-secondary .combatbar-button-control-container {
 
     display: flex;
     flex-direction: row;
     justify-content: center; /* centers items vertically */
     align-items: flex-start;
-    gap: 2px;
-
+    gap: 4px;
     height: 100%;
     font-size: var(--combatbar-text-font-size);
     color: var(--blacksmith-menubar-fontcolor);
@@ -920,21 +920,21 @@ Control Buttons
     font-size: var(--combatbar-button-font-size);
 }
 .blacksmith-menubar-secondary .combatbar-button {
-    background: rgba(19, 19, 19, 0.6);
-    border: 1px solid rgba(19, 19, 19, 0.9);
-    color: rgba(255, 255, 255, 0.6);
+    background: rgba(30, 23, 29, 0.6);
+    border: 1px solid rgba(231, 209, 177, 0.6);
+    color: rgba(255, 255, 255, 1.0);
     cursor: pointer;
 }
 .blacksmith-menubar-secondary .combatbar-button-disabled {
-    background: rgba(19, 19, 19, 0.6);
-    border: 1px solid rgba(19, 19, 19, 0.9);
-    color: rgba(255, 255, 255, 0.4);
+    background: rgba(30, 23, 29, 0.9);
+    border: 1px solid rgba(231, 209, 177, 0.6);
+    color: rgba(255, 255, 255, 0.8);
     cursor: arrow;
     opacity: 60%;
 }
 .blacksmith-menubar-secondary .combatbar-button-disabled i,
 .blacksmith-menubar-secondary .combatbar-button i {
-    padding: 2px 0px 0px 0px;
+    padding: 0px 0px 0px 0px;
 }
 .blacksmith-menubar-secondary .combatbar-button .combatbar-button-label {
     padding: 0px 0px 0px 8px;
@@ -942,21 +942,24 @@ Control Buttons
 
 .blacksmith-menubar-secondary .action-button .action-type-begin {
     background: rgba(27, 63, 31, 0.9);
-    border: 1px solid rgba(68, 180, 40, 0.6);
+    border: 1px solid rgba(231, 209, 177, 0.6);
+    color: rgba(255, 255, 255, 1.0);
 }
 .blacksmith-menubar-secondary .action-button .action-type-end{
-    background: rgba(143, 7, 9, 0.9);
-    border: 1px solid rgba(181, 8, 11, 0.6);
+    background: rgba(30, 23, 29, 0.9);
+    border: 1px solid rgba(231, 209, 177, 0.6);
+    color: rgba(255, 255, 255, 1.0);
 }
 .blacksmith-menubar-secondary .action-button .action-type-roll{
     background: rgba(43, 69, 110, 0.9);
     border: 1px solid rgba(89, 161, 246, 0.6);
+    color: rgba(255, 255, 255, 1.0);
 }
 
 .blacksmith-menubar-secondary .combatbar-button:hover {
-    background: rgba(38, 19, 23, 0.8);
-    border-color: rgba(223, 98, 20, 0.8);
-    color: rgba(223, 98, 20, 1.0);
+    background: rgba(201, 89, 63, 0.8);
+    border-color: rgba(244, 236, 223, 0.8);
+    color: rgba(255, 255, 255, 1.0);
     transform: scale(1.05);
 }
 
@@ -965,77 +968,77 @@ Control Buttons
 }
 
  
- /* =========================
-     Initiative Dice Overlay
-     ========================= */
+/* =========================
+Initiative Dice Overlay
+========================= */
+    
+    .blacksmith-menubar-secondary .combat-portrait-initiative-dice {
+    width: var(--action-icon-size);
+    height: var(--action-icon-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    pointer-events: auto;
+    font-size: var(--action-icon-font-size);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+    
+.blacksmith-menubar-secondary .combat-portrait-initiative-dice .waiting-initiative,
+.blacksmith-menubar-secondary .combat-portrait-initiative-dice a {
+    color: rgba(255, 255, 255, 1.0);
+    text-decoration: none;
+    transition: all 0.01s ease;
+    text-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.2);
+    
+}
+    
+.blacksmith-menubar-secondary .combat-portrait-initiative-dice a:hover {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.2);
+    color: rgba(223, 98, 20, 0.9);
+    text-shadow: none;
+    cursor: pointer;
+}
         
-     .blacksmith-menubar-secondary .combat-portrait-initiative-dice {
-        width: var(--action-icon-size);
-        height: var(--action-icon-size);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 3;
-        pointer-events: auto;
-        font-size: var(--action-icon-font-size);
-        border-radius: 50%;
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(0, 0, 0, 0.2);
-    }
-        
-    .blacksmith-menubar-secondary .combat-portrait-initiative-dice .waiting-initiative,
-    .blacksmith-menubar-secondary .combat-portrait-initiative-dice a {
-        color: rgba(255, 255, 255, 0.8);
-        text-decoration: none;
-        transition: all 0.01s ease;
-        text-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.2);
-        
-    }
-        
-    .blacksmith-menubar-secondary .combat-portrait-initiative-dice a:hover {
-        background: rgba(255, 215, 0, 0.2);
-        border-color: rgba(255, 215, 0, 0.2);
-        color: rgba(223, 98, 20, 0.9);
-        text-shadow: none;
-        cursor: pointer;
-    }
-        
-    /* Waiting for initiative (non-clickable) */
+/* Waiting for initiative (non-clickable) */
     .blacksmith-menubar-secondary .combat-portrait-initiative-dice.waiting {
         pointer-events: none;
-    }
+}
     
 
- /* =========================
-     Dead Overlay
-     ========================= */
-        
-     .blacksmith-menubar-secondary .combat-portrait-dead-overlay {
-        width: var(--action-icon-size);
-        height: var(--action-icon-size);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 3;
-        pointer-events: auto;
-        font-size: var(--action-icon-font-size);
-        border-radius: 50%;
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(0, 0, 0, 0.2);
-    }
-        
-    .blacksmith-menubar-secondary .combat-portrait-dead-overlay {
-        color: rgba(255, 255, 255, 0.8);
-        text-decoration: none;
-        transition: all 0.01s ease;
-        text-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.2);
-        
-    }
+/* =========================
+Dead Overlay
+========================= */
+
+.blacksmith-menubar-secondary .combat-portrait-dead-overlay {
+    width: var(--action-icon-size);
+    height: var(--action-icon-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    pointer-events: auto;
+    font-size: var(--action-icon-font-size);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+    
+.blacksmith-menubar-secondary .combat-portrait-dead-overlay {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.01s ease;
+    text-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.2);
+    
+}
