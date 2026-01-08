@@ -2146,7 +2146,10 @@ class CombatStats {
      * Send combat start announcement card when combat is created
      */
     static async _sendCombatStartCard() {
-        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.user.isGM) return;
+        
+        // Check if combat start announcement is enabled
+        if (!game.settings.get(MODULE.ID, 'announceCombatStart')) return;
         
         try {
             const startContent = await foundry.applications.handlebars.renderTemplate(
@@ -2163,6 +2166,18 @@ class CombatStats {
                 whisper,
                 speaker
             });
+            
+            // Play combat start sound if configured
+            const soundId = game.settings.get(MODULE.ID, 'combatStartSound');
+            if (soundId && soundId !== 'none') {
+                const volume = game.settings.get(MODULE.ID, 'timerSoundVolume');
+                try {
+                    await playSound(soundId, volume);
+                } catch (soundError) {
+                    // Silently handle sound playback errors (non-critical)
+                    // Errors are already logged by playSound function
+                }
+            }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Error sending combat start card', error, false, false);
         }
@@ -2890,18 +2905,23 @@ class CombatStats {
             participantsCount: templateData.participants?.length || 0
         }, true, false);
 
+        // Check if combat end announcement is enabled
+        const announceCombatEnd = game.settings.get(MODULE.ID, 'announceCombatEnd');
+        
         // Collect all message promises to send them simultaneously
         const messagePromises = [];
 
-        // 0. End of Combat Card (always send first)
-        try {
-            const endContent = await foundry.applications.handlebars.renderTemplate(
-                'modules/' + MODULE.ID + '/templates/card-stats-combat-end.hbs',
-                {}
-            );
-            messagePromises.push(ChatMessage.create({ content: endContent, whisper, speaker }));
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Error rendering combat end card', error, false, false);
+        // 0. End of Combat Card (send first if enabled)
+        if (announceCombatEnd) {
+            try {
+                const endContent = await foundry.applications.handlebars.renderTemplate(
+                    'modules/' + MODULE.ID + '/templates/card-stats-combat-end.hbs',
+                    {}
+                );
+                messagePromises.push(ChatMessage.create({ content: endContent, whisper, speaker }));
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, 'Error rendering combat end card', error, false, false);
+            }
         }
 
         // 1. Combat Summary Card
@@ -2958,6 +2978,20 @@ class CombatStats {
 
         // Send all messages simultaneously
         await Promise.all(messagePromises);
+        
+        // Play combat end sound if configured and announcement is enabled
+        if (announceCombatEnd) {
+            const soundId = game.settings.get(MODULE.ID, 'combatEndSound');
+            if (soundId && soundId !== 'none') {
+                const volume = game.settings.get(MODULE.ID, 'timerSoundVolume');
+                try {
+                    await playSound(soundId, volume);
+                } catch (soundError) {
+                    // Silently handle sound playback errors (non-critical)
+                    // Errors are already logged by playSound function
+                }
+            }
+        }
     }
 
     // Add new method to track notable moments
