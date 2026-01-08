@@ -7,8 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.0.10]
 
+### Added
+- **Combat Start Announcement Card**: Added combat start announcement card that posts when combat is created. Card respects `announceCombatStart` setting and plays `combatStartSound` if configured. Uses dedicated `card-stats-combat-start.hbs` template with green announcement theme.
+- **Combat End Announcement Card**: Added "End of Combat" card that appears first in combat summary cards. Card respects `announceCombatEnd` setting and plays `combatEndSound` if configured. Uses dedicated `card-stats-combat-end.hbs` template matching other announcement card styling.
+- **Round Start Card**: Renamed `card-stats-round-end.hbs` to `card-stats-round-start.hbs` and updated text to "Round X Begins". Now used for round announcements instead of the section in `cards-common.hbs`.
+
 ### Changed
 - **Menubar Party Tool Visibility**: Changed party tool visibility to be GM-only instead of leader-only. The tool is now only visible to Game Masters, matching the behavior of other party management tools. This change ensures that non-GM users cannot access party management tools, reinforcing the GM-only nature of these tools.
+- **Round and Combat Card Sending**: Updated round and combat stat cards to be sent simultaneously using `Promise.all()` instead of sequentially. This prevents other modules' messages (like movement change or round change cards) from being inserted between stat cards, ensuring all related cards appear together in chat.
+- **Round Announcement Template**: Moved round announcement from `cards-common.hbs` to dedicated `card-stats-round-start.hbs` template for better modularity and consistency with other announcement cards.
+
+### Fixed
+- **Round Number Calculation**: Fixed round number in round end cards to use the `roundNumber` parameter (the round that just ended) instead of `game.combat.round` (which is already the new round). Round end cards now correctly display the round that just completed.
+- **Partial Round Stats on Combat End**: Fixed issue where combat ending mid-round would lose all data from that partial round. The system now detects when combat ends with active round data and processes it like a normal round end (calculates MVP, creates round summary, adds to rounds array) before generating the combat summary. All hits, misses, damage, and other stats from the partial round are now properly captured and included in combat statistics.
+- **Combat End Null Reference Error**: Fixed `TypeError: Cannot read properties of null (reading 'turns')` error when combat is deleted. Updated `_onRoundEnd()` and `_prepareTemplateData()` to accept optional combat parameter, allowing them to work with combat objects even when `game.combat` is null during combat deletion. This ensures partial rounds are processed correctly when combat ends mid-round.
+- **Token Movement Permission Errors**: Fixed permission errors when players create combat. Added try-catch blocks around setting updates in `createCombat` and `deleteCombat` hooks to gracefully handle permission errors for non-GM clients, preventing error messages from appearing when combat is created or deleted.
 
 
 ## [13.0.9]
