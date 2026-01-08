@@ -275,8 +275,17 @@ class CombatStats {
         // Skip if combat doesn't exist (combat might have been deleted)
         if (!combat || !game.combats.has(combat.id)) return;
 
-        // Detect combat ending via update (active flag turned off)
-        if (changed.active === false && combat.previous?.active !== false) {
+        // Detect combat ending via update (active flag turned off or started flag turned off)
+        const combatEnding = (changed.active === false && combat.previous?.active !== false) ||
+                            (changed.started === false && combat.previous?.started !== false);
+        
+        if (combatEnding) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Combat ending detected via updateCombat', {
+                changed,
+                combatId: combat.id,
+                active: combat.active,
+                started: combat.started
+            }, true, false);
             await this._onCombatEnd(combat, options, userId);
             return;
         }
@@ -699,18 +708,35 @@ class CombatStats {
      * @param {Combat} combat - The combat instance that ended.
      */
     static async _onCombatEnd(combat, options, userId) {
-        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - _onCombatEnd skipped', {
+                isGM: game.user.isGM,
+                trackCombatStats: game.settings.get(MODULE.ID, 'trackCombatStats')
+            }, true, false);
+            return;
+        }
         
         // Skip if combat doesn't exist (combat might have been deleted)
-        if (!combat || !combat.id) return;
+        if (!combat || !combat.id) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - _onCombatEnd skipped: no combat', {}, true, false);
+            return;
+        }
 
         if (!this._processedCombats) {
             this._processedCombats = new Set();
         }
         if (this._processedCombats.has(combat.id)) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - _onCombatEnd skipped: already processed', { combatId: combat.id }, true, false);
             return;
         }
         this._processedCombats.add(combat.id);
+        
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - _onCombatEnd called', {
+            combatId: combat.id,
+            round: combat.round,
+            hasCombatStats: !!this.combatStats,
+            hasCurrentStats: !!this.currentStats
+        }, true, false);
         
         // Combat may already be removed from collection if delete fired first
         if (!game.combats.has(combat.id)) {
@@ -725,11 +751,48 @@ class CombatStats {
             this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
         }
 
-        // Generate combat summary before resetting stats
-        const combatSummary = this._generateCombatSummary(combat);
+        // Check if we're ending combat mid-round - if so, process the partial round first
+        const hasCurrentRoundData = this.currentStats && (
+            (this.currentStats.hits && this.currentStats.hits.length > 0) ||
+            (this.currentStats.partyStats && (
+                this.currentStats.partyStats.hits > 0 ||
+                this.currentStats.partyStats.misses > 0 ||
+                this.currentStats.partyStats.damageDealt > 0 ||
+                this.currentStats.partyStats.damageTaken > 0 ||
+                this.currentStats.partyStats.healingDone > 0
+            ))
+        );
 
-        // Report combat summary to console (debug flag enabled)
-        postConsoleAndNotification(MODULE.NAME, "COMBAT SUMMARY: Object ", combatSummary, true, false);
+        if (hasCurrentRoundData && combat.round > 0) {
+            // Process the partial round like a normal round end
+            postConsoleAndNotification(MODULE.NAME, 'Combat End - Processing partial round data', {
+                round: combat.round,
+                hits: this.currentStats.hits?.length || 0,
+                partyStats: this.currentStats.partyStats
+            }, true, false);
+            
+            // Process the partial round (this will add it to combatStats.rounds)
+            // Pass true to skip the started check since combat is ending
+            // Pass the combat object so it can be used even if game.combat is null
+            await this._onRoundEnd(combat.round, true, combat);
+        }
+
+        // Generate combat summary before resetting stats
+        let combatSummary;
+        try {
+            combatSummary = this._generateCombatSummary(combat);
+            // Report combat summary to console (debug flag enabled)
+            postConsoleAndNotification(MODULE.NAME, "COMBAT SUMMARY: Object ", combatSummary, true, false);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error generating combat summary", error, false, false);
+            // Still try to send at least the End of Combat card
+            try {
+                await this._sendCombatCards({ settings: {} });
+            } catch (sendError) {
+                postConsoleAndNotification(MODULE.NAME, "Error sending combat end card", sendError, false, false);
+            }
+            return;
+        }
 
         // Fire hook to expose combat summary (for stats-player.js and other consumers)
         Hooks.callAll('blacksmith.combatSummaryReady', combatSummary, combat);
@@ -741,10 +804,27 @@ class CombatStats {
         });
 
         // Prepare template data with damage ratios for breakdown card
-        const templateData = await this._prepareCombatTemplateData(combatSummary);
+        let templateData;
+        try {
+            templateData = await this._prepareCombatTemplateData(combatSummary);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error preparing combat template data", error, false, false);
+            // Still try to send at least the End of Combat card
+            try {
+                await this._sendCombatCards({ settings: {} });
+            } catch (sendError) {
+                postConsoleAndNotification(MODULE.NAME, "Error sending combat end card", sendError, false, false);
+            }
+            return;
+        }
 
         // Send combat cards as separate chat messages (similar to round cards)
-        await this._sendCombatCards(templateData);
+        try {
+            await this._sendCombatCards(templateData);
+            postConsoleAndNotification(MODULE.NAME, "Combat Stats - Combat cards sent successfully", {}, true, false);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Error sending combat cards", error, false, false);
+        }
 
         // Reset stats after summary is generated and exposed
         this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
@@ -2051,9 +2131,14 @@ class CombatStats {
         this.currentStats.roundStartTime = Date.now();
     }
 
-    static async _onRoundEnd(roundNumber) {
+    static async _onRoundEnd(roundNumber, skipStartedCheck = false, combat = null) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
-        if (!game.combat?.started) return;
+        
+        // Use provided combat object or fall back to game.combat
+        const combatToUse = combat || game.combat;
+        
+        // Skip started check when processing partial round at combat end
+        if (!skipStartedCheck && !combatToUse?.started) return;
 
         // Ensure currentStats is initialized
         if (!this.currentStats) {
@@ -2063,8 +2148,9 @@ class CombatStats {
         postConsoleAndNotification(MODULE.NAME, 'Round End - Starting MVP calculation', "", true, false);
 
         // Record the last turn's duration using the last combatant in the turns array
-        const lastTurn = game.combat.turns?.length - 1;
-        const lastCombatant = game.combat.turns?.[lastTurn];
+        // Use combatToUse instead of game.combat to handle cases where combat is being deleted
+        const lastTurn = combatToUse?.turns?.length - 1;
+        const lastCombatant = combatToUse?.turns?.[lastTurn];
         if (lastCombatant) {
             postConsoleAndNotification(MODULE.NAME, 'Recording last turn of round:', {
                 combatant: lastCombatant.name,
@@ -2114,8 +2200,9 @@ class CombatStats {
         const totalRoundDuration = roundEndTimestamp - this.currentStats.roundStartTimestamp;
         this.currentStats.roundDuration = totalRoundDuration;
 
-        // Use the actual round number from combat data
-        const finalRoundNumber = game.combat?.round ?? 1;
+        // Use the round number that was passed in (the round that just ended)
+        // Don't use game.combat.round as that's already the new round
+        const finalRoundNumber = roundNumber ?? 1;
 
         // Calculate round statistics
         const roundStats = {
@@ -2138,7 +2225,7 @@ class CombatStats {
 
         try {
             // Prepare template data
-            const templateData = await this._prepareTemplateData(this.currentStats.participantStats);
+            const templateData = await this._prepareTemplateData(this.currentStats.participantStats, combatToUse);
 
             // Store round stats if needed
             if (!this.combatStats.rounds) {
@@ -2169,11 +2256,14 @@ class CombatStats {
         }
     }
 
-    static async _prepareTemplateData(participantStats) {
+    static async _prepareTemplateData(participantStats, combat = null) {
         // Ensure currentStats is initialized
         if (!this.currentStats) {
             this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
         }
+
+        // Use provided combat object or fall back to game.combat
+        const combatToUse = combat || game.combat;
 
         postConsoleAndNotification(MODULE.NAME, `Timer Debug [${new Date().toISOString()}] - ENTER _prepareTemplateData`, {
             hasParticipantStats: !!this.currentStats.participantStats,
@@ -2185,8 +2275,8 @@ class CombatStats {
         const participantMap = new Map();
 
         // First pass: Get all player characters from the combat
-        if (game.combat?.turns) {
-            for (const turn of game.combat.turns) {
+        if (combatToUse?.turns) {
+            for (const turn of combatToUse.turns) {
                 // Skip if no actor or not a player character
                 if (!turn?.actor || !this._isPlayerCharacter(turn.actor)) continue;
                 
@@ -2765,6 +2855,17 @@ class CombatStats {
 
         // Collect all message promises to send them simultaneously
         const messagePromises = [];
+
+        // 0. End of Combat Card (always send first)
+        try {
+            const endContent = await foundry.applications.handlebars.renderTemplate(
+                'modules/' + MODULE.ID + '/templates/card-stats-combat-end.hbs',
+                {}
+            );
+            messagePromises.push(ChatMessage.create({ content: endContent, whisper, speaker }));
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Error rendering combat end card', error, false, false);
+        }
 
         // 1. Combat Summary Card
         if (templateData.settings.showCombatSummary) {
