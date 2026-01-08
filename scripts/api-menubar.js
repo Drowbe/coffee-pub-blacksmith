@@ -845,15 +845,23 @@ class MenuBar {
             icon: "fa-solid fa-gear",
             name: "settings",
             title: "Open Foundry Settings",
+            tooltip: null,
+            onClick: () => {
+                game.settings.sheet.render(true);
+            },
             zone: "left",
+            group: "general",
+            groupOrder: this.GROUP_ORDER.GENERAL,
             order: 1,
             moduleId: "blacksmith-core",
+            gmOnly: false,
+            leaderOnly: false,
             visible: () => {
                 return game.settings.get(MODULE.ID, 'menubarShowSettings');
             },
-            onClick: () => {
-                game.settings.sheet.render(true);
-            }
+            toggleable: false,
+            active: false,
+            iconColor: null
         });
 
         // REFRESH
@@ -861,15 +869,23 @@ class MenuBar {
             icon: "fa-solid fa-rotate",
             name: "refresh", 
             title: "Refresh Foundry",
+            tooltip: null,
+            onClick: () => {
+                window.location.reload();
+            },
             zone: "left",
+            group: "general",
+            groupOrder: this.GROUP_ORDER.GENERAL,
             order: 2,
             moduleId: "blacksmith-core",
+            gmOnly: false,
+            leaderOnly: false,
             visible: () => {
                 return game.settings.get(MODULE.ID, 'menubarShowRefresh');
             },
-            onClick: () => {
-                window.location.reload();
-            }
+            toggleable: false,
+            active: false,
+            iconColor: null
         });
 
         // TOGGLE UI
@@ -882,12 +898,20 @@ class MenuBar {
                 return isHidden ? "" : "";
             },
             tooltip: "Toggle Core Foundry Interface including toolbars, party window, and macros",
-            zone: "left",
-            order: 3,
-            moduleId: "blacksmith-core",
             onClick: () => {
                 this.toggleInterface();
-            }
+            },
+            zone: "left",
+            group: "general",
+            groupOrder: this.GROUP_ORDER.GENERAL,
+            order: 3,
+            moduleId: "blacksmith-core",
+            gmOnly: false,
+            leaderOnly: false,
+            visible: true,
+            toggleable: false,
+            active: false,
+            iconColor: null
         });
 
         // QUICKVIEW
@@ -900,19 +924,24 @@ class MenuBar {
                 return QuickViewUtility.getTitle();
             },
             tooltip: "Toggle Clarity Mode: Increase brightness, reveal fog, show all tokens",
-            zone: "left",
-            order: 4,
-            moduleId: "blacksmith-core",
-            gmOnly: true,
-            toggleable: true,
-            active: () => {
-                return QuickViewUtility.isActive();
-            },
             onClick: async () => {
                 await QuickViewUtility.toggle();
                 // Refresh menubar to update icon and active state
                 MenuBar.renderMenubar();
-            }
+            },
+            zone: "left",
+            group: "general",
+            groupOrder: this.GROUP_ORDER.GENERAL,
+            order: 4,
+            moduleId: "blacksmith-core",
+            gmOnly: true,
+            leaderOnly: false,
+            visible: true,
+            toggleable: true,
+            active: () => {
+                return QuickViewUtility.isActive();
+            },
+            iconColor: null
         });
 
         // MEMORY MONITOR
@@ -922,15 +951,23 @@ class MenuBar {
             title: () => {
                 return PerformanceUtility.getMemoryDisplayString();
             },
+            tooltip: null,
+            onClick: () => {
+                PerformanceUtility.showPerformanceCheck();
+            },
             zone: "left",
+            group: "general",
+            groupOrder: this.GROUP_ORDER.GENERAL,
             order: 5,
             moduleId: "blacksmith-core",
+            gmOnly: false,
+            leaderOnly: false,
             visible: () => {
                 return game.settings.get(MODULE.ID, 'menubarShowPerformance');
             },
-            onClick: () => {
-                PerformanceUtility.showPerformanceCheck();
-            }
+            toggleable: false,
+            active: false,
+            iconColor: null
         });
 
         // **************** MIDDLE ZONE ****************
@@ -945,15 +982,20 @@ class MenuBar {
             name: "create-combat",
             title: "Create Combat",
             tooltip: "Create combat encounter with selected tokens or all tokens on canvas",
+            onClick: () => {
+                this.createCombat();
+            },
             zone: "middle",
             group: "combat",
             groupOrder: this.GROUP_ORDER.COMBAT,
             order: 1,
             moduleId: "blacksmith-core",
             gmOnly: true,
-            onClick: () => {
-                this.createCombat();
-            }
+            leaderOnly: false,
+            visible: true,
+            toggleable: false,
+            active: false,
+            iconColor: null
         });
 
         // COMBAT TRACKER
@@ -962,20 +1004,24 @@ class MenuBar {
             name: "combat-window",
             title: "Show Combat Tracker",
             tooltip: "Show the FoundryVTT Combat Tracker window visibility",
+            onClick: () => {
+                this.toggleCombatTracker();
+            },
             zone: "middle",
             group: "combat",
             groupOrder: this.GROUP_ORDER.COMBAT,
             order: 2,
             moduleId: "blacksmith-core",
-            gmOnly: false, // Available to all players
+            gmOnly: false,
+            leaderOnly: false,
             visible: () => {
                 // Show if there's an active combat with combatants
                 const activeCombat = game.combats.active;
                 return activeCombat !== null && activeCombat !== undefined && activeCombat.combatants.size > 0;
             },
-            onClick: () => {
-                this.toggleCombatTracker();
-            }
+            toggleable: false,
+            active: false,
+            iconColor: null
         });
 
         // COMBAT BAR
@@ -992,23 +1038,25 @@ class MenuBar {
                 const isCombatBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'combat';
                 return isCombatBarOpen ? "Hide combat tracker secondary bar" : "Show combat tracker secondary bar";
             },
+            onClick: () => {
+                // Toggle the combat bar - active state is synced in openCombatBar/closeCombatBar
+                this.toggleSecondaryBar('combat');
+            },
             zone: "middle",
             group: "combat",
             groupOrder: this.GROUP_ORDER.COMBAT,
             order: 3,
             moduleId: "blacksmith-core",
-            gmOnly: false, // Available to all players
-            toggleable: true, // Enable toggleable to show active state
-            active: false, // Will be synced with combat bar state
+            gmOnly: false,
+            leaderOnly: false,
             visible: () => {
                 // Show if there's an active combat OR if there are combatants in any combat
                 const activeCombat = game.combats.active;
                 return activeCombat !== null && activeCombat !== undefined && activeCombat.combatants.size > 0;
             },
-            onClick: () => {
-                // Toggle the combat bar - active state is synced in openCombatBar/closeCombatBar
-                this.toggleSecondaryBar('combat');
-            }
+            toggleable: true,
+            active: false,
+            iconColor: null
         });
 
         // XP DISTRIBUTION
@@ -1017,15 +1065,20 @@ class MenuBar {
             name: "xp-distribution",
             title: "XP Distribution",
             tooltip: "Open Experience Points Distribution Worksheet",
+            onClick: () => {
+                this.openXpDistribution();
+            },
             zone: "middle",
             group: "party",
             groupOrder: this.GROUP_ORDER.PARTY,
             order: 4,
             moduleId: "blacksmith-core",
             gmOnly: true,
-            onClick: () => {
-                this.openXpDistribution();
-            }
+            leaderOnly: false,
+            visible: true,
+            toggleable: false,
+            active: false,
+            iconColor: null
         });
 
 
@@ -1037,18 +1090,23 @@ class MenuBar {
             icon: "fa-solid fa-dice",
             name: "skillcheck",
             title: "Request a Roll",
+            tooltip: null,
+            onClick: () => {
+                new SkillCheckDialog().render(true);
+            },
             zone: "middle",
             group: "utility",
             groupOrder: this.GROUP_ORDER.UTILITY,
             order: 1,
             moduleId: "blacksmith-core",
             gmOnly: true,
+            leaderOnly: false,
             visible: () => {
                 return getSettingSafely(MODULE.ID, 'requestRollShowInMenubar', true);
             },
-            onClick: () => {
-                new SkillCheckDialog().render(true);
-            }
+            toggleable: false,
+            active: false,
+            iconColor: null
         });
 
         // REPLACE IMAGE
@@ -1056,15 +1114,21 @@ class MenuBar {
             icon: "fa-solid fa-images",
             name: "imagereplace",
             title: "Replace Image",
+            tooltip: null,
+            onClick: () => {
+                TokenImageReplacementWindow.openWindow();
+            },
             zone: "middle",
             group: "utility",
             groupOrder: this.GROUP_ORDER.UTILITY,
             order: 2,
             moduleId: "blacksmith-core",
             gmOnly: true,
-            onClick: () => {
-                TokenImageReplacementWindow.openWindow();
-            }
+            leaderOnly: false,
+            visible: true,
+            toggleable: false,
+            active: false,
+            iconColor: null
         });
 
 
@@ -1077,15 +1141,20 @@ class MenuBar {
             name: "party-stats",
             title: "Party Statistics",
             tooltip: "Open combat history and MVP leaderboard",
+            onClick: () => {
+                this.openStatsWindow();
+            },
             zone: "middle",
             group: "party",
             groupOrder: this.GROUP_ORDER.COMBAT,
             order: 1,
             moduleId: "blacksmith-core",
             gmOnly: false,
-            onClick: () => {
-                this.openStatsWindow();
-            }
+            leaderOnly: false,
+            visible: true,
+            toggleable: false,
+            active: false,
+            iconColor: null
         });
 
         // PARTY
@@ -1102,18 +1171,21 @@ class MenuBar {
                 const isPartyBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'party';
                 return isPartyBarOpen ? "Hide party tools secondary bar" : "Show party tools secondary bar";
             },
+            onClick: () => {
+                // Toggle the party bar
+                this.toggleSecondaryBar('party');
+            },
             zone: "middle",
             group: "party",
             groupOrder: this.GROUP_ORDER.PARTY,
             order: 2,
             moduleId: "blacksmith-core",
-            leaderOnly: true, // Available to leader/GM
+            gmOnly: false,
+            leaderOnly: true,
+            visible: true,
             toggleable: true,
-            active: false, // Will be synced with party bar state
-            onClick: () => {
-                // Toggle the party bar
-                this.toggleSecondaryBar('party');
-            }
+            active: false,
+            iconColor: null
         });
 
         // VOTE
@@ -1121,15 +1193,21 @@ class MenuBar {
             icon: "fa-solid fa-check-to-slot",
             name: "vote",
             title: "Vote",
+            tooltip: null,
+            onClick: () => {
+                new VoteConfig().render(true);
+            },
             zone: "middle",
             group: "party",
             groupOrder: this.GROUP_ORDER.PARTY,
             order: 3,
             moduleId: "blacksmith-core",
+            gmOnly: false,
             leaderOnly: true,
-            onClick: () => {
-                new VoteConfig().render(true);
-            }
+            visible: true,
+            toggleable: false,
+            active: false,
+            iconColor: null
         });
 
         // *** GROUP: GENERAL (Default/overflow group)***
@@ -1155,15 +1233,23 @@ class MenuBar {
             icon: "fa-solid fa-crown",
             name: "leader-section",
             title: "Party Leader",
-            zone: "right",
-            order: 1,
-            moduleId: "blacksmith-core",
-            visible: false, // This is handled specially in the template
+            tooltip: null,
             onClick: () => {
                 if (game.user.isGM) {
                     this.showLeaderDialog();
                 }
-            }
+            },
+            zone: "right",
+            group: "general",
+            groupOrder: this.GROUP_ORDER.GENERAL,
+            order: 1,
+            moduleId: "blacksmith-core",
+            gmOnly: false,
+            leaderOnly: false,
+            visible: false,
+            toggleable: false,
+            active: false,
+            iconColor: null
         });
 
         // CHANGE MOVEMENT
@@ -1171,13 +1257,21 @@ class MenuBar {
             icon: "fa-solid fa-person-walking",
             name: "movement",
             title: "Change Party Movement",
-            zone: "right", 
-            order: 2,
-            moduleId: "blacksmith-core",
-            visible: false, // This is handled specially in the template
+            tooltip: null,
             onClick: () => {
                 new MovementConfig().render(true);
-            }
+            },
+            zone: "right",
+            group: "general",
+            groupOrder: this.GROUP_ORDER.GENERAL,
+            order: 2,
+            moduleId: "blacksmith-core",
+            gmOnly: false,
+            leaderOnly: false,
+            visible: false,
+            toggleable: false,
+            active: false,
+            iconColor: null
         });
 
         // SESSION TIMER
@@ -1185,15 +1279,23 @@ class MenuBar {
             icon: "fa-solid fa-eclipse",
             name: "timer-section",
             title: "Session Timer",
-            zone: "right",
-            order: 3,
-            moduleId: "blacksmith-core",
-            visible: false, // This is handled specially in the template
+            tooltip: null,
             onClick: () => {
                 if (game.user.isGM) {
                     this.showTimerDialog();
                 }
-            }
+            },
+            zone: "right",
+            group: "general",
+            groupOrder: this.GROUP_ORDER.GENERAL,
+            order: 3,
+            moduleId: "blacksmith-core",
+            gmOnly: false,
+            leaderOnly: false,
+            visible: false,
+            toggleable: false,
+            active: false,
+            iconColor: null
         });
         
         // Reset flag and render once after all tools are registered
