@@ -190,6 +190,32 @@
 		"headingH2CombatEnhancements-Label": "Combat",
 		"headingH2CombatEnhancements-Hint": "Enhancements and quality of lifeimprovements to the combat system.",
 
+			"headingH3CombatExperience-Label": "Combat Experience",
+			"headingH3CombatExperience-Hint": "",
+
+
+
+				"announceCombatStart-Label": "Announce Combat Start",
+				"announceCombatStart-Hint": "Post an announcement card to chat when combat begins. If using the Crier module, you don't need this enabled.",
+
+				"combatStartSound-Label": "Combat Start Sound",
+				"combatStartSound-Hint": "",
+
+
+				"announceNewRounds-Label": "Announce New Rounds",
+				"announceNewRounds-Hint": "Post an announcement card to chat when a new round begins. If using the Crier module, you don't need this enabled.",
+
+				"newRoundSound-Label": "New Round Sound",
+				"newRoundSound-Hint": "",
+
+
+				"announceCombatEnd-Label": "Announce Combat End",
+				"announceCombatEnd-Hint": "Post an announcement card to chat when combat ends. If using the Crier module, you don't need this enabled.",
+
+				"combatEndSound-Label": "Combat End Sound",
+				"combatEndSound-Hint": "",
+
+
 			"headingH3CombatTrackerBehaviors-Label": "Combat Tracker Behaviors",
 			"headingH3CombatTrackerBehaviors-Hint": "",
 
@@ -422,12 +448,6 @@
 
 			"showRoundTimer-Label": "Enable Round Timer",
 			"showRoundTimer-Hint": "",
-
-			"announceNewRounds-Label": "Announce New Rounds",
-			"announceNewRounds-Hint": "Post an announcement card to chat when a new round begins. If using the Crier module, you don't need this enabled.",
-
-			"newRoundSound-Label": "New Round Sound",
-			"newRoundSound-Hint": "",
 
 		"headingH3SessionTimers-Label": "Session Timer",
 		"headingH3SessionTimers-Hint": "",

@@ -377,10 +377,8 @@ class CombatStats {
             };
 
             // Render the template
-            const content = await foundry.applications.handlebars.renderTemplate('modules/' + MODULE.ID + '/templates/cards-common.hbs', {
-                ...templateData,
-                isPublic: true,
-                isRoundAnnouncement: true
+            const content = await foundry.applications.handlebars.renderTemplate('modules/' + MODULE.ID + '/templates/card-stats-round-start.hbs', {
+                ...templateData
             });
 
             // Create chat message
@@ -1756,6 +1754,19 @@ class CombatStats {
 
     // Register all necessary hooks
     static _registerHooks() {
+        // Register combat creation hook to send combat start card
+        const createCombatHookId = HookManager.registerHook({
+            name: 'createCombat',
+            description: 'Combat Stats: Send combat start announcement when combat is created',
+            context: 'stats-combat',
+            priority: 3,
+            callback: (combat) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                this._sendCombatStartCard();
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+        
         // Register combat start hook
         const combatStartHookId = HookManager.registerHook({
             name: 'combatStart',
@@ -1769,7 +1780,7 @@ class CombatStats {
             }
         });
         
-        postConsoleAndNotification(MODULE.NAME, "Hook Manager | combatStart", "stats-combat", true, false);
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | createCombat, combatStart", "stats-combat", true, false);
         
         // Register combat hooks
         // Migrate updateCombat hook to HookManager for centralized control
@@ -2083,7 +2094,7 @@ class CombatStats {
     }
 
     // Combat flow tracking methods
-    static _onCombatStart(combat) {
+    static async _onCombatStart(combat) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         
         // Skip if combat doesn't exist (combat might have been deleted)
@@ -2129,6 +2140,32 @@ class CombatStats {
         // Record combat start time
         this.combatStats.startTime = Date.now();
         this.currentStats.roundStartTime = Date.now();
+    }
+    
+    /**
+     * Send combat start announcement card when combat is created
+     */
+    static async _sendCombatStartCard() {
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        
+        try {
+            const startContent = await foundry.applications.handlebars.renderTemplate(
+                'modules/' + MODULE.ID + '/templates/card-stats-combat-start.hbs',
+                {}
+            );
+            
+            const isShared = game.settings.get(MODULE.ID, 'shareCombatStats');
+            const whisper = isShared ? [] : [game.user.id];
+            const speaker = { alias: "Game Master", user: game.user.id };
+            
+            await ChatMessage.create({
+                content: startContent,
+                whisper,
+                speaker
+            });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Error sending combat start card', error, false, false);
+        }
     }
 
     static async _onRoundEnd(roundNumber, skipStartedCheck = false, combat = null) {
@@ -2560,7 +2597,7 @@ class CombatStats {
         
         if (!showAnyCard) {
             const endContent = await foundry.applications.handlebars.renderTemplate(
-                'modules/' + MODULE.ID + '/templates/card-stats-round-end.hbs',
+                'modules/' + MODULE.ID + '/templates/card-stats-round-start.hbs',
                 { roundNumber }
             );
             await ChatMessage.create({ content: endContent, whisper, speaker });

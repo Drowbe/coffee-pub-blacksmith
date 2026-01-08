@@ -45,7 +45,7 @@
 }
 /* Announcement Blue Theme */
 .blacksmith-card.theme-announcement-blue {
-    --blacksmith-card-bg: rgba(25, 49, 0, 1.0);
+    --blacksmith-card-bg: rgba(0, 63, 88, 1.0);
     --blacksmith-card-border: rgba(0, 0, 0, 0.2);
     --blacksmith-card-text: rgba(89, 74, 60, 1.0);
     --blacksmith-card-header-text: rgba(235, 233, 225, 1.0);
@@ -60,7 +60,23 @@
     --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
 }
-
+/* Announcement Red Theme */
+.blacksmith-card.theme-announcement-red {
+    --blacksmith-card-bg: rgba(97, 2, 2, 1.0);
+    --blacksmith-card-border: rgba(0, 0, 0, 0.2);
+    --blacksmith-card-text: rgba(89, 74, 60, 1.0);
+    --blacksmith-card-header-text: rgba(235, 233, 225, 1.0);
+    --blacksmith-card-section-header-text: #481515;
+    --blacksmith-card-section-header-border: rgba(0, 0, 0, 0.2);
+    --blacksmith-card-section-subheader-text: #481515;
+    --blacksmith-card-section-subheader-bg: rgba(0, 0, 0, 0.1);
+    --blacksmith-card-section-content-text: #594a3c;
+    --blacksmith-card-hover-color: #c15701;
+    --blacksmith-card-button-text: #594a3c;
+    --blacksmith-card-button-border: #999;
+    --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
+    --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
+}
 
 /* Orange Theme */
 .blacksmith-card.theme-orange {

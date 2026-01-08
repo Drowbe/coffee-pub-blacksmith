@@ -1614,6 +1614,92 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('CombatEnhancements', 'headingH2CombatEnhancements-Label', 'headingH2CombatEnhancements-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME);
 
+	
+	
+	// --------------------------------------
+	// -- H3: Combat Experience
+	// --------------------------------------
+	registerHeader('CombatExperience', 'headingH3CombatExperience-Label', 'headingH3CombatExperience-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+
+
+		// Announce Combat Start
+		game.settings.register(MODULE.ID, 'announceCombatStart', {
+			name: MODULE.ID + '.announceCombatStart-Label',
+			hint: MODULE.ID + '.announceCombatStart-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Boolean,
+			default: true,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+	
+		// Combat Start Sound Setting
+		game.settings.register(MODULE.ID, 'combatStartSound', {
+			name: MODULE.ID + '.combatStartSound-Label',
+			hint: MODULE.ID + '.combatStartSound-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			type: String,
+			choices: BLACKSMITH.arrSoundChoices,
+			default: "none",
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// Announce New Rounds
+		game.settings.register(MODULE.ID, 'announceNewRounds', {
+			name: MODULE.ID + '.announceNewRounds-Label',
+			hint: MODULE.ID + '.announceNewRounds-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Boolean,
+			default: true,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+	
+		// New Round Sound Setting
+		game.settings.register(MODULE.ID, 'newRoundSound', {
+			name: MODULE.ID + '.newRoundSound-Label',
+			hint: MODULE.ID + '.newRoundSound-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			type: String,
+			choices: BLACKSMITH.arrSoundChoices,
+			default: "none",
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+
+
+		// Announce Combat End
+		game.settings.register(MODULE.ID, 'announceCombatEnd', {
+			name: MODULE.ID + '.announceCombatEnd-Label',
+			hint: MODULE.ID + '.announceCombatEnd-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Boolean,
+			default: true,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+	
+		// Combat End Sound Setting
+		game.settings.register(MODULE.ID, 'combatEndSound', {
+			name: MODULE.ID + '.combatEndSound-Label',
+			hint: MODULE.ID + '.combatEndSound-Hint',
+			scope: "world",
+			config: true,
+			requiresReload: false,
+			type: String,
+			choices: BLACKSMITH.arrSoundChoices,
+			default: "none",
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+
 	// --------------------------------------
 	// -- H3: Combat Tracker Behaviors
 	// --------------------------------------
@@ -2585,31 +2671,6 @@ game.settings.register(MODULE.ID, 'showCombatPartyBreakdown', {
 		config: true,
 		type: Boolean,
 		default: true,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
-	// Announce New Rounds
-	game.settings.register(MODULE.ID, 'announceNewRounds', {
-		name: MODULE.ID + '.announceNewRounds-Label',
-		hint: MODULE.ID + '.announceNewRounds-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
-	// New Round Sound Setting
-	game.settings.register(MODULE.ID, 'newRoundSound', {
-		name: MODULE.ID + '.newRoundSound-Label',
-		hint: MODULE.ID + '.newRoundSound-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		choices: BLACKSMITH.arrSoundChoices,
-		default: "none",
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
