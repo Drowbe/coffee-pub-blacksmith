@@ -8,8 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.0.9]
 
+### Added
+- **Menubar Button Color Customization**: Added `buttonNormalTint` and `buttonSelectedTint` parameters to `registerMenubarTool()` for custom button background colors. Both parameters accept any valid CSS color format (hex, rgba, named colors, HSL, etc.), providing maximum flexibility for tool styling. The normal tint applies to default button state, while the selected tint applies when toggleable tools are active.
+- **Menubar Grouping System Documentation**: Added comprehensive documentation for the tiered grouping system, including organization hierarchy (Zone -> Group -> Module -> Order), Blacksmith-defined groups (combat, utility, party, general), group priority rules, and dynamic group creation. Updated all examples to demonstrate best practices with explicit parameter setting.
+
 ### Changed
 - **Combat Stats Card Structure**: Reverted combat stats cards to simple div-based structure using `<div class="card-header">` and `<div class="section-content">` for consistent styling across all coffee pub cards. Removed Foundry collapsible system integration as it was designed for internal sections, not whole cards.
+- **Menubar API Documentation**: Updated API documentation to reflect current implementation with all new parameters (`group`, `groupOrder`, `buttonNormalTint`, `buttonSelectedTint`). Enhanced "Register a Tool" getting started example with complete parameter list following best practices. Updated `getMenubarToolsByZone()` return structure documentation to accurately reflect grouped organization (zone -> group -> module array -> tools). All examples now explicitly show all optional parameters for clarity and maintainability.
+
+### Fixed
+- **Menubar Button Tint CSS**: Fixed CSS to properly use custom `--button-normal-tint` and `--button-selected-tint` CSS variables for button background colors. Updated `.blacksmith-menubar-middle .button-active` to use `var(--button-normal-tint, ...)` with fallback to default colors. Updated `.blacksmith-menubar-middle .button-active.tool-active` to use `var(--button-selected-tint, ...)` for active/selected state. Both variables are now properly set in the template's style attribute and applied by CSS with appropriate fallbacks.
+- **Menubar Template CSS Variables**: Fixed template to set both `--button-normal-tint` and `--button-selected-tint` as CSS variables in the style attribute instead of data attributes, ensuring they work correctly with CSS fallback values.
 
 ### Removed
 - **Combat Stats Collapsible Functionality**: Removed all collapsible/expand functionality from combat stats cards. Removed `_registerCollapsibleStateTracking()` method, `sectionStates` static property, and `combatStatsCardStates` client setting. Cards now use the standard non-collapsible card template structure.
