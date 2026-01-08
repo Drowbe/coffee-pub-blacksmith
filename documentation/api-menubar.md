@@ -25,22 +25,35 @@ if (blacksmith?.registerMenubarTool) {
 
 ### 2. Register a Tool
 
+**Best Practice:** Always explicitly set all optional parameters for clarity and consistency. This makes your code more maintainable and follows the recommended approach.
+
 ```javascript
-// Register a custom tool
+// Register a custom tool with all parameters explicitly set
 const success = blacksmith.registerMenubarTool('my-custom-tool', {
-    icon: "fa-solid fa-dice-d20",
-    name: "my-custom-tool",
-    title: "My Custom Tool",
-    zone: "left",              // Optional: left, middle, right (default: left)
-    order: 5,                  // Optional: order within zone (lower numbers appear first)
-    moduleId: "my-module",     // Optional: your module ID
-    gmOnly: false,             // Optional: whether tool is GM-only
-    leaderOnly: false,         // Optional: whether tool is leader-only
-    visible: true,             // Optional: whether tool is visible (can be function)
-    onClick: () => {
+    // Required parameters
+    icon: "fa-solid fa-dice-d20",      // FontAwesome icon class
+    name: "my-custom-tool",             // Tool name (used for data-tool attribute)
+    title: "My Custom Tool",            // Tooltip text (can be a function for dynamic content)
+    onClick: () => {                    // Click handler function
         // Your tool logic here
         console.log("My custom tool clicked!");
-    }
+    },
+    
+    // Optional parameters - recommended to set explicitly
+    tooltip: "My Custom Tool",          // Optional: explicit tooltip (defaults to title if omitted)
+    zone: "left",                       // Optional: "left", "middle", "right" (default: "left")
+    group: "general",                   // Optional: group name (default: "general")
+    groupOrder: 999,                    // Optional: group order (default: 999, appears last)
+    order: 5,                           // Optional: order within group (default: 999)
+    moduleId: "my-module",              // Optional: module identifier (default: "unknown")
+    gmOnly: false,                      // Optional: GM-only visibility (default: false)
+    leaderOnly: false,                  // Optional: leader-only visibility (default: false)
+    visible: true,                      // Optional: visibility (can be function) (default: true)
+    toggleable: false,                  // Optional: toggleable behavior (default: false)
+    active: false,                      // Optional: initial active state for toggleable tools (default: false)
+    iconColor: null,                    // Optional: icon color - any valid CSS color (default: null)
+    buttonNormalTint: null,             // Optional: normal button background color - any valid CSS color (default: null)
+    buttonSelectedTint: null            // Optional: selected button background color - any valid CSS color (default: null)
 });
 
 if (success) {
@@ -49,6 +62,8 @@ if (success) {
     console.log("Failed to register tool");
 }
 ```
+
+**Note:** While many parameters are optional, explicitly setting them ensures your code is clear, maintainable, and follows best practices. The system will work with just the required parameters, but for production code, we recommend setting all optional parameters explicitly.
 
 ## API Reference
 
@@ -202,17 +217,22 @@ Registers a new tool with the Blacksmith menubar system.
 **Tool Data Properties:**
 - `icon` (string, required): FontAwesome icon class (e.g., "fa-solid fa-dice-d20")
 - `name` (string, required): Tool name (used for data-tool attribute)
-- `title` (string, required): Tooltip text displayed on hover
+- `title` (string|Function, required): Tooltip text displayed on hover. Can be a function that returns a string for dynamic tooltips.
+- `tooltip` (string|Function, optional): Alternative tooltip text. If provided, overrides `title` for tooltip display. Can be a function that returns a string for dynamic tooltips.
 - `onClick` (Function, required): Function to execute when tool is clicked
 - `zone` (string, optional): Zone placement - "left", "middle", "right" (default: "left")
-- `order` (number, optional): Order within zone (default: 999)
+- `group` (string, optional): Group name for organizing tools within a zone. Tools in the same group appear together. If not specified, defaults to "general". Groups are separated by visual dividers.
+- `groupOrder` (number, optional): Order for the group within the zone. Lower numbers appear first. Blacksmith-defined groups take precedence over other modules. If not specified, defaults to 999 (appears last). Minimum value is 1.
+- `order` (number, optional): Order within the group and module. Lower numbers appear first. Blacksmith tools take precedence over other modules within the same group. Default: 999.
 - `moduleId` (string, optional): Module identifier (default: "unknown")
-- `gmOnly` (boolean, optional): Whether tool is GM-only (default: false)
-- `leaderOnly` (boolean, optional): Whether tool is leader-only (default: false)
-- `visible` (boolean|Function, optional): Whether tool is visible (default: true)
+- `gmOnly` (boolean, optional): Whether tool is GM-only. Affects visibility only; tool is still added to the specified group. Default: false.
+- `leaderOnly` (boolean, optional): Whether tool is leader-only. Affects visibility only; tool is still added to the specified group. Default: false.
+- `visible` (boolean|Function, optional): Whether tool is visible. Can be a function that returns a boolean for dynamic visibility. Default: true.
 - `toggleable` (boolean, optional): Whether tool can be toggled on/off (default: false)
 - `active` (boolean, optional): Initial active state for toggleable tools (default: false)
 - `iconColor` (string, optional): Icon color. Can be any valid CSS color (e.g., `'#ff0000'`, `'rgba(255, 0, 0, 0.8)'`, `'red'`). If omitted, uses default icon color.
+- `buttonNormalTint` (string, optional): Background color for the button in normal state. Can be any valid CSS color (e.g., `'rgba(255, 107, 53, 0.2)'`, `'#ff6b35'`, `'red'`). If omitted, uses default button background color.
+- `buttonSelectedTint` (string, optional): Background color for the button when active/selected (for toggleable tools). Can be any valid CSS color (e.g., `'rgba(255, 107, 53, 0.4)'`, `'#ff6b35'`, `'red'`). If omitted, uses default active button background color.
 
 #### `updateMenubarToolActive(toolId, active)`
 
@@ -269,16 +289,43 @@ Checks if a tool is registered.
 
 #### `getMenubarToolsByZone()`
 
-Gets all tools organized by their zones.
+Gets all tools organized by their zones, groups, and modules.
 
-**Returns:** `Object` - Object with zone arrays containing visible tools
+**Returns:** `Object` - Object with zones containing groups, which contain module arrays with tools
 ```javascript
 {
-    left: [/* array of left zone tools */],
-    middle: [/* array of middle zone tools */],
-    right: [/* array of right zone tools */]
+    left: {
+        "combat": [
+            { moduleId: "blacksmith-core", tools: [/* tool objects */], isBlacksmith: true },
+            { moduleId: "other-module", tools: [/* tool objects */], isBlacksmith: false }
+        ],
+        "general": [
+            { moduleId: "blacksmith-core", tools: [/* tool objects */], isBlacksmith: true }
+        ]
+    },
+    middle: {
+        "utility": [
+            { moduleId: "blacksmith-core", tools: [/* tool objects */], isBlacksmith: true }
+        ],
+        "general": [...]
+    },
+    right: {
+        "general": [...]
+    }
 }
 ```
+
+**Structure:**
+- **Zone** (`left`, `middle`, `right`): Top-level organization
+- **Group** (e.g., `"combat"`, `"utility"`, `"general"`): Groups within each zone, sorted by `groupOrder`
+- **Module Array**: Array of objects, each containing:
+  - `moduleId` (string): The module identifier
+  - `tools` (Array): Array of tool objects for this module
+  - `isBlacksmith` (boolean): Whether this module is Blacksmith
+- Tools within each module are sorted by their `order` value
+- Modules within a group are sorted with Blacksmith first, then by minimum tool `order` value
+
+**Note:** Only visible tools are included in the returned structure. Tools filtered by `gmOnly`, `leaderOnly`, or `visible` are excluded.
 
 ## Menubar Zones
 
@@ -286,13 +333,19 @@ The menubar system organizes tools into three predefined zones:
 
 ### Zone Layout:
 - **`left`** - Action tools (movement, interface, voting, skill checks)
-- **`middle`** - General tools and utilities
+- **`middle`** - General tools and utilities (supports grouping with visual dividers)
 - **`right`** - Informational tools (leader display, timer)
 
 ### Zone Guidelines:
 - **`left`**: Primary action tools that users interact with frequently
-- **`middle`**: Secondary tools and utilities
+- **`middle`**: Secondary tools and utilities (supports grouping system)
 - **`right`**: Read-only information displays and status indicators
+
+### Zone Organization:
+- Tools within each zone can be organized into **groups** using the `group` parameter
+- Groups are separated by visual dividers in the menubar
+- The grouping system is most commonly used in the `middle` zone, but works in all zones
+- Groups are sorted by `groupOrder`, with lower numbers appearing first
 
 ## Visibility System
 
@@ -315,25 +368,88 @@ blacksmith.registerMenubarTool('my-conditional-tool', {
     icon: "fa-solid fa-eye",
     name: "my-conditional-tool",
     title: "Conditional Tool",
+    tooltip: "Conditional Tool",
     zone: "left",
+    group: "general",
+    groupOrder: 999,
     order: 20,
     moduleId: "my-module",
+    gmOnly: false,
+    leaderOnly: false,
     visible: () => {
         // Only show if certain conditions are met
         return game.user.isGM || game.settings.get('my-module', 'enableFeature');
     },
+    toggleable: false,
+    active: false,
+    iconColor: null,
+    buttonNormalTint: null,
+    buttonSelectedTint: null,
     onClick: () => {
         // Tool logic
     }
 });
 ```
 
+## Grouping System
+
+The menubar uses a **tiered grouping system** to organize tools logically:
+
+### Organization Hierarchy
+
+Tools are organized in the following hierarchy:
+1. **Zone** (`left`, `middle`, `right`)
+2. **Group** (e.g., `"combat"`, `"utility"`, `"party"`, `"general"`)
+3. **Module** (tools from the same module are clustered together)
+4. **Order** (within the module, by `order` value)
+
+### Group Organization
+
+- **Groups are separated by visual dividers** in the menubar
+- **Groups are sorted by `groupOrder`** (lower numbers appear first)
+- **Within a group**, tools are organized by module:
+  - Blacksmith tools appear first (if any)
+  - Other modules follow, sorted by the minimum `order` value of their tools
+- **Within a module**, tools are sorted by `order` value
+
+### Blacksmith-Defined Groups
+
+Blacksmith defines the following groups with their order priorities:
+
+- **`"combat"`** (order: 1) - Combat-related tools
+- **`"utility"`** (order: 2) - Utility tools
+- **`"party"`** (order: 3) - Party management tools
+- **`"general"`** (order: 999) - Default group, always appears last
+
+### Group Priority Rules
+
+1. **Blacksmith groups take precedence**: If Blacksmith defines a group order, it overrides any other module's definition
+2. **"general" group is always last**: The default group always has order 999 and appears after all other groups
+3. **Dynamic groups**: Modules can create new groups by specifying a `group` name. If the group doesn't exist, it's created automatically
+4. **Auto-assignment**: If a module specifies a `groupOrder` >= 999, it's automatically assigned to the first available slot below 999
+
+### Visibility and Groups
+
+- `gmOnly` and `leaderOnly` affect **visibility only** - tools are still added to their specified group
+- Hidden tools don't affect group ordering or module clustering
+
 ## Ordering Guidelines
 
-Tools within each zone are ordered by their `order` property:
+### Group Ordering
 
-- **Lower numbers appear first** within each zone
-- **Recommended ranges**:
+- **Lower `groupOrder` values appear first** within each zone
+- **Recommended `groupOrder` ranges**:
+  - `1-10`: Core/primary groups (combat, utility, party)
+  - `11-50`: Secondary groups
+  - `51-100`: Utility groups
+  - `101-998`: Custom groups
+  - `999`: Default "general" group (always last)
+
+### Tool Ordering Within Groups
+
+- **Lower `order` values appear first** within each module
+- **Blacksmith tools take precedence** over other modules within the same group
+- **Recommended `order` ranges**:
   - `1-10`: Core/primary tools
   - `11-50`: Secondary tools
   - `51-100`: Utility tools
@@ -474,15 +590,28 @@ blacksmith.removeNotification(persistentId);
 
 ### Basic Tool Registration
 
+**Best Practice:** Always explicitly set all optional parameters for clarity and consistency.
+
 ```javascript
 // Register a simple utility tool (left zone)
 blacksmith.registerMenubarTool('my-utility', {
     icon: "fa-solid fa-calculator",
     name: "my-utility",
     title: "My Utility Tool",
+    tooltip: "My Utility Tool",  // Optional: explicit tooltip (defaults to title)
     zone: "left",
-    order: 10,
-    moduleId: "my-module",
+    group: "general",             // Optional: group name (default: "general")
+    groupOrder: 999,              // Optional: group order (default: 999)
+    order: 10,                     // Optional: order within group (default: 999)
+    moduleId: "my-module",        // Optional: module identifier (default: "unknown")
+    gmOnly: false,                // Optional: GM-only visibility (default: false)
+    leaderOnly: false,            // Optional: leader-only visibility (default: false)
+    visible: true,                // Optional: visibility (default: true)
+    toggleable: false,            // Optional: toggleable behavior (default: false)
+    active: false,                // Optional: initial active state (default: false)
+    iconColor: null,              // Optional: icon color (default: null)
+    buttonNormalTint: null,      // Optional: normal button background color (default: null)
+    buttonSelectedTint: null,     // Optional: selected button background color (default: null)
     onClick: () => {
         // Your utility logic
         ui.notifications.info("Utility tool activated!");
@@ -498,10 +627,20 @@ blacksmith.registerMenubarTool('my-admin-tool', {
     icon: "fa-solid fa-cog",
     name: "my-admin-tool",
     title: "Admin Tool",
+    tooltip: "Admin Tool",
     zone: "middle",
+    group: "general",
+    groupOrder: 999,
     order: 5,
     moduleId: "my-module",
-    gmOnly: true,
+    gmOnly: true,                 // Only visible to GMs
+    leaderOnly: false,
+    visible: true,
+    toggleable: false,
+    active: false,
+    iconColor: null,
+    buttonNormalTint: null,
+    buttonSelectedTint: null,
     onClick: () => {
         // Admin functionality
         console.log("Admin tool used by GM");
@@ -517,10 +656,20 @@ blacksmith.registerMenubarTool('my-leader-tool', {
     icon: "fa-solid fa-crown",
     name: "my-leader-tool",
     title: "Leader Tool",
+    tooltip: "Leader Tool",
     zone: "left",
+    group: "general",
+    groupOrder: 999,
     order: 1,
     moduleId: "my-module",
-    leaderOnly: true,
+    gmOnly: false,
+    leaderOnly: true,             // Visible to leaders and GMs
+    visible: true,
+    toggleable: false,
+    active: false,
+    iconColor: null,
+    buttonNormalTint: null,
+    buttonSelectedTint: null,
     onClick: () => {
         // Leader functionality
         ui.notifications.info("Leader tool activated!");
@@ -536,9 +685,20 @@ blacksmith.registerMenubarTool('my-status-tool', {
     icon: "fa-solid fa-info-circle",
     name: "my-status-tool",
     title: "Status Information",
+    tooltip: "Status Information",
     zone: "right",
+    group: "general",
+    groupOrder: 999,
     order: 10,
     moduleId: "my-module",
+    gmOnly: false,
+    leaderOnly: false,
+    visible: true,
+    toggleable: false,
+    active: false,
+    iconColor: null,
+    buttonNormalTint: null,
+    buttonSelectedTint: null,
     onClick: () => {
         // Display status information
         ui.notifications.info("Status: All systems operational");
@@ -554,11 +714,20 @@ blacksmith.registerMenubarTool('my-toggle-tool', {
     icon: "fa-solid fa-toggle-on",
     name: "my-toggle-tool",
     title: "Toggle Feature",
+    tooltip: "Toggle Feature",
     zone: "left",
+    group: "general",
+    groupOrder: 999,
     order: 15,
     moduleId: "my-module",
+    gmOnly: false,
+    leaderOnly: false,
+    visible: true,
     toggleable: true,              // Enable toggleable behavior
-    active: false,                 // Initial state (optional, defaults to false)
+    active: false,                 // Initial state
+    iconColor: null,
+    buttonNormalTint: null,
+    buttonSelectedTint: null,
     onClick: () => {
         // The active state is automatically toggled by the system
         // Check the current state if needed
@@ -573,6 +742,62 @@ blacksmith.registerMenubarTool('my-toggle-tool', {
 
 // Update active state programmatically
 blacksmith.updateMenubarToolActive('my-toggle-tool', true);
+```
+
+### Tool with Custom Colors
+
+```javascript
+// Register a tool with custom icon and button colors
+blacksmith.registerMenubarTool('my-colored-tool', {
+    icon: "fa-solid fa-palette",
+    name: "my-colored-tool",
+    title: "Colored Tool",
+    tooltip: "Colored Tool",
+    zone: "middle",
+    group: "utility",
+    groupOrder: 2,
+    order: 10,
+    moduleId: "my-module",
+    gmOnly: false,
+    leaderOnly: false,
+    visible: true,
+    toggleable: false,
+    active: false,
+    iconColor: "#ff6b35",                              // Orange icon
+    buttonNormalTint: "rgba(255, 107, 53, 0.2)",      // Light orange background
+    buttonSelectedTint: "rgba(255, 107, 53, 0.4)",    // Darker orange when active
+    onClick: () => {
+        ui.notifications.info("Colored tool activated!");
+    }
+});
+```
+
+### Tool in Custom Group
+
+```javascript
+// Register a tool in a custom group (creates the group automatically)
+blacksmith.registerMenubarTool('my-custom-tool', {
+    icon: "fa-solid fa-star",
+    name: "my-custom-tool",
+    title: "Custom Group Tool",
+    tooltip: "Custom Group Tool",
+    zone: "middle",
+    group: "my-custom-group",      // Creates new group automatically
+    groupOrder: 50,                // Appears after utility (2) but before general (999)
+    order: 1,
+    moduleId: "my-module",
+    gmOnly: false,
+    leaderOnly: false,
+    visible: true,
+    toggleable: false,
+    active: false,
+    iconColor: null,
+    buttonNormalTint: null,
+    buttonSelectedTint: null,
+    onClick: () => {
+        ui.notifications.info("Custom group tool activated!");
+    }
+});
 ```
 
 ### Module Cleanup
@@ -700,14 +925,70 @@ blacksmith.registerMenubarTool('my-tool', {
 
 ## Best Practices
 
-1. **Self-Contained Functions**: Make onClick functions completely self-contained with all dependencies imported
-2. **Unique Tool IDs**: Use descriptive, unique tool identifiers
-3. **Proper Zone Selection**: Choose the most appropriate zone for your tool
-4. **Consistent Ordering**: Use consistent order values within your module
-5. **Module Cleanup**: Unregister tools when your module is disabled
-6. **Error Handling**: Always check return values and handle errors gracefully
-7. **API Availability**: Check if the API is available before using it
-8. **Scope Awareness**: Understand that onClick functions execute in Blacksmith's context, not your module's context
+1. **Explicit Parameter Setting**: Always explicitly set all optional parameters when registering tools. This ensures clarity, consistency, and makes your code more maintainable:
+   ```javascript
+   // ✅ Good: Explicit parameters
+   blacksmith.registerMenubarTool('my-tool', {
+       icon: "fa-solid fa-icon",
+       name: "my-tool",
+       title: "My Tool",
+       tooltip: "My Tool",
+       zone: "left",
+       group: "general",
+       groupOrder: 999,
+       order: 10,
+       moduleId: "my-module",
+       gmOnly: false,
+       leaderOnly: false,
+       visible: true,
+       toggleable: false,
+       active: false,
+       iconColor: null,
+       buttonNormalTint: null,
+       buttonSelectedTint: null,
+       onClick: () => {}
+   });
+   
+   // ❌ Avoid: Relying on defaults (less clear)
+   blacksmith.registerMenubarTool('my-tool', {
+       icon: "fa-solid fa-icon",
+       name: "my-tool",
+       title: "My Tool",
+       onClick: () => {}
+   });
+   ```
+
+2. **Self-Contained Functions**: Make onClick functions completely self-contained with all dependencies imported
+
+3. **Unique Tool IDs**: Use descriptive, unique tool identifiers
+
+4. **Proper Zone Selection**: Choose the most appropriate zone for your tool:
+   - `left`: Primary action tools
+   - `middle`: General tools and utilities
+   - `right`: Informational/read-only tools
+
+5. **Group Organization**: Use appropriate groups to organize related tools:
+   - Use existing Blacksmith groups (`"combat"`, `"utility"`, `"party"`) when appropriate
+   - Create custom groups for module-specific tool collections
+   - Use `groupOrder` to control group positioning
+
+6. **Consistent Ordering**: Use consistent `order` values within your module:
+   - Lower numbers appear first
+   - Reserve ranges for different tool types
+
+7. **Color Format Flexibility**: When using `iconColor`, `buttonNormalTint`, or `buttonSelectedTint`, you can use any valid CSS color format:
+   - Hex: `'#ff6b35'`
+   - RGB/RGBA: `'rgba(255, 107, 53, 0.2)'`
+   - Named colors: `'red'`
+   - HSL: `'hsl(15, 100%, 60%)'`
+
+8. **Module Cleanup**: Unregister tools when your module is disabled
+
+9. **Error Handling**: Always check return values and handle errors gracefully
+
+10. **API Availability**: Check if the API is available before using it
+
+11. **Scope Awareness**: Understand that onClick functions execute in Blacksmith's context, not your module's context
 
 ## Troubleshooting
 
@@ -1148,8 +1429,20 @@ blacksmith.registerMenubarTool('cartographer-toggle', {
     icon: 'fa-solid fa-map',
     name: 'cartographer-toggle',
     title: 'Toggle Cartographer Tools',
+    tooltip: 'Toggle Cartographer Tools',
     zone: 'left',
-    toggleable: true,  // Important: Make it toggleable
+    group: 'general',
+    groupOrder: 999,
+    order: 20,
+    moduleId: 'coffee-pub-cartographer',
+    gmOnly: false,
+    leaderOnly: false,
+    visible: true,
+    toggleable: true,  // Important: Make it toggleable for active state syncing
+    active: false,
+    iconColor: null,
+    buttonNormalTint: null,
+    buttonSelectedTint: null,
     onClick: () => {
         blacksmith.toggleSecondaryBar('cartographer');
     }
@@ -1543,6 +1836,22 @@ Hooks.once('ready', async () => {
 ## Version History
 
 - **v13.0.0+**: Enhanced Menubar Features
+  - **Main Toolbar Grouping System**: Added tiered grouping system for organizing tools
+    - Added `group` parameter to `registerMenubarTool` for organizing tools into groups
+    - Added `groupOrder` parameter to control group positioning within zones
+    - Groups are separated by visual dividers in the menubar
+    - Blacksmith-defined groups take precedence over other modules
+    - Organization hierarchy: Zone -> Group -> Module -> Order
+    - Blacksmith groups: `"combat"` (order 1), `"utility"` (order 2), `"party"` (order 3), `"general"` (order 999)
+    - Dynamic group creation: modules can create new groups automatically
+  - **Button Color Customization**: Added button tinting support
+    - Added `buttonNormalTint` parameter for custom normal button background color
+    - Added `buttonSelectedTint` parameter for custom active/selected button background color
+    - Both parameters accept any valid CSS color format (hex, rgba, named colors, etc.)
+  - **Enhanced Tool Properties**:
+    - `title` and `tooltip` can now be functions that return strings for dynamic content
+    - `visible` can be a function for dynamic visibility
+    - `iconColor` accepts any valid CSS color format
   - **Main Toolbar Toggleable**: Added `toggleable` and `active` parameters to `registerMenubarTool`
   - Added `updateMenubarToolActive()` method for programmatic state updates
   - **Secondary Bar Groups**: Added group system with two modes:

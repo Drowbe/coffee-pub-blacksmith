@@ -1075,8 +1075,6 @@ class MenuBar {
             buttonSelectedTint: null
         });
 
-        
-
         // XP DISTRIBUTION
         this.registerMenubarTool('xp-distribution', {
             icon: "fas fa-star",
