@@ -1282,7 +1282,17 @@ const createCombatHookId = HookManager.registerHook({
         
         // Store current movement mode both in memory and persistently
         preCombatMovementMode = game.settings.get(MODULE.ID, 'movementType');
-        await game.settings.set(MODULE.ID, 'preCombatMovementMode', preCombatMovementMode);
+        
+        // Only update settings if user is GM (additional safety check)
+        try {
+            await game.settings.set(MODULE.ID, 'preCombatMovementMode', preCombatMovementMode);
+        } catch (settingError) {
+            // Silently handle permission errors - non-GM clients shouldn't update world settings
+            if (settingError.message?.includes('lacks permission')) {
+                return;
+            }
+            throw settingError; // Re-throw if it's a different error
+        }
         
         // Get the previous mode's name
         const prevModeType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === preCombatMovementMode);
@@ -1291,7 +1301,15 @@ const createCombatHookId = HookManager.registerHook({
         
         // Switch to combat movement mode
         if (preCombatMovementMode !== 'combat-movement') {
-            await game.settings.set(MODULE.ID, 'movementType', 'combat-movement');
+            try {
+                await game.settings.set(MODULE.ID, 'movementType', 'combat-movement');
+            } catch (settingError) {
+                // Silently handle permission errors - non-GM clients shouldn't update world settings
+                if (settingError.message?.includes('lacks permission')) {
+                    return;
+                }
+                throw settingError; // Re-throw if it's a different error
+            }
             
             // For combat start
             const combatTemplateData = {
@@ -1359,7 +1377,15 @@ const deleteCombatHookId = HookManager.registerHook({
         if (!movementType) return;
         
         // Restore previous movement mode
-        await game.settings.set(MODULE.ID, 'movementType', storedPreCombatMode);
+        try {
+            await game.settings.set(MODULE.ID, 'movementType', storedPreCombatMode);
+        } catch (settingError) {
+            // Silently handle permission errors - non-GM clients shouldn't update world settings
+            if (settingError.message?.includes('lacks permission')) {
+                return;
+            }
+            throw settingError; // Re-throw if it's a different error
+        }
         
         // For combat end
         const endCombatTemplateData = {
@@ -1396,7 +1422,15 @@ const deleteCombatHookId = HookManager.registerHook({
         
         // Clear the stored mode from both memory and persistent storage
         preCombatMovementMode = null;
-        await game.settings.set(MODULE.ID, 'preCombatMovementMode', null);
+        try {
+            await game.settings.set(MODULE.ID, 'preCombatMovementMode', null);
+        } catch (settingError) {
+            // Silently handle permission errors - non-GM clients shouldn't update world settings
+            if (settingError.message?.includes('lacks permission')) {
+                return;
+            }
+            throw settingError; // Re-throw if it's a different error
+        }
         } catch (err) {
             // Error in combat end handling
         }

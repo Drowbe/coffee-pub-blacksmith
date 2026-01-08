@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.0.10]
+
+### Changed
+- **Menubar Party Tool Visibility**: Changed party tool visibility to be GM-only instead of leader-only. The tool is now only visible to Game Masters, matching the behavior of other party management tools. This change ensures that non-GM users cannot access party management tools, reinforcing the GM-only nature of these tools.
+
 
 ## [13.0.9]
 

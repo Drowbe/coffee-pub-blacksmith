@@ -1006,7 +1006,7 @@ class MenuBar {
             toggleable: false,
             active: false,
             iconColor: " rgba(255, 255, 255, 0.6)",
-            buttonNormalTint: "rgba(194, 41, 17, 0.9)",
+            buttonNormalTint: "rgba(88, 15, 4, 0.9)",
             buttonSelectedTint: null
         });
 
@@ -1180,8 +1180,8 @@ class MenuBar {
             groupOrder: this.GROUP_ORDER.PARTY,
             order: 1,
             moduleId: "blacksmith-core",
-            gmOnly: false,
-            leaderOnly: true,
+            gmOnly: true,
+            leaderOnly: false,
             visible: true,
             toggleable: true,
             active: false,

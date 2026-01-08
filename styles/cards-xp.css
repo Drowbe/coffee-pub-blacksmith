@@ -35,11 +35,13 @@
     font-weight: 700;
     text-transform: uppercase;
 }
+
 .cpb-xp-card .xp-total-row .xp-card-content {
-    font-size: 1.2em;
+    font-size: 0.85em;
     font-weight: 900;
     color: rgba(20, 20, 20, 0.9);
 }
+
 
 .cpb-xp-card .xp-card-content-wrapper p {
     margin: 4px 0;
@@ -133,13 +135,13 @@
 }
 
 .cpb-xp-card .cpb-actor-name {
-    font-size: 1.2em;
+    font-size: 1.05em;
     font-weight: 900;
 }
 
 .cpb-xp-card .xp-gained {
     font-weight: 900;
-    font-size: 1.4em;
+    font-size: 0.85em;
     color: #18520b;
     flex-shrink: 0;
 }
