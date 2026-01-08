@@ -21,6 +21,17 @@ import { EncounterToolbar } from './encounter-toolbar.js';
 class MenuBar {
     static ID = 'menubar';
     static currentLeader = null;
+    
+    // Group order constants - Blacksmith groups take precedence
+    static GROUP_ORDER = {
+        COMBAT: 1,
+        UTILITY: 2,
+        PARTY: 3,
+        GENERAL: 999  // Always last
+    };
+    
+    static BLACKSMITH_MODULE_ID = 'blacksmith-core';
+    static MAX_GROUP_ORDER = 999;  // Maximum supported group order
     static notifications = new Map(); // Store active notifications;
     static isLoading = true;
     static sessionEndTime = null;
@@ -861,21 +872,21 @@ class MenuBar {
             }
         });
 
-        // MEMORY MONITOR
-        this.registerMenubarTool('memory-monitor', {
-            icon: "fa-solid fa-chart-simple",
-            name: "memory-monitor",
+        // TOGGLE UI
+        this.registerMenubarTool('interface', {
+            icon: "fa-solid fa-sidebar",
+            name: "interface",
             title: () => {
-                return PerformanceUtility.getMemoryDisplayString();
+                // Dynamic title based on current UI state
+                const isHidden = this.isInterfaceHidden();
+                return isHidden ? "" : "";
             },
+            tooltip: "Toggle Core Foundry Interface including toolbars, party window, and macros",
             zone: "left",
             order: 3,
             moduleId: "blacksmith-core",
-            visible: () => {
-                return game.settings.get(MODULE.ID, 'menubarShowPerformance');
-            },
             onClick: () => {
-                PerformanceUtility.showPerformanceCheck();
+                this.toggleInterface();
             }
         });
 
@@ -904,152 +915,28 @@ class MenuBar {
             }
         });
 
-        // TOGGLE UI
-        this.registerMenubarTool('interface', {
-            icon: "fa-solid fa-sidebar",
-            name: "interface",
+        // MEMORY MONITOR
+        this.registerMenubarTool('memory-monitor', {
+            icon: "fa-solid fa-chart-simple",
+            name: "memory-monitor",
             title: () => {
-                // Dynamic title based on current UI state
-                const isHidden = this.isInterfaceHidden();
-                return isHidden ? "Show UI" : "Hide UI";
+                return PerformanceUtility.getMemoryDisplayString();
             },
-            tooltip: "Toggle Core Foundry Interface including toolbars, party window, and macros",
             zone: "left",
             order: 5,
             moduleId: "blacksmith-core",
+            visible: () => {
+                return game.settings.get(MODULE.ID, 'menubarShowPerformance');
+            },
             onClick: () => {
-                this.toggleInterface();
+                PerformanceUtility.showPerformanceCheck();
             }
         });
 
         // **************** MIDDLE ZONE ****************
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        // VOTE
-        this.registerMenubarTool('vote', {
-            icon: "fa-solid fa-check-to-slot",
-            name: "vote",
-            title: "Vote",
-            zone: "middle",
-            order: 1,
-            moduleId: "blacksmith-core",
-            leaderOnly: true,
-            onClick: () => {
-                new VoteConfig().render(true);
-            }
-        });
-
-
-
-
-
-
-        // SKILL CHECK
-        this.registerMenubarTool('skillcheck', {
-            icon: "fa-solid fa-dice",
-            name: "skillcheck",
-            title: "Request a Roll",
-            zone: "middle",
-            order: 2,
-            moduleId: "blacksmith-core",
-            gmOnly: true,
-            visible: () => {
-                return getSettingSafely(MODULE.ID, 'requestRollShowInMenubar', true);
-            },
-            onClick: () => {
-                new SkillCheckDialog().render(true);
-            }
-        });
-
-        // REPLACE IMAGE
-        this.registerMenubarTool('imagereplace', {
-            icon: "fa-solid fa-images",
-            name: "imagereplace",
-            title: "Replace Image",
-            zone: "middle",
-            order: 3,
-            moduleId: "blacksmith-core",
-            gmOnly: true,
-            onClick: () => {
-                TokenImageReplacementWindow.openWindow();
-            }
-        });
-
-
-
-        // XP DISTRIBUTION
-        this.registerMenubarTool('xp-distribution', {
-            icon: "fas fa-star",
-            name: "xp-distribution",
-            title: "XP Distribution",
-            tooltip: "Open Experience Points Distribution Worksheet",
-            zone: "middle",
-            order: 5,
-            moduleId: "blacksmith-core",
-            gmOnly: true,
-            onClick: () => {
-                this.openXpDistribution();
-            }
-        });
-
-
-
-
-
-
-
-
-
-
-        // PARTY STATISTICS
-        this.registerMenubarTool('party-stats', {
-            icon: "fas fa-chart-line",
-            name: "party-stats",
-            title: "Party Statistics",
-            tooltip: "Open combat history and MVP leaderboard",
-            zone: "middle",
-            order: 6,
-            moduleId: "blacksmith-core",
-            gmOnly: false,
-            onClick: () => {
-                this.openStatsWindow();
-            }
-        });
-
-
-
-
-
+        // *** GROUP: COMBAT ***
 
 
         // CREATE COMBAT
@@ -1059,7 +946,9 @@ class MenuBar {
             title: "Create Combat",
             tooltip: "Create combat encounter with selected tokens or all tokens on canvas",
             zone: "middle",
-            order: 7,
+            group: "combat",
+            groupOrder: this.GROUP_ORDER.COMBAT,
+            order: 1,
             moduleId: "blacksmith-core",
             gmOnly: true,
             onClick: () => {
@@ -1074,7 +963,9 @@ class MenuBar {
             title: "Show Combat Tracker",
             tooltip: "Show the FoundryVTT Combat Tracker window visibility",
             zone: "middle",
-            order: 8,
+            group: "combat",
+            groupOrder: this.GROUP_ORDER.COMBAT,
+            order: 2,
             moduleId: "blacksmith-core",
             gmOnly: false, // Available to all players
             visible: () => {
@@ -1102,7 +993,9 @@ class MenuBar {
                 return isCombatBarOpen ? "Hide combat tracker secondary bar" : "Show combat tracker secondary bar";
             },
             zone: "middle",
-            order: 7,
+            group: "combat",
+            groupOrder: this.GROUP_ORDER.COMBAT,
+            order: 3,
             moduleId: "blacksmith-core",
             gmOnly: false, // Available to all players
             toggleable: true, // Enable toggleable to show active state
@@ -1115,6 +1008,83 @@ class MenuBar {
             onClick: () => {
                 // Toggle the combat bar - active state is synced in openCombatBar/closeCombatBar
                 this.toggleSecondaryBar('combat');
+            }
+        });
+
+        // XP DISTRIBUTION
+        this.registerMenubarTool('xp-distribution', {
+            icon: "fas fa-star",
+            name: "xp-distribution",
+            title: "XP Distribution",
+            tooltip: "Open Experience Points Distribution Worksheet",
+            zone: "middle",
+            group: "party",
+            groupOrder: this.GROUP_ORDER.PARTY,
+            order: 4,
+            moduleId: "blacksmith-core",
+            gmOnly: true,
+            onClick: () => {
+                this.openXpDistribution();
+            }
+        });
+
+
+        // *** GROUP: UTILITY ***
+
+
+        // SKILL CHECK
+        this.registerMenubarTool('skillcheck', {
+            icon: "fa-solid fa-dice",
+            name: "skillcheck",
+            title: "Request a Roll",
+            zone: "middle",
+            group: "utility",
+            groupOrder: this.GROUP_ORDER.UTILITY,
+            order: 1,
+            moduleId: "blacksmith-core",
+            gmOnly: true,
+            visible: () => {
+                return getSettingSafely(MODULE.ID, 'requestRollShowInMenubar', true);
+            },
+            onClick: () => {
+                new SkillCheckDialog().render(true);
+            }
+        });
+
+        // REPLACE IMAGE
+        this.registerMenubarTool('imagereplace', {
+            icon: "fa-solid fa-images",
+            name: "imagereplace",
+            title: "Replace Image",
+            zone: "middle",
+            group: "utility",
+            groupOrder: this.GROUP_ORDER.UTILITY,
+            order: 2,
+            moduleId: "blacksmith-core",
+            gmOnly: true,
+            onClick: () => {
+                TokenImageReplacementWindow.openWindow();
+            }
+        });
+
+
+        // *** GROUP: PARTY ***
+
+
+        // PARTY STATISTICS
+        this.registerMenubarTool('party-stats', {
+            icon: "fas fa-chart-line",
+            name: "party-stats",
+            title: "Party Statistics",
+            tooltip: "Open combat history and MVP leaderboard",
+            zone: "middle",
+            group: "party",
+            groupOrder: this.GROUP_ORDER.COMBAT,
+            order: 1,
+            moduleId: "blacksmith-core",
+            gmOnly: false,
+            onClick: () => {
+                this.openStatsWindow();
             }
         });
 
@@ -1133,7 +1103,9 @@ class MenuBar {
                 return isPartyBarOpen ? "Hide party tools secondary bar" : "Show party tools secondary bar";
             },
             zone: "middle",
-            order: 8,
+            group: "party",
+            groupOrder: this.GROUP_ORDER.PARTY,
+            order: 2,
             moduleId: "blacksmith-core",
             leaderOnly: true, // Available to leader/GM
             toggleable: true,
@@ -1144,15 +1116,37 @@ class MenuBar {
             }
         });
 
+        // VOTE
+        this.registerMenubarTool('vote', {
+            icon: "fa-solid fa-check-to-slot",
+            name: "vote",
+            title: "Vote",
+            zone: "middle",
+            group: "party",
+            groupOrder: this.GROUP_ORDER.PARTY,
+            order: 3,
+            moduleId: "blacksmith-core",
+            leaderOnly: true,
+            onClick: () => {
+                new VoteConfig().render(true);
+            }
+        });
 
+        // *** GROUP: GENERAL (Default/overflow group)***
+
+
+        // nothing in blacksmith yet
+
+
+        // *** GROUP: NOTIFICATION ***
+
+
+        // Always last
 
 
         // Map secondary bars to their toggle tools for button state syncing
         this.secondaryBarToolMapping.set('combat', 'combat-tracker');
         this.secondaryBarToolMapping.set('party', 'party');
-
-
-
 
         // **************** RIGHT ZONE ****************
         
@@ -1381,6 +1375,32 @@ class MenuBar {
                 return false;
             }
 
+            // Determine group and groupOrder with Blacksmith priority
+            const group = toolData.group || 'general';
+            let groupOrder = toolData.groupOrder;
+            
+            // If groupOrder not specified, use defaults based on group name
+            if (groupOrder === undefined) {
+                const groupLower = group.toLowerCase();
+                if (groupLower === 'combat') groupOrder = this.GROUP_ORDER.COMBAT;
+                else if (groupLower === 'utility') groupOrder = this.GROUP_ORDER.UTILITY;
+                else if (groupLower === 'party') groupOrder = this.GROUP_ORDER.PARTY;
+                else if (groupLower === 'general') groupOrder = this.GROUP_ORDER.GENERAL;
+                else groupOrder = this.MAX_GROUP_ORDER; // Unknown groups default to 999
+            }
+            
+            // Clamp groupOrder minimum to 1
+            // Values > 999 will be auto-assigned to first free slot during sorting phase
+            if (groupOrder < 1) {
+                groupOrder = 1;
+            }
+            // Don't clamp > 999 here - preserve it for sorting phase to handle
+            
+            // Enforce "general" always last (999)
+            if (group === 'general') {
+                groupOrder = this.GROUP_ORDER.GENERAL; // Force to 999 (last)
+            }
+            
             // Set defaults
             const tool = {
                 icon: toolData.icon,
@@ -1388,10 +1408,12 @@ class MenuBar {
                 title: toolData.title,
                 onClick: toolData.onClick,
                 zone: toolData.zone || 'left',
+                group: group,
+                groupOrder: groupOrder,
                 order: toolData.order || 999,
                 moduleId: toolData.moduleId || 'unknown',
-                gmOnly: toolData.gmOnly || false,
-                leaderOnly: toolData.leaderOnly || false,
+                gmOnly: toolData.gmOnly || false,  // Visibility only, not for grouping
+                leaderOnly: toolData.leaderOnly || false,  // Visibility only, not for grouping
                 visible: toolData.visible !== undefined ? toolData.visible : true,
                 toggleable: toolData.toggleable || false,
                 active: toolData.active || false,
@@ -1511,18 +1533,15 @@ class MenuBar {
     }
 
     /**
-     * Get tools organized by zone
-     * @returns {Object} Object with zone arrays containing visible tools
+     * Get tools organized by zone, then by group, then by module, then by order
+     * @returns {Object} Object with zone objects containing group objects containing module arrays
      */
     static getMenubarToolsByZone() {
+        // Structure: zones[zone][group][moduleId] = [tools]
         const zones = {
-            left: [],
-            middle: {
-                general: [],    // All players/GM
-                leader: [],     // Leader/GM only
-                gm: []         // GM only
-            },
-            right: []
+            left: {},
+            middle: {},
+            right: {}
         };
 
         this.toolbarIcons.forEach((tool, toolId) => {
@@ -1534,7 +1553,7 @@ class MenuBar {
                 isVisible = tool.visible;
             }
 
-            // Check GM/Leader restrictions
+            // Check GM/Leader restrictions (visibility only, not for grouping)
             if (tool.gmOnly && !game.user.isGM) {
                 isVisible = false;
             }
@@ -1560,6 +1579,8 @@ class MenuBar {
 
             if (isVisible) {
                 const zone = tool.zone || 'left';
+                const group = tool.group || 'general';
+                const moduleId = tool.moduleId || 'unknown';
                 
                 // Process title, tooltip, and active if they are functions
                 let activeState = tool.active;
@@ -1577,31 +1598,138 @@ class MenuBar {
                     active: activeState
                 };
                 
-                if (zone === 'middle') {
-                    // Group middle tools by visibility requirements
-                    if (tool.gmOnly) {
-                        zones.middle.gm.push(processedTool);
-                    } else if (tool.leaderOnly) {
-                        zones.middle.leader.push(processedTool);
-                    } else {
-                        zones.middle.general.push(processedTool);
-                    }
-                } else {
-                    zones[zone].push(processedTool);
+                // Initialize zone/group/module structure if needed
+                if (!zones[zone]) {
+                    zones[zone] = {};
                 }
+                if (!zones[zone][group]) {
+                    zones[zone][group] = {};
+                }
+                if (!zones[zone][group][moduleId]) {
+                    zones[zone][group][moduleId] = [];
+                }
+                
+                zones[zone][group][moduleId].push(processedTool);
             }
         });
 
-        // Sort each zone by order
+        // Sort: Within each module, sort by order
+        // Then organize into final structure: groups with modules arrays, sorted by groupOrder
+        // Blacksmith groups/priorities take precedence, Blacksmith modules appear first within groups
         Object.keys(zones).forEach(zone => {
-            if (zone === 'middle') {
-                // Sort each group within middle zone
-                zones.middle.general.sort((a, b) => (a.order || 999) - (b.order || 999));
-                zones.middle.leader.sort((a, b) => (a.order || 999) - (b.order || 999));
-                zones.middle.gm.sort((a, b) => (a.order || 999) - (b.order || 999));
-            } else {
-                zones[zone].sort((a, b) => (a.order || 999) - (b.order || 999));
-            }
+            const zoneData = zones[zone];
+            const organizedZone = {};
+            const groupMetadata = {}; // Track group order for sorting (Blacksmith priority)
+            
+            // Process each group
+            Object.keys(zoneData).forEach(groupName => {
+                const groupData = zoneData[groupName];
+                const organizedGroup = [];
+                let groupOrder = this.MAX_GROUP_ORDER; // Default group order (999)
+                let hasBlacksmithGroupOrder = false; // Track if Blacksmith set groupOrder
+                
+                // Process each module in this group
+                Object.keys(groupData).forEach(moduleId => {
+                    const moduleTools = groupData[moduleId];
+                    const isBlacksmith = moduleId === this.BLACKSMITH_MODULE_ID;
+                    
+                    // Sort tools within module by order
+                    moduleTools.sort((a, b) => (a.order || 999) - (b.order || 999));
+                    
+                    // Track groupOrder with Blacksmith priority
+                    const moduleGroupOrder = Math.min(...moduleTools.map(t => t.groupOrder || this.MAX_GROUP_ORDER));
+                    if (isBlacksmith) {
+                        // Blacksmith's groupOrder always wins
+                        groupOrder = moduleGroupOrder;
+                        hasBlacksmithGroupOrder = true;
+                    } else if (!hasBlacksmithGroupOrder) {
+                        // Only use non-Blacksmith groupOrder if Blacksmith hasn't set one
+                        if (moduleGroupOrder < groupOrder) {
+                            groupOrder = moduleGroupOrder;
+                        }
+                    }
+                    
+                    // Add module's tools to group array
+                    organizedGroup.push({
+                        moduleId: moduleId,
+                        tools: moduleTools,
+                        isBlacksmith: isBlacksmith
+                    });
+                });
+                
+                // Sort modules: Blacksmith first, then by order (registration order within same order)
+                organizedGroup.sort((a, b) => {
+                    // Blacksmith always comes first
+                    if (a.isBlacksmith && !b.isBlacksmith) return -1;
+                    if (!a.isBlacksmith && b.isBlacksmith) return 1;
+                    
+                    // For same type (both Blacksmith or both not), sort by order within module
+                    const aMinOrder = Math.min(...a.tools.map(t => t.order || 999));
+                    const bMinOrder = Math.min(...b.tools.map(t => t.order || 999));
+                    return aMinOrder - bMinOrder;
+                });
+                
+                // Enforce "general" always last
+                if (groupName === 'general') {
+                    groupOrder = this.GROUP_ORDER.GENERAL; // Force to 999 (last)
+                }
+                
+                if (organizedGroup.length > 0) {
+                    organizedZone[groupName] = organizedGroup;
+                    groupMetadata[groupName] = groupOrder;
+                }
+            });
+            
+            // Handle groups with order > 999: assign to first free slot under 999
+            const usedOrders = new Set();
+            Object.keys(groupMetadata).forEach(groupName => {
+                const order = groupMetadata[groupName];
+                if (order < this.MAX_GROUP_ORDER) {
+                    usedOrders.add(order);
+                }
+            });
+            
+            // Find first free slot for groups that exceed MAX_GROUP_ORDER
+            const groupsToReassign = [];
+            Object.keys(groupMetadata).forEach(groupName => {
+                if (groupMetadata[groupName] >= this.MAX_GROUP_ORDER && groupName !== 'general') {
+                    groupsToReassign.push(groupName);
+                }
+            });
+            
+            // Assign each overflowing group to first free slot
+            groupsToReassign.forEach(groupName => {
+                let freeSlot = 1;
+                while (freeSlot < this.MAX_GROUP_ORDER && usedOrders.has(freeSlot)) {
+                    freeSlot++;
+                }
+                if (freeSlot < this.MAX_GROUP_ORDER) {
+                    groupMetadata[groupName] = freeSlot;
+                    usedOrders.add(freeSlot);
+                } else {
+                    // If no free slot found (unlikely but possible), assign to 998
+                    groupMetadata[groupName] = this.MAX_GROUP_ORDER - 1;
+                }
+            });
+            
+            // Sort groups by groupOrder, then alphabetically if same order
+            const sortedGroupNames = Object.keys(organizedZone).sort((a, b) => {
+                const orderA = groupMetadata[a] || this.MAX_GROUP_ORDER;
+                const orderB = groupMetadata[b] || this.MAX_GROUP_ORDER;
+                if (orderA !== orderB) {
+                    return orderA - orderB;
+                }
+                // If same order, sort alphabetically
+                return a.localeCompare(b);
+            });
+            
+            // Rebuild organizedZone with sorted groups
+            const sortedZone = {};
+            sortedGroupNames.forEach(groupName => {
+                sortedZone[groupName] = organizedZone[groupName];
+            });
+            
+            zones[zone] = sortedZone;
         });
 
         return zones;
@@ -1932,9 +2060,12 @@ class MenuBar {
                     console.log('✅ Test 2 PASSED: Tools properly organized by zones');
                     console.log('🎉 REFACTORED MENUBAR SYSTEM TESTS PASSED!');
                     console.log('📊 Zone Summary:');
-                    console.log(`   Left: ${toolsByZone.left.length} tools`);
-                    console.log(`   Middle: ${toolsByZone.middle.general.length + toolsByZone.middle.leader.length + toolsByZone.middle.gm.length} tools (${toolsByZone.middle.general.length} general, ${toolsByZone.middle.leader.length} leader, ${toolsByZone.middle.gm.length} gm)`);
-                    console.log(`   Right: ${toolsByZone.right.length} tools`);
+                    const leftCount = Object.values(toolsByZone.left).reduce((sum, group) => sum + group.reduce((s, m) => s + m.tools.length, 0), 0);
+                    const middleCount = Object.values(toolsByZone.middle).reduce((sum, group) => sum + group.reduce((s, m) => s + m.tools.length, 0), 0);
+                    const rightCount = Object.values(toolsByZone.right).reduce((sum, group) => sum + group.reduce((s, m) => s + m.tools.length, 0), 0);
+                    console.log(`   Left: ${leftCount} tools`);
+                    console.log(`   Middle: ${middleCount} tools`);
+                    console.log(`   Right: ${rightCount} tools`);
                     return true;
                 } else {
                     console.log('❌ Test 2 FAILED: Zone organization not working');
@@ -3478,15 +3609,15 @@ class MenuBar {
             
             // Debug: Log leader data during menubar rendering
             const renderLeaderData = game.settings.get(MODULE.ID, 'partyLeader');
+            const middleGroups = Object.keys(toolsByZone.middle || {});
             postConsoleAndNotification(MODULE.NAME, "Menubar Leader | Initial render", {
                 leaderData: renderLeaderData,
                 currentUserId: game.user.id,
                 isGM: game.user.isGM,
                 currentLeader: this.currentLeader,
                 isLoading: this.isLoading,
-                leaderToolsInMiddle: toolsByZone.middle.leader.length,
-                generalToolsInMiddle: toolsByZone.middle.general.length,
-                gmToolsInMiddle: toolsByZone.middle.gm.length
+                middleGroups: middleGroups,
+                middleGroupCount: middleGroups.length
             }, true, false);
 
             // Prepare secondary bar data
@@ -3824,13 +3955,13 @@ class MenuBar {
             if (hideLeftUI && isLeftHidden) uiLeft.style.display = 'inherit';
             if (hideBottomUI && isBottomHidden) uiBottom.style.display = 'inherit';
             if (isTopHidden) uiTop.style.display = 'inherit';
-            if (label) label.textContent = 'Hide UI';
+            if (label) label.textContent = '';
         } else {
             ui.notifications.info("Hiding the Interface...");
             if (hideLeftUI) uiLeft.style.display = 'none';
             if (hideBottomUI) uiBottom.style.display = 'none';
             if (uiTop) uiTop.style.display = 'none';
-            if (label) label.textContent = 'Show UI';
+            if (label) label.textContent = '';
         }
     }
 
@@ -4684,3 +4815,4 @@ class MenuBar {
 }
 
 export { MenuBar }; 
+

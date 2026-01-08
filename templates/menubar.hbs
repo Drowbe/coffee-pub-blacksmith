@@ -4,87 +4,36 @@
     {{!-- LEFT ZONE --}}
     <div class="blacksmith-menubar-left">
         {{#each toolsByZone.left}}
-        <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
-            <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
-            {{#if (eq name "settings")}}
-            {{else if (eq name "refresh")}}
-            {{else}}
-            <span class="{{name}}-label">{{title}}</span>
-            {{/if}}
-        </div>
+            {{#each this}}
+                {{#each tools}}
+                <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
+                    <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
+                    {{#if (eq name "settings")}}
+                    {{else if (eq name "refresh")}}
+                    {{else}}
+                    <span class="{{name}}-label">{{title}}</span>
+                    {{/if}}
+                </div>
+                {{/each}}
+            {{/each}}
         {{/each}}
     </div>
 
     {{!-- MIDDLE ZONE --}}
     <div class="blacksmith-menubar-middle">
-        
-        
-        
-        {{!-- GM buttons (gm only) --}}
-        {{#each toolsByZone.middle.gm}}
-        <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
-            <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
-            <span class="{{name}}-label">{{title}}</span>
-        </div>
+        {{#each toolsByZone.middle}}
+            {{#each this}}
+                {{#each tools}}
+                <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
+                    <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
+                    <span class="{{name}}-label">{{title}}</span>
+                </div>
+                {{/each}}
+            {{/each}}
+            {{#unless @last}}
+            <div class="menu-divider line"></div>
+            {{/unless}}
         {{/each}}
-        
-        
-        {{!-- Divider between general and leader buttons --}}
-        {{#if (and toolsByZone.middle.leader.length)}}
-        <div class="menu-divider line"></div>
-        {{/if}}
-        
-        
-        {{!-- Leader buttons (leader/gm) --}}
-        {{#each toolsByZone.middle.leader}}
-        <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
-            <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
-            <span class="{{name}}-label">{{title}}</span>
-        </div>
-        {{/each}} 
-        
-        
-        {{!-- Divider between general and leader buttons --}}
-        {{#if (and toolsByZone.middle.leader.length)}}
-        <div class="menu-divider line"></div>
-        {{/if}}
-
-
-        {{!-- General buttons (all players/gm) --}}
-        {{#each toolsByZone.middle.general}}
-        <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}">
-            <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
-            <span class="{{name}}-label">{{title}}</span>
-        </div>
-        {{/each}}
-        
-        
-
-
-
-
-        
-
-        
-        {{!-- Divider between general and leader buttons --}}
-        {{#if (and toolsByZone.middle.general.length toolsByZone.middle.leader.length)}}
-        <div class="menu-divider line"></div>
-        {{/if}}
-        
-
-        
-        {{!-- Divider between leader and gm buttons --}}
-        {{#if (and (or toolsByZone.middle.general.length toolsByZone.middle.leader.length) toolsByZone.middle.gm.length)}}
-        <div class="menu-divider line"></div>
-        {{/if}}
-        
-
-
-
-
-
-
-
 
         {{!-- NOTIFICATIONS --}}
         {{#if notifications.length}}
