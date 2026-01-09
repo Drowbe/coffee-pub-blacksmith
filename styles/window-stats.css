@@ -221,7 +221,7 @@ div#blacksmith-stats-window .window-content {
 .stats-section-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
   font-size: 0.95em;
   font-weight: 600;
