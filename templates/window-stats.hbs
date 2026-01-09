@@ -39,15 +39,15 @@
     <div class="stats-section {{#unless filters.showCombats}}hidden{{/unless}}" data-section="combat-history">
       <div class="stats-section-header">
         <i class="fas fa-crosshairs"></i> Recent Combat History
-        {{#if combats.length}}
         <div class="stats-section-header-actions">
+          {{#if combats.length}}
           <button type="button" class="stats-action-btn delete-history-btn" title="Delete all combat history"><i class="fas fa-trash"></i> Delete Stats</button>
           <span class="button-divider">|</span>
           <button type="button" class="stats-action-btn export-history"><i class="fas fa-file-download"></i> Export Stats</button>
           <span class="button-divider">|</span>
+          {{/if}}
           <button type="button" class="stats-action-btn import-history"><i class="fas fa-file-upload"></i> Import Stats</button>
         </div>
-        {{/if}}
       </div>
       <div class="stats-table-wrapper" data-table-type="combats">
         <div class="stats-table-header">
