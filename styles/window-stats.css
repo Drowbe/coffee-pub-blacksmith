@@ -359,18 +359,19 @@ div#blacksmith-stats-window .window-content {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  min-width: 20px;
+  width: 17px;
+  height: 17px;
+  min-width: 17px;
   padding: 0;
-  background: rgba(200, 50, 50, 0.3);
-  border: 1px solid rgba(200, 50, 50, 0.6);
-  border-radius: 4px;
+  background: rgba(200, 50, 50, 0.2);
+  border: 1px solid rgba(200, 50, 50, 0.1);
+  border-radius: 3px;
   color: rgba(255, 150, 150, 0.9);
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 0.75em;
+  
   flex-shrink: 0;
+  line-height: 1 !important;
 }
 
 .delete-combat-btn:hover {
@@ -382,6 +383,7 @@ div#blacksmith-stats-window .window-content {
 .delete-combat-btn i {
   margin: 0;
   padding: 0;
+  font-size: 10px;
 }
 
 .stats-table-row .player-portrait {
