@@ -6,7 +6,7 @@ This document serves as the authoritative reference for the Coffee Pub Blacksmit
 
 ## Overview
 
-Blacksmith publishes a global `BlacksmithStats` helper (installed by the API bridge) that becomes available once the module finishes initializing. The stats engine only activates on GM clients when the `trackCombatStats` and `trackPlayerStats` world settings are enabled. Consumers should wait for the Foundry `ready` hook—or call `BlacksmithAPI.waitForReady()`—before interacting with the API. The implementation targets Foundry VTT v12 while maintaining compatibility plans for v13.
+Blacksmith publishes a global `BlacksmithStats` helper (installed by the API bridge) that becomes available once the module finishes initializing. The stats engine only activates on GM clients when the `trackCombatStats` and `trackPlayerStats` world settings are enabled. Consumers should wait for the Foundry `ready` hook—or call `BlacksmithAPI.waitForReady()`—before interacting with the API. The implementation requires Foundry VTT v13 or later.
 
 ---
 
@@ -280,7 +280,7 @@ Hooks.once('ready', async () => {
 
 - `trackCombatStats` enables combat tracking; `trackPlayerStats` enables lifetime tracking. If a setting is disabled, methods return defaults or `null` rather than throwing errors.
 - Only GMs mutate statistics; player clients receive read-only snapshots when available.
-- Hook usage and flag management remain compatible with the Foundry v13 API roadmap. Monitor release notes for additional changes.
+- This module requires Foundry VTT v13 or later. Hook usage and flag management follow the Foundry v13 API.
 
 ---
 
