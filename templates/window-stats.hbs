@@ -37,7 +37,18 @@
 
   <div class="stats-body-scroll">
     <div class="stats-section {{#unless filters.showCombats}}hidden{{/unless}}" data-section="combat-history">
-      <div class="stats-section-header"><i class="fas fa-crosshairs"></i> Recent Combat History</div>
+      <div class="stats-section-header">
+        <i class="fas fa-crosshairs"></i> Recent Combat History
+        {{#if combats.length}}
+        <div class="stats-section-header-actions">
+          <button type="button" class="stats-action-btn delete-history-btn" title="Delete all combat history"><i class="fas fa-trash"></i> Delete Stats</button>
+          <span class="button-divider">|</span>
+          <button type="button" class="stats-action-btn export-history"><i class="fas fa-file-download"></i> Export Stats</button>
+          <span class="button-divider">|</span>
+          <button type="button" class="stats-action-btn import-history"><i class="fas fa-file-upload"></i> Import Stats</button>
+        </div>
+        {{/if}}
+      </div>
       <div class="stats-table-wrapper" data-table-type="combats">
         <div class="stats-table-header">
           <span class="stats-table-col-1 stats-table-col-header">Combat</span>
@@ -56,7 +67,12 @@
                 <span class="stats-table-col-3">{{rounds}}</span>
                 <span class="stats-table-col-4">{{hitRate}}</span>
                 <span class="stats-table-col-5">{{mvpName}} ({{mvpScore}})</span>
-                <span class="stats-table-col-6">{{duration}}</span>
+                <span class="stats-table-col-6">
+                  <span class="stats-table-duration">{{duration}}</span>
+                  <button type="button" class="delete-combat-btn" title="Delete this combat" data-combat-id="{{combatId}}">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </span>
               </div>
             {{/each}}
           {{else}}
@@ -64,18 +80,22 @@
           {{/if}}
         </div>
       </div>
+      <div class="stats-section-footer">Showing {{#if combats.length}}{{combats.length}}{{else}}0{{/if}} combat sessions.</div>
     </div>
 
     <div class="stats-section {{#unless filters.showLifetime}}hidden{{/unless}}" data-section="lifetime-leaderboard">
-      <div class="stats-section-header"><i class="fas fa-trophy"></i> Lifetime MVP Leaderboard</div>
+      <div class="stats-section-header"><i class="fas fa-trophy"></i> Lifetime Player Leaderboard</div>
       <div class="stats-table-wrapper" data-table-type="leaderboard">
         <div class="stats-table-header">
           <span class="stats-table-col-1 stats-table-col-header">Rank</span>
           <span class="stats-table-col-2 stats-table-col-header">Player</span>
-          <span class="stats-table-col-3 stats-table-col-header">Total Score</span>
-          <span class="stats-table-col-4 stats-table-col-header">Combats</span>
-          <span class="stats-table-col-5 stats-table-col-header">Average</span>
-          <span class="stats-table-col-6 stats-table-col-header">Best</span>
+          <span class="stats-table-col-3 stats-table-col-header">Combats</span>
+          <span class="stats-table-col-4 stats-table-col-header">Total MVP</span>
+          <span class="stats-table-col-5 stats-table-col-header">Avg MVP</span>
+          <span class="stats-table-col-6 stats-table-col-header">Best MVP</span>
+          <span class="stats-table-col-7 stats-table-col-header">Crits</span>
+          <span class="stats-table-col-8 stats-table-col-header">Fumbles</span>
+          <span class="stats-table-col-9 stats-table-col-header">Biggest Hit</span>
         </div>
         <div class="stats-table-body">
           {{#if leaderboard.length}}
@@ -86,10 +106,13 @@
                   <img class="player-portrait" src="{{img}}" alt="{{name}}">
                   <span class="player-name">{{name}}</span>
                 </span>
-                <span class="stats-table-col-3">{{mvp.totalScore}}</span>
-                <span class="stats-table-col-4">{{mvp.combats}}</span>
+                <span class="stats-table-col-3">{{mvp.combats}}</span>
+                <span class="stats-table-col-4">{{mvp.totalScore}}</span>
                 <span class="stats-table-col-5">{{mvp.averageScore}}</span>
                 <span class="stats-table-col-6">{{mvp.highScore}}</span>
+                <span class="stats-table-col-7">{{crits}}</span>
+                <span class="stats-table-col-8">{{fumbles}}</span>
+                <span class="stats-table-col-9">{{biggestHit}}</span>
               </div>
             {{/each}}
           {{else}}
@@ -97,10 +120,11 @@
           {{/if}}
         </div>
       </div>
+      <div class="stats-section-footer">Rank is based on overall MVP score.</div>
     </div>
 
     <div class="stats-section" data-section="mvp-history">
-      <div class="stats-section-header"><i class="fas fa-medal"></i> MVP Highlights</div>
+      <div class="stats-section-header"><i class="fas fa-medal"></i> Party Highlights</div>
       <div class="stats-highlight-grid">
         {{#if highlights.length}}
           {{#each highlights}}
@@ -124,11 +148,13 @@
           <div class="stats-empty-state">Complete a combat to see MVP highlights.</div>
         {{/if}}
       </div>
+      <div class="stats-section-footer">Showing {{#if highlights.length}}{{highlights.length}}{{else}}0{{/if}} MVP highlights.</div>
     </div>
   </div>
 
   <div class="stats-footer">
-    <button type="button" class="stats-btn export-history"><i class="fas fa-file-download"></i> Export History</button>
-    <button type="button" class="stats-btn close-stats"><i class="fas fa-times"></i> Close</button>
+    <div class="stats-footer-actions">
+      <button type="button" class="stats-btn close-stats"><i class="fas fa-times"></i> Close</button>
+    </div>
   </div>
 </div>

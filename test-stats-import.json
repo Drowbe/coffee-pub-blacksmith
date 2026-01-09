@@ -1,0 +1,876 @@
+{
+  "version": "1.0",
+  "exportDate": "2024-12-15T10:30:00.000Z",
+  "combatHistory": [
+    {
+      "combatId": "combat-test-001",
+      "date": "2024-12-14T15:45:23.123Z",
+      "duration": 1845000,
+      "durationSeconds": 1845,
+      "totalRounds": 6,
+      "sceneName": "The Goblin Cave",
+      "sceneId": "scene-abc123",
+      "totals": {
+        "hits": 42,
+        "misses": 18,
+        "totalAttacks": 60,
+        "damageDealt": 387,
+        "damageTaken": 156,
+        "healingGiven": 89,
+        "criticals": 5,
+        "fumbles": 2,
+        "hitRate": "70.0"
+      },
+      "participants": [
+        {
+          "actorId": "actor-player-001",
+          "name": "Thorin Ironforge",
+          "damageDealt": 187,
+          "damageTaken": 45,
+          "healingGiven": 0,
+          "healingReceived": 35,
+          "hits": 18,
+          "misses": 4,
+          "totalAttacks": 22,
+          "criticals": 3,
+          "fumbles": 0
+        },
+        {
+          "actorId": "actor-player-002",
+          "name": "Lyra Moonwhisper",
+          "damageDealt": 120,
+          "damageTaken": 67,
+          "healingGiven": 89,
+          "healingReceived": 54,
+          "hits": 15,
+          "misses": 8,
+          "totalAttacks": 23,
+          "criticals": 1,
+          "fumbles": 1
+        },
+        {
+          "actorId": "actor-player-003",
+          "name": "Gareth the Bold",
+          "damageDealt": 80,
+          "damageTaken": 44,
+          "healingGiven": 0,
+          "healingReceived": 0,
+          "hits": 9,
+          "misses": 6,
+          "totalAttacks": 15,
+          "criticals": 1,
+          "fumbles": 1
+        }
+      ],
+      "notableMoments": {
+        "biggestHit": {
+          "attacker": "Thorin Ironforge",
+          "attackerId": "actor-player-001",
+          "target": "Goblin Chief",
+          "targetId": "actor-goblin-chief",
+          "amount": 47,
+          "weapon": "Warhammer +2",
+          "isCritical": true,
+          "timestamp": "2024-12-14T15:52:10.500Z"
+        },
+        "topHits": [
+          {
+            "attacker": "Thorin Ironforge",
+            "attackerId": "actor-player-001",
+            "target": "Goblin Chief",
+            "targetId": "actor-goblin-chief",
+            "amount": 47,
+            "weapon": "Warhammer +2",
+            "isCritical": true,
+            "timestamp": "2024-12-14T15:52:10.500Z"
+          },
+          {
+            "attacker": "Thorin Ironforge",
+            "attackerId": "actor-player-001",
+            "target": "Goblin Warrior",
+            "targetId": "actor-goblin-warrior-1",
+            "amount": 32,
+            "weapon": "Warhammer +2",
+            "isCritical": false,
+            "timestamp": "2024-12-14T15:48:22.300Z"
+          },
+          {
+            "attacker": "Lyra Moonwhisper",
+            "attackerId": "actor-player-002",
+            "target": "Goblin Shaman",
+            "targetId": "actor-goblin-shaman",
+            "amount": 28,
+            "weapon": "Fire Bolt",
+            "isCritical": false,
+            "timestamp": "2024-12-14T15:50:15.800Z"
+          }
+        ],
+        "topHeals": [
+          {
+            "healer": "Lyra Moonwhisper",
+            "healerId": "actor-player-002",
+            "target": "Thorin Ironforge",
+            "targetId": "actor-player-001",
+            "amount": 35,
+            "timestamp": "2024-12-14T15:51:05.200Z"
+          },
+          {
+            "healer": "Lyra Moonwhisper",
+            "healerId": "actor-player-002",
+            "target": "Gareth the Bold",
+            "targetId": "actor-player-003",
+            "amount": 24,
+            "timestamp": "2024-12-14T15:49:30.100Z"
+          }
+        ],
+        "longestTurn": {
+          "actorId": "actor-player-003",
+          "actorName": "Gareth the Bold",
+          "duration": 45000,
+          "round": 4,
+          "date": "2024-12-14T15:50:45.000Z"
+        },
+        "fastestTurn": {
+          "actorId": "actor-player-001",
+          "actorName": "Thorin Ironforge",
+          "duration": 3200,
+          "round": 2,
+          "date": "2024-12-14T15:47:10.000Z"
+        },
+        "mvp": {
+          "actorId": "actor-player-001",
+          "actorUuid": "Actor.actor-player-001",
+          "name": "Thorin Ironforge",
+          "score": 245.5,
+          "rank": 1
+        },
+        "mvpRankings": [
+          {
+            "actorId": "actor-player-001",
+            "actorUuid": "Actor.actor-player-001",
+            "name": "Thorin Ironforge",
+            "score": 245.5,
+            "rank": 1
+          },
+          {
+            "actorId": "actor-player-002",
+            "actorUuid": "Actor.actor-player-002",
+            "name": "Lyra Moonwhisper",
+            "score": 198.2,
+            "rank": 2
+          },
+          {
+            "actorId": "actor-player-003",
+            "actorUuid": "Actor.actor-player-003",
+            "name": "Gareth the Bold",
+            "score": 112.8,
+            "rank": 3
+          }
+        ]
+      },
+      "roundCount": 6,
+      "rounds": [
+        {
+          "round": 1,
+          "summary": {
+            "duration": 285000,
+            "hits": 8,
+            "misses": 4,
+            "damage": 65,
+            "healing": 0
+          }
+        },
+        {
+          "round": 2,
+          "summary": {
+            "duration": 312000,
+            "hits": 7,
+            "misses": 3,
+            "damage": 72,
+            "healing": 0
+          }
+        },
+        {
+          "round": 3,
+          "summary": {
+            "duration": 298000,
+            "hits": 9,
+            "misses": 2,
+            "damage": 88,
+            "healing": 24
+          }
+        },
+        {
+          "round": 4,
+          "summary": {
+            "duration": 345000,
+            "hits": 6,
+            "misses": 4,
+            "damage": 54,
+            "healing": 30
+          }
+        },
+        {
+          "round": 5,
+          "summary": {
+            "duration": 267000,
+            "hits": 7,
+            "misses": 3,
+            "damage": 68,
+            "healing": 35
+          }
+        },
+        {
+          "round": 6,
+          "summary": {
+            "duration": 238000,
+            "hits": 5,
+            "misses": 2,
+            "damage": 40,
+            "healing": 0
+          }
+        }
+      ]
+    },
+    {
+      "combatId": "combat-test-002",
+      "date": "2024-12-13T20:15:10.456Z",
+      "duration": 1234000,
+      "durationSeconds": 1234,
+      "totalRounds": 4,
+      "sceneName": "Forest Clearing",
+      "sceneId": "scene-def456",
+      "totals": {
+        "hits": 28,
+        "misses": 12,
+        "totalAttacks": 40,
+        "damageDealt": 245,
+        "damageTaken": 98,
+        "healingGiven": 45,
+        "criticals": 2,
+        "fumbles": 1,
+        "hitRate": "70.0"
+      },
+      "participants": [
+        {
+          "actorId": "actor-player-001",
+          "name": "Thorin Ironforge",
+          "damageDealt": 125,
+          "damageTaken": 32,
+          "healingGiven": 0,
+          "healingReceived": 20,
+          "hits": 12,
+          "misses": 3,
+          "totalAttacks": 15,
+          "criticals": 1,
+          "fumbles": 0
+        },
+        {
+          "actorId": "actor-player-002",
+          "name": "Lyra Moonwhisper",
+          "damageDealt": 80,
+          "damageTaken": 45,
+          "healingGiven": 45,
+          "healingReceived": 25,
+          "hits": 10,
+          "misses": 5,
+          "totalAttacks": 15,
+          "criticals": 0,
+          "fumbles": 1
+        },
+        {
+          "actorId": "actor-player-004",
+          "name": "Zara Shadowstep",
+          "damageDealt": 40,
+          "damageTaken": 21,
+          "healingGiven": 0,
+          "healingReceived": 0,
+          "hits": 6,
+          "misses": 4,
+          "totalAttacks": 10,
+          "criticals": 1,
+          "fumbles": 0
+        }
+      ],
+      "notableMoments": {
+        "biggestHit": {
+          "attacker": "Thorin Ironforge",
+          "attackerId": "actor-player-001",
+          "target": "Dire Wolf",
+          "targetId": "actor-dire-wolf",
+          "amount": 38,
+          "weapon": "Warhammer +2",
+          "isCritical": false,
+          "timestamp": "2024-12-13T20:18:45.200Z"
+        },
+        "topHits": [
+          {
+            "attacker": "Thorin Ironforge",
+            "attackerId": "actor-player-001",
+            "target": "Dire Wolf",
+            "targetId": "actor-dire-wolf",
+            "amount": 38,
+            "weapon": "Warhammer +2",
+            "isCritical": false,
+            "timestamp": "2024-12-13T20:18:45.200Z"
+          },
+          {
+            "attacker": "Zara Shadowstep",
+            "attackerId": "actor-player-004",
+            "target": "Dire Wolf",
+            "targetId": "actor-dire-wolf",
+            "amount": 24,
+            "weapon": "Shortsword",
+            "isCritical": true,
+            "timestamp": "2024-12-13T20:19:10.500Z"
+          }
+        ],
+        "topHeals": [
+          {
+            "healer": "Lyra Moonwhisper",
+            "healerId": "actor-player-002",
+            "target": "Thorin Ironforge",
+            "targetId": "actor-player-001",
+            "amount": 20,
+            "timestamp": "2024-12-13T20:17:30.800Z"
+          }
+        ],
+        "longestTurn": {
+          "actorId": "actor-player-002",
+          "actorName": "Lyra Moonwhisper",
+          "duration": 38000,
+          "round": 3,
+          "date": "2024-12-13T20:18:20.000Z"
+        },
+        "fastestTurn": {
+          "actorId": "actor-player-004",
+          "actorName": "Zara Shadowstep",
+          "duration": 2800,
+          "round": 2,
+          "date": "2024-12-13T20:16:45.000Z"
+        },
+        "mvp": {
+          "actorId": "actor-player-001",
+          "actorUuid": "Actor.actor-player-001",
+          "name": "Thorin Ironforge",
+          "score": 157.0,
+          "rank": 1
+        },
+        "mvpRankings": [
+          {
+            "actorId": "actor-player-001",
+            "actorUuid": "Actor.actor-player-001",
+            "name": "Thorin Ironforge",
+            "score": 157.0,
+            "rank": 1
+          },
+          {
+            "actorId": "actor-player-002",
+            "actorUuid": "Actor.actor-player-002",
+            "name": "Lyra Moonwhisper",
+            "score": 125.5,
+            "rank": 2
+          },
+          {
+            "actorId": "actor-player-004",
+            "actorUuid": "Actor.actor-player-004",
+            "name": "Zara Shadowstep",
+            "score": 64.2,
+            "rank": 3
+          }
+        ]
+      },
+      "roundCount": 4,
+      "rounds": [
+        {
+          "round": 1,
+          "summary": {
+            "duration": 298000,
+            "hits": 6,
+            "misses": 3,
+            "damage": 58,
+            "healing": 0
+          }
+        },
+        {
+          "round": 2,
+          "summary": {
+            "duration": 312000,
+            "hits": 8,
+            "misses": 3,
+            "damage": 72,
+            "healing": 20
+          }
+        },
+        {
+          "round": 3,
+          "summary": {
+            "duration": 345000,
+            "hits": 7,
+            "misses": 4,
+            "damage": 65,
+            "healing": 25
+          }
+        },
+        {
+          "round": 4,
+          "summary": {
+            "duration": 279000,
+            "hits": 7,
+            "misses": 2,
+            "damage": 50,
+            "healing": 0
+          }
+        }
+      ]
+    },
+    {
+      "combatId": "combat-test-003",
+      "date": "2024-12-12T14:30:00.789Z",
+      "duration": 890000,
+      "durationSeconds": 890,
+      "totalRounds": 3,
+      "sceneName": "Town Square",
+      "sceneId": "scene-ghi789",
+      "totals": {
+        "hits": 15,
+        "misses": 8,
+        "totalAttacks": 23,
+        "damageDealt": 128,
+        "damageTaken": 52,
+        "healingGiven": 0,
+        "criticals": 1,
+        "fumbles": 0,
+        "hitRate": "65.2"
+      },
+      "participants": [
+        {
+          "actorId": "actor-player-002",
+          "name": "Lyra Moonwhisper",
+          "damageDealt": 75,
+          "damageTaken": 28,
+          "healingGiven": 0,
+          "healingReceived": 0,
+          "hits": 8,
+          "misses": 4,
+          "totalAttacks": 12,
+          "criticals": 1,
+          "fumbles": 0
+        },
+        {
+          "actorId": "actor-player-003",
+          "name": "Gareth the Bold",
+          "damageDealt": 53,
+          "damageTaken": 24,
+          "healingGiven": 0,
+          "healingReceived": 0,
+          "hits": 7,
+          "misses": 4,
+          "totalAttacks": 11,
+          "criticals": 0,
+          "fumbles": 0
+        }
+      ],
+      "notableMoments": {
+        "biggestHit": {
+          "attacker": "Lyra Moonwhisper",
+          "attackerId": "actor-player-002",
+          "target": "Bandit Leader",
+          "targetId": "actor-bandit-leader",
+          "amount": 32,
+          "weapon": "Fire Bolt",
+          "isCritical": true,
+          "timestamp": "2024-12-12T14:32:15.300Z"
+        },
+        "topHits": [
+          {
+            "attacker": "Lyra Moonwhisper",
+            "attackerId": "actor-player-002",
+            "target": "Bandit Leader",
+            "targetId": "actor-bandit-leader",
+            "amount": 32,
+            "weapon": "Fire Bolt",
+            "isCritical": true,
+            "timestamp": "2024-12-12T14:32:15.300Z"
+          }
+        ],
+        "topHeals": [],
+        "longestTurn": {
+          "actorId": "actor-player-003",
+          "actorName": "Gareth the Bold",
+          "duration": 42000,
+          "round": 2,
+          "date": "2024-12-12T14:31:45.000Z"
+        },
+        "fastestTurn": {
+          "actorId": "actor-player-002",
+          "actorName": "Lyra Moonwhisper",
+          "duration": 3500,
+          "round": 1,
+          "date": "2024-12-12T14:30:20.000Z"
+        },
+        "mvp": {
+          "actorId": "actor-player-002",
+          "actorUuid": "Actor.actor-player-002",
+          "name": "Lyra Moonwhisper",
+          "score": 103.0,
+          "rank": 1
+        },
+        "mvpRankings": [
+          {
+            "actorId": "actor-player-002",
+            "actorUuid": "Actor.actor-player-002",
+            "name": "Lyra Moonwhisper",
+            "score": 103.0,
+            "rank": 1
+          },
+          {
+            "actorId": "actor-player-003",
+            "actorUuid": "Actor.actor-player-003",
+            "name": "Gareth the Bold",
+            "score": 73.2,
+            "rank": 2
+          }
+        ]
+      },
+      "roundCount": 3,
+      "rounds": [
+        {
+          "round": 1,
+          "summary": {
+            "duration": 285000,
+            "hits": 5,
+            "misses": 3,
+            "damage": 42,
+            "healing": 0
+          }
+        },
+        {
+          "round": 2,
+          "summary": {
+            "duration": 312000,
+            "hits": 6,
+            "misses": 3,
+            "damage": 48,
+            "healing": 0
+          }
+        },
+        {
+          "round": 3,
+          "summary": {
+            "duration": 293000,
+            "hits": 4,
+            "misses": 2,
+            "damage": 38,
+            "healing": 0
+          }
+        }
+      ]
+    }
+  ],
+  "playerStats": [
+    {
+      "actorId": "actor-player-001",
+      "actorName": "Thorin Ironforge",
+      "stats": {
+        "lifetime": {
+          "attacks": {
+            "biggest": {
+              "amount": 47,
+              "date": "2024-12-14T15:52:10.500Z",
+              "weaponName": "Warhammer +2",
+              "attackRoll": 22,
+              "targetName": "Goblin Chief",
+              "targetAC": 15,
+              "sceneName": "The Goblin Cave",
+              "isCritical": true
+            },
+            "weakest": {
+              "amount": 3,
+              "date": "2024-12-10T10:15:30.000Z",
+              "weaponName": "Dagger",
+              "attackRoll": 8,
+              "targetName": "Kobold",
+              "targetAC": 12,
+              "sceneName": "Dungeon Entrance",
+              "isCritical": false
+            },
+            "hitMissRatio": 0.75,
+            "totalHits": 30,
+            "totalMisses": 7,
+            "criticals": 4,
+            "fumbles": 0,
+            "totalDamage": 312,
+            "damageByWeapon": {
+              "Warhammer +2": 245,
+              "Dagger": 67
+            },
+            "damageByType": {
+              "bludgeoning": 245,
+              "piercing": 67
+            },
+            "hitLog": [
+              {
+                "amount": 47,
+                "date": "2024-12-14T15:52:10.500Z",
+                "weaponName": "Warhammer +2",
+                "targetName": "Goblin Chief",
+                "isCritical": true
+              },
+              {
+                "amount": 32,
+                "date": "2024-12-14T15:48:22.300Z",
+                "weaponName": "Warhammer +2",
+                "targetName": "Goblin Warrior",
+                "isCritical": false
+              },
+              {
+                "amount": 28,
+                "date": "2024-12-13T20:18:45.200Z",
+                "weaponName": "Warhammer +2",
+                "targetName": "Dire Wolf",
+                "isCritical": false
+              }
+            ]
+          },
+          "healing": {
+            "total": 0,
+            "received": 55,
+            "byTarget": {
+              "Thorin Ironforge": 55
+            },
+            "mostHealed": null,
+            "leastHealed": null
+          },
+          "turnStats": {
+            "average": 8.5,
+            "total": 127500,
+            "count": 15,
+            "fastest": {
+              "duration": 3200,
+              "round": 2,
+              "date": "2024-12-14T15:47:10.000Z"
+            },
+            "slowest": {
+              "duration": 42000,
+              "round": 3,
+              "date": "2024-12-13T20:17:30.000Z"
+            }
+          },
+          "mvp": {
+            "totalScore": 402.5,
+            "highScore": 245.5,
+            "combats": 2,
+            "averageScore": 201.25,
+            "lastScore": 245.5,
+            "lastRank": 1
+          },
+          "unconscious": 0,
+          "movement": 0,
+          "lastUpdated": "2024-12-14T15:52:10.500Z"
+        }
+      }
+    },
+    {
+      "actorId": "actor-player-002",
+      "actorName": "Lyra Moonwhisper",
+      "stats": {
+        "lifetime": {
+          "attacks": {
+            "biggest": {
+              "amount": 32,
+              "date": "2024-12-12T14:32:15.300Z",
+              "weaponName": "Fire Bolt",
+              "attackRoll": 19,
+              "targetName": "Bandit Leader",
+              "targetAC": 14,
+              "sceneName": "Town Square",
+              "isCritical": true
+            },
+            "weakest": {
+              "amount": 5,
+              "date": "2024-12-11T09:20:15.000Z",
+              "weaponName": "Fire Bolt",
+              "attackRoll": 11,
+              "targetName": "Goblin",
+              "targetAC": 13,
+              "sceneName": "Forest Path",
+              "isCritical": false
+            },
+            "hitMissRatio": 0.68,
+            "totalHits": 33,
+            "totalMisses": 17,
+            "criticals": 2,
+            "fumbles": 2,
+            "totalDamage": 275,
+            "damageByWeapon": {
+              "Fire Bolt": 275
+            },
+            "damageByType": {
+              "fire": 275
+            },
+            "hitLog": [
+              {
+                "amount": 32,
+                "date": "2024-12-12T14:32:15.300Z",
+                "weaponName": "Fire Bolt",
+                "targetName": "Bandit Leader",
+                "isCritical": true
+              },
+              {
+                "amount": 28,
+                "date": "2024-12-14T15:50:15.800Z",
+                "weaponName": "Fire Bolt",
+                "targetName": "Goblin Shaman",
+                "isCritical": false
+              },
+              {
+                "amount": 18,
+                "date": "2024-12-13T20:16:30.200Z",
+                "weaponName": "Fire Bolt",
+                "targetName": "Dire Wolf",
+                "isCritical": false
+              }
+            ]
+          },
+          "healing": {
+            "total": 134,
+            "received": 79,
+            "byTarget": {
+              "Thorin Ironforge": 55,
+              "Gareth the Bold": 24,
+              "Lyra Moonwhisper": 55
+            },
+            "mostHealed": {
+              "target": "Thorin Ironforge",
+              "amount": 55
+            },
+            "leastHealed": {
+              "target": "Gareth the Bold",
+              "amount": 24
+            }
+          },
+          "turnStats": {
+            "average": 12.3,
+            "total": 184500,
+            "count": 15,
+            "fastest": {
+              "duration": 3500,
+              "round": 1,
+              "date": "2024-12-12T14:30:20.000Z"
+            },
+            "slowest": {
+              "duration": 45000,
+              "round": 3,
+              "date": "2024-12-13T20:18:20.000Z"
+            }
+          },
+          "mvp": {
+            "totalScore": 426.7,
+            "highScore": 198.2,
+            "combats": 3,
+            "averageScore": 142.23,
+            "lastScore": 198.2,
+            "lastRank": 2
+          },
+          "unconscious": 0,
+          "movement": 0,
+          "lastUpdated": "2024-12-14T15:52:10.500Z"
+        }
+      }
+    },
+    {
+      "actorId": "actor-player-003",
+      "actorName": "Gareth the Bold",
+      "stats": {
+        "lifetime": {
+          "attacks": {
+            "biggest": {
+              "amount": 24,
+              "date": "2024-12-14T15:49:10.200Z",
+              "weaponName": "Longsword",
+              "attackRoll": 18,
+              "targetName": "Goblin Warrior",
+              "targetAC": 13,
+              "sceneName": "The Goblin Cave",
+              "isCritical": false
+            },
+            "weakest": {
+              "amount": 4,
+              "date": "2024-12-11T11:05:45.000Z",
+              "weaponName": "Longsword",
+              "attackRoll": 7,
+              "targetName": "Kobold",
+              "targetAC": 12,
+              "sceneName": "Dungeon Entrance",
+              "isCritical": false
+            },
+            "hitMissRatio": 0.60,
+            "totalHits": 16,
+            "totalMisses": 10,
+            "criticals": 1,
+            "fumbles": 1,
+            "totalDamage": 133,
+            "damageByWeapon": {
+              "Longsword": 133
+            },
+            "damageByType": {
+              "slashing": 133
+            },
+            "hitLog": [
+              {
+                "amount": 24,
+                "date": "2024-12-14T15:49:10.200Z",
+                "weaponName": "Longsword",
+                "targetName": "Goblin Warrior",
+                "isCritical": false
+              },
+              {
+                "amount": 18,
+                "date": "2024-12-12T14:31:20.500Z",
+                "weaponName": "Longsword",
+                "targetName": "Bandit",
+                "isCritical": false
+              }
+            ]
+          },
+          "healing": {
+            "total": 0,
+            "received": 24,
+            "byTarget": {
+              "Gareth the Bold": 24
+            },
+            "mostHealed": null,
+            "leastHealed": null
+          },
+          "turnStats": {
+            "average": 15.2,
+            "total": 121600,
+            "count": 8,
+            "fastest": {
+              "duration": 5200,
+              "round": 1,
+              "date": "2024-12-14T15:45:30.000Z"
+            },
+            "slowest": {
+              "duration": 45000,
+              "round": 4,
+              "date": "2024-12-14T15:50:45.000Z"
+            }
+          },
+          "mvp": {
+            "totalScore": 186.0,
+            "highScore": 112.8,
+            "combats": 2,
+            "averageScore": 93.0,
+            "lastScore": 112.8,
+            "lastRank": 3
+          },
+          "unconscious": 0,
+          "movement": 0,
+          "lastUpdated": "2024-12-14T15:52:10.500Z"
+        }
+      }
+    }
+  ]
+}

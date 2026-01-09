@@ -221,12 +221,37 @@ div#blacksmith-stats-window .window-content {
 .stats-section-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   font-size: 0.95em;
   font-weight: 600;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.9);
   margin-bottom: 0.75em;
+}
+
+/* Generic action buttons container - can be used in any section header */
+.stats-section-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-left: auto;
+}
+
+.stats-section-header-actions .button-divider {
+  color: rgba(145, 133, 107, 0.5);
+  padding: 0px 0px 0px 12px !important;
+}
+
+.stats-section-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.75em;
+  font-weight: 400;
+  color: rgba(131, 126, 113, 0.9);
+  margin: 0.75em 0 0 0;
 }
 
 .stats-table-wrapper {
@@ -278,7 +303,10 @@ div#blacksmith-stats-window .window-content {
 .stats-table-col-3,
 .stats-table-col-4,
 .stats-table-col-5,
-.stats-table-col-6 {
+.stats-table-col-6,
+.stats-table-col-7,
+.stats-table-col-8,
+.stats-table-col-9 {
   padding: 0.5em 0.75em;
   display: flex;
   align-items: center;
@@ -294,13 +322,16 @@ div#blacksmith-stats-window .window-content {
   gap: 0;
 }
 
-/* Leaderboard column widths (6 columns) */
-.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-1 { width: 10%; }
-.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-2 { width: 30%; }
-.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-3 { width: 15%; }
-.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-4 { width: 15%; }
-.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-5 { width: 15%; }
-.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-6 { width: 15%; }
+/* Leaderboard column widths (9 columns) */
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-1 { width: 8%; }
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-2 { width: 25%; }
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-3 { width: 10%; }
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-4 { width: 12%; }
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-5 { width: 10%; }
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-6 { width: 10%; }
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-7 { width: 8%; }
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-8 { width: 8%; }
+.stats-table-wrapper[data-table-type="leaderboard"] .stats-table-col-9 { width: 9%; }
 
 /* Combat history column widths (5 columns) */
 .stats-table-wrapper[data-table-type="combats"] .stats-table-col-1 { width: 25%; }
@@ -312,6 +343,45 @@ div#blacksmith-stats-window .window-content {
 
 .stats-table-row .stats-table-col-2 {
   gap: 8px;
+}
+
+.stats-table-col-6 {
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stats-table-duration {
+  flex: 1;
+  min-width: 0;
+}
+
+.delete-combat-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  padding: 0;
+  background: rgba(200, 50, 50, 0.3);
+  border: 1px solid rgba(200, 50, 50, 0.6);
+  border-radius: 4px;
+  color: rgba(255, 150, 150, 0.9);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.75em;
+  flex-shrink: 0;
+}
+
+.delete-combat-btn:hover {
+  background: rgba(200, 50, 50, 0.5);
+  border-color: rgba(255, 100, 100, 0.9);
+  color: rgba(255, 200, 200, 1);
+}
+
+.delete-combat-btn i {
+  margin: 0;
+  padding: 0;
 }
 
 .stats-table-row .player-portrait {
@@ -389,18 +459,64 @@ div#blacksmith-stats-window .window-content {
   flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 0.75em 1em;
+  align-items: center;
+  padding: 8px 22px;
   border-top: 1px solid rgba(48, 48, 48, 0.8);
   background: rgba(18, 18, 18, 0.9);
 }
 
+
+.stats-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+
+
+
+
+/* Generic action button style - can be used anywhere (headers, footers, etc.) */
+.stats-action-btn {
+  color: rgba(145, 133, 107, 1.0);
+  background: rgba(0, 0, 0, 0.0);
+  border: 0px solid rgba(255, 255, 255, 0.9);
+  margin: 0px 0px 0px 0px ;
+  padding: 1px 1px 1px 12px !important;
+  line-height: 1;          /* keeps height minimal */
+  height: auto;            /* shrink to fit content */
+  min-height: unset;       /* override Foundry/system defaults */
+  display: inline-flex;    /* shrink-wrap around content */
+  align-items: center;     /* keep icon/text aligned vertically */
+  white-space: nowrap;     /* prevent wrapping */
+}
+
+.stats-action-btn i {
+  padding: 0px 2px 0px 2px;
+}
+
+.stats-action-btn:hover {
+  color: rgba(255, 100, 0, 1.0) !important;
+  opacity: 1 !important;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.01) !important;
+  outline: none !important;
+}
+
+.stats-footer-actions .button-divider {
+  color: rgba(145, 133, 107, 0.5);
+  padding: 0px 0px 0px 12px !important;
+}
+
+
+
+
+/* Footer button - regular button style (not action button) */
 .stats-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 0.5em 0.9em;
-  font-size: 0.85em;
+  padding: 0.08em 2.9em;
+  font-size: 1.0em;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.92);
@@ -417,7 +533,14 @@ div#blacksmith-stats-window .window-content {
 }
 
 .stats-btn i {
-  font-size: 1em;
+  font-size: 1.0em;
 }
+
+
+
+
+
+
+
 
 

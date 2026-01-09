@@ -48,6 +48,23 @@ export class StatsAPI {
         getStatCategory: async (actorId, category) => {
             const stats = await CPBPlayerStats.getPlayerStats(actorId);
             return stats?.lifetime?.[category] || null;
+        },
+
+        /**
+         * Clear all statistics for a specific player
+         * @param {string} actorId - The ID of the actor
+         * @returns {Promise<void>}
+         */
+        clearStats: async (actorId) => {
+            return await CPBPlayerStats.clearPlayerStats(actorId);
+        },
+
+        /**
+         * Clear all statistics for all players
+         * @returns {Promise<void>}
+         */
+        clearAllStats: async () => {
+            return await CPBPlayerStats.clearAllPlayerStats();
         }
     };
 
@@ -121,6 +138,23 @@ export class StatsAPI {
          */
         getCombatHistory: (limit = 20) => {
             return CombatStats.getCombatHistory(limit);
+        },
+
+        /**
+         * Clear all combat history
+         * @returns {Promise<void>}
+         */
+        clearHistory: async () => {
+            return await CombatStats.clearCombatHistory();
+        },
+
+        /**
+         * Remove a specific combat from history
+         * @param {string} combatId - The combat ID to remove
+         * @returns {Promise<Object|null>} The removed combat summary or null if not found
+         */
+        removeCombat: async (combatId) => {
+            return await CombatStats.removeCombatFromHistory(combatId);
         }
     };
 

@@ -654,7 +654,7 @@ class CombatStats {
     }
 
     /**
-     * Store combat summary in world flags (bounded array, keep last N)
+     * Store combat summary in world flags (keeps all history for verification)
      * @param {Object} summary - Combat summary to store
      */
     static async _storeCombatSummary(summary) {
@@ -665,15 +665,11 @@ class CombatStats {
             // Add new summary to front of array
             const updatedHistory = [summary, ...currentHistory];
             
-            // Keep only last 20 combats (bounded array)
-            const MAX_HISTORY = 20;
-            const prunedHistory = updatedHistory.slice(0, MAX_HISTORY);
-            
-            // Store in world flags (async)
-            await game.settings.set(MODULE.ID, 'combatHistory', prunedHistory);
+            // Store all history - no pruning to ensure lifetime stats remain verifiable
+            await game.settings.set(MODULE.ID, 'combatHistory', updatedHistory);
             
             postConsoleAndNotification(MODULE.NAME, "Combat Summary | Stored to history", {
-                historySize: prunedHistory.length,
+                historySize: updatedHistory.length,
                 combatId: summary.combatId
             }, true, false);
         } catch (error) {
@@ -692,12 +688,60 @@ class CombatStats {
 
     /**
      * Get combat history (for API access)
-     * @param {number} limit - Maximum number of summaries to return (default: 20)
+     * @param {number} limit - Maximum number of summaries to return (optional, for paging/display)
      * @returns {Array} Array of combat summaries
      */
-    static getCombatHistory(limit = 20) {
+    static getCombatHistory(limit = null) {
         const history = game.settings.get(MODULE.ID, 'combatHistory') || [];
-        return history.slice(0, limit);
+        if (limit !== null && limit > 0) {
+            return history.slice(0, limit);
+        }
+        return history;
+    }
+
+    /**
+     * Clear all combat history
+     * @returns {Promise<void>}
+     */
+    static async clearCombatHistory() {
+        if (!game.user.isGM) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Stats: Only GMs can clear combat history", "", false, true);
+            return;
+        }
+        await game.settings.set(MODULE.ID, 'combatHistory', []);
+        postConsoleAndNotification(MODULE.NAME, "Combat History | Cleared all combat history", {}, false, false);
+    }
+
+    /**
+     * Remove a specific combat from history by combatId
+     * @param {string} combatId - The combat ID to remove
+     * @returns {Promise<Object|null>} The removed combat summary or null if not found
+     */
+    static async removeCombatFromHistory(combatId) {
+        if (!game.user.isGM) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Stats: Only GMs can remove combat history", "", false, true);
+            return null;
+        }
+        if (!combatId) return null;
+
+        const history = game.settings.get(MODULE.ID, 'combatHistory') || [];
+        const index = history.findIndex(summary => summary.combatId === combatId);
+        
+        if (index === -1) {
+            postConsoleAndNotification(MODULE.NAME, "Combat History | Combat not found", { combatId }, true, false);
+            return null;
+        }
+
+        const removed = history[index];
+        const updatedHistory = history.filter((_, i) => i !== index);
+        await game.settings.set(MODULE.ID, 'combatHistory', updatedHistory);
+        
+        postConsoleAndNotification(MODULE.NAME, "Combat History | Removed combat from history", {
+            combatId,
+            remainingCount: updatedHistory.length
+        }, false, false);
+
+        return removed;
     }
 
     /**

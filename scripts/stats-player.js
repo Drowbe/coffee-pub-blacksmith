@@ -247,10 +247,190 @@ class CPBPlayerStats {
         const currentStats = await this.getPlayerStats(actorId);
         if (!currentStats) return;
 
-        const newStats = foundry.utils.mergeObject(currentStats, updates);
+        // Use mergeObject with insertKeys and overwrite to ensure nested objects are properly replaced
+        const newStats = foundry.utils.mergeObject(currentStats, updates, {
+            insertKeys: true,
+            overwrite: true,
+            recursive: true,
+            inplace: false
+        });
         newStats.lifetime.lastUpdated = new Date().toISOString();
         
         await actor.setFlag(MODULE.ID, 'playerStats', newStats);
+    }
+
+    /**
+     * Clear all player statistics for a specific actor
+     * @param {string} actorId - The actor ID
+     * @returns {Promise<void>}
+     */
+    static async clearPlayerStats(actorId) {
+        if (!game.user.isGM) {
+            postConsoleAndNotification(MODULE.NAME, "Player Stats: Only GMs can clear player statistics", "", false, true);
+            return;
+        }
+
+        const actor = game.actors.get(actorId);
+        if (!actor) return;
+
+        await actor.setFlag(MODULE.ID, 'playerStats', foundry.utils.deepClone(CPB_STATS_DEFAULTS));
+        
+        // Also clear session stats
+        if (this._sessionStats) {
+            this._sessionStats.delete(actorId);
+        }
+
+        postConsoleAndNotification(MODULE.NAME, `Player Stats | Cleared all stats for ${actor.name}`, { actorId }, false, false);
+    }
+
+    /**
+     * Clear all player statistics for all actors
+     * @returns {Promise<void>}
+     */
+    static async clearAllPlayerStats() {
+        if (!game.user.isGM) {
+            postConsoleAndNotification(MODULE.NAME, "Player Stats: Only GMs can clear player statistics", "", false, true);
+            return;
+        }
+
+        const actors = game.actors.filter(actor => actor.hasPlayerOwner && !actor.isToken);
+        let clearedCount = 0;
+
+        for (const actor of actors) {
+            await actor.setFlag(MODULE.ID, 'playerStats', foundry.utils.deepClone(CPB_STATS_DEFAULTS));
+            if (this._sessionStats) {
+                this._sessionStats.delete(actor.id);
+            }
+            clearedCount++;
+        }
+
+        postConsoleAndNotification(MODULE.NAME, `Player Stats | Cleared all stats for ${clearedCount} player(s)`, { clearedCount }, false, false);
+    }
+
+    /**
+     * Remove a combat from a player's session stats and reverse lifetime stats
+     * @param {string} actorId - The actor ID
+     * @param {string} combatId - The combat ID to remove
+     * @param {Object} combatSummary - The combat summary with participant data
+     * @returns {Promise<boolean>} True if combat was found and removed
+     */
+    static async removeCombatFromPlayerStats(actorId, combatId, combatSummary) {
+        if (!game.user.isGM) {
+            postConsoleAndNotification(MODULE.NAME, "Player Stats: Only GMs can remove combat from player statistics", "", false, true);
+            return false;
+        }
+
+        const actor = game.actors.get(actorId);
+        if (!actor) return false;
+
+        // Find participant data for this actor in the combat summary
+        const participant = combatSummary?.participants?.find(p => p.actorId === actorId);
+        if (!participant) {
+            // No participant data, just remove from session if present
+            const sessionStats = this._getSessionStats(actorId);
+            if (sessionStats?.combats) {
+                const index = sessionStats.combats.findIndex(c => c.combatId === combatId);
+                if (index !== -1) {
+                    sessionStats.combats.splice(index, 1);
+                    this._updateSessionStats(actorId, sessionStats);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Remove from session stats
+        const sessionStats = this._getSessionStats(actorId);
+        if (sessionStats?.combats) {
+            const index = sessionStats.combats.findIndex(c => c.combatId === combatId);
+            if (index !== -1) {
+                sessionStats.combats.splice(index, 1);
+                this._updateSessionStats(actorId, sessionStats);
+            }
+        }
+
+        // Reverse lifetime stats by subtracting the combat's contribution
+        const stats = await this.getPlayerStats(actorId);
+        if (!stats) return false;
+
+        const lifetimeAttacks = stats.lifetime?.attacks || {};
+        const updates = {
+            lifetime: {
+                attacks: {
+                    totalHits: Math.max(0, (lifetimeAttacks.totalHits || 0) - (participant.hits || 0)),
+                    totalMisses: Math.max(0, (lifetimeAttacks.totalMisses || 0) - (participant.misses || 0)),
+                    criticals: Math.max(0, (lifetimeAttacks.criticals || 0) - (participant.criticals || 0)),
+                    fumbles: Math.max(0, (lifetimeAttacks.fumbles || 0) - (participant.fumbles || 0))
+                },
+                mvp: { ...stats.lifetime?.mvp }
+            }
+        };
+
+        // Reverse MVP stats if this combat had MVP data
+        const mvpRankings = combatSummary?.notableMoments?.mvpRankings || [];
+        const rankingIndex = mvpRankings.findIndex(r => r.actorId === actorId);
+        if (rankingIndex >= 0) {
+            const rankingEntry = mvpRankings[rankingIndex];
+            const score = rankingEntry?.score ?? null;
+            
+            if (typeof score === 'number' && updates.lifetime.mvp) {
+                // Subtract from totals
+                updates.lifetime.mvp.totalScore = Math.max(0, (updates.lifetime.mvp.totalScore || 0) - score);
+                updates.lifetime.mvp.combats = Math.max(0, (updates.lifetime.mvp.combats || 0) - 1);
+                
+                // Recalculate average
+                if (updates.lifetime.mvp.combats > 0) {
+                    updates.lifetime.mvp.averageScore = Number((updates.lifetime.mvp.totalScore / updates.lifetime.mvp.combats).toFixed(2));
+                } else {
+                    updates.lifetime.mvp.averageScore = 0;
+                }
+                
+                // If this was the high score, we'd need to recalculate from remaining combats
+                // For now, we'll just ensure it doesn't go below 0
+                if (updates.lifetime.mvp.highScore === score) {
+                    // High score might have been from this combat, but we can't easily recalculate
+                    // This is a limitation - we'd need to track all scores to properly recalculate
+                    updates.lifetime.mvp.highScore = Math.max(0, (updates.lifetime.mvp.highScore || 0));
+                }
+            }
+        }
+
+        await this.updatePlayerStats(actorId, updates);
+        return true;
+    }
+
+    /**
+     * Remove a combat from all players' stats
+     * @param {string} combatId - The combat ID to remove
+     * @param {Object} combatSummary - The combat summary with participant data
+     * @returns {Promise<number>} Number of players updated
+     */
+    static async removeCombatFromAllPlayers(combatId, combatSummary) {
+        if (!game.user.isGM) {
+            postConsoleAndNotification(MODULE.NAME, "Player Stats: Only GMs can remove combat from player statistics", "", false, true);
+            return 0;
+        }
+
+        if (!combatSummary?.participants) return 0;
+
+        let updatedCount = 0;
+        for (const participant of combatSummary.participants) {
+            const actorId = participant.actorId;
+            if (!actorId) continue;
+
+            const actor = game.actors.get(actorId);
+            if (!actor || !actor.hasPlayerOwner || actor.isToken) continue;
+
+            const removed = await this.removeCombatFromPlayerStats(actorId, combatId, combatSummary);
+            if (removed) updatedCount++;
+        }
+
+        postConsoleAndNotification(MODULE.NAME, `Player Stats | Removed combat from ${updatedCount} player(s)`, {
+            combatId,
+            updatedCount
+        }, false, false);
+
+        return updatedCount;
     }
 
     // Session management methods
@@ -454,7 +634,7 @@ class CPBPlayerStats {
                     }
                 }
 
-                updates.lifetime.attacks = {...stats.lifetime.attacks};
+                updates.lifetime.attacks = foundry.utils.deepClone(stats.lifetime.attacks);
                 
                 // Record the hit and update totals
                 updates.lifetime.attacks.totalHits = (stats.lifetime.attacks.totalHits || 0) + 1;
@@ -462,12 +642,10 @@ class CPBPlayerStats {
 
                 // Track damage by weapon
                 const weaponName = item.name || 'Unknown Weapon';
-                updates.lifetime.attacks.damageByWeapon = {...stats.lifetime.attacks.damageByWeapon};
                 updates.lifetime.attacks.damageByWeapon[weaponName] = (updates.lifetime.attacks.damageByWeapon[weaponName] || 0) + rollTotal;
 
                 // Track damage by type
                 const damageType = item.system.damage?.parts?.[0]?.[1] || 'unspecified';
-                updates.lifetime.attacks.damageByType = {...stats.lifetime.attacks.damageByType};
                 updates.lifetime.attacks.damageByType[damageType] = (updates.lifetime.attacks.damageByType[damageType] || 0) + rollTotal;
 
                 // Update biggest/weakest hits
@@ -482,11 +660,16 @@ class CPBPlayerStats {
                     isCritical: attackInfo?.isCritical || false
                 };
 
-                if (!stats.lifetime.attacks.biggest || rollTotal > stats.lifetime.attacks.biggest.amount) {
-                    updates.lifetime.attacks.biggest = hitDetails;
+                // Update biggest hit - check if current biggest exists and compare amounts
+                const currentBiggest = stats.lifetime.attacks.biggest;
+                if (!currentBiggest || !currentBiggest.amount || rollTotal > currentBiggest.amount) {
+                    updates.lifetime.attacks.biggest = foundry.utils.deepClone(hitDetails);
                 }
-                if (!stats.lifetime.attacks.weakest || rollTotal < stats.lifetime.attacks.weakest.amount) {
-                    updates.lifetime.attacks.weakest = hitDetails;
+                
+                // Update weakest hit - check if current weakest exists and compare amounts
+                const currentWeakest = stats.lifetime.attacks.weakest;
+                if (!currentWeakest || !currentWeakest.amount || (rollTotal > 0 && (rollTotal < currentWeakest.amount || currentWeakest.amount === 0))) {
+                    updates.lifetime.attacks.weakest = foundry.utils.deepClone(hitDetails);
                 }
 
                 // Add to hit log
