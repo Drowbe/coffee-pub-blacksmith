@@ -306,10 +306,11 @@ div#blacksmith-stats-window .window-content {
 
 /* Base column class - all columns get this */
 .stats-table-col {
-  padding: 0.5em 0.75em;
+  padding: 0.3em 0.5em;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  border: 0px solid rgba(255, 255, 255, 0.2);
 }
 
 /* Column width utilities */

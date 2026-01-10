@@ -26,17 +26,22 @@ export class StatsWindow extends Application {
 
     async getData(options = {}) {
         try {
-            let history = StatsAPI.combat.getCombatHistory(20) || [];
-            if (!history.length) {
-                const latest = StatsAPI.combat.getCombatSummary();
-                if (latest) history = [latest];
+            // Get all combat history for summary (all-time stats)
+            const allHistory = StatsAPI.combat.getCombatHistory() || [];
+            
+            // Get last 20 for display table (paging will be added later)
+            let displayHistory = StatsAPI.combat.getCombatHistory(20) || [];
+            if (!displayHistory.length && allHistory.length) {
+                displayHistory = allHistory.slice(0, 20);
             }
-            const combats = history.map((summary, index) => this._mapCombatSummary(summary, index, history.length));
+            
+            const combats = displayHistory.map((summary, index) => this._mapCombatSummary(summary, index, displayHistory.length));
 
             const leaderboard = await this._buildLeaderboard();
-            const highlights = this._buildHighlights(history);
+            const highlights = this._buildHighlights(displayHistory);
 
-            const summary = this._buildSummary(combats, leaderboard);
+            // Build summary from ALL history (all-time stats)
+            const summary = this._buildSummary(allHistory, leaderboard);
 
             return {
                 summary,
@@ -56,7 +61,12 @@ export class StatsWindow extends Application {
                     averageHitRate: '0.0',
                     topMvp: '—',
                     bestScore: '0.0',
-                    lastCombatDate: '—'
+                    lastCombatDate: '—',
+                    totalCriticals: 0,
+                    totalFumbles: 0,
+                    totalDamageGiven: 0,
+                    totalDamageTaken: 0,
+                    totalHealsGiven: 0
                 },
                 combats: [],
                 leaderboard: [],
@@ -193,22 +203,51 @@ export class StatsWindow extends Application {
         return highlights;
     }
 
-    _buildSummary(combats, leaderboard) {
-        const totalCombats = combats.length;
-        const averageHitRate = totalCombats
-            ? (combats.reduce((sum, combat) => sum + parseFloat(combat.hitRate), 0) / totalCombats).toFixed(1)
+    _buildSummary(allHistory, leaderboard) {
+        // Calculate all-time stats from ALL combat history (not just displayed)
+        const totalCombats = allHistory.length;
+        
+        // Calculate aggregates across all combats
+        let totalHits = 0;
+        let totalMisses = 0;
+        let totalDamageGiven = 0;
+        let totalDamageTaken = 0;
+        let totalHealsGiven = 0;
+        let totalCriticals = 0;
+        let totalFumbles = 0;
+
+        for (const summary of allHistory) {
+            const totals = summary?.totals || {};
+            totalHits += totals.hits || 0;
+            totalMisses += totals.misses || 0;
+            totalDamageGiven += totals.damageDealt || 0;
+            totalDamageTaken += totals.damageTaken || 0;
+            totalHealsGiven += totals.healingGiven || 0;
+            totalCriticals += totals.criticals || 0;
+            totalFumbles += totals.fumbles || 0;
+        }
+
+        const totalAttacks = totalHits + totalMisses;
+        const averageHitRate = totalAttacks > 0
+            ? ((totalHits / totalAttacks) * 100).toFixed(1)
             : '0.0';
+
         const topMvpEntry = leaderboard[0];
         const topMvp = topMvpEntry ? `${topMvpEntry.name}` : '—';
         const bestScore = topMvpEntry ? topMvpEntry.mvp.highScore : '0.0';
-        const lastCombatDate = combats[0]?.dateFormatted || '—';
+        const lastCombatDate = allHistory[0]?.date ? this._formatDate(allHistory[0].date) : '—';
 
         return {
             totalCombats,
             averageHitRate,
             topMvp,
             bestScore,
-            lastCombatDate
+            lastCombatDate,
+            totalCriticals,
+            totalFumbles,
+            totalDamageGiven,
+            totalDamageTaken,
+            totalHealsGiven
         };
     }
 
