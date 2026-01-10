@@ -6,21 +6,42 @@
 
 #sidebar.blacksmith-sidebar-styled {
     background: rgba(0, 0, 0, 0.8) !important; 
-    padding: 4px 0px 2px 4px;
+    padding: 4px 0px 4px 0px;
     border-radius: 8px 0px 0px 8px;
+    margin: 10px 0 10px 0;
+    height: calc(100% - 20px);
+    scrollbar-width: 1px;
 }
-
+#sidebar.blacksmith-sidebar-styled #sidebar-content  {
+    background: rgba(0, 0, 0, 0.2) !important;
+    padding: 0px 2px 0px 2px;
+    margin-left: 2px;
+}
 #sidebar-tabs.blacksmith-sidebar-styled {
     background: rgba(0, 0, 0, 0.0) !important;
-    padding: 8px 12px 8px 8px;
+    padding: 8px 0px 8px 4px;
     margin: 0 0px 0 0;
-    border-radius: 10px 0 0 10px;
-    height: auto;
 
+    height: auto;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
 }
+
+/* BUTTONS STYLES */
+
+.blacksmith-sidebar-styled .ui-control[aria-pressed="true"] {
+    background: rgba(201, 89, 63, 0.6);
+    border: 1px solid rgba(201, 89, 63, 0.7);
+    border-radius: 3px;
+}
+
+.blacksmith-sidebar-styled .ui-control:hover {
+    background: rgba(201, 89, 63, 0.9);
+    border: 1px solid rgba(201, 89, 63, 0.7);
+    border-radius: 3px;
+}
+
 
 /* CHAT BOX STYLES */
 
@@ -28,23 +49,11 @@
     background: rgba(0, 0, 0, 0.7);
     border: 1px solid rgba(0, 0, 0, 0.2);
     padding: 6px 6px 6px 6px;
-    border-radius: 6px 0px 0px 6px;
+    border-radius: 6px 6px 6px 6px;
+    margin-right: 4px;
 }
 
 #chat-controls.blacksmith-sidebar-styled #roll-privacy.vertical {
-    margin: 0px 0px 12px 12px;
-    gap: 4px;
-    border: 0px solid rgba(0, 0, 0, 0.9);
-}
-#chat-controls.blacksmith-sidebar-styled #roll-privacy.vertical .ui-control.icon {
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-}
+    margin: 0px 0px 12px 4px;
 
-#chat-controls.blacksmith-sidebar-styled 
-#roll-privacy.vertical 
-.ui-control.icon[aria-pressed="true"] {
-    background: rgba(201, 89, 63, 0.2);
-    border: 1px solid rgba(201, 89, 63, 0.9);
-    border-radius: 3px;
 }

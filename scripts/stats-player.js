@@ -566,16 +566,34 @@ class CPBPlayerStats {
     }
 
     // Attack roll handler
-    static async _onAttackRoll(item, roll, ammo) {
+    static async _onAttackRoll(a, b) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
-        const actor = item.parent;
-        if (!actor || !actor.hasPlayerOwner || actor.isToken) return;
-
         try {
-            // Get the d20 result
-            const d20Result = roll.dice.find(d => d.faces === 20)?.results?.[0]?.result;
-            if (!d20Result) return;
+            // Normalize hook arguments to extract item and rolls
+            const { rolls, context, item } = this._normalizeRollHookArgs(a, b);
+
+            if (!item || !item.id) {
+                return; // Skip if no item found
+            }
+
+            const actor = item.parent;
+            if (!actor || !actor.hasPlayerOwner) {
+                return; // Skip non-player actors
+            }
+
+            // Get the first valid roll (attack rolls typically have one roll)
+            const rollObj = rolls?.[0];
+            if (!rollObj || rollObj.total === undefined) {
+                return; // Skip if no valid roll
+            }
+
+            // Get the d20 result - check both dice and terms
+            const d20Die = rollObj.dice?.find(d => d.faces === 20) || rollObj.terms?.find(t => t?.faces === 20);
+            const d20Result = d20Die?.results?.[0]?.result;
+            if (!d20Result) {
+                return; // Skip if no d20 found
+            }
 
             const isCritical = d20Result === 20;
             const isFumble = d20Result === 1;
@@ -586,7 +604,7 @@ class CPBPlayerStats {
             const attackId = foundry.utils.randomID();
             
             sessionStats.pendingAttacks.set(attackId, {
-                attackRoll: roll.total,
+                attackRoll: rollObj.total,
                 isCritical,
                 isFumble,
                 weaponName: item.name,
@@ -601,20 +619,96 @@ class CPBPlayerStats {
         }
     }
 
+    /**
+     * Normalize roll hook arguments to extract item, rolls, and context
+     * Matches the pattern used by CombatStats for consistent hook handling
+     * @param {*} a - First hook argument (could be item, roll, array, or context)
+     * @param {*} b - Second hook argument (could be item, roll, array, or context)
+     * @returns {Object} Normalized arguments with { rolls, context, item }
+     */
+    static _normalizeRollHookArgs(a, b) {
+        const rolls =
+            Array.isArray(a) ? a :
+            Array.isArray(b) ? b :
+            [a, b].filter(r => r && typeof r.total === "number");
+
+        const context =
+            Array.isArray(a) ? b :
+            Array.isArray(b) ? a :
+            (b && typeof b === "object" ? b : null);
+
+        // Try hard to find the Item
+        const item =
+            (a instanceof Item) ? a :
+            (b instanceof Item) ? b :
+            context?.item ??
+            context?.subject?.item ??
+            context?.subject?.parent?.parent ??   // activity -> activities -> item
+            context?.activity?.parent ??
+            null;
+
+        return { rolls, context, item };
+    }
+
     // Damage roll handler
-    static async _onDamageRoll(item, roll) {
+    static async _onDamageRoll(a, b) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
-        const actor = item.parent;
-        if (!actor || !actor.hasPlayerOwner || actor.isToken) return;
-
         try {
-            const rollTotal = roll?.total || 0;
+            // Normalize hook arguments to extract item and rolls
+            const { rolls, context, item } = this._normalizeRollHookArgs(a, b);
+
+            if (!item || !item.id) {
+                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Skipping damage roll (no item)', {
+                    aType: a?.constructor?.name,
+                    bType: b?.constructor?.name,
+                    contextKeys: context ? Object.keys(context) : null
+                }, true, false);
+                return;
+            }
+
+            const actor = item.parent;
+            if (!actor || !actor.hasPlayerOwner) {
+                return; // Skip non-player actors
+            }
+
+            // Filter valid rolls (must have total property)
+            const validRolls = (rolls || []).filter(r => r && typeof r.total === "number");
+            if (!validRolls.length) {
+                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Skipping damage roll (no valid rolls)', {
+                    item: item.name,
+                    rollsInfo: (rolls || []).map(r => ({ t: r?.total, c: r?.constructor?.name }))
+                }, true, false);
+                return;
+            }
+
+            // Sum all rolls if multiple damage lines
+            const rollTotal = validRolls.reduce((sum, r) => sum + r.total, 0);
             if (!rollTotal || rollTotal <= 0) {
                 return; // Skip if no damage rolled
             }
 
-            const isHealing = item.system.actionType === 'heal';
+            // Determine if healing - check multiple sources
+            const itemNameLower = (item.name || "").toLowerCase();
+            const actionType = (item.system?.actionType ?? "").toString().toLowerCase();
+            
+            // Check activities system (dnd5e v5.2.4) for healing activities
+            const hasHealingActivity = item.system?.activities && Object.values(item.system.activities).some(activity => {
+                const activityType = (activity.type || "").toLowerCase();
+                return activityType === "heal" || activity.healing || activity.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
+            });
+            
+            // Check damage parts for healing type
+            const hasHealingDamage = item.system?.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
+            
+            // Check item name for healing keywords
+            const nameIndicatesHealing = itemNameLower.includes("heal") || itemNameLower.includes("cure") || itemNameLower.includes("restore");
+            
+            const isHealing =
+                actionType === "heal" || actionType === "healing" ||
+                hasHealingActivity ||
+                hasHealingDamage ||
+                nameIndicatesHealing;
 
             // Get current stats
             const stats = await this.getPlayerStats(actor.id);
@@ -654,12 +748,23 @@ class CPBPlayerStats {
                 }
                 clonedAttacks.damageByWeapon[weaponName] = (clonedAttacks.damageByWeapon[weaponName] || 0) + rollTotal;
 
-                // Track damage by type - ensure object exists
-                const damageType = item.system.damage?.parts?.[0]?.[1] || 'unspecified';
+                // Track damage by type - handle multiple damage parts
                 if (!clonedAttacks.damageByType) {
                     clonedAttacks.damageByType = {};
                 }
-                clonedAttacks.damageByType[damageType] = (clonedAttacks.damageByType[damageType] || 0) + rollTotal;
+                // Sum damage by type across all damage parts
+                const damageParts = item.system.damage?.parts || [];
+                if (damageParts.length > 0) {
+                    for (const part of damageParts) {
+                        const damageType = part?.[1] || 'unspecified';
+                        // Distribute damage proportionally if multiple types, or use first type
+                        const typeDamage = damageParts.length === 1 ? rollTotal : Math.round(rollTotal / damageParts.length);
+                        clonedAttacks.damageByType[damageType] = (clonedAttacks.damageByType[damageType] || 0) + typeDamage;
+                    }
+                } else {
+                    // No damage parts defined, use unspecified
+                    clonedAttacks.damageByType['unspecified'] = (clonedAttacks.damageByType['unspecified'] || 0) + rollTotal;
+                }
 
                 // Update biggest/weakest hits
                 const hitDetails = {
@@ -702,9 +807,19 @@ class CPBPlayerStats {
 
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Error processing damage roll:`, error, false, false);
-            postConsoleAndNotification(MODULE.NAME, 'Actor:', actor, false, false);
-            postConsoleAndNotification(MODULE.NAME, 'Combat:', game.combat, false, false);
-            postConsoleAndNotification(MODULE.NAME, 'Roll:', roll, false, false);
+            // Try to extract info for debugging (in case error happened before normalization)
+            let itemInfo = 'Unknown';
+            let rollsInfo = [];
+            try {
+                const normalized = this._normalizeRollHookArgs(a, b);
+                itemInfo = normalized.item?.name || 'Unknown';
+                rollsInfo = normalized.rolls?.map(r => r?.total) || [];
+            } catch (e) {
+                // Ignore normalization errors in catch block
+            }
+            postConsoleAndNotification(MODULE.NAME, 'Hook Args:', { aType: a?.constructor?.name, bType: b?.constructor?.name }, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'Item:', itemInfo, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'Rolls:', rollsInfo, true, false);
         }
     }
 
