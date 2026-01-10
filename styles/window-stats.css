@@ -323,19 +323,50 @@ div#blacksmith-stats-window .window-content {
   flex: 0 0 auto;
 }
 
-.stats-col-size-small {
-  width: 15%;
-  flex: 0 0 15%;
+/* Percentage-based column sizes */
+.stats-col-size-05 {
+  width: 5%;
+  flex: 0 0 5%;
 }
 
-.stats-col-size-med {
+.stats-col-size-10 {
+  width: 10%;
+  flex: 0 0 10%;
+}
+
+.stats-col-size-20 {
+  width: 20%;
+  flex: 0 0 20%;
+}
+
+.stats-col-size-30 {
   width: 30%;
   flex: 0 0 30%;
 }
 
-.stats-col-size-large {
-  width: 45%;
-  flex: 0 0 45%;
+.stats-col-size-40 {
+  width: 40%;
+  flex: 0 0 40%;
+}
+
+.stats-col-size-50 {
+  width: 50%;
+  flex: 0 0 50%;
+}
+
+.stats-col-size-60 {
+  width: 60%;
+  flex: 0 0 60%;
+}
+
+.stats-col-size-70 {
+  width: 70%;
+  flex: 0 0 70%;
+}
+
+.stats-col-size-80 {
+  width: 80%;
+  flex: 0 0 80%;
 }
 
 /* Column alignment utilities */
@@ -359,15 +390,6 @@ div#blacksmith-stats-window .window-content {
 /* Special cases */
 .stats-table-col.gap-wide {
   gap: 8px;
-}
-
-.stats-table-col.justify-space-between {
-  justify-content: space-between;
-}
-
-.stats-table-duration {
-  flex: 1;
-  min-width: 0;
 }
 
 .delete-combat-btn {
