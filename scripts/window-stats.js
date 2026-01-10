@@ -41,7 +41,7 @@ export class StatsWindow extends Application {
             const highlights = this._buildHighlights(displayHistory);
 
             // Build summary from ALL history (all-time stats)
-            const summary = this._buildSummary(allHistory, leaderboard);
+            const summary = await this._buildSummary(allHistory, leaderboard);
 
             return {
                 summary,
@@ -61,9 +61,25 @@ export class StatsWindow extends Application {
                     totalRounds: 0,
                     averageHitRate: '0.0',
                     averageHitRateValue: 0,
-                    topMvp: '—',
-                    topMvpImg: 'icons/svg/mystery-man.svg',
-                    bestScore: '0.0',
+                    topMvp: {
+                        name: '—',
+                        img: 'icons/svg/mystery-man.svg'
+                    },
+                    biggestHit: {
+                        name: '—',
+                        img: 'icons/svg/mystery-man.svg',
+                        amount: 0
+                    },
+                    mostCrits: {
+                        name: '—',
+                        img: 'icons/svg/mystery-man.svg',
+                        count: 0
+                    },
+                    mostFumbles: {
+                        name: '—',
+                        img: 'icons/svg/mystery-man.svg',
+                        count: 0
+                    },
                     totalCriticals: 0,
                     totalFumbles: 0,
                     totalDamageGiven: 0,
@@ -205,7 +221,7 @@ export class StatsWindow extends Application {
         return highlights;
     }
 
-    _buildSummary(allHistory, leaderboard) {
+    async _buildSummary(allHistory, leaderboard) {
         // Calculate all-time stats from ALL combat history (not just displayed)
         const totalCombats = allHistory.length;
         
@@ -236,10 +252,77 @@ export class StatsWindow extends Application {
             ? ((totalHits / totalAttacks) * 100).toFixed(1)
             : '0.0';
 
+        // Top MVP (highest total MVP score)
         const topMvpEntry = leaderboard[0];
-        const topMvp = topMvpEntry ? `${topMvpEntry.name}` : '—';
-        const topMvpImg = topMvpEntry ? topMvpEntry.img : 'icons/svg/mystery-man.svg';
-        const bestScore = topMvpEntry ? topMvpEntry.mvp.highScore : '0.0'; // Highest single combat MVP score
+        const topMvp = topMvpEntry ? {
+            name: topMvpEntry.name,
+            img: topMvpEntry.img
+        } : {
+            name: '—',
+            img: 'icons/svg/mystery-man.svg'
+        };
+
+        // Find Biggest Hit, Most Crits, and Most Fumbles from all players
+        // Need to check all actors, not just those in leaderboard
+        const actors = game.actors.filter(actor => actor.hasPlayerOwner && !actor.isToken);
+        let biggestHitEntry = null;
+        let biggestHitAmount = 0;
+        let mostCritsEntry = null;
+        let mostCritsCount = 0;
+        let mostFumblesEntry = null;
+        let mostFumblesCount = 0;
+
+        for (const actor of actors) {
+            try {
+                const stats = await StatsAPI.player.getStats(actor.id);
+                if (!stats) continue;
+
+                const attacks = stats?.lifetime?.attacks || {};
+                const mvp = stats?.lifetime?.mvp || {};
+                const biggestHit = attacks.biggest?.amount || 0;
+                const crits = attacks.criticals || 0;
+                const fumbles = attacks.fumbles || 0;
+                const mvpTotalScore = Number(mvp.totalScore || 0);
+
+                const entry = {
+                    actorId: actor.id,
+                    name: actor.name,
+                    img: getPortraitImage(actor) || 'icons/svg/mystery-man.svg',
+                    biggestHit,
+                    crits,
+                    fumbles,
+                    mvp: { totalScore: mvpTotalScore }
+                };
+
+                // Biggest Hit
+                if (biggestHit > biggestHitAmount) {
+                    biggestHitAmount = biggestHit;
+                    biggestHitEntry = entry;
+                }
+
+                // Most Crits (tie-breaker: highest MVP totalScore)
+                if (crits > mostCritsCount) {
+                    mostCritsCount = crits;
+                    mostCritsEntry = entry;
+                } else if (crits === mostCritsCount) {
+                    if (!mostCritsEntry || mvpTotalScore > Number(mostCritsEntry.mvp.totalScore || 0)) {
+                        mostCritsEntry = entry;
+                    }
+                }
+
+                // Most Fumbles (tie-breaker: lowest MVP totalScore)
+                if (fumbles > mostFumblesCount) {
+                    mostFumblesCount = fumbles;
+                    mostFumblesEntry = entry;
+                } else if (fumbles === mostFumblesCount) {
+                    if (!mostFumblesEntry || mvpTotalScore < Number(mostFumblesEntry.mvp.totalScore || 0)) {
+                        mostFumblesEntry = entry;
+                    }
+                }
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, 'COMBAT STATS: Failed to load player stats for summary', { actorId: actor.id, error }, true, false);
+            }
+        }
 
         return {
             totalCombats,
@@ -247,8 +330,21 @@ export class StatsWindow extends Application {
             averageHitRate,
             averageHitRateValue: parseFloat(averageHitRate), // For progress bar
             topMvp,
-            topMvpImg,
-            bestScore,
+            biggestHit: {
+                name: biggestHitEntry ? biggestHitEntry.name : '—',
+                img: biggestHitEntry ? biggestHitEntry.img : 'icons/svg/mystery-man.svg',
+                amount: biggestHitAmount > 0 ? biggestHitAmount : 0
+            },
+            mostCrits: {
+                name: mostCritsEntry ? mostCritsEntry.name : '—',
+                img: mostCritsEntry ? mostCritsEntry.img : 'icons/svg/mystery-man.svg',
+                count: mostCritsCount
+            },
+            mostFumbles: {
+                name: mostFumblesEntry ? mostFumblesEntry.name : '—',
+                img: mostFumblesEntry ? mostFumblesEntry.img : 'icons/svg/mystery-man.svg',
+                count: mostFumblesCount
+            },
             totalCriticals,
             totalFumbles,
             totalDamageGiven,

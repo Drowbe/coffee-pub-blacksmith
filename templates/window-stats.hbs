@@ -26,14 +26,46 @@
         </div>
       </div>
     </div>
+
+    {{!-- TOP MVP --}}
     <div class="stats-summary-row">
       <div class="stats-summary-item">
-        <img src="{{summary.topMvpImg}}" alt="{{summary.topMvp}}" class="stats-summary-portrait">
+        <img src="{{summary.topMvp.img}}" alt="{{summary.topMvp.name}}" class="stats-summary-portrait" data-tooltip="{{summary.topMvp.name}}">
         <div class="stats-summary-content">
           <span class="label">Top MVP</span>
-          <span>{{summary.topMvp}}</span>
+          <span>{{summary.topMvp.name}}</span>
         </div>
       </div>
+
+      {{!-- BIGGEST HIT --}}
+      <div class="stats-summary-item">
+        <img src="{{summary.biggestHit.img}}" alt="{{summary.biggestHit.name}}" class="stats-summary-portrait" data-tooltip="{{summary.biggestHit.name}}">
+        <div class="stats-summary-content">
+          <span class="label">Biggest Hit</span>
+          <span>{{summary.biggestHit.amount}}</span>
+        </div>
+      </div>
+
+      {{!-- MOST CRITS --}}
+      <div class="stats-summary-item">
+        <img src="{{summary.mostCrits.img}}" alt="{{summary.mostCrits.name}}" class="stats-summary-portrait" data-tooltip="{{summary.mostCrits.name}}">
+        <div class="stats-summary-content">
+          <span class="label">Most Crits</span>
+          <span>{{summary.mostCrits.count}}</span>
+        </div>
+      </div>
+
+
+      {{!-- MOST FUMBLES --}}
+      <div class="stats-summary-item">
+        <img src="{{summary.mostFumbles.img}}" alt="{{summary.mostFumbles.name}}" class="stats-summary-portrait" data-tooltip="{{summary.mostFumbles.name}}">
+        <div class="stats-summary-content">
+          <span class="label">Most Fumbles</span>
+          <span>{{summary.mostFumbles.count}}</span>
+        </div>
+      </div>
+
+      {{!-- ENCOUNTERS --}}
       <div class="stats-summary-item">
         <i class="fa-solid fa-crosshairs"></i>
         <div class="stats-summary-content">
@@ -41,6 +73,8 @@
           <span>{{summary.totalCombats}} E | {{summary.totalRounds}} R</span>
         </div>
       </div>
+
+      {{!-- ACCURACY --}}
       <div class="stats-summary-item stats-summary-item-progress">
         <i class="fa-solid fa-bullseye"></i>
         <div class="stats-summary-content">
@@ -51,13 +85,8 @@
           </div>
         </div>
       </div>
-      <div class="stats-summary-item">
-        <i class="fa-solid fa-star"></i>
-        <div class="stats-summary-content">
-          <span class="label">Best MVP Score</span>
-          <span>{{summary.bestScore}}</span>
-        </div>
-      </div>
+
+      {{!-- FINESS --}}
       <div class="stats-summary-item">
         <i class="fa-solid fa-fire-flame"></i>
         <div class="stats-summary-content">
@@ -65,6 +94,8 @@
           <span>{{summary.totalCriticals}} C | {{summary.totalFumbles}} F</span>
         </div>
       </div>
+      
+      {{!-- DAMAGE DEALT --}}
       <div class="stats-summary-item">
         <i class="fa-solid fa-swords"></i>
         <div class="stats-summary-content">
@@ -72,6 +103,8 @@
           <span>{{summary.totalDamageGiven}}</span>
         </div>
       </div>
+      
+      {{!-- DAMAGE TAKEN --}}
       <div class="stats-summary-item">
         <i class="fa-solid fa-shield"></i>
         <div class="stats-summary-content">
@@ -79,6 +112,8 @@
           <span>{{summary.totalDamageTaken}}</span>
         </div>
       </div>
+      
+      {{!-- HEALS GIVEN --}}
       <div class="stats-summary-item">
         <i class="fa-solid fa-heart"></i>
         <div class="stats-summary-content">
