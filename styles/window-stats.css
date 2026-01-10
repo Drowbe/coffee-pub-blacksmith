@@ -179,7 +179,7 @@ div#blacksmith-stats-window .window-content {
 .stats-summary-item {
   display: flex;
   flex-direction: row;
-  gap: 8px;
+  gap: 4px;
   background: rgba(0, 0, 0, 0.35);
   border-radius: 6px;
   padding: 6px 10px;
@@ -192,7 +192,18 @@ div#blacksmith-stats-window .window-content {
   color: rgba(255, 255, 255, 0.7);
   font-size: 2.0em;
   flex-shrink: 0;
-  align-self: flex-start;
+  align-self: center;
+  margin: 0px 6px 0px 0px;
+}
+
+.stats-summary-portrait {
+  width: 2.5em;
+  height: 2.5em;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+  align-self: center;
   margin: 0px 6px 0px 0px;
 }
 
@@ -222,10 +233,10 @@ div#blacksmith-stats-window .window-content {
 .stats-progress-bar {
   position: relative;
   width: 100%;
-  height: 20px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  height: 21px;
+  background: rgba(51, 22, 21, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
   overflow: hidden;
 }
 
@@ -234,9 +245,10 @@ div#blacksmith-stats-window .window-content {
   top: 0;
   left: 0;
   height: 100%;
-  background: linear-gradient(90deg, #4a9eff 0%, #2e7cd6 100%);
-  border-radius: 4px;
+  background: rgba(64, 99, 1, 0.9);
+  border-radius:  3px 3px 3px 3px;
   transition: width 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.6);
 }
 
 .stats-progress-text {

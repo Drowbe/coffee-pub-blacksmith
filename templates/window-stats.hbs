@@ -28,7 +28,7 @@
     </div>
     <div class="stats-summary-row">
       <div class="stats-summary-item">
-        <i class="fa-solid fa-trophy"></i>
+        <img src="{{summary.topMvpImg}}" alt="{{summary.topMvp}}" class="stats-summary-portrait">
         <div class="stats-summary-content">
           <span class="label">Top MVP</span>
           <span>{{summary.topMvp}}</span>
@@ -37,14 +37,14 @@
       <div class="stats-summary-item">
         <i class="fa-solid fa-crosshairs"></i>
         <div class="stats-summary-content">
-          <span class="label">Encounters</span>
-          <span>{{summary.totalCombats}}</span>
+          <span class="label">Encounterss</span>
+          <span>{{summary.totalCombats}} E | {{summary.totalRounds}} R</span>
         </div>
       </div>
       <div class="stats-summary-item stats-summary-item-progress">
         <i class="fa-solid fa-bullseye"></i>
         <div class="stats-summary-content">
-          <span class="label">Average Hit Rate</span>
+          <span class="label">Accuracy</span>
           <div class="stats-progress-bar">
             <div class="stats-progress-fill" style="width: {{summary.averageHitRateValue}}%"></div>
             <span class="stats-progress-text">{{summary.averageHitRate}}%</span>
@@ -54,15 +54,15 @@
       <div class="stats-summary-item">
         <i class="fa-solid fa-star"></i>
         <div class="stats-summary-content">
-          <span class="label">Best Score</span>
+          <span class="label">Best MVP Score</span>
           <span>{{summary.bestScore}}</span>
         </div>
       </div>
       <div class="stats-summary-item">
         <i class="fa-solid fa-fire-flame"></i>
         <div class="stats-summary-content">
-          <span class="label">Crits | Fumbles</span>
-          <span>{{summary.totalCriticals}} | {{summary.totalFumbles}}</span>
+          <span class="label">Finesse</span>
+          <span>{{summary.totalCriticals}} C | {{summary.totalFumbles}} F</span>
         </div>
       </div>
       <div class="stats-summary-item">
@@ -108,7 +108,7 @@
           <span class="stats-table-col stats-col-flex stats-col-left stats-table-col-header">Encounter</span>
           <span class="stats-table-col stats-col-size-20 stats-col-left stats-table-col-header">Date</span>
           <span class="stats-table-col stats-col-size-10 stats-col-center stats-table-col-header">Rounds</span>
-          <span class="stats-table-col stats-col-size-10 stats-col-center stats-table-col-header">Hit Rate</span>
+          <span class="stats-table-col stats-col-size-10 stats-col-center stats-table-col-header">Accuracy</span>
           <span class="stats-table-col stats-col-size-20 stats-col-left stats-table-col-header">MVP</span>
           <span class="stats-table-col stats-col-size-10 stats-col-left stats-table-col-header">Duration</span>
           <span class="stats-table-col stats-col-size-05 stats-col-right stats-table-col-header"> </span>

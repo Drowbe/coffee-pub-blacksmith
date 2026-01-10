@@ -58,9 +58,11 @@ export class StatsWindow extends Application {
             return {
                 summary: {
                     totalCombats: 0,
+                    totalRounds: 0,
                     averageHitRate: '0.0',
                     averageHitRateValue: 0,
                     topMvp: '—',
+                    topMvpImg: 'icons/svg/mystery-man.svg',
                     bestScore: '0.0',
                     totalCriticals: 0,
                     totalFumbles: 0,
@@ -215,6 +217,7 @@ export class StatsWindow extends Application {
         let totalHealsGiven = 0;
         let totalCriticals = 0;
         let totalFumbles = 0;
+        let totalRounds = 0;
 
         for (const summary of allHistory) {
             const totals = summary?.totals || {};
@@ -225,6 +228,7 @@ export class StatsWindow extends Application {
             totalHealsGiven += totals.healingGiven || 0;
             totalCriticals += totals.criticals || 0;
             totalFumbles += totals.fumbles || 0;
+            totalRounds += summary?.totalRounds || 0;
         }
 
         const totalAttacks = totalHits + totalMisses;
@@ -234,13 +238,16 @@ export class StatsWindow extends Application {
 
         const topMvpEntry = leaderboard[0];
         const topMvp = topMvpEntry ? `${topMvpEntry.name}` : '—';
-        const bestScore = topMvpEntry ? topMvpEntry.mvp.highScore : '0.0';
+        const topMvpImg = topMvpEntry ? topMvpEntry.img : 'icons/svg/mystery-man.svg';
+        const bestScore = topMvpEntry ? topMvpEntry.mvp.highScore : '0.0'; // Highest single combat MVP score
 
         return {
             totalCombats,
+            totalRounds,
             averageHitRate,
             averageHitRateValue: parseFloat(averageHitRate), // For progress bar
             topMvp,
+            topMvpImg,
             bestScore,
             totalCriticals,
             totalFumbles,
