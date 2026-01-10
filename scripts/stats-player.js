@@ -14,7 +14,13 @@ const CPB_STATS_DEFAULTS = {
     session: {
         combats: [],
         currentCombat: null,
-        pendingAttacks: new Map() // Store attack rolls until damage confirms hit
+        pendingAttacks: new Map(), // Store attack rolls until damage confirms hit
+        combatTracking: {
+            // Track what we've added during current combat to avoid double counting at combat end
+            hitsAdded: 0,
+            critsAdded: 0,
+            fumblesAdded: 0
+        }
     },
     lifetime: {
         attacks: {
@@ -598,8 +604,40 @@ class CPBPlayerStats {
             const isCritical = d20Result === 20;
             const isFumble = d20Result === 1;
 
+            // Track crits/fumbles in real-time (these are definitive - nat 20 = crit, nat 1 = fumble)
+            if (isCritical || isFumble) {
+                const stats = await this.getPlayerStats(actor.id);
+                if (stats) {
+                    const lifetimeAttacks = stats.lifetime?.attacks || {};
+                    const sessionStats = this._getSessionStats(actor.id);
+                    
+                    // Initialize combat tracking if needed
+                    if (!sessionStats.combatTracking) {
+                        sessionStats.combatTracking = { hitsAdded: 0, critsAdded: 0, fumblesAdded: 0 };
+                    }
+                    
+                    const updates = {
+                        lifetime: {
+                            attacks: {
+                                criticals: isCritical ? (lifetimeAttacks.criticals || 0) + 1 : (lifetimeAttacks.criticals || 0),
+                                fumbles: isFumble ? (lifetimeAttacks.fumbles || 0) + 1 : (lifetimeAttacks.fumbles || 0)
+                            }
+                        }
+                    };
+                    await this.updatePlayerStats(actor.id, updates);
+                    
+                    // Track that we added crit/fumble during this combat (to avoid double counting at combat end)
+                    if (isCritical) {
+                        sessionStats.combatTracking.critsAdded = (sessionStats.combatTracking.critsAdded || 0) + 1;
+                    }
+                    if (isFumble) {
+                        sessionStats.combatTracking.fumblesAdded = (sessionStats.combatTracking.fumblesAdded || 0) + 1;
+                    }
+                    this._updateSessionStats(actor.id, sessionStats);
+                }
+            }
+
             // Store attack info in session for when damage is rolled
-            // Note: Crits/fumbles are tracked from combat summary to avoid double counting
             const sessionStats = this._getSessionStats(actor.id);
             const attackId = foundry.utils.randomID();
             
@@ -734,12 +772,25 @@ class CPBPlayerStats {
                     }
                 }
 
-                // Initialize updates object properly - deep clone to preserve all nested objects
-                const currentAttacks = stats.lifetime.attacks || {};
+                // Get fresh stats to ensure we have latest crit/fumble counts (in case attack roll updated them)
+                const freshStats = await this.getPlayerStats(actor.id);
+                const currentAttacks = (freshStats || stats).lifetime?.attacks || {};
                 const clonedAttacks = foundry.utils.deepClone(currentAttacks);
                 
-                // Update damage totals (hits are tracked from combat summary to avoid double counting)
+                // Track hit in real-time (if damage is rolled, it's a hit)
+                clonedAttacks.totalHits = (currentAttacks.totalHits || 0) + 1;
                 clonedAttacks.totalDamage = (currentAttacks.totalDamage || 0) + rollTotal;
+                
+                // Ensure crit/fumble counts are preserved (they may have been updated by attack roll handler)
+                // Since we cloned from currentAttacks, they should already be there, but explicitly ensure they exist
+                clonedAttacks.criticals = currentAttacks.criticals !== undefined ? currentAttacks.criticals : 0;
+                clonedAttacks.fumbles = currentAttacks.fumbles !== undefined ? currentAttacks.fumbles : 0;
+                
+                // Track that we added a hit during this combat (to avoid double counting at combat end)
+                if (!sessionStats.combatTracking) {
+                    sessionStats.combatTracking = { hitsAdded: 0, critsAdded: 0, fumblesAdded: 0 };
+                }
+                sessionStats.combatTracking.hitsAdded = (sessionStats.combatTracking.hitsAdded || 0) + 1;
 
                 // Track damage by weapon - ensure object exists
                 const weaponName = item.name || 'Unknown Weapon';
@@ -850,21 +901,38 @@ class CPBPlayerStats {
             if (!stats) continue;
 
             const lifetimeAttacks = stats.lifetime?.attacks || {};
+            const sessionStats = this._getSessionStats(actorId);
             
-            // Update hit/miss/crit/fumble totals from combat summary (single source of truth)
-            const newTotalHits = (lifetimeAttacks.totalHits || 0) + (participant.hits || 0);
-            const newTotalMisses = (lifetimeAttacks.totalMisses || 0) + (participant.misses || 0);
+            // Get what we tracked in real-time during this combat to avoid double counting
+            const combatTracking = sessionStats?.combatTracking || { hitsAdded: 0, critsAdded: 0, fumblesAdded: 0 };
+            const hitsAddedThisCombat = combatTracking.hitsAdded || 0;
+            const critsAddedThisCombat = combatTracking.critsAdded || 0;
+            const fumblesAddedThisCombat = combatTracking.fumblesAdded || 0;
+            
+            // Combat summary has authoritative values for this combat
+            // Reconcile: subtract what we added in real-time, then add combat summary values
+            const combatSummaryHits = participant.hits || 0;
+            const combatSummaryMisses = participant.misses || 0;
+            const combatSummaryCrits = participant.criticals || 0;
+            const combatSummaryFumbles = participant.fumbles || 0;
+            
+            // Reconcile: subtract what we added, add what combat summary says (authoritative)
+            const newTotalHits = (lifetimeAttacks.totalHits || 0) - hitsAddedThisCombat + combatSummaryHits;
+            const newTotalMisses = (lifetimeAttacks.totalMisses || 0) + combatSummaryMisses; // Misses only tracked from summary
+            const newTotalCrits = (lifetimeAttacks.criticals || 0) - critsAddedThisCombat + combatSummaryCrits;
+            const newTotalFumbles = (lifetimeAttacks.fumbles || 0) - fumblesAddedThisCombat + combatSummaryFumbles;
+            
             const totalAttacks = newTotalHits + newTotalMisses;
             const newHitMissRatio = totalAttacks > 0 ? ((newTotalHits / totalAttacks) * 100) : 0;
             
             const updates = {
                 lifetime: {
                     attacks: {
-                        totalHits: newTotalHits,
-                        totalMisses: newTotalMisses,
+                        totalHits: Math.max(0, newTotalHits), // Ensure non-negative
+                        totalMisses: Math.max(0, newTotalMisses),
                         hitMissRatio: newHitMissRatio,
-                        criticals: (lifetimeAttacks.criticals || 0) + (participant.criticals || 0),
-                        fumbles: (lifetimeAttacks.fumbles || 0) + (participant.fumbles || 0)
+                        criticals: Math.max(0, newTotalCrits),
+                        fumbles: Math.max(0, newTotalFumbles)
                     },
                     mvp: { ...stats.lifetime?.mvp }
                 }
@@ -880,7 +948,6 @@ class CPBPlayerStats {
 
             await this.updatePlayerStats(actorId, updates);
 
-            const sessionStats = this._getSessionStats(actorId);
             if (sessionStats) {
                 const combatRecord = {
                     combatId: summary.combatId,
@@ -898,6 +965,12 @@ class CPBPlayerStats {
                 }
                 this._boundedPush(sessionStats.combats, combatRecord, 20);
                 sessionStats.currentCombat = null;
+                
+                // Reset combat tracking for next combat
+                if (sessionStats.combatTracking) {
+                    sessionStats.combatTracking = { hitsAdded: 0, critsAdded: 0, fumblesAdded: 0 };
+                    this._updateSessionStats(actorId, sessionStats);
+                }
             }
         }
     }
