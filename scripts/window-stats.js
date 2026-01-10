@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, getPortraitImage } from './api-core.js';
 import { StatsAPI } from './api-stats.js';
 import { CPBPlayerStats } from './stats-player.js';
 
@@ -59,9 +59,9 @@ export class StatsWindow extends Application {
                 summary: {
                     totalCombats: 0,
                     averageHitRate: '0.0',
+                    averageHitRateValue: 0,
                     topMvp: '—',
                     bestScore: '0.0',
-                    lastCombatDate: '—',
                     totalCriticals: 0,
                     totalFumbles: 0,
                     totalDamageGiven: 0,
@@ -162,7 +162,7 @@ export class StatsWindow extends Application {
                 leaderboard.push({
                     actorId: actor.id,
                     name: actor.name,
-                    img: actor.img,
+                    img: getPortraitImage(actor) || 'icons/svg/mystery-man.svg',
                     mvp: {
                         totalScore: Number(mvp.totalScore || 0).toFixed(1),
                         combats: mvp.combats || 0,
@@ -235,14 +235,13 @@ export class StatsWindow extends Application {
         const topMvpEntry = leaderboard[0];
         const topMvp = topMvpEntry ? `${topMvpEntry.name}` : '—';
         const bestScore = topMvpEntry ? topMvpEntry.mvp.highScore : '0.0';
-        const lastCombatDate = allHistory[0]?.date ? this._formatDate(allHistory[0].date) : '—';
 
         return {
             totalCombats,
             averageHitRate,
+            averageHitRateValue: parseFloat(averageHitRate), // For progress bar
             topMvp,
             bestScore,
-            lastCombatDate,
             totalCriticals,
             totalFumbles,
             totalDamageGiven,
@@ -312,12 +311,12 @@ export class StatsWindow extends Application {
 
             const jsonString = JSON.stringify(payload, null, 2);
             const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const anchor = document.createElement('a');
-            anchor.href = url;
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
             anchor.download = `blacksmith-stats-export-${new Date().toISOString().split('T')[0]}.json`;
-            anchor.click();
-            URL.revokeObjectURL(url);
+        anchor.click();
+        URL.revokeObjectURL(url);
             ui.notifications.info(`Exported ${history.length} combat(s) and ${playerStats.length} player stat(s).`);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Failed to export statistics', error, false, false);

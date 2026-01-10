@@ -27,16 +27,65 @@
       </div>
     </div>
     <div class="stats-summary-row">
-      <div class="stats-summary-item"><span class="label">Top MVP</span><span>{{summary.topMvp}}</span></div>
-      <div class="stats-summary-item"><span class="label">Combats Tracked</span><span>{{summary.totalCombats}}</span></div>
-      <div class="stats-summary-item"><span class="label">Average Hit Rate</span><span>{{summary.averageHitRate}}%</span></div>
-      <div class="stats-summary-item"><span class="label">Best Score</span><span>{{summary.bestScore}}</span></div>
-      <div class="stats-summary-item"><span class="label">Last Combat</span><span>{{summary.lastCombatDate}}</span></div>
-      <div class="stats-summary-item"><span class="label">Crits</span><span>{{summary.totalCriticals}}</span></div>
-      <div class="stats-summary-item"><span class="label">Fumbles</span><span>{{summary.totalFumbles}}</span></div>
-      <div class="stats-summary-item"><span class="label">Total Damage Given</span><span>{{summary.totalDamageGiven}}</span></div>
-      <div class="stats-summary-item"><span class="label">Total Damage Taken</span><span>{{summary.totalDamageTaken}}</span></div>
-      <div class="stats-summary-item"><span class="label">Total Heals Given</span><span>{{summary.totalHealsGiven}}</span></div>
+      <div class="stats-summary-item">
+        <i class="fa-solid fa-trophy"></i>
+        <div class="stats-summary-content">
+          <span class="label">Top MVP</span>
+          <span>{{summary.topMvp}}</span>
+        </div>
+      </div>
+      <div class="stats-summary-item">
+        <i class="fa-solid fa-crosshairs"></i>
+        <div class="stats-summary-content">
+          <span class="label">Encounters</span>
+          <span>{{summary.totalCombats}}</span>
+        </div>
+      </div>
+      <div class="stats-summary-item stats-summary-item-progress">
+        <i class="fa-solid fa-bullseye"></i>
+        <div class="stats-summary-content">
+          <span class="label">Average Hit Rate</span>
+          <div class="stats-progress-bar">
+            <div class="stats-progress-fill" style="width: {{summary.averageHitRateValue}}%"></div>
+            <span class="stats-progress-text">{{summary.averageHitRate}}%</span>
+          </div>
+        </div>
+      </div>
+      <div class="stats-summary-item">
+        <i class="fa-solid fa-star"></i>
+        <div class="stats-summary-content">
+          <span class="label">Best Score</span>
+          <span>{{summary.bestScore}}</span>
+        </div>
+      </div>
+      <div class="stats-summary-item">
+        <i class="fa-solid fa-fire-flame"></i>
+        <div class="stats-summary-content">
+          <span class="label">Crits | Fumbles</span>
+          <span>{{summary.totalCriticals}} | {{summary.totalFumbles}}</span>
+        </div>
+      </div>
+      <div class="stats-summary-item">
+        <i class="fa-solid fa-swords"></i>
+        <div class="stats-summary-content">
+          <span class="label">Damage Dealt</span>
+          <span>{{summary.totalDamageGiven}}</span>
+        </div>
+      </div>
+      <div class="stats-summary-item">
+        <i class="fa-solid fa-shield"></i>
+        <div class="stats-summary-content">
+          <span class="label">Damage Taken</span>
+          <span>{{summary.totalDamageTaken}}</span>
+        </div>
+      </div>
+      <div class="stats-summary-item">
+        <i class="fa-solid fa-heart"></i>
+        <div class="stats-summary-content">
+          <span class="label">Heals Given</span>
+          <span>{{summary.totalHealsGiven}}</span>
+        </div>
+      </div>
     </div>
   </div>
 
