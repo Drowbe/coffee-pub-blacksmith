@@ -335,7 +335,6 @@ export class PlanningTimer {
         if (!this.verifyTimerConditions()) {
             // Debug: Log why timer isn't showing (use getSettingSafely to avoid errors)
             const enabled = getSettingSafely(MODULE.ID, 'planningTimerEnabled', false);
-            postConsoleAndNotification(MODULE.NAME, `Planning Timer: Conditions not met - enabled: ${enabled}, combat started: ${game.combat?.started}, turn: ${game.combat?.turn}, expired: ${this.state.isExpired}`, "", true, false);
             return;
         }
 
@@ -350,7 +349,6 @@ export class PlanningTimer {
         // If remaining is 0 but timer should be active, initialize it
         if (this.state.remaining === 0 && this.state.isActive && !this.state.isExpired) {
             this.state.remaining = this.state.duration;
-            postConsoleAndNotification(MODULE.NAME, `Planning Timer: Initialized remaining time from 0 to ${this.state.duration}`, "", true, false);
         }
         
         // If timer is active but remaining is 0 and not expired, it means timer just started
@@ -387,7 +385,6 @@ export class PlanningTimer {
                               nativeHtml.querySelector('.combat-tracker') ||
                               nativeHtml.querySelector('[data-application-part="tracker"]');
         if (combatTracker) {
-            postConsoleAndNotification(MODULE.NAME, `Planning Timer: Found combat tracker, inserting timer`, "", true, false);
             // Parse HTML string into DOM element
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = timerHtml;
@@ -421,7 +418,6 @@ export class PlanningTimer {
             }
         } else {
             // Fallback: try to find first combatant (v13: native DOM)
-            postConsoleAndNotification(MODULE.NAME, `Planning Timer: Combat tracker not found, trying fallback`, "", true, false);
             const firstCombatant = nativeHtml.querySelector('.combatant');
             if (firstCombatant) {
                 // Parse HTML string into DOM element
@@ -744,8 +740,6 @@ export class PlanningTimer {
         if (game.user.isGM) {
             this.syncState();
         }
-        
-        postConsoleAndNotification(MODULE.NAME, `Planning Timer: Timer started - remaining: ${this.state.remaining}, isPaused: ${this.state.isPaused}, isActive: ${this.state.isActive}`, "", true, false);
     }
 
     static updateUI() {

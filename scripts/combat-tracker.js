@@ -68,7 +68,6 @@ class CombatTracker {
                         if (moduleId === MODULE.ID) {
                             this._removeRollRemainingButton();
                             this._clearAllTimeouts();
-                            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Cleanup on module unload", "", true, false);
                         }
                         // --- END - HOOKMANAGER CALLBACK ---
                     }
@@ -423,12 +422,9 @@ class CombatTracker {
 						// Only add if there's an active combat
 						if (!game.combat) return;
 
-						postConsoleAndNotification(MODULE.NAME, `Combat Tracker: renderCombatTracker hook called`, "", true, false);
-
 						// v13: Use app.element (the actual rendered element) instead of html
 						// html might be a temporary element that gets replaced
 						// Insert immediately - no delay needed since we check for existing buttons
-						postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Starting button insertion`, "", true, false);
 							// v13: Detect and convert jQuery to native DOM if needed
 							let nativeHtml = html;
 							if (html && (html.jquery || typeof html.find === 'function')) {
@@ -457,7 +453,6 @@ class CombatTracker {
 							}
 							
 							if (searchRoots.length === 0) {
-								postConsoleAndNotification(MODULE.NAME, `Combat Tracker: No valid search roots found`, "", true, false);
 								return;
 							}
 							
@@ -500,7 +495,6 @@ class CombatTracker {
 							
 							if (!rollNPCButton) {
 								// Don't return early - try to find the container and insert anyway
-								postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Roll NPC button not found in any root, trying container insertion`, "", true, false);
 								// Try to find the left controls container and append there
 								let leftControls = null;
 								for (const root of searchRoots) {
@@ -518,9 +512,7 @@ class CombatTracker {
 									rollRemainingButton.setAttribute('data-action', 'rollRemaining');
 									
 									leftControls.appendChild(rollRemainingButton);
-									
-									postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Roll Remaining button inserted into left controls container`, "", true, false);
-									
+																	
 									// Add click handler
 									const clickHandler = async (event) => {
 										event.preventDefault();
@@ -531,7 +523,6 @@ class CombatTracker {
 									rollRemainingButton.addEventListener('click', clickHandler);
 									return;
 								}
-								postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Could not find Roll NPC button or left controls container`, "", true, false);
 								return;
 							}
 
@@ -553,18 +544,10 @@ class CombatTracker {
 							if (rollNPCButton.parentElement) {
 								rollNPCButton.insertAdjacentElement('afterend', rollRemainingButton);
 								
-								// Verify insertion was successful
-								if (!rollRemainingButton.parentElement) {
-									postConsoleAndNotification(MODULE.NAME, `Combat Tracker: ERROR - Button insertion failed!`, "", true, false);
-								} else {
-									postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Button inserted into ${rollRemainingButton.parentElement.tagName}.${rollRemainingButton.parentElement.className}`, "", true, false);
-								}
 							} else {
 								postConsoleAndNotification(MODULE.NAME, `Combat Tracker: ERROR - Roll NPC button has no parent!`, "", true, false);
 							}
 							
-							postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Roll Remaining button inserted after Roll NPC button`, "", true, false);
-
 							// Create click handler function
 							const clickHandler = async (event) => {
 								event.preventDefault();
@@ -578,9 +561,7 @@ class CombatTracker {
 
 							// Add click handler (v13: native DOM)
 							rollRemainingButton.addEventListener('click', clickHandler);
-							
-							postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Button successfully inserted`, "", true, false);
-						// --- END - HOOKMANAGER CALLBACK ---
+							// --- END - HOOKMANAGER CALLBACK ---
 					}
 				});
                 
@@ -731,12 +712,9 @@ class CombatTracker {
         
         // Skip if combat doesn't exist (combat might have been deleted)
         if (!game.combats.has(combat.id)) return;
-        
-        postConsoleAndNotification(MODULE.NAME, `Combat Tracker: _rollInitiativeForPlayerCharacters called (GM: ${game.user.isGM}, Setting: ${game.settings.get(MODULE.ID, 'combatTrackerRollInitiativePlayer')})`, "", true, false);
-        
+                
         // Check if the setting is enabled for this user
         if (!game.settings.get(MODULE.ID, 'combatTrackerRollInitiativePlayer')) {
-            postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Setting disabled, skipping", "", true, false);
             return;
         }
         
@@ -744,12 +722,9 @@ class CombatTracker {
         // Flag to track if we found any combatants needing initiative
         let foundCombatants = false;
         
-        // Process each combatant individually instead of in batch
-        postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Processing ${combat.turns.length} combatants`, "", true, false);
         
         for (const combatant of combat.turns) {
             try {
-                postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Checking combatant ${combatant.name} (actor: ${combatant.actor?.name}, type: ${combatant.actor?.type}, hasPlayerOwner: ${combatant.actor?.hasPlayerOwner}, initiative: ${combatant.initiative})`, "", true, false);
                 // Only process if:
                 // 1. The combatant has an actor
                 // 2. The actor is player-owned
@@ -779,9 +754,7 @@ class CombatTracker {
                             const user = game.users.get(userId);
                             return user && user.active && combatant.actor.ownership[userId] === 3; // OWNER level
                         });
-                    
-                    postConsoleAndNotification(MODULE.NAME, `Combat Tracker: GM check for ${combatant.name} - hasPlayerOwner: ${combatant.actor?.hasPlayerOwner}, type: ${combatant.actor?.type}, hasActiveOwner: ${hasActiveOwner}, initiative: ${combatant.initiative}`, "", true, false);
-                    
+                                        
                     shouldRollInitiative = combatant.actor && 
                         combatant.actor.hasPlayerOwner && 
                         combatant.actor.type === "character" &&
@@ -796,8 +769,6 @@ class CombatTracker {
                         combatant.initiative === null &&
                         !isActuallyDead;
                 }
-
-                postConsoleAndNotification(MODULE.NAME, `Combat Tracker: Final decision for ${combatant.name} - shouldRollInitiative: ${shouldRollInitiative}`, "", true, false);
 
                 if (shouldRollInitiative) {
                     // Roll initiative for this specific combatant

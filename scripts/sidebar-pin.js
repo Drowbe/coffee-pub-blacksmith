@@ -69,14 +69,12 @@ export class SidebarPin {
      * Setup the sidebar pin button and handlers
      */
     static _setupSidebarPin() {
-        postConsoleAndNotification(MODULE.NAME, "Sidebar Pin: Setting up sidebar pin", "", true, false);
         
         // Try to find elements immediately
         this._findAndSetupElements();
 
         // If elements not found, use MutationObserver to wait for them
         if (!this.collapseButton || !this.sidebarContent) {
-            postConsoleAndNotification(MODULE.NAME, "Sidebar Pin: Elements not found, setting up observer", "", true, false);
             
             this.observer = new MutationObserver(() => {
                 if (this._findAndSetupElements()) {
@@ -141,14 +139,6 @@ export class SidebarPin {
         
         if (collapseButtonLi) {
             this.collapseButton = collapseButtonLi;
-        }
-
-        // Debug logging
-        if (!this.sidebarContent) {
-            postConsoleAndNotification(MODULE.NAME, "Sidebar Pin: sidebar-content not found", "", true, false);
-        }
-        if (!this.collapseButton) {
-            postConsoleAndNotification(MODULE.NAME, "Sidebar Pin: collapse button not found", "", true, false);
         }
 
         // If we have both elements, setup the pin button

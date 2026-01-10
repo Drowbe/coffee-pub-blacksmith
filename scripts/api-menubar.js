@@ -356,10 +356,6 @@ class MenuBar {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
                 // Check if this is the combat tracker application
                 if (app && app.appId === 'combat') {
-                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Window render detected", {
-                        appId: app.appId,
-                        rendered: app.rendered
-                    }, true, false);
                     
                     // Re-render menubar to update combat tracker button state
                     MenuBar.renderMenubar(true);
@@ -377,11 +373,7 @@ class MenuBar {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
                 // Check if this is the combat tracker application
                 if (app && app.appId === 'combat') {
-                    postConsoleAndNotification(MODULE.NAME, "Combat Tracker: Window close detected", {
-                        appId: app.appId,
-                        rendered: app.rendered
-                    }, true, false);
-                    
+                   
                     // Re-render menubar to update combat tracker button state
                     MenuBar.renderMenubar(true);
                 }
@@ -1700,16 +1692,6 @@ class MenuBar {
             if (tool.leaderOnly && !game.user.isGM) {
                 const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
                 const isLeader = leaderData?.userId === game.user.id;
-                
-                postConsoleAndNotification(MODULE.NAME, "Menubar Leader | Tool visibility check", {
-                    toolId: toolId,
-                    toolName: tool.name,
-                    leaderData: leaderData,
-                    currentUserId: game.user.id,
-                    isLeader: isLeader,
-                    isGM: game.user.isGM,
-                    willBeVisible: isLeader
-                }, true, false);
                 
                 if (!isLeader) {
                     isVisible = false;
@@ -3749,15 +3731,6 @@ class MenuBar {
             // Debug: Log leader data during menubar rendering
             const renderLeaderData = game.settings.get(MODULE.ID, 'partyLeader');
             const middleGroups = Object.keys(toolsByZone.middle || {});
-            postConsoleAndNotification(MODULE.NAME, "Menubar Leader | Initial render", {
-                leaderData: renderLeaderData,
-                currentUserId: game.user.id,
-                isGM: game.user.isGM,
-                currentLeader: this.currentLeader,
-                isLoading: this.isLoading,
-                middleGroups: middleGroups,
-                middleGroupCount: middleGroups.length
-            }, true, false);
 
             // Prepare secondary bar data
             const secondaryBarData = this._prepareSecondaryBarData();
@@ -4176,9 +4149,9 @@ class MenuBar {
                             sceneId: canvas.scene.id
                         }]);
                         addedCount++;
-                        postConsoleAndNotification(MODULE.NAME, `Added ${token.name} to combat`, "", true, false);
+                        // postConsoleAndNotification(MODULE.NAME, `Added ${token.name} to combat`, "", true, false);
                     } else {
-                        postConsoleAndNotification(MODULE.NAME, `${token.name} is already in combat`, "", true, false);
+                        //postConsoleAndNotification(MODULE.NAME, `${token.name} is already in combat`, "", true, false);
                     }
                 } catch (error) {
                     postConsoleAndNotification(MODULE.NAME, `Failed to add ${token.name} to combat:`, error, false, false);
@@ -4395,20 +4368,9 @@ class MenuBar {
         
         if (leaderData && leaderData.actorId) {
             // Don't send messages during initialization
-            postConsoleAndNotification(MODULE.NAME, "Menubar Leader | Loading leader during init", {
-                leaderData: leaderData,
-                currentUserId: game.user.id,
-                actorId: leaderData.actorId,
-                userId: leaderData.userId
-            }, true, false);
-            
             await MenuBar.setNewLeader(leaderData, false);
 
         } else {
-            postConsoleAndNotification(MODULE.NAME, "Menubar Leader | No leader data during init", {
-                leaderData: leaderData,
-                currentUserId: game.user.id
-            }, true, false);
             
             MenuBar.currentLeader = null;
             await MenuBar.updateLeader(null);

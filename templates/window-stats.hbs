@@ -65,6 +65,24 @@
         </div>
       </div>
 
+      {{!-- MOST HITS --}}
+      <div class="stats-summary-item">
+        <img src="{{summary.mostHits.img}}" alt="{{summary.mostHits.name}}" class="stats-summary-portrait" data-tooltip="{{summary.mostHits.name}}">
+        <div class="stats-summary-content">
+          <span class="label">Most Hits</span>
+          <span>{{summary.mostHits.count}}</span>
+        </div>
+      </div>
+
+      {{!-- MOST MISSES --}}
+      <div class="stats-summary-item">
+        <img src="{{summary.mostMisses.img}}" alt="{{summary.mostMisses.name}}" class="stats-summary-portrait" data-tooltip="{{summary.mostMisses.name}}">
+        <div class="stats-summary-content">
+          <span class="label">Most Misses</span>
+          <span>{{summary.mostMisses.count}}</span>
+        </div>
+      </div>
+
       {{!-- ENCOUNTERS --}}
       <div class="stats-summary-item">
         <i class="fa-solid fa-crosshairs"></i>
@@ -179,7 +197,7 @@
         <div class="stats-table-header">
           <span class="stats-table-col stats-col-size-05 stats-col-center stats-table-col-header">Rank</span>
           <span class="stats-table-col stats-col-flex stats-col-left gap-wide stats-table-col-header">Player</span>
-          <span class="stats-table-col stats-col-size-10 stats-col-center stats-table-col-header">Combats</span>
+          <span class="stats-table-col stats-col-size-10 stats-col-center stats-table-col-header">Encounters</span>
           <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Total MVP</span>
           <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Avg MVP</span>
           <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Best MVP</span>

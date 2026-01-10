@@ -80,6 +80,16 @@ export class StatsWindow extends Application {
                         img: 'icons/svg/mystery-man.svg',
                         count: 0
                     },
+                    mostHits: {
+                        name: '—',
+                        img: 'icons/svg/mystery-man.svg',
+                        count: 0
+                    },
+                    mostMisses: {
+                        name: '—',
+                        img: 'icons/svg/mystery-man.svg',
+                        count: 0
+                    },
                     totalCriticals: 0,
                     totalFumbles: 0,
                     totalDamageGiven: 0,
@@ -262,7 +272,7 @@ export class StatsWindow extends Application {
             img: 'icons/svg/mystery-man.svg'
         };
 
-        // Find Biggest Hit, Most Crits, and Most Fumbles from all players
+        // Find Biggest Hit, Most Crits, Most Fumbles, Most Hits, and Most Misses from all players
         // Need to check all actors, not just those in leaderboard
         const actors = game.actors.filter(actor => actor.hasPlayerOwner && !actor.isToken);
         let biggestHitEntry = null;
@@ -271,6 +281,10 @@ export class StatsWindow extends Application {
         let mostCritsCount = 0;
         let mostFumblesEntry = null;
         let mostFumblesCount = 0;
+        let mostHitsEntry = null;
+        let mostHitsCount = 0;
+        let mostMissesEntry = null;
+        let mostMissesCount = 0;
 
         for (const actor of actors) {
             try {
@@ -282,6 +296,8 @@ export class StatsWindow extends Application {
                 const biggestHit = attacks.biggest?.amount || 0;
                 const crits = attacks.criticals || 0;
                 const fumbles = attacks.fumbles || 0;
+                const hits = attacks.totalHits || 0;
+                const misses = attacks.totalMisses || 0;
                 const mvpTotalScore = Number(mvp.totalScore || 0);
 
                 const entry = {
@@ -291,6 +307,8 @@ export class StatsWindow extends Application {
                     biggestHit,
                     crits,
                     fumbles,
+                    hits,
+                    misses,
                     mvp: { totalScore: mvpTotalScore }
                 };
 
@@ -319,6 +337,26 @@ export class StatsWindow extends Application {
                         mostFumblesEntry = entry;
                     }
                 }
+
+                // Most Hits (tie-breaker: highest MVP totalScore)
+                if (hits > mostHitsCount) {
+                    mostHitsCount = hits;
+                    mostHitsEntry = entry;
+                } else if (hits === mostHitsCount) {
+                    if (!mostHitsEntry || mvpTotalScore > Number(mostHitsEntry.mvp.totalScore || 0)) {
+                        mostHitsEntry = entry;
+                    }
+                }
+
+                // Most Misses (tie-breaker: lowest MVP totalScore)
+                if (misses > mostMissesCount) {
+                    mostMissesCount = misses;
+                    mostMissesEntry = entry;
+                } else if (misses === mostMissesCount) {
+                    if (!mostMissesEntry || mvpTotalScore < Number(mostMissesEntry.mvp.totalScore || 0)) {
+                        mostMissesEntry = entry;
+                    }
+                }
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, 'COMBAT STATS: Failed to load player stats for summary', { actorId: actor.id, error }, true, false);
             }
@@ -344,6 +382,16 @@ export class StatsWindow extends Application {
                 name: mostFumblesEntry ? mostFumblesEntry.name : '—',
                 img: mostFumblesEntry ? mostFumblesEntry.img : 'icons/svg/mystery-man.svg',
                 count: mostFumblesCount
+            },
+            mostHits: {
+                name: mostHitsEntry ? mostHitsEntry.name : '—',
+                img: mostHitsEntry ? mostHitsEntry.img : 'icons/svg/mystery-man.svg',
+                count: mostHitsCount
+            },
+            mostMisses: {
+                name: mostMissesEntry ? mostMissesEntry.name : '—',
+                img: mostMissesEntry ? mostMissesEntry.img : 'icons/svg/mystery-man.svg',
+                count: mostMissesCount
             },
             totalCriticals,
             totalFumbles,

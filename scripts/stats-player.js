@@ -581,6 +581,7 @@ class CPBPlayerStats {
             const isFumble = d20Result === 1;
 
             // Store attack info in session for when damage is rolled
+            // Note: Crits/fumbles are tracked from combat summary to avoid double counting
             const sessionStats = this._getSessionStats(actor.id);
             const attackId = foundry.utils.randomID();
             
@@ -595,8 +596,6 @@ class CPBPlayerStats {
             });
 
             this._updateSessionStats(actor.id, sessionStats);
-
-            // Update crit/fumble counts immediately
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Error processing attack roll:`, error, false, false);
         }
@@ -610,12 +609,19 @@ class CPBPlayerStats {
         if (!actor || !actor.hasPlayerOwner || actor.isToken) return;
 
         try {
-            const rollTotal = roll.total;
+            const rollTotal = roll?.total || 0;
+            if (!rollTotal || rollTotal <= 0) {
+                return; // Skip if no damage rolled
+            }
+
             const isHealing = item.system.actionType === 'heal';
 
             // Get current stats
             const stats = await this.getPlayerStats(actor.id);
-            if (!stats) return;
+            if (!stats) {
+                postConsoleAndNotification(MODULE.NAME, 'Player Stats - No stats found for actor', { actorId: actor.id }, true, false);
+                return;
+            }
 
             const updates = { lifetime: {} };
             const sessionStats = this._getSessionStats(actor.id);
@@ -634,19 +640,26 @@ class CPBPlayerStats {
                     }
                 }
 
-                updates.lifetime.attacks = foundry.utils.deepClone(stats.lifetime.attacks);
+                // Initialize updates object properly - deep clone to preserve all nested objects
+                const currentAttacks = stats.lifetime.attacks || {};
+                const clonedAttacks = foundry.utils.deepClone(currentAttacks);
                 
-                // Record the hit and update totals
-                updates.lifetime.attacks.totalHits = (stats.lifetime.attacks.totalHits || 0) + 1;
-                updates.lifetime.attacks.totalDamage = (stats.lifetime.attacks.totalDamage || 0) + rollTotal;
+                // Update damage totals (hits are tracked from combat summary to avoid double counting)
+                clonedAttacks.totalDamage = (currentAttacks.totalDamage || 0) + rollTotal;
 
-                // Track damage by weapon
+                // Track damage by weapon - ensure object exists
                 const weaponName = item.name || 'Unknown Weapon';
-                updates.lifetime.attacks.damageByWeapon[weaponName] = (updates.lifetime.attacks.damageByWeapon[weaponName] || 0) + rollTotal;
+                if (!clonedAttacks.damageByWeapon) {
+                    clonedAttacks.damageByWeapon = {};
+                }
+                clonedAttacks.damageByWeapon[weaponName] = (clonedAttacks.damageByWeapon[weaponName] || 0) + rollTotal;
 
-                // Track damage by type
+                // Track damage by type - ensure object exists
                 const damageType = item.system.damage?.parts?.[0]?.[1] || 'unspecified';
-                updates.lifetime.attacks.damageByType[damageType] = (updates.lifetime.attacks.damageByType[damageType] || 0) + rollTotal;
+                if (!clonedAttacks.damageByType) {
+                    clonedAttacks.damageByType = {};
+                }
+                clonedAttacks.damageByType[damageType] = (clonedAttacks.damageByType[damageType] || 0) + rollTotal;
 
                 // Update biggest/weakest hits
                 const hitDetails = {
@@ -661,21 +674,28 @@ class CPBPlayerStats {
                 };
 
                 // Update biggest hit - check if current biggest exists and compare amounts
-                const currentBiggest = stats.lifetime.attacks.biggest;
-                if (!currentBiggest || !currentBiggest.amount || rollTotal > currentBiggest.amount) {
-                    updates.lifetime.attacks.biggest = foundry.utils.deepClone(hitDetails);
+                const currentBiggest = clonedAttacks.biggest;
+                const currentBiggestAmount = currentBiggest?.amount || 0;
+                if (rollTotal > currentBiggestAmount) {
+                    clonedAttacks.biggest = foundry.utils.deepClone(hitDetails);
                 }
                 
                 // Update weakest hit - check if current weakest exists and compare amounts
-                const currentWeakest = stats.lifetime.attacks.weakest;
+                const currentWeakest = clonedAttacks.weakest;
                 if (!currentWeakest || !currentWeakest.amount || (rollTotal > 0 && (rollTotal < currentWeakest.amount || currentWeakest.amount === 0))) {
-                    updates.lifetime.attacks.weakest = foundry.utils.deepClone(hitDetails);
+                    clonedAttacks.weakest = foundry.utils.deepClone(hitDetails);
                 }
 
                 // Add to hit log
-                const hitLog = [...(stats.lifetime.attacks.hitLog || [])];
+                if (!clonedAttacks.hitLog) {
+                    clonedAttacks.hitLog = [];
+                }
+                const hitLog = [...clonedAttacks.hitLog];
                 hitLog.unshift(hitDetails);
-                updates.lifetime.attacks.hitLog = hitLog.slice(0, 20); // Keep last 20 hits
+                clonedAttacks.hitLog = hitLog.slice(0, 20); // Keep last 20 hits
+
+                // Assign the fully updated object to updates
+                updates.lifetime.attacks = clonedAttacks;
             }
 
             await this.updatePlayerStats(actor.id, updates);
@@ -715,11 +735,19 @@ class CPBPlayerStats {
             if (!stats) continue;
 
             const lifetimeAttacks = stats.lifetime?.attacks || {};
+            
+            // Update hit/miss/crit/fumble totals from combat summary (single source of truth)
+            const newTotalHits = (lifetimeAttacks.totalHits || 0) + (participant.hits || 0);
+            const newTotalMisses = (lifetimeAttacks.totalMisses || 0) + (participant.misses || 0);
+            const totalAttacks = newTotalHits + newTotalMisses;
+            const newHitMissRatio = totalAttacks > 0 ? ((newTotalHits / totalAttacks) * 100) : 0;
+            
             const updates = {
                 lifetime: {
                     attacks: {
-                        totalHits: (lifetimeAttacks.totalHits || 0) + (participant.hits || 0),
-                        totalMisses: (lifetimeAttacks.totalMisses || 0) + (participant.misses || 0),
+                        totalHits: newTotalHits,
+                        totalMisses: newTotalMisses,
+                        hitMissRatio: newHitMissRatio,
                         criticals: (lifetimeAttacks.criticals || 0) + (participant.criticals || 0),
                         fumbles: (lifetimeAttacks.fumbles || 0) + (participant.fumbles || 0)
                     },
