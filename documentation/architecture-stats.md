@@ -76,7 +76,7 @@ This document outlines the current state and proposed architecture for the Coffe
 - `turnStats` - average, fastest, slowest turn times
 
 **_sessionStats** - In-memory Map (temporary)
-- `pendingAttacks` - Matches attack rolls to damage rolls
+- `combatTracking` - Tracks hits/crits/fumbles added during combat (for reconciliation at combat end)
 - `currentCombat.turns[]` - Turn timing data (uses `_boundedPush`, max 1000)
 
 **Combat Flags** - `combat.setFlag(MODULE.ID, 'combatStats')`

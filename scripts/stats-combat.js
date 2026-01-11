@@ -1845,62 +1845,24 @@ class CombatStats {
         return { rolls, context, item };
     }
 
-    // Add new method to track damage rolls
+    // Damage roll handler - NARROWED to only socket forwarding for non-GM clients
+    // Damage tracking is now handled by createChatMessage hook (_processResolvedDamage)
     static async _onDamageRoll(a, b) {
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.combat?.started) return;
+
         try {
-            if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
-            if (!game.combat?.started) {
-                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping damage roll (combat not started)', "", true, false);
-                return;
-            }
-
             const { rolls, context, item } = this._normalizeRollHookArgs(a, b);
-
-            if (!item || !item.id) {
-                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping damage roll (no item)', {
-                    aType: a?.constructor?.name,
-                    bType: b?.constructor?.name,
-                    contextKeys: context ? Object.keys(context) : null,
-                    subjectType: context?.subject?.constructor?.name
-                }, true, false);
-                return;
-            }
+            if (!item || !item.id) return;
 
             const validRolls = (rolls || []).filter(r => r && typeof r.total === "number");
-            if (!validRolls.length) {
-                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping damage roll (no valid rolls)', {
-                    item: item.name,
-                    rollsInfo: (rolls || []).map(r => ({ t: r?.total, c: r?.constructor?.name }))
-                }, true, false);
-                return;
-            }
+            if (!validRolls.length) return;
 
             // Get amount - sum all rolls if multiple damage lines
             const amount = validRolls.reduce((sum, r) => sum + r.total, 0);
-            
-            // Determine if healing - check multiple sources
-            const itemNameLower = (item.name || "").toLowerCase();
-            const actionType = (item.system?.actionType ?? "").toString().toLowerCase();
-            
-            // Check activities system (dnd5e v5.2.4) for healing activities
-            const hasHealingActivity = item.system?.activities && Object.values(item.system.activities).some(activity => {
-                const activityType = (activity.type || "").toLowerCase();
-                return activityType === "heal" || activity.healing || activity.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
-            });
-            
-            // Check damage parts for healing type
-            const hasHealingDamage = item.system?.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
-            
-            // Check item name for healing keywords
-            const nameIndicatesHealing = itemNameLower.includes("heal") || itemNameLower.includes("cure") || itemNameLower.includes("restore");
-            
-            const isHealing =
-                actionType === "heal" || actionType === "healing" ||
-                hasHealingActivity ||
-                hasHealingDamage ||
-                nameIndicatesHealing;
+            if (!amount || amount <= 0) return;
 
-            // Forward to GM if needed
+            // Forward to GM if needed (for socket handlers - non-GM clients forward to GM)
             if (!game.user.isGM) {
                 const socket = SocketManager.getSocket();
                 if (socket?.executeAsGM) {
@@ -1918,23 +1880,8 @@ class CombatStats {
                 return;
             }
 
-            // Resolve targets for GM roller case
-            const targetActorIds = Array.from(game.user.targets || [])
-                .map(t => t?.actor?.id)
-                .filter(Boolean);
-
-            // If this call arrived from socket, you will have context.targetTokenUuids
-            const targetTokenUuids = context?.targetTokenUuids || [];
-
-            await this._processDamageOrHealing({
-                item,
-                amount,
-                isHealing,
-                isCritical: this._lastRollWasCritical || false,
-                targetActorIds,
-                targetTokenUuids,
-                timestamp: Date.now()
-            });
+            // GM path: Damage tracking is now handled by createChatMessage hook via _processResolvedDamage
+            // This hook is narrowed to only socket forwarding to avoid double-counting
         } catch (error) {
             // Catch any errors to prevent breaking the hook chain for other modules (e.g., midi-qol)
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Error in _onDamageRoll:', error, false, false);
@@ -1953,7 +1900,8 @@ class CombatStats {
         }
     }
 
-    // Add new method to track attack rolls
+    // Attack roll handler - NARROWED to only crit/fumble detection and socket forwarding
+    // Hit/miss tracking is now handled by createChatMessage hook (_processResolvedAttack)
     static async _onAttackRoll(a, b) {
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
@@ -1961,26 +1909,10 @@ class CombatStats {
         const { rolls, context, item } = this._normalizeRollHookArgs(a, b);
         const rollObj = rolls?.[0];
 
-        if (!rollObj || rollObj.total === undefined) {
-            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping attack roll (invalid roll)', {
-                aType: a?.constructor?.name,
-                bType: b?.constructor?.name,
-                rollKeys: rollObj ? Object.keys(rollObj) : null,
-                contextKeys: context ? Object.keys(context) : null
-            }, true, false);
-            return;
-        }
+        if (!rollObj || rollObj.total === undefined) return;
+        if (!item || !item.id) return;
 
-        if (!item || !item.id) {
-            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping attack roll (no item)', {
-                aType: a?.constructor?.name,
-                bType: b?.constructor?.name,
-                contextKeys: context ? Object.keys(context) : null
-            }, true, false);
-            return;
-        }
-
-        // Forward to GM if needed
+        // Forward to GM if needed (for socket handlers - non-GM clients forward to GM)
         if (!game.user.isGM) {
             const socket = SocketManager.getSocket();
             if (socket?.executeAsGM) {
@@ -1998,34 +1930,15 @@ class CombatStats {
             return;
         }
 
-        // GM path: normalize hook data, then process
-        const actor = item.parent;
-        if (!actor) return;
-
-        const rollTotal = rollObj.total;
+        // GM path: only track crit/fumble (set _lastRollWasCritical flag for damage processing)
         const d20Result = this._getD20ResultFromRoll(rollObj);
         const { isCritical, isFumble } = this._getCritFumbleFlags({ roll: rollObj, context, d20Result });
 
-        // Debug log to verify d20 extraction
-        const d20Term = rollObj.dice?.find(t => t?.faces === 20) ?? rollObj.terms?.find(t => t?.faces === 20);
-        postConsoleAndNotification(MODULE.NAME, "Attack d20 debug", {
-            total: rollObj.total,
-            d20Result,
-            isCritical,
-            isFumble,
-            d20Results: d20Term?.results?.map(r => ({ result: r.result, active: r.active, discarded: r.discarded })),
-        }, true, false);
+        // Set flag for damage processing (used by _processResolvedDamage and socket handlers)
+        this._lastRollWasCritical = isCritical;
 
-        // You still don't really have target AC here.
-        // Keep your current heuristic by not passing targetAC (processor falls back to 10).
-        await this._processAttackRoll({
-            item,
-            rollTotal,
-            d20Result,
-            isCritical,
-            isFumble,
-            timestamp: Date.now()
-        });
+        // Note: Hit/miss tracking is now handled by createChatMessage hook via _processResolvedAttack
+        // This hook is narrowed to only crit/fumble detection to avoid double-counting
     }
 
     /**
@@ -2118,19 +2031,11 @@ class CombatStats {
         
         const rollAttackHookId = HookManager.registerHook({
 			name: 'dnd5e.rollAttack',
-			description: 'Combat Stats: Monitor attack rolls for statistics tracking',
+			description: 'Combat Stats: Track crits/fumbles and forward to GM (narrowed scope - hit/miss handled by createChatMessage)',
 			context: 'stats-combat-attack-rolls',
 			priority: 3,
 			callback: (a, b) => {
 				// --- BEGIN - HOOKMANAGER CALLBACK ---
-				const { rolls, context, item } = this._normalizeRollHookArgs(a, b);
-				postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Roll detected:', {
-					aType: a?.constructor?.name,
-					bType: b?.constructor?.name,
-					rolls: rolls?.map(r => r?.total),
-					contextKeys: context ? Object.keys(context) : null,
-					itemName: item?.name
-				}, true, false);
 				this._onAttackRoll(a, b);
 				// --- END - HOOKMANAGER CALLBACK ---
 			}
@@ -2152,19 +2057,11 @@ class CombatStats {
         
         const rollDamageHookId = HookManager.registerHook({
 			name: 'dnd5e.rollDamage',
-			description: 'Combat Stats: Monitor damage rolls for statistics tracking',
+			description: 'Combat Stats: Forward damage to GM for non-GM clients (narrowed scope - damage tracking handled by createChatMessage)',
 			context: 'stats-combat-damage-rolls',
 			priority: 3,
 			callback: (a, b) => {
 				// --- BEGIN - HOOKMANAGER CALLBACK ---
-				const { rolls, context, item } = this._normalizeRollHookArgs(a, b);
-				postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Roll detected:', {
-					aType: a?.constructor?.name,
-					bType: b?.constructor?.name,
-					rolls: rolls?.map(r => r?.total),
-					contextKeys: context ? Object.keys(context) : null,
-					itemName: item?.name
-				}, true, false);
 				this._onDamageRoll(a, b);
 				// --- END - HOOKMANAGER CALLBACK ---
 			}

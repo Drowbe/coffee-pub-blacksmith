@@ -17,7 +17,7 @@ The stats system splits responsibilities across multiple scopes:
 - **Round scope (`CombatStats.currentStats`)**: ephemeral data for the active round, stored in memory and mirrored to the combat flag. It resets when a new round begins.
 - **Combat scope (`CombatStats.combatStats`)**: aggregate-only data for the active combat. Totals live in `combatStats.totals` (damage, healing, attack counts) alongside per-participant summaries and top moment highlights. Raw event arrays are discarded when the summary is generated.
 - **Lifetime scope (`CPBPlayerStats` on actor flags)**: permanent per-actor records covering attacks, healing, and turn metrics. Only GMs modify this data.
-- **Session scope (`CPBPlayerStats._sessionStats`)**: GM-only in-memory Map keyed by actor ID to hold transient session information (pending attacks, current combat turns). Reset on world reload.
+- **Session scope (`CPBPlayerStats._sessionStats`)**: GM-only in-memory Map keyed by actor ID to hold transient session information (combat tracking, current combat turns). Reset on world reload.
 - **Bounded arrays**: `_boundedPush` applies limits (default 1000 entries) to round and actor logs. The persisted combat history stored in the `combatHistory` world setting keeps only the newest twenty summaries.
 
 ---
@@ -37,7 +37,7 @@ The stats system splits responsibilities across multiple scopes:
 
 - `getStats(actorId: string) -> Promise<object | null>` returns the full stats structure stored on the actor flag, initializing missing data when necessary.
 - `getLifetimeStats(actorId: string) -> Promise<object | null>` extracts only the `stats.lifetime` segment.
-- `getSessionStats(actorId: string) -> object` returns the GM-only in-memory session record (combats array, turns, pending attacks).
+- `getSessionStats(actorId: string) -> object` returns the GM-only in-memory session record (combats array, combat tracking, current combat state).
 - `getStatCategory(actorId: string, category: string) -> Promise<object | null>` resolves an individual lifetime category such as `attacks`, `healing`, or `turnStats`.
 
 Lifetime data persists on the actor flag, while session data remains transient in `_sessionStats`. External consumers should treat returned objects as read-only unless coordinating changes with the Blacksmith maintainers.
@@ -231,7 +231,7 @@ console.log('Current combat totals', CombatStatsClass.combatStats?.totals);
 - Guard checks (`game.combats.has(combat.id)`) prevent operations on deleted combats.
 - `_boundedPush` limits hit, miss, and turn arrays to safeguard against unbounded growth.
 - The `combatHistory` world setting stores only the newest twenty combat summaries; modules needing long-term archives should persist their own copies.
-- `CPBPlayerStats.pendingAttacks` uses a Map keyed by random IDs to correlate attack and damage rolls. Entries are intentionally short-lived, and lifetime counters update when `blacksmith.combatSummaryReady` fires.
+- Attack/damage correlation is now handled via chat message resolution (`createChatMessage` hook) using stable keying (attacker actor, item UUID, activity UUID, sorted target UUIDs). Lifetime counters update when `blacksmith.combatSummaryReady` fires.
 
 ---
 

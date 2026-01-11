@@ -15,7 +15,6 @@ const CPB_STATS_DEFAULTS = {
     session: {
         combats: [],
         currentCombat: null,
-        pendingAttacks: new Map(), // Store attack rolls until damage confirms hit
         combatTracking: {
             // Track what we've added during current combat to avoid double counting at combat end
             hitsAdded: 0,
@@ -1020,22 +1019,6 @@ class CPBPlayerStats {
                     this._updateSessionStats(actor.id, sessionStats);
                 }
             }
-
-            // Store attack info in session for when damage is rolled
-            const sessionStats = this._getSessionStats(actor.id);
-            const attackId = foundry.utils.randomID();
-            
-            sessionStats.pendingAttacks.set(attackId, {
-                attackRoll: rollObj.total,
-                isCritical,
-                isFumble,
-                weaponName: item.name,
-                timestamp: Date.now(),
-                targetActor: game.user.targets.first()?.actor,
-                sceneName: game.scenes.current?.name || 'Unknown Scene'
-            });
-
-            this._updateSessionStats(actor.id, sessionStats);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Error processing attack roll:`, error, false, false);
         }
@@ -1072,191 +1055,8 @@ class CPBPlayerStats {
         return { rolls, context, item };
     }
 
-    // Damage roll handler
-    static async _onDamageRoll(a, b) {
-        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
-
-        try {
-            // Normalize hook arguments to extract item and rolls
-            const { rolls, context, item } = this._normalizeRollHookArgs(a, b);
-
-            if (!item || !item.id) {
-                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Skipping damage roll (no item)', {
-                    aType: a?.constructor?.name,
-                    bType: b?.constructor?.name,
-                    contextKeys: context ? Object.keys(context) : null
-                }, true, false);
-                return;
-            }
-
-            const actor = item.parent;
-            if (!actor || !actor.hasPlayerOwner) {
-                return; // Skip non-player actors
-            }
-
-            // Filter valid rolls (must have total property)
-            const validRolls = (rolls || []).filter(r => r && typeof r.total === "number");
-            if (!validRolls.length) {
-                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Skipping damage roll (no valid rolls)', {
-                    item: item.name,
-                    rollsInfo: (rolls || []).map(r => ({ t: r?.total, c: r?.constructor?.name }))
-                }, true, false);
-                return;
-            }
-
-            // Sum all rolls if multiple damage lines
-            const rollTotal = validRolls.reduce((sum, r) => sum + r.total, 0);
-            if (!rollTotal || rollTotal <= 0) {
-                return; // Skip if no damage rolled
-            }
-
-            // Determine if healing - check multiple sources
-            const itemNameLower = (item.name || "").toLowerCase();
-            const actionType = (item.system?.actionType ?? "").toString().toLowerCase();
-            
-            // Check activities system (dnd5e v5.2.4) for healing activities
-            const hasHealingActivity = item.system?.activities && Object.values(item.system.activities).some(activity => {
-                const activityType = (activity.type || "").toLowerCase();
-                return activityType === "heal" || activity.healing || activity.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
-            });
-            
-            // Check damage parts for healing type
-            const hasHealingDamage = item.system?.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
-            
-            // Check item name for healing keywords
-            const nameIndicatesHealing = itemNameLower.includes("heal") || itemNameLower.includes("cure") || itemNameLower.includes("restore");
-            
-            const isHealing =
-                actionType === "heal" || actionType === "healing" ||
-                hasHealingActivity ||
-                hasHealingDamage ||
-                nameIndicatesHealing;
-
-            // Get current stats
-            const stats = await this.getPlayerStats(actor.id);
-            if (!stats) {
-                postConsoleAndNotification(MODULE.NAME, 'Player Stats - No stats found for actor', { actorId: actor.id }, true, false);
-                return;
-            }
-
-            const updates = { lifetime: {} };
-            const sessionStats = this._getSessionStats(actor.id);
-
-            if (isHealing) {
-                updates.lifetime.healing = updates.lifetime.healing || {};
-                updates.lifetime.healing.total = (stats.lifetime.healing.total || 0) + rollTotal;
-            } else {
-                // Find the matching attack roll
-                let attackInfo = null;
-                for (const [id, attack] of sessionStats.pendingAttacks) {
-                    if (Date.now() - attack.timestamp < 10000) { // Within last 10 seconds
-                        attackInfo = attack;
-                        sessionStats.pendingAttacks.delete(id);
-                        break;
-                    }
-                }
-
-                // Get fresh stats to ensure we have latest crit/fumble counts (in case attack roll updated them)
-                const freshStats = await this.getPlayerStats(actor.id);
-                const currentAttacks = (freshStats || stats).lifetime?.attacks || {};
-                const clonedAttacks = foundry.utils.deepClone(currentAttacks);
-                
-                // Track hit in real-time (if damage is rolled, it's a hit)
-                clonedAttacks.totalHits = (currentAttacks.totalHits || 0) + 1;
-                clonedAttacks.totalDamage = (currentAttacks.totalDamage || 0) + rollTotal;
-                
-                // Ensure crit/fumble counts are preserved (they may have been updated by attack roll handler)
-                // Since we cloned from currentAttacks, they should already be there, but explicitly ensure they exist
-                clonedAttacks.criticals = currentAttacks.criticals !== undefined ? currentAttacks.criticals : 0;
-                clonedAttacks.fumbles = currentAttacks.fumbles !== undefined ? currentAttacks.fumbles : 0;
-                
-                // Track that we added a hit during this combat (to avoid double counting at combat end)
-                if (!sessionStats.combatTracking) {
-                    sessionStats.combatTracking = { hitsAdded: 0, critsAdded: 0, fumblesAdded: 0 };
-                }
-                sessionStats.combatTracking.hitsAdded = (sessionStats.combatTracking.hitsAdded || 0) + 1;
-
-                // Track damage by weapon - ensure object exists
-                const weaponName = item.name || 'Unknown Weapon';
-                if (!clonedAttacks.damageByWeapon) {
-                    clonedAttacks.damageByWeapon = {};
-                }
-                clonedAttacks.damageByWeapon[weaponName] = (clonedAttacks.damageByWeapon[weaponName] || 0) + rollTotal;
-
-                // Track damage by type - handle multiple damage parts
-                if (!clonedAttacks.damageByType) {
-                    clonedAttacks.damageByType = {};
-                }
-                // Sum damage by type across all damage parts
-                const damageParts = item.system.damage?.parts || [];
-                if (damageParts.length > 0) {
-                    for (const part of damageParts) {
-                        const damageType = part?.[1] || 'unspecified';
-                        // Distribute damage proportionally if multiple types, or use first type
-                        const typeDamage = damageParts.length === 1 ? rollTotal : Math.round(rollTotal / damageParts.length);
-                        clonedAttacks.damageByType[damageType] = (clonedAttacks.damageByType[damageType] || 0) + typeDamage;
-                    }
-                } else {
-                    // No damage parts defined, use unspecified
-                    clonedAttacks.damageByType['unspecified'] = (clonedAttacks.damageByType['unspecified'] || 0) + rollTotal;
-                }
-
-                // Update biggest/weakest hits
-                const hitDetails = {
-                    amount: rollTotal,
-                    date: new Date().toISOString(),
-                    weaponName: item.name,
-                    attackRoll: attackInfo?.attackRoll,
-                    targetName: attackInfo?.targetActor?.name || 'Unknown Target',
-                    targetAC: attackInfo?.targetActor?.system?.attributes?.ac?.value,
-                    sceneName: attackInfo?.sceneName || game.scenes.current?.name,
-                    isCritical: attackInfo?.isCritical || false
-                };
-
-                // Update biggest hit - check if current biggest exists and compare amounts
-                const currentBiggest = clonedAttacks.biggest;
-                const currentBiggestAmount = currentBiggest?.amount || 0;
-                if (rollTotal > currentBiggestAmount) {
-                    clonedAttacks.biggest = foundry.utils.deepClone(hitDetails);
-                }
-                
-                // Update weakest hit - check if current weakest exists and compare amounts
-                const currentWeakest = clonedAttacks.weakest;
-                if (!currentWeakest || !currentWeakest.amount || (rollTotal > 0 && (rollTotal < currentWeakest.amount || currentWeakest.amount === 0))) {
-                    clonedAttacks.weakest = foundry.utils.deepClone(hitDetails);
-                }
-
-                // Add to hit log
-                if (!clonedAttacks.hitLog) {
-                    clonedAttacks.hitLog = [];
-                }
-                const hitLog = [...clonedAttacks.hitLog];
-                hitLog.unshift(hitDetails);
-                clonedAttacks.hitLog = hitLog.slice(0, 20); // Keep last 20 hits
-
-                // Assign the fully updated object to updates
-                updates.lifetime.attacks = clonedAttacks;
-            }
-
-            await this.updatePlayerStats(actor.id, updates);
-
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Error processing damage roll:`, error, false, false);
-            // Try to extract info for debugging (in case error happened before normalization)
-            let itemInfo = 'Unknown';
-            let rollsInfo = [];
-            try {
-                const normalized = this._normalizeRollHookArgs(a, b);
-                itemInfo = normalized.item?.name || 'Unknown';
-                rollsInfo = normalized.rolls?.map(r => r?.total) || [];
-            } catch (e) {
-                // Ignore normalization errors in catch block
-            }
-            postConsoleAndNotification(MODULE.NAME, 'Hook Args:', { aType: a?.constructor?.name, bType: b?.constructor?.name }, true, false);
-            postConsoleAndNotification(MODULE.NAME, 'Item:', itemInfo, true, false);
-            postConsoleAndNotification(MODULE.NAME, 'Rolls:', rollsInfo, true, false);
-        }
-    }
+    // _onDamageRoll method removed - damage tracking now handled by createChatMessage hook
+    // This method is no longer called (hook registration is no-op)
 
     static async _onActorUpdate(actor, changes, options, userId) {
         if (!game.user.isGM) return;
