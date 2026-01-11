@@ -8,6 +8,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, trimString, isPlayerCharacter } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { resolveAttackMessage, resolveDamageMessage, makeKey } from './utility-message-resolution.js';
 
 // Default stats structure
 const CPB_STATS_DEFAULTS = {
@@ -83,6 +84,10 @@ const CPB_STATS_DEFAULTS = {
 };
 
 class CPBPlayerStats {
+    // Attack resolution cache for correlating damage to attacks (separate from CombatStats)
+    static _attackCache = new Map(); // key -> { attackEvent, processedDamageMsgIds: Set<string>, ts }
+    static ATTACK_TTL_MS = 15_000; // 15 second TTL for attack cache entries
+    
     // Bounded push helper to prevent unbounded array growth
     static _boundedPush(array, item, maxSize = 1000) {
         array.push(item);
@@ -137,9 +142,19 @@ class CPBPlayerStats {
         });
 
         // Register hooks for data collection
+        // Chat message hook - source of truth for attack/damage resolution
+        const createChatMessageHookId = HookManager.registerHook({
+			name: 'createChatMessage',
+			description: 'Player Stats: Resolve attacks and correlate damage from chat messages',
+			context: 'stats-player-chat-messages',
+			priority: 3,
+			callback: this._onChatMessage.bind(this)
+		});
+        
+        // Roll hooks - narrowed to only crit/fumble detection (min risk approach)
         const rollAttackHookId = HookManager.registerHook({
 			name: 'dnd5e.rollAttack',
-			description: 'Player Stats: Track attack rolls for player characters',
+			description: 'Player Stats: Track crits/fumbles for player characters (narrowed scope)',
 			context: 'stats-player-attack-rolls',
 			priority: 3,
 			callback: this._onAttackRoll.bind(this)
@@ -147,10 +162,13 @@ class CPBPlayerStats {
 		
 		const rollDamageHookId = HookManager.registerHook({
 			name: 'dnd5e.rollDamage',
-			description: 'Player Stats: Track damage rolls for player characters',
+			description: 'Player Stats: Not used for damage tracking (handled by createChatMessage)',
 			context: 'stats-player-damage-rolls',
 			priority: 3,
-			callback: this._onDamageRoll.bind(this)
+			callback: () => {
+				// No-op - damage tracking moved to createChatMessage
+				// This hook kept for now to avoid breaking existing registration
+			}
 		});
         
         // Migrate updateCombat hook to HookManager for centralized control
@@ -571,7 +589,373 @@ class CPBPlayerStats {
         return timeString;
     }
 
-    // Attack roll handler
+    /**
+     * Prune expired entries from the attack cache.
+     * Should be called periodically (e.g., on each createChatMessage).
+     */
+    static _pruneAttackCache() {
+        const now = Date.now();
+        for (const [key, entry] of CPBPlayerStats._attackCache.entries()) {
+            if (now - entry.ts > CPBPlayerStats.ATTACK_TTL_MS) {
+                CPBPlayerStats._attackCache.delete(key);
+            }
+        }
+    }
+
+    /**
+     * Chat message handler - source of truth for attack/damage resolution.
+     * Resolves attack messages to compute hit/miss and correlates damage messages to attacks.
+     * @param {ChatMessage} message - The chat message
+     */
+    static async _onChatMessage(message) {
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
+
+        // Prune expired cache entries
+        CPBPlayerStats._pruneAttackCache();
+
+        // 1) Try to resolve as attack message
+        const attackEvent = resolveAttackMessage(message);
+        if (attackEvent) {
+            // Only process player character attacks
+            const attackerActor = game.actors.get(attackEvent.attackerActorId);
+            if (!attackerActor || !attackerActor.hasPlayerOwner) {
+                return; // Skip non-player actors
+            }
+
+            // Cache the attack resolution for damage correlation
+            CPBPlayerStats._attackCache.set(attackEvent.key, {
+                attackEvent: attackEvent,
+                processedDamageMsgIds: new Set(),
+                ts: attackEvent.ts
+            });
+
+            // Process the resolved attack event (records hits/misses)
+            await CPBPlayerStats._processResolvedAttack(attackEvent);
+
+            // Debug log for correlation verification
+            postConsoleAndNotification(MODULE.NAME, 'Player Stats - Attack Resolved:', {
+                key: attackEvent.key,
+                attacker: attackerActor.name,
+                attackTotal: attackEvent.attackTotal,
+                hitTargetsCount: attackEvent.hitTargets.length,
+                missTargetsCount: attackEvent.missTargets.length
+            }, true, false);
+
+            return;
+        }
+
+        // 2) Try to resolve as damage message
+        const damageEvent = resolveDamageMessage(message);
+        if (!damageEvent) return;
+
+        // Only process player character damage
+        const attackerActor = game.actors.get(damageEvent.attackerActorId);
+        if (!attackerActor || !attackerActor.hasPlayerOwner) {
+            return; // Skip non-player actors
+        }
+
+        // Correlate damage to cached attack
+        const cacheEntry = CPBPlayerStats._attackCache.get(damageEvent.key);
+        
+        if (!cacheEntry) {
+            // Couldn't correlate - treat as unlinked damage (skip for now)
+            postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unlinked Damage (skipped):', {
+                key: damageEvent.key,
+                damageTotal: damageEvent.damageTotal,
+                attacker: attackerActor.name
+            }, true, false);
+            return;
+        }
+
+        // Check dedupe - skip if we've already processed this damage message
+        if (cacheEntry.processedDamageMsgIds.has(damageEvent.damageMsgId)) {
+            return; // Already processed
+        }
+
+        // Mark this damage message as processed
+        cacheEntry.processedDamageMsgIds.add(damageEvent.damageMsgId);
+
+        // Classify damage based on attack outcome
+        const hadHit = cacheEntry.attackEvent.hitTargets.length > 0;
+        const isWeaponAttack = cacheEntry.attackEvent.itemType === "weapon";
+
+        // Classification rules (same as CombatStats)
+        if (isWeaponAttack && hadHit) {
+            damageEvent.bucket = "onHit";
+        } else if (isWeaponAttack && !hadHit) {
+            damageEvent.bucket = "other";
+        } else if (hadHit) {
+            damageEvent.bucket = "onHit";
+        } else {
+            damageEvent.bucket = "other";
+        }
+
+        damageEvent.attackMsgId = cacheEntry.attackEvent.attackMsgId;
+
+        // Debug log for correlation verification
+        postConsoleAndNotification(MODULE.NAME, 'Player Stats - Damage Resolved:', {
+            key: damageEvent.key,
+            attacker: attackerActor.name,
+            bucket: damageEvent.bucket,
+            damageTotal: damageEvent.damageTotal,
+            attackMsgId: damageEvent.attackMsgId
+        }, true, false);
+
+        // Process the classified damage event
+        await CPBPlayerStats._processResolvedDamage(damageEvent);
+    }
+
+    /**
+     * Process a resolved attack event for player stats.
+     * Records hits and misses per target.
+     * @param {AttackResolvedEvent} attackEvent - Normalized attack event
+     */
+    static async _processResolvedAttack(attackEvent) {
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
+
+        const attackerActor = game.actors.get(attackEvent.attackerActorId);
+        if (!attackerActor || !attackerActor.hasPlayerOwner) {
+            return;
+        }
+
+        // Process hits and misses from resolved attack
+        // Note: We track hits/misses here for real-time updates
+        // Combat summary will reconcile at end of combat
+        const stats = await this.getPlayerStats(attackerActor.id);
+        if (!stats) return;
+
+        const sessionStats = this._getSessionStats(attackerActor.id);
+        if (!sessionStats.combatTracking) {
+            sessionStats.combatTracking = { hitsAdded: 0, critsAdded: 0, fumblesAdded: 0 };
+        }
+
+        // Track hits/misses for this combat (will be reconciled at combat end)
+        const hitsThisCombat = attackEvent.hitTargets.length;
+        const missesThisCombat = attackEvent.missTargets.length;
+
+        // Update lifetime stats in real-time (will be reconciled later)
+        const lifetimeAttacks = stats.lifetime?.attacks || {};
+        const updates = {
+            lifetime: {
+                attacks: {
+                    totalHits: (lifetimeAttacks.totalHits || 0) + hitsThisCombat,
+                    totalMisses: (lifetimeAttacks.totalMisses || 0) + missesThisCombat
+                }
+            }
+        };
+
+        // Update hit/miss ratio
+        const newTotalHits = updates.lifetime.attacks.totalHits;
+        const newTotalMisses = updates.lifetime.attacks.totalMisses;
+        const totalAttacks = newTotalHits + newTotalMisses;
+        updates.lifetime.attacks.hitMissRatio = totalAttacks > 0 ? ((newTotalHits / totalAttacks) * 100) : 0;
+
+        // Log collected data in human-readable format before writing to actor
+        const attackLogMessage = [
+            `=== PLAYER STATS - ATTACK DATA (${attackerActor.name}) ===`,
+            `Attack Roll: ${attackEvent.attackTotal ?? 'N/A'}`,
+            `Hit Targets: ${hitsThisCombat} (UUIDs: ${attackEvent.hitTargets.join(', ') || 'none'})`,
+            `Miss Targets: ${missesThisCombat} (UUIDs: ${attackEvent.missTargets.join(', ') || 'none'})`,
+            `Unknown Targets: ${attackEvent.unknownTargets.length} (UUIDs: ${attackEvent.unknownTargets.join(', ') || 'none'})`,
+            `--- Lifetime Totals (Before Update) ---`,
+            `  Total Hits: ${lifetimeAttacks.totalHits || 0} → ${updates.lifetime.attacks.totalHits} (+${hitsThisCombat})`,
+            `  Total Misses: ${lifetimeAttacks.totalMisses || 0} → ${updates.lifetime.attacks.totalMisses} (+${missesThisCombat})`,
+            `  Hit/Miss Ratio: ${lifetimeAttacks.hitMissRatio?.toFixed(2) || 0}% → ${updates.lifetime.attacks.hitMissRatio.toFixed(2)}%`,
+            `========================================`
+        ].join('\n');
+        postConsoleAndNotification(MODULE.NAME, 'Player Stats - Attack Data', attackLogMessage, false, false);
+
+        await this.updatePlayerStats(attackerActor.id, updates);
+
+        // Track what we added during this combat (for reconciliation)
+        sessionStats.combatTracking.hitsAdded = (sessionStats.combatTracking.hitsAdded || 0) + hitsThisCombat;
+        this._updateSessionStats(attackerActor.id, sessionStats);
+    }
+
+    /**
+     * Process a resolved damage event for player stats.
+     * Only tracks damage if classified as "onHit" (hit-based damage).
+     * @param {DamageResolvedEvent} damageEvent - Normalized damage event
+     */
+    static async _processResolvedDamage(damageEvent) {
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
+
+        // Only track damage if it's classified as "onHit" (hit-based damage)
+        // "other" bucket includes midi miss damage, AOE effects, etc. - track separately if desired
+        if (damageEvent.bucket !== "onHit") {
+            // For now, skip non-hit damage to maintain current behavior
+            // In the future, we could track "damage.rolled.other" separately
+            return;
+        }
+
+        const attackerActor = game.actors.get(damageEvent.attackerActorId);
+        if (!attackerActor || !attackerActor.hasPlayerOwner) {
+            return;
+        }
+
+        // Get item to process damage
+        let item = null;
+        if (damageEvent.itemUuid) {
+            try {
+                item = await fromUuid(damageEvent.itemUuid);
+            } catch (e) {
+                // Skip if can't resolve
+            }
+        }
+
+        if (!item) {
+            postConsoleAndNotification(MODULE.NAME, 'Player Stats - Damage Resolved: Item not found', {
+                key: damageEvent.key,
+                itemUuid: damageEvent.itemUuid
+            }, true, false);
+            return;
+        }
+
+        // Get fresh stats to ensure we have latest values
+        const stats = await this.getPlayerStats(attackerActor.id);
+        if (!stats) return;
+
+        const lifetimeAttacks = stats.lifetime?.attacks || {};
+        const sessionStats = this._getSessionStats(attackerActor.id);
+        
+        // Initialize combat tracking if needed
+        if (!sessionStats.combatTracking) {
+            sessionStats.combatTracking = { hitsAdded: 0, critsAdded: 0, fumblesAdded: 0 };
+        }
+
+        // Deep clone to preserve nested objects
+        const clonedAttacks = foundry.utils.deepClone(lifetimeAttacks);
+        
+        // Track damage in real-time (only for onHit damage)
+        clonedAttacks.totalDamage = (lifetimeAttacks.totalDamage || 0) + damageEvent.damageTotal;
+        
+        // Track damage by weapon
+        const weaponName = item.name || 'Unknown Weapon';
+        if (!clonedAttacks.damageByWeapon) {
+            clonedAttacks.damageByWeapon = {};
+        }
+        clonedAttacks.damageByWeapon[weaponName] = (clonedAttacks.damageByWeapon[weaponName] || 0) + damageEvent.damageTotal;
+
+        // Track damage by type
+        if (!clonedAttacks.damageByType) {
+            clonedAttacks.damageByType = {};
+        }
+        const damageParts = item.system.damage?.parts || [];
+        if (damageParts.length > 0) {
+            for (const part of damageParts) {
+                const damageType = part?.[1] || 'unspecified';
+                const typeDamage = damageParts.length === 1 ? damageEvent.damageTotal : Math.round(damageEvent.damageTotal / damageParts.length);
+                clonedAttacks.damageByType[damageType] = (clonedAttacks.damageByType[damageType] || 0) + typeDamage;
+            }
+        } else {
+            clonedAttacks.damageByType['unspecified'] = (clonedAttacks.damageByType['unspecified'] || 0) + damageEvent.damageTotal;
+        }
+
+        // Get cached attack event for hit details
+        const cacheEntry = CPBPlayerStats._attackCache.get(damageEvent.key);
+        const attackEvent = cacheEntry?.attackEvent;
+
+        // Try to get target name from first hit target (simplified - don't block on async resolution)
+        let targetName = 'Unknown Target';
+        let targetAC = null;
+        if (attackEvent?.hitTargets?.length > 0) {
+            try {
+                const firstTargetUuid = attackEvent.hitTargets[0];
+                const targetDoc = await fromUuid(firstTargetUuid);
+                const targetActorDoc = targetDoc?.actor ?? targetDoc;
+                if (targetActorDoc?.name) {
+                    targetName = targetActorDoc.name;
+                }
+                // Get AC from the target outcome
+                const targetOutcome = attackEvent.targets.find(t => t.uuid === firstTargetUuid);
+                targetAC = targetOutcome?.ac ?? null;
+            } catch (e) {
+                // Skip if can't resolve - not critical
+            }
+        }
+
+        // Check if this was a critical (from roll hook state - will be set by _onAttackRoll for nat 20)
+        // Note: We track crits from roll hooks, so check if there's a recent crit for this actor
+        // For now, we'll set isCritical based on whether the attack had a nat 20
+        // This is a simplification - ideally we'd track this in the cache entry
+        const isCritical = false; // Will be improved when we better integrate crit tracking
+
+        // Update biggest/weakest hits
+        const hitDetails = {
+            amount: damageEvent.damageTotal,
+            date: new Date(damageEvent.ts).toISOString(),
+            weaponName: item.name,
+            attackRoll: attackEvent?.attackTotal ?? null,
+            targetName: targetName,
+            targetAC: targetAC,
+            sceneName: game.scenes.current?.name || 'Unknown Scene',
+            isCritical: isCritical
+        };
+
+        // Update biggest hit
+        const currentBiggest = clonedAttacks.biggest;
+        const currentBiggestAmount = currentBiggest?.amount || 0;
+        if (damageEvent.damageTotal > currentBiggestAmount) {
+            clonedAttacks.biggest = foundry.utils.deepClone(hitDetails);
+        }
+
+        // Update weakest hit (non-zero, positive damage only)
+        const currentWeakest = clonedAttacks.weakest;
+        if (damageEvent.damageTotal > 0 && (!currentWeakest || !currentWeakest.amount || (damageEvent.damageTotal < currentWeakest.amount))) {
+            clonedAttacks.weakest = foundry.utils.deepClone(hitDetails);
+        }
+
+        // Add to hit log (bounded to last 20)
+        if (!clonedAttacks.hitLog) {
+            clonedAttacks.hitLog = [];
+        }
+        clonedAttacks.hitLog.push(hitDetails);
+        clonedAttacks.hitLog = clonedAttacks.hitLog.slice(-20); // Keep last 20
+
+        // Update stats
+        const updates = {
+            lifetime: {
+                attacks: clonedAttacks
+            }
+        };
+
+        // Log collected data in human-readable format before writing to actor
+        const damageByWeaponLog = Object.entries(clonedAttacks.damageByWeapon || {}).map(([weapon, dmg]) => {
+            const oldDmg = lifetimeAttacks.damageByWeapon?.[weapon] || 0;
+            const change = dmg - oldDmg;
+            return `  ${weapon}: ${oldDmg} → ${dmg} ${change > 0 ? `(+${change})` : ''}`;
+        }).join('\n');
+        const damageByTypeLog = Object.entries(clonedAttacks.damageByType || {}).map(([type, dmg]) => {
+            const oldDmg = lifetimeAttacks.damageByType?.[type] || 0;
+            const change = dmg - oldDmg;
+            return `  ${type}: ${oldDmg} → ${dmg} ${change > 0 ? `(+${change})` : ''}`;
+        }).join('\n');
+        const damageLogMessage = [
+            `=== PLAYER STATS - DAMAGE DATA (${attackerActor.name}) ===`,
+            `Weapon: ${weaponName}`,
+            `Damage Total: ${damageEvent.damageTotal}`,
+            `Damage Bucket: ${damageEvent.bucket}`,
+            `Attack Roll: ${attackEvent?.attackTotal ?? 'N/A'}`,
+            `Target: ${targetName} (AC: ${targetAC ?? 'N/A'})`,
+            `Is Critical: ${isCritical}`,
+            `Scene: ${game.scenes.current?.name || 'Unknown'}`,
+            `--- Lifetime Totals (Before Update) ---`,
+            `  Total Damage: ${lifetimeAttacks.totalDamage || 0} → ${clonedAttacks.totalDamage} (+${damageEvent.damageTotal})`,
+            `  Biggest Hit: ${currentBiggest?.amount || 0} → ${clonedAttacks.biggest.amount} ${damageEvent.damageTotal > currentBiggestAmount ? '(UPDATED)' : '(unchanged)'}`,
+            `  Weakest Hit: ${currentWeakest?.amount || 0} → ${clonedAttacks.weakest.amount || 0}`,
+            `  Hit Log Entries: ${(lifetimeAttacks.hitLog?.length || 0)} → ${clonedAttacks.hitLog.length}`,
+            `--- Damage By Weapon ---`,
+            damageByWeaponLog || '  (none)',
+            `--- Damage By Type ---`,
+            damageByTypeLog || '  (none)',
+            `========================================`
+        ].join('\n');
+        postConsoleAndNotification(MODULE.NAME, 'Player Stats - Damage Data', damageLogMessage, false, false);
+
+        await this.updatePlayerStats(attackerActor.id, updates);
+    }
+
+    // Attack roll handler - NARROWED to only crit/fumble detection
     static async _onAttackRoll(a, b) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 

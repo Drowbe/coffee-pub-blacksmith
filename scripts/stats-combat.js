@@ -12,6 +12,7 @@ import { PlanningTimer } from './timer-planning.js';
 import { CombatTimer } from './timer-combat.js';
 import { HookManager } from './manager-hooks.js';
 import { SocketManager } from './manager-sockets.js';
+import { resolveAttackMessage, resolveDamageMessage, makeKey } from './utility-message-resolution.js';
 //import { MVPDescriptionGenerator } from './mvp-description-generator.js';
 import { MVPTemplates } from '../resources/assets.js';
 
@@ -28,6 +29,10 @@ class CombatStats {
     static combatStats = null;
     static _lastRollWasCritical = false;
     static _processedCombats = new Set();
+    
+    // Attack resolution cache for correlating damage to attacks
+    static _attackCache = new Map(); // key -> { attackEvent, processedDamageMsgIds: Set<string>, ts }
+    static ATTACK_TTL_MS = 15_000; // 15 second TTL for attack cache entries
     
     static DEFAULTS = {
         roundStats: {
@@ -1324,6 +1329,233 @@ class CombatStats {
         return { isCritical, isFumble };
     }
 
+    /**
+     * Process a resolved attack event from chat message resolution.
+     * This is the new source of truth for attack hit/miss determination.
+     * @param {AttackResolvedEvent} attackEvent - Normalized attack event from resolveAttackMessage()
+     */
+    static async _processResolvedAttack(attackEvent) {
+        if (!game.user.isGM) return;
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.combat?.started) return;
+
+        // Get attacker actor
+        const attackerActor = game.actors.get(attackEvent.attackerActorId);
+        if (!attackerActor) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Resolved: Attacker not found', {
+                attackerActorId: attackEvent.attackerActorId
+            }, true, false);
+            return;
+        }
+
+        const { current: attackerStats, combat: attackerCombatStats } = this._ensureParticipantStats(attackerActor, {
+            includeCurrent: true,
+            includeCombat: true
+        });
+
+        if (!this.currentStats.hits) this.currentStats.hits = [];
+        if (!this.currentStats.misses) this.currentStats.misses = [];
+        this._ensureCombatTotals();
+        const combatTotals = this.combatStats.totals;
+
+        // Track attempt (one per attack, not per target)
+        attackerStats.combat.attacks.attempts++;
+        attackerCombatStats.combat.attacks.attempts++;
+        combatTotals.attacks.attempts++;
+
+        // Process each target outcome
+        let totalHits = 0;
+        let totalMisses = 0;
+        let totalUnknowns = 0;
+
+        // Get item name once for all targets
+        let itemName = 'Unknown';
+        if (attackEvent.itemUuid) {
+            try {
+                const item = await fromUuid(attackEvent.itemUuid);
+                itemName = item?.name ?? 'Unknown';
+            } catch (e) {
+                // Fallback - try to get from game.items if it's a world item
+                const itemId = attackEvent.itemUuid.split('.').pop();
+                const worldItem = game.items.get(itemId);
+                if (worldItem) itemName = worldItem.name;
+            }
+        }
+
+        // Process all targets (batching async operations for efficiency)
+        const targetInfoPromises = attackEvent.targets.map(async (target) => {
+            // Try to get target actor name (optional - for hitInfo)
+            let targetActorName = 'Unknown Target';
+            if (target.uuid) {
+                try {
+                    const targetDoc = await fromUuid(target.uuid);
+                    const targetActorDoc = targetDoc?.actor ?? targetDoc;
+                    if (targetActorDoc?.name) {
+                        targetActorName = targetActorDoc.name;
+                    } else if (targetDoc?.name) {
+                        targetActorName = targetDoc.name;
+                    }
+                } catch (e) {
+                    // Skip if can't resolve - not critical
+                }
+            }
+
+            return {
+                target,
+                targetActorName
+            };
+        });
+
+        const targetInfos = await Promise.all(targetInfoPromises);
+
+        for (const { target, targetActorName } of targetInfos) {
+            const hitInfo = {
+                attackRoll: attackEvent.attackTotal,
+                isCritical: false, // Will be set by crit/fumble from roll hooks if needed
+                isFumble: false,
+                isHit: target.hit === true,
+                timestamp: attackEvent.ts,
+                actorId: attackerActor.id,
+                actorName: attackerActor.name,
+                itemName: itemName,
+                targetName: targetActorName,
+                targetAC: target.ac
+            };
+
+            if (target.hit === true) {
+                // Hit
+                this._boundedPush(this.currentStats.hits, hitInfo);
+                if (Array.isArray(attackerStats.hits)) this._boundedPush(attackerStats.hits, hitInfo);
+
+                attackerStats.combat.attacks.hits++;
+                attackerCombatStats.combat.attacks.hits++;
+                combatTotals.attacks.hits++;
+                totalHits++;
+            } else if (target.hit === false) {
+                // Miss
+                this._boundedPush(this.currentStats.misses, hitInfo);
+                if (Array.isArray(attackerStats.misses)) this._boundedPush(attackerStats.misses, hitInfo);
+
+                attackerStats.combat.attacks.misses++;
+                attackerCombatStats.combat.attacks.misses++;
+                combatTotals.attacks.misses++;
+                totalMisses++;
+            } else {
+                // Unknown (AC not available)
+                totalUnknowns++;
+            }
+        }
+
+        // Update party stats if player character
+        if (this._isPlayerCharacter(attackerActor)) {
+            this.currentStats.partyStats.hits += totalHits;
+            this.currentStats.partyStats.misses += totalMisses;
+        }
+    }
+
+    /**
+     * Process a resolved damage event with classification (onHit vs other).
+     * This replaces the assumption that "damage roll = hit".
+     * @param {DamageResolvedEvent} damageEvent - Normalized damage event from resolveDamageMessage()
+     */
+    static async _processResolvedDamage(damageEvent) {
+        if (!game.user.isGM) return;
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.combat?.started) return;
+
+        // Get item from the cached attack event or resolve from damage event's key parts
+        let item = null;
+        
+        // Try to get item from cached attack event first (most reliable)
+        const cacheEntry = CombatStats._attackCache.get(damageEvent.key);
+        if (cacheEntry?.attackEvent?.itemUuid) {
+            try {
+                item = await fromUuid(cacheEntry.attackEvent.itemUuid);
+            } catch (e) {
+                // Fall through to try damage event's itemUuid
+            }
+        }
+        
+        // Fallback: try to get item from damage event's itemUuid
+        if (!item && damageEvent.itemUuid) {
+            try {
+                item = await fromUuid(damageEvent.itemUuid);
+            } catch (e) {
+                // Skip if can't resolve
+            }
+        }
+        
+        if (!item) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Resolved: Item not found', {
+                key: damageEvent.key,
+                itemUuid: damageEvent.itemUuid || cacheEntry?.attackEvent?.itemUuid
+            }, true, false);
+            return;
+        }
+
+        const actor = item.parent;
+        if (!actor) return;
+
+        // Only track damage if it's classified as "onHit" (hit-based damage)
+        // "other" bucket includes midi miss damage, AOE effects, etc. - track separately if desired
+        if (damageEvent.bucket !== "onHit") {
+            // For now, we skip non-hit damage to maintain current behavior
+            // In the future, we could track "damage.rolled.other" separately
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage skipped (not onHit):', {
+                bucket: damageEvent.bucket,
+                damageTotal: damageEvent.damageTotal
+            }, true, false);
+            return;
+        }
+
+        // Get targets from the correlated attack event (cacheEntry already fetched above)
+        const hitTargetUuids = cacheEntry?.attackEvent?.hitTargets ?? [];
+
+        // Resolve target actors
+        const targetActorIds = [];
+        const targetTokenUuids = [];
+        
+        for (const targetUuid of hitTargetUuids) {
+            try {
+                const targetDoc = await fromUuid(targetUuid);
+                const targetActorDoc = targetDoc?.actor ?? targetDoc;
+                if (targetActorDoc?.id) {
+                    targetActorIds.push(targetActorDoc.id);
+                }
+                if (targetDoc?.documentName === "Token" && targetDoc.uuid) {
+                    targetTokenUuids.push(targetDoc.uuid);
+                }
+            } catch (e) {
+                // Skip if can't resolve
+            }
+        }
+
+        // Determine if healing (same logic as before)
+        const itemNameLower = (item.name || "").toLowerCase();
+        const actionType = (item.system?.actionType ?? "").toString().toLowerCase();
+        const hasHealingActivity = item.system?.activities && Object.values(item.system.activities).some(activity => {
+            const activityType = (activity.type || "").toLowerCase();
+            return activityType === "heal" || activity.healing || activity.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
+        });
+        const hasHealingDamage = item.system?.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
+        const nameIndicatesHealing = itemNameLower.includes("heal") || itemNameLower.includes("cure") || itemNameLower.includes("restore");
+        const isHealing = actionType === "heal" || actionType === "healing" || hasHealingActivity || hasHealingDamage || nameIndicatesHealing;
+
+        // Check if this was a critical (from cached attack or roll hook state)
+        const isCritical = cacheEntry?.attackEvent?.targets?.some(t => t.hit === true) ? this._lastRollWasCritical : false;
+
+        // Process damage using existing method (but only for onHit damage)
+        await this._processDamageOrHealing({
+            item,
+            amount: damageEvent.damageTotal,
+            isHealing,
+            isCritical,
+            targetActorIds,
+            targetTokenUuids,
+            timestamp: damageEvent.ts
+        });
+    }
+
     static async _processAttackRoll({ item, rollTotal, d20Result = null, isCritical = null, isFumble = null, targetAC = null, timestamp = null }) {
         if (!game.user.isGM) return;
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
@@ -1796,6 +2028,19 @@ class CombatStats {
         });
     }
 
+    /**
+     * Prune expired entries from the attack cache.
+     * Should be called periodically (e.g., on each createChatMessage).
+     */
+    static _pruneAttackCache() {
+        const now = Date.now();
+        for (const [key, entry] of CombatStats._attackCache.entries()) {
+            if (now - entry.ts > CombatStats.ATTACK_TTL_MS) {
+                CombatStats._attackCache.delete(key);
+            }
+        }
+    }
+
     // Register all necessary hooks
     static _registerHooks() {
         // Register combat creation hook to send combat start card
@@ -1925,21 +2170,114 @@ class CombatStats {
 			}
 		});
 
-        // Additional debug hooks
+        // Chat message hook - source of truth for attack/damage resolution
         const createChatMessageHookId = HookManager.registerHook({
 			name: 'createChatMessage',
-			description: 'Combat Stats: Monitor chat messages for roll statistics',
+			description: 'Combat Stats: Resolve attacks and correlate damage from chat messages',
 			context: 'stats-combat-chat-messages',
 			priority: 3,
 			callback: (message) => {
 				// --- BEGIN - HOOKMANAGER CALLBACK ---
-				if (message.isRoll) {
-					postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Roll Chat Message:', {
-						flavor: message.flavor,
-						type: message.type,
-						roll: message.roll
+				if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+				if (!game.combat?.started) return;
+
+				// Prune expired cache entries
+				CombatStats._pruneAttackCache();
+
+				// 1) Try to resolve as attack message
+				const attackEvent = resolveAttackMessage(message);
+				if (attackEvent) {
+					// Cache the attack resolution for damage correlation
+					CombatStats._attackCache.set(attackEvent.key, {
+						attackEvent: attackEvent,
+						processedDamageMsgIds: new Set(),
+						ts: attackEvent.ts
+					});
+
+					// Process the attack event (records swings, hits, misses per target)
+					CombatStats._processResolvedAttack(attackEvent);
+
+					// Debug log for correlation verification
+					postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Resolved:', {
+						key: attackEvent.key,
+						attackTotal: attackEvent.attackTotal,
+						hitTargetsCount: attackEvent.hitTargets.length,
+						missTargetsCount: attackEvent.missTargets.length,
+						unknownTargetsCount: attackEvent.unknownTargets.length
 					}, true, false);
+
+					return;
 				}
+
+				// 2) Try to resolve as damage message
+				const damageEvent = resolveDamageMessage(message);
+				if (!damageEvent) return;
+
+				// Correlate damage to cached attack
+				const cacheEntry = CombatStats._attackCache.get(damageEvent.key);
+				
+				if (!cacheEntry) {
+					// Couldn't correlate - treat as unlinked damage
+					damageEvent.bucket = "unlinked";
+					damageEvent.attackMsgId = null;
+					
+					postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Unlinked Damage:', {
+						key: damageEvent.key,
+						damageTotal: damageEvent.damageTotal
+					}, true, false);
+					
+					CombatStats._processResolvedDamage(damageEvent);
+					return;
+				}
+
+				// Check dedupe - skip if we've already processed this damage message
+				if (cacheEntry.processedDamageMsgIds.has(damageEvent.damageMsgId)) {
+					postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping duplicate damage message:', {
+						damageMsgId: damageEvent.damageMsgId,
+						key: damageEvent.key
+					}, true, false);
+					return;
+				}
+
+				// Mark this damage message as processed
+				cacheEntry.processedDamageMsgIds.add(damageEvent.damageMsgId);
+
+				// Classify damage based on attack outcome
+				const hadHit = cacheEntry.attackEvent.hitTargets.length > 0;
+				const isWeaponAttack = cacheEntry.attackEvent.itemType === "weapon";
+
+				// Classification rules:
+				// - Weapon attack with hit: "onHit"
+				// - Weapon attack without hit: "other" (covers midi miss damage)
+				// - Non-weapon with hit: "onHit"
+				// - Non-weapon without hit: "other" (covers AOE/effects)
+				if (isWeaponAttack && hadHit) {
+					damageEvent.bucket = "onHit";
+				} else if (isWeaponAttack && !hadHit) {
+					damageEvent.bucket = "other";
+				} else if (hadHit) {
+					damageEvent.bucket = "onHit";
+				} else {
+					damageEvent.bucket = "other";
+				}
+
+				damageEvent.attackMsgId = cacheEntry.attackEvent.attackMsgId;
+
+				// Debug log for correlation verification
+				postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Resolved:', {
+					key: damageEvent.key,
+					bucket: damageEvent.bucket,
+					damageTotal: damageEvent.damageTotal,
+					attackMsgId: damageEvent.attackMsgId
+				}, true, false);
+
+				// Process the classified damage event
+				CombatStats._processResolvedDamage(damageEvent);
+
+				// Optional: Delete cache entry after first damage to prevent double counting
+				// If you need multi-damage support (extra dice, etc.), keep it and dedupe by msgId (already done above)
+				// For now, keeping it allows multiple damage messages per attack (e.g., bonus dice)
+				
 				// --- END - HOOKMANAGER CALLBACK ---
 			}
 		});
