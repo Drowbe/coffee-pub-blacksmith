@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.0.11]
+
+### Added
+- **Healing Tracking System**: Implemented comprehensive healing tracking for player lifetime stats
+  - **HP Delta Tracking (Lane 1)**: Source of truth for applied healing - tracks actual HP changes via `preUpdateActor`/`updateActor` hooks
+  - **Chat Message Attribution**: Detects healing spells in chat messages using reliable `activity.type === "heal"` signal for caster attribution
+  - **Healing Received**: Tracks `lifetime.healing.received` on target actors when HP increases
+  - **Healing Given**: Tracks `lifetime.healing.given` and `lifetime.healing.total` on caster actors
+  - **Revive Tracking**: Increments `lifetime.revives.received` when HP goes from 0 to >0
+  - **By-Target Tracking**: Maintains `lifetime.healing.byTarget` object with healing amounts per target
+  - **Most/Least Healed**: Tracks `mostHealed` and `leastHealed` based on byTarget totals
+  - **Human-Readable Logging**: Added detailed console logging for healing data collection (using `postConsoleAndNotification` with "Player Stats | " prefix)
+
+### Changed
+- **Healing Detection Logic**: Simplified healing detection to use only reliable `flags.dnd5e.activity.type === "heal"` signal
+  - Removed unreliable item name heuristics (checking for "heal", "cure", "restore" in names)
+  - Removed `actionType` checks (undefined/unreliable in dnd5e 5.2.4)
+  - Per developer review: In dnd5e 5.2.4, healing rolls appear as `roll.type === "damage"` but `activity.type === "heal"` is the reliable indicator
+- **API Documentation Console Commands**: Updated all Player Namespace console examples to use `BlacksmithUtils.postConsoleAndNotification` instead of `console.log`
+  - All examples now include "Player Stats | " prefix for easy console filtering
+  - Consistent with internal codebase logging patterns
+  - Properly respects debug flags and notification settings
+
+### Fixed
+- **Healing Message Detection**: Fixed healing messages being incorrectly skipped as "Unlinked Damage"
+  - Healing spells now properly detected using `activity.type === "heal"` before skipping unlinked damage
+  - Caster's lifetime stats now update when healing spells are cast
+  - Target's lifetime stats update via HP delta tracking when healing is applied
+- **Healing Stats Not Updating**: Fixed issue where caster's `healing.total` and `healing.given` were not being updated
+  - Added `_recordRolledHealing` method to track healing given for casters
+  - Healing detection now properly processes healing messages instead of skipping them
+
 ## [13.0.10]
 
 ### Added

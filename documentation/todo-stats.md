@@ -32,15 +32,25 @@ This document tracks the current state of statistics tracking, what's actively b
 - ✅ `hitLog` - Array of last 20 hits (amount, date, weaponName, attackRoll, targetName, targetAC, sceneName, isCritical)
   - **Location**: `scripts/stats-player.js:907-912` in `_processResolvedDamage`
 
-#### Healing
-- ❌ **NOT TRACKED** - Fields exist in defaults but no tracking code implemented
-  - `total` - Total healing given
-  - `received` - Total healing received
-  - `byTarget` - Object keyed by target with healing amounts
-  - `mostHealed` - Highest healing given (single instance)
-  - `leastHealed` - Lowest healing given (single instance)
-  - **Note**: `_onActorUpdate` is just a stub (line 1063: "We'll implement this to track HP changes and unconsciousness")
-  - **CombatStats** tracks healing in `_processDamageOrHealing` but this doesn't update player lifetime stats
+#### Healing (Tracked via HP Delta and Chat Messages)
+- ✅ `received` - Total healing received (via HP delta tracking)
+  - **Location**: `scripts/stats-player.js:1257-1311` in `_recordAppliedHealing`
+  - **Method**: HP delta detection in `_onActorUpdate` (preUpdateActor/updateActor hooks)
+  - **Source of Truth**: HP delta tracking (Lane 1) - tracks actual applied healing
+- ✅ `total` - Total healing given (via chat message detection)
+  - **Location**: `scripts/stats-player.js:1302-1378` in `_recordRolledHealing`
+  - **Method**: Chat message detection using `activity.type === "heal"` signal
+  - **Note**: Informational/attribution only - HP delta is source of truth for applied healing
+- ✅ `given` - Healing given (attributed to caster)
+  - **Location**: `scripts/stats-player.js:1342` in `_recordRolledHealing`
+- ✅ `byTarget` - Object keyed by target with healing amounts
+  - **Location**: `scripts/stats-player.js:1346-1349` in `_recordRolledHealing`
+- ✅ `mostHealed` - Highest healing given (single instance)
+  - **Location**: `scripts/stats-player.js:1359` in `_recordRolledHealing`
+- ✅ `leastHealed` - Lowest healing given (single instance)
+  - **Location**: `scripts/stats-player.js:1360` in `_recordRolledHealing`
+- ✅ `revives.received` - Times revived (HP went from 0 to >0)
+  - **Location**: `scripts/stats-player.js:1289-1290` in `_recordAppliedHealing`
 
 #### Turn Stats (Tracked in `_processTurnEnd`)
 - ✅ `average` - Average turn duration
@@ -89,16 +99,22 @@ This document tracks the current state of statistics tracking, what's actively b
 
 ## Missing Tracking
 
-### ❌ Healing Tracking
-**Status**: Fields exist in defaults but **NOT TRACKED**
+### ✅ Healing Tracking
+**Status**: **FULLY IMPLEMENTED** (Phase 1 - Lane 1 HP Delta + Chat Message Attribution)
 
-- `lifetime.healing.total` - Total healing given
-- `lifetime.healing.received` - Total healing received
-- `lifetime.healing.byTarget` - Object keyed by target with healing amounts
-- `lifetime.healing.mostHealed` - Highest healing given (single instance)
-- `lifetime.healing.leastHealed` - Lowest healing given (single instance)
+- ✅ `lifetime.healing.total` - Total healing given (tracked from chat messages)
+- ✅ `lifetime.healing.received` - Total healing received (tracked via HP delta)
+- ✅ `lifetime.healing.given` - Healing given (attributed to caster)
+- ✅ `lifetime.healing.byTarget` - Object keyed by target with healing amounts
+- ✅ `lifetime.healing.mostHealed` - Highest healing given (single instance)
+- ✅ `lifetime.healing.leastHealed` - Lowest healing given (single instance)
+- ✅ `lifetime.revives.received` - Times revived (HP went from 0 to >0)
 
-**Note**: `CombatStats._processDamageOrHealing` tracks healing for combat stats, but this doesn't update player lifetime stats. We would need to detect healing in the damage resolution pipeline and update lifetime stats.
+**Implementation Details**:
+- **Lane 1 (HP Delta)**: Source of truth for applied healing - tracks actual HP changes via `preUpdateActor`/`updateActor` hooks
+- **Chat Messages**: Informational/attribution only - detects healing using `activity.type === "heal"` signal (dnd5e 5.2.4)
+- **Detection**: Uses only reliable `flags.dnd5e.activity.type === "heal"` signal (no item name heuristics)
+- **Architecture**: Chat messages tell us intent, HP delta tells us truth (per developer review guidance)
 
 ### ❌ Movement Tracking
 **Status**: Field exists in defaults but **NOT TRACKED**
@@ -170,10 +186,12 @@ The `hitLog` array should contain:
 ## Remaining Work
 
 ### High Priority
-- [ ] **Implement healing tracking** - Add lifetime healing stats tracking (total, received, byTarget, mostHealed, leastHealed)
-  - Need to detect healing in damage resolution pipeline
-  - Could leverage `CombatStats._processDamageOrHealing` detection logic
-  - Need to update `_processResolvedDamage` or add healing-specific handler
+- [x] **Implement healing tracking** - ✅ COMPLETED - Added lifetime healing stats tracking (total, received, given, byTarget, mostHealed, leastHealed, revives)
+  - ✅ Implemented HP delta tracking (Lane 1) for applied healing - source of truth
+  - ✅ Implemented chat message detection for healing attribution using `activity.type === "heal"` signal
+  - ✅ Simplified detection to only use reliable `activity.type === "heal"` (removed item name heuristics)
+  - ✅ Added `_recordAppliedHealing` for target's received healing and revives
+  - ✅ Added `_recordRolledHealing` for caster's given healing and totals
 - [ ] Fix `isCritical` in hitLog - Currently always `false` (line 880), needs proper crit tracking
   - Should use cache entry or track crits per attack event
 
@@ -185,6 +203,7 @@ The `hitLog` array should contain:
 ### Low Priority
 - [ ] Implement movement tracking (requires token movement hooks)
 - [ ] Implement unconscious tracking (requires HP change detection in `_onActorUpdate`)
+  - Note: HP delta tracking is now implemented, so unconscious detection could be added to `_onActorUpdate`
 - [ ] Consider adding more granular tracking (damage by target, hits by weapon, etc.)
 - [ ] Performance optimization for large hitLog arrays
 
@@ -212,4 +231,4 @@ The `hitLog` array should contain:
 ---
 
 ## Last Updated
-2026-01-11 - After message resolution system refactoring and comprehensive tracking audit
+2026-01-12 - After healing tracking implementation (HP delta + chat message attribution)
