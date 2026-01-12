@@ -57,9 +57,15 @@ const CPB_STATS_DEFAULTS = {
         healing: {
             total: 0,
             received: 0,
+            given: 0,
+            unattributedGiven: 0,
             byTarget: {},
             mostHealed: null,
             leastHealed: null
+        },
+        revives: {
+            received: 0,
+            given: 0
         },
         turnStats: {
             average: 0,
@@ -86,6 +92,9 @@ class CPBPlayerStats {
     // Attack resolution cache for correlating damage to attacks (separate from CombatStats)
     static _attackCache = new Map(); // key -> { attackEvent, processedDamageMsgIds: Set<string>, ts }
     static ATTACK_TTL_MS = 15_000; // 15 second TTL for attack cache entries
+    
+    // HP cache for preUpdateActor hook (keyed by actor.uuid)
+    static _preHpCache = new Map(); // key: actor.uuid, value: { hp: number, temp: number, max: number }
     
     // Bounded push helper to prevent unbounded array growth
     static _boundedPush(array, item, maxSize = 1000) {
@@ -180,6 +189,15 @@ class CPBPlayerStats {
         });
         // Log hook registration
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "stats-player", true, false);
+        
+        // Register preUpdateActor hook for HP tracking
+        const preUpdateActorHookId = HookManager.registerHook({
+            name: 'preUpdateActor',
+            description: 'Player Stats: Capture HP before update for healing tracking',
+            context: 'stats-player-hp-tracking',
+            priority: 3,
+            callback: this._onPreActorUpdate.bind(this)
+        });
         
         const updateActorHookId = HookManager.registerHook({
 			name: 'updateActor',
@@ -612,6 +630,28 @@ class CPBPlayerStats {
         // Prune expired cache entries
         CPBPlayerStats._pruneAttackCache();
 
+        // DIAGNOSTIC: Log all chat messages to see what healing messages look like
+        const dnd = message.flags?.dnd5e;
+        const rollType = dnd?.roll?.type ?? 'none';
+        const itemName = dnd?.item?.name ?? 'none';
+        const itemType = dnd?.item?.type ?? 'none';
+        
+        // Log messages that might be healing (healing type, or items with healing in name)
+        if (rollType.toLowerCase() === 'healing' || 
+            rollType.toLowerCase() === 'damage' ||
+            itemName.toLowerCase().includes('heal') ||
+            itemName.toLowerCase().includes('cure')) {
+            postConsoleAndNotification(MODULE.NAME, 'Player Stats - Chat Message (potential healing):', {
+                messageId: message.id,
+                rollType: rollType,
+                itemName: itemName,
+                itemType: itemType,
+                speaker: message.speaker?.actor ?? 'none',
+                targets: dnd?.targets?.map(t => t.uuid) ?? [],
+                flags: message.flags?.dnd5e
+            }, true, false);
+        }
+
         // 1) Try to resolve as attack message
         const attackEvent = resolveAttackMessage(message);
         if (attackEvent) {
@@ -657,7 +697,37 @@ class CPBPlayerStats {
         const cacheEntry = CPBPlayerStats._attackCache.get(damageEvent.key);
         
         if (!cacheEntry) {
-            // Couldn't correlate - treat as unlinked damage (skip for now)
+            // Couldn't correlate - check if this is healing before skipping
+            // Healing spells don't have attacks, so they'll be unlinked
+            let item = null;
+            if (damageEvent.itemUuid) {
+                try {
+                    item = await fromUuid(damageEvent.itemUuid);
+                } catch (e) {
+                    // Skip if can't resolve
+                }
+            }
+            
+            if (item) {
+                // Use same healing detection logic as CombatStats
+                const itemNameLower = (item.name || "").toLowerCase();
+                const actionType = (item.system?.actionType ?? "").toString().toLowerCase();
+                const hasHealingActivity = item.system?.activities && Object.values(item.system.activities).some(activity => {
+                    const activityType = (activity.type || "").toLowerCase();
+                    return activityType === "heal" || activity.healing || activity.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
+                });
+                const hasHealingDamage = item.system?.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
+                const nameIndicatesHealing = itemNameLower.includes("heal") || itemNameLower.includes("cure") || itemNameLower.includes("restore");
+                const isHealing = actionType === "heal" || actionType === "healing" || hasHealingActivity || hasHealingDamage || nameIndicatesHealing;
+                
+                if (isHealing) {
+                    // This is healing - track it for the caster's lifetime stats
+                    await CPBPlayerStats._recordRolledHealing(attackerActor, damageEvent, item);
+                    return; // Tracked - HP delta will also track applied healing on target
+                }
+            }
+            
+            // Not healing and couldn't correlate - treat as unlinked damage (skip for now)
             postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unlinked Damage (skipped):', {
                 key: damageEvent.key,
                 damageTotal: damageEvent.damageTotal,
@@ -1058,9 +1128,253 @@ class CPBPlayerStats {
     // _onDamageRoll method removed - damage tracking now handled by createChatMessage hook
     // This method is no longer called (hook registration is no-op)
 
+    /**
+     * Capture HP state before update for healing/damage tracking.
+     * @param {Actor} actor - The actor being updated
+     * @param {Object} change - The change data
+     * @param {Object} options - Update options
+     * @param {string} userId - User ID performing the update
+     */
+    static _onPreActorUpdate(actor, change, options, userId) {
+        if (!game.user.isGM) return;
+        
+        // Only cache if HP fields are being updated
+        const hpChange = change?.system?.attributes?.hp;
+        if (!hpChange) return;
+        
+        // DIAGNOSTIC: Log all HP-related updates to see what's happening
+        postConsoleAndNotification(MODULE.NAME, 'Player Stats - preUpdateActor (HP change detected):', {
+            actor: actor.name,
+            actorId: actor.id,
+            actorUuid: actor.uuid,
+            hpChange: hpChange,
+            currentHp: actor.system?.attributes?.hp?.value ?? 0,
+            currentTemp: actor.system?.attributes?.hp?.temp ?? 0,
+            currentMax: actor.system?.attributes?.hp?.max ?? 0
+        }, true, false);
+        
+        // Cache current HP state (before update) - use actor.uuid as key
+        const cacheEntry = {
+            hp: actor.system?.attributes?.hp?.value ?? 0,
+            temp: actor.system?.attributes?.hp?.temp ?? 0,
+            max: actor.system?.attributes?.hp?.max ?? 0
+        };
+        
+        CPBPlayerStats._preHpCache.set(actor.uuid, cacheEntry);
+    }
+
+    /**
+     * Track HP changes for applied healing/damage tracking (Lane 1).
+     * Records healing based on HP delta (truth of what was applied).
+     * @param {Actor} actor - The actor being updated
+     * @param {Object} changes - The change data
+     * @param {Object} options - Update options
+     * @param {string} userId - User ID performing the update
+     */
     static async _onActorUpdate(actor, changes, options, userId) {
         if (!game.user.isGM) return;
-        // We'll implement this to track HP changes and unconsciousness
+        if (!game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
+
+        const preHp = CPBPlayerStats._preHpCache.get(actor.uuid);
+        CPBPlayerStats._preHpCache.delete(actor.uuid);
+        if (!preHp) return;
+
+        const newHp = actor.system?.attributes?.hp?.value ?? 0;
+        const newTemp = actor.system?.attributes?.hp?.temp ?? 0;
+
+        const deltaHp = newHp - preHp.hp;
+        const deltaTemp = newTemp - preHp.temp;
+
+        if (deltaHp === 0 && deltaTemp === 0) return;
+
+        const combat = game.combat;
+        if (!combat?.started) {
+            postConsoleAndNotification(MODULE.NAME, 'Player Stats - HP Change (no active combat):', {
+                actor: actor.name,
+                deltaHp: deltaHp,
+                newHp: newHp,
+                oldHp: preHp.hp
+            }, true, false);
+            return;
+        }
+
+        // Check if actor is a combatant (check actorId, c.actor.id, and c.actor.uuid)
+        const isCombatant = combat.combatants.some(c => {
+            if (c.actorId && c.actorId === actor.id) return true;
+            if (c.actor?.id && c.actor.id === actor.id) return true;
+            if (c.actor?.uuid && c.actor.uuid === actor.uuid) return true;
+            return false;
+        });
+        if (!isCombatant) {
+            postConsoleAndNotification(MODULE.NAME, 'Player Stats - HP Change (not a combatant):', {
+                actor: actor.name,
+                deltaHp: deltaHp,
+                newHp: newHp,
+                oldHp: preHp.hp
+            }, true, false);
+            return;
+        }
+
+        // Skip transforms / HP rebases where max changes in the same update
+        const hpChange = changes?.system?.attributes?.hp;
+        const maxChangingInThisUpdate =
+            hpChange && Object.prototype.hasOwnProperty.call(hpChange, "max");
+        if (maxChangingInThisUpdate) {
+            postConsoleAndNotification(MODULE.NAME, 'Player Stats - HP Change (transform detected):', {
+                actor: actor.name,
+                deltaHp: deltaHp,
+                newHp: newHp,
+                oldHp: preHp.hp
+            }, true, false);
+            return;
+        }
+
+        // Track healing (deltaHp > 0) - fire and forget to avoid slowing combat
+        if (deltaHp > 0) {
+            this._recordAppliedHealing(actor, deltaHp, preHp.hp, newHp).catch(error => {
+                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Error recording healing', error, false, false);
+            });
+        }
+
+        // Future: deltaHp < 0 => applied damage tracking
+    }
+    
+    /**
+     * Record applied healing to lifetime stats (Phase 1 - minimal scope).
+     * Always records received healing on target, tracks revives.
+     * @param {Actor} targetActor - The actor receiving healing
+     * @param {number} amount - Amount of healing applied
+     * @param {number} oldHp - HP before healing
+     * @param {number} newHp - HP after healing
+     */
+    static async _recordAppliedHealing(targetActor, amount, oldHp, newHp) {
+        // Use actor.id for getPlayerStats (current codebase pattern)
+        const stats = await this.getPlayerStats(targetActor.id);
+        if (!stats) {
+            postConsoleAndNotification(MODULE.NAME, 'Player Stats - Healing: Stats not initialized', {
+                actor: targetActor.name,
+                actorId: targetActor.id
+            }, true, false);
+            return; // Skip if actor doesn't have stats initialized
+        }
+
+        const lifetimeHealing = stats.lifetime?.healing || {};
+        const lifetimeRevives = stats.lifetime?.revives || { received: 0 };
+
+        const oldReceived = lifetimeHealing.received || 0;
+        const oldRevives = lifetimeRevives.received || 0;
+        const isRevive = oldHp === 0 && newHp > 0;
+
+        // Always record received healing on target
+        const updates = {
+            lifetime: {
+                healing: {
+                    ...lifetimeHealing,
+                    received: oldReceived + amount
+                },
+                revives: {
+                    ...lifetimeRevives
+                }
+            }
+        };
+
+        // Track revives (HP went from 0 to >0)
+        if (isRevive) {
+            updates.lifetime.revives.received = oldRevives + 1;
+        }
+
+        // Log collected data in human-readable format before writing to actor
+        const healingLogMessage = [
+            `=== PLAYER STATS - HEALING DATA (${targetActor.name}) ===`,
+            `Healing Amount: ${amount}`,
+            `HP Change: ${oldHp} → ${newHp}`,
+            `Is Revive: ${isRevive ? 'Yes' : 'No'}`,
+            `Scene: ${game.scenes.current?.name || 'Unknown'}`,
+            `--- Lifetime Totals (Before Update) ---`,
+            `  Total Healing Received: ${oldReceived} → ${oldReceived + amount} (+${amount})`,
+            `  Revives Received: ${oldRevives} → ${oldRevives + (isRevive ? 1 : 0)} ${isRevive ? '(+1)' : '(unchanged)'}`,
+            `========================================`
+        ].join('\n');
+        postConsoleAndNotification(MODULE.NAME, 'Player Stats - Healing Data', healingLogMessage, false, false);
+
+        await this.updatePlayerStats(targetActor.id, updates);
+
+        // TODO: Best-effort healer attribution (non-blocking, Phase 2)
+        // For now, just record received healing
+    }
+
+    /**
+     * Record rolled healing for caster's lifetime stats (from chat message).
+     * Tracks healing given and total for the caster.
+     * @param {Actor} casterActor - The actor casting the healing spell
+     * @param {DamageResolvedEvent} damageEvent - The resolved damage/healing event
+     * @param {Item} item - The item/spell being used
+     */
+    static async _recordRolledHealing(casterActor, damageEvent, item) {
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
+        
+        const stats = await this.getPlayerStats(casterActor.id);
+        if (!stats) return;
+
+        const lifetimeHealing = stats.lifetime?.healing || {};
+        const healingAmount = damageEvent.damageTotal || 0;
+        
+        if (healingAmount <= 0) return;
+
+        // Get target info for byTarget tracking
+        const targetUuids = damageEvent.targetUuids || [];
+        let targetName = 'Unknown Target';
+        if (targetUuids.length > 0) {
+            try {
+                const targetDoc = await fromUuid(targetUuids[0]);
+                const targetActorDoc = targetDoc?.actor ?? targetDoc;
+                if (targetActorDoc?.name) {
+                    targetName = targetActorDoc.name;
+                }
+            } catch (e) {
+                // Skip if can't resolve - not critical
+            }
+        }
+
+        // Update healing stats for caster
+        const updates = {
+            lifetime: {
+                healing: {
+                    ...lifetimeHealing,
+                    total: (lifetimeHealing.total || 0) + healingAmount,
+                    given: (lifetimeHealing.given || 0) + healingAmount,
+                    byTarget: {
+                        ...(lifetimeHealing.byTarget || {}),
+                        [targetName]: ((lifetimeHealing.byTarget || {})[targetName] || 0) + healingAmount
+                    }
+                }
+            }
+        };
+
+        // Update most/least healed
+        const byTarget = updates.lifetime.healing.byTarget;
+        const targetEntries = Object.entries(byTarget);
+        if (targetEntries.length > 0) {
+            const sorted = targetEntries.sort((a, b) => b[1] - a[1]);
+            updates.lifetime.healing.mostHealed = { name: sorted[0][0], amount: sorted[0][1] };
+            updates.lifetime.healing.leastHealed = { name: sorted[sorted.length - 1][0], amount: sorted[sorted.length - 1][1] };
+        }
+
+        // Write updates to actor
+        await this.updatePlayerStats(casterActor.id, updates);
+
+        // Log collected data
+        const healingLogMessage = [
+            `=== PLAYER STATS - HEALING GIVEN (${casterActor.name}) ===`,
+            `Healing Amount: ${healingAmount}`,
+            `Item: ${item.name || 'Unknown'}`,
+            `Target: ${targetName}`,
+            `--- Lifetime Totals (Before Update) ---`,
+            `  Total Healing: ${lifetimeHealing.total || 0} → ${updates.lifetime.healing.total} (+${healingAmount})`,
+            `  Healing Given: ${lifetimeHealing.given || 0} → ${updates.lifetime.healing.given} (+${healingAmount})`,
+            `========================================`
+        ].join('\n');
+        postConsoleAndNotification(MODULE.NAME, 'Player Stats | Healing Given', healingLogMessage, false, false);
     }
 
     /**

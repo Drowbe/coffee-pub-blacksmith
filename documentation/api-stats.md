@@ -51,7 +51,7 @@ Player-facing aggregates such as `totalHits`, `totalMisses`, `criticals`, and `f
 const actor = canvas.tokens.controlled[0]?.actor;
 if (actor) {
     const stats = await BlacksmithStats.player.getStats(actor.id);
-    console.log('Full stats', actor.name, stats);
+    BlacksmithUtils.postConsoleAndNotification('BLACKSMITH', 'Player Stats | Full stats', { actor: actor.name, stats }, false, false);
 }
 ```
 
@@ -60,7 +60,7 @@ if (actor) {
 const actor = canvas.tokens.controlled[0]?.actor;
 if (actor) {
     const lifetime = await BlacksmithStats.player.getLifetimeStats(actor.id);
-    console.log('Lifetime attacks', lifetime?.attacks);
+    BlacksmithUtils.postConsoleAndNotification('BLACKSMITH', 'Player Stats | Lifetime attacks', lifetime?.attacks, false, false);
 }
 ```
 
@@ -69,7 +69,7 @@ if (actor) {
 const actor = canvas.tokens.controlled[0]?.actor;
 if (actor) {
     const session = BlacksmithStats.player.getSessionStats(actor.id);
-    console.log('Session data', session);
+    BlacksmithUtils.postConsoleAndNotification('BLACKSMITH', 'Player Stats | Session data', session, false, false);
 }
 ```
 
@@ -78,6 +78,8 @@ if (actor) {
 const actor = canvas.tokens.controlled[0]?.actor;
 if (actor) {
     const session = BlacksmithStats.player.getSessionStats(actor.id);
+    BlacksmithUtils.postConsoleAndNotification('BLACKSMITH', 'Player Stats | Recent combats', session?.combats ?? [], false, false);
+    // Also display as table for easier reading
     console.table(session?.combats ?? []);
 }
 ```
@@ -87,7 +89,7 @@ if (actor) {
 const actor = canvas.tokens.controlled[0]?.actor;
 if (actor) {
     const healing = await BlacksmithStats.player.getStatCategory(actor.id, 'healing');
-    console.log('Lifetime healing', healing);
+    BlacksmithUtils.postConsoleAndNotification('BLACKSMITH', 'Player Stats | Lifetime healing', healing, false, false);
 }
 ```
 
@@ -95,7 +97,7 @@ if (actor) {
 // Inspect lifetime MVP performance for the actor
 if (actor) {
     const stats = await BlacksmithStats.player.getStats(actor.id);
-    console.log('Lifetime MVP totals', stats?.lifetime?.mvp);
+    BlacksmithUtils.postConsoleAndNotification('BLACKSMITH', 'Player Stats | Lifetime MVP totals', stats?.lifetime?.mvp, false, false);
 }
 ```
 
@@ -265,7 +267,7 @@ Hooks.once('ready', async () => {
     // Pull lifetime actor stats (requires GM)
     const actorId = 'ABC123';
     const lifetime = await stats.player.getLifetimeStats(actorId);
-    console.log('Lifetime attack totals:', lifetime?.attacks?.totalHits);
+    BlacksmithUtils.postConsoleAndNotification('BLACKSMITH', 'Player Stats | Lifetime attack totals', lifetime?.attacks?.totalHits, false, false);
 
     // Inspect recent combat summary
     const recentSummary = stats.combat.getCombatSummary();
