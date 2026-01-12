@@ -82,7 +82,10 @@ const CPB_STATS_DEFAULTS = {
             lastScore: 0,
             lastRank: null
         },
-        unconscious: 0,
+        unconscious: {
+            count: 0,
+            log: [] // Store last X unconscious events (date, sceneName, attackerName, weaponName, damageAmount)
+        },
         movement: 0,
         lastUpdated: null
     }
@@ -871,7 +874,7 @@ class CPBPlayerStats {
 
         // Get fresh stats to ensure we have latest values
         const stats = await this.getPlayerStats(attackerActor.id);
-        if (!stats) return;
+            if (!stats) return;
 
         const lifetimeAttacks = stats.lifetime?.attacks || {};
         const sessionStats = this._getSessionStats(attackerActor.id);
@@ -886,15 +889,15 @@ class CPBPlayerStats {
         
         // Track damage in real-time (only for onHit damage)
         clonedAttacks.totalDamage = (lifetimeAttacks.totalDamage || 0) + damageEvent.damageTotal;
-        
-        // Track damage by weapon
-        const weaponName = item.name || 'Unknown Weapon';
+
+                // Track damage by weapon
+                const weaponName = item.name || 'Unknown Weapon';
         if (!clonedAttacks.damageByWeapon) {
             clonedAttacks.damageByWeapon = {};
         }
         clonedAttacks.damageByWeapon[weaponName] = (clonedAttacks.damageByWeapon[weaponName] || 0) + damageEvent.damageTotal;
 
-        // Track damage by type
+                // Track damage by type
         if (!clonedAttacks.damageByType) {
             clonedAttacks.damageByType = {};
         }
@@ -938,11 +941,11 @@ class CPBPlayerStats {
         // This is a simplification - ideally we'd track this in the cache entry
         const isCritical = false; // Will be improved when we better integrate crit tracking
 
-        // Update biggest/weakest hits
-        const hitDetails = {
+                // Update biggest/weakest hits
+                const hitDetails = {
             amount: damageEvent.damageTotal,
             date: new Date(damageEvent.ts).toISOString(),
-            weaponName: item.name,
+                    weaponName: item.name,
             attackRoll: attackEvent?.attackTotal ?? null,
             targetName: targetName,
             targetAC: targetAC,
@@ -1066,8 +1069,8 @@ class CPBPlayerStats {
                             }
                         }
                     };
-                    await this.updatePlayerStats(actor.id, updates);
-                    
+            await this.updatePlayerStats(actor.id, updates);
+
                     // Track that we added crit/fumble during this combat (to avoid double counting at combat end)
                     if (isCritical) {
                         sessionStats.combatTracking.critsAdded = (sessionStats.combatTracking.critsAdded || 0) + 1;
@@ -1225,7 +1228,12 @@ class CPBPlayerStats {
             });
         }
 
-        // Future: deltaHp < 0 => applied damage tracking
+        // Track unconscious (HP went from >0 to 0 or below)
+        if (preHp.hp > 0 && newHp <= 0) {
+            this._recordUnconscious(actor, preHp.hp, newHp).catch(error => {
+                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Error recording unconscious', error, false, false);
+            });
+        }
     }
     
     /**
@@ -1368,6 +1376,108 @@ class CPBPlayerStats {
             `========================================`
         ].join('\n');
         postConsoleAndNotification(MODULE.NAME, 'Player Stats | Healing Given', healingLogMessage, false, false);
+    }
+
+    /**
+     * Record unconscious event when actor HP drops to 0 or below.
+     * Tracks count and maintains log of unconscious events with date, scene, and optional attacker info.
+     * @param {Actor} targetActor - The actor that went unconscious
+     * @param {number} oldHp - HP before the change
+     * @param {number} newHp - HP after the change (should be <= 0)
+     */
+    static async _recordUnconscious(targetActor, oldHp, newHp) {
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
+        
+        const stats = await this.getPlayerStats(targetActor.id);
+        if (!stats) return;
+
+        const lifetimeUnconscious = stats.lifetime?.unconscious || { count: 0, log: [] };
+        
+        // Try to find recent damage event that caused this (best-effort attribution)
+        let attackerName = null;
+        let weaponName = null;
+        let damageAmount = null;
+        
+        // Look for recent damage events targeting this actor (within last 5 seconds)
+        const now = Date.now();
+        const recentWindow = 5_000; // 5 seconds
+        const targetActorUuid = targetActor.uuid;
+        
+        for (const [key, cacheEntry] of CPBPlayerStats._attackCache.entries()) {
+            const attackEvent = cacheEntry.attackEvent;
+            if (!attackEvent) continue;
+            
+            // Check if this attack targeted our actor and was recent
+            const targetedThisActor = attackEvent.hitTargets.includes(targetActorUuid) || 
+                                     attackEvent.missTargets.includes(targetActorUuid) ||
+                                     attackEvent.unknownTargets.includes(targetActorUuid);
+            
+            if (targetedThisActor && (now - attackEvent.ts) < recentWindow) {
+                // Found a recent attack - try to get attacker and item info
+                try {
+                    const attackerActor = game.actors.get(attackEvent.attackerActorId);
+                    if (attackerActor) {
+                        attackerName = attackerActor.name;
+                    }
+                    
+                    if (attackEvent.itemUuid) {
+                        const item = await fromUuid(attackEvent.itemUuid);
+                        if (item) {
+                            weaponName = item.name;
+                        }
+                    }
+                } catch (e) {
+                    // Skip if can't resolve - not critical
+                }
+                
+                // Estimate damage from HP drop (best effort)
+                damageAmount = oldHp - newHp;
+                break; // Use first matching recent attack
+            }
+        }
+
+        // Create unconscious event entry
+        const sceneName = game.scenes?.active?.name || 'Unknown Scene';
+        const unconsciousEvent = {
+            date: new Date().toISOString(),
+            sceneName: sceneName,
+            oldHp: oldHp,
+            newHp: newHp,
+            attackerName: attackerName,
+            weaponName: weaponName,
+            damageAmount: damageAmount
+        };
+
+        // Update unconscious stats
+        const updates = {
+            lifetime: {
+                unconscious: {
+                    count: (lifetimeUnconscious.count || 0) + 1,
+                    log: this._boundedPush(
+                        [...(lifetimeUnconscious.log || [])],
+                        unconsciousEvent,
+                        100 // Keep last 100 unconscious events
+                    )
+                }
+            }
+        };
+
+        // Write updates to actor
+        await this.updatePlayerStats(targetActor.id, updates);
+
+        // Log collected data
+        const unconsciousLogMessage = [
+            `=== PLAYER STATS - UNCONSCIOUS EVENT (${targetActor.name}) ===`,
+            `HP Change: ${oldHp} → ${newHp}`,
+            `Scene: ${sceneName}`,
+            attackerName ? `Attacker: ${attackerName}` : 'Attacker: Unknown',
+            weaponName ? `Weapon: ${weaponName}` : 'Weapon: Unknown',
+            damageAmount ? `Damage: ${damageAmount}` : '',
+            `--- Lifetime Totals (Before Update) ---`,
+            `  Total Unconscious Events: ${lifetimeUnconscious.count || 0} → ${updates.lifetime.unconscious.count} (+1)`,
+            `========================================`
+        ].filter(Boolean).join('\n');
+        postConsoleAndNotification(MODULE.NAME, 'Player Stats | Unconscious Event', unconsciousLogMessage, false, false);
     }
 
     /**

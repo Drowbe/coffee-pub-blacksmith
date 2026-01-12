@@ -79,8 +79,11 @@ This document tracks the current state of statistics tracking, what's actively b
   - **Location**: `scripts/stats-player.js:119` in `_updateLifetimeMvp` helper
 
 #### Other Lifetime
-- ❌ `unconscious` - Times knocked unconscious
-  - **NOT TRACKED** - Only defined in defaults, `_onActorUpdate` is just a stub
+- ✅ `unconscious.count` - Times knocked unconscious
+  - **Location**: `scripts/stats-player.js:1455` in `_recordUnconscious`
+- ✅ `unconscious.log` - Array of unconscious events (last 100)
+  - **Location**: `scripts/stats-player.js:1456-1460` in `_recordUnconscious`
+  - Contains: date, sceneName, oldHp, newHp, attackerName, weaponName, damageAmount
 - ❌ `movement` - Total movement distance
   - **NOT TRACKED** - Only defined in defaults, no tracking code
 - ✅ `lastUpdated` - Last update timestamp
@@ -123,12 +126,27 @@ This document tracks the current state of statistics tracking, what's actively b
 
 **Note**: No tracking code exists for movement. Would need to hook into token movement events.
 
-### ❌ Unconscious Tracking
-**Status**: Field exists in defaults but **NOT TRACKED**
+### ✅ Unconscious Tracking
+**Status**: **FULLY IMPLEMENTED**
 
-- `lifetime.unconscious` - Times knocked unconscious
+- ✅ `lifetime.unconscious.count` - Times knocked unconscious
+  - **Location**: `scripts/stats-player.js:1388-1481` in `_recordUnconscious`
+  - **Method**: HP delta detection in `_onActorUpdate` (preUpdateActor/updateActor hooks)
+  - **Trigger**: HP drops from >0 to 0 or below
+- ✅ `lifetime.unconscious.log` - Array of unconscious events (last 100)
+  - Each event contains:
+    - `date` - ISO timestamp of when unconscious occurred
+    - `sceneName` - Scene where it happened
+    - `oldHp` - HP before going unconscious
+    - `newHp` - HP after (should be <= 0)
+    - `attackerName` - Name of attacker (best-effort attribution from recent attack cache)
+    - `weaponName` - Weapon/spell name (best-effort attribution from recent attack cache)
+    - `damageAmount` - Estimated damage amount (oldHp - newHp)
 
-**Note**: `_onActorUpdate` is just a stub (line 1063). Would need to detect when actor HP drops to 0 or below.
+**Implementation Details**:
+- **Detection**: Uses HP delta tracking in `_onActorUpdate` - detects when `preHp.hp > 0 && newHp <= 0`
+- **Attribution**: Best-effort correlation with recent attack events (within 5 seconds) from attack cache
+- **Logging**: Human-readable console logging using `postConsoleAndNotification` with "Player Stats | " prefix
 
 ---
 
@@ -202,8 +220,12 @@ The `hitLog` array should contain:
 
 ### Low Priority
 - [ ] Implement movement tracking (requires token movement hooks)
-- [ ] Implement unconscious tracking (requires HP change detection in `_onActorUpdate`)
-  - Note: HP delta tracking is now implemented, so unconscious detection could be added to `_onActorUpdate`
+- [x] **Implement unconscious tracking** - ✅ COMPLETED - Added unconscious event tracking with count and log
+  - ✅ Implemented HP delta detection for unconscious events (HP drops from >0 to 0 or below)
+  - ✅ Added `_recordUnconscious` method to track count and maintain log of events
+  - ✅ Best-effort attribution of attacker and weapon from recent attack cache (5 second window)
+  - ✅ Stores date, scene, HP change, attacker name, weapon name, and damage amount
+  - ✅ Human-readable console logging using `postConsoleAndNotification` with "Player Stats | " prefix
 - [ ] Consider adding more granular tracking (damage by target, hits by weapon, etc.)
 - [ ] Performance optimization for large hitLog arrays
 
