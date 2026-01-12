@@ -630,25 +630,17 @@ class CPBPlayerStats {
         // Prune expired cache entries
         CPBPlayerStats._pruneAttackCache();
 
-        // DIAGNOSTIC: Log all chat messages to see what healing messages look like
+        // DIAGNOSTIC: Log healing messages for debugging (using reliable activity.type signal)
         const dnd = message.flags?.dnd5e;
-        const rollType = dnd?.roll?.type ?? 'none';
-        const itemName = dnd?.item?.name ?? 'none';
-        const itemType = dnd?.item?.type ?? 'none';
-        
-        // Log messages that might be healing (healing type, or items with healing in name)
-        if (rollType.toLowerCase() === 'healing' || 
-            rollType.toLowerCase() === 'damage' ||
-            itemName.toLowerCase().includes('heal') ||
-            itemName.toLowerCase().includes('cure')) {
-            postConsoleAndNotification(MODULE.NAME, 'Player Stats - Chat Message (potential healing):', {
+        const activityType = dnd?.activity?.type;
+        if (activityType === "heal") {
+            postConsoleAndNotification(MODULE.NAME, 'Player Stats - Chat Message (healing detected):', {
                 messageId: message.id,
-                rollType: rollType,
-                itemName: itemName,
-                itemType: itemType,
+                rollType: dnd?.roll?.type ?? 'none',
+                activityType: activityType,
+                itemName: dnd?.item?.name ?? 'none',
                 speaker: message.speaker?.actor ?? 'none',
-                targets: dnd?.targets?.map(t => t.uuid) ?? [],
-                flags: message.flags?.dnd5e
+                targets: dnd?.targets?.map(t => t.uuid) ?? []
             }, true, false);
         }
 
@@ -708,23 +700,20 @@ class CPBPlayerStats {
                 }
             }
             
-            if (item) {
-                // Use same healing detection logic as CombatStats
-                const itemNameLower = (item.name || "").toLowerCase();
-                const actionType = (item.system?.actionType ?? "").toString().toLowerCase();
-                const hasHealingActivity = item.system?.activities && Object.values(item.system.activities).some(activity => {
-                    const activityType = (activity.type || "").toLowerCase();
-                    return activityType === "heal" || activity.healing || activity.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
-                });
-                const hasHealingDamage = item.system?.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
-                const nameIndicatesHealing = itemNameLower.includes("heal") || itemNameLower.includes("cure") || itemNameLower.includes("restore");
-                const isHealing = actionType === "heal" || actionType === "healing" || hasHealingActivity || hasHealingDamage || nameIndicatesHealing;
-                
-                if (isHealing) {
-                    // This is healing - track it for the caster's lifetime stats
+            // Check if this is healing using the only reliable signal: activity.type === "heal"
+            // Per developer review: In dnd5e 5.2.4, healing rolls appear as roll.type === "damage"
+            // but activity.type === "heal" is the reliable indicator
+            const dnd = message.flags?.dnd5e;
+            const activityType = dnd?.activity?.type;
+            const isHealing = activityType === "heal";
+            
+            if (isHealing) {
+                // This is healing - track it for the caster's lifetime stats (informational/attribution only)
+                // HP delta tracking remains the source of truth for applied healing
+                if (item) {
                     await CPBPlayerStats._recordRolledHealing(attackerActor, damageEvent, item);
-                    return; // Tracked - HP delta will also track applied healing on target
                 }
+                return; // Tracked - HP delta will also track applied healing on target
             }
             
             // Not healing and couldn't correlate - treat as unlinked damage (skip for now)
@@ -1306,6 +1295,10 @@ class CPBPlayerStats {
     /**
      * Record rolled healing for caster's lifetime stats (from chat message).
      * Tracks healing given and total for the caster.
+     * 
+     * NOTE: This is informational/attribution only. HP delta tracking is the source of truth
+     * for applied healing. Chat messages tell us intent, HP delta tells us truth.
+     * 
      * @param {Actor} casterActor - The actor casting the healing spell
      * @param {DamageResolvedEvent} damageEvent - The resolved damage/healing event
      * @param {Item} item - The item/spell being used
