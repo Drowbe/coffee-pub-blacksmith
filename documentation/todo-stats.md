@@ -8,29 +8,40 @@ This document tracks the current state of statistics tracking, what's actively b
 
 ### ✅ Actively Tracked (Lifetime Stats)
 
-#### Attacks (Tracked in `_processResolvedDamage`)
+#### Attacks (Tracked via Message Resolution Pipeline)
 - ✅ `biggest` - Highest damage hit (amount, date, weaponName, attackRoll, targetName, targetAC, sceneName, isCritical)
-  - **Location**: `scripts/stats-player.js:894-899` in `_processResolvedDamage`
+  - **Location**: `scripts/stats-player.js` in `_processResolvedDamage`
+  - **Source**: Resolved from `createChatMessage` hook via message resolution pipeline
 - ✅ `weakest` - Lowest damage hit (same structure)
-  - **Location**: `scripts/stats-player.js:901-905` in `_processResolvedDamage`
+  - **Location**: `scripts/stats-player.js` in `_processResolvedDamage`
+  - **Source**: Resolved from `createChatMessage` hook via message resolution pipeline
 - ✅ `hitMissRatio` - Calculated from totalHits/totalMisses
-  - **Location**: `scripts/stats-player.js:746-750` in `_processResolvedAttack`
+  - **Location**: `scripts/stats-player.js` in `_processResolvedAttack`
+  - **Source**: Determined from attack messages using `attackTotal >= target.ac` (not inferred from damage)
 - ✅ `totalHits` - Total successful hits
-  - **Location**: `scripts/stats-player.js:740` in `_processResolvedAttack`
+  - **Location**: `scripts/stats-player.js` in `_processResolvedAttack`
+  - **Source**: Counted from resolved attack messages (hitTargets array)
 - ✅ `totalMisses` - Total misses
-  - **Location**: `scripts/stats-player.js:741` in `_processResolvedAttack`
+  - **Location**: `scripts/stats-player.js` in `_processResolvedAttack`
+  - **Source**: Counted from resolved attack messages (missTargets array)
 - ✅ `criticals` - Total critical hits (nat 20)
-  - **Location**: `scripts/stats-player.js:990-1001` in `_onAttackRoll` (real-time), reconciled in `_onCombatSummaryReady`
+  - **Location**: `scripts/stats-player.js` in `_onAttackRoll` (real-time), reconciled in `_onCombatSummaryReady`
+  - **Method**: Uses active d20 result (for advantage/disadvantage) from roll hooks
 - ✅ `fumbles` - Total fumbles (nat 1)
-  - **Location**: `scripts/stats-player.js:990-1001` in `_onAttackRoll` (real-time), reconciled in `_onCombatSummaryReady`
-- ✅ `totalDamage` - Total damage dealt
-  - **Location**: `scripts/stats-player.js:829` in `_processResolvedDamage`
+  - **Location**: `scripts/stats-player.js` in `_onAttackRoll` (real-time), reconciled in `_onCombatSummaryReady`
+  - **Method**: Uses active d20 result (for advantage/disadvantage) from roll hooks
+- ✅ `totalDamage` - Total damage dealt (only "onHit" bucket)
+  - **Location**: `scripts/stats-player.js` in `_processResolvedDamage`
+  - **Source**: Resolved from damage messages, classified as "onHit" or "other"
 - ✅ `damageByWeapon` - Object keyed by weapon name with total damage
-  - **Location**: `scripts/stats-player.js:832-836` in `_processResolvedDamage`
+  - **Location**: `scripts/stats-player.js` in `_processResolvedDamage`
+  - **Source**: Extracted from resolved damage events
 - ✅ `damageByType` - Object keyed by damage type with total damage
-  - **Location**: `scripts/stats-player.js:838-851` in `_processResolvedDamage`
+  - **Location**: `scripts/stats-player.js` in `_processResolvedDamage`
+  - **Source**: Extracted from item damage parts
 - ✅ `hitLog` - Array of last 20 hits (amount, date, weaponName, attackRoll, targetName, targetAC, sceneName, isCritical)
-  - **Location**: `scripts/stats-player.js:907-912` in `_processResolvedDamage`
+  - **Location**: `scripts/stats-player.js` in `_processResolvedDamage`
+  - **Source**: Resolved from attack/damage message correlation
 
 #### Healing (Tracked via HP Delta and Chat Messages)
 - ✅ `received` - Total healing received (via HP delta tracking)
@@ -80,14 +91,18 @@ This document tracks the current state of statistics tracking, what's actively b
 
 #### Other Lifetime
 - ✅ `unconscious.count` - Times knocked unconscious
-  - **Location**: `scripts/stats-player.js:1455` in `_recordUnconscious`
+  - **Location**: `scripts/stats-player.js` in `_recordUnconscious`
+  - **Method**: HP delta detection in `_onActorUpdate` (preUpdateActor/updateActor hooks)
+  - **Trigger**: HP drops from >0 to 0 or below
 - ✅ `unconscious.log` - Array of unconscious events (last 100)
-  - **Location**: `scripts/stats-player.js:1456-1460` in `_recordUnconscious`
+  - **Location**: `scripts/stats-player.js` in `_recordUnconscious`
+  - **Attribution**: Queue-based damage context system with combat-aware matching
   - Contains: date, sceneName, oldHp, newHp, attackerName, weaponName, damageAmount
+  - **Matching**: Scores candidates by combat round/turn, recency, and damage amount
 - ❌ `movement` - Total movement distance
   - **NOT TRACKED** - Only defined in defaults, no tracking code
 - ✅ `lastUpdated` - Last update timestamp
-  - **Location**: `scripts/stats-player.js:280` in `updatePlayerStats`
+  - **Location**: `scripts/stats-player.js` in `updatePlayerStats`
 
 ### ✅ Session Stats Structure
 
@@ -127,41 +142,68 @@ This document tracks the current state of statistics tracking, what's actively b
 **Note**: No tracking code exists for movement. Would need to hook into token movement events.
 
 ### ✅ Unconscious Tracking
-**Status**: **FULLY IMPLEMENTED**
+**Status**: **FULLY IMPLEMENTED** (Queue-Based Attribution System)
 
 - ✅ `lifetime.unconscious.count` - Times knocked unconscious
-  - **Location**: `scripts/stats-player.js:1388-1481` in `_recordUnconscious`
+  - **Location**: `scripts/stats-player.js` in `_recordUnconscious`
   - **Method**: HP delta detection in `_onActorUpdate` (preUpdateActor/updateActor hooks)
   - **Trigger**: HP drops from >0 to 0 or below
+  - **Source of Truth**: HP delta tracking (same pattern as healing)
 - ✅ `lifetime.unconscious.log` - Array of unconscious events (last 100)
   - Each event contains:
     - `date` - ISO timestamp of when unconscious occurred
     - `sceneName` - Scene where it happened
     - `oldHp` - HP before going unconscious
     - `newHp` - HP after (should be <= 0)
-    - `attackerName` - Name of attacker (best-effort attribution from recent attack cache)
-    - `weaponName` - Weapon/spell name (best-effort attribution from recent attack cache)
-    - `damageAmount` - Estimated damage amount (oldHp - newHp)
+    - `attackerName` - Name of attacker (from damage context queue)
+    - `weaponName` - Weapon/spell name (from damage context queue)
+    - `damageAmount` - Damage amount from damage context (or null if unavailable)
 
 **Implementation Details**:
 - **Detection**: Uses HP delta tracking in `_onActorUpdate` - detects when `preHp.hp > 0 && newHp <= 0`
-- **Attribution**: Best-effort correlation with recent attack events (within 5 seconds) from attack cache
+- **Attribution System**: Queue-based damage context storage (last 10 entries per target)
+  - Stores damage context for ALL targets from damage messages (before bucket filtering)
+  - Includes combat round/turn information for better matching
+  - TTL window: 15 seconds (increased from 5s to account for delays)
+- **Context Selection**: Scores candidates by:
+  - Same combat round + turn = +1000 points (highest priority)
+  - Same combat round = +100 points
+  - Recency bonus (newer = better, max 15000 points)
+  - Damage amount bonus (larger = more likely cause)
+- **Damage Event Hydration**: Extracts missing fields from chat messages:
+  - Attacker from `message.speaker.actor`
+  - Item from `message.flags.dnd5e.item.uuid` (and variants)
+  - Targets from `message.flags.dnd5e.targets`
+  - Fallback names when resolution fails
 - **Logging**: Human-readable console logging using `postConsoleAndNotification` with "Player Stats | " prefix
 
 ---
 
 ## Shared Functions Analysis
 
+### ✅ Shared Message Resolution Utilities
+**Location**: `scripts/utility-message-resolution.js`
+
+- `hydrateFirstRoll(message)` - Handles v13 roll hydration (string, object, or Roll instance)
+- `getKeyParts(message)` - Extracts stable key parts (attackerActorId, itemUuid, activityUuid, sorted targetUuids)
+- `makeKey(parts)` - Creates stable string key from key parts
+- `resolveAttackMessage(message)` - Parses attack messages, computes hit/miss per target
+- `resolveDamageMessage(message)` - Parses damage messages, extracts damage total and metadata
+- **Used By**: Both `CombatStats` and `CPBPlayerStats` for consistent message resolution
+
 ### ❌ NOT Shared - Each system tracks independently
 
 **Attack/Damage Tracking:**
 - `CPBPlayerStats._processResolvedDamage` - Tracks damageByWeapon, damageByType, biggest, weakest, hitLog
-- `CombatStats._processDamageOrHealing` - Tracks combat-level damage/healing (doesn't update player lifetime)
+- `CombatStats._processResolvedDamage` - Tracks combat-level damage/healing (doesn't update player lifetime)
 - **Note**: These are separate - CombatStats tracks for combat summaries, CPBPlayerStats tracks for lifetime stats
+- **Both use**: Shared message resolution utilities from `utility-message-resolution.js`
 
 **Healing Tracking:**
 - `CombatStats._processDamageOrHealing` - Tracks healing for combat stats only
-- **Missing**: Player lifetime healing tracking
+- `CPBPlayerStats._recordAppliedHealing` - Tracks lifetime healing received (HP delta)
+- `CPBPlayerStats._recordRolledHealing` - Tracks lifetime healing given (chat messages)
+- **Note**: Separate systems with different purposes
 
 **Turn Stats:**
 - `CPBPlayerStats._processTurnEnd` - Tracks turn stats for player lifetime
@@ -210,42 +252,68 @@ The `hitLog` array should contain:
   - ✅ Simplified detection to only use reliable `activity.type === "heal"` (removed item name heuristics)
   - ✅ Added `_recordAppliedHealing` for target's received healing and revives
   - ✅ Added `_recordRolledHealing` for caster's given healing and totals
-- [ ] Fix `isCritical` in hitLog - Currently always `false` (line 880), needs proper crit tracking
-  - Should use cache entry or track crits per attack event
+- [x] **Refactor hit/miss/damage tracking** - ✅ COMPLETED - Moved to message resolution pipeline
+  - ✅ Created `utility-message-resolution.js` with shared resolution functions
+  - ✅ Replaced unstable `originatingMessage` correlation with stable identifiers
+  - ✅ Determines hit/miss from attack messages (`attackTotal >= target.ac`) instead of inferring from damage
+  - ✅ Classifies damage as "onHit" or "other" based on attack outcome
+  - ✅ Narrowed roll hooks to only crit/fumble detection
+  - ✅ Added attack cache system with TTL and deduplication
+- [x] **Implement unconscious tracking** - ✅ COMPLETED - Added unconscious event tracking with queue-based attribution
+  - ✅ Implemented HP delta detection for unconscious events (HP drops from >0 to 0 or below)
+  - ✅ Added queue-based damage context storage (last 10 entries per target)
+  - ✅ Implemented combat-aware matching (scores by round/turn, recency, damage amount)
+  - ✅ Added damage event hydration from chat messages for missing fields
+  - ✅ Stores date, scene, HP change, attacker name, weapon name, and damage amount
+- [x] **Fix crit/fumble detection** - ✅ COMPLETED - Now uses active d20 result for advantage/disadvantage
+  - ✅ Handles multiple d20 terms correctly
+  - ✅ Uses active result (marked `active: true`) instead of first result
+  - ✅ Falls back to first result if no active result found
+- [ ] Fix `isCritical` in hitLog - Currently always `false`, needs proper crit tracking
+  - Should integrate crit detection from roll hooks into attack cache entries
+  - Or track crits per attack event in the cache
 
 ### Medium Priority
-- [ ] Consider migration/cleanup script for existing data with `session.pendingAttacks`
 - [ ] Document which fields may be null/undefined and why
 - [ ] Add validation/fallbacks for missing fields in hitLog entries
+- [ ] Consider adding "damage.rolled.other" tracking separately from "damage.rolled.onHit"
 
 ### Low Priority
 - [ ] Implement movement tracking (requires token movement hooks)
-- [x] **Implement unconscious tracking** - ✅ COMPLETED - Added unconscious event tracking with count and log
-  - ✅ Implemented HP delta detection for unconscious events (HP drops from >0 to 0 or below)
-  - ✅ Added `_recordUnconscious` method to track count and maintain log of events
-  - ✅ Best-effort attribution of attacker and weapon from recent attack cache (5 second window)
-  - ✅ Stores date, scene, HP change, attacker name, weapon name, and damage amount
-  - ✅ Human-readable console logging using `postConsoleAndNotification` with "Player Stats | " prefix
 - [ ] Consider adding more granular tracking (damage by target, hits by weapon, etc.)
 - [ ] Performance optimization for large hitLog arrays
+- [ ] Consider migration/cleanup script for existing data with `session.pendingAttacks`
 
 ---
 
 ## Architecture Notes
 
 ### Message Resolution System
-- Attack/damage correlation now uses `createChatMessage` hook with stable keying
-- Roll hooks (`dnd5e.rollAttack`, `dnd5e.rollDamage`) are narrowed to only crit/fumble detection
-- Socket handlers (`_onSocketTrackAttack`, `_onSocketTrackDamage`) still use old methods for non-GM client forwarding
+- **Shared Utilities**: `scripts/utility-message-resolution.js` provides shared functions for both CombatStats and CPBPlayerStats
+- **Stable Keying**: Uses `speaker.actor`, `flags.dnd5e.item.uuid`, `flags.dnd5e.activity.uuid`, and sorted target UUIDs (replaces unstable `originatingMessage`)
+- **Attack Resolution**: Determines hit/miss from attack messages using `attackTotal >= target.ac` (not inferred from damage)
+- **Damage Classification**: Classifies damage as "onHit" or "other" based on attack outcome (handles midi-qol "damage on miss")
+- **Roll Hooks**: Narrowed to only crit/fumble detection and metadata (hit/miss/damage moved to `createChatMessage`)
+- **Socket Handlers**: Still use old methods for non-GM client forwarding (backward compatibility)
 
 ### Data Flow
-1. `createChatMessage` hook → `_processResolvedAttack` / `_processResolvedDamage`
-2. Real-time tracking updates lifetime stats immediately
-3. Combat summary reconciliation at combat end (`blacksmith.combatSummaryReady`)
-4. Session stats track temporary combat data (combatTracking for reconciliation)
+1. `createChatMessage` hook → `resolveAttackMessage` / `resolveDamageMessage` (shared utilities)
+2. Resolved events → `_processResolvedAttack` / `_processResolvedDamage` (system-specific)
+3. Real-time tracking updates lifetime stats immediately
+4. Combat summary reconciliation at combat end (`blacksmith.combatSummaryReady`)
+5. Session stats track temporary combat data (combatTracking for reconciliation)
+
+### Damage Context System (Unconscious Attribution)
+- **Storage**: Queue-based per target (`Map<actorId, DamageContext[]>`)
+- **TTL**: 15 seconds (increased from 5s to account for delays)
+- **Queue Size**: Last 10 entries per target (bounded)
+- **Hydration**: Extracts missing fields from chat messages (attacker, item, targets)
+- **Selection**: Scores candidates by combat round/turn, recency, and damage amount
+- **Storage Timing**: Context stored immediately after damage message resolution, before bucket filtering
 
 ### Shared vs Separate Functions
-- **NOT SHARED**: Each system (CombatStats vs CPBPlayerStats) tracks independently
+- **SHARED**: Message resolution utilities (`utility-message-resolution.js`) used by both systems
+- **NOT SHARED**: Each system (CombatStats vs CPBPlayerStats) tracks independently for their purposes
 - CombatStats tracks for combat summaries (ephemeral)
 - CPBPlayerStats tracks for lifetime stats (persistent)
 - MVP uses shared helper `_updateLifetimeMvp` for calculations
@@ -253,4 +321,4 @@ The `hitLog` array should contain:
 ---
 
 ## Last Updated
-2026-01-12 - After healing tracking implementation (HP delta + chat message attribution)
+2026-01-13 - After unconscious tracking implementation (queue-based attribution) and hit/miss/damage refactoring (message resolution pipeline)

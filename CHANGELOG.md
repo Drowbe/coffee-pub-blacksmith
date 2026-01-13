@@ -17,6 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **By-Target Tracking**: Maintains `lifetime.healing.byTarget` object with healing amounts per target
   - **Most/Least Healed**: Tracks `mostHealed` and `leastHealed` based on byTarget totals
   - **Human-Readable Logging**: Added detailed console logging for healing data collection (using `postConsoleAndNotification` with "Player Stats | " prefix)
+- **Unconscious Tracking System**: Implemented comprehensive unconscious event tracking for player lifetime stats
+  - **HP Delta Source of Truth**: Tracks unconscious events when HP drops from >0 to ≤0 via `updateActor` hooks
+  - **Queue-Based Attribution**: Stores damage context in per-target queues (last 10 entries) for accurate attribution in multi-hit scenarios
+  - **Combat-Aware Matching**: Scores damage contexts by combat round/turn, recency, and damage amount to select best match
+  - **Unconscious Log**: Maintains detailed log of unconscious events with date, scene, attacker, weapon, and damage amount
+  - **Count Tracking**: Tracks total unconscious count in `lifetime.unconscious.count`
+  - **Attribution System**: Captures attacker name, weapon/source name, and damage amount when available from damage messages
+- **Refactored Hit/Miss/Damage Tracking**: Complete overhaul of attack and damage resolution system
+  - **Message Resolution Pipeline**: New `utility-message-resolution.js` with shared functions for parsing chat messages
+  - **Stable Identifiers**: Uses `speaker.actor`, `flags.dnd5e.item.uuid`, `flags.dnd5e.activity.uuid`, and sorted target UUIDs for correlation (replaces unstable `originatingMessage`)
+  - **Accurate Hit/Miss Detection**: Determines hit/miss from attack messages using `attackTotal >= target.ac` instead of inferring from damage rolls
+  - **Damage Classification**: Classifies damage as "onHit" or "other" based on attack outcome, not damage presence
+  - **Attack Cache System**: Implements TTL-based cache (15 seconds) with deduplication for multi-damage workflows
+  - **Separate Stats Model**: Records `attacks.hit`, `attacks.miss`, `damage.rolled.onHit`, `damage.rolled.other` separately for accuracy
+- **Crit/Fumble Detection Improvements**: Enhanced critical hit and fumble detection
+  - **Active Result Detection**: Now uses the active d20 result (for advantage/disadvantage) instead of first result
+  - **Multiple d20 Support**: Handles rolls with multiple d20 terms correctly
+  - **Debug Logging**: Added diagnostic logging for crit/fumble detection verification
 
 ### Changed
 - **Healing Detection Logic**: Simplified healing detection to use only reliable `flags.dnd5e.activity.type === "heal"` signal
@@ -27,6 +45,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All examples now include "Player Stats | " prefix for easy console filtering
   - Consistent with internal codebase logging patterns
   - Properly respects debug flags and notification settings
+- **Damage Context Storage**: Upgraded from single-value to queue-based storage for better multi-hit correlation
+  - Changed from `Map<actorId, DamageContext>` to `Map<actorId, DamageContext[]>` (queue per target)
+  - Stores last 10 damage contexts per target instead of overwriting
+  - Includes combat round/turn information for better matching
+  - Lazy pruning per target (only removes entries older than 15s for that specific target)
+- **Roll Hooks Narrowed**: Roll hooks now only handle crit/fumble detection and metadata
+  - `dnd5e.rollAttack`: Only detects crit/fumble, removed hit/miss/damage tracking
+  - `dnd5e.rollDamage`: Only forwards to GM for non-GM clients, removed damage tracking
+  - All hit/miss/damage resolution moved to `createChatMessage` hook for accuracy
+- **Damage Event Hydration**: Enhanced damage event resolution with fallback hydration from chat messages
+  - Hydrates missing `attackerActorId` from `message.speaker.actor`
+  - Hydrates missing `itemUuid` from `message.flags.dnd5e.item.uuid` (and variants)
+  - Hydrates missing `targetUuids` from `message.flags.dnd5e.targets`
+  - Provides fallback attacker/item names when resolution fails
+  - Ensures context storage always has best available data
 
 ### Fixed
 - **Healing Message Detection**: Fixed healing messages being incorrectly skipped as "Unlinked Damage"
@@ -36,6 +69,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Healing Stats Not Updating**: Fixed issue where caster's `healing.total` and `healing.given` were not being updated
   - Added `_recordRolledHealing` method to track healing given for casters
   - Healing detection now properly processes healing messages instead of skipping them
+- **Inaccurate Hit/Miss Tracking**: Fixed critical bug where all attacks appeared as hits when using midi-qol
+  - Root cause: System was inferring "hit = damage rolled", which breaks when midi rolls damage on misses
+  - Solution: Now determines hit/miss from attack message (`attackTotal >= target.ac`) before damage is rolled
+  - Correctly handles midi-qol "damage on miss" scenarios by classifying as "damage.rolled.other"
+- **Unstable Message Correlation**: Fixed damage attribution failures due to unstable `originatingMessage` in dnd5e 5.2.4
+  - Replaced `originatingMessage` correlation with stable identifier key (attacker + item + activity + sorted targets)
+  - Attack and damage messages now correlate reliably even when `originatingMessage` differs
+- **Unconscious Attribution**: Fixed unconscious events showing "Unknown Attacker" and "Unknown Source"
+  - Implemented queue-based context storage to handle multiple hits on same target
+  - Added combat round/turn matching for better attribution in multi-hit scenarios
+  - Increased TTL window from 5s to 15s to account for delays between damage messages and HP updates
+  - Enhanced damage event hydration to extract attacker/item/targets from chat message when resolver misses fields
+  - Context selection now scores candidates by combat match, recency, and damage amount instead of "last write wins"
+- **Crit/Fumble Detection**: Fixed crit/fumble detection failing on advantage/disadvantage rolls
+  - Now uses the active d20 result (marked `active: true`) instead of first result
+  - Handles multiple d20 terms correctly (e.g., advantage rolls with two d20s)
+  - Falls back to first result if no active result is found
 
 ## [13.0.10]
 
