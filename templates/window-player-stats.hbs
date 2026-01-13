@@ -1,0 +1,208 @@
+{{!-- Player Statistics Window Template --}}
+<div class="stats-window foundry-style-window">
+  <div class="stats-header-sticky">
+    <div class="stats-header">
+      <div class="stats-header-content">
+        <div class="stats-header-icon"><img class="player-portrait-large" src="{{actor.img}}" alt="{{actor.name}}"></div>
+        <div class="stats-header-title">
+          <div class="stats-header-maintitle">{{actor.name}}</div>
+          <div class="stats-header-subtitle">Player Statistics</div>
+        </div>
+        <div class="stats-header-controls">
+          <button type="button" class="stats-action-btn close-player-stats"><i class="fas fa-times"></i> Close</button>
+        </div>
+      </div>
+    </div>
+
+    {{!-- TOP CARDS --}}
+    <div class="stats-summary-row">
+      {{!-- BIGGEST HIT --}}
+      <div class="stats-summary-item">
+        <i class="fa-solid fa-sword"></i>
+        <div class="stats-summary-content">
+          <span class="label">Biggest Hit</span>
+          <span>{{summary.biggestHit.amount}}</span>
+        </div>
+      </div>
+
+      {{!-- MVP SCORE --}}
+      <div class="stats-summary-item">
+        <i class="fa-solid fa-trophy"></i>
+        <div class="stats-summary-content">
+          <span class="label">MVP Score</span>
+          <span>{{summary.mvpTotal}}</span>
+        </div>
+      </div>
+
+      {{!-- CRITS --}}
+      <div class="stats-summary-item">
+        <i class="fa-solid fa-star"></i>
+        <div class="stats-summary-content">
+          <span class="label">Crits</span>
+          <span>{{summary.crits}}</span>
+        </div>
+      </div>
+
+      {{!-- FUMBLES --}}
+      <div class="stats-summary-item">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <div class="stats-summary-content">
+          <span class="label">Fumbles</span>
+          <span>{{summary.fumbles}}</span>
+        </div>
+      </div>
+
+      {{!-- DEATHS --}}
+      <div class="stats-summary-item">
+        <i class="fa-solid fa-skull"></i>
+        <div class="stats-summary-content">
+          <span class="label">Deaths</span>
+          <span>{{summary.deaths}}</span>
+        </div>
+      </div>
+
+      {{!-- TOTAL DAMAGE --}}
+      <div class="stats-summary-item">
+        <i class="fa-solid fa-swords"></i>
+        <div class="stats-summary-content">
+          <span class="label">Total Damage</span>
+          <span>{{summary.totalDamage}}</span>
+        </div>
+      </div>
+
+      {{!-- TOTAL HEALING --}}
+      <div class="stats-summary-item">
+        <i class="fa-solid fa-heart"></i>
+        <div class="stats-summary-content">
+          <span class="label">Total Healing</span>
+          <span>{{summary.totalHealing}}</span>
+        </div>
+      </div>
+
+      {{!-- ACCURACY --}}
+      <div class="stats-summary-item stats-summary-item-progress">
+        <i class="fa-solid fa-bullseye"></i>
+        <div class="stats-summary-content">
+          <span class="label">Accuracy</span>
+          <div class="stats-progress-bar">
+            <div class="stats-progress-fill" style="width: {{summary.hitRateValue}}%"></div>
+            <span class="stats-progress-text">{{summary.hitRate}}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-body-scroll">
+    {{!-- ATTACKS SECTION --}}
+    <div class="stats-section" data-section="attacks">
+      <div class="stats-section-header"><i class="fas fa-crosshairs"></i> Attacks</div>
+      <div class="stats-table-wrapper" data-table-type="attacks">
+        <div class="stats-table-header">
+          <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Total Hits</span>
+          <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Total Misses</span>
+          <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Hit Rate</span>
+          <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Total Damage</span>
+          <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Crits</span>
+          <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Fumbles</span>
+        </div>
+        <div class="stats-table-body">
+          <div class="stats-table-row">
+            <span class="stats-table-col stats-col-size-10 stats-col-right">{{attacks.totalHits}}</span>
+            <span class="stats-table-col stats-col-size-10 stats-col-right">{{attacks.totalMisses}}</span>
+            <span class="stats-table-col stats-col-size-10 stats-col-right">{{attacks.hitMissRatio}}%</span>
+            <span class="stats-table-col stats-col-size-10 stats-col-right">{{attacks.totalDamage}}</span>
+            <span class="stats-table-col stats-col-size-10 stats-col-right">{{attacks.criticals}}</span>
+            <span class="stats-table-col stats-col-size-10 stats-col-right">{{attacks.fumbles}}</span>
+          </div>
+        </div>
+      </div>
+
+      {{#if attacks.damageByWeapon}}
+      <div class="stats-subsection">
+        <div class="stats-subsection-header">Damage by Weapon</div>
+        <div class="stats-table-wrapper">
+          <div class="stats-table-header">
+            <span class="stats-table-col stats-col-flex stats-col-left stats-table-col-header">Weapon</span>
+            <span class="stats-table-col stats-col-size-20 stats-col-right stats-table-col-header">Damage</span>
+          </div>
+          <div class="stats-table-body">
+            {{#each attacks.damageByWeapon}}
+            <div class="stats-table-row">
+              <span class="stats-table-col stats-col-flex stats-col-left">{{@key}}</span>
+              <span class="stats-table-col stats-col-size-20 stats-col-right">{{this}}</span>
+            </div>
+            {{/each}}
+          </div>
+        </div>
+      </div>
+      {{/if}}
+
+      {{#if attacks.damageByType}}
+      <div class="stats-subsection">
+        <div class="stats-subsection-header">Damage by Type</div>
+        <div class="stats-table-wrapper">
+          <div class="stats-table-header">
+            <span class="stats-table-col stats-col-flex stats-col-left stats-table-col-header">Type</span>
+            <span class="stats-table-col stats-col-size-20 stats-col-right stats-table-col-header">Damage</span>
+          </div>
+          <div class="stats-table-body">
+            {{#each attacks.damageByType}}
+            <div class="stats-table-row">
+              <span class="stats-table-col stats-col-flex stats-col-left">{{@key}}</span>
+              <span class="stats-table-col stats-col-size-20 stats-col-right">{{this}}</span>
+            </div>
+            {{/each}}
+          </div>
+        </div>
+      </div>
+      {{/if}}
+    </div>
+
+    {{!-- HEALING SECTION --}}
+    <div class="stats-section" data-section="healing">
+      <div class="stats-section-header"><i class="fas fa-heart"></i> Healing</div>
+      <div class="stats-table-wrapper" data-table-type="healing">
+        <div class="stats-table-header">
+          <span class="stats-table-col stats-col-size-20 stats-col-right stats-table-col-header">Total Given</span>
+          <span class="stats-table-col stats-col-size-20 stats-col-right stats-table-col-header">Total Received</span>
+          <span class="stats-table-col stats-col-size-20 stats-col-right stats-table-col-header">Revives</span>
+        </div>
+        <div class="stats-table-body">
+          <div class="stats-table-row">
+            <span class="stats-table-col stats-col-size-20 stats-col-right">{{healing.total}}</span>
+            <span class="stats-table-col stats-col-size-20 stats-col-right">{{healing.received}}</span>
+            <span class="stats-table-col stats-col-size-20 stats-col-right">{{healing.revives}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {{!-- MVP SECTION --}}
+    <div class="stats-section" data-section="mvp">
+      <div class="stats-section-header"><i class="fas fa-medal"></i> MVP</div>
+      <div class="stats-table-wrapper" data-table-type="mvp">
+        <div class="stats-table-header">
+          <span class="stats-table-col stats-col-size-20 stats-col-right stats-table-col-header">Total Score</span>
+          <span class="stats-table-col stats-col-size-20 stats-col-right stats-table-col-header">High Score</span>
+          <span class="stats-table-col stats-col-size-20 stats-col-right stats-table-col-header">Average Score</span>
+          <span class="stats-table-col stats-col-size-20 stats-col-right stats-table-col-header">Combats</span>
+        </div>
+        <div class="stats-table-body">
+          <div class="stats-table-row">
+            <span class="stats-table-col stats-col-size-20 stats-col-right">{{mvp.totalScore}}</span>
+            <span class="stats-table-col stats-col-size-20 stats-col-right">{{mvp.highScore}}</span>
+            <span class="stats-table-col stats-col-size-20 stats-col-right">{{mvp.averageScore}}</span>
+            <span class="stats-table-col stats-col-size-20 stats-col-right">{{mvp.combats}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-footer">
+    <div class="stats-footer-actions">
+      <button type="button" class="stats-btn close-player-stats"><i class="fas fa-times"></i> Close</button>
+    </div>
+  </div>
+</div>

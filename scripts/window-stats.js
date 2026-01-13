@@ -151,6 +151,30 @@ export class StatsWindow extends Application {
                 }
             });
         });
+
+        // View player stats buttons
+        element.querySelectorAll('.view-player-stats-btn').forEach(btn => {
+            btn.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const actorId = btn.dataset.actorId;
+                if (actorId) {
+                    this._onViewPlayerStats(actorId);
+                }
+            });
+        });
+
+        // Clear player stats buttons
+        element.querySelectorAll('.clear-player-stats-btn').forEach(btn => {
+            btn.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const actorId = btn.dataset.actorId;
+                if (actorId) {
+                    this._onClearPlayerStats(actorId);
+                }
+            });
+        });
     }
 
     _mapCombatSummary(summary, index, totalCombats) {
@@ -542,6 +566,50 @@ export class StatsWindow extends Application {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Failed to remove combat from history', error, false, false);
             ui.notifications.error('Failed to remove combat from history.');
+        }
+    }
+
+    async _onViewPlayerStats(actorId) {
+        const actor = game.actors.get(actorId);
+        if (!actor) {
+            ui.notifications.warn('Actor not found.');
+            return;
+        }
+
+        // Import and show PlayerStatsWindow
+        const { PlayerStatsWindow } = await import('./window-player-stats.js');
+        PlayerStatsWindow.show(actorId);
+    }
+
+    async _onClearPlayerStats(actorId) {
+        if (!game.user.isGM) {
+            ui.notifications.warn('Only GMs can clear player statistics.');
+            return;
+        }
+
+        const actor = game.actors.get(actorId);
+        if (!actor) {
+            ui.notifications.warn('Actor not found.');
+            return;
+        }
+
+        const confirmed = await Dialog.confirm({
+            title: 'Clear Player Statistics',
+            content: `<p>Are you sure you want to clear all statistics for <strong>${actor.name}</strong>?</p><p>This action cannot be undone.</p>`,
+            yes: () => true,
+            no: () => false,
+            defaultYes: false
+        });
+
+        if (!confirmed) return;
+
+        try {
+            await StatsAPI.player.clearStats(actorId);
+            ui.notifications.info(`Statistics cleared for ${actor.name}.`);
+            this.render();
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Failed to clear player statistics', { actorId, error }, false, false);
+            ui.notifications.error('Failed to clear player statistics.');
         }
     }
 

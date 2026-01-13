@@ -11,12 +11,14 @@
 
 /* Main Window */
   
-div#blacksmith-stats-window {
+div#blacksmith-stats-window,
+div#blacksmith-player-stats-window {
   min-height: 500px;
   min-width: 500px;
 }
 
-div#blacksmith-stats-window .window-content {
+div#blacksmith-stats-window .window-content,
+div#blacksmith-player-stats-window .window-content {
     opacity: var(--container-opacity);
     padding: 0px;
   background: #232323;
@@ -640,6 +642,62 @@ div#blacksmith-stats-window .window-content {
 
 .stats-btn i {
   font-size: 1.0em;
+}
+
+/* Icon action buttons for table rows */
+.stats-action-icon-btn {
+  color: rgba(145, 133, 107, 1.0);
+  background: rgba(0, 0, 0, 0.0);
+  border: 0;
+  padding: 4px 6px;
+  margin: 0 2px;
+  line-height: 1;
+  height: auto;
+  min-height: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.stats-action-icon-btn i {
+  font-size: 0.9em;
+}
+
+.stats-action-icon-btn:hover {
+  color: rgba(255, 100, 0, 1.0) !important;
+  background: rgba(255, 100, 0, 0.1);
+  opacity: 1 !important;
+}
+
+.stats-action-icon-btn.clear-player-stats-btn:hover {
+  color: rgba(255, 50, 50, 1.0) !important;
+  background: rgba(255, 50, 50, 0.1);
+}
+
+/* Player Stats Window Specific Styles */
+.player-portrait-large {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid rgba(172, 159, 129, 0.9);
+}
+
+.stats-subsection {
+  margin-top: 1em;
+  padding-top: 1em;
+  border-top: 1px solid rgba(64, 64, 64, 0.5);
+}
+
+.stats-subsection-header {
+  font-size: 0.85em;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba(172, 159, 129, 0.9);
+  margin-bottom: 0.5em;
 }
 
 

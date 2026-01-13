@@ -204,6 +204,7 @@
           <span class="stats-table-col stats-col-size-05 stats-col-center stats-table-col-header">Crits</span>
           <span class="stats-table-col stats-col-size-05 stats-col-center stats-table-col-header">Fumbles</span>
           <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Biggest Hit</span>
+          <span class="stats-table-col stats-col-size-08 stats-col-center stats-table-col-header">Actions</span>
         </div>
         <div class="stats-table-body">
           {{#if leaderboard.length}}
@@ -221,6 +222,14 @@
                 <span class="stats-table-col stats-col-size-05 stats-col-center">{{crits}}</span>
                 <span class="stats-table-col stats-col-size-05 stats-col-center">{{fumbles}}</span>
                 <span class="stats-table-col stats-col-size-10 stats-col-right">{{biggestHit}}</span>
+                <span class="stats-table-col stats-col-size-08 stats-col-center">
+                  <button type="button" class="stats-action-icon-btn view-player-stats-btn" title="View Player Stats" data-actor-id="{{actorId}}">
+                    <i class="fas fa-search"></i>
+                  </button>
+                  <button type="button" class="stats-action-icon-btn clear-player-stats-btn" title="Clear Player Stats" data-actor-id="{{actorId}}">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </span>
               </div>
             {{/each}}
           {{else}}
