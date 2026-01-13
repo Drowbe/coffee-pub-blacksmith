@@ -207,7 +207,7 @@ export class SidebarStyle {
             button.setAttribute('aria-label', 'Manual Rolls: Enabled');
             button.classList.add('active');
         } else {
-            icon.className = 'fa-regular fa-dice-d20';
+            icon.className = 'fa-solid fa-dice-d20';
             button.setAttribute('aria-pressed', 'false');
             button.setAttribute('data-tooltip', 'Manual Rolls: Disabled (Click to enable)');
             button.setAttribute('aria-label', 'Manual Rolls: Disabled');
