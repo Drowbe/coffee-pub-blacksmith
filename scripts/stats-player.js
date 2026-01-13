@@ -9,6 +9,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, trimString, isPlayerCharacter } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { resolveAttackMessage, resolveDamageMessage, makeKey } from './utility-message-resolution.js';
+import { CombatStats } from './stats-combat.js';
 
 // Default stats structure
 const CPB_STATS_DEFAULTS = {
@@ -98,6 +99,9 @@ class CPBPlayerStats {
     
     // HP cache for preUpdateActor hook (keyed by actor.uuid)
     static _preHpCache = new Map(); // key: actor.uuid, value: { hp: number, temp: number, max: number }
+    
+    // Cache to track recently recorded unconscious events (to avoid duplicates from HP delta)
+    static _recentUnconsciousRecorded = new Map(); // key: actor.id, value: timestamp
     
     // Bounded push helper to prevent unbounded array growth
     static _boundedPush(array, item, maxSize = 1000) {
@@ -292,12 +296,28 @@ class CPBPlayerStats {
         if (!currentStats) return;
 
         // Use mergeObject with insertKeys and overwrite to ensure nested objects are properly replaced
-        const newStats = foundry.utils.mergeObject(currentStats, updates, {
+        // For unconscious.log array, we need to ensure it's always present, so handle it specially
+        let newStats = foundry.utils.mergeObject(currentStats, updates, {
             insertKeys: true,
             overwrite: true,
             recursive: true,
             inplace: false
         });
+        
+        // Special handling: If we're updating unconscious, ensure log array exists
+        if (updates.lifetime?.unconscious) {
+            if (!newStats.lifetime) newStats.lifetime = {};
+            if (!newStats.lifetime.unconscious) newStats.lifetime.unconscious = {};
+            // Explicitly set the log array to ensure it's preserved
+            if (updates.lifetime.unconscious.log) {
+                newStats.lifetime.unconscious.log = foundry.utils.deepClone(updates.lifetime.unconscious.log);
+            }
+            // Explicitly set the count
+            if (typeof updates.lifetime.unconscious.count === 'number') {
+                newStats.lifetime.unconscious.count = updates.lifetime.unconscious.count;
+            }
+        }
+        
         newStats.lifetime.lastUpdated = new Date().toISOString();
         
         await actor.setFlag(MODULE.ID, 'playerStats', newStats);
@@ -682,14 +702,22 @@ class CPBPlayerStats {
         const damageEvent = resolveDamageMessage(message);
         if (!damageEvent) return;
 
-        // Only process player character damage
+        // Get attacker actor (can be player or NPC - we need both for unconscious tracking)
         const attackerActor = game.actors.get(damageEvent.attackerActorId);
-        if (!attackerActor || !attackerActor.hasPlayerOwner) {
-            return; // Skip non-player actors
+        if (!attackerActor) {
+            return; // Can't process without attacker
         }
+        
+        // Only track damage stats for player attackers, but we'll process all damage for unconscious tracking
+        const isPlayerAttacker = attackerActor.hasPlayerOwner;
 
-        // Correlate damage to cached attack
-        const cacheEntry = CPBPlayerStats._attackCache.get(damageEvent.key);
+        // Correlate damage to cached attack - check both caches
+        // CPBPlayerStats cache has player attacks, CombatStats cache has ALL attacks (including NPCs)
+        let cacheEntry = CPBPlayerStats._attackCache.get(damageEvent.key);
+        if (!cacheEntry) {
+            // Not in player cache - check CombatStats cache (has NPC attacks too)
+            cacheEntry = CombatStats._attackCache.get(damageEvent.key);
+        }
         
         if (!cacheEntry) {
             // Couldn't correlate - check if this is healing before skipping
@@ -754,16 +782,26 @@ class CPBPlayerStats {
         damageEvent.attackMsgId = cacheEntry.attackEvent.attackMsgId;
 
         // Debug log for correlation verification
+        const cacheSource = CPBPlayerStats._attackCache.has(damageEvent.key) ? 'CPBPlayerStats' : 'CombatStats';
         postConsoleAndNotification(MODULE.NAME, 'Player Stats - Damage Resolved:', {
             key: damageEvent.key,
             attacker: attackerActor.name,
+            isPlayerAttacker: isPlayerAttacker,
+            cacheSource: cacheSource,
             bucket: damageEvent.bucket,
             damageTotal: damageEvent.damageTotal,
             attackMsgId: damageEvent.attackMsgId
         }, true, false);
 
         // Process the classified damage event
-        await CPBPlayerStats._processResolvedDamage(damageEvent);
+        // Only track damage stats for player attackers, but process all for unconscious tracking
+        if (isPlayerAttacker) {
+            await CPBPlayerStats._processResolvedDamage(damageEvent);
+        } else {
+            // For NPC attackers, we still want to check if a player target went unconscious
+            // But we don't track damage stats for NPCs
+            await CPBPlayerStats._processResolvedDamageForUnconscious(damageEvent);
+        }
     }
 
     /**
@@ -834,8 +872,80 @@ class CPBPlayerStats {
     }
 
     /**
+     * Process a resolved damage event for unconscious tracking only (NPC attackers).
+     * Doesn't track damage stats, just checks if a player target went unconscious.
+     * @param {DamageResolvedEvent} damageEvent - Normalized damage event
+     */
+    static async _processResolvedDamageForUnconscious(damageEvent) {
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
+
+        const attackerActor = game.actors.get(damageEvent.attackerActorId);
+        if (!attackerActor) return;
+
+        // Get item
+        let item = null;
+        if (damageEvent.itemUuid) {
+            try {
+                item = await fromUuid(damageEvent.itemUuid);
+            } catch (e) {
+                // Skip if can't resolve
+            }
+        }
+
+        // Get target actor from attack cache
+        const cacheEntry = CPBPlayerStats._attackCache.get(damageEvent.key) || CombatStats._attackCache.get(damageEvent.key);
+        const attackEvent = cacheEntry?.attackEvent;
+        
+        let targetActor = null;
+        if (attackEvent?.hitTargets?.length > 0) {
+            try {
+                const firstTargetUuid = attackEvent.hitTargets[0];
+                const targetDoc = await fromUuid(firstTargetUuid);
+                const targetActorDoc = targetDoc?.actor ?? targetDoc;
+                targetActor = targetActorDoc;
+            } catch (e) {
+                // Skip if can't resolve
+            }
+        }
+        
+        // Check if this damage caused a player target to go unconscious
+        if (targetActor && targetActor.id && targetActor.hasPlayerOwner) {
+            try {
+                // Get current HP and check if damage would cause unconscious
+                // We need to check BEFORE damage is applied, so get current HP and subtract damage
+                const currentHp = targetActor.system?.attributes?.hp?.value ?? null;
+                if (currentHp !== null) {
+                    // Calculate HP after this damage
+                    const hpAfterDamage = currentHp - damageEvent.damageTotal;
+                    
+                    // If HP would drop to 0 or below, record unconscious
+                    // We check hpAfterDamage <= 0 instead of currentHp <= 0 because
+                    // the HP might not be updated yet when the damage message fires
+                    if (hpAfterDamage <= 0 && currentHp > 0) {
+                        await this._recordUnconsciousFromDamage(
+                            targetActor,
+                            currentHp,
+                            hpAfterDamage,
+                            attackerActor.name,
+                            item?.name || 'Unknown Weapon',
+                            damageEvent.damageTotal
+                        );
+                    }
+                }
+            } catch (e) {
+                // Skip if can't check HP
+                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious (NPC): Error checking HP', {
+                    error: e.message,
+                    target: targetActor?.name
+                }, true, false);
+            }
+        }
+    }
+
+    /**
      * Process a resolved damage event for player stats.
      * Only tracks damage if classified as "onHit" (hit-based damage).
+     * Also checks for unconscious events.
      * @param {DamageResolvedEvent} damageEvent - Normalized damage event
      */
     static async _processResolvedDamage(damageEvent) {
@@ -919,11 +1029,13 @@ class CPBPlayerStats {
         // Try to get target name from first hit target (simplified - don't block on async resolution)
         let targetName = 'Unknown Target';
         let targetAC = null;
+        let targetActor = null; // We'll use this for unconscious tracking
         if (attackEvent?.hitTargets?.length > 0) {
             try {
                 const firstTargetUuid = attackEvent.hitTargets[0];
                 const targetDoc = await fromUuid(firstTargetUuid);
                 const targetActorDoc = targetDoc?.actor ?? targetDoc;
+                targetActor = targetActorDoc; // Save for unconscious check
                 if (targetActorDoc?.name) {
                     targetName = targetActorDoc.name;
                 }
@@ -932,6 +1044,73 @@ class CPBPlayerStats {
                 targetAC = targetOutcome?.ac ?? null;
             } catch (e) {
                 // Skip if can't resolve - not critical
+            }
+        }
+        
+        // Check if this damage caused the target (player) to go unconscious
+        // We have all the context here: attacker, weapon, damage, target
+        // Track unconscious for player targets, regardless of who the attacker is
+        if (targetActor && targetActor.id && targetActor.hasPlayerOwner) {
+            try {
+                // Get current HP from the target actor (BEFORE damage is applied)
+                const currentHp = targetActor.system?.attributes?.hp?.value ?? null;
+                
+                if (currentHp !== null) {
+                    // Calculate HP after this damage would be applied
+                    const hpAfterDamage = currentHp - damageEvent.damageTotal;
+                    
+                    postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Checking from damage', {
+                        target: targetActor.name,
+                        targetId: targetActor.id,
+                        currentHp: currentHp,
+                        damageTotal: damageEvent.damageTotal,
+                        hpAfterDamage: hpAfterDamage,
+                        attacker: attackerActor?.name,
+                        weapon: item?.name
+                    }, true, false);
+                    
+                    // If damage would cause HP to drop to 0 or below (and current HP > 0), record unconscious
+                    // We check hpAfterDamage <= 0 because the HP might not be updated yet when damage message fires
+                    if (hpAfterDamage <= 0 && currentHp > 0) {
+                        postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Recording from damage', {
+                            target: targetActor.name,
+                            oldHp: currentHp,
+                            newHp: hpAfterDamage,
+                            attacker: attackerActor?.name,
+                            weapon: item?.name
+                        }, true, false);
+                        
+                        // Record unconscious event on the target actor
+                        await this._recordUnconsciousFromDamage(
+                            targetActor,
+                            currentHp,
+                            hpAfterDamage,
+                            attackerActor?.name || 'Unknown Attacker',
+                            item?.name || 'Unknown Weapon',
+                            damageEvent.damageTotal
+                        );
+                        
+                        // Mark that we've recorded this so HP delta method doesn't duplicate
+                        if (!CPBPlayerStats._recentUnconsciousRecorded) {
+                            CPBPlayerStats._recentUnconsciousRecorded = new Map();
+                        }
+                        CPBPlayerStats._recentUnconsciousRecorded.set(targetActor.id, Date.now());
+                        
+                        // Clean up old entries (older than 5 seconds)
+                        const now = Date.now();
+                        for (const [actorId, timestamp] of CPBPlayerStats._recentUnconsciousRecorded.entries()) {
+                            if (now - timestamp > 5000) {
+                                CPBPlayerStats._recentUnconsciousRecorded.delete(actorId);
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                // Skip if can't check HP - not critical
+                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Error checking target HP', {
+                    error: e.message,
+                    target: targetName
+                }, true, false);
             }
         }
 
@@ -1229,7 +1408,22 @@ class CPBPlayerStats {
         }
 
         // Track unconscious (HP went from >0 to 0 or below)
+        // Note: This is a fallback for cases where damage doesn't go through chat messages.
+        // Most unconscious events should be caught in _processResolvedDamage where we have full context.
+        // Skip if we already recorded this from damage processing (within last 5 seconds)
         if (preHp.hp > 0 && newHp <= 0) {
+            const recentlyRecorded = CPBPlayerStats._recentUnconsciousRecorded?.get(actor.id);
+            const now = Date.now();
+            if (recentlyRecorded && (now - recentlyRecorded) < 5000) {
+                // Already recorded from damage processing - skip to avoid duplicate
+                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Skipping HP delta (already recorded from damage)', {
+                    actor: actor.name,
+                    timeSinceDamageRecord: now - recentlyRecorded
+                }, true, false);
+                return;
+            }
+            
+            // Not recently recorded from damage - use fallback method
             this._recordUnconscious(actor, preHp.hp, newHp).catch(error => {
                 postConsoleAndNotification(MODULE.NAME, 'Player Stats - Error recording unconscious', error, false, false);
             });
@@ -1391,53 +1585,140 @@ class CPBPlayerStats {
         const stats = await this.getPlayerStats(targetActor.id);
         if (!stats) return;
 
-        const lifetimeUnconscious = stats.lifetime?.unconscious || { count: 0, log: [] };
+        // Ensure unconscious structure exists and has log array (handle legacy data)
+        if (!stats.lifetime) stats.lifetime = {};
+        if (!stats.lifetime.unconscious) {
+            stats.lifetime.unconscious = { count: 0, log: [] };
+        }
+        if (!Array.isArray(stats.lifetime.unconscious.log)) {
+            stats.lifetime.unconscious.log = [];
+        }
+        
+        const lifetimeUnconscious = stats.lifetime.unconscious;
         
         // Try to find recent damage event that caused this (best-effort attribution)
         let attackerName = null;
         let weaponName = null;
         let damageAmount = null;
         
-        // Look for recent damage events targeting this actor (within last 5 seconds)
+        // Look for recent damage events targeting this actor (within last 10 seconds - increased from 5)
         const now = Date.now();
-        const recentWindow = 5_000; // 5 seconds
+        const recentWindow = 10_000; // 10 seconds to account for delayed HP updates
         const targetActorUuid = targetActor.uuid;
+        const targetActorId = targetActor.id;
         
-        for (const [key, cacheEntry] of CPBPlayerStats._attackCache.entries()) {
-            const attackEvent = cacheEntry.attackEvent;
-            if (!attackEvent) continue;
-            
-            // Check if this attack targeted our actor and was recent
-            const targetedThisActor = attackEvent.hitTargets.includes(targetActorUuid) || 
-                                     attackEvent.missTargets.includes(targetActorUuid) ||
-                                     attackEvent.unknownTargets.includes(targetActorUuid);
-            
-            if (targetedThisActor && (now - attackEvent.ts) < recentWindow) {
-                // Found a recent attack - try to get attacker and item info
-                try {
-                    const attackerActor = game.actors.get(attackEvent.attackerActorId);
-                    if (attackerActor) {
-                        attackerName = attackerActor.name;
-                    }
-                    
-                    if (attackEvent.itemUuid) {
-                        const item = await fromUuid(attackEvent.itemUuid);
-                        if (item) {
-                            weaponName = item.name;
+        // Debug: Log cache contents
+        postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Searching caches', {
+            targetActor: targetActor.name,
+            targetUuid: targetActorUuid,
+            targetId: targetActorId,
+            combatStatsCacheSize: CombatStats._attackCache.size,
+            playerStatsCacheSize: CPBPlayerStats._attackCache.size,
+            recentWindow: recentWindow
+        }, true, false);
+        
+        // Check both attack caches - CombatStats has ALL attacks (including NPCs), CPBPlayerStats only has player attacks
+        const cachesToCheck = [
+            { name: 'CombatStats', cache: CombatStats._attackCache },
+            { name: 'CPBPlayerStats', cache: CPBPlayerStats._attackCache }
+        ];
+        
+        let bestMatch = null;
+        let bestMatchTime = Infinity;
+        
+        for (const { name: cacheName, cache } of cachesToCheck) {
+            for (const [key, cacheEntry] of cache.entries()) {
+                const attackEvent = cacheEntry.attackEvent;
+                if (!attackEvent) continue;
+                
+                const timeSinceAttack = now - attackEvent.ts;
+                
+                // Check if this attack targeted our actor and was recent
+                // Try multiple matching strategies:
+                // 1. Check UUID in target arrays
+                const targetedByUuid = attackEvent.hitTargets.includes(targetActorUuid) || 
+                                      attackEvent.missTargets.includes(targetActorUuid) ||
+                                      attackEvent.unknownTargets.includes(targetActorUuid);
+                
+                // 2. Check if any target UUID resolves to our actor
+                let targetedByResolution = false;
+                if (!targetedByUuid && attackEvent.hitTargets.length > 0) {
+                    try {
+                        for (const uuid of [...attackEvent.hitTargets, ...attackEvent.missTargets, ...attackEvent.unknownTargets]) {
+                            const doc = await fromUuid(uuid);
+                            const actorDoc = doc?.actor ?? doc;
+                            if (actorDoc?.id === targetActorId || actorDoc?.uuid === targetActorUuid) {
+                                targetedByResolution = true;
+                                break;
+                            }
                         }
+                    } catch (e) {
+                        // Skip if can't resolve
                     }
-                } catch (e) {
-                    // Skip if can't resolve - not critical
+                }
+                
+                const targetedThisActor = targetedByUuid || targetedByResolution;
+                
+                if (targetedThisActor && timeSinceAttack < recentWindow && timeSinceAttack >= 0) {
+                    // Found a recent attack - prefer the most recent one
+                    if (timeSinceAttack < bestMatchTime) {
+                        bestMatch = { attackEvent, cacheName, timeSinceAttack };
+                        bestMatchTime = timeSinceAttack;
+                    }
+                }
+            }
+        }
+        
+        // If we found a match, extract attacker and item info
+        if (bestMatch) {
+            const { attackEvent, cacheName } = bestMatch;
+            try {
+                const attackerActor = game.actors.get(attackEvent.attackerActorId);
+                if (attackerActor) {
+                    attackerName = attackerActor.name;
+                }
+                
+                if (attackEvent.itemUuid) {
+                    const item = await fromUuid(attackEvent.itemUuid);
+                    if (item) {
+                        weaponName = item.name;
+                    }
                 }
                 
                 // Estimate damage from HP drop (best effort)
                 damageAmount = oldHp - newHp;
-                break; // Use first matching recent attack
+                
+                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Found recent attack', {
+                    cacheName: cacheName,
+                    attacker: attackerName,
+                    weapon: weaponName,
+                    target: targetActor.name,
+                    timeSinceAttack: bestMatchTime,
+                    attackEventKey: attackEvent.key,
+                    hitTargets: attackEvent.hitTargets,
+                    missTargets: attackEvent.missTargets
+                }, true, false);
+            } catch (e) {
+                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Error resolving attacker/item', {
+                    error: e.message,
+                    cacheName: cacheName,
+                    attackerActorId: attackEvent.attackerActorId,
+                    itemUuid: attackEvent.itemUuid
+                }, true, false);
             }
+        } else {
+            // No match found - log for debugging
+            postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: No recent attack found', {
+                targetActor: targetActor.name,
+                targetUuid: targetActorUuid,
+                recentWindow: recentWindow,
+                combatStatsCacheSize: CombatStats._attackCache.size,
+                playerStatsCacheSize: CPBPlayerStats._attackCache.size
+            }, true, false);
         }
 
         // Create unconscious event entry
-        const sceneName = game.scenes?.active?.name || 'Unknown Scene';
+        const sceneName = game.scenes?.current?.name || game.scenes?.active?.name || 'Unknown Scene';
         const unconsciousEvent = {
             date: new Date().toISOString(),
             sceneName: sceneName,
@@ -1448,22 +1729,51 @@ class CPBPlayerStats {
             damageAmount: damageAmount
         };
 
-        // Update unconscious stats
+        // Ensure log array exists (handle legacy data that might not have it)
+        const existingLog = Array.isArray(lifetimeUnconscious.log) ? lifetimeUnconscious.log : [];
+        
+        // Update unconscious stats - ensure we provide the complete object structure
+        // Create a new array to avoid mutating the original, then push the new event
+        const updatedLog = [...existingLog];
+        this._boundedPush(updatedLog, unconsciousEvent, 100); // Keep last 100 unconscious events
+        
+        // Create complete unconscious object (not partial update)
+        const updatedUnconscious = {
+            count: (lifetimeUnconscious.count || 0) + 1,
+            log: updatedLog
+        };
+        
+        // IMPORTANT: We need to replace the entire unconscious object, not merge into it
+        // This ensures the log array is always present
         const updates = {
             lifetime: {
-                unconscious: {
-                    count: (lifetimeUnconscious.count || 0) + 1,
-                    log: this._boundedPush(
-                        [...(lifetimeUnconscious.log || [])],
-                        unconsciousEvent,
-                        100 // Keep last 100 unconscious events
-                    )
-                }
+                unconscious: foundry.utils.deepClone(updatedUnconscious)
             }
         };
+        
+        // Debug: Log what we're about to write
+        postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Update structure', {
+            existingCount: lifetimeUnconscious.count || 0,
+            newCount: updatedUnconscious.count,
+            existingLogLength: existingLog.length,
+            newLogLength: updatedLog.length,
+            newEvent: unconsciousEvent,
+            updatesStructure: updates
+        }, true, false);
 
         // Write updates to actor
         await this.updatePlayerStats(targetActor.id, updates);
+        
+        // Verify the update was written correctly
+        const verifyStats = await this.getPlayerStats(targetActor.id);
+        const verifyUnconscious = verifyStats?.lifetime?.unconscious;
+        postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Verification after update', {
+            hasUnconscious: !!verifyUnconscious,
+            count: verifyUnconscious?.count,
+            hasLog: Array.isArray(verifyUnconscious?.log),
+            logLength: verifyUnconscious?.log?.length || 0,
+            logFirstEntry: verifyUnconscious?.log?.[0] || null
+        }, true, false);
 
         // Log collected data
         const unconsciousLogMessage = [
