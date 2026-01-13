@@ -157,6 +157,12 @@ export function resolveDamageMessage(message) {
     if (!roll) return null;
 
     const parts = getKeyParts(message);
+    
+    // Extract target UUIDs from message flags (most reliable source)
+    // Ensure it's always an array, even if empty
+    const targetUuids = (dnd.targets ?? [])
+        .map(t => t.uuid)
+        .filter(Boolean) ?? [];
 
     return {
         type: "damage",
@@ -167,7 +173,7 @@ export function resolveDamageMessage(message) {
         itemType: dnd.item?.type ?? null,
         itemUuid: parts.itemUuid,
         attackerActorId: parts.attackerActorId,
-        targetUuids: parts.targetUuids,
+        targetUuids: targetUuids, // Always an array, from message flags
         bucket: null, // Will be set during correlation
         damageMsgId: message.id,
         attackMsgId: null // Will be set during correlation if found

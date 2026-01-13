@@ -103,6 +103,11 @@ class CPBPlayerStats {
     // Cache to track recently recorded unconscious events (to avoid duplicates from HP delta)
     static _recentUnconsciousRecorded = new Map(); // key: actor.id, value: timestamp
     
+    // Cache to store recent damage context for unconscious attribution
+    // key: targetActor.id, value: Array of { ts, attackerName, itemName, damageTotal, messageId, combatRound, combatTurn }
+    // Keeps a queue per target (last 10 entries) for better correlation
+    static _recentDamageContext = new Map();
+    
     // Bounded push helper to prevent unbounded array growth
     static _boundedPush(array, item, maxSize = 1000) {
         array.push(item);
@@ -702,14 +707,96 @@ class CPBPlayerStats {
         const damageEvent = resolveDamageMessage(message);
         if (!damageEvent) return;
 
+        // --- HYDRATE DAMAGE EVENT FROM CHAT MESSAGE (fallbacks) ---
+        // This ensures we have the best available data even if resolveDamageMessage missed fields
+        const dndFlags = message.flags?.dnd5e ?? {};
+
+        // 1) Attacker fallback: message speaker actor
+        if (!damageEvent.attackerActorId) {
+            const speakerActorId = message.speaker?.actor;
+            if (speakerActorId) damageEvent.attackerActorId = speakerActorId;
+        }
+
+        // 2) Item fallback: dnd5e item uuid (varies by system/version)
+        if (!damageEvent.itemUuid) {
+            const itemUuid =
+                dndFlags?.item?.uuid ??
+                dndFlags?.itemUuid ??
+                (dndFlags?.item?.id ? (dndFlags?.item?.uuid ?? null) : null);
+
+            if (itemUuid) damageEvent.itemUuid = itemUuid;
+        }
+
+        // 3) Targets fallback: dnd5e targets array
+        if (!Array.isArray(damageEvent.targetUuids) || damageEvent.targetUuids.length === 0) {
+            const targetUuids = Array.isArray(dndFlags?.targets)
+                ? dndFlags.targets.map(t => t?.uuid).filter(Boolean)
+                : [];
+            if (targetUuids.length > 0) {
+                damageEvent.targetUuids = targetUuids;
+            }
+        }
+
         // Get attacker actor (can be player or NPC - we need both for unconscious tracking)
-        const attackerActor = game.actors.get(damageEvent.attackerActorId);
-        if (!attackerActor) {
-            return; // Can't process without attacker
+        // Don't bail if attacker can't be resolved - use fallbacks for context
+        let attackerActor = null;
+        if (damageEvent.attackerActorId) {
+            attackerActor = game.actors.get(damageEvent.attackerActorId) ?? null;
+        }
+
+        // If we still couldn't resolve, keep processing context with a best-effort name
+        const attackerNameFallback =
+            attackerActor?.name ??
+            game.actors.get(message.speaker?.actor)?.name ??
+            message.speaker?.alias ??
+            'Unknown Attacker';
+        
+        const attackerForContext = attackerActor ?? { name: attackerNameFallback };
+        
+        // Resolve item once, here (so context always has a weapon/source name)
+        let item = null;
+        if (damageEvent.itemUuid) {
+            try {
+                item = await fromUuid(damageEvent.itemUuid);
+            } catch (e) {
+                // Skip if can't resolve
+            }
+        }
+        
+        // Make weapon/source name come from the message if item resolution fails
+        const itemNameFallback =
+            item?.name ??
+            dndFlags?.item?.name ??
+            dndFlags?.activity?.name ??
+            dndFlags?.activity?.label ??
+            'Unknown Source';
+        
+        const itemForContext = item ?? { name: itemNameFallback };
+        
+        // ALWAYS store damage context for unconscious attribution (even if we later skip stats)
+        // This must happen BEFORE any bucket filtering or early returns
+        const targetUuids = damageEvent.targetUuids ?? [];
+        for (const targetUuid of targetUuids) {
+            try {
+                const targetDoc = await fromUuid(targetUuid);
+                const targetActorDoc = targetDoc?.actor ?? targetDoc;
+                if (targetActorDoc?.id) {
+                    this._noteDamageContext({
+                        targetActor: targetActorDoc,
+                        attackerActor: attackerForContext,
+                        item: itemForContext,
+                        damageEvent: damageEvent,
+                        messageId: damageEvent.damageMsgId
+                    });
+                }
+            } catch (e) {
+                // Skip if can't resolve - not critical
+            }
         }
         
         // Only track damage stats for player attackers, but we'll process all damage for unconscious tracking
-        const isPlayerAttacker = attackerActor.hasPlayerOwner;
+        // Note: attackerActor might be null, so check hasPlayerOwner safely
+        const isPlayerAttacker = attackerActor?.hasPlayerOwner ?? false;
 
         // Correlate damage to cached attack - check both caches
         // CPBPlayerStats cache has player attacks, CombatStats cache has ALL attacks (including NPCs)
@@ -722,36 +809,30 @@ class CPBPlayerStats {
         if (!cacheEntry) {
             // Couldn't correlate - check if this is healing before skipping
             // Healing spells don't have attacks, so they'll be unlinked
-            let item = null;
-            if (damageEvent.itemUuid) {
-                try {
-                    item = await fromUuid(damageEvent.itemUuid);
-                } catch (e) {
-                    // Skip if can't resolve
-                }
-            }
+            // Note: itemForContext was already resolved above in the hydration block
             
             // Check if this is healing using the only reliable signal: activity.type === "heal"
             // Per developer review: In dnd5e 5.2.4, healing rolls appear as roll.type === "damage"
             // but activity.type === "heal" is the reliable indicator
-            const dnd = message.flags?.dnd5e;
-            const activityType = dnd?.activity?.type;
+            // Note: dndFlags was already defined above in the hydration block
+            const activityType = dndFlags?.activity?.type;
             const isHealing = activityType === "heal";
             
             if (isHealing) {
                 // This is healing - track it for the caster's lifetime stats (informational/attribution only)
                 // HP delta tracking remains the source of truth for applied healing
-                if (item) {
-                    await CPBPlayerStats._recordRolledHealing(attackerActor, damageEvent, item);
+                if (itemForContext) {
+                    await CPBPlayerStats._recordRolledHealing(attackerForContext, damageEvent, itemForContext);
                 }
                 return; // Tracked - HP delta will also track applied healing on target
             }
             
             // Not healing and couldn't correlate - treat as unlinked damage (skip for now)
+            // Note: Context was already stored above, so unconscious tracking will still work
             postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unlinked Damage (skipped):', {
                 key: damageEvent.key,
                 damageTotal: damageEvent.damageTotal,
-                attacker: attackerActor.name
+                attacker: attackerForContext.name
             }, true, false);
             return;
         }
@@ -892,54 +973,8 @@ class CPBPlayerStats {
             }
         }
 
-        // Get target actor from attack cache
-        const cacheEntry = CPBPlayerStats._attackCache.get(damageEvent.key) || CombatStats._attackCache.get(damageEvent.key);
-        const attackEvent = cacheEntry?.attackEvent;
-        
-        let targetActor = null;
-        if (attackEvent?.hitTargets?.length > 0) {
-            try {
-                const firstTargetUuid = attackEvent.hitTargets[0];
-                const targetDoc = await fromUuid(firstTargetUuid);
-                const targetActorDoc = targetDoc?.actor ?? targetDoc;
-                targetActor = targetActorDoc;
-            } catch (e) {
-                // Skip if can't resolve
-            }
-        }
-        
-        // Check if this damage caused a player target to go unconscious
-        if (targetActor && targetActor.id && targetActor.hasPlayerOwner) {
-            try {
-                // Get current HP and check if damage would cause unconscious
-                // We need to check BEFORE damage is applied, so get current HP and subtract damage
-                const currentHp = targetActor.system?.attributes?.hp?.value ?? null;
-                if (currentHp !== null) {
-                    // Calculate HP after this damage
-                    const hpAfterDamage = currentHp - damageEvent.damageTotal;
-                    
-                    // If HP would drop to 0 or below, record unconscious
-                    // We check hpAfterDamage <= 0 instead of currentHp <= 0 because
-                    // the HP might not be updated yet when the damage message fires
-                    if (hpAfterDamage <= 0 && currentHp > 0) {
-                        await this._recordUnconsciousFromDamage(
-                            targetActor,
-                            currentHp,
-                            hpAfterDamage,
-                            attackerActor.name,
-                            item?.name || 'Unknown Weapon',
-                            damageEvent.damageTotal
-                        );
-                    }
-                }
-            } catch (e) {
-                // Skip if can't check HP
-                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious (NPC): Error checking HP', {
-                    error: e.message,
-                    target: targetActor?.name
-                }, true, false);
-            }
-        }
+        // Note: Damage context is now stored in _onChatMessage before bucket filtering
+        // This ensures context is always stored, even for "other" bucket damage
     }
 
     /**
@@ -1029,13 +1064,13 @@ class CPBPlayerStats {
         // Try to get target name from first hit target (simplified - don't block on async resolution)
         let targetName = 'Unknown Target';
         let targetAC = null;
-        let targetActor = null; // We'll use this for unconscious tracking
+        let targetActor = null; // We'll use this for hit log
         if (attackEvent?.hitTargets?.length > 0) {
             try {
                 const firstTargetUuid = attackEvent.hitTargets[0];
                 const targetDoc = await fromUuid(firstTargetUuid);
                 const targetActorDoc = targetDoc?.actor ?? targetDoc;
-                targetActor = targetActorDoc; // Save for unconscious check
+                targetActor = targetActorDoc; // Save for hit log
                 if (targetActorDoc?.name) {
                     targetName = targetActorDoc.name;
                 }
@@ -1047,72 +1082,8 @@ class CPBPlayerStats {
             }
         }
         
-        // Check if this damage caused the target (player) to go unconscious
-        // We have all the context here: attacker, weapon, damage, target
-        // Track unconscious for player targets, regardless of who the attacker is
-        if (targetActor && targetActor.id && targetActor.hasPlayerOwner) {
-            try {
-                // Get current HP from the target actor (BEFORE damage is applied)
-                const currentHp = targetActor.system?.attributes?.hp?.value ?? null;
-                
-                if (currentHp !== null) {
-                    // Calculate HP after this damage would be applied
-                    const hpAfterDamage = currentHp - damageEvent.damageTotal;
-                    
-                    postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Checking from damage', {
-                        target: targetActor.name,
-                        targetId: targetActor.id,
-                        currentHp: currentHp,
-                        damageTotal: damageEvent.damageTotal,
-                        hpAfterDamage: hpAfterDamage,
-                        attacker: attackerActor?.name,
-                        weapon: item?.name
-                    }, true, false);
-                    
-                    // If damage would cause HP to drop to 0 or below (and current HP > 0), record unconscious
-                    // We check hpAfterDamage <= 0 because the HP might not be updated yet when damage message fires
-                    if (hpAfterDamage <= 0 && currentHp > 0) {
-                        postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Recording from damage', {
-                            target: targetActor.name,
-                            oldHp: currentHp,
-                            newHp: hpAfterDamage,
-                            attacker: attackerActor?.name,
-                            weapon: item?.name
-                        }, true, false);
-                        
-                        // Record unconscious event on the target actor
-                        await this._recordUnconsciousFromDamage(
-                            targetActor,
-                            currentHp,
-                            hpAfterDamage,
-                            attackerActor?.name || 'Unknown Attacker',
-                            item?.name || 'Unknown Weapon',
-                            damageEvent.damageTotal
-                        );
-                        
-                        // Mark that we've recorded this so HP delta method doesn't duplicate
-                        if (!CPBPlayerStats._recentUnconsciousRecorded) {
-                            CPBPlayerStats._recentUnconsciousRecorded = new Map();
-                        }
-                        CPBPlayerStats._recentUnconsciousRecorded.set(targetActor.id, Date.now());
-                        
-                        // Clean up old entries (older than 5 seconds)
-                        const now = Date.now();
-                        for (const [actorId, timestamp] of CPBPlayerStats._recentUnconsciousRecorded.entries()) {
-                            if (now - timestamp > 5000) {
-                                CPBPlayerStats._recentUnconsciousRecorded.delete(actorId);
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                // Skip if can't check HP - not critical
-                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Error checking target HP', {
-                    error: e.message,
-                    target: targetName
-                }, true, false);
-            }
-        }
+        // Note: Damage context is now stored in _onChatMessage before bucket filtering
+        // This ensures context is always stored, even for "other" bucket damage
 
         // Check if this was a critical (from roll hook state - will be set by _onAttackRoll for nat 20)
         // Note: We track crits from roll hooks, so check if there's a recent crit for this actor
@@ -1218,15 +1189,47 @@ class CPBPlayerStats {
                 return; // Skip if no valid roll
             }
 
-            // Get the d20 result - check both dice and terms
-            const d20Die = rollObj.dice?.find(d => d.faces === 20) || rollObj.terms?.find(t => t?.faces === 20);
-            const d20Result = d20Die?.results?.[0]?.result;
-            if (!d20Result) {
+            // Get the d20 result - must use the ACTIVE result (for advantage/disadvantage)
+            // Find all d20 terms (can have multiple in some cases)
+            const d20Terms = [
+                ...((rollObj.dice ?? []).filter(d => d?.faces === 20)),
+                ...((rollObj.terms ?? []).filter(t => t?.faces === 20))
+            ];
+
+            if (!d20Terms.length) {
                 return; // Skip if no d20 found
+            }
+
+            // Get all results from all d20 terms
+            const results = d20Terms
+                .flatMap(t => t.results ?? [])
+                .filter(r => typeof r?.result === "number");
+
+            if (!results.length) {
+                return; // Skip if no valid results
+            }
+
+            // Prefer the active result (adv/dis), else fall back to first
+            const active = results.find(r => r.active) ?? results[0];
+            const d20Result = active?.result;
+
+            if (typeof d20Result !== "number") {
+                return; // Skip if invalid result
             }
 
             const isCritical = d20Result === 20;
             const isFumble = d20Result === 1;
+            
+            // Debug: Log attack roll details for crit/fumble detection
+            postConsoleAndNotification(MODULE.NAME, "Attack roll hook fired", {
+                actor: actor.name,
+                item: item.name,
+                total: rollObj.total,
+                d20Result: d20Result,
+                d20Results: results.map(r => ({ result: r.result, active: r.active })),
+                isCritical: isCritical,
+                isFumble: isFumble
+            }, true, false);
 
             // Track crits/fumbles in real-time (these are definitive - nat 20 = crit, nat 1 = fumble)
             if (isCritical || isFumble) {
@@ -1407,24 +1410,81 @@ class CPBPlayerStats {
             });
         }
 
-        // Track unconscious (HP went from >0 to 0 or below)
-        // Note: This is a fallback for cases where damage doesn't go through chat messages.
-        // Most unconscious events should be caught in _processResolvedDamage where we have full context.
-        // Skip if we already recorded this from damage processing (within last 5 seconds)
+        // Track unconscious (HP went from >0 to 0 or below) - HP delta is source of truth
+        // Look up recent damage context for attribution (attacker, weapon, damage)
         if (preHp.hp > 0 && newHp <= 0) {
-            const recentlyRecorded = CPBPlayerStats._recentUnconsciousRecorded?.get(actor.id);
+            // Get queue of recent damage contexts for this actor
+            const contextQueue = CPBPlayerStats._recentDamageContext?.get(actor.id) ?? [];
             const now = Date.now();
-            if (recentlyRecorded && (now - recentlyRecorded) < 5000) {
-                // Already recorded from damage processing - skip to avoid duplicate
-                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Skipping HP delta (already recorded from damage)', {
-                    actor: actor.name,
-                    timeSinceDamageRecord: now - recentlyRecorded
-                }, true, false);
-                return;
+            const currentCombatRound = game.combat?.round ?? null;
+            const currentCombatTurn = game.combat?.turn ?? null;
+            
+            // Filter by TTL (15 seconds)
+            const validContexts = contextQueue.filter(ctx => (now - ctx.ts) <= 15000);
+            
+            // Select best candidate using scoring:
+            // 1. Prefer same combat round/turn (most likely cause)
+            // 2. Prefer most recent (tie-breaker)
+            // 3. Prefer larger damage (optional tie-breaker)
+            let bestContext = null;
+            let bestScore = -1;
+            
+            for (const ctx of validContexts) {
+                let score = 0;
+                
+                // Same combat round and turn = highest priority
+                if (ctx.combatRound === currentCombatRound && ctx.combatTurn === currentCombatTurn) {
+                    score += 1000;
+                } else if (ctx.combatRound === currentCombatRound) {
+                    score += 100; // Same round, different turn
+                }
+                
+                // Recency bonus (newer = better, but less important than combat match)
+                const age = now - ctx.ts;
+                score += Math.max(0, 15000 - age); // Max 15000 points for recency
+                
+                // Damage amount bonus (larger damage = more likely cause)
+                if (ctx.damageTotal) {
+                    score += ctx.damageTotal;
+                }
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestContext = ctx;
+                }
             }
             
-            // Not recently recorded from damage - use fallback method
-            this._recordUnconscious(actor, preHp.hp, newHp).catch(error => {
+            // Clean up empty queues
+            if (validContexts.length === 0 && contextQueue.length > 0) {
+                CPBPlayerStats._recentDamageContext.delete(actor.id);
+            }
+            
+            // Debug: Log context lookup
+            postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Context Lookup', {
+                actor: actor.name,
+                actorId: actor.id,
+                queueSize: contextQueue.length,
+                validContexts: validContexts.length,
+                foundBestContext: !!bestContext,
+                bestContextAge: bestContext ? (now - bestContext.ts) : null,
+                bestContextRound: bestContext?.combatRound,
+                bestContextTurn: bestContext?.combatTurn,
+                currentRound: currentCombatRound,
+                currentTurn: currentCombatTurn,
+                attackerName: bestContext?.attackerName ?? 'Unknown Attacker',
+                itemName: bestContext?.itemName ?? 'Unknown Source',
+                cacheSize: CPBPlayerStats._recentDamageContext?.size ?? 0
+            }, true, false);
+            
+            // Record unconscious with best context if available
+            await this._recordUnconscious(
+                actor,
+                preHp.hp,
+                newHp,
+                bestContext?.attackerName ?? 'Unknown Attacker',
+                bestContext?.itemName ?? 'Unknown Source',
+                bestContext?.damageTotal ?? null
+            ).catch(error => {
                 postConsoleAndNotification(MODULE.NAME, 'Player Stats - Error recording unconscious', error, false, false);
             });
         }
@@ -1573,13 +1633,65 @@ class CPBPlayerStats {
     }
 
     /**
-     * Record unconscious event when actor HP drops to 0 or below.
-     * Tracks count and maintains log of unconscious events with date, scene, and optional attacker info.
+     * Store damage context for potential unconscious attribution.
+     * Called when damage messages are processed - stores context for HP delta handler to use.
+     * Uses a queue per target (last 10 entries) for better correlation in multi-hit scenarios.
+     * @param {Object} params - { targetActor, attackerActor, item, damageEvent, messageId }
+     */
+    static _noteDamageContext({ targetActor, attackerActor, item, damageEvent, messageId }) {
+        if (!targetActor?.id) return;
+        
+        const context = {
+            ts: Date.now(),
+            attackerName: attackerActor?.name ?? 'Unknown Attacker',
+            itemName: item?.name ?? 'Unknown Source',
+            damageTotal: damageEvent?.damageTotal ?? null,
+            messageId: messageId ?? null,
+            combatRound: game.combat?.round ?? null,
+            combatTurn: game.combat?.turn ?? null
+        };
+        
+        // Get or create queue for this target
+        const queue = CPBPlayerStats._recentDamageContext.get(targetActor.id) ?? [];
+        
+        // Add new context to queue
+        queue.push(context);
+        
+        // Keep last 10 entries (bounded queue)
+        const boundedQueue = queue.slice(-10);
+        
+        // Lazy prune: remove entries older than 15s for this target only
+        const now = Date.now();
+        const prunedQueue = boundedQueue.filter(ctx => (now - ctx.ts) <= 15000);
+        
+        // Update map (empty arrays will be cleaned up during lookup if needed)
+        CPBPlayerStats._recentDamageContext.set(targetActor.id, prunedQueue);
+        
+        // Debug: Log context storage
+        postConsoleAndNotification(MODULE.NAME, 'Player Stats - Damage Context Stored', {
+            targetActor: targetActor.name,
+            targetId: targetActor.id,
+            attackerName: context.attackerName,
+            itemName: context.itemName,
+            damageTotal: context.damageTotal,
+            combatRound: context.combatRound,
+            combatTurn: context.combatTurn,
+            queueSize: prunedQueue.length,
+            timestamp: context.ts
+        }, true, false);
+    }
+    
+    /**
+     * Record unconscious event when actor HP drops to 0 or below (from HP delta).
+     * HP delta is the source of truth - damage context provides attribution.
      * @param {Actor} targetActor - The actor that went unconscious
      * @param {number} oldHp - HP before the change
      * @param {number} newHp - HP after the change (should be <= 0)
+     * @param {string} attackerName - Name of attacker (from damage context, or 'Unknown Attacker')
+     * @param {string} sourceName - Name of weapon/spell (from damage context, or 'Unknown Source')
+     * @param {number|null} damageTotal - Damage amount (from damage context, or null)
      */
-    static async _recordUnconscious(targetActor, oldHp, newHp) {
+    static async _recordUnconscious(targetActor, oldHp, newHp, attackerName = 'Unknown Attacker', sourceName = 'Unknown Source', damageTotal = null) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
         
         const stats = await this.getPlayerStats(targetActor.id);
@@ -1595,129 +1707,8 @@ class CPBPlayerStats {
         }
         
         const lifetimeUnconscious = stats.lifetime.unconscious;
-        
-        // Try to find recent damage event that caused this (best-effort attribution)
-        let attackerName = null;
-        let weaponName = null;
-        let damageAmount = null;
-        
-        // Look for recent damage events targeting this actor (within last 10 seconds - increased from 5)
-        const now = Date.now();
-        const recentWindow = 10_000; // 10 seconds to account for delayed HP updates
-        const targetActorUuid = targetActor.uuid;
-        const targetActorId = targetActor.id;
-        
-        // Debug: Log cache contents
-        postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Searching caches', {
-            targetActor: targetActor.name,
-            targetUuid: targetActorUuid,
-            targetId: targetActorId,
-            combatStatsCacheSize: CombatStats._attackCache.size,
-            playerStatsCacheSize: CPBPlayerStats._attackCache.size,
-            recentWindow: recentWindow
-        }, true, false);
-        
-        // Check both attack caches - CombatStats has ALL attacks (including NPCs), CPBPlayerStats only has player attacks
-        const cachesToCheck = [
-            { name: 'CombatStats', cache: CombatStats._attackCache },
-            { name: 'CPBPlayerStats', cache: CPBPlayerStats._attackCache }
-        ];
-        
-        let bestMatch = null;
-        let bestMatchTime = Infinity;
-        
-        for (const { name: cacheName, cache } of cachesToCheck) {
-            for (const [key, cacheEntry] of cache.entries()) {
-                const attackEvent = cacheEntry.attackEvent;
-                if (!attackEvent) continue;
-                
-                const timeSinceAttack = now - attackEvent.ts;
-                
-                // Check if this attack targeted our actor and was recent
-                // Try multiple matching strategies:
-                // 1. Check UUID in target arrays
-                const targetedByUuid = attackEvent.hitTargets.includes(targetActorUuid) || 
-                                      attackEvent.missTargets.includes(targetActorUuid) ||
-                                      attackEvent.unknownTargets.includes(targetActorUuid);
-                
-                // 2. Check if any target UUID resolves to our actor
-                let targetedByResolution = false;
-                if (!targetedByUuid && attackEvent.hitTargets.length > 0) {
-                    try {
-                        for (const uuid of [...attackEvent.hitTargets, ...attackEvent.missTargets, ...attackEvent.unknownTargets]) {
-                            const doc = await fromUuid(uuid);
-                            const actorDoc = doc?.actor ?? doc;
-                            if (actorDoc?.id === targetActorId || actorDoc?.uuid === targetActorUuid) {
-                                targetedByResolution = true;
-                                break;
-                            }
-                        }
-                    } catch (e) {
-                        // Skip if can't resolve
-                    }
-                }
-                
-                const targetedThisActor = targetedByUuid || targetedByResolution;
-                
-                if (targetedThisActor && timeSinceAttack < recentWindow && timeSinceAttack >= 0) {
-                    // Found a recent attack - prefer the most recent one
-                    if (timeSinceAttack < bestMatchTime) {
-                        bestMatch = { attackEvent, cacheName, timeSinceAttack };
-                        bestMatchTime = timeSinceAttack;
-                    }
-                }
-            }
-        }
-        
-        // If we found a match, extract attacker and item info
-        if (bestMatch) {
-            const { attackEvent, cacheName } = bestMatch;
-            try {
-                const attackerActor = game.actors.get(attackEvent.attackerActorId);
-                if (attackerActor) {
-                    attackerName = attackerActor.name;
-                }
-                
-                if (attackEvent.itemUuid) {
-                    const item = await fromUuid(attackEvent.itemUuid);
-                    if (item) {
-                        weaponName = item.name;
-                    }
-                }
-                
-                // Estimate damage from HP drop (best effort)
-                damageAmount = oldHp - newHp;
-                
-                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Found recent attack', {
-                    cacheName: cacheName,
-                    attacker: attackerName,
-                    weapon: weaponName,
-                    target: targetActor.name,
-                    timeSinceAttack: bestMatchTime,
-                    attackEventKey: attackEvent.key,
-                    hitTargets: attackEvent.hitTargets,
-                    missTargets: attackEvent.missTargets
-                }, true, false);
-            } catch (e) {
-                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: Error resolving attacker/item', {
-                    error: e.message,
-                    cacheName: cacheName,
-                    attackerActorId: attackEvent.attackerActorId,
-                    itemUuid: attackEvent.itemUuid
-                }, true, false);
-            }
-        } else {
-            // No match found - log for debugging
-            postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unconscious: No recent attack found', {
-                targetActor: targetActor.name,
-                targetUuid: targetActorUuid,
-                recentWindow: recentWindow,
-                combatStatsCacheSize: CombatStats._attackCache.size,
-                playerStatsCacheSize: CPBPlayerStats._attackCache.size
-            }, true, false);
-        }
 
-        // Create unconscious event entry
+        // Create unconscious event entry with context from damage messages
         const sceneName = game.scenes?.current?.name || game.scenes?.active?.name || 'Unknown Scene';
         const unconsciousEvent = {
             date: new Date().toISOString(),
@@ -1725,8 +1716,8 @@ class CPBPlayerStats {
             oldHp: oldHp,
             newHp: newHp,
             attackerName: attackerName,
-            weaponName: weaponName,
-            damageAmount: damageAmount
+            weaponName: sourceName,
+            damageAmount: damageTotal
         };
 
         // Ensure log array exists (handle legacy data that might not have it)
@@ -1780,11 +1771,11 @@ class CPBPlayerStats {
             `=== PLAYER STATS - UNCONSCIOUS EVENT (${targetActor.name}) ===`,
             `HP Change: ${oldHp} → ${newHp}`,
             `Scene: ${sceneName}`,
-            attackerName ? `Attacker: ${attackerName}` : 'Attacker: Unknown',
-            weaponName ? `Weapon: ${weaponName}` : 'Weapon: Unknown',
-            damageAmount ? `Damage: ${damageAmount}` : '',
+            attackerName !== 'Unknown Attacker' ? `Attacker: ${attackerName}` : 'Attacker: Unknown',
+            sourceName !== 'Unknown Source' ? `Weapon: ${sourceName}` : 'Weapon: Unknown',
+            damageTotal ? `Damage: ${damageTotal}` : '',
             `--- Lifetime Totals (Before Update) ---`,
-            `  Total Unconscious Events: ${lifetimeUnconscious.count || 0} → ${updates.lifetime.unconscious.count} (+1)`,
+            `  Total Unconscious Events: ${lifetimeUnconscious.count || 0} → ${updatedUnconscious.count} (+1)`,
             `========================================`
         ].filter(Boolean).join('\n');
         postConsoleAndNotification(MODULE.NAME, 'Player Stats | Unconscious Event', unconsciousLogMessage, false, false);
