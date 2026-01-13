@@ -8,7 +8,7 @@ export class StatsWindow extends Application {
         return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'blacksmith-stats-window',
             title: 'Party Statistics',
-            template: `modules/${MODULE.ID}/templates/window-stats.hbs`,
+            template: `modules/${MODULE.ID}/templates/window-stats-party.hbs`,
             width: 960,
             height: 720,
             resizable: true,
@@ -218,7 +218,7 @@ export class StatsWindow extends Application {
                     mvp: {
                         totalScore: Number(mvp.totalScore || 0).toFixed(1),
                         combats: mvp.combats || 0,
-                        averageScore: Number(mvp.averageScore || 0).toFixed(2),
+                        averageScore: Number(mvp.averageScore || 0).toFixed(1),
                         highScore: Number(mvp.highScore || 0).toFixed(1)
                     },
                     crits: crits,
@@ -577,7 +577,7 @@ export class StatsWindow extends Application {
         }
 
         // Import and show PlayerStatsWindow
-        const { PlayerStatsWindow } = await import('./window-player-stats.js');
+        const { PlayerStatsWindow } = await import('./window-stats-player.js');
         PlayerStatsWindow.show(actorId);
     }
 
@@ -922,7 +922,7 @@ export class StatsWindow extends Application {
                 merged.lifetime.mvp = {
                     totalScore: totalScore,
                     combats: combats,
-                    averageScore: combats > 0 ? Number((totalScore / combats).toFixed(2)) : 0,
+                    averageScore: combats > 0 ? Number((totalScore / combats).toFixed(1)) : 0,
                     highScore: Math.max(currentMvp.highScore || 0, importedMvp.highScore || 0),
                     lastScore: importedMvp.lastScore || currentMvp.lastScore || 0,
                     lastRank: importedMvp.lastRank || currentMvp.lastRank || null

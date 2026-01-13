@@ -12,7 +12,7 @@ import { XpManager } from './xp-manager.js';
 import { CSSEditor } from './window-gmtools.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
 import { CombatTracker } from './combat-tracker.js';
-import { StatsWindow } from './window-stats.js';
+import { StatsWindow } from './window-stats-party.js';
 import { RoundTimer } from './timer-round.js';
 import { deployParty } from './utility-party.js';
 import { getDeploymentPatternName } from './api-tokens.js';

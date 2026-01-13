@@ -7,7 +7,7 @@ export class PlayerStatsWindow extends Application {
         return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'blacksmith-player-stats-window',
             title: 'Player Statistics',
-            template: `modules/${MODULE.ID}/templates/window-player-stats.hbs`,
+            template: `modules/${MODULE.ID}/templates/window-stats-player.hbs`,
             width: 800,
             height: 700,
             resizable: true,
@@ -105,7 +105,7 @@ export class PlayerStatsWindow extends Application {
                 attacks: {
                     totalHits: totalHits,
                     totalMisses: totalMisses,
-                    hitMissRatio: attacks.hitMissRatio || 0,
+                    hitMissRatio: attacks.hitMissRatio ? Number(attacks.hitMissRatio).toFixed(1) : '0.0',
                     totalDamage: attacks.totalDamage || 0,
                     criticals: attacks.criticals || 0,
                     fumbles: attacks.fumbles || 0,
