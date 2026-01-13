@@ -70,6 +70,7 @@ import { assetLookup } from './asset-lookup.js';
 import { registerWindowQueryPartials } from './window-query-registration.js';
 import { SidebarPin } from './sidebar-pin.js';
 import { SidebarStyle } from './sidebar-style.js';
+import './sidebar-combat.js';
 import './combat-tools.js'; 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================

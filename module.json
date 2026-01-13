@@ -71,6 +71,7 @@
     "scripts/settings.js",
     "scripts/manager-compendiums.js",
     "scripts/blacksmith.js",
+    "scripts/sidebar-combat.js",
     "api/blacksmith-api.js"
   ],
   "packs": [

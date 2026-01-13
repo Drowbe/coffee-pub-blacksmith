@@ -1,0 +1,56 @@
+/* ================================================================== */
+/* ===== SIDEBAR COMBAT (CHAT + COMBAT TAB) ========================= */
+/* ================================================================== */
+
+/* Combined tab layout */
+#cpb-chat-combat { 
+    height: 100%; 
+}
+
+#cpb-chat-combat .cpb-split {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    --cpb-split: 50%; /* top pane height */
+}
+
+/* Panes */
+#cpb-chat-combat .cpb-pane-top {
+    flex: 0 0 var(--cpb-split);
+    min-height: 140px;
+    overflow: hidden;
+    display: flex;
+}
+
+#cpb-chat-combat .cpb-pane-bottom {
+    flex: 1 1 auto;
+    min-height: 160px;
+    overflow: hidden;
+    display: flex;
+}
+
+/* Scroll behavior inside mounts */
+#cpb-chat-combat .cpb-mount {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+/* Divider / handle */
+#cpb-chat-combat .cpb-divider {
+    flex: 0 0 8px;
+    cursor: row-resize;
+    position: relative;
+}
+
+#cpb-chat-combat .cpb-divider::before {
+    content: "";
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    top: 3px;
+    height: 2px;
+    opacity: 0.5;
+    background: currentColor;
+    border-radius: 2px;
+}

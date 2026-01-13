@@ -72,3 +72,5 @@
 /* --- Sidebar Style ---------------------- */
 @import "sidebar-style.css";
 
+/* --- Sidebar Combat (Chat + Combat Tab) ---------------------- */
+@import "sidebar-combat.css";
