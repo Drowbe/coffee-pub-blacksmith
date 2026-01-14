@@ -1078,8 +1078,40 @@ class CPBPlayerStats {
             bucket
         };
 
-        // Healing stays HP-delta only for now (not processed here)
-        if (isHealing) return;
+        // Healing: HP delta remains source-of-truth for "received".
+        // But we *can* attribute "given" reliably here (MIDI gives per-target amounts).
+        if (isHealing) {
+            const healingEvent = {
+                type: "healing",
+                key,
+                ts: Date.now(),
+                attackerActorId: attacker.id,
+                itemUuid,
+                activityUuid: null,
+                targetUuids: targetUuid ? [targetUuid] : [],
+                damageTotal: amount,         // _recordRolledHealing expects damageTotal
+                damageMsgId: null,
+                bucket: "heal"
+            };
+
+            // Resolve the item if possible (optional, but nice for logs)
+            let item = workflow?.item ?? null;
+            if (!item && itemUuid) {
+                try { item = await fromUuid(itemUuid); } catch (_) {}
+            }
+
+            await CPBPlayerStats._recordRolledHealing(attacker, healingEvent, item ?? { name: "Unknown" });
+
+            postConsoleAndNotification(MODULE.NAME, "Player Stats | MIDI healing processed", {
+                key,
+                healer: attacker.name,
+                targetUuid,
+                amount,
+                item: item?.name ?? workflow?.item?.name ?? "Unknown"
+            }, true, false);
+
+            return;
+        }
 
         // Process the resolved damage event
         await CPBPlayerStats._processResolvedDamage(damageEvent, attackEvent);
@@ -2139,14 +2171,17 @@ class CPBPlayerStats {
         const lifetimeRevives = stats.lifetime?.revives || { received: 0 };
 
         const oldReceived = lifetimeHealing.received || 0;
+        const oldTotal = lifetimeHealing.total || 0;
         const oldRevives = lifetimeRevives.received || 0;
         const isRevive = oldHp === 0 && newHp > 0;
 
         // Always record received healing on target
+        // Also increment total (healing.total = all healing involving this actor: given + received)
         const updates = {
             lifetime: {
                 healing: {
                     ...lifetimeHealing,
+                    total: oldTotal + amount,
                     received: oldReceived + amount
                 },
                 revives: {
