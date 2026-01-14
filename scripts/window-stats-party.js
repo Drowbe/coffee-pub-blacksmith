@@ -9,7 +9,7 @@ export class StatsWindow extends Application {
             id: 'blacksmith-stats-window',
             title: 'Party Statistics',
             template: `modules/${MODULE.ID}/templates/window-stats-party.hbs`,
-            width: 960,
+            width: 1030,
             height: 720,
             resizable: true,
             minimizable: true,

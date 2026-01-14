@@ -8,7 +8,7 @@ export class PlayerStatsWindow extends Application {
             id: 'blacksmith-player-stats-window',
             title: 'Player Statistics',
             template: `modules/${MODULE.ID}/templates/window-stats-player.hbs`,
-            width: 800,
+            width: 750,
             height: 700,
             resizable: true,
             minimizable: true,

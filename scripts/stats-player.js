@@ -101,6 +101,9 @@ class CPBPlayerStats {
     // HP cache for preUpdateActor hook (keyed by actor.uuid)
     static _preHpCache = new Map(); // key: actor.uuid, value: { hp: number, temp: number, max: number }
     
+    // Pending crit/fumble info from RollComplete (when it fires before hitsChecked)
+    static _pendingMidiCrit = new Map(); // key -> { isCritical, isFumble, ts }
+    
     // Cache to track recently recorded unconscious events (to avoid duplicates from HP delta)
     static _recentUnconsciousRecorded = new Map(); // key: actor.id, value: timestamp
     
@@ -261,8 +264,82 @@ class CPBPlayerStats {
                         const actor = workflow?.actor;
                         if (!actor?.hasPlayerOwner) return;
 
-                        const isCritical = !!workflow?.isCritical;
-                        const isFumble = !!workflow?.isFumble;
+                        const attackRoll = workflow?.attackRoll ?? null;
+
+                        // Try multiple sources (MIDI varies by version/config)
+                        const wfCrit = !!workflow?.isCritical;
+                        const wfFumble = !!workflow?.isFumble;
+
+                        const rollCrit = !!attackRoll?.isCritical || !!attackRoll?.options?.critical;
+                        const rollFumble = !!attackRoll?.isFumble || !!attackRoll?.options?.fumble;
+
+                        // Fallback: inspect d20 results (prefer active/kept results, handle adv/dis)
+                        let d20Results = [];
+                        let d20Active = [];
+                        try {
+                            const d20Dice = (attackRoll?.dice ?? []).filter(d => d?.faces === 20);
+                            for (const die of d20Dice) {
+                                const results = Array.isArray(die?.results) ? die.results : [];
+                                for (const r of results) {
+                                    if (typeof r?.result === "number") {
+                                        d20Results.push(r.result);
+                                        // Foundry marks kept/used die results as active=true (discarded as false)
+                                        if (r.active !== false) d20Active.push(r.result);
+                                    }
+                                }
+                            }
+                        } catch (_) {}
+
+                        const d20Used = d20Active.length ? d20Active : d20Results;
+
+                        // Nat 20 if ANY used d20 is 20
+                        const natCrit = d20Used.includes(20);
+
+                        // Nat 1 is trickier with adv/dis; only count it if a USED die is 1
+                        const natFumble = d20Used.includes(1);
+
+                        const isCritical = wfCrit || rollCrit || natCrit;
+                        const isFumble = wfFumble || rollFumble || natFumble;
+
+                        // ALWAYS log once so we know the hook fires and what it sees
+                        postConsoleAndNotification(MODULE.NAME, 'Player Stats | MIDI RollComplete observed', {
+                            workflowId: workflow?.workflowId ?? workflow?.id ?? workflow?.uuid ?? null,
+                            actor: actor.name,
+                            attackTotal: attackRoll?.total ?? null,
+                            d20Used,
+                            d20Results,
+                            d20Active,
+                            wfCrit,
+                            wfFumble,
+                            rollCrit,
+                            rollFumble,
+                            natCrit,
+                            natFumble,
+                            isCritical,
+                            isFumble
+                        }, true, false);
+
+                        // Attach crit/fumble to cached attackEvent (if hitsChecked already cached it)
+                        // OR stage it for hitsChecked to pick up later
+                        const workflowId = CPBPlayerStats._getMidiWorkflowId(workflow);
+                        if (workflowId) {
+                            const key = `midi:${workflowId}`;
+
+                            // If hitsChecked already cached the attackEvent, annotate it so damage logs/hitLog can use it
+                            const entry = CPBPlayerStats._attackCache.get(key);
+                            if (entry?.attackEvent) {
+                                entry.attackEvent.isCritical = isCritical;
+                                entry.attackEvent.isFumble = isFumble;
+                                entry.ts = Date.now(); // optional: keep it warm
+                                CPBPlayerStats._attackCache.set(key, entry);
+                            } else {
+                                // hitsChecked might not have fired yet; stash the result for later
+                                if (!CPBPlayerStats._pendingMidiCrit) {
+                                    CPBPlayerStats._pendingMidiCrit = new Map();
+                                }
+                                CPBPlayerStats._pendingMidiCrit.set(key, { isCritical, isFumble, ts: Date.now() });
+                            }
+                        }
 
                         if (!isCritical && !isFumble) return;
 
@@ -820,6 +897,14 @@ class CPBPlayerStats {
             attackMsgId: workflow?.itemCardId ?? null,
             workflowId
         };
+
+        // Apply staged crit/fumble if RollComplete fired before hitsChecked
+        const pending = CPBPlayerStats._pendingMidiCrit?.get(key);
+        if (pending) {
+            attackEvent.isCritical = !!pending.isCritical;
+            attackEvent.isFumble = !!pending.isFumble;
+            CPBPlayerStats._pendingMidiCrit.delete(key);
+        }
 
         // Cache the attack resolution for damage correlation
         CPBPlayerStats._attackCache.set(key, {
@@ -1580,6 +1665,13 @@ class CPBPlayerStats {
         }
         clonedAttacks.hitLog.push(hitDetails);
         clonedAttacks.hitLog = clonedAttacks.hitLog.slice(-20); // Keep last 20
+
+        // RIGHT before writing updates, preserve crit/fumble counters from latest flags
+        // This prevents a damage write from "rewinding" crit count if RollComplete hook updated it mid-flight
+        const latest = await this.getPlayerStats(attackerActor.id);
+        const latestAttacks = latest?.lifetime?.attacks ?? {};
+        clonedAttacks.criticals = latestAttacks.criticals ?? clonedAttacks.criticals ?? 0;
+        clonedAttacks.fumbles = latestAttacks.fumbles ?? clonedAttacks.fumbles ?? 0;
 
         // Update stats
         const updates = {
