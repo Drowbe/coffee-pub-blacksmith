@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [13.0.11]
 
 ### Added
+- **Loading Progress Indicator**: Comprehensive loading progress system for FoundryVTT world loading
+  - Full-screen overlay showing overall FoundryVTT loading progress (not just module initialization)
+  - Tracks 5 major loading phases: Modules → Systems → Game Data → Canvas → Finalizing
+  - Live activity feed displaying current loading activity with spinning icon
+  - Activity history showing recent loading activities with fade-out effect
+  - Progress bar with percentage display and smooth animations
+  - Close button (X) to dismiss indicator and let FoundryVTT continue loading normally
+  - Respects `coreLoadingProgress` setting to enable/disable the indicator
+  - Background image matching module window style (background-skull-red.webp)
+  - Red color scheme matching module theme for progress bar and accents
+  - Font Awesome spinner icon for activity indicator
+  - Automatic detection of FoundryVTT loading phases via polling
+  - Manual activity logging during Blacksmith initialization steps
+  - Safe setting check with fallback (defaults to showing if setting unavailable during early init)
 - **Chat + Combat Sidebar Tab**: New hybrid sidebar tab combining chat log and combat tracker
   - New tab button appears after the existing Combat button in the sidebar
   - Chat log displayed at top (read-only, no input or controls)
@@ -21,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Healing Tracking System**: Implemented comprehensive healing tracking for player lifetime stats
   - **HP Delta Tracking (Lane 1)**: Source of truth for applied healing - tracks actual HP changes via `preUpdateActor`/`updateActor` hooks
   - **Chat Message Attribution**: Detects healing spells in chat messages using reliable `activity.type === "heal"` signal for caster attribution
+  - **MIDI Workflow Support**: Processes healing via `midi-qol.preTargetDamageApplication` hook for accurate per-target healing attribution when using Midi-QOL module
   - **Healing Received**: Tracks `lifetime.healing.received` on target actors when HP increases
   - **Healing Given**: Tracks `lifetime.healing.given` and `lifetime.healing.total` on caster actors
   - **Revive Tracking**: Increments `lifetime.revives.received` when HP goes from 0 to >0
@@ -45,6 +60,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Active Result Detection**: Now uses the active d20 result (for advantage/disadvantage) instead of first result
   - **Multiple d20 Support**: Handles rolls with multiple d20 terms correctly
   - **Debug Logging**: Added diagnostic logging for crit/fumble detection verification
+- **Actor Update Queue System**: Implemented per-actor serialization queue to prevent race conditions in stat updates
+  - **Sequential Update Guarantee**: Ensures all stat updates for the same actor happen sequentially, not concurrently
+  - **Promise-Based Queueing**: Uses promise chaining to serialize writes and prevent concurrent read-modify-write cycles
+  - **Automatic Cleanup**: Queue entries are automatically cleaned up when no longer needed
+  - **Healing Race Condition Fix**: Prevents healing totals from being overwritten in multi-target healing scenarios (e.g., Mass Cure Wounds)
 
 ### Changed
 - **Healing Detection Logic**: Simplified healing detection to use only reliable `flags.dnd5e.activity.type === "heal"` signal
@@ -100,6 +120,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Now uses the active d20 result (marked `active: true`) instead of first result
   - Handles multiple d20 terms correctly (e.g., advantage rolls with two d20s)
   - Falls back to first result if no active result is found
+- **Healing Race Condition**: Fixed critical race condition where multi-target healing spells (e.g., Mass Cure Wounds) were overwriting healing totals instead of accumulating them
+  - Root cause: Multiple concurrent `preTargetDamageApplication` hooks firing simultaneously for the same healer, causing read-modify-write cycles to see stale values
+  - Solution: Implemented per-actor update queue system that serializes all stat writes for the same actor
+  - Healing totals now correctly accumulate: `0 → 30 → 60 → 90` instead of `0 → 30` (overwritten)
+  - Applied to both MIDI healing (`_onMidiPreTargetDamageApplication`) and core healing (`_onChatMessage`) paths
+  - Prevents similar race conditions in damage tracking and other concurrent stat updates
 
 ## [13.0.10]
 
