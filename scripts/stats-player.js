@@ -104,6 +104,22 @@ class CPBPlayerStats {
     // Pending crit/fumble info from RollComplete (when it fires before hitsChecked)
     static _pendingMidiCrit = new Map(); // key -> { isCritical, isFumble, ts }
     
+
+    // Healing dedupe cache to avoid double-counting "healing given" when multiple lanes fire
+    static _healingGivenCache = new Map(); // key -> ts
+    static HEALING_TTL_MS = 20_000;
+
+    static _isHealingGivenDuplicate(dedupeKey) {
+        const now = Date.now();
+        // prune occasionally
+        for (const [k, ts] of this._healingGivenCache.entries()) {
+            if (now - ts > this.HEALING_TTL_MS) this._healingGivenCache.delete(k);
+        }
+        if (this._healingGivenCache.has(dedupeKey)) return true;
+        this._healingGivenCache.set(dedupeKey, now);
+        return false;
+    }
+
     // Cache to track recently recorded unconscious events (to avoid duplicates from HP delta)
     static _recentUnconsciousRecorded = new Map(); // key: actor.id, value: timestamp
     
@@ -1100,7 +1116,10 @@ class CPBPlayerStats {
                 try { item = await fromUuid(itemUuid); } catch (_) {}
             }
 
-            await CPBPlayerStats._recordRolledHealing(attacker, healingEvent, item ?? { name: "Unknown" });
+            const healDedupeKey = `${key}:heal:${attacker.id}:${targetUuid ?? "none"}:${amount}`;
+            if (!CPBPlayerStats._isHealingGivenDuplicate(healDedupeKey)) {
+                await CPBPlayerStats._recordRolledHealing(attacker, healingEvent, item ?? { name: "Unknown" });
+            }
 
             postConsoleAndNotification(MODULE.NAME, "Player Stats | MIDI healing processed", {
                 key,
@@ -1447,7 +1466,10 @@ class CPBPlayerStats {
                 // This is healing - track it for the caster's lifetime stats (informational/attribution only)
                 // HP delta tracking remains the source of truth for applied healing
                 if (itemForContext) {
-                    await CPBPlayerStats._recordRolledHealing(attackerForContext, damageEvent, itemForContext);
+                    const healDedupeKey = `coreheal:${message.id}:${attackerForContext.id}:${(damageEvent.targetUuids ?? []).join("|")}:${damageEvent.damageTotal ?? 0}`;
+                    if (!CPBPlayerStats._isHealingGivenDuplicate(healDedupeKey)) {
+                        await CPBPlayerStats._recordRolledHealing(attackerForContext, damageEvent, itemForContext);
+                    }
                 }
                 return; // Tracked - HP delta will also track applied healing on target
             }
@@ -2237,37 +2259,42 @@ class CPBPlayerStats {
         
         if (healingAmount <= 0) return;
 
-        // Get target info for byTarget tracking
+        // Target attribution for healing given
         const targetUuids = damageEvent.targetUuids || [];
+        const hasSingleTarget = targetUuids.length === 1;
+        const hasMultipleTargets = targetUuids.length > 1;
+
         let targetName = 'Unknown Target';
-        if (targetUuids.length > 0) {
+        if (hasSingleTarget) {
             try {
                 const targetDoc = await fromUuid(targetUuids[0]);
                 const targetActorDoc = targetDoc?.actor ?? targetDoc;
-                if (targetActorDoc?.name) {
-                    targetName = targetActorDoc.name;
-                }
+                if (targetActorDoc?.name) targetName = targetActorDoc.name;
             } catch (e) {
                 // Skip if can't resolve - not critical
             }
+        } else if (hasMultipleTargets) {
+            targetName = 'Multiple Targets';
         }
+// Update healing stats for caster
+        const nextByTarget = hasSingleTarget ? {
+            ...(lifetimeHealing.byTarget || {}),
+            [targetName]: ((lifetimeHealing.byTarget || {})[targetName] || 0) + healingAmount
+        } : (lifetimeHealing.byTarget || {});
 
-        // Update healing stats for caster
         const updates = {
             lifetime: {
                 healing: {
                     ...lifetimeHealing,
                     total: (lifetimeHealing.total || 0) + healingAmount,
                     given: (lifetimeHealing.given || 0) + healingAmount,
-                    byTarget: {
-                        ...(lifetimeHealing.byTarget || {}),
-                        [targetName]: ((lifetimeHealing.byTarget || {})[targetName] || 0) + healingAmount
-                    }
+                    unattributedGiven: (lifetimeHealing.unattributedGiven || 0) + (hasMultipleTargets ? healingAmount : 0),
+                    byTarget: nextByTarget
                 }
             }
         };
 
-        // Update most/least healed
+        // Update most/least healed (only meaningful when we can attribute to a single target)
         const byTarget = updates.lifetime.healing.byTarget;
         const targetEntries = Object.entries(byTarget);
         if (targetEntries.length > 0) {
