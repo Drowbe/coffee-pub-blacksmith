@@ -10,6 +10,10 @@ export class LoadingProgressManager {
     static _totalPhases = 5;
     static _isVisible = false;
     static _pollInterval = null;
+    static _activityUpdateInterval = null;
+    static _currentActivity = "Starting...";
+    static _activityHistory = [];
+    static _maxHistoryItems = 5;
     static _phaseNames = [
         "Loading modules...",
         "Initializing systems...",
@@ -50,6 +54,13 @@ export class LoadingProgressManager {
                         <span class="cpb-loading-progress-percent">0%</span>
                     </div>
                 </div>
+                <div class="cpb-loading-progress-activity">
+                    <div class="cpb-loading-progress-activity-current">
+                        <span class="cpb-loading-progress-activity-icon">⟳</span>
+                        <span class="cpb-loading-progress-activity-text">Initializing...</span>
+                    </div>
+                    <div class="cpb-loading-progress-activity-history"></div>
+                </div>
             </div>
         `;
 
@@ -63,6 +74,9 @@ export class LoadingProgressManager {
 
         // Start polling for loading state
         this._startPolling();
+        
+        // Start activity updates
+        this._startActivityUpdates();
     }
 
     /**
@@ -81,38 +95,81 @@ export class LoadingProgressManager {
                 return;
             }
 
-            // Detect current loading phase
+            // Detect current loading phase and activities
             let currentPhase = 0;
             let message = "Starting...";
+            let activity = "Initializing...";
 
             // Phase 1: Modules loading (init hook)
             if (typeof Hooks !== 'undefined' && typeof game !== 'undefined') {
                 currentPhase = 1;
                 message = this._phaseNames[0];
+                
+                // Detect module loading activities
+                if (game.modules) {
+                    const moduleCount = game.modules.size;
+                    const activeCount = Array.from(game.modules.values()).filter(m => m.active).length;
+                    activity = `Loading modules (${activeCount}/${moduleCount})...`;
+                    this.logActivity(activity);
+                } else {
+                    activity = "Loading module system...";
+                    this.logActivity(activity);
+                }
 
                 // Phase 2: Systems initialized (after init, before setup)
                 if (game.modules && game.modules.size > 0) {
                     currentPhase = 2;
                     message = this._phaseNames[1];
+                    
+                    // Detect system initialization
+                    if (game.system) {
+                        activity = `Initializing ${game.system.id} system...`;
+                        this.logActivity(activity);
+                    } else {
+                        activity = "Preparing game systems...";
+                        this.logActivity(activity);
+                    }
 
                     // Phase 3: Game data setup (setup hook)
                     if (game.actors && game.actors.size >= 0) {
                         currentPhase = 3;
                         message = this._phaseNames[2];
+                        
+                        // Detect data loading
+                        const actorCount = game.actors.size;
+                        const itemCount = game.items?.size || 0;
+                        const sceneCount = game.scenes?.size || 0;
+                        activity = `Loading data (${actorCount} actors, ${itemCount} items, ${sceneCount} scenes)...`;
+                        this.logActivity(activity);
 
                         // Phase 4: Canvas ready (canvasReady hook)
                         if (canvas && canvas.ready) {
                             currentPhase = 4;
                             message = this._phaseNames[3];
+                            
+                            activity = "Rendering canvas...";
+                            this.logActivity(activity);
 
                             // Phase 5: Ready (ready hook fired)
                             if (game.ready) {
                                 currentPhase = 5;
                                 message = this._phaseNames[4];
+                                
+                                activity = "Finalizing initialization...";
+                                this.logActivity(activity);
                             }
+                        } else if (canvas) {
+                            activity = "Preparing canvas layers...";
+                            this.logActivity(activity);
                         }
+                    } else {
+                        activity = "Loading game data...";
+                        this.logActivity(activity);
                     }
                 }
+            } else {
+                activity = "Starting FoundryVTT...";
+                this.logActivity(activity);
             }
 
             // Update if phase changed
@@ -131,6 +188,88 @@ export class LoadingProgressManager {
         if (this._pollInterval) {
             clearInterval(this._pollInterval);
             this._pollInterval = null;
+        }
+    }
+
+    /**
+     * Start activity updates to show what's happening
+     */
+    static _startActivityUpdates() {
+        if (this._activityUpdateInterval) {
+            return;
+        }
+
+        // Update activity display periodically
+        this._activityUpdateInterval = setInterval(() => {
+            if (!this._isVisible || !this._overlay) {
+                this._stopActivityUpdates();
+                return;
+            }
+
+            this._updateActivityDisplay();
+        }, 50); // Update every 50ms for smooth activity feed
+    }
+
+    /**
+     * Stop activity updates
+     */
+    static _stopActivityUpdates() {
+        if (this._activityUpdateInterval) {
+            clearInterval(this._activityUpdateInterval);
+            this._activityUpdateInterval = null;
+        }
+    }
+
+    /**
+     * Log an activity (what's currently happening)
+     * @param {string} activity - Activity description
+     */
+    static logActivity(activity) {
+        if (!activity || activity === this._currentActivity) {
+            return; // Don't duplicate
+        }
+
+        // Add to history
+        const timestamp = Date.now();
+        this._activityHistory.unshift({
+            text: activity,
+            timestamp: timestamp
+        });
+
+        // Keep only recent items
+        if (this._activityHistory.length > this._maxHistoryItems) {
+            this._activityHistory = this._activityHistory.slice(0, this._maxHistoryItems);
+        }
+
+        this._currentActivity = activity;
+    }
+
+    /**
+     * Update the activity display
+     */
+    static _updateActivityDisplay() {
+        if (!this._overlay) {
+            return;
+        }
+
+        const activityCurrent = this._overlay.querySelector('.cpb-loading-progress-activity-text');
+        const activityHistory = this._overlay.querySelector('.cpb-loading-progress-activity-history');
+
+        // Update current activity
+        if (activityCurrent) {
+            activityCurrent.textContent = this._currentActivity;
+        }
+
+        // Update history (show recent activities)
+        if (activityHistory && this._activityHistory.length > 0) {
+            // Show up to 3 most recent activities (excluding current)
+            const recentActivities = this._activityHistory.slice(0, 3);
+            activityHistory.innerHTML = recentActivities
+                .map((item, index) => {
+                    const opacity = 1 - (index * 0.25); // Fade older items
+                    return `<div class="cpb-loading-progress-activity-item" style="opacity: ${opacity}">${item.text}</div>`;
+                })
+                .join('');
         }
     }
 
@@ -188,8 +327,12 @@ export class LoadingProgressManager {
             return;
         }
 
-        // Stop polling
+        // Stop polling and activity updates
         this._stopPolling();
+        this._stopActivityUpdates();
+
+        // Log completion
+        this.logActivity("Complete!");
 
         // Update to 100% before hiding
         this._updateDisplay(this._totalPhases, 'Complete!');
@@ -204,6 +347,8 @@ export class LoadingProgressManager {
             }
             this._overlay = null;
             this._isVisible = false;
+            this._activityHistory = [];
+            this._currentActivity = "Starting...";
         }, 400); // Match CSS transition duration
     }
 
@@ -212,10 +357,13 @@ export class LoadingProgressManager {
      */
     static forceHide() {
         this._stopPolling();
+        this._stopActivityUpdates();
         if (this._overlay && this._overlay.parentNode) {
             this._overlay.parentNode.removeChild(this._overlay);
         }
         this._overlay = null;
         this._isVisible = false;
+        this._activityHistory = [];
+        this._currentActivity = "Starting...";
     }
 }

@@ -305,24 +305,31 @@ Hooks.once('ready', async () => {
     
     // Update progress to final phase
     LoadingProgressManager.setPhase(5, "Finalizing...");
+    LoadingProgressManager.logActivity("Initializing modules...");
     
     try {
         // Register settings FIRST during the ready phase
+        LoadingProgressManager.logActivity("Registering settings...");
         registerSettings();
         
         // Initialize HookManager (infrastructure layer)
+        LoadingProgressManager.logActivity("Initializing hook system...");
         HookManager.initialize();
         
         // Initialize OpenAI Memory System
+        LoadingProgressManager.logActivity("Initializing AI memory...");
         OpenAIAPI.initializeMemory();
         
         // Register the Blacksmith hook (after HookManager is initialized)
+        LoadingProgressManager.logActivity("Registering hooks...");
         registerBlacksmithUpdatedHook();
         
         // Register window-query partials early to prevent template errors
+        LoadingProgressManager.logActivity("Loading templates...");
         await registerWindowQueryPartials();
         
         // Wait a bit to ensure settings are fully processed
+        LoadingProgressManager.logActivity("Verifying settings...");
         await new Promise(resolve => setTimeout(resolve, 100));
         
         // Double-check that settings are ready
@@ -340,15 +347,19 @@ Hooks.once('ready', async () => {
         }
 
         // Initialize combat stats tracking
+        LoadingProgressManager.logActivity("Initializing combat stats...");
         CombatStats.initialize();
 
         // Initialize player stats tracking
+        LoadingProgressManager.logActivity("Initializing player stats...");
         CPBPlayerStats.initialize();
 
         // Initialize XP manager
+        LoadingProgressManager.logActivity("Initializing XP system...");
         XpManager.initialize();
 
         // Apply any existing custom CSS
+        LoadingProgressManager.logActivity("Applying custom styles...");
         const editor = new CSSEditor();
         const css = getSettingSafely(MODULE.ID, 'customCSS', null);
         const transition = getSettingSafely(MODULE.ID, 'cssTransition', null);
@@ -357,23 +368,28 @@ Hooks.once('ready', async () => {
         }
 
         // Initialize other components that depend on settings
+        LoadingProgressManager.logActivity("Initializing wrappers...");
         WrapperManager.initialize();
         
         // Initialize scene navigation
+        LoadingProgressManager.logActivity("Setting up navigation...");
         console.log('BLACKSMITH: About to call NavigationManager.initialize()');
         NavigationManager.initialize();
         console.log('BLACKSMITH: NavigationManager.initialize() completed');
         
         // Initialize latency checker
+        LoadingProgressManager.logActivity("Initializing latency monitor...");
         LatencyChecker.initialize();
         
         // Initialize CanvasTools
+        LoadingProgressManager.logActivity("Initializing canvas tools...");
         CanvasTools.initialize();
         
         // No longer needed - cache management is now handled by the new simplified system
 
         // Initialize ImageCacheManager (GM only)
         if (game.user.isGM) {
+            LoadingProgressManager.logActivity("Initializing image cache...");
             try {
                 const { ImageCacheManager } = await import('./manager-image-cache.js');
                 await ImageCacheManager.initialize();
@@ -383,6 +399,7 @@ Hooks.once('ready', async () => {
         }
 
         // Initialize Token Image Utilities (turn indicators, etc.)
+        LoadingProgressManager.logActivity("Loading token utilities...");
         try {
             const { TokenImageUtilities } = await import('./token-image-utilities.js');
             TokenImageUtilities.initializeTurnIndicator();
@@ -391,25 +408,32 @@ Hooks.once('ready', async () => {
         }
 
         // Update nameplates
+        LoadingProgressManager.logActivity("Updating nameplates...");
         updateNameplates();
 
         // Initialize other settings-dependent features
+        LoadingProgressManager.logActivity("Configuring features...");
         initializeSettingsDependentFeatures();
 
         // Initialize scene interactions
+        LoadingProgressManager.logActivity("Setting up scene interactions...");
         initializeSceneInteractions();
         
         // Initialize the unified roll system API
+        LoadingProgressManager.logActivity("Loading roll system...");
         const { executeRoll } = await import('./manager-rolls.js');
         BLACKSMITH.rolls.execute = executeRoll;
 
         // JOURNAL TOOLS
+        LoadingProgressManager.logActivity("Initializing journal tools...");
         JournalTools.init();
         
         // ENCOUNTER TOOLBAR
+        LoadingProgressManager.logActivity("Setting up encounter toolbar...");
         EncounterToolbar.init();
 
         // SIDEBAR PIN
+        LoadingProgressManager.logActivity("Configuring sidebar...");
         SidebarPin.initialize();
 
         // SIDEBAR STYLE
@@ -417,6 +441,8 @@ Hooks.once('ready', async () => {
 
         // SIDEBAR STYLE (duplicate call - keeping for compatibility)
         SidebarStyle.initialize();
+        
+        LoadingProgressManager.logActivity("Almost ready...");
 
         // Hide progress indicator when complete
         LoadingProgressManager.hide();
