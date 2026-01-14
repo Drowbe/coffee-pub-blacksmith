@@ -104,6 +104,9 @@ class CPBPlayerStats {
     // Pending crit/fumble info from RollComplete (when it fires before hitsChecked)
     static _pendingMidiCrit = new Map(); // key -> { isCritical, isFumble, ts }
     
+    // Per-actor update queue to serialize stat writes and prevent race conditions
+    static _actorUpdateQueue = new Map(); // key: actorId, value: Promise (last queued update)
+    
 
     // Healing dedupe cache to avoid double-counting "healing given" when multiple lanes fire
     static _healingGivenCache = new Map(); // key -> ts
@@ -857,6 +860,29 @@ class CPBPlayerStats {
     }
 
     /**
+     * Queue an actor update to serialize stat writes and prevent race conditions.
+     * Ensures all updates for the same actor happen sequentially, not concurrently.
+     * @param {string} actorId - The actor ID to queue updates for
+     * @param {Function} fn - Async function to execute
+     * @returns {Promise} Promise that resolves when the update completes
+     */
+    static async _queueActorUpdate(actorId, fn) {
+        const prev = CPBPlayerStats._actorUpdateQueue.get(actorId) ?? Promise.resolve();
+        const next = prev
+            .catch(() => {})          // don't poison the chain
+            .then(() => fn())
+            .finally(() => {
+                // clean up if this is the last queued promise
+                if (CPBPlayerStats._actorUpdateQueue.get(actorId) === next) {
+                    CPBPlayerStats._actorUpdateQueue.delete(actorId);
+                }
+            });
+
+        CPBPlayerStats._actorUpdateQueue.set(actorId, next);
+        return next;
+    }
+
+    /**
      * Extract workflow ID from MIDI workflow object.
      * MIDI may store it in different properties depending on version/context.
      * @param {Object} workflow - MIDI workflow object
@@ -1118,7 +1144,10 @@ class CPBPlayerStats {
 
             const healDedupeKey = `${key}:heal:${attacker.id}:${targetUuid ?? "none"}:${amount}`;
             if (!CPBPlayerStats._isHealingGivenDuplicate(healDedupeKey)) {
-                await CPBPlayerStats._recordRolledHealing(attacker, healingEvent, item ?? { name: "Unknown" });
+                // Queue the healing update to serialize writes and prevent race conditions
+                await CPBPlayerStats._queueActorUpdate(attacker.id, async () => {
+                    await CPBPlayerStats._recordRolledHealing(attacker, healingEvent, item ?? { name: "Unknown" });
+                });
             }
 
             postConsoleAndNotification(MODULE.NAME, "Player Stats | MIDI healing processed", {
@@ -1468,7 +1497,10 @@ class CPBPlayerStats {
                 if (itemForContext) {
                     const healDedupeKey = `coreheal:${message.id}:${attackerForContext.id}:${(damageEvent.targetUuids ?? []).join("|")}:${damageEvent.damageTotal ?? 0}`;
                     if (!CPBPlayerStats._isHealingGivenDuplicate(healDedupeKey)) {
-                        await CPBPlayerStats._recordRolledHealing(attackerForContext, damageEvent, itemForContext);
+                        // Queue the healing update to serialize writes and prevent race conditions
+                        await CPBPlayerStats._queueActorUpdate(attackerForContext.id, async () => {
+                            await CPBPlayerStats._recordRolledHealing(attackerForContext, damageEvent, itemForContext);
+                        });
                     }
                 }
                 return; // Tracked - HP delta will also track applied healing on target
