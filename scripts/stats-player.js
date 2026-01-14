@@ -9,6 +9,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, trimString, isPlayerCharacter } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { resolveAttackMessage, resolveDamageMessage, makeKey, hydrateFirstRoll } from './utility-message-resolution.js';
+import { getWorkflowId, buildAttackEventFromWorkflow } from './utility-midi-resolution.js';
 import { CombatStats } from './stats-combat.js';
 
 // Default stats structure
@@ -340,7 +341,7 @@ class CPBPlayerStats {
 
                         // Attach crit/fumble to cached attackEvent (if hitsChecked already cached it)
                         // OR stage it for hitsChecked to pick up later
-                        const workflowId = CPBPlayerStats._getMidiWorkflowId(workflow);
+                        const workflowId = getWorkflowId(workflow);
                         if (workflowId) {
                             const key = `midi:${workflowId}`;
 
@@ -904,41 +905,14 @@ class CPBPlayerStats {
         const attacker = workflow?.actor;
         if (!attacker?.hasPlayerOwner) return;
 
-        const workflowId = CPBPlayerStats._getMidiWorkflowId(workflow);
-        if (!workflowId) return;
+        // Build attack event using shared utility
+        const attackEvent = buildAttackEventFromWorkflow(workflow);
+        if (!attackEvent?.key) {
+            // Utility returned null (invalid workflow or no workflowId)
+            return;
+        }
 
-        const key = `midi:${workflowId}`;
-
-        // Extract target UUIDs from workflow
-        const toUuid = (t) => t?.document?.uuid ?? t?.uuid ?? t?.actor?.uuid ?? null;
-        const hitTargets = Array.from(workflow?.hitTargets ?? []).map(toUuid).filter(Boolean);
-        const missTargets = Array.from(workflow?.targets ?? []).map(toUuid).filter(Boolean)
-            .filter(uuid => !hitTargets.includes(uuid));
-
-        // Check for explicit miss list (some MIDI versions provide this)
-        const explicitMiss = Array.from(workflow?.missedTargets ?? workflow?.missTargets ?? []).map(toUuid).filter(Boolean);
-        const finalMissTargets = explicitMiss.length ? explicitMiss : missTargets;
-
-        const attackTotal = workflow?.attackRoll?.total ?? null;
-        const itemUuid = workflow?.item?.uuid ?? workflow?.itemUuid ?? null;
-
-        // Build AttackResolvedEvent-shaped object
-        const attackEvent = {
-            type: 'attack',
-            key,
-            ts: Date.now(),
-            attackerActorId: attacker.id,
-            itemUuid,
-            activityUuid: null,
-            targets: [],
-            hitTargets,
-            missTargets: finalMissTargets,
-            unknownTargets: [],
-            attackTotal: (typeof attackTotal === 'number') ? attackTotal : null,
-            itemType: workflow?.item?.type ?? null,
-            attackMsgId: workflow?.itemCardId ?? null,
-            workflowId
-        };
+        const key = attackEvent.key;
 
         // Apply staged crit/fumble if RollComplete fired before hitsChecked
         const pending = CPBPlayerStats._pendingMidiCrit?.get(key);
@@ -961,8 +935,8 @@ class CPBPlayerStats {
         postConsoleAndNotification(MODULE.NAME, 'Player Stats | MIDI hitsChecked resolved', {
             key,
             attacker: attacker.name,
-            hits: hitTargets.length,
-            misses: finalMissTargets.length,
+            hits: attackEvent.hitTargets.length,
+            misses: attackEvent.missTargets.length,
             attackTotal: attackEvent.attackTotal
         }, true, false);
     }
@@ -991,7 +965,7 @@ class CPBPlayerStats {
         const attacker = workflow?.actor;
         if (!attacker?.hasPlayerOwner) return;
 
-        const workflowId = CPBPlayerStats._getMidiWorkflowId(workflow);
+        const workflowId = getWorkflowId(workflow);
         if (!workflowId) return;
         const key = `midi:${workflowId}`;
 
@@ -1066,7 +1040,15 @@ class CPBPlayerStats {
             damageItem?.appliedDamage ??
             null;
 
-        const hpDamage = (typeof hpDamageRaw === 'number') ? hpDamageRaw : null;
+        // Some MIDI healing workflows don't populate damageItem hpDamage reliably (can be 0),
+        // but DO provide the signed total on workflow.healingAdjustedDamageTotal.
+        const wfHealingAdjusted = workflow?.healingAdjustedDamageTotal;
+
+        let hpDamage = (typeof hpDamageRaw === 'number') ? hpDamageRaw : null;
+        if ((hpDamage === null || hpDamage === 0) && typeof wfHealingAdjusted === 'number' && wfHealingAdjusted !== 0) {
+            hpDamage = wfHealingAdjusted;
+        }
+
         if (hpDamage === null || hpDamage === 0) return;
 
         // Determine if this is healing (negative damage) or damage

@@ -349,14 +349,90 @@ scripts/
 
 ---
 
-## Implementation Order (Final)
+## Implementation Order (Final - Incremental Approach)
 
-1. **Phase 1**: Fix core detection (test immediately)
-2. **Phase 2**: Create shared MIDI utilities (before adding MIDI lanes)
-3. **Phase 3**: Add MIDI lanes to combat stats (using shared utilities)
-4. **Phase 4**: Refactor player stats to use utilities (after combat stats works)
-5. **Phase 5**: Add race condition protection
-6. **Phase 6**: Cleanup healing detection
+### Phase 1: Fix Core Detection ✅ COMPLETE
+- Fixed `resolveAttackMessage()` to accept modern core structures
+- Added early exits for damage/heal/usage messages
+- Tested with core-only attacks
+
+### Phase 2: Create Shared MIDI Utilities ✅ COMPLETE
+- Created `scripts/utility-midi-resolution.js` with 7 utility functions
+- Conservative workflow ID extraction (no guessing)
+- Multi-source crit/fumble detection
+- Reliable miss list calculation
+- TTL-based deduplication
+
+### Phase 2.5: Incremental Player Stats Refactor (IN PROGRESS)
+**Approach**: Shallow swaps, one piece at a time, test after each change.
+
+**Step A**: Replace `_getMidiWorkflowId()` → `getWorkflowId()` from utilities
+- Import utilities
+- Replace single method call
+- Test: Run one combat, verify MIDI attacks still work
+
+**Step B**: Replace workflow key generation → `getWorkflowKey()`
+- Replace `_getMidiWorkflowId()` + manual `midi:${workflowId}` → `getWorkflowKey(workflow)`
+- Test: Verify keys match, no correlation breaks
+
+**Step C**: Replace attack event building → `buildAttackEventFromWorkflow()`
+- Replace `_onMidiHitsChecked()` manual event building
+- Test: Verify attack stats still increment correctly
+
+**Step D**: Replace damage event building → `buildDamageEventFromWorkflow()`
+- Replace `_onMidiPreTargetDamageApplication()` manual event building
+- Test: Verify damage correlation still works
+
+**Step E**: Replace crit/fumble detection → `getCritFumbleFromWorkflow()`
+- Replace manual multi-source logic
+- Test: Verify crits/fumbles still detected correctly
+
+**Step F**: Replace dedupe logic → `createDedupeTracker()`
+- Replace manual dedupe with tracker instance
+- Test: Verify no double-counting
+
+**Step G**: Replace arg extraction → `extractPreTargetDamageArgs()`
+- Replace manual arg normalization
+- Test: Verify MIDI damage still processes
+
+### Phase 3: Add MIDI Lanes to Combat Stats (AFTER Phase 2.5 complete)
+- Import shared utilities
+- Add MIDI workflow hooks (`hitsChecked`, `preTargetDamageApplication`, `RollComplete`)
+- Use shared utilities for all MIDI processing
+- Test: Verify combat/round stats update with MIDI
+
+### Phase 4: Add Race Condition Protection
+- Implement actor update queue in `stats-combat.js`
+- Wrap all stat writes
+- Test: Multi-target healing accumulates correctly
+
+### Phase 5: Cleanup Healing Detection
+- Ensure `stats-combat.js` uses `activity.type === "heal"` signal
+- Remove any remaining name heuristics
+
+---
+
+## Key Guardrails (Enforced)
+
+1. **Message Resolver is Core-First, MIDI-Minimal**
+   - Early exits for non-attacks (damage/heal/usage)
+   - When MIDI is active, chat messages are core fallback only
+   - No widening of MIDI heuristics in message resolver
+
+2. **Workflow ID Extraction is Conservative**
+   - Only checks known properties: `workflowId`, `id`, `uuid`
+   - No scanning for "any string that looks like an ID"
+   - Returns `null` if not found (caller skips processing)
+
+3. **MIDI Always Uses Workflow Hooks**
+   - Core: `makeKey(getKeyParts(message))` from chat messages
+   - MIDI: **Always** `midi:${workflowId}` from workflow hooks
+   - Never guess workflow IDs from chat message flags
+
+4. **Incremental Refactoring**
+   - One change at a time
+   - Test after each change
+   - Don't big-bang refactor working code
 
 This sequence ensures normalization happens BEFORE duplication, reduces regression risk, and ensures both systems use the same detection logic.
 

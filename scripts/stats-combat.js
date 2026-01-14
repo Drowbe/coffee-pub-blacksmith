@@ -13,6 +13,13 @@ import { CombatTimer } from './timer-combat.js';
 import { HookManager } from './manager-hooks.js';
 import { SocketManager } from './manager-sockets.js';
 import { resolveAttackMessage, resolveDamageMessage, makeKey } from './utility-message-resolution.js';
+import {
+    buildAttackEventFromWorkflow,
+    createDedupeTracker,
+    extractPreTargetDamageArgs,
+    getCritFumbleFromWorkflow,
+    getWorkflowKey
+} from './utility-midi-resolution.js';
 //import { MVPDescriptionGenerator } from './mvp-description-generator.js';
 import { MVPTemplates } from '../resources/assets.js';
 
@@ -33,6 +40,10 @@ class CombatStats {
     // Attack resolution cache for correlating damage to attacks
     static _attackCache = new Map(); // key -> { attackEvent, processedDamageMsgIds: Set<string>, ts }
     static ATTACK_TTL_MS = 15_000; // 15 second TTL for attack cache entries
+
+    // MIDI ordering + dedupe helpers (combat stats lane)
+    static _pendingMidiCrit = new Map(); // key -> { isCritical, isFumble, ts }
+    static _midiDedupe = createDedupeTracker(20_000);
     
     static DEFAULTS = {
         roundStats: {
@@ -1906,6 +1917,9 @@ class CombatStats {
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
+        // MIDI lane is authoritative for crit/fumble; avoid double counting
+        if (game.modules.get("midi-qol")?.active) return;
+
         const { rolls, context, item } = this._normalizeRollHookArgs(a, b);
         const rollObj = rolls?.[0];
 
@@ -1939,6 +1953,260 @@ class CombatStats {
 
         // Note: Hit/miss tracking is now handled by createChatMessage hook via _processResolvedAttack
         // This hook is narrowed to only crit/fumble detection to avoid double-counting
+    }
+
+    /**
+     * MIDI: hitsChecked hook - authoritative source for hit/miss outcomes (per workflow).
+     * Builds an AttackResolvedEvent from workflow, caches it for damage correlation, and processes it.
+     * @param {Object} workflow
+     */
+    static async _onMidiHitsChecked(workflow) {
+        if (!game.user.isGM) return;
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.combat?.started) return;
+
+        const attackEvent = buildAttackEventFromWorkflow(workflow);
+        if (!attackEvent?.key) return;
+
+        const key = attackEvent.key;
+
+        // Apply staged crit/fumble if RollComplete fired before hitsChecked
+        const pending = CombatStats._pendingMidiCrit?.get(key);
+        if (pending) {
+            attackEvent.isCritical = !!pending.isCritical;
+            attackEvent.isFumble = !!pending.isFumble;
+            CombatStats._pendingMidiCrit.delete(key);
+        }
+
+        // Cache the attack resolution for damage correlation
+        CombatStats._attackCache.set(key, {
+            attackEvent,
+            processedDamageMsgIds: new Set(),
+            ts: attackEvent.ts
+        });
+
+        // Process the resolved attack event (records attempts, hits, misses per target)
+        await CombatStats._processResolvedAttack(attackEvent);
+
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI hitsChecked resolved', {
+            key,
+            attackerActorId: attackEvent.attackerActorId,
+            hits: attackEvent.hitTargets.length,
+            misses: attackEvent.missTargets.length,
+            attackTotal: attackEvent.attackTotal
+        }, true, false);
+    }
+
+    /**
+     * MIDI: preTargetDamageApplication hook - authoritative per-target damage/heal amounts.
+     * We count damage/heal per target and use cached attackEvent (same workflow key) to decide whether it's onHit.
+     * @param {*} arg1
+     * @param {*} arg2
+     */
+    static async _onMidiPreTargetDamageApplication(arg1, arg2) {
+        if (!game.user.isGM) return;
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.combat?.started) return;
+
+        const extracted = extractPreTargetDamageArgs(arg1, arg2);
+        if (!extracted) return;
+
+        const { token, data, workflow } = extracted;
+
+        const key = getWorkflowKey(workflow);
+        if (!key) return;
+
+        const attacker = workflow?.actor ?? null;
+        if (!attacker) return;
+
+        // Extract hpDamage from known locations (matches player-stats lane)
+        const damageItem = data?.damageItem ?? workflow?.damageItem ?? {};
+        const hpDamageRaw =
+            damageItem?.hpDamage ??
+            damageItem?.totalDamage ??
+            damageItem?.damageTotal ??
+            damageItem?.appliedDamage ??
+            null;
+
+        // Some MIDI healing workflows don't populate damageItem hpDamage reliably (can be 0),
+        // but DO provide the signed total on workflow.healingAdjustedDamageTotal.
+        const wfHealingAdjusted = workflow?.healingAdjustedDamageTotal;
+
+        let hpDamage = (typeof hpDamageRaw === 'number') ? hpDamageRaw : null;
+        if ((hpDamage === null || hpDamage === 0) && typeof wfHealingAdjusted === 'number' && wfHealingAdjusted !== 0) {
+            hpDamage = wfHealingAdjusted;
+        }
+
+        if (hpDamage === null || hpDamage === 0) return;
+
+        const isHealing = hpDamage < 0;
+        const amount = Math.abs(hpDamage);
+
+        const targetUuid = token?.document?.uuid ?? token?.uuid ?? null;
+        if (!targetUuid) return;
+
+        // Dedupe: MIDI can fire multiple times per target
+        const dedupeKey = `${key}::${targetUuid}::${isHealing ? 'heal' : 'dmg'}::${amount}`;
+        if (CombatStats._midiDedupe.isDuplicate(dedupeKey)) return;
+        CombatStats._midiDedupe.markProcessed(dedupeKey);
+
+        // Stamp crit/fumble ASAP (event order can be: hitsChecked -> preTargetDamage -> RollComplete)
+        const { isCritical, isFumble } = getCritFumbleFromWorkflow({
+            workflow,
+            attackRoll: workflow?.attackRoll ?? null
+        });
+
+        const cachedAttackEntry = CombatStats._attackCache.get(key);
+        if (cachedAttackEntry?.attackEvent) {
+            cachedAttackEntry.attackEvent.isCritical = isCritical;
+            cachedAttackEntry.attackEvent.isFumble = isFumble;
+            cachedAttackEntry.ts = Date.now();
+            CombatStats._attackCache.set(key, cachedAttackEntry);
+        } else {
+            CombatStats._pendingMidiCrit.set(key, { isCritical, isFumble, ts: Date.now() });
+        }
+
+        // Resolve item (prefer workflow.item)
+        let item = workflow?.item ?? null;
+        if (!item) {
+            const itemUuid = data?.item?.uuid ?? workflow?.item?.uuid ?? workflow?.itemUuid ?? null;
+            if (itemUuid) {
+                try { item = await fromUuid(itemUuid); } catch (_) {}
+            }
+        }
+        if (!item) return;
+
+        // Resolve target actor ids (single-target per hook call)
+        const targetActorIds = [];
+        const targetTokenUuids = [targetUuid];
+
+        const targetActorId = token?.actor?.id ?? null;
+        if (targetActorId) {
+            targetActorIds.push(targetActorId);
+        } else {
+            try {
+                const targetDoc = await fromUuid(targetUuid);
+                const targetActorDoc = targetDoc?.actor ?? targetDoc;
+                if (targetActorDoc?.id) targetActorIds.push(targetActorDoc.id);
+            } catch (_) {}
+        }
+
+        if (isHealing) {
+            // Healing: count regardless of onHit; combat stats tracks healing given/received.
+            await CombatStats._processDamageOrHealing({
+                item,
+                amount,
+                isHealing: true,
+                isCritical: false,
+                targetActorIds,
+                targetTokenUuids,
+                timestamp: Date.now()
+            });
+
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI healing processed', {
+                key,
+                attackerActorId: attacker.id,
+                targetUuid,
+                amount
+            }, true, false);
+
+            return;
+        }
+
+        // Damage: keep existing semantics (count only "onHit" damage).
+        const hitTargets = cachedAttackEntry?.attackEvent?.hitTargets ?? [];
+        const isOnHit = hitTargets.includes(targetUuid);
+        if (!isOnHit) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI damage skipped (not onHit):', {
+                key,
+                targetUuid,
+                amount
+            }, true, false);
+            return;
+        }
+
+        await CombatStats._processDamageOrHealing({
+            item,
+            amount,
+            isHealing: false,
+            isCritical: !!isCritical,
+            targetActorIds,
+            targetTokenUuids,
+            timestamp: Date.now()
+        });
+
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI damage processed', {
+            key,
+            targetUuid,
+            amount,
+            isCritical: !!isCritical
+        }, true, false);
+    }
+
+    /**
+     * MIDI: RollComplete hook - authoritative crit/fumble detection.
+     * Stamps crit/fumble onto cached attackEvent (or stages it) and increments combat crit/fumble totals.
+     * @param {Object} workflow
+     */
+    static async _onMidiRollComplete(workflow) {
+        if (!game.user.isGM) return;
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.combat?.started) return;
+
+        const key = getWorkflowKey(workflow);
+        if (!key) return;
+
+        const attacker = workflow?.actor ?? null;
+        if (!attacker) return;
+
+        const { isCritical, isFumble } = getCritFumbleFromWorkflow({
+            workflow,
+            attackRoll: workflow?.attackRoll ?? null
+        });
+
+        // Always stamp it for downstream consumers (damage path may use it)
+        const entry = CombatStats._attackCache.get(key);
+        if (entry?.attackEvent) {
+            entry.attackEvent.isCritical = !!isCritical;
+            entry.attackEvent.isFumble = !!isFumble;
+            entry.ts = Date.now();
+            CombatStats._attackCache.set(key, entry);
+        } else {
+            CombatStats._pendingMidiCrit.set(key, { isCritical, isFumble, ts: Date.now() });
+        }
+
+        // Only increment counters when there is a crit/fumble
+        if (!isCritical && !isFumble) return;
+
+        const { current: attackerStats, combat: attackerCombatStats } = this._ensureParticipantStats(attacker, {
+            includeCurrent: true,
+            includeCombat: true
+        });
+        this._ensureCombatTotals();
+        const combatTotals = this.combatStats.totals;
+
+        // Ensure attack containers exist
+        attackerStats.combat.attacks ??= { hits: 0, misses: 0, crits: 0, fumbles: 0, attempts: 0 };
+        attackerCombatStats.combat.attacks ??= { hits: 0, misses: 0, crits: 0, fumbles: 0, attempts: 0 };
+        combatTotals.attacks ??= { attempts: 0, hits: 0, misses: 0, crits: 0, fumbles: 0 };
+
+        if (isCritical) {
+            attackerStats.combat.attacks.crits++;
+            attackerCombatStats.combat.attacks.crits++;
+            combatTotals.attacks.crits++;
+        }
+        if (isFumble) {
+            attackerStats.combat.attacks.fumbles++;
+            attackerCombatStats.combat.attacks.fumbles++;
+            combatTotals.attacks.fumbles++;
+        }
+
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI RollComplete crit/fumble', {
+            key,
+            attackerActorId: attacker.id,
+            isCritical: !!isCritical,
+            isFumble: !!isFumble
+        }, true, false);
     }
 
     /**
@@ -2067,6 +2335,57 @@ class CombatStats {
 			}
 		});
 
+        // MIDI workflow hooks (authoritative lane)
+        if (game.modules.get("midi-qol")?.active) {
+            const midiHitsCheckedHookId = HookManager.registerHook({
+                name: 'midi-qol.hitsChecked',
+                description: 'Combat Stats: Track hit/miss outcomes using MIDI workflow (authoritative)',
+                context: 'stats-combat-midi-hitschecked',
+                priority: 3,
+                callback: async (workflow) => {
+                    // --- BEGIN - HOOKMANAGER CALLBACK ---
+                    try {
+                        await this._onMidiHitsChecked(workflow);
+                    } catch (e) {
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI hitsChecked error', e, false, false);
+                    }
+                    // --- END - HOOKMANAGER CALLBACK ---
+                }
+            });
+
+            const midiPreTargetDamageHookId = HookManager.registerHook({
+                name: 'midi-qol.preTargetDamageApplication',
+                description: 'Combat Stats: Track per-target damage/healing using MIDI workflow (authoritative)',
+                context: 'stats-combat-midi-pretargdmg',
+                priority: 3,
+                callback: async (arg1, arg2) => {
+                    // --- BEGIN - HOOKMANAGER CALLBACK ---
+                    try {
+                        await this._onMidiPreTargetDamageApplication(arg1, arg2);
+                    } catch (e) {
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI preTargetDamageApplication error', e, false, false);
+                    }
+                    // --- END - HOOKMANAGER CALLBACK ---
+                }
+            });
+
+            const midiRollCompleteHookId = HookManager.registerHook({
+                name: 'midi-qol.RollComplete',
+                description: 'Combat Stats: Track crits/fumbles using MIDI workflow (authoritative)',
+                context: 'stats-combat-midi-rollcomplete',
+                priority: 3,
+                callback: async (workflow) => {
+                    // --- BEGIN - HOOKMANAGER CALLBACK ---
+                    try {
+                        await this._onMidiRollComplete(workflow);
+                    } catch (e) {
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI RollComplete error', e, false, false);
+                    }
+                    // --- END - HOOKMANAGER CALLBACK ---
+                }
+            });
+        }
+
         // Chat message hook - source of truth for attack/damage resolution
         const createChatMessageHookId = HookManager.registerHook({
 			name: 'createChatMessage',
@@ -2077,6 +2396,19 @@ class CombatStats {
 				// --- BEGIN - HOOKMANAGER CALLBACK ---
 				if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
 				if (!game.combat?.started) return;
+
+				// Early guard: only process system roll messages (reduces noise)
+				const hasDnd5e = !!message.flags?.dnd5e;
+				const hasMidi = !!message.flags?.["midi-qol"];
+				const hasRolls = (message.rolls?.length ?? 0) > 0;
+				if (!hasDnd5e && !hasMidi && !hasRolls) return;
+
+				// If MIDI is active and this message is part of a MIDI workflow, ignore it here.
+				// We resolve attacks/damage from MIDI workflow hooks instead (hitsChecked + preTargetDamageApplication)
+				// to avoid racing the activation-card mutation lifecycle.
+				if (game.modules.get("midi-qol")?.active && hasMidi) {
+				    return;
+				}
 
 				// Prune expired cache entries
 				CombatStats._pruneAttackCache();

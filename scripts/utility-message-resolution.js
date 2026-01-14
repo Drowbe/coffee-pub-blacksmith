@@ -10,6 +10,8 @@
  * Designed to work with both core dnd5e and midi-qol without relying on midi-specific APIs.
  */
 
+import { getWorkflowId } from './utility-midi-resolution.js';
+
 /**
  * Hydrate the first roll from a chat message.
  * Handles v13 roll storage formats (string, object, or Roll instance).
@@ -115,22 +117,34 @@ export function resolveAttackMessage(message) {
     const dnd = message.flags?.dnd5e ?? {};
     const midi = message.flags?.["midi-qol"] ?? {};
     
-    // Check multiple possible locations for workflowId in MIDI flags
-    // MIDI may store it in different places depending on message type/stage
-    // Only check known/safe locations to avoid grabbing random IDs
+    // Extract workflowId using shared utility (ensures consistent, strict validation)
+    // Build a minimal workflow-like object from MIDI flags for getWorkflowId()
+    // This ensures we use the same strict validation as workflow hooks
     let workflowId = null;
     if (midi && typeof midi === 'object') {
-        workflowId = midi.workflowId ?? 
-                     midi.workflow?.id ?? 
-                     midi.id ?? 
-                     midi.messageType; // Some MIDI versions use messageType as identifier
+        const workflowLike = {
+            workflowId: midi.workflowId,
+            id: midi.workflow?.id ?? midi.id,
+            uuid: midi.uuid,
+            itemCardId: midi.itemCardId,
+            chatMessageId: midi.chatMessageId,
+            messageId: midi.messageId
+        };
         
-        // If still not found, check for ChatMessage-prefixed IDs (safe pattern)
+        // Use shared utility for consistent ID extraction
+        workflowId = getWorkflowId(workflowLike);
+        
+        // If still not found, check for ChatMessage-prefixed IDs in any MIDI flag value (safe pattern)
         if (!workflowId) {
             for (const [key, value] of Object.entries(midi)) {
                 if (typeof value === "string" && value.startsWith("ChatMessage.")) {
-                    workflowId = value;
-                    break;
+                    // Validate it passes our strict checks
+                    const testWorkflow = { workflowId: value };
+                    const validated = getWorkflowId(testWorkflow);
+                    if (validated) {
+                        workflowId = validated;
+                        break;
+                    }
                 }
             }
         }
@@ -300,7 +314,35 @@ export function resolveAttackMessage(message) {
 export function resolveDamageMessage(message) {
     const dnd = message.flags?.dnd5e ?? {};
     const midi = message.flags?.["midi-qol"] ?? {};
-    const workflowId = midi.workflowId;
+    
+    // Extract workflowId using shared utility (ensures consistent, strict validation)
+    // Build a minimal workflow-like object from MIDI flags for getWorkflowId()
+    let workflowId = null;
+    if (midi && typeof midi === 'object') {
+        const workflowLike = {
+            workflowId: midi.workflowId,
+            id: midi.workflow?.id ?? midi.id,
+            uuid: midi.uuid,
+            itemCardId: midi.itemCardId,
+            chatMessageId: midi.chatMessageId,
+            messageId: midi.messageId
+        };
+        workflowId = getWorkflowId(workflowLike);
+        
+        // If still not found, check for ChatMessage-prefixed IDs (safe pattern)
+        if (!workflowId) {
+            for (const [key, value] of Object.entries(midi)) {
+                if (typeof value === "string" && value.startsWith("ChatMessage.")) {
+                    const testWorkflow = { workflowId: value };
+                    const validated = getWorkflowId(testWorkflow);
+                    if (validated) {
+                        workflowId = validated;
+                        break;
+                    }
+                }
+            }
+        }
+    }
     
     const rolls = message.rolls ?? [];
     if (!rolls.length) return null;
