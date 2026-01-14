@@ -1,0 +1,132 @@
+/* ================================================================== */
+/* === LOADING PROGRESS INDICATOR =================================== */
+/* ================================================================== */
+
+.cpb-loading-progress-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.4s ease-out;
+    pointer-events: all;
+}
+
+.cpb-loading-progress-overlay.visible {
+    opacity: 1;
+}
+
+.cpb-loading-progress-card {
+    background: linear-gradient(135deg, rgba(30, 30, 35, 0.95) 0%, rgba(20, 20, 25, 0.95) 100%);
+    border: 2px solid rgba(150, 150, 150, 0.3);
+    border-radius: 12px;
+    padding: 2.5rem 3rem;
+    min-width: 400px;
+    max-width: 500px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    transform: scale(0.95);
+    transition: transform 0.4s ease-out;
+}
+
+.cpb-loading-progress-overlay.visible .cpb-loading-progress-card {
+    transform: scale(1);
+}
+
+.cpb-loading-progress-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.cpb-loading-progress-title {
+    font-family: var(--font-primary, 'Signika', sans-serif);
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #f5f5f5;
+    margin: 0 0 0.5rem 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    letter-spacing: 0.5px;
+}
+
+.cpb-loading-progress-subtitle {
+    font-family: var(--font-primary, 'Signika', sans-serif);
+    font-size: 0.95rem;
+    color: #b0b0b0;
+    margin: 0;
+    font-weight: 400;
+}
+
+.cpb-loading-progress-bar-container {
+    margin-top: 1.5rem;
+}
+
+.cpb-loading-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(50, 50, 55, 0.8);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    margin-bottom: 0.75rem;
+}
+
+.cpb-loading-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4a9eff 0%, #5cb3ff 50%, #6dc7ff 100%);
+    border-radius: 4px;
+    transition: width 0.3s ease-out;
+    box-shadow: 0 0 8px rgba(74, 158, 255, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.cpb-loading-progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.3) 50%, 
+        transparent 100%);
+    animation: cpb-progress-shimmer 2s infinite;
+}
+
+@keyframes cpb-progress-shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.cpb-loading-progress-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-primary, 'Signika', sans-serif);
+    font-size: 0.9rem;
+    color: #d0d0d0;
+}
+
+.cpb-loading-progress-step {
+    flex: 1;
+    font-weight: 400;
+}
+
+.cpb-loading-progress-percent {
+    font-weight: 600;
+    color: #6dc7ff;
+    margin-left: 1rem;
+    min-width: 45px;
+    text-align: right;
+}

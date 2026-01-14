@@ -70,6 +70,7 @@ import { assetLookup } from './asset-lookup.js';
 import { registerWindowQueryPartials } from './window-query-registration.js';
 import { SidebarPin } from './sidebar-pin.js';
 import { SidebarStyle } from './sidebar-style.js';
+import { LoadingProgressManager } from './manager-loading-progress.js';
 import './sidebar-combat.js';
 import './combat-tools.js'; 
 // ================================================================== 
@@ -291,26 +292,37 @@ BLACKSMITH.updateValue = function(key, value) {
 // Consolidate all settings-dependent initialization into a single ready hook
 Hooks.once('ready', async () => {
     postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: Ready hook started", "", false, false);
+    
+    // Show loading progress indicator
+    LoadingProgressManager.show(25);
+    
     try {
         // Register settings FIRST during the ready phase
+        LoadingProgressManager.update(1, "Registering settings...");
         registerSettings();
         
         // Initialize HookManager (infrastructure layer)
+        LoadingProgressManager.update(2, "Initializing HookManager...");
         HookManager.initialize();
         
         // Initialize OpenAI Memory System
+        LoadingProgressManager.update(3, "Initializing OpenAI Memory System...");
         OpenAIAPI.initializeMemory();
         
         // Register the Blacksmith hook (after HookManager is initialized)
+        LoadingProgressManager.update(4, "Registering Blacksmith hooks...");
         registerBlacksmithUpdatedHook();
         
         // Register window-query partials early to prevent template errors
+        LoadingProgressManager.update(5, "Registering window query partials...");
         await registerWindowQueryPartials();
         
         // Wait a bit to ensure settings are fully processed
+        LoadingProgressManager.update(6, "Processing settings...");
         await new Promise(resolve => setTimeout(resolve, 100));
         
         // Double-check that settings are ready
+        LoadingProgressManager.update(7, "Verifying settings...");
         let retries = 0;
         while (!game.settings.settings.has(`${MODULE.ID}.trackCombatStats`) && retries < 10) {
             console.warn(`Blacksmith: Settings not fully ready, waiting... (attempt ${retries + 1}/10)`);
@@ -320,20 +332,24 @@ Hooks.once('ready', async () => {
         
         if (!game.settings.settings.has(`${MODULE.ID}.trackCombatStats`)) {
             console.error('Blacksmith: Settings failed to load after multiple attempts, skipping initialization');
+            LoadingProgressManager.forceHide();
             return;
         }
 
         // Initialize combat stats tracking
+        LoadingProgressManager.update(8, "Initializing combat stats...");
         CombatStats.initialize();
 
         // Initialize player stats tracking
+        LoadingProgressManager.update(9, "Initializing player stats...");
         CPBPlayerStats.initialize();
 
         // Initialize XP manager
+        LoadingProgressManager.update(10, "Initializing XP manager...");
         XpManager.initialize();
 
-
         // Apply any existing custom CSS
+        LoadingProgressManager.update(11, "Applying custom CSS...");
         const editor = new CSSEditor();
         const css = getSettingSafely(MODULE.ID, 'customCSS', null);
         const transition = getSettingSafely(MODULE.ID, 'cssTransition', null);
@@ -342,33 +358,40 @@ Hooks.once('ready', async () => {
         }
 
         // Initialize other components that depend on settings
+        LoadingProgressManager.update(12, "Initializing wrapper manager...");
         WrapperManager.initialize();
         
         // Initialize scene navigation
+        LoadingProgressManager.update(13, "Initializing navigation manager...");
         console.log('BLACKSMITH: About to call NavigationManager.initialize()');
         NavigationManager.initialize();
         console.log('BLACKSMITH: NavigationManager.initialize() completed');
         
         // Initialize latency checker
+        LoadingProgressManager.update(14, "Initializing latency checker...");
         LatencyChecker.initialize();
         
-      
         // Initialize CanvasTools
+        LoadingProgressManager.update(15, "Initializing canvas tools...");
         CanvasTools.initialize();
         
         // No longer needed - cache management is now handled by the new simplified system
 
         // Initialize ImageCacheManager (GM only)
         if (game.user.isGM) {
+            LoadingProgressManager.update(16, "Initializing image cache manager...");
             try {
                 const { ImageCacheManager } = await import('./manager-image-cache.js');
                 await ImageCacheManager.initialize();
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, "Error importing ImageCacheManager", error, true, false);
             }
+        } else {
+            LoadingProgressManager.update(16, "Skipping image cache (not GM)...");
         }
 
         // Initialize Token Image Utilities (turn indicators, etc.)
+        LoadingProgressManager.update(17, "Initializing token image utilities...");
         try {
             const { TokenImageUtilities } = await import('./token-image-utilities.js');
             TokenImageUtilities.initializeTurnIndicator();
@@ -376,37 +399,48 @@ Hooks.once('ready', async () => {
             postConsoleAndNotification(MODULE.NAME, "Error importing TokenImageUtilities", error, true, false);
         }
 
-
         // Update nameplates
+        LoadingProgressManager.update(18, "Updating nameplates...");
         updateNameplates();
 
         // Initialize other settings-dependent features
+        LoadingProgressManager.update(19, "Initializing settings-dependent features...");
         initializeSettingsDependentFeatures();
 
         // Initialize scene interactions
+        LoadingProgressManager.update(20, "Initializing scene interactions...");
         initializeSceneInteractions();
         
         // Initialize the unified roll system API
+        LoadingProgressManager.update(21, "Initializing roll system...");
         const { executeRoll } = await import('./manager-rolls.js');
         BLACKSMITH.rolls.execute = executeRoll;
 
         // JOURNAL TOOLS
+        LoadingProgressManager.update(22, "Initializing journal tools...");
         JournalTools.init();
         
         // ENCOUNTER TOOLBAR
+        LoadingProgressManager.update(23, "Initializing encounter toolbar...");
         EncounterToolbar.init();
 
         // SIDEBAR PIN
+        LoadingProgressManager.update(24, "Initializing sidebar pin...");
         SidebarPin.initialize();
 
         // SIDEBAR STYLE
+        LoadingProgressManager.update(25, "Initializing sidebar style...");
         SidebarStyle.initialize();
 
-        // SIDEBAR STYLE
+        // SIDEBAR STYLE (duplicate call - keeping for compatibility)
         SidebarStyle.initialize();
+
+        // Hide progress indicator when complete
+        LoadingProgressManager.hide();
 
     } catch (error) {
         console.error('Error during Blacksmith initialization:', error);
+        LoadingProgressManager.forceHide();
     }
 });
 

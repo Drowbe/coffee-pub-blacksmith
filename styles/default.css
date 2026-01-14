@@ -5,6 +5,7 @@
 /* --- Shared ---------------------- */
 @import "common.css";
 @import "settings.css";
+@import "loading-progress.css";
 
 /* --- Overrides ------------------- */
 @import "overrides-foundry.css"; 
