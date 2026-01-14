@@ -1234,17 +1234,12 @@ export const registerSettings = () => {
 	});
 
 
-	// -- Sidebar PIN --
-	game.settings.register(MODULE.ID, 'sidebarPinUI', {
-		name: MODULE.ID + '.sidebarPinUI-Label',
-		hint: MODULE.ID + '.sidebarPinUI-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'client',
-		default: false,
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
+
+	// --------------------------------------
+	// -- H3: SIDEBARS
+	// --------------------------------------
+	registerHeader('Sidebars', 'headingH3Sidebars-Label', 'headingH3Sidebars-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+
 
 	// -- Sidebar UI --
 	game.settings.register(MODULE.ID, 'sidebarStyleUI', {
@@ -1252,9 +1247,45 @@ export const registerSettings = () => {
 		hint: MODULE.ID + '.sidebarStyleUI-Hint',
 		type: Boolean,
 		config: true,
-		requiresReload: false,
+		requiresReload: true,
 		scope: 'client',
 		default: false,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
+	// -- Sidebar PIN --
+	game.settings.register(MODULE.ID, 'sidebarPinUI', {
+		name: MODULE.ID + '.sidebarPinUI-Label',
+		hint: MODULE.ID + '.sidebarPinUI-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: true,
+		scope: 'client',
+		default: true,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
+	// -- Sidebar Manual Rolls --
+	game.settings.register(MODULE.ID, 'sidebarManualRollsEnabled', {
+		name: MODULE.ID + '.sidebarManualRollsEnabled-Label',
+		hint: MODULE.ID + '.sidebarManualRollsEnabled-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: true,
+		scope: 'client',
+		default: true,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
+	// -- Sidebar Combat Chat --
+	game.settings.register(MODULE.ID, 'sidebarCombatChatEnabled', {
+		name: MODULE.ID + '.sidebarCombatChatEnabled-Label',
+		hint: MODULE.ID + '.sidebarCombatChatEnabled-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: true,
+		scope: 'client',
+		default: true,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 

@@ -24,18 +24,28 @@ export class SidebarStyle {
             // Ready has already fired, setup immediately
             this._applySidebarStyle();
             this._registerSettingChangeHook();
-            // Only create manual roll button for GM
+            // Only create manual roll button for GM if setting is enabled
             if (game.user.isGM) {
-                this._createManualRollButton();
+                if (getSettingSafely(MODULE.ID, 'sidebarManualRollsEnabled', true)) {
+                    this._createManualRollButton();
+                } else {
+                    // Setting disabled - remove button if it exists
+                    this._removeManualRollButton();
+                }
             }
         } else {
             // Wait for Foundry to be ready
             Hooks.once('ready', () => {
                 this._applySidebarStyle();
                 this._registerSettingChangeHook();
-                // Only create manual roll button for GM
+                // Only create manual roll button for GM if setting is enabled
                 if (game.user.isGM) {
-                    this._createManualRollButton();
+                    if (getSettingSafely(MODULE.ID, 'sidebarManualRollsEnabled', true)) {
+                        this._createManualRollButton();
+                    } else {
+                        // Setting disabled - remove button if it exists
+                        this._removeManualRollButton();
+                    }
                 }
             });
         }
@@ -60,6 +70,19 @@ export class SidebarStyle {
                     this._applySidebarStyle();
                 }
                 
+                // Handle manual rolls enabled/disabled setting
+                if (moduleId === MODULE.ID && settingKey === 'sidebarManualRollsEnabled') {
+                    if (value && game.user.isGM) {
+                        // Setting enabled - create button if it doesn't exist
+                        if (!this.manualRollButton || !document.querySelector('.blacksmith-manual-rolls')) {
+                            this._createManualRollButton();
+                        }
+                    } else {
+                        // Setting disabled - remove button
+                        this._removeManualRollButton();
+                    }
+                }
+                
                 // Update manual roll button when core dice configuration changes (GM only)
                 if (game.user.isGM && moduleId === 'core' && settingKey === 'diceConfiguration') {
                     if (this.manualRollButton) {
@@ -70,6 +93,28 @@ export class SidebarStyle {
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
+    }
+
+    /**
+     * Remove the manual roll button if it exists
+     */
+    static _removeManualRollButton() {
+        if (this.manualRollButton) {
+            const buttonLi = this.manualRollButton.closest('li');
+            if (buttonLi) {
+                buttonLi.remove();
+            }
+            this.manualRollButton = null;
+        } else {
+            // Also check if button exists in DOM but not in our reference
+            const existingButton = document.querySelector('.blacksmith-manual-rolls');
+            if (existingButton) {
+                const buttonLi = existingButton.closest('li');
+                if (buttonLi) {
+                    buttonLi.remove();
+                }
+            }
+        }
     }
 
     /**

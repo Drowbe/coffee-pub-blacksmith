@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [13.0.11]
 
 ### Added
+- **Chat + Combat Sidebar Tab**: New hybrid sidebar tab combining chat log and combat tracker
+  - New tab button appears after the existing Combat button in the sidebar
+  - Chat log displayed at top (read-only, no input or controls)
+  - Combat tracker displayed at bottom
+  - Draggable divider between panes for custom sizing (default 50/50 split)
+  - Split ratio persisted per user via client setting (`chatCombatSplit`)
+  - Respects `sidebarCombatChatEnabled` setting to show/hide the tab
+  - Chat log auto-scrolls to latest messages when content is added
+  - Preserves core chat tab functionality by cloning chat log instead of moving it
+  - Maintains Foundry's native combat tracker styling by moving entire combat section
 - **Healing Tracking System**: Implemented comprehensive healing tracking for player lifetime stats
   - **HP Delta Tracking (Lane 1)**: Source of truth for applied healing - tracks actual HP changes via `preUpdateActor`/`updateActor` hooks
   - **Chat Message Attribution**: Detects healing spells in chat messages using reliable `activity.type === "heal"` signal for caster attribution
@@ -60,6 +70,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Hydrates missing `targetUuids` from `message.flags.dnd5e.targets`
   - Provides fallback attacker/item names when resolution fails
   - Ensures context storage always has best available data
+- **Sidebar Tab Settings**: Added setting controls for sidebar features
+  - `sidebarCombatChatEnabled` setting to enable/disable the Chat + Combat tab
+  - `sidebarManualRollsEnabled` setting honored for manual roll button visibility
+  - Both settings support dynamic toggling without requiring page reload
 
 ### Fixed
 - **Healing Message Detection**: Fixed healing messages being incorrectly skipped as "Unlinked Damage"

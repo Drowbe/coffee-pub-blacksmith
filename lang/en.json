@@ -92,12 +92,21 @@
 				"canvasToolsHideBottomUI-Label": "Hide Bottom UI",
 				"canvasToolsHideBottomUI-Hint": "When enabled, the bottom of the interface, including the macrobar, will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
 
-				"sidebarPinUI-Label": "Pin Sidebar Open",
-				"sidebarPinUI-Hint": "When enabled, the sidebar will be pinned in place when the toggle is activated.",
-				"sidebarPinUI-Unpinned": "Sidebar pin has been unpinned.",
+			"headingH3Sidebars-Label": "Sidebars",
+			"headingH3Sidebars-Hint": "",
 
 				"sidebarStyleUI-Label": "Style Sidebar",
 				"sidebarStyleUI-Hint": "When enabled, applies custom styling to the sidebar including rounded corners, background colors, and improved spacing.",
+
+				"sidebarPinUI-Label": "Pin Open",
+				"sidebarPinUI-Hint": "When enabled, the sidebar will be pinned in place when the toggle is activated.",
+				"sidebarPinUI-Unpinned": "Sidebar pin has been unpinned.",
+
+				"sidebarManualRollsEnabled-Label": "Manual Rolls",
+				"sidebarManualRollsEnabled-Hint": "When enabled, a button will be added to the sidebar that will allow you to toggle manual rolls for all dice.",
+
+				"sidebarCombatChatEnabled-Label": "Combat Chat",
+				"sidebarCombatChatEnabled-Hint": "Add a tab that will combine the combat and chat tabs into a single tab. This is useful for players to see the combat and chat log in one place.",
 
 			"headingH3menubar-Label": "Blacksmith Menubar",
 			"headingH3menubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
