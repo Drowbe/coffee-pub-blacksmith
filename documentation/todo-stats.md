@@ -1,324 +1,366 @@
-# Stats Tracking - TODO & Tracking Status
+# Stats System Normalization Plan
 
-This document tracks the current state of statistics tracking, what's actively being tracked, and what might be missing.
-
----
-
-## Current Tracking Status
-
-### ✅ Actively Tracked (Lifetime Stats)
-
-#### Attacks (Tracked via Message Resolution Pipeline)
-- ✅ `biggest` - Highest damage hit (amount, date, weaponName, attackRoll, targetName, targetAC, sceneName, isCritical)
-  - **Location**: `scripts/stats-player.js` in `_processResolvedDamage`
-  - **Source**: Resolved from `createChatMessage` hook via message resolution pipeline
-- ✅ `weakest` - Lowest damage hit (same structure)
-  - **Location**: `scripts/stats-player.js` in `_processResolvedDamage`
-  - **Source**: Resolved from `createChatMessage` hook via message resolution pipeline
-- ✅ `hitMissRatio` - Calculated from totalHits/totalMisses
-  - **Location**: `scripts/stats-player.js` in `_processResolvedAttack`
-  - **Source**: Determined from attack messages using `attackTotal >= target.ac` (not inferred from damage)
-- ✅ `totalHits` - Total successful hits
-  - **Location**: `scripts/stats-player.js` in `_processResolvedAttack`
-  - **Source**: Counted from resolved attack messages (hitTargets array)
-- ✅ `totalMisses` - Total misses
-  - **Location**: `scripts/stats-player.js` in `_processResolvedAttack`
-  - **Source**: Counted from resolved attack messages (missTargets array)
-- ✅ `criticals` - Total critical hits (nat 20)
-  - **Location**: `scripts/stats-player.js` in `_onAttackRoll` (real-time), reconciled in `_onCombatSummaryReady`
-  - **Method**: Uses active d20 result (for advantage/disadvantage) from roll hooks
-- ✅ `fumbles` - Total fumbles (nat 1)
-  - **Location**: `scripts/stats-player.js` in `_onAttackRoll` (real-time), reconciled in `_onCombatSummaryReady`
-  - **Method**: Uses active d20 result (for advantage/disadvantage) from roll hooks
-- ✅ `totalDamage` - Total damage dealt (only "onHit" bucket)
-  - **Location**: `scripts/stats-player.js` in `_processResolvedDamage`
-  - **Source**: Resolved from damage messages, classified as "onHit" or "other"
-- ✅ `damageByWeapon` - Object keyed by weapon name with total damage
-  - **Location**: `scripts/stats-player.js` in `_processResolvedDamage`
-  - **Source**: Extracted from resolved damage events
-- ✅ `damageByType` - Object keyed by damage type with total damage
-  - **Location**: `scripts/stats-player.js` in `_processResolvedDamage`
-  - **Source**: Extracted from item damage parts
-- ✅ `hitLog` - Array of last 20 hits (amount, date, weaponName, attackRoll, targetName, targetAC, sceneName, isCritical)
-  - **Location**: `scripts/stats-player.js` in `_processResolvedDamage`
-  - **Source**: Resolved from attack/damage message correlation
-
-#### Healing (Tracked via HP Delta and Chat Messages)
-- ✅ `received` - Total healing received (via HP delta tracking)
-  - **Location**: `scripts/stats-player.js:1257-1311` in `_recordAppliedHealing`
-  - **Method**: HP delta detection in `_onActorUpdate` (preUpdateActor/updateActor hooks)
-  - **Source of Truth**: HP delta tracking (Lane 1) - tracks actual applied healing
-- ✅ `total` - Total healing given (via chat message detection)
-  - **Location**: `scripts/stats-player.js:1302-1378` in `_recordRolledHealing`
-  - **Method**: Chat message detection using `activity.type === "heal"` signal
-  - **Note**: Informational/attribution only - HP delta is source of truth for applied healing
-- ✅ `given` - Healing given (attributed to caster)
-  - **Location**: `scripts/stats-player.js:1342` in `_recordRolledHealing`
-- ✅ `byTarget` - Object keyed by target with healing amounts
-  - **Location**: `scripts/stats-player.js:1346-1349` in `_recordRolledHealing`
-- ✅ `mostHealed` - Highest healing given (single instance)
-  - **Location**: `scripts/stats-player.js:1359` in `_recordRolledHealing`
-- ✅ `leastHealed` - Lowest healing given (single instance)
-  - **Location**: `scripts/stats-player.js:1360` in `_recordRolledHealing`
-- ✅ `revives.received` - Times revived (HP went from 0 to >0)
-  - **Location**: `scripts/stats-player.js:1289-1290` in `_recordAppliedHealing`
-
-#### Turn Stats (Tracked in `_processTurnEnd`)
-- ✅ `average` - Average turn duration
-  - **Location**: `scripts/stats-player.js:547` in `_processTurnEnd`
-- ✅ `total` - Total turn time
-  - **Location**: `scripts/stats-player.js:545` in `_processTurnEnd`
-- ✅ `count` - Number of turns
-  - **Location**: `scripts/stats-player.js:546` in `_processTurnEnd`
-- ✅ `fastest` - Fastest turn (duration, round, date)
-  - **Location**: `scripts/stats-player.js:550-556` in `_processTurnEnd`
-- ✅ `slowest` - Slowest turn (duration, round, date)
-  - **Location**: `scripts/stats-player.js:557-563` in `_processTurnEnd`
-
-#### MVP (Tracked in `_onCombatSummaryReady` and `_applyRoundMvpScore`)
-- ✅ `totalScore` - Cumulative MVP score
-  - **Location**: `scripts/stats-player.js:1121-1130` in `_onCombatSummaryReady`, `_updateLifetimeMvp` helper
-- ✅ `highScore` - Highest single combat MVP score
-  - **Location**: `scripts/stats-player.js:115` in `_updateLifetimeMvp` helper
-- ✅ `combats` - Number of combats participated
-  - **Location**: `scripts/stats-player.js:114` in `_updateLifetimeMvp` helper
-- ✅ `averageScore` - Average MVP score
-  - **Location**: `scripts/stats-player.js:116` in `_updateLifetimeMvp` helper
-- ✅ `lastScore` - Last combat MVP score
-  - **Location**: `scripts/stats-player.js:118` in `_updateLifetimeMvp` helper
-- ✅ `lastRank` - Last combat MVP rank
-  - **Location**: `scripts/stats-player.js:119` in `_updateLifetimeMvp` helper
-
-#### Other Lifetime
-- ✅ `unconscious.count` - Times knocked unconscious
-  - **Location**: `scripts/stats-player.js` in `_recordUnconscious`
-  - **Method**: HP delta detection in `_onActorUpdate` (preUpdateActor/updateActor hooks)
-  - **Trigger**: HP drops from >0 to 0 or below
-- ✅ `unconscious.log` - Array of unconscious events (last 100)
-  - **Location**: `scripts/stats-player.js` in `_recordUnconscious`
-  - **Attribution**: Queue-based damage context system with combat-aware matching
-  - Contains: date, sceneName, oldHp, newHp, attackerName, weaponName, damageAmount
-  - **Matching**: Scores candidates by combat round/turn, recency, and damage amount
-- ❌ `movement` - Total movement distance
-  - **NOT TRACKED** - Only defined in defaults, no tracking code
-- ✅ `lastUpdated` - Last update timestamp
-  - **Location**: `scripts/stats-player.js` in `updatePlayerStats`
-
-### ✅ Session Stats Structure
-
-- ✅ `combats` - Array of combat summaries
-  - **Location**: `scripts/stats-player.js:1136-1150` in `_onCombatSummaryReady`
-- ✅ `currentCombat` - Current combat ID
-  - **Location**: `scripts/stats-player.js:498-517` in `_processTurnStart`
-- ✅ `combatTracking` - Tracks hits/crits/fumbles added during combat (hitsAdded, critsAdded, fumblesAdded)
-  - **Location**: Various places for tracking, reset in `_onCombatSummaryReady`
+This document outlines the plan to normalize combat/round stats with player stats architecture, ensuring both systems use shared utilities and support both core dnd5e and midi-qol.
 
 ---
 
-## Missing Tracking
+## Current State
 
-### ✅ Healing Tracking
-**Status**: **FULLY IMPLEMENTED** (Phase 1 - Lane 1 HP Delta + Chat Message Attribution)
+### Player Stats (`stats-player.js`) - ✅ Working
+- **Multi-lane architecture**: Core chat parsing + MIDI workflow hooks + fallback hooks
+- **Early message filtering**: Guards to skip non-system messages
+- **Race condition protection**: Per-actor update queue
+- **Robust crit/fumble detection**: Multi-source (workflow flags, roll flags, d20 inspection)
+- **Reliable healing detection**: Uses `activity.type === "heal"` signal
+- **MIDI healing support**: Processes via `preTargetDamageApplication` hook
 
-- ✅ `lifetime.healing.total` - Total healing given (tracked from chat messages)
-- ✅ `lifetime.healing.received` - Total healing received (tracked via HP delta)
-- ✅ `lifetime.healing.given` - Healing given (attributed to caster)
-- ✅ `lifetime.healing.byTarget` - Object keyed by target with healing amounts
-- ✅ `lifetime.healing.mostHealed` - Highest healing given (single instance)
-- ✅ `lifetime.healing.leastHealed` - Lowest healing given (single instance)
-- ✅ `lifetime.revives.received` - Times revived (HP went from 0 to >0)
-
-**Implementation Details**:
-- **Lane 1 (HP Delta)**: Source of truth for applied healing - tracks actual HP changes via `preUpdateActor`/`updateActor` hooks
-- **Chat Messages**: Informational/attribution only - detects healing using `activity.type === "heal"` signal (dnd5e 5.2.4)
-- **Detection**: Uses only reliable `flags.dnd5e.activity.type === "heal"` signal (no item name heuristics)
-- **Architecture**: Chat messages tell us intent, HP delta tells us truth (per developer review guidance)
-
-### ❌ Movement Tracking
-**Status**: Field exists in defaults but **NOT TRACKED**
-
-- `lifetime.movement` - Total movement distance
-
-**Note**: No tracking code exists for movement. Would need to hook into token movement events.
-
-### ✅ Unconscious Tracking
-**Status**: **FULLY IMPLEMENTED** (Queue-Based Attribution System)
-
-- ✅ `lifetime.unconscious.count` - Times knocked unconscious
-  - **Location**: `scripts/stats-player.js` in `_recordUnconscious`
-  - **Method**: HP delta detection in `_onActorUpdate` (preUpdateActor/updateActor hooks)
-  - **Trigger**: HP drops from >0 to 0 or below
-  - **Source of Truth**: HP delta tracking (same pattern as healing)
-- ✅ `lifetime.unconscious.log` - Array of unconscious events (last 100)
-  - Each event contains:
-    - `date` - ISO timestamp of when unconscious occurred
-    - `sceneName` - Scene where it happened
-    - `oldHp` - HP before going unconscious
-    - `newHp` - HP after (should be <= 0)
-    - `attackerName` - Name of attacker (from damage context queue)
-    - `weaponName` - Weapon/spell name (from damage context queue)
-    - `damageAmount` - Damage amount from damage context (or null if unavailable)
-
-**Implementation Details**:
-- **Detection**: Uses HP delta tracking in `_onActorUpdate` - detects when `preHp.hp > 0 && newHp <= 0`
-- **Attribution System**: Queue-based damage context storage (last 10 entries per target)
-  - Stores damage context for ALL targets from damage messages (before bucket filtering)
-  - Includes combat round/turn information for better matching
-  - TTL window: 15 seconds (increased from 5s to account for delays)
-- **Context Selection**: Scores candidates by:
-  - Same combat round + turn = +1000 points (highest priority)
-  - Same combat round = +100 points
-  - Recency bonus (newer = better, max 15000 points)
-  - Damage amount bonus (larger = more likely cause)
-- **Damage Event Hydration**: Extracts missing fields from chat messages:
-  - Attacker from `message.speaker.actor`
-  - Item from `message.flags.dnd5e.item.uuid` (and variants)
-  - Targets from `message.flags.dnd5e.targets`
-  - Fallback names when resolution fails
-- **Logging**: Human-readable console logging using `postConsoleAndNotification` with "Player Stats | " prefix
+### Combat Stats (`stats-combat.js`) - ⚠️ Partially Broken
+- **Single-lane architecture**: Only `createChatMessage` hook (core lane)
+- **No MIDI workflow hooks**: Missing `hitsChecked`, `preTargetDamageApplication`, `RollComplete`
+- **No early message filtering**: Processes all messages (including module noise)
+- **No race condition protection**: Concurrent writes can overwrite stats
+- **Basic crit/fumble detection**: Uses `_lastRollWasCritical` flag (not multi-source)
+- **Outdated healing detection**: Uses name heuristics instead of `activity.type === "heal"`
+- **Core detection too strict**: `resolveAttackMessage()` requires `roll.type === "attack"`, rejects modern core messages
 
 ---
 
-## Shared Functions Analysis
+## Problem Statement
 
-### ✅ Shared Message Resolution Utilities
-**Location**: `scripts/utility-message-resolution.js`
-
-- `hydrateFirstRoll(message)` - Handles v13 roll hydration (string, object, or Roll instance)
-- `getKeyParts(message)` - Extracts stable key parts (attackerActorId, itemUuid, activityUuid, sorted targetUuids)
-- `makeKey(parts)` - Creates stable string key from key parts
-- `resolveAttackMessage(message)` - Parses attack messages, computes hit/miss per target
-- `resolveDamageMessage(message)` - Parses damage messages, extracts damage total and metadata
-- **Used By**: Both `CombatStats` and `CPBPlayerStats` for consistent message resolution
-
-### ❌ NOT Shared - Each system tracks independently
-
-**Attack/Damage Tracking:**
-- `CPBPlayerStats._processResolvedDamage` - Tracks damageByWeapon, damageByType, biggest, weakest, hitLog
-- `CombatStats._processResolvedDamage` - Tracks combat-level damage/healing (doesn't update player lifetime)
-- **Note**: These are separate - CombatStats tracks for combat summaries, CPBPlayerStats tracks for lifetime stats
-- **Both use**: Shared message resolution utilities from `utility-message-resolution.js`
-
-**Healing Tracking:**
-- `CombatStats._processDamageOrHealing` - Tracks healing for combat stats only
-- `CPBPlayerStats._recordAppliedHealing` - Tracks lifetime healing received (HP delta)
-- `CPBPlayerStats._recordRolledHealing` - Tracks lifetime healing given (chat messages)
-- **Note**: Separate systems with different purposes
-
-**Turn Stats:**
-- `CPBPlayerStats._processTurnEnd` - Tracks turn stats for player lifetime
-- **Note**: CombatStats tracks turn times for combat stats, but these are separate systems
-
-**MVP:**
-- `CPBPlayerStats._updateLifetimeMvp` - Helper function for MVP calculations
-- `CPBPlayerStats._applyRoundMvpScore` - Applies round MVP scores
-- `CPBPlayerStats._onCombatSummaryReady` - Applies combat MVP scores
-- **Note**: MVP tracking is all in CPBPlayerStats, uses shared helper `_updateLifetimeMvp`
+1. **Core attacks not detected**: `resolveAttackMessage()` is too strict - requires `dnd.roll.type === "attack"`, but modern core messages have `rollType: "none"` even with valid attack data
+2. **No MIDI support in combat stats**: Combat stats relies solely on chat parsing, missing MIDI workflow hooks
+3. **Code duplication risk**: Without shared utilities, both systems will duplicate MIDI parsing, crit/fumble detection, healing detection, dedupe logic
+4. **Race conditions**: Multi-target healing (e.g., Mass Cure Wounds) can overwrite totals instead of accumulating
 
 ---
 
-## Data Verification Notes
+## Solution: Normalize First, Then Implement
 
-### Hit Log Fields
-The `hitLog` array should contain:
-- `amount` - Damage dealt ✅
-- `date` - ISO timestamp ✅
-- `weaponName` - Name of weapon/item ✅
-- `attackRoll` - Attack roll total (may be null for some entries) ⚠️
-- `targetName` - Target name ✅
-- `targetAC` - Target AC (may be null for some entries) ⚠️
-- `sceneName` - Scene name ✅
-- `isCritical` - Critical hit flag ✅ (currently always false - needs improvement)
-
-**Note**: Some `hitLog` entries may have `null` for `attackRoll` or `targetAC` if:
-- The attack message didn't contain target AC information (unknown targets)
-- The data was collected before the new message resolution system was implemented
-- The attack event couldn't be resolved for that particular hit
-
-### Session Data - Legacy Fields
-- ⚠️ `session.pendingAttacks` - **REMOVED from defaults**, but may exist in existing actor data as empty object `{}`
-  - This field is no longer used (attack/damage correlation now handled via chat message resolution)
-  - Should be ignored/cleaned up if present in existing data
-  - Does not affect functionality
+**Key Principle**: Create shared utilities BEFORE adding MIDI lanes to combat stats, preventing duplication.
 
 ---
 
-## Remaining Work
+## Implementation Phases
 
-### High Priority
-- [x] **Implement healing tracking** - ✅ COMPLETED - Added lifetime healing stats tracking (total, received, given, byTarget, mostHealed, leastHealed, revives)
-  - ✅ Implemented HP delta tracking (Lane 1) for applied healing - source of truth
-  - ✅ Implemented chat message detection for healing attribution using `activity.type === "heal"` signal
-  - ✅ Simplified detection to only use reliable `activity.type === "heal"` (removed item name heuristics)
-  - ✅ Added `_recordAppliedHealing` for target's received healing and revives
-  - ✅ Added `_recordRolledHealing` for caster's given healing and totals
-- [x] **Refactor hit/miss/damage tracking** - ✅ COMPLETED - Moved to message resolution pipeline
-  - ✅ Created `utility-message-resolution.js` with shared resolution functions
-  - ✅ Replaced unstable `originatingMessage` correlation with stable identifiers
-  - ✅ Determines hit/miss from attack messages (`attackTotal >= target.ac`) instead of inferring from damage
-  - ✅ Classifies damage as "onHit" or "other" based on attack outcome
-  - ✅ Narrowed roll hooks to only crit/fumble detection
-  - ✅ Added attack cache system with TTL and deduplication
-- [x] **Implement unconscious tracking** - ✅ COMPLETED - Added unconscious event tracking with queue-based attribution
-  - ✅ Implemented HP delta detection for unconscious events (HP drops from >0 to 0 or below)
-  - ✅ Added queue-based damage context storage (last 10 entries per target)
-  - ✅ Implemented combat-aware matching (scores by round/turn, recency, damage amount)
-  - ✅ Added damage event hydration from chat messages for missing fields
-  - ✅ Stores date, scene, HP change, attacker name, weapon name, and damage amount
-- [x] **Fix crit/fumble detection** - ✅ COMPLETED - Now uses active d20 result for advantage/disadvantage
-  - ✅ Handles multiple d20 terms correctly
-  - ✅ Uses active result (marked `active: true`) instead of first result
-  - ✅ Falls back to first result if no active result found
-- [ ] Fix `isCritical` in hitLog - Currently always `false`, needs proper crit tracking
-  - Should integrate crit detection from roll hooks into attack cache entries
-  - Or track crits per attack event in the cache
+### Phase 1: Fix Core Detection (IMMEDIATE)
 
-### Medium Priority
-- [ ] Document which fields may be null/undefined and why
-- [ ] Add validation/fallbacks for missing fields in hitLog entries
-- [ ] Consider adding "damage.rolled.other" tracking separately from "damage.rolled.onHit"
+**Goal**: Make `resolveAttackMessage()` accept modern core message structures without requiring targets.
 
-### Low Priority
-- [ ] Implement movement tracking (requires token movement hooks)
-- [ ] Consider adding more granular tracking (damage by target, hits by weapon, etc.)
-- [ ] Performance optimization for large hitLog arrays
-- [ ] Consider migration/cleanup script for existing data with `session.pendingAttacks`
+**File**: `scripts/utility-message-resolution.js` (lines 161-174)
+
+**Changes**:
+- Replace current classifier with tiered detection:
+  - **Tier 1**: Explicit roll type (`roll.type === "attack"`) - backward compat
+  - **Tier 2**: Activity type indicates attack (`activity.type` in `["mwak", "rwak", "msak", "rsak", "attack"]`)
+  - **Tier 3**: Heuristic (`hasD20 && hasItem && !isExcluded`) - **DO NOT require targets**
+- Add explicit exclusions: `["check", "save", "damage", "heal"]` for roll types and activity types
+- Early exit: If `activity.type === "heal"`, return null immediately
+- Tighten MIDI detection: `workflowId` alone isn't enough, must also pass exclusion checks
+- Allow unknown targets: Function can return attack events with empty targets (MIDI hooks provide authoritative data)
+
+**Expected Outcome**: Core-only attacks should now be detected even when `rollType: "none"` and `targets: []`.
+
+**Test**: Disable MIDI, perform core dnd5e attack, verify round/combat stats update.
 
 ---
 
-## Architecture Notes
+### Phase 2: Create Shared MIDI Utilities (BEFORE Adding MIDI Lanes)
 
-### Message Resolution System
-- **Shared Utilities**: `scripts/utility-message-resolution.js` provides shared functions for both CombatStats and CPBPlayerStats
-- **Stable Keying**: Uses `speaker.actor`, `flags.dnd5e.item.uuid`, `flags.dnd5e.activity.uuid`, and sorted target UUIDs (replaces unstable `originatingMessage`)
-- **Attack Resolution**: Determines hit/miss from attack messages using `attackTotal >= target.ac` (not inferred from damage)
-- **Damage Classification**: Classifies damage as "onHit" or "other" based on attack outcome (handles midi-qol "damage on miss")
-- **Roll Hooks**: Narrowed to only crit/fumble detection and metadata (hit/miss/damage moved to `createChatMessage`)
-- **Socket Handlers**: Still use old methods for non-GM client forwarding (backward compatibility)
+**Goal**: Extract shared MIDI workflow parsing so both systems use the same logic.
 
-### Data Flow
-1. `createChatMessage` hook → `resolveAttackMessage` / `resolveDamageMessage` (shared utilities)
-2. Resolved events → `_processResolvedAttack` / `_processResolvedDamage` (system-specific)
-3. Real-time tracking updates lifetime stats immediately
-4. Combat summary reconciliation at combat end (`blacksmith.combatSummaryReady`)
-5. Session stats track temporary combat data (combatTracking for reconciliation)
+**New File**: `scripts/utility-midi-resolution.js`
 
-### Damage Context System (Unconscious Attribution)
-- **Storage**: Queue-based per target (`Map<actorId, DamageContext[]>`)
-- **TTL**: 15 seconds (increased from 5s to account for delays)
-- **Queue Size**: Last 10 entries per target (bounded)
-- **Hydration**: Extracts missing fields from chat messages (attacker, item, targets)
-- **Selection**: Scores candidates by combat round/turn, recency, and damage amount
-- **Storage Timing**: Context stored immediately after damage message resolution, before bucket filtering
+**Functions to Create**:
 
-### Shared vs Separate Functions
-- **SHARED**: Message resolution utilities (`utility-message-resolution.js`) used by both systems
-- **NOT SHARED**: Each system (CombatStats vs CPBPlayerStats) tracks independently for their purposes
-- CombatStats tracks for combat summaries (ephemeral)
-- CPBPlayerStats tracks for lifetime stats (persistent)
-- MVP uses shared helper `_updateLifetimeMvp` for calculations
+1. **`getWorkflowKey(workflow, message)`**
+   - Returns consistent key: `midi:${workflowId}` or fallback to message-based key
+   - Handles workflowId extraction from multiple possible locations
+   - Single source of truth for MIDI keying
+
+2. **`getCritFumbleFromWorkflow({ workflow, attackRoll })`**
+   - Multi-source crit/fumble detection (workflow flags, roll flags, d20 inspection)
+   - Handles advantage/disadvantage correctly (active/kept results)
+   - Returns: `{ isCritical, isFumble, sources: {...} }`
+
+3. **`isHealingFromWorkflow({ workflow, dndFlags })`**
+   - Core: `dndFlags?.activity?.type === "heal"`
+   - MIDI: `workflow.isHealing` or damage type inspection
+   - Single source of truth for healing detection
+
+4. **`buildAttackEventFromWorkflow(workflow)`**
+   - Converts MIDI workflow → normalized `AttackResolvedEvent`
+   - Same shape as `resolveAttackMessage()` output
+   - Extracts: attacker, item, targets, hit/miss outcomes, key
+   - **Handles workflow argument shape variations across MIDI versions**
+
+5. **`buildDamageEventFromWorkflow(workflow, targetUuid, amount, bucket)`**
+   - Converts MIDI workflow + target → normalized `DamageResolvedEvent`
+   - Same shape as `resolveDamageMessage()` output
+   - Handles per-target damage attribution
+   - **Extracts workflow arguments correctly (handles version variations)**
+
+6. **`createDedupeTracker(ttlMs = 20000)`**
+   - Returns: `{ isDuplicate(key), markProcessed(key) }`
+   - TTL-based deduplication helper
+   - Both systems use same dedupe logic
+
+**Critical**: Build workflow extraction logic in ONE place (handles `preTargetDamageApplication` argument shape variations across MIDI versions/settings).
+
+---
+
+### Phase 3: Add MIDI Lanes to Combat Stats (Using Shared Utilities)
+
+**Goal**: Add MIDI support to combat stats using shared utilities (before refactoring player stats).
+
+**File**: `scripts/stats-combat.js`
+
+**Changes**:
+
+1. **Import shared utilities**:
+   ```javascript
+   import { 
+       getWorkflowKey, 
+       getCritFumbleFromWorkflow, 
+       isHealingFromWorkflow,
+       buildAttackEventFromWorkflow,
+       buildDamageEventFromWorkflow,
+       createDedupeTracker
+   } from './utility-midi-resolution.js';
+   ```
+
+2. **Add early message filtering** (in `createChatMessage` callback):
+   ```javascript
+   const hasDnd5e = !!message.flags?.dnd5e;
+   const hasMidi = !!message.flags?.["midi-qol"];
+   const hasRolls = (message.rolls?.length ?? 0) > 0;
+   if (!hasDnd5e && !hasMidi && !hasRolls) return;
+   
+   // Early exit for MIDI: let MIDI hooks handle it
+   if (game.modules.get("midi-qol")?.active && hasMidi) {
+       return; // MIDI hooks will process this
+   }
+   ```
+
+3. **Register MIDI workflow hooks** (in `_registerHooks()`):
+   - `midi-qol.hitsChecked` → `_onMidiHitsChecked()`
+   - `midi-qol.preTargetDamageApplication` → `_onMidiPreTargetDamageApplication()`
+   - `midi-qol.RollComplete` → `_onMidiRollComplete()`
+
+4. **Initialize dedupe tracker**:
+   ```javascript
+   static _dedupeTracker = createDedupeTracker(20000);
+   ```
+
+5. **Implement MIDI handlers** (using shared utilities):
+   - `_onMidiHitsChecked(workflow)` - Use `buildAttackEventFromWorkflow()`, cache, call `_processResolvedAttack()`
+   - `_onMidiPreTargetDamageApplication(arg1, arg2)` - Use shared utilities for crit/fumble, healing, dedupe, build events
+   - `_onMidiRollComplete(workflow)` - Use `getCritFumbleFromWorkflow()`, stamp onto cached attack event
+
+6. **Add `_pendingMidiCrit` Map** (use shared `getCritFumbleFromWorkflow()`)
+
+**Result**: Combat stats now has MIDI support using shared utilities, avoiding duplication.
+
+---
+
+### Phase 4: Refactor Player Stats to Use Shared Utilities
+
+**Goal**: Replace duplicated MIDI logic in `stats-player.js` with shared utilities (after combat stats is working).
+
+**File**: `scripts/stats-player.js`
+
+**Changes**:
+
+1. **Import shared utilities** (same as combat stats)
+
+2. **Replace `_onMidiHitsChecked()`**:
+   - Use `buildAttackEventFromWorkflow(workflow)` instead of manual parsing
+   - Use `getWorkflowKey()` for consistent keying
+
+3. **Replace `_onMidiPreTargetDamageApplication()`**:
+   - Use `getCritFumbleFromWorkflow()` instead of inline detection
+   - Use `isHealingFromWorkflow()` for healing detection
+   - Use `buildDamageEventFromWorkflow()` for damage events
+   - Use dedupe tracker for per-target deduplication
+
+4. **Replace `_onMidiRollComplete()`**:
+   - Use `getCritFumbleFromWorkflow()` instead of inline detection
+   - Remove duplicate crit/fumble logic
+
+5. **Remove `_getMidiWorkflowId()`** - use `getWorkflowKey()` instead
+
+**Result**: Player stats becomes a consumer of shared utilities, completing normalization.
+
+---
+
+### Phase 5: Add Race Condition Protection
+
+**Goal**: Prevent concurrent write issues (especially for multi-target healing).
+
+**File**: `scripts/stats-combat.js`
+
+**Changes**:
+
+1. **Add actor update queue** (same implementation as player stats):
+   ```javascript
+   static _actorUpdateQueue = new Map();
+   static async _queueActorUpdate(actorId, fn) { /* same as player stats */ }
+   ```
+
+2. **Wrap stat writes with queue**:
+   - `_processResolvedAttack()` - queue attacker updates
+   - `_processResolvedDamage()` - queue attacker updates  
+   - `_processDamageOrHealing()` - queue attacker/healer updates
+
+**Result**: Multi-target healing (Mass Cure Wounds) now accumulates correctly: `0 → 30 → 60 → 90` instead of overwriting.
+
+---
+
+### Phase 6: Update Healing Detection (Cleanup)
+
+**Goal**: Use reliable `activity.type === "heal"` signal everywhere.
+
+**File**: `scripts/stats-combat.js`
+
+**Changes**:
+
+1. **In `_processResolvedDamage()`** (line 1533-1542):
+   - Remove name heuristics (`itemNameLower.includes("heal")`)
+   - Remove `actionType` checks
+   - Use shared `isHealingFromWorkflow()` or check `activity.type === "heal"` directly
+
+2. **All healing detection** now goes through shared utilities.
+
+**Result**: Consistent healing detection across both systems.
+
+---
+
+## File Structure After Normalization
+
+```
+scripts/
+├── utility-message-resolution.js  (message-based detection)
+│   ├── resolveAttackMessage()      [IMPROVED: tiered detection, no target requirement]
+│   ├── resolveDamageMessage()
+│   ├── resolveHealingMessage()
+│   └── getKeyParts(), makeKey(), hydrateFirstRoll()
+│
+├── utility-midi-resolution.js     (workflow-based detection) [NEW]
+│   ├── getWorkflowKey()
+│   ├── getCritFumbleFromWorkflow()
+│   ├── isHealingFromWorkflow()
+│   ├── buildAttackEventFromWorkflow()
+│   ├── buildDamageEventFromWorkflow()
+│   └── createDedupeTracker()
+│
+├── stats-player.js                 (lifetime/session storage)
+│   └── Uses utilities, writes to lifetime/session stats
+│
+└── stats-combat.js                 (round/combat storage)
+    └── Uses utilities, writes to round/combat stats
+```
+
+---
+
+## Key Design Decisions
+
+### 1. No Target Requirement in Core Heuristic
+- **Why**: Core messages often don't embed targets in message flags
+- **Solution**: Heuristic is `hasD20 && hasItem && !isExcluded` (targets optional)
+- **Result**: Core attacks detected even when `targets: []`
+
+### 2. Allow Unknown Targets in Attack Events
+- **Why**: Message parsing is "best-effort", workflow hooks are authoritative
+- **Solution**: `resolveAttackMessage()` can return attack events with empty/unknown targets
+- **Result**: MIDI hooks provide authoritative hit/miss data later
+
+### 3. Early Exit for Healing Activities
+- **Why**: Prevents misclassifying healing as attacks
+- **Solution**: `if (activityType === "heal") return null;` at top of classifier
+- **Result**: Cleaner separation between attack and healing detection
+
+### 4. Tightened MIDI Detection
+- **Why**: `workflowId` alone isn't enough (heals/features also have workflows)
+- **Solution**: MIDI must pass exclusion checks AND have attack-like signals
+- **Result**: Prevents combat/round trackers from processing non-attack workflows
+
+### 5. Normalize Before Duplicating
+- **Why**: Prevents "copy-paste now, dedupe later" (which never happens)
+- **Solution**: Create shared utilities FIRST, then both systems use them
+- **Result**: Single source of truth for MIDI parsing, crit/fumble, healing detection
+
+### 6. Combat Stats First, Player Stats Second
+- **Why**: Lower regression risk (player stats is working, combat stats is broken)
+- **Solution**: Add MIDI lanes to combat stats first, then refactor player stats
+- **Result**: Validate approach on broken system before touching working system
+
+---
+
+## Testing Strategy
+
+### Phase 1 Testing (Core Detection Fix)
+1. Disable MIDI-QOL
+2. Perform core dnd5e attack
+3. Verify:
+   - `resolveAttackMessage()` returns non-null
+   - Attack is cached in `CombatStats._attackCache`
+   - Round stats show hits/misses
+   - Combat summary shows correct aggregates
+
+### Phase 3 Testing (MIDI Lanes in Combat Stats)
+1. Enable MIDI-QOL
+2. Perform attack with MIDI
+3. Verify:
+   - Chat message lane is skipped (early exit)
+   - MIDI hooks process the attack
+   - Round/combat stats update correctly
+
+### Phase 5 Testing (Race Condition Protection)
+1. Cast Mass Cure Wounds (or similar multi-target healing)
+2. Verify:
+   - No race conditions (totals accumulate: `30 → 60 → 90`)
+   - No duplicate processing (dedupe working)
+   - Round/combat stats show correct healing totals
+
+### Phase 4 Testing (Player Stats Refactor)
+1. Verify all existing player stats functionality still works
+2. Verify MIDI lanes still work after refactor
+3. Verify no regression in lifetime stats tracking
+
+---
+
+## Risk Assessment
+
+- **Low Risk**: Core detection fix (only loosens criteria, doesn't break existing)
+- **Medium Risk**: MIDI lanes (must match player stats patterns exactly)
+- **Low Risk**: Actor update queue (proven pattern from player stats)
+- **Low Risk**: Healing detection update (already partially using `activity.type`)
+- **Medium Risk**: Player stats refactor (working code, but shared utilities reduce risk)
+
+---
+
+## Success Criteria
+
+1. ✅ Core-only attacks detected and tracked in combat/round stats
+2. ✅ MIDI attacks/damage/healing tracked in combat/round stats
+3. ✅ No code duplication between player stats and combat stats
+4. ✅ Multi-target healing accumulates correctly (no overwrites)
+5. ✅ Both systems use same detection logic (shared utilities)
+6. ✅ No regression in player stats functionality
+
+---
+
+## Implementation Order (Final)
+
+1. **Phase 1**: Fix core detection (test immediately)
+2. **Phase 2**: Create shared MIDI utilities (before adding MIDI lanes)
+3. **Phase 3**: Add MIDI lanes to combat stats (using shared utilities)
+4. **Phase 4**: Refactor player stats to use utilities (after combat stats works)
+5. **Phase 5**: Add race condition protection
+6. **Phase 6**: Cleanup healing detection
+
+This sequence ensures normalization happens BEFORE duplication, reduces regression risk, and ensures both systems use the same detection logic.
 
 ---
 
 ## Last Updated
-2026-01-13 - After unconscious tracking implementation (queue-based attribution) and hit/miss/damage refactoring (message resolution pipeline)
+2026-01-13 - After player stats normalization and combat stats assessment
