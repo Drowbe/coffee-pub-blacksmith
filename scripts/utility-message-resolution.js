@@ -117,7 +117,7 @@ export function resolveAttackMessage(message) {
     
     // Check multiple possible locations for workflowId in MIDI flags
     // MIDI may store it in different places depending on message type/stage
-    // Also check if it's stored as a direct property or nested
+    // Only check known/safe locations to avoid grabbing random IDs
     let workflowId = null;
     if (midi && typeof midi === 'object') {
         workflowId = midi.workflowId ?? 
@@ -125,10 +125,10 @@ export function resolveAttackMessage(message) {
                      midi.id ?? 
                      midi.messageType; // Some MIDI versions use messageType as identifier
         
-        // If still not found, check all string values that look like IDs
+        // If still not found, check for ChatMessage-prefixed IDs (safe pattern)
         if (!workflowId) {
             for (const [key, value] of Object.entries(midi)) {
-                if (typeof value === 'string' && value.length > 10 && /^[a-zA-Z0-9]+$/.test(value)) {
+                if (typeof value === "string" && value.startsWith("ChatMessage.")) {
                     workflowId = value;
                     break;
                 }
@@ -158,20 +158,80 @@ export function resolveAttackMessage(message) {
     // Check if MIDI flags exist (even without workflowId)
     const hasMidiFlags = midi && typeof midi === 'object' && Object.keys(midi).length > 0;
     
-    // Core dnd5e: check roll type
-    const isCoreAttack = (dnd?.roll?.type ?? "").toLowerCase() === "attack";
+    // ----------------------------
+    // Attack classification
+    // ----------------------------
     
-    // MIDI: workflowId indicates attack workflow
-    // OR: MIDI flags present + dnd5e roll type = attack (MIDI may use dnd5e flags even when handling workflow)
-    // OR: MIDI flags present + d20 roll detected (MIDI attack message with roll)
-    // Be very lenient: if MIDI is active and message looks like an attack, treat it as one
-    const hasDnd5eRollType = (dnd?.roll?.type ?? "").toLowerCase() === "attack";
-    const isMidiAttack = hasWorkflowId || 
-                        (hasMidiFlags && (hasDnd5eRollType || hasD20 || rolls.length > 0));
+    // Normalize roll/activity types
+    const rollType = (dnd?.roll?.type ?? "").toLowerCase();
+    const activityType = (dnd?.activity?.type ?? "").toLowerCase();
+    
+    // Early exits: these are definitely NOT attacks
+    // Check these BEFORE any classification logic to avoid false positives
+    if (rollType === "damage" || rollType === "heal" || rollType === "usage") {
+        return null;
+    }
+    if (activityType === "heal" || activityType === "damage" || activityType === "usage") {
+        return null;
+    }
+    
+    // Exclusions: these are very commonly misclassified if we get too loose
+    const excludedRollTypes = new Set(["check", "save", "damage", "heal", "usage"]);
+    const excludedActivityTypes = new Set([
+        "check", "save", "damage", "heal",
+        // dnd5e uses these too depending on version/content
+        "abil", "skill", "tool", "save"
+    ]);
+    
+    const isExcluded =
+        excludedRollTypes.has(rollType) ||
+        excludedActivityTypes.has(activityType);
+    
+    // Tier 1: explicit roll type (backward compat)
+    const hasExplicitAttackType = rollType === "attack";
+    
+    // Tier 2: activity types that strongly imply an attack roll
+    // These are common dnd5e activity types for attacks/spells
+    const activityIsAttack = ["mwak", "rwak", "msak", "rsak", "attack"].includes(activityType);
+    
+    // Tier 3: heuristic (be careful - do NOT require targets)
+    // Core messages may not include dnd.targets even when it's an attack
+    const hasItem =
+        !!(dnd?.item?.uuid) ||
+        !!(midi?.itemUuid) ||
+        !!(midi?.item?.uuid);
+    
+    // Prefer "d20 + item" as the heuristic, but only if not excluded
+    const heuristicAttack = hasD20 && hasItem && !isExcluded;
+    
+    // Core attack if any tier passes
+    const isCoreAttack = (hasExplicitAttackType || activityIsAttack || heuristicAttack);
+    
+    // MIDI attack: allow MIDI lane, but still respect exclusions.
+    // workflowId alone is not enough, because heals/features also have workflows.
+    const isMidiAttack =
+        (hasWorkflowId || hasMidiFlags) &&
+        !isExcluded &&
+        (hasExplicitAttackType || activityIsAttack || hasD20 || rolls.length > 0);
     
     if (!isCoreAttack && !isMidiAttack) {
         return null;
     }
+
+    // Debug log to help diagnose false positives
+    // Note: hasItem is calculated below, so we'll compute it here for the log
+    const hasItemForLog = !!(dnd?.item?.uuid) || !!(midi?.itemUuid) || !!(midi?.item?.uuid);
+    console.debug("resolveAttackMessage: accepted", {
+        id: message.id,
+        rollType,
+        activityType,
+        hasD20,
+        hasItem: hasItemForLog,
+        hasWorkflowId,
+        hasMidiFlags,
+        isCoreAttack,
+        isMidiAttack
+    });
 
     const roll = hydrateFirstRoll(message);
     const total = roll?.total ?? null;
