@@ -953,6 +953,68 @@ class CPBPlayerStats {
         if (!workflowId) return;
         const key = `midi:${workflowId}`;
 
+        // --- Crit/fumble: compute NOW (preTargetDamageApplication runs before RollComplete in event order) ---
+        // This ensures damage logs and hitLog entries have correct crit/fumble flags
+        const attackRoll = workflow?.attackRoll ?? null;
+
+        const wfCrit = !!workflow?.isCritical;
+        const wfFumble = !!workflow?.isFumble;
+
+        const rollCrit = !!attackRoll?.isCritical || !!attackRoll?.options?.critical;
+        const rollFumble = !!attackRoll?.isFumble || !!attackRoll?.options?.fumble;
+
+        // Fallback: inspect d20 results (adv/dis safe)
+        let d20Results = [];
+        let d20Active = [];
+        try {
+            const d20Dice = (attackRoll?.dice ?? []).filter(d => d?.faces === 20);
+            for (const die of d20Dice) {
+                const results = Array.isArray(die?.results) ? die.results : [];
+                for (const r of results) {
+                    if (typeof r?.result === "number") {
+                        d20Results.push(r.result);
+                        if (r.active !== false) d20Active.push(r.result);
+                    }
+                }
+            }
+        } catch (_) {}
+
+        const d20Used = d20Active.length ? d20Active : d20Results;
+        const natCrit = d20Used.includes(20);
+        const natFumble = d20Used.includes(1);
+
+        const isCritical = wfCrit || rollCrit || natCrit;
+        const isFumble = wfFumble || rollFumble || natFumble;
+
+        // Stamp it onto the cached attack event (or stage it if hitsChecked hasn't cached yet)
+        const attackEntry = CPBPlayerStats._attackCache.get(key);
+        if (attackEntry?.attackEvent) {
+            attackEntry.attackEvent.isCritical = isCritical;
+            attackEntry.attackEvent.isFumble = isFumble;
+            attackEntry.ts = Date.now();
+            CPBPlayerStats._attackCache.set(key, attackEntry);
+        } else {
+            // hitsChecked might not have fired yet; stash the result for later
+            if (!CPBPlayerStats._pendingMidiCrit) {
+                CPBPlayerStats._pendingMidiCrit = new Map();
+            }
+            CPBPlayerStats._pendingMidiCrit.set(key, { isCritical, isFumble, ts: Date.now() });
+        }
+
+        // Debug: Log crit/fumble detection
+        postConsoleAndNotification(MODULE.NAME, 'Player Stats | preTargetDamage crit/fumble', {
+            key,
+            isCritical,
+            isFumble,
+            d20Used,
+            wfCrit,
+            wfFumble,
+            rollCrit,
+            rollFumble,
+            natCrit,
+            natFumble
+        }, true, false);
+
         // Extract damage amount from various possible locations
         const damageItem = data?.damageItem ?? workflow?.damageItem ?? {};
         const hpDamageRaw =
@@ -994,8 +1056,9 @@ class CPBPlayerStats {
         }
 
         // Get cached attack event to determine if this was a hit
-        const attackEntry = CPBPlayerStats._attackCache.get(key);
-        const attackEvent = attackEntry?.attackEvent ?? null;
+        // Note: crit/fumble was already stamped above, so attackEvent will have correct flags
+        const attackEntryForDamage = CPBPlayerStats._attackCache.get(key);
+        const attackEvent = attackEntryForDamage?.attackEvent ?? null;
 
         // Classify damage bucket: "onHit" if target was in hitTargets, "other" otherwise
         const wasHit = attackEvent?.hitTargets?.includes(targetUuid);
