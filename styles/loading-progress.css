@@ -194,8 +194,14 @@
 .cpb-loading-progress-activity-icon {
     color: #ff5414;
     font-size: 1rem;
-    animation: cpb-activity-spin 1.5s linear infinite;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cpb-loading-progress-activity-icon i {
+    animation: cpb-activity-spin 1.5s linear infinite;
 }
 
 @keyframes cpb-activity-spin {

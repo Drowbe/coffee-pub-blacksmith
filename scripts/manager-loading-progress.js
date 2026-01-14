@@ -79,7 +79,7 @@ export class LoadingProgressManager {
                 </div>
                 <div class="cpb-loading-progress-activity">
                     <div class="cpb-loading-progress-activity-current">
-                        <span class="cpb-loading-progress-activity-icon">⟳</span>
+                        <span class="cpb-loading-progress-activity-icon"><i class="fa-solid fa-spinner"></i></span>
                         <span class="cpb-loading-progress-activity-text">Initializing...</span>
                     </div>
                     <div class="cpb-loading-progress-activity-history"></div>
