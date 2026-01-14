@@ -33,6 +33,39 @@
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
     transform: scale(0.95);
     transition: transform 0.4s ease-out;
+    position: relative;
+}
+
+.cpb-loading-progress-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(100, 100, 100, 0.3);
+    border: 1px solid rgba(150, 150, 150, 0.3);
+    border-radius: 4px;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #d0d0d0;
+    font-size: 1rem;
+    transition: all 0.2s ease-out;
+    z-index: 10;
+    padding: 0;
+    margin: 0;
+}
+
+.cpb-loading-progress-close:hover {
+    background: rgba(150, 50, 50, 0.5);
+    border-color: rgba(200, 100, 100, 0.5);
+    color: #ffaaaa;
+    transform: scale(1.1);
+}
+
+.cpb-loading-progress-close:active {
+    transform: scale(0.95);
 }
 
 .cpb-loading-progress-overlay.visible .cpb-loading-progress-card {

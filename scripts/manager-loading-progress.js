@@ -41,6 +41,9 @@ export class LoadingProgressManager {
 
         overlay.innerHTML = `
             <div class="cpb-loading-progress-card">
+                <button class="cpb-loading-progress-close" title="Close progress indicator">
+                    <i class="fas fa-times"></i>
+                </button>
                 <div class="cpb-loading-progress-header">
                     <h2 class="cpb-loading-progress-title">Loading World</h2>
                     <p class="cpb-loading-progress-subtitle">Please wait...</p>
@@ -63,6 +66,14 @@ export class LoadingProgressManager {
                 </div>
             </div>
         `;
+
+        // Add click handler for close button
+        const closeButton = overlay.querySelector('.cpb-loading-progress-close');
+        if (closeButton) {
+            closeButton.addEventListener('click', () => {
+                this.hide();
+            });
+        }
 
         document.body.appendChild(overlay);
         this._overlay = overlay;
