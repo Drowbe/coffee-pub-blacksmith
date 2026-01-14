@@ -396,10 +396,9 @@ try {
       return;
     }
 
-    ensureRestoreMarker(root, "chat", "chat-log");
-    ensureRestoreMarker(root, "combat", "combat");
+    // No need for restore marker - we're moving the entire section, using placeholder instead
 
-    // Mount chat log only (.chat-scroll)
+    // For chat: Clone the chat-scroll instead of moving it (don't break core chat tab)
     const chatSection = root.querySelector('section#chat[data-tab="chat"]');
     const chatScroll = chatSection?.querySelector(".chat-scroll") ?? null;
     const chatLogMount = combined.querySelector('.cpb-mount[data-mount="chat-log"]');
@@ -411,12 +410,43 @@ try {
     });
 
     if (chatScroll && chatLogMount && chatLogMount.dataset.mounted !== "true") {
-      chatLogMount.appendChild(chatScroll);
+      // Clone the chat-scroll instead of moving it (don't break core chat tab)
+      const chatClone = chatScroll.cloneNode(true);
+      chatClone.id = chatScroll.id ? `${chatScroll.id}-clone` : 'chat-scroll-clone';
+      chatLogMount.appendChild(chatClone);
       chatLogMount.dataset.mounted = "true";
-      slog("mountChatCombat: mounted chat-scroll");
+      
+      // Scroll to bottom initially
+      const scrollToBottom = (element) => {
+        if (element) {
+          element.scrollTop = element.scrollHeight;
+        }
+      };
+      scrollToBottom(chatClone);
+      
+      slog("mountChatCombat: cloned chat-scroll (not moved - original stays intact)");
+      
+      // Sync updates: watch for new messages and update clone
+      const observer = new MutationObserver(() => {
+        if (chatLogMount.dataset.mounted === "true" && chatScroll.parentElement) {
+          // Only update if original is still in place (not moved)
+          const currentClone = chatLogMount.querySelector('.chat-scroll');
+          if (currentClone) {
+            const newClone = chatScroll.cloneNode(true);
+            newClone.id = currentClone.id;
+            chatLogMount.replaceChild(newClone, currentClone);
+            
+            // Scroll to bottom after updating
+            scrollToBottom(newClone);
+          }
+        }
+      });
+      observer.observe(chatScroll, { childList: true, subtree: true });
+      // Store observer reference on mount element for cleanup
+      chatLogMount._chatObserver = observer;
     }
 
-    // Mount combat children (do not move the section itself)
+    // Mount the ENTIRE combat section so Foundry's #combat/.combat-sidebar CSS still applies
     const combatMount = combined.querySelector('.cpb-mount[data-mount="combat"]');
     const combatSection = root.querySelector('section#combat[data-tab="combat"]');
 
@@ -426,26 +456,82 @@ try {
     });
 
     if (combatSection && combatMount && combatMount.dataset.mounted !== "true") {
-      const kids = Array.from(combatSection.children).filter((el) => !el.classList.contains("cpb-restore"));
-      for (const el of kids) combatMount.appendChild(el);
+      ensureCombatPlaceholder(root); // create placeholder right after original #combat location
+      combatMount.appendChild(combatSection);
+      
+      // IMPORTANT: combat is still a Foundry "tab" section.
+      // If it is not .active, Foundry CSS hides it (display: none).
+      combatSection.classList.add("active");
+      
+      // Some themes/modules also set inline display on tabs, so force it sane.
+      combatSection.style.display = "flex";
+      combatSection.style.flexDirection = "column";
+      combatSection.style.height = "100%";
+      
       combatMount.dataset.mounted = "true";
-      slog("mountChatCombat: mounted combat children", kids.length);
+      slog("mountChatCombat: moved entire #combat section (forced visible)");
     }
   }
 
   function unmountChatCombat(root) {
-    restoreToMarker(root, "chat", "chat-log", () => {
-      const combined = root.querySelector(`#${TAB_ID}`);
-      return combined?.querySelector('.cpb-mount[data-mount="chat-log"]') ?? null;
-    });
+    const combined = root.querySelector(`#${TAB_ID}`);
+    
+    // For chat: Just remove the clone (original was never moved, so nothing to restore)
+    const chatLogMount = combined?.querySelector('.cpb-mount[data-mount="chat-log"]');
+    if (chatLogMount && chatLogMount.dataset.mounted === "true") {
+      // Disconnect observer if it exists
+      if (chatLogMount._chatObserver) {
+        chatLogMount._chatObserver.disconnect();
+        chatLogMount._chatObserver = null;
+      }
+      // Clear the clone
+      chatLogMount.innerHTML = '';
+      chatLogMount.dataset.mounted = "false";
+      slog("unmountChatCombat: removed chat clone (original chat tab untouched)");
+    }
 
-    restoreToMarker(root, "combat", "combat", () => {
-      const combined = root.querySelector(`#${TAB_ID}`);
-      return combined?.querySelector('.cpb-mount[data-mount="combat"]') ?? null;
-    });
+    // Restore the ENTIRE combat section to its original location
+    const ph = root.querySelector(`.cpb-combat-placeholder[data-for="${TAB_ID}"]`);
+    const combatMount = combined?.querySelector('.cpb-mount[data-mount="combat"]');
+    const combatSection = combatMount?.querySelector('section#combat[data-tab="combat"]');
+
+    if (ph && combatSection) {
+      ph.insertAdjacentElement("beforebegin", combatSection);
+      
+      // Revert what we forced while mounted.
+      // Let Foundry decide active/inactive based on the actual selected tab.
+      combatSection.classList.remove("active");
+      combatSection.style.display = "";
+      combatSection.style.flexDirection = "";
+      combatSection.style.height = "";
+      
+      combatMount.dataset.mounted = "false";
+      slog("unmountChatCombat: restored #combat section (reverted forced visible)");
+    }
+  }
+
+  function ensureCombatPlaceholder(root) {
+    const sidebarContent = root.querySelector("#sidebar-content");
+    const combatSection = root.querySelector('section#combat[data-tab="combat"]');
+    if (!sidebarContent || !combatSection) return null;
+
+    let ph = sidebarContent.querySelector(`.cpb-combat-placeholder[data-for="${TAB_ID}"]`);
+    if (!ph) {
+      ph = document.createElement("div");
+      ph.className = "cpb-combat-placeholder";
+      ph.dataset.for = TAB_ID;
+      ph.style.display = "none";
+      combatSection.insertAdjacentElement("afterend", ph);
+    }
+    return ph;
   }
 
   function ensureRestoreMarker(root, sectionId, key) {
+    // Only create restore markers for combat (chat is cloned, not moved)
+    if (sectionId === "chat") {
+      return; // Don't create marker for chat since we're not moving it
+    }
+    
     const section = root.querySelector(`section#${sectionId}[data-tab="${sectionId}"]`);
     if (!section) {
       swarn("ensureRestoreMarker: section missing", { sectionId, key });

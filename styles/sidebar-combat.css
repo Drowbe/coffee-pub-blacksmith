@@ -20,6 +20,7 @@
     min-height: 140px;
     overflow: hidden;
     display: flex;
+    border-radius: 6px;
 }
 
 #cpb-chat-combat .cpb-pane-bottom {
@@ -27,6 +28,7 @@
     min-height: 160px;
     overflow: hidden;
     display: flex;
+    border-radius: 6px;
 }
 
 /* Scroll behavior inside mounts */
@@ -36,20 +38,45 @@
     overflow: auto;
 }
 
+/* Ensure the mount container has proper layout for the entire combat section */
+#cpb-chat-combat .cpb-mount[data-mount="combat"] {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* The entire #combat section is moved here, so Foundry's core CSS applies automatically */
+/* No need to override combat tracker styles - they work because section#combat.combat-sidebar stays intact */
+
+/* If Foundry hides inactive tabs, ensure combat stays visible inside our combined tab */
+#cpb-chat-combat .cpb-mount[data-mount="combat"] > #combat {
+    display: flex !important;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Ensure chat log styles work when mounted */
+#cpb-chat-combat .cpb-mount[data-mount="chat-log"] .chat-scroll {
+    height: 100%;
+    overflow-y: auto;
+}
+
+
 /* Divider / handle */
 #cpb-chat-combat .cpb-divider {
     flex: 0 0 8px;
     cursor: row-resize;
     position: relative;
+    margin: 4px 0px 4px 0px;
 }
 
 #cpb-chat-combat .cpb-divider::before {
     content: "";
     position: absolute;
-    left: 8px;
-    right: 8px;
+    left: 0px;
+    right: 0px;
     top: 3px;
-    height: 2px;
+    height: 6px;
     opacity: 0.5;
     background: currentColor;
     border-radius: 2px;
