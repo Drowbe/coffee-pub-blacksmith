@@ -348,6 +348,49 @@ try {
       chatLogMount.appendChild(chatClone);
       chatLogMount.dataset.mounted = "true";
       
+      // Forward clicks from clone to original so buttons work
+      // Foundry's event handlers are attached to the original chat log
+      chatClone.addEventListener("click", (ev) => {
+        // Find the clicked element in the clone
+        const clickedElement = ev.target.closest("button, a, [data-action], [data-message-id]");
+        if (!clickedElement) return;
+        
+        // Find the corresponding element in the original chat log
+        // Use message ID or data attributes to match elements
+        const messageId = clickedElement.closest("[data-message-id]")?.getAttribute("data-message-id");
+        if (messageId) {
+          const originalMessage = chatScroll.querySelector(`[data-message-id="${messageId}"]`);
+          if (originalMessage) {
+            // Find the matching button/element in the original
+            const buttonSelector = clickedElement.tagName.toLowerCase();
+            const buttonClass = clickedElement.className;
+            const buttonDataAction = clickedElement.getAttribute("data-action");
+            const buttonDataMessageId = clickedElement.getAttribute("data-message-id");
+            
+            // Try multiple strategies to find the matching element
+            let originalButton = null;
+            if (buttonDataMessageId) {
+              originalButton = originalMessage.querySelector(`[data-message-id="${buttonDataMessageId}"]`);
+            } else if (buttonDataAction) {
+              originalButton = originalMessage.querySelector(`[data-action="${buttonDataAction}"]`);
+            } else if (buttonClass) {
+              // Match by class - find button with same classes
+              const classSelector = buttonClass.split(/\s+/).filter(c => c).map(c => `.${c}`).join('');
+              originalButton = originalMessage.querySelector(`${buttonSelector}${classSelector}`);
+            } else {
+              originalButton = originalMessage.querySelector(buttonSelector);
+            }
+            
+            if (originalButton) {
+              // Trigger click on the original element to use Foundry's handlers
+              ev.preventDefault();
+              ev.stopPropagation();
+              originalButton.click();
+            }
+          }
+        }
+      });
+      
       // Scroll to bottom initially
       const scrollToBottom = (element) => {
         if (element) {
@@ -364,6 +407,42 @@ try {
           if (currentClone) {
             const newClone = chatScroll.cloneNode(true);
             newClone.id = currentClone.id;
+            
+            // Re-attach click forwarding to the new clone
+            newClone.addEventListener("click", (ev) => {
+              const clickedElement = ev.target.closest("button, a, [data-action], [data-message-id]");
+              if (!clickedElement) return;
+              
+              const messageId = clickedElement.closest("[data-message-id]")?.getAttribute("data-message-id");
+              if (messageId) {
+                const originalMessage = chatScroll.querySelector(`[data-message-id="${messageId}"]`);
+                if (originalMessage) {
+                  const buttonSelector = clickedElement.tagName.toLowerCase();
+                  const buttonClass = clickedElement.className;
+                  const buttonDataAction = clickedElement.getAttribute("data-action");
+                  const buttonDataMessageId = clickedElement.getAttribute("data-message-id");
+                  
+                  let originalButton = null;
+                  if (buttonDataMessageId) {
+                    originalButton = originalMessage.querySelector(`[data-message-id="${buttonDataMessageId}"]`);
+                  } else if (buttonDataAction) {
+                    originalButton = originalMessage.querySelector(`[data-action="${buttonDataAction}"]`);
+                  } else if (buttonClass) {
+                    const classSelector = buttonClass.split(/\s+/).filter(c => c).map(c => `.${c}`).join('');
+                    originalButton = originalMessage.querySelector(`${buttonSelector}${classSelector}`);
+                  } else {
+                    originalButton = originalMessage.querySelector(buttonSelector);
+                  }
+                  
+                  if (originalButton) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    originalButton.click();
+                  }
+                }
+              }
+            });
+            
             chatLogMount.replaceChild(newClone, currentClone);
             
             // Scroll to bottom after updating
