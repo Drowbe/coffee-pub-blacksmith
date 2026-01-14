@@ -80,6 +80,9 @@
 			"headingH3QualityOfLife-Label": "Quality of Life",
 			"headingH3QualityOfLife-Hint": "Quality of life improvements and user experience enhancements",
 			
+				"coreLoadingProgress-Label": "Foundry Loading Progress",
+				"coreLoadingProgress-Hint": "Show a loading progress indicator during FoundryVTT world loading making it clear when the cleitn is fully loaded and ready to use.",
+
 				"objectLinkStyle-Label": "Object Link Style",
 				"objectLinkStyle-Hint": "Styling for object links in chat and journals",
 

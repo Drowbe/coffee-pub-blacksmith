@@ -25,10 +25,30 @@ export class LoadingProgressManager {
     /**
      * Show the loading progress indicator
      * Should be called as early as possible (in init hook)
+     * Checks the coreLoadingProgress setting - defaults to showing if setting unavailable
      */
     static show() {
         if (this._isVisible) {
             return; // Already showing
+        }
+
+        // Check setting value - safe check that handles unregistered settings
+        let shouldShow = true; // Default to showing
+        try {
+            if (typeof game !== 'undefined' && game.settings) {
+                // Try to get the setting value
+                const settingValue = game.settings.get(MODULE.ID, 'coreLoadingProgress');
+                shouldShow = settingValue !== false; // Only hide if explicitly false
+            }
+        } catch (error) {
+            // Setting not registered yet or game.settings not available
+            // Default to showing the indicator
+            shouldShow = true;
+        }
+
+        // Don't show if setting is disabled
+        if (!shouldShow) {
+            return;
         }
 
         this._currentPhase = 0;

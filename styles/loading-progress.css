@@ -2,6 +2,10 @@
 /* === LOADING PROGRESS INDICATOR =================================== */
 /* ================================================================== */
 
+:root {
+    --loading-progress-banner-image: url('../images/backgrounds/background-skull-red.webp');
+}
+
 .cpb-loading-progress-overlay {
     position: fixed;
     top: 0;
@@ -24,7 +28,12 @@
 }
 
 .cpb-loading-progress-card {
-    background: linear-gradient(135deg, rgba(30, 30, 35, 0.95) 0%, rgba(20, 20, 25, 0.95) 100%);
+    background: rgba(0, 0, 0, 0.8);
+    background-image: var(--loading-progress-banner-image);
+    background-blend-mode: multiply;
+    background-position: top center;
+    background-repeat: no-repeat;
+    background-size: cover;
     border: 2px solid rgba(150, 150, 150, 0.3);
     border-radius: 12px;
     padding: 2.5rem 3rem;
@@ -111,10 +120,10 @@
 
 .cpb-loading-progress-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, #4a9eff 0%, #5cb3ff 50%, #6dc7ff 100%);
+    background: linear-gradient(90deg, #c22911 0%, #ce361f 50%, #bd4432 100%);
     border-radius: 4px;
     transition: width 0.3s ease-out;
-    box-shadow: 0 0 8px rgba(74, 158, 255, 0.5);
+    box-shadow: 0 0 8px rgba(143, 30, 12, 0.5);
     position: relative;
     overflow: hidden;
 }
@@ -158,7 +167,7 @@
 
 .cpb-loading-progress-percent {
     font-weight: 600;
-    color: #6dc7ff;
+    color: #ff5414;
     margin-left: 1rem;
     min-width: 45px;
     text-align: right;
@@ -183,7 +192,7 @@
 }
 
 .cpb-loading-progress-activity-icon {
-    color: #6dc7ff;
+    color: #ff5414;
     font-size: 1rem;
     animation: cpb-activity-spin 1.5s linear infinite;
     flex-shrink: 0;
@@ -230,6 +239,6 @@
     content: '•';
     position: absolute;
     left: 0.5rem;
-    color: #6dc7ff;
+    color: #ff5414;
     opacity: 0.6;
 }

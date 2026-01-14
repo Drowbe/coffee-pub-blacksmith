@@ -1183,6 +1183,20 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('QualityOfLife', 'headingH3QualityOfLife-Label', 'headingH3QualityOfLife-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
 
+
+	// -- Foundry Loading Progress--
+	game.settings.register(MODULE.ID, 'coreLoadingProgress', {
+		name: MODULE.ID + '.coreLoadingProgress-Label',
+		hint: MODULE.ID + '.coreLoadingProgress-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'client',
+		default: true,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
+
 	// -- Object Link Style --
 	game.settings.register(MODULE.ID, 'objectLinkStyle', {
 		name: MODULE.ID + '.objectLinkStyle-Label',
