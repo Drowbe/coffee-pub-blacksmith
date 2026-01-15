@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [13.0.12]
+
+### Added
+- **MVP Tuning Settings (Round + Combat MVP)**:
+  - New GM-configurable sliders for MVP scoring weights: Hits, Misses, Crits, Fumbles, Damage (per 10), Healing (per 10)
+  - New checkbox to **Normalize MVP scoring by party max** (default: enabled) to reduce “big number” bias and make weights more comparable across party levels/roles
+
+### Changed
+- **MVP Scoring Formula**: MVP scoring is now driven by the new settings (including optional normalization) and is applied consistently for both Round MVP and Combat MVP.
+
 ## [13.0.11]
 
 ### Added
