@@ -61,6 +61,15 @@
         </div>
       </div>
 
+      {{!-- KILLS --}}
+      <div class="stats-summary-item">
+        <i class="fa-solid fa-skull-crossbones"></i>
+        <div class="stats-summary-content">
+          <span class="label">Kills</span>
+          <span>{{summary.kills}}</span>
+        </div>
+      </div>
+
       {{!-- TOTAL DAMAGE --}}
       <div class="stats-summary-item">
         <i class="fa-solid fa-swords"></i>
@@ -103,6 +112,7 @@
           <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Total Misses</span>
           <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Hit Rate</span>
           <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Total Damage</span>
+          <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Kills</span>
           <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Crits</span>
           <span class="stats-table-col stats-col-size-10 stats-col-right stats-table-col-header">Fumbles</span>
         </div>
@@ -112,6 +122,7 @@
             <span class="stats-table-col stats-col-size-10 stats-col-right">{{attacks.totalMisses}}</span>
             <span class="stats-table-col stats-col-size-10 stats-col-right">{{attacks.hitMissRatio}}%</span>
             <span class="stats-table-col stats-col-size-10 stats-col-right">{{attacks.totalDamage}}</span>
+            <span class="stats-table-col stats-col-size-10 stats-col-right">{{attacks.totalKills}}</span>
             <span class="stats-table-col stats-col-size-10 stats-col-right">{{attacks.criticals}}</span>
             <span class="stats-table-col stats-col-size-10 stats-col-right">{{attacks.fumbles}}</span>
           </div>

@@ -267,6 +267,7 @@ export class StatsWindow extends Application {
         let totalHealsGiven = 0;
         let totalCriticals = 0;
         let totalFumbles = 0;
+        let totalKills = 0;
         let totalRounds = 0;
 
         for (const summary of allHistory) {
@@ -278,6 +279,7 @@ export class StatsWindow extends Application {
             totalHealsGiven += totals.healingGiven || 0;
             totalCriticals += totals.criticals || 0;
             totalFumbles += totals.fumbles || 0;
+            totalKills += totals.kills || 0;
             totalRounds += summary?.totalRounds || 0;
         }
 
@@ -419,6 +421,7 @@ export class StatsWindow extends Application {
             },
             totalCriticals,
             totalFumbles,
+            totalKills,
             totalDamageGiven,
             totalDamageTaken,
             totalHealsGiven

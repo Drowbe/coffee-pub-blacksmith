@@ -2143,6 +2143,32 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- MVP Weight: Healing (per 10) --
+	game.settings.register(MODULE.ID, 'mvpHealingPer10Weight', {
+		name: MODULE.ID + '.mvpHealingPer10Weight-Label',
+		hint: MODULE.ID + '.mvpHealingPer10Weight-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 2.0,
+		range: { min: -3, max: 3, step: 0.1 },
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- MVP Weight: Damage (per 10) --
+	game.settings.register(MODULE.ID, 'mvpDamagePer10Weight', {
+		name: MODULE.ID + '.mvpDamagePer10Weight-Label',
+		hint: MODULE.ID + '.mvpDamagePer10Weight-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 1.0,
+		range: { min: -3, max: 3, step: 0.1 },
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- MVP Weight: Hits --
 	game.settings.register(MODULE.ID, 'mvpHitWeight', {
 		name: MODULE.ID + '.mvpHitWeight-Label',
@@ -2195,27 +2221,14 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	// -- MVP Weight: Damage (per 10) --
-	game.settings.register(MODULE.ID, 'mvpDamagePer10Weight', {
-		name: MODULE.ID + '.mvpDamagePer10Weight-Label',
-		hint: MODULE.ID + '.mvpDamagePer10Weight-Hint',
+	// -- MVP Weight: Kills --
+	game.settings.register(MODULE.ID, 'mvpKillWeight', {
+		name: MODULE.ID + '.mvpKillWeight-Label',
+		hint: MODULE.ID + '.mvpKillWeight-Hint',
 		scope: 'world',
 		config: true,
 		type: Number,
-		default: 1.0,
-		range: { min: -3, max: 3, step: 0.1 },
-		requiresReload: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
-	// -- MVP Weight: Healing (per 10) --
-	game.settings.register(MODULE.ID, 'mvpHealingPer10Weight', {
-		name: MODULE.ID + '.mvpHealingPer10Weight-Label',
-		hint: MODULE.ID + '.mvpHealingPer10Weight-Hint',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 2.0,
+		default: 0.0,
 		range: { min: -3, max: 3, step: 0.1 },
 		requiresReload: false,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME

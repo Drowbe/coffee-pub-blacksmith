@@ -42,6 +42,15 @@ export class PlayerStatsWindow extends Application {
                 return this._getEmptyData(actor);
             }
 
+            // Derive kill count from stored combat history (kills are combat-scoped, not lifetime player stats yet)
+            const history = StatsAPI.combat.getCombatHistory(200) || [];
+            let totalKills = 0;
+            for (const summary of history) {
+                const participants = Array.isArray(summary?.participants) ? summary.participants : [];
+                const entry = participants.find(p => p?.actorId === this.actorId);
+                if (entry && typeof entry.kills === 'number') totalKills += entry.kills;
+            }
+
             const lifetime = stats.lifetime || {};
             const attacks = lifetime.attacks || {};
             const healing = lifetime.healing || {};
@@ -69,6 +78,7 @@ export class PlayerStatsWindow extends Application {
                 crits: attacks.criticals || 0,
                 fumbles: attacks.fumbles || 0,
                 deaths: unconscious.count || 0,
+                kills: totalKills,
                 totalDamage: attacks.totalDamage || 0,
                 totalHealing: (healing.total || 0) + (healing.received || 0),
                 hitRate: hitRate,
@@ -109,6 +119,7 @@ export class PlayerStatsWindow extends Application {
                     totalDamage: attacks.totalDamage || 0,
                     criticals: attacks.criticals || 0,
                     fumbles: attacks.fumbles || 0,
+                    totalKills: totalKills,
                     damageByWeapon: damageByWeapon,
                     damageByType: damageByType
                 },
@@ -144,6 +155,7 @@ export class PlayerStatsWindow extends Application {
                 crits: 0,
                 fumbles: 0,
                 deaths: 0,
+                kills: 0,
                 totalDamage: 0,
                 totalHealing: 0,
                 hitRate: '0.0',
@@ -156,6 +168,7 @@ export class PlayerStatsWindow extends Application {
                 totalDamage: 0,
                 criticals: 0,
                 fumbles: 0,
+                totalKills: 0,
                 damageByWeapon: {},
                 damageByType: {}
             },

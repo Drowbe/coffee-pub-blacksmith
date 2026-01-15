@@ -47,6 +47,12 @@ class CombatStats {
     
     // Core chat lane dedupe (createChatMessage + updateChatMessage reprocessing)
     static _chatDedupe = createDedupeTracker(30_000);
+
+    // Kill attribution helpers (combat stats lane)
+    static _killHpCache = new Map(); // key: actor.uuid, value: { hp, ts }
+    static _recentKillDamageContext = new Map(); // key: targetActorId, value: Array<{ ts, attackerId, attackerName, targetId, targetName, weaponName, round, turn }>
+    static _recentKillRecorded = new Map(); // key: targetActorId, value: timestamp
+    static KILL_CONTEXT_TTL_MS = 15_000;
     
     static DEFAULTS = {
         roundStats: {
@@ -67,6 +73,7 @@ class CombatStats {
             partyStats: {
                 hits: 0,
                 misses: 0,
+                kills: 0,
                 damageDealt: 0,
                 damageTaken: 0,
                 healingDone: 0,
@@ -90,6 +97,7 @@ class CombatStats {
             totals: {
                 damage: { dealt: 0, taken: 0 },
                 healing: { given: 0, received: 0 },
+                kills: 0,
                 attacks: {
                     attempts: 0,
                     hits: 0,
@@ -157,19 +165,21 @@ class CombatStats {
                 crit: Number(game.settings.get(MODULE.ID, 'mvpCritWeight')) || 0,
                 fumble: Number(game.settings.get(MODULE.ID, 'mvpFumbleWeight')) || 0,
                 damagePer10: Number(game.settings.get(MODULE.ID, 'mvpDamagePer10Weight')) || 0,
-                healingPer10: Number(game.settings.get(MODULE.ID, 'mvpHealingPer10Weight')) || 0
+                healingPer10: Number(game.settings.get(MODULE.ID, 'mvpHealingPer10Weight')) || 0,
+                kills: Number(game.settings.get(MODULE.ID, 'mvpKillWeight')) || 0
             }
         };
     }
 
     static _computeMvpMaxima(componentsList = []) {
-        const maxima = { hits: 0, misses: 0, crits: 0, fumbles: 0, damage: 0, healing: 0 };
+        const maxima = { hits: 0, misses: 0, crits: 0, fumbles: 0, damage: 0, healing: 0, kills: 0 };
         for (const c of componentsList) {
             const hits = Number(c?.hits) || 0;
             const attempts = Number(c?.attempts) || 0;
             const misses = Number.isFinite(Number(c?.misses))
                 ? (Number(c?.misses) || 0)
                 : Math.max(0, attempts - hits);
+            const kills = Number(c?.kills) || 0;
 
             maxima.hits = Math.max(maxima.hits, hits);
             maxima.misses = Math.max(maxima.misses, misses);
@@ -177,12 +187,13 @@ class CombatStats {
             maxima.fumbles = Math.max(maxima.fumbles, Number(c?.fumbles) || 0);
             maxima.damage = Math.max(maxima.damage, Number(c?.damage) || 0);
             maxima.healing = Math.max(maxima.healing, Number(c?.healing) || 0);
+            maxima.kills = Math.max(maxima.kills, kills);
         }
         return maxima;
     }
 
     static _computeMvpScore(
-        { hits = 0, misses = null, attempts = 0, crits = 0, fumbles = 0, damage = 0, healing = 0 },
+        { hits = 0, misses = null, attempts = 0, crits = 0, fumbles = 0, damage = 0, healing = 0, kills = 0 },
         maxima = null,
         tuning = null
     ) {
@@ -212,6 +223,7 @@ class CombatStats {
             score += w.fumble * safeRatio(fumbles, maxima.fumbles);
             score += w.damagePer10 * safeRatio(damage, maxima.damage);
             score += w.healingPer10 * safeRatio(healing, maxima.healing);
+            score += w.kills * safeRatio(kills, maxima.kills);
         } else {
             // Raw mode: damage/healing are weighted per 10 points to keep slider ranges meaningful.
             score += w.hit * (Number(hits) || 0);
@@ -220,6 +232,7 @@ class CombatStats {
             score += w.fumble * (Number(fumbles) || 0);
             score += w.damagePer10 * ((Number(damage) || 0) / 10);
             score += w.healingPer10 * ((Number(healing) || 0) / 10);
+            score += w.kills * (Number(kills) || 0);
         }
 
         return Number(score.toFixed(1));
@@ -235,6 +248,7 @@ class CombatStats {
         } else {
             this.combatStats.totals.damage = this.combatStats.totals.damage || { dealt: 0, taken: 0 };
             this.combatStats.totals.healing = this.combatStats.totals.healing || { given: 0, received: 0 };
+            this.combatStats.totals.kills = this.combatStats.totals.kills || 0;
             this.combatStats.totals.attacks = this.combatStats.totals.attacks || {
                 attempts: 0,
                 hits: 0,
@@ -243,6 +257,72 @@ class CombatStats {
                 fumbles: 0
             };
         }
+    }
+
+    static _noteKillDamageContext({ targetActor, attackerActor, weaponName = null } = {}) {
+        if (!targetActor?.id || !attackerActor?.id) return;
+
+        const now = Date.now();
+        const queue = this._recentKillDamageContext.get(targetActor.id) ?? [];
+        queue.push({
+            ts: now,
+            attackerId: attackerActor.id,
+            attackerName: attackerActor.name,
+            targetId: targetActor.id,
+            targetName: targetActor.name,
+            weaponName: weaponName || null,
+            round: game.combat?.round ?? null,
+            turn: game.combat?.turn ?? null
+        });
+
+        const bounded = queue.slice(-10).filter(ctx => (now - (ctx.ts || 0)) <= this.KILL_CONTEXT_TTL_MS);
+        this._recentKillDamageContext.set(targetActor.id, bounded);
+    }
+
+    static _isKillEligibleTarget(actor) {
+        // Count kills only for non-player actors (monsters/NPCs/etc.); exclude player characters.
+        if (!actor) return false;
+        return !(actor.hasPlayerOwner || actor.type === 'character');
+    }
+
+    static _creditKill({ attackerId, targetActor, weaponName = null } = {}) {
+        if (!attackerId || !targetActor?.id) return;
+
+        const attackerActor = game.actors.get(attackerId);
+        if (!attackerActor) return;
+
+        // Only party kills are counted in party totals (PC attackers only).
+        const isPartyKill = this._isPlayerCharacter(attackerActor);
+
+        const { current: attackerRound, combat: attackerCombat } = this._ensureParticipantStats(attackerActor, {
+            includeCurrent: true,
+            includeCombat: true
+        });
+
+        attackerRound.kills = Number(attackerRound.kills) || 0;
+        attackerCombat.kills = Number(attackerCombat.kills) || 0;
+        attackerRound.kills += 1;
+        attackerCombat.kills += 1;
+
+        if (isPartyKill) {
+            this.currentStats.partyStats.kills = Number(this.currentStats.partyStats.kills) || 0;
+            this.currentStats.partyStats.kills += 1;
+
+            this._ensureCombatTotals();
+            this.combatStats.totals.kills = Number(this.combatStats.totals.kills) || 0;
+            this.combatStats.totals.kills += 1;
+        }
+
+        // Optionally keep the last-kill context for future narrative use.
+        this.combatStats.lastKill = {
+            attackerId,
+            attackerName: attackerActor.name,
+            targetId: targetActor.id,
+            targetName: targetActor.name,
+            weaponName: weaponName || null,
+            round: game.combat?.round ?? null,
+            ts: Date.now()
+        };
     }
 
     static _ensureParticipantStats(actor, { includeCurrent = true, includeCombat = true } = {}) {
@@ -261,6 +341,7 @@ class CombatStats {
 
         const defaultCurrentParticipantStats = {
             name: actor.name,
+            kills: 0,
             damage: { dealt: 0, taken: 0 },
             healing: { given: 0, received: 0 },
             combat: {
@@ -280,6 +361,7 @@ class CombatStats {
 
         const defaultCombatParticipantStats = {
             name: actor.name,
+            kills: 0,
             damage: { dealt: 0, taken: 0 },
             healing: { given: 0, received: 0 },
             combat: {
@@ -303,6 +385,7 @@ class CombatStats {
             // Guarantee required shape
             const ps = this.currentStats.participantStats[actor.id];
             ps.name ??= actor.name;
+            ps.kills ??= 0;
             ps.damage ??= { dealt: 0, taken: 0 };
             ps.healing ??= { given: 0, received: 0 };
             ps.combat ??= {};
@@ -317,6 +400,10 @@ class CombatStats {
             } else if (!this.combatStats.participantStats[actor.id].combat?.attacks) {
                 this.combatStats.participantStats[actor.id].combat = foundry.utils.deepClone(defaultCombatParticipantStats.combat);
             }
+
+            const cps = this.combatStats.participantStats[actor.id];
+            cps.name ??= actor.name;
+            cps.kills ??= 0;
         }
 
         return {
@@ -601,6 +688,7 @@ class CombatStats {
                 actorId,
                 name: stats.name || 'Unknown',
                 isPlayer,
+                kills: Number(stats.kills) || 0,
                 damageDealt: stats.damage?.dealt || 0,
                 damageTaken: stats.damage?.taken || 0,
                 healingGiven: stats.healing?.given || 0,
@@ -643,6 +731,7 @@ class CombatStats {
         const totalHealing = partyParticipants.reduce((sum, p) => sum + (p.healingGiven || 0), 0);
         const totalCriticals = partyParticipants.reduce((sum, p) => sum + (p.criticals || 0), 0);
         const totalFumbles = partyParticipants.reduce((sum, p) => sum + (p.fumbles || 0), 0);
+        const totalKills = partyParticipants.reduce((sum, p) => sum + (p.kills || 0), 0);
 
         // Compute MVP rankings (party-only; NPCs excluded)
         const mvpTuning = this._getMvpTuningSettings();
@@ -653,7 +742,8 @@ class CombatStats {
             crits: p.criticals || 0,
             fumbles: p.fumbles || 0,
             damage: p.damageDealt || 0,
-            healing: p.healingGiven || 0
+            healing: p.healingGiven || 0,
+            kills: p.kills || 0
         })));
 
         const mvpRankings = partyParticipants.map(p => {
@@ -664,7 +754,8 @@ class CombatStats {
                 crits: p.criticals || 0,
                 fumbles: p.fumbles || 0,
                 damage: p.damageDealt || 0,
-                healing: p.healingGiven || 0
+                healing: p.healingGiven || 0,
+                kills: p.kills || 0
             }, mvpMaxima, mvpTuning);
 
             const totalAttacks = p.totalAttacks || (p.hits || 0) + (p.misses || 0);
@@ -679,6 +770,7 @@ class CombatStats {
                 totalAttacks,
                 crits: p.criticals || 0,
                 fumbles: p.fumbles || 0,
+                kills: p.kills || 0,
                 damageDealt: p.damageDealt || 0,
                 damageTaken: p.damageTaken || 0,
                 healingGiven: p.healingGiven || 0,
@@ -705,6 +797,7 @@ class CombatStats {
                 hits: totalHits,
                 misses: totalMisses,
                 totalAttacks: totalHits + totalMisses,
+                kills: totalKills,
                 damageDealt: totalDamage,
                 damageTaken: totalDamageTaken,
                 healingGiven: totalHealing,
@@ -1271,7 +1364,8 @@ class CombatStats {
             crits: stats.combat?.attacks?.crits || 0,
             fumbles: stats.combat?.attacks?.fumbles || 0,
             damage: stats.damage?.dealt || 0,
-            healing: stats.healing?.given || 0
+            healing: stats.healing?.given || 0,
+            kills: stats.kills || 0
         }, maxima, tuning);
     }
 
@@ -1292,7 +1386,8 @@ class CombatStats {
             crits: detail.combat?.attacks?.crits || 0,
             fumbles: detail.combat?.attacks?.fumbles || 0,
             damage: detail.damage?.dealt || 0,
-            healing: detail.healing?.given || 0
+            healing: detail.healing?.given || 0,
+            kills: detail.kills || 0
         })));
 
         // Process each character asynchronously
@@ -1973,6 +2068,13 @@ class CombatStats {
 
         if (resolvedTargetActors.length) {
             for (const targetActor of resolvedTargetActors) {
+                // Note damage context for kill attribution (HP->0) within a short TTL window.
+                this._noteKillDamageContext({
+                    targetActor,
+                    attackerActor: actor,
+                    weaponName: item?.name || null
+                });
+
                 if (trackDamageMoments) {
                     const hitEvent = {
                         attacker: actor.name,
@@ -2559,6 +2661,75 @@ class CombatStats {
             priority: 3, // Normal priority - statistics collection
             callback: this._onUpdateCombat.bind(this),
             context: 'stats-combat'
+        });
+
+        // Track HP changes for kill attribution (combat stats lane)
+        const preUpdateActorHookId = HookManager.registerHook({
+            name: 'preUpdateActor',
+            description: 'Combat Stats: Cache pre-update HP for kill attribution',
+            context: 'stats-combat-kills',
+            priority: 3,
+            callback: (actor) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                try {
+                    if (!game.user.isGM || !getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
+                    if (!game.combat?.started) return;
+                    const hp = actor?.system?.attributes?.hp?.value;
+                    if (typeof hp !== 'number') return;
+                    this._killHpCache.set(actor.uuid, { hp, ts: Date.now() });
+                } catch (e) {
+                    postConsoleAndNotification(MODULE.NAME, 'Combat Stats | preUpdateActor kill cache error', e, false, false);
+                }
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
+        const updateActorHookId = HookManager.registerHook({
+            name: 'updateActor',
+            description: 'Combat Stats: Attribute kills when HP crosses to 0',
+            context: 'stats-combat-kills',
+            priority: 3,
+            callback: (actor) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                try {
+                    if (!game.user.isGM || !getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
+                    if (!game.combat?.started) return;
+
+                    const pre = this._killHpCache.get(actor.uuid);
+                    this._killHpCache.delete(actor.uuid);
+                    if (!pre || typeof pre.hp !== 'number') return;
+
+                    const newHp = actor?.system?.attributes?.hp?.value;
+                    if (typeof newHp !== 'number') return;
+
+                    // Only count kills for non-player targets.
+                    if (!this._isKillEligibleTarget(actor)) return;
+
+                    // Detect HP crossing to 0 (or below)
+                    if (pre.hp <= 0 || newHp > 0) return;
+
+                    // Dedupe rapid successive updates for the same target
+                    const now = Date.now();
+                    const last = this._recentKillRecorded.get(actor.id) || 0;
+                    if ((now - last) < 1500) return;
+                    this._recentKillRecorded.set(actor.id, now);
+
+                    const queue = this._recentKillDamageContext.get(actor.id) ?? [];
+                    const valid = queue.filter(ctx => (now - (ctx.ts || 0)) <= this.KILL_CONTEXT_TTL_MS);
+                    if (!valid.length) return;
+
+                    // Use most recent damage context as the kill credit.
+                    const ctx = valid[valid.length - 1];
+                    this._creditKill({
+                        attackerId: ctx.attackerId,
+                        targetActor: actor,
+                        weaponName: ctx.weaponName || null
+                    });
+                } catch (e) {
+                    postConsoleAndNotification(MODULE.NAME, 'Combat Stats | updateActor kill attribution error', e, false, false);
+                }
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
         });
         
         // Log hook registration
@@ -3171,6 +3342,7 @@ class CombatStats {
                 // Safely get stats, defaulting to empty structure if not found
                 const stats = this.currentStats?.participantStats?.[actorId] || {
                     name: turn.actor.name,
+                    kills: 0,
                     damage: { dealt: 0, taken: 0 },
                     healing: { given: 0, received: 0 },
                     combat: {
@@ -3192,6 +3364,7 @@ class CombatStats {
                     actorId,
                     actorUuid,
                     name: stats.name,
+                    kills: 0,
                     damage: { dealt: 0, taken: 0 },
                     healing: { given: 0, received: 0 },
                     combat: {
@@ -3215,6 +3388,7 @@ class CombatStats {
                 existingStats.name = stats.name;
 
                 // Safely merge damage and healing
+                existingStats.kills += Number(stats.kills) || 0;
                 existingStats.damage.dealt += stats.damage?.dealt || 0;
                 existingStats.damage.taken += stats.damage?.taken || 0;
                 existingStats.healing.given += stats.healing?.given || 0;
@@ -3254,7 +3428,8 @@ class CombatStats {
             crits: stats.combat?.attacks?.crits || 0,
             fumbles: stats.combat?.attacks?.fumbles || 0,
             damage: stats.damage?.dealt || 0,
-            healing: stats.healing?.given || 0
+            healing: stats.healing?.given || 0,
+            kills: stats.kills || 0
         })));
 
         const sortedParticipants = Array.from(participantMap.values()).map(stats => {
@@ -3266,7 +3441,8 @@ class CombatStats {
                 crits: stats.combat?.attacks?.crits || 0,
                 fumbles: stats.combat?.attacks?.fumbles || 0,
                 damage: stats.damage?.dealt || 0,
-                healing: stats.healing?.given || 0
+                healing: stats.healing?.given || 0,
+                kills: stats.kills || 0
             }, mvpMaxima, mvpTuning);
 
             // Get token image
@@ -3315,6 +3491,7 @@ class CombatStats {
                 actorUuid: stats.actorUuid,
                 combatantIds: Array.from(stats.combatantIds || []),
                 name: stats.name,
+                kills: stats.kills || 0,
                 damage: stats.damage,
                 healing: stats.healing,
                 combat: stats.combat,
@@ -3350,6 +3527,7 @@ class CombatStats {
                     (this.currentStats.partyStats.hits + this.currentStats.partyStats.misses) * 100 || 0,
                 totalHits: this.currentStats.partyStats.hits,
                 totalMisses: this.currentStats.partyStats.misses,
+                kills: this.currentStats.partyStats.kills || 0,
                 damageDealt: sortedParticipants.reduce((sum, p) => sum + (p.damage?.dealt || 0), 0),
                 damageTaken: sortedParticipants.reduce((sum, p) => sum + (p.damage?.taken || 0), 0),
                 healingDone: this.currentStats.partyStats.healingDone,
@@ -3523,7 +3701,8 @@ class CombatStats {
             crits: participant.criticals || 0,
             fumbles: participant.fumbles || 0,
             damage: participant.damageDealt || 0,
-            healing: participant.healingGiven || 0
+            healing: participant.healingGiven || 0,
+            kills: participant.kills || 0
         })));
 
         const turnDetails = eligibleParticipants
@@ -3541,7 +3720,8 @@ class CombatStats {
                     crits: participant.criticals || 0,
                     fumbles: participant.fumbles || 0,
                     damage: participant.damageDealt || 0,
-                    healing: participant.healingGiven || 0
+                    healing: participant.healingGiven || 0,
+                    kills: participant.kills || 0
                 }, mvpMaxima, mvpTuning);
 
                 // Calculate damage ratio: show green (dealt + healing) vs red (taken)
@@ -3575,6 +3755,7 @@ class CombatStats {
                     name: participant.name,
                     tokenImg,
                     score,
+                    kills: participant.kills || 0,
                     damage: {
                         dealt: participant.damageDealt || 0,
                         taken: participant.damageTaken || 0
@@ -4041,6 +4222,7 @@ class MVPDescriptionGenerator {
 
         const damageDealt = Number(damage.dealt) || 0;
         const healingGiven = Number(healing.given) || 0;
+        const kills = Number(rawStats?.kills) || 0;
 
         const accuracy = attempts > 0 ? Math.round((hits / attempts) * 100) : 0;
 
@@ -4052,7 +4234,8 @@ class MVPDescriptionGenerator {
             crits,
             fumbles,
             damage: damageDealt,
-            healing: healingGiven
+            healing: healingGiven,
+            kills
         };
     }
 
@@ -4075,7 +4258,8 @@ class MVPDescriptionGenerator {
                 crits: w.crit * safeRatio(stats.crits, maxima.crits),
                 fumbles: w.fumble * safeRatio(stats.fumbles, maxima.fumbles),
                 damage: w.damagePer10 * safeRatio(stats.damage, maxima.damage),
-                healing: w.healingPer10 * safeRatio(stats.healing, maxima.healing)
+                healing: w.healingPer10 * safeRatio(stats.healing, maxima.healing),
+                kills: w.kills * safeRatio(stats.kills, maxima.kills)
             };
         }
 
@@ -4085,7 +4269,8 @@ class MVPDescriptionGenerator {
             crits: w.crit * stats.crits,
             fumbles: w.fumble * stats.fumbles,
             damage: w.damagePer10 * (stats.damage / 10),
-            healing: w.healingPer10 * (stats.healing / 10)
+            healing: w.healingPer10 * (stats.healing / 10),
+            kills: w.kills * stats.kills
         };
     }
 
@@ -4276,7 +4461,8 @@ class MVPDescriptionGenerator {
             crits: stats.crits,
             fumbles: stats.fumbles,
             damage: stats.damage,
-            healing: stats.healing
+            healing: stats.healing,
+            kills: stats.kills
         });
 
         return {
