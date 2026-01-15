@@ -12,7 +12,7 @@ import { PlanningTimer } from './timer-planning.js';
 import { CombatTimer } from './timer-combat.js';
 import { HookManager } from './manager-hooks.js';
 import { SocketManager } from './manager-sockets.js';
-import { resolveAttackMessage, resolveDamageMessage, makeKey } from './utility-message-resolution.js';
+import { resolveAttackMessage, resolveDamageMessage, makeKey, hydrateFirstRoll } from './utility-message-resolution.js';
 import {
     buildAttackEventFromWorkflow,
     createDedupeTracker,
@@ -44,6 +44,9 @@ class CombatStats {
     // MIDI ordering + dedupe helpers (combat stats lane)
     static _pendingMidiCrit = new Map(); // key -> { isCritical, isFumble, ts }
     static _midiDedupe = createDedupeTracker(20_000);
+    
+    // Core chat lane dedupe (createChatMessage + updateChatMessage reprocessing)
+    static _chatDedupe = createDedupeTracker(30_000);
     
     static DEFAULTS = {
         roundStats: {
@@ -509,7 +512,10 @@ class CombatStats {
         const sceneName = scene?.name || canvas?.scene?.name || 'Unknown Scene';
 
         // Extract participant summaries (aggregates only, no arrays)
+        // Note: participants include PCs + NPCs, but "totals" for the summary card are PARTY-ONLY.
         const participantSummaries = Object.entries(this.combatStats.participantStats || {}).map(([actorId, stats]) => {
+            const actorDoc = game.actors.get(actorId) ?? null;
+            const isPlayer = actorDoc ? this._isPlayerCharacter(actorDoc) : false;
             const attackStats = stats.combat?.attacks || {
                 hits: 0,
                 misses: 0,
@@ -522,6 +528,7 @@ class CombatStats {
             return {
                 actorId,
                 name: stats.name || 'Unknown',
+                isPlayer,
                 damageDealt: stats.damage?.dealt || 0,
                 damageTaken: stats.damage?.taken || 0,
                 healingGiven: stats.healing?.given || 0,
@@ -555,18 +562,18 @@ class CombatStats {
             timestamp: heal.timestamp
         }));
 
-        // Calculate aggregates
-        const combatTotals = this.combatStats.totals || {};
-        const totalHits = combatTotals.attacks?.hits || 0;
-        const totalMisses = combatTotals.attacks?.misses || 0;
-        const totalDamage = combatTotals.damage?.dealt || participantSummaries.reduce((sum, p) => sum + p.damageDealt, 0);
-        const totalDamageTaken = combatTotals.damage?.taken || participantSummaries.reduce((sum, p) => sum + p.damageTaken, 0);
-        const totalHealing = combatTotals.healing?.given || participantSummaries.reduce((sum, p) => sum + p.healingGiven, 0);
-        const totalCriticals = combatTotals.attacks?.crits || 0;
-        const totalFumbles = combatTotals.attacks?.fumbles || 0;
+        // Calculate PARTY totals (player characters only)
+        const partyParticipants = participantSummaries.filter(p => p.isPlayer);
+        const totalHits = partyParticipants.reduce((sum, p) => sum + (p.hits || 0), 0);
+        const totalMisses = partyParticipants.reduce((sum, p) => sum + (p.misses || 0), 0);
+        const totalDamage = partyParticipants.reduce((sum, p) => sum + (p.damageDealt || 0), 0);
+        const totalDamageTaken = partyParticipants.reduce((sum, p) => sum + (p.damageTaken || 0), 0);
+        const totalHealing = partyParticipants.reduce((sum, p) => sum + (p.healingGiven || 0), 0);
+        const totalCriticals = partyParticipants.reduce((sum, p) => sum + (p.criticals || 0), 0);
+        const totalFumbles = partyParticipants.reduce((sum, p) => sum + (p.fumbles || 0), 0);
 
-        // Compute MVP rankings using the same formula as round breakdown
-        const mvpRankings = participantSummaries.map(p => {
+        // Compute MVP rankings (party-only; NPCs excluded)
+        const mvpRankings = partyParticipants.map(p => {
             const score = this._computeMvpScore({
                 hits: p.hits || 0,
                 crits: p.criticals || 0,
@@ -1339,6 +1346,50 @@ class CombatStats {
 
         return { isCritical, isFumble };
     }
+    
+    /**
+     * Derive crit/fumble from a hydrated chat attack roll.
+     * Prefer explicit flags when present; fallback to kept/active d20 results.
+     * @param {Roll|null} roll
+     * @returns {{isCritical: boolean, isFumble: boolean}}
+     */
+    static _getCritFumbleFromChatAttackRoll(roll) {
+        if (!roll) return { isCritical: false, isFumble: false };
+        
+        // If the roll already exposes crit/fumble helpers, trust them.
+        const rollCrit = roll?.isCritical ?? roll?.options?.critical;
+        const rollFumble = roll?.isFumble ?? roll?.options?.fumble;
+        if (typeof rollCrit === "boolean" || typeof rollFumble === "boolean") {
+            return {
+                isCritical: typeof rollCrit === "boolean" ? rollCrit : false,
+                isFumble: typeof rollFumble === "boolean" ? rollFumble : false
+            };
+        }
+        
+        // Fallback: inspect d20 results, preferring active/kept for adv/dis.
+        try {
+            const d20Dice = (roll?.dice ?? []).filter(d => d?.faces === 20);
+            const all = [];
+            const active = [];
+            
+            for (const die of d20Dice) {
+                const results = Array.isArray(die?.results) ? die.results : [];
+                for (const r of results) {
+                    if (typeof r?.result !== "number") continue;
+                    all.push(r.result);
+                    if (r.active !== false) active.push(r.result);
+                }
+            }
+            
+            const used = active.length ? active : all;
+            return {
+                isCritical: used.includes(20),
+                isFumble: used.includes(1)
+            };
+        } catch (_) {
+            return { isCritical: false, isFumble: false };
+        }
+    }
 
     /**
      * Process a resolved attack event from chat message resolution.
@@ -1373,6 +1424,21 @@ class CombatStats {
         attackerStats.combat.attacks.attempts++;
         attackerCombatStats.combat.attacks.attempts++;
         combatTotals.attacks.attempts++;
+        
+        // Core-only: increment crit/fumble once per attack (MIDI increments in RollComplete)
+        const isMidiAttack = typeof attackEvent?.key === "string" && attackEvent.key.startsWith("midi:");
+        if (!isMidiAttack) {
+            if (attackEvent.isCritical) {
+                attackerStats.combat.attacks.crits++;
+                attackerCombatStats.combat.attacks.crits++;
+                combatTotals.attacks.crits++;
+            }
+            if (attackEvent.isFumble) {
+                attackerStats.combat.attacks.fumbles++;
+                attackerCombatStats.combat.attacks.fumbles++;
+                combatTotals.attacks.fumbles++;
+            }
+        }
 
         // Process each target outcome
         let totalHits = 0;
@@ -1422,8 +1488,8 @@ class CombatStats {
         for (const { target, targetActorName } of targetInfos) {
             const hitInfo = {
                 attackRoll: attackEvent.attackTotal,
-                isCritical: false, // Will be set by crit/fumble from roll hooks if needed
-                isFumble: false,
+                isCritical: !!attackEvent.isCritical,
+                isFumble: !!attackEvent.isFumble,
                 isHit: target.hit === true,
                 timestamp: attackEvent.ts,
                 actorId: attackerActor.id,
@@ -1507,41 +1573,16 @@ class CombatStats {
         const actor = item.parent;
         if (!actor) return;
 
-        // Only track damage if it's classified as "onHit" (hit-based damage)
-        // "other" bucket includes midi miss damage, AOE effects, etc. - track separately if desired
-        if (damageEvent.bucket !== "onHit") {
-            // For now, we skip non-hit damage to maintain current behavior
-            // In the future, we could track "damage.rolled.other" separately
-            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage skipped (not onHit):', {
-                bucket: damageEvent.bucket,
-                damageTotal: damageEvent.damageTotal
-            }, true, false);
-            return;
-        }
-
-        // Get targets from the correlated attack event (cacheEntry already fetched above)
-        const hitTargetUuids = cacheEntry?.attackEvent?.hitTargets ?? [];
-
-        // Resolve target actors
-        const targetActorIds = [];
-        const targetTokenUuids = [];
+        // Decide healing and moment eligibility.
+        // Policy:
+        // - Totals include damage buckets: onHit, other, unlinked
+        // - Damage moments (topHits / biggest hit) are onHit-only
+        // - Healing is counted regardless of onHit and can have healing moments
+        const bucket = (damageEvent.bucket ?? null);
+        const isHealingByBucket = bucket === "heal";
+        const trackDamageMoments = bucket === "onHit";
         
-        for (const targetUuid of hitTargetUuids) {
-            try {
-                const targetDoc = await fromUuid(targetUuid);
-                const targetActorDoc = targetDoc?.actor ?? targetDoc;
-                if (targetActorDoc?.id) {
-                    targetActorIds.push(targetActorDoc.id);
-                }
-                if (targetDoc?.documentName === "Token" && targetDoc.uuid) {
-                    targetTokenUuids.push(targetDoc.uuid);
-                }
-            } catch (e) {
-                // Skip if can't resolve
-            }
-        }
-
-        // Determine if healing (same logic as before)
+        // Keep a conservative healing fallback for legacy items/messages.
         const itemNameLower = (item.name || "").toLowerCase();
         const actionType = (item.system?.actionType ?? "").toString().toLowerCase();
         const hasHealingActivity = item.system?.activities && Object.values(item.system.activities).some(activity => {
@@ -1550,12 +1591,47 @@ class CombatStats {
         });
         const hasHealingDamage = item.system?.damage?.parts?.some?.(p => `${p?.[1]}`.toLowerCase() === "healing");
         const nameIndicatesHealing = itemNameLower.includes("heal") || itemNameLower.includes("cure") || itemNameLower.includes("restore");
-        const isHealing = actionType === "heal" || actionType === "healing" || hasHealingActivity || hasHealingDamage || nameIndicatesHealing;
+        const isHealingFallback = actionType === "heal" || actionType === "healing" || hasHealingActivity || hasHealingDamage || nameIndicatesHealing;
+        
+        const isHealing = isHealingByBucket || isHealingFallback;
 
-        // Check if this was a critical (from cached attack or roll hook state)
-        const isCritical = cacheEntry?.attackEvent?.targets?.some(t => t.hit === true) ? this._lastRollWasCritical : false;
+        // Choose which target UUIDs this single damage/heal message should apply to.
+        const msgTargets = Array.isArray(damageEvent.targetUuids) ? damageEvent.targetUuids.filter(Boolean) : [];
+        const hitTargets = Array.isArray(cacheEntry?.attackEvent?.hitTargets) ? cacheEntry.attackEvent.hitTargets.filter(Boolean) : [];
 
-        // Process damage using existing method (but only for onHit damage)
+        let targetUuidsToApply = [];
+        if (isHealing) {
+            // Healing never requires attack correlation.
+            targetUuidsToApply = msgTargets;
+        } else if (trackDamageMoments) {
+            // On-hit damage: prefer message targets; intersect with hitTargets if possible.
+            if (msgTargets.length && hitTargets.length) {
+                targetUuidsToApply = msgTargets.filter(u => hitTargets.includes(u));
+            } else if (msgTargets.length) {
+                targetUuidsToApply = msgTargets;
+            } else {
+                targetUuidsToApply = hitTargets;
+            }
+        } else {
+            // Other/unlinked damage: totals only; apply only to message targets if provided.
+            targetUuidsToApply = msgTargets;
+        }
+
+        // Resolve target actors/tokens from UUIDs
+        const targetActorIds = [];
+        const targetTokenUuids = [];
+        for (const targetUuid of targetUuidsToApply) {
+            try {
+                const targetDoc = await fromUuid(targetUuid);
+                const targetActorDoc = targetDoc?.actor ?? targetDoc;
+                if (targetActorDoc?.id) targetActorIds.push(targetActorDoc.id);
+                if (targetDoc?.documentName === "Token" && targetDoc.uuid) targetTokenUuids.push(targetDoc.uuid);
+            } catch (_) {}
+        }
+
+        // Crit only matters for onHit moments; for totals-only buckets, keep false.
+        const isCritical = trackDamageMoments ? !!cacheEntry?.attackEvent?.isCritical : false;
+
         await this._processDamageOrHealing({
             item,
             amount: damageEvent.damageTotal,
@@ -1563,7 +1639,8 @@ class CombatStats {
             isCritical,
             targetActorIds,
             targetTokenUuids,
-            timestamp: damageEvent.ts
+            timestamp: damageEvent.ts,
+            trackDamageMoments
         });
     }
 
@@ -1652,7 +1729,8 @@ class CombatStats {
         isCritical = false,
         targetActorIds = [],
         targetTokenUuids = [],
-        timestamp = null
+        timestamp = null,
+        trackDamageMoments = true
     }) {
         if (!game.user.isGM) return;
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
@@ -1784,23 +1862,27 @@ class CombatStats {
         attackerCombatStats.damage.dealt += amount;
         combatTotals.damage.dealt += amount;
 
-        this.combatStats.topHits ??= [];
+        if (trackDamageMoments) {
+            this.combatStats.topHits ??= [];
+        }
 
         if (resolvedTargetActors.length) {
             for (const targetActor of resolvedTargetActors) {
-                const hitEvent = {
-                    attacker: actor.name,
-                    attackerId: actor.id,
-                    attackerName: actor.name,
-                    target: targetActor.name,
-                    targetName: targetActor.name,
-                    targetId: targetActor.id,
-                    amount,
-                    weapon: item.name || 'Unknown',
-                    isCritical: !!isCritical,
-                    timestamp: when
-                };
-                this._maintainTopN(this.combatStats.topHits, hitEvent, h => h.amount || 0, 5);
+                if (trackDamageMoments) {
+                    const hitEvent = {
+                        attacker: actor.name,
+                        attackerId: actor.id,
+                        attackerName: actor.name,
+                        target: targetActor.name,
+                        targetName: targetActor.name,
+                        targetId: targetActor.id,
+                        amount,
+                        weapon: item.name || 'Unknown',
+                        isCritical: !!isCritical,
+                        timestamp: when
+                    };
+                    this._maintainTopN(this.combatStats.topHits, hitEvent, h => h.amount || 0, 5);
+                }
 
                 const { current: tCur, combat: tCom } = this._ensureParticipantStats(targetActor, {
                     includeCurrent: true,
@@ -1814,14 +1896,16 @@ class CombatStats {
                 tCom.damage.taken += amount;
                 combatTotals.damage.taken += amount;
 
-                this._updateNotableMoments('damage', {
-                    attackerId: actor.id,
-                    attacker: actor.name,
-                    targetId: targetActor.id,
-                    targetName: targetActor.name,
-                    amount,
-                    isCritical: !!isCritical
-                });
+                if (trackDamageMoments) {
+                    this._updateNotableMoments('damage', {
+                        attackerId: actor.id,
+                        attacker: actor.name,
+                        targetId: targetActor.id,
+                        targetName: targetActor.name,
+                        amount,
+                        isCritical: !!isCritical
+                    });
+                }
             }
         }
 
@@ -2113,33 +2197,27 @@ class CombatStats {
             return;
         }
 
-        // Damage: keep existing semantics (count only "onHit" damage).
+        // Damage: totals should count for all buckets, but "hit moments" are onHit-only.
         const hitTargets = cachedAttackEntry?.attackEvent?.hitTargets ?? [];
         const isOnHit = hitTargets.includes(targetUuid);
-        if (!isOnHit) {
-            postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI damage skipped (not onHit):', {
-                key,
-                targetUuid,
-                amount
-            }, true, false);
-            return;
-        }
 
         await CombatStats._processDamageOrHealing({
             item,
             amount,
             isHealing: false,
-            isCritical: !!isCritical,
+            isCritical: isOnHit ? !!isCritical : false,
             targetActorIds,
             targetTokenUuids,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            trackDamageMoments: isOnHit
         });
 
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI damage processed', {
             key,
             targetUuid,
             amount,
-            isCritical: !!isCritical
+            bucket: isOnHit ? "onHit" : "other",
+            isCritical: isOnHit ? !!isCritical : false
         }, true, false);
     }
 
@@ -2220,6 +2298,122 @@ class CombatStats {
                 CombatStats._attackCache.delete(key);
             }
         }
+    }
+
+    /**
+     * Core lane: Process chat messages for attacks/damage/healing.
+     * This is shared by createChatMessage and updateChatMessage (when rolls/flags arrive late).
+     * @param {ChatMessage} message
+     */
+    static async _onChatMessage(message) {
+        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.combat?.started) return;
+
+        // Early guard: only process system-ish roll messages (reduces noise)
+        const hasDnd5e = !!message.flags?.dnd5e;
+        const hasMidi = !!message.flags?.["midi-qol"];
+        const hasRolls = (message.rolls?.length ?? 0) > 0;
+        if (!hasDnd5e && !hasMidi && !hasRolls) return;
+
+        // If MIDI is active and this message is part of a MIDI workflow, ignore it here.
+        // MIDI lane hooks (hitsChecked + preTargetDamageApplication + RollComplete) are authoritative.
+        if (game.modules.get("midi-qol")?.active && hasMidi) return;
+
+        // Prune expired cache entries
+        CombatStats._pruneAttackCache();
+
+        // 1) Try to resolve as attack message
+        const attackEvent = resolveAttackMessage(message);
+        if (attackEvent) {
+            const dedupeKey = `chat:attack:${message.id}`;
+            if (CombatStats._chatDedupe.isDuplicate(dedupeKey)) return;
+            CombatStats._chatDedupe.markProcessed(dedupeKey);
+
+            // Stamp crit/fumble from the chat roll (core-only)
+            const roll = hydrateFirstRoll(message);
+            const { isCritical, isFumble } = CombatStats._getCritFumbleFromChatAttackRoll(roll);
+            attackEvent.isCritical = !!isCritical;
+            attackEvent.isFumble = !!isFumble;
+
+            // Cache the attack resolution for damage correlation
+            CombatStats._attackCache.set(attackEvent.key, {
+                attackEvent,
+                processedDamageMsgIds: new Set(),
+                ts: attackEvent.ts
+            });
+
+            await CombatStats._processResolvedAttack(attackEvent);
+
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Resolved:', {
+                key: attackEvent.key,
+                attackTotal: attackEvent.attackTotal,
+                hitTargetsCount: attackEvent.hitTargets.length,
+                missTargetsCount: attackEvent.missTargets.length,
+                unknownTargetsCount: attackEvent.unknownTargets.length
+            }, true, false);
+
+            return;
+        }
+
+        // 2) Try to resolve as damage/healing message
+        const damageEvent = resolveDamageMessage(message);
+        if (!damageEvent) return;
+
+        // Healing never requires attack correlation; preserve heal bucket.
+        if (damageEvent.bucket === "heal") {
+            const dedupeKey = `chat:heal:${message.id}`;
+            if (CombatStats._chatDedupe.isDuplicate(dedupeKey)) return;
+            CombatStats._chatDedupe.markProcessed(dedupeKey);
+
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Resolved:', {
+                key: damageEvent.key,
+                bucket: "heal",
+                damageTotal: damageEvent.damageTotal,
+                attackMsgId: damageEvent.attackMsgId
+            }, true, false);
+
+            await CombatStats._processResolvedDamage(damageEvent);
+            return;
+        }
+
+        // Correlate damage to cached attack
+        const cacheEntry = CombatStats._attackCache.get(damageEvent.key);
+
+        if (!cacheEntry) {
+            // Unlinked damage: still counts for totals, but no onHit moments.
+            const dedupeKey = `chat:unlinked:${message.id}`;
+            if (CombatStats._chatDedupe.isDuplicate(dedupeKey)) return;
+            CombatStats._chatDedupe.markProcessed(dedupeKey);
+
+            damageEvent.bucket = "unlinked";
+            damageEvent.attackMsgId = null;
+
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Unlinked Damage:', {
+                key: damageEvent.key,
+                damageTotal: damageEvent.damageTotal
+            }, true, false);
+
+            await CombatStats._processResolvedDamage(damageEvent);
+            return;
+        }
+
+        // Dedupe per damage message ID (supports multiple damage messages per attack)
+        if (cacheEntry.processedDamageMsgIds.has(damageEvent.damageMsgId)) return;
+        cacheEntry.processedDamageMsgIds.add(damageEvent.damageMsgId);
+
+        // Classify damage based on attack outcome (moments only for onHit, totals always count)
+        const hadHit = (cacheEntry.attackEvent?.hitTargets?.length ?? 0) > 0;
+        damageEvent.bucket = hadHit ? "onHit" : "other";
+        damageEvent.attackMsgId = cacheEntry.attackEvent.attackMsgId;
+
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Resolved:', {
+            key: damageEvent.key,
+            bucket: damageEvent.bucket,
+            damageTotal: damageEvent.damageTotal,
+            attackMsgId: damageEvent.attackMsgId
+        }, true, false);
+
+        await CombatStats._processResolvedDamage(damageEvent);
     }
 
     // Register all necessary hooks
@@ -2386,7 +2580,7 @@ class CombatStats {
             });
         }
 
-        // Chat message hook - source of truth for attack/damage resolution
+        // Chat message hooks - core lane source of truth for attack/damage/healing resolution
         const createChatMessageHookId = HookManager.registerHook({
 			name: 'createChatMessage',
 			description: 'Combat Stats: Resolve attacks and correlate damage from chat messages',
@@ -2394,119 +2588,27 @@ class CombatStats {
 			priority: 3,
 			callback: (message) => {
 				// --- BEGIN - HOOKMANAGER CALLBACK ---
-				if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackCombatStats')) return;
-				if (!game.combat?.started) return;
+				return this._onChatMessage(message);
+				// --- END - HOOKMANAGER CALLBACK ---
+			}
+		});
 
-				// Early guard: only process system roll messages (reduces noise)
-				const hasDnd5e = !!message.flags?.dnd5e;
-				const hasMidi = !!message.flags?.["midi-qol"];
-				const hasRolls = (message.rolls?.length ?? 0) > 0;
-				if (!hasDnd5e && !hasMidi && !hasRolls) return;
-
-				// If MIDI is active and this message is part of a MIDI workflow, ignore it here.
-				// We resolve attacks/damage from MIDI workflow hooks instead (hitsChecked + preTargetDamageApplication)
-				// to avoid racing the activation-card mutation lifecycle.
-				if (game.modules.get("midi-qol")?.active && hasMidi) {
-				    return;
-				}
-
-				// Prune expired cache entries
-				CombatStats._pruneAttackCache();
-
-				// 1) Try to resolve as attack message
-				const attackEvent = resolveAttackMessage(message);
-				if (attackEvent) {
-					// Cache the attack resolution for damage correlation
-					CombatStats._attackCache.set(attackEvent.key, {
-						attackEvent: attackEvent,
-						processedDamageMsgIds: new Set(),
-						ts: attackEvent.ts
-					});
-
-					// Process the attack event (records swings, hits, misses per target)
-					CombatStats._processResolvedAttack(attackEvent);
-
-					// Debug log for correlation verification
-					postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Resolved:', {
-						key: attackEvent.key,
-						attackTotal: attackEvent.attackTotal,
-						hitTargetsCount: attackEvent.hitTargets.length,
-						missTargetsCount: attackEvent.missTargets.length,
-						unknownTargetsCount: attackEvent.unknownTargets.length
-					}, true, false);
-
-					return;
-				}
-
-				// 2) Try to resolve as damage message
-				const damageEvent = resolveDamageMessage(message);
-				if (!damageEvent) return;
-
-				// Correlate damage to cached attack
-				const cacheEntry = CombatStats._attackCache.get(damageEvent.key);
-				
-				if (!cacheEntry) {
-					// Couldn't correlate - treat as unlinked damage
-					damageEvent.bucket = "unlinked";
-					damageEvent.attackMsgId = null;
-					
-					postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Unlinked Damage:', {
-						key: damageEvent.key,
-						damageTotal: damageEvent.damageTotal
-					}, true, false);
-					
-					CombatStats._processResolvedDamage(damageEvent);
-					return;
-				}
-
-				// Check dedupe - skip if we've already processed this damage message
-				if (cacheEntry.processedDamageMsgIds.has(damageEvent.damageMsgId)) {
-					postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Skipping duplicate damage message:', {
-						damageMsgId: damageEvent.damageMsgId,
-						key: damageEvent.key
-					}, true, false);
-					return;
-				}
-
-				// Mark this damage message as processed
-				cacheEntry.processedDamageMsgIds.add(damageEvent.damageMsgId);
-
-				// Classify damage based on attack outcome
-				const hadHit = cacheEntry.attackEvent.hitTargets.length > 0;
-				const isWeaponAttack = cacheEntry.attackEvent.itemType === "weapon";
-
-				// Classification rules:
-				// - Weapon attack with hit: "onHit"
-				// - Weapon attack without hit: "other" (covers midi miss damage)
-				// - Non-weapon with hit: "onHit"
-				// - Non-weapon without hit: "other" (covers AOE/effects)
-				if (isWeaponAttack && hadHit) {
-					damageEvent.bucket = "onHit";
-				} else if (isWeaponAttack && !hadHit) {
-					damageEvent.bucket = "other";
-				} else if (hadHit) {
-					damageEvent.bucket = "onHit";
-				} else {
-					damageEvent.bucket = "other";
-				}
-
-				damageEvent.attackMsgId = cacheEntry.attackEvent.attackMsgId;
-
-				// Debug log for correlation verification
-				postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Resolved:', {
-					key: damageEvent.key,
-					bucket: damageEvent.bucket,
-					damageTotal: damageEvent.damageTotal,
-					attackMsgId: damageEvent.attackMsgId
-				}, true, false);
-
-				// Process the classified damage event
-				CombatStats._processResolvedDamage(damageEvent);
-
-				// Optional: Delete cache entry after first damage to prevent double counting
-				// If you need multi-damage support (extra dice, etc.), keep it and dedupe by msgId (already done above)
-				// For now, keeping it allows multiple damage messages per attack (e.g., bonus dice)
-				
+        // MIDI (and some core flows) may add roll/flag data after creation.
+        // Re-process only when rolls/flags are touched to avoid churn.
+        const updateChatMessageHookId = HookManager.registerHook({
+			name: 'updateChatMessage',
+			description: 'Combat Stats: Re-process messages when roll/flags arrive (core lane)',
+			context: 'stats-combat-chat-messages-update',
+			priority: 3,
+			callback: (message, changed) => {
+				// --- BEGIN - HOOKMANAGER CALLBACK ---
+				const changedKeys = Object.keys(changed ?? {});
+				const relevant =
+					changedKeys.includes("rolls") ||
+					changedKeys.includes("flags") ||
+					changedKeys.some(k => k.startsWith("flags."));
+				if (!relevant) return;
+				return this._onChatMessage(message);
 				// --- END - HOOKMANAGER CALLBACK ---
 			}
 		});

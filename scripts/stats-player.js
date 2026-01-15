@@ -1657,20 +1657,10 @@ class CPBPlayerStats {
     static async _processResolvedDamage(damageEvent, attackEvent) {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
-        // Only track damage if it's classified as "onHit" (hit-based damage)
-        // "other" bucket includes midi miss damage, AOE effects, etc. - track separately if desired
-        if (damageEvent.bucket !== "onHit") {
-            // Log when correlated damage is skipped due to bucket classification
-            postConsoleAndNotification(MODULE.NAME, 'Player Stats - Damage skipped (not onHit bucket):', {
-                key: damageEvent.key,
-                bucket: damageEvent.bucket,
-                damageTotal: damageEvent.damageTotal,
-                attacker: attackEvent?.attackerActorId ? game.actors.get(attackEvent.attackerActorId)?.name : 'unknown'
-            }, true, false);
-            // For now, skip non-hit damage to maintain current behavior
-            // In the future, we could track "damage.rolled.other" separately
-            return;
-        }
+        // Policy: lifetime totals should include bucket "other" as well (AoE/save/non-attack),
+        // but "hit moments" (biggest/weakest/hitLog) remain onHit-only.
+        const bucket = damageEvent.bucket ?? null;
+        const trackHitMoments = bucket === "onHit";
 
         const attackerActor = game.actors.get(damageEvent.attackerActorId);
         if (!attackerActor || !attackerActor.hasPlayerOwner) {
@@ -1710,7 +1700,7 @@ class CPBPlayerStats {
         // Deep clone to preserve nested objects
         const clonedAttacks = foundry.utils.deepClone(lifetimeAttacks);
         
-        // Track damage in real-time (only for onHit damage)
+        // Track damage in lifetime totals (onHit + other)
         clonedAttacks.totalDamage = (lifetimeAttacks.totalDamage || 0) + damageEvent.damageTotal;
 
                 // Track damage by weapon
@@ -1735,20 +1725,17 @@ class CPBPlayerStats {
             clonedAttacks.damageByType['unspecified'] = (clonedAttacks.damageByType['unspecified'] || 0) + damageEvent.damageTotal;
         }
 
-        // Try to get target name from first hit target (simplified - don't block on async resolution)
-        // Note: cacheEntry and attackEvent are already available from correlation above
+        // Only compute hit moment details when this damage is onHit.
         let targetName = 'Unknown Target';
         let targetAC = null;
         let targetActor = null; // We'll use this for hit log
-        if (attackEvent?.hitTargets?.length > 0) {
+        if (trackHitMoments && attackEvent?.hitTargets?.length > 0) {
             try {
                 const firstTargetUuid = attackEvent.hitTargets[0];
                 const targetDoc = await fromUuid(firstTargetUuid);
                 const targetActorDoc = targetDoc?.actor ?? targetDoc;
                 targetActor = targetActorDoc; // Save for hit log
-                if (targetActorDoc?.name) {
-                    targetName = targetActorDoc.name;
-                }
+                if (targetActorDoc?.name) targetName = targetActorDoc.name;
                 // Get AC from the target outcome
                 const targetOutcome = attackEvent.targets.find(t => t.uuid === firstTargetUuid);
                 targetAC = targetOutcome?.ac ?? null;
@@ -1765,8 +1752,8 @@ class CPBPlayerStats {
         const isCritical = !!attackEvent?.isCritical;
         const isFumble = !!attackEvent?.isFumble;
 
-                // Update biggest/weakest hits
-                const hitDetails = {
+        // Update biggest/weakest/hitLog only for onHit.
+        const hitDetails = {
             amount: damageEvent.damageTotal,
             date: new Date(damageEvent.ts).toISOString(),
                     weaponName: item.name,
@@ -1777,25 +1764,26 @@ class CPBPlayerStats {
             isCritical: isCritical
         };
 
-        // Update biggest hit
         const currentBiggest = clonedAttacks.biggest;
         const currentBiggestAmount = currentBiggest?.amount || 0;
-        if (damageEvent.damageTotal > currentBiggestAmount) {
-            clonedAttacks.biggest = foundry.utils.deepClone(hitDetails);
-        }
-
-        // Update weakest hit (non-zero, positive damage only)
         const currentWeakest = clonedAttacks.weakest;
-        if (damageEvent.damageTotal > 0 && (!currentWeakest || !currentWeakest.amount || (damageEvent.damageTotal < currentWeakest.amount))) {
-            clonedAttacks.weakest = foundry.utils.deepClone(hitDetails);
-        }
 
-        // Add to hit log (bounded to last 20)
-        if (!clonedAttacks.hitLog) {
-            clonedAttacks.hitLog = [];
+        if (trackHitMoments) {
+            // Update biggest hit
+            if (damageEvent.damageTotal > currentBiggestAmount) {
+                clonedAttacks.biggest = foundry.utils.deepClone(hitDetails);
+            }
+
+            // Update weakest hit (non-zero, positive damage only)
+            if (damageEvent.damageTotal > 0 && (!currentWeakest || !currentWeakest.amount || (damageEvent.damageTotal < currentWeakest.amount))) {
+                clonedAttacks.weakest = foundry.utils.deepClone(hitDetails);
+            }
+
+            // Add to hit log (bounded to last 20)
+            if (!clonedAttacks.hitLog) clonedAttacks.hitLog = [];
+            clonedAttacks.hitLog.push(hitDetails);
+            clonedAttacks.hitLog = clonedAttacks.hitLog.slice(-20);
         }
-        clonedAttacks.hitLog.push(hitDetails);
-        clonedAttacks.hitLog = clonedAttacks.hitLog.slice(-20); // Keep last 20
 
         // RIGHT before writing updates, preserve crit/fumble counters from latest flags
         // This prevents a damage write from "rewinding" crit count if RollComplete hook updated it mid-flight
@@ -1828,14 +1816,14 @@ class CPBPlayerStats {
             `Damage Total: ${damageEvent.damageTotal}`,
             `Damage Bucket: ${damageEvent.bucket}`,
             `Attack Roll: ${attackEvent?.attackTotal ?? 'N/A'}`,
-            `Target: ${targetName} (AC: ${targetAC ?? 'N/A'})`,
+            `Target: ${trackHitMoments ? `${targetName} (AC: ${targetAC ?? 'N/A'})` : 'N/A (non-onHit bucket)'}`,
             `Is Critical: ${isCritical}`,
             `Scene: ${game.scenes.current?.name || 'Unknown'}`,
             `--- Lifetime Totals (Before Update) ---`,
             `  Total Damage: ${lifetimeAttacks.totalDamage || 0} → ${clonedAttacks.totalDamage} (+${damageEvent.damageTotal})`,
-            `  Biggest Hit: ${currentBiggest?.amount || 0} → ${clonedAttacks.biggest.amount} ${damageEvent.damageTotal > currentBiggestAmount ? '(UPDATED)' : '(unchanged)'}`,
-            `  Weakest Hit: ${currentWeakest?.amount || 0} → ${clonedAttacks.weakest.amount || 0}`,
-            `  Hit Log Entries: ${(lifetimeAttacks.hitLog?.length || 0)} → ${clonedAttacks.hitLog.length}`,
+            `  Biggest Hit: ${currentBiggest?.amount || 0} → ${(clonedAttacks.biggest?.amount ?? 0)} ${trackHitMoments && damageEvent.damageTotal > currentBiggestAmount ? '(UPDATED)' : '(unchanged)'}`,
+            `  Weakest Hit: ${(currentWeakest?.amount || 0)} → ${(clonedAttacks.weakest?.amount || 0)}`,
+            `  Hit Log Entries: ${(lifetimeAttacks.hitLog?.length || 0)} → ${(clonedAttacks.hitLog?.length || 0)}`,
             `--- Damage By Weapon ---`,
             damageByWeaponLog || '  (none)',
             `--- Damage By Type ---`,
