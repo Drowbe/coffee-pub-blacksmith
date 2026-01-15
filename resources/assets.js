@@ -2082,68 +2082,84 @@ export const dataBackgrounds = {
 
 // MVP Templates
 export const MVPTemplates = {
-    combatExcellenceTemplates: [
-        "Dominated the battlefield with {hits} precise strikes ({accuracy}% accuracy), including {crits} devastating critical hits for {damage} damage",
-        "Led the charge with exceptional skill, landing {hits} attacks at {accuracy}% accuracy and dealing {damage} damage with {crits} critical strikes",
-        "Demonstrated masterful combat prowess: {hits} successful strikes, {crits} critical hits, and {damage} total damage at {accuracy}% accuracy",
-        "Carved through enemies with {hits} well-placed attacks, achieving {accuracy}% accuracy and {crits} critical hits for {damage} damage",
-        "Showcased elite combat skills with {hits} hits ({accuracy}% accuracy), including {crits} critical strikes dealing {damage} damage",
-        "Executed a flawless assault: {hits} successful attacks, {damage} damage dealt, and {crits} critical hits at {accuracy}% accuracy",
-        "Displayed tactical brilliance with {hits} precise attacks, {crits} critical strikes, and {damage} total damage at {accuracy}% accuracy",
-        "Orchestrated a devastating offensive: {hits} successful strikes dealing {damage} damage, including {crits} critical hits ({accuracy}% accuracy)",
-        "Commanded the battlefield with {hits} accurate strikes ({accuracy}%), delivering {crits} critical hits and {damage} total damage",
-        "Unleashed a masterful performance: {hits} successful attacks at {accuracy}% accuracy, dealing {damage} damage with {crits} critical strikes"
-    ],
-    
-    damageTemplates: [
-        "Unleashed {damage} points of destruction through {hits} attacks, with {crits} critical strikes and {healing} healing provided",
-        "Dealt a staggering {damage} damage across {hits} successful strikes while supporting with {healing} healing and landing {crits} critical hits",
-        "Brought devastating force with {damage} damage dealt, {hits} successful attacks, and {crits} critical hits while healing {healing}",
-        "Channeled raw power into {damage} damage through {hits} strikes, including {crits} critical hits and {healing} healing support",
-        "Delivered {damage} crushing damage with {hits} well-placed attacks, {crits} critical strikes, and {healing} healing provided",
-        "Manifested destructive might: {damage} damage dealt, {hits} successful hits, {crits} critical strikes, and {healing} healing",
-        "Wreaked havoc with {damage} total damage, landing {hits} attacks and {crits} critical hits while healing {healing}",
-        "Demonstrated overwhelming force: {damage} damage across {hits} strikes, with {crits} critical hits and {healing} healing",
-        "Unleashed {damage} points of devastation through {hits} attacks, scoring {crits} critical hits and providing {healing} healing",
-        "Dominated through pure power: {damage} damage dealt, {hits} successful strikes, {crits} critical hits, and {healing} healing support"
-    ],
-    
-    precisionTemplates: [
-        "Demonstrated lethal precision with {hits}/{attempts} strikes connecting ({accuracy}%), dealing {damage} damage with {crits} critical hits",
-        "Achieved remarkable accuracy ({accuracy}%) with {hits}/{attempts} successful strikes, including {crits} critical hits for {damage} damage",
-        "Displayed surgical precision: {hits} of {attempts} attacks hit ({accuracy}%), dealing {damage} damage and scoring {crits} critical hits",
-        "Executed with deadly accuracy, landing {hits}/{attempts} attacks ({accuracy}%) for {damage} damage and {crits} critical strikes",
-        "Showcased masterful aim with {accuracy}% accuracy ({hits}/{attempts}), delivering {damage} damage and {crits} critical hits",
-        "Maintained exceptional precision: {hits}/{attempts} successful strikes ({accuracy}%), {damage} damage dealt, {crits} critical hits",
-        "Demonstrated unerring accuracy with {hits}/{attempts} hits ({accuracy}%), dealing {damage} damage including {crits} critical strikes",
-        "Displayed pinpoint accuracy: {accuracy}% of {attempts} attacks hit, dealing {damage} damage with {crits} critical hits",
-        "Achieved combat excellence with {hits}/{attempts} successful strikes ({accuracy}%), {damage} damage, and {crits} critical hits",
-        "Exhibited deadly precision: {accuracy}% accuracy across {attempts} attacks, dealing {damage} damage with {crits} critical strikes"
-    ],
-    
-    mixedTemplates: [
-        "Despite {fumbles} setbacks, delivered {damage} damage across {hits} strikes with {crits} critical hits and {healing} healing",
-        "Overcame {fumbles} mishaps to deal {damage} damage, land {hits} attacks, score {crits} critical hits, and heal {healing}",
-        "Persevered through {fumbles} fumbles, achieving {hits} successful strikes, {damage} damage, and {healing} healing with {crits} critical hits",
-        "Showed resilience after {fumbles} stumbles: {hits} successful attacks, {damage} damage dealt, {crits} critical hits, {healing} healing",
-        "Recovered from {fumbles} missteps to deliver {damage} damage, {hits} successful strikes, {crits} critical hits, and {healing} healing",
-        "Pushed through {fumbles} setbacks to achieve {hits} hits, {damage} damage, {crits} critical strikes, and {healing} healing",
-        "Demonstrated persistence through {fumbles} fumbles: {damage} damage dealt, {hits} successful attacks, {crits} crits, {healing} healed",
-        "Adapted past {fumbles} mistakes to land {hits} strikes, deal {damage} damage, score {crits} critical hits, and heal {healing}",
-        "Rallied after {fumbles} fumbles with {hits} successful attacks, dealing {damage} damage with {crits} critical hits and {healing} healing",
-        "Turned the tide despite {fumbles} setbacks: {hits} successful strikes, {damage} damage, {crits} critical hits, {healing} healing provided"
+    healerTemplates: [
+        "{name} kept the party breathing and the enemy guessing.||[healing]Poured out {healing} healing at the exact right moments.",
+        "{name} played battlefield medic like it was a calling.||[healing]Delivered {healing} healing when it mattered most.||[misses]Also missed {misses} times—apparently triage is harder while dodging swords.",
+        "{name} refused to let anyone stay down.||[healing]Backstopped the fight with {healing} healing.||[foe]Even {foe} couldn’t finish the job.",
+        "{name} turned panic into momentum.||[healing]Kept the wheels on with {healing} healing.||[fumbles]And still snagged MVP despite {fumbles} fumble(s).",
+        "{name} made victory possible one clutch heal at a time.||[healing]Total healing: {healing}.||[foe]All while {foe} tried (and failed) to close it out.",
+        "{name} kept the party standing long enough to win.||[healing]The heal count says it all: {healing}."
     ],
 
-    noMVPTemplates: [
-        "No MVP: Everyone's playing it a bit too safe this round. Time to channel your inner hero!",
-        "No MVP: The enemies seem to be winning the game of hide and seek. Maybe try seeking harder?",
-        "No MVP: Looks like everyone's practicing their defensive stances. Remember, the best defense is a good offense!",
-        "No MVP: No MVP this round - but hey, at least no one rolled a natural 1... right?",
-        "No MVP: The weapons are feeling a bit shy today. Give them some encouragement!",
-        "No MVP: Someone forgot to bring their lucky dice. There's always next round!",
-        "No MVP: The party seems to be having a peaceful tea party instead of combat. Time to spice things up!",
-        "No MVP: Today's combat sponsored by: The 'Maybe Next Time' Foundation for Aspiring Heroes",
-        "No MVP: The enemies are starting to think this is too easy. Show them why they're wrong!",
-        "No MVP: Saving all your good rolls for later? That's a bold strategy!"
+    executionerTemplates: [
+        "{name} brought the finishing energy.||[damage]Dropped {damage} damage on the battlefield.||[foe+weapon]The highlight: {foe} got introduced to {weapon}.",
+        "{name} hit like a freight train with manners.||[damage]Total damage: {damage}.||[crits]With {crits} crit(s) for emphasis.",
+        "{name} was the reason the enemies started reconsidering life choices.||[damage]{damage} damage delivered.||[misses]Missed {misses} times first—just to build suspense.",
+        "{name} didn’t negotiate—{name} demonstrated.||[foe]Ask {foe}.||[damage]{damage} damage later, the point was made.",
+        "{name} carved a path to victory.||[damage]{damage} damage dealt.||[crits]Crit(s): {crits}.",
+        "{name} ended arguments quickly.||[damage]{damage} damage handled the discussion.||[fumbles]Also had {fumbles} fumble(s), because drama is important."
+    ],
+
+    sharpshooterTemplates: [
+        "{name} made every swing feel inevitable.||[attempts]Went {hits}/{attempts}.||[noMisses]Perfect accuracy. No notes.",
+        "{name} delivered clean work.||[attempts]Hit {hits} of {attempts} ({accuracy}%).||[misses]Only {misses} miss(es)—and they still got MVP.",
+        "{name} was surgical today.||[accuracyHigh]{accuracy}% accuracy is not an accident.||[foe+weapon]{weapon} on {foe} was the headline.",
+        "{name} kept it crisp.||[attempts]{hits}/{attempts} landed ({accuracy}%).||[crits]And {crits} crit(s) to make it memorable.",
+        "{name} didn’t waste turns.||[attempts]{hits}/{attempts} connected ({accuracy}%).||[fumbles]Even with {fumbles} fumble(s).",
+        "{name} made the dice behave.||[attempts]{hits}/{attempts} hits ({accuracy}%).||[misses]Misses: {misses}. (Still MVP.)"
+    ],
+
+    critArtistTemplates: [
+        "{name} made the highlight reel.||[crits]{crits} critical hit(s) landed.||[foe]One of them had {foe} seeing stars.",
+        "{name} turned one good roll into a victory condition.||[crits]{crits} crit(s).||[damage]And {damage} damage to prove it.",
+        "{name} found the weak spot and kept finding it.||[crits]Crit count: {crits}.||[misses]Also missed {misses} times—so the crits hit even harder.",
+        "{name} was pure chaos and it worked.||[crits]{crits} crit(s).||[fumbles]{fumbles} fumble(s).||The universe was entertained.",
+        "{name} brought the kind of crit energy villains warn each other about.||[crits]{crits} crit(s).||[foe+weapon]{weapon} on {foe} did not ask permission.",
+        "{name} spiked the round with perfect timing.||[crits]{crits} crit(s).||[attempts]{hits}/{attempts} hits overall."
+    ],
+
+    workhorseTemplates: [
+        "{name} kept the pressure on from bell to bell.||[attempts]{attempts} attempts, {hits} hit(s).||[damage]{damage} damage along the way.",
+        "{name} did the job nobody else wanted to do: keep swinging.||[attempts]{hits}/{attempts} landed.||[misses]{misses} miss(es), but who’s counting? (Us. We are.)",
+        "{name} stayed on task and it paid off.||[hits]{hits} hit(s) delivered.||[foe]{foe} definitely noticed.",
+        "{name} was relentless.||[attempts]{attempts} attempts.||[crits]{crits} crit(s).||[fumbles]{fumbles} fumble(s).||Still MVP. Incredible.",
+        "{name} kept the tempo high and the enemy low.||[damage]{damage} damage dealt.||[attempts]{hits}/{attempts} hits ({accuracy}%).",
+        "{name} was the engine of the round.||[hits]{hits} hit(s).||[damage]{damage} damage.||No glamour—just results."
+    ],
+
+    battleMedicTemplates: [
+        "{name} patched allies up and punched problems down.||[healing]{healing} healing.||[damage]{damage} damage.",
+        "{name} ran a two‑track plan: heal, then hurt.||[healing]Healing: {healing}.||[damage]Damage: {damage}.",
+        "{name} kept the party alive and the enemy stressed.||[healing]{healing} healing.||[foe]{foe} did not appreciate it.",
+        "{name} multitasked like a menace.||[healing]{healing} healing.||[damage]{damage} damage.||[fumbles]And {fumbles} fumble(s), because why not.",
+        "{name} was the answer to every problem on the map.||[healing]Heals: {healing}.||[damage]Hits: {hits}.||[foe+weapon]{weapon} on {foe} sealed it.",
+        "{name} kept the fight stable and the enemies unstable.||[healing]{healing} healing delivered.||[misses]Missed {misses} times too—balance in all things."
+    ],
+
+    chaosMvpTemplates: [
+        "{name} won MVP the hard way.||[misses]Missed {misses} time(s).||[fumbles]Fumbled {fumbles} time(s).||And still carried. Legendary.",
+        "{name} was a walking plot twist.||[fumbles]{fumbles} fumble(s).||[crits]{crits} crit(s).||The math says MVP. The vibes agree.",
+        "{name} somehow turned mistakes into momentum.||[misses]{misses} miss(es).||[damage]{damage} damage anyway.||Respect.",
+        "{name} made the round look messy on purpose.||[fumbles]{fumbles} fumble(s).||[healing]{healing} healing to clean it up.||Still MVP.",
+        "{name} mixed chaos and competence in the perfect ratio.||[misses]Misses: {misses}.||[crits]Crits: {crits}.||[damage]Damage: {damage}.",
+        "{name} was the reason the table laughed and the enemies died.||[misses]{misses} miss(es).||[fumbles]{fumbles} fumble(s).||MVP anyway."
+    ],
+
+    allRounderTemplates: [
+        "{name} did a bit of everything—and did it well.||[damage]{damage} damage.||[healing]{healing} healing.||[attempts]{hits}/{attempts} landed ({accuracy}%).",
+        "{name} was the steady hand that wins fights.||[hits]{hits} hit(s).||[damage]{damage} damage.||[healing]{healing} healing.",
+        "{name} covered every angle.||[attempts]{hits}/{attempts} hits ({accuracy}%).||[crits]{crits} crit(s).||[healing]{healing} healing.",
+        "{name} brought the complete package.||[damage]{damage} damage dealt.||[healing]{healing} healing given.||Clean, consistent, MVP.",
+        "{name} was everywhere at once.||[foe]{foe} felt it.||[damage]{damage} damage.||[healing]{healing} healing.",
+        "{name} earned MVP the honest way: consistent contribution.||[hits]{hits} hit(s).||[damage]{damage} damage.||[healing]{healing} healing."
+    ],
+
+    noMvpTemplates: [
+        "No MVP this round—everyone’s playing it a little too safe. Time to get heroic.",
+        "No MVP—this round was sponsored by cautious footwork and polite threats.",
+        "No MVP—someone tell the dice it’s okay to be dramatic.",
+        "No MVP—combat happened, technically. Next round, let’s make it personal.",
+        "No MVP—everyone kept their heads down. Great for survival, bad for highlights.",
+        "No MVP—saving your big moment for later? Bold. Risky. Iconic."
     ]
 };

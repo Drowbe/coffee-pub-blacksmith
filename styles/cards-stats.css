@@ -25,6 +25,39 @@
 
 /* === MVP Details === */
 
+.blacksmith-mvp-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.blacksmith-mvp-ribbon {
+    position: absolute;
+    top: 10px;
+    right: -55px;
+    width: 190px;
+    transform: rotate(45deg);
+    background: rgba(70, 19, 19, 0.92);
+    color: rgba(255, 255, 255, 0.95);
+    text-align: center;
+    padding: 4px 10px;
+    z-index: 5;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+}
+
+.blacksmith-mvp-ribbon-text {
+    display: block;
+    font-size: 0.75em;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .mvp-details {
     display: flex;
     align-items: flex-start;

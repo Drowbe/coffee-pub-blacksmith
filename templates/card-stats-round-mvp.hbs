@@ -1,7 +1,12 @@
 <span style="visibility: hidden">coffeepub-hide-header</span>
 
 {{!-- Round MVP --}}
-<div class="blacksmith-card theme-default">
+<div class="blacksmith-card theme-default blacksmith-mvp-card">
+    {{#if roundMVP.themeLabel}}
+    <div class="blacksmith-mvp-ribbon">
+        <span class="blacksmith-mvp-ribbon-text">{{roundMVP.themeLabel}}</span>
+    </div>
+    {{/if}}
     <div class="card-header">
         <i class="fa-solid fa-trophy"></i> Round {{roundNumber}} MVP
     </div>

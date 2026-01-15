@@ -1301,8 +1301,13 @@ class CombatStats {
                 }
             }, true, false);
 
-            // Generate MVP description
-            const description = MVPDescriptionGenerator.generateDescription(detail);
+            // Generate MVP description + theme
+            const { description, themeLabel, themeKey } = MVPDescriptionGenerator.generateDescription(detail, {
+                actorId: actor.id,
+                name: actor.name,
+                maxima: mvpMaxima,
+                tuning: mvpTuning
+            });
 
             postConsoleAndNotification(MODULE.NAME, 'MVP - Generated Description:', {
                 name: actor.name,
@@ -1314,6 +1319,8 @@ class CombatStats {
                 ...detail,
                 score,
                 description,
+                themeLabel,
+                themeKey,
                 name: actor.name,
                 tokenImg: actor.img
             };
@@ -3032,13 +3039,16 @@ class CombatStats {
         if (playerStats.length > 0) {
             roundMvpResult = await this._calculateMVP(playerStats);
         } else {
+            const { description, themeLabel, themeKey } = MVPDescriptionGenerator.generateDescription({
+                combat: { attacks: { hits: 0, misses: 0, attempts: 0, crits: 0, fumbles: 0 } },
+                damage: { dealt: 0, taken: 0 },
+                healing: { given: 0, received: 0 }
+            });
             roundMvpResult.mvp = {
                 score: 0,
-                description: MVPDescriptionGenerator.generateDescription({
-                    combat: { attacks: { hits: 0, attempts: 0 } },
-                    damage: { dealt: 0 },
-                    healing: { given: 0 }
-                })
+                themeLabel,
+                themeKey,
+                description
             };
         }
 
@@ -3669,16 +3679,25 @@ class CombatStats {
         let combatMVP = null;
         if (turnDetails.length > 0 && turnDetails[0].score > 0) {
             const topParticipant = turnDetails[0];
-            // Generate description using MVPDescriptionGenerator
-            const description = MVPDescriptionGenerator.generateDescription({
+            // Generate description + theme using MVPDescriptionGenerator (moment-aware via topHits/topHeals)
+            const { description, themeLabel, themeKey } = MVPDescriptionGenerator.generateDescription({
                 combat: topParticipant.combat,
                 damage: topParticipant.damage,
                 healing: topParticipant.healing
+            }, {
+                actorId: topParticipant.actorId,
+                name: topParticipant.name,
+                maxima: mvpMaxima,
+                tuning: mvpTuning,
+                topHits: combatSummary.notableMoments?.topHits || [],
+                topHeals: combatSummary.notableMoments?.topHeals || []
             });
             
             combatMVP = {
                 ...topParticipant,
-                description
+                description,
+                themeLabel,
+                themeKey
             };
         }
 
@@ -3964,120 +3983,286 @@ export { CombatStats };
 // Generates descriptions for MVPs based on combat stats.
 
 class MVPDescriptionGenerator {
-    static THRESHOLDS = {
-        COMBAT_EXCELLENCE: {
-            accuracy: 75,
-            hits: 2,
-            crits: 1
-        },
-        DAMAGE_FOCUS: {
-            damage: 5,
-            hits: 1
-        },
-        PRECISION: {
-            accuracy: 90,
-            hits: 1
-        },
-        MIXED: {
-            fumbles: 1,
-            damage: 5
-        }
+    static THEMES = {
+        healer: { label: 'Clutch Healer', templatesKey: 'healerTemplates' },
+        executioner: { label: 'Executioner', templatesKey: 'executionerTemplates' },
+        sharpshooter: { label: 'Sharpshooter', templatesKey: 'sharpshooterTemplates' },
+        critArtist: { label: 'Crit Artist', templatesKey: 'critArtistTemplates' },
+        workhorse: { label: 'Workhorse', templatesKey: 'workhorseTemplates' },
+        battleMedic: { label: 'Battle Medic', templatesKey: 'battleMedicTemplates' },
+        chaosMvp: { label: 'Still MVP Somehow', templatesKey: 'chaosMvpTemplates' },
+        allRounder: { label: 'All‑Rounder', templatesKey: 'allRounderTemplates' },
+        noMvp: { label: 'No MVP', templatesKey: 'noMvpTemplates' }
     };
 
-    static calculateStats(rawStats) {
-        // Safely access nested properties with defaults
-        const combat = rawStats.combat || {};
-        const attacks = combat.attacks || {};
-        const damage = rawStats.damage || {};
-        const healing = rawStats.healing || {};
-        
-        const hits = attacks.hits || 0;
-        const attempts = attacks.attempts || 0;
-        
+    static _pickRandom(arr) {
+        if (!Array.isArray(arr) || arr.length === 0) return null;
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    static _sanitizeName(value) {
+        const v = String(value || '').trim();
+        if (!v) return null;
+        if (v.toLowerCase() === 'unknown') return null;
+        return v;
+    }
+
+    static _calculateStats(rawStats) {
+        const combat = rawStats?.combat || {};
+        const attacks = combat?.attacks || {};
+        const damage = rawStats?.damage || {};
+        const healing = rawStats?.healing || {};
+
+        const hits = Number(attacks.hits) || 0;
+        const misses = Number(attacks.misses) || 0;
+        const attempts = Number(attacks.attempts) || 0;
+        const crits = Number(attacks.crits) || 0;
+        const fumbles = Number(attacks.fumbles) || 0;
+
+        const damageDealt = Number(damage.dealt) || 0;
+        const healingGiven = Number(healing.given) || 0;
+
+        const accuracy = attempts > 0 ? Math.round((hits / attempts) * 100) : 0;
+
         return {
-            hits: hits,
-            attempts: attempts,
-            accuracy: attempts > 0 ? Math.round((hits / attempts) * 100) : 0,
-            damage: damage.dealt || 0,
-            crits: attacks.crits || 0,
-            healing: healing.given || 0,
-            fumbles: attacks.fumbles || 0
+            hits,
+            misses,
+            attempts,
+            accuracy,
+            crits,
+            fumbles,
+            damage: damageDealt,
+            healing: healingGiven
         };
     }
 
-    static determinePattern(stats) {
-        const accuracy = stats.attempts > 0 ? (stats.hits / stats.attempts) * 100 : 0;
+    static _computeContributions(stats, maxima, tuning) {
+        const t = tuning || CombatStats._getMvpTuningSettings();
+        const w = t.weights;
+        const useNormalization = !!t.normalizeByPartyMax && maxima && typeof maxima === 'object';
 
-        // Combat Excellence: High accuracy + crits + multiple hits
-        if (accuracy >= this.THRESHOLDS.COMBAT_EXCELLENCE.accuracy && 
-            stats.hits >= this.THRESHOLDS.COMBAT_EXCELLENCE.hits &&
-            stats.crits >= this.THRESHOLDS.COMBAT_EXCELLENCE.crits) {
-            return 'combatExcellence';
-        }
-        
-        // Damage Focus: High damage output
-        if (stats.damage >= this.THRESHOLDS.DAMAGE_FOCUS.damage &&
-            stats.hits >= this.THRESHOLDS.DAMAGE_FOCUS.hits) {
-            return 'damage';
-        }
+        const safeRatio = (value, max) => {
+            const v = Number(value) || 0;
+            const m = Number(max) || 0;
+            if (m <= 0) return 0;
+            return v / m;
+        };
 
-        // Precision: Very high accuracy
-        if (accuracy >= this.THRESHOLDS.PRECISION.accuracy &&
-            stats.hits >= this.THRESHOLDS.PRECISION.hits) {
-            return 'precision';
-        }
-
-        // Mixed: Has fumbles but still contributed
-        if (stats.fumbles >= this.THRESHOLDS.MIXED.fumbles &&
-            stats.damage >= this.THRESHOLDS.MIXED.damage) {
-            return 'mixed';
+        if (useNormalization) {
+            return {
+                hits: w.hit * safeRatio(stats.hits, maxima.hits),
+                misses: w.miss * safeRatio(stats.misses, maxima.misses),
+                crits: w.crit * safeRatio(stats.crits, maxima.crits),
+                fumbles: w.fumble * safeRatio(stats.fumbles, maxima.fumbles),
+                damage: w.damagePer10 * safeRatio(stats.damage, maxima.damage),
+                healing: w.healingPer10 * safeRatio(stats.healing, maxima.healing)
+            };
         }
 
-        return null; // No pattern matches - will trigger "no MVP" message
+        return {
+            hits: w.hit * stats.hits,
+            misses: w.miss * stats.misses,
+            crits: w.crit * stats.crits,
+            fumbles: w.fumble * stats.fumbles,
+            damage: w.damagePer10 * (stats.damage / 10),
+            healing: w.healingPer10 * (stats.healing / 10)
+        };
     }
 
-    static getRandomTemplate(pattern) {
-        const templates = pattern ? MVPTemplates[`${pattern}Templates`] : MVPTemplates.noMVPTemplates;
-        return templates[Math.floor(Math.random() * templates.length)];
+    static _chooseTheme(stats, contributions) {
+        const hasAnyActivity =
+            stats.attempts > 0 ||
+            stats.damage > 0 ||
+            stats.healing > 0 ||
+            stats.crits > 0 ||
+            stats.fumbles > 0;
+
+        if (!hasAnyActivity) return 'noMvp';
+
+        const noMisses = stats.attempts > 0 && stats.misses === 0;
+        const accuracyHigh = stats.accuracy >= 90;
+
+        // If the MVP won while visibly stumbling, lean into the juxtaposition.
+        const chaosCandidate = (stats.fumbles > 0) || (stats.misses >= 3);
+        if (chaosCandidate) return 'chaosMvp';
+
+        // Primary reason selection uses positive contributions where possible.
+        const positives = [
+            { k: 'healing', v: contributions.healing },
+            { k: 'damage', v: contributions.damage },
+            { k: 'crits', v: contributions.crits },
+            { k: 'hits', v: contributions.hits }
+        ].filter(e => typeof e.v === 'number' && e.v > 0)
+         .sort((a, b) => b.v - a.v);
+
+        const top = positives[0]?.k || null;
+        const second = positives[1]?.k || null;
+
+        // Healer / Hybrid
+        if (top === 'healing') {
+            if (stats.damage > 0 && second === 'damage') return 'battleMedic';
+            return 'healer';
+        }
+        if (top === 'damage') {
+            if (stats.healing > 0 && second === 'healing') return 'battleMedic';
+            return 'executioner';
+        }
+        if (top === 'crits') return 'critArtist';
+
+        // Accuracy-driven MVP (especially with miss penalty settings)
+        if ((accuracyHigh || noMisses) && stats.hits > 0) return 'sharpshooter';
+
+        // Volume-driven MVP
+        if (stats.attempts >= 5 || stats.hits >= 3) return 'workhorse';
+
+        return 'allRounder';
     }
 
-    static formatDescription(template, stats) {
-        return template.replace(/{(\w+)}/g, (match, stat) => {
-            // Handle special formatting
-            if (stat === 'accuracy') {
-                return `${stats[stat]}%`;
+    static _extractBestHitMoment(actorId, rawStats, topHits) {
+        const aid = String(actorId || '').trim();
+        const candidates = [];
+
+        if (Array.isArray(rawStats?.hits) && aid) {
+            for (const h of rawStats.hits) {
+                if (!h) continue;
+                if (String(h.attackerId || '') !== aid) continue;
+                const amount = Number(h.amount) || 0;
+                if (amount <= 0) continue;
+                candidates.push({
+                    amount,
+                    foe: this._sanitizeName(h.targetName || h.target),
+                    weapon: this._sanitizeName(h.weapon || h.weaponName || h.itemName)
+                });
             }
-            if (stat === 'damage' || stat === 'healing') {
-                return stats[stat].toLocaleString();
+        }
+
+        if (Array.isArray(topHits) && aid) {
+            for (const h of topHits) {
+                if (!h) continue;
+                if (String(h.attackerId || '') !== aid) continue;
+                const amount = Number(h.amount) || 0;
+                if (amount <= 0) continue;
+                candidates.push({
+                    amount,
+                    foe: this._sanitizeName(h.target),
+                    weapon: this._sanitizeName(h.weapon)
+                });
             }
-            return stats[stat]?.toString() || '0';
+        }
+
+        if (!candidates.length) return null;
+        candidates.sort((a, b) => b.amount - a.amount);
+        return candidates[0];
+    }
+
+    static _extractBestHealMoment(actorId, topHeals) {
+        const aid = String(actorId || '').trim();
+        if (!Array.isArray(topHeals) || !aid) return null;
+
+        const candidates = [];
+        for (const h of topHeals) {
+            if (!h) continue;
+            if (String(h.healerId || '') !== aid) continue;
+            const amount = Number(h.amount) || 0;
+            if (amount <= 0) continue;
+            candidates.push({
+                amount,
+                foe: this._sanitizeName(h.target), // "foe" placeholder is used as "target" in healer lines
+                weapon: null
+            });
+        }
+
+        if (!candidates.length) return null;
+        candidates.sort((a, b) => b.amount - a.amount);
+        return candidates[0];
+    }
+
+    static _renderTemplate(template, tokens) {
+        if (!template) return '';
+
+        const parts = String(template).split('||').map(p => p.trim()).filter(Boolean);
+
+        const has = (key) => {
+            switch (key) {
+                case 'foe': return !!tokens.foe;
+                case 'weapon': return !!tokens.weapon;
+                case 'noMisses': return (Number(tokens.attempts) || 0) > 0 && (Number(tokens.misses) || 0) === 0;
+                case 'accuracyHigh': return (Number(tokens.accuracy) || 0) >= 90;
+                default: return (Number(tokens[key]) || 0) > 0;
+            }
+        };
+
+        const includePart = (part) => {
+            if (!part.startsWith('[')) return true;
+            const idx = part.indexOf(']');
+            if (idx <= 1) return true;
+            const cond = part.slice(1, idx).trim();
+            if (!cond) return true;
+
+            const ands = cond.split('+').map(s => s.trim()).filter(Boolean);
+            return ands.every(has);
+        };
+
+        const stripCond = (part) => {
+            if (!part.startsWith('[')) return part;
+            const idx = part.indexOf(']');
+            if (idx === -1) return part;
+            return part.slice(idx + 1).trim();
+        };
+
+        const chosen = parts.filter(includePart).map(stripCond).filter(Boolean);
+        const sentence = chosen.join(' ').replace(/\s+/g, ' ').trim();
+
+        return sentence.replace(/{(\w+)}/g, (match, key) => {
+            if (key === 'name') return String(tokens.name || 'Someone');
+            if (key === 'foe') return String(tokens.foe || '');
+            if (key === 'weapon') return String(tokens.weapon || '');
+            if (key === 'damage' || key === 'healing') return (Number(tokens[key]) || 0).toLocaleString();
+            return String(tokens[key] ?? '');
+        }).replace(/\s+/g, ' ').trim();
+    }
+
+    static generateDescription(rawStats, {
+        actorId = null,
+        name = null,
+        maxima = null,
+        tuning = null,
+        topHits = null,
+        topHeals = null
+    } = {}) {
+        const stats = this._calculateStats(rawStats);
+        const contributions = this._computeContributions(stats, maxima, tuning);
+        const themeKey = this._chooseTheme(stats, contributions);
+
+        const theme = this.THEMES[themeKey] || this.THEMES.allRounder;
+
+        const moment = (() => {
+            if (themeKey === 'healer' || themeKey === 'battleMedic') {
+                return this._extractBestHealMoment(actorId, topHeals) || this._extractBestHitMoment(actorId, rawStats, topHits);
+            }
+            return this._extractBestHitMoment(actorId, rawStats, topHits) || this._extractBestHealMoment(actorId, topHeals);
+        })() || {};
+
+        const template = this._pickRandom(MVPTemplates[theme.templatesKey]) || this._pickRandom(MVPTemplates.noMvpTemplates) || '';
+
+        const description = this._renderTemplate(template, {
+            name: name || rawStats?.name || 'Someone',
+            foe: moment.foe,
+            weapon: moment.weapon,
+            hits: stats.hits,
+            misses: stats.misses,
+            attempts: stats.attempts,
+            accuracy: stats.accuracy,
+            crits: stats.crits,
+            fumbles: stats.fumbles,
+            damage: stats.damage,
+            healing: stats.healing
         });
-    }
 
-    static generateDescription(rawStats) {
-        // Calculate derived stats
-        const stats = this.calculateStats(rawStats);
-        
-        postConsoleAndNotification(MODULE.NAME, "MVP Description - Processing:", {
-            rawStats,
-            calculatedStats: stats
-        }, true, false);
-        
-        // Determine which pattern to use
-        const pattern = this.determinePattern(stats);
-        
-        // Get a random template
-        const template = this.getRandomTemplate(pattern);
-        
-        // Format the description with actual values
-        const description = this.formatDescription(template, stats);
-        
-        postConsoleAndNotification(MODULE.NAME, "MVP Description - Result:", {
-            pattern,
-            description
-        }, true, false);
-        
-        return description;
+        return {
+            description,
+            themeKey,
+            themeLabel: theme.label
+        };
     }
-
 } 
