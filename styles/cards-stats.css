@@ -446,36 +446,39 @@
 }
 
 .round-stat-card {
-    background: rgba(255, 255, 255, 0.0);
-    border: 0px solid var(--color-border-light-primary);
-    border-radius: 4px;
-    padding: 0px;
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 6px 6px 6px 6px;
+    padding:  0px 0px 0px 0px;
     position: relative;
     text-align: center;
     display: flex;
     flex-direction: column;
+    padding: 0px 0px 2px 0px;
 }
 
 .round-stat-card h4 {
     color: rgba(72, 21, 21, 0.9);
-    font-size: 0.9em;
+    font-size: 0.8em;
     font-weight: 700;
     margin: 0 0 6px 0;
-    padding: 3px;
-    border-bottom: 0px solid rgba(0, 0, 0, 0.1);
-    background-color: rgb(215, 208, 199);
-    border-radius: 4px;
+    padding: 2px 2px 2px 2px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    background-color: rgba(197, 190, 183, 0.9);
+    border-radius: 6px 6px 0px 0px ;
     text-transform: uppercase;
 }
 .round-stat-card h4 i {
-    font-size: 0.9em;
+    font-size: 1.0em;
     margin-right: 0 !important;
     padding: 0px 0px 0px 0px !important;
 }
+
+
 .round-stat-value {
-    font-size: 1.1em;
-    font-weight: bold;
-    color: #461313;
+    font-size: 1.0em;
+    font-weight: 900;
+    color: rgba(86, 39, 39, 0.9);
 }
 
 .round-stat-value .expired { color: #8b0000; font-weight: bold; }
