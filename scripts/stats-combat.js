@@ -165,8 +165,14 @@ class CombatStats {
     static _computeMvpMaxima(componentsList = []) {
         const maxima = { hits: 0, misses: 0, crits: 0, fumbles: 0, damage: 0, healing: 0 };
         for (const c of componentsList) {
-            maxima.hits = Math.max(maxima.hits, Number(c?.hits) || 0);
-            maxima.misses = Math.max(maxima.misses, Number(c?.misses) || 0);
+            const hits = Number(c?.hits) || 0;
+            const attempts = Number(c?.attempts) || 0;
+            const misses = Number.isFinite(Number(c?.misses))
+                ? (Number(c?.misses) || 0)
+                : Math.max(0, attempts - hits);
+
+            maxima.hits = Math.max(maxima.hits, hits);
+            maxima.misses = Math.max(maxima.misses, misses);
             maxima.crits = Math.max(maxima.crits, Number(c?.crits) || 0);
             maxima.fumbles = Math.max(maxima.fumbles, Number(c?.fumbles) || 0);
             maxima.damage = Math.max(maxima.damage, Number(c?.damage) || 0);
@@ -176,7 +182,7 @@ class CombatStats {
     }
 
     static _computeMvpScore(
-        { hits = 0, misses = 0, crits = 0, fumbles = 0, damage = 0, healing = 0 },
+        { hits = 0, misses = null, attempts = 0, crits = 0, fumbles = 0, damage = 0, healing = 0 },
         maxima = null,
         tuning = null
     ) {
@@ -192,12 +198,16 @@ class CombatStats {
             return v / m;
         };
 
+        const missesValue = Number.isFinite(Number(misses))
+            ? (Number(misses) || 0)
+            : Math.max(0, (Number(attempts) || 0) - (Number(hits) || 0));
+
         let score = 0;
 
         if (useNormalization) {
             // Normalize each component by the party's best value (max) for this round/combat.
             score += w.hit * safeRatio(hits, maxima.hits);
-            score += w.miss * safeRatio(misses, maxima.misses);
+            score += w.miss * safeRatio(missesValue, maxima.misses);
             score += w.crit * safeRatio(crits, maxima.crits);
             score += w.fumble * safeRatio(fumbles, maxima.fumbles);
             score += w.damagePer10 * safeRatio(damage, maxima.damage);
@@ -205,7 +215,7 @@ class CombatStats {
         } else {
             // Raw mode: damage/healing are weighted per 10 points to keep slider ranges meaningful.
             score += w.hit * (Number(hits) || 0);
-            score += w.miss * (Number(misses) || 0);
+            score += w.miss * missesValue;
             score += w.crit * (Number(crits) || 0);
             score += w.fumble * (Number(fumbles) || 0);
             score += w.damagePer10 * ((Number(damage) || 0) / 10);
@@ -639,6 +649,7 @@ class CombatStats {
         const mvpMaxima = this._computeMvpMaxima(partyParticipants.map(p => ({
             hits: p.hits || 0,
             misses: p.misses || 0,
+            attempts: p.totalAttacks || 0,
             crits: p.criticals || 0,
             fumbles: p.fumbles || 0,
             damage: p.damageDealt || 0,
@@ -649,6 +660,7 @@ class CombatStats {
             const score = this._computeMvpScore({
                 hits: p.hits || 0,
                 misses: p.misses || 0,
+                attempts: p.totalAttacks || 0,
                 crits: p.criticals || 0,
                 fumbles: p.fumbles || 0,
                 damage: p.damageDealt || 0,
@@ -1255,6 +1267,7 @@ class CombatStats {
         return this._computeMvpScore({
             hits: stats.combat?.attacks?.hits || 0,
             misses: stats.combat?.attacks?.misses || 0,
+            attempts: stats.combat?.attacks?.attempts || 0,
             crits: stats.combat?.attacks?.crits || 0,
             fumbles: stats.combat?.attacks?.fumbles || 0,
             damage: stats.damage?.dealt || 0,
@@ -1275,6 +1288,7 @@ class CombatStats {
         const mvpMaxima = this._computeMvpMaxima(playerCharacters.map(detail => ({
             hits: detail.combat?.attacks?.hits || 0,
             misses: detail.combat?.attacks?.misses || 0,
+            attempts: detail.combat?.attacks?.attempts || 0,
             crits: detail.combat?.attacks?.crits || 0,
             fumbles: detail.combat?.attacks?.fumbles || 0,
             damage: detail.damage?.dealt || 0,
@@ -3236,6 +3250,7 @@ class CombatStats {
         const mvpMaxima = this._computeMvpMaxima(Array.from(participantMap.values()).map(stats => ({
             hits: stats.combat?.attacks?.hits || 0,
             misses: stats.combat?.attacks?.misses || 0,
+            attempts: stats.combat?.attacks?.attempts || 0,
             crits: stats.combat?.attacks?.crits || 0,
             fumbles: stats.combat?.attacks?.fumbles || 0,
             damage: stats.damage?.dealt || 0,
@@ -3247,6 +3262,7 @@ class CombatStats {
             const score = this._computeMvpScore({
                 hits: stats.combat?.attacks?.hits || 0,
                 misses: stats.combat?.attacks?.misses || 0,
+                attempts: stats.combat?.attacks?.attempts || 0,
                 crits: stats.combat?.attacks?.crits || 0,
                 fumbles: stats.combat?.attacks?.fumbles || 0,
                 damage: stats.damage?.dealt || 0,
@@ -3503,6 +3519,7 @@ class CombatStats {
         const mvpMaxima = this._computeMvpMaxima(eligibleParticipants.map(participant => ({
             hits: participant.hits || 0,
             misses: participant.misses || 0,
+            attempts: participant.totalAttacks || 0,
             crits: participant.criticals || 0,
             fumbles: participant.fumbles || 0,
             damage: participant.damageDealt || 0,
@@ -3520,6 +3537,7 @@ class CombatStats {
                 const score = this._computeMvpScore({
                     hits: participant.hits || 0,
                     misses: participant.misses || 0,
+                    attempts: participant.totalAttacks || 0,
                     crits: participant.criticals || 0,
                     fumbles: participant.fumbles || 0,
                     damage: participant.damageDealt || 0,
@@ -4014,8 +4032,10 @@ class MVPDescriptionGenerator {
         const healing = rawStats?.healing || {};
 
         const hits = Number(attacks.hits) || 0;
-        const misses = Number(attacks.misses) || 0;
         const attempts = Number(attacks.attempts) || 0;
+        const misses = Number.isFinite(Number(attacks.misses))
+            ? (Number(attacks.misses) || 0)
+            : Math.max(0, attempts - hits);
         const crits = Number(attacks.crits) || 0;
         const fumbles = Number(attacks.fumbles) || 0;
 
