@@ -6,7 +6,14 @@ This document serves as the authoritative reference for the Coffee Pub Blacksmit
 
 ## Overview
 
-Blacksmith publishes a global `BlacksmithStats` helper (installed by the API bridge) that becomes available once the module finishes initializing. The stats engine only activates on GM clients when the `trackCombatStats` and `trackPlayerStats` world settings are enabled. Consumers should wait for the Foundry `ready` hook—or call `BlacksmithAPI.waitForReady()`—before interacting with the API. The implementation requires Foundry VTT v13 or later.
+Blacksmith exposes its stats surface via the module API:
+
+```javascript
+// Console or module integration code:
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
+```
+
+The stats engine only activates on GM clients when the `trackCombatStats` and `trackPlayerStats` world settings are enabled. Consumers should wait for the Foundry `ready` hook before interacting with the API. The implementation requires Foundry VTT v13 or later.
 
 ---
 
@@ -24,7 +31,7 @@ The stats system splits responsibilities across multiple scopes:
 
 ## Namespaces & Surface Summary
 
-`BlacksmithStats` exposes several namespaces:
+`Stats` (from `game.modules.get('coffee-pub-blacksmith')?.api?.stats`) exposes several namespaces:
 
 - **player**: asynchronous helpers for actor-based statistics, including lifetime retrieval and category lookups.
 - **combat**: synchronous helpers that reveal current combat state, historical summaries, and subscription utilities.
@@ -48,36 +55,40 @@ Player-facing aggregates such as `totalHits`, `totalMisses`, `criticals`, and `f
 
 ```javascript
 // Console (GM): inspect full stats for the first selected token's actor
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
 const actor = canvas.tokens.controlled[0]?.actor;
-if (actor) {
-    const stats = await BlacksmithStats.player.getStats(actor.id);
+if (Stats && actor) {
+    const stats = await Stats.player.getStats(actor.id);
     BlacksmithUtils.postConsoleAndNotification('BLACKSMITH', 'Player Stats | Full stats', { actor: actor.name, stats }, false, false);
 }
 ```
 
 ```javascript
 // Fetch only lifetime attack totals for the controlled actor
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
 const actor = canvas.tokens.controlled[0]?.actor;
-if (actor) {
-    const lifetime = await BlacksmithStats.player.getLifetimeStats(actor.id);
+if (Stats && actor) {
+    const lifetime = await Stats.player.getLifetimeStats(actor.id);
     BlacksmithUtils.postConsoleAndNotification('BLACKSMITH', 'Player Stats | Lifetime attacks', lifetime?.attacks, false, false);
 }
 ```
 
 ```javascript
 // Session snapshot for active actor (GM only, returns synchronously)
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
 const actor = canvas.tokens.controlled[0]?.actor;
-if (actor) {
-    const session = BlacksmithStats.player.getSessionStats(actor.id);
+if (Stats && actor) {
+    const session = Stats.player.getSessionStats(actor.id);
     BlacksmithUtils.postConsoleAndNotification('BLACKSMITH', 'Player Stats | Session data', session, false, false);
 }
 ```
 
 ```javascript
 // Show the last recorded combats for the actor (updated via combat summaries)
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
 const actor = canvas.tokens.controlled[0]?.actor;
-if (actor) {
-    const session = BlacksmithStats.player.getSessionStats(actor.id);
+if (Stats && actor) {
+    const session = Stats.player.getSessionStats(actor.id);
     BlacksmithUtils.postConsoleAndNotification('BLACKSMITH', 'Player Stats | Recent combats', session?.combats ?? [], false, false);
     // Also display as table for easier reading
     console.table(session?.combats ?? []);
@@ -86,17 +97,19 @@ if (actor) {
 
 ```javascript
 // Pull a specific lifetime category, such as healing totals
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
 const actor = canvas.tokens.controlled[0]?.actor;
-if (actor) {
-    const healing = await BlacksmithStats.player.getStatCategory(actor.id, 'healing');
+if (Stats && actor) {
+    const healing = await Stats.player.getStatCategory(actor.id, 'healing');
     BlacksmithUtils.postConsoleAndNotification('BLACKSMITH', 'Player Stats | Lifetime healing', healing, false, false);
 }
 ```
 
 ```javascript
 // Inspect lifetime MVP performance for the actor
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
 if (actor) {
-    const stats = await BlacksmithStats.player.getStats(actor.id);
+    const stats = await Stats.player.getStats(actor.id);
     BlacksmithUtils.postConsoleAndNotification('BLACKSMITH', 'Player Stats | Lifetime MVP totals', stats?.lifetime?.mvp, false, false);
 }
 ```
@@ -116,50 +129,66 @@ if (actor) {
 
 Summaries expose a consistent schema: `totals.damage`, `totals.healing`, and `totals.attacks` (attempts, hits, misses, crits, fumbles) plus `participants[]` entries that mirror those counts per actor. Consumers no longer receive the raw hit/miss arrays; use the aggregate fields for analytics and the `notableMoments` block for highlights. The `notableMoments` bundle now includes `mvpRankings`—a descending list of per-actor MVP scores (same formula used in the Party Breakdown)—alongside the top MVP entry.
 
+**Combat summary totals (current schema)**:
+- `totals.hits`, `totals.misses`, `totals.totalAttacks`, `totals.hitRate`
+- `totals.damageDealt`, `totals.damageTaken`, `totals.healingGiven`
+- `totals.criticals`, `totals.fumbles`
+
+**Policy guardrails**:
+- Totals include all damage/healing buckets (including `other` / `unlinked` where applicable).
+- “Top hits / Biggest hit / Weakest hit” moments are **onHit-only**.
+- Party-wide totals are computed from **player characters only** (participants may include NPCs for context/moments).
+
 When combat ends, `CombatStats._onCombatEnd` emits `Hooks.callAll('blacksmith.combatSummaryReady', combatSummary, combat)` so external modules can react without polling the API. During each round, `Hooks.callAll('blacksmith.roundMvpScore', { actorId, actorUuid, score, rank, name })` fires after the Party Breakdown is generated, which you can use to track per-round leaderboards or persist MVP progress mid-combat.
 
 ### Commands & Examples
 
 ```javascript
 // Console: view the active round stats snapshot
-const current = BlacksmithStats.combat.getCurrentStats();
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
+const current = Stats?.combat.getCurrentStats();
 console.log('Current round stats', current);
 ```
 
 ```javascript
 // Grab notable moments (largest hit/heal, fastest turn, etc.)
-const highlights = BlacksmithStats.combat.getNotableMoments();
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
+const highlights = Stats?.combat.getNotableMoments();
 console.log('Notable moments', highlights);
 ```
 
 ```javascript
 // Inspect a specific participant by combatant ID (e.g., selected token)
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
 const combatant = game.combat?.combatant;
-if (combatant) {
-    const participant = BlacksmithStats.combat.getParticipantStats(combatant.id);
+if (Stats && combatant) {
+    const participant = Stats.combat.getParticipantStats(combatant.id);
     console.log('Participant summary', participant);
 }
 ```
 
 ```javascript
 // Pull the round summary for round 3, or default to current round when omitted
-const roundSummary = BlacksmithStats.combat.getRoundSummary(3);
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
+const roundSummary = Stats?.combat.getRoundSummary(3);
 console.log('Round 3 summary', roundSummary);
 ```
 
 ```javascript
 // Subscribe to updates and capture the subscription key
-const subId = BlacksmithStats.combat.subscribeToUpdates(payload => {
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
+const subId = Stats?.combat.subscribeToUpdates(payload => {
     console.log('Combat stats updated', payload);
 });
 
 // Later in the same console session, remove the subscription
-BlacksmithStats.combat.unsubscribeFromUpdates(subId);
+Stats?.combat.unsubscribeFromUpdates(subId);
 ```
 
 ```javascript
 // View the most recent combat summary stored in history
-const latestSummary = BlacksmithStats.combat.getCombatSummary();
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
+const latestSummary = Stats?.combat.getCombatSummary();
 console.log('Latest combat summary totals', {
     damage: latestSummary?.totals?.damageDealt,
     healing: latestSummary?.totals?.healingGiven,
@@ -169,7 +198,8 @@ console.log('Latest combat summary totals', {
 
 ```javascript
 // List the three most recent combat summaries with metadata only
-const recent = BlacksmithStats.combat.getCombatHistory(3);
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
+const recent = Stats?.combat.getCombatHistory(3);
 console.log('Recent combat summaries', recent.map(s => ({
     combatId: s.combatId,
     hitRate: s.totals?.hitRate,
@@ -180,7 +210,8 @@ console.log('Recent combat summaries', recent.map(s => ({
 
 ```javascript
 // Inspect MVP rankings for the latest combat
-const rankings = BlacksmithStats.combat.getCombatSummary()?.notableMoments?.mvpRankings ?? [];
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
+const rankings = Stats?.combat.getCombatSummary()?.notableMoments?.mvpRankings ?? [];
 console.table(rankings.map((r, index) => ({ rank: index + 1, name: r.name, score: r.score })));
 ```
 
@@ -188,29 +219,32 @@ console.table(rankings.map((r, index) => ({ rank: index + 1, name: r.name, score
 
 ## Utilities & Direct Access
 
-- `BlacksmithStats.utils.formatTime(ms: number) -> string` formats durations for display.
-- `BlacksmithStats.utils.isPlayerCharacter(target) -> boolean` determines whether a combatant, token, actor, or ID belongs to a player.
-- `BlacksmithStats.CombatStats` exposes the full class for advanced use. Treat its static state as internal; avoid external mutation unless working directly with the core maintainers.
+- `Stats.utils.formatTime(ms: number) -> string` formats durations for display.
+- `Stats.utils.isPlayerCharacter(target) -> boolean` determines whether a combatant, token, actor, or ID belongs to a player.
+- `Stats.CombatStats` exposes the full class for advanced use. Treat its static state as internal; avoid external mutation unless working directly with the core maintainers.
 
 ### Commands & Examples
 
 ```javascript
 // Format 72 seconds into the display string used by Blacksmith UI
-BlacksmithStats.utils.formatTime(72000);
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
+Stats?.utils.formatTime(72000);
 ```
 
 ```javascript
 // Check if the currently selected token belongs to a player
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
 const token = canvas.tokens.controlled[0];
 if (token) {
-    const isPlayer = BlacksmithStats.utils.isPlayerCharacter(token);
+    const isPlayer = Stats?.utils.isPlayerCharacter(token);
     console.log(token.name, 'is player controlled?', isPlayer);
 }
 ```
 
 ```javascript
 // Advanced: access the raw CombatStats class (read-only unless coordinated)
-const CombatStatsClass = BlacksmithStats.CombatStats;
+const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
+const CombatStatsClass = Stats?.CombatStats;
 console.log('Current combat totals', CombatStatsClass.combatStats?.totals);
 ```
 
@@ -248,7 +282,7 @@ Stats logging relies on `postConsoleAndNotification(MODULE.NAME, message, payloa
 ```javascript
 // Wait for Blacksmith to be ready, then access stats
 Hooks.once('ready', async () => {
-    const stats = BlacksmithStats; // exposed by the bridge once ready
+    const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
 
     // Listen for end-of-combat summaries without polling
     Hooks.on('blacksmith.combatSummaryReady', (summary, combat) => {
@@ -266,11 +300,11 @@ Hooks.once('ready', async () => {
 
     // Pull lifetime actor stats (requires GM)
     const actorId = 'ABC123';
-    const lifetime = await stats.player.getLifetimeStats(actorId);
+    const lifetime = await Stats?.player.getLifetimeStats(actorId);
     BlacksmithUtils.postConsoleAndNotification('BLACKSMITH', 'Player Stats | Lifetime attack totals', lifetime?.attacks?.totalHits, false, false);
 
     // Inspect recent combat summary
-    const recentSummary = stats.combat.getCombatSummary();
+    const recentSummary = Stats?.combat.getCombatSummary();
     console.log('Most recent combat hit rate:', recentSummary?.totals?.hitRate);
 });
 ```

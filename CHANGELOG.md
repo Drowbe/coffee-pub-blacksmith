@@ -65,6 +65,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Promise-Based Queueing**: Uses promise chaining to serialize writes and prevent concurrent read-modify-write cycles
   - **Automatic Cleanup**: Queue entries are automatically cleaned up when no longer needed
   - **Healing Race Condition Fix**: Prevents healing totals from being overwritten in multi-target healing scenarios (e.g., Mass Cure Wounds)
+- **Combat/Round Stats Reliability (Core + Midi-QOL)**: Brought combat/round tracking in line with the multi-lane player-stats architecture
+  - **MIDI Lanes**: Use Midi-QOL workflow hooks for authoritative combat events
+    - `midi-qol.hitsChecked` for hit/miss resolution
+    - `midi-qol.preTargetDamageApplication` for damage + healing (per-target amounts)
+    - `midi-qol.RollComplete` for crit/fumble (stamped onto cached attacks)
+  - **Core Lane Safety**: Chat-message lane remains as a fallback when Midi-QOL is not authoritative
+    - Added `updateChatMessage` handling (rolls/flags-only) so core messages that receive roll data after creation are still processed
+  - **Damage/Healing Policy Alignment**:
+    - Combat totals now include all damage/healing, including `bucket: "other"` and `"unlinked"` (AoE/save/non-attack and correlation misses)
+    - “Top hits / Biggest hit / Weakest hit” moments remain **onHit-only**
+  - **Target Attribution Improvements**: Damage processing prefers `damageEvent.targetUuids` when present, with best-effort fallbacks
+  - **Combat Summary Totals**: Party-wide totals are computed from **player characters only** (participants may include NPCs for context/moments)
 
 ### Changed
 - **Healing Detection Logic**: Simplified healing detection to use only reliable `flags.dnd5e.activity.type === "heal"` signal
@@ -126,6 +138,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Healing totals now correctly accumulate: `0 → 30 → 60 → 90` instead of `0 → 30` (overwritten)
   - Applied to both MIDI healing (`_onMidiPreTargetDamageApplication`) and core healing (`_onChatMessage`) paths
   - Prevents similar race conditions in damage tracking and other concurrent stat updates
+- **Combat Summary Totals & Field Mapping**: Fixed combat-end summary totals being incorrect
+  - Party totals now aggregate **PCs only** (instead of PCs + NPCs)
+  - Corrected mapping so `damageTaken` and `healingGiven` reflect actual tracked values
 
 ## [13.0.10]
 

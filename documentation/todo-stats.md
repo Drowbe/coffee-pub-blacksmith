@@ -115,14 +115,22 @@ Core lane must remain valid without MIDI installed.
 
 ## Work Items (live checklist; keep updated)
 
-### Combat stats (minimal remaining fixes)
+### Combat stats (status)
 
-- [ ] Count `other/unlinked` damage in totals (moments only for onHit).
-- [ ] Core healing from chat: process heal messages into totals without attack correlation.
-- [ ] Core crit/fumble attribution: stamp per attack key (remove reliance on global `_lastRollWasCritical` for attribution).
-- [ ] Core target attribution: prefer `damageEvent.targetUuids`, intersect with `attackEvent.hitTargets` for onHit.
-- [ ] Add `updateChatMessage` hook (flags/rolls only) with dedupe to avoid double counting.
-- [ ] MIDI: count non-onHit damage in totals (trackMoments=false).
+#### Combat stats (implemented)
+
+- [x] Count `other/unlinked` damage in totals (moments only for onHit).
+- [x] Core healing from chat: process heal messages into totals without attack correlation.
+- [x] Core crit/fumble attribution: stamp per attack key (remove reliance on global `_lastRollWasCritical` for attribution).
+- [x] Core target attribution: prefer `damageEvent.targetUuids`, with best-effort fallbacks.
+- [x] Add `updateChatMessage` hook (flags/rolls only) to re-process messages when rolls/flags arrive.
+- [x] MIDI: count non-onHit damage in totals (trackMoments=false for moments).
+- [x] Combat summary totals: aggregate **player characters only** (participants may include NPCs for context).
+
+#### Combat stats (remaining)
+
+- [ ] **Core-only verification pass** (Midi-QOL disabled): run the 4-scenario matrix below and confirm totals + moments look sane.
+- [ ] **Dedupe hardening (only if needed)**: if MIDI hooks fire repeatedly and totals double-count, add/adjust dedupe in `stats-combat.js` per `(key + targetUuid + kind)` TTL.
 
 ### Process guardrail (no more churn)
 
@@ -148,3 +156,8 @@ When validating, capture only:
 - “Damage Resolved”
 - “Unlinked Damage”
 - final `combatSummary.totals` and participant summaries
+
+### Verification status (as observed)
+
+- **MIDI enabled**: Verified miss → hit → AoE/save → mass heal (including Blessed Healer follow-on). Party-only totals and moments policy behave as expected.
+- **Core-only**: Pending.
