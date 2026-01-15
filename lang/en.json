@@ -341,13 +341,28 @@
 
 
 			"headingH3MVPTuning-Label": "MVP Tuning",
-			"headingH3MVPTuning-Hint": "",
+			"headingH3MVPTuning-Hint": "Negative weight detract from the MVP score and positive weights Add tot he MVP score.",
 
+				"mvpNormalizeByPartyMax-Label": "Normalize MVP Scoring By Party Max",
+				"mvpNormalizeByPartyMax-Hint": "Score each category relative to the party leader for that round/combat (best value = 1.0). This reduces big-number bias (e.g. high-damage classes) and makes the sliders behave more consistently across different party levels.",
 
+				"mvpHitWeight-Label": "Hit Weight",
+				"mvpHitWeight-Hint": "",
 
+				"mvpMissWeight-Label": "Miss Weight",
+				"mvpMissWeight-Hint": "",
+				
+				"mvpCritWeight-Label": "Crit Weight",
+				"mvpCritWeight-Hint": "",
 
+				"mvpFumbleWeight-Label": "Fumble Weight",
+				"mvpFumbleWeight-Hint": "",
 
+				"mvpDamagePer10Weight-Label": "Damage Weight",
+				"mvpDamagePer10Weight-Hint": "",	
 
+				"mvpHealingPer10Weight-Label": "Healing Weight",
+				"mvpHealingPer10Weight-Hint": "",	
 
 
 		"headingH2TokenEnhancements-Label": "Token Enhancements",

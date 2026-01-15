@@ -2130,14 +2130,96 @@ export const registerSettings = () => {
 	// -- H3: MVP Tuning
 	// --------------------------------------
 	registerHeader('MVPTuning', 'headingH3MVPTuning-Label', 'headingH3MVPTuning-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	
+	// -- Normalize MVP Scoring (By Party Max) --
+	game.settings.register(MODULE.ID, 'mvpNormalizeByPartyMax', {
+		name: MODULE.ID + '.mvpNormalizeByPartyMax-Label',
+		hint: MODULE.ID + '.mvpNormalizeByPartyMax-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
 
+	// -- MVP Weight: Hits --
+	game.settings.register(MODULE.ID, 'mvpHitWeight', {
+		name: MODULE.ID + '.mvpHitWeight-Label',
+		hint: MODULE.ID + '.mvpHitWeight-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 2.0,
+		range: { min: -3, max: 3, step: 0.1 },
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
 
+	// -- MVP Weight: Misses --
+	game.settings.register(MODULE.ID, 'mvpMissWeight', {
+		name: MODULE.ID + '.mvpMissWeight-Label',
+		hint: MODULE.ID + '.mvpMissWeight-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: -2.0,
+		range: { min: -3, max: 3, step: 0.1 },
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
 
+	// -- MVP Weight: Crits --
+	game.settings.register(MODULE.ID, 'mvpCritWeight', {
+		name: MODULE.ID + '.mvpCritWeight-Label',
+		hint: MODULE.ID + '.mvpCritWeight-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 3.0,
+		range: { min: -3, max: 3, step: 0.1 },
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
 
+	// -- MVP Weight: Fumbles --
+	game.settings.register(MODULE.ID, 'mvpFumbleWeight', {
+		name: MODULE.ID + '.mvpFumbleWeight-Label',
+		hint: MODULE.ID + '.mvpFumbleWeight-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: -3.0,
+		range: { min: -3, max: 3, step: 0.1 },
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
 
+	// -- MVP Weight: Damage (per 10) --
+	game.settings.register(MODULE.ID, 'mvpDamagePer10Weight', {
+		name: MODULE.ID + '.mvpDamagePer10Weight-Label',
+		hint: MODULE.ID + '.mvpDamagePer10Weight-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 1.0,
+		range: { min: -3, max: 3, step: 0.1 },
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
 
-
-
+	// -- MVP Weight: Healing (per 10) --
+	game.settings.register(MODULE.ID, 'mvpHealingPer10Weight', {
+		name: MODULE.ID + '.mvpHealingPer10Weight-Label',
+		hint: MODULE.ID + '.mvpHealingPer10Weight-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 2.0,
+		range: { min: -3, max: 3, step: 0.1 },
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
 
 	// --------------------------------------
 	// -- H2: Token Enhancements

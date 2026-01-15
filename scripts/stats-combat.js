@@ -148,9 +148,71 @@ class CombatStats {
         }
     }
 
-    static _computeMvpScore({ hits = 0, crits = 0, fumbles = 0, damage = 0, healing = 0 }) {
-        const rawScore = (hits * 2) + (crits * 3) + (damage * 0.1) + (healing * 0.2) - (fumbles * 2);
-        return Number(rawScore.toFixed(1));
+    static _getMvpTuningSettings() {
+        return {
+            normalizeByPartyMax: !!game.settings.get(MODULE.ID, 'mvpNormalizeByPartyMax'),
+            weights: {
+                hit: Number(game.settings.get(MODULE.ID, 'mvpHitWeight')) || 0,
+                miss: Number(game.settings.get(MODULE.ID, 'mvpMissWeight')) || 0,
+                crit: Number(game.settings.get(MODULE.ID, 'mvpCritWeight')) || 0,
+                fumble: Number(game.settings.get(MODULE.ID, 'mvpFumbleWeight')) || 0,
+                damagePer10: Number(game.settings.get(MODULE.ID, 'mvpDamagePer10Weight')) || 0,
+                healingPer10: Number(game.settings.get(MODULE.ID, 'mvpHealingPer10Weight')) || 0
+            }
+        };
+    }
+
+    static _computeMvpMaxima(componentsList = []) {
+        const maxima = { hits: 0, misses: 0, crits: 0, fumbles: 0, damage: 0, healing: 0 };
+        for (const c of componentsList) {
+            maxima.hits = Math.max(maxima.hits, Number(c?.hits) || 0);
+            maxima.misses = Math.max(maxima.misses, Number(c?.misses) || 0);
+            maxima.crits = Math.max(maxima.crits, Number(c?.crits) || 0);
+            maxima.fumbles = Math.max(maxima.fumbles, Number(c?.fumbles) || 0);
+            maxima.damage = Math.max(maxima.damage, Number(c?.damage) || 0);
+            maxima.healing = Math.max(maxima.healing, Number(c?.healing) || 0);
+        }
+        return maxima;
+    }
+
+    static _computeMvpScore(
+        { hits = 0, misses = 0, crits = 0, fumbles = 0, damage = 0, healing = 0 },
+        maxima = null,
+        tuning = null
+    ) {
+        const t = tuning || this._getMvpTuningSettings();
+        const w = t.weights;
+
+        const useNormalization = !!t.normalizeByPartyMax && maxima && typeof maxima === 'object';
+
+        const safeRatio = (value, max) => {
+            const v = Number(value) || 0;
+            const m = Number(max) || 0;
+            if (m <= 0) return 0;
+            return v / m;
+        };
+
+        let score = 0;
+
+        if (useNormalization) {
+            // Normalize each component by the party's best value (max) for this round/combat.
+            score += w.hit * safeRatio(hits, maxima.hits);
+            score += w.miss * safeRatio(misses, maxima.misses);
+            score += w.crit * safeRatio(crits, maxima.crits);
+            score += w.fumble * safeRatio(fumbles, maxima.fumbles);
+            score += w.damagePer10 * safeRatio(damage, maxima.damage);
+            score += w.healingPer10 * safeRatio(healing, maxima.healing);
+        } else {
+            // Raw mode: damage/healing are weighted per 10 points to keep slider ranges meaningful.
+            score += w.hit * (Number(hits) || 0);
+            score += w.miss * (Number(misses) || 0);
+            score += w.crit * (Number(crits) || 0);
+            score += w.fumble * (Number(fumbles) || 0);
+            score += w.damagePer10 * ((Number(damage) || 0) / 10);
+            score += w.healingPer10 * ((Number(healing) || 0) / 10);
+        }
+
+        return Number(score.toFixed(1));
     }
 
     static _ensureCombatTotals() {
@@ -573,14 +635,25 @@ class CombatStats {
         const totalFumbles = partyParticipants.reduce((sum, p) => sum + (p.fumbles || 0), 0);
 
         // Compute MVP rankings (party-only; NPCs excluded)
+        const mvpTuning = this._getMvpTuningSettings();
+        const mvpMaxima = this._computeMvpMaxima(partyParticipants.map(p => ({
+            hits: p.hits || 0,
+            misses: p.misses || 0,
+            crits: p.criticals || 0,
+            fumbles: p.fumbles || 0,
+            damage: p.damageDealt || 0,
+            healing: p.healingGiven || 0
+        })));
+
         const mvpRankings = partyParticipants.map(p => {
             const score = this._computeMvpScore({
                 hits: p.hits || 0,
+                misses: p.misses || 0,
                 crits: p.criticals || 0,
                 fumbles: p.fumbles || 0,
                 damage: p.damageDealt || 0,
                 healing: p.healingGiven || 0
-            });
+            }, mvpMaxima, mvpTuning);
 
             const totalAttacks = p.totalAttacks || (p.hits || 0) + (p.misses || 0);
             const misses = (typeof p.misses === 'number') ? p.misses : Math.max(0, totalAttacks - (p.hits || 0));
@@ -1174,18 +1247,19 @@ class CombatStats {
     }
 
     // Helper method to calculate MVP score
-    static async _calculateMVPScore(stats) {
+    static async _calculateMVPScore(stats, maxima = null, tuning = null) {
         // Skip if not a player character
         const actor = await this._getActorFromUuid(stats.uuid);
         if (!actor || (!actor.hasPlayerOwner && actor.type !== 'character')) return -1;
 
         return this._computeMvpScore({
             hits: stats.combat?.attacks?.hits || 0,
+            misses: stats.combat?.attacks?.misses || 0,
             crits: stats.combat?.attacks?.crits || 0,
             fumbles: stats.combat?.attacks?.fumbles || 0,
             damage: stats.damage?.dealt || 0,
             healing: stats.healing?.given || 0
-        });
+        }, maxima, tuning);
     }
 
     // Helper method to calculate MVP
@@ -1197,9 +1271,19 @@ class CombatStats {
 
         postConsoleAndNotification(MODULE.NAME, 'MVP - Starting Calculation:', { playerCharacters }, true, false);
 
+        const mvpTuning = this._getMvpTuningSettings();
+        const mvpMaxima = this._computeMvpMaxima(playerCharacters.map(detail => ({
+            hits: detail.combat?.attacks?.hits || 0,
+            misses: detail.combat?.attacks?.misses || 0,
+            crits: detail.combat?.attacks?.crits || 0,
+            fumbles: detail.combat?.attacks?.fumbles || 0,
+            damage: detail.damage?.dealt || 0,
+            healing: detail.healing?.given || 0
+        })));
+
         // Process each character asynchronously
         const mvpCandidates = await Promise.all(playerCharacters.map(async (detail) => {
-            const score = await this._calculateMVPScore(detail);
+            const score = await this._calculateMVPScore(detail, mvpMaxima, mvpTuning);
             
             if (score <= 0) return null;
 
@@ -3138,15 +3222,26 @@ class CombatStats {
         }
 
         // Second pass: Calculate final scores and prepare for template
+        const mvpTuning = this._getMvpTuningSettings();
+        const mvpMaxima = this._computeMvpMaxima(Array.from(participantMap.values()).map(stats => ({
+            hits: stats.combat?.attacks?.hits || 0,
+            misses: stats.combat?.attacks?.misses || 0,
+            crits: stats.combat?.attacks?.crits || 0,
+            fumbles: stats.combat?.attacks?.fumbles || 0,
+            damage: stats.damage?.dealt || 0,
+            healing: stats.healing?.given || 0
+        })));
+
         const sortedParticipants = Array.from(participantMap.values()).map(stats => {
             // Calculate MVP score
             const score = this._computeMvpScore({
-                hits: stats.combat.attacks.hits,
-                crits: stats.combat.attacks.crits,
-                fumbles: stats.combat.attacks.fumbles,
-                damage: stats.damage.dealt,
-                healing: stats.healing.given
-            });
+                hits: stats.combat?.attacks?.hits || 0,
+                misses: stats.combat?.attacks?.misses || 0,
+                crits: stats.combat?.attacks?.crits || 0,
+                fumbles: stats.combat?.attacks?.fumbles || 0,
+                damage: stats.damage?.dealt || 0,
+                healing: stats.healing?.given || 0
+            }, mvpMaxima, mvpTuning);
 
             // Get token image
             const tokenImg = (() => {
@@ -3388,25 +3483,38 @@ class CombatStats {
      */
     static async _prepareCombatTemplateData(combatSummary) {
         // Filter to only player characters and format like turnDetails
-        const turnDetails = (combatSummary.participants || [])
+        const eligibleParticipants = (combatSummary.participants || [])
             .filter(participant => {
                 const actor = game.actors.get(participant.actorId);
                 return actor && this._isPlayerCharacter(actor);
-            })
+            });
+
+        const mvpTuning = this._getMvpTuningSettings();
+        const mvpMaxima = this._computeMvpMaxima(eligibleParticipants.map(participant => ({
+            hits: participant.hits || 0,
+            misses: participant.misses || 0,
+            crits: participant.criticals || 0,
+            fumbles: participant.fumbles || 0,
+            damage: participant.damageDealt || 0,
+            healing: participant.healingGiven || 0
+        })));
+
+        const turnDetails = eligibleParticipants
             .map(participant => {
                 const actor = game.actors.get(participant.actorId);
-                
+
                 // Get token image
                 const tokenImg = actor ? getPortraitImage(actor) : "icons/svg/mystery-man.svg";
 
                 // Calculate MVP score (same formula as round)
                 const score = this._computeMvpScore({
                     hits: participant.hits || 0,
+                    misses: participant.misses || 0,
                     crits: participant.criticals || 0,
                     fumbles: participant.fumbles || 0,
                     damage: participant.damageDealt || 0,
                     healing: participant.healingGiven || 0
-                });
+                }, mvpMaxima, mvpTuning);
 
                 // Calculate damage ratio: show green (dealt + healing) vs red (taken)
                 const damageDealt = participant.damageDealt || 0;
