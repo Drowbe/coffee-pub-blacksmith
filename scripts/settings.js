@@ -2202,7 +2202,7 @@ export const registerSettings = () => {
 		scope: 'world',
 		config: true,
 		type: Number,
-		default: 3.0,
+		default: 1.2,
 		range: { min: -3, max: 3, step: 0.1 },
 		requiresReload: false,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME

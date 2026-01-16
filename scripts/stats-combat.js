@@ -54,6 +54,9 @@ class CombatStats {
     static _recentKillRecorded = new Map(); // key: targetActorId, value: timestamp
     static KILL_CONTEXT_TTL_MS = 15_000;
     
+    // MVP fairness helper: count "successful offensive activations" once per workflow key per round.
+    static _roundOffenseCache = new Set(); // key: `offense:${workflowKey}`
+    
     static DEFAULTS = {
         roundStats: {
             roundStartTime: Date.now(),
@@ -172,15 +175,17 @@ class CombatStats {
     }
 
     static _computeMvpMaxima(componentsList = []) {
-        const maxima = { hits: 0, misses: 0, crits: 0, fumbles: 0, damage: 0, healing: 0, kills: 0 };
+        const maxima = { offenseCount: 0, hits: 0, misses: 0, crits: 0, fumbles: 0, damage: 0, healing: 0, kills: 0 };
         for (const c of componentsList) {
             const hits = Number(c?.hits) || 0;
+            const offenseCount = Number.isFinite(Number(c?.offenseCount)) ? (Number(c?.offenseCount) || 0) : hits;
             const attempts = Number(c?.attempts) || 0;
             const misses = Number.isFinite(Number(c?.misses))
                 ? (Number(c?.misses) || 0)
                 : Math.max(0, attempts - hits);
             const kills = Number(c?.kills) || 0;
 
+            maxima.offenseCount = Math.max(maxima.offenseCount, offenseCount);
             maxima.hits = Math.max(maxima.hits, hits);
             maxima.misses = Math.max(maxima.misses, misses);
             maxima.crits = Math.max(maxima.crits, Number(c?.crits) || 0);
@@ -193,7 +198,7 @@ class CombatStats {
     }
 
     static _computeMvpScore(
-        { hits = 0, misses = null, attempts = 0, crits = 0, fumbles = 0, damage = 0, healing = 0, kills = 0 },
+        { offenseCount = null, hits = 0, misses = null, attempts = 0, crits = 0, fumbles = 0, damage = 0, healing = 0, kills = 0 },
         maxima = null,
         tuning = null
     ) {
@@ -212,27 +217,56 @@ class CombatStats {
         const missesValue = Number.isFinite(Number(misses))
             ? (Number(misses) || 0)
             : Math.max(0, (Number(attempts) || 0) - (Number(hits) || 0));
+        
+        // MVP "hit lane" is actually "successful offense count" so save-based casters can compete fairly.
+        // Raw hits remain tracked separately for accuracy/miss context.
+        const offenseValue = Number.isFinite(Number(offenseCount))
+            ? (Number(offenseCount) || 0)
+            : (Number(hits) || 0);
 
         let score = 0;
+        const breakdown = {
+            offense: 0,
+            misses: 0,
+            crits: 0,
+            fumbles: 0,
+            damage: 0,
+            healing: 0,
+            kills: 0
+        };
 
         if (useNormalization) {
             // Normalize each component by the party's best value (max) for this round/combat.
-            score += w.hit * safeRatio(hits, maxima.hits);
-            score += w.miss * safeRatio(missesValue, maxima.misses);
-            score += w.crit * safeRatio(crits, maxima.crits);
-            score += w.fumble * safeRatio(fumbles, maxima.fumbles);
-            score += w.damagePer10 * safeRatio(damage, maxima.damage);
-            score += w.healingPer10 * safeRatio(healing, maxima.healing);
-            score += w.kills * safeRatio(kills, maxima.kills);
+            breakdown.offense = w.hit * safeRatio(offenseValue, maxima.offenseCount ?? maxima.hits);
+            breakdown.misses = w.miss * safeRatio(missesValue, maxima.misses);
+            breakdown.crits = w.crit * safeRatio(crits, maxima.crits);
+            breakdown.fumbles = w.fumble * safeRatio(fumbles, maxima.fumbles);
+            breakdown.damage = w.damagePer10 * safeRatio(damage, maxima.damage);
+            breakdown.healing = w.healingPer10 * safeRatio(healing, maxima.healing);
+            breakdown.kills = w.kills * safeRatio(kills, maxima.kills);
+            score = breakdown.offense + breakdown.misses + breakdown.crits + breakdown.fumbles + breakdown.damage + breakdown.healing + breakdown.kills;
         } else {
             // Raw mode: damage/healing are weighted per 10 points to keep slider ranges meaningful.
-            score += w.hit * (Number(hits) || 0);
-            score += w.miss * missesValue;
-            score += w.crit * (Number(crits) || 0);
-            score += w.fumble * (Number(fumbles) || 0);
-            score += w.damagePer10 * ((Number(damage) || 0) / 10);
-            score += w.healingPer10 * ((Number(healing) || 0) / 10);
-            score += w.kills * (Number(kills) || 0);
+            breakdown.offense = w.hit * offenseValue;
+            breakdown.misses = w.miss * missesValue;
+            breakdown.crits = w.crit * (Number(crits) || 0);
+            breakdown.fumbles = w.fumble * (Number(fumbles) || 0);
+            breakdown.damage = w.damagePer10 * ((Number(damage) || 0) / 10);
+            breakdown.healing = w.healingPer10 * ((Number(healing) || 0) / 10);
+            breakdown.kills = w.kills * (Number(kills) || 0);
+            score = breakdown.offense + breakdown.misses + breakdown.crits + breakdown.fumbles + breakdown.damage + breakdown.healing + breakdown.kills;
+        }
+
+        // Store breakdown for debugging (only log if we have a name context)
+        if (typeof this._lastMvpCalculationName !== 'undefined') {
+            postConsoleAndNotification(MODULE.NAME, `MVP - Score Breakdown (${this._lastMvpCalculationName}):`, {
+                rawStats: { offenseCount: offenseValue, hits, misses: missesValue, crits, fumbles, damage, healing, kills },
+                maxima: useNormalization ? maxima : null,
+                weights: w,
+                breakdown,
+                total: Number(score.toFixed(1)),
+                normalized: useNormalization
+            }, true, false);
         }
 
         return Number(score.toFixed(1));
@@ -304,6 +338,17 @@ class CombatStats {
         attackerRound.kills += 1;
         attackerCombat.kills += 1;
 
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats | Kill Credited:', {
+            attacker: attackerActor.name,
+            attackerId,
+            target: targetActor.name,
+            targetId: targetActor.id,
+            weapon: weaponName,
+            roundKills: attackerRound.kills,
+            combatKills: attackerCombat.kills,
+            isPartyKill
+        }, true, false);
+
         if (isPartyKill) {
             this.currentStats.partyStats.kills = Number(this.currentStats.partyStats.kills) || 0;
             this.currentStats.partyStats.kills += 1;
@@ -342,6 +387,7 @@ class CombatStats {
         const defaultCurrentParticipantStats = {
             name: actor.name,
             kills: 0,
+            successfulOffenseCount: 0,
             damage: { dealt: 0, taken: 0 },
             healing: { given: 0, received: 0 },
             combat: {
@@ -362,6 +408,7 @@ class CombatStats {
         const defaultCombatParticipantStats = {
             name: actor.name,
             kills: 0,
+            successfulOffenseCount: 0,
             damage: { dealt: 0, taken: 0 },
             healing: { given: 0, received: 0 },
             combat: {
@@ -386,6 +433,7 @@ class CombatStats {
             const ps = this.currentStats.participantStats[actor.id];
             ps.name ??= actor.name;
             ps.kills ??= 0;
+            ps.successfulOffenseCount ??= 0;
             ps.damage ??= { dealt: 0, taken: 0 };
             ps.healing ??= { given: 0, received: 0 };
             ps.combat ??= {};
@@ -404,6 +452,7 @@ class CombatStats {
             const cps = this.combatStats.participantStats[actor.id];
             cps.name ??= actor.name;
             cps.kills ??= 0;
+            cps.successfulOffenseCount ??= 0;
         }
 
         return {
@@ -512,6 +561,8 @@ class CombatStats {
             
             // Initialize new round stats
             this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
+            // Reset per-round offense activation dedupe cache (MVP fairness)
+            this._roundOffenseCache = new Set();
             // Ensure Maps are properly initialized
             this.currentStats.turnStartTimes = new Map();
             this.currentStats.turnEndTimes = new Map();
@@ -689,6 +740,9 @@ class CombatStats {
                 name: stats.name || 'Unknown',
                 isPlayer,
                 kills: Number(stats.kills) || 0,
+                successfulOffenseCount: Number.isFinite(Number(stats.successfulOffenseCount))
+                    ? (Number(stats.successfulOffenseCount) || 0)
+                    : hitCount,
                 damageDealt: stats.damage?.dealt || 0,
                 damageTaken: stats.damage?.taken || 0,
                 healingGiven: stats.healing?.given || 0,
@@ -736,6 +790,9 @@ class CombatStats {
         // Compute MVP rankings (party-only; NPCs excluded)
         const mvpTuning = this._getMvpTuningSettings();
         const mvpMaxima = this._computeMvpMaxima(partyParticipants.map(p => ({
+            offenseCount: Number.isFinite(Number(p.successfulOffenseCount))
+                ? (Number(p.successfulOffenseCount) || 0)
+                : (p.hits || 0),
             hits: p.hits || 0,
             misses: p.misses || 0,
             attempts: p.totalAttacks || 0,
@@ -748,6 +805,9 @@ class CombatStats {
 
         const mvpRankings = partyParticipants.map(p => {
             const score = this._computeMvpScore({
+                offenseCount: Number.isFinite(Number(p.successfulOffenseCount))
+                    ? (Number(p.successfulOffenseCount) || 0)
+                    : (p.hits || 0),
                 hits: p.hits || 0,
                 misses: p.misses || 0,
                 attempts: p.totalAttacks || 0,
@@ -765,6 +825,9 @@ class CombatStats {
                 actorId: p.actorId,
                 name: p.name,
                 score,
+                successfulOffenseCount: Number.isFinite(Number(p.successfulOffenseCount))
+                    ? (Number(p.successfulOffenseCount) || 0)
+                    : (p.hits || 0),
                 hits: p.hits || 0,
                 misses,
                 totalAttacks,
@@ -1357,7 +1420,10 @@ class CombatStats {
         const actor = await this._getActorFromUuid(stats.uuid);
         if (!actor || (!actor.hasPlayerOwner && actor.type !== 'character')) return -1;
 
-        return this._computeMvpScore({
+        // Set name context for breakdown logging
+        this._lastMvpCalculationName = actor.name;
+        const score = this._computeMvpScore({
+            offenseCount: stats.successfulOffenseCount,
             hits: stats.combat?.attacks?.hits || 0,
             misses: stats.combat?.attacks?.misses || 0,
             attempts: stats.combat?.attacks?.attempts || 0,
@@ -1367,6 +1433,8 @@ class CombatStats {
             healing: stats.healing?.given || 0,
             kills: stats.kills || 0
         }, maxima, tuning);
+        this._lastMvpCalculationName = undefined;
+        return score;
     }
 
     // Helper method to calculate MVP
@@ -1379,7 +1447,10 @@ class CombatStats {
         postConsoleAndNotification(MODULE.NAME, 'MVP - Starting Calculation:', { playerCharacters }, true, false);
 
         const mvpTuning = this._getMvpTuningSettings();
-        const mvpMaxima = this._computeMvpMaxima(playerCharacters.map(detail => ({
+        const rawStats = playerCharacters.map(detail => ({
+            offenseCount: Number.isFinite(Number(detail.successfulOffenseCount))
+                ? (Number(detail.successfulOffenseCount) || 0)
+                : (detail.combat?.attacks?.hits || 0),
             hits: detail.combat?.attacks?.hits || 0,
             misses: detail.combat?.attacks?.misses || 0,
             attempts: detail.combat?.attacks?.attempts || 0,
@@ -1388,7 +1459,17 @@ class CombatStats {
             damage: detail.damage?.dealt || 0,
             healing: detail.healing?.given || 0,
             kills: detail.kills || 0
-        })));
+        }));
+        const mvpMaxima = this._computeMvpMaxima(rawStats);
+
+        postConsoleAndNotification(MODULE.NAME, 'MVP - Maxima and Tuning:', {
+            maxima: mvpMaxima,
+            tuning: mvpTuning,
+            rawStats: rawStats.map((stats, idx) => ({
+                name: playerCharacters[idx]?.name || 'Unknown',
+                ...stats
+            }))
+        }, true, false);
 
         // Process each character asynchronously
         const mvpCandidates = await Promise.all(playerCharacters.map(async (detail) => {
@@ -1438,17 +1519,67 @@ class CombatStats {
         // Filter out null entries and find the highest score
         const validCandidates = mvpCandidates
             .filter(c => c !== null)
-            .sort((a, b) => b.score - a.score);
+            .map(c => {
+                const offenseCount = Number.isFinite(Number(c?.successfulOffenseCount))
+                    ? (Number(c.successfulOffenseCount) || 0)
+                    : (Number(c?.combat?.attacks?.hits) || 0);
+                const damageDealt = Number(c?.damage?.dealt) || 0;
+                const healingGiven = Number(c?.healing?.given) || 0;
+                const kills = Number(c?.kills) || 0;
+                return {
+                    ...c,
+                    _tiebreak: {
+                        offenseCount,
+                        impact: damageDealt + healingGiven,
+                        kills
+                    }
+                };
+            })
+            .sort((a, b) => {
+                // 1) highest normalized total (score)
+                const scoreDiff = (Number(b.score) || 0) - (Number(a.score) || 0);
+                if (scoreDiff !== 0) return scoreDiff;
+                
+                // 2) highest raw successfulOffenseCount
+                const offDiff = (Number(b?._tiebreak?.offenseCount) || 0) - (Number(a?._tiebreak?.offenseCount) || 0);
+                if (offDiff !== 0) return offDiff;
+                
+                // 3) highest raw (damage + healing)
+                const impactDiff = (Number(b?._tiebreak?.impact) || 0) - (Number(a?._tiebreak?.impact) || 0);
+                if (impactDiff !== 0) return impactDiff;
+                
+                // 4) highest raw kills
+                const killDiff = (Number(b?._tiebreak?.kills) || 0) - (Number(a?._tiebreak?.kills) || 0);
+                if (killDiff !== 0) return killDiff;
+                
+                // 5) deterministic seeded tie-break (round + combat id + actor id)
+                const seedBase = `${game.combat?.id || 'no-combat'}:${game.combat?.round || 0}`;
+                const hash = (s) => {
+                    let h = 2166136261;
+                    for (let i = 0; i < s.length; i++) {
+                        h ^= s.charCodeAt(i);
+                        h = Math.imul(h, 16777619);
+                    }
+                    return h >>> 0;
+                };
+                const aId = String(a?.uuid || a?.actorId || a?.name || '');
+                const bId = String(b?.uuid || b?.actorId || b?.name || '');
+                const aRand = hash(`${seedBase}:${aId}`);
+                const bRand = hash(`${seedBase}:${bId}`);
+                return bRand - aRand;
+            });
         const topCandidate = validCandidates.length ? validCandidates[0] : null;
 
         postConsoleAndNotification(MODULE.NAME, 'MVP - Final Selection:', {
             selectedMVP: topCandidate?.name,
             score: topCandidate?.score,
             description: topCandidate?.description,
+            tieBreaker: topCandidate?._tiebreak || null,
             allCandidates: validCandidates.map(c => ({
                 name: c.name,
                 score: c.score,
-                description: c.description
+                description: c.description,
+                tieBreaker: c?._tiebreak || null
             }))
         }, true, false);
 
@@ -2066,6 +2197,7 @@ class CombatStats {
             this.combatStats.topHits ??= [];
         }
 
+        // Store damage context for kill attribution - try resolved targets first, then fallback to UUIDs
         if (resolvedTargetActors.length) {
             for (const targetActor of resolvedTargetActors) {
                 // Note damage context for kill attribution (HP->0) within a short TTL window.
@@ -2112,6 +2244,38 @@ class CombatStats {
                         amount,
                         isCritical: !!isCritical
                     });
+                }
+            }
+        } else if (!isHealing && (targetActorIds.length || targetTokenUuids.length)) {
+            // Fallback: Store damage context even if target resolution failed, using UUIDs
+            // This ensures kill attribution works for spells/effects where target resolution might fail
+            for (const targetId of targetActorIds) {
+                const targetActor = game.actors.get(targetId);
+                if (targetActor) {
+                    this._noteKillDamageContext({
+                        targetActor,
+                        attackerActor: actor,
+                        weaponName: item?.name || null
+                    });
+                }
+            }
+            // Also try resolving from token UUIDs if actor IDs didn't work
+            if (!targetActorIds.length && targetTokenUuids.length) {
+                for (const uuid of targetTokenUuids) {
+                    try {
+                        const doc = fromUuidSync?.(uuid);
+                        const tokenDoc = doc?.documentName === "Token" ? doc : doc?.document ?? doc;
+                        const targetActor = tokenDoc?.actor ?? doc?.actor;
+                        if (targetActor) {
+                            this._noteKillDamageContext({
+                                targetActor,
+                                attackerActor: actor,
+                                weaponName: item?.name || null
+                            });
+                        }
+                    } catch (_) {
+                        // Ignore resolution errors
+                    }
                 }
             }
         }
@@ -2260,6 +2424,10 @@ class CombatStats {
         if (!attackEvent?.key) return;
 
         const key = attackEvent.key;
+        if (typeof key !== 'string' || !key.length || key.toLowerCase() === 'midi:unknown') {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats | OffenseCount skipped (invalid workflow key)', { key }, true, false);
+            return;
+        }
 
         // Apply staged crit/fumble if RollComplete fired before hitsChecked
         const pending = CombatStats._pendingMidiCrit?.get(key);
@@ -2278,6 +2446,22 @@ class CombatStats {
 
         // Process the resolved attack event (records attempts, hits, misses per target)
         await CombatStats._processResolvedAttack(attackEvent);
+        
+        // MVP fairness: count successful offensive activations (attack-roll path)
+        if (attackEvent.hitTargets?.length > 0) {
+            const offenseKey = `offense:${key}`;
+            if (!this._roundOffenseCache) this._roundOffenseCache = new Set();
+            if (!this._roundOffenseCache.has(offenseKey)) {
+                this._roundOffenseCache.add(offenseKey);
+                const attackerActor = game.actors.get(attackEvent.attackerActorId);
+                if (attackerActor) {
+                    const { current: cur, combat: com } = this._ensureParticipantStats(attackerActor, { includeCurrent: true, includeCombat: true });
+                    if (cur) cur.successfulOffenseCount = (Number(cur.successfulOffenseCount) || 0) + 1;
+                    if (com) com.successfulOffenseCount = (Number(com.successfulOffenseCount) || 0) + 1;
+                    postConsoleAndNotification(MODULE.NAME, 'Combat Stats | OffenseCount +1 (hitsChecked)', { key, attacker: attackerActor.name }, true, false);
+                }
+            }
+        }
 
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI hitsChecked resolved', {
             key,
@@ -2305,7 +2489,10 @@ class CombatStats {
         const { token, data, workflow } = extracted;
 
         const key = getWorkflowKey(workflow);
-        if (!key) return;
+        if (!key || typeof key !== 'string' || !key.length || key.toLowerCase() === 'midi:unknown') {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats | OffenseCount skipped (missing/invalid workflow key)', { key }, true, false);
+            return;
+        }
 
         const attacker = workflow?.actor ?? null;
         if (!attacker) return;
@@ -2407,6 +2594,24 @@ class CombatStats {
         // Damage: totals should count for all buckets, but "hit moments" are onHit-only.
         const hitTargets = cachedAttackEntry?.attackEvent?.hitTargets ?? [];
         const isOnHit = hitTargets.includes(targetUuid);
+        
+        // MVP fairness: count successful offensive activations (non-attack-roll path)
+        // Only count if:
+        // - not healing
+        // - amount > 0 (already ensured)
+        // - bucket is NOT onHit (prevents double counting attack-roll damage)
+        // - once per workflow key per round
+        if (!isHealing && !isOnHit) {
+            const offenseKey = `offense:${key}`;
+            if (!this._roundOffenseCache) this._roundOffenseCache = new Set();
+            if (!this._roundOffenseCache.has(offenseKey)) {
+                this._roundOffenseCache.add(offenseKey);
+                const { current: cur, combat: com } = this._ensureParticipantStats(attacker, { includeCurrent: true, includeCombat: true });
+                if (cur) cur.successfulOffenseCount = (Number(cur.successfulOffenseCount) || 0) + 1;
+                if (com) com.successfulOffenseCount = (Number(com.successfulOffenseCount) || 0) + 1;
+                postConsoleAndNotification(MODULE.NAME, 'Combat Stats | OffenseCount +1 (preTargetDamageApplication)', { key, attacker: attacker.name }, true, false);
+            }
+        }
 
         await CombatStats._processDamageOrHealing({
             item,
@@ -3343,6 +3548,7 @@ class CombatStats {
                 const stats = this.currentStats?.participantStats?.[actorId] || {
                     name: turn.actor.name,
                     kills: 0,
+                    successfulOffenseCount: 0,
                     damage: { dealt: 0, taken: 0 },
                     healing: { given: 0, received: 0 },
                     combat: {
@@ -3422,6 +3628,9 @@ class CombatStats {
         // Second pass: Calculate final scores and prepare for template
         const mvpTuning = this._getMvpTuningSettings();
         const mvpMaxima = this._computeMvpMaxima(Array.from(participantMap.values()).map(stats => ({
+            offenseCount: Number.isFinite(Number(stats.successfulOffenseCount))
+                ? (Number(stats.successfulOffenseCount) || 0)
+                : (stats.combat?.attacks?.hits || 0),
             hits: stats.combat?.attacks?.hits || 0,
             misses: stats.combat?.attacks?.misses || 0,
             attempts: stats.combat?.attacks?.attempts || 0,
@@ -3435,6 +3644,9 @@ class CombatStats {
         const sortedParticipants = Array.from(participantMap.values()).map(stats => {
             // Calculate MVP score
             const score = this._computeMvpScore({
+                offenseCount: Number.isFinite(Number(stats.successfulOffenseCount))
+                    ? (Number(stats.successfulOffenseCount) || 0)
+                    : (stats.combat?.attacks?.hits || 0),
                 hits: stats.combat?.attacks?.hits || 0,
                 misses: stats.combat?.attacks?.misses || 0,
                 attempts: stats.combat?.attacks?.attempts || 0,
@@ -3695,6 +3907,9 @@ class CombatStats {
 
         const mvpTuning = this._getMvpTuningSettings();
         const mvpMaxima = this._computeMvpMaxima(eligibleParticipants.map(participant => ({
+            offenseCount: Number.isFinite(Number(participant.successfulOffenseCount))
+                ? (Number(participant.successfulOffenseCount) || 0)
+                : (participant.hits || 0),
             hits: participant.hits || 0,
             misses: participant.misses || 0,
             attempts: participant.totalAttacks || 0,
@@ -3714,6 +3929,9 @@ class CombatStats {
 
                 // Calculate MVP score (same formula as round)
                 const score = this._computeMvpScore({
+                    offenseCount: Number.isFinite(Number(participant.successfulOffenseCount))
+                        ? (Number(participant.successfulOffenseCount) || 0)
+                        : (participant.hits || 0),
                     hits: participant.hits || 0,
                     misses: participant.misses || 0,
                     attempts: participant.totalAttacks || 0,
