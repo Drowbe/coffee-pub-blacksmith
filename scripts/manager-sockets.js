@@ -420,9 +420,12 @@ class SocketManager {
         // Latency Checker Handlers (consolidated from latency-checker.js)
         this.socket.register('ping', (data) => {
             // Handle ping for latency checker
+            // SocketLib's executeForOthers may pass payload directly or wrapped
+            // Extract the actual payload from nested structure (same pattern as updateSkillRoll)
+            const payload = data.data || data;
             // Call the latency checker's internal handler with proper context
             try {
-                const result = LatencyChecker._handleSocketMessage.call(LatencyChecker, data);
+                const result = LatencyChecker._handleSocketMessage.call(LatencyChecker, payload);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, "SocketManager: Error calling LatencyChecker._handleSocketMessage for ping", error, true, false);
             }
@@ -430,9 +433,12 @@ class SocketManager {
 
         this.socket.register('pong', (data) => {
             // Handle pong for latency checker
+            // SocketLib's executeForOthers may pass payload directly or wrapped
+            // Extract the actual payload from nested structure (same pattern as updateSkillRoll)
+            const payload = data.data || data;
             // Call the latency checker's internal handler with proper context
             try {
-                const result = LatencyChecker._handleSocketMessage.call(LatencyChecker, data);
+                const result = LatencyChecker._handleSocketMessage.call(LatencyChecker, payload);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, "SocketManager: Error calling LatencyChecker._handleSocketMessage for pong", error, true, false);
             }
@@ -440,9 +446,12 @@ class SocketManager {
 
         this.socket.register('latencyUpdate', (data) => {
             // Handle latency update for latency checker
+            // SocketLib's executeForOthers may pass payload directly or wrapped
+            // Extract the actual payload from nested structure (same pattern as updateSkillRoll)
+            const payload = data.data || data;
             // Call the latency checker's internal handler with proper context
             try {
-                const result = LatencyChecker._handleSocketMessage.call(LatencyChecker, data);
+                const result = LatencyChecker._handleSocketMessage.call(LatencyChecker, payload);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, "SocketManager: Error calling LatencyChecker._handleSocketMessage for latencyUpdate", error, true, false);
             }

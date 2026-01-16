@@ -163,6 +163,9 @@ export class LatencyChecker {
             } else {
                 postConsoleAndNotification(MODULE.NAME, "LatencyChecker._handleSocketMessage: No socket available for pong", "", true, false);
             }
+        } else if (data.type === "ping" && data.to !== game.user.id) {
+            // Ping not intended for this user, silently ignore (broadcast to all but only target processes)
+            return;
         } else if (data.type === "pong" && data.to === game.user.id) {
             // Calculate latency from pong
             const endTime = performance.now();
@@ -184,6 +187,9 @@ export class LatencyChecker {
             } else {
                 postConsoleAndNotification(MODULE.NAME, "LatencyChecker._handleSocketMessage: No start time in pong data", data, true, false);
             }
+        } else if (data.type === "pong" && data.to !== game.user.id) {
+            // Pong not intended for this user, silently ignore (broadcast to all but only target processes)
+            return;
         } else if (data.type === "latencyUpdate") {
             // Everyone receives and processes the complete latency data from GM
             if (data.latencyData) {

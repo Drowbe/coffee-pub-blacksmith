@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Manual Rolls Toggle for Players**: Fixed critical issue where players could not toggle manual rolls via the sidebar button. The toggle now works immediately for players without requiring them to open Foundry's Dice Configuration settings first. The system now automatically initializes dice configuration with proper dice keys when empty, ensuring toggles work on first use.
 - **Manual Rolls Button State**: Fixed button color/active state not updating for players after toggling. Button now correctly reflects the current manual rolls state by re-reading the dice configuration after applying changes.
+- **Latency Socket Errors**: Fixed "Unknown message type" errors appearing in player client consoles for latency checker ping/pong messages. Socket handlers now correctly extract payload from nested SocketLib message structures, and the latency checker silently ignores ping/pong messages not intended for the current user (since `executeForOthers` broadcasts to all clients but only the target should process them).
 
 ## [13.0.11]
 
