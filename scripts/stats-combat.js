@@ -59,6 +59,8 @@ class CombatStats {
     
     // Persistence: keep combat stats resumable across refresh / long pauses.
     static _persistDebounced = null;
+    static _flushHandlersRegistered = false;
+    static _flushHandlerRefs = null;
     
     static _serializeForCombatFlag(value) {
         // Combat flags must be JSON-serializable.
@@ -124,6 +126,53 @@ class CombatStats {
             this._persistDebounced();
         } catch (_) {
             // Never let persistence break combat tracking
+        }
+    }
+    
+    static _persistCombatStatsNow(reason = '') {
+        try {
+            if (!game.user.isGM || !getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
+            if (!game.combat) return;
+            
+            const current = this._serializeForCombatFlag(this.currentStats);
+            const combat = this._serializeForCombatFlag(this.combatStats);
+            
+            // Fire-and-forget: best effort during page lifecycle events.
+            Promise.resolve()
+                .then(() => game.combat.setFlag(MODULE.ID, 'stats', current))
+                .then(() => game.combat.setFlag(MODULE.ID, 'combatStats', combat))
+                .catch((e) => {
+                    postConsoleAndNotification(MODULE.NAME, 'Combat Stats | Persist-now flags failed', { reason, e }, false, false);
+                });
+        } catch (_) {
+            // Never let persistence break combat tracking
+        }
+    }
+    
+    static _registerPersistenceFlushHandlers() {
+        try {
+            if (this._flushHandlersRegistered) return;
+            if (typeof window === 'undefined' || !window?.addEventListener) return;
+            
+            const onVisibilityChange = () => {
+                try {
+                    if (document?.visibilityState === 'hidden') {
+                        this._persistCombatStatsNow('visibilitychange:hidden');
+                    }
+                } catch (_) {}
+            };
+            
+            const onPageHide = () => this._persistCombatStatsNow('pagehide');
+            const onBeforeUnload = () => this._persistCombatStatsNow('beforeunload');
+            
+            window.addEventListener('visibilitychange', onVisibilityChange, { capture: true });
+            window.addEventListener('pagehide', onPageHide, { capture: true });
+            window.addEventListener('beforeunload', onBeforeUnload, { capture: true });
+            
+            this._flushHandlerRefs = { onVisibilityChange, onPageHide, onBeforeUnload };
+            this._flushHandlersRegistered = true;
+        } catch (_) {
+            // no-op
         }
     }
     
@@ -554,6 +603,9 @@ class CombatStats {
         // Restore runtime shapes (Maps, etc.)
         this._restoreCurrentStatsRuntimeShape(this.currentStats);
         this._ensureCombatTotals();
+        
+        // Ensure we flush combat stats on tab close / refresh (best effort)
+        this._registerPersistenceFlushHandlers();
 
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats:', {
             currentStats: this.currentStats,
