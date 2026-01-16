@@ -57,6 +57,76 @@ class CombatStats {
     // MVP fairness helper: count "successful offensive activations" once per workflow key per round.
     static _roundOffenseCache = new Set(); // key: `offense:${workflowKey}`
     
+    // Persistence: keep combat stats resumable across refresh / long pauses.
+    static _persistDebounced = null;
+    
+    static _serializeForCombatFlag(value) {
+        // Combat flags must be JSON-serializable.
+        const clone = foundry.utils.deepClone(value);
+        
+        // Normalize Maps (Foundry won't reliably serialize Maps in flags)
+        if (clone?.turnStartTimes && clone.turnStartTimes instanceof Map) {
+            clone.turnStartTimes = Object.fromEntries(clone.turnStartTimes.entries());
+        }
+        if (clone?.turnEndTimes && clone.turnEndTimes instanceof Map) {
+            clone.turnEndTimes = Object.fromEntries(clone.turnEndTimes.entries());
+        }
+        
+        return clone;
+    }
+    
+    static _restoreCurrentStatsRuntimeShape(stats) {
+        if (!stats || typeof stats !== 'object') return stats;
+        
+        // Ensure Maps are properly initialized (restore from plain objects if present)
+        const start = stats.turnStartTimes;
+        const end = stats.turnEndTimes;
+        
+        if (start && !(start instanceof Map) && typeof start === 'object') {
+            stats.turnStartTimes = new Map(Object.entries(start));
+        } else if (!(stats.turnStartTimes instanceof Map)) {
+            stats.turnStartTimes = new Map();
+        }
+        
+        if (end && !(end instanceof Map) && typeof end === 'object') {
+            stats.turnEndTimes = new Map(Object.entries(end));
+        } else if (!(stats.turnEndTimes instanceof Map)) {
+            stats.turnEndTimes = new Map();
+        }
+        
+        // Ensure turnTimes is an object (not an array)
+        if (Array.isArray(stats?.partyStats?.turnTimes)) {
+            stats.partyStats.turnTimes = {};
+        }
+        
+        return stats;
+    }
+    
+    static _schedulePersistCombatStats(reason = '') {
+        try {
+            if (!game.user.isGM || !getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
+            if (!game.combat) return;
+            
+            if (!this._persistDebounced) {
+                this._persistDebounced = foundry.utils.debounce(async () => {
+                    try {
+                        if (!game.combat) return;
+                        const current = this._serializeForCombatFlag(this.currentStats);
+                        const combat = this._serializeForCombatFlag(this.combatStats);
+                        await game.combat.setFlag(MODULE.ID, 'stats', current);
+                        await game.combat.setFlag(MODULE.ID, 'combatStats', combat);
+                    } catch (e) {
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Stats | Persist flags failed', { reason, e }, false, false);
+                    }
+                }, 1000);
+            }
+            
+            this._persistDebounced();
+        } catch (_) {
+            // Never let persistence break combat tracking
+        }
+    }
+    
     static DEFAULTS = {
         roundStats: {
             roundStartTime: Date.now(),
@@ -348,6 +418,8 @@ class CombatStats {
             combatKills: attackerCombat.kills,
             isPartyKill
         }, true, false);
+        
+        this._schedulePersistCombatStats('kill');
 
         if (isPartyKill) {
             this.currentStats.partyStats.kills = Number(this.currentStats.partyStats.kills) || 0;
@@ -471,21 +543,24 @@ class CombatStats {
 
         postConsoleAndNotification(MODULE.NAME, "Initializing Combat Stats | trackCombatStats:", getSettingSafely(MODULE.ID, 'trackCombatStats', false), true, false);
 
-        // Check for existing stats in combat flags
-        const existingStats = game.combat?.getFlag(MODULE.ID, 'stats');
+        // Check for existing stats in combat flags (supports resuming mid-combat / mid-round)
+        const existingCurrentStats = game.combat?.getFlag(MODULE.ID, 'stats');
+        const existingCombatStats = game.combat?.getFlag(MODULE.ID, 'combatStats');
         
         // Initialize stats objects - use existing stats if available, otherwise use defaults
-        this.currentStats = existingStats || foundry.utils.deepClone(this.DEFAULTS.roundStats);
-        this.combatStats = foundry.utils.deepClone(this.DEFAULTS.combatStats);
+        this.currentStats = existingCurrentStats || foundry.utils.deepClone(this.DEFAULTS.roundStats);
+        this.combatStats = existingCombatStats || foundry.utils.deepClone(this.DEFAULTS.combatStats);
         
-        // Ensure Maps are properly initialized
-        this.currentStats.turnStartTimes = new Map();
-        this.currentStats.turnEndTimes = new Map();
+        // Restore runtime shapes (Maps, etc.)
+        this._restoreCurrentStatsRuntimeShape(this.currentStats);
+        this._ensureCombatTotals();
 
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats:', {
             currentStats: this.currentStats,
+            combatStats: this.combatStats,
             notableMoments: this.currentStats.notableMoments,
-            existingStats: existingStats
+            existingCurrentStats,
+            existingCombatStats
         }, true, false);
 
         // Register Handlebars helpers
@@ -572,6 +647,7 @@ class CombatStats {
 
             // Save the stats to combat flags
             game.combat.setFlag(MODULE.ID, 'stats', this.currentStats);
+            this._schedulePersistCombatStats('roundStart');
 
             postConsoleAndNotification(MODULE.NAME, "Round Started | Combat:", {
                 round: {
@@ -1057,16 +1133,25 @@ class CombatStats {
             this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
         }
 
-        // Check if we're ending combat mid-round - if so, process the partial round first
+        // Check if we're ending combat mid-round - if so, process the partial round first.
+        // IMPORTANT: This must include "non-lane" stats like kills/crits/fumbles so we don't drop partial rounds.
+        const participantStatsValues = Object.values(this.currentStats?.participantStats || {});
         const hasCurrentRoundData = this.currentStats && (
             (this.currentStats.hits && this.currentStats.hits.length > 0) ||
+            (this.currentStats.misses && this.currentStats.misses.length > 0) ||
             (this.currentStats.partyStats && (
                 this.currentStats.partyStats.hits > 0 ||
                 this.currentStats.partyStats.misses > 0 ||
                 this.currentStats.partyStats.damageDealt > 0 ||
                 this.currentStats.partyStats.damageTaken > 0 ||
-                this.currentStats.partyStats.healingDone > 0
-            ))
+                this.currentStats.partyStats.healingDone > 0 ||
+                (Number(this.currentStats.partyStats.kills) || 0) > 0
+            )) ||
+            participantStatsValues.some(ps =>
+                (Number(ps?.kills) || 0) > 0 ||
+                (Number(ps?.combat?.attacks?.crits) || 0) > 0 ||
+                (Number(ps?.combat?.attacks?.fumbles) || 0) > 0
+            )
         );
 
         if (hasCurrentRoundData && combat.round > 0) {
@@ -1859,6 +1944,9 @@ class CombatStats {
             this.currentStats.partyStats.hits += totalHits;
             this.currentStats.partyStats.misses += totalMisses;
         }
+        
+        // Persist after applying attack results (resumable mid-round)
+        this._schedulePersistCombatStats('resolvedAttack');
     }
 
     /**
@@ -2051,6 +2139,8 @@ class CombatStats {
             if (isHit) this.currentStats.partyStats.hits++;
             else this.currentStats.partyStats.misses++;
         }
+        
+        this._schedulePersistCombatStats('attackRoll');
     }
 
     static async _processDamageOrHealing({
@@ -2185,6 +2275,7 @@ class CombatStats {
                 this.currentStats.partyStats.healingDone += amount;
             }
 
+            this._schedulePersistCombatStats('healing');
             return;
         }
 
@@ -2283,6 +2374,8 @@ class CombatStats {
         if (this._isPlayerCharacter(actor)) {
             this.currentStats.partyStats.damageDealt += amount;
         }
+        
+        this._schedulePersistCombatStats('damage');
     }
 
     // Normalize roll hook arguments for dnd5e v5.2.x
