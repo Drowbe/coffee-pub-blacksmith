@@ -11,14 +11,14 @@
             <div class="round-stat-card">
                 <h4><i class="fa-solid fa-clock"></i> Elapsed</h4>
                 <div class="round-stat-value">{{formatTime roundDurationActual}}</div>
-                <div class="round-stat-detail">Total Time</div>
+                <div class="round-stat-detail">Overall</div>
             </div>
             {{/if}}
             {{#if (and settings.planningTimerEnabled settings.combatTimerEnabled)}}
             <div class="round-stat-card">
-                <h4><i class="fa-solid fa-hand-fist"></i> Active</h4>
+                <h4><i class="fa-solid fa-hand-fist"></i> Engagement</h4>
                 <div class="round-stat-value">{{formatTime roundDurationActive}}</div>
-                <div class="round-stat-detail">Party Time</div>
+                <div class="round-stat-detail">Active</div>
             </div>
             {{/if}}
 
@@ -26,13 +26,13 @@
             <div class="round-stat-card">
                 <h4><i class="fa-solid fa-brain"></i> Strategy</h4>
                 <div class="round-stat-value">{{formatTime planningDuration}}</div>
-                <div class="round-stat-detail">Planning Time</div>
+                <div class="round-stat-detail">Planning</div>
             </div>
             {{/if}}
             <div class="round-stat-card">
                 <h4><i class="fa-solid fa-bullseye"></i> Accuracy</h4>
-                <div class="round-stat-value">{{round partyStats.hitMissRatio}}%</div>
-                <div class="round-stat-detail">Hits: {{partyStats.totalHits}} | Misses: {{partyStats.totalMisses}}</div>
+                <div class="round-stat-value" data-tooltip="{{partyStats.totalHits}} Hits and {{partyStats.totalMisses}} Misses">{{round partyStats.hitMissRatio}}%</div>
+                <div class="round-stat-detail">{{partyStats.totalHits}} of {{partyStats.totalAttacks}}</div>
             </div>
             <div class="round-stat-card">
                 <h4><i class="fa-solid fa-swords"></i> Damage</h4>
@@ -52,12 +52,12 @@
             <div class="round-stat-card">
                 <h4><i class="fa-solid fa-skull-crossbones"></i> Kills</h4>
                 <div class="round-stat-value">{{partyStats.kills}}</div>
-                <div class="round-stat-detail">Finishing blows</div>
+                <div class="round-stat-detail">Killing Blows</div>
             </div>
             <div class="round-stat-card">
                 <h4><i class="fa-solid fa-fire-flame"></i> Finesse</h4>
                 <div class="round-stat-value">{{partyStats.criticalHits}} | {{partyStats.fumbles}}</div>
-                <div class="round-stat-detail">Crits | Fumbles</div>
+                <div class="round-stat-detail">Crits & Fumbles</div>
             </div>
         </div>
     </div>

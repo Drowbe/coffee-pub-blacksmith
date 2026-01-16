@@ -3,54 +3,57 @@
 {{!-- Combat Summary --}}
 <div class="blacksmith-card theme-default">
     <div class="card-header">
-        <i class="fa-solid fa-flag-checkered"></i> Combat Summary: {{sceneName}}
+        <i class="fa-solid fa-flag-checkered"></i> Combat Summary
+    </div>
+    <div class="section-header">
+        {{sceneName}}
     </div>
     <div class="section-content">
         <div class="party-stats-grid">
             <div class="round-stat-card">
                 <h4><i class="fa-solid fa-clock"></i> Duration</h4>
                 <div class="round-stat-value">{{formatTime duration}}</div>
-                <div class="round-stat-detail">{{durationSeconds}} seconds</div>
+                <div class="round-stat-detail">Combat Time</div>
             </div>
             <div class="round-stat-card">
                 <h4><i class="fa-solid fa-arrows-rotate"></i> Rounds</h4>
                 <div class="round-stat-value">{{totalRounds}}</div>
-                <div class="round-stat-detail">Total rounds fought</div>
+                <div class="round-stat-detail">Total</div>
             </div>
             <div class="round-stat-card">
-                <h4><i class="fa-solid fa-bullseye"></i> Hit Rate</h4>
+                <h4><i class="fa-solid fa-bullseye"></i> Accuracy</h4>
                 <div class="round-stat-value">{{totals.hitRate}}%</div>
-                <div class="round-stat-detail">Hits {{totals.hits}} / Misses {{totals.misses}}</div>
+                <div class="round-stat-detail">{{totals.hits}} of {{totals.totalAttacks}}</div>
             </div>
             <div class="round-stat-card">
-                <h4><i class="fa-solid fa-swords"></i> Damage Dealt</h4>
+                <h4><i class="fa-solid fa-swords"></i> Damage</h4>
                 <div class="round-stat-value">{{formatDamage totals.damageDealt}} hp</div>
-                <div class="round-stat-detail">Party total</div>
+                <div class="round-stat-detail">Dealt</div>
             </div>
             <div class="round-stat-card">
-                <h4><i class="fa-solid fa-shield-halved"></i> Damage Taken</h4>
+                <h4><i class="fa-solid fa-shield-halved"></i> Defense</h4>
                 <div class="round-stat-value">{{formatDamage totals.damageTaken}} hp</div>
-                <div class="round-stat-detail">Enemies inflicted</div>
+                <div class="round-stat-detail">Taken</div>
             </div>
             <div class="round-stat-card">
-                <h4><i class="fa-solid fa-heart"></i> Healing Given</h4>
+                <h4><i class="fa-solid fa-heart"></i> Healing</h4>
                 <div class="round-stat-value">{{formatDamage totals.healingGiven true}} hp</div>
-                <div class="round-stat-detail">Total restored</div>
+                <div class="round-stat-detail">Restored</div>
             </div>
             <div class="round-stat-card">
                 <h4><i class="fa-solid fa-skull-crossbones"></i> Kills</h4>
                 <div class="round-stat-value">{{totals.kills}}</div>
-                <div class="round-stat-detail">Finishing blows</div>
+                <div class="round-stat-detail">Killing Blows</div>
             </div>
             <div class="round-stat-card">
-                <h4><i class="fa-solid fa-burst"></i> Crits</h4>
+                <h4><i class="fa-solid fa-burst"></i> Finesse</h4>
                 <div class="round-stat-value">{{totals.criticals}}</div>
-                <div class="round-stat-detail">Across the party</div>
+                <div class="round-stat-detail">Criticals</div>
             </div>
             <div class="round-stat-card">
-                <h4><i class="fa-solid fa-skull-crossbones"></i> Fumbles</h4>
+                <h4><i class="fa-solid fa-skull-crossbones"></i> Finesse</h4>
                 <div class="round-stat-value">{{totals.fumbles}}</div>
-                <div class="round-stat-detail">Oops moments</div>
+                <div class="round-stat-detail">Fumbles</div>
             </div>
         </div>
     </div>

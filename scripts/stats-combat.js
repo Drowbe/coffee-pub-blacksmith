@@ -3797,6 +3797,7 @@ class CombatStats {
                     (this.currentStats.partyStats.hits + this.currentStats.partyStats.misses) * 100 || 0,
                 totalHits: this.currentStats.partyStats.hits,
                 totalMisses: this.currentStats.partyStats.misses,
+                kills: this.currentStats.partyStats.kills || 0,
                 damageDealt: sortedParticipants.reduce((sum, p) => sum + (p.damage?.dealt || 0), 0),
                 damageTaken: sortedParticipants.reduce((sum, p) => sum + (p.damage?.taken || 0), 0),
                 healingDone: this.currentStats.partyStats.healingDone,
@@ -3904,6 +3905,24 @@ class CombatStats {
                 const actor = game.actors.get(participant.actorId);
                 return actor && this._isPlayerCharacter(actor);
             });
+
+        // Ensure summary totals always have numeric defaults so templates never render blanks.
+        const rawTotals = combatSummary?.totals || {};
+        const totalsHits = Number(rawTotals.hits) || 0;
+        const totalsMisses = Number(rawTotals.misses) || 0;
+        const totalsAttacks = Number(rawTotals.totalAttacks) || (totalsHits + totalsMisses);
+        const normalizedTotals = {
+            hits: totalsHits,
+            misses: totalsMisses,
+            totalAttacks: totalsAttacks,
+            kills: Number(rawTotals.kills) || 0,
+            damageDealt: Number(rawTotals.damageDealt) || 0,
+            damageTaken: Number(rawTotals.damageTaken) || 0,
+            healingGiven: Number(rawTotals.healingGiven) || 0,
+            criticals: Number(rawTotals.criticals) || 0,
+            fumbles: Number(rawTotals.fumbles) || 0,
+            hitRate: rawTotals.hitRate ?? (totalsAttacks > 0 ? ((totalsHits / totalsAttacks) * 100).toFixed(1) : 0)
+        };
 
         const mvpTuning = this._getMvpTuningSettings();
         const mvpMaxima = this._computeMvpMaxima(eligibleParticipants.map(participant => ({
@@ -4120,6 +4139,7 @@ class CombatStats {
 
         return {
             ...combatSummary,
+            totals: normalizedTotals,
             turnDetails, // Use turnDetails like round version
             participants: turnDetails, // Keep for backward compatibility
             combatMVP, // Single MVP formatted like roundMVP
