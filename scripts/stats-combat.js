@@ -2488,6 +2488,14 @@ class CombatStats {
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
+        // MIDI lane is authoritative for damage; avoid double counting by also forwarding core damage rolls.
+        if (game.modules.get("midi-qol")?.active) {
+            if (!game.user.isGM) {
+                postConsoleAndNotification(MODULE.NAME, 'STATS SOCKETS | Skip cpbTrackDamage (MIDI active)', {}, true, false);
+            }
+            return;
+        }
+
         try {
             const { rolls, context, item } = this._normalizeRollHookArgs(a, b);
             if (!item || !item.id) return;

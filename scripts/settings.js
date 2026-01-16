@@ -1291,6 +1291,19 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
+
+	// -- Sidebar Player Manual Rolls --
+	game.settings.register(MODULE.ID, 'sidebarManualRollsPlayersEnabled', {
+		name: MODULE.ID + '.sidebarManualRollsPlayersEnabled-Label',
+		hint: MODULE.ID + '.sidebarManualRollsPlayersEnabled-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: true,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
 	// -- Sidebar Combat Chat --
 	game.settings.register(MODULE.ID, 'sidebarCombatChatEnabled', {
 		name: MODULE.ID + '.sidebarCombatChatEnabled-Label',

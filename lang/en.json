@@ -108,6 +108,9 @@
 				"sidebarManualRollsEnabled-Label": "Manual Rolls",
 				"sidebarManualRollsEnabled-Hint": "When enabled, a button will be added to the sidebar that will allow you to toggle manual rolls for all dice.",
 
+				"sidebarManualRollsPlayersEnabled-Label": "Player Manual Rolls",
+				"sidebarManualRollsPlayersEnabled-Hint": "When enabled, a button will be added to the sidebar that will allow players to toggle manual rolls for all dice.",
+
 				"sidebarCombatChatEnabled-Label": "Combat Chat",
 				"sidebarCombatChatEnabled-Hint": "Add a tab that will combine the combat and chat tabs into a single tab. This is useful for players to see the combat and chat log in one place.",
 
