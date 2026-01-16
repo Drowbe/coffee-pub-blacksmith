@@ -1,6 +1,6 @@
 # Stats System Plan (Source of Truth)
 
-This file is the **single source of truth** for the stats system. We update it whenever we learn something new so we don’t rediscover the same issues.
+This file is the **single source of truth** for the stats system. We update it whenever we learn something new so we don't rediscover the same issues.
 
 ## Outcomes (non-negotiable)
 

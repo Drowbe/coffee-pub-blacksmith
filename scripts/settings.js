@@ -1265,7 +1265,7 @@ export const registerSettings = () => {
 		config: true,
 		requiresReload: true,
 		scope: 'user',
-		default: false,
+		default: true,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
@@ -5507,7 +5507,7 @@ export const registerSettings = () => {
 		scope: 'user',
 		config: true,
 		type: Boolean,
-		default: false,
+		default: true,
 		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 	});
 
@@ -5518,7 +5518,7 @@ export const registerSettings = () => {
 		scope: 'user',
 		config: true,
 		type: Boolean,
-		default: false,
+		default: true,
 		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 	});
 

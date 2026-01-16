@@ -106,10 +106,10 @@
 				"sidebarPinUI-Unpinned": "Sidebar pin has been unpinned.",
 
 				"sidebarManualRollsEnabled-Label": "Manual Rolls",
-				"sidebarManualRollsEnabled-Hint": "When enabled, a button will be added to the sidebar that will allow you to toggle manual rolls for all dice.",
+				"sidebarManualRollsEnabled-Hint": "A button will be added to the sidebar that will allow you to toggle manual rolls for all dice. For this to work, you must go into foundry's Dice Configuration settings in CORE at least once and enable manual rolls for one of the dice. This will instantiate the dice settings and allow us to toggle the whole set.",
 
 				"sidebarManualRollsPlayersEnabled-Label": "Player Manual Rolls",
-				"sidebarManualRollsPlayersEnabled-Hint": "When enabled, a button will be added to the sidebar that will allow players to toggle manual rolls for all dice.",
+				"sidebarManualRollsPlayersEnabled-Hint": "Allow players to enable the manual rolls button.",
 
 				"sidebarCombatChatEnabled-Label": "Combat Chat",
 				"sidebarCombatChatEnabled-Hint": "Add a tab that will combine the combat and chat tabs into a single tab. This is useful for players to see the combat and chat log in one place.",
