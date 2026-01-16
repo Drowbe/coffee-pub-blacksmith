@@ -55,12 +55,13 @@ const WORKFLOW_GROUPS = {
  * @param {string} hintKey - Localization key for the hint
  * @param {string} level - Header level (H1, H2, H3, H4)
  * @param {string} group - Workflow group for collapsible sections
+ * @param {string} scope - Setting scope ("world", "client", or "user"), defaults to "world"
  */
-function registerHeader(id, labelKey, hintKey, level = 'H2', group = null) {
+function registerHeader(id, labelKey, hintKey, level = 'H2', group = null, scope = 'world') {
     game.settings.register(MODULE.ID, `heading${level}${id}`, {
         name: MODULE.ID + `.${labelKey}`,
         hint: MODULE.ID + `.${hintKey}`,
-        scope: "world",
+        scope: scope,
         config: true,
         default: "",
         type: String,
@@ -502,7 +503,8 @@ function registerDynamicCompendiumTypes() {
                 `headingH3${type}Compendiums-Label`, 
                 `headingH3${type}Compendiums-Hint`, 
                 'H3', 
-                WORKFLOW_GROUPS.MANAGE_CONTENT);
+                WORKFLOW_GROUPS.MANAGE_CONTENT,
+                'world');
         }
         
         // Register number setting (skip if already exists)
@@ -931,22 +933,22 @@ export const registerSettings = () => {
 	// == H1: GETTING STARTED
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
-	registerHeader('GettingStarted', 'headingH1GettingStarted-Label', 'headingH1GettingStarted-Hint', 'H1', WORKFLOW_GROUPS.GETTING_STARTED);
+	registerHeader('GettingStarted', 'headingH1GettingStarted-Label', 'headingH1GettingStarted-Hint', 'H1', WORKFLOW_GROUPS.GETTING_STARTED, 'user');
 
 	// --------------------------------------
 	// -- H4: INTRODUCTION
 	// --------------------------------------
-	registerHeader('Introduction', 'headingH4Introduction-Label', 'headingH4Introduction-Hint', 'H4', WORKFLOW_GROUPS.GETTING_STARTED);
+	registerHeader('Introduction', 'headingH4Introduction-Label', 'headingH4Introduction-Hint', 'H4', WORKFLOW_GROUPS.GETTING_STARTED, 'user');
 
 	// --------------------------------------
 	// -- H2: COFFEE PUB SUITE
 	// --------------------------------------
-	registerHeader('CoffeePubSuite', 'headingH2CoffeePubSuite-Label', 'headingH2CoffeePubSuite-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED);
+	registerHeader('CoffeePubSuite', 'headingH2CoffeePubSuite-Label', 'headingH2CoffeePubSuite-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED, 'world');
 
 	// --------------------------------------
 	// -- H2: COFFEE PUB SUITE
 	// --------------------------------------
-	registerHeader('CoffeePubSuite', 'headingH2CoffeePubSuite-Label', 'headingH2CoffeePubSuite-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED);
+	registerHeader('CoffeePubSuite', 'headingH2CoffeePubSuite-Label', 'headingH2CoffeePubSuite-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED, 'world');
 
 	let moduleStatus = checkInstalledModules();
 
@@ -985,7 +987,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: DEFAULT PARTY SETTINGS
 	// --------------------------------------
-	registerHeader('DefaultPartySettings', 'headingH2DefaultPartySettings-Label', 'headingH2DefaultPartySettings-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED);
+	registerHeader('DefaultPartySettings', 'headingH2DefaultPartySettings-Label', 'headingH2DefaultPartySettings-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED, 'world');
 
 	game.settings.register(MODULE.ID, 'defaultPartyName', {
 		name: MODULE.ID + '.defaultPartyName-Label',
@@ -1062,13 +1064,13 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: CAMPAIGN SETTINGS
 	// --------------------------------------
-	registerHeader('CampaignSettings', 'headingH2CampaignSettings-Label', 'headingH2CampaignSettings-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED);
+	registerHeader('CampaignSettings', 'headingH2CampaignSettings-Label', 'headingH2CampaignSettings-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED, 'world');
 
 
 	// --------------------------------------
 	// -- H3: CAMPAIGN COMMON
 	// --------------------------------------
-	registerHeader('CampaignCommon', 'headingH3CampaignCommon-Label', 'headingH3CampaignCommon-Hint', 'H3', WORKFLOW_GROUPS.GETTING_STARTED);
+	registerHeader('CampaignCommon', 'headingH3CampaignCommon-Label', 'headingH3CampaignCommon-Hint', 'H3', WORKFLOW_GROUPS.GETTING_STARTED, 'world');
 
 	// -- Default Campaign Name --
 	game.settings.register(MODULE.ID, 'defaultCampaignName', {
@@ -1085,7 +1087,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: CAMPAIGN GEOGRAPHY
 	// --------------------------------------
-	registerHeader('CampaignGeography', 'headingH3CampaignGeography-Label', 'headingH3CampaignGeography-Hint', 'H3', WORKFLOW_GROUPS.GETTING_STARTED);
+	registerHeader('CampaignGeography', 'headingH3CampaignGeography-Label', 'headingH3CampaignGeography-Hint', 'H3', WORKFLOW_GROUPS.GETTING_STARTED, 'world');
 
 
 	// -- Default Campaign Realm --
@@ -1138,18 +1140,18 @@ export const registerSettings = () => {
 	// == H1: LAYOUT AND EXPERIENCE
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
-	registerHeader('LayoutAndExperience', 'headingH1LayoutAndExperience-Label', 'headingH1LayoutAndExperience-Hint', 'H1', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+	registerHeader('LayoutAndExperience', 'headingH1LayoutAndExperience-Label', 'headingH1LayoutAndExperience-Hint', 'H1', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'user');
 
 	// --------------------------------------
 	// -- H2: THEMES
 	// --------------------------------------
-	registerHeader('Themes', 'headingH2Themes-Label', 'headingH2Themes-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+	registerHeader('Themes', 'headingH2Themes-Label', 'headingH2Themes-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'world');
 	
 
 	// --------------------------------------
 	// -- H3: THEME SELECTIONS
 	// --------------------------------------
-	registerHeader('ThemeSelections', 'headingH3ThemeSelections-Label', 'headingH3ThemeSelections-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+	registerHeader('ThemeSelections', 'headingH3ThemeSelections-Label', 'headingH3ThemeSelections-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'world');
 
 	// Build out the themes based on the js file.
 	registerThemes();
@@ -1159,7 +1161,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: THEME DEFAULT
 	// --------------------------------------
-	registerHeader('ThemeDefault', 'headingH3ThemeDefault-Label', 'headingH3ThemeDefault-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+	registerHeader('ThemeDefault', 'headingH3ThemeDefault-Label', 'headingH3ThemeDefault-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'world');
 
 	game.settings.register(MODULE.ID, 'defaultCardTheme', {
 		name: MODULE.ID + '.defaultCardTheme-Label',
@@ -1176,12 +1178,12 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: FOUNDRY ENHANCEMENTS
 	// --------------------------------------
-	registerHeader('FoundryEnhancements', 'headingH2FoundryEnhancements-Label', 'headingH2FoundryEnhancements-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+	registerHeader('FoundryEnhancements', 'headingH2FoundryEnhancements-Label', 'headingH2FoundryEnhancements-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'user');
 
 	// --------------------------------------
 	// -- H3: QUALITY OF LIFE
 	// --------------------------------------
-	registerHeader('QualityOfLife', 'headingH3QualityOfLife-Label', 'headingH3QualityOfLife-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+	registerHeader('QualityOfLife', 'headingH3QualityOfLife-Label', 'headingH3QualityOfLife-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'user');
 
 
 	// -- Foundry Loading Progress--
@@ -1191,7 +1193,7 @@ export const registerSettings = () => {
 		type: Boolean,
 		config: true,
 		requiresReload: false,
-		scope: 'client',
+		scope: 'user',
 		default: true,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
@@ -1221,7 +1223,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: CANVAS TOOLS
 	// --------------------------------------
-	registerHeader('CanvasTools', 'headingH3CanvasTools-Label', 'headingH3CanvasTools-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+	registerHeader('CanvasTools', 'headingH3CanvasTools-Label', 'headingH3CanvasTools-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'user');
 
 	// -- Left UI --
 	game.settings.register(MODULE.ID, 'canvasToolsHideLeftUI', {
@@ -1230,7 +1232,7 @@ export const registerSettings = () => {
 		type: Boolean,
 		config: true,
 		requiresReload: false,
-		scope: 'client',
+		scope: 'user',
 		default: true,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
@@ -1242,7 +1244,7 @@ export const registerSettings = () => {
 		type: Boolean,
 		config: true,
 		requiresReload: false,
-		scope: 'client',
+		scope: 'user',
 		default: true,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
@@ -1252,7 +1254,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: SIDEBARS
 	// --------------------------------------
-	registerHeader('Sidebars', 'headingH3Sidebars-Label', 'headingH3Sidebars-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+	registerHeader('Sidebars', 'headingH3Sidebars-Label', 'headingH3Sidebars-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'user');
 
 
 	// -- Sidebar UI --
@@ -1262,7 +1264,7 @@ export const registerSettings = () => {
 		type: Boolean,
 		config: true,
 		requiresReload: true,
-		scope: 'client',
+		scope: 'user',
 		default: false,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
@@ -1274,7 +1276,7 @@ export const registerSettings = () => {
 		type: Boolean,
 		config: true,
 		requiresReload: true,
-		scope: 'client',
+		scope: 'user',
 		default: true,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
@@ -1286,7 +1288,7 @@ export const registerSettings = () => {
 		type: Boolean,
 		config: true,
 		requiresReload: true,
-		scope: 'client',
+		scope: 'user',
 		default: true,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
@@ -1311,7 +1313,7 @@ export const registerSettings = () => {
 		type: Boolean,
 		config: true,
 		requiresReload: true,
-		scope: 'client',
+		scope: 'user',
 		default: true,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
@@ -1319,7 +1321,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: MENUBAR
 	// --------------------------------------
-	registerHeader('Menubar', 'headingH3menubar-Label', 'headingH3menubar-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('Menubar', 'headingH3menubar-Label', 'headingH3menubar-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
 	game.settings.register(MODULE.ID, 'enableMenubar', {
 		name: MODULE.ID + '.enableMenubar-Label',
@@ -1345,13 +1347,13 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: TOOLBAR
 	// --------------------------------------
-	registerHeader('Toolbar', 'headingH3Toolbar-Label', 'headingH3Toolbar-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+	registerHeader('Toolbar', 'headingH3Toolbar-Label', 'headingH3Toolbar-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'user');
 
 	// -- Toolbar Display Style --
 	game.settings.register(MODULE.ID, 'toolbarDisplayStyle', {
 		name: MODULE.ID + '.toolbarDisplayStyle-Label',
 		hint: MODULE.ID + '.toolbarDisplayStyle-Hint',
-		scope: "client",
+		scope: "user",
 		config: true,
 		default: 'labels',
 		type: String,
@@ -1366,7 +1368,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: SCENES
 	// --------------------------------------
-	registerHeader('Scenes', 'headingH3Scenes-Label', 'headingH3Scenes-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+	registerHeader('Scenes', 'headingH3Scenes-Label', 'headingH3Scenes-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'world');
 
 	// -- SCENE INTERACTIONS --
 	game.settings.register(MODULE.ID, 'enableSceneInteractions', {
@@ -1464,7 +1466,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: CHAT ADJUSTMENTS
 	// --------------------------------------
-	registerHeader('CardAdjustments', 'headingH3CardAdjustments-Label', 'headingH3CardAdjustments-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+	registerHeader('CardAdjustments', 'headingH3CardAdjustments-Label', 'headingH3CardAdjustments-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'world');
 
 	game.settings.register(MODULE.ID, 'hideRollTableIcon', {
 		name: MODULE.ID + '.hideRollTableIcon-Label',
@@ -1579,13 +1581,13 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: WINDOWS
 	// --------------------------------------
-	registerHeader('Windows', 'headingH3Windows-Label', 'headingH3Windows-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+	registerHeader('Windows', 'headingH3Windows-Label', 'headingH3Windows-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'user');
 
 	// -- Titlebar Text Size --
 	game.settings.register(MODULE.ID, 'titlebarTextSize', {
 		name: MODULE.ID + '.titlebarTextSize-Label',
 		hint: MODULE.ID + '.titlebarTextSize-Hint',
-		scope: "client",
+		scope: "user",
 		config: true,
 		requiresReload: true,
 		type: Number,
@@ -1602,7 +1604,7 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'titlebarIconSize', {
 		name: MODULE.ID + '.titlebarIconSize-Label',
 		hint: MODULE.ID + '.titlebarIconSize-Hint',
-		scope: "client",
+		scope: "user",
 		config: true,
 		requiresReload: true,
 		type: Number,
@@ -1619,7 +1621,7 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID,"titlebarSpacing", {
 		name: MODULE.ID + '.titlebarSpacing-Label',
 		hint: MODULE.ID + '.titlebarSpacing-Hint',
-		scope: "client",
+		scope: "user",
 		config: true,
 		requiresReload: true,
 		type: Number,
@@ -1636,7 +1638,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: JOURNAL TOOLS
 	// --------------------------------------
-	registerHeader('JournalTools', 'headingH3JournalTools-Label', 'headingH3JournalTools-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE);
+	registerHeader('JournalTools', 'headingH3JournalTools-Label', 'headingH3JournalTools-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'world');
 
 	// -- Journal Tools --
 	game.settings.register(MODULE.ID, 'enableJournalTools', {
@@ -1665,19 +1667,19 @@ export const registerSettings = () => {
 	// == RUN THE GAME
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
-	registerHeader('RunTheGame', 'headingH1RunTheGame-Label', 'headingH1RunTheGame-Hint', 'H1', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('RunTheGame', 'headingH1RunTheGame-Label', 'headingH1RunTheGame-Hint', 'H1', WORKFLOW_GROUPS.RUN_THE_GAME, 'user');
 
 	// --------------------------------------
 	// -- H2: Combat
 	// --------------------------------------
-	registerHeader('CombatEnhancements', 'headingH2CombatEnhancements-Label', 'headingH2CombatEnhancements-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('CombatEnhancements', 'headingH2CombatEnhancements-Label', 'headingH2CombatEnhancements-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME, 'user');
 
 	
 	
 	// --------------------------------------
 	// -- H3: Combat Experience
 	// --------------------------------------
-	registerHeader('CombatExperience', 'headingH3CombatExperience-Label', 'headingH3CombatExperience-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('CombatExperience', 'headingH3CombatExperience-Label', 'headingH3CombatExperience-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
 
 		// Announce Combat Start
@@ -1761,7 +1763,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Combat Tracker Behaviors
 	// --------------------------------------
-	registerHeader('CombatTrackerBehaviors', 'headingH3CombatTrackerBehaviors-Label', 'headingH3CombatTrackerBehaviors-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('CombatTrackerBehaviors', 'headingH3CombatTrackerBehaviors-Label', 'headingH3CombatTrackerBehaviors-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'user');
 
 	// -- Combat Tracker Size Data - HIDDEN SETTING
 	game.settings.register(MODULE.ID, 'combatTrackerSize', {
@@ -1776,7 +1778,7 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'combatTrackerOpen', {
 		name: MODULE.ID + '.combatTrackerOpen-Label',
 		hint: MODULE.ID + '.combatTrackerOpen-Hint',
-		scope: 'client',
+		scope: 'user',
 		config: true,
 		type: Boolean,
 		default: false,
@@ -1787,7 +1789,7 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'combatTrackerResizable', {
 		name: MODULE.ID + '.combatTrackerResizable-Label',
 		hint: MODULE.ID + '.combatTrackerResizable-Hint',
-		scope: 'client',
+		scope: 'user',
 		config: true,
 		type: Boolean,
 		default: false,
@@ -1799,7 +1801,7 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'combatTrackerShowHealthBar', {
 		name: MODULE.ID + '.combatTrackerShowHealthBar-Label',
 		hint: MODULE.ID + '.combatTrackerShowHealthBar-Hint',
-		scope: 'client',
+		scope: 'user',
 		config: true,
 		type: Boolean,
 		default: true,
@@ -1822,7 +1824,7 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'combatTrackerShowPortraits', {
 		name: MODULE.ID + '.combatTrackerShowPortraits-Label',
 		hint: MODULE.ID + '.combatTrackerShowPortraits-Hint',
-		scope: 'client',
+		scope: 'user',
 		config: true,
 		type: Boolean,
 		default: true,
@@ -1832,7 +1834,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Combat Tracker Tools
 	// --------------------------------------
-	registerHeader('CombatTrackerTools', 'headingH3CombatTrackerTools-Label', 'headingH3CombatTrackerTools-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('CombatTrackerTools', 'headingH3CombatTrackerTools-Label', 'headingH3CombatTrackerTools-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'user');
 
 	// -- Set Current Combatant Icon --
 	game.settings.register(MODULE.ID, 'combatTrackerSetCurrentCombatant', {
@@ -1893,7 +1895,7 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'combatTrackerRollInitiativePlayer', {
 		name: MODULE.ID + '.combatTrackerRollInitiativePlayer-Label',
 		hint: MODULE.ID + '.combatTrackerRollInitiativePlayer-Hint',
-		scope: 'client',
+		scope: 'user',
 		config: true,
 		type: Boolean,
 		default: false,
@@ -1905,7 +1907,7 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'clearTargetsAfterTurn', {
 		name: MODULE.ID + '.clearTargetsAfterTurn-Label',
 		hint: MODULE.ID + '.clearTargetsAfterTurn-Hint',
-		scope: 'client',
+		scope: 'user',
 		config: true,
 		type: Boolean,
 		default: false,
@@ -1934,13 +1936,13 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Combat Menubar
 	// --------------------------------------
-	registerHeader('CombatMenubar', 'headingH3CombatMenubar-Label', 'headingH3CombatMenubar-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('CombatMenubar', 'headingH3CombatMenubar-Label', 'headingH3CombatMenubar-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'user');
 
 	// -- Show Combat Menubar Bar --
 	game.settings.register(MODULE.ID, 'menubarCombatShow', {
 		name: MODULE.ID + '.menubarCombatShow-Label',
 		hint: MODULE.ID + '.menubarCombatShow-Hint',
-		scope: 'client',
+		scope: 'user',
 		config: true,
 		type: Boolean,
 		default: true,
@@ -1951,7 +1953,7 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'menubarCombatSize', {
 		name: MODULE.ID + '.menubarCombatSize-Label',
 		hint: MODULE.ID + '.menubarCombatSize-Hint',
-		scope: "client",
+		scope: "user",
 		config: true,
 		requiresReload: true,	
 		type: Number,
@@ -1978,13 +1980,13 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: Combat Statistics
 	// --------------------------------------
-	registerHeader('Statistics', 'headingH2Statistics-Label', 'headingH2Statistics-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('Statistics', 'headingH2Statistics-Label', 'headingH2Statistics-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
 
 	// --------------------------------------
 	// -- H3: Combat Tracker Behaviors
 	// --------------------------------------
-	registerHeader('StatisticsGeneral', 'headingH3StatisticsGeneral-Label', 'headingH3StatisticsGeneral-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('StatisticsGeneral', 'headingH3StatisticsGeneral-Label', 'headingH3StatisticsGeneral-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
 	// -- Track Player Statistics --
 	game.settings.register(MODULE.ID, 'trackPlayerStats', {
@@ -2021,7 +2023,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Statistics Tracking
 	// --------------------------------------
-	registerHeader('StatisticsSharing', 'headingH3StatisticsSharing-Label', 'headingH3StatisticsSharing-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('StatisticsSharing', 'headingH3StatisticsSharing-Label', 'headingH3StatisticsSharing-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
 	// -- Share Combat Statistics --
 	game.settings.register(MODULE.ID, 'shareCombatStats', {
@@ -2039,7 +2041,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Round Summary Sharing
 	// --------------------------------------
-	registerHeader('RoundSummarySharing', 'headingH3RoundSummarySharing-Label', 'headingH3RoundSummarySharing-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('RoundSummarySharing', 'headingH3RoundSummarySharing-Label', 'headingH3RoundSummarySharing-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
 
 	// -- Show Round Summary --
@@ -2091,7 +2093,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Combat Summary Sharing
 	// --------------------------------------
-	registerHeader('CombatSummarySharing', 'headingH3CombatSummarySharing-Label', 'headingH3CombatSummarySharing-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('CombatSummarySharing', 'headingH3CombatSummarySharing-Label', 'headingH3CombatSummarySharing-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
 
 	// -- Show Round Summary --
@@ -2142,7 +2144,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: MVP Tuning
 	// --------------------------------------
-	registerHeader('MVPTuning', 'headingH3MVPTuning-Label', 'headingH3MVPTuning-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('MVPTuning', 'headingH3MVPTuning-Label', 'headingH3MVPTuning-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 	
 	// -- Normalize MVP Scoring (By Party Max) --
 	game.settings.register(MODULE.ID, 'mvpNormalizeByPartyMax', {
@@ -2250,12 +2252,12 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: Token Enhancements
 	// --------------------------------------
-	registerHeader('TokenEnhancements', 'headingH2TokenEnhancements-Label', 'headingH2TokenEnhancements-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('TokenEnhancements', 'headingH2TokenEnhancements-Label', 'headingH2TokenEnhancements-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
 	// --------------------------------------
 	// -- H3: GeneralIndicatorSettings	
 	// --------------------------------------
-	registerHeader('GeneralIndicatorSettings', 'headingH3GeneralIndicatorSettings-Label', 'headingH3GeneralIndicatorSettings-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('GeneralIndicatorSettings', 'headingH3GeneralIndicatorSettings-Label', 'headingH3GeneralIndicatorSettings-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
 	// -- Turn Indicator Enabled --
 	game.settings.register(MODULE.ID, 'generalIndicatorsEnabled', {
@@ -2357,7 +2359,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Turn Indicators
 	// --------------------------------------
-	registerHeader('TurnIndicators', 'headingH3TurnIndicators-Label', 'headingH3TurnIndicators-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('TurnIndicators', 'headingH3TurnIndicators-Label', 'headingH3TurnIndicators-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
 	// -- Turn Indicator Style --
 	game.settings.register(MODULE.ID, 'turnIndicatorCurrentStyle', {
@@ -2440,7 +2442,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Target Indicators
 	// --------------------------------------
-	registerHeader('TargetedIndicator', 'headingH3TargetedIndicator-Label', 'headingH3TargetedIndicator-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('TargetedIndicator', 'headingH3TargetedIndicator-Label', 'headingH3TargetedIndicator-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
 	// -- Targeted Indicator Enabled --
 	game.settings.register(MODULE.ID, 'targetedIndicatorEnabled', {
@@ -2458,10 +2460,10 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'hideDefaultTargetIndicators', {
 		name: 'Hide Default Target Indicators',
 		hint: 'Hide Foundry\'s default target indicators (reticles, brackets, pips) to use only custom indicators.',
-		scope: 'client',
+		scope: 'world',
 		config: true,
 		type: Boolean,
-		default: false,
+		default: true,
 		requiresReload: false
 	});
 
@@ -2546,12 +2548,12 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: Timers
 	// --------------------------------------
-	registerHeader('Timers', 'headingH2Timers-Label', 'headingH2Timers-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('Timers', 'headingH2Timers-Label', 'headingH2Timers-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME, 'user');
 
 	// --------------------------------------
 	// -- H3: Session Timer Settings	
 	// --------------------------------------
-	registerHeader('GlobalTimerSettings', 'headingH3GlobalTimerSettings-Label', 'headingH3GlobalTimerSettings-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('GlobalTimerSettings', 'headingH3GlobalTimerSettings-Label', 'headingH3GlobalTimerSettings-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'user');
 
 	// -- Timer Visibility --
 	game.settings.register(MODULE.ID, 'combatTimerGMOnly', {
@@ -2613,7 +2615,7 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'timerSoundVolume', {
 		name: MODULE.ID + '.timerSoundVolume-Label',
 		hint: MODULE.ID + '.timerSoundVolume-Hint',
-		scope: "client",
+		scope: "user",
 		config: true,
 		type: Number,
 		default: 0.8,
@@ -2628,7 +2630,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Global Timer Notifications	
 	// --------------------------------------
-	registerHeader('GlobalTimerNotifications', 'headingH3GlobalTimerNotifications-Label', 'headingH3GlobalTimerNotifications-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('GlobalTimerNotifications', 'headingH3GlobalTimerNotifications-Label', 'headingH3GlobalTimerNotifications-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
 	// Timer Chat Message Settings
 	game.settings.register(MODULE.ID, 'timerChatPauseUnpause', {
@@ -2710,7 +2712,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Session Timer Settings	
 	// --------------------------------------
-	registerHeader('SessionTimers', 'headingH3SessionTimers-Label', 'headingH3SessionTimers-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('SessionTimers', 'headingH3SessionTimers-Label', 'headingH3SessionTimers-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
 
 	// Session Start Time - HIDDEN SETTINGS
@@ -2823,7 +2825,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Round Timer Settings	
 	// --------------------------------------
-	registerHeader('RoundTimer', 'headingH3RoundTimer-Label', 'headingH3RoundTimer-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('RoundTimer', 'headingH3RoundTimer-Label', 'headingH3RoundTimer-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 	
 	// -- Show Round Timer --
 	game.settings.register(MODULE.ID, 'showRoundTimer', {
@@ -2839,7 +2841,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Planning Timer Settings	
 	// --------------------------------------
-	registerHeader('PlanningTimer', 'headingH3PlanningTimer-Label', 'headingH3PlanningTimer-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('PlanningTimer', 'headingH3PlanningTimer-Label', 'headingH3PlanningTimer-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 	
 	// Planning Timer Settings
 	game.settings.register(MODULE.ID, 'planningTimerEnabled', {
@@ -2955,7 +2957,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Combat Timer Settings	
 	// --------------------------------------
-	registerHeader('CombatTimer', 'headingH3CombatTimer-Label', 'headingH3CombatTimer-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('CombatTimer', 'headingH3CombatTimer-Label', 'headingH3CombatTimer-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 	
 	// -- Combat Timer Enabled --
 	game.settings.register(MODULE.ID, 'combatTimerEnabled', {
@@ -3161,13 +3163,13 @@ export const registerSettings = () => {
 	// == MANAGE CONTENT
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
-	registerHeader('ManageContent', 'headingH1ManageContent-Label', 'headingH1ManageContent-Hint', 'H1', WORKFLOW_GROUPS.MANAGE_CONTENT);
+	registerHeader('ManageContent', 'headingH1ManageContent-Label', 'headingH1ManageContent-Hint', 'H1', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 	
 
 	// --------------------------------------
 	// -- H2: Imports
 	// --------------------------------------
-	registerHeader('ContentImports', 'headingH2ContentImports-Label', 'headingH2ContentImports-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT);
+	registerHeader('ContentImports', 'headingH2ContentImports-Label', 'headingH2ContentImports-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 
 	// -- Enhanced Image Guessing --
 	game.settings.register(MODULE.ID, 'enableEnhancedImageGuessing', {
@@ -3183,13 +3185,13 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: Narratives
 	// --------------------------------------
-	registerHeader('NarrativeGenerator', 'headingH2NarrativeGenerator-Label', 'headingH2NarrativeGenerator-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT);
+	registerHeader('NarrativeGenerator', 'headingH2NarrativeGenerator-Label', 'headingH2NarrativeGenerator-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 
 
 	// --------------------------------------
 	// -- H3: Narrative Configuration	
 	// --------------------------------------
-	registerHeader('NarrativeConfiguration', 'headingH3NarrativeConfiguration-Label', 'headingH3NarrativeConfiguration-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('NarrativeConfiguration', 'headingH3NarrativeConfiguration-Label', 'headingH3NarrativeConfiguration-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 	
 	// -- Use Cookies --
 	game.settings.register(MODULE.ID, 'narrativeUseCookies', {
@@ -3283,7 +3285,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Narrative Options	
 	// --------------------------------------
-	registerHeader('NarrativeOptions', 'headingH3NarrativeOptions-Label', 'headingH3NarrativeOptions-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME);
+	registerHeader('NarrativeOptions', 'headingH3NarrativeOptions-Label', 'headingH3NarrativeOptions-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 	
 	// -- Include Treasure by Default --
 	game.settings.register(MODULE.ID, 'narrativeDefaultIncludeTreasure', {
@@ -3348,7 +3350,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: Narratives
 	// --------------------------------------
-	registerHeader('EncounterGenerator', 'headingH2EncounterGenerator-Label', 'headingH2EncounterGenerator-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT);
+	registerHeader('EncounterGenerator', 'headingH2EncounterGenerator-Label', 'headingH2EncounterGenerator-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 
 	// -- Encounter Folder --
 	game.settings.register(MODULE.ID, 'encounterFolder', {
@@ -3455,7 +3457,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: Compendiums
 	// --------------------------------------
-	registerHeader('CompendiumMapping', 'headingH2CompendiumMapping-Label', 'headingH2CompendiumMapping-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT);
+	registerHeader('CompendiumMapping', 'headingH2CompendiumMapping-Label', 'headingH2CompendiumMapping-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 
 	// Dynamically register settings for ALL compendium types found in the system
 	// This includes Actor, Item, Spell, Feature, and any other types (JournalEntry, RollTable, etc.)
@@ -3471,17 +3473,17 @@ export const registerSettings = () => {
 	// == ROLLING AND PROGRESSION
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
-	registerHeader('RollingAndProgression', 'headingH1RollingAndProgression-Label', 'headingH1RollingAndProgression-Hint', 'H1', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
+	registerHeader('RollingAndProgression', 'headingH1RollingAndProgression-Label', 'headingH1RollingAndProgression-Hint', 'H1', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION, 'world');
 
 	// --------------------------------------
 	// -- H2: ROLL SYSTEM
 	// --------------------------------------
-	registerHeader('diceRollTool', 'headingH2diceRollTool-Label', 'headingH2diceRollTool-Hint', 'H2', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
+	registerHeader('diceRollTool', 'headingH2diceRollTool-Label', 'headingH2diceRollTool-Hint', 'H2', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION, 'world');
 
 
 
 
-	registerHeader('headingH3RequestRolls', 'headingH3RequestRolls-Label', 'headingH3RequestRolls-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
+	registerHeader('headingH3RequestRolls', 'headingH3RequestRolls-Label', 'headingH3RequestRolls-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION, 'world');
 
 
 	// -- Show Request Roll in Foundry Toolbar --
@@ -3513,7 +3515,7 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'skillCheckPreferences', {
 		name: 'Skill Check Preferences',
 		hint: 'Default preferences for skill check dialog',
-		scope: 'client',
+		scope: 'user',
 		config: false,
 		type: Object,
 		default: {
@@ -3525,7 +3527,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 	});
 
-	registerHeader('headingH3diceRollSystem', 'headingH3diceRollSystem-Label', 'headingH3diceRollSystem-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
+	registerHeader('headingH3diceRollSystem', 'headingH3diceRollSystem-Label', 'headingH3diceRollSystem-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION, 'world');
 
 	// -- Chat Roll System Choice --
 	game.settings.register(MODULE.ID, 'diceRollToolSystem', {
@@ -3542,7 +3544,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 	});
 
-	registerHeader('diceRollToolIntegrations', 'headingH3diceRollToolIntegrations-Label', 'headingH3diceRollToolIntegrations-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
+	registerHeader('diceRollToolIntegrations', 'headingH3diceRollToolIntegrations-Label', 'headingH3diceRollToolIntegrations-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION, 'world');
 
 	// -- Enable Dice So Nice Integration --
 	game.settings.register(MODULE.ID, 'diceRollToolEnableDiceSoNice', {
@@ -3559,12 +3561,12 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: XP DISTRIBUTION
 	// --------------------------------------
-	registerHeader('XpDistribution', 'headingH2XpDistribution-Label', 'headingH2XpDistribution-Hint', 'H2', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
+	registerHeader('XpDistribution', 'headingH2XpDistribution-Label', 'headingH2XpDistribution-Hint', 'H2', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION, 'world');
 
 	// --------------------------------------
 	// -- H3: XP Configuration
 	// --------------------------------------
-	registerHeader('XpConfiguration', 'headingH3XpConfiguration-Label', 'headingH3XpConfiguration-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
+	registerHeader('XpConfiguration', 'headingH3XpConfiguration-Label', 'headingH3XpConfiguration-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION, 'world');
 
 	// -- Enable XP Distribution --
 	game.settings.register(MODULE.ID, 'enableXpDistribution', {
@@ -3632,7 +3634,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: XP Multipliers
 	// --------------------------------------
-	registerHeader('XpMultipliers', 'headingH3XpMultipliers-Label', 'headingH3XpMultipliers-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION);
+	registerHeader('XpMultipliers', 'headingH3XpMultipliers-Label', 'headingH3XpMultipliers-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION, 'world');
 
 	// -- Resolution Type XP Multipliers --
 	game.settings.register(MODULE.ID, 'xpMultiplierDefeated', {
@@ -3723,17 +3725,17 @@ export const registerSettings = () => {
 	// == AUTOMATION
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
-	registerHeader('Automation', 'headingH1Automation-Label', 'headingH1Automation-Hint', 'H1', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('Automation', 'headingH1Automation-Label', 'headingH1Automation-Hint', 'H1', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// --------------------------------------
 	// -- H2: TOKENS
 	// --------------------------------------
-	registerHeader('Tokens', 'headingH2Tokens-Label', 'headingH2Tokens-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('Tokens', 'headingH2Tokens-Label', 'headingH2Tokens-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// --------------------------------------
 	// -- H3: Rotation
 	// --------------------------------------
-	registerHeader('TokenRotationOptions', 'headingH3TokenRotationOptions-Label', 'headingH3TokenRotationOptions-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('TokenRotationOptions', 'headingH3TokenRotationOptions-Label', 'headingH3TokenRotationOptions-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	game.settings.register(MODULE.ID, 'enableTokenRotation', {
 		name: MODULE.ID + '.enableTokenRotation-Label',
@@ -3783,7 +3785,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Token Movement
 	// --------------------------------------
-	registerHeader('TokenMovementOptions', 'headingH3TokenMovementOptions-Label', 'headingH3TokenMovementOptions-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('TokenMovementOptions', 'headingH3TokenMovementOptions-Label', 'headingH3TokenMovementOptions-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// -- Follow Movement Type - HIDDEN SETTING --
 	game.settings.register(MODULE.ID, 'movementType', {
@@ -3853,7 +3855,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Token Sound
 	// --------------------------------------
-	registerHeader('TokenMovementSounds', 'headingH3TokenMovementSounds-Label', 'headingH3TokenMovementSounds-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('TokenMovementSounds', 'headingH3TokenMovementSounds-Label', 'headingH3TokenMovementSounds-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// Enable Movement Sounds
 	game.settings.register(MODULE.ID, 'movementSoundsEnabled', {
@@ -3931,12 +3933,12 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: DEAD TOKENS
 	// --------------------------------------
-	registerHeader('DeadTokens', 'headingH2DeadTokens-Label', 'headingH2DeadTokens-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('DeadTokens', 'headingH2DeadTokens-Label', 'headingH2DeadTokens-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// --------------------------------------
 	// -- H3: Dead Configuration
 	// --------------------------------------
-	registerHeader('DeadConfiguration', 'headingH3DeadConfiguration-Label', 'headingH3DeadConfiguration-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('DeadConfiguration', 'headingH3DeadConfiguration-Label', 'headingH3DeadConfiguration-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// Enable Dead Token Replacement
 	game.settings.register(MODULE.ID, 'enableDeadTokenReplacement', {
@@ -3965,7 +3967,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Dead Experience
 	// --------------------------------------
-	registerHeader('DeadExperience', 'headingH3DeadExperience-Label', 'headingH3DeadExperience-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('DeadExperience', 'headingH3DeadExperience-Label', 'headingH3DeadExperience-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// Dead Token Image Path (NPC/Monster) (with FilePicker)
 	game.settings.register(MODULE.ID, 'deadTokenImagePath', {
@@ -4033,12 +4035,12 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: CONVERT DEAD TO LOOT 
 	// --------------------------------------
-	registerHeader('LootTokens', 'headingH2LootTokens-Label', 'headingH2LootTokens-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('LootTokens', 'headingH2LootTokens-Label', 'headingH2LootTokens-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// --------------------------------------
 	// -- H3: Loot Configuration
 	// --------------------------------------
-	registerHeader('LootConfiguration', 'headingH3LootConfiguration-Label', 'headingH3LootConfiguration-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('LootConfiguration', 'headingH3LootConfiguration-Label', 'headingH3LootConfiguration-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// -- CONVERT DEAD TO LOOT --
 	game.settings.register(MODULE.ID, 'tokenConvertDeadToLoot', {
@@ -4110,7 +4112,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Loot Treasure
 	// --------------------------------------
-	registerHeader('LootTreasure', 'headingH3LootTreasure-Label', 'headingH3LootTreasure-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('LootTreasure', 'headingH3LootTreasure-Label', 'headingH3LootTreasure-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// -- Add Coins --
 	game.settings.register(MODULE.ID, 'tokenLootAddCoins', {
@@ -4382,12 +4384,12 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: DROPPED TOKENS
 	// --------------------------------------
-	registerHeader('DroppedTokens', 'headingH2DroppedTokens-Label', 'headingH2DroppedTokens-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('DroppedTokens', 'headingH2DroppedTokens-Label', 'headingH2DroppedTokens-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// --------------------------------------
 	// -- H3: Token Overrides
 	// --------------------------------------
-	registerHeader('TokenOverrides', 'headingH3TokenOverrides-Label', 'headingH3TokenOverrides-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('TokenOverrides', 'headingH3TokenOverrides-Label', 'headingH3TokenOverrides-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// -- Unlock Token Rotation --
 	game.settings.register(MODULE.ID, 'unlockTokenRotation', {
@@ -4451,7 +4453,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Nameplate Style
 	// --------------------------------------
-	registerHeader('TokenRenamingOptions', 'headingH3TokenRenamingOptions-Label', 'headingH3TokenRenamingOptions-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('TokenRenamingOptions', 'headingH3TokenRenamingOptions-Label', 'headingH3TokenRenamingOptions-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 	
 	// -- Name Format --
 	game.settings.register(MODULE.ID, 'tokenNameFormat', {
@@ -4508,7 +4510,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Nameplate Style
 	// --------------------------------------
-	registerHeader('TokenNameplateStyle', 'headingH3TokenNameplateStyle-Label', 'headingH3TokenNameplateStyle-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('TokenNameplateStyle', 'headingH3TokenNameplateStyle-Label', 'headingH3TokenNameplateStyle-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// -- Font Family --
 	game.settings.register(MODULE.ID,'nameplateFontFamily', {
@@ -4591,13 +4593,13 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: Token Replace Shared
 	// --------------------------------------
-	registerHeader('TokenImagePortraitReplacement', 'headingH2TokenImagePortraitReplacement-Label', 'headingH2TokenImagePortraitReplacement-Hint', 'H2	', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('TokenImagePortraitReplacement', 'headingH2TokenImagePortraitReplacement-Label', 'headingH2TokenImagePortraitReplacement-Hint', 'H2	', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 
 	// --------------------------------------
 	// -- H3: Token Replace Shared
 	// --------------------------------------
-	registerHeader('headingH3TokenReplaceShared', 'headingH3TokenReplaceShared-Label', 'headingH3TokenReplaceShared-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('headingH3TokenReplaceShared', 'headingH3TokenReplaceShared-Label', 'headingH3TokenReplaceShared-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	game.settings.register(MODULE.ID, 'tokenImageReplacementShowInCoffeePubToolbar', {
 		name: MODULE.ID + '.tokenImageReplacementShowInCoffeePubToolbar-Label',
@@ -4673,7 +4675,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Image Replacement Data Weights
 	// --------------------------------------
-	registerHeader('TokenImageReplacementDataWeights', 'headingH3TokenImageReplacementDataWeights-Label', 'headingH3TokenImageReplacementDataWeights-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('TokenImageReplacementDataWeights', 'headingH3TokenImageReplacementDataWeights-Label', 'headingH3TokenImageReplacementDataWeights-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 
 	// Monster Mapping Data - HIDDEN SETTING
@@ -4775,7 +4777,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: TOKEN REPLACEMENT
 	// --------------------------------------
-	registerHeader('headingH3TokenReplacement', 'headingH3TokenReplacement-Label', 'headingH3TokenReplacement-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('headingH3TokenReplacement', 'headingH3TokenReplacement-Label', 'headingH3TokenReplacement-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 
 	// -- Enable Overall Image Replacement Features --
@@ -4909,7 +4911,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: Token Image Replacement Cache
 	// --------------------------------------
-	registerHeader('TokenImageReplacementCache', 'headingH3TokenImageReplacementCache-Label', 'headingH3TokenImageReplacementCache-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('TokenImageReplacementCache', 'headingH3TokenImageReplacementCache-Label', 'headingH3TokenImageReplacementCache-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// Token Image Replacement Cache (server-side storage) - HIDDEN SETTING
 	game.settings.register(MODULE.ID, 'tokenImageReplacementCache', {
@@ -5028,7 +5030,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Portrait Image Replacement
 	// --------------------------------------
-	registerHeader('PortraitImageReplacement', 'headingH3PortraitImageReplacement-Label', 'headingH3PortraitImageReplacement-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('PortraitImageReplacement', 'headingH3PortraitImageReplacement-Label', 'headingH3PortraitImageReplacement-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// Portrait Image Replacement Enabled
 	game.settings.register(MODULE.ID, 'portraitImageReplacementEnabled', {
@@ -5159,7 +5161,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Portrait Image Replacement Cache
 	// --------------------------------------
-	registerHeader('PortraitImageReplacementCache', 'headingH3PortraitImageReplacementCache-Label', 'headingH3PortraitImageReplacementCache-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('PortraitImageReplacementCache', 'headingH3PortraitImageReplacementCache-Label', 'headingH3PortraitImageReplacementCache-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// Portrait Image Replacement Cache (server-side storage) - HIDDEN SETTING
 	game.settings.register(MODULE.ID, 'portraitImageReplacementCache', {
@@ -5242,12 +5244,12 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: Encounters
 	// --------------------------------------
-	registerHeader('AutomatedEncounters', 'headingH2AutomatedEncounters-Label', 'headingH2AutomatedEncounters-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('AutomatedEncounters', 'headingH2AutomatedEncounters-Label', 'headingH2AutomatedEncounters-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// --------------------------------------
 	// -- H3: Journal Toolbar
 	// --------------------------------------
-	registerHeader('JournalEncounterToolbar', 'headingH3JournalEncounterToolbar-Label', 'headingH3JournalEncounterToolbar-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION);
+	registerHeader('JournalEncounterToolbar', 'headingH3JournalEncounterToolbar-Label', 'headingH3JournalEncounterToolbar-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
 	// -- Enable Journal Encounter Toolbar --
 	game.settings.register(MODULE.ID, 'enableJournalEncounterToolbar', {
@@ -5322,12 +5324,12 @@ export const registerSettings = () => {
 	// == Artifical Intelligence
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
-	registerHeader('ArtificialIntelligence', 'headingH1ArtificialIntelligence-Label', 'headingH1ArtificialIntelligence-Hint', 'H1', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE);
+	registerHeader('ArtificialIntelligence', 'headingH1ArtificialIntelligence-Label', 'headingH1ArtificialIntelligence-Hint', 'H1', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE, 'world');
 
 	// --------------------------------------
 	// -- H3: Open AI Core
 	// --------------------------------------
-	registerHeader('OpenAICore', 'headingH3headingH2OpenAICore-Label', 'headingH3headingH2OpenAICore-Hint', 'H3', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE);
+	registerHeader('OpenAICore', 'headingH3headingH2OpenAICore-Label', 'headingH3headingH2OpenAICore-Hint', 'H3', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE, 'world');
 
 	// -- OPENAI MACRO --
 	game.settings.register(MODULE.ID,'openAIMacro', {
@@ -5387,7 +5389,7 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: Open AI Context
 	// --------------------------------------
-	registerHeader('OpenAIContext', 'headingH3headingH2OpenAIContext-Label', 'headingH3headingH2OpenAIContext-Hint', 'H3', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE);
+	registerHeader('OpenAIContext', 'headingH3headingH2OpenAIContext-Label', 'headingH3headingH2OpenAIContext-Hint', 'H3', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE, 'world');
 
 	// -- GAME SYSTEMS -- IS THIS USED??
 	game.settings.register(MODULE.ID, 'openAIGameSystems', {
@@ -5453,12 +5455,12 @@ export const registerSettings = () => {
 	// == H1: DEVELOPER TOOLS
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
-	registerHeader('DeveloperTools', 'headingH1DeveloperTools-Label', 'headingH1DeveloperTools-Hint', 'H1', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+	registerHeader('DeveloperTools', 'headingH1DeveloperTools-Label', 'headingH1DeveloperTools-Hint', 'H1', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'world');
 
 	// --------------------------------------
 	// -- H2: CSS CUSTOMIZATION
 	// --------------------------------------
-	registerHeader('CSS', 'headingH2CSS-Label', 'headingH2CSS-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+	registerHeader('CSS', 'headingH2CSS-Label', 'headingH2CSS-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'world');
 
 	game.settings.register(MODULE.ID, "customCSS", {
 		scope: "world",
@@ -5492,17 +5494,17 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: PERFORMANCE TOOLS
 	// --------------------------------------
-	registerHeader('PerformanceTools', 'headingH2PerformanceTools-Label', 'headingH2PerformanceTools-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+	registerHeader('PerformanceTools', 'headingH2PerformanceTools-Label', 'headingH2PerformanceTools-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'user');
 
 	// -- H3: PERFORMANCE MENUBAR OPTIONS ---------------
-	registerHeader('PerformanceMenubarOptions', 'headingH3PerformanceMenubarOptions-Label', 'headingH3PerformanceMenubarOptions-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+	registerHeader('PerformanceMenubarOptions', 'headingH3PerformanceMenubarOptions-Label', 'headingH3PerformanceMenubarOptions-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'user');
 
 
 	// Show Settings Tool
 	game.settings.register(MODULE.ID, 'menubarShowSettings', {
 		name: MODULE.ID + '.menubarShowSettings-Label',
 		hint: MODULE.ID + '.menubarShowSettings-Hint',
-		scope: 'client',
+		scope: 'user',
 		config: true,
 		type: Boolean,
 		default: false,
@@ -5513,7 +5515,7 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'menubarShowRefresh', {
 		name: MODULE.ID + '.menubarShowRefresh-Label',
 		hint: MODULE.ID + '.menubarShowRefresh-Hint',
-		scope: 'client',
+		scope: 'user',
 		config: true,
 		type: Boolean,
 		default: false,
@@ -5524,7 +5526,7 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'menubarShowPerformance', {
 		name: MODULE.ID + '.menubarShowPerformance-Label',
 		hint: MODULE.ID + '.menubarShowPerformance-Hint',
-		scope: 'client',
+		scope: 'user',
 		config: true,
 		type: Boolean,
 		default: false,
@@ -5535,10 +5537,10 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'menubarPerformancePollInterval', {
 		name: MODULE.ID + '.menubarPerformancePollInterval-Label',
 		hint: MODULE.ID + '.menubarPerformancePollInterval-Hint',
-		scope: 'client',
+		scope: 'user',
 		config: true,
 		type: Number,
-		default: 5,
+		default: 60,
 		range: {
 			min: 5,
 			max: 300,
@@ -5548,7 +5550,7 @@ export const registerSettings = () => {
 	});
 
 	// -- H3: LATENCY SETTINGS ---------------
-	registerHeader('Latency', 'headingH3Latency-Label', 'headingH3Latency-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+	registerHeader('Latency', 'headingH3Latency-Label', 'headingH3Latency-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'world');
 
 	game.settings.register(MODULE.ID, 'enableLatency', {
 		name: MODULE.ID + '.enableLatency-Label',
@@ -5571,18 +5573,18 @@ export const registerSettings = () => {
 			max: 300,
 			step: 5
 		},
-		default: 30,
+		default: 120,
 		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 	});
 
 	// --------------------------------------
 	// -- H2: CONSOLE SETTINGS
 	// --------------------------------------
-	registerHeader('ConsoleSettings', 'headingH2ConsoleSettings-Label', 'headingH2ConsoleSettings-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+	registerHeader('ConsoleSettings', 'headingH2ConsoleSettings-Label', 'headingH2ConsoleSettings-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'user');
 
 
 	// -- H3: CONSOLE SETTINGS ---------------
-	registerHeader('Console', 'headingH3Console-Label', 'headingH3Console-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+	registerHeader('Console', 'headingH3Console-Label', 'headingH3Console-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'user');
 	// -------------------------------------
 
 	// -- LOG FANCY CONSOLE --
@@ -5592,13 +5594,13 @@ export const registerSettings = () => {
 		type: Boolean,
 		config: true,
 		requiresReload: true,
-		scope: 'client',
+		scope: 'user',
 		default: true,
 		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 	});
 
 	// -- H3: DEBUG SETTINGS ---------------
-	registerHeader('DebugSettings', 'headingH3DebugSettings-Label', 'headingH3DebugSettings-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS);
+	registerHeader('DebugSettings', 'headingH3DebugSettings-Label', 'headingH3DebugSettings-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'user');
 
 	// -- LOG DEBUG SETTINGS --
 	game.settings.register(MODULE.ID, 'globalDebugMode', {
@@ -5607,7 +5609,7 @@ export const registerSettings = () => {
 		type: Boolean,
 		config: true,
 		requiresReload: true,
-		scope: 'client',
+		scope: 'user',
 		default: false,
 		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 	});
@@ -5619,7 +5621,7 @@ export const registerSettings = () => {
 		type: String,
 		config: true,
 		requiresReload: true,
-		scope: 'client',
+		scope: 'user',
 		default: "fancy",
 		choices: {
 			'fancy': 'Fancy Pants: Large Font and Boxes',

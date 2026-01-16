@@ -11,10 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **MVP Tuning Settings (Round + Combat MVP)**:
   - New GM-configurable sliders for MVP scoring weights: Hits, Misses, Crits, Fumbles, Damage (per 10), Healing (per 10)
-  - New checkbox to **Normalize MVP scoring by party max** (default: enabled) to reduce “big number” bias and make weights more comparable across party levels/roles
+  - New checkbox to **Normalize MVP scoring by party max** (default: enabled) to reduce "big number" bias and make weights more comparable across party levels/roles
+- **Player Manual Rolls Control**: Added `sidebarManualRollsPlayersEnabled` world setting (GM-only) to control whether players can see the manual rolls toggle button in the sidebar. Players must have both `sidebarManualRollsEnabled` (client) and `sidebarManualRollsPlayersEnabled` (world) enabled to see the button.
 
 ### Changed
 - **MVP Scoring Formula**: MVP scoring is now driven by the new settings (including optional normalization) and is applied consistently for both Round MVP and Combat MVP.
+- **Manual Rolls Toggle**: Converted manual rolls toggle to pure client-only operation. Players now toggle their own `core.diceConfiguration` setting directly without requiring socket communication to the GM. GM receives a whisper notification when players toggle manual rolls.
+
+### Fixed
+- **Manual Rolls Toggle for Players**: Fixed critical issue where players could not toggle manual rolls via the sidebar button. The toggle now works immediately for players without requiring them to open Foundry's Dice Configuration settings first. The system now automatically initializes dice configuration with proper dice keys when empty, ensuring toggles work on first use.
+- **Manual Rolls Button State**: Fixed button color/active state not updating for players after toggling. Button now correctly reflects the current manual rolls state by re-reading the dice configuration after applying changes.
 
 ## [13.0.11]
 
