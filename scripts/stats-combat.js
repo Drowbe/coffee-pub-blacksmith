@@ -175,6 +175,28 @@ class CombatStats {
             // no-op
         }
     }
+
+    static async _forwardToGM(eventName, payload) {
+        try {
+            const socket = SocketManager.getSocket();
+            if (!socket) return false;
+
+            // Preferred (SocketLib): execute on GM only
+            if (typeof socket.executeAsGM === 'function') {
+                postConsoleAndNotification(MODULE.NAME, 'STATS SOCKETS | Forward (executeAsGM)', { eventName }, true, false);
+                await socket.executeAsGM(eventName, payload);
+                return true;
+            }
+
+            // Fallback: broadcast to others; GM-side handler should ignore if not GM.
+            if (typeof socket.emit === 'function') {
+                postConsoleAndNotification(MODULE.NAME, 'STATS SOCKETS | Forward (emit fallback)', { eventName }, true, false);
+                socket.emit(eventName, payload);
+                return true;
+            }
+        } catch (_) {}
+        return false;
+    }
     
     static DEFAULTS = {
         roundStats: {
@@ -587,10 +609,14 @@ class CombatStats {
      * Sets up default structures, registers helpers, and subscribes to hooks.
      */
     static initialize() {
-        // Only initialize if this is the GM and stats tracking is enabled
-        if (!game.user.isGM || !getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
+        // Initialize on ALL clients when tracking is enabled.
+        // GM performs authoritative processing; non-GM clients act as forwarders (especially for MIDI workflows).
+        if (!getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
 
-        postConsoleAndNotification(MODULE.NAME, "Initializing Combat Stats | trackCombatStats:", getSettingSafely(MODULE.ID, 'trackCombatStats', false), true, false);
+        postConsoleAndNotification(MODULE.NAME, "Initializing Combat Stats | trackCombatStats:", {
+            trackCombatStats: getSettingSafely(MODULE.ID, 'trackCombatStats', false),
+            isGM: !!game.user?.isGM
+        }, true, false);
 
         // Check for existing stats in combat flags (supports resuming mid-combat / mid-round)
         const existingCurrentStats = game.combat?.getFlag(MODULE.ID, 'stats');
@@ -2561,7 +2587,6 @@ class CombatStats {
      * @param {Object} workflow
      */
     static async _onMidiHitsChecked(workflow) {
-        if (!game.user.isGM) return;
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
@@ -2573,6 +2598,20 @@ class CombatStats {
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats | OffenseCount skipped (invalid workflow key)', { key }, true, false);
             return;
         }
+
+        // If we're not the GM, forward a compact event to the GM for authoritative processing.
+        if (!game.user.isGM) {
+            const forwarded = await this._forwardToGM('cpbMidiHitsChecked', { attackEvent });
+            if (!forwarded) {
+                postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI hitsChecked forward failed (no socket)', { key }, true, false);
+            }
+            return;
+        }
+
+        // Dedupe: some setups may deliver MIDI hook events to GM and via socket forwarding
+        const hcDedupeKey = `midiHitsChecked::${key}`;
+        if (CombatStats._midiDedupe.isDuplicate(hcDedupeKey)) return;
+        CombatStats._midiDedupe.markProcessed(hcDedupeKey);
 
         // Apply staged crit/fumble if RollComplete fired before hitsChecked
         const pending = CombatStats._pendingMidiCrit?.get(key);
@@ -2624,7 +2663,6 @@ class CombatStats {
      * @param {*} arg2
      */
     static async _onMidiPreTargetDamageApplication(arg1, arg2) {
-        if (!game.user.isGM) return;
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
@@ -2667,6 +2705,29 @@ class CombatStats {
 
         const targetUuid = token?.document?.uuid ?? token?.uuid ?? null;
         if (!targetUuid) return;
+
+        // If we're not the GM, forward a compact payload to the GM for authoritative processing.
+        if (!game.user.isGM) {
+            const { isCritical, isFumble } = getCritFumbleFromWorkflow({
+                workflow,
+                attackRoll: workflow?.attackRoll ?? null
+            });
+
+            const itemUuid = workflow?.item?.uuid ?? data?.item?.uuid ?? workflow?.itemUuid ?? null;
+            const forwarded = await this._forwardToGM('cpbMidiPreTargetDamageApplication', {
+                key,
+                attackerActorId: attacker.id,
+                itemUuid,
+                targetUuid,
+                hpDamage,
+                isCritical: !!isCritical,
+                isFumble: !!isFumble
+            });
+            if (!forwarded) {
+                postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI preTargetDamageApplication forward failed (no socket)', { key }, true, false);
+            }
+            return;
+        }
 
         // Dedupe: MIDI can fire multiple times per target
         const dedupeKey = `${key}::${targetUuid}::${isHealing ? 'heal' : 'dmg'}::${amount}`;
@@ -2784,7 +2845,6 @@ class CombatStats {
      * @param {Object} workflow
      */
     static async _onMidiRollComplete(workflow) {
-        if (!game.user.isGM) return;
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
@@ -2798,6 +2858,25 @@ class CombatStats {
             workflow,
             attackRoll: workflow?.attackRoll ?? null
         });
+
+        // If we're not the GM, forward the crit/fumble stamp to the GM (compact payload).
+        if (!game.user.isGM) {
+            const forwarded = await this._forwardToGM('cpbMidiRollComplete', {
+                key,
+                attackerActorId: attacker.id,
+                isCritical: !!isCritical,
+                isFumble: !!isFumble
+            });
+            if (!forwarded) {
+                postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI RollComplete forward failed (no socket)', { key }, true, false);
+            }
+            return;
+        }
+
+        // Dedupe: avoid double counting if GM also receives forwarded event
+        const rcDedupeKey = `midiRollComplete::${key}::${isCritical ? 'C' : ''}${isFumble ? 'F' : ''}`;
+        if (CombatStats._midiDedupe.isDuplicate(rcDedupeKey)) return;
+        CombatStats._midiDedupe.markProcessed(rcDedupeKey);
 
         // Always stamp it for downstream consumers (damage path may use it)
         const entry = CombatStats._attackCache.get(key);
@@ -3247,6 +3326,9 @@ class CombatStats {
             if (socket && socket.register) {
                 socket.register("cpbTrackDamage", this._onSocketTrackDamage.bind(this));
                 socket.register("cpbTrackAttack", this._onSocketTrackAttack.bind(this));
+                socket.register("cpbMidiHitsChecked", this._onSocketMidiHitsChecked.bind(this));
+                socket.register("cpbMidiPreTargetDamageApplication", this._onSocketMidiPreTargetDamageApplication.bind(this));
+                socket.register("cpbMidiRollComplete", this._onSocketMidiRollComplete.bind(this));
                 postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Socket handlers registered', "", true, false);
             }
         });
@@ -3327,6 +3409,205 @@ class CombatStats {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Error in socket attack handler:', error, false, false);
             console.error(error);
+        }
+    }
+
+    // Socket handler: MIDI hitsChecked forwarded from non-GM clients
+    static async _onSocketMidiHitsChecked(payload) {
+        if (!game.user.isGM) return;
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.combat?.started) return;
+
+        try {
+            postConsoleAndNotification(MODULE.NAME, 'STATS SOCKETS | Receive cpbMidiHitsChecked', { fromUserId: payload?.userId ?? null }, true, false);
+            const attackEvent = payload?.attackEvent;
+            const key = attackEvent?.key;
+            if (typeof key !== 'string' || !key.length || key.toLowerCase() === 'midi:unknown') return;
+
+            // Dedupe with GM hook path
+            const hcDedupeKey = `midiHitsChecked::${key}`;
+            if (CombatStats._midiDedupe.isDuplicate(hcDedupeKey)) return;
+            CombatStats._midiDedupe.markProcessed(hcDedupeKey);
+
+            // Apply staged crit/fumble if RollComplete arrived first
+            const pending = CombatStats._pendingMidiCrit?.get(key);
+            if (pending) {
+                attackEvent.isCritical = !!pending.isCritical;
+                attackEvent.isFumble = !!pending.isFumble;
+                CombatStats._pendingMidiCrit.delete(key);
+            }
+
+            CombatStats._attackCache.set(key, {
+                attackEvent,
+                processedDamageMsgIds: new Set(),
+                ts: attackEvent.ts ?? Date.now()
+            });
+
+            await CombatStats._processResolvedAttack(attackEvent);
+
+            // MVP fairness: count successful offensive activations (attack-roll path)
+            if (attackEvent.hitTargets?.length > 0) {
+                const offenseKey = `offense:${key}`;
+                if (!this._roundOffenseCache) this._roundOffenseCache = new Set();
+                if (!this._roundOffenseCache.has(offenseKey)) {
+                    this._roundOffenseCache.add(offenseKey);
+                    const attackerActor = game.actors.get(attackEvent.attackerActorId);
+                    if (attackerActor) {
+                        const { current: cur, combat: com } = this._ensureParticipantStats(attackerActor, { includeCurrent: true, includeCombat: true });
+                        if (cur) cur.successfulOffenseCount = (Number(cur.successfulOffenseCount) || 0) + 1;
+                        if (com) com.successfulOffenseCount = (Number(com.successfulOffenseCount) || 0) + 1;
+                    }
+                }
+            }
+        } catch (e) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats | Socket MIDI hitsChecked error', e, false, false);
+        }
+    }
+
+    // Socket handler: MIDI preTargetDamageApplication forwarded from non-GM clients
+    static async _onSocketMidiPreTargetDamageApplication(payload) {
+        if (!game.user.isGM) return;
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.combat?.started) return;
+
+        try {
+            postConsoleAndNotification(MODULE.NAME, 'STATS SOCKETS | Receive cpbMidiPreTargetDamageApplication', { key: payload?.key ?? null }, true, false);
+            const key = payload?.key;
+            if (!key || typeof key !== 'string' || !key.length || key.toLowerCase() === 'midi:unknown') return;
+
+            const attacker = payload?.attackerActorId ? game.actors.get(payload.attackerActorId) : null;
+            if (!attacker) return;
+
+            const hpDamage = (typeof payload.hpDamage === 'number') ? payload.hpDamage : null;
+            if (hpDamage === null || hpDamage === 0) return;
+            const isHealing = hpDamage < 0;
+            const amount = Math.abs(hpDamage);
+
+            const targetUuid = payload?.targetUuid ?? null;
+            if (!targetUuid) return;
+
+            // Dedupe per target (same scheme as GM hook)
+            const dedupeKey = `${key}::${targetUuid}::${isHealing ? 'heal' : 'dmg'}::${amount}`;
+            if (CombatStats._midiDedupe.isDuplicate(dedupeKey)) return;
+            CombatStats._midiDedupe.markProcessed(dedupeKey);
+
+            // Stamp crit/fumble
+            const isCritical = !!payload?.isCritical;
+            const isFumble = !!payload?.isFumble;
+            const cachedAttackEntry = CombatStats._attackCache.get(key);
+            if (cachedAttackEntry?.attackEvent) {
+                cachedAttackEntry.attackEvent.isCritical = isCritical;
+                cachedAttackEntry.attackEvent.isFumble = isFumble;
+                cachedAttackEntry.ts = Date.now();
+                CombatStats._attackCache.set(key, cachedAttackEntry);
+            } else {
+                CombatStats._pendingMidiCrit.set(key, { isCritical, isFumble, ts: Date.now() });
+            }
+
+            const itemUuid = payload?.itemUuid ?? null;
+            if (!itemUuid) return;
+            let item = null;
+            try { item = await fromUuid(itemUuid); } catch (_) {}
+            if (!item) return;
+
+            const targetTokenUuids = [targetUuid];
+
+            if (isHealing) {
+                await CombatStats._processDamageOrHealing({
+                    item,
+                    amount,
+                    isHealing: true,
+                    isCritical: false,
+                    targetTokenUuids,
+                    timestamp: Date.now()
+                });
+                return;
+            }
+
+            const hitTargets = cachedAttackEntry?.attackEvent?.hitTargets ?? [];
+            const isOnHit = hitTargets.includes(targetUuid);
+
+            // MVP fairness: count successful offensive activations (non-attack-roll path)
+            if (!isOnHit) {
+                const offenseKey = `offense:${key}`;
+                if (!this._roundOffenseCache) this._roundOffenseCache = new Set();
+                if (!this._roundOffenseCache.has(offenseKey)) {
+                    this._roundOffenseCache.add(offenseKey);
+                    const { current: cur, combat: com } = this._ensureParticipantStats(attacker, { includeCurrent: true, includeCombat: true });
+                    if (cur) cur.successfulOffenseCount = (Number(cur.successfulOffenseCount) || 0) + 1;
+                    if (com) com.successfulOffenseCount = (Number(com.successfulOffenseCount) || 0) + 1;
+                }
+            }
+
+            await CombatStats._processDamageOrHealing({
+                item,
+                amount,
+                isHealing: false,
+                isCritical: isOnHit ? isCritical : false,
+                targetTokenUuids,
+                timestamp: Date.now(),
+                trackDamageMoments: isOnHit
+            });
+        } catch (e) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats | Socket MIDI preTargetDamageApplication error', e, false, false);
+        }
+    }
+
+    // Socket handler: MIDI RollComplete forwarded from non-GM clients
+    static async _onSocketMidiRollComplete(payload) {
+        if (!game.user.isGM) return;
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.combat?.started) return;
+
+        try {
+            postConsoleAndNotification(MODULE.NAME, 'STATS SOCKETS | Receive cpbMidiRollComplete', { key: payload?.key ?? null }, true, false);
+            const key = payload?.key;
+            if (!key || typeof key !== 'string' || !key.length || key.toLowerCase() === 'midi:unknown') return;
+
+            const attacker = payload?.attackerActorId ? game.actors.get(payload.attackerActorId) : null;
+            if (!attacker) return;
+
+            const isCritical = !!payload?.isCritical;
+            const isFumble = !!payload?.isFumble;
+
+            const rcDedupeKey = `midiRollComplete::${key}::${isCritical ? 'C' : ''}${isFumble ? 'F' : ''}`;
+            if (CombatStats._midiDedupe.isDuplicate(rcDedupeKey)) return;
+            CombatStats._midiDedupe.markProcessed(rcDedupeKey);
+
+            const entry = CombatStats._attackCache.get(key);
+            if (entry?.attackEvent) {
+                entry.attackEvent.isCritical = isCritical;
+                entry.attackEvent.isFumble = isFumble;
+                entry.ts = Date.now();
+                CombatStats._attackCache.set(key, entry);
+            } else {
+                CombatStats._pendingMidiCrit.set(key, { isCritical, isFumble, ts: Date.now() });
+            }
+
+            if (!isCritical && !isFumble) return;
+
+            const { current: attackerStats, combat: attackerCombatStats } = this._ensureParticipantStats(attacker, {
+                includeCurrent: true,
+                includeCombat: true
+            });
+            this._ensureCombatTotals();
+            const combatTotals = this.combatStats.totals;
+
+            if (isCritical) {
+                attackerStats.combat.attacks.crits++;
+                attackerCombatStats.combat.attacks.crits++;
+                combatTotals.attacks.crits++;
+            }
+
+            if (isFumble) {
+                attackerStats.combat.attacks.fumbles++;
+                attackerCombatStats.combat.attacks.fumbles++;
+                combatTotals.attacks.fumbles++;
+            }
+
+            this._schedulePersistCombatStats('midiRollCompleteSocket');
+        } catch (e) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Stats | Socket MIDI RollComplete error', e, false, false);
         }
     }
 
