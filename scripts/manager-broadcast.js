@@ -97,16 +97,38 @@ export class BroadcastManager {
             callback: (tokenDocument, changes, options, userId) => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                 
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: updateToken hook fired", {
+                    tokenId: tokenDocument?.id,
+                    changes: changes,
+                    isBroadcastUser: this._isBroadcastUser(),
+                    isEnabled: this.isEnabled(),
+                    mode: getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator')
+                }, true, false);
+                
                 // Only process for broadcast user
-                if (!this._isBroadcastUser()) return;
-                if (!this.isEnabled()) return;
+                if (!this._isBroadcastUser()) {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Not broadcast user, skipping", "", true, false);
+                    return;
+                }
+                if (!this.isEnabled()) {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Broadcast not enabled, skipping", "", true, false);
+                    return;
+                }
                 
                 // Check if we're in spectator mode
                 const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
-                if (mode !== 'spectator') return;
+                if (mode !== 'spectator') {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Not in spectator mode, skipping", { mode }, true, false);
+                    return;
+                }
                 
                 // Only process if position changed
-                if (!changes || (changes.x === undefined && changes.y === undefined)) return;
+                if (!changes || (changes.x === undefined && changes.y === undefined)) {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: No position changes, skipping", { changes }, true, false);
+                    return;
+                }
+                
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Processing token update", { changes }, true, false);
                 
                 // Follow party tokens
                 this._onTokenUpdate(tokenDocument, changes);
@@ -256,9 +278,22 @@ export class BroadcastManager {
             // IMPORTANT: This code only runs for the broadcast user (cameraman)
             // All pan/zoom operations affect the cameraman's viewport only
             
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: _onTokenUpdate called", {
+                tokenId: tokenDocument?.id,
+                changes: changes
+            }, true, false);
+            
             // Get party tokens visible to broadcast user
             const partyTokens = this._getVisiblePartyTokens();
-            if (!partyTokens || partyTokens.length === 0) return;
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Found party tokens", {
+                count: partyTokens?.length || 0,
+                tokenIds: partyTokens?.map(t => t.id) || []
+            }, true, false);
+            
+            if (!partyTokens || partyTokens.length === 0) {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: No party tokens found, skipping", "", true, false);
+                return;
+            }
             
             // Calculate target position (center of party tokens in world coordinates)
             let targetPosition = null;
@@ -277,7 +312,17 @@ export class BroadcastManager {
             if (!targetPosition) return;
             
             // Check if we should pan (distance threshold + throttle)
-            if (!this._shouldPan(targetPosition)) return;
+            const shouldPan = this._shouldPan(targetPosition);
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Should pan check", {
+                shouldPan: shouldPan,
+                targetPosition: targetPosition,
+                lastPanPosition: this._lastPanPosition
+            }, true, false);
+            
+            if (!shouldPan) {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Pan blocked by threshold/throttle", "", true, false);
+                return;
+            }
             
             // Apply zoom based on token count (affects cameraman's viewport)
             if (partyTokens.length === 1) {
