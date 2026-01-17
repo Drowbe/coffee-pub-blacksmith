@@ -50,6 +50,7 @@ import { CombatStats } from './stats-combat.js';
 import { CPBPlayerStats } from './stats-player.js';
 import { MenuBar } from './api-menubar.js';
 import { VoteManager } from './vote-manager.js';
+import { BroadcastManager } from './manager-broadcast.js';
 import { WrapperManager } from './manager-libwrapper.js';
 import { NavigationManager } from './manager-navigation.js';
 import { ModuleManager } from './manager-modules.js';
@@ -794,6 +795,8 @@ Hooks.once('init', async function() {
     CombatTracker.initialize();
     // VOTE MANAGER
     VoteManager.initialize();
+    // BROADCAST MANAGER
+    BroadcastManager.initialize();
     // QUICK VIEW UTILITY
     import('./utility-quickview.js').then(({ QuickViewUtility }) => {
         QuickViewUtility.initialize();

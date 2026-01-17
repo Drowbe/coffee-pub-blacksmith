@@ -43,6 +43,7 @@
     
     --blacksmith-menubar-secondary-default-height: 0px;
     --blacksmith-menubar-secondary-combat-height: 60px;
+    --blacksmith-menubar-secondary-broadcast-height: 60px;
     
     --blacksmith-menubar-secondary-fontcolor: rgba(240, 240, 224, 0.8);
     --blacksmith-menubar-secondary-buttoncolor: rgba(255, 255, 255, 0.2);

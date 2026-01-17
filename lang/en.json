@@ -202,6 +202,15 @@
 	"headingH1RunTheGame-Label": "Run the Game",
 	"headingH1RunTheGame-Hint": "Settings for running games, toolbars, chat, and gameplay features",
 
+		"headingH2Broadcast-Label": "Broadcast",
+		"headingH2Broadcast-Hint": "Settings for streaming and recording your FoundryVTT sessions. Designate a broadcast user who will see a clean, UI-free view for streaming.",
+
+			"enableBroadcast-Label": "Enable Broadcast",
+			"enableBroadcast-Hint": "Enable the broadcast feature. When enabled, the designated broadcast user will receive a special UI-free view suitable for streaming or recording.",
+
+			"broadcastUserId-Label": "Broadcast User",
+			"broadcastUserId-Hint": "The user ID or name of the user who will serve as the cameraman for broadcasting. This user will see a clean view with UI hidden and automatic token following.",
+
 		"headingH2CombatEnhancements-Label": "Combat",
 		"headingH2CombatEnhancements-Hint": "Enhancements and quality of lifeimprovements to the combat system.",
 

@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, getSettingSafely, setSettingSafely, playSound, formatTime } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely, setSettingSafely, playSound, formatTime, matchUserBySetting } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { ModuleManager } from './manager-modules.js';
 import { HookManager } from './manager-hooks.js';
@@ -1010,6 +1010,42 @@ class MenuBar {
             buttonSelectedTint: null
         });
 
+        // BROADCAST BAR
+        this.registerMenubarTool('broadcast-toggle', {
+            icon: "fa-solid fa-video",
+            name: "broadcast-toggle",
+            title: () => {
+                // Dynamic title based on broadcast bar state
+                const isBroadcastBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast';
+                return isBroadcastBarOpen ? "Broadcast Bar" : "Broadcast Bar";
+            },
+            tooltip: () => {
+                // Dynamic tooltip based on broadcast bar state
+                const isBroadcastBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast';
+                return isBroadcastBarOpen ? "Hide broadcast controls" : "Show broadcast controls";
+            },
+            onClick: () => {
+                // Toggle the broadcast bar - active state is synced in openSecondaryBar/closeSecondaryBar
+                this.toggleSecondaryBar('broadcast');
+            },
+            zone: "middle",
+            group: "combat",
+            groupOrder: this.GROUP_ORDER.COMBAT,
+            order: 3,
+            moduleId: "blacksmith-core",
+            gmOnly: true,
+            leaderOnly: false,
+            visible: () => {
+                // Only show if broadcast is enabled
+                return getSettingSafely(MODULE.ID, 'enableBroadcast', false) === true;
+            },
+            toggleable: true,
+            active: false,
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
+        });
+
         // COMBAT BAR
         this.registerMenubarTool('combat-tracker', {
             icon: "fas fa-swords",
@@ -1254,6 +1290,7 @@ class MenuBar {
         // Map secondary bars to their toggle tools for button state syncing
         this.secondaryBarToolMapping.set('combat', 'combat-tracker');
         this.secondaryBarToolMapping.set('party', 'party');
+        this.secondaryBarToolMapping.set('broadcast', 'broadcast-toggle');
 
         // **************** RIGHT ZONE ****************
         
@@ -1371,6 +1408,12 @@ class MenuBar {
 
         // Register party tools after bar type is registered
         this._registerPartyTools();
+
+        // Register broadcast secondary bar (default tool system)
+        await this.registerSecondaryBarType('broadcast', {
+            height: this.getSecondaryBarHeight('broadcast'),
+            persistence: 'manual'
+        });
 
         postConsoleAndNotification(MODULE.NAME, "Menubar: Secondary bar types registered", "", true, false);
     }
@@ -3544,13 +3587,7 @@ class MenuBar {
     static _isUserExcluded(user) {
         if (!user) return false;
         const raw = game.settings.get(MODULE.ID, 'excludedUsersMenubar') || '';
-        const tokens = raw.split(',').map(token => token.trim().toLowerCase()).filter(Boolean);
-        if (!tokens.length) return false;
-
-        const matchesUserId = tokens.includes(user.id.toLowerCase());
-        const matchesUserName = user.name ? tokens.includes(user.name.toLowerCase()) : false;
-
-        return matchesUserId || matchesUserName;
+        return matchUserBySetting(user, raw);
     }
 
     static _removeMenubarDom() {

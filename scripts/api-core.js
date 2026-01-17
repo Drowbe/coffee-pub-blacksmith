@@ -561,6 +561,22 @@ export function isPlayerCharacter(entity) {
     return false;
 }
 
+/**
+ * Match a user against a comma-separated setting value (user IDs or names)
+ * @param {User} user - The user to check
+ * @param {string} settingValue - Comma-separated string of user IDs or names
+ * @returns {boolean} True if user matches
+ */
+export function matchUserBySetting(user, settingValue) {
+    if (!user || !settingValue) return false;
+    const tokens = settingValue.split(',').map(token => token.trim().toLowerCase()).filter(Boolean);
+    if (!tokens.length) return false;
+    
+    const matchesId = tokens.includes(user.id.toLowerCase());
+    const matchesName = user.name ? tokens.includes(user.name.toLowerCase()) : false;
+    return matchesId || matchesName;
+}
+
 
 
 // ************************************

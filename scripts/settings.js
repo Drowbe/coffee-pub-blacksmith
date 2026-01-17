@@ -1670,6 +1670,35 @@ export const registerSettings = () => {
 	registerHeader('RunTheGame', 'headingH1RunTheGame-Label', 'headingH1RunTheGame-Hint', 'H1', WORKFLOW_GROUPS.RUN_THE_GAME, 'user');
 
 	// --------------------------------------
+	// -- H2: Broadcast
+	// --------------------------------------
+	registerHeader('Broadcast', 'headingH2Broadcast-Label', 'headingH2Broadcast-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
+
+		// Enable Broadcast
+		game.settings.register(MODULE.ID, 'enableBroadcast', {
+			name: MODULE.ID + '.enableBroadcast-Label',
+			hint: MODULE.ID + '.enableBroadcast-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Boolean,
+			default: false,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// Broadcast User ID
+		game.settings.register(MODULE.ID, 'broadcastUserId', {
+			name: MODULE.ID + '.broadcastUserId-Label',
+			hint: MODULE.ID + '.broadcastUserId-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: String,
+			default: '',
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+	// --------------------------------------
 	// -- H2: Combat
 	// --------------------------------------
 	registerHeader('CombatEnhancements', 'headingH2CombatEnhancements-Label', 'headingH2CombatEnhancements-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME, 'user');
