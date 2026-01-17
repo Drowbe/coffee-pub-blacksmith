@@ -296,20 +296,18 @@ export class BroadcastManager {
             }
             
             // Calculate target position (center of party tokens in world coordinates)
-            let targetPosition = null;
-            if (partyTokens.length === 1) {
-                // Single token: calculate center of that token
-                const token = partyTokens[0];
-                targetPosition = {
-                    x: token.x + (token.width * canvas.grid.size / 2),
-                    y: token.y + (token.height * canvas.grid.size / 2)
-                };
-            } else {
-                // Multiple tokens: calculate average position (center of all party tokens)
-                targetPosition = this._calculateTokenCenter(partyTokens);
-            }
+            // Use Token.center if available (handles size, scale, grid type automatically)
+            // Fallback to manual calculation if needed
+            const targetPosition = partyTokens.length === 1
+                ? this._getTokenCenter(partyTokens[0])
+                : this._getGroupCenter(partyTokens);
             
             if (!targetPosition) return;
+            
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Target position calculated", {
+                tokenCount: partyTokens.length,
+                targetPosition: targetPosition
+            }, true, false);
             
             // Check if we should pan (distance threshold + throttle)
             const shouldPan = this._shouldPan(targetPosition);
@@ -324,26 +322,34 @@ export class BroadcastManager {
                 return;
             }
             
-            // Apply zoom based on token count (affects cameraman's viewport)
-            if (partyTokens.length === 1) {
-                // Single token: use default zoom + offset
-                const defaultZoom = getSettingSafely(MODULE.ID, 'broadcastDefaultZoom', 1.0);
-                const zoomOffset = getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomOffsetSingle', 0);
-                const finalZoom = this._calculateZoomFromOffset(defaultZoom, zoomOffset);
-                canvas.animateZoom(finalZoom);
-            } else {
-                // Multiple tokens: use default zoom + offset for multiple tokens
-                const zoomOffset = getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomOffsetMultiple', 0);
-                const defaultZoom = getSettingSafely(MODULE.ID, 'broadcastDefaultZoom', 1.0);
-                const finalZoom = this._calculateZoomFromOffset(defaultZoom, zoomOffset);
-                canvas.animateZoom(finalZoom);
+            // Calculate zoom based on token count (affects cameraman's viewport)
+            // Note: Only apply zoom if offset is not 0 (default zoom = no zoom change)
+            const zoomOffset = partyTokens.length === 1 
+                ? getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomOffsetSingle', 0)
+                : getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomOffsetMultiple', 0);
+            
+            const defaultZoom = getSettingSafely(MODULE.ID, 'broadcastDefaultZoom', 1.0);
+            const finalZoom = zoomOffset !== 0
+                ? this._calculateZoomFromOffset(defaultZoom, zoomOffset)
+                : undefined;
+            
+            // Pan and zoom together in one atomic operation
+            // This ensures transform state stays coherent (no desync between stage.scale and _viewPosition)
+            const panOptions = {
+                x: targetPosition.x,
+                y: targetPosition.y
+            };
+            
+            if (finalZoom !== undefined) {
+                panOptions.scale = finalZoom;
             }
             
-            // Pan to target position - canvas.animatePan() centers the coordinate
-            // in the current user's (cameraman's) viewport
-            // The targetPosition is the center of party tokens, so this centers
-            // the token center in the cameraman's viewport center
-            canvas.animatePan({ x: targetPosition.x, y: targetPosition.y });
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Pan/zoom operation", {
+                targetPosition: targetPosition,
+                finalZoom: finalZoom
+            }, true, false);
+            
+            canvas.animatePan(panOptions);
             this._lastPanPosition = targetPosition;
             this._lastPanTime = Date.now();
             
@@ -416,30 +422,62 @@ export class BroadcastManager {
     }
 
     /**
-     * Calculate center point of multiple tokens in world coordinates
+     * Get reliable world-space center for a single token
+     * Uses Token.center if available (handles size, scale, grid type automatically)
+     * Falls back to manual calculation if needed
      * 
-     * This calculates the average position (center) of all provided tokens.
-     * The result is in world coordinates and represents the point that will be
-     * centered in the cameraman's viewport.
+     * @param {Token} token - Token placeable object
+     * @returns {Object|null} Center position {x, y} in world coordinates, or null if invalid
+     */
+    static _getTokenCenter(token) {
+        if (!token) return null;
+        
+        // Prefer Token.center property if available (most reliable)
+        if (token.center) {
+            return { x: token.center.x, y: token.center.y };
+        }
+        
+        // Fallback: manual calculation (accounts for texture scale if present)
+        const size = canvas.dimensions?.size || canvas.grid?.size || 100;
+        const w = (token.width ?? 1) * size;
+        const h = (token.height ?? 1) * size;
+        
+        // Account for texture scale if present (common for "slightly bigger" tokens)
+        const sx = token.texture?.scaleX ?? 1;
+        const sy = token.texture?.scaleY ?? 1;
+        
+        return {
+            x: token.x + (w * sx) / 2,
+            y: token.y + (h * sy) / 2
+        };
+    }
+
+    /**
+     * Calculate center point of multiple tokens using bounding box of centers
+     * More stable than averaging when tokens are spread out
      * 
      * @param {Array} tokens - Array of token placeables
      * @returns {Object|null} Center position {x, y} in world coordinates, or null if no tokens
      */
-    static _calculateTokenCenter(tokens) {
+    static _getGroupCenter(tokens) {
         if (!tokens || tokens.length === 0) return null;
         
-        let sumX = 0;
-        let sumY = 0;
+        // Get centers for all tokens
+        const centers = tokens.map(t => this._getTokenCenter(t)).filter(Boolean);
+        if (centers.length === 0) return null;
         
-        tokens.forEach(token => {
-            // Token center position (x, y are top-left, so add half dimensions)
-            sumX += token.x + (token.width * canvas.grid.size / 2);
-            sumY += token.y + (token.height * canvas.grid.size / 2);
-        });
+        // Bounding box center (more stable than average when tokens are spread)
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const c of centers) {
+            minX = Math.min(minX, c.x);
+            minY = Math.min(minY, c.y);
+            maxX = Math.max(maxX, c.x);
+            maxY = Math.max(maxY, c.y);
+        }
         
         return {
-            x: sumX / tokens.length,
-            y: sumY / tokens.length
+            x: (minX + maxX) / 2,
+            y: (minY + maxY) / 2
         };
     }
 
@@ -545,7 +583,10 @@ export class BroadcastManager {
             const zoom = Math.min(zoomX, zoomY, 1.0); // Don't zoom in beyond 1.0
             
             if (zoom > 0 && zoom !== canvas.stage.scale.x) {
-                canvas.animateZoom(zoom);
+                // FoundryVTT v12+: Use canvas.stage.scale to set zoom
+                if (canvas.stage && canvas.stage.scale) {
+                    canvas.stage.scale.set(zoom, zoom);
+                }
             }
             
         } catch (error) {
