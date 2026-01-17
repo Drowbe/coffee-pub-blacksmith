@@ -334,7 +334,8 @@ export class BroadcastManager {
                 : undefined;
             
             // Pan and zoom together in one atomic operation
-            // This ensures transform state stays coherent (no desync between stage.scale and _viewPosition)
+            // canvas.animatePan() appears to center the coordinate in the viewport automatically
+            // (combat mode uses canvasToken.x/y which centers perfectly, so we use token center here)
             const panOptions = {
                 x: targetPosition.x,
                 y: targetPosition.y
