@@ -94,7 +94,7 @@ export class BroadcastManager {
             description: 'BroadcastManager: Follow party tokens on movement (spectator mode)',
             context: 'broadcast-camera',
             priority: 3,
-            callback: (tokenDocument, changes, options, userId) => {
+            callback: async (tokenDocument, changes, options, userId) => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                 
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: updateToken hook fired", {
@@ -130,8 +130,8 @@ export class BroadcastManager {
                 
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Processing token update", { changes }, true, false);
                 
-                // Follow party tokens
-                this._onTokenUpdate(tokenDocument, changes);
+                // Follow party tokens (await to ensure zoom updates complete)
+                await this._onTokenUpdate(tokenDocument, changes);
                 
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
@@ -273,7 +273,7 @@ export class BroadcastManager {
      * @param {TokenDocument} tokenDocument - The token document that was updated
      * @param {Object} changes - The changes made to the token
      */
-    static _onTokenUpdate(tokenDocument, changes) {
+    static async _onTokenUpdate(tokenDocument, changes) {
         try {
             // IMPORTANT: This code only runs for the broadcast user (cameraman)
             // All pan/zoom operations affect the cameraman's viewport only
@@ -309,7 +309,18 @@ export class BroadcastManager {
                 targetPosition: targetPosition
             }, true, false);
             
-            // Check if we should pan (distance threshold + throttle)
+            // Calculate zoom based on token count (affects cameraman's viewport)
+            // Always apply default zoom as baseline, with offset adjustments relative to it
+            const zoomOffset = partyTokens.length === 1 
+                ? getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomOffsetSingle', 0)
+                : getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomOffsetMultiple', 0);
+            
+            const defaultZoom = getSettingSafely(MODULE.ID, 'broadcastDefaultZoom', 1.0);
+            // Always calculate final zoom (default + offset adjustment)
+            // Offset 0 = default zoom, non-zero = adjusted relative to default
+            let finalZoom = this._calculateZoomFromOffset(defaultZoom, zoomOffset);
+            
+            // Pan gating (existing logic: distance threshold + throttle)
             const shouldPan = this._shouldPan(targetPosition);
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Should pan check", {
                 shouldPan: shouldPan,
@@ -317,42 +328,69 @@ export class BroadcastManager {
                 lastPanPosition: this._lastPanPosition
             }, true, false);
             
-            if (!shouldPan) {
-                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Pan blocked by threshold/throttle", "", true, false);
+            // Zoom gating (new: check if zoom needs to change)
+            // Always check zoom since we always calculate finalZoom now
+            const currentZoom = canvas.stage?.scale?.x ?? canvas.scene?._viewPosition?.scale ?? 1.0;
+            const shouldZoom = Math.abs(currentZoom - finalZoom) > 0.001;
+            
+            // If neither pan nor zoom is needed, return early
+            if (!shouldPan && !shouldZoom) {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Pan/zoom blocked by threshold/throttle", {
+                    shouldPan: shouldPan,
+                    shouldZoom: shouldZoom
+                }, true, false);
                 return;
             }
             
-            // Calculate zoom based on token count (affects cameraman's viewport)
-            // Note: Only apply zoom if offset is not 0 (default zoom = no zoom change)
-            const zoomOffset = partyTokens.length === 1 
-                ? getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomOffsetSingle', 0)
-                : getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomOffsetMultiple', 0);
-            
-            const defaultZoom = getSettingSafely(MODULE.ID, 'broadcastDefaultZoom', 1.0);
-            const finalZoom = zoomOffset !== 0
-                ? this._calculateZoomFromOffset(defaultZoom, zoomOffset)
-                : undefined;
+            // Sanity check zoom value and bounds
+            if (finalZoom !== undefined) {
+                if (!Number.isFinite(finalZoom)) {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Invalid finalZoom", {
+                        finalZoom: finalZoom,
+                        zoomOffset: zoomOffset,
+                        defaultZoom: defaultZoom
+                    }, false, false);
+                    return;
+                }
+                const min = canvas.scene?._viewPosition?.minScale ?? 0.25;
+                const max = canvas.scene?._viewPosition?.maxScale ?? 3.0;
+                if (finalZoom < min || finalZoom > max) {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: finalZoom outside bounds, clamping", {
+                        finalZoom: finalZoom,
+                        min: min,
+                        max: max
+                    }, false, false);
+                    // Clamp to bounds
+                    finalZoom = Math.max(min, Math.min(max, finalZoom));
+                }
+            }
             
             // Pan and zoom together in one atomic operation
             // canvas.animatePan() appears to center the coordinate in the viewport automatically
             // (combat mode uses canvasToken.x/y which centers perfectly, so we use token center here)
+            // Always include scale since we always calculate finalZoom now
             const panOptions = {
                 x: targetPosition.x,
-                y: targetPosition.y
+                y: targetPosition.y,
+                scale: finalZoom
             };
             
-            if (finalZoom !== undefined) {
-                panOptions.scale = finalZoom;
-            }
-            
-            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Pan/zoom operation", {
-                targetPosition: targetPosition,
-                finalZoom: finalZoom
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Pan/zoom execute", {
+                shouldPan: shouldPan,
+                shouldZoom: shouldZoom,
+                currentZoom: currentZoom,
+                finalZoom: finalZoom,
+                panOptions: panOptions
             }, true, false);
             
-            canvas.animatePan(panOptions);
-            this._lastPanPosition = targetPosition;
-            this._lastPanTime = Date.now();
+            // Await to ensure scale update completes before updating lastPanPosition
+            await canvas.animatePan(panOptions);
+            
+            // Only update lastPanPosition/time when pan actually ran
+            if (shouldPan) {
+                this._lastPanPosition = targetPosition;
+                this._lastPanTime = Date.now();
+            }
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Error following token", error, false, false);
