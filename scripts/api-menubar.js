@@ -1415,7 +1415,124 @@ class MenuBar {
             persistence: 'manual'
         });
 
+        // Register broadcast tools
+        this._registerBroadcastTools();
+
         postConsoleAndNotification(MODULE.NAME, "Menubar: Secondary bar types registered", "", true, false);
+    }
+
+    /**
+     * Register broadcast tools in the broadcast secondary bar
+     * @private
+     */
+    static _registerBroadcastTools() {
+        // Helper function to get current mode label
+        const getCurrentModeLabel = () => {
+            const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+            const labels = {
+                'spectator': 'Spectator',
+                'combat': 'Combat',
+                'manual': 'Manual'
+            };
+            return labels[mode] || 'Spectator';
+        };
+
+        // Helper function to get current mode icon
+        const getCurrentModeIcon = () => {
+            const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+            const icons = {
+                'spectator': 'fas fa-users',
+                'combat': 'fas fa-swords',
+                'manual': 'fas fa-hand-pointer'
+            };
+            return icons[mode] || 'fas fa-users';
+        };
+
+        // Register Spectator mode button
+        this.registerSecondaryBarItem('broadcast', 'broadcast-mode-spectator', {
+            icon: 'fas fa-users',
+            label: 'Spectator',
+            tooltip: 'Follow party tokens automatically',
+            group: 'modes',
+            order: 0,
+            toggleable: true,
+            active: () => {
+                const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+                return mode === 'spectator';
+            },
+            onClick: async () => {
+                await game.settings.set(MODULE.ID, 'broadcastMode', 'spectator');
+                // Update button states by re-rendering
+                if (this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast') {
+                    this.renderMenubar(true);
+                }
+            }
+        });
+
+        // Register Combat mode button
+        this.registerSecondaryBarItem('broadcast', 'broadcast-mode-combat', {
+            icon: 'fas fa-swords',
+            label: 'Combat',
+            tooltip: 'Follow current combatant automatically',
+            group: 'modes',
+            order: 1,
+            toggleable: true,
+            active: () => {
+                const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+                return mode === 'combat';
+            },
+            onClick: async () => {
+                await game.settings.set(MODULE.ID, 'broadcastMode', 'combat');
+                // Update button states by re-rendering
+                if (this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast') {
+                    this.renderMenubar(true);
+                }
+            }
+        });
+
+        // Register Manual mode button
+        this.registerSecondaryBarItem('broadcast', 'broadcast-mode-manual', {
+            icon: 'fas fa-hand-pointer',
+            label: 'Manual',
+            tooltip: 'No automatic following (manual camera control)',
+            group: 'modes',
+            order: 2,
+            toggleable: true,
+            active: () => {
+                const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+                return mode === 'manual';
+            },
+            onClick: async () => {
+                await game.settings.set(MODULE.ID, 'broadcastMode', 'manual');
+                // Update button states by re-rendering
+                if (this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast') {
+                    this.renderMenubar(true);
+                }
+            }
+        });
+
+        // Listen for broadcast mode setting changes to update button states
+        HookManager.registerHook({
+            name: 'settingChange',
+            description: 'MenuBar: Update broadcast mode buttons when mode changes',
+            context: 'broadcast-mode-buttons',
+            priority: 5,
+            key: 'broadcastModeButtons',
+            callback: async (moduleId, settingKey, value) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                
+                if (moduleId === MODULE.ID && settingKey === 'broadcastMode') {
+                    // Re-render if broadcast bar is open to update button active states
+                    if (this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast') {
+                        this.renderMenubar(true);
+                    }
+                }
+                
+                //  ------------------- END - HOOKMANAGER CALLBACK -------------------
+            }
+        });
+
+        postConsoleAndNotification(MODULE.NAME, "Menubar: Broadcast tools registered", "", true, false);
     }
 
     /**

@@ -5,6 +5,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, matchUserBySetting, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { MenuBar } from './api-menubar.js';
 
 // ================================================================== 
 // ===== BROADCAST MANAGER ==========================================
@@ -19,6 +20,8 @@ import { HookManager } from './manager-hooks.js';
  */
 export class BroadcastManager {
     static isInitialized = false;
+    static _lastPanPosition = { x: null, y: null };
+    static _lastPanTime = 0;
 
     /**
      * Initialize the BroadcastManager
@@ -59,7 +62,8 @@ export class BroadcastManager {
                     settingKey === 'broadcastUserId' ||
                     settingKey === 'broadcastHideInterfaceLeft' ||
                     settingKey === 'broadcastHideInterfaceMiddle' ||
-                    settingKey === 'broadcastHideInterfaceRight'
+                    settingKey === 'broadcastHideInterfaceRight' ||
+                    settingKey === 'broadcastHideBackground'
                 )) {
                     this._updateBroadcastMode();
                 }
@@ -74,7 +78,68 @@ export class BroadcastManager {
         Hooks.once('ready', () => {
             setTimeout(() => {
                 this._updateBroadcastMode();
+                // Register camera hooks after settings are loaded
+                this._registerCameraHooks();
             }, 100);
+        });
+    }
+
+    /**
+     * Register hooks for camera following (token updates, combat updates)
+     */
+    static _registerCameraHooks() {
+        // Hook for token position updates (spectator mode)
+        HookManager.registerHook({
+            name: 'updateToken',
+            description: 'BroadcastManager: Follow party tokens on movement (spectator mode)',
+            context: 'broadcast-camera',
+            priority: 3,
+            callback: (tokenDocument, changes, options, userId) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                
+                // Only process for broadcast user
+                if (!this._isBroadcastUser()) return;
+                if (!this.isEnabled()) return;
+                
+                // Check if we're in spectator mode
+                const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+                if (mode !== 'spectator') return;
+                
+                // Only process if position changed
+                if (!changes || (changes.x === undefined && changes.y === undefined)) return;
+                
+                // Follow party tokens
+                this._onTokenUpdate(tokenDocument, changes);
+                
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+
+        // Hook for combat turn changes (combat mode)
+        HookManager.registerHook({
+            name: 'updateCombat',
+            description: 'BroadcastManager: Follow current combatant on turn change (combat mode)',
+            context: 'broadcast-camera',
+            priority: 3,
+            callback: (combat, updateData, options, userId) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                
+                // Only process for broadcast user
+                if (!this._isBroadcastUser()) return;
+                if (!this.isEnabled()) return;
+                
+                // Check if we're in combat mode
+                const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+                if (mode !== 'combat') return;
+                
+                // Only process on turn change (when current turn index changes)
+                if (!updateData || updateData.turn === undefined) return;
+                
+                // Follow current combatant
+                this._onCombatUpdate(combat);
+                
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
         });
     }
 
@@ -143,6 +208,13 @@ export class BroadcastManager {
                 document.body.classList.remove('hide-interface-right');
             }
             
+            // Apply background hiding class
+            if (getSettingSafely(MODULE.ID, 'broadcastHideBackground', true)) {
+                document.body.classList.add('hide-background');
+            } else {
+                document.body.classList.remove('hide-background');
+            }
+            
             // Verify classes were applied
             const hasBroadcastClass = document.body.classList.contains('broadcast-mode');
             const hasLeftClass = document.body.classList.contains('hide-interface-left');
@@ -165,7 +237,227 @@ export class BroadcastManager {
                 bodyClasses: Array.from(document.body.classList)
             }, true, false);
         } else {
-            document.body.classList.remove('broadcast-mode', 'hide-interface-left', 'hide-interface-middle', 'hide-interface-right');
+            document.body.classList.remove('broadcast-mode', 'hide-interface-left', 'hide-interface-middle', 'hide-interface-right', 'hide-background');
+        }
+    }
+
+    /**
+     * Handle token position update (spectator mode)
+     * @param {TokenDocument} tokenDocument - The token document that was updated
+     * @param {Object} changes - The changes made to the token
+     */
+    static _onTokenUpdate(tokenDocument, changes) {
+        try {
+            // Get party tokens visible to broadcast user
+            const partyTokens = this._getVisiblePartyTokens();
+            if (!partyTokens || partyTokens.length === 0) return;
+            
+            // Calculate target position
+            let targetPosition = null;
+            if (partyTokens.length === 1) {
+                // Single token: follow that token
+                const token = partyTokens[0];
+                targetPosition = {
+                    x: token.x + (token.width * canvas.grid.size / 2),
+                    y: token.y + (token.height * canvas.grid.size / 2)
+                };
+            } else {
+                // Multiple tokens: calculate average position (center)
+                targetPosition = this._calculateTokenCenter(partyTokens);
+            }
+            
+            if (!targetPosition) return;
+            
+            // Check if we should pan (distance threshold + throttle)
+            if (!this._shouldPan(targetPosition)) return;
+            
+            // Apply zoom based on token count
+            const zoomLevel = partyTokens.length === 1 
+                ? getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomSingle', 1.0)
+                : getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomMultiple', 0);
+            
+            if (zoomLevel > 0) {
+                canvas.animateZoom(zoomLevel);
+            } else if (partyTokens.length > 1) {
+                // Auto-fit for multiple tokens
+                this._applyAutoFitZoom(partyTokens);
+            }
+            
+            // Pan to target position
+            canvas.animatePan({ x: targetPosition.x, y: targetPosition.y });
+            this._lastPanPosition = targetPosition;
+            this._lastPanTime = Date.now();
+            
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Error following token", error, false, false);
+        }
+    }
+
+    /**
+     * Handle combat turn update (combat mode)
+     * @param {Combat} combat - The combat instance
+     */
+    static _onCombatUpdate(combat) {
+        try {
+            if (!combat) return;
+            
+            const currentCombatant = combat.combatants.get(combat.current.combatantId);
+            if (!currentCombatant) return;
+            
+            // Use existing MenuBar.panToCombatant function
+            MenuBar.panToCombatant(currentCombatant.id);
+            
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Error following combatant", error, false, false);
+        }
+    }
+
+    /**
+     * Get all party tokens visible to the broadcast user
+     * @returns {Array} Array of visible party token placeables
+     */
+    static _getVisiblePartyTokens() {
+        if (!canvas || !canvas.tokens) return [];
+        
+        const broadcastUser = this._getBroadcastUser();
+        if (!broadcastUser) return [];
+        
+        return canvas.tokens.placeables.filter(token => {
+            const actor = token.actor;
+            // Must be player character
+            if (!actor || actor.type !== 'character' || !actor.hasPlayerOwner) {
+                return false;
+            }
+            // Must be visible to broadcast user
+            if (token.document?.testUserVisibility) {
+                return token.document.testUserVisibility(broadcastUser);
+            }
+            // Fallback: check if token is visible on canvas
+            return token.visible;
+        });
+    }
+
+    /**
+     * Get the broadcast user object
+     * @returns {User|null} The broadcast user, or null if not found
+     */
+    static _getBroadcastUser() {
+        const settingValue = getSettingSafely(MODULE.ID, 'broadcastUserId', '') || '';
+        if (!settingValue) return null;
+        
+        // Try to match by ID first
+        const byId = game.users.get(settingValue);
+        if (byId) return byId;
+        
+        // Try to match by name
+        const byName = game.users.find(u => u.name?.toLowerCase() === settingValue.toLowerCase());
+        if (byName) return byName;
+        
+        return null;
+    }
+
+    /**
+     * Calculate center point of multiple tokens
+     * @param {Array} tokens - Array of token placeables
+     * @returns {Object|null} Center position {x, y} or null if no tokens
+     */
+    static _calculateTokenCenter(tokens) {
+        if (!tokens || tokens.length === 0) return null;
+        
+        let sumX = 0;
+        let sumY = 0;
+        
+        tokens.forEach(token => {
+            // Token center position (x, y are top-left, so add half dimensions)
+            sumX += token.x + (token.width * canvas.grid.size / 2);
+            sumY += token.y + (token.height * canvas.grid.size / 2);
+        });
+        
+        return {
+            x: sumX / tokens.length,
+            y: sumY / tokens.length
+        };
+    }
+
+    /**
+     * Check if camera should pan based on distance threshold and throttle
+     * @param {Object} newPosition - New position {x, y}
+     * @returns {boolean} True if should pan
+     */
+    static _shouldPan(newPosition) {
+        const distanceThreshold = getSettingSafely(MODULE.ID, 'broadcastFollowDistanceThreshold', 1.0);
+        const throttleMs = getSettingSafely(MODULE.ID, 'broadcastFollowThrottleMs', 100);
+        
+        // Check throttle (time-based)
+        const now = Date.now();
+        if (now - this._lastPanTime < throttleMs) {
+            return false;
+        }
+        
+        // Check distance threshold (if we have a last position)
+        if (this._lastPanPosition.x !== null && this._lastPanPosition.y !== null) {
+            const distance = Math.sqrt(
+                Math.pow(newPosition.x - this._lastPanPosition.x, 2) +
+                Math.pow(newPosition.y - this._lastPanPosition.y, 2)
+            );
+            
+            // Convert pixels to grid units
+            const gridUnits = distance / canvas.grid.size;
+            
+            if (gridUnits < distanceThreshold) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    /**
+     * Apply auto-fit zoom to show all tokens
+     * @param {Array} tokens - Array of token placeables
+     */
+    static _applyAutoFitZoom(tokens) {
+        try {
+            if (!tokens || tokens.length === 0) return;
+            
+            // Calculate bounds of all tokens
+            let minX = Infinity;
+            let minY = Infinity;
+            let maxX = -Infinity;
+            let maxY = -Infinity;
+            
+            tokens.forEach(token => {
+                const tokenWidth = token.width * canvas.grid.size;
+                const tokenHeight = token.height * canvas.grid.size;
+                minX = Math.min(minX, token.x);
+                minY = Math.min(minY, token.y);
+                maxX = Math.max(maxX, token.x + tokenWidth);
+                maxY = Math.max(maxY, token.y + tokenHeight);
+            });
+            
+            // Add padding (20% margin)
+            const padding = Math.max(maxX - minX, maxY - minY) * 0.2;
+            minX -= padding;
+            minY -= padding;
+            maxX += padding;
+            maxY += padding;
+            
+            // Calculate zoom to fit bounds
+            const canvasWidth = canvas.scene.width * canvas.grid.size;
+            const canvasHeight = canvas.scene.height * canvas.grid.size;
+            const boundsWidth = maxX - minX;
+            const boundsHeight = maxY - minY;
+            
+            const zoomX = canvasWidth / boundsWidth;
+            const zoomY = canvasHeight / boundsHeight;
+            const zoom = Math.min(zoomX, zoomY, 1.0); // Don't zoom in beyond 1.0
+            
+            if (zoom > 0 && zoom !== canvas.stage.scale.x) {
+                canvas.animateZoom(zoom);
+            }
+            
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Error applying auto-fit zoom", error, false, false);
         }
     }
 

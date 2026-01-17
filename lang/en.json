@@ -220,6 +220,24 @@
 			"broadcastHideInterfaceRight-Label": "Hide Right UI Section",
 			"broadcastHideInterfaceRight-Hint": "Hide the right UI section when in broadcast mode.",
 
+			"broadcastMode-Label": "Camera Mode",
+			"broadcastMode-Hint": "Camera following mode for broadcast: Spectator (follow party tokens), Combat (follow current combatant), Manual (no automatic following).",
+
+			"broadcastFollowDistanceThreshold-Label": "Follow Distance Threshold",
+			"broadcastFollowDistanceThreshold-Hint": "Minimum token movement (in grid units) required to trigger camera pan. Smaller values = more sensitive following.",
+
+			"broadcastFollowThrottleMs-Label": "Follow Throttle (ms)",
+			"broadcastFollowThrottleMs-Hint": "Minimum time (in milliseconds) between camera pan operations. Prevents excessive panning on rapid token movements.",
+
+			"broadcastHideBackground-Label": "Hide Scene Background",
+			"broadcastHideBackground-Hint": "Hide the scene background image when in broadcast mode. Useful for cleaner streaming visuals.",
+
+			"broadcastSpectatorZoomSingle-Label": "Spectator Zoom (Single Token)",
+			"broadcastSpectatorZoomSingle-Hint": "Zoom level when following a single party token. 1.0 = no zoom change, 0.5 = zoom out 2x, 2.0 = zoom in 2x.",
+
+			"broadcastSpectatorZoomMultiple-Label": "Spectator Zoom (Multiple Tokens)",
+			"broadcastSpectatorZoomMultiple-Hint": "Zoom level when following multiple party tokens. 0 = auto-fit to show all tokens, or specify zoom level (0.1-5.0).",
+
 		"headingH2CombatEnhancements-Label": "Combat",
 		"headingH2CombatEnhancements-Hint": "Enhancements and quality of lifeimprovements to the combat system.",
 

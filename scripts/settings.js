@@ -1734,6 +1734,87 @@ export const registerSettings = () => {
 			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 
+		// Broadcast Mode
+		game.settings.register(MODULE.ID, 'broadcastMode', {
+			name: MODULE.ID + '.broadcastMode-Label',
+			hint: MODULE.ID + '.broadcastMode-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: String,
+			default: 'spectator',
+			choices: {
+				'spectator': 'Spectator',
+				'combat': 'Combat',
+				'manual': 'Manual'
+			},
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// Broadcast Follow Distance Threshold
+		game.settings.register(MODULE.ID, 'broadcastFollowDistanceThreshold', {
+			name: MODULE.ID + '.broadcastFollowDistanceThreshold-Label',
+			hint: MODULE.ID + '.broadcastFollowDistanceThreshold-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Number,
+			default: 1,
+			range: { min: 0.1, max: 10, step: 0.1 },
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// Broadcast Follow Throttle (milliseconds)
+		game.settings.register(MODULE.ID, 'broadcastFollowThrottleMs', {
+			name: MODULE.ID + '.broadcastFollowThrottleMs-Label',
+			hint: MODULE.ID + '.broadcastFollowThrottleMs-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Number,
+			default: 100,
+			range: { min: 0, max: 1000, step: 10 },
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// Broadcast Hide Background
+		game.settings.register(MODULE.ID, 'broadcastHideBackground', {
+			name: MODULE.ID + '.broadcastHideBackground-Label',
+			hint: MODULE.ID + '.broadcastHideBackground-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Boolean,
+			default: true,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// Broadcast Spectator Zoom Single
+		game.settings.register(MODULE.ID, 'broadcastSpectatorZoomSingle', {
+			name: MODULE.ID + '.broadcastSpectatorZoomSingle-Label',
+			hint: MODULE.ID + '.broadcastSpectatorZoomSingle-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Number,
+			default: 1.0,
+			range: { min: 0.1, max: 5.0, step: 0.1 },
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// Broadcast Spectator Zoom Multiple
+		game.settings.register(MODULE.ID, 'broadcastSpectatorZoomMultiple', {
+			name: MODULE.ID + '.broadcastSpectatorZoomMultiple-Label',
+			hint: MODULE.ID + '.broadcastSpectatorZoomMultiple-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Number,
+			default: 0,
+			range: { min: 0, max: 5.0, step: 0.1 },
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
 	// --------------------------------------
 	// -- H2: Combat
 	// --------------------------------------

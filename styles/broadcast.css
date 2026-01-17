@@ -37,3 +37,9 @@
     display: none !important;
     visibility: hidden !important;
 }
+
+/* Hide scene background when broadcastHideBackground is enabled */
+.broadcast-mode.hide-background canvas.background {
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
