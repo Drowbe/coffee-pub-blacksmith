@@ -1,620 +1,108 @@
-# TODO - Active Issues and Future Tasks
+# TODO - Active Work and Future Ideas
 
-## ACTIVE ISSUES
-
-### CRITICAL PRIORITY ISSUES
-
-### V13 TESTS NEEDED
-- import json for actors
-- import json for items
-- import json for tables
-- nameplate creation
-
-
+## CRITICAL BUGS
 
 ### Memory Leak Investigation
-- **Issue**: Browser tab memory grows to 9.5 GB in ~3 hours while heap stays ~950 MB, leading to crashes.
-- **Status**: PENDING — see `documentation/performance.md` for full investigation notes, findings, and next steps.
-- **Priority**: CRITICAL
-- **Next Step**: Verify token image window cleanup in live play, then tackle menubar rerenders (per performance.md). Update this entry when the linked doc advances.
+- **Issue**: Browser tab memory grows to 9.5 GB in ~3 hours while heap stays ~950 MB, leading to crashes.
+- **Status**: IN PROGRESS — see `documentation/performance.md` for full investigation notes, findings, and next steps.
+- **Progress**: 5 of 7 critical/high-priority items completed.
+- **Next Step**: Optimize menubar rerenders (item 6) - introduce state diffing/throttling to reduce frequent rebuilds during combat/timer events. Then address image cache footprint (item 7) if needed.
+- **Location**: See `documentation/performance.md`
 
 
-### Combat Stats - Critical Bugs and Design Alignment
-- **Issue**: Multiple critical bugs in combat stats system and design inconsistencies between round summaries and combat summary
-- **Status**: PARTIALLY FIXED - Some issues resolved, others still need work
-- **Priority**: CRITICAL - Broken functionality and design inconsistencies
-- **Current State**: 
-  - Some issues have been fixed (scene name, notable moments section, progress bars, round summary portraits)
-  - Critical bug with `healing.received` still needs defensive check
-  - Combat summary MVP and participant portraits still need work
-  - Notable moments format needs alignment between round and combat summaries
-- **Location**: `scripts/stats-combat.js`, `templates/stats-round.hbs`, `templates/stats-combat.hbs`
-- **Overall Goal**: End-of-combat results should match round results design but aggregated for the whole combat session
-- **Tasks Needed**:
-  - **CRITICAL BUGS:**
-    - ✅ **FIXED** - Scene name display: `sceneName` is properly set and displayed in combat summary header (line 6 of `stats-combat.hbs`)
-    - ⚠️ **STILL NEEDS WORK** - Fix `TypeError: Cannot read properties of undefined (reading 'received')` at `stats-combat.js:1383` in `_onDamageRoll` method
-      - Error occurs when accessing `healing.received` property that doesn't exist on `targetCurrentStats` or `targetCombatStats`
-      - Need to add defensive check similar to line 1324: `targetCurrentStats.healing = targetCurrentStats.healing || { given: 0, received: 0 };`
-      - Issue: At line 218, if `this.DEFAULTS.roundStats.participantStats` doesn't exist (it doesn't), it clones `{}`, and healing may not be initialized
-  - **ROUND SUMMARY CARD ISSUES:**
-    - ✅ **FIXED** - Progress bar: `.progress-bar` and `.progress-fill` elements exist in template (lines 326-327 of `stats-round.hbs`)
-    - ✅ **FIXED** - Token images: `tokenImg` is set in `_prepareTemplateData` (line 2175) and displayed in round template (line 313)
-    - ⚠️ **NEEDS VERIFICATION** - MVP display showing portrait and data but saying "no mvp" message
-      - MVP calculation/description generation may be incorrect when MVP exists
-      - Need to verify MVP detection logic and description generation in live testing
-    - ⚠️ **NEEDS VERIFICATION** - Missing player names in Round 1 party breakdown
-      - Player names not displaying in turn details for first round
-      - Code appears correct in `_prepareTemplateData` - needs live testing to confirm
-  - **COMBAT SUMMARY CARD ISSUES:**
-    - ✅ **FIXED** - Scene name display: `sceneName` is set in `_generateCombatSummary` (line 499) and displayed (line 6 of `stats-combat.hbs`)
-    - ⚠️ **PARTIALLY FIXED** - Notable moments display exists but format doesn't match round summaries
-      - Combat summary has "Notable Moments" section (lines 119-163 of `stats-combat.hbs`)
-      - Shows `topHits` and `topHeals` but format is simpler than round summaries
-      - Round summaries show portraits, actor names, and more detail (lines 169-294 of `stats-round.hbs`)
-      - Need to align format: add portraits, actor images, and match the detailed format from round summaries
-    - ⚠️ **STILL NEEDS WORK** - Fix MVP layout to match round card MVP design
-      - Combat summary MVP (lines 62-67 of `stats-combat.hbs`) missing portrait image
-      - Round MVP shows `<img src="{{tokenImg}}" />` (line 83 of `stats-round.hbs`) but combat summary doesn't
-      - Combat summary shows `"Score {{notableMoments.mvp.score}}"` instead of proper description
-      - Should include portrait, name, description, and detailed stats (Combat, Damage, Healing) like round cards
-    - ⚠️ **STILL NEEDS WORK** - Add portraits to party breakdown section
-      - `participantSummaries` in `_generateCombatSummary` (lines 502-525) doesn't include `tokenImg`
-      - Round template shows portraits (line 313 of `stats-round.hbs`) but combat summary template (lines 173-186 of `stats-combat.hbs`) doesn't display them
-      - Need to add `tokenImg` to participant summaries and update template to display portraits
-  - **DESIGN ALIGNMENT:**
-    - ⚠️ **PARTIALLY FIXED** - Combat summary uses similar structure but notable moments and MVP formats need alignment
-      - Same card structure and section headers ✅
-      - Same portrait sizes and placements ⚠️ (missing in MVP and participants)
-      - Same notable moments format ⚠️ (exists but simpler format)
-      - Same MVP display format ⚠️ (missing portrait and proper description)
-- **Related Files**:
-  - `scripts/stats-combat.js` - Data generation and processing
-  - `templates/stats-round.hbs` - Round summary template
-  - `templates/stats-combat.hbs` - Combat summary template
-  - `styles/cards-stats.css` - Styling for both templates
-- **Notes**: The combat summary should be essentially an aggregated version of the round summaries, using the exact same design patterns and data structures. All the same sections (MVP, Notable Moments, Party Breakdown) should be present with the same visual design.
-
-
-### MEDIUM PRIORITY ISSUES
+## MEDIUM BUGS
 
 ### Verify Loot Token Restoration
 - **Issue**: Ensure tokens converted to loot piles reliably restore their original images after revival
 - **Status**: PENDING - Needs validation pass
-- **Priority**: MEDIUM - Gameplay consistency
-- **Current State**: Recent fixes rely on Item Piles `keepOriginal` and manual restore logic; needs regression testing across scenarios
 - **Location**: `scripts/token-image-utilities.js`
-- **Tasks Needed**:
-  - Test loot conversion and restoration with various token types (linked/unlinked, PCs/NPCs)
-  - Confirm restoration holds across scene reloads and Foundry refresh
-  - Verify behavior with Item Piles disabled/enabled
-  - Add automated or documented manual test steps for future regressions
+- **Need**: Regression testing across scenarios (various token types, scene reloads, Item Piles enabled/disabled)
 - **Related Settings**: `tokenConvertDeadToLoot`, `tokenLootPileImage`
 
 
-### Hide Dead and Skip Dead Options for Menubar and Combat Tracker
+## ENHANCEMENTS
+
+### High Priority
+
+### Medium Priority
+
+#### Hide Dead and Skip Dead Options for Menubar and Combat Tracker
 - **Issue**: Need options to hide and skip dead combatants in menubar and combat tracker
 - **Status**: PENDING - Needs implementation
-- **Priority**: MEDIUM - UI/UX improvement
-- **Current State**: Dead combatants are always shown in menubar and combat tracker
-- **Location**: `scripts/api-menubar.js` (combat bar rendering), `scripts/combat-tracker.js`, menubar templates
-- **Tasks Needed**:
-  - Add setting to hide dead combatants from menubar
-  - Add setting to hide dead combatants from combat tracker
-  - Add setting to skip dead combatants during turn advancement
-  - Filter dead combatants based on settings
-  - Ensure GM can still see all combatants if needed
-- **Related Settings**: 
-  - `menubarHideDead` - Hide dead combatants from menubar (new)
-  - `menubarSkipDead` - Skip dead combatants during turn advancement (new)
-  - `combatTrackerHideDead` - Hide dead combatants from combat tracker (new)
-- **Notes**: Options should be separate for menubar and combat tracker to allow different preferences
+- **Location**: `scripts/api-menubar.js`, `scripts/combat-tracker.js`
+- **Need**: Settings for `menubarHideDead`, `menubarSkipDead`, `combatTrackerHideDead` with filtering logic
 
-### Hide Initiative Roll Chat Cards
-- **Issue**: Initiative roll chat cards clutter the chat log and may not be needed for all users
+#### Hide Initiative Roll Chat Cards
+- **Issue**: Initiative roll chat cards clutter the chat log
 - **Status**: PENDING - Needs implementation
-- **Priority**: MEDIUM - UI/UX improvement
-- **Current State**: Initiative rolls are posted to chat as visible chat cards
-- **Location**: Initiative roll handling (likely in combat-tracker.js or combat-tools.js), chat message creation
-- **Tasks Needed**:
-  - Add setting to hide initiative roll chat cards
-  - Option to hide for all users or only non-GM users
-  - Ensure initiative values are still properly set in combat tracker
-  - Verify that initiative rolls still function correctly when hidden
-  - Test with different combat scenarios (manual rolls, automatic rolls, etc.)
-  - Consider alternative display methods (e.g., only show in combat tracker)
-- **Related Settings**: 
-  - `hideInitiativeRolls` - Hide initiative roll chat cards (new)
-  - `hideInitiativeRollsForPlayers` - Hide initiative rolls for non-GM users only (new)
-- **Notes**: This reduces chat clutter while maintaining full combat functionality. Initiative values should still be visible in the combat tracker.
+- **Location**: Initiative roll handling (combat-tracker.js or combat-tools.js)
+- **Need**: Setting to hide initiative roll cards (for all users or players only), while maintaining functionality
 
-### Wire up enableMenubar Setting
+#### Wire up enableMenubar Setting
 - **Issue**: enableMenubar setting needs to be properly connected to functionality
 - **Status**: PENDING - Needs implementation
-- **Priority**: MEDIUM - Settings refactoring completion
-- **Current State**: Setting exists but may not be properly wired to menubar functionality
-- **Location**: `scripts/settings.js` (enableMenubar setting), `scripts/api-menubar.js` (menubar functionality)
-- **Tasks Needed**:
-  - Search for old references to "blacksmith chat panel" that the menubar replaced
-  - Ensure enableMenubar setting properly controls menubar visibility
-  - Verify excludedUsersMenubar setting hides menubar for excluded users
-  - Test that setting changes take effect (requiresReload: true is set)
-  - Update any documentation that references the old chat panel
-- **Related Settings**:
-  - `enableMenubar` - Main toggle for menubar functionality
-  - `excludedUsersMenubar` - List of users who should not see the menubar
-- **Notes**: This is part of the settings refactoring - ensure the migrated settings actually work
+- **Location**: `scripts/settings.js`, `scripts/api-menubar.js`
+- **Need**: Ensure setting controls menubar visibility, verify excludedUsersMenubar works, update any old references to "blacksmith chat panel"
 
-### Query Tool Review and Improvements
+#### Query Tool Review and Improvements
 - **Issue**: Query tool needs comprehensive review and fixes for functionality and UX
 - **Status**: PENDING - Needs review and implementation
-- **Priority**: MEDIUM - Functionality review and improvements
-- **Current State**: Query tool exists but needs verification and improvements
-- **Location**: `scripts/window-query.js`, query tool templates
-- **Tasks Needed**:
-  - **Verify Each Tab**: Test all tabs (Lookup, Narrative, Encounter, Assistant, Character) to ensure they work correctly
-  - **Drop Functionality Design**: 
-    - Review and document how dropping items and linked journals should work
-    - Ensure consistent behavior across all drop zones
-    - Verify drop handlers work for all supported types (tokens, actors, items, journals)
-    - Test edge cases (invalid drops, multiple drops, etc.)
-  - **JSON Generation Fix**: 
-    - Review and fix JSON generation for query results
-    - Ensure JSON output is valid and properly formatted
-    - Test JSON generation with various input types
-    - Verify JSON structure matches expected format
-- **Related Files**:
-  - `scripts/window-query.js` - Main query tool implementation
-  - `scripts/token-handler.js` - Token/item drop handling
-  - Query tool templates
-- **Notes**: This is a comprehensive review to ensure the query tool works correctly and has a clear, consistent UX for all features
+- **Location**: `scripts/window-query.js`
+- **Need**: Verify all tabs work, review/fix drop functionality design, fix JSON generation
 
-### Add Enable Setting for Nameplate Styling
-- **Issue**: Nameplate styling settings should operate independently from nameplate content/formatting
+#### Add Enable Setting for Nameplate Styling
+- **Issue**: Nameplate styling should operate independently from nameplate content/formatting
 - **Status**: PENDING - Needs implementation
-- **Priority**: MEDIUM - Settings refactoring completion
-- **Current State**: Nameplate styling is always applied regardless of tokenNameFormat setting
-- **Location**: `scripts/settings.js` (new setting), `scripts/manager-canvas.js` (styling logic)
-- **Tasks Needed**:
-  - Add new setting `enableNameplateStyling` (Boolean, default: true)
-  - Modify `_updateSingleTokenNameplate()` to check this setting before applying styling
-  - Ensure nameplate styling operates independently from `tokenNameFormat` setting
-  - Test that styling can be disabled while keeping nameplate content
-  - Test that styling can be enabled while disabling nameplate content
-  - Update localization for new setting
-- **Related Settings**:
-  - `enableNameplateStyling` - New setting to enable/disable nameplate styling
-  - `nameplateFontFamily` - Font family for nameplates
-  - `nameplateFontSize` - Font size for nameplates
-  - `nameplateColor` - Text color for nameplates
-  - `nameplateOutlineSize` - Outline size for nameplates
-  - `nameplateOutlineColor` - Outline color for nameplates
-  - `tokenNameFormat` - Controls nameplate content/formatting (independent)
-- **Notes**: This allows users to control nameplate styling separately from nameplate content
+- **Location**: `scripts/settings.js`, `scripts/manager-canvas.js`
+- **Need**: New `enableNameplateStyling` setting, update `_updateSingleTokenNameplate()` to check setting
 
-### Migrate defaultRulebooks Setting to Checkboxes and Custom Box
-- **Issue**: defaultRulebooks setting should use checkboxes for common rulebooks and a custom text box for additional ones
+#### Migrate defaultRulebooks Setting to Checkboxes and Custom Box
+- **Issue**: defaultRulebooks should use checkboxes for common rulebooks and custom text box for additional ones
 - **Status**: PENDING - Needs implementation
-- **Priority**: MEDIUM - Settings refactoring completion
-- **Current State**: Currently uses a single String input field for all rulebooks
-- **Location**: `scripts/settings.js` (defaultRulebooks setting), UI components
-- **Tasks Needed**:
-  - Create checkbox settings for common rulebooks (PHB, DMG, MM, XGtE, TCoE, etc.)
-  - Add custom text box setting for additional/third-party rulebooks
-  - Update the setting logic to combine checkbox selections with custom text
-  - Ensure backward compatibility with existing string-based setting
-  - Test that the combined rulebook list works correctly
-  - Update localization for new checkbox settings
-  - Consider migration path for existing users
-- **Related Settings**:
-  - `defaultRulebooks` - Current string-based setting (to be replaced)
-  - `rulebookPHB` - Player's Handbook checkbox (new)
-  - `rulebookDMG` - Dungeon Master's Guide checkbox (new)
-  - `rulebookMM` - Monster Manual checkbox (new)
-  - `rulebookXGtE` - Xanathar's Guide checkbox (new)
-  - `rulebookTCoE` - Tasha's Cauldron checkbox (new)
-  - `rulebookCustom` - Custom rulebooks text box (new)
-- **Notes**: This provides better UX for selecting common rulebooks while maintaining flexibility for custom ones
+- **Location**: `scripts/settings.js`
+- **Need**: Checkbox settings for PHB/DMG/MM/XGtE/TCoE, custom text box, backward compatibility
 
-### Refactor Compendium Settings into Reusable Function
+#### Refactor Compendium Settings into Reusable Function
 - **Issue**: Compendium settings have repeated code patterns that could be consolidated
 - **Status**: PENDING - Needs implementation
-- **Priority**: MEDIUM - Code quality and maintainability
-- **Current State**: Each compendium type (Actor, Item, Feature, Spell) has identical loop structures
-- **Location**: `scripts/settings.js` (compendium registration loops)
-- **Tasks Needed**:
-  - Create reusable function `registerCompendiumSettings(type, numCompendiums, group)`
-  - Replace repeated loops with function calls
-  - Ensure function handles different compendium types correctly
-  - Test that all compendium settings still work after refactoring
-  - Consider adding type-specific customization options
-  - Update any related logic that depends on the current structure
-- **Current Pattern**:
-  ```javascript
-  for (let i = 1; i <= numCompendiums; i++) {
-      game.settings.register(MODULE.ID, `{type}Compendium${i}`, {
-          name: `{Type}: Priority ${i}`,
-          hint: null,
-          scope: "world",
-          config: true,
-          requiresReload: false,
-          default: "none",
-          choices: BLACKSMITH.arrCompendiumChoices
-      });
-  }
-  ```
-- **Proposed Function**:
-  ```javascript
-  function registerCompendiumSettings(type, displayName, numCompendiums, group) {
-      for (let i = 1; i <= numCompendiums; i++) {
-          game.settings.register(MODULE.ID, `${type}Compendium${i}`, {
-              name: `${displayName}: Priority ${i}`,
-              hint: null,
-              scope: "world",
-              config: true,
-              requiresReload: false,
-              default: "none",
-              choices: BLACKSMITH.arrCompendiumChoices,
-              group: group
-          });
-      }
-  }
-  ```
-- **Related Settings**:
-  - `monsterCompendium1-8` - Actor compendiums (8 settings)
-  - `itemCompendium1-8` - Item compendiums (8 settings)
-  - `featureCompendium1-8` - Feature compendiums (8 settings)
-  - `spellCompendium1-8` - Spell compendiums (8 settings)
-- **Notes**: This reduces code duplication and makes adding new compendium types easier
+- **Location**: `scripts/settings.js`
+- **Need**: Create `registerCompendiumSettings(type, displayName, numCompendiums, group)` function to replace repeated loops
 
-
-### Combat Stats - Review and Refactor
+#### Combat Stats - Review and Refactor
 - **Issue**: Combat stats system needs review and potential refactoring
 - **Status**: PENDING - Needs investigation and planning
-- **Priority**: MEDIUM - Code quality and maintainability
-- **Current State**: Combat stats functionality exists but may need cleanup/optimization
 - **Location**: `scripts/stats-combat.js`, potentially `scripts/stats-player.js`
-- **Investigation Needed**:
-  - Review current combat stats implementation
-  - Identify what stats are being tracked and how
-  - Check for unused code or duplicate logic
-  - Verify stats are being stored/retrieved correctly
-  - Check for performance issues
-  - Review UI/UX for displaying stats
-- **Potential Issues to Look For**:
-  - Redundant or unused stat tracking
-  - Inefficient data storage
-  - Missing or incomplete stat categories
-  - Poor separation of concerns
-  - Memory leaks or performance bottlenecks
-  - Unclear or confusing UI
-- **Refactoring Goals**:
-  - Clean, maintainable code
-  - Efficient stat tracking and storage
-  - Clear separation between tracking logic and display logic
-  - Good performance even with many combats
-  - Useful and actionable stats for GMs/players
-- **Notes**: This is a code quality task - review first, then create specific refactoring plan
+- **Need**: Review implementation, identify unused code/duplicates, check performance, review UI/UX
 
+#### Clarity / Quickview (GM-only vision aid)
+- **Issue**: GM-only local brightness filter and token vision override feature needs verification and finalization
+- **Status**: IN PROGRESS
+- **Location**: Clarity/Quickview implementation
+- **Remaining**: Verify player client sees no change, decide overlay behavior, confirm fog opacity, lifecycle sanity checks, remove debug logging, add changelog entry
 
-### LOW PRIORITY ISSUES
+### Low Priority
 
-### Migrate Combat Hooks to lib-wrapper
-- **Issue**: We are using Foundry hooks for Combat methods that should be wrapped with lib-wrapper instead
+#### Migrate Combat Hooks to lib-wrapper
+- **Issue**: Using Foundry hooks for Combat methods that should be wrapped with lib-wrapper instead
 - **Status**: PENDING - Needs implementation
-- **Priority**: LOW - Code quality and best practices alignment
-- **Current State**: Using hooks (`combatStart`, `updateCombat`, `endCombat`, `deleteCombat`) instead of lib-wrapper wrappers for Combat prototype methods
 - **Location**: `scripts/stats-combat.js`, `scripts/combat-tracker.js`, `scripts/timer-combat.js`, `scripts/manager-libwrapper.js`
-- **Tasks Needed**:
-  - Replace `combatStart` hook with `Combat.prototype.start` wrapper in `WrapperManager`
-  - Replace `updateCombat` hook with `Combat.prototype.update` wrapper in `WrapperManager`
-  - Replace `endCombat` hook with `Combat.prototype.end` wrapper in `WrapperManager`
-  - Replace `deleteCombat` hook with `Combat.prototype.delete` wrapper in `WrapperManager`
-  - Update all files that currently use these hooks to work with the new wrappers
-  - Test that combat tracking, timers, and stats still work correctly after migration
-  - Verify wrapper callbacks receive correct parameters and can access combat state
-- **Related Files**:
-  - `scripts/manager-libwrapper.js` - Add new wrapper registrations
-  - `scripts/stats-combat.js` - Remove hook registrations, update to use wrapper callbacks
-  - `scripts/combat-tracker.js` - Remove hook registrations, update to use wrapper callbacks
-  - `scripts/timer-combat.js` - Remove hook registrations, update to use wrapper callbacks
-- **Notes**: 
-  - We already use lib-wrapper for `Combat.prototype.nextTurn`, `Combat.prototype.nextRound`, `ChatMessage.create`, and `Token.prototype.draw`
-  - System-specific hooks like `dnd5e.rollAttack` and `dnd5e.rollDamage` may need to stay as hooks if there are no direct prototype methods to wrap
-  - This aligns with the intended architecture of using lib-wrapper for all Foundry core method modifications
+- **Need**: Replace `combatStart`, `updateCombat`, `endCombat`, `deleteCombat` hooks with lib-wrapper wrappers for Combat prototype methods
 
 
-## DEFERRED TASKS
+## TECHNICAL DEBT
 
-### Performance - Large Cache Memory & Parallelization
-- **Issue**: Additional performance optimizations available but not critical
-- **Status**: DEFERRED - Current performance is acceptable
-- **Low Priority Items**:
-  - **Large Cache Memory Usage** (`manager-image-cache.js`) - 17,562+ files stored in memory (architectural decision, working as designed)
-  - **Sequential Token Matching** (`manager-image-matching.js`) - Could be parallelized (would add complexity for minimal gain at current scale)
-- **Trigger for Revisiting**: If users report memory issues with very large collections (50,000+ files) or if matching performance becomes a bottleneck
+### jQuery Detection Pattern is Technical Debt
+- **Status**: TECHNICAL DEBT - Transitional pattern during v13 migration  
+- **Priority**: MEDIUM - Should be addressed after migration is complete  
+- **Location**: Multiple files using jQuery detection pattern
 
-### Search Performance - Phase 2/3 Optimizations
-- **Issue**: Additional performance optimizations available if Phase 1 improvements prove insufficient
-- **Status**: DEFERRED - Phase 1 optimizations (caching, tag pre-computation) resolved lag issues
-- **Reason for Deferral**: User testing confirms Phase 1 improvements are sufficient ("seems to have made lag better")
-- **Available if needed**:
-  
-  **Phase 2: Medium-Risk Performance Gains**
-  - Streaming/incremental results (40-60% perceived speedup)
-  - Score caching with TTL (30-50% speedup on similar searches)
-  - Parallelize score calculations (25-40% speedup)
-  
-  **Phase 3: High-Risk Architectural Changes**
-  - Index-based search (70-90% speedup for text searches)
-  - Pre-computed similarity scores (50-70% speedup for token matching)
-
-- **Trigger for Revisiting**: If users report lag returns with larger datasets (20,000+ files) or different usage patterns
-
-### OpenAI API Not Exposed to External Modules
-- **Issue**: OpenAI functions exist in `api-core.js` but are NOT exposed via `module.api`
-- **Location**: `scripts/api-core.js` (getOpenAIReplyAsHtml, getOpenAIReplyAsJson, getOpenAIReplyAsText)
-- **Impact**: **BREAKS ENTIRE DESIGN** - External modules cannot use shared OpenAI integration
-- **Status**: DEFERRED - Not currently blocking any active development
-- **Original Priority**: CRITICAL - BLOCKING EXTERNAL MODULE INTEGRATION
-- **Plan**: Add OpenAI functions to `UtilsManager.getUtils()` and expose via `module.api.utils`
-- **Notes**: This was supposed to be a core feature - all Coffee Pub modules should share OpenAI integration
-- **Dependencies**: Must be fixed before external modules can properly integrate
-- **Deferred Reason**: No external modules currently need this functionality
-- **Example of what should work**:
-  ```javascript
-  // External modules should be able to do this:
-  const response = await BlacksmithUtils.getOpenAIReplyAsHtml("Generate a monster description");
-  const jsonResponse = await BlacksmithUtils.getOpenAIReplyAsJson("Create a loot table");
-  const textResponse = await BlacksmithUtils.getOpenAIReplyAsText("Write a quest hook");
-  ```
-
-## FUTURE PHASES
-
-### Targeted By
-- **Issue**: Add some way to see who is tarteting things
-
-### Token Outfits
-- **Issue**: Allow for token outfits
-- **Status**: FUTURE ENHANCEMENT - Design phase
-- **Priority**: LOW - Quality of life improvement
-- **Description**: Allow for token outfits. Extend what we do for image replacement
-- **Requirements**:
-  1. **Outfit Types**:
-  2. **Outfit Items**:
-
-### Rest and Recovery
-- **Issue**: Allow for long and short rests
-- **Status**: FUTURE ENHANCEMENT - Design phase
-- **Priority**: LOW - Quality of life improvement
-- **Description**: Allow for long and short rests
-- **Requirements**:
-  1. **Rest Types**:
-     - Long Rest
-     - Short Rest
-     - Full Rest
-     - Partial Rest
-     - Custom Rest
-  2. **Food and Water Consumption**
-     - Food and water consumption should be configurable
-  3. **Spell Slot Recovery**:
-     - Spell slot recovery should be configurable
-
-### Auto-Roll Injury Based on Rules
-- **Issue**: Automatically roll for injuries when certain conditions are met
-- **Status**: FUTURE ENHANCEMENT - Design phase
-- **Priority**: LOW - Quality of life improvement for injury system
-- **Description**: Automatically trigger injury rolls based on configurable rules/conditions
-- **Requirements**:
-  1. **Trigger Conditions**:
-     - HP drops below threshold (e.g., 0 HP, negative HP, below 50%)
-     - Critical hit received
-     - Massive damage (e.g., single hit > half max HP)
-     - Failed death saving throw
-     - Specific damage types (fire, necrotic, etc.)
-     - Fall damage above threshold
-     - Custom conditions (via settings)
-  2. **Injury Table Integration**:
-     - Use existing injury compendium/tables
-     - Support multiple injury severity levels (minor, major, critical)
-     - Roll on appropriate table based on trigger condition
-     - Apply injury to actor automatically
-  3. **Rule Configuration**:
-     - Enable/disable auto-roll globally
-     - Configure which conditions trigger injury rolls
-     - Set thresholds (HP %, damage amount, etc.)
-     - Choose which injury tables to use
-     - Option to prompt GM for confirmation vs auto-apply
-  4. **Player/NPC Distinction**:
-     - Apply to PCs only, NPCs only, or both
-     - Different rules for each (e.g., PCs get injuries, NPCs don't)
-     - Configurable per actor type
-  5. **Notifications & UI**:
-     - Chat message when injury is rolled
-     - Show injury description/effects
-     - Optional sound effect
-     - Visual indicator on token (icon, overlay, etc.)
-  6. **Settings**:
-     - Toggle to enable/disable auto-injury system
-     - Configure trigger conditions and thresholds
-     - Choose injury tables per severity level
-     - Apply to PCs/NPCs/both
-     - Confirmation mode (auto vs prompt)
-- **Location**: `scripts/token-image-utilities.js` or new `scripts/injury-manager.js`
-- **Related Files**: 
-  - `packs/blacksmith-injuries` (injury compendium)
-  - Hook into `updateActor` for HP changes
-  - Hook into combat damage for critical hits
-- **Technical Considerations**:
-  - Monitor `updateActor` hook for HP/death save changes
-  - Calculate damage taken (compare old HP to new HP)
-  - Detect critical hits and damage types
-  - Roll on RollTable and parse results
-  - Apply injury effects to actor
-  - Handle edge cases (temp HP, healing, resistance/immunity)
-- **Injury Rules to Support**:
-  - D&D 5e variant rules (DMG p.272 - Lingering Injuries)
-  - Critical hit injuries
-  - Massive damage injuries
-  - Death save failure injuries
-  - Custom homebrew rules
-- **Benefits**: 
-  - Automated injury tracking
-  - Consistent application of injury rules
-  - Adds consequences to combat damage
-  - Enhances gritty/realistic campaigns
-- **Challenges**: 
-  - Determining appropriate injury severity
-  - Balancing automation vs GM control
-  - Handling multiple simultaneous triggers
-  - Preventing injury spam
-  - Managing injury effects/conditions in Foundry
-- **Integration with Existing Features**:
-  - Works with dead token replacement
-  - Works with death save overlay
-  - Could trigger special token changes for severely injured characters
-- **Notes**: Should be fully opt-in with clear warnings about game balance impact. GMs should have full control over when/how injuries are applied.
-
-
-### Multiple Image Directories for Token Image Replacement
-- **Issue**: Token image replacement currently uses a single image directory
-- **Status**: FUTURE ENHANCEMENT - Design phase
-- **Priority**: LOW - Quality of life improvement for image management
-- **Description**: Allow users to configure multiple image directories for token image replacement, enabling organization of images across different folders
-- **Requirements**:
-  1. **Multiple Directory Support**:
-     - Add settings to configure multiple image directories
-     - Allow users to specify priority order for directories
-     - Support both absolute and relative paths
-  2. **Search Behavior**:
-     - Search through directories in priority order
-     - First match found takes precedence
-     - Cache results to avoid repeated searches
-  3. **Directory Management**:
-     - Add/remove directories dynamically
-     - Reorder directories to change priority
-     - Validate directory paths exist
-  4. **Settings**:
-     - Toggle to enable/disable multiple directories
-     - Configure directory list
-     - Set priority order
-     - Option to search all directories or stop at first match
-- **Location**: `scripts/token-image-replacement.js`, `scripts/settings.js`
-- **Benefits**: Better image organization, support for modular image collections, easier management of large image libraries
-- **Challenges**: Managing search performance across multiple directories, cache invalidation when directories change
-- **Notes**: Should maintain backward compatibility with single directory setup
-
-### No Initiative Mode
-- **Issue**: Alternative combat mode where GM manually controls turn order instead of initiative rolls
-- **Status**: FUTURE ENHANCEMENT - Design phase
-- **Priority**: LOW - Quality of life improvement for narrative-focused games
-- **Description**: A theater-of-the-mind friendly combat mode that removes initiative rolling
-- **Requirements**:
-  1. **Auto-Group Combatants**:
-     - Players grouped first (in party order or alphabetical)
-     - Monsters/NPCs grouped second (in alphabetical order or GM-defined order)
-     - Initiative values auto-assigned to maintain group order (e.g., Players: 20-19-18..., NPCs: 10-9-8...)
-  2. **Manual Turn Control**:
-     - GM uses existing "Set As Current Combatant" button to advance turns
-     - No automatic turn advancement based on initiative
-     - GM decides who acts next within each group
-  3. **Turn Tracking Visual**:
-     - Need visual indicator to show which combatants have already acted this round
-     - Could use: token overlay, combat tracker icon, dimming/graying, checkmark, etc.
-     - Should reset when round advances
-  4. **Settings**:
-     - Toggle to enable/disable "No Initiative Mode"
-     - Option to choose grouping method (party order, alphabetical, custom)
-     - Option to choose turn indicator style
-- **Location**: `scripts/combat-tracker.js`, `scripts/combat-tools.js`
-- **Benefits**: Faster combat setup, more narrative control, better for new players unfamiliar with initiative
-- **Challenges**: 
-  - Finding good visual indicator for "has acted" that doesn't conflict with other UI elements
-  - Ensuring compatibility with existing combat features (timers, turn indicator rings, etc.)
-  - Deciding how to handle turn advancement (auto-advance vs manual only)
-- **Notes**: This would be a significant UX change requiring careful design and testing
-
-### Export Compendium as HTML
-- **Issue**: Add functionality to export a compendium as an HTML document
-- **Status**: FUTURE ENHANCEMENT - Design phase
-- **Priority**: LOW - Quality of life improvement for content sharing
-- **Description**: Allow users to export compendium contents (items, actors, journal entries, etc.) as a formatted HTML document for sharing, printing, or archiving
-- **Requirements**:
-  1. **Export Options**:
-     - Export entire compendium or selected entries
-     - Choose which compendiums to export
-     - Filter by entry type (Actor, Item, JournalEntry, etc.)
-     - Include/exclude specific fields (images, descriptions, stats, etc.)
-  2. **HTML Formatting**:
-     - Clean, readable HTML structure
-     - Proper formatting for different entry types
-     - Include images with proper paths or embedded data
-     - Styled tables for stats/data
-     - Organized sections and headings
-  3. **Export Functionality**:
-     - Generate HTML from compendium data
-     - Save HTML file for download
-     - Option to copy HTML to clipboard
-     - Include metadata (compendium name, export date, etc.)
-  4. **Settings**:
-     - Toggle to enable/disable export feature
-     - Configure default export options
-     - Choose export template/style
-- **Location**: New file `scripts/compendium-exporter.js` or add to `scripts/journal-tools.js`
-- **Technical Considerations**:
-  - Access compendium data via Foundry API
-  - Convert Foundry document structure to HTML
-  - Handle embedded media (images, audio)
-  - Generate valid, readable HTML
-  - Consider file size for large compendiums
-- **Benefits**: Easy content sharing, backup/archival, printing capabilities, cross-platform compatibility
-- **Challenges**:
-  - Converting Foundry-specific formats to HTML
-  - Handling embedded media paths
-  - Performance with large compendiums
-  - Maintaining formatting and styling
-- **Notes**: Should generate clean, standards-compliant HTML that can be viewed in any browser
-
-### CODEX-AI Integration
-- [ ] **FUTURE**: Integrate CODEX system with AI API for cost-efficient context management
-- [ ] **FUTURE**: Design CODEX API methods for querying journal entries and building AI context
-- [ ] **FUTURE**: Create context builder that replaces conversation history with relevant CODEX entries
-- [ ] **FUTURE**: Implement smart querying system (tags, categories, text search) for CODEX entries
-- [ ] **FUTURE**: Add automatic fact extraction from AI responses to grow CODEX knowledge base
-- [ ] **FUTURE**: Create new AI methods that use CODEX context instead of conversation history
-- [ ] **FUTURE**: Optimize CODEX querying and context building for performance with large knowledge bases
-- [ ] **FUTURE**: Document CODEX API integration and usage patterns for external modules
-- **Status**: TODO - Major feature for future development
-- **Impact**: **REVOLUTIONARY** - Transform AI from chat bot to knowledgeable campaign advisor
-- **Benefits**: Cost efficiency, better context, persistent world knowledge, smart learning
-
-### V13 QOL 
-- **FUTURE**: Remember chat state between sessions
-
-### Clarity / Quickview (GM-only vision aid)
-- [ ] Verify a player client sees no change when GM toggles clarity (brightness, fog, overlays unaffected)
-- [ ] Decide overlay behavior with no token selected (keep current “only when selected” vs always-on)
-- [ ] Confirm 10% fog opacity feels right; adjust if needed and ensure restore on deactivate/scene change
-- [ ] Sanity check lifecycle: deactivate and scene change leave no lingering filters or overrides; test after reload
-- [ ] Remove clarity debug logging once behavior is final
-- [ ] Add changelog entry for GM-only local brightness filter + token vision override (v13.0.5+)
-
-
-## ARCHITECTURAL CONCERNS
-
-### ⚠️ Important Note: jQuery Detection Pattern is Technical Debt
-
-**Status**: TECHNICAL DEBT - Transitional pattern during v13 migration  
-**Priority**: MEDIUM - Should be addressed after migration is complete  
-**Location**: Multiple files using jQuery detection pattern
-
-#### Why This Pattern is Problematic
+**Why This Pattern is Problematic**
 
 In FoundryVTT v13, jQuery is completely removed. Ideally, `html` parameters should always be native DOM elements.
 
 The jQuery detection pattern indicates we're still in a mixed state where jQuery might be passed in. This is defensive code to handle an inconsistency we should fix at the source, not normalize at the destination.
 
-#### What We Should Do Instead
+**What We Should Do Instead**
 
 **Long-term (fully migrated v13):**
 - Ensure call sites pass native DOM elements consistently
@@ -626,14 +114,14 @@ The jQuery detection pattern indicates we're still in a mixed state where jQuery
 - Plan to remove it once all call sites are fixed
 - Track which methods use this pattern and why
 
-#### The Real Question
+**The Real Question**
 
 **Where is `html` coming from that might be a jQuery object?**
 - If it's from FoundryVTT's Application classes: they should return native DOM in v13, so the check isn't needed
 - If it's from our code: fix the call sites to pass native DOM
 - If it's unknown: keep the check temporarily, but track and fix the sources
 
-#### Bottom Line
+**Bottom Line**
 
 Keep jQuery detection during migration, but treat it as technical debt. Once all call sites are confirmed to pass native DOM elements (especially when elements come from `querySelector()` which always returns native DOM), remove the detection code.
 
@@ -650,8 +138,55 @@ Keep jQuery detection during migration, but treat it as technical debt. Once all
 
 ### Socketmanager Becoming Monolithic
 - **Issue**: Socketmanager is evolving into a "god class" that both manages hooks AND contains business logic
-- **Proposed Solution**:
-  - Socketmanager should ONLY manage socket registration/cleanup (like hookmanager)
+- **Status**: PENDING - Needs refactoring
+- **Proposed Solution**: Socketmanager should ONLY manage socket registration/cleanup (like hookmanager), business logic should be moved elsewhere
 
-- [ ] Party Stats Window: recent combat history and MVP highlights still not displaying even after combat summaries write; investigate data pipeline and update window accordingly.
-- [ ] Combat Tracker: prevent "Round Summary" from firing when the GM clicks Begin Combat.
+
+## DEFERRED
+
+### Performance - Large Cache Memory & Parallelization
+- **Issue**: Additional performance optimizations available but not critical
+- **Status**: DEFERRED - Current performance is acceptable
+- **Items**: Large cache memory usage (17,562+ files), sequential token matching that could be parallelized
+- **Trigger for Revisiting**: If users report memory issues with very large collections (50,000+ files) or matching performance becomes bottleneck
+
+### Search Performance - Phase 2/3 Optimizations
+- **Issue**: Additional performance optimizations available if Phase 1 improvements prove insufficient
+- **Status**: DEFERRED - Phase 1 optimizations resolved lag issues
+- **Reason**: User testing confirms Phase 1 improvements are sufficient
+- **Available if needed**: Streaming/incremental results, score caching, parallelization, index-based search, pre-computed similarity scores
+- **Trigger for Revisiting**: If users report lag returns with larger datasets (20,000+ files) or different usage patterns
+
+### OpenAI API Not Exposed to External Modules
+- **Issue**: OpenAI functions exist in `api-core.js` but are NOT exposed via `module.api`
+- **Status**: DEFERRED - Not currently blocking any active development
+- **Location**: `scripts/api-core.js` (getOpenAIReplyAsHtml, getOpenAIReplyAsJson, getOpenAIReplyAsText)
+- **Plan**: Add OpenAI functions to `UtilsManager.getUtils()` and expose via `module.api.utils`
+- **Deferred Reason**: No external modules currently need this functionality
+
+
+## BACKLOG
+
+### Targeted By
+- Add some way to see who is targeting things
+
+### Token Outfits
+- Allow for token outfits - extend what we do for image replacement
+
+### Rest and Recovery
+- Allow for long and short rests with configurable food/water consumption and spell slot recovery
+
+### Auto-Roll Injury Based on Rules
+- Automatically trigger injury rolls based on configurable rules/conditions (HP thresholds, critical hits, massive damage, etc.)
+
+### Multiple Image Directories for Token Image Replacement
+- Allow users to configure multiple image directories with priority order
+
+### No Initiative Mode
+- Alternative combat mode where GM manually controls turn order instead of initiative rolls
+
+### Export Compendium as HTML
+- Export compendium contents as formatted HTML document for sharing, printing, or archiving
+
+### CODEX-AI Integration
+- Integrate CODEX system with AI API for cost-efficient context management, replace conversation history with relevant CODEX entries

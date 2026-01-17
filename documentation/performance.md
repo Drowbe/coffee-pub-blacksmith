@@ -32,6 +32,10 @@ Centralized notes for long-running performance and memory investigations. Use th
 | 6 | Medium | Menubar rerenders | Active |
 | 7 | Medium | Image cache footprint | Active |
 
+### Detailed Findings
+
+**Items 1-3**: Critical and high-priority items resolved through infrastructure improvements (HookManager, event-driven patterns, state management). Documentation captured in table above.
+
 4. **Token image search/filtering churn**
    - **Status**: ✅ Completed.
    - **Files**: `scripts/manager-image-cache.js`, `scripts/token-image-replacement.js`.
@@ -48,12 +52,14 @@ Centralized notes for long-running performance and memory investigations. Use th
    - **Fix**: Introduced `_teardownWindowResources()` to clear delegated events, cancel tracked timeouts, wipe `this._activeImageElements`, remove the window root, and reset caches. `_updateResults()` now tracks `<img>` nodes so the next render can null their `src`. `close()` unregisters the `controlToken` hook via `HookManager.unregisterHook` and calls the teardown, ensuring each open/close cycle releases DOM/texture memory.
 
 6. **Menubar re-renders too frequently**
+   - **Status**: 🔄 Active (Medium Priority)
    - **Files**: `scripts/api-menubar.js`.
    - **Evidence**: Hook registrations for `updateCombat`, `createCombatant`, `updateCombatant`, `deleteCombatant`, `renderApplication`, `closeApplication`, `updateActor`, `updateToken`, etc., most of which call `MenuBar.renderMenubar(true)` directly.
    - **Impact**: Any combat/timer/tokenevent rebuilds the entire menubar template, tears down event handlers, and recreates DOM nodes; detached nodes accumulate if cleanup fails. Adds CPU spikes during combat and increases GC pressure.
    - **Actionable Notes**: Introduce state diffing or throttling (e.g., `requestAnimationFrame` debouncing) and update only the relevant DOM fragments (timer text, leader badge, etc.).
 
 7. **Image cache retains entire asset library in memory**
+   - **Status**: 🔄 Active (Medium Priority)
    - **Files**: `scripts/manager-image-cache.js`.
    - **Evidence**: `ImageCacheManager.cache` holds Maps for `files`, `folders`, `creatureTypes`, plus progress metadata. No eviction or unload. Scans only mutate the in-memory object; even after closing the feature the cache persists until page refresh.
    - **Impact**: 17k+ entries (names, tags, folder paths, metadata) plus progress strings consume hundreds of MB. Combined with search allocations, this explains non-heap growth despite stable JS heap.
