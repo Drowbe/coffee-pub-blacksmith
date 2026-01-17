@@ -1461,6 +1461,11 @@ class MenuBar {
                 return mode === 'spectator';
             },
             onClick: async () => {
+                // Only GMs can change broadcast mode
+                if (!game.user.isGM) {
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                    return;
+                }
                 await game.settings.set(MODULE.ID, 'broadcastMode', 'spectator');
                 // Update button states by re-rendering
                 if (this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast') {
@@ -1482,6 +1487,11 @@ class MenuBar {
                 return mode === 'combat';
             },
             onClick: async () => {
+                // Only GMs can change broadcast mode
+                if (!game.user.isGM) {
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                    return;
+                }
                 await game.settings.set(MODULE.ID, 'broadcastMode', 'combat');
                 // Update button states by re-rendering
                 if (this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast') {
@@ -1503,6 +1513,11 @@ class MenuBar {
                 return mode === 'manual';
             },
             onClick: async () => {
+                // Only GMs can change broadcast mode
+                if (!game.user.isGM) {
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                    return;
+                }
                 await game.settings.set(MODULE.ID, 'broadcastMode', 'manual');
                 // Update button states by re-rendering
                 if (this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast') {

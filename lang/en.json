@@ -232,11 +232,14 @@
 			"broadcastHideBackground-Label": "Hide Scene Background",
 			"broadcastHideBackground-Hint": "Hide the scene background image when in broadcast mode. Useful for cleaner streaming visuals.",
 
-			"broadcastSpectatorZoomSingle-Label": "Spectator Zoom (Single Token)",
-			"broadcastSpectatorZoomSingle-Hint": "Zoom level when following a single party token. 1.0 = no zoom change, 0.5 = zoom out 2x, 2.0 = zoom in 2x.",
+			"broadcastDefaultZoom-Label": "Default Zoom Level",
+			"broadcastDefaultZoom-Hint": "The baseline zoom level used for broadcast camera. Zoom offset sliders adjust relative to this level.",
 
-			"broadcastSpectatorZoomMultiple-Label": "Spectator Zoom (Multiple Tokens)",
-			"broadcastSpectatorZoomMultiple-Hint": "Zoom level when following multiple party tokens. 0 = auto-fit to show all tokens, or specify zoom level (0.1-5.0).",
+			"broadcastSpectatorZoomOffsetSingle-Label": "Spectator Zoom Offset (Single Token)",
+			"broadcastSpectatorZoomOffsetSingle-Hint": "Zoom offset when following a single party token. 0 = default zoom, -5 = zoom out 5x, +5 = zoom in 5x.",
+
+			"broadcastSpectatorZoomOffsetMultiple-Label": "Spectator Zoom Offset (Multiple Tokens)",
+			"broadcastSpectatorZoomOffsetMultiple-Hint": "Zoom offset when following multiple party tokens. 0 = default zoom, -5 = zoom out 5x, +5 = zoom in 5x. Negative values or auto-fit may be used for wide group shots.",
 
 		"headingH2CombatEnhancements-Label": "Combat",
 		"headingH2CombatEnhancements-Hint": "Enhancements and quality of lifeimprovements to the combat system.",

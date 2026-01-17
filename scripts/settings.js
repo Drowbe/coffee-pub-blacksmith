@@ -1789,29 +1789,42 @@ export const registerSettings = () => {
 			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 
-		// Broadcast Spectator Zoom Single
-		game.settings.register(MODULE.ID, 'broadcastSpectatorZoomSingle', {
-			name: MODULE.ID + '.broadcastSpectatorZoomSingle-Label',
-			hint: MODULE.ID + '.broadcastSpectatorZoomSingle-Hint',
+		// Broadcast Default Zoom Level
+		game.settings.register(MODULE.ID, 'broadcastDefaultZoom', {
+			name: MODULE.ID + '.broadcastDefaultZoom-Label',
+			hint: MODULE.ID + '.broadcastDefaultZoom-Hint',
 			scope: 'world',
 			config: true,
 			requiresReload: false,
 			type: Number,
 			default: 1.0,
-			range: { min: 0.1, max: 5.0, step: 0.1 },
+			range: { min: 0.1, max: 2.0, step: 0.1 },
 			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 
-		// Broadcast Spectator Zoom Multiple
-		game.settings.register(MODULE.ID, 'broadcastSpectatorZoomMultiple', {
-			name: MODULE.ID + '.broadcastSpectatorZoomMultiple-Label',
-			hint: MODULE.ID + '.broadcastSpectatorZoomMultiple-Hint',
+		// Broadcast Spectator Zoom Offset Single
+		game.settings.register(MODULE.ID, 'broadcastSpectatorZoomOffsetSingle', {
+			name: MODULE.ID + '.broadcastSpectatorZoomOffsetSingle-Label',
+			hint: MODULE.ID + '.broadcastSpectatorZoomOffsetSingle-Hint',
 			scope: 'world',
 			config: true,
 			requiresReload: false,
 			type: Number,
 			default: 0,
-			range: { min: 0, max: 5.0, step: 0.1 },
+			range: { min: -5, max: 5, step: 1 },
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// Broadcast Spectator Zoom Offset Multiple
+		game.settings.register(MODULE.ID, 'broadcastSpectatorZoomOffsetMultiple', {
+			name: MODULE.ID + '.broadcastSpectatorZoomOffsetMultiple-Label',
+			hint: MODULE.ID + '.broadcastSpectatorZoomOffsetMultiple-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Number,
+			default: 0,
+			range: { min: -5, max: 5, step: 1 },
 			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 

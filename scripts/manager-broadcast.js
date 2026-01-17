@@ -243,26 +243,34 @@ export class BroadcastManager {
 
     /**
      * Handle token position update (spectator mode)
+     * 
+     * This method calculates the center of party tokens and pans the cameraman's viewport
+     * to center that position. All calculations use world coordinates and are relative
+     * to the cameraman's viewport (not GM's viewport).
+     * 
      * @param {TokenDocument} tokenDocument - The token document that was updated
      * @param {Object} changes - The changes made to the token
      */
     static _onTokenUpdate(tokenDocument, changes) {
         try {
+            // IMPORTANT: This code only runs for the broadcast user (cameraman)
+            // All pan/zoom operations affect the cameraman's viewport only
+            
             // Get party tokens visible to broadcast user
             const partyTokens = this._getVisiblePartyTokens();
             if (!partyTokens || partyTokens.length === 0) return;
             
-            // Calculate target position
+            // Calculate target position (center of party tokens in world coordinates)
             let targetPosition = null;
             if (partyTokens.length === 1) {
-                // Single token: follow that token
+                // Single token: calculate center of that token
                 const token = partyTokens[0];
                 targetPosition = {
                     x: token.x + (token.width * canvas.grid.size / 2),
                     y: token.y + (token.height * canvas.grid.size / 2)
                 };
             } else {
-                // Multiple tokens: calculate average position (center)
+                // Multiple tokens: calculate average position (center of all party tokens)
                 targetPosition = this._calculateTokenCenter(partyTokens);
             }
             
@@ -271,19 +279,25 @@ export class BroadcastManager {
             // Check if we should pan (distance threshold + throttle)
             if (!this._shouldPan(targetPosition)) return;
             
-            // Apply zoom based on token count
-            const zoomLevel = partyTokens.length === 1 
-                ? getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomSingle', 1.0)
-                : getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomMultiple', 0);
-            
-            if (zoomLevel > 0) {
-                canvas.animateZoom(zoomLevel);
-            } else if (partyTokens.length > 1) {
-                // Auto-fit for multiple tokens
-                this._applyAutoFitZoom(partyTokens);
+            // Apply zoom based on token count (affects cameraman's viewport)
+            if (partyTokens.length === 1) {
+                // Single token: use default zoom + offset
+                const defaultZoom = getSettingSafely(MODULE.ID, 'broadcastDefaultZoom', 1.0);
+                const zoomOffset = getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomOffsetSingle', 0);
+                const finalZoom = this._calculateZoomFromOffset(defaultZoom, zoomOffset);
+                canvas.animateZoom(finalZoom);
+            } else {
+                // Multiple tokens: use default zoom + offset for multiple tokens
+                const zoomOffset = getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomOffsetMultiple', 0);
+                const defaultZoom = getSettingSafely(MODULE.ID, 'broadcastDefaultZoom', 1.0);
+                const finalZoom = this._calculateZoomFromOffset(defaultZoom, zoomOffset);
+                canvas.animateZoom(finalZoom);
             }
             
-            // Pan to target position
+            // Pan to target position - canvas.animatePan() centers the coordinate
+            // in the current user's (cameraman's) viewport
+            // The targetPosition is the center of party tokens, so this centers
+            // the token center in the cameraman's viewport center
             canvas.animatePan({ x: targetPosition.x, y: targetPosition.y });
             this._lastPanPosition = targetPosition;
             this._lastPanTime = Date.now();
@@ -357,9 +371,14 @@ export class BroadcastManager {
     }
 
     /**
-     * Calculate center point of multiple tokens
+     * Calculate center point of multiple tokens in world coordinates
+     * 
+     * This calculates the average position (center) of all provided tokens.
+     * The result is in world coordinates and represents the point that will be
+     * centered in the cameraman's viewport.
+     * 
      * @param {Array} tokens - Array of token placeables
-     * @returns {Object|null} Center position {x, y} or null if no tokens
+     * @returns {Object|null} Center position {x, y} in world coordinates, or null if no tokens
      */
     static _calculateTokenCenter(tokens) {
         if (!tokens || tokens.length === 0) return null;
@@ -410,6 +429,34 @@ export class BroadcastManager {
         }
         
         return true;
+    }
+
+    /**
+     * Calculate final zoom level from default zoom and offset
+     * @param {number} defaultZoom - The baseline zoom level (e.g., 1.0)
+     * @param {number} offset - Offset from -5 to +5, where 0 = no change from default
+     * @returns {number} Final zoom level
+     */
+    static _calculateZoomFromOffset(defaultZoom, offset) {
+        // Offset 0 = default zoom (no change)
+        // Offset -5 = zoom out to 0.2x (5x zoom out)
+        // Offset +5 = zoom in to 5.0x (5x zoom in)
+        
+        if (offset === 0) {
+            return defaultZoom;
+        } else if (offset > 0) {
+            // Positive offset: zoom in (1.0x to 5.0x multiplier)
+            // Formula: multiplier = 1.0 + (offset / 5) * 4.0
+            // Examples: +1 -> 1.8x, +3 -> 3.4x, +5 -> 5.0x
+            const multiplier = 1.0 + (offset / 5) * 4.0;
+            return defaultZoom * multiplier;
+        } else {
+            // Negative offset: zoom out (0.2x to 1.0x multiplier)
+            // Formula: multiplier = 1.0 + (offset / 5) * 0.8
+            // Examples: -1 -> 0.84x, -3 -> 0.52x, -5 -> 0.2x
+            const multiplier = 1.0 + (offset / 5) * 0.8;
+            return defaultZoom * multiplier;
+        }
     }
 
     /**
