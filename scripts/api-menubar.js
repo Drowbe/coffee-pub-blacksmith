@@ -70,6 +70,14 @@ class MenuBar {
     static _clickHandlerContainer = null;
 
     static async initialize() {
+        // Check if menubar is enabled
+        if (!getSettingSafely(MODULE.ID, 'enableMenubar', true)) {
+            postConsoleAndNotification(MODULE.NAME, "Menubar: Disabled in settings, skipping initialization", "", true, false);
+            // Ensure no space is reserved for menubar when disabled
+            this._removeMenubarDom();
+            return;
+        }
+
         // Load the templates
         foundry.applications.handlebars.loadTemplates([
             'modules/coffee-pub-blacksmith/templates/menubar.hbs',
@@ -3548,8 +3556,10 @@ class MenuBar {
     static _removeMenubarDom() {
         document.querySelector('.blacksmith-menubar-container')?.remove();
         document.querySelectorAll('.blacksmith-menubar-secondary').forEach(el => el.remove());
+        // Set all height variables to 0 to prevent content from being pushed down
+        document.documentElement.style.setProperty('--blacksmith-menubar-primary-height', '0px');
         document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', '0px');
-        document.documentElement.style.setProperty('--blacksmith-menubar-total-height', 'var(--blacksmith-menubar-primary-height)');
+        document.documentElement.style.setProperty('--blacksmith-menubar-total-height', '0px');
     }
 
     /**
@@ -3685,6 +3695,12 @@ class MenuBar {
             }
 
             if (this._isUserExcluded(game.user)) {
+                this._removeMenubarDom();
+                return;
+            }
+
+            // Check if menubar is enabled
+            if (!getSettingSafely(MODULE.ID, 'enableMenubar', true)) {
                 this._removeMenubarDom();
                 return;
             }

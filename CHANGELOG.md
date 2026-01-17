@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.0.13]
+
+### Fixed
+- **Menubar Enable Setting**: Fixed `enableMenubar` setting not controlling menubar visibility. Menubar now properly initializes only when enabled, removes DOM and resets CSS height variables when disabled, preventing content from being pushed down. Both `excludedUsersMenubar` and `enableMenubar` settings now work correctly together.
+
 ## [13.0.12]
 
 ### Added

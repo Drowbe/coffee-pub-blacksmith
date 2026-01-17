@@ -9,7 +9,6 @@
 - **Next Step**: Optimize menubar rerenders (item 6) - introduce state diffing/throttling to reduce frequent rebuilds during combat/timer events. Then address image cache footprint (item 7) if needed.
 - **Location**: See `documentation/performance.md`
 
-
 ## MEDIUM BUGS
 
 ### Verify Loot Token Restoration
@@ -37,12 +36,6 @@
 - **Status**: PENDING - Needs implementation
 - **Location**: Initiative roll handling (combat-tracker.js or combat-tools.js)
 - **Need**: Setting to hide initiative roll cards (for all users or players only), while maintaining functionality
-
-#### Wire up enableMenubar Setting
-- **Issue**: enableMenubar setting needs to be properly connected to functionality
-- **Status**: PENDING - Needs implementation
-- **Location**: `scripts/settings.js`, `scripts/api-menubar.js`
-- **Need**: Ensure setting controls menubar visibility, verify excludedUsersMenubar works, update any old references to "blacksmith chat panel"
 
 #### Query Tool Review and Improvements
 - **Issue**: Query tool needs comprehensive review and fixes for functionality and UX
