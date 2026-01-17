@@ -3736,6 +3736,17 @@ class MenuBar {
                 return;
             }
 
+            // Check if user is broadcast user (hide menubar for broadcast user)
+            // Use the same pattern as excluded users - check setting directly
+            const isBroadcastEnabled = getSettingSafely(MODULE.ID, 'enableBroadcast', false);
+            if (isBroadcastEnabled) {
+                const broadcastUserId = getSettingSafely(MODULE.ID, 'broadcastUserId', '') || '';
+                if (matchUserBySetting(game.user, broadcastUserId)) {
+                    this._removeMenubarDom();
+                    return;
+                }
+            }
+
             // Check if menubar is enabled
             if (!getSettingSafely(MODULE.ID, 'enableMenubar', true)) {
                 this._removeMenubarDom();

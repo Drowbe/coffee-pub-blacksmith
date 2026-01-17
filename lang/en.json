@@ -211,6 +211,15 @@
 			"broadcastUserId-Label": "Broadcast User",
 			"broadcastUserId-Hint": "The user ID or name of the user who will serve as the cameraman for broadcasting. This user will see a clean view with UI hidden and automatic token following.",
 
+			"broadcastHideInterfaceLeft-Label": "Hide Left UI Section",
+			"broadcastHideInterfaceLeft-Hint": "Hide the left UI section (navigation, players list) when in broadcast mode.",
+
+			"broadcastHideInterfaceMiddle-Label": "Hide Middle UI Section",
+			"broadcastHideInterfaceMiddle-Hint": "Hide the middle UI section when in broadcast mode.",
+
+			"broadcastHideInterfaceRight-Label": "Hide Right UI Section",
+			"broadcastHideInterfaceRight-Hint": "Hide the right UI section when in broadcast mode.",
+
 		"headingH2CombatEnhancements-Label": "Combat",
 		"headingH2CombatEnhancements-Hint": "Enhancements and quality of lifeimprovements to the combat system.",
 

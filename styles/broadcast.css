@@ -1,0 +1,39 @@
+/* ================================================================== 
+   ===== BROADCAST MODE STYLING ====================================
+   ================================================================== */
+
+/* Hide entire Foundry interface when broadcast mode is active */
+.broadcast-mode #interface {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Hide Blacksmith menubar */
+.broadcast-mode .blacksmith-menubar-container {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Hide Squire tray */
+.broadcast-mode .squire-tray {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Granular control: Hide left UI section (navigation, players, etc.) */
+.broadcast-mode.hide-interface-left #interface > section.ui-left {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Granular control: Hide middle UI section */
+.broadcast-mode.hide-interface-middle #interface > section.ui-middle {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Granular control: Hide right UI section */
+.broadcast-mode.hide-interface-right #interface > section.ui-right {
+    display: none !important;
+    visibility: hidden !important;
+}

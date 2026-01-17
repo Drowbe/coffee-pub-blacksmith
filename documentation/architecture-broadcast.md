@@ -142,56 +142,80 @@ export function matchUserBySetting(user, settingValue) {
 
 ## **UI Hiding Strategy**
 
-### **Three-Tier Hiding System**
+### **Simplified Hiding System**
 
 #### **1. Foundry Core UI**
 
-**Elements to Hide:**
-- `#navigation` (left sidebar)
-- `#players` (player list)
-- `.hotbar` (bottom hotbar)
-- `#controls` (scene controls)
-- `#pause` (pause button overlay)
-- `#hud` (token HUD)
-- `.notifications` (notification tray - optionally)
+**Structure Discovery**: The entire Foundry interface is in a single `<div id="interface">` containing `ui-left`, `ui-middle`, and `ui-right` sections.
 
-**Method**: CSS classes + application hooks
+**Elements to Hide:**
+- `#interface` - Hides entire Foundry UI (navigation, players, hotbar, controls, pause, hud, etc.)
+- **Optional Granular Control**: Individual sections can be hidden:
+  - `#interface > section.ui-left` - Left sidebar (navigation, players, etc.)
+  - `#interface > section.ui-middle` - Middle section
+  - `#interface > section.ui-right` - Right sidebar
+
+**Method**: CSS classes + body class toggle
 ```css
-.broadcast-mode #navigation,
-.broadcast-mode #players,
-.broadcast-mode .hotbar,
-.broadcast-mode #controls,
-.broadcast-mode #pause,
-.broadcast-mode #hud {
+.broadcast-mode #interface {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Optional: Granular control with settings */
+.broadcast-mode #interface > section.ui-left {
+    display: none !important;
+}
+
+.broadcast-mode #interface > section.ui-middle {
+    display: none !important;
+}
+
+.broadcast-mode #interface > section.ui-right {
+    display: none !important;
+}
+```
+
+**Implementation**: Add `broadcast-mode` class to `<body>` when broadcast user is active. Toggle via JavaScript based on `_isBroadcastUser()` check.
+
+#### **2. Blacksmith UI**
+
+**Structure Discovery**: Menubar is in its own separate `.blacksmith-menubar-container` div
+
+**Elements to Hide:**
+- `.blacksmith-menubar-container` - Entire menubar (separate div)
+- Encounter Toolbar (if separate div)
+- Any other Blacksmith UI components
+
+**Method**: CSS targeting separate divs
+```css
+.broadcast-mode .blacksmith-menubar-container {
     display: none !important;
     visibility: hidden !important;
 }
 ```
 
-**Implementation**: Add `broadcast-mode` class to `<body>` when broadcast user is active
-
-#### **2. Blacksmith UI**
-
-**Elements to Hide:**
-- Menubar (already has exclusion pattern)
-- Encounter Toolbar
-- Sidebar Combat tab
-- Any other Blacksmith UI components
-
-**Method**: Reuse existing exclusion patterns
-- `MenuBar._isUserExcluded()` → `BroadcastManager._isBroadcastUser()`
-- Check in render hooks before rendering
-- Skip DOM injection entirely
+**Implementation**: 
+- Check `BroadcastManager._isBroadcastUser()` when rendering
+- Skip DOM injection entirely (like existing exclusion pattern)
+- Add CSS class for additional hiding via stylesheet
 
 #### **3. Squire UI (External Module)**
 
-**Coordination Strategy:**
-- Check if Squire is active
-- If Squire has API for hiding UI, use it
-- Otherwise, use CSS targeting Squire's classes
-- Document coordination in settings
+**Structure Discovery**: Squire has its own separate div `.squire-tray`
 
-**Pattern**: Similar to how Blacksmith coordinates with other modules
+**Method**: CSS targeting
+```css
+.broadcast-mode .squire-tray {
+    display: none !important;
+    visibility: hidden !important;
+}
+```
+
+**Coordination Strategy:**
+- Check if Squire is active (optional)
+- Use CSS targeting (simplest approach)
+- Works automatically when broadcast mode is active
 
 ### **Background Removal**
 
@@ -375,7 +399,7 @@ token.testUserVisibility(broadcastUser)
 - **Default**: `false`
 - **Description**: Hide notification tray in broadcast mode
 
-#### **8. `broadcastAutoSetObserver`**
+#### **11. `broadcastAutoSetObserver`**
 - **Type**: Boolean
 - **Scope**: World (GM only)
 - **Default**: `false`

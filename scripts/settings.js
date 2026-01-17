@@ -1698,6 +1698,42 @@ export const registerSettings = () => {
 			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 
+		// Broadcast Hide Interface Left
+		game.settings.register(MODULE.ID, 'broadcastHideInterfaceLeft', {
+			name: MODULE.ID + '.broadcastHideInterfaceLeft-Label',
+			hint: MODULE.ID + '.broadcastHideInterfaceLeft-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Boolean,
+			default: true,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// Broadcast Hide Interface Middle
+		game.settings.register(MODULE.ID, 'broadcastHideInterfaceMiddle', {
+			name: MODULE.ID + '.broadcastHideInterfaceMiddle-Label',
+			hint: MODULE.ID + '.broadcastHideInterfaceMiddle-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Boolean,
+			default: true,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
+		// Broadcast Hide Interface Right
+		game.settings.register(MODULE.ID, 'broadcastHideInterfaceRight', {
+			name: MODULE.ID + '.broadcastHideInterfaceRight-Label',
+			hint: MODULE.ID + '.broadcastHideInterfaceRight-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Boolean,
+			default: true,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
 	// --------------------------------------
 	// -- H2: Combat
 	// --------------------------------------
