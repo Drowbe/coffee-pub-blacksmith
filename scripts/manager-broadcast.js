@@ -1294,15 +1294,20 @@ export class BroadcastManager {
             MenuBar.registerSecondaryBarItem('broadcast', itemId, {
                 icon: portraitImg || 'fas fa-user', // Use portrait as icon, fallback to font icon
                 tooltip: `Mirror ${user.name}'s viewport`,
-                group: 'modes',
+                group: 'party',
                 order: order++,
+                visible: () => game.user.isGM, // Only GMs can see/use these buttons
                 onClick: async () => {
-                    // Only GMs can change broadcast mode
+                    // Double-check: Only GMs can change broadcast mode
                     if (!game.user.isGM) {
                         postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
                         return;
                     }
-                    await game.settings.set(MODULE.ID, 'broadcastMode', modeValue);
+                    try {
+                        await game.settings.set(MODULE.ID, 'broadcastMode', modeValue);
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, "Broadcast: Failed to update mode", error.message, false, false);
+                    }
                 }
             });
         }

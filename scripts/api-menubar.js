@@ -1420,6 +1420,11 @@ class MenuBar {
                 'modes': {
                     mode: 'switch',  // Radio-button behavior: only one mode active at a time
                     order: 0
+                },
+                'party': {
+                    mode: 'switch',  // Radio-button behavior: only one player selected at a time
+                    order: 1,
+                    bannerColor: 'rgba(65, 29, 18, 0.9)'  // Custom banner color for party group
                 }
             }
         });
@@ -1486,12 +1491,29 @@ class MenuBar {
             }
         });
 
+        // Register Player View mode button
+        this.registerSecondaryBarItem('broadcast', 'broadcast-mode-playerview', {
+            icon: 'fa-solid fa-helmet-battle',
+            tooltip: 'Player View - Mirror selected player\'s viewport',
+            group: 'modes',
+            order: 3,
+            onClick: async () => {
+                // Only GMs can change broadcast mode
+                if (!game.user.isGM) {
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                    return;
+                }
+                await game.settings.set(MODULE.ID, 'broadcastMode', 'playerview');
+                // Switch mode automatically manages active state - no manual re-rendering needed
+            }
+        });
+
         // Register Manual mode button
         this.registerSecondaryBarItem('broadcast', 'broadcast-mode-manual', {
             icon: 'fa-solid fa-hand',
             tooltip: 'Manual - No automatic following (manual camera control)',
             group: 'modes',
-            order: 3,
+            order: 4,
             onClick: async () => {
                 // Only GMs can change broadcast mode
                 if (!game.user.isGM) {
@@ -1513,12 +1535,16 @@ class MenuBar {
             'spectator': 'broadcast-mode-spectator',
             'combat': 'broadcast-mode-combat',
             'gmview': 'broadcast-mode-gmview',
+            'playerview': 'broadcast-mode-playerview',
             'manual': 'broadcast-mode-manual'
         };
         
         // Check if mode is a playerview mode (playerview-{userId})
         if (typeof currentMode === 'string' && currentMode.startsWith('playerview-')) {
             const userId = currentMode.replace('playerview-', '');
+            // Activate "Player View" mode button
+            this.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-playerview', true);
+            // Activate the selected player's portrait button in party group
             const activeItemId = `broadcast-mode-player-${userId}`;
             this.updateSecondaryBarItemActive('broadcast', activeItemId, true);
         } else {
@@ -1541,6 +1567,9 @@ class MenuBar {
                     // Check if mode is a playerview mode (playerview-{userId})
                     if (typeof value === 'string' && value.startsWith('playerview-')) {
                         const userId = value.replace('playerview-', '');
+                        // Activate "Player View" mode button in modes group
+                        this.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-playerview', true);
+                        // Activate the selected player's portrait button in party group
                         const activeItemId = `broadcast-mode-player-${userId}`;
                         this.updateSecondaryBarItemActive('broadcast', activeItemId, true);
                     } else {
@@ -1548,6 +1577,7 @@ class MenuBar {
                             'spectator': 'broadcast-mode-spectator',
                             'combat': 'broadcast-mode-combat',
                             'gmview': 'broadcast-mode-gmview',
+                            'playerview': 'broadcast-mode-playerview',
                             'manual': 'broadcast-mode-manual'
                         };
                         const activeItemId = modeItemMap[value] || 'broadcast-mode-spectator';
@@ -2682,17 +2712,19 @@ class MenuBar {
                 // Merge group configurations (existing groups are preserved, new ones added)
                 for (const [groupId, groupConfig] of Object.entries(config.groups)) {
                     if (groups.has(groupId)) {
-                        // Merge existing group config (update mode and order if provided)
+                        // Merge existing group config (update mode, order, and bannerColor if provided)
                         const existing = groups.get(groupId);
                         groups.set(groupId, {
                             mode: groupConfig.mode || existing.mode || 'default',
-                            order: groupConfig.order !== undefined ? groupConfig.order : (existing.order !== undefined ? existing.order : 999)
+                            order: groupConfig.order !== undefined ? groupConfig.order : (existing.order !== undefined ? existing.order : 999),
+                            bannerColor: groupConfig.bannerColor !== undefined ? groupConfig.bannerColor : (existing.bannerColor || undefined)
                         });
                     } else {
                         // New group
                         groups.set(groupId, {
                             mode: groupConfig.mode || 'default',
-                            order: groupConfig.order !== undefined ? groupConfig.order : 999
+                            order: groupConfig.order !== undefined ? groupConfig.order : 999,
+                            bannerColor: groupConfig.bannerColor || undefined
                         });
                     }
                 }
@@ -3802,9 +3834,19 @@ class MenuBar {
         const groups = this.secondaryBarGroups.get(data.type) || new Map();
         const activeStates = this.secondaryBarActiveStates.get(data.type) || new Map();
         
-        // Organize items by group
+        // Organize items by group (filter by visible property)
         const itemsByGroup = new Map();
         for (const item of allItems) {
+            // Check visible property (can be function or boolean)
+            let isVisible = true;
+            if (typeof item.visible === 'function') {
+                isVisible = item.visible();
+            } else if (item.visible !== undefined) {
+                isVisible = !!item.visible;
+            }
+            
+            if (!isVisible) continue; // Skip invisible items
+            
             const groupId = item.group || 'default';
             if (!itemsByGroup.has(groupId)) {
                 itemsByGroup.set(groupId, []);
@@ -3849,7 +3891,8 @@ class MenuBar {
             processedGroups.push({
                 id: groupId,
                 config: groupConfig,
-                items: groupItems
+                items: groupItems,
+                bannerColor: groupConfig.bannerColor || data.groupBannerColor
             });
         }
         

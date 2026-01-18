@@ -3,7 +3,7 @@
     {{#each groups}}
     <div class="secondary-bar-group-container">
         {{#if ../groupBannerEnabled}}
-        <div class="secondary-bar-group-banner" style="background-color: {{../groupBannerColor}};">
+        <div class="secondary-bar-group-banner" style="background-color: {{#if bannerColor}}{{bannerColor}}{{else}}{{../groupBannerColor}}{{/if}};">
             <span class="secondary-bar-group-banner-text">{{id}}</span>
         </div>
         {{/if}}
