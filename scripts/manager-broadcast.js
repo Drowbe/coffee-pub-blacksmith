@@ -444,9 +444,31 @@ export class BroadcastManager {
 
         Hooks.on('canvasPan', this._gmPanHandler);
 
-        // Send initial state immediately
-        const initial = canvas.scene?._viewPosition ?? canvas.pan;
-        if (initial) this._sendGMViewportSync(initial);
+        // Send initial state immediately - construct position object matching canvasPan format
+        // canvasPan provides {x, y, scale} where x,y are center coordinates
+        // We need to get the current viewport center position
+        const viewportWidth = canvas.app?.renderer?.width ?? 0;
+        const viewportHeight = canvas.app?.renderer?.height ?? 0;
+        const currentScale = canvas.stage?.scale?.x ?? canvas.scene?._viewPosition?.scale ?? 1;
+        
+        // canvas.pan is top-left, but we need center coordinates
+        // Calculate center from pan position and viewport dimensions
+        const panX = canvas.pan?.x ?? canvas.scene?._viewPosition?.x ?? 0;
+        const panY = canvas.pan?.y ?? canvas.scene?._viewPosition?.y ?? 0;
+        
+        const centerX = panX + (viewportWidth / 2) / currentScale;
+        const centerY = panY + (viewportHeight / 2) / currentScale;
+        
+        const initialPosition = {
+            x: centerX,
+            y: centerY,
+            scale: currentScale
+        };
+        
+        // Use a small timeout to ensure canvas is fully ready
+        setTimeout(() => {
+            this._sendGMViewportSync(initialPosition);
+        }, 100);
     }
 
     /**
@@ -1277,11 +1299,14 @@ export class BroadcastManager {
      * @private
      */
     static _registerBroadcastTools() {
-        // Register Spectator mode button
-        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-spectator', {
-            icon: 'fa-solid fa-users',
+        
+        
+        
+        // Register Manual mode button
+        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-manual', {
+            icon: 'fa-solid fa-hand',
             label: null,
-            tooltip: 'Spectator - Follow party tokens automatically',
+            tooltip: 'Manual - No automatic following (manual camera control)',
             group: 'modes',
             toggleable: false,
             order: 0,
@@ -1295,34 +1320,12 @@ export class BroadcastManager {
                     postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
                     return;
                 }
-                await game.settings.set(MODULE.ID, 'broadcastMode', 'spectator');
+                await game.settings.set(MODULE.ID, 'broadcastMode', 'manual');
                 // Switch mode automatically manages active state - no manual re-rendering needed
             }
         });
-
-        // Register Combat mode button
-        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-combat', {
-            icon: 'fa-solid fa-swords',
-            label: null,
-            tooltip: 'Combat - Follow current combatant automatically',
-            group: 'modes',
-            toggleable: false,
-            order: 1,
-            iconColor: null,
-            buttonColor: null,
-            borderColor: null,
-            visible: true,
-            onClick: async () => {
-                // Only GMs can change broadcast mode
-                if (!game.user.isGM) {
-                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
-                    return;
-                }
-                await game.settings.set(MODULE.ID, 'broadcastMode', 'combat');
-                // Switch mode automatically manages active state - no manual re-rendering needed
-            }
-        });
-
+        
+        
         // Register GM View mode button
         MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-gmview', {
             icon: 'fa-solid fa-chess-king',
@@ -1330,7 +1333,7 @@ export class BroadcastManager {
             tooltip: 'GM View - Mirror GM\'s viewport (center and zoom)',
             group: 'modes',
             toggleable: false,
-            order: 2,
+            order: 1,
             iconColor: null,
             buttonColor: null,
             borderColor: null,
@@ -1346,6 +1349,55 @@ export class BroadcastManager {
             }
         });
 
+
+        // Register Combat mode button
+        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-combat', {
+            icon: 'fa-solid fa-swords',
+            label: null,
+            tooltip: 'Combat - Follow current combatant automatically',
+            group: 'modes',
+            toggleable: false,
+            order: 2,
+            iconColor: null,
+            buttonColor: null,
+            borderColor: null,
+            visible: true,
+            onClick: async () => {
+                // Only GMs can change broadcast mode
+                if (!game.user.isGM) {
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                    return;
+                }
+                await game.settings.set(MODULE.ID, 'broadcastMode', 'combat');
+                // Switch mode automatically manages active state - no manual re-rendering needed
+            }
+        });
+
+        
+        // Register Spectator mode button
+        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-spectator', {
+            icon: 'fa-solid fa-users',
+            label: null,
+            tooltip: 'Spectator - Follow party tokens automatically',
+            group: 'modes',
+            toggleable: false,
+            order: 3,
+            iconColor: null,
+            buttonColor: null,
+            borderColor: null,
+            visible: true,
+            onClick: async () => {
+                // Only GMs can change broadcast mode
+                if (!game.user.isGM) {
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                    return;
+                }
+                await game.settings.set(MODULE.ID, 'broadcastMode', 'spectator');
+                // Switch mode automatically manages active state - no manual re-rendering needed
+            }
+        });
+
+
         // Register Player View mode button
         MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-playerview', {
             icon: 'fa-solid fa-helmet-battle',
@@ -1353,7 +1405,7 @@ export class BroadcastManager {
             tooltip: 'Player View - Mirror selected player\'s viewport',
             group: 'modes',
             toggleable: false,
-            order: 3,
+            order: 4,
             iconColor: null,
             buttonColor: null,
             borderColor: null,
@@ -1369,28 +1421,7 @@ export class BroadcastManager {
             }
         });
 
-        // Register Manual mode button
-        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-manual', {
-            icon: 'fa-solid fa-hand',
-            label: null,
-            tooltip: 'Manual - No automatic following (manual camera control)',
-            group: 'modes',
-            toggleable: false,
-            order: 4,
-            iconColor: null,
-            buttonColor: null,
-            borderColor: null,
-            visible: true,
-            onClick: async () => {
-                // Only GMs can change broadcast mode
-                if (!game.user.isGM) {
-                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
-                    return;
-                }
-                await game.settings.set(MODULE.ID, 'broadcastMode', 'manual');
-                // Switch mode automatically manages active state - no manual re-rendering needed
-            }
-        });
+        
 
         // Register portrait buttons for party tokens (player view modes)
         this.registerPlayerPortraitButtons();

@@ -4011,9 +4011,15 @@ class MenuBar {
                             
                             const groupConfig = groups.get(groupId) || { mode: 'default' };
                             
-                            // Handle switch groups: let onClick handle setting update, which will trigger settingChange hook to update active state
-                            // Don't update active state here for switch groups - let the settingChange hook handle it via updateSecondaryBarItemActive()
-                            if (groupConfig.mode === 'default' && item.toggleable) {
+                            // Handle switch groups: update active state immediately for visual feedback
+                            if (groupConfig.mode === 'switch') {
+                                // Update active state immediately for switch groups
+                                if (activeStates && activeStates.get(groupId) !== itemId) {
+                                    activeStates.set(groupId, itemId);
+                                    // Re-render to show immediate visual feedback
+                                    this.renderMenubar(true);
+                                }
+                            } else if (groupConfig.mode === 'default' && item.toggleable) {
                                 // Toggleable item in default group - handle active state immediately
                                 item.active = !item.active;
                                 // Re-render to update active state
@@ -4022,7 +4028,8 @@ class MenuBar {
                             
                             try {
                                 // Call onClick - for switch groups, this will update the setting, which triggers settingChange hook
-                                // The settingChange hook will call updateSecondaryBarItemActive() to sync the active state
+                                // The settingChange hook will call updateSecondaryBarItemActive() to sync/verify the active state
+                                // But we've already updated it above for immediate visual feedback
                                 item.onClick(event);
                             } catch (error) {
                                 postConsoleAndNotification(MODULE.NAME, `Error executing secondary bar item ${itemId}:`, error, false, false);
