@@ -1436,8 +1436,7 @@ class MenuBar {
         // Register Spectator mode button
         this.registerSecondaryBarItem('broadcast', 'broadcast-mode-spectator', {
             icon: 'fas fa-users',
-            label: 'Spectator',
-            tooltip: 'Follow party tokens automatically',
+            tooltip: 'Spectator - Follow party tokens automatically',
             group: 'modes',
             order: 0,
             onClick: async () => {
@@ -1454,8 +1453,7 @@ class MenuBar {
         // Register Combat mode button
         this.registerSecondaryBarItem('broadcast', 'broadcast-mode-combat', {
             icon: 'fas fa-swords',
-            label: 'Combat',
-            tooltip: 'Follow current combatant automatically',
+            tooltip: 'Combat - Follow current combatant automatically',
             group: 'modes',
             order: 1,
             onClick: async () => {
@@ -1472,8 +1470,7 @@ class MenuBar {
         // Register GM View mode button
         this.registerSecondaryBarItem('broadcast', 'broadcast-mode-gmview', {
             icon: 'fas fa-user-tie',
-            label: 'GM View',
-            tooltip: 'Mirror GM\'s viewport (center and zoom)',
+            tooltip: 'GM View - Mirror GM\'s viewport (center and zoom)',
             group: 'modes',
             order: 2,
             onClick: async () => {
@@ -1490,8 +1487,7 @@ class MenuBar {
         // Register Manual mode button
         this.registerSecondaryBarItem('broadcast', 'broadcast-mode-manual', {
             icon: 'fas fa-hand-pointer',
-            label: 'Manual',
-            tooltip: 'No automatic following (manual camera control)',
+            tooltip: 'Manual - No automatic following (manual camera control)',
             group: 'modes',
             order: 3,
             onClick: async () => {

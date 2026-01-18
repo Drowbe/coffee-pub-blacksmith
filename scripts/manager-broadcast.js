@@ -1293,7 +1293,6 @@ export class BroadcastManager {
             
             MenuBar.registerSecondaryBarItem('broadcast', itemId, {
                 icon: portraitImg || 'fas fa-user', // Use portrait as icon, fallback to font icon
-                label: user.name || actor.name || 'Player',
                 tooltip: `Mirror ${user.name}'s viewport`,
                 group: 'modes',
                 order: order++,
