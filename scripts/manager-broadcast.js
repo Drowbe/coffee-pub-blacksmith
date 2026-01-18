@@ -614,22 +614,28 @@ export class BroadcastManager {
     static _calculateTokenBoundingBox(tokens) {
         if (!tokens || tokens.length === 0) return null;
         
-        const size = canvas.dimensions?.size || canvas.grid?.size || 100;
+        // Use canvas.grid.size for consistency (this is pixels per grid square)
+        const gridSize = canvas.grid?.size || 100;
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         
         for (const token of tokens) {
             // Get token dimensions in world coordinates
-            const w = (token.width ?? 1) * size;
-            const h = (token.height ?? 1) * size;
+            // Use token.document.width/height (in grid units) not token.width/height
+            // Multiply by grid size to get pixels
+            const tokenWidthGrid = token.document?.width ?? token.width ?? 1;
+            const tokenHeightGrid = token.document?.height ?? token.height ?? 1;
+            
+            const tokenWidthPixels = tokenWidthGrid * gridSize;
+            const tokenHeightPixels = tokenHeightGrid * gridSize;
             
             // Account for texture scale if present
             const sx = token.texture?.scaleX ?? 1;
             const sy = token.texture?.scaleY ?? 1;
             
-            const tokenWidth = w * sx;
-            const tokenHeight = h * sy;
+            const tokenWidth = tokenWidthPixels * sx;
+            const tokenHeight = tokenHeightPixels * sy;
             
-            // Token bounds (x, y are top-left)
+            // Token bounds (token.x, token.y are top-left in world coordinates/pixels)
             const tokenMinX = token.x;
             const tokenMinY = token.y;
             const tokenMaxX = token.x + tokenWidth;
@@ -639,9 +645,26 @@ export class BroadcastManager {
             minY = Math.min(minY, tokenMinY);
             maxX = Math.max(maxX, tokenMaxX);
             maxY = Math.max(maxY, tokenMaxY);
+            
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Token bounding box contribution", {
+                tokenId: token.id,
+                tokenX: token.x,
+                tokenY: token.y,
+                tokenWidth: tokenWidth,
+                tokenHeight: tokenHeight,
+                gridSize: gridSize,
+                tokenWidthGrid: tokenWidthGrid,
+                tokenHeightGrid: tokenHeightGrid,
+                tokenWidthFromDoc: token.document?.width,
+                tokenHeightFromDoc: token.document?.height,
+                tokenWidthFromPlaceable: token.width,
+                tokenHeightFromPlaceable: token.height,
+                textureScaleX: sx,
+                textureScaleY: sy
+            }, true, false);
         }
         
-        return {
+        const bbox = {
             minX: minX,
             minY: minY,
             maxX: maxX,
@@ -649,6 +672,14 @@ export class BroadcastManager {
             width: maxX - minX,
             height: maxY - minY
         };
+        
+        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Total bounding box calculated", {
+            bbox: bbox,
+            tokenCount: tokens.length,
+            gridSize: gridSize
+        }, true, false);
+        
+        return bbox;
     }
 
     /**
