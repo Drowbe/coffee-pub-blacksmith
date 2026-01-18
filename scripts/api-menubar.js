@@ -1402,19 +1402,19 @@ class MenuBar {
         });
 
         // Register party secondary bar (default tool system)
-        await this.registerSecondaryBarType('party', {
-            height: 30,
-            persistence: 'manual'
-        });
+        // await this.registerSecondaryBarType('party', {
+        //     height: 30,
+        //     persistence: 'manual'
+        // });
 
         // Register party tools after bar type is registered
-        this._registerPartyTools();
+        // this._registerPartyTools();
 
         // Register broadcast secondary bar (default tool system)
         await this.registerSecondaryBarType('broadcast', {
             height: this.getSecondaryBarHeight('broadcast'),
             persistence: 'manual',
-            groupBannerEnabled: true,
+            groupBannerEnabled: false,
             groupBannerColor: 'rgba(62, 92, 13, 0.9)',
             groups: {
                 'modes': {
@@ -1429,168 +1429,11 @@ class MenuBar {
             }
         });
 
-        // Register broadcast tools
-        this._registerBroadcastTools();
+        // Broadcast tools are registered by BroadcastManager after bar type registration
 
         postConsoleAndNotification(MODULE.NAME, "Menubar: Secondary bar types registered", "", true, false);
     }
 
-    /**
-     * Register broadcast tools in the broadcast secondary bar
-     * @private
-     */
-    static _registerBroadcastTools() {
-        // Register Spectator mode button
-        this.registerSecondaryBarItem('broadcast', 'broadcast-mode-spectator', {
-            icon: 'fa-solid fa-users',
-            tooltip: 'Spectator - Follow party tokens automatically',
-            group: 'modes',
-            order: 0,
-            onClick: async () => {
-                // Only GMs can change broadcast mode
-                if (!game.user.isGM) {
-                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
-                    return;
-                }
-                await game.settings.set(MODULE.ID, 'broadcastMode', 'spectator');
-                // Switch mode automatically manages active state - no manual re-rendering needed
-            }
-        });
-
-        // Register Combat mode button
-        this.registerSecondaryBarItem('broadcast', 'broadcast-mode-combat', {
-            icon: 'fa-solid fa-swords',
-            tooltip: 'Combat - Follow current combatant automatically',
-            group: 'modes',
-            order: 1,
-            onClick: async () => {
-                // Only GMs can change broadcast mode
-                if (!game.user.isGM) {
-                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
-                    return;
-                }
-                await game.settings.set(MODULE.ID, 'broadcastMode', 'combat');
-                // Switch mode automatically manages active state - no manual re-rendering needed
-            }
-        });
-
-        // Register GM View mode button
-        this.registerSecondaryBarItem('broadcast', 'broadcast-mode-gmview', {
-            icon: 'fa-solid fa-chess-king',
-            tooltip: 'GM View - Mirror GM\'s viewport (center and zoom)',
-            group: 'modes',
-            order: 2,
-            onClick: async () => {
-                // Only GMs can change broadcast mode
-                if (!game.user.isGM) {
-                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
-                    return;
-                }
-                await game.settings.set(MODULE.ID, 'broadcastMode', 'gmview');
-                // Switch mode automatically manages active state - no manual re-rendering needed
-            }
-        });
-
-        // Register Player View mode button
-        this.registerSecondaryBarItem('broadcast', 'broadcast-mode-playerview', {
-            icon: 'fa-solid fa-helmet-battle',
-            tooltip: 'Player View - Mirror selected player\'s viewport',
-            group: 'modes',
-            order: 3,
-            onClick: async () => {
-                // Only GMs can change broadcast mode
-                if (!game.user.isGM) {
-                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
-                    return;
-                }
-                await game.settings.set(MODULE.ID, 'broadcastMode', 'playerview');
-                // Switch mode automatically manages active state - no manual re-rendering needed
-            }
-        });
-
-        // Register Manual mode button
-        this.registerSecondaryBarItem('broadcast', 'broadcast-mode-manual', {
-            icon: 'fa-solid fa-hand',
-            tooltip: 'Manual - No automatic following (manual camera control)',
-            group: 'modes',
-            order: 4,
-            onClick: async () => {
-                // Only GMs can change broadcast mode
-                if (!game.user.isGM) {
-                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
-                    return;
-                }
-                await game.settings.set(MODULE.ID, 'broadcastMode', 'manual');
-                // Switch mode automatically manages active state - no manual re-rendering needed
-            }
-        });
-
-        // Register portrait buttons for party tokens (player view modes)
-        BroadcastManager.registerPlayerPortraitButtons();
-
-        // Set initial active state based on current broadcastMode setting
-        // Switch mode will default to first item if none is set, so we set the correct one
-        const currentMode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
-        const modeItemMap = {
-            'spectator': 'broadcast-mode-spectator',
-            'combat': 'broadcast-mode-combat',
-            'gmview': 'broadcast-mode-gmview',
-            'playerview': 'broadcast-mode-playerview',
-            'manual': 'broadcast-mode-manual'
-        };
-        
-        // Check if mode is a playerview mode (playerview-{userId})
-        if (typeof currentMode === 'string' && currentMode.startsWith('playerview-')) {
-            const userId = currentMode.replace('playerview-', '');
-            // Activate "Player View" mode button
-            this.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-playerview', true);
-            // Activate the selected player's portrait button in party group
-            const activeItemId = `broadcast-mode-player-${userId}`;
-            this.updateSecondaryBarItemActive('broadcast', activeItemId, true);
-        } else {
-            const activeItemId = modeItemMap[currentMode] || 'broadcast-mode-spectator';
-            this.updateSecondaryBarItemActive('broadcast', activeItemId, true);
-        }
-
-        // Listen for broadcast mode setting changes to sync button active state
-        HookManager.registerHook({
-            name: 'settingChange',
-            description: 'MenuBar: Sync broadcast mode button active state when mode changes',
-            context: 'broadcast-mode-buttons',
-            priority: 5,
-            key: 'broadcastModeButtons',
-            callback: async (moduleId, settingKey, value) => {
-                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-                
-                if (moduleId === MODULE.ID && settingKey === 'broadcastMode') {
-                    // Update active state to match the setting (switch mode handles deactivating others)
-                    // Check if mode is a playerview mode (playerview-{userId})
-                    if (typeof value === 'string' && value.startsWith('playerview-')) {
-                        const userId = value.replace('playerview-', '');
-                        // Activate "Player View" mode button in modes group
-                        this.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-playerview', true);
-                        // Activate the selected player's portrait button in party group
-                        const activeItemId = `broadcast-mode-player-${userId}`;
-                        this.updateSecondaryBarItemActive('broadcast', activeItemId, true);
-                    } else {
-                        const modeItemMap = {
-                            'spectator': 'broadcast-mode-spectator',
-                            'combat': 'broadcast-mode-combat',
-                            'gmview': 'broadcast-mode-gmview',
-                            'playerview': 'broadcast-mode-playerview',
-                            'manual': 'broadcast-mode-manual'
-                        };
-                        const activeItemId = modeItemMap[value] || 'broadcast-mode-spectator';
-                        this.updateSecondaryBarItemActive('broadcast', activeItemId, true);
-                    }
-                }
-                
-                //  ------------------- END - HOOKMANAGER CALLBACK -------------------
-            }
-        });
-
-        postConsoleAndNotification(MODULE.NAME, "Menubar: Broadcast tools registered", "", true, false);
-    }
 
     /**
      * Register party tools in the party secondary bar
@@ -4168,22 +4011,18 @@ class MenuBar {
                             
                             const groupConfig = groups.get(groupId) || { mode: 'default' };
                             
-                            // Handle switch groups: ensure only one active
-                            if (groupConfig.mode === 'switch') {
-                                if (activeStates && activeStates.get(groupId) !== itemId) {
-                                    // Switch to this item
-                                    activeStates.set(groupId, itemId);
-                                    // Re-render to update active states
-                                    this.renderMenubar(true);
-                                }
-                            } else if (groupConfig.mode === 'default' && item.toggleable) {
-                                // Toggleable item in default group
+                            // Handle switch groups: let onClick handle setting update, which will trigger settingChange hook to update active state
+                            // Don't update active state here for switch groups - let the settingChange hook handle it via updateSecondaryBarItemActive()
+                            if (groupConfig.mode === 'default' && item.toggleable) {
+                                // Toggleable item in default group - handle active state immediately
                                 item.active = !item.active;
                                 // Re-render to update active state
                                 this.renderMenubar(true);
                             }
                             
                             try {
+                                // Call onClick - for switch groups, this will update the setting, which triggers settingChange hook
+                                // The settingChange hook will call updateSecondaryBarItemActive() to sync the active state
                                 item.onClick(event);
                             } catch (error) {
                                 postConsoleAndNotification(MODULE.NAME, `Error executing secondary bar item ${itemId}:`, error, false, false);

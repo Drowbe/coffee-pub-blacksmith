@@ -80,6 +80,8 @@ export class BroadcastManager {
                 this._updateBroadcastMode();
                 // Register camera hooks after settings are loaded
                 this._registerCameraHooks();
+                // Register broadcast tools after bar type is registered
+                this._registerBroadcastTools();
             }, 100);
         });
     }
@@ -1271,8 +1273,195 @@ export class BroadcastManager {
     }
 
     /**
+     * Register broadcast tools in the broadcast secondary bar
+     * @private
+     */
+    static _registerBroadcastTools() {
+        // Register Spectator mode button
+        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-spectator', {
+            icon: 'fa-solid fa-users',
+            label: null,
+            tooltip: 'Spectator - Follow party tokens automatically',
+            group: 'modes',
+            toggleable: false,
+            order: 0,
+            iconColor: null,
+            buttonColor: null,
+            borderColor: null,
+            visible: true,
+            onClick: async () => {
+                // Only GMs can change broadcast mode
+                if (!game.user.isGM) {
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                    return;
+                }
+                await game.settings.set(MODULE.ID, 'broadcastMode', 'spectator');
+                // Switch mode automatically manages active state - no manual re-rendering needed
+            }
+        });
+
+        // Register Combat mode button
+        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-combat', {
+            icon: 'fa-solid fa-swords',
+            label: null,
+            tooltip: 'Combat - Follow current combatant automatically',
+            group: 'modes',
+            toggleable: false,
+            order: 1,
+            iconColor: null,
+            buttonColor: null,
+            borderColor: null,
+            visible: true,
+            onClick: async () => {
+                // Only GMs can change broadcast mode
+                if (!game.user.isGM) {
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                    return;
+                }
+                await game.settings.set(MODULE.ID, 'broadcastMode', 'combat');
+                // Switch mode automatically manages active state - no manual re-rendering needed
+            }
+        });
+
+        // Register GM View mode button
+        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-gmview', {
+            icon: 'fa-solid fa-chess-king',
+            label: null,
+            tooltip: 'GM View - Mirror GM\'s viewport (center and zoom)',
+            group: 'modes',
+            toggleable: false,
+            order: 2,
+            iconColor: null,
+            buttonColor: null,
+            borderColor: null,
+            visible: true,
+            onClick: async () => {
+                // Only GMs can change broadcast mode
+                if (!game.user.isGM) {
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                    return;
+                }
+                await game.settings.set(MODULE.ID, 'broadcastMode', 'gmview');
+                // Switch mode automatically manages active state - no manual re-rendering needed
+            }
+        });
+
+        // Register Player View mode button
+        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-playerview', {
+            icon: 'fa-solid fa-helmet-battle',
+            label: null,
+            tooltip: 'Player View - Mirror selected player\'s viewport',
+            group: 'modes',
+            toggleable: false,
+            order: 3,
+            iconColor: null,
+            buttonColor: null,
+            borderColor: null,
+            visible: true,
+            onClick: async () => {
+                // Only GMs can change broadcast mode
+                if (!game.user.isGM) {
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                    return;
+                }
+                await game.settings.set(MODULE.ID, 'broadcastMode', 'playerview');
+                // Switch mode automatically manages active state - no manual re-rendering needed
+            }
+        });
+
+        // Register Manual mode button
+        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-manual', {
+            icon: 'fa-solid fa-hand',
+            label: null,
+            tooltip: 'Manual - No automatic following (manual camera control)',
+            group: 'modes',
+            toggleable: false,
+            order: 4,
+            iconColor: null,
+            buttonColor: null,
+            borderColor: null,
+            visible: true,
+            onClick: async () => {
+                // Only GMs can change broadcast mode
+                if (!game.user.isGM) {
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                    return;
+                }
+                await game.settings.set(MODULE.ID, 'broadcastMode', 'manual');
+                // Switch mode automatically manages active state - no manual re-rendering needed
+            }
+        });
+
+        // Register portrait buttons for party tokens (player view modes)
+        this.registerPlayerPortraitButtons();
+
+        // Set initial active state based on current broadcastMode setting
+        // Switch mode will default to first item if none is set, so we set the correct one
+        const currentMode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+        const modeItemMap = {
+            'spectator': 'broadcast-mode-spectator',
+            'combat': 'broadcast-mode-combat',
+            'gmview': 'broadcast-mode-gmview',
+            'playerview': 'broadcast-mode-playerview',
+            'manual': 'broadcast-mode-manual'
+        };
+        
+        // Check if mode is a playerview mode (playerview-{userId})
+        if (typeof currentMode === 'string' && currentMode.startsWith('playerview-')) {
+            const userId = currentMode.replace('playerview-', '');
+            // Activate "Player View" mode button
+            MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-playerview', true);
+            // Activate the selected player's portrait button in party group
+            const activeItemId = `broadcast-mode-player-${userId}`;
+            MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+        } else {
+            const activeItemId = modeItemMap[currentMode] || 'broadcast-mode-spectator';
+            MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+        }
+
+        // Listen for broadcast mode setting changes to sync button active state
+        HookManager.registerHook({
+            name: 'settingChange',
+            description: 'BroadcastManager: Sync broadcast mode button active state when mode changes',
+            context: 'broadcast-mode-buttons',
+            priority: 5,
+            key: 'broadcastModeButtons',
+            callback: async (moduleId, settingKey, value) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                
+                if (moduleId === MODULE.ID && settingKey === 'broadcastMode') {
+                    // Update active state to match the setting (switch mode handles deactivating others)
+                    // Check if mode is a playerview mode (playerview-{userId})
+                    if (typeof value === 'string' && value.startsWith('playerview-')) {
+                        const userId = value.replace('playerview-', '');
+                        // Activate "Player View" mode button in modes group
+                        MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-playerview', true);
+                        // Activate the selected player's portrait button in party group
+                        const activeItemId = `broadcast-mode-player-${userId}`;
+                        MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+                    } else {
+                        const modeItemMap = {
+                            'spectator': 'broadcast-mode-spectator',
+                            'combat': 'broadcast-mode-combat',
+                            'gmview': 'broadcast-mode-gmview',
+                            'playerview': 'broadcast-mode-playerview',
+                            'manual': 'broadcast-mode-manual'
+                        };
+                        const activeItemId = modeItemMap[value] || 'broadcast-mode-spectator';
+                        MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+                    }
+                }
+                
+                //  ------------------- END - HOOKMANAGER CALLBACK -------------------
+            }
+        });
+
+        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Broadcast tools registered", "", true, false);
+    }
+
+    /**
      * Register portrait buttons for all party tokens
-     * Called from MenuBar when registering broadcast tools
+     * Called from _registerBroadcastTools when registering broadcast tools
      */
     static registerPlayerPortraitButtons() {
         // Unregister all existing player portrait buttons
@@ -1293,9 +1482,14 @@ export class BroadcastManager {
             
             MenuBar.registerSecondaryBarItem('broadcast', itemId, {
                 icon: portraitImg || 'fas fa-user', // Use portrait as icon, fallback to font icon
+                label: null,
                 tooltip: `Mirror ${user.name}'s viewport`,
                 group: 'party',
+                toggleable: false,
                 order: order++,
+                iconColor: null,
+                buttonColor: null,
+                borderColor: null,
                 visible: () => game.user.isGM, // Only GMs can see/use these buttons
                 onClick: async () => {
                     // Double-check: Only GMs can change broadcast mode

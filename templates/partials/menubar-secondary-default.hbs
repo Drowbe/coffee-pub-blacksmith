@@ -11,7 +11,7 @@
             {{#each items}}
             <div class="secondary-bar-item {{#if active}}active{{/if}}" 
                  data-item-id="{{itemId}}"
-                 data-group-id="{{../../id}}"
+                 data-group-id="{{../id}}"
                  data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
                  title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
                  {{#if (or buttonColor borderColor)}}
