@@ -476,7 +476,8 @@ export class BroadcastManager {
             
             // Pan gating (existing logic: distance threshold + throttle)
             // Skip gating for initialization (scene load) - always pan/zoom
-            const shouldPan = isInitialization ? true : this._shouldPan(targetPosition);
+            // Pass partyTokens to check if any are off-screen (forces pan)
+            const shouldPan = isInitialization ? true : this._shouldPan(targetPosition, partyTokens);
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Should pan check", {
                 shouldPan: shouldPan,
                 targetPosition: targetPosition,
@@ -524,10 +525,13 @@ export class BroadcastManager {
             // canvas.animatePan() appears to center the coordinate in the viewport automatically
             // (combat mode uses canvasToken.x/y which centers perfectly, so we use token center here)
             // Always include scale since we always calculate finalZoom now
+            const animationDuration = getSettingSafely(MODULE.ID, 'broadcastAnimationDuration', 500);
             const panOptions = {
                 x: targetPosition.x,
                 y: targetPosition.y,
-                scale: finalZoom
+                scale: finalZoom,
+                duration: animationDuration,
+                easing: "easeInOutCosine" // Smooth ease in/out animation
             };
             
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Pan/zoom execute", {
@@ -809,11 +813,45 @@ export class BroadcastManager {
     /**
      * Check if camera should pan based on distance threshold and throttle
      * @param {Object} newPosition - New position {x, y}
+     * @param {Array} partyTokens - Optional array of party tokens to check if they're off-screen
      * @returns {boolean} True if should pan
      */
-    static _shouldPan(newPosition) {
+    static _shouldPan(newPosition, partyTokens = null) {
         const distanceThreshold = getSettingSafely(MODULE.ID, 'broadcastFollowDistanceThreshold', 1.0);
         const throttleMs = getSettingSafely(MODULE.ID, 'broadcastFollowThrottleMs', 100);
+        
+        // Check if any party tokens are off-screen or near edge - always pan in this case
+        if (partyTokens && partyTokens.length > 0) {
+            const viewportWidth = canvas.app?.renderer?.width || window.innerWidth || 1920;
+            const viewportHeight = canvas.app?.renderer?.height || window.innerHeight || 1080;
+            const currentZoom = canvas.stage?.scale?.x ?? 1.0;
+            
+            // Viewport bounds in world coordinates
+            const viewportLeft = canvas.pan?.x ?? 0;
+            const viewportTop = canvas.pan?.y ?? 0;
+            const viewportRight = viewportLeft + (viewportWidth / currentZoom);
+            const viewportBottom = viewportTop + (viewportHeight / currentZoom);
+            
+            // Check if any token is outside viewport (with small margin for edge detection)
+            const margin = canvas.grid.size * 2; // 2 grid units margin
+            for (const token of partyTokens) {
+                const tokenCenter = this._getTokenCenter(token);
+                if (!tokenCenter) continue;
+                
+                // Check if token is outside viewport bounds (with margin)
+                if (tokenCenter.x < (viewportLeft - margin) || 
+                    tokenCenter.x > (viewportRight + margin) ||
+                    tokenCenter.y < (viewportTop - margin) || 
+                    tokenCenter.y > (viewportBottom + margin)) {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Token off-screen, forcing pan", {
+                        tokenId: token.id,
+                        tokenCenter: tokenCenter,
+                        viewportBounds: { left: viewportLeft, top: viewportTop, right: viewportRight, bottom: viewportBottom }
+                    }, true, false);
+                    return true; // Force pan if token is off-screen
+                }
+            }
+        }
         
         // Check distance threshold first (if we have a last position)
         if (this._lastPanPosition.x !== null && this._lastPanPosition.y !== null) {
@@ -830,9 +868,9 @@ export class BroadcastManager {
                 return false;
             }
             
-            // If token has moved significantly (more than 3x threshold), bypass throttle
-            // This ensures we catch up after long moves, even if we're in throttle window
-            if (gridUnits > (distanceThreshold * 3)) {
+            // If token has moved significantly (more than 2x threshold), bypass throttle
+            // Reduced from 3x to 2x for more responsive following during long drags
+            if (gridUnits > (distanceThreshold * 2)) {
                 return true; // Bypass throttle for large movements
             }
         }

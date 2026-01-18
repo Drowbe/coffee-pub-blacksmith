@@ -240,6 +240,8 @@
 
 		"broadcastSpectatorPartyBoxPadding-Label": "Party Box Padding (%)",
 		"broadcastSpectatorPartyBoxPadding-Hint": "Percentage of padding around the party token bounding box when calculating auto-fit zoom for multiple tokens. Higher values = more zoomed out (more space around party).",
+		"broadcastAnimationDuration-Label": "Animation Duration (ms)",
+		"broadcastAnimationDuration-Hint": "Duration of camera pan/zoom animations in milliseconds. Higher values = slower, smoother animations. Lower values = faster, snappier animations.",
 
 		"headingH2CombatEnhancements-Label": "Combat",
 		"headingH2CombatEnhancements-Hint": "Enhancements and quality of lifeimprovements to the combat system.",

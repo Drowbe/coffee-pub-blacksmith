@@ -1829,6 +1829,19 @@ export const registerSettings = () => {
 			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 
+		// Broadcast Animation Duration
+		game.settings.register(MODULE.ID, 'broadcastAnimationDuration', {
+			name: MODULE.ID + '.broadcastAnimationDuration-Label',
+			hint: MODULE.ID + '.broadcastAnimationDuration-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Number,
+			default: 500,
+			range: { min: 100, max: 2000, step: 100 },
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+
 	// --------------------------------------
 	// -- H2: Combat
 	// --------------------------------------
