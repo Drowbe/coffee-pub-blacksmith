@@ -22,6 +22,7 @@ export class BroadcastManager {
     static isInitialized = false;
     static _lastPanPosition = { x: null, y: null };
     static _lastPanTime = 0;
+    static _lastModeEmit = { mode: null, at: 0 };
 
     /**
      * Initialize the BroadcastManager
@@ -343,6 +344,21 @@ export class BroadcastManager {
                 });
                 
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: GM view socket handler registered successfully", "", true, false);
+
+                // Register socket handler for broadcast mode changes (all clients)
+                await blacksmith.sockets.register('broadcast.modeChanged', async (data) => {
+                    //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                    
+                    if (!data || !data.mode) return;
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Received mode change socket", { data }, true, false);
+                    
+                    // Adjust viewport for the new mode (client-specific behavior)
+                    await this._adjustViewportForMode(data.mode);
+                    
+                    //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+                });
+                
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Mode change socket handler registered successfully", "", true, false);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to register GM view socket handler", error, true, false);
             }
@@ -446,25 +462,12 @@ export class BroadcastManager {
 
         Hooks.on('canvasPan', this._gmPanHandler);
 
-        // Send initial state immediately - construct position object matching canvasPan format
-        // canvasPan provides {x, y, scale} where x,y are center coordinates
-        // We need to get the current viewport center position
-        const viewportWidth = canvas.app?.renderer?.width ?? 0;
-        const viewportHeight = canvas.app?.renderer?.height ?? 0;
-        const currentScale = canvas.stage?.scale?.x ?? canvas.scene?._viewPosition?.scale ?? 1;
-        
-        // canvas.pan is top-left, but we need center coordinates
-        // Calculate center from pan position and viewport dimensions
-        const panX = canvas.pan?.x ?? canvas.scene?._viewPosition?.x ?? 0;
-        const panY = canvas.pan?.y ?? canvas.scene?._viewPosition?.y ?? 0;
-        
-        const centerX = panX + (viewportWidth / 2) / currentScale;
-        const centerY = panY + (viewportHeight / 2) / currentScale;
-        
+        // Send initial state immediately - match canvasPan format (center coords)
+        const view = canvas.scene?._viewPosition ?? canvas.pan ?? { x: 0, y: 0, scale: 1 };
         const initialPosition = {
-            x: centerX,
-            y: centerY,
-            scale: currentScale
+            x: view.x ?? 0,
+            y: view.y ?? 0,
+            scale: view.scale ?? canvas.stage?.scale?.x ?? 1
         };
         
         // Use a small timeout to ensure canvas is fully ready
@@ -863,13 +866,10 @@ export class BroadcastManager {
                     this._startGMViewportMonitoring();
                 } else {
                     // Already monitoring, just send current viewport immediately
-                    const viewportWidth = canvas.app?.renderer?.width ?? 0;
-                    const viewportHeight = canvas.app?.renderer?.height ?? 0;
-                    const currentScale = canvas.stage?.scale?.x ?? canvas.scene?._viewPosition?.scale ?? 1;
-                    const panX = canvas.pan?.x ?? canvas.scene?._viewPosition?.x ?? 0;
-                    const panY = canvas.pan?.y ?? canvas.scene?._viewPosition?.y ?? 0;
-                    const centerX = panX + (viewportWidth / 2) / currentScale;
-                    const centerY = panY + (viewportHeight / 2) / currentScale;
+                    const view = canvas.scene?._viewPosition ?? canvas.pan ?? { x: 0, y: 0, scale: 1 };
+                    const centerX = view.x ?? 0;
+                    const centerY = view.y ?? 0;
+                    const currentScale = view.scale ?? canvas.stage?.scale?.x ?? 1;
                     postConsoleAndNotification(MODULE.NAME, "BroadcastManager: GM sending immediate viewport sync", { centerX, centerY, currentScale }, true, false);
                     this._sendGMViewportSync({ x: centerX, y: centerY, scale: currentScale });
                 }
@@ -1427,7 +1427,7 @@ export class BroadcastManager {
                     return;
                 }
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Setting broadcast mode to 'manual'", "", true, false);
-                await game.settings.set(MODULE.ID, 'broadcastMode', 'manual');
+                await this._setBroadcastMode('manual');
                 // Switch mode automatically manages active state - no manual re-rendering needed
             }
         });
@@ -1453,7 +1453,7 @@ export class BroadcastManager {
                     return;
                 }
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Setting broadcast mode to 'gmview'", "", true, false);
-                await game.settings.set(MODULE.ID, 'broadcastMode', 'gmview');
+                await this._setBroadcastMode('gmview');
                 // Switch mode automatically manages active state - no manual re-rendering needed
             }
         });
@@ -1479,7 +1479,7 @@ export class BroadcastManager {
                     return;
                 }
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Setting broadcast mode to 'combat'", "", true, false);
-                await game.settings.set(MODULE.ID, 'broadcastMode', 'combat');
+                await this._setBroadcastMode('combat');
                 // Switch mode automatically manages active state - no manual re-rendering needed
             }
         });
@@ -1505,7 +1505,7 @@ export class BroadcastManager {
                     return;
                 }
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Setting broadcast mode to 'spectator'", "", true, false);
-                await game.settings.set(MODULE.ID, 'broadcastMode', 'spectator');
+                await this._setBroadcastMode('spectator');
                 // Switch mode automatically manages active state - no manual re-rendering needed
             }
         });
@@ -1530,8 +1530,13 @@ export class BroadcastManager {
                     postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
                     return;
                 }
-                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Setting broadcast mode to 'playerview'", "", true, false);
-                await game.settings.set(MODULE.ID, 'broadcastMode', 'playerview');
+                const modeValue = this._getDefaultPlayerViewMode();
+                if (!modeValue) {
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: No party members available for Player View", "", false, false);
+                    return;
+                }
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Setting broadcast mode to player view", { modeValue }, true, false);
+                await this._setBroadcastMode(modeValue);
                 // Switch mode automatically manages active state - no manual re-rendering needed
             }
         });
@@ -1602,6 +1607,11 @@ export class BroadcastManager {
                         };
                         const activeItemId = modeItemMap[value] || 'broadcast-mode-spectator';
                         MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+                    }
+
+                    // If GM changes mode, broadcast to other clients immediately
+                    if (game.user.isGM && this._shouldEmitModeChange(value)) {
+                        await this._emitModeChange(value);
                     }
                     
                     // Immediately adjust viewport when mode changes
@@ -1674,12 +1684,81 @@ export class BroadcastManager {
                         return;
                     }
                     try {
-                        await game.settings.set(MODULE.ID, 'broadcastMode', modeValue);
+                        await this._setBroadcastMode(modeValue);
                     } catch (error) {
                         postConsoleAndNotification(MODULE.NAME, "Broadcast: Failed to update mode", error.message, false, false);
                     }
                 }
             });
+        }
+    }
+
+    /**
+     * Pick a default playerview mode based on last selection or first party member.
+     * @returns {string|null} playerview-{userId} mode string or null if none available
+     */
+    static _getDefaultPlayerViewMode() {
+        const currentMode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+        if (typeof currentMode === 'string' && currentMode.startsWith('playerview-')) {
+            return currentMode;
+        }
+        
+        const partyData = this._getPartyTokensWithUsers();
+        if (!partyData.length) return null;
+        
+        const firstUserId = partyData[0]?.userId;
+        return firstUserId ? `playerview-${firstUserId}` : null;
+    }
+
+    /**
+     * Emit a broadcast mode change to all clients.
+     * @param {string} mode - The new broadcast mode
+     */
+    static async _emitModeChange(mode) {
+        try {
+            this._lastModeEmit = { mode, at: Date.now() };
+            const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+            if (!blacksmith?.sockets) return;
+            await blacksmith.sockets.waitForReady();
+            await blacksmith.sockets.emit('broadcast.modeChanged', { mode });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to emit mode change", error, true, false);
+        }
+    }
+
+    /**
+     * Decide whether to emit a mode change (dedupe rapid repeats).
+     * @param {string} mode - The mode to emit
+     * @returns {boolean} True if we should emit
+     */
+    static _shouldEmitModeChange(mode) {
+        if (!mode) return false;
+        const now = Date.now();
+        if (this._lastModeEmit.mode === mode && (now - this._lastModeEmit.at) < 500) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Set broadcast mode, emit to clients, and adjust local viewport.
+     * @param {string} mode - The new broadcast mode
+     * @returns {Promise<boolean>} True if set succeeded
+     */
+    static async _setBroadcastMode(mode) {
+        if (!mode) return false;
+        try {
+            await game.settings.set(MODULE.ID, 'broadcastMode', mode);
+            if (game.user.isGM && this._shouldEmitModeChange(mode)) {
+                await this._emitModeChange(mode);
+            }
+            if (this.isEnabled() && canvas?.ready) {
+                await this._adjustViewportForMode(mode);
+            }
+            return true;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to set broadcast mode", error, true, false);
+            return false;
         }
     }
 
