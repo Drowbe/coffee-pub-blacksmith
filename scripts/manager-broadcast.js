@@ -825,6 +825,85 @@ export class BroadcastManager {
     }
 
     /**
+     * Adjust viewport immediately when mode changes
+     * @param {string} mode - The new broadcast mode
+     */
+    static async _adjustViewportForMode(mode) {
+        if (!this.isEnabled() || !canvas?.ready) return;
+        
+        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Adjusting viewport for mode change", { 
+            mode,
+            isBroadcastUser: this._isBroadcastUser(),
+            isGM: game.user.isGM
+        }, true, false);
+        
+        if (mode === 'spectator') {
+            // Only adjust viewport for broadcast user (cameraman)
+            if (this._isBroadcastUser()) {
+                // Immediately pan/zoom to party tokens
+                await this._onTokenUpdate(null, {});
+            }
+        } else if (mode === 'combat') {
+            // Only adjust viewport for broadcast user (cameraman)
+            if (this._isBroadcastUser()) {
+                // Immediately pan to current combatant if combat is active
+                const combat = game.combat;
+                if (combat) {
+                    this._onCombatUpdate(combat);
+                }
+            }
+        } else if (mode === 'gmview') {
+            // For GM view, the GM client sends initial sync, cameraman receives it
+            // GM: trigger initial sync (not the broadcast user, so early return doesn't apply)
+            if (game.user.isGM) {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: GM view mode - GM client triggering initial sync", "", true, false);
+                // The _startGMViewportMonitoring will send initial state
+                // But we should also trigger it here if not already monitoring
+                if (!this._gmPanHandler) {
+                    this._startGMViewportMonitoring();
+                } else {
+                    // Already monitoring, just send current viewport immediately
+                    const viewportWidth = canvas.app?.renderer?.width ?? 0;
+                    const viewportHeight = canvas.app?.renderer?.height ?? 0;
+                    const currentScale = canvas.stage?.scale?.x ?? canvas.scene?._viewPosition?.scale ?? 1;
+                    const panX = canvas.pan?.x ?? canvas.scene?._viewPosition?.x ?? 0;
+                    const panY = canvas.pan?.y ?? canvas.scene?._viewPosition?.y ?? 0;
+                    const centerX = panX + (viewportWidth / 2) / currentScale;
+                    const centerY = panY + (viewportHeight / 2) / currentScale;
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: GM sending immediate viewport sync", { centerX, centerY, currentScale }, true, false);
+                    this._sendGMViewportSync({ x: centerX, y: centerY, scale: currentScale });
+                }
+            }
+            // Cameraman: just wait for socket message (handled by socket handler)
+        } else if (typeof mode === 'string' && mode.startsWith('playerview-')) {
+            // For player view, the player client sends initial sync, cameraman receives it
+            // Player: trigger initial sync (not the broadcast user, so early return doesn't apply)
+            const userId = mode.replace('playerview-', '');
+            if (game.user.id === userId) {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Player view mode - Player client triggering initial sync", { userId }, true, false);
+                // The _startPlayerViewportMonitoring will send initial state
+                // But we should also trigger it here if not already monitoring
+                if (!this._playerPanHandlers.has(userId)) {
+                    this._startPlayerViewportMonitoring(userId);
+                } else {
+                    // Already monitoring, just send current viewport immediately
+                    const viewportWidth = canvas.app?.renderer?.width ?? 0;
+                    const viewportHeight = canvas.app?.renderer?.height ?? 0;
+                    const currentScale = canvas.stage?.scale?.x ?? canvas.scene?._viewPosition?.scale ?? 1;
+                    const panX = canvas.pan?.x ?? canvas.scene?._viewPosition?.x ?? 0;
+                    const panY = canvas.pan?.y ?? canvas.scene?._viewPosition?.y ?? 0;
+                    const centerX = panX + (viewportWidth / 2) / currentScale;
+                    const centerY = panY + (viewportHeight / 2) / currentScale;
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Player sending immediate viewport sync", { userId, centerX, centerY, currentScale }, true, false);
+                    this._sendPlayerViewportSync(userId, { x: centerX, y: centerY, scale: currentScale });
+                }
+            }
+            // Cameraman: just wait for socket message (handled by socket handler)
+        }
+        // Manual mode: do nothing (manual camera control)
+    }
+
+    /**
      * Handle combat turn update (combat mode)
      * @param {Combat} combat - The combat instance
      */
@@ -1341,11 +1420,13 @@ export class BroadcastManager {
             borderColor: null,
             visible: true,
             onClick: async () => {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Manual mode button clicked", "", true, false);
                 // Only GMs can change broadcast mode
                 if (!game.user.isGM) {
                     postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
                     return;
                 }
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Setting broadcast mode to 'manual'", "", true, false);
                 await game.settings.set(MODULE.ID, 'broadcastMode', 'manual');
                 // Switch mode automatically manages active state - no manual re-rendering needed
             }
@@ -1365,11 +1446,13 @@ export class BroadcastManager {
             borderColor: null,
             visible: true,
             onClick: async () => {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: GM View mode button clicked", "", true, false);
                 // Only GMs can change broadcast mode
                 if (!game.user.isGM) {
                     postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
                     return;
                 }
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Setting broadcast mode to 'gmview'", "", true, false);
                 await game.settings.set(MODULE.ID, 'broadcastMode', 'gmview');
                 // Switch mode automatically manages active state - no manual re-rendering needed
             }
@@ -1389,11 +1472,13 @@ export class BroadcastManager {
             borderColor: null,
             visible: true,
             onClick: async () => {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Combat mode button clicked", "", true, false);
                 // Only GMs can change broadcast mode
                 if (!game.user.isGM) {
                     postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
                     return;
                 }
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Setting broadcast mode to 'combat'", "", true, false);
                 await game.settings.set(MODULE.ID, 'broadcastMode', 'combat');
                 // Switch mode automatically manages active state - no manual re-rendering needed
             }
@@ -1413,11 +1498,13 @@ export class BroadcastManager {
             borderColor: null,
             visible: true,
             onClick: async () => {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Spectator mode button clicked", "", true, false);
                 // Only GMs can change broadcast mode
                 if (!game.user.isGM) {
                     postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
                     return;
                 }
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Setting broadcast mode to 'spectator'", "", true, false);
                 await game.settings.set(MODULE.ID, 'broadcastMode', 'spectator');
                 // Switch mode automatically manages active state - no manual re-rendering needed
             }
@@ -1437,11 +1524,13 @@ export class BroadcastManager {
             borderColor: null,
             visible: true,
             onClick: async () => {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Player View mode button clicked", "", true, false);
                 // Only GMs can change broadcast mode
                 if (!game.user.isGM) {
                     postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
                     return;
                 }
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Setting broadcast mode to 'playerview'", "", true, false);
                 await game.settings.set(MODULE.ID, 'broadcastMode', 'playerview');
                 // Switch mode automatically manages active state - no manual re-rendering needed
             }
@@ -1476,7 +1565,7 @@ export class BroadcastManager {
             MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
         }
 
-        // Listen for broadcast mode setting changes to sync button active state
+        // Listen for broadcast mode setting changes to sync button active state and adjust camera
         HookManager.registerHook({
             name: 'settingChange',
             description: 'BroadcastManager: Sync broadcast mode button active state when mode changes',
@@ -1487,6 +1576,13 @@ export class BroadcastManager {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                 
                 if (moduleId === MODULE.ID && settingKey === 'broadcastMode') {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Setting change hook fired for broadcastMode", { 
+                        value, 
+                        isBroadcastUser: this._isBroadcastUser(),
+                        isEnabled: this.isEnabled(),
+                        canvasReady: canvas?.ready
+                    }, true, false);
+                    
                     // Update active state to match the setting (switch mode handles deactivating others)
                     // Check if mode is a playerview mode (playerview-{userId})
                     if (typeof value === 'string' && value.startsWith('playerview-')) {
@@ -1506,6 +1602,28 @@ export class BroadcastManager {
                         };
                         const activeItemId = modeItemMap[value] || 'broadcast-mode-spectator';
                         MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+                    }
+                    
+                    // Immediately adjust viewport when mode changes
+                    // Note: For GM/Player view modes, the GM/Player client needs to send sync
+                    // For Spectator/Combat modes, only the broadcast user (cameraman) adjusts viewport
+                    if (this.isEnabled() && canvas?.ready) {
+                        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Conditions met, will adjust viewport", { 
+                            value,
+                            isBroadcastUser: this._isBroadcastUser(),
+                            isGM: game.user.isGM
+                        }, true, false);
+                        // Use a small delay to ensure mode change is fully processed
+                        setTimeout(async () => {
+                            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Calling _adjustViewportForMode", { value }, true, false);
+                            await this._adjustViewportForMode(value);
+                        }, 50);
+                    } else {
+                        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Conditions NOT met, skipping viewport adjustment", { 
+                            isBroadcastUser: this._isBroadcastUser(),
+                            isEnabled: this.isEnabled(),
+                            canvasReady: canvas?.ready
+                        }, true, false);
                     }
                 }
                 
