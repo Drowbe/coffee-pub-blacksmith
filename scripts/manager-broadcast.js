@@ -1508,11 +1508,12 @@ export class BroadcastManager {
             const itemId = `broadcast-mode-player-${userId}`;
             const modeValue = `playerview-${userId}`;
             
-            // Get token portrait image
-            const portraitImg = token.document?.texture?.src || actor.img || '';
+            // Get token portrait image (actor.img is the portrait, not token texture which is the token image)
+            const portraitImg = actor.img || actor.prototypeToken?.texture?.src || '';
             
             MenuBar.registerSecondaryBarItem('broadcast', itemId, {
-                icon: portraitImg || 'fas fa-user', // Use portrait as icon, fallback to font icon
+                icon: 'fas fa-user', // Fallback icon if image is not available
+                image: portraitImg || null, // Use portrait image if available
                 label: null,
                 tooltip: `Mirror ${user.name}'s viewport`,
                 group: 'party',

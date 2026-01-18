@@ -106,6 +106,15 @@ class MenuBar {
         Handlebars.registerHelper('and', function(a, b) {
             return a && b;
         });
+        
+        // Helper to check if a string is an image URL
+        Handlebars.registerHelper('isImageUrl', function(str) {
+            if (!str || typeof str !== 'string') return false;
+            // Check if it looks like a URL/path (starts with http://, https://, /, or contains common image extensions)
+            const urlPattern = /^(https?:\/\/|\/|\.\/|modules\/|data\/|assets\/)/i;
+            const imageExtPattern = /\.(png|jpg|jpeg|gif|webp|svg|bmp|ico)(\?.*)?$/i;
+            return urlPattern.test(str) || imageExtPattern.test(str);
+        });
 
         // Simple DOM insertion - no complex hooks needed
 
@@ -1414,7 +1423,7 @@ class MenuBar {
         await this.registerSecondaryBarType('broadcast', {
             height: this.getSecondaryBarHeight('broadcast'),
             persistence: 'manual',
-            groupBannerEnabled: false,
+            groupBannerEnabled: true,
             groupBannerColor: 'rgba(62, 92, 13, 0.9)',
             groups: {
                 'modes': {
@@ -2666,10 +2675,10 @@ class MenuBar {
      */
     static registerSecondaryBarItem(barTypeId, itemId, itemData) {
         try {
-            // Validate item data
-            if (!itemId || !itemData || !itemData.icon || typeof itemData.onClick !== 'function') {
+            // Validate item data - must have either icon or image, and onClick
+            if (!itemId || !itemData || (!itemData.icon && !itemData.image) || typeof itemData.onClick !== 'function') {
                 postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Invalid item data", 
-                    { barTypeId, itemId, hasIcon: !!itemData?.icon, hasOnClick: typeof itemData?.onClick === 'function' }, false, false);
+                    { barTypeId, itemId, hasIcon: !!itemData?.icon, hasImage: !!itemData?.image, hasOnClick: typeof itemData?.onClick === 'function' }, false, false);
                 return false;
             }
 
@@ -2688,7 +2697,8 @@ class MenuBar {
                     barTypeId: barTypeId,
                     group: groupId,
                     toggleable: itemData.toggleable || false,
-                    iconColor: itemData.iconColor || null
+                    iconColor: itemData.iconColor || null,
+                    image: itemData.image || null
                 });
                 postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Item queued (bar type not registered yet)", 
                     { barTypeId, itemId }, true, false);
@@ -2713,7 +2723,8 @@ class MenuBar {
                 barTypeId: barTypeId,
                 group: groupId,
                 toggleable: toggleable,
-                iconColor: itemData.iconColor || null
+                iconColor: itemData.iconColor || null,
+                image: itemData.image || null
             });
             
             // Ensure group exists (in case item registered before group config)

@@ -17,7 +17,11 @@
                  {{#if (or buttonColor borderColor)}}
                  style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
                  {{/if}}>
+                {{#if image}}
+                <img src="{{image}}" class="secondary-bar-item-image" alt="{{#if label}}{{label}}{{else}}{{tooltip}}{{/if}}">
+                {{else}}
                 <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
+                {{/if}}
                 {{#if label}}
                 <span class="secondary-bar-item-label">{{label}}</span>
                 {{/if}}

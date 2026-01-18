@@ -516,6 +516,9 @@
         50px
     );
 
+    /* Default toolbar IMAGE SIZE - Proportional to button size (will be overridden when banners present) */
+    --secondary-bar-item-image-size: 100%;
+
     /* Default toolbar HORIZANTAL PADDING */
     --secondary-bar-item-padding-hor: clamp(
         6px,
@@ -590,23 +593,43 @@
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item:hover {
-    background-color: rgba(0, 0, 0, 0.5);
-    border-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(181, 80, 57, 0.9);
+    border-color: rgba(195, 86, 61, 0.9);
     transform: translateY(-1px);
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item:active {
     transform: translateY(0);
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(181, 80, 57, 0.5);
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item.active {
-    background-color: rgba(48, 24, 29, 0.6);
-    border-color: rgba(255, 255, 255, 0.3);
+    background-color: rgba(181, 80, 57, 0.7);
+    border-color: rgba(195, 86, 61, 0.6);
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item i {
     font-size: var(--secondary-bar-item-icon-size);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-image {
+    width: var(--secondary-bar-item-image-size);
+    height: var(--secondary-bar-item-image-size);
+    object-fit: cover;
+    display: block;
+    flex-shrink: 0;
+    border-radius: 4px;
+    filter: grayscale(0.7) brightness(0.65);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item.active .secondary-bar-item-image {
+  filter: grayscale(0) brightness(1.15);
+}
+
+
+/* Remove padding when image is used - let image fill the button */
+.blacksmith-menubar-secondary .secondary-bar-item:has(.secondary-bar-item-image) {
+    padding: 0;
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-label {
@@ -685,6 +708,12 @@
 .blacksmith-menubar-secondary .secondary-bar-group-container:has(.secondary-bar-group-banner) .secondary-bar-item {
     min-height: var(--available-height);
     min-width: var(--available-height);
+}
+
+/* Adjust image size when banners are present - make it proportional to the smaller button */
+.blacksmith-menubar-secondary .secondary-bar-group-container:has(.secondary-bar-group-banner) .secondary-bar-item-image {
+    width: var(--available-height);
+    height: var(--available-height);
 }
 
 .blacksmith-menubar-secondary .secondary-bar-group-banner-text {
