@@ -669,6 +669,24 @@
     font-family: var(--font-primary), sans-serif; /* Proportional font */
 }
 
+/* Adjust button sizes when banners are present */
+.blacksmith-menubar-secondary .secondary-bar-group-container:has(.secondary-bar-group-banner) {
+    /* Calculate available height: bar height minus banner height and gap */
+    --banner-height: clamp(
+        10px,
+        calc(var(--blacksmith-menubar-secondary-height) * 0.20),
+        20px
+    );
+    --banner-gap: 2px;
+    --available-height: calc(var(--blacksmith-menubar-secondary-height) - var(--banner-height) - var(--banner-gap) - 12px);
+}
+
+/* Reduce button size when banners are present */
+.blacksmith-menubar-secondary .secondary-bar-group-container:has(.secondary-bar-group-banner) .secondary-bar-item {
+    min-height: var(--available-height);
+    min-width: var(--available-height);
+}
+
 .blacksmith-menubar-secondary .secondary-bar-group-banner-text {
     display: block;
     width: 100%;
