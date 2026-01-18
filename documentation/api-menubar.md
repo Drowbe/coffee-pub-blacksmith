@@ -1108,6 +1108,8 @@ if (success) {
   - `persistence` (string, optional): `'manual'` or `'auto'` (default: `'manual'`)
   - `autoCloseDelay` (number, optional): Auto-close delay in milliseconds (default: 10000)
   - `templatePath` (string, optional): Path to custom Handlebars template partial. If not provided, uses the default tool system.
+  - `groupBannerEnabled` (boolean, optional): Enable group banners above each button group (default: `false`)
+  - `groupBannerColor` (string, optional): Background color for group banners - any valid CSS color (default: `'rgba(62, 62, 163, 0.9)'`)
   - `groups` (Object, optional): Group configuration object. Maps group IDs to group configs:
     - `groupId` (string): Unique identifier for the group (e.g., 'line-size', 'colors')
     - `mode` (string, optional): Group behavior mode - `'default'` or `'switch'` (default: `'default'`)
@@ -1125,6 +1127,15 @@ if (success) {
 - Groups with different IDs will have dividers between them
 - The `'default'` group always exists if no group is specified for an item
 - Group modes determine how buttons within that group behave (see Secondary Bar Groups section below)
+
+**Group Banners:**
+- When `groupBannerEnabled` is `true`, a banner appears above each button group
+- The banner displays the group ID as text (e.g., "modes", "tools", "colors")
+- Banner height scales proportionally with the secondary bar height (20% of bar height, clamped 10-20px)
+- Banner text is automatically scaled to match (10% of bar height, clamped 8-14px)
+- Banner text color is always `rgba(255, 255, 255, 0.9)` for consistency
+- Button sizes automatically adjust when banners are enabled to fit in the remaining space
+- Use group banners to provide visual organization and labeling for button groups
 
 ### Opening a Secondary Bar
 
@@ -1244,7 +1255,9 @@ await blacksmith.registerSecondaryBarType('cartographer', {
             mode: 'switch',     // Radio-button behavior
             order: 10
         }
-    }
+    },
+    groupBannerEnabled: true,   // Enable group banners (optional)
+    groupBannerColor: 'rgba(62, 62, 163, 0.9)'  // Banner background color (optional)
 });
 ```
 
