@@ -1414,6 +1414,8 @@ class MenuBar {
         await this.registerSecondaryBarType('broadcast', {
             height: this.getSecondaryBarHeight('broadcast'),
             persistence: 'manual',
+            groupBannerEnabled: true,
+            groupBannerColor: 'rgba(62, 62, 163, 0.9)',
             groups: {
                 'modes': {
                     mode: 'switch',  // Radio-button behavior: only one mode active at a time
@@ -2665,7 +2667,9 @@ class MenuBar {
                 persistence: config.persistence || 'manual',
                 autoCloseDelay: config.autoCloseDelay || 10000,
                 templatePath: config.templatePath || null,
-                hasCustomTemplate: !!config.templatePath
+                hasCustomTemplate: !!config.templatePath,
+                groupBannerEnabled: config.groupBannerEnabled === true,
+                groupBannerColor: config.groupBannerColor || 'rgba(62, 62, 163, 0.9)'
             };
             
             // Handle group configurations - merge if bar type already exists
@@ -3762,6 +3766,10 @@ class MenuBar {
 
         // Set hasCustomTemplate flag based on bar type
         data.hasCustomTemplate = barType.hasCustomTemplate || false;
+        
+        // Pass group banner settings to template
+        data.groupBannerEnabled = barType.groupBannerEnabled || false;
+        data.groupBannerColor = barType.groupBannerColor || 'rgba(62, 62, 163, 0.9)';
 
         // If custom template, use existing data preparation (combat bar)
         if (barType.hasCustomTemplate) {

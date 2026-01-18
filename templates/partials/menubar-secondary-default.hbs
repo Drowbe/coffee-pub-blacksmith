@@ -1,24 +1,33 @@
 {{!-- Default Secondary Bar Template - Tool-based system --}}
 <div class="secondary-bar-toolbar">
     {{#each groups}}
-        {{#each items}}
-        <div class="secondary-bar-item {{#if active}}active{{/if}}" 
-             data-item-id="{{itemId}}"
-             data-group-id="{{../id}}"
-             data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
-             title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
-             {{#if (or buttonColor borderColor)}}
-             style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
-             {{/if}}>
-            <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
-            {{#if label}}
-            <span class="secondary-bar-item-label">{{label}}</span>
-            {{/if}}
+    <div class="secondary-bar-group-container">
+        {{#if ../groupBannerEnabled}}
+        <div class="secondary-bar-group-banner" style="background-color: {{../groupBannerColor}};">
+            <span class="secondary-bar-group-banner-text">{{id}}</span>
         </div>
-        {{/each}}
-        {{#unless @last}}
-        <div class="secondary-bar-group-divider"></div>
-        {{/unless}}
+        {{/if}}
+        <div class="secondary-bar-group-items">
+            {{#each items}}
+            <div class="secondary-bar-item {{#if active}}active{{/if}}" 
+                 data-item-id="{{itemId}}"
+                 data-group-id="{{../../id}}"
+                 data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
+                 title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
+                 {{#if (or buttonColor borderColor)}}
+                 style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
+                 {{/if}}>
+                <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
+                {{#if label}}
+                <span class="secondary-bar-item-label">{{label}}</span>
+                {{/if}}
+            </div>
+            {{/each}}
+        </div>
+    </div>
+    {{#unless @last}}
+    <div class="secondary-bar-group-divider"></div>
+    {{/unless}}
     {{/each}}
 </div>
 
