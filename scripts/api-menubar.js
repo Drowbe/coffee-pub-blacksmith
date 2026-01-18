@@ -1415,7 +1415,7 @@ class MenuBar {
             height: this.getSecondaryBarHeight('broadcast'),
             persistence: 'manual',
             groupBannerEnabled: true,
-            groupBannerColor: 'rgba(62, 62, 163, 0.9)',
+            groupBannerColor: 'rgba(62, 92, 13, 0.9)',
             groups: {
                 'modes': {
                     mode: 'switch',  // Radio-button behavior: only one mode active at a time
