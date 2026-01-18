@@ -23,6 +23,7 @@ export class BroadcastManager {
     static _lastPanPosition = { x: null, y: null };
     static _lastPanTime = 0;
     static _lastModeEmit = { mode: null, at: 0 };
+    static _playerButtonsDebounce = null;
 
     /**
      * Initialize the BroadcastManager
@@ -1344,27 +1345,44 @@ export class BroadcastManager {
     static _getPartyTokensWithUsers() {
         if (!canvas || !canvas.tokens) return [];
         
-        const results = [];
+        const resultsByUser = new Map();
+        const addResult = (userId, data) => {
+            if (!userId || resultsByUser.has(userId)) return;
+            resultsByUser.set(userId, data);
+        };
+        const OWNER_LEVEL = CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
+        const pickActiveOwner = (ownership) => {
+            const entries = Object.entries(ownership || {})
+                .filter(([userId, level]) => level === OWNER_LEVEL)
+                .filter(([userId]) => {
+                    const user = game.users.get(userId);
+                    return user?.active && !user.isGM;
+                });
+            if (!entries.length) return null;
+            return entries[0];
+        };
         
         for (const token of canvas.tokens.placeables) {
             const actor = token.actor;
             // Must be player character
-            if (!actor || actor.type !== 'character' || !actor.hasPlayerOwner) {
+            if (!actor || actor.type !== 'character') {
                 continue;
             }
             
-            // Find the owner user (permission level 3 = OWNER)
-            const ownership = actor.ownership || {};
-            const ownerEntry = Object.entries(ownership)
-                .find(([userId, level]) => level === 3 && game.users.get(userId)?.active);
-            
+            // Prefer token ownership for unlinked tokens, fallback to actor ownership
+            const tokenOwnership = token.document?.ownership || {};
+            const actorOwnership = actor.ownership || {};
+            let ownerEntry = pickActiveOwner(tokenOwnership);
+            if (!ownerEntry) {
+                ownerEntry = pickActiveOwner(actorOwnership);
+            }
             if (!ownerEntry) continue;
             
             const [userId] = ownerEntry;
             const user = game.users.get(userId);
-            if (!user) continue;
+            if (!user || user.isGM) continue;
             
-            results.push({
+            addResult(userId, {
                 token,
                 userId,
                 user,
@@ -1372,7 +1390,23 @@ export class BroadcastManager {
             });
         }
         
-        return results;
+        // Fallback: include active users with assigned characters even if no token is on canvas
+        for (const user of game.users) {
+            if (!user?.active || user.isGM || resultsByUser.has(user.id)) continue;
+            const actor = user.character;
+            if (!actor || actor.type !== 'character') continue;
+            if (actor.ownership?.[user.id] !== OWNER_LEVEL) continue;
+
+            const token = canvas.tokens.placeables.find(t => t.actor?.id === actor.id) || null;
+            addResult(user.id, {
+                token,
+                userId: user.id,
+                user,
+                actor
+            });
+        }
+        
+        return Array.from(resultsByUser.values());
     }
 
     /**
@@ -1545,6 +1579,7 @@ export class BroadcastManager {
 
         // Register portrait buttons for party tokens (player view modes)
         this.registerPlayerPortraitButtons();
+        this._registerPlayerPortraitSyncHooks();
 
         // Set initial active state based on current broadcastMode setting
         // Switch mode will default to first item if none is set, so we set the correct one
@@ -1649,12 +1684,17 @@ export class BroadcastManager {
      * Called from _registerBroadcastTools when registering broadcast tools
      */
     static registerPlayerPortraitButtons() {
-        // Unregister all existing player portrait buttons
         const partyData = this._getPartyTokensWithUsers();
-        
+
         // Remove old buttons (any button starting with broadcast-mode-player-)
-        // This is a bit hacky - we'd need MenuBar API to unregister, but for now we'll rely on re-registration
-        // The buttons will be recreated below, overwriting old ones
+        const existingItems = MenuBar.secondaryBarItems?.get('broadcast');
+        if (existingItems) {
+            for (const itemId of existingItems.keys()) {
+                if (itemId.startsWith('broadcast-mode-player-')) {
+                    MenuBar.unregisterSecondaryBarItem('broadcast', itemId);
+                }
+            }
+        }
         
         // Register buttons for each party token
         let order = 10; // Start after manual (order 3), give some space
@@ -1663,7 +1703,7 @@ export class BroadcastManager {
             const modeValue = `playerview-${userId}`;
             
             // Get token portrait image (actor.img is the portrait, not token texture which is the token image)
-            const portraitImg = actor.img || actor.prototypeToken?.texture?.src || '';
+            const portraitImg = token?.document?.texture?.src || actor?.img || actor?.prototypeToken?.texture?.src || user?.avatar || '';
             
             MenuBar.registerSecondaryBarItem('broadcast', itemId, {
                 icon: 'fas fa-user', // Fallback icon if image is not available
@@ -1691,6 +1731,108 @@ export class BroadcastManager {
                 }
             });
         }
+
+        // Re-sync active state for current playerview mode after rebuild
+        const currentMode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+        if (typeof currentMode === 'string' && currentMode.startsWith('playerview-')) {
+            const userId = currentMode.replace('playerview-', '');
+            const activeItemId = `broadcast-mode-player-${userId}`;
+            MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+        }
+    }
+
+    /**
+     * Register hooks to keep player portrait buttons in sync.
+     */
+    static _registerPlayerPortraitSyncHooks() {
+        if (!game.user.isGM) return;
+
+        HookManager.registerHook({
+            name: 'updateUser',
+            description: 'BroadcastManager: Sync player portrait buttons when users connect/disconnect',
+            context: 'broadcast-player-buttons',
+            priority: 5,
+            key: 'broadcast-player-buttons-updateUser',
+            callback: (user, changes) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                if (!this.isEnabled()) return;
+                if (!changes || changes.active === undefined) return;
+                this._queuePlayerPortraitSync('updateUser');
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+
+        HookManager.registerHook({
+            name: 'userConnected',
+            description: 'BroadcastManager: Sync player portrait buttons when user connects',
+            context: 'broadcast-player-buttons',
+            priority: 5,
+            key: 'broadcast-player-buttons-userConnected',
+            callback: () => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                if (!this.isEnabled()) return;
+                this._queuePlayerPortraitSync('userConnected');
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+
+        HookManager.registerHook({
+            name: 'userDisconnected',
+            description: 'BroadcastManager: Sync player portrait buttons when user disconnects',
+            context: 'broadcast-player-buttons',
+            priority: 5,
+            key: 'broadcast-player-buttons-userDisconnected',
+            callback: () => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                if (!this.isEnabled()) return;
+                this._queuePlayerPortraitSync('userDisconnected');
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+
+        HookManager.registerHook({
+            name: 'createToken',
+            description: 'BroadcastManager: Sync player portrait buttons when party tokens are created',
+            context: 'broadcast-player-buttons',
+            priority: 5,
+            key: 'broadcast-player-buttons-createToken',
+            callback: () => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                if (!this.isEnabled()) return;
+                this._queuePlayerPortraitSync('createToken');
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+
+        HookManager.registerHook({
+            name: 'deleteToken',
+            description: 'BroadcastManager: Sync player portrait buttons when party tokens are removed',
+            context: 'broadcast-player-buttons',
+            priority: 5,
+            key: 'broadcast-player-buttons-deleteToken',
+            callback: () => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                if (!this.isEnabled()) return;
+                this._queuePlayerPortraitSync('deleteToken');
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+    }
+
+    /**
+     * Debounced sync for player portrait buttons.
+     * @param {string} reason - Reason for sync
+     */
+    static _queuePlayerPortraitSync(reason) {
+        if (!game.user.isGM) return;
+        if (!this.isEnabled()) return;
+        if (this._playerButtonsDebounce) {
+            clearTimeout(this._playerButtonsDebounce);
+        }
+        this._playerButtonsDebounce = setTimeout(() => {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Syncing player portrait buttons", { reason }, true, false);
+            this.registerPlayerPortraitButtons();
+        }, 150);
     }
 
     /**
