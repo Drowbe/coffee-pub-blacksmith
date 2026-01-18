@@ -1412,7 +1412,13 @@ class MenuBar {
         // Register broadcast secondary bar (default tool system)
         await this.registerSecondaryBarType('broadcast', {
             height: this.getSecondaryBarHeight('broadcast'),
-            persistence: 'manual'
+            persistence: 'manual',
+            groups: {
+                'modes': {
+                    mode: 'switch',  // Radio-button behavior: only one mode active at a time
+                    order: 0
+                }
+            }
         });
 
         // Register broadcast tools
@@ -1426,30 +1432,6 @@ class MenuBar {
      * @private
      */
     static _registerBroadcastTools() {
-        // Helper function to get current mode label
-        const getCurrentModeLabel = () => {
-            const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
-            const labels = {
-                'spectator': 'Spectator',
-                'combat': 'Combat',
-                'gmview': 'GM View',
-                'manual': 'Manual'
-            };
-            return labels[mode] || 'Spectator';
-        };
-
-        // Helper function to get current mode icon
-        const getCurrentModeIcon = () => {
-            const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
-            const icons = {
-                'spectator': 'fas fa-users',
-                'combat': 'fas fa-swords',
-                'gmview': 'fas fa-user-tie',
-                'manual': 'fas fa-hand-pointer'
-            };
-            return icons[mode] || 'fas fa-users';
-        };
-
         // Register Spectator mode button
         this.registerSecondaryBarItem('broadcast', 'broadcast-mode-spectator', {
             icon: 'fas fa-users',
@@ -1457,11 +1439,6 @@ class MenuBar {
             tooltip: 'Follow party tokens automatically',
             group: 'modes',
             order: 0,
-            toggleable: true,
-            active: () => {
-                const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
-                return mode === 'spectator';
-            },
             onClick: async () => {
                 // Only GMs can change broadcast mode
                 if (!game.user.isGM) {
@@ -1469,10 +1446,7 @@ class MenuBar {
                     return;
                 }
                 await game.settings.set(MODULE.ID, 'broadcastMode', 'spectator');
-                // Update button states by re-rendering
-                if (this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast') {
-                    this.renderMenubar(true);
-                }
+                // Switch mode automatically manages active state - no manual re-rendering needed
             }
         });
 
@@ -1483,11 +1457,6 @@ class MenuBar {
             tooltip: 'Follow current combatant automatically',
             group: 'modes',
             order: 1,
-            toggleable: true,
-            active: () => {
-                const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
-                return mode === 'combat';
-            },
             onClick: async () => {
                 // Only GMs can change broadcast mode
                 if (!game.user.isGM) {
@@ -1495,10 +1464,7 @@ class MenuBar {
                     return;
                 }
                 await game.settings.set(MODULE.ID, 'broadcastMode', 'combat');
-                // Update button states by re-rendering
-                if (this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast') {
-                    this.renderMenubar(true);
-                }
+                // Switch mode automatically manages active state - no manual re-rendering needed
             }
         });
 
@@ -1509,11 +1475,6 @@ class MenuBar {
             tooltip: 'Mirror GM\'s viewport (center and zoom)',
             group: 'modes',
             order: 2,
-            toggleable: true,
-            active: () => {
-                const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
-                return mode === 'gmview';
-            },
             onClick: async () => {
                 // Only GMs can change broadcast mode
                 if (!game.user.isGM) {
@@ -1521,10 +1482,7 @@ class MenuBar {
                     return;
                 }
                 await game.settings.set(MODULE.ID, 'broadcastMode', 'gmview');
-                // Update button states by re-rendering
-                if (this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast') {
-                    this.renderMenubar(true);
-                }
+                // Switch mode automatically manages active state - no manual re-rendering needed
             }
         });
 
@@ -1535,11 +1493,6 @@ class MenuBar {
             tooltip: 'No automatic following (manual camera control)',
             group: 'modes',
             order: 3,
-            toggleable: true,
-            active: () => {
-                const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
-                return mode === 'manual';
-            },
             onClick: async () => {
                 // Only GMs can change broadcast mode
                 if (!game.user.isGM) {
@@ -1547,17 +1500,26 @@ class MenuBar {
                     return;
                 }
                 await game.settings.set(MODULE.ID, 'broadcastMode', 'manual');
-                // Update button states by re-rendering
-                if (this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast') {
-                    this.renderMenubar(true);
-                }
+                // Switch mode automatically manages active state - no manual re-rendering needed
             }
         });
 
-        // Listen for broadcast mode setting changes to update button states
+        // Set initial active state based on current broadcastMode setting
+        // Switch mode will default to first item if none is set, so we set the correct one
+        const currentMode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+        const modeItemMap = {
+            'spectator': 'broadcast-mode-spectator',
+            'combat': 'broadcast-mode-combat',
+            'gmview': 'broadcast-mode-gmview',
+            'manual': 'broadcast-mode-manual'
+        };
+        const activeItemId = modeItemMap[currentMode] || 'broadcast-mode-spectator';
+        this.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+
+        // Listen for broadcast mode setting changes to sync button active state
         HookManager.registerHook({
             name: 'settingChange',
-            description: 'MenuBar: Update broadcast mode buttons when mode changes',
+            description: 'MenuBar: Sync broadcast mode button active state when mode changes',
             context: 'broadcast-mode-buttons',
             priority: 5,
             key: 'broadcastModeButtons',
@@ -1565,10 +1527,15 @@ class MenuBar {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                 
                 if (moduleId === MODULE.ID && settingKey === 'broadcastMode') {
-                    // Re-render if broadcast bar is open to update button active states
-                    if (this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast') {
-                        this.renderMenubar(true);
-                    }
+                    // Update active state to match the setting (switch mode handles deactivating others)
+                    const modeItemMap = {
+                        'spectator': 'broadcast-mode-spectator',
+                        'combat': 'broadcast-mode-combat',
+                        'gmview': 'broadcast-mode-gmview',
+                        'manual': 'broadcast-mode-manual'
+                    };
+                    const activeItemId = modeItemMap[value] || 'broadcast-mode-spectator';
+                    this.updateSecondaryBarItemActive('broadcast', activeItemId, true);
                 }
                 
                 //  ------------------- END - HOOKMANAGER CALLBACK -------------------
