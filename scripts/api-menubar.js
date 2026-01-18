@@ -1432,6 +1432,7 @@ class MenuBar {
             const labels = {
                 'spectator': 'Spectator',
                 'combat': 'Combat',
+                'gmview': 'GM View',
                 'manual': 'Manual'
             };
             return labels[mode] || 'Spectator';
@@ -1443,6 +1444,7 @@ class MenuBar {
             const icons = {
                 'spectator': 'fas fa-users',
                 'combat': 'fas fa-swords',
+                'gmview': 'fas fa-user-tie',
                 'manual': 'fas fa-hand-pointer'
             };
             return icons[mode] || 'fas fa-users';
@@ -1500,13 +1502,39 @@ class MenuBar {
             }
         });
 
+        // Register GM View mode button
+        this.registerSecondaryBarItem('broadcast', 'broadcast-mode-gmview', {
+            icon: 'fas fa-user-tie',
+            label: 'GM View',
+            tooltip: 'Mirror GM\'s viewport (center and zoom)',
+            group: 'modes',
+            order: 2,
+            toggleable: true,
+            active: () => {
+                const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+                return mode === 'gmview';
+            },
+            onClick: async () => {
+                // Only GMs can change broadcast mode
+                if (!game.user.isGM) {
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                    return;
+                }
+                await game.settings.set(MODULE.ID, 'broadcastMode', 'gmview');
+                // Update button states by re-rendering
+                if (this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast') {
+                    this.renderMenubar(true);
+                }
+            }
+        });
+
         // Register Manual mode button
         this.registerSecondaryBarItem('broadcast', 'broadcast-mode-manual', {
             icon: 'fas fa-hand-pointer',
             label: 'Manual',
             tooltip: 'No automatic following (manual camera control)',
             group: 'modes',
-            order: 2,
+            order: 3,
             toggleable: true,
             active: () => {
                 const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');

@@ -221,7 +221,7 @@
 			"broadcastHideInterfaceRight-Hint": "Hide the right UI section when in broadcast mode.",
 
 			"broadcastMode-Label": "Camera Mode",
-			"broadcastMode-Hint": "Camera following mode for broadcast: Spectator (follow party tokens), Combat (follow current combatant), Manual (no automatic following).",
+			"broadcastMode-Hint": "Camera following mode for broadcast: Spectator (follow party tokens), Combat (follow current combatant), GM View (mirror GM's viewport), Manual (no automatic following).",
 
 			"broadcastFollowDistanceThreshold-Label": "Follow Distance Threshold",
 			"broadcastFollowDistanceThreshold-Hint": "Minimum token movement (in grid units) required to trigger camera pan. Smaller values = more sensitive following.",

@@ -1746,6 +1746,7 @@ export const registerSettings = () => {
 			choices: {
 				'spectator': 'Spectator',
 				'combat': 'Combat',
+				'gmview': 'GM View',
 				'manual': 'Manual'
 			},
 			group: WORKFLOW_GROUPS.RUN_THE_GAME

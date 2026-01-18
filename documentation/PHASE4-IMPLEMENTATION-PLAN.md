@@ -299,6 +299,63 @@ _applyZoom(zoomLevel, tokens) {
 
 ## **Future Enhancements (Not in Phase 4)**
 
+### **Additional Camera Modes**
+
+#### **GM View Mode**
+- **Description**: Mirror the GM's viewport in real-time
+- **Use Case**: Stream what the GM sees (useful for show notes, setup, or GM-focused content)
+- **Implementation**: Similar to Tracked Mode but specifically tracks the GM user's viewport
+
+#### **Selected Token View Mode**
+- **Description**: Follow a manually selected token (GM-controlled selection)
+- **Use Case**: GM wants to focus on a specific token/NPC without it being a party member
+- **Implementation**: 
+  - Add token selection button/UI in broadcast secondary bar
+  - Store selected token ID in setting or memory
+  - Follow selected token until changed or cleared
+
+### **UI Management Enhancements**
+
+#### **Refresh Cameraman Client Button**
+- **Description**: Button in broadcast secondary bar to refresh/reload the cameraman's client
+- **Use Case**: Force camera to reset/recenter if something goes wrong, reload viewport state
+- **Implementation**: 
+  - Add button to broadcast secondary bar
+  - Trigger full camera update (pan/zoom to current party tokens)
+  - Optionally: send socket message to trigger client reload (if needed)
+
+#### **Auto-Close Image Windows**
+- **Description**: Automatically close image popups/windows for broadcast user
+- **Use Case**: Images that open during play shouldn't clutter the broadcast view
+- **Implementation**: 
+  - Hook into image viewer opening events
+  - Check if current user is broadcast user
+  - Auto-close or prevent opening
+
+#### **Auto-Close Journal Windows**
+- **Description**: Automatically close journal entry windows for broadcast user
+- **Use Case**: Journal entries opened during play shouldn't block the broadcast view
+- **Implementation**: 
+  - Hook into journal window opening events
+  - Check if current user is broadcast user
+  - Auto-close or prevent opening
+
+#### **Hide Combat Tracker**
+- **Description**: Option to hide the combat tracker for broadcast user
+- **Use Case**: Combat tracker can clutter the broadcast view
+- **Implementation**: 
+  - Add setting: `broadcastHideCombatTracker` (Boolean)
+  - Apply CSS class to hide combat tracker when broadcast mode is active
+  - Coordinate with granular UI hiding settings
+
+#### **Options to Hide Squire and Menubar**
+- **Description**: Granular controls to hide Squire module UI and Blacksmith menubar
+- **Use Case**: Fine-tune what UI elements are visible during broadcast
+- **Implementation**: 
+  - Add settings: `broadcastHideSquire` (Boolean), `broadcastHideMenubar` (Boolean)
+  - Update `_updateBroadcastMode()` to apply/remove CSS classes based on settings
+  - Coordinate with existing UI hiding logic
+
 - GM View mode (mirror GM's viewport)
 - Birds-eye mode (fit entire map to screen)
 - Selected Token mode (follow GM-selected tokens)

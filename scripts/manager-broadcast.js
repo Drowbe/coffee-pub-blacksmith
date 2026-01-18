@@ -90,7 +90,8 @@ export class BroadcastManager {
     static _registerCameraHooks() {
         // Helper function to initialize camera on scene load
         const initializeCamera = async () => {
-            // Only process for broadcast user
+            // Only process for broadcast user (for spectator/combat modes)
+            // For GM view mode, GM client initializes monitoring separately
             if (!this._isBroadcastUser()) {
                 return;
             }
@@ -98,19 +99,20 @@ export class BroadcastManager {
                 return;
             }
             
-            // Check if we're in spectator mode
             const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
-            if (mode !== 'spectator') {
-                return;
-            }
             
-            // Wait a bit for canvas to fully initialize
-            setTimeout(async () => {
-                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Initializing camera on scene load", "", true, false);
-                // Trigger camera update by calling _onTokenUpdate with null changes
-                // This will force a pan/zoom to current party token positions
-                await this._onTokenUpdate(null, {});
-            }, 500);
+            // Initialize spectator mode camera
+            if (mode === 'spectator') {
+                // Wait a bit for canvas to fully initialize
+                setTimeout(async () => {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Initializing camera on scene load (spectator mode)", "", true, false);
+                    // Trigger camera update by calling _onTokenUpdate with null changes
+                    // This will force a pan/zoom to current party token positions
+                    await this._onTokenUpdate(null, {});
+                }, 500);
+            }
+            // For gmview mode, the GM client will send initial sync via socket
+            // The cameraman client just needs to wait for the socket message
         };
         
         // Hook for canvas ready - initialize camera position when canvas is ready
@@ -270,6 +272,301 @@ export class BroadcastManager {
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
+
+        // Register GM view syncing (only if broadcast is enabled and mode is gmview)
+        this._registerGMViewSync();
+    }
+
+    /**
+     * Register GM viewport syncing (GM client sends viewport, cameraman receives)
+     */
+    static _registerGMViewSync() {
+        // Only register socket handler if socket system is available
+        // We'll initialize it asynchronously after ready
+        Hooks.once('ready', async () => {
+            // Wait for socket system to be ready
+            try {
+                const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+                if (!blacksmith) {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Blacksmith API not available for GM view socket", "", true, false);
+                    return;
+                }
+                if (!blacksmith.sockets) {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Blacksmith sockets API not available for GM view socket", "", true, false);
+                    return;
+                }
+                
+                await blacksmith.sockets.waitForReady();
+                
+                // Register socket handler for receiving GM viewport updates (cameraman client)
+                await blacksmith.sockets.register('broadcast.gmViewportSync', async (data, userId) => {
+                    //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                    
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Received GM viewport sync", { 
+                        data, 
+                        userId, 
+                        isBroadcastUser: this._isBroadcastUser(),
+                        isEnabled: this.isEnabled(),
+                        mode: getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator')
+                    }, true, false);
+                    
+                    // Only process if we're the broadcast user and in GM view mode
+                    if (!this._isBroadcastUser()) {
+                        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Not broadcast user, ignoring GM viewport sync", "", true, false);
+                        return;
+                    }
+                    if (!this.isEnabled()) {
+                        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Broadcast not enabled, ignoring GM viewport sync", "", true, false);
+                        return;
+                    }
+                    
+                    const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+                    if (mode !== 'gmview') {
+                        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Not in GM view mode, ignoring sync", { mode }, true, false);
+                        return;
+                    }
+                    
+                    // Apply GM's viewport to cameraman's viewport
+                    await this._applyGMViewport(data);
+                    
+                    //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+                });
+                
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: GM view socket handler registered successfully", "", true, false);
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to register GM view socket handler", error, true, false);
+            }
+            
+            // If we're the GM and broadcast mode is gmview, start monitoring viewport changes
+            if (game.user.isGM && this.isEnabled()) {
+                const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Checking GM viewport monitoring on ready", { 
+                    mode, 
+                    isGM: game.user.isGM, 
+                    isEnabled: this.isEnabled(),
+                    canvasReady: canvas?.ready 
+                }, true, false);
+                
+                if (mode === 'gmview') {
+                    // Wait for canvas to be ready if not already
+                    if (!canvas?.ready) {
+                        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Canvas not ready, waiting for canvasReady", "", true, false);
+                        Hooks.once('canvasReady', () => {
+                            setTimeout(() => {
+                                this._startGMViewportMonitoring();
+                            }, 500);
+                        });
+                    } else {
+                        setTimeout(() => {
+                            this._startGMViewportMonitoring();
+                        }, 500);
+                    }
+                }
+            }
+        });
+
+        // Hook into setting changes to start/stop GM viewport monitoring
+        HookManager.registerHook({
+            name: 'settingChange',
+            description: 'BroadcastManager: Start/stop GM viewport monitoring when mode changes',
+            context: 'broadcast-gmview-sync',
+            priority: 5,
+            callback: async (moduleId, settingKey, value) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                
+                if (moduleId === MODULE.ID && settingKey === 'broadcastMode') {
+                    // If we're GM and mode changed to gmview, start monitoring
+                    if (game.user.isGM && this.isEnabled() && value === 'gmview') {
+                        this._startGMViewportMonitoring();
+                        // Send initial sync immediately
+                        await this._sendGMViewportSync();
+                    } else {
+                        // Stop monitoring if mode changed away from gmview
+                        this._stopGMViewportMonitoring();
+                    }
+                }
+                
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+    }
+
+    static _gmViewportMonitorInterval = null;
+    static _gmViewportChangeTimeout = null;
+    static _lastGMViewportState = { centerX: null, centerY: null, zoom: null };
+
+    /**
+     * Start monitoring GM viewport changes (GM client only)
+     */
+    static _startGMViewportMonitoring() {
+        // Stop any existing monitoring
+        this._stopGMViewportMonitoring();
+        
+        if (!game.user.isGM) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Cannot start GM viewport monitoring - not GM", "", true, false);
+            return;
+        }
+        if (!canvas?.ready) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Cannot start GM viewport monitoring - canvas not ready", "", true, false);
+            return;
+        }
+
+        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Starting GM viewport monitoring", "", true, false);
+
+        // Monitor viewport changes (pan and zoom)
+        // Use a debounced check to detect when viewport stops changing (after pan/zoom ends)
+        const checkViewportChange = () => {
+            if (!canvas?.ready) return;
+            if (!game.user.isGM) return;
+            
+            const currentState = this._getGMViewportState();
+            if (currentState) {
+                // Check if viewport changed
+                const changed = 
+                    this._lastGMViewportState.centerX !== currentState.centerX ||
+                    this._lastGMViewportState.centerY !== currentState.centerY ||
+                    this._lastGMViewportState.zoom !== currentState.zoom;
+                
+                if (changed) {
+                    // Clear existing timeout
+                    if (this._gmViewportChangeTimeout) {
+                        clearTimeout(this._gmViewportChangeTimeout);
+                    }
+                    
+                    // Debounce: send sync after viewport stops changing for 500ms
+                    this._gmViewportChangeTimeout = setTimeout(() => {
+                        this._lastGMViewportState = currentState;
+                        this._sendGMViewportSync();
+                    }, 500);
+                }
+            }
+        };
+
+        // Poll every 200ms to check for viewport changes
+        this._gmViewportMonitorInterval = setInterval(() => {
+            checkViewportChange.call(this);
+        }, 200);
+
+        // Send initial sync after a short delay (ensure socket is ready)
+        setTimeout(async () => {
+            // Initialize last state so we send initial sync
+            const initialState = this._getGMViewportState();
+            if (initialState) {
+                this._lastGMViewportState = initialState;
+                await this._sendGMViewportSync();
+            }
+        }, 1500);
+    }
+
+    /**
+     * Stop monitoring GM viewport changes
+     */
+    static _stopGMViewportMonitoring() {
+        if (this._gmViewportMonitorInterval) {
+            clearInterval(this._gmViewportMonitorInterval);
+            this._gmViewportMonitorInterval = null;
+        }
+        if (this._gmViewportChangeTimeout) {
+            clearTimeout(this._gmViewportChangeTimeout);
+            this._gmViewportChangeTimeout = null;
+        }
+        this._lastGMViewportState = { centerX: null, centerY: null, zoom: null };
+    }
+
+    /**
+     * Get current GM viewport state (center and zoom)
+     * @returns {Object|null} Viewport state with {centerX, centerY, zoom} or null if unavailable
+     */
+    static _getGMViewportState() {
+        if (!canvas?.ready || !canvas.pan || !canvas.stage) return null;
+
+        const panX = canvas.pan.x ?? 0;
+        const panY = canvas.pan.y ?? 0;
+        const zoom = canvas.stage.scale?.x ?? canvas.scene?._viewPosition?.scale ?? 1.0;
+        
+        // Calculate viewport center (world coordinates)
+        const viewportWidth = canvas.app?.renderer?.width || window.innerWidth || 1920;
+        const viewportHeight = canvas.app?.renderer?.height || window.innerHeight || 1080;
+        
+        // panX/panY is top-left, so center is:
+        const centerX = panX + (viewportWidth / 2 / zoom);
+        const centerY = panY + (viewportHeight / 2 / zoom);
+
+        return { centerX, centerY, zoom };
+    }
+
+    /**
+     * Send GM viewport state to broadcast user via socket (GM client only)
+     */
+    static async _sendGMViewportSync() {
+        if (!game.user.isGM) return;
+        if (!this.isEnabled()) return;
+        if (!canvas?.ready) return;
+
+        const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+        if (mode !== 'gmview') return;
+
+        const viewportState = this._getGMViewportState();
+        if (!viewportState) return;
+
+        try {
+            const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+            if (blacksmith?.sockets) {
+                await blacksmith.sockets.waitForReady();
+                await blacksmith.sockets.emit('broadcast.gmViewportSync', viewportState);
+                
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Sent GM viewport sync", viewportState, true, false);
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to send GM viewport sync", error, true, false);
+        }
+    }
+
+    /**
+     * Apply GM viewport state to cameraman's viewport (cameraman client only)
+     * @param {Object} viewportState - Viewport state from GM with {centerX, centerY, zoom}
+     */
+    static async _applyGMViewport(viewportState) {
+        if (!this._isBroadcastUser()) return;
+        if (!this.isEnabled()) return;
+        if (!canvas?.ready) return;
+        if (!viewportState || !viewportState.centerX || !viewportState.centerY || !viewportState.zoom) return;
+
+        const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+        if (mode !== 'gmview') return;
+
+        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Applying GM viewport", viewportState, true, false);
+
+        try {
+            // Get cameraman's viewport dimensions
+            const viewportWidth = canvas.app?.renderer?.width || window.innerWidth || 1920;
+            const viewportHeight = canvas.app?.renderer?.height || window.innerHeight || 1080;
+            
+            // Calculate pan position to center the GM's center point in cameraman's viewport
+            // GM's centerX/centerY are world coordinates
+            // We need to pan so that GM's center is at cameraman's viewport center
+            const targetZoom = viewportState.zoom;
+            const panX = viewportState.centerX - (viewportWidth / 2 / targetZoom);
+            const panY = viewportState.centerY - (viewportHeight / 2 / targetZoom);
+
+            // Get animation duration setting
+            const animationDuration = getSettingSafely(MODULE.ID, 'broadcastAnimationDuration', 500);
+
+            // Apply pan and zoom
+            await canvas.animatePan({
+                x: panX,
+                y: panY,
+                scale: targetZoom,
+                duration: animationDuration,
+                easing: 'easeInOutCosine'
+            });
+
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: GM viewport applied", {
+                panX, panY, zoom: targetZoom
+            }, true, false);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to apply GM viewport", error, true, false);
+        }
     }
 
     /**
