@@ -198,6 +198,52 @@ export class BroadcastManager {
             }
         });
 
+        // Hook for token creation (when token is dropped on canvas)
+        HookManager.registerHook({
+            name: 'createToken',
+            description: 'BroadcastManager: Adapt viewport when party token is created',
+            context: 'broadcast-camera',
+            priority: 3,
+            callback: async (tokenDocument, options, userId) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: createToken hook fired", {
+                    tokenId: tokenDocument?.id,
+                    tokenName: tokenDocument?.name
+                }, true, false);
+                
+                // Only process for broadcast user
+                if (!this._isBroadcastUser()) {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Not broadcast user, skipping", "", true, false);
+                    return;
+                }
+                if (!this.isEnabled()) {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Broadcast not enabled, skipping", "", true, false);
+                    return;
+                }
+                
+                // Check if we're in spectator mode
+                const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+                if (mode !== 'spectator') {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Not in spectator mode, skipping", { mode }, true, false);
+                    return;
+                }
+                
+                // Wait a bit for token to be fully added to canvas
+                setTimeout(async () => {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Processing token creation", { 
+                        tokenId: tokenDocument?.id
+                    }, true, false);
+                    
+                    // Trigger camera update to adapt to new party token
+                    // Pass the tokenDocument but no changes (it's a new token at its initial position)
+                    await this._onTokenUpdate(tokenDocument, {});
+                }, 100);
+                
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+
         // Hook for combat turn changes (combat mode)
         HookManager.registerHook({
             name: 'updateCombat',
