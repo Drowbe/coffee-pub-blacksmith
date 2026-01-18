@@ -349,7 +349,7 @@ export class BroadcastManager {
             }, true, false);
             
             // Get party tokens visible to broadcast user
-            const partyTokens = this._getVisiblePartyTokens();
+            let partyTokens = this._getVisiblePartyTokens();
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Found party tokens", {
                 count: partyTokens?.length || 0,
                 tokenIds: partyTokens?.map(t => t.id) || []
@@ -358,6 +358,29 @@ export class BroadcastManager {
             if (!partyTokens || partyTokens.length === 0) {
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: No party tokens found, skipping", "", true, false);
                 return;
+            }
+            
+            // If we have a tokenDocument with position changes, update the corresponding token's position
+            // This ensures we use the NEW position, not the old one from the placeable
+            if (tokenDocument && changes && (changes.x !== undefined || changes.y !== undefined)) {
+                partyTokens = partyTokens.map(token => {
+                    if (token.id === tokenDocument.id) {
+                        // Create a copy of the token with updated position from tokenDocument
+                        const updatedToken = Object.assign({}, token);
+                        // Use the NEW position from tokenDocument, not the placeable
+                        updatedToken.x = changes.x !== undefined ? changes.x : token.x;
+                        updatedToken.y = changes.y !== undefined ? changes.y : token.y;
+                        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Updated token position from changes", {
+                            tokenId: token.id,
+                            oldX: token.x,
+                            oldY: token.y,
+                            newX: updatedToken.x,
+                            newY: updatedToken.y
+                        }, true, false);
+                        return updatedToken;
+                    }
+                    return token;
+                });
             }
             
             // Calculate target position (center of party tokens in world coordinates)
