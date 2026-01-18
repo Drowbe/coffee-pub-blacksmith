@@ -281,9 +281,12 @@ export class BroadcastManager {
      * Register GM viewport syncing (GM client sends viewport, cameraman receives)
      */
     static _registerGMViewSync() {
-        // Only register socket handler if socket system is available
-        // We'll initialize it asynchronously after ready
-        Hooks.once('ready', async () => {
+        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: _registerGMViewSync called", "", true, false);
+        
+        // Since we're already in a ready hook context (called from _registerCameraHooks which is called from ready),
+        // we can't use Hooks.once('ready') here. Execute directly but async for socket readiness.
+        (async () => {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: GM view sync initialization starting", "", true, false);
             // Wait for socket system to be ready
             try {
                 const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
@@ -363,7 +366,7 @@ export class BroadcastManager {
                     }
                 }
             }
-        });
+        })();
 
         // Hook into setting changes to start/stop GM viewport monitoring
         HookManager.registerHook({
@@ -371,17 +374,19 @@ export class BroadcastManager {
             description: 'BroadcastManager: Start/stop GM viewport monitoring when mode changes',
             context: 'broadcast-gmview-sync',
             priority: 5,
+            key: 'broadcast-gmview-setting-change',
             callback: async (moduleId, settingKey, value) => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                 
                 if (moduleId === MODULE.ID && settingKey === 'broadcastMode') {
+                    
                     // If we're GM and mode changed to gmview, start monitoring
                     if (game.user.isGM && this.isEnabled() && value === 'gmview') {
+                        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Starting GM viewport monitoring from settingChange hook", "", true, false);
                         this._startGMViewportMonitoring();
-                        // Send initial sync immediately
-                        await this._sendGMViewportSync();
                     } else {
                         // Stop monitoring if mode changed away from gmview
+                        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Stopping GM viewport monitoring", "", true, false);
                         this._stopGMViewportMonitoring();
                     }
                 }
@@ -391,132 +396,80 @@ export class BroadcastManager {
         });
     }
 
-    static _gmViewportMonitorInterval = null;
-    static _gmViewportChangeTimeout = null;
-    static _lastGMViewportState = { centerX: null, centerY: null, zoom: null };
+    static _gmPanHandler = null;
+    static _gmDebounce = null;
 
     /**
      * Start monitoring GM viewport changes (GM client only)
      */
     static _startGMViewportMonitoring() {
-        // Stop any existing monitoring
         this._stopGMViewportMonitoring();
-        
-        if (!game.user.isGM) {
-            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Cannot start GM viewport monitoring - not GM", "", true, false);
-            return;
-        }
+
+        if (!game.user.isGM) return;
+
+        // If canvas isn't ready yet, retry once it is
         if (!canvas?.ready) {
-            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Cannot start GM viewport monitoring - canvas not ready", "", true, false);
+            Hooks.once('canvasReady', () => this._startGMViewportMonitoring());
             return;
         }
 
-        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Starting GM viewport monitoring", "", true, false);
+        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: GM viewport monitoring ON (canvasPan)", "", true, false);
 
-        // Monitor viewport changes (pan and zoom)
-        // Use a debounced check to detect when viewport stops changing (after pan/zoom ends)
-        const checkViewportChange = () => {
-            if (!canvas?.ready) return;
-            if (!game.user.isGM) return;
-            
-            const currentState = this._getGMViewportState();
-            if (currentState) {
-                // Check if viewport changed
-                const changed = 
-                    this._lastGMViewportState.centerX !== currentState.centerX ||
-                    this._lastGMViewportState.centerY !== currentState.centerY ||
-                    this._lastGMViewportState.zoom !== currentState.zoom;
-                
-                if (changed) {
-                    // Clear existing timeout
-                    if (this._gmViewportChangeTimeout) {
-                        clearTimeout(this._gmViewportChangeTimeout);
-                    }
-                    
-                    // Debounce: send sync after viewport stops changing for 500ms
-                    this._gmViewportChangeTimeout = setTimeout(() => {
-                        this._lastGMViewportState = currentState;
-                        this._sendGMViewportSync();
-                    }, 500);
-                }
-            }
+        this._gmPanHandler = (c, position) => {
+            // position is {x,y,scale} center coords
+            if (!this.isEnabled()) return;
+            if (getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator') !== 'gmview') return;
+
+            // Debounce emits so we don't spam
+            if (this._gmDebounce) clearTimeout(this._gmDebounce);
+            this._gmDebounce = setTimeout(() => {
+                this._sendGMViewportSync(position);
+            }, 150);
         };
 
-        // Poll every 200ms to check for viewport changes
-        this._gmViewportMonitorInterval = setInterval(() => {
-            checkViewportChange.call(this);
-        }, 200);
+        Hooks.on('canvasPan', this._gmPanHandler);
 
-        // Send initial sync after a short delay (ensure socket is ready)
-        setTimeout(async () => {
-            // Initialize last state so we send initial sync
-            const initialState = this._getGMViewportState();
-            if (initialState) {
-                this._lastGMViewportState = initialState;
-                await this._sendGMViewportSync();
-            }
-        }, 1500);
+        // Send initial state immediately
+        const initial = canvas.scene?._viewPosition ?? canvas.pan;
+        if (initial) this._sendGMViewportSync(initial);
     }
 
     /**
      * Stop monitoring GM viewport changes
      */
     static _stopGMViewportMonitoring() {
-        if (this._gmViewportMonitorInterval) {
-            clearInterval(this._gmViewportMonitorInterval);
-            this._gmViewportMonitorInterval = null;
+        if (this._gmDebounce) {
+            clearTimeout(this._gmDebounce);
+            this._gmDebounce = null;
         }
-        if (this._gmViewportChangeTimeout) {
-            clearTimeout(this._gmViewportChangeTimeout);
-            this._gmViewportChangeTimeout = null;
+        if (this._gmPanHandler) {
+            Hooks.off('canvasPan', this._gmPanHandler);
+            this._gmPanHandler = null;
         }
-        this._lastGMViewportState = { centerX: null, centerY: null, zoom: null };
-    }
-
-    /**
-     * Get current GM viewport state (center and zoom)
-     * @returns {Object|null} Viewport state with {centerX, centerY, zoom} or null if unavailable
-     */
-    static _getGMViewportState() {
-        if (!canvas?.ready || !canvas.pan || !canvas.stage) return null;
-
-        const panX = canvas.pan.x ?? 0;
-        const panY = canvas.pan.y ?? 0;
-        const zoom = canvas.stage.scale?.x ?? canvas.scene?._viewPosition?.scale ?? 1.0;
-        
-        // Calculate viewport center (world coordinates)
-        const viewportWidth = canvas.app?.renderer?.width || window.innerWidth || 1920;
-        const viewportHeight = canvas.app?.renderer?.height || window.innerHeight || 1080;
-        
-        // panX/panY is top-left, so center is:
-        const centerX = panX + (viewportWidth / 2 / zoom);
-        const centerY = panY + (viewportHeight / 2 / zoom);
-
-        return { centerX, centerY, zoom };
     }
 
     /**
      * Send GM viewport state to broadcast user via socket (GM client only)
+     * @param {Object} position - Viewport position from canvasPan hook: {x, y, scale}
      */
-    static async _sendGMViewportSync() {
+    static async _sendGMViewportSync(position) {
         if (!game.user.isGM) return;
         if (!this.isEnabled()) return;
         if (!canvas?.ready) return;
+        if (getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator') !== 'gmview') return;
 
-        const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
-        if (mode !== 'gmview') return;
+        const viewportState = {
+            x: position.x,
+            y: position.y,
+            scale: position.scale ?? canvas.stage?.scale?.x ?? 1
+        };
 
-        const viewportState = this._getGMViewportState();
-        if (!viewportState) return;
+        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: GM sending viewport", viewportState, true, false);
 
         try {
             const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
-            if (blacksmith?.sockets) {
-                await blacksmith.sockets.waitForReady();
-                await blacksmith.sockets.emit('broadcast.gmViewportSync', viewportState);
-                
-                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Sent GM viewport sync", viewportState, true, false);
-            }
+            await blacksmith?.sockets?.waitForReady();
+            await blacksmith?.sockets?.emit('broadcast.gmViewportSync', viewportState);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to send GM viewport sync", error, true, false);
         }
@@ -530,43 +483,22 @@ export class BroadcastManager {
         if (!this._isBroadcastUser()) return;
         if (!this.isEnabled()) return;
         if (!canvas?.ready) return;
-        if (!viewportState || !viewportState.centerX || !viewportState.centerY || !viewportState.zoom) return;
+        if (getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator') !== 'gmview') return;
 
-        const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
-        if (mode !== 'gmview') return;
+        // Guard correctly (allow 0)
+        if (viewportState?.x == null || viewportState?.y == null || viewportState?.scale == null) return;
 
         postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Applying GM viewport", viewportState, true, false);
 
-        try {
-            // Get cameraman's viewport dimensions
-            const viewportWidth = canvas.app?.renderer?.width || window.innerWidth || 1920;
-            const viewportHeight = canvas.app?.renderer?.height || window.innerHeight || 1080;
-            
-            // Calculate pan position to center the GM's center point in cameraman's viewport
-            // GM's centerX/centerY are world coordinates
-            // We need to pan so that GM's center is at cameraman's viewport center
-            const targetZoom = viewportState.zoom;
-            const panX = viewportState.centerX - (viewportWidth / 2 / targetZoom);
-            const panY = viewportState.centerY - (viewportHeight / 2 / targetZoom);
+        const duration = getSettingSafely(MODULE.ID, 'broadcastAnimationDuration', 250);
 
-            // Get animation duration setting
-            const animationDuration = getSettingSafely(MODULE.ID, 'broadcastAnimationDuration', 500);
-
-            // Apply pan and zoom
-            await canvas.animatePan({
-                x: panX,
-                y: panY,
-                scale: targetZoom,
-                duration: animationDuration,
-                easing: 'easeInOutCosine'
-            });
-
-            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: GM viewport applied", {
-                panX, panY, zoom: targetZoom
-            }, true, false);
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to apply GM viewport", error, true, false);
-        }
+        await canvas.animatePan({
+            x: viewportState.x,
+            y: viewportState.y,
+            scale: viewportState.scale,
+            duration,
+            easing: 'easeInOutCosine'
+        });
     }
 
     /**
