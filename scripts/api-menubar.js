@@ -17,6 +17,7 @@ import { RoundTimer } from './timer-round.js';
 import { deployParty } from './utility-party.js';
 import { getDeploymentPatternName } from './api-tokens.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
+import { BroadcastManager } from './manager-broadcast.js';
 
 class MenuBar {
     static ID = 'menubar';
@@ -1504,6 +1505,9 @@ class MenuBar {
             }
         });
 
+        // Register portrait buttons for party tokens (player view modes)
+        BroadcastManager.registerPlayerPortraitButtons();
+
         // Set initial active state based on current broadcastMode setting
         // Switch mode will default to first item if none is set, so we set the correct one
         const currentMode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
@@ -1513,8 +1517,16 @@ class MenuBar {
             'gmview': 'broadcast-mode-gmview',
             'manual': 'broadcast-mode-manual'
         };
-        const activeItemId = modeItemMap[currentMode] || 'broadcast-mode-spectator';
-        this.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+        
+        // Check if mode is a playerview mode (playerview-{userId})
+        if (typeof currentMode === 'string' && currentMode.startsWith('playerview-')) {
+            const userId = currentMode.replace('playerview-', '');
+            const activeItemId = `broadcast-mode-player-${userId}`;
+            this.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+        } else {
+            const activeItemId = modeItemMap[currentMode] || 'broadcast-mode-spectator';
+            this.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+        }
 
         // Listen for broadcast mode setting changes to sync button active state
         HookManager.registerHook({
@@ -1528,14 +1540,21 @@ class MenuBar {
                 
                 if (moduleId === MODULE.ID && settingKey === 'broadcastMode') {
                     // Update active state to match the setting (switch mode handles deactivating others)
-                    const modeItemMap = {
-                        'spectator': 'broadcast-mode-spectator',
-                        'combat': 'broadcast-mode-combat',
-                        'gmview': 'broadcast-mode-gmview',
-                        'manual': 'broadcast-mode-manual'
-                    };
-                    const activeItemId = modeItemMap[value] || 'broadcast-mode-spectator';
-                    this.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+                    // Check if mode is a playerview mode (playerview-{userId})
+                    if (typeof value === 'string' && value.startsWith('playerview-')) {
+                        const userId = value.replace('playerview-', '');
+                        const activeItemId = `broadcast-mode-player-${userId}`;
+                        this.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+                    } else {
+                        const modeItemMap = {
+                            'spectator': 'broadcast-mode-spectator',
+                            'combat': 'broadcast-mode-combat',
+                            'gmview': 'broadcast-mode-gmview',
+                            'manual': 'broadcast-mode-manual'
+                        };
+                        const activeItemId = modeItemMap[value] || 'broadcast-mode-spectator';
+                        this.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+                    }
                 }
                 
                 //  ------------------- END - HOOKMANAGER CALLBACK -------------------

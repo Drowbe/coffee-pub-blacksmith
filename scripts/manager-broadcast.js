@@ -275,6 +275,9 @@ export class BroadcastManager {
 
         // Register GM view syncing (only if broadcast is enabled and mode is gmview)
         this._registerGMViewSync();
+        
+        // Register player view syncing (for playerview-{userId} modes)
+        this._registerPlayerViewSync();
     }
 
     /**
@@ -340,17 +343,12 @@ export class BroadcastManager {
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to register GM view socket handler", error, true, false);
             }
             
-            // If we're the GM and broadcast mode is gmview, start monitoring viewport changes
-            if (game.user.isGM && this.isEnabled()) {
+            // If broadcast is enabled, check for viewport monitoring setup
+            if (this.isEnabled()) {
                 const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
-                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Checking GM viewport monitoring on ready", { 
-                    mode, 
-                    isGM: game.user.isGM, 
-                    isEnabled: this.isEnabled(),
-                    canvasReady: canvas?.ready 
-                }, true, false);
                 
-                if (mode === 'gmview') {
+                // GM viewport monitoring (GM only)
+                if (game.user.isGM && mode === 'gmview') {
                     // Wait for canvas to be ready if not already
                     if (!canvas?.ready) {
                         postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Canvas not ready, waiting for canvasReady", "", true, false);
@@ -362,6 +360,21 @@ export class BroadcastManager {
                     } else {
                         setTimeout(() => {
                             this._startGMViewportMonitoring();
+                        }, 500);
+                    }
+                } 
+                // Player viewport monitoring (any player)
+                else if (typeof mode === 'string' && mode.startsWith('playerview-')) {
+                    // Initialize player viewport monitoring if mode is playerview
+                    if (!canvas?.ready) {
+                        Hooks.once('canvasReady', () => {
+                            setTimeout(() => {
+                                this._updatePlayerViewportMonitoring();
+                            }, 500);
+                        });
+                    } else {
+                        setTimeout(() => {
+                            this._updatePlayerViewportMonitoring();
                         }, 500);
                     }
                 }
@@ -1210,5 +1223,304 @@ export class BroadcastManager {
      */
     static isEnabled() {
         return getSettingSafely(MODULE.ID, 'enableBroadcast', false) === true;
+    }
+
+    // ==================================================================
+    // ===== PLAYER VIEWPORT TRACKING ==================================
+    // ==================================================================
+
+    static _playerPanHandlers = new Map(); // userId -> handler function
+    static _playerDebounces = new Map(); // userId -> timeout
+
+    /**
+     * Get party tokens with their owner user information
+     * @returns {Array} Array of {token, userId, user, actor} objects
+     */
+    static _getPartyTokensWithUsers() {
+        if (!canvas || !canvas.tokens) return [];
+        
+        const results = [];
+        
+        for (const token of canvas.tokens.placeables) {
+            const actor = token.actor;
+            // Must be player character
+            if (!actor || actor.type !== 'character' || !actor.hasPlayerOwner) {
+                continue;
+            }
+            
+            // Find the owner user (permission level 3 = OWNER)
+            const ownership = actor.ownership || {};
+            const ownerEntry = Object.entries(ownership)
+                .find(([userId, level]) => level === 3 && game.users.get(userId)?.active);
+            
+            if (!ownerEntry) continue;
+            
+            const [userId] = ownerEntry;
+            const user = game.users.get(userId);
+            if (!user) continue;
+            
+            results.push({
+                token,
+                userId,
+                user,
+                actor
+            });
+        }
+        
+        return results;
+    }
+
+    /**
+     * Register portrait buttons for all party tokens
+     * Called from MenuBar when registering broadcast tools
+     */
+    static registerPlayerPortraitButtons() {
+        // Unregister all existing player portrait buttons
+        const partyData = this._getPartyTokensWithUsers();
+        
+        // Remove old buttons (any button starting with broadcast-mode-player-)
+        // This is a bit hacky - we'd need MenuBar API to unregister, but for now we'll rely on re-registration
+        // The buttons will be recreated below, overwriting old ones
+        
+        // Register buttons for each party token
+        let order = 10; // Start after manual (order 3), give some space
+        for (const {token, userId, user, actor} of partyData) {
+            const itemId = `broadcast-mode-player-${userId}`;
+            const modeValue = `playerview-${userId}`;
+            
+            // Get token portrait image
+            const portraitImg = token.document?.texture?.src || actor.img || '';
+            
+            MenuBar.registerSecondaryBarItem('broadcast', itemId, {
+                icon: portraitImg || 'fas fa-user', // Use portrait as icon, fallback to font icon
+                label: user.name || actor.name || 'Player',
+                tooltip: `Mirror ${user.name}'s viewport`,
+                group: 'modes',
+                order: order++,
+                onClick: async () => {
+                    // Only GMs can change broadcast mode
+                    if (!game.user.isGM) {
+                        postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                        return;
+                    }
+                    await game.settings.set(MODULE.ID, 'broadcastMode', modeValue);
+                }
+            });
+        }
+    }
+
+    /**
+     * Start monitoring player viewport (for a specific player)
+     * @param {string} userId - The user ID to monitor
+     */
+    static _startPlayerViewportMonitoring(userId) {
+        if (!userId) return;
+        
+        // Stop existing monitoring for this user
+        this._stopPlayerViewportMonitoring(userId);
+        
+        // Only monitor if this is the current user
+        if (game.user.id !== userId) return;
+        if (!canvas?.ready) {
+            Hooks.once('canvasReady', () => this._startPlayerViewportMonitoring(userId));
+            return;
+        }
+
+        postConsoleAndNotification(MODULE.NAME, `BroadcastManager: Player viewport monitoring ON for ${userId}`, "", true, false);
+
+        const handler = (c, position) => {
+            // Check if we should send viewport updates
+            if (!this.isEnabled()) return;
+            const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+            if (mode !== `playerview-${userId}`) return;
+
+            // Debounce emits
+            if (this._playerDebounces.has(userId)) {
+                clearTimeout(this._playerDebounces.get(userId));
+            }
+            const timeout = setTimeout(() => {
+                this._sendPlayerViewportSync(userId, position);
+            }, 150);
+            this._playerDebounces.set(userId, timeout);
+        };
+
+        Hooks.on('canvasPan', handler);
+        this._playerPanHandlers.set(userId, handler);
+
+        // Send initial state
+        const initial = canvas.scene?._viewPosition ?? canvas.pan;
+        if (initial) this._sendPlayerViewportSync(userId, initial);
+    }
+
+    /**
+     * Stop monitoring player viewport (for a specific player)
+     * @param {string} userId - The user ID to stop monitoring
+     */
+    static _stopPlayerViewportMonitoring(userId) {
+        if (this._playerDebounces.has(userId)) {
+            clearTimeout(this._playerDebounces.get(userId));
+            this._playerDebounces.delete(userId);
+        }
+        if (this._playerPanHandlers.has(userId)) {
+            const handler = this._playerPanHandlers.get(userId);
+            Hooks.off('canvasPan', handler);
+            this._playerPanHandlers.delete(userId);
+        }
+    }
+
+    /**
+     * Send player viewport state to cameraman via socket
+     * @param {string} userId - The player's user ID
+     * @param {Object} position - Viewport position from canvasPan hook
+     */
+    static async _sendPlayerViewportSync(userId, position) {
+        if (!userId || game.user.id !== userId) return;
+        if (!this.isEnabled()) return;
+        if (!canvas?.ready) return;
+        
+        const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+        if (mode !== `playerview-${userId}`) return;
+
+        const viewportState = {
+            userId,
+            x: position.x,
+            y: position.y,
+            scale: position.scale ?? canvas.stage?.scale?.x ?? 1
+        };
+
+        postConsoleAndNotification(MODULE.NAME, `BroadcastManager: Player ${userId} sending viewport`, viewportState, true, false);
+
+        try {
+            const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+            await blacksmith?.sockets?.waitForReady();
+            await blacksmith?.sockets?.emit('broadcast.playerViewportSync', viewportState);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `BroadcastManager: Failed to send player viewport sync for ${userId}`, error, true, false);
+        }
+    }
+
+    /**
+     * Register player viewport syncing (socket handler and monitoring setup)
+     */
+    static _registerPlayerViewSync() {
+        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: _registerPlayerViewSync called", "", true, false);
+        
+        (async () => {
+            try {
+                const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+                if (!blacksmith?.sockets) {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Blacksmith sockets API not available for player view socket", "", true, false);
+                    return;
+                }
+                
+                await blacksmith.sockets.waitForReady();
+                
+                // Register socket handler for receiving player viewport updates (cameraman client)
+                await blacksmith.sockets.register('broadcast.playerViewportSync', async (data, userId) => {
+                    //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                    
+                    // Only process if we're the broadcast user and in the correct playerview mode
+                    if (!this._isBroadcastUser()) return;
+                    if (!this.isEnabled()) return;
+                    
+                    const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+                    if (mode !== `playerview-${data.userId}`) return;
+                    
+                    // Apply player's viewport to cameraman's viewport
+                    await this._applyPlayerViewport(data);
+                    
+                    //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+                });
+                
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Player view socket handler registered successfully", "", true, false);
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to register player view socket handler", error, true, false);
+            }
+            
+            // Start monitoring for each player if mode matches
+            this._updatePlayerViewportMonitoring();
+        })();
+
+        // Hook into setting changes to start/stop player viewport monitoring
+        HookManager.registerHook({
+            name: 'settingChange',
+            description: 'BroadcastManager: Start/stop player viewport monitoring when mode changes',
+            context: 'broadcast-playerview-sync',
+            priority: 5,
+            key: 'broadcast-playerview-setting-change',
+            callback: (moduleId, settingKey, value) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                
+                if (moduleId === MODULE.ID && settingKey === 'broadcastMode') {
+                    // Check if mode is a playerview mode
+                    if (typeof value === 'string' && value.startsWith('playerview-')) {
+                        const userId = value.replace('playerview-', '');
+                        if (game.user.id === userId) {
+                            this._startPlayerViewportMonitoring(userId);
+                        } else {
+                            this._stopPlayerViewportMonitoring(userId);
+                        }
+                    } else {
+                        // Stop all player monitoring if mode changed away from playerview
+                        this._stopAllPlayerViewportMonitoring();
+                    }
+                }
+                
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+    }
+
+    /**
+     * Update player viewport monitoring based on current mode
+     */
+    static _updatePlayerViewportMonitoring() {
+        const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+        
+        if (typeof mode === 'string' && mode.startsWith('playerview-')) {
+            const userId = mode.replace('playerview-', '');
+            if (game.user.id === userId) {
+                this._startPlayerViewportMonitoring(userId);
+            }
+        } else {
+            this._stopAllPlayerViewportMonitoring();
+        }
+    }
+
+    /**
+     * Stop all player viewport monitoring
+     */
+    static _stopAllPlayerViewportMonitoring() {
+        for (const userId of this._playerPanHandlers.keys()) {
+            this._stopPlayerViewportMonitoring(userId);
+        }
+    }
+
+    /**
+     * Apply player viewport to cameraman's viewport
+     * @param {Object} viewportState - Viewport state {userId, x, y, scale}
+     */
+    static async _applyPlayerViewport(viewportState) {
+        if (!this._isBroadcastUser()) return;
+        if (!this.isEnabled()) return;
+        if (!canvas?.ready) return;
+        
+        const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+        if (mode !== `playerview-${viewportState.userId}`) return;
+
+        // Guard correctly (allow 0)
+        if (viewportState?.x == null || viewportState?.y == null || viewportState?.scale == null) return;
+
+        postConsoleAndNotification(MODULE.NAME, `BroadcastManager: Applying player ${viewportState.userId} viewport`, viewportState, true, false);
+
+        const duration = getSettingSafely(MODULE.ID, 'broadcastAnimationDuration', 250);
+
+        await canvas.animatePan({
+            x: viewportState.x,
+            y: viewportState.y,
+            scale: viewportState.scale,
+            duration,
+            easing: 'easeInOutCosine'
+        });
     }
 }
