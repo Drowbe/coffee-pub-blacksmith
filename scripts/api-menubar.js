@@ -1410,36 +1410,6 @@ class MenuBar {
             templatePath: 'modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs'
         });
 
-        // Register party secondary bar (default tool system)
-        // await this.registerSecondaryBarType('party', {
-        //     height: 30,
-        //     persistence: 'manual'
-        // });
-
-        // Register party tools after bar type is registered
-        // this._registerPartyTools();
-
-        // Register broadcast secondary bar (default tool system)
-        await this.registerSecondaryBarType('broadcast', {
-            height: this.getSecondaryBarHeight('broadcast'),
-            persistence: 'manual',
-            groupBannerEnabled: true,
-            groupBannerColor: 'rgba(62, 92, 13, 0.9)',
-            groups: {
-                'modes': {
-                    mode: 'switch',  // Radio-button behavior: only one mode active at a time
-                    order: 0
-                },
-                'party': {
-                    mode: 'switch',  // Radio-button behavior: only one player selected at a time
-                    order: 1,
-                    bannerColor: 'rgba(65, 29, 18, 0.9)'  // Custom banner color for party group
-                }
-            }
-        });
-
-        // Broadcast tools are registered by BroadcastManager after bar type registration
-
         postConsoleAndNotification(MODULE.NAME, "Menubar: Secondary bar types registered", "", true, false);
     }
 

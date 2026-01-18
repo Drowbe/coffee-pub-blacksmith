@@ -76,10 +76,12 @@ export class BroadcastManager {
         // Note: ready is a one-time hook, so use Hooks.once directly
         // Use setTimeout to ensure document.body is ready
         Hooks.once('ready', () => {
-            setTimeout(() => {
+            setTimeout(async () => {
                 this._updateBroadcastMode();
                 // Register camera hooks after settings are loaded
                 this._registerCameraHooks();
+                // Register broadcast bar type before registering tools
+                await this._registerBroadcastBarType();
                 // Register broadcast tools after bar type is registered
                 this._registerBroadcastTools();
             }, 100);
@@ -1292,6 +1294,30 @@ export class BroadcastManager {
         }
         
         return results;
+    }
+
+    /**
+     * Register the broadcast secondary bar type
+     * @private
+     */
+    static async _registerBroadcastBarType() {
+        await MenuBar.registerSecondaryBarType('broadcast', {
+            height: MenuBar.getSecondaryBarHeight('broadcast'),
+            persistence: 'manual',
+            groupBannerEnabled: true,
+            groupBannerColor: 'rgba(62, 92, 13, 0.9)',
+            groups: {
+                'modes': {
+                    mode: 'switch',  // Radio-button behavior: only one mode active at a time
+                    order: 0
+                },
+                'party': {
+                    mode: 'switch',  // Radio-button behavior: only one player selected at a time
+                    order: 1,
+                    bannerColor: 'rgba(65, 29, 18, 0.9)'  // Custom banner color for party group
+                }
+            }
+        });
     }
 
     /**
