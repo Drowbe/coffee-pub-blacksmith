@@ -88,6 +88,66 @@ export class BroadcastManager {
      * Register hooks for camera following (token updates, combat updates)
      */
     static _registerCameraHooks() {
+        // Helper function to initialize camera on scene load
+        const initializeCamera = async () => {
+            // Only process for broadcast user
+            if (!this._isBroadcastUser()) {
+                return;
+            }
+            if (!this.isEnabled()) {
+                return;
+            }
+            
+            // Check if we're in spectator mode
+            const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+            if (mode !== 'spectator') {
+                return;
+            }
+            
+            // Wait a bit for canvas to fully initialize
+            setTimeout(async () => {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Initializing camera on scene load", "", true, false);
+                // Trigger camera update by calling _onTokenUpdate with null changes
+                // This will force a pan/zoom to current party token positions
+                await this._onTokenUpdate(null, {});
+            }, 500);
+        };
+        
+        // Hook for canvas ready - initialize camera position when canvas is ready
+        HookManager.registerHook({
+            name: 'canvasReady',
+            description: 'BroadcastManager: Initialize camera position when canvas is ready',
+            context: 'broadcast-camera-init',
+            priority: 5,
+            callback: async () => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                await initializeCamera.call(this);
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+        
+        // Also hook into canvasInit as a fallback
+        HookManager.registerHook({
+            name: 'canvasInit',
+            description: 'BroadcastManager: Initialize camera position when canvas initializes',
+            context: 'broadcast-camera-init',
+            priority: 5,
+            callback: async () => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                await initializeCamera.call(this);
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+        
+        // Also manually trigger after hooks are registered (in case canvas is already ready)
+        // This ensures initialization happens even if hooks fire before we register
+        setTimeout(async () => {
+            if (canvas?.ready) {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Canvas already ready, manually initializing camera", "", true, false);
+                await initializeCamera.call(this);
+            }
+        }, 1000);
+        
         // Hook for token position updates (spectator mode)
         HookManager.registerHook({
             name: 'updateToken',
@@ -122,15 +182,16 @@ export class BroadcastManager {
                     return;
                 }
                 
-                // Only process if position changed
-                if (!changes || (changes.x === undefined && changes.y === undefined)) {
-                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: No position changes, skipping", { changes }, true, false);
-                    return;
-                }
-                
-                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Processing token update", { changes }, true, false);
+                // Process token update (even if no position changes in this hook call)
+                // This ensures we pan/zoom to final position when token stops moving
+                // The _shouldPan() check will handle throttling and distance threshold
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Processing token update", { 
+                    changes: changes,
+                    hasPositionChanges: changes && (changes.x !== undefined || changes.y !== undefined)
+                }, true, false);
                 
                 // Follow party tokens (await to ensure zoom updates complete)
+                // Pass changes but always check current token position
                 await this._onTokenUpdate(tokenDocument, changes);
                 
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
@@ -278,9 +339,13 @@ export class BroadcastManager {
             // IMPORTANT: This code only runs for the broadcast user (cameraman)
             // All pan/zoom operations affect the cameraman's viewport only
             
+            // Allow null tokenDocument for initialization (scene load)
+            const isInitialization = !tokenDocument;
+            
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: _onTokenUpdate called", {
                 tokenId: tokenDocument?.id,
-                changes: changes
+                changes: changes,
+                isInitialization: isInitialization
             }, true, false);
             
             // Get party tokens visible to broadcast user
@@ -310,18 +375,39 @@ export class BroadcastManager {
             }, true, false);
             
             // Calculate zoom based on token count (affects cameraman's viewport)
-            // Always apply default zoom as baseline, with offset adjustments relative to it
-            const zoomOffset = partyTokens.length === 1 
-                ? getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomOffsetSingle', 0)
-                : getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomOffsetMultiple', 0);
+            let finalZoom;
             
-            const defaultZoom = getSettingSafely(MODULE.ID, 'broadcastDefaultZoom', 1.0);
-            // Always calculate final zoom (default + offset adjustment)
-            // Offset 0 = default zoom, non-zero = adjusted relative to default
-            let finalZoom = this._calculateZoomFromOffset(defaultZoom, zoomOffset);
+            if (partyTokens.length === 1) {
+                // Single token: use fixed zoom (default + offset)
+                const zoomOffset = getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomOffsetSingle', 0);
+                const defaultZoom = getSettingSafely(MODULE.ID, 'broadcastDefaultZoom', 1.0);
+                finalZoom = this._calculateZoomFromOffset(defaultZoom, zoomOffset);
+            } else {
+                // Multiple tokens: use auto-fit zoom based on bounding box + padding
+                const paddingPercent = getSettingSafely(MODULE.ID, 'broadcastSpectatorPartyBoxPadding', 20);
+                const autoFitZoom = this._calculateAutoFitZoom(partyTokens, paddingPercent);
+                
+                if (autoFitZoom !== null) {
+                    // Use auto-fit zoom
+                    finalZoom = autoFitZoom;
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Auto-fit zoom calculated", {
+                        tokenCount: partyTokens.length,
+                        paddingPercent: paddingPercent,
+                        autoFitZoom: autoFitZoom
+                    }, true, false);
+                } else {
+                    // Fallback to default zoom if auto-fit calculation fails
+                    const defaultZoom = getSettingSafely(MODULE.ID, 'broadcastDefaultZoom', 1.0);
+                    finalZoom = defaultZoom;
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Auto-fit zoom failed, using default", {
+                        finalZoom: finalZoom
+                    }, false, false);
+                }
+            }
             
             // Pan gating (existing logic: distance threshold + throttle)
-            const shouldPan = this._shouldPan(targetPosition);
+            // Skip gating for initialization (scene load) - always pan/zoom
+            const shouldPan = isInitialization ? true : this._shouldPan(targetPosition);
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Should pan check", {
                 shouldPan: shouldPan,
                 targetPosition: targetPosition,
@@ -521,6 +607,106 @@ export class BroadcastManager {
     }
 
     /**
+     * Calculate bounding box of all tokens including their actual size
+     * @param {Array} tokens - Array of token placeables
+     * @returns {Object|null} Bounding box {minX, minY, maxX, maxY, width, height} or null
+     */
+    static _calculateTokenBoundingBox(tokens) {
+        if (!tokens || tokens.length === 0) return null;
+        
+        const size = canvas.dimensions?.size || canvas.grid?.size || 100;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        
+        for (const token of tokens) {
+            // Get token dimensions in world coordinates
+            const w = (token.width ?? 1) * size;
+            const h = (token.height ?? 1) * size;
+            
+            // Account for texture scale if present
+            const sx = token.texture?.scaleX ?? 1;
+            const sy = token.texture?.scaleY ?? 1;
+            
+            const tokenWidth = w * sx;
+            const tokenHeight = h * sy;
+            
+            // Token bounds (x, y are top-left)
+            const tokenMinX = token.x;
+            const tokenMinY = token.y;
+            const tokenMaxX = token.x + tokenWidth;
+            const tokenMaxY = token.y + tokenHeight;
+            
+            minX = Math.min(minX, tokenMinX);
+            minY = Math.min(minY, tokenMinY);
+            maxX = Math.max(maxX, tokenMaxX);
+            maxY = Math.max(maxY, tokenMaxY);
+        }
+        
+        return {
+            minX: minX,
+            minY: minY,
+            maxX: maxX,
+            maxY: maxY,
+            width: maxX - minX,
+            height: maxY - minY
+        };
+    }
+
+    /**
+     * Calculate zoom level to fit party bounding box with padding in viewport
+     * @param {Array} tokens - Array of token placeables
+     * @param {number} paddingPercent - Padding percentage (0-100)
+     * @returns {number|null} Calculated zoom level or null if unable to calculate
+     */
+    static _calculateAutoFitZoom(tokens, paddingPercent) {
+        if (!tokens || tokens.length === 0) return null;
+        
+        // Calculate bounding box
+        const bbox = this._calculateTokenBoundingBox(tokens);
+        if (!bbox || bbox.width <= 0 || bbox.height <= 0) return null;
+        
+        // Get viewport dimensions (canvas app renderer size, not grid size)
+        // canvas.dimensions.size is the grid size, not viewport size
+        const viewportWidth = canvas.app?.renderer?.width || window.innerWidth || 1920;
+        const viewportHeight = canvas.app?.renderer?.height || window.innerHeight || 1080;
+        
+        // Add padding to bounding box (paddingPercent is percentage, so 20% = 0.2)
+        const paddingMultiplier = 1 + (paddingPercent / 100);
+        const paddedWidth = bbox.width * paddingMultiplier;
+        const paddedHeight = bbox.height * paddingMultiplier;
+        
+        // Calculate zoom needed to fit padded box in viewport
+        // Zoom = viewport size / padded box size
+        const zoomX = viewportWidth / paddedWidth;
+        const zoomY = viewportHeight / paddedHeight;
+        
+        // Use the smaller zoom to ensure entire box fits (zoom out more if needed)
+        const zoom = Math.min(zoomX, zoomY);
+        
+        // Clamp to scene min/max zoom bounds
+        const min = canvas.scene?._viewPosition?.minScale ?? 0.25;
+        const max = canvas.scene?._viewPosition?.maxScale ?? 3.0;
+        
+        const finalZoom = Math.max(min, Math.min(max, zoom));
+        
+        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Auto-fit zoom calculation", {
+            bbox: bbox,
+            paddingPercent: paddingPercent,
+            paddedWidth: paddedWidth,
+            paddedHeight: paddedHeight,
+            viewportWidth: viewportWidth,
+            viewportHeight: viewportHeight,
+            zoomX: zoomX,
+            zoomY: zoomY,
+            zoom: zoom,
+            min: min,
+            max: max,
+            finalZoom: finalZoom
+        }, true, false);
+        
+        return finalZoom;
+    }
+
+    /**
      * Check if camera should pan based on distance threshold and throttle
      * @param {Object} newPosition - New position {x, y}
      * @returns {boolean} True if should pan
@@ -529,13 +715,7 @@ export class BroadcastManager {
         const distanceThreshold = getSettingSafely(MODULE.ID, 'broadcastFollowDistanceThreshold', 1.0);
         const throttleMs = getSettingSafely(MODULE.ID, 'broadcastFollowThrottleMs', 100);
         
-        // Check throttle (time-based)
-        const now = Date.now();
-        if (now - this._lastPanTime < throttleMs) {
-            return false;
-        }
-        
-        // Check distance threshold (if we have a last position)
+        // Check distance threshold first (if we have a last position)
         if (this._lastPanPosition.x !== null && this._lastPanPosition.y !== null) {
             const distance = Math.sqrt(
                 Math.pow(newPosition.x - this._lastPanPosition.x, 2) +
@@ -545,9 +725,22 @@ export class BroadcastManager {
             // Convert pixels to grid units
             const gridUnits = distance / canvas.grid.size;
             
+            // If token hasn't moved enough, don't pan
             if (gridUnits < distanceThreshold) {
                 return false;
             }
+            
+            // If token has moved significantly (more than 3x threshold), bypass throttle
+            // This ensures we catch up after long moves, even if we're in throttle window
+            if (gridUnits > (distanceThreshold * 3)) {
+                return true; // Bypass throttle for large movements
+            }
+        }
+        
+        // Check throttle (time-based) for normal movements
+        const now = Date.now();
+        if (now - this._lastPanTime < throttleMs) {
+            return false;
         }
         
         return true;

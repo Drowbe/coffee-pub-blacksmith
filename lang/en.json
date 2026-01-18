@@ -238,8 +238,8 @@
 			"broadcastSpectatorZoomOffsetSingle-Label": "Spectator Zoom Offset (Single Token)",
 			"broadcastSpectatorZoomOffsetSingle-Hint": "Zoom offset when following a single party token. 0 = default zoom, -5 = zoom out 5x, +5 = zoom in 5x.",
 
-			"broadcastSpectatorZoomOffsetMultiple-Label": "Spectator Zoom Offset (Multiple Tokens)",
-			"broadcastSpectatorZoomOffsetMultiple-Hint": "Zoom offset when following multiple party tokens. 0 = default zoom, -5 = zoom out 5x, +5 = zoom in 5x. Negative values or auto-fit may be used for wide group shots.",
+		"broadcastSpectatorPartyBoxPadding-Label": "Party Box Padding (%)",
+		"broadcastSpectatorPartyBoxPadding-Hint": "Percentage of padding around the party token bounding box when calculating auto-fit zoom for multiple tokens. Higher values = more zoomed out (more space around party).",
 
 		"headingH2CombatEnhancements-Label": "Combat",
 		"headingH2CombatEnhancements-Hint": "Enhancements and quality of lifeimprovements to the combat system.",

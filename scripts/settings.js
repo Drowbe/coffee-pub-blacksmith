@@ -1816,15 +1816,16 @@ export const registerSettings = () => {
 		});
 
 		// Broadcast Spectator Zoom Offset Multiple
-		game.settings.register(MODULE.ID, 'broadcastSpectatorZoomOffsetMultiple', {
-			name: MODULE.ID + '.broadcastSpectatorZoomOffsetMultiple-Label',
-			hint: MODULE.ID + '.broadcastSpectatorZoomOffsetMultiple-Hint',
+		// Broadcast Spectator Party Box Padding
+		game.settings.register(MODULE.ID, 'broadcastSpectatorPartyBoxPadding', {
+			name: MODULE.ID + '.broadcastSpectatorPartyBoxPadding-Label',
+			hint: MODULE.ID + '.broadcastSpectatorPartyBoxPadding-Hint',
 			scope: 'world',
 			config: true,
 			requiresReload: false,
 			type: Number,
-			default: 0,
-			range: { min: -5, max: 5, step: 1 },
+			default: 20,
+			range: { min: 0, max: 100, step: 5 },
 			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 
