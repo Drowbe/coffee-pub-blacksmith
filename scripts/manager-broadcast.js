@@ -428,6 +428,17 @@ export class BroadcastManager {
                 });
                 
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Mode change socket handler registered successfully", "", true, false);
+
+                // Register socket handler for map view (all clients)
+                const mapViewHandler = 'broadcast.mapView';
+                this._socketHandlerNames.add(mapViewHandler);
+                await blacksmith.sockets.register(mapViewHandler, async () => {
+                    //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                    await this._applyMapView();
+                    //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+                });
+                
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Map view socket handler registered successfully", "", true, false);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to register GM view socket handler", error, true, false);
             }
@@ -1030,6 +1041,40 @@ export class BroadcastManager {
     }
 
     /**
+     * Fit the current scene to the viewport (broadcast user only).
+     */
+    static async _applyMapView() {
+        try {
+            if (!this._isBroadcastUser()) return;
+            if (!this.isEnabled()) return;
+            if (!canvas?.ready) return;
+
+            const dims = canvas.scene?.dimensions;
+            if (!dims) return;
+
+            const viewWidth = canvas.app?.renderer?.width ?? 0;
+            const viewHeight = canvas.app?.renderer?.height ?? 0;
+            if (!viewWidth || !viewHeight) return;
+
+            const rect = dims.sceneRect || { x: 0, y: 0, width: dims.width, height: dims.height };
+            const centerX = rect.x + (rect.width / 2);
+            const centerY = rect.y + (rect.height / 2);
+            const scale = Math.min(viewWidth / rect.width, viewHeight / rect.height) * 0.95;
+
+            const duration = getSettingSafely(MODULE.ID, 'broadcastAnimationDuration', 250);
+            await canvas.animatePan({
+                x: centerX,
+                y: centerY,
+                scale,
+                duration,
+                easing: 'easeInOutCosine'
+            });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Error applying map view", error, false, false);
+        }
+    }
+
+    /**
      * Get all party tokens visible to the broadcast user
      * @returns {Array} Array of visible party token placeables
      */
@@ -1524,11 +1569,12 @@ export class BroadcastManager {
         return canvas.tokens.placeables.filter(token => {
             const actor = token.actor;
             if (!actor || actor.type !== 'character') return false;
-            // Require an active owner (non-GM)
+            // Follow list includes player-owned characters even if the player is offline
+            if (actor.hasPlayerOwner) return true;
             const ownership = token.document?.ownership || actor.ownership || {};
             return Object.entries(ownership).some(([userId, level]) => {
                 const user = game.users.get(userId);
-                return level === (CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3) && user?.active && !user.isGM;
+                return level === (CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3) && user && !user.isGM;
             });
         });
     }
@@ -1674,11 +1720,11 @@ export class BroadcastManager {
         });
 
 
-        // Register Player View mode button
-        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-playerview', {
-            icon: 'fa-solid fa-helmet-battle',
+        // Register Map View button (fit scene to viewport)
+        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-mapview', {
+            icon: 'fa-solid fa-map',
             label: null,
-            tooltip: 'Player View - Mirror selected player\'s viewport',
+            tooltip: 'Map View - Fit scene to viewport',
             group: 'modes',
             toggleable: false,
             order: 4,
@@ -1687,20 +1733,12 @@ export class BroadcastManager {
             borderColor: null,
             visible: true,
             onClick: async () => {
-                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Player View mode button clicked", "", true, false);
-                // Only GMs can change broadcast mode
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Map View button clicked", "", true, false);
                 if (!game.user.isGM) {
-                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can use Map View", "", false, false);
                     return;
                 }
-                const modeValue = this._getDefaultPlayerViewMode();
-                if (!modeValue) {
-                    postConsoleAndNotification(MODULE.NAME, "Broadcast: No party members available for Player View", "", false, false);
-                    return;
-                }
-                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Setting broadcast mode to player view", { modeValue }, true, false);
-                await this._setBroadcastMode(modeValue);
-                // Switch mode automatically manages active state - no manual re-rendering needed
+                await this._emitMapView();
             }
         });
 
@@ -1721,15 +1759,12 @@ export class BroadcastManager {
             'spectator': 'broadcast-mode-spectator',
             'combat': 'broadcast-mode-combat',
             'gmview': 'broadcast-mode-gmview',
-            'playerview': 'broadcast-mode-playerview',
             'manual': 'broadcast-mode-manual'
         };
         
         // Check if mode is a playerview mode (playerview-{userId})
         if (typeof currentMode === 'string' && currentMode.startsWith('playerview-') && currentMode !== 'playerview-follow') {
             const userId = currentMode.replace('playerview-', '');
-            // Activate "Player View" mode button
-            MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-playerview', true);
             // Activate the selected player's portrait button in mirror group
             const activeItemId = `broadcast-mode-player-${userId}`;
             MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
@@ -1761,8 +1796,6 @@ export class BroadcastManager {
                     // Check if mode is a playerview mode (playerview-{userId})
                     if (typeof value === 'string' && value.startsWith('playerview-') && value !== 'playerview-follow') {
                         const userId = value.replace('playerview-', '');
-                        // Activate "Player View" mode button in modes group
-                        MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-playerview', true);
                         // Activate the selected player's portrait button in mirror group
                         const activeItemId = `broadcast-mode-player-${userId}`;
                         MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
@@ -1772,7 +1805,6 @@ export class BroadcastManager {
                             MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${followTokenId}`, false);
                         }
                     } else if (value === 'playerview-follow') {
-                        MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-playerview', true);
                         const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
                         if (followTokenId) {
                             MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${followTokenId}`, true);
@@ -1782,7 +1814,6 @@ export class BroadcastManager {
                             'spectator': 'broadcast-mode-spectator',
                             'combat': 'broadcast-mode-combat',
                             'gmview': 'broadcast-mode-gmview',
-                            'playerview': 'broadcast-mode-playerview',
                             'manual': 'broadcast-mode-manual'
                         };
                         const activeItemId = modeItemMap[value] || 'broadcast-mode-spectator';
@@ -1894,7 +1925,7 @@ export class BroadcastManager {
             groupOrder: 999,
             order: 10, // After timer-section
             moduleId: MODULE.ID,
-            gmOnly: false,
+            gmOnly: true,
             leaderOnly: false,
             visible: () => {
                 // TODO: Add visibility checks after button is confirmed working
@@ -1925,11 +1956,14 @@ export class BroadcastManager {
                     { value: 'gmview', label: 'GM View' },
                     { value: 'combat', label: 'Combat' },
                     { value: 'spectator', label: 'Spectator' },
-                    { value: 'playerview', label: 'Player View' }
+                    { value: 'playerview', label: 'Player View: Mirror' },
+                    { value: 'playerview-follow', label: 'Player View: Follow' }
                 ];
 
                 // Determine which option should be selected (handle playerview-{userId} case)
-                const selectedValue = currentMode.startsWith('playerview-') ? 'playerview' : currentMode;
+                const selectedValue = currentMode === 'playerview-follow'
+                    ? 'playerview-follow'
+                    : (currentMode.startsWith('playerview-') ? 'playerview' : currentMode);
 
                 const content = `
                     <form>
@@ -1971,6 +2005,13 @@ export class BroadcastManager {
                                             return;
                                         }
                                         await this._setBroadcastMode(defaultMode);
+                                    } else if (modeValue === 'playerview-follow') {
+                                        const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
+                                        if (!followTokenId) {
+                                            ui.notifications.warn("No follow token selected");
+                                            return;
+                                        }
+                                        await this._setBroadcastMode('playerview-follow');
                                     } else {
                                         await this._setBroadcastMode(modeValue);
                                     }
@@ -2243,6 +2284,20 @@ export class BroadcastManager {
             await blacksmith.sockets.emit('broadcast.modeChanged', { mode });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to emit mode change", error, true, false);
+        }
+    }
+
+    /**
+     * Emit a map view request to all clients.
+     */
+    static async _emitMapView() {
+        try {
+            const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+            if (!blacksmith?.sockets) return;
+            await blacksmith.sockets.waitForReady();
+            await blacksmith.sockets.emit('broadcast.mapView', {});
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to emit map view", error, true, false);
         }
     }
 
