@@ -233,8 +233,15 @@ export class BroadcastManager {
                     return;
                 }
                 
-                // Check if we're in spectator mode
+                // Check if we're in spectator or follow mode
                 const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+                if (mode === 'playerview-follow') {
+                    const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
+                    if (followTokenId && tokenDocument?.id === followTokenId) {
+                        await this._onFollowTokenUpdate(tokenDocument);
+                    }
+                    return;
+                }
                 if (mode !== 'spectator') {
                     postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Not in spectator mode, skipping", { mode }, true, false);
                     return;
@@ -280,8 +287,15 @@ export class BroadcastManager {
                     return;
                 }
                 
-                // Check if we're in spectator mode
+                // Check if we're in spectator or follow mode
                 const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+                if (mode === 'playerview-follow') {
+                    const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
+                    if (followTokenId && tokenDocument?.id === followTokenId) {
+                        await this._onFollowTokenUpdate(tokenDocument);
+                    }
+                    return;
+                }
                 if (mode !== 'spectator') {
                     postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Not in spectator mode, skipping", { mode }, true, false);
                     return;
@@ -439,7 +453,7 @@ export class BroadcastManager {
                     }
                 } 
                 // Player viewport monitoring (any player)
-                else if (typeof mode === 'string' && mode.startsWith('playerview-')) {
+                else if (typeof mode === 'string' && mode.startsWith('playerview-') && mode !== 'playerview-follow') {
                     // Initialize player viewport monitoring if mode is playerview
                     if (!canvas?.ready) {
                         Hooks.once('canvasReady', () => {
@@ -933,6 +947,13 @@ export class BroadcastManager {
         } else if (typeof mode === 'string' && mode.startsWith('playerview-')) {
             // For player view, the player client sends initial sync, cameraman receives it
             // Player: trigger initial sync (not the broadcast user, so early return doesn't apply)
+            if (mode === 'playerview-follow') {
+                if (this._isBroadcastUser()) {
+                    const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
+                    await this._onFollowTokenUpdate(null, followTokenId);
+                }
+                return;
+            }
             const userId = mode.replace('playerview-', '');
             if (game.user.id === userId) {
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Player view mode - Player client triggering initial sync", { userId }, true, false);
@@ -971,6 +992,40 @@ export class BroadcastManager {
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Error following combatant", error, false, false);
+        }
+    }
+
+    /**
+     * Follow a specific token in playerview-follow mode.
+     * @param {TokenDocument|null} tokenDocument - Token document to follow
+     * @param {string|null} tokenIdOverride - Token ID to follow
+     */
+    static async _onFollowTokenUpdate(tokenDocument, tokenIdOverride = null) {
+        try {
+            if (!this._isBroadcastUser()) return;
+            if (!this.isEnabled()) return;
+            if (!canvas?.ready) return;
+            if (getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator') !== 'playerview-follow') return;
+
+            const tokenId = tokenIdOverride || tokenDocument?.id;
+            if (!tokenId) return;
+
+            const canvasToken = canvas.tokens.get(tokenId);
+            if (!canvasToken) return;
+
+            const shouldPan = this._shouldPan({ x: canvasToken.x, y: canvasToken.y });
+            if (!shouldPan) return;
+
+            const duration = getSettingSafely(MODULE.ID, 'broadcastAnimationDuration', 250);
+            await canvas.animatePan({
+                x: canvasToken.x,
+                y: canvasToken.y,
+                scale: canvas.stage?.scale?.x ?? 1,
+                duration,
+                easing: 'easeInOutCosine'
+            });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Error following token (follow mode)", error, false, false);
         }
     }
 
@@ -1461,6 +1516,24 @@ export class BroadcastManager {
     }
 
     /**
+     * Get party tokens on canvas for follow mode (GM view).
+     * @returns {Array} Array of token placeables
+     */
+    static _getPartyTokensOnCanvas() {
+        if (!canvas || !canvas.tokens) return [];
+        return canvas.tokens.placeables.filter(token => {
+            const actor = token.actor;
+            if (!actor || actor.type !== 'character') return false;
+            // Require an active owner (non-GM)
+            const ownership = token.document?.ownership || actor.ownership || {};
+            return Object.entries(ownership).some(([userId, level]) => {
+                const user = game.users.get(userId);
+                return level === (CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3) && user?.active && !user.isGM;
+            });
+        });
+    }
+
+    /**
      * Register the broadcast secondary bar type
      * @private
      */
@@ -1475,10 +1548,15 @@ export class BroadcastManager {
                     mode: 'switch',  // Radio-button behavior: only one mode active at a time
                     order: 0
                 },
-                'online': {
+                'mirror': {
                     mode: 'switch',  // Radio-button behavior: only one player selected at a time
                     order: 1,
-                    bannerColor: 'rgba(65, 29, 18, 0.9)'  // Custom banner color for online group
+                    bannerColor: 'rgba(65, 29, 18, 0.9)'  // Custom banner color for mirror group
+                },
+                'follow': {
+                    mode: 'switch',  // Radio-button behavior: only one token selected at a time
+                    order: 2,
+                    bannerColor: 'rgba(36, 60, 110, 0.9)'  // Custom banner color for follow group
                 }
             }
         });
@@ -1628,8 +1706,9 @@ export class BroadcastManager {
 
         
 
-        // Register portrait buttons for party tokens (player view modes)
+        // Register player view buttons (mirror/follow)
         this.registerPlayerPortraitButtons();
+        this.registerFollowTokenButtons();
         this._registerPlayerPortraitSyncHooks();
 
         // Register view mode button in main menubar (right section)
@@ -1647,11 +1726,11 @@ export class BroadcastManager {
         };
         
         // Check if mode is a playerview mode (playerview-{userId})
-        if (typeof currentMode === 'string' && currentMode.startsWith('playerview-')) {
+        if (typeof currentMode === 'string' && currentMode.startsWith('playerview-') && currentMode !== 'playerview-follow') {
             const userId = currentMode.replace('playerview-', '');
             // Activate "Player View" mode button
             MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-playerview', true);
-            // Activate the selected player's portrait button in online group
+            // Activate the selected player's portrait button in mirror group
             const activeItemId = `broadcast-mode-player-${userId}`;
             MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
         } else {
@@ -1680,13 +1759,24 @@ export class BroadcastManager {
                     
                     // Update active state to match the setting (switch mode handles deactivating others)
                     // Check if mode is a playerview mode (playerview-{userId})
-                    if (typeof value === 'string' && value.startsWith('playerview-')) {
+                    if (typeof value === 'string' && value.startsWith('playerview-') && value !== 'playerview-follow') {
                         const userId = value.replace('playerview-', '');
                         // Activate "Player View" mode button in modes group
                         MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-playerview', true);
-                        // Activate the selected player's portrait button in online group
+                        // Activate the selected player's portrait button in mirror group
                         const activeItemId = `broadcast-mode-player-${userId}`;
                         MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+                        // Clear follow selection for mirror view
+                        const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
+                        if (followTokenId) {
+                            MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${followTokenId}`, false);
+                        }
+                    } else if (value === 'playerview-follow') {
+                        MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-playerview', true);
+                        const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
+                        if (followTokenId) {
+                            MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${followTokenId}`, true);
+                        }
                     } else {
                         const modeItemMap = {
                             'spectator': 'broadcast-mode-spectator',
@@ -1746,8 +1836,16 @@ export class BroadcastManager {
     static _registerBroadcastMenubarButton() {
         // Get mode display names
         const getModeDisplayName = (mode) => {
+            if (mode === 'playerview-follow') {
+                const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
+                const tokenName = followTokenId ? canvas.tokens.get(followTokenId)?.name : null;
+                return tokenName ? `Player View: Follow (${tokenName})` : 'Player View: Follow';
+            }
             if (typeof mode === 'string' && mode.startsWith('playerview-')) {
-                return 'Player View';
+                const userId = mode.replace('playerview-', '');
+                const user = game.users.get(userId);
+                const name = user?.name || 'Player';
+                return `Player View: Mirror (${name})`;
             }
             const modeNames = {
                 'manual': 'Manual',
@@ -1933,7 +2031,7 @@ export class BroadcastManager {
                 image: portraitImg || null, // Use portrait image if available
                 label: null,
                 tooltip: `Mirror ${user.name}'s viewport`,
-                group: 'online',
+                group: 'mirror',
                 toggleable: false,
                 order: order++,
                 iconColor: null,
@@ -1957,10 +2055,66 @@ export class BroadcastManager {
 
         // Re-sync active state for current playerview mode after rebuild
         const currentMode = this._getCachedBroadcastMode();
-        if (typeof currentMode === 'string' && currentMode.startsWith('playerview-')) {
+        if (typeof currentMode === 'string' && currentMode.startsWith('playerview-') && currentMode !== 'playerview-follow') {
             const userId = currentMode.replace('playerview-', '');
             const activeItemId = `broadcast-mode-player-${userId}`;
             MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+        }
+    }
+
+    /**
+     * Register follow-token buttons for player view follow mode.
+     */
+    static registerFollowTokenButtons() {
+        const tokens = this._getPartyTokensOnCanvas();
+        
+        // Remove old buttons (any button starting with broadcast-follow-token-)
+        const existingItems = MenuBar.secondaryBarItems?.get('broadcast');
+        if (existingItems) {
+            for (const itemId of existingItems.keys()) {
+                if (itemId.startsWith('broadcast-follow-token-')) {
+                    MenuBar.unregisterSecondaryBarItem('broadcast', itemId);
+                }
+            }
+        }
+        
+        let order = 10;
+        for (const token of tokens) {
+            const itemId = `broadcast-follow-token-${token.id}`;
+            const actor = token.actor;
+            const label = actor?.name || token.name || 'Token';
+            const image = token.document?.texture?.src || actor?.img || '';
+            
+            MenuBar.registerSecondaryBarItem('broadcast', itemId, {
+                icon: 'fas fa-location-crosshairs',
+                image: image || null,
+                label: null,
+                tooltip: `Follow ${label}`,
+                group: 'follow',
+                toggleable: false,
+                order: order++,
+                iconColor: null,
+                buttonColor: null,
+                borderColor: null,
+                visible: () => game.user.isGM, // Only GMs can see/use these buttons
+                onClick: async () => {
+                    if (!game.user.isGM) {
+                        postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                        return;
+                    }
+                    await game.settings.set(MODULE.ID, 'broadcastFollowTokenId', token.id);
+                    await this._setBroadcastMode('playerview-follow');
+                }
+            });
+        }
+
+        // Re-sync active state for current follow selection
+        const currentMode = this._getCachedBroadcastMode();
+        if (currentMode === 'playerview-follow') {
+            const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
+            if (followTokenId) {
+                MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${followTokenId}`, true);
+            }
         }
     }
 
@@ -2055,6 +2209,7 @@ export class BroadcastManager {
         this._playerButtonsDebounce = setTimeout(() => {
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Syncing player portrait buttons", { reason }, true, false);
             this.registerPlayerPortraitButtons();
+            this.registerFollowTokenButtons();
         }, 150);
     }
 
@@ -2064,7 +2219,7 @@ export class BroadcastManager {
      */
     static _getDefaultPlayerViewMode() {
         const currentMode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
-        if (typeof currentMode === 'string' && currentMode.startsWith('playerview-')) {
+        if (typeof currentMode === 'string' && currentMode.startsWith('playerview-') && currentMode !== 'playerview-follow') {
             return currentMode;
         }
         
@@ -2283,7 +2438,7 @@ export class BroadcastManager {
                 
                 if (moduleId === MODULE.ID && settingKey === 'broadcastMode') {
                     // Check if mode is a playerview mode
-                    if (typeof value === 'string' && value.startsWith('playerview-')) {
+                    if (typeof value === 'string' && value.startsWith('playerview-') && value !== 'playerview-follow') {
                         const userId = value.replace('playerview-', '');
                         if (game.user.id === userId) {
                             this._startPlayerViewportMonitoring(userId);
@@ -2307,7 +2462,7 @@ export class BroadcastManager {
     static _updatePlayerViewportMonitoring() {
         const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
         
-        if (typeof mode === 'string' && mode.startsWith('playerview-')) {
+        if (typeof mode === 'string' && mode.startsWith('playerview-') && mode !== 'playerview-follow') {
             const userId = mode.replace('playerview-', '');
             if (game.user.id === userId) {
                 this._startPlayerViewportMonitoring(userId);

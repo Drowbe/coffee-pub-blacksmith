@@ -1753,6 +1753,17 @@ export const registerSettings = () => {
 			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 
+		// Broadcast Follow Token Id (Player View: Follow)
+		game.settings.register(MODULE.ID, 'broadcastFollowTokenId', {
+			name: 'Broadcast Follow Token Id',
+			hint: 'Internal setting for Player View follow mode',
+			scope: 'world',
+			config: false,
+			requiresReload: false,
+			type: String,
+			default: ''
+		});
+
 		// Broadcast Follow Distance Threshold
 		game.settings.register(MODULE.ID, 'broadcastFollowDistanceThreshold', {
 			name: MODULE.ID + '.broadcastFollowDistanceThreshold-Label',
