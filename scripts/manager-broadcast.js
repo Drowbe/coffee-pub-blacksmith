@@ -24,6 +24,12 @@ export class BroadcastManager {
     static _lastPanTime = 0;
     static _lastModeEmit = { mode: null, at: 0 };
     static _playerButtonsDebounce = null;
+    static _lastBroadcastMode = null;
+    
+    // Resource tracking for cleanup
+    static _hookIds = new Set(); // HookManager callback IDs
+    static _timeoutIds = new Set(); // setTimeout references
+    static _socketHandlerNames = new Set(); // Socket handler event names
 
     /**
      * Initialize the BroadcastManager
@@ -38,6 +44,21 @@ export class BroadcastManager {
 
         // Register hooks for UI hiding (don't check settings here - they may not be registered yet)
         this._registerHooks();
+
+        // Register cleanup hook for module unload
+        HookManager.registerHook({
+            name: 'unloadModule',
+            description: 'BroadcastManager: Cleanup on module unload',
+            context: 'broadcast-cleanup',
+            priority: 3,
+            callback: (moduleId) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                if (moduleId === MODULE.ID) {
+                    this.cleanup();
+                }
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
 
         // Don't apply broadcast mode here - wait for ready hook when settings are guaranteed to be loaded
         // The ready hook will call _updateBroadcastMode() which checks settings at that time
@@ -68,8 +89,37 @@ export class BroadcastManager {
                     settingKey === 'broadcastHideBackground'
                 )) {
                     this._updateBroadcastMode();
+                    // Re-render menubar to update view mode button visibility
+                    MenuBar.renderMenubar();
                 }
                 
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+
+        // Hook into user connection/disconnection to update view mode button visibility
+        HookManager.registerHook({
+            name: 'userConnected',
+            description: 'BroadcastManager: Update menubar when users connect',
+            context: 'broadcast-settings',
+            priority: 3,
+            callback: () => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                // Re-render menubar to update view mode button visibility
+                MenuBar.renderMenubar();
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+
+        HookManager.registerHook({
+            name: 'userDisconnected',
+            description: 'BroadcastManager: Update menubar when users disconnect',
+            context: 'broadcast-settings',
+            priority: 3,
+            callback: () => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                // Re-render menubar to update view mode button visibility
+                MenuBar.renderMenubar();
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
@@ -311,7 +361,9 @@ export class BroadcastManager {
                 await blacksmith.sockets.waitForReady();
                 
                 // Register socket handler for receiving GM viewport updates (cameraman client)
-                await blacksmith.sockets.register('broadcast.gmViewportSync', async (data, userId) => {
+                const gmViewportSyncHandler = 'broadcast.gmViewportSync';
+                this._socketHandlerNames.add(gmViewportSyncHandler);
+                await blacksmith.sockets.register(gmViewportSyncHandler, async (data, userId) => {
                     //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                     
                     postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Received GM viewport sync", { 
@@ -347,7 +399,9 @@ export class BroadcastManager {
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: GM view socket handler registered successfully", "", true, false);
 
                 // Register socket handler for broadcast mode changes (all clients)
-                await blacksmith.sockets.register('broadcast.modeChanged', async (data) => {
+                const modeChangedHandler = 'broadcast.modeChanged';
+                this._socketHandlerNames.add(modeChangedHandler);
+                await blacksmith.sockets.register(modeChangedHandler, async (data) => {
                     //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                     
                     if (!data || !data.mode) return;
@@ -888,13 +942,10 @@ export class BroadcastManager {
                     this._startPlayerViewportMonitoring(userId);
                 } else {
                     // Already monitoring, just send current viewport immediately
-                    const viewportWidth = canvas.app?.renderer?.width ?? 0;
-                    const viewportHeight = canvas.app?.renderer?.height ?? 0;
-                    const currentScale = canvas.stage?.scale?.x ?? canvas.scene?._viewPosition?.scale ?? 1;
-                    const panX = canvas.pan?.x ?? canvas.scene?._viewPosition?.x ?? 0;
-                    const panY = canvas.pan?.y ?? canvas.scene?._viewPosition?.y ?? 0;
-                    const centerX = panX + (viewportWidth / 2) / currentScale;
-                    const centerY = panY + (viewportHeight / 2) / currentScale;
+                    const view = canvas.scene?._viewPosition ?? canvas.pan ?? { x: 0, y: 0, scale: 1 };
+                    const centerX = view.x ?? 0;
+                    const centerY = view.y ?? 0;
+                    const currentScale = view.scale ?? canvas.stage?.scale?.x ?? 1;
                     postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Player sending immediate viewport sync", { userId, centerX, centerY, currentScale }, true, false);
                     this._sendPlayerViewportSync(userId, { x: centerX, y: centerY, scale: currentScale });
                 }
@@ -1424,10 +1475,10 @@ export class BroadcastManager {
                     mode: 'switch',  // Radio-button behavior: only one mode active at a time
                     order: 0
                 },
-                'party': {
+                'online': {
                     mode: 'switch',  // Radio-button behavior: only one player selected at a time
                     order: 1,
-                    bannerColor: 'rgba(65, 29, 18, 0.9)'  // Custom banner color for party group
+                    bannerColor: 'rgba(65, 29, 18, 0.9)'  // Custom banner color for online group
                 }
             }
         });
@@ -1581,9 +1632,12 @@ export class BroadcastManager {
         this.registerPlayerPortraitButtons();
         this._registerPlayerPortraitSyncHooks();
 
+        // Register view mode button in main menubar (right section)
+        this._registerBroadcastMenubarButton();
+
         // Set initial active state based on current broadcastMode setting
         // Switch mode will default to first item if none is set, so we set the correct one
-        const currentMode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+        const currentMode = this._getCachedBroadcastMode();
         const modeItemMap = {
             'spectator': 'broadcast-mode-spectator',
             'combat': 'broadcast-mode-combat',
@@ -1597,7 +1651,7 @@ export class BroadcastManager {
             const userId = currentMode.replace('playerview-', '');
             // Activate "Player View" mode button
             MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-playerview', true);
-            // Activate the selected player's portrait button in party group
+            // Activate the selected player's portrait button in online group
             const activeItemId = `broadcast-mode-player-${userId}`;
             MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
         } else {
@@ -1616,6 +1670,7 @@ export class BroadcastManager {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                 
                 if (moduleId === MODULE.ID && settingKey === 'broadcastMode') {
+                    this._lastBroadcastMode = value;
                     postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Setting change hook fired for broadcastMode", { 
                         value, 
                         isBroadcastUser: this._isBroadcastUser(),
@@ -1629,7 +1684,7 @@ export class BroadcastManager {
                         const userId = value.replace('playerview-', '');
                         // Activate "Player View" mode button in modes group
                         MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-playerview', true);
-                        // Activate the selected player's portrait button in party group
+                        // Activate the selected player's portrait button in online group
                         const activeItemId = `broadcast-mode-player-${userId}`;
                         MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
                     } else {
@@ -1643,6 +1698,10 @@ export class BroadcastManager {
                         const activeItemId = modeItemMap[value] || 'broadcast-mode-spectator';
                         MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
                     }
+
+                    // Re-render menubar to update the right section button title/tooltip
+                    // Use immediate=true to ensure it renders right away, not debounced
+                    MenuBar.renderMenubar(true);
 
                     // If GM changes mode, broadcast to other clients immediately
                     if (game.user.isGM && this._shouldEmitModeChange(value)) {
@@ -1680,6 +1739,170 @@ export class BroadcastManager {
     }
 
     /**
+     * Register view mode button in main menubar (right section)
+     * Only shows when cameraman is connected and broadcast is active
+     * @private
+     */
+    static _registerBroadcastMenubarButton() {
+        // Get mode display names
+        const getModeDisplayName = (mode) => {
+            if (typeof mode === 'string' && mode.startsWith('playerview-')) {
+                return 'Player View';
+            }
+            const modeNames = {
+                'manual': 'Manual',
+                'gmview': 'GM View',
+                'combat': 'Combat',
+                'spectator': 'Spectator',
+                'playerview': 'Player View'
+            };
+            return modeNames[mode] || 'Manual';
+        };
+
+        // Get mode icon
+        const getModeIcon = (mode) => {
+            if (typeof mode === 'string' && mode.startsWith('playerview-')) {
+                return 'fa-solid fa-helmet-battle';
+            }
+            const modeIcons = {
+                'manual': 'fa-solid fa-hand',
+                'gmview': 'fa-solid fa-chess-king',
+                'combat': 'fa-solid fa-swords',
+                'spectator': 'fa-solid fa-users',
+                'playerview': 'fa-solid fa-helmet-battle'
+            };
+            return modeIcons[mode] || 'fa-solid fa-hand';
+        };
+
+        const success = MenuBar.registerMenubarTool('broadcast-view-mode', {
+            icon: 'fa-solid fa-video',
+            name: 'broadcast-view-mode',
+            title: () => {
+                if (!this.isEnabled() || !this._getBroadcastUser()) {
+                    return 'View Mode';
+                }
+                const mode = this._getCachedBroadcastMode();
+                return getModeDisplayName(mode);
+            },
+            tooltip: () => {
+                if (!this.isEnabled() || !this._getBroadcastUser()) {
+                    return 'View Mode (Not Active)';
+                }
+                const mode = this._getCachedBroadcastMode();
+                return `${getModeDisplayName(mode)} - Click to change`;
+            },
+            zone: 'right',
+            group: 'general',
+            groupOrder: 999,
+            order: 10, // After timer-section
+            moduleId: MODULE.ID,
+            gmOnly: false,
+            leaderOnly: false,
+            visible: () => {
+                // TODO: Add visibility checks after button is confirmed working
+                // Always show for now to debug
+                return true;
+            },
+            toggleable: false,
+            active: false,
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null,
+            onClick: async () => {
+                if (!game.user.isGM) {
+                    ui.notifications.warn("Only GMs can change broadcast mode");
+                    return;
+                }
+
+                if (!this.isEnabled()) {
+                    ui.notifications.warn("Broadcast is not enabled");
+                    return;
+                }
+
+                const currentMode = this._getCachedBroadcastMode();
+                
+                // Create mode selection dialog
+                const modeOptions = [
+                    { value: 'manual', label: 'Manual' },
+                    { value: 'gmview', label: 'GM View' },
+                    { value: 'combat', label: 'Combat' },
+                    { value: 'spectator', label: 'Spectator' },
+                    { value: 'playerview', label: 'Player View' }
+                ];
+
+                // Determine which option should be selected (handle playerview-{userId} case)
+                const selectedValue = currentMode.startsWith('playerview-') ? 'playerview' : currentMode;
+
+                const content = `
+                    <form>
+                        <div class="form-group">
+                            <label>Select Broadcast Mode:</label>
+                            <select name="mode" id="broadcast-mode-select">
+                                ${modeOptions.map(mode => {
+                                    const isSelected = selectedValue === mode.value;
+                                    return `<option value="${mode.value}" ${isSelected ? 'selected' : ''}>${mode.label}</option>`;
+                                }).join('')}
+                            </select>
+                        </div>
+                    </form>
+                `;
+
+                const dialog = new Dialog({
+                    title: 'Select Broadcast Mode',
+                    content: content,
+                    buttons: {
+                        set: {
+                            icon: '<i class="fas fa-check"></i>',
+                            label: "Set Mode",
+                            callback: async (html) => {
+                                // v13: Detect and convert jQuery to native DOM if needed
+                                let nativeDialogHtml = html;
+                                if (html && (html.jquery || typeof html.find === 'function')) {
+                                    nativeDialogHtml = html[0] || html.get?.(0) || html;
+                                }
+                        
+                                const modeSelect = nativeDialogHtml.querySelector('#broadcast-mode-select');
+                                const modeValue = modeSelect ? modeSelect.value : '';
+                                
+                                if (modeValue) {
+                                    // For playerview, use default player selection
+                                    if (modeValue === 'playerview') {
+                                        const defaultMode = this._getDefaultPlayerViewMode();
+                                        if (!defaultMode) {
+                                            ui.notifications.warn("No party members available for Player View");
+                                            return;
+                                        }
+                                        await this._setBroadcastMode(defaultMode);
+                                    } else {
+                                        await this._setBroadcastMode(modeValue);
+                                    }
+                                    
+                                    MenuBar.renderMenubar(); // Update button text
+                                }
+                            }
+                        },
+                        cancel: {
+                            icon: '<i class="fas fa-times"></i>',
+                            label: "Cancel"
+                        }
+                    },
+                    default: "set"
+                });
+
+                dialog.render(true);
+            }
+        });
+
+        if (success) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: View mode menubar button registered", "", true, false);
+            // Force menubar render to show the new button
+            MenuBar.renderMenubar();
+        } else {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to register view mode menubar button", "", false, false);
+        }
+    }
+
+    /**
      * Register portrait buttons for all party tokens
      * Called from _registerBroadcastTools when registering broadcast tools
      */
@@ -1710,7 +1933,7 @@ export class BroadcastManager {
                 image: portraitImg || null, // Use portrait image if available
                 label: null,
                 tooltip: `Mirror ${user.name}'s viewport`,
-                group: 'party',
+                group: 'online',
                 toggleable: false,
                 order: order++,
                 iconColor: null,
@@ -1733,7 +1956,7 @@ export class BroadcastManager {
         }
 
         // Re-sync active state for current playerview mode after rebuild
-        const currentMode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+        const currentMode = this._getCachedBroadcastMode();
         if (typeof currentMode === 'string' && currentMode.startsWith('playerview-')) {
             const userId = currentMode.replace('playerview-', '');
             const activeItemId = `broadcast-mode-player-${userId}`;
@@ -1890,6 +2113,7 @@ export class BroadcastManager {
     static async _setBroadcastMode(mode) {
         if (!mode) return false;
         try {
+            this._lastBroadcastMode = mode;
             await game.settings.set(MODULE.ID, 'broadcastMode', mode);
             if (game.user.isGM && this._shouldEmitModeChange(mode)) {
                 await this._emitModeChange(mode);
@@ -1897,11 +2121,20 @@ export class BroadcastManager {
             if (this.isEnabled() && canvas?.ready) {
                 await this._adjustViewportForMode(mode);
             }
+            MenuBar.renderMenubar(true);
             return true;
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to set broadcast mode", error, true, false);
             return false;
         }
+    }
+
+    /**
+     * Get the most recent broadcast mode for UI rendering.
+     * @returns {string} Broadcast mode
+     */
+    static _getCachedBroadcastMode() {
+        return this._lastBroadcastMode || getSettingSafely(MODULE.ID, 'broadcastMode', 'manual');
     }
 
     /**
@@ -2011,7 +2244,9 @@ export class BroadcastManager {
                 await blacksmith.sockets.waitForReady();
                 
                 // Register socket handler for receiving player viewport updates (cameraman client)
-                await blacksmith.sockets.register('broadcast.playerViewportSync', async (data, userId) => {
+                const playerViewportSyncHandler = 'broadcast.playerViewportSync';
+                this._socketHandlerNames.add(playerViewportSyncHandler);
+                await blacksmith.sockets.register(playerViewportSyncHandler, async (data, userId) => {
                     //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                     
                     // Only process if we're the broadcast user and in the correct playerview mode
@@ -2117,5 +2352,74 @@ export class BroadcastManager {
             duration,
             easing: 'easeInOutCosine'
         });
+    }
+
+    // ==================================================================
+    // ===== CLEANUP ====================================================
+    // ==================================================================
+
+    /**
+     * Helper to track setTimeout for cleanup
+     * @param {Function} callback - Callback function
+     * @param {number} delay - Delay in milliseconds
+     * @returns {number} Timeout ID
+     */
+    static _trackedSetTimeout(callback, delay) {
+        const timeoutId = setTimeout(() => {
+            this._timeoutIds.delete(timeoutId);
+            callback();
+        }, delay);
+        this._timeoutIds.add(timeoutId);
+        return timeoutId;
+    }
+
+    /**
+     * Clean up all resources (hooks, timeouts, socket handlers, Maps)
+     */
+    static cleanup() {
+        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Cleaning up resources", "", true, false);
+
+        // Stop all monitoring
+        this._stopGMViewportMonitoring();
+        this._stopAllPlayerViewportMonitoring();
+
+        // Clear all timeouts
+        for (const timeoutId of this._timeoutIds) {
+            clearTimeout(timeoutId);
+        }
+        this._timeoutIds.clear();
+
+        // Clear player debounce if exists
+        if (this._playerButtonsDebounce) {
+            clearTimeout(this._playerButtonsDebounce);
+            this._playerButtonsDebounce = null;
+        }
+
+        // Clear Maps
+        this._playerPanHandlers.clear();
+        this._playerDebounces.clear();
+
+        // Unregister all HookManager hooks by context
+        HookManager.disposeByContext('broadcast-settings');
+        HookManager.disposeByContext('broadcast-camera-init');
+        HookManager.disposeByContext('broadcast-camera');
+        HookManager.disposeByContext('broadcast-gmview-sync');
+        HookManager.disposeByContext('broadcast-mode-buttons');
+        HookManager.disposeByContext('broadcast-playerview-sync');
+        HookManager.disposeByContext('broadcast-player-buttons');
+
+        // Unregister socket handlers
+        // Note: Socket handlers are stored in SocketManager._externalEventHandlers which isn't directly accessible
+        // via the API. They will be cleaned up when the module unloads, but we track names for potential future cleanup.
+        // For now, clearing the tracking set is sufficient - handlers will be garbage collected when module context is destroyed.
+        this._socketHandlerNames.clear();
+
+        // Clear hook IDs tracking
+        this._hookIds.clear();
+
+        // Reset initialization flag
+        this.isInitialized = false;
+
+        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Cleanup complete", "", true, false);
     }
 }

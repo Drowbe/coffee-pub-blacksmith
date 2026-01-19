@@ -1025,9 +1025,7 @@ class MenuBar {
             icon: "fa-solid fa-video",
             name: "broadcast-toggle",
             title: () => {
-                // Dynamic title based on broadcast bar state
-                const isBroadcastBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast';
-                return isBroadcastBarOpen ? "Broadcast Bar" : "Broadcast Bar";
+                return "Broadcast";
             },
             tooltip: () => {
                 // Dynamic tooltip based on broadcast bar state
@@ -1041,7 +1039,7 @@ class MenuBar {
             zone: "middle",
             group: "combat",
             groupOrder: this.GROUP_ORDER.COMBAT,
-            order: 3,
+            order: 4,
             moduleId: "blacksmith-core",
             gmOnly: true,
             leaderOnly: false,
@@ -1208,9 +1206,7 @@ class MenuBar {
             icon: "fas fa-users",
             name: "party",
             title: () => {
-                // Dynamic title based on party bar state
-                const isPartyBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'party';
-                return isPartyBarOpen ? "Hide Party" : "Show Party";
+                return "Party";
             },
             tooltip: () => {
                 // Dynamic tooltip based on party bar state
@@ -1409,6 +1405,15 @@ class MenuBar {
             autoCloseDelay: 10000,
             templatePath: 'modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs'
         });
+
+        // Register party secondary bar (default tool system)
+        await this.registerSecondaryBarType('party', {
+            height: this.getSecondaryBarHeight('party'),
+            persistence: 'manual'
+        });
+
+        // Register party tools (must be called after party bar type is registered)
+        this._registerPartyTools();
 
         postConsoleAndNotification(MODULE.NAME, "Menubar: Secondary bar types registered", "", true, false);
     }
