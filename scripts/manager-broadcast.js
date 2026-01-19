@@ -1592,16 +1592,19 @@ export class BroadcastManager {
             groups: {
                 'modes': {
                     mode: 'switch',  // Radio-button behavior: only one mode active at a time
-                    order: 0
+                    order: 0,
+                    masterSwitchGroup: 'broadcast-view'
                 },
                 'mirror': {
                     mode: 'switch',  // Radio-button behavior: only one player selected at a time
                     order: 1,
+                    masterSwitchGroup: 'broadcast-view',
                     bannerColor: 'rgba(65, 29, 18, 0.9)'  // Custom banner color for mirror group
                 },
                 'follow': {
                     mode: 'switch',  // Radio-button behavior: only one token selected at a time
                     order: 2,
+                    masterSwitchGroup: 'broadcast-view',
                     bannerColor: 'rgba(36, 60, 110, 0.9)'  // Custom banner color for follow group
                 }
             }

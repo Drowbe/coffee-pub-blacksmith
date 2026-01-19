@@ -2544,14 +2544,16 @@ class MenuBar {
                         groups.set(groupId, {
                             mode: groupConfig.mode || existing.mode || 'default',
                             order: groupConfig.order !== undefined ? groupConfig.order : (existing.order !== undefined ? existing.order : 999),
-                            bannerColor: groupConfig.bannerColor !== undefined ? groupConfig.bannerColor : (existing.bannerColor || undefined)
+                            bannerColor: groupConfig.bannerColor !== undefined ? groupConfig.bannerColor : (existing.bannerColor || undefined),
+                            masterSwitchGroup: groupConfig.masterSwitchGroup || existing.masterSwitchGroup || undefined
                         });
                     } else {
                         // New group
                         groups.set(groupId, {
                             mode: groupConfig.mode || 'default',
                             order: groupConfig.order !== undefined ? groupConfig.order : 999,
-                            bannerColor: groupConfig.bannerColor || undefined
+                            bannerColor: groupConfig.bannerColor || undefined,
+                            masterSwitchGroup: groupConfig.masterSwitchGroup || undefined
                         });
                     }
                 }
@@ -2774,6 +2776,20 @@ class MenuBar {
                     // Switching to this item
                     if (activeStates) {
                         activeStates.set(item.group || 'default', itemId);
+                    }
+                    // Enforce master switch group (only one active across groups)
+                    if (groupConfig.masterSwitchGroup && groups) {
+                        for (const [otherGroupId, otherConfig] of groups.entries()) {
+                            if (otherGroupId === (item.group || 'default')) continue;
+                            if (otherConfig?.masterSwitchGroup !== groupConfig.masterSwitchGroup) continue;
+                            if (activeStates) {
+                                activeStates.delete(otherGroupId);
+                            }
+                            const otherItems = Array.from(items.values()).filter(i => (i.group || 'default') === otherGroupId);
+                            for (const otherItem of otherItems) {
+                                otherItem.active = false;
+                            }
+                        }
                     }
                 }
                 // Can't deactivate in switch mode - one must always be active
@@ -3662,6 +3678,7 @@ class MenuBar {
         const allItems = this.getSecondaryBarItems(data.type);
         const groups = this.secondaryBarGroups.get(data.type) || new Map();
         const activeStates = this.secondaryBarActiveStates.get(data.type) || new Map();
+        const masterActiveGroup = new Map();
         
         // Organize items by group (filter by visible property)
         const itemsByGroup = new Map();
@@ -3683,6 +3700,16 @@ class MenuBar {
             itemsByGroup.get(groupId).push(item);
         }
         
+        // Prime master switch groups from existing active states
+        for (const [groupId, activeItemId] of activeStates.entries()) {
+            if (!activeItemId) continue;
+            const groupConfig = groups.get(groupId);
+            const masterKey = groupConfig?.masterSwitchGroup || null;
+            if (masterKey && !masterActiveGroup.has(masterKey)) {
+                masterActiveGroup.set(masterKey, groupId);
+            }
+        }
+
         // Process each group: set active states and ensure switch groups have active
         const processedGroups = [];
         for (const [groupId, groupItems] of itemsByGroup.entries()) {
@@ -3696,12 +3723,14 @@ class MenuBar {
                 return (a.itemId || '').localeCompare(b.itemId || '');
             });
             
-            // Handle switch groups: ensure one is always active
+            // Handle switch groups: ensure one is active, respecting master switch groups
             if (groupConfig.mode === 'switch') {
+                const masterKey = groupConfig.masterSwitchGroup || null;
+                const masterHasActive = masterKey ? masterActiveGroup.has(masterKey) : false;
                 const currentActive = activeStates.get(groupId);
                 const hasActive = groupItems.some(item => item.itemId === currentActive);
                 
-                if (!hasActive && groupItems.length > 0) {
+                if (!masterHasActive && !hasActive && groupItems.length > 0) {
                     // No active item, activate the first one
                     const firstItem = groupItems[0];
                     activeStates.set(groupId, firstItem.itemId);
@@ -3711,6 +3740,18 @@ class MenuBar {
                 // Set active state for all items in switch group
                 for (const item of groupItems) {
                     item.active = (item.itemId === activeStates.get(groupId));
+                }
+                
+                // Track master switch selection; if another group already claimed it, clear this group
+                if (masterKey) {
+                    if (masterHasActive) {
+                        activeStates.delete(groupId);
+                        for (const item of groupItems) {
+                            item.active = false;
+                        }
+                    } else if (activeStates.has(groupId)) {
+                        masterActiveGroup.set(masterKey, groupId);
+                    }
                 }
             } else {
                 // Default mode: use item's active property as-is (from toggleable or manual setting)
@@ -3999,12 +4040,7 @@ class MenuBar {
                             
                             // Handle switch groups: update active state immediately for visual feedback
                             if (groupConfig.mode === 'switch') {
-                                // Update active state immediately for switch groups
-                                if (activeStates && activeStates.get(groupId) !== itemId) {
-                                    activeStates.set(groupId, itemId);
-                                    // Re-render to show immediate visual feedback
-                                    this.renderMenubar(true);
-                                }
+                                this.updateSecondaryBarItemActive(barType, itemId, true);
                             } else if (groupConfig.mode === 'default' && item.toggleable) {
                                 // Toggleable item in default group - handle active state immediately
                                 item.active = !item.active;
@@ -5005,4 +5041,3 @@ class MenuBar {
 }
 
 export { MenuBar }; 
-
