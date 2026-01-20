@@ -2022,24 +2022,34 @@ export class BroadcastManager {
                                 const modeSelect = nativeDialogHtml.querySelector('#broadcast-mode-select');
                                 const modeValue = modeSelect ? modeSelect.value : '';
                                 
-                                if (modeValue) {
-                                    if (modeValue === 'mapview') {
-                                        await this._emitMapView();
-                                    } else if (modeValue.startsWith('mirror:')) {
-                                        const userId = modeValue.replace('mirror:', '');
-                                        await this._setBroadcastMode(`playerview-${userId}`);
-                                        MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-mode-player-${userId}`, true);
-                                    } else if (modeValue.startsWith('follow:')) {
-                                        const tokenId = modeValue.replace('follow:', '');
-                                        await game.settings.set(MODULE.ID, 'broadcastFollowTokenId', tokenId);
-                                        await this._setBroadcastMode('playerview-follow');
-                                        MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${tokenId}`, true);
-                                    } else {
-                                        await this._setBroadcastMode(modeValue);
+                                    if (modeValue) {
+                                        if (modeValue === 'mapview') {
+                                            await this._emitMapView();
+                                        } else if (modeValue.startsWith('mirror:')) {
+                                            const userId = modeValue.replace('mirror:', '');
+                                            await this._setBroadcastMode(`playerview-${userId}`);
+                                            MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-mode-player-${userId}`, true);
+                                        } else if (modeValue.startsWith('follow:')) {
+                                            const tokenId = modeValue.replace('follow:', '');
+                                            await game.settings.set(MODULE.ID, 'broadcastFollowTokenId', tokenId);
+                                            await this._setBroadcastMode('playerview-follow');
+                                            MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${tokenId}`, true);
+                                        } else {
+                                            await this._setBroadcastMode(modeValue);
+                                            const modeItemMap = {
+                                                'spectator': 'broadcast-mode-spectator',
+                                                'combat': 'broadcast-mode-combat',
+                                                'gmview': 'broadcast-mode-gmview',
+                                                'manual': 'broadcast-mode-manual'
+                                            };
+                                            const activeItemId = modeItemMap[modeValue];
+                                            if (activeItemId) {
+                                                MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+                                            }
+                                        }
+                                        
+                                        MenuBar.renderMenubar(); // Update button text
                                     }
-                                    
-                                    MenuBar.renderMenubar(); // Update button text
-                                }
                             }
                         },
                         cancel: {
