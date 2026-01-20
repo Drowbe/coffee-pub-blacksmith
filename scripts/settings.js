@@ -1955,55 +1955,6 @@ export const registerSettings = () => {
 			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 
-		// Legacy padding settings (kept for migration)
-		game.settings.register(MODULE.ID, 'broadcastFollowPadding', {
-			name: 'Broadcast Follow Padding (Legacy)',
-			hint: 'Deprecated: use broadcastFollowViewFill instead.',
-			scope: 'world',
-			config: false,
-			requiresReload: false,
-			type: Number,
-			default: 20
-		});
-
-		game.settings.register(MODULE.ID, 'broadcastCombatPadding', {
-			name: 'Broadcast Combat Padding (Legacy)',
-			hint: 'Deprecated: use broadcastCombatViewFill instead.',
-			scope: 'world',
-			config: false,
-			requiresReload: false,
-			type: Number,
-			default: 20
-		});
-
-		game.settings.register(MODULE.ID, 'broadcastSpectatorPartyBoxPadding', {
-			name: 'Broadcast Spectator Party Box Padding (Legacy)',
-			hint: 'Deprecated: use broadcastSpectatorPartyBoxFill instead.',
-			scope: 'world',
-			config: false,
-			requiresReload: false,
-			type: Number,
-			default: 20
-		});
-
-		const legacyFillMappings = [
-			{ oldKey: 'broadcastFollowPadding', newKey: 'broadcastFollowViewFill', defaultValue: 20 },
-			{ oldKey: 'broadcastCombatPadding', newKey: 'broadcastCombatViewFill', defaultValue: 20 },
-			{ oldKey: 'broadcastSpectatorPartyBoxPadding', newKey: 'broadcastSpectatorPartyBoxFill', defaultValue: 20 }
-		];
-
-		for (const { oldKey, newKey, defaultValue } of legacyFillMappings) {
-			if (!game.settings.settings.has(`${MODULE.ID}.${oldKey}`) || !game.settings.settings.has(`${MODULE.ID}.${newKey}`)) {
-				continue;
-			}
-			const oldValue = game.settings.get(MODULE.ID, oldKey);
-			const newValue = game.settings.get(MODULE.ID, newKey);
-			if ((newValue === defaultValue || newValue === undefined || newValue === null) && oldValue !== undefined && oldValue !== null) {
-				if (oldValue !== defaultValue) {
-					void game.settings.set(MODULE.ID, newKey, oldValue);
-				}
-			}
-		}
 
 
 
