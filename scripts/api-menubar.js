@@ -3726,11 +3726,12 @@ class MenuBar {
             // Handle switch groups: ensure one is active, respecting master switch groups
             if (groupConfig.mode === 'switch') {
                 const masterKey = groupConfig.masterSwitchGroup || null;
-                const masterHasActive = masterKey ? masterActiveGroup.has(masterKey) : false;
+                const masterOwnerGroup = masterKey ? masterActiveGroup.get(masterKey) : null;
+                const masterHasActive = !!masterOwnerGroup;
                 const currentActive = activeStates.get(groupId);
                 const hasActive = groupItems.some(item => item.itemId === currentActive);
                 
-                if (!masterHasActive && !hasActive && groupItems.length > 0) {
+                if ((!masterHasActive || masterOwnerGroup === groupId) && !hasActive && groupItems.length > 0) {
                     // No active item, activate the first one
                     const firstItem = groupItems[0];
                     activeStates.set(groupId, firstItem.itemId);
@@ -3744,7 +3745,7 @@ class MenuBar {
                 
                 // Track master switch selection; if another group already claimed it, clear this group
                 if (masterKey) {
-                    if (masterHasActive) {
+                    if (masterHasActive && masterOwnerGroup !== groupId) {
                         activeStates.delete(groupId);
                         for (const item of groupItems) {
                             item.active = false;
