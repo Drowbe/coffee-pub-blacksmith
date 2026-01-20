@@ -1959,14 +1959,37 @@ export class BroadcastManager {
                     { value: 'gmview', label: 'GM View' },
                     { value: 'combat', label: 'Combat' },
                     { value: 'spectator', label: 'Spectator' },
-                    { value: 'playerview', label: 'Player View: Mirror' },
-                    { value: 'playerview-follow', label: 'Player View: Follow' }
+                    { value: 'mapview', label: 'Map View' }
                 ];
 
-                // Determine which option should be selected (handle playerview-{userId} case)
-                const selectedValue = currentMode === 'playerview-follow'
-                    ? 'playerview-follow'
-                    : (currentMode.startsWith('playerview-') ? 'playerview' : currentMode);
+                const mirrorUsers = this._getPartyTokensWithUsers()
+                    .map(entry => entry.user)
+                    .filter(Boolean);
+                for (const user of mirrorUsers) {
+                    modeOptions.push({
+                        value: `mirror:${user.id}`,
+                        label: `Mirror: ${user.name}`
+                    });
+                }
+
+                const followTokens = this._getPartyTokensOnCanvas();
+                for (const token of followTokens) {
+                    const label = token?.actor?.name || token?.name || 'Token';
+                    modeOptions.push({
+                        value: `follow:${token.id}`,
+                        label: `Follow: ${label}`
+                    });
+                }
+
+                // Determine which option should be selected
+                let selectedValue = currentMode;
+                if (currentMode === 'playerview-follow') {
+                    const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
+                    selectedValue = followTokenId ? `follow:${followTokenId}` : 'playerview-follow';
+                } else if (currentMode.startsWith('playerview-')) {
+                    const userId = currentMode.replace('playerview-', '');
+                    selectedValue = `mirror:${userId}`;
+                }
 
                 const content = `
                     <form>
@@ -2000,20 +2023,14 @@ export class BroadcastManager {
                                 const modeValue = modeSelect ? modeSelect.value : '';
                                 
                                 if (modeValue) {
-                                    // For playerview, use default player selection
-                                    if (modeValue === 'playerview') {
-                                        const defaultMode = this._getDefaultPlayerViewMode();
-                                        if (!defaultMode) {
-                                            ui.notifications.warn("No party members available for Player View");
-                                            return;
-                                        }
-                                        await this._setBroadcastMode(defaultMode);
-                                    } else if (modeValue === 'playerview-follow') {
-                                        const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
-                                        if (!followTokenId) {
-                                            ui.notifications.warn("No follow token selected");
-                                            return;
-                                        }
+                                    if (modeValue === 'mapview') {
+                                        await this._emitMapView();
+                                    } else if (modeValue.startsWith('mirror:')) {
+                                        const userId = modeValue.replace('mirror:', '');
+                                        await this._setBroadcastMode(`playerview-${userId}`);
+                                    } else if (modeValue.startsWith('follow:')) {
+                                        const tokenId = modeValue.replace('follow:', '');
+                                        await game.settings.set(MODULE.ID, 'broadcastFollowTokenId', tokenId);
                                         await this._setBroadcastMode('playerview-follow');
                                     } else {
                                         await this._setBroadcastMode(modeValue);
