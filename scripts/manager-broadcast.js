@@ -2032,6 +2032,7 @@ export class BroadcastManager {
                                         const tokenId = modeValue.replace('follow:', '');
                                         await game.settings.set(MODULE.ID, 'broadcastFollowTokenId', tokenId);
                                         await this._setBroadcastMode('playerview-follow');
+                                        MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${tokenId}`, true);
                                     } else {
                                         await this._setBroadcastMode(modeValue);
                                     }
