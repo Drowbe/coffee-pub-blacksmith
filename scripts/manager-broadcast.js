@@ -2028,6 +2028,7 @@ export class BroadcastManager {
                                     } else if (modeValue.startsWith('mirror:')) {
                                         const userId = modeValue.replace('mirror:', '');
                                         await this._setBroadcastMode(`playerview-${userId}`);
+                                        MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-mode-player-${userId}`, true);
                                     } else if (modeValue.startsWith('follow:')) {
                                         const tokenId = modeValue.replace('follow:', '');
                                         await game.settings.set(MODULE.ID, 'broadcastFollowTokenId', tokenId);
