@@ -205,43 +205,59 @@
 		"headingH2Broadcast-Label": "Broadcast",
 		"headingH2Broadcast-Hint": "Settings for streaming and recording your FoundryVTT sessions. Designate a broadcast user who will see a clean, UI-free view for streaming.",
 
-			"enableBroadcast-Label": "Enable Broadcast",
-			"enableBroadcast-Hint": "Enable the broadcast feature. When enabled, the designated broadcast user will receive a special UI-free view suitable for streaming or recording.",
+			"headingH3BroadcastGeneral-Label": "General",
+			"headingH3BroadcastGeneral-Hint": "",
 
-			"broadcastUserId-Label": "Broadcast User",
-			"broadcastUserId-Hint": "The user ID or name of the user who will serve as the cameraman for broadcasting. This user will see a clean view with UI hidden and automatic token following.",
+				"enableBroadcast-Label": "Enable Broadcast",
+				"enableBroadcast-Hint": "Enable the broadcast feature. When enabled, the designated broadcast user will receive a special UI-free view suitable for streaming or recording.",
 
-			"broadcastHideInterfaceLeft-Label": "Hide Left UI Section",
-			"broadcastHideInterfaceLeft-Hint": "Hide the left UI section (navigation, players list) when in broadcast mode.",
+				"broadcastUserId-Label": "Broadcast User",
+				"broadcastUserId-Hint": "The user ID or name of the user who will serve as the cameraman for broadcasting. This user will see a clean view with UI hidden and automatic token following.",
+				
+				"broadcastAnimationDuration-Label": "Animation Duration (ms)",
+				"broadcastAnimationDuration-Hint": "Duration of camera pan/zoom animations in milliseconds. Higher values = slower, smoother animations. Lower values = faster, snappier animations.",
 
-			"broadcastHideInterfaceMiddle-Label": "Hide Middle UI Section",
-			"broadcastHideInterfaceMiddle-Hint": "Hide the middle UI section when in broadcast mode.",
+				"broadcastFollowThrottleMs-Label": "Follow Throttle (ms)",
+				"broadcastFollowThrottleMs-Hint": "Minimum time (in milliseconds) between camera pan operations. Prevents excessive panning on rapid token movements.",
 
-			"broadcastHideInterfaceRight-Label": "Hide Right UI Section",
-			"broadcastHideInterfaceRight-Hint": "Hide the right UI section when in broadcast mode.",
+			"headingH3BroadcastUI-Label": "UI Visibility",
+			"headingH3BroadcastUI-Hint": "",
 
-			"broadcastMode-Label": "Camera Mode",
-			"broadcastMode-Hint": "Camera following mode for broadcast: Spectator (follow party tokens), Combat (follow current combatant), GM View (mirror GM's viewport), Manual (no automatic following).",
+				"broadcastHideBackground-Label": "Hide Scene Background",
+				"broadcastHideBackground-Hint": "Hide the scene background image when in broadcast mode. Useful for cleaner streaming visuals.",
+			
+				"broadcastHideInterfaceLeft-Label": "Hide Left UI Section",
+				"broadcastHideInterfaceLeft-Hint": "Hide the left UI section (navigation, players list) when in broadcast mode.",
 
-			"broadcastFollowDistanceThreshold-Label": "Follow Distance Threshold",
-			"broadcastFollowDistanceThreshold-Hint": "Minimum token movement (in grid units) required to trigger camera pan. Smaller values = more sensitive following.",
+				"broadcastHideInterfaceMiddle-Label": "Hide Middle UI Section",
+				"broadcastHideInterfaceMiddle-Hint": "Hide the middle UI section when in broadcast mode.",
 
-			"broadcastFollowThrottleMs-Label": "Follow Throttle (ms)",
-			"broadcastFollowThrottleMs-Hint": "Minimum time (in milliseconds) between camera pan operations. Prevents excessive panning on rapid token movements.",
+				"broadcastHideInterfaceRight-Label": "Hide Right UI Section",
+				"broadcastHideInterfaceRight-Hint": "Hide the right UI section when in broadcast mode.",
 
-			"broadcastHideBackground-Label": "Hide Scene Background",
-			"broadcastHideBackground-Hint": "Hide the scene background image when in broadcast mode. Useful for cleaner streaming visuals.",
 
-			"broadcastDefaultZoom-Label": "Default Zoom Level",
-			"broadcastDefaultZoom-Hint": "The baseline zoom level used for broadcast camera. Zoom offset sliders adjust relative to this level.",
+			"headingH3BroadcastModeConfiguration-Label": "Mode Configuration",
+			"headingH3BroadcastModeConfiguration-Hint": "",
 
-			"broadcastSpectatorZoomOffsetSingle-Label": "Spectator Zoom Offset (Single Token)",
-			"broadcastSpectatorZoomOffsetSingle-Hint": "Zoom offset when following a single party token. 0 = default zoom, -5 = zoom out 5x, +5 = zoom in 5x.",
+				"broadcastMode-Label": "Camera Mode",
+				"broadcastMode-Hint": "",
 
-		"broadcastSpectatorPartyBoxPadding-Label": "Party Box Padding (%)",
-		"broadcastSpectatorPartyBoxPadding-Hint": "Percentage of padding around the party token bounding box when calculating auto-fit zoom for multiple tokens. Higher values = more zoomed out (more space around party).",
-		"broadcastAnimationDuration-Label": "Animation Duration (ms)",
-		"broadcastAnimationDuration-Hint": "Duration of camera pan/zoom animations in milliseconds. Higher values = slower, smoother animations. Lower values = faster, snappier animations.",
+
+
+				"broadcastFollowDistanceThreshold-Label": "Follow Distance Threshold",
+				"broadcastFollowDistanceThreshold-Hint": "Minimum token movement (in grid units) required to trigger camera pan. Smaller values = more sensitive following.",
+
+
+
+				"broadcastDefaultZoom-Label": "Default Zoom Level",
+				"broadcastDefaultZoom-Hint": "The baseline zoom level used for broadcast camera. Zoom offset sliders adjust relative to this level.",
+
+				"broadcastSpectatorZoomOffsetSingle-Label": "Spectator Zoom Offset (Single Token)",
+				"broadcastSpectatorZoomOffsetSingle-Hint": "Zoom offset when following a single party token. 0 = default zoom, -5 = zoom out 5x, +5 = zoom in 5x.",
+
+				"broadcastSpectatorPartyBoxPadding-Label": "Spectator Mode Padding (%)",
+				"broadcastSpectatorPartyBoxPadding-Hint": "Boarder padding around the collection of party tokens.",
+				
 
 		"headingH2CombatEnhancements-Label": "Combat",
 		"headingH2CombatEnhancements-Hint": "Enhancements and quality of lifeimprovements to the combat system.",

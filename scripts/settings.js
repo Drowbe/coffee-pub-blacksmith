@@ -1674,186 +1674,208 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('Broadcast', 'headingH2Broadcast-Label', 'headingH2Broadcast-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
-		// Enable Broadcast
-		game.settings.register(MODULE.ID, 'enableBroadcast', {
-			name: MODULE.ID + '.enableBroadcast-Label',
-			hint: MODULE.ID + '.enableBroadcast-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: false,
-			type: Boolean,
-			default: false,
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
 
-		// Broadcast User ID
-		game.settings.register(MODULE.ID, 'broadcastUserId', {
-			name: MODULE.ID + '.broadcastUserId-Label',
-			hint: MODULE.ID + '.broadcastUserId-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: false,
-			type: String,
-			default: '',
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
+		// --------------------------------------
+		// -- H3: Broadcast General
+		// --------------------------------------
+		registerHeader('BroadcastGeneral', 'headingH3BroadcastGeneral-Label', 'headingH3BroadcastGeneral-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
-		// Broadcast Hide Interface Left
-		game.settings.register(MODULE.ID, 'broadcastHideInterfaceLeft', {
-			name: MODULE.ID + '.broadcastHideInterfaceLeft-Label',
-			hint: MODULE.ID + '.broadcastHideInterfaceLeft-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: false,
-			type: Boolean,
-			default: true,
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
+			// Enable Broadcast
+			game.settings.register(MODULE.ID, 'enableBroadcast', {
+				name: MODULE.ID + '.enableBroadcast-Label',
+				hint: MODULE.ID + '.enableBroadcast-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Boolean,
+				default: false,
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
 
-		// Broadcast Hide Interface Middle
-		game.settings.register(MODULE.ID, 'broadcastHideInterfaceMiddle', {
-			name: MODULE.ID + '.broadcastHideInterfaceMiddle-Label',
-			hint: MODULE.ID + '.broadcastHideInterfaceMiddle-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: false,
-			type: Boolean,
-			default: true,
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
+			// Broadcast User ID
+			game.settings.register(MODULE.ID, 'broadcastUserId', {
+				name: MODULE.ID + '.broadcastUserId-Label',
+				hint: MODULE.ID + '.broadcastUserId-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: String,
+				default: '',
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
 
-		// Broadcast Hide Interface Right
-		game.settings.register(MODULE.ID, 'broadcastHideInterfaceRight', {
-			name: MODULE.ID + '.broadcastHideInterfaceRight-Label',
-			hint: MODULE.ID + '.broadcastHideInterfaceRight-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: false,
-			type: Boolean,
-			default: true,
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
+			// Broadcast Animation Duration
+			game.settings.register(MODULE.ID, 'broadcastAnimationDuration', {
+				name: MODULE.ID + '.broadcastAnimationDuration-Label',
+				hint: MODULE.ID + '.broadcastAnimationDuration-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Number,
+				default: 500,
+				range: { min: 100, max: 2000, step: 100 },
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
 
-		// Broadcast Mode
-		game.settings.register(MODULE.ID, 'broadcastMode', {
-			name: MODULE.ID + '.broadcastMode-Label',
-			hint: MODULE.ID + '.broadcastMode-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: false,
-			type: String,
-			default: 'spectator',
-			choices: {
-				'spectator': 'Spectator',
-				'combat': 'Combat',
-				'gmview': 'GM View',
-				'playerview': 'Player View',
-				'manual': 'Manual'
-			},
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
 
-		// Broadcast Follow Token Id (Player View: Follow)
-		game.settings.register(MODULE.ID, 'broadcastFollowTokenId', {
-			name: 'Broadcast Follow Token Id',
-			hint: 'Internal setting for Player View follow mode',
-			scope: 'world',
-			config: false,
-			requiresReload: false,
-			type: String,
-			default: ''
-		});
+			// Broadcast Follow Throttle (milliseconds)
+			game.settings.register(MODULE.ID, 'broadcastFollowThrottleMs', {
+				name: MODULE.ID + '.broadcastFollowThrottleMs-Label',
+				hint: MODULE.ID + '.broadcastFollowThrottleMs-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Number,
+				default: 100,
+				range: { min: 0, max: 1000, step: 10 },
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
 
-		// Broadcast Follow Distance Threshold
-		game.settings.register(MODULE.ID, 'broadcastFollowDistanceThreshold', {
-			name: MODULE.ID + '.broadcastFollowDistanceThreshold-Label',
-			hint: MODULE.ID + '.broadcastFollowDistanceThreshold-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: false,
-			type: Number,
-			default: 1,
-			range: { min: 0.1, max: 10, step: 0.1 },
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
 
-		// Broadcast Follow Throttle (milliseconds)
-		game.settings.register(MODULE.ID, 'broadcastFollowThrottleMs', {
-			name: MODULE.ID + '.broadcastFollowThrottleMs-Label',
-			hint: MODULE.ID + '.broadcastFollowThrottleMs-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: false,
-			type: Number,
-			default: 100,
-			range: { min: 0, max: 1000, step: 10 },
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
+		// --------------------------------------
+		// -- H3: Broadcast UI
+		// --------------------------------------
+		registerHeader('broadcastUI', 'headingH3BroadcastUI-Label', 'headingH3BroadcastUI-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
-		// Broadcast Hide Background
-		game.settings.register(MODULE.ID, 'broadcastHideBackground', {
-			name: MODULE.ID + '.broadcastHideBackground-Label',
-			hint: MODULE.ID + '.broadcastHideBackground-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: false,
-			type: Boolean,
-			default: true,
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
 
-		// Broadcast Default Zoom Level
-		game.settings.register(MODULE.ID, 'broadcastDefaultZoom', {
-			name: MODULE.ID + '.broadcastDefaultZoom-Label',
-			hint: MODULE.ID + '.broadcastDefaultZoom-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: false,
-			type: Number,
-			default: 1.0,
-			range: { min: 0.1, max: 2.0, step: 0.1 },
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
+		
+			// Broadcast Hide Background
+			game.settings.register(MODULE.ID, 'broadcastHideBackground', {
+				name: MODULE.ID + '.broadcastHideBackground-Label',
+				hint: MODULE.ID + '.broadcastHideBackground-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Boolean,
+				default: true,
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
 
-		// Broadcast Spectator Zoom Offset Single
-		game.settings.register(MODULE.ID, 'broadcastSpectatorZoomOffsetSingle', {
-			name: MODULE.ID + '.broadcastSpectatorZoomOffsetSingle-Label',
-			hint: MODULE.ID + '.broadcastSpectatorZoomOffsetSingle-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: false,
-			type: Number,
-			default: 0,
-			range: { min: -5, max: 5, step: 1 },
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
+			// Broadcast Hide Interface Left
+			game.settings.register(MODULE.ID, 'broadcastHideInterfaceLeft', {
+				name: MODULE.ID + '.broadcastHideInterfaceLeft-Label',
+				hint: MODULE.ID + '.broadcastHideInterfaceLeft-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Boolean,
+				default: true,
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
 
-		// Broadcast Spectator Zoom Offset Multiple
-		// Broadcast Spectator Party Box Padding
-		game.settings.register(MODULE.ID, 'broadcastSpectatorPartyBoxPadding', {
-			name: MODULE.ID + '.broadcastSpectatorPartyBoxPadding-Label',
-			hint: MODULE.ID + '.broadcastSpectatorPartyBoxPadding-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: false,
-			type: Number,
-			default: 20,
-			range: { min: 0, max: 100, step: 5 },
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
+			// Broadcast Hide Interface Middle
+			game.settings.register(MODULE.ID, 'broadcastHideInterfaceMiddle', {
+				name: MODULE.ID + '.broadcastHideInterfaceMiddle-Label',
+				hint: MODULE.ID + '.broadcastHideInterfaceMiddle-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Boolean,
+				default: true,
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
 
-		// Broadcast Animation Duration
-		game.settings.register(MODULE.ID, 'broadcastAnimationDuration', {
-			name: MODULE.ID + '.broadcastAnimationDuration-Label',
-			hint: MODULE.ID + '.broadcastAnimationDuration-Hint',
-			scope: 'world',
-			config: true,
-			requiresReload: false,
-			type: Number,
-			default: 500,
-			range: { min: 100, max: 2000, step: 100 },
-			group: WORKFLOW_GROUPS.RUN_THE_GAME
-		});
+			// Broadcast Hide Interface Right
+			game.settings.register(MODULE.ID, 'broadcastHideInterfaceRight', {
+				name: MODULE.ID + '.broadcastHideInterfaceRight-Label',
+				hint: MODULE.ID + '.broadcastHideInterfaceRight-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Boolean,
+				default: true,
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
+
+		// --------------------------------------
+		// -- H3: Broadcast Mode Configuration
+		// --------------------------------------
+		registerHeader('broadcastModeConfiguration', 'headingH3BroadcastModeConfiguration-Label', 'headingH3BroadcastModeConfiguration-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
+
+
+			// Broadcast Mode
+			game.settings.register(MODULE.ID, 'broadcastMode', {
+				name: MODULE.ID + '.broadcastMode-Label',
+				hint: MODULE.ID + '.broadcastMode-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: String,
+				default: 'spectator',
+				choices: {
+					'spectator': 'Spectator',
+					'combat': 'Combat',
+					'gmview': 'GM View',
+					'manual': 'Manual'
+				},
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
+
+			// Broadcast Follow Token Id (Player View: Follow)
+			game.settings.register(MODULE.ID, 'broadcastFollowTokenId', {
+				name: 'Broadcast Follow Token Id',
+				hint: 'Internal setting for Player View follow mode',
+				scope: 'world',
+				config: false,
+				requiresReload: false,
+				type: String,
+				default: ''
+			});
+
+			// Broadcast Follow Distance Threshold
+			game.settings.register(MODULE.ID, 'broadcastFollowDistanceThreshold', {
+				name: MODULE.ID + '.broadcastFollowDistanceThreshold-Label',
+				hint: MODULE.ID + '.broadcastFollowDistanceThreshold-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Number,
+				default: 1,
+				range: { min: 0.1, max: 10, step: 0.1 },
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
+
+
+			// Broadcast Default Zoom Level
+			game.settings.register(MODULE.ID, 'broadcastDefaultZoom', {
+				name: MODULE.ID + '.broadcastDefaultZoom-Label',
+				hint: MODULE.ID + '.broadcastDefaultZoom-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Number,
+				default: 1.0,
+				range: { min: 0.1, max: 2.0, step: 0.1 },
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
+
+			// Broadcast Spectator Zoom Offset Single
+			game.settings.register(MODULE.ID, 'broadcastSpectatorZoomOffsetSingle', {
+				name: MODULE.ID + '.broadcastSpectatorZoomOffsetSingle-Label',
+				hint: MODULE.ID + '.broadcastSpectatorZoomOffsetSingle-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Number,
+				default: 0,
+				range: { min: -5, max: 5, step: 1 },
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
+
+			// Broadcast Spectator Party Box Padding
+			game.settings.register(MODULE.ID, 'broadcastSpectatorPartyBoxPadding', {
+				name: MODULE.ID + '.broadcastSpectatorPartyBoxPadding-Label',
+				hint: MODULE.ID + '.broadcastSpectatorPartyBoxPadding-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Number,
+				default: 20,
+				range: { min: 0, max: 100, step: 5 },
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
+
+
 
 	// --------------------------------------
 	// -- H2: Combat

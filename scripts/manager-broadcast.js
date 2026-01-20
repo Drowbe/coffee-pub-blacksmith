@@ -1873,13 +1873,13 @@ export class BroadcastManager {
             if (mode === 'playerview-follow') {
                 const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
                 const tokenName = followTokenId ? canvas.tokens.get(followTokenId)?.name : null;
-                return tokenName ? `Player View: Follow (${tokenName})` : 'Player View: Follow';
+                return tokenName ? `Follow: ${tokenName}` : 'Follow';
             }
             if (typeof mode === 'string' && mode.startsWith('playerview-')) {
                 const userId = mode.replace('playerview-', '');
                 const user = game.users.get(userId);
                 const name = user?.name || 'Player';
-                return `Player View: Mirror (${name})`;
+                return `Mirror: ${name}`;
             }
             const modeNames = {
                 'manual': 'Manual',
