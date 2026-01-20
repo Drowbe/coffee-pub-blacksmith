@@ -2156,7 +2156,7 @@ export class BroadcastManager {
             const itemId = `broadcast-follow-token-${token.id}`;
             const actor = token.actor;
             const label = actor?.name || token.name || 'Token';
-            const image = token.document?.texture?.src || actor?.img || '';
+            const image = actor?.img || token.document?.texture?.src || '';
             
             MenuBar.registerSecondaryBarItem('broadcast', itemId, {
                 icon: 'fas fa-location-crosshairs',
