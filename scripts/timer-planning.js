@@ -19,7 +19,8 @@ export class PlanningTimer {
             remaining: 0,
             showingMessage: false,
             isExpired: false,
-            duration: 60
+            duration: 60,
+            hasHandledWarning: false
         }
     };
 
@@ -486,6 +487,7 @@ export class PlanningTimer {
 
         this.state.isPaused = true;
         this.state.showingMessage = false;
+        this.state.hasHandledWarning = false;
 
         if (this.timer) {
             clearInterval(this.timer);
@@ -517,6 +519,7 @@ export class PlanningTimer {
 
         this.state.isPaused = false;
         this.state.showingMessage = false;
+        this.state.hasHandledWarning = false;
 
         // Only GM should handle the interval
         if (game.user.isGM) {
@@ -533,23 +536,38 @@ export class PlanningTimer {
 
                 // Check ending soon threshold
                 const endingSoonThreshold = game.settings.get(MODULE.ID, 'planningTimerEndingSoonThreshold');
-                if (percentRemaining <= endingSoonThreshold && percentRemaining > endingSoonThreshold - 1) {
-                    // Play ending soon sound (for all clients)
-                    const endingSoonSound = game.settings.get(MODULE.ID, 'planningTimerEndingSoonSound');
-                    if (endingSoonSound !== 'none') {
-                        playSound(endingSoonSound, this.getTimerVolume());
+                const previousPercentRemaining = this.previousPercentRemaining ?? Infinity;
+                
+                // Detect when we first cross into the warning threshold
+                const justEnteredWarning = previousPercentRemaining > endingSoonThreshold && 
+                                         percentRemaining <= endingSoonThreshold;
+                
+                if (percentRemaining <= endingSoonThreshold) {
+                    // Play ending soon sound (for all clients) - only once when first entering
+                    if (justEnteredWarning) {
+                        const endingSoonSound = game.settings.get(MODULE.ID, 'planningTimerEndingSoonSound');
+                        if (endingSoonSound !== 'none') {
+                            playSound(endingSoonSound, this.getTimerVolume());
+                        }
+                        
+                        // Show ending soon notification and send chat message (GM only) - only once
+                        if (!this.state.hasHandledWarning && this.shouldShowNotification() && game.user.isGM) {
+                            this.state.hasHandledWarning = true;
+                            const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
+                            ui.notifications.warn(message);
+                            this.sendChatMessage({
+                                isTimerWarning: true,
+                                warningMessage: message
+                            });
+                        }
                     }
-                    
-                    // Show ending soon notification and send chat message (GM only)
-                    if (this.shouldShowNotification() && game.user.isGM) {
-                        const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
-                        ui.notifications.warn(message);
-                        this.sendChatMessage({
-                            isTimerWarning: true,
-                            warningMessage: message
-                        });
-                    }
+                } else {
+                    // Reset warning flag when we're outside the warning zone
+                    this.state.hasHandledWarning = false;
                 }
+                
+                // Store current percentage for next comparison
+                this.previousPercentRemaining = percentRemaining;
 
                 if (this.state.remaining <= 0) {
                     this.timeExpired();
@@ -580,6 +598,7 @@ export class PlanningTimer {
     static setTime(newTime) {
         this.state.remaining = Math.max(0, newTime);
         this.state.showingMessage = false;
+        this.state.hasHandledWarning = false;
         
         // Send chat message for timer update if GM
         if (game.user.isGM) {
@@ -603,19 +622,38 @@ export class PlanningTimer {
 
                 // Check ending soon threshold
                 const endingSoonThreshold = game.settings.get(MODULE.ID, 'planningTimerEndingSoonThreshold');
-                if (percentRemaining <= endingSoonThreshold && percentRemaining > endingSoonThreshold - 1) {
-                    // Play ending soon sound
-                    const endingSoonSound = game.settings.get(MODULE.ID, 'planningTimerEndingSoonSound');
-                    if (endingSoonSound !== 'none') {
-                        playSound(endingSoonSound, this.getTimerVolume());
+                const previousPercentRemaining = this.previousPercentRemaining ?? Infinity;
+                
+                // Detect when we first cross into the warning threshold
+                const justEnteredWarning = previousPercentRemaining > endingSoonThreshold && 
+                                         percentRemaining <= endingSoonThreshold;
+                
+                if (percentRemaining <= endingSoonThreshold) {
+                    // Play ending soon sound (for all clients) - only once when first entering
+                    if (justEnteredWarning) {
+                        const endingSoonSound = game.settings.get(MODULE.ID, 'planningTimerEndingSoonSound');
+                        if (endingSoonSound !== 'none') {
+                            playSound(endingSoonSound, this.getTimerVolume());
+                        }
+                        
+                        // Show ending soon notification and send chat message (GM only) - only once
+                        if (!this.state.hasHandledWarning && this.shouldShowNotification() && game.user.isGM) {
+                            this.state.hasHandledWarning = true;
+                            const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
+                            ui.notifications.warn(message);
+                            this.sendChatMessage({
+                                isTimerWarning: true,
+                                warningMessage: message
+                            });
+                        }
                     }
-                    
-                    // Show ending soon notification
-                    if (this.shouldShowNotification()) {
-                        const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
-                        ui.notifications.warn(message);
-                    }
+                } else {
+                    // Reset warning flag when we're outside the warning zone
+                    this.state.hasHandledWarning = false;
                 }
+                
+                // Store current percentage for next comparison
+                this.previousPercentRemaining = percentRemaining;
 
                 if (this.state.remaining <= 0) {
                     this.timeExpired();
@@ -682,6 +720,7 @@ export class PlanningTimer {
         this.state.isPaused = !game.settings.get(MODULE.ID, 'planningTimerAutoStart');
         this.state.showingMessage = false;
         this.state.isExpired = false;
+        this.state.hasHandledWarning = false;
 
         // Send chat message for planning start if GM and timer is at full duration
         if (game.user.isGM && duration === game.settings.get(MODULE.ID, 'planningTimerDuration')) {
@@ -710,23 +749,38 @@ export class PlanningTimer {
 
                 // Check ending soon threshold
                 const endingSoonThreshold = game.settings.get(MODULE.ID, 'planningTimerEndingSoonThreshold');
-                if (percentRemaining <= endingSoonThreshold && percentRemaining > endingSoonThreshold - 1) {
-                    // Play ending soon sound (for all clients)
-                    const endingSoonSound = game.settings.get(MODULE.ID, 'planningTimerEndingSoonSound');
-                    if (endingSoonSound !== 'none') {
-                        playSound(endingSoonSound, this.getTimerVolume());
+                const previousPercentRemaining = this.previousPercentRemaining ?? Infinity;
+                
+                // Detect when we first cross into the warning threshold
+                const justEnteredWarning = previousPercentRemaining > endingSoonThreshold && 
+                                         percentRemaining <= endingSoonThreshold;
+                
+                if (percentRemaining <= endingSoonThreshold) {
+                    // Play ending soon sound (for all clients) - only once when first entering
+                    if (justEnteredWarning) {
+                        const endingSoonSound = game.settings.get(MODULE.ID, 'planningTimerEndingSoonSound');
+                        if (endingSoonSound !== 'none') {
+                            playSound(endingSoonSound, this.getTimerVolume());
+                        }
+                        
+                        // Show ending soon notification and send chat message (GM only) - only once
+                        if (!this.state.hasHandledWarning && this.shouldShowNotification() && game.user.isGM) {
+                            this.state.hasHandledWarning = true;
+                            const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
+                            ui.notifications.warn(message);
+                            this.sendChatMessage({
+                                isTimerWarning: true,
+                                warningMessage: message
+                            });
+                        }
                     }
-                    
-                    // Show ending soon notification and send chat message (GM only)
-                    if (this.shouldShowNotification() && game.user.isGM) {
-                        const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
-                        ui.notifications.warn(message);
-                        this.sendChatMessage({
-                            isTimerWarning: true,
-                            warningMessage: message
-                        });
-                    }
+                } else {
+                    // Reset warning flag when we're outside the warning zone
+                    this.state.hasHandledWarning = false;
                 }
+                
+                // Store current percentage for next comparison
+                this.previousPercentRemaining = percentRemaining;
 
                 if (this.state.remaining <= 0) {
                     this.timeExpired();
@@ -914,8 +968,12 @@ export class PlanningTimer {
         this.state.isActive = false;
         this.state.isPaused = true;
         this.state.remaining = 0;
+        this.state.hasHandledWarning = false;
         
         // Don't clear showingMessage or isExpired as they may be needed for UI
+        
+        // Reset percentage tracking
+        this.previousPercentRemaining = undefined;
 
         this.updateUI();
         this.syncState();

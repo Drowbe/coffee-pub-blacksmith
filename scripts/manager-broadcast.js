@@ -1324,6 +1324,19 @@ export class BroadcastManager {
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
+
+        HookManager.registerHook({
+            name: 'renderJournalEntrySheet',
+            description: 'BroadcastManager: Auto-close journals after share (entry sheet)',
+            context: 'broadcast-windows',
+            priority: 5,
+            key: 'broadcast-windows-journal-entry',
+            callback: () => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                this._emitBroadcastWindowOpened();
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
     }
 
     /**
@@ -1805,7 +1818,7 @@ export class BroadcastManager {
                 'tools': {
                     mode: 'default',
                     order: 3,
-                    bannerColor: 'rgba(40, 40, 40, 0.9)'
+                    bannerColor: 'rgba(92, 117, 24, 0.9)'
                 }
             }
         });
