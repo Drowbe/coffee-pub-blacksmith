@@ -217,8 +217,11 @@
 				"broadcastAnimationDuration-Label": "Animation Duration (ms)",
 				"broadcastAnimationDuration-Hint": "Duration of camera pan/zoom animations in milliseconds. Higher values = slower, smoother animations. Lower values = faster, snappier animations.",
 
+				"broadcastFollowDistanceThreshold-Label": "Follow Distance Threshold",
+				"broadcastFollowDistanceThreshold-Hint": "Minimum gris spaces required to trigger camera pan.",
+
 				"broadcastFollowThrottleMs-Label": "Follow Throttle (ms)",
-				"broadcastFollowThrottleMs-Hint": "Minimum time (in milliseconds) between camera pan operations. Prevents excessive panning on rapid token movements.",
+				"broadcastFollowThrottleMs-Hint": "Minimum milliseconds between camera pan operations. Prevents excessive panning on rapid token movements.",
 
 			"headingH3BroadcastUI-Label": "UI Visibility",
 			"headingH3BroadcastUI-Hint": "",
@@ -241,13 +244,6 @@
 
 				"broadcastMode-Label": "Camera Mode",
 				"broadcastMode-Hint": "",
-
-
-
-				"broadcastFollowDistanceThreshold-Label": "Follow Distance Threshold",
-				"broadcastFollowDistanceThreshold-Hint": "Minimum token movement (in grid units) required to trigger camera pan. Smaller values = more sensitive following.",
-
-
 
 				"broadcastDefaultZoom-Label": "Default Zoom Level",
 				"broadcastDefaultZoom-Hint": "The baseline zoom level used for broadcast camera. Zoom offset sliders adjust relative to this level.",

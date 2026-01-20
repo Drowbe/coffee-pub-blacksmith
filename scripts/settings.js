@@ -1717,6 +1717,19 @@ export const registerSettings = () => {
 				group: WORKFLOW_GROUPS.RUN_THE_GAME
 			});
 
+			
+			// Broadcast Follow Distance Threshold
+			game.settings.register(MODULE.ID, 'broadcastFollowDistanceThreshold', {
+				name: MODULE.ID + '.broadcastFollowDistanceThreshold-Label',
+				hint: MODULE.ID + '.broadcastFollowDistanceThreshold-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Number,
+				default: 1,
+				range: { min: 0.1, max: 10, step: 0.1 },
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
 
 			// Broadcast Follow Throttle (milliseconds)
 			game.settings.register(MODULE.ID, 'broadcastFollowThrottleMs', {
@@ -1822,18 +1835,6 @@ export const registerSettings = () => {
 				default: ''
 			});
 
-			// Broadcast Follow Distance Threshold
-			game.settings.register(MODULE.ID, 'broadcastFollowDistanceThreshold', {
-				name: MODULE.ID + '.broadcastFollowDistanceThreshold-Label',
-				hint: MODULE.ID + '.broadcastFollowDistanceThreshold-Hint',
-				scope: 'world',
-				config: true,
-				requiresReload: false,
-				type: Number,
-				default: 1,
-				range: { min: 0.1, max: 10, step: 0.1 },
-				group: WORKFLOW_GROUPS.RUN_THE_GAME
-			});
 
 
 			// Broadcast Default Zoom Level
