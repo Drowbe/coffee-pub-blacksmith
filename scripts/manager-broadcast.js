@@ -25,6 +25,8 @@ export class BroadcastManager {
     static _lastModeEmit = { mode: null, at: 0 };
     static _playerButtonsDebounce = null;
     static _lastBroadcastMode = null;
+    static _broadcastTrackedWindows = new Map(); // appId -> { type, timeoutId }
+    static _broadcastWindowHooksRegistered = false;
     
     // Resource tracking for cleanup
     static _hookIds = new Set(); // HookManager callback IDs
@@ -439,6 +441,44 @@ export class BroadcastManager {
                 });
                 
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Map view socket handler registered successfully", "", true, false);
+
+                // Register socket handler for broadcast window commands (cameraman only)
+                const windowCommandHandler = 'broadcast.windowCommand';
+                this._socketHandlerNames.add(windowCommandHandler);
+                await blacksmith.sockets.register(windowCommandHandler, async (data) => {
+                    //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                    if (!data?.action) return;
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Received window command", {
+                        data,
+                        isBroadcastUser: this._isBroadcastUser(),
+                        isEnabled: this.isEnabled()
+                    }, true, false);
+                    if (data.targetUserId && !matchUserBySetting(game.user, data.targetUserId)) {
+                        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Window command ignored (not target user)", { targetUserId: data.targetUserId }, true, false);
+                        return;
+                    }
+                    if (!this._isBroadcastUser()) return;
+
+                    switch (data.action) {
+                        case 'close-images':
+                            this._closeTrackedWindowsByType('image');
+                            break;
+                        case 'close-journals':
+                            this._closeTrackedWindowsByType('journal');
+                            break;
+                        case 'close-all':
+                            await this._closeAllWindows();
+                            break;
+                        case 'refresh':
+                            window.location.reload();
+                            break;
+                        default:
+                            break;
+                    }
+                    //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+                });
+                
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Window command socket handler registered successfully", "", true, false);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to register GM view socket handler", error, true, false);
             }
@@ -1134,6 +1174,183 @@ export class BroadcastManager {
         return null;
     }
 
+    static _shouldTrackBroadcastWindows() {
+        return this.isEnabled() && this._isBroadcastUser();
+    }
+
+    static _trackBroadcastWindow(app, type) {
+        if (!this._shouldTrackBroadcastWindows()) return;
+        if (!app?.appId) return;
+
+        const appId = app.appId;
+        const existing = this._broadcastTrackedWindows.get(appId);
+        if (existing?.timeoutId) {
+            clearTimeout(existing.timeoutId);
+        }
+
+        const entry = { type, timeoutId: null };
+        this._broadcastTrackedWindows.set(appId, entry);
+        this._scheduleBroadcastWindowClose(appId, type, app);
+    }
+
+    static _scheduleBroadcastWindowClose(appId, type, appRef = null) {
+        const shouldAutoClose = type === 'image'
+            ? getSettingSafely(MODULE.ID, 'broadcastAutoCloseImages', true)
+            : getSettingSafely(MODULE.ID, 'broadcastAutoCloseJournals', true);
+
+        if (!shouldAutoClose) return;
+
+        const delaySeconds = type === 'image'
+            ? getSettingSafely(MODULE.ID, 'broadcastImageCloseDelaySeconds', 3)
+            : getSettingSafely(MODULE.ID, 'broadcastJournalCloseDelaySeconds', 3);
+
+        const delayMs = Math.max(1, delaySeconds) * 1000;
+        const timeoutId = setTimeout(() => {
+            const entry = this._broadcastTrackedWindows.get(appId);
+            if (!entry) return;
+            const app = appRef || ui.windows?.[appId];
+            if (app?.close) {
+                app.close({ animate: false });
+            }
+            this._clearTrackedWindow(appId);
+        }, delayMs);
+
+        this._timeoutIds.add(timeoutId);
+        const entry = this._broadcastTrackedWindows.get(appId);
+        if (entry) {
+            entry.timeoutId = timeoutId;
+        }
+    }
+
+    static _clearTrackedWindow(appId) {
+        const entry = this._broadcastTrackedWindows.get(appId);
+        if (entry?.timeoutId) {
+            clearTimeout(entry.timeoutId);
+        }
+        this._broadcastTrackedWindows.delete(appId);
+    }
+
+    static _closeTrackedWindowsByType(type) {
+        let closedAny = false;
+        for (const [appId, entry] of this._broadcastTrackedWindows.entries()) {
+            if (type && entry.type !== type) continue;
+            const app = ui.windows?.[appId];
+            if (app?.close) {
+                app.close({ animate: false });
+            }
+            this._clearTrackedWindow(appId);
+            closedAny = true;
+        }
+
+        if (closedAny) return;
+
+        for (const app of this._getOpenWindows()) {
+            if (!app?.close) continue;
+            const isImage = app.constructor?.name === 'ImagePopout';
+            const isJournal = app.document instanceof JournalEntry;
+            if (type === 'image' && !isImage) continue;
+            if (type === 'journal' && !isJournal) continue;
+            app.close({ animate: false });
+        }
+    }
+
+    static async _closeAllWindows() {
+        const windows = this._getOpenWindows();
+        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Closing all windows on cameraman", {
+            count: windows.length,
+            windows: windows.map(app => ({
+                appId: app?.appId,
+                name: app?.constructor?.name,
+                title: app?.title
+            }))
+        }, true, false);
+        for (const app of windows) {
+            if (!app) continue;
+            try {
+                if (typeof app.close === 'function') {
+                    await app.close({ animate: false });
+                } else if (typeof app.render === 'function') {
+                    app.render(false);
+                }
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to close window", { appId: app?.appId, error }, true, false);
+            }
+        }
+        for (const appId of Array.from(this._broadcastTrackedWindows.keys())) {
+            this._clearTrackedWindow(appId);
+        }
+    }
+
+    static _getOpenWindows() {
+        const windows = [];
+        const seen = new Set();
+
+        for (const app of Object.values(ui.windows || {})) {
+            if (!app) continue;
+            const key = app.appId ?? app;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            windows.push(app);
+        }
+
+        const v2Instances = foundry?.applications?.instances;
+        if (v2Instances && typeof v2Instances.values === 'function') {
+            for (const app of v2Instances.values()) {
+                if (!app) continue;
+                const key = app.appId ?? app;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                windows.push(app);
+            }
+        }
+
+        return windows;
+    }
+
+    static _registerBroadcastWindowHooks() {
+        if (this._broadcastWindowHooksRegistered) return;
+        this._broadcastWindowHooksRegistered = true;
+
+        HookManager.registerHook({
+            name: 'renderImagePopout',
+            description: 'BroadcastManager: Track broadcast images on cameraman',
+            context: 'broadcast-windows',
+            priority: 5,
+            key: 'broadcast-windows-image',
+            callback: (app) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                this._trackBroadcastWindow(app, 'image');
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+
+        HookManager.registerHook({
+            name: 'renderJournalSheet',
+            description: 'BroadcastManager: Track broadcast journals on cameraman',
+            context: 'broadcast-windows',
+            priority: 5,
+            key: 'broadcast-windows-journal',
+            callback: (app) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                this._trackBroadcastWindow(app, 'journal');
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+
+        HookManager.registerHook({
+            name: 'renderJournalPageSheet',
+            description: 'BroadcastManager: Track broadcast journal pages on cameraman',
+            context: 'broadcast-windows',
+            priority: 5,
+            key: 'broadcast-windows-journal-page',
+            callback: (app) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                this._trackBroadcastWindow(app, 'journal');
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+    }
+
     /**
      * Get reliable world-space center for a single token
      * Uses Token.center if available (handles size, scale, grid type automatically)
@@ -1609,6 +1826,11 @@ export class BroadcastManager {
                     order: 2,
                     masterSwitchGroup: 'broadcast-view',
                     bannerColor: 'rgba(36, 60, 110, 0.9)'  // Custom banner color for follow group
+                },
+                'tools': {
+                    mode: 'default',
+                    order: 3,
+                    bannerColor: 'rgba(40, 40, 40, 0.9)'
                 }
             }
         });
@@ -1748,12 +1970,70 @@ export class BroadcastManager {
             }
         });
 
+        // Register broadcast tools (GM-only)
+        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-tool-close-images', {
+            icon: 'fa-solid fa-image',
+            label: null,
+            tooltip: 'Close broadcast images on cameraman',
+            group: 'tools',
+            toggleable: false,
+            order: 0,
+            visible: () => game.user.isGM,
+            onClick: async () => {
+                if (!game.user.isGM) return;
+                await this._emitBroadcastWindowCommand('close-images');
+            }
+        });
+
+        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-tool-close-journals', {
+            icon: 'fa-solid fa-book',
+            label: null,
+            tooltip: 'Close broadcast journals on cameraman',
+            group: 'tools',
+            toggleable: false,
+            order: 1,
+            visible: () => game.user.isGM,
+            onClick: async () => {
+                if (!game.user.isGM) return;
+                await this._emitBroadcastWindowCommand('close-journals');
+            }
+        });
+
+        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-tool-close-windows', {
+            icon: 'fa-solid fa-rectangle-xmark',
+            label: null,
+            tooltip: 'Close all windows on cameraman',
+            group: 'tools',
+            toggleable: false,
+            order: 2,
+            visible: () => game.user.isGM,
+            onClick: async () => {
+                if (!game.user.isGM) return;
+                await this._emitBroadcastWindowCommand('close-all');
+            }
+        });
+
+        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-tool-refresh', {
+            icon: 'fa-solid fa-rotate-right',
+            label: null,
+            tooltip: 'Refresh cameraman client',
+            group: 'tools',
+            toggleable: false,
+            order: 3,
+            visible: () => game.user.isGM,
+            onClick: async () => {
+                if (!game.user.isGM) return;
+                await this._emitBroadcastWindowCommand('refresh');
+            }
+        });
+
         
 
         // Register player view buttons (mirror/follow)
         this.registerPlayerPortraitButtons();
         this.registerFollowTokenButtons();
         this._registerPlayerPortraitSyncHooks();
+        this._registerBroadcastWindowHooks();
 
         // Register view mode button in main menubar (right section)
         this._registerBroadcastMenubarButton();
@@ -2347,6 +2627,28 @@ export class BroadcastManager {
             await blacksmith.sockets.emit('broadcast.mapView', {});
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to emit map view", error, true, false);
+        }
+    }
+
+    /**
+     * Emit a broadcast window command to the cameraman client.
+     * @param {string} action - Command action (close-images, close-journals, close-all, refresh)
+     */
+    static async _emitBroadcastWindowCommand(action) {
+        try {
+            if (!this.isEnabled()) return;
+            const targetUserId = getSettingSafely(MODULE.ID, 'broadcastUserId', '') || '';
+            if (!targetUserId) {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: No broadcast user configured for window command", { action }, true, false);
+                return;
+            }
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Emitting window command", { action, targetUserId }, true, false);
+            const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+            if (!blacksmith?.sockets) return;
+            await blacksmith.sockets.waitForReady();
+            await blacksmith.sockets.emit('broadcast.windowCommand', { action, targetUserId });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to emit window command", { action, error }, true, false);
         }
     }
 

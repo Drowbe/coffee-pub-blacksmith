@@ -1744,6 +1744,56 @@ export const registerSettings = () => {
 				group: WORKFLOW_GROUPS.RUN_THE_GAME
 			});
 
+			// Auto Close Images (broadcast cameraman)
+			game.settings.register(MODULE.ID, 'broadcastAutoCloseImages', {
+				name: MODULE.ID + '.broadcastAutoCloseImages-Label',
+				hint: MODULE.ID + '.broadcastAutoCloseImages-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Boolean,
+				default: true,
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
+
+			// Image Close Delay (seconds)
+			game.settings.register(MODULE.ID, 'broadcastImageCloseDelaySeconds', {
+				name: MODULE.ID + '.broadcastImageCloseDelaySeconds-Label',
+				hint: MODULE.ID + '.broadcastImageCloseDelaySeconds-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Number,
+				default: 3,
+				range: { min: 1, max: 10, step: 1 },
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
+
+			// Auto Close Journals (broadcast cameraman)
+			game.settings.register(MODULE.ID, 'broadcastAutoCloseJournals', {
+				name: MODULE.ID + '.broadcastAutoCloseJournals-Label',
+				hint: MODULE.ID + '.broadcastAutoCloseJournals-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Boolean,
+				default: true,
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
+
+			// Journal Close Delay (seconds)
+			game.settings.register(MODULE.ID, 'broadcastJournalCloseDelaySeconds', {
+				name: MODULE.ID + '.broadcastJournalCloseDelaySeconds-Label',
+				hint: MODULE.ID + '.broadcastJournalCloseDelaySeconds-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: Number,
+				default: 3,
+				range: { min: 1, max: 10, step: 1 },
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
+
 
 		// --------------------------------------
 		// -- H3: Broadcast UI
