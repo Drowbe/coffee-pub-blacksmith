@@ -2270,6 +2270,20 @@ export class BroadcastManager {
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
+
+        HookManager.registerHook({
+            name: 'canvasReady',
+            description: 'BroadcastManager: Sync player portrait buttons when scenes change',
+            context: 'broadcast-player-buttons',
+            priority: 5,
+            key: 'broadcast-player-buttons-canvasReady',
+            callback: () => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                if (!this.isEnabled()) return;
+                this._queuePlayerPortraitSync('canvasReady');
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
     }
 
     /**
