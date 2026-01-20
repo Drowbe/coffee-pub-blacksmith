@@ -245,14 +245,14 @@
 				"broadcastMode-Label": "Camera Mode",
 				"broadcastMode-Hint": "",
 
-				"broadcastFollowPadding-Label": "Follow Mode View Fill (%)",
-				"broadcastFollowPadding-Hint": "Percent of the viewport the follow box should fill.",
+				"broadcastFollowViewFill-Label": "Follow Mode View Fill (%)",
+				"broadcastFollowViewFill-Hint": "Percent of the viewport the follow box should fill.",
 
-				"broadcastCombatPadding-Label": "Combat Mode View Fill (%)",
-				"broadcastCombatPadding-Hint": "Percent of the viewport the combatant box should fill.",
+				"broadcastCombatViewFill-Label": "Combat Mode View Fill (%)",
+				"broadcastCombatViewFill-Hint": "Percent of the viewport the combatant box should fill.",
 
-				"broadcastSpectatorPartyBoxPadding-Label": "Spectator Mode View Fill (%)",
-				"broadcastSpectatorPartyBoxPadding-Hint": "Percent of the viewport the party box should fill.",
+				"broadcastSpectatorPartyBoxFill-Label": "Spectator Mode View Fill (%)",
+				"broadcastSpectatorPartyBoxFill-Hint": "Percent of the viewport the party box should fill.",
 				
 
 		"headingH2CombatEnhancements-Label": "Combat",

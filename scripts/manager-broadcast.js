@@ -798,7 +798,7 @@ export class BroadcastManager {
             let finalZoom;
             
             // Use auto-fit zoom based on bounding box + padding (single or multiple tokens)
-            const fillPercent = getSettingSafely(MODULE.ID, 'broadcastSpectatorPartyBoxPadding', 20);
+            const fillPercent = getSettingSafely(MODULE.ID, 'broadcastSpectatorPartyBoxFill', 20);
             const autoFitZoom = this._calculateAutoFitZoom(partyTokens, fillPercent);
             
             if (autoFitZoom !== null) {
@@ -997,7 +997,7 @@ export class BroadcastManager {
             const center = this._getTokenCenter(canvasToken);
             if (!center) return;
 
-            const fillPercent = getSettingSafely(MODULE.ID, 'broadcastCombatPadding', 20);
+            const fillPercent = getSettingSafely(MODULE.ID, 'broadcastCombatViewFill', 20);
             const autoFitZoom = this._calculateAutoFitZoom([canvasToken], fillPercent);
             const finalZoom = autoFitZoom ?? (canvas.stage?.scale?.x ?? 1.0);
             const duration = getSettingSafely(MODULE.ID, 'broadcastAnimationDuration', 250);
@@ -1038,7 +1038,7 @@ export class BroadcastManager {
             const shouldPan = forcePan ? true : this._shouldPan({ x: center.x, y: center.y }, [canvasToken]);
             if (!shouldPan) return;
 
-            const fillPercent = getSettingSafely(MODULE.ID, 'broadcastFollowPadding', 20);
+            const fillPercent = getSettingSafely(MODULE.ID, 'broadcastFollowViewFill', 20);
             const followBoxGridSize = 3;
             const fixedZoom = this._calculateFixedBoxZoom(followBoxGridSize, fillPercent);
             const finalZoom = fixedZoom ?? (canvas.stage?.scale?.x ?? 1.0);
