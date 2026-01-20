@@ -25,7 +25,6 @@ export class BroadcastManager {
     static _lastModeEmit = { mode: null, at: 0 };
     static _playerButtonsDebounce = null;
     static _lastBroadcastMode = null;
-    static _broadcastTrackedWindows = new Map(); // appKey -> { type, timeoutId, appRef }
     static _broadcastWindowHooksRegistered = false;
     
     // Resource tracking for cleanup
@@ -461,10 +460,21 @@ export class BroadcastManager {
 
                     switch (data.action) {
                         case 'close-images':
-                            this._closeTrackedWindowsByType('image');
+                            for (const app of this._getOpenWindows()) {
+                                if (!app?.close) continue;
+                                if (app.constructor?.name !== 'ImagePopout') continue;
+                                app.close({ animate: false });
+                            }
                             break;
                         case 'close-journals':
-                            this._closeTrackedWindowsByType('journal');
+                            for (const app of this._getOpenWindows()) {
+                                if (!app?.close) continue;
+                                const doc = app.document;
+                                const isJournal = doc instanceof JournalEntry || doc instanceof JournalEntryPage
+                                    || app.constructor?.name?.toLowerCase?.().includes('journal');
+                                if (!isJournal) continue;
+                                app.close({ animate: false });
+                            }
                             break;
                         case 'close-all':
                             await this._closeAllWindows();
@@ -482,6 +492,32 @@ export class BroadcastManager {
                 });
                 
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Window command socket handler registered successfully", "", true, false);
+
+                // Register socket handler for cameraman window opened (GM starts timer)
+                const windowOpenedHandler = 'broadcast.windowOpened';
+                this._socketHandlerNames.add(windowOpenedHandler);
+                await blacksmith.sockets.register(windowOpenedHandler, async (data) => {
+                    //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                    if (!data?.type) return;
+                    if (!game.user.isGM) return;
+                    if (!this.isEnabled()) return;
+
+                    const shouldAutoClose = getSettingSafely(MODULE.ID, 'broadcastAutoCloseWindows', true);
+                    if (!shouldAutoClose) return;
+
+                    const delaySeconds = getSettingSafely(MODULE.ID, 'broadcastAutoCloseDelaySeconds', 3);
+                    const delayMs = Math.max(1, delaySeconds) * 1000;
+                    const action = data.type === 'image' ? 'close-images' : 'close-journals';
+
+                    const timeoutId = setTimeout(() => {
+                        this._emitBroadcastWindowCommand(action);
+                    }, delayMs);
+
+                    this._timeoutIds.add(timeoutId);
+                    //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+                });
+
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Window opened socket handler registered successfully", "", true, false);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to register GM view socket handler", error, true, false);
             }
@@ -1181,86 +1217,19 @@ export class BroadcastManager {
         return this.isEnabled() && this._isBroadcastUser();
     }
 
-    static _trackBroadcastWindow(app, type) {
-        if (!this._shouldTrackBroadcastWindows()) return;
-        if (!app) return;
-
-        const appKey = app.appId ?? app.id ?? app._id ?? app;
-        const existing = this._broadcastTrackedWindows.get(appKey);
-        if (existing?.timeoutId) {
-            clearTimeout(existing.timeoutId);
-        }
-
-        const entry = { type, timeoutId: null, appRef: app };
-        this._broadcastTrackedWindows.set(appKey, entry);
-        this._scheduleBroadcastWindowClose(appKey, type, app);
-    }
-
-    static _scheduleBroadcastWindowClose(appKey, type, appRef = null) {
-        const shouldAutoClose = getSettingSafely(MODULE.ID, 'broadcastAutoCloseWindows', true);
-
-        if (!shouldAutoClose) return;
-
-        const delaySeconds = getSettingSafely(MODULE.ID, 'broadcastAutoCloseDelaySeconds', 3);
-
-        const delayMs = Math.max(1, delaySeconds) * 1000;
-        const timeoutId = setTimeout(() => {
-            const entry = this._broadcastTrackedWindows.get(appKey);
-            if (!entry) return;
-            const app = appRef || entry.appRef;
-            if (app?.close) {
-                app.close({ animate: false });
-            }
-            this._clearTrackedWindow(appKey);
-            this._closeTrackedWindowsByType(type);
-        }, delayMs);
-
-        this._timeoutIds.add(timeoutId);
-        const entry = this._broadcastTrackedWindows.get(appKey);
-        if (entry) {
-            entry.timeoutId = timeoutId;
-        }
-    }
-
-    static _getBroadcastWindowType(app) {
-        if (!app) return null;
-        const name = app.constructor?.name || '';
-        if (name === 'ImagePopout') return 'image';
-        const doc = app.document;
-        if (doc instanceof JournalEntry || doc instanceof JournalEntryPage) return 'journal';
-        if (name.toLowerCase().includes('journal')) return 'journal';
-        return null;
-    }
-
-    static _clearTrackedWindow(appKey) {
-        const entry = this._broadcastTrackedWindows.get(appKey);
-        if (entry?.timeoutId) {
-            clearTimeout(entry.timeoutId);
-        }
-        this._broadcastTrackedWindows.delete(appKey);
-    }
-
-    static _closeTrackedWindowsByType(type) {
-        let closedAny = false;
-        for (const [appKey, entry] of this._broadcastTrackedWindows.entries()) {
-            if (type && entry.type !== type) continue;
-            const app = entry.appRef || ui.windows?.[appKey];
-            if (app?.close) {
-                app.close({ animate: false });
-            }
-            this._clearTrackedWindow(appKey);
-            closedAny = true;
-        }
-
-        if (closedAny) return;
-
-        for (const app of this._getOpenWindows()) {
-            if (!app?.close) continue;
-            const isImage = app.constructor?.name === 'ImagePopout';
-            const isJournal = app.document instanceof JournalEntry;
-            if (type === 'image' && !isImage) continue;
-            if (type === 'journal' && !isJournal) continue;
-            app.close({ animate: false });
+    static async _emitBroadcastWindowOpened(type) {
+        try {
+            if (!this.isEnabled()) return;
+            if (!this._isBroadcastUser()) return;
+            const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+            if (!blacksmith?.sockets) return;
+            await blacksmith.sockets.waitForReady();
+            await blacksmith.sockets.emit('broadcast.windowOpened', {
+                type,
+                sourceUserId: game.user.id
+            });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to emit window opened", { type, error }, true, false);
         }
     }
 
@@ -1285,9 +1254,6 @@ export class BroadcastManager {
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to close window", { appId: app?.appId, error }, true, false);
             }
-        }
-        for (const appId of Array.from(this._broadcastTrackedWindows.keys())) {
-            this._clearTrackedWindow(appId);
         }
     }
 
@@ -1324,68 +1290,39 @@ export class BroadcastManager {
 
         HookManager.registerHook({
             name: 'renderImagePopout',
-            description: 'BroadcastManager: Track broadcast images on cameraman',
+            description: 'BroadcastManager: Auto-close images after share',
             context: 'broadcast-windows',
             priority: 5,
             key: 'broadcast-windows-image',
-            callback: (app, html) => {
+            callback: () => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-                console.log(`[${MODULE.NAME}] BroadcastManager: renderImagePopout hook fired`, { appId: app?.appId });
-                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: renderImagePopout hook fired", { appId: app?.appId }, true, false);
-                this._trackBroadcastWindow(app, 'image');
+                this._emitBroadcastWindowOpened('image');
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
 
         HookManager.registerHook({
             name: 'renderJournalSheet',
-            description: 'BroadcastManager: Track broadcast journals on cameraman',
+            description: 'BroadcastManager: Auto-close journals after share',
             context: 'broadcast-windows',
             priority: 5,
             key: 'broadcast-windows-journal',
-            callback: (app, html) => {
+            callback: () => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-                console.log(`[${MODULE.NAME}] BroadcastManager: renderJournalSheet hook fired`, { appId: app?.appId });
-                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: renderJournalSheet hook fired", { appId: app?.appId }, true, false);
-                this._trackBroadcastWindow(app, 'journal');
+                this._emitBroadcastWindowOpened('journal');
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
 
         HookManager.registerHook({
             name: 'renderJournalPageSheet',
-            description: 'BroadcastManager: Track broadcast journal pages on cameraman',
+            description: 'BroadcastManager: Auto-close journals after share (page view)',
             context: 'broadcast-windows',
             priority: 5,
             key: 'broadcast-windows-journal-page',
-            callback: (app, html) => {
+            callback: () => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-                console.log(`[${MODULE.NAME}] BroadcastManager: renderJournalPageSheet hook fired`, { appId: app?.appId });
-                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: renderJournalPageSheet hook fired", { appId: app?.appId }, true, false);
-                this._trackBroadcastWindow(app, 'journal');
-                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
-            }
-        });
-
-        HookManager.registerHook({
-            name: 'renderApplication',
-            description: 'BroadcastManager: Track broadcast windows (generic)',
-            context: 'broadcast-windows',
-            priority: 5,
-            key: 'broadcast-windows-application',
-            callback: (app) => {
-                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-                const type = this._getBroadcastWindowType(app);
-                if (!type) return;
-                console.log(`[${MODULE.NAME}] BroadcastManager: renderApplication hook fired`, {
-                    appId: app?.appId,
-                    type
-                });
-                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: renderApplication hook fired", {
-                    appId: app?.appId,
-                    type
-                }, true, false);
-                this._trackBroadcastWindow(app, type);
+                this._emitBroadcastWindowOpened('journal');
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
