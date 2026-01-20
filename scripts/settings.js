@@ -3310,23 +3310,6 @@ export const registerSettings = () => {
 	});
 
 
-	// -- Warning Threshold --
-	game.settings.register(MODULE.ID, 'combatTimerWarningThreshold', {
-		name: MODULE.ID + '.combatTimerWarningThreshold-Label',
-		hint: MODULE.ID + '.combatTimerWarningThreshold-Hint',
-		scope: 'world',
-		config: true,
-		type: Number,
-		default: 50,
-		range: {
-			min: 20,
-			max: 80,
-			step: 5
-		},
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
-
 	// -- Combat Timer Label --
 	game.settings.register(MODULE.ID, 'combatTimerLabel', {
 		name: MODULE.ID + '.combatTimerLabel-Label',
@@ -3338,28 +3321,6 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-
-	// -- Warning Message --
-	game.settings.register(MODULE.ID, 'combatTimerWarningMessage', {
-		name: MODULE.ID + '.combatTimerWarningMessage-Label',
-		hint: MODULE.ID + '.combatTimerWarningMessage-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '{name} is running out of time!'
-	});
-
-	// -- Warning Sound --
-	game.settings.register(MODULE.ID, 'combatTimerWarningSound', {
-		name: MODULE.ID + '.combatTimerWarningSound-Label',
-		hint: MODULE.ID + '.combatTimerWarningSound-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'none',
-		choices: BLACKSMITH.arrSoundChoices,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
 
 	// -- Critical Threshold --
 	game.settings.register(MODULE.ID, 'combatTimerCriticalThreshold', {

@@ -21,7 +21,6 @@ class CombatTimer {
             remaining: 0,
             showingMessage: false,
             duration: 60,
-            hasHandledWarning: false,
             hasHandledCritical: false
         }
     };
@@ -455,7 +454,6 @@ class CombatTimer {
     static setTime(newTime) {
         this.state.remaining = Math.max(0, newTime);
         this.state.showingMessage = false;
-        this.state.hasHandledWarning = false;
         this.state.hasHandledCritical = false;
         
         // Send chat message for timer update if GM
@@ -615,7 +613,6 @@ class CombatTimer {
             
             this.state.remaining = duration;
             this.state.duration = duration;  // Store duration in state
-            this.state.hasHandledWarning = false;
             this.state.hasHandledCritical = false;
             
             if (this.timer) clearInterval(this.timer);
@@ -660,7 +657,6 @@ class CombatTimer {
     static pauseTimer() {
         this.state.isPaused = true;
         this.state.showingMessage = false;
-        this.state.hasHandledWarning = false;
         this.state.hasHandledCritical = false;
 
         if (this.timer) {
@@ -715,7 +711,6 @@ class CombatTimer {
         this.state.isPaused = false;
         this.state.showingMessage = false;
         this.state.isActive = true;
-        this.state.hasHandledWarning = false;
         this.state.hasHandledCritical = false;
 
         // Only GM should handle the interval and messages
@@ -782,23 +777,17 @@ class CombatTimer {
         const timeLimit = game.settings.get(MODULE.ID, 'combatTimerDuration');
         const percentRemaining = (this.state.remaining / timeLimit) * 100;
 
-        // Get thresholds
-        const warningThreshold = game.settings.get(MODULE.ID, 'combatTimerWarningThreshold');
+        // Get critical threshold
         const criticalThreshold = game.settings.get(MODULE.ID, 'combatTimerCriticalThreshold');
         
         // Track previous percentage to detect threshold crossings
         const previousPercentRemaining = this.previousPercentRemaining ?? Infinity;
         
-        // Detect when we first cross into the critical threshold (check critical first since it's lower)
+        // Detect when we first cross into the critical threshold
         const justEnteredCritical = previousPercentRemaining > criticalThreshold && 
                                     percentRemaining <= criticalThreshold;
-        
-        // Detect when we first cross into the warning threshold (but not if we're already in critical)
-        const justEnteredWarning = previousPercentRemaining > warningThreshold && 
-                                   percentRemaining <= warningThreshold &&
-                                   percentRemaining > criticalThreshold;
 
-        // Check critical threshold first (since it's lower than warning)
+        // Check critical threshold
         if (percentRemaining <= criticalThreshold) {
             // Play critical warning sound (for all clients) - only once when first entering
             if (justEnteredCritical) {
@@ -826,36 +815,6 @@ class CombatTimer {
         } else {
             // Reset critical flag when we're outside the critical zone
             this.state.hasHandledCritical = false;
-        }
-
-        // Check warning threshold (only if not in critical zone)
-        if (percentRemaining <= warningThreshold && percentRemaining > criticalThreshold) {
-            // Play warning sound (for all clients) - only once when first entering
-            if (justEnteredWarning) {
-                const warningSound = game.settings.get(MODULE.ID, 'combatTimerWarningSound');
-                if (warningSound !== 'none') {
-                    playSound(warningSound, this.getTimerVolume());
-                }
-                
-                // Show warning notification and send chat message - only once
-                if (!this.state.hasHandledWarning && this.shouldShowNotification()) {
-                    this.state.hasHandledWarning = true;
-                    const message = game.settings.get(MODULE.ID, 'combatTimerWarningMessage');
-                    const formattedMessage = this.getFormattedMessage(message);
-                    ui.notifications.warn(formattedMessage);
-
-                    // Send warning chat message if GM and setting enabled
-                    if (game.user.isGM && game.settings.get(MODULE.ID, 'timerChatTurnRunningOut')) {
-                        this.sendChatMessage({
-                            isTimerWarning: true,
-                            warningMessage: formattedMessage
-                        });
-                    }
-                }
-            }
-        } else if (percentRemaining > warningThreshold) {
-            // Reset warning flag when we're outside the warning zone
-            this.state.hasHandledWarning = false;
         }
         
         // Store current percentage for next comparison
@@ -1053,7 +1012,6 @@ class CombatTimer {
         
         // Reset flags
         this.state.showingMessage = false;
-        this.state.hasHandledWarning = false;
         this.state.hasHandledCritical = false;
         
         // Reset percentage tracking

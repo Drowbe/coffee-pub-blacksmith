@@ -25,6 +25,7 @@ export class BroadcastManager {
     static _lastModeEmit = { mode: null, at: 0 };
     static _playerButtonsDebounce = null;
     static _lastBroadcastMode = null;
+    static _combatTargetIdsByUser = new Map(); // userId -> Set<tokenId>
     static _broadcastWindowHooksRegistered = false;
     
     // Resource tracking for cleanup
@@ -354,6 +355,29 @@ export class BroadcastManager {
             }
         });
 
+        // Hook for target changes (combat mode)
+        HookManager.registerHook({
+            name: 'targetToken',
+            description: 'BroadcastManager: Sync combat targets for viewport framing',
+            context: 'broadcast-camera',
+            priority: 3,
+            callback: (user, token, targeted) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                if (!user || user.id !== game.user.id) return;
+                if (!this.isEnabled()) return;
+                if (getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator') !== 'combat') return;
+                const combat = game.combat;
+                if (!combat?.combatant) return;
+
+                const currentCombatant = combat.combatant;
+                const ownerId = this._getCombatantOwnerUserId(currentCombatant);
+                if (ownerId && ownerId !== user.id && !user.isGM) return;
+
+                this._emitCombatTargets(user.id);
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+
         // Register GM view syncing (only if broadcast is enabled and mode is gmview)
         this._registerGMViewSync();
         
@@ -527,6 +551,25 @@ export class BroadcastManager {
                 });
 
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Window opened socket handler registered successfully", "", true, false);
+
+                const combatTargetsHandler = 'broadcast.combatTargets';
+                this._socketHandlerNames.add(combatTargetsHandler);
+                await blacksmith.sockets.register(combatTargetsHandler, async (data) => {
+                    //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                    if (!data?.userId || !Array.isArray(data.targetIds)) return;
+                    if (!this.isEnabled()) return;
+
+                    const targetSet = new Set(data.targetIds);
+                    this._combatTargetIdsByUser.set(data.userId, targetSet);
+
+                    if (this._isBroadcastUser()
+                        && getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator') === 'combat') {
+                        this._onCombatUpdate(game.combat, true);
+                    }
+                    //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+                });
+
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Combat targets socket handler registered successfully", "", true, false);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to register GM view socket handler", error, true, false);
             }
@@ -1089,18 +1132,38 @@ export class BroadcastManager {
             const center = this._getTokenCenter(canvasToken);
             if (!center) return;
 
-            const shouldPan = forcePan ? true : this._shouldPan({ x: center.x, y: center.y }, [canvasToken]);
+            const ownerId = this._getCombatantOwnerUserId(currentCombatant);
+            const targetTokens = this._getCombatTargetsForUser(ownerId);
+            const tokensToFrame = [canvasToken, ...targetTokens].filter((value, index, self) => {
+                const tokenId = value?.id;
+                return tokenId && self.findIndex(t => t?.id === tokenId) === index;
+            });
+
+            const gridSize = canvas.grid?.size || 100;
+            const minBoxSize = 3 * gridSize;
+
+            const bbox = this._calculateTokenBoundingBox(tokensToFrame);
+            if (!bbox) return;
+
+            const minX = Math.min(bbox.minX, center.x - (minBoxSize / 2));
+            const maxX = Math.max(bbox.maxX, center.x + (minBoxSize / 2));
+            const minY = Math.min(bbox.minY, center.y - (minBoxSize / 2));
+            const maxY = Math.max(bbox.maxY, center.y + (minBoxSize / 2));
+
+            const frameCenter = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+            const shouldPan = forcePan ? true : this._shouldPan(frameCenter, tokensToFrame);
             if (!shouldPan) return;
 
             const fillPercent = getSettingSafely(MODULE.ID, 'broadcastCombatViewFill', 20);
-            const followBoxGridSize = 3;
-            const fixedZoom = this._calculateFixedBoxZoom(followBoxGridSize, fillPercent);
-            const finalZoom = fixedZoom ?? (canvas.stage?.scale?.x ?? 1.0);
+            const boxWidth = maxX - minX;
+            const boxHeight = maxY - minY;
+            const fillZoom = this._calculateViewportFillZoom(boxWidth, boxHeight, fillPercent);
+            const finalZoom = fillZoom ?? (canvas.stage?.scale?.x ?? 1.0);
             const duration = getSettingSafely(MODULE.ID, 'broadcastAnimationDuration', 250);
 
             canvas.animatePan({
-                x: center.x,
-                y: center.y,
+                x: frameCenter.x,
+                y: frameCenter.y,
                 scale: finalZoom,
                 duration,
                 easing: 'easeInOutCosine'
@@ -1247,6 +1310,46 @@ export class BroadcastManager {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to emit window opened", { error }, true, false);
         }
+    }
+
+    static async _emitCombatTargets(userId) {
+        try {
+            const targetIds = Array.from(game.user?.targets || []).map(t => t?.id).filter(Boolean);
+            const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+            if (!blacksmith?.sockets) return;
+            await blacksmith.sockets.waitForReady();
+            await blacksmith.sockets.emit('broadcast.combatTargets', {
+                userId,
+                targetIds
+            });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to emit combat targets", { error }, true, false);
+        }
+    }
+
+    static _getCombatantOwnerUserId(combatant) {
+        const token = combatant?.token;
+        const actor = token?.actor;
+        if (!actor) return null;
+        const ownership = token?.document?.ownership || actor.ownership || {};
+        const OWNER_LEVEL = CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
+        const owners = Object.entries(ownership)
+            .filter(([, level]) => level === OWNER_LEVEL)
+            .map(([userId]) => game.users.get(userId))
+            .filter(Boolean);
+        const activeNonGm = owners.find(user => user.active && !user.isGM);
+        if (activeNonGm) return activeNonGm.id;
+        const activeGm = owners.find(user => user.active && user.isGM);
+        return activeGm?.id || null;
+    }
+
+    static _getCombatTargetsForUser(userId) {
+        if (!userId) return [];
+        const targetIds = this._combatTargetIdsByUser.get(userId);
+        if (!targetIds?.size) return [];
+        return Array.from(targetIds)
+            .map(id => canvas.tokens.get(id))
+            .filter(Boolean);
     }
 
     static async _closeAllWindows() {
