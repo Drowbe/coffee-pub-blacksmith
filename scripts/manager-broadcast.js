@@ -797,32 +797,23 @@ export class BroadcastManager {
             // Calculate zoom based on token count (affects cameraman's viewport)
             let finalZoom;
             
-            if (partyTokens.length === 1) {
-                // Single token: use fixed zoom (default + offset)
-                const zoomOffset = getSettingSafely(MODULE.ID, 'broadcastSpectatorZoomOffsetSingle', 0);
-                const defaultZoom = getSettingSafely(MODULE.ID, 'broadcastDefaultZoom', 1.0);
-                finalZoom = this._calculateZoomFromOffset(defaultZoom, zoomOffset);
+            // Use auto-fit zoom based on bounding box + padding (single or multiple tokens)
+            const paddingPercent = getSettingSafely(MODULE.ID, 'broadcastSpectatorPartyBoxPadding', 20);
+            const autoFitZoom = this._calculateAutoFitZoom(partyTokens, paddingPercent);
+            
+            if (autoFitZoom !== null) {
+                finalZoom = autoFitZoom;
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Auto-fit zoom calculated", {
+                    tokenCount: partyTokens.length,
+                    paddingPercent: paddingPercent,
+                    autoFitZoom: autoFitZoom
+                }, true, false);
             } else {
-                // Multiple tokens: use auto-fit zoom based on bounding box + padding
-                const paddingPercent = getSettingSafely(MODULE.ID, 'broadcastSpectatorPartyBoxPadding', 20);
-                const autoFitZoom = this._calculateAutoFitZoom(partyTokens, paddingPercent);
-                
-                if (autoFitZoom !== null) {
-                    // Use auto-fit zoom
-                    finalZoom = autoFitZoom;
-                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Auto-fit zoom calculated", {
-                        tokenCount: partyTokens.length,
-                        paddingPercent: paddingPercent,
-                        autoFitZoom: autoFitZoom
-                    }, true, false);
-                } else {
-                    // Fallback to default zoom if auto-fit calculation fails
-                    const defaultZoom = getSettingSafely(MODULE.ID, 'broadcastDefaultZoom', 1.0);
-                    finalZoom = defaultZoom;
-                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Auto-fit zoom failed, using default", {
-                        finalZoom: finalZoom
-                    }, false, false);
-                }
+                // Fallback to current zoom if auto-fit calculation fails
+                finalZoom = canvas.stage?.scale?.x ?? 1.0;
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Auto-fit zoom failed, using current", {
+                    finalZoom: finalZoom
+                }, false, false);
             }
             
             // Pan gating (existing logic: distance threshold + throttle)
@@ -961,7 +952,7 @@ export class BroadcastManager {
             if (mode === 'playerview-follow') {
                 if (this._isBroadcastUser()) {
                     const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
-                    await this._onFollowTokenUpdate(null, followTokenId);
+                    await this._onFollowTokenUpdate(null, followTokenId, true);
                 }
                 return;
             }
@@ -998,8 +989,26 @@ export class BroadcastManager {
             const currentCombatant = combat.combatants.get(combat.current.combatantId);
             if (!currentCombatant) return;
             
-            // Use existing MenuBar.panToCombatant function
-            MenuBar.panToCombatant(currentCombatant.id);
+            const token = currentCombatant.token;
+            if (!token) return;
+            const canvasToken = canvas.tokens.get(token.id);
+            if (!canvasToken) return;
+
+            const center = this._getTokenCenter(canvasToken);
+            if (!center) return;
+
+            const paddingPercent = getSettingSafely(MODULE.ID, 'broadcastCombatPadding', 20);
+            const autoFitZoom = this._calculateAutoFitZoom([canvasToken], paddingPercent);
+            const finalZoom = autoFitZoom ?? (canvas.stage?.scale?.x ?? 1.0);
+            const duration = getSettingSafely(MODULE.ID, 'broadcastAnimationDuration', 250);
+
+            canvas.animatePan({
+                x: center.x,
+                y: center.y,
+                scale: finalZoom,
+                duration,
+                easing: 'easeInOutCosine'
+            });
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Error following combatant", error, false, false);
@@ -1011,7 +1020,7 @@ export class BroadcastManager {
      * @param {TokenDocument|null} tokenDocument - Token document to follow
      * @param {string|null} tokenIdOverride - Token ID to follow
      */
-    static async _onFollowTokenUpdate(tokenDocument, tokenIdOverride = null) {
+    static async _onFollowTokenUpdate(tokenDocument, tokenIdOverride = null, forcePan = false) {
         try {
             if (!this._isBroadcastUser()) return;
             if (!this.isEnabled()) return;
@@ -1024,14 +1033,20 @@ export class BroadcastManager {
             const canvasToken = canvas.tokens.get(tokenId);
             if (!canvasToken) return;
 
-            const shouldPan = this._shouldPan({ x: canvasToken.x, y: canvasToken.y });
+            const center = this._getTokenCenter(canvasToken);
+            if (!center) return;
+            const shouldPan = forcePan ? true : this._shouldPan({ x: center.x, y: center.y }, [canvasToken]);
             if (!shouldPan) return;
+
+            const paddingPercent = getSettingSafely(MODULE.ID, 'broadcastFollowPadding', 20);
+            const autoFitZoom = this._calculateAutoFitZoom([canvasToken], paddingPercent);
+            const finalZoom = autoFitZoom ?? (canvas.stage?.scale?.x ?? 1.0);
 
             const duration = getSettingSafely(MODULE.ID, 'broadcastAnimationDuration', 250);
             await canvas.animatePan({
-                x: canvasToken.x,
-                y: canvasToken.y,
-                scale: canvas.stage?.scale?.x ?? 1,
+                x: center.x,
+                y: center.y,
+                scale: finalZoom,
                 duration,
                 easing: 'easeInOutCosine'
             });
@@ -1381,34 +1396,6 @@ export class BroadcastManager {
         }
         
         return true;
-    }
-
-    /**
-     * Calculate final zoom level from default zoom and offset
-     * @param {number} defaultZoom - The baseline zoom level (e.g., 1.0)
-     * @param {number} offset - Offset from -5 to +5, where 0 = no change from default
-     * @returns {number} Final zoom level
-     */
-    static _calculateZoomFromOffset(defaultZoom, offset) {
-        // Offset 0 = default zoom (no change)
-        // Offset -5 = zoom out to 0.2x (5x zoom out)
-        // Offset +5 = zoom in to 5.0x (5x zoom in)
-        
-        if (offset === 0) {
-            return defaultZoom;
-        } else if (offset > 0) {
-            // Positive offset: zoom in (1.0x to 5.0x multiplier)
-            // Formula: multiplier = 1.0 + (offset / 5) * 4.0
-            // Examples: +1 -> 1.8x, +3 -> 3.4x, +5 -> 5.0x
-            const multiplier = 1.0 + (offset / 5) * 4.0;
-            return defaultZoom * multiplier;
-        } else {
-            // Negative offset: zoom out (0.2x to 1.0x multiplier)
-            // Formula: multiplier = 1.0 + (offset / 5) * 0.8
-            // Examples: -1 -> 0.84x, -3 -> 0.52x, -5 -> 0.2x
-            const multiplier = 1.0 + (offset / 5) * 0.8;
-            return defaultZoom * multiplier;
-        }
     }
 
     /**

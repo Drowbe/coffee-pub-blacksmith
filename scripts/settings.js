@@ -1837,31 +1837,31 @@ export const registerSettings = () => {
 
 
 
-			// Broadcast Default Zoom Level
-			game.settings.register(MODULE.ID, 'broadcastDefaultZoom', {
-				name: MODULE.ID + '.broadcastDefaultZoom-Label',
-				hint: MODULE.ID + '.broadcastDefaultZoom-Hint',
-				scope: 'world',
-				config: true,
-				requiresReload: false,
-				type: Number,
-				default: 1.0,
-				range: { min: 0.1, max: 2.0, step: 0.1 },
-				group: WORKFLOW_GROUPS.RUN_THE_GAME
-			});
+		// Broadcast Follow Padding (%)
+		game.settings.register(MODULE.ID, 'broadcastFollowPadding', {
+			name: MODULE.ID + '.broadcastFollowPadding-Label',
+			hint: MODULE.ID + '.broadcastFollowPadding-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Number,
+			default: 20,
+			range: { min: 10, max: 100, step: 5 },
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
 
-			// Broadcast Spectator Zoom Offset Single
-			game.settings.register(MODULE.ID, 'broadcastSpectatorZoomOffsetSingle', {
-				name: MODULE.ID + '.broadcastSpectatorZoomOffsetSingle-Label',
-				hint: MODULE.ID + '.broadcastSpectatorZoomOffsetSingle-Hint',
-				scope: 'world',
-				config: true,
-				requiresReload: false,
-				type: Number,
-				default: 0,
-				range: { min: -5, max: 5, step: 1 },
-				group: WORKFLOW_GROUPS.RUN_THE_GAME
-			});
+		// Broadcast Combat Padding (%)
+		game.settings.register(MODULE.ID, 'broadcastCombatPadding', {
+			name: MODULE.ID + '.broadcastCombatPadding-Label',
+			hint: MODULE.ID + '.broadcastCombatPadding-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Number,
+			default: 20,
+			range: { min: 10, max: 100, step: 5 },
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
 
 			// Broadcast Spectator Party Box Padding
 			game.settings.register(MODULE.ID, 'broadcastSpectatorPartyBoxPadding', {

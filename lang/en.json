@@ -245,11 +245,11 @@
 				"broadcastMode-Label": "Camera Mode",
 				"broadcastMode-Hint": "",
 
-				"broadcastDefaultZoom-Label": "Default Zoom Level",
-				"broadcastDefaultZoom-Hint": "The baseline zoom level used for broadcast camera. Zoom offset sliders adjust relative to this level.",
+				"broadcastFollowPadding-Label": "Follow Mode Padding (%)",
+				"broadcastFollowPadding-Hint": "Border padding around the followed token.",
 
-				"broadcastSpectatorZoomOffsetSingle-Label": "Spectator Zoom Offset (Single Token)",
-				"broadcastSpectatorZoomOffsetSingle-Hint": "Zoom offset when following a single party token. 0 = default zoom, -5 = zoom out 5x, +5 = zoom in 5x.",
+				"broadcastCombatPadding-Label": "Combat Mode Padding (%)",
+				"broadcastCombatPadding-Hint": "Border padding around the current combatant.",
 
 				"broadcastSpectatorPartyBoxPadding-Label": "Spectator Mode Padding (%)",
 				"broadcastSpectatorPartyBoxPadding-Hint": "Boarder padding around the collection of party tokens.",
