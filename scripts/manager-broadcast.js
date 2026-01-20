@@ -1271,6 +1271,47 @@ export class BroadcastManager {
     }
 
     /**
+     * Calculate zoom level for a box to fill a percentage of the viewport.
+     * @param {number} boxWidth - Box width in pixels
+     * @param {number} boxHeight - Box height in pixels
+     * @param {number} fillPercent - Percent of viewport the box should fill (0-100)
+     * @returns {number|null} Calculated zoom level or null if unable to calculate
+     */
+    static _calculateViewportFillZoom(boxWidth, boxHeight, fillPercent) {
+        if (!boxWidth || !boxHeight || boxWidth <= 0 || boxHeight <= 0) return null;
+        const viewportWidth = canvas.app?.renderer?.width || window.innerWidth || 1920;
+        const viewportHeight = canvas.app?.renderer?.height || window.innerHeight || 1080;
+        const clampedFill = Math.max(1, Math.min(100, fillPercent));
+        const fillFraction = clampedFill / 100;
+
+        const zoomX = (viewportWidth * fillFraction) / boxWidth;
+        const zoomY = (viewportHeight * fillFraction) / boxHeight;
+        const zoom = Math.min(zoomX, zoomY);
+
+        const min = canvas.scene?._viewPosition?.minScale ?? 0.25;
+        const max = canvas.scene?._viewPosition?.maxScale ?? 3.0;
+        const finalZoom = Math.max(min, Math.min(max, zoom));
+
+        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Viewport fill zoom calculation", {
+            boxWidth,
+            boxHeight,
+            fillPercent,
+            clampedFill,
+            fillFraction,
+            viewportWidth,
+            viewportHeight,
+            zoomX,
+            zoomY,
+            zoom,
+            min,
+            max,
+            finalZoom
+        }, true, false);
+
+        return finalZoom;
+    }
+
+    /**
      * Calculate zoom level to fit party bounding box based on viewport fill percent
      * @param {Array} tokens - Array of token placeables
      * @param {number} fillPercent - Percent of viewport the box should fill (0-100)
@@ -1283,43 +1324,7 @@ export class BroadcastManager {
         const bbox = this._calculateTokenBoundingBox(tokens);
         if (!bbox || bbox.width <= 0 || bbox.height <= 0) return null;
         
-        // Get viewport dimensions (canvas app renderer size, not grid size)
-        // canvas.dimensions.size is the grid size, not viewport size
-        const viewportWidth = canvas.app?.renderer?.width || window.innerWidth || 1920;
-        const viewportHeight = canvas.app?.renderer?.height || window.innerHeight || 1080;
-        
-        const clampedFill = Math.max(1, Math.min(100, fillPercent));
-        const fillFraction = clampedFill / 100;
-
-        // Calculate zoom needed so the box fills a fraction of the viewport
-        const zoomX = (viewportWidth * fillFraction) / bbox.width;
-        const zoomY = (viewportHeight * fillFraction) / bbox.height;
-        
-        // Use the smaller zoom to ensure entire box fits (zoom out more if needed)
-        const zoom = Math.min(zoomX, zoomY);
-        
-        // Clamp to scene min/max zoom bounds
-        const min = canvas.scene?._viewPosition?.minScale ?? 0.25;
-        const max = canvas.scene?._viewPosition?.maxScale ?? 3.0;
-        
-        const finalZoom = Math.max(min, Math.min(max, zoom));
-        
-        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Auto-fit zoom calculation", {
-            bbox: bbox,
-            fillPercent: fillPercent,
-            clampedFill: clampedFill,
-            fillFraction: fillFraction,
-            viewportWidth: viewportWidth,
-            viewportHeight: viewportHeight,
-            zoomX: zoomX,
-            zoomY: zoomY,
-            zoom: zoom,
-            min: min,
-            max: max,
-            finalZoom: finalZoom
-        }, true, false);
-        
-        return finalZoom;
+        return this._calculateViewportFillZoom(bbox.width, bbox.height, fillPercent);
     }
 
     /**
@@ -1332,20 +1337,7 @@ export class BroadcastManager {
         if (!boxSizeGrid || boxSizeGrid <= 0) return null;
         const gridSize = canvas.grid?.size || 100;
         const boxPixels = boxSizeGrid * gridSize;
-
-        const viewportWidth = canvas.app?.renderer?.width || window.innerWidth || 1920;
-        const viewportHeight = canvas.app?.renderer?.height || window.innerHeight || 1080;
-
-        const clampedFill = Math.max(1, Math.min(100, fillPercent));
-        const fillFraction = clampedFill / 100;
-
-        const zoomX = (viewportWidth * fillFraction) / boxPixels;
-        const zoomY = (viewportHeight * fillFraction) / boxPixels;
-        const zoom = Math.min(zoomX, zoomY);
-
-        const min = canvas.scene?._viewPosition?.minScale ?? 0.25;
-        const max = canvas.scene?._viewPosition?.maxScale ?? 3.0;
-        return Math.max(min, Math.min(max, zoom));
+        return this._calculateViewportFillZoom(boxPixels, boxPixels, fillPercent);
     }
 
     /**
