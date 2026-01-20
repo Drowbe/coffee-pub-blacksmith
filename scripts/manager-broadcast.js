@@ -1818,7 +1818,7 @@ export class BroadcastManager {
                 'tools': {
                     mode: 'default',
                     order: 3,
-                    bannerColor: 'rgba(92, 117, 24, 0.9)'
+                    bannerColor: 'rgba(13, 107, 87, 0.9)'
                 }
             }
         });

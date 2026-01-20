@@ -1925,7 +1925,7 @@ export const registerSettings = () => {
 			requiresReload: false,
 			type: Number,
 			default: 20,
-			range: { min: 10, max: 100, step: 5 },
+			range: { min: 1, max: 100, step: 1 },
 			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 
@@ -1937,23 +1937,23 @@ export const registerSettings = () => {
 			config: true,
 			requiresReload: false,
 			type: Number,
-			default: 20,
-			range: { min: 10, max: 100, step: 5 },
+			default: 15,
+			range: { min: 1, max: 100, step: 1 },
 			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 
-			// Broadcast Spectator Party Box View Fill
-			game.settings.register(MODULE.ID, 'broadcastSpectatorPartyBoxFill', {
-				name: MODULE.ID + '.broadcastSpectatorPartyBoxFill-Label',
-				hint: MODULE.ID + '.broadcastSpectatorPartyBoxFill-Hint',
-				scope: 'world',
-				config: true,
-				requiresReload: false,
-				type: Number,
-				default: 20,
-				range: { min: 10, max: 100, step: 5 },
-				group: WORKFLOW_GROUPS.RUN_THE_GAME
-			});
+		// Broadcast Spectator Party Box View Fill
+		game.settings.register(MODULE.ID, 'broadcastSpectatorPartyBoxFill', {
+			name: MODULE.ID + '.broadcastSpectatorPartyBoxFill-Label',
+			hint: MODULE.ID + '.broadcastSpectatorPartyBoxFill-Hint',
+			scope: 'world',
+			config: true,
+			requiresReload: false,
+			type: Number,
+			default: 70,
+			range: { min: 1, max: 100, step: 1 },
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
 
 		// Legacy padding settings (kept for migration)
 		game.settings.register(MODULE.ID, 'broadcastFollowPadding', {
