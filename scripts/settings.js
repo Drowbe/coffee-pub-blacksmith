@@ -1837,7 +1837,7 @@ export const registerSettings = () => {
 
 
 
-		// Broadcast Follow Padding (%)
+		// Broadcast Follow View Fill (%)
 		game.settings.register(MODULE.ID, 'broadcastFollowPadding', {
 			name: MODULE.ID + '.broadcastFollowPadding-Label',
 			hint: MODULE.ID + '.broadcastFollowPadding-Hint',
@@ -1850,7 +1850,7 @@ export const registerSettings = () => {
 			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 
-		// Broadcast Combat Padding (%)
+		// Broadcast Combat View Fill (%)
 		game.settings.register(MODULE.ID, 'broadcastCombatPadding', {
 			name: MODULE.ID + '.broadcastCombatPadding-Label',
 			hint: MODULE.ID + '.broadcastCombatPadding-Hint',
@@ -1863,7 +1863,7 @@ export const registerSettings = () => {
 			group: WORKFLOW_GROUPS.RUN_THE_GAME
 		});
 
-			// Broadcast Spectator Party Box Padding
+			// Broadcast Spectator Party Box View Fill
 			game.settings.register(MODULE.ID, 'broadcastSpectatorPartyBoxPadding', {
 				name: MODULE.ID + '.broadcastSpectatorPartyBoxPadding-Label',
 				hint: MODULE.ID + '.broadcastSpectatorPartyBoxPadding-Hint',
@@ -1872,7 +1872,7 @@ export const registerSettings = () => {
 				requiresReload: false,
 				type: Number,
 				default: 20,
-				range: { min: 0, max: 100, step: 5 },
+				range: { min: 10, max: 100, step: 5 },
 				group: WORKFLOW_GROUPS.RUN_THE_GAME
 			});
 

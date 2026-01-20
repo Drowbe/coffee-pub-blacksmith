@@ -3700,9 +3700,18 @@ class MenuBar {
             itemsByGroup.get(groupId).push(item);
         }
         
-        // Prime master switch groups from existing active states
+        // Normalize active states against visible items and prime master switch groups
         for (const [groupId, activeItemId] of activeStates.entries()) {
-            if (!activeItemId) continue;
+            if (!activeItemId) {
+                activeStates.delete(groupId);
+                continue;
+            }
+            const groupItems = itemsByGroup.get(groupId);
+            if (!groupItems || !groupItems.some(item => item.itemId === activeItemId)) {
+                // Active item is missing or hidden; clear stale state
+                activeStates.delete(groupId);
+                continue;
+            }
             const groupConfig = groups.get(groupId);
             const masterKey = groupConfig?.masterSwitchGroup || null;
             if (masterKey && !masterActiveGroup.has(masterKey)) {

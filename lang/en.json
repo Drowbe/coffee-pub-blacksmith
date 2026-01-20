@@ -245,14 +245,14 @@
 				"broadcastMode-Label": "Camera Mode",
 				"broadcastMode-Hint": "",
 
-				"broadcastFollowPadding-Label": "Follow Mode Padding (%)",
-				"broadcastFollowPadding-Hint": "Border padding around the followed token.",
+				"broadcastFollowPadding-Label": "Follow Mode View Fill (%)",
+				"broadcastFollowPadding-Hint": "Percent of the viewport the follow box should fill.",
 
-				"broadcastCombatPadding-Label": "Combat Mode Padding (%)",
-				"broadcastCombatPadding-Hint": "Border padding around the current combatant.",
+				"broadcastCombatPadding-Label": "Combat Mode View Fill (%)",
+				"broadcastCombatPadding-Hint": "Percent of the viewport the combatant box should fill.",
 
-				"broadcastSpectatorPartyBoxPadding-Label": "Spectator Mode Padding (%)",
-				"broadcastSpectatorPartyBoxPadding-Hint": "Boarder padding around the collection of party tokens.",
+				"broadcastSpectatorPartyBoxPadding-Label": "Spectator Mode View Fill (%)",
+				"broadcastSpectatorPartyBoxPadding-Hint": "Percent of the viewport the party box should fill.",
 				
 
 		"headingH2CombatEnhancements-Label": "Combat",

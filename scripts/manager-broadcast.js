@@ -798,14 +798,14 @@ export class BroadcastManager {
             let finalZoom;
             
             // Use auto-fit zoom based on bounding box + padding (single or multiple tokens)
-            const paddingPercent = getSettingSafely(MODULE.ID, 'broadcastSpectatorPartyBoxPadding', 20);
-            const autoFitZoom = this._calculateAutoFitZoom(partyTokens, paddingPercent);
+            const fillPercent = getSettingSafely(MODULE.ID, 'broadcastSpectatorPartyBoxPadding', 20);
+            const autoFitZoom = this._calculateAutoFitZoom(partyTokens, fillPercent);
             
             if (autoFitZoom !== null) {
                 finalZoom = autoFitZoom;
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Auto-fit zoom calculated", {
                     tokenCount: partyTokens.length,
-                    paddingPercent: paddingPercent,
+                    fillPercent: fillPercent,
                     autoFitZoom: autoFitZoom
                 }, true, false);
             } else {
@@ -997,8 +997,8 @@ export class BroadcastManager {
             const center = this._getTokenCenter(canvasToken);
             if (!center) return;
 
-            const paddingPercent = getSettingSafely(MODULE.ID, 'broadcastCombatPadding', 20);
-            const autoFitZoom = this._calculateAutoFitZoom([canvasToken], paddingPercent);
+            const fillPercent = getSettingSafely(MODULE.ID, 'broadcastCombatPadding', 20);
+            const autoFitZoom = this._calculateAutoFitZoom([canvasToken], fillPercent);
             const finalZoom = autoFitZoom ?? (canvas.stage?.scale?.x ?? 1.0);
             const duration = getSettingSafely(MODULE.ID, 'broadcastAnimationDuration', 250);
 
@@ -1038,9 +1038,10 @@ export class BroadcastManager {
             const shouldPan = forcePan ? true : this._shouldPan({ x: center.x, y: center.y }, [canvasToken]);
             if (!shouldPan) return;
 
-            const paddingPercent = getSettingSafely(MODULE.ID, 'broadcastFollowPadding', 20);
-            const autoFitZoom = this._calculateAutoFitZoom([canvasToken], paddingPercent);
-            const finalZoom = autoFitZoom ?? (canvas.stage?.scale?.x ?? 1.0);
+            const fillPercent = getSettingSafely(MODULE.ID, 'broadcastFollowPadding', 20);
+            const followBoxGridSize = 3;
+            const fixedZoom = this._calculateFixedBoxZoom(followBoxGridSize, fillPercent);
+            const finalZoom = fixedZoom ?? (canvas.stage?.scale?.x ?? 1.0);
 
             const duration = getSettingSafely(MODULE.ID, 'broadcastAnimationDuration', 250);
             await canvas.animatePan({
@@ -1270,12 +1271,12 @@ export class BroadcastManager {
     }
 
     /**
-     * Calculate zoom level to fit party bounding box with padding in viewport
+     * Calculate zoom level to fit party bounding box based on viewport fill percent
      * @param {Array} tokens - Array of token placeables
-     * @param {number} paddingPercent - Padding percentage (0-100)
+     * @param {number} fillPercent - Percent of viewport the box should fill (0-100)
      * @returns {number|null} Calculated zoom level or null if unable to calculate
      */
-    static _calculateAutoFitZoom(tokens, paddingPercent) {
+    static _calculateAutoFitZoom(tokens, fillPercent) {
         if (!tokens || tokens.length === 0) return null;
         
         // Calculate bounding box
@@ -1287,15 +1288,12 @@ export class BroadcastManager {
         const viewportWidth = canvas.app?.renderer?.width || window.innerWidth || 1920;
         const viewportHeight = canvas.app?.renderer?.height || window.innerHeight || 1080;
         
-        // Add padding to bounding box (paddingPercent is percentage, so 20% = 0.2)
-        const paddingMultiplier = 1 + (paddingPercent / 100);
-        const paddedWidth = bbox.width * paddingMultiplier;
-        const paddedHeight = bbox.height * paddingMultiplier;
-        
-        // Calculate zoom needed to fit padded box in viewport
-        // Zoom = viewport size / padded box size
-        const zoomX = viewportWidth / paddedWidth;
-        const zoomY = viewportHeight / paddedHeight;
+        const clampedFill = Math.max(1, Math.min(100, fillPercent));
+        const fillFraction = clampedFill / 100;
+
+        // Calculate zoom needed so the box fills a fraction of the viewport
+        const zoomX = (viewportWidth * fillFraction) / bbox.width;
+        const zoomY = (viewportHeight * fillFraction) / bbox.height;
         
         // Use the smaller zoom to ensure entire box fits (zoom out more if needed)
         const zoom = Math.min(zoomX, zoomY);
@@ -1308,9 +1306,9 @@ export class BroadcastManager {
         
         postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Auto-fit zoom calculation", {
             bbox: bbox,
-            paddingPercent: paddingPercent,
-            paddedWidth: paddedWidth,
-            paddedHeight: paddedHeight,
+            fillPercent: fillPercent,
+            clampedFill: clampedFill,
+            fillFraction: fillFraction,
             viewportWidth: viewportWidth,
             viewportHeight: viewportHeight,
             zoomX: zoomX,
@@ -1322,6 +1320,32 @@ export class BroadcastManager {
         }, true, false);
         
         return finalZoom;
+    }
+
+    /**
+     * Calculate zoom level to fit a fixed-size box (in grid units) based on viewport fill percent.
+     * @param {number} boxSizeGrid - Box size in grid units (assumes square)
+     * @param {number} fillPercent - Percent of viewport the box should fill (0-100)
+     * @returns {number|null} Calculated zoom level or null if unable to calculate
+     */
+    static _calculateFixedBoxZoom(boxSizeGrid, fillPercent) {
+        if (!boxSizeGrid || boxSizeGrid <= 0) return null;
+        const gridSize = canvas.grid?.size || 100;
+        const boxPixels = boxSizeGrid * gridSize;
+
+        const viewportWidth = canvas.app?.renderer?.width || window.innerWidth || 1920;
+        const viewportHeight = canvas.app?.renderer?.height || window.innerHeight || 1080;
+
+        const clampedFill = Math.max(1, Math.min(100, fillPercent));
+        const fillFraction = clampedFill / 100;
+
+        const zoomX = (viewportWidth * fillFraction) / boxPixels;
+        const zoomY = (viewportHeight * fillFraction) / boxPixels;
+        const zoom = Math.min(zoomX, zoomY);
+
+        const min = canvas.scene?._viewPosition?.minScale ?? 0.25;
+        const max = canvas.scene?._viewPosition?.maxScale ?? 3.0;
+        return Math.max(min, Math.min(max, zoom));
     }
 
     /**
