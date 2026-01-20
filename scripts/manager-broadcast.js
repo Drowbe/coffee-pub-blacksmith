@@ -25,7 +25,7 @@ export class BroadcastManager {
     static _lastModeEmit = { mode: null, at: 0 };
     static _playerButtonsDebounce = null;
     static _lastBroadcastMode = null;
-    static _broadcastTrackedWindows = new Map(); // appId -> { type, timeoutId }
+    static _broadcastTrackedWindows = new Map(); // appKey -> { type, timeoutId, appRef }
     static _broadcastWindowHooksRegistered = false;
     
     // Resource tracking for cleanup
@@ -1183,20 +1183,20 @@ export class BroadcastManager {
 
     static _trackBroadcastWindow(app, type) {
         if (!this._shouldTrackBroadcastWindows()) return;
-        if (!app?.appId) return;
+        if (!app) return;
 
-        const appId = app.appId;
-        const existing = this._broadcastTrackedWindows.get(appId);
+        const appKey = app.appId ?? app.id ?? app._id ?? app;
+        const existing = this._broadcastTrackedWindows.get(appKey);
         if (existing?.timeoutId) {
             clearTimeout(existing.timeoutId);
         }
 
-        const entry = { type, timeoutId: null };
-        this._broadcastTrackedWindows.set(appId, entry);
-        this._scheduleBroadcastWindowClose(appId, type, app);
+        const entry = { type, timeoutId: null, appRef: app };
+        this._broadcastTrackedWindows.set(appKey, entry);
+        this._scheduleBroadcastWindowClose(appKey, type, app);
     }
 
-    static _scheduleBroadcastWindowClose(appId, type, appRef = null) {
+    static _scheduleBroadcastWindowClose(appKey, type, appRef = null) {
         const shouldAutoClose = getSettingSafely(MODULE.ID, 'broadcastAutoCloseWindows', true);
 
         if (!shouldAutoClose) return;
@@ -1205,17 +1205,18 @@ export class BroadcastManager {
 
         const delayMs = Math.max(1, delaySeconds) * 1000;
         const timeoutId = setTimeout(() => {
-            const entry = this._broadcastTrackedWindows.get(appId);
+            const entry = this._broadcastTrackedWindows.get(appKey);
             if (!entry) return;
-            if (appRef?.close) {
-                appRef.close({ animate: false });
+            const app = appRef || entry.appRef;
+            if (app?.close) {
+                app.close({ animate: false });
             }
-            this._clearTrackedWindow(appId);
+            this._clearTrackedWindow(appKey);
             this._closeTrackedWindowsByType(type);
         }, delayMs);
 
         this._timeoutIds.add(timeoutId);
-        const entry = this._broadcastTrackedWindows.get(appId);
+        const entry = this._broadcastTrackedWindows.get(appKey);
         if (entry) {
             entry.timeoutId = timeoutId;
         }
@@ -1231,23 +1232,23 @@ export class BroadcastManager {
         return null;
     }
 
-    static _clearTrackedWindow(appId) {
-        const entry = this._broadcastTrackedWindows.get(appId);
+    static _clearTrackedWindow(appKey) {
+        const entry = this._broadcastTrackedWindows.get(appKey);
         if (entry?.timeoutId) {
             clearTimeout(entry.timeoutId);
         }
-        this._broadcastTrackedWindows.delete(appId);
+        this._broadcastTrackedWindows.delete(appKey);
     }
 
     static _closeTrackedWindowsByType(type) {
         let closedAny = false;
-        for (const [appId, entry] of this._broadcastTrackedWindows.entries()) {
+        for (const [appKey, entry] of this._broadcastTrackedWindows.entries()) {
             if (type && entry.type !== type) continue;
-            const app = ui.windows?.[appId];
+            const app = entry.appRef || ui.windows?.[appKey];
             if (app?.close) {
                 app.close({ animate: false });
             }
-            this._clearTrackedWindow(appId);
+            this._clearTrackedWindow(appKey);
             closedAny = true;
         }
 
@@ -1319,6 +1320,7 @@ export class BroadcastManager {
     static _registerBroadcastWindowHooks() {
         if (this._broadcastWindowHooksRegistered) return;
         this._broadcastWindowHooksRegistered = true;
+        console.log(`[${MODULE.NAME}] BroadcastManager: Registering broadcast window hooks`);
 
         HookManager.registerHook({
             name: 'renderImagePopout',
@@ -1328,6 +1330,7 @@ export class BroadcastManager {
             key: 'broadcast-windows-image',
             callback: (app, html) => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                console.log(`[${MODULE.NAME}] BroadcastManager: renderImagePopout hook fired`, { appId: app?.appId });
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: renderImagePopout hook fired", { appId: app?.appId }, true, false);
                 this._trackBroadcastWindow(app, 'image');
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
@@ -1342,6 +1345,7 @@ export class BroadcastManager {
             key: 'broadcast-windows-journal',
             callback: (app, html) => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                console.log(`[${MODULE.NAME}] BroadcastManager: renderJournalSheet hook fired`, { appId: app?.appId });
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: renderJournalSheet hook fired", { appId: app?.appId }, true, false);
                 this._trackBroadcastWindow(app, 'journal');
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
@@ -1356,6 +1360,7 @@ export class BroadcastManager {
             key: 'broadcast-windows-journal-page',
             callback: (app, html) => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                console.log(`[${MODULE.NAME}] BroadcastManager: renderJournalPageSheet hook fired`, { appId: app?.appId });
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: renderJournalPageSheet hook fired", { appId: app?.appId }, true, false);
                 this._trackBroadcastWindow(app, 'journal');
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
@@ -1372,6 +1377,10 @@ export class BroadcastManager {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                 const type = this._getBroadcastWindowType(app);
                 if (!type) return;
+                console.log(`[${MODULE.NAME}] BroadcastManager: renderApplication hook fired`, {
+                    appId: app?.appId,
+                    type
+                });
                 postConsoleAndNotification(MODULE.NAME, "BroadcastManager: renderApplication hook fired", {
                     appId: app?.appId,
                     type
