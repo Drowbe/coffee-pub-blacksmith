@@ -207,10 +207,10 @@ export class BroadcastManager {
             }
         }, 1000);
         
-        // Hook for token position updates (spectator mode)
+        // Hook for token position updates (spectator/follow/combat modes)
         HookManager.registerHook({
             name: 'updateToken',
-            description: 'BroadcastManager: Follow party tokens on movement (spectator mode)',
+            description: 'BroadcastManager: Follow tokens on movement (spectator/follow/combat modes)',
             context: 'broadcast-camera',
             priority: 3,
             callback: async (tokenDocument, changes, options, userId) => {
@@ -234,12 +234,22 @@ export class BroadcastManager {
                     return;
                 }
                 
-                // Check if we're in spectator or follow mode
+                // Check if we're in spectator, follow, or combat mode
                 const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
                 if (mode === 'playerview-follow') {
                     const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
                     if (followTokenId && tokenDocument?.id === followTokenId) {
                         await this._onFollowTokenUpdate(tokenDocument);
+                    }
+                    return;
+                }
+                if (mode === 'combat') {
+                    const combat = game.combat;
+                    if (!combat) return;
+                    const currentCombatant = combat.combatants.get(combat.current.combatantId);
+                    const combatToken = currentCombatant?.token;
+                    if (combatToken && combatToken.id === tokenDocument?.id) {
+                        this._onCombatUpdate(combat);
                     }
                     return;
                 }
@@ -338,7 +348,7 @@ export class BroadcastManager {
                 if (!updateData || updateData.turn === undefined) return;
                 
                 // Follow current combatant
-                this._onCombatUpdate(combat);
+                this._onCombatUpdate(combat, true);
                 
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
@@ -1001,7 +1011,7 @@ export class BroadcastManager {
                 // Immediately pan to current combatant if combat is active
                 const combat = game.combat;
                 if (combat) {
-                    this._onCombatUpdate(combat);
+                    this._onCombatUpdate(combat, true);
                 }
             }
         } else if (mode === 'gmview') {
@@ -1060,8 +1070,12 @@ export class BroadcastManager {
      * Handle combat turn update (combat mode)
      * @param {Combat} combat - The combat instance
      */
-    static _onCombatUpdate(combat) {
+    static _onCombatUpdate(combat, forcePan = false) {
         try {
+            if (!this._isBroadcastUser()) return;
+            if (!this.isEnabled()) return;
+            if (!canvas?.ready) return;
+            if (getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator') !== 'combat') return;
             if (!combat) return;
             
             const currentCombatant = combat.combatants.get(combat.current.combatantId);
@@ -1075,9 +1089,13 @@ export class BroadcastManager {
             const center = this._getTokenCenter(canvasToken);
             if (!center) return;
 
+            const shouldPan = forcePan ? true : this._shouldPan({ x: center.x, y: center.y }, [canvasToken]);
+            if (!shouldPan) return;
+
             const fillPercent = getSettingSafely(MODULE.ID, 'broadcastCombatViewFill', 20);
-            const autoFitZoom = this._calculateAutoFitZoom([canvasToken], fillPercent);
-            const finalZoom = autoFitZoom ?? (canvas.stage?.scale?.x ?? 1.0);
+            const followBoxGridSize = 3;
+            const fixedZoom = this._calculateFixedBoxZoom(followBoxGridSize, fillPercent);
+            const finalZoom = fixedZoom ?? (canvas.stage?.scale?.x ?? 1.0);
             const duration = getSettingSafely(MODULE.ID, 'broadcastAnimationDuration', 250);
 
             canvas.animatePan({
