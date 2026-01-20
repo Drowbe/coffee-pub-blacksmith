@@ -472,6 +472,9 @@ export class BroadcastManager {
                         case 'refresh':
                             window.location.reload();
                             break;
+                        case 'settings':
+                            game.settings.sheet.render(true);
+                            break;
                         default:
                             break;
                     }
@@ -1194,25 +1197,21 @@ export class BroadcastManager {
     }
 
     static _scheduleBroadcastWindowClose(appId, type, appRef = null) {
-        const shouldAutoClose = type === 'image'
-            ? getSettingSafely(MODULE.ID, 'broadcastAutoCloseImages', true)
-            : getSettingSafely(MODULE.ID, 'broadcastAutoCloseJournals', true);
+        const shouldAutoClose = getSettingSafely(MODULE.ID, 'broadcastAutoCloseWindows', true);
 
         if (!shouldAutoClose) return;
 
-        const delaySeconds = type === 'image'
-            ? getSettingSafely(MODULE.ID, 'broadcastImageCloseDelaySeconds', 3)
-            : getSettingSafely(MODULE.ID, 'broadcastJournalCloseDelaySeconds', 3);
+        const delaySeconds = getSettingSafely(MODULE.ID, 'broadcastAutoCloseDelaySeconds', 3);
 
         const delayMs = Math.max(1, delaySeconds) * 1000;
         const timeoutId = setTimeout(() => {
             const entry = this._broadcastTrackedWindows.get(appId);
             if (!entry) return;
-            const app = appRef || ui.windows?.[appId];
-            if (app?.close) {
-                app.close({ animate: false });
+            if (appRef?.close) {
+                appRef.close({ animate: false });
             }
             this._clearTrackedWindow(appId);
+            this._closeTrackedWindowsByType(type);
         }, delayMs);
 
         this._timeoutIds.add(timeoutId);
@@ -1220,6 +1219,16 @@ export class BroadcastManager {
         if (entry) {
             entry.timeoutId = timeoutId;
         }
+    }
+
+    static _getBroadcastWindowType(app) {
+        if (!app) return null;
+        const name = app.constructor?.name || '';
+        if (name === 'ImagePopout') return 'image';
+        const doc = app.document;
+        if (doc instanceof JournalEntry || doc instanceof JournalEntryPage) return 'journal';
+        if (name.toLowerCase().includes('journal')) return 'journal';
+        return null;
     }
 
     static _clearTrackedWindow(appId) {
@@ -1317,8 +1326,9 @@ export class BroadcastManager {
             context: 'broadcast-windows',
             priority: 5,
             key: 'broadcast-windows-image',
-            callback: (app) => {
+            callback: (app, html) => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: renderImagePopout hook fired", { appId: app?.appId }, true, false);
                 this._trackBroadcastWindow(app, 'image');
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
@@ -1330,8 +1340,9 @@ export class BroadcastManager {
             context: 'broadcast-windows',
             priority: 5,
             key: 'broadcast-windows-journal',
-            callback: (app) => {
+            callback: (app, html) => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: renderJournalSheet hook fired", { appId: app?.appId }, true, false);
                 this._trackBroadcastWindow(app, 'journal');
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
@@ -1343,9 +1354,29 @@ export class BroadcastManager {
             context: 'broadcast-windows',
             priority: 5,
             key: 'broadcast-windows-journal-page',
+            callback: (app, html) => {
+                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: renderJournalPageSheet hook fired", { appId: app?.appId }, true, false);
+                this._trackBroadcastWindow(app, 'journal');
+                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+            }
+        });
+
+        HookManager.registerHook({
+            name: 'renderApplication',
+            description: 'BroadcastManager: Track broadcast windows (generic)',
+            context: 'broadcast-windows',
+            priority: 5,
+            key: 'broadcast-windows-application',
             callback: (app) => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-                this._trackBroadcastWindow(app, 'journal');
+                const type = this._getBroadcastWindowType(app);
+                if (!type) return;
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: renderApplication hook fired", {
+                    appId: app?.appId,
+                    type
+                }, true, false);
+                this._trackBroadcastWindow(app, type);
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
@@ -2024,6 +2055,20 @@ export class BroadcastManager {
             onClick: async () => {
                 if (!game.user.isGM) return;
                 await this._emitBroadcastWindowCommand('refresh');
+            }
+        });
+
+        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-tool-settings', {
+            icon: 'fa-solid fa-gear',
+            label: null,
+            tooltip: 'Open settings on cameraman',
+            group: 'tools',
+            toggleable: false,
+            order: 4,
+            visible: () => game.user.isGM,
+            onClick: async () => {
+                if (!game.user.isGM) return;
+                await this._emitBroadcastWindowCommand('settings');
             }
         });
 

@@ -223,17 +223,11 @@
 				"broadcastFollowThrottleMs-Label": "Follow Throttle (ms)",
 				"broadcastFollowThrottleMs-Hint": "Minimum milliseconds between camera pan operations. Prevents excessive panning on rapid token movements.",
 
-				"broadcastAutoCloseImages-Label": "Automatically Close Images",
-				"broadcastAutoCloseImages-Hint": "Auto-close broadcast-opened images on the cameraman client.",
+				"broadcastAutoCloseWindows-Label": "Automatically Close Windows",
+				"broadcastAutoCloseWindows-Hint": "Auto-close broadcast-opened windows on the cameraman client.",
 
-				"broadcastImageCloseDelaySeconds-Label": "Image Close Delay (seconds)",
-				"broadcastImageCloseDelaySeconds-Hint": "Delay before auto-closing broadcast-opened images.",
-
-				"broadcastAutoCloseJournals-Label": "Automatically Close Journals",
-				"broadcastAutoCloseJournals-Hint": "Auto-close broadcast-opened journals on the cameraman client.",
-
-				"broadcastJournalCloseDelaySeconds-Label": "Journal Close Delay (seconds)",
-				"broadcastJournalCloseDelaySeconds-Hint": "Delay before auto-closing broadcast-opened journals.",
+				"broadcastAutoCloseDelaySeconds-Label": "Auto Close Delay (seconds)",
+				"broadcastAutoCloseDelaySeconds-Hint": "Delay before auto-closing broadcast-opened windows.",
 
 			"headingH3BroadcastUI-Label": "UI Visibility",
 			"headingH3BroadcastUI-Hint": "",
