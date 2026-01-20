@@ -496,9 +496,8 @@ export class BroadcastManager {
                 // Register socket handler for cameraman window opened (GM starts timer)
                 const windowOpenedHandler = 'broadcast.windowOpened';
                 this._socketHandlerNames.add(windowOpenedHandler);
-                await blacksmith.sockets.register(windowOpenedHandler, async (data) => {
+                await blacksmith.sockets.register(windowOpenedHandler, async () => {
                     //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-                    if (!data?.type) return;
                     if (!game.user.isGM) return;
                     if (!this.isEnabled()) return;
 
@@ -507,10 +506,10 @@ export class BroadcastManager {
 
                     const delaySeconds = getSettingSafely(MODULE.ID, 'broadcastAutoCloseDelaySeconds', 3);
                     const delayMs = Math.max(1, delaySeconds) * 1000;
-                    const action = data.type === 'image' ? 'close-images' : 'close-journals';
 
                     const timeoutId = setTimeout(() => {
-                        this._emitBroadcastWindowCommand(action);
+                        this._emitBroadcastWindowCommand('close-images');
+                        this._emitBroadcastWindowCommand('close-journals');
                     }, delayMs);
 
                     this._timeoutIds.add(timeoutId);
@@ -1217,7 +1216,7 @@ export class BroadcastManager {
         return this.isEnabled() && this._isBroadcastUser();
     }
 
-    static async _emitBroadcastWindowOpened(type) {
+    static async _emitBroadcastWindowOpened() {
         try {
             if (!this.isEnabled()) return;
             if (!this._isBroadcastUser()) return;
@@ -1225,11 +1224,10 @@ export class BroadcastManager {
             if (!blacksmith?.sockets) return;
             await blacksmith.sockets.waitForReady();
             await blacksmith.sockets.emit('broadcast.windowOpened', {
-                type,
                 sourceUserId: game.user.id
             });
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to emit window opened", { type, error }, true, false);
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to emit window opened", { error }, true, false);
         }
     }
 
@@ -1296,7 +1294,7 @@ export class BroadcastManager {
             key: 'broadcast-windows-image',
             callback: () => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-                this._emitBroadcastWindowOpened('image');
+                this._emitBroadcastWindowOpened();
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
@@ -1309,7 +1307,7 @@ export class BroadcastManager {
             key: 'broadcast-windows-journal',
             callback: () => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-                this._emitBroadcastWindowOpened('journal');
+                this._emitBroadcastWindowOpened();
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
@@ -1322,7 +1320,7 @@ export class BroadcastManager {
             key: 'broadcast-windows-journal-page',
             callback: () => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-                this._emitBroadcastWindowOpened('journal');
+                this._emitBroadcastWindowOpened();
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
@@ -1951,7 +1949,7 @@ export class BroadcastManager {
         MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-tool-close-images', {
             icon: 'fa-solid fa-image',
             label: null,
-            tooltip: 'Close broadcast images on cameraman',
+            tooltip: 'Close broadcast images',
             group: 'tools',
             toggleable: false,
             order: 0,
@@ -1963,9 +1961,9 @@ export class BroadcastManager {
         });
 
         MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-tool-close-journals', {
-            icon: 'fa-solid fa-book',
+            icon: 'fa-solid fa-book-open',
             label: null,
-            tooltip: 'Close broadcast journals on cameraman',
+            tooltip: 'Close broadcast journals',
             group: 'tools',
             toggleable: false,
             order: 1,
@@ -1977,9 +1975,9 @@ export class BroadcastManager {
         });
 
         MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-tool-close-windows', {
-            icon: 'fa-solid fa-rectangle-xmark',
+            icon: 'fa-solid fa-circle-xmark',
             label: null,
-            tooltip: 'Close all windows on cameraman',
+            tooltip: 'Close all windows',
             group: 'tools',
             toggleable: false,
             order: 2,
@@ -1991,9 +1989,9 @@ export class BroadcastManager {
         });
 
         MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-tool-refresh', {
-            icon: 'fa-solid fa-rotate-right',
+            icon: 'fa-solid fa-rotate',
             label: null,
-            tooltip: 'Refresh cameraman client',
+            tooltip: 'Refresh broadcast client',
             group: 'tools',
             toggleable: false,
             order: 3,
@@ -2007,7 +2005,7 @@ export class BroadcastManager {
         MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-tool-settings', {
             icon: 'fa-solid fa-gear',
             label: null,
-            tooltip: 'Open settings on cameraman',
+            tooltip: 'Open broadcast settings',
             group: 'tools',
             toggleable: false,
             order: 4,
