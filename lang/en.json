@@ -244,6 +244,9 @@
 				"broadcastHideInterfaceRight-Label": "Hide Right UI Section",
 				"broadcastHideInterfaceRight-Hint": "Hide the right UI section when in broadcast mode.",
 
+				"broadcastHideNotifications-Label": "Hide Notifications",
+				"broadcastHideNotifications-Hint": "Hide Foundry pop-up notifications when in broadcast mode.",
+
 
 			"headingH3BroadcastModeConfiguration-Label": "Mode Configuration",
 			"headingH3BroadcastModeConfiguration-Hint": "",

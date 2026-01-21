@@ -23,13 +23,32 @@ export class LoadingProgressManager {
     ];
 
     /**
+     * Check if Stream View is active
+     * Stream View hides most UI, so we should not show loading indicators
+     * @returns {boolean} True if Stream View is active
+     */
+    static isStreamView() {
+        if (typeof document === 'undefined' || !document.body) {
+            return false;
+        }
+        return document.body.classList.contains("stream") ||
+               document.body.classList.contains("no-ui");
+    }
+
+    /**
      * Show the loading progress indicator
      * Should be called as early as possible (in init hook)
      * Checks the coreLoadingProgress setting - defaults to showing if setting unavailable
+     * Does not show if Stream View is active
      */
     static show() {
         if (this._isVisible) {
             return; // Already showing
+        }
+
+        // Don't show if Stream View is active
+        if (this.isStreamView()) {
+            return;
         }
 
         // Check setting value - safe check that handles unregistered settings

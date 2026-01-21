@@ -826,6 +826,13 @@ export class BroadcastManager {
                 document.body.classList.remove('hide-background');
             }
             
+            // Apply notifications hiding class
+            if (getSettingSafely(MODULE.ID, 'broadcastHideNotifications', true)) {
+                document.body.classList.add('hide-notifications');
+            } else {
+                document.body.classList.remove('hide-notifications');
+            }
+            
             // Verify classes were applied
             const hasBroadcastClass = document.body.classList.contains('broadcast-mode');
             const hasLeftClass = document.body.classList.contains('hide-interface-left');
@@ -848,7 +855,7 @@ export class BroadcastManager {
                 bodyClasses: Array.from(document.body.classList)
             }, true, false);
         } else {
-            document.body.classList.remove('broadcast-mode', 'hide-interface-left', 'hide-interface-middle', 'hide-interface-right', 'hide-background');
+            document.body.classList.remove('broadcast-mode', 'hide-interface-left', 'hide-interface-middle', 'hide-interface-right', 'hide-background', 'hide-notifications');
         }
     }
 

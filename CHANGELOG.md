@@ -8,10 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.1.0]
 
+### NEW FEATURE
+- **Broadcast Mode**: Added broadcast mode for shared-screen, streaming, and recording FoundryVTT sessions.
+
 ### Added
 - **Broadcast Window Tools**: Added broadcast tools for closing images, closing journals, closing all windows, refreshing the cameraman client, and opening settings on the cameraman.
 - **Broadcast Auto-Close**: Added `broadcastAutoCloseWindows` and `broadcastAutoCloseDelaySeconds` to auto-close cameraman windows after share.
 - **Combat Target Framing**: Combat mode now includes targeted tokens in the framing box and updates view when targets change.
+- **Broadcast Notification Hiding**: Added `broadcastHideNotifications` setting to hide Foundry pop-up notifications (in `#notifications` container) when in broadcast mode.
 
 ### Changed
 - **Broadcast View Fill**: Follow, combat, and spectator now use viewport fill percent instead of padding; settings renamed to view fill and legacy padding migration removed.
@@ -20,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Timer Notification System Simplified**: Removed warning threshold from combat timers - now only uses critical threshold for consistency with planning timers. Unified timer pause/unpause notification settings to control both planning and combat timers.
 - **Timer Critical Message Setting**: Renamed `timerChatTurnRunningOut` to `combatTimerCriticalEnabled` for clarity. This setting now controls both notification popups and chat messages for critical threshold warnings in combat timers.
 - **Timer Notification Labels**: Updated planning timer labels to use "Critical" terminology instead of "Ending Soon" for consistency.
+- **Loading Indicator Stream View Detection**: Loading progress indicator now automatically detects Stream View mode and does not display when Stream View is active (checks for `stream` or `no-ui` classes on document.body).
 
 ### Fixed
 - **Menubar Enable Setting**: Fixed `enableMenubar` setting not controlling menubar visibility. Menubar now properly initializes only when enabled, removes DOM and resets CSS height variables when disabled, preventing content from being pushed down. Both `excludedUsersMenubar` and `enableMenubar` settings now work correctly together.

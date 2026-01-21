@@ -8,6 +8,19 @@ Phase 4 implements the core camera following functionality for the broadcast fea
 - **Manual Mode**: No automatic following (user controls camera)
 - **Background Removal**: Hide scene background when enabled
 
+## **Status Update (v13.0.13)**
+
+### **Status: COMPLETE (Phase 4 scope)**
+- **Spectator + Combat**: Implemented camera follow with view fill percent and shared zoom logic.
+- **Combat Alignment**: Combat mirrors follow behavior (turn-start pan, movement follow, 3x3 minimum box).
+- **Secondary Bar**: Broadcast bar and mode/tools controls implemented.
+- **Deviation**: Zoom behavior uses viewport fill percentage instead of fixed zoom levels.
+
+### **Additional Changes Beyond Phase 4**
+- **Player View Split**: Player view now supports mirror/follow groups (secondary bar).
+- **Broadcast Tools**: Close windows (images/journals/all), refresh, and open settings tools added.
+- **Auto-Close Windows**: GM-driven timer to close cameraman image/journal windows after share.
+
 ## **Decisions Made**
 
 ### **1. Mode Selection and Storage**

@@ -12,12 +12,32 @@ The Broadcast feature provides a simple, powerful system for streaming FoundryVT
 
 **Key Design Principle:** Instead of trying to detect OBS or browser sources (which is fragile and unreliable), we identify a specific user as the "broadcast user" and configure their client accordingly.
 
-## **Current Status: PLANNING**
+## **Current Status: IMPLEMENTED (Active)**
 
 ### **Status:**
 - ✅ **Architecture Designed**: User-based approach defined
 - ✅ **Patterns Identified**: Existing "hide from user" patterns found
 - ⏳ **Implementation**: Not yet started
+
+## **Current Implementation (v13.0.13)**
+
+### **Modes and Views**
+- **Spectator**: Follows party tokens and uses viewport fill percent for zoom.
+- **Combat**: Mirrors follow behavior with a fixed 3x3 minimum box, turn-start pan, and movement follow. Includes targeted tokens in framing.
+- **GM View**: Mirrors GM viewport.
+- **Map View**: Fits the current map to screen.
+- **Player View**: Split into **Mirror** (mirror a player viewport) and **Follow** (follow a selected token).
+
+### **Secondary Bar Groups**
+- **Modes**: Broadcast modes (switch group).
+- **Mirror**: Dynamic buttons for online players (switch group).
+- **Follow**: Dynamic buttons for player tokens on the current scene (switch group).
+- **Tools**: Close images, close journals, close all windows, refresh client, open settings (GM-only).
+
+### **Auto-Close Windows**
+- Cameraman client signals when a window opens.
+- GM starts an auto-close timer and sends a close command to the cameraman.
+- Close commands can target images, journals, or all windows.
 
 ## **Core Architecture Principles**
 

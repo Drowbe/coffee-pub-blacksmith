@@ -1837,7 +1837,7 @@ export const registerSettings = () => {
 				hint: MODULE.ID + '.broadcastHideBackground-Hint',
 				scope: 'world',
 				config: true,
-				requiresReload: false,
+				requiresReload: true,
 				type: Boolean,
 				default: true,
 				group: WORKFLOW_GROUPS.RUN_THE_GAME
@@ -1849,7 +1849,7 @@ export const registerSettings = () => {
 				hint: MODULE.ID + '.broadcastHideInterfaceLeft-Hint',
 				scope: 'world',
 				config: true,
-				requiresReload: false,
+				requiresReload: true,
 				type: Boolean,
 				default: true,
 				group: WORKFLOW_GROUPS.RUN_THE_GAME
@@ -1861,7 +1861,7 @@ export const registerSettings = () => {
 				hint: MODULE.ID + '.broadcastHideInterfaceMiddle-Hint',
 				scope: 'world',
 				config: true,
-				requiresReload: false,
+				requiresReload: true,
 				type: Boolean,
 				default: true,
 				group: WORKFLOW_GROUPS.RUN_THE_GAME
@@ -1873,11 +1873,27 @@ export const registerSettings = () => {
 				hint: MODULE.ID + '.broadcastHideInterfaceRight-Hint',
 				scope: 'world',
 				config: true,
-				requiresReload: false,
+				requiresReload: true,
 				type: Boolean,
 				default: true,
 				group: WORKFLOW_GROUPS.RUN_THE_GAME
 			});
+
+			// Broadcast Hide Interface Right
+			game.settings.register(MODULE.ID, 'broadcastHideNotifications', {
+				name: MODULE.ID + '.broadcastHideNotifications-Label',
+				hint: MODULE.ID + '.broadcastHideNotifications-Hint',
+				scope: 'world',
+				config: true,
+				requiresReload: true,
+				type: Boolean,
+				default: true,
+				group: WORKFLOW_GROUPS.RUN_THE_GAME
+			});
+
+
+
+
 
 		// --------------------------------------
 		// -- H3: Broadcast Mode Configuration
