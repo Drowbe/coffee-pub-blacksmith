@@ -8,8 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.0.13]
 
+### Added
+- **Broadcast Window Tools**: Added broadcast tools for closing images, closing journals, closing all windows, refreshing the cameraman client, and opening settings on the cameraman.
+- **Broadcast Auto-Close**: Added `broadcastAutoCloseWindows` and `broadcastAutoCloseDelaySeconds` to auto-close cameraman windows after share.
+- **Combat Target Framing**: Combat mode now includes targeted tokens in the framing box and updates view when targets change.
+
+### Changed
+- **Broadcast View Fill**: Follow, combat, and spectator now use viewport fill percent instead of padding; settings renamed to view fill and legacy padding migration removed.
+- **Combat Mode Alignment**: Combat mode now mirrors follow behavior (fixed 3x3 minimum box, turn-start pan, movement follow) with its own view fill.
+- **Broadcast Auto-Close Flow**: Cameraman emits `broadcast.windowOpened`; GM starts the auto-close timer and sends close commands.
+
 ### Fixed
 - **Menubar Enable Setting**: Fixed `enableMenubar` setting not controlling menubar visibility. Menubar now properly initializes only when enabled, removes DOM and resets CSS height variables when disabled, preventing content from being pushed down. Both `excludedUsersMenubar` and `enableMenubar` settings now work correctly together.
+- **Broadcast Follow Buttons on Scene Change**: Follow buttons now refresh when scenes change so the list matches current canvas tokens.
 
 ## [13.0.12]
 
@@ -2069,5 +2080,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed MVP player name formatting
 - Adjusted fumble icon color for better visibility
-
 

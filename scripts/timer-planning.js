@@ -503,8 +503,8 @@ export class PlanningTimer {
             playSound(pauseResumeSound, this.getTimerVolume());
         }
 
-        // Send chat message if GM
-        if (game.user.isGM) {
+        // Send chat message if GM and setting enabled
+        if (game.user.isGM && game.settings.get(MODULE.ID, 'timerChatPauseUnpause')) {
             this.sendChatMessage({
                 isPlanningPaused: true,
                 timeRemaining: this.formatTime(this.state.remaining)
@@ -583,11 +583,13 @@ export class PlanningTimer {
                 playSound(pauseResumeSound, this.getTimerVolume());
             }
 
-            // Send chat message for resume (GM only)
-            this.sendChatMessage({
-                isPlanningResumed: true,
-                timeRemaining: this.formatTime(this.state.remaining)
-            });
+            // Send chat message for resume if GM and setting enabled
+            if (game.settings.get(MODULE.ID, 'timerChatPauseUnpause')) {
+                this.sendChatMessage({
+                    isPlanningResumed: true,
+                    timeRemaining: this.formatTime(this.state.remaining)
+                });
+            }
 
             this.syncState();
         }

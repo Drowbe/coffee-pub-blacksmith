@@ -2855,6 +2855,18 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+
+	// Pause/Unpause messges
+	game.settings.register(MODULE.ID, 'timerChatPauseUnpause', {
+		name: MODULE.ID + '.timerChatPauseUnpause-Label',
+		hint: MODULE.ID + '.timerChatPauseUnpause-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- Timer Show Notifications --
 	game.settings.register(MODULE.ID, 'timerShowNotifications', {
 		name: MODULE.ID + '.timerShowNotifications-Label',
@@ -2907,7 +2919,7 @@ export const registerSettings = () => {
 		scope: "user",
 		config: true,
 		type: Number,
-		default: 0.8,
+		default: 0.5,
 		range: {
 			min: 0,
 			max: 1,
@@ -2916,87 +2928,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	// --------------------------------------
-	// -- H3: Global Timer Notifications	
-	// --------------------------------------
-	registerHeader('GlobalTimerNotifications', 'headingH3GlobalTimerNotifications-Label', 'headingH3GlobalTimerNotifications-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
-	// Timer Chat Message Settings
-	game.settings.register(MODULE.ID, 'timerChatPauseUnpause', {
-		name: MODULE.ID + '.timerChatPauseUnpause-Label',
-		hint: MODULE.ID + '.timerChatPauseUnpause-Hint',
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
-	// -- Planning Starting --
-	game.settings.register(MODULE.ID, 'timerChatPlanningStart', {
-		name: MODULE.ID + '.timerChatPlanningStart-Label',
-		hint: MODULE.ID + '.timerChatPlanningStart-Hint',
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
-	// -- Planning Ending Soon --
-	game.settings.register(MODULE.ID, 'timerChatPlanningRunningOut', {
-		name: MODULE.ID + '.timerChatPlanningRunningOut-Label',
-		hint: MODULE.ID + '.timerChatPlanningRunningOut-Hint',
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
-	// -- Planning Ended --
-	game.settings.register(MODULE.ID, 'timerChatPlanningEnded', {
-		name: MODULE.ID + '.timerChatPlanningEnded-Label',
-		hint: MODULE.ID + '.timerChatPlanningEnded-Hint',
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
-	// -- Turn Starting --
-	game.settings.register(MODULE.ID, 'timerChatTurnStart', {
-		name: MODULE.ID + '.timerChatTurnStart-Label',
-		hint: MODULE.ID + '.timerChatTurnStart-Hint',
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
-	// -- Turn Ending Soon --
-	game.settings.register(MODULE.ID, 'timerChatTurnRunningOut', {
-		name: MODULE.ID + '.timerChatTurnRunningOut-Label',
-		hint: MODULE.ID + '.timerChatTurnRunningOut-Hint',
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
-	// -- Turn Ended --
-	game.settings.register(MODULE.ID, 'timerChatTurnEnded', {
-		name: MODULE.ID + '.timerChatTurnEnded-Label',
-		hint: MODULE.ID + '.timerChatTurnEnded-Hint',
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
 
 	// --------------------------------------
 	// -- H3: Session Timer Settings	
@@ -3181,6 +3113,28 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Planning Starting --
+	game.settings.register(MODULE.ID, 'timerChatPlanningStart', {
+		name: MODULE.ID + '.timerChatPlanningStart-Label',
+		hint: MODULE.ID + '.timerChatPlanningStart-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Planning Ending Soon --
+	game.settings.register(MODULE.ID, 'timerChatPlanningRunningOut', {
+		name: MODULE.ID + '.timerChatPlanningRunningOut-Label',
+		hint: MODULE.ID + '.timerChatPlanningRunningOut-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- Planning Timer Ending Soon Threshold --
 	game.settings.register(MODULE.ID, 'planningTimerEndingSoonThreshold', {
 		name: MODULE.ID + '.planningTimerEndingSoonThreshold-Label',
@@ -3220,6 +3174,17 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Planning Ended --
+	game.settings.register(MODULE.ID, 'timerChatPlanningEnded', {
+		name: MODULE.ID + '.timerChatPlanningEnded-Label',
+		hint: MODULE.ID + '.timerChatPlanningEnded-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- Planning Timer Expired Message --
 	game.settings.register(MODULE.ID, 'planningTimerExpiredMessage', {
 		name: MODULE.ID + '.planningTimerExpiredMessage-Label',
@@ -3243,6 +3208,8 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+
+
 	// --------------------------------------
 	// -- H3: Combat Timer Settings	
 	// --------------------------------------
@@ -3256,6 +3223,17 @@ export const registerSettings = () => {
 		config: true,
 		type: Boolean,
 		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Combat Timer Label --
+	game.settings.register(MODULE.ID, 'combatTimerLabel', {
+		name: MODULE.ID + '.combatTimerLabel-Label',
+		hint: MODULE.ID + '.combatTimerLabel-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'Turn',
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
@@ -3281,6 +3259,8 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+
+
 	game.settings.register(MODULE.ID, 'combatTimerDuration', {
 		name: MODULE.ID + '.combatTimerDuration-Label',
 		hint: MODULE.ID + '.combatTimerDuration-Hint',
@@ -3296,6 +3276,17 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	
+	// -- Turn Starting --
+	game.settings.register(MODULE.ID, 'timerChatTurnStart', {
+		name: MODULE.ID + '.timerChatTurnStart-Label',
+		hint: MODULE.ID + '.timerChatTurnStart-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
 
 	// Combat Timer Settings
 	game.settings.register(MODULE.ID, 'combatTimerStartSound', {
@@ -3310,17 +3301,39 @@ export const registerSettings = () => {
 	});
 
 
-	// -- Combat Timer Label --
-	game.settings.register(MODULE.ID, 'combatTimerLabel', {
-		name: MODULE.ID + '.combatTimerLabel-Label',
-		hint: MODULE.ID + '.combatTimerLabel-Hint',
+	// -- End Turn on Timer Expiration --
+	game.settings.register(MODULE.ID, 'combatTimerEndTurn', {
+		name: MODULE.ID + '.combatTimerEndTurn-Label',
+		hint: MODULE.ID + '.combatTimerEndTurn-Hint',
 		scope: 'world',
 		config: true,
-		type: String,
-		default: 'Turn',
+		type: Boolean,
+		default: false,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+
+	// -- Auto End Turn Message --
+	game.settings.register(MODULE.ID, 'combatTimerAutoAdvanceMessage', {
+		name: MODULE.ID + '.combatTimerAutoAdvanceMessage-Label',
+		hint: MODULE.ID + '.combatTimerAutoAdvanceMessage-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '{name}\'s turn was automatically ended.',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});	
+
+	// -- Combat Timer Critical Enabled --
+	game.settings.register(MODULE.ID, 'combatTimerCriticalEnabled', {
+		name: MODULE.ID + '.combatTimerCriticalEnabled-Label',
+		hint: MODULE.ID + '.combatTimerCriticalEnabled-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
 
 	// -- Critical Threshold --
 	game.settings.register(MODULE.ID, 'combatTimerCriticalThreshold', {
@@ -3360,6 +3373,17 @@ export const registerSettings = () => {
 		choices: BLACKSMITH.arrSoundChoices,
 	});
 
+	// -- Turn Ended --
+	game.settings.register(MODULE.ID, 'timerChatTurnEnded', {
+		name: MODULE.ID + '.timerChatTurnEnded-Label',
+		hint: MODULE.ID + '.timerChatTurnEnded-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- Expired Message --
 	game.settings.register(MODULE.ID, 'combatTimerExpiredMessage', {
 		name: MODULE.ID + '.combatTimerExpiredMessage-Label',
@@ -3382,29 +3406,6 @@ export const registerSettings = () => {
 		choices: BLACKSMITH.arrSoundChoices,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
-
-
-	// -- End Turn on Timer Expiration --
-	game.settings.register(MODULE.ID, 'combatTimerEndTurn', {
-		name: MODULE.ID + '.combatTimerEndTurn-Label',
-		hint: MODULE.ID + '.combatTimerEndTurn-Hint',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
-	// -- Auto End Turn Message --
-	game.settings.register(MODULE.ID, 'combatTimerAutoAdvanceMessage', {
-		name: MODULE.ID + '.combatTimerAutoAdvanceMessage-Label',
-		hint: MODULE.ID + '.combatTimerAutoAdvanceMessage-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '{name}\'s turn was automatically ended due to time expiration.',
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});	
 
 
 

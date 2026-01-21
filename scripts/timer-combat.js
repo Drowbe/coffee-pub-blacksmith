@@ -262,7 +262,7 @@ class CombatTimer {
                 playSound(resumeSound, this.getTimerVolume());
             }
         } else {
-            this.pauseTimer();
+            this.pauseTimer(false);
         }
     }
 
@@ -543,7 +543,7 @@ class CombatTimer {
             
             if (combat.turn === 0) {
                 this.state.isPaused = true;
-                this.pauseTimer();
+                this.pauseTimer(false);
             } else if (autoStart) {
                 this.resumeTimer();
                 
@@ -594,7 +594,7 @@ class CombatTimer {
                     playSound(startSound, this.getTimerVolume());
                 }
             } else {
-                this.pauseTimer();
+                this.pauseTimer(false);
             }
         }
     }
@@ -654,7 +654,7 @@ class CombatTimer {
         }
     }
 
-    static pauseTimer() {
+    static pauseTimer(sendMessage = true) {
         this.state.isPaused = true;
         this.state.showingMessage = false;
         this.state.hasHandledCritical = false;
@@ -673,8 +673,8 @@ class CombatTimer {
             playSound(pauseResumeSound, this.getTimerVolume());
         }
 
-        // Send chat message if GM and setting enabled
-        if (game.user.isGM && game.settings.get(MODULE.ID, 'timerChatPauseUnpause')) {
+        // Send chat message only if manually paused and setting enabled
+        if (sendMessage && game.user.isGM && game.settings.get(MODULE.ID, 'timerChatPauseUnpause')) {
             this.sendChatMessage({
                 isTimerPaused: true,
                 timeRemaining: this.formatTime(this.state.remaining)
@@ -797,14 +797,14 @@ class CombatTimer {
                 }
                 
                 // Show critical warning notification and send chat message - only once
-                if (!this.state.hasHandledCritical && this.shouldShowNotification()) {
+                if (!this.state.hasHandledCritical && this.shouldShowNotification() && game.settings.get(MODULE.ID, 'combatTimerCriticalEnabled')) {
                     this.state.hasHandledCritical = true;
                     const message = game.settings.get(MODULE.ID, 'combatTimerCriticalMessage');
                     const formattedMessage = this.getFormattedMessage(message);
                     ui.notifications.warn(formattedMessage);
 
-                    // Send critical warning chat message if GM and setting enabled
-                    if (game.user.isGM && game.settings.get(MODULE.ID, 'timerChatTurnRunningOut')) {
+                    // Send critical warning chat message if GM
+                    if (game.user.isGM) {
                         this.sendChatMessage({
                             isTimerExpiringSoon: true,
                             expiringSoonMessage: formattedMessage
@@ -1021,16 +1021,7 @@ class CombatTimer {
         const progressElements = document.querySelectorAll('.combat-timer-progress');
         progressElements.forEach(el => el.classList.remove('expired'));
         
-        // Start fresh timer with chat message
-        if (game.user.isGM && game.settings.get(MODULE.ID, 'timerChatTurnStart')) {
-            const duration = Math.floor(game.settings.get(MODULE.ID, 'combatTimerDuration') / 60);
-            this.sendChatMessage({
-                isTimerStart: true,
-                duration: duration
-            });
-        }
-        
-        // Start fresh timer
+        // Start fresh timer (startTimer will send chat message if enabled)
         this.startTimer();
 
     }

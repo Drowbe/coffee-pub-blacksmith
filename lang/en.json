@@ -503,7 +503,7 @@
 			"combatTimerGMOnly-Label": "GM-Only Timers",
 			"combatTimerGMOnly-Hint": "When enabled, the timers will only be visible to the GM in the combat tracker",
 
-			"timerShowNotifications-Label": "Show Chat Notifications",
+			"timerShowNotifications-Label": "Show Timer Popup Notifications",
 			"timerShowNotifications-Hint": "",
 
 			"timerNotificationOverride-Label": "Notification Override List",
@@ -518,30 +518,8 @@
 			"timerSoundVolume-Label": "Sound Volume",
 			"timerSoundVolume-Hint": "",
 
-
-		"headingH3GlobalTimerNotifications-Label": "Chat Notifications",
-		"headingH3GlobalTimerNotifications-Hint": "",
-
-			"timerChatPauseUnpause-Label": "Pause/Unpause",
+			"timerChatPauseUnpause-Label": "Send Pause/Unpause Notifications",
 			"timerChatPauseUnpause-Hint": "",
-
-			"timerChatPlanningStart-Label": "Planning Starting",
-			"timerChatPlanningStart-Hint": "",
-
-			"timerChatTurnStart-Label": "Turn Starting",
-			"timerChatTurnStart-Hint": "",
-
-			"timerChatPlanningRunningOut-Label": "Planning Ending Soon",
-			"timerChatPlanningRunningOut-Hint": "",
-
-			"timerChatTurnRunningOut-Label": "Turn Ending Soon",
-			"timerChatTurnRunningOut-Hint": "",
-
-			"timerChatPlanningEnded-Label": "Planning Ended",
-			"timerChatPlanningEnded-Hint": "",
-
-			"timerChatTurnEnded-Label": "Turn Ended",
-			"timerChatTurnEnded-Hint": "",
 
 		"headingH3RoundTimer-Label": "Round Timer",
 		"headingH3RoundTimer-Hint": "This timer keeps track of the actual real-world round time.",
@@ -573,40 +551,56 @@
 		"headingH3PlanningTimer-Label": "Planning Timer",
 		"headingH3PlanningTimer-Hint": "At the start of each round, a planning timer will be displayed. This timer will allow the players to plan their actions for the round.",
 
-			"planningTimerEnabled-Label": "Enable Planning Phase",
+			"planningTimerEnabled-Label": "Enable Planning Timer",
 			"planningTimerEnabled-Hint": "",
 
 			"planningTimerAutoStart-Label": "Auto-Start",
 			"planningTimerAutoStart-Hint": "",
 
-			"planningTimerLabel-Label": "Label",
+			"planningTimerLabel-Label": "Timer Label",
 			"planningTimerLabel-Hint": "",
 
-			"planningTimerDuration-Label": "Duration",
+			"planningTimerDuration-Label": "Planning Duration",
 			"planningTimerDuration-Hint": "",
 
-			"planningTimerEndingSoonThreshold-Label": "Ending Soon Threshold",
+			"timerChatPlanningStart-Label": "Send Starting Message",
+			"timerChatPlanningStart-Hint": "",
+
+
+
+			"timerChatPlanningRunningOut-Label": "Send Critical Message",
+			"timerChatPlanningRunningOut-Hint": "",
+
+			"planningTimerEndingSoonThreshold-Label": "Critical Threshold",
 			"planningTimerEndingSoonThreshold-Hint": "",
 
-			"planningTimerEndingSoonMessage-Label": "Ending Soon Message",
+			"planningTimerEndingSoonMessage-Label": "Critical Message",
 			"planningTimerEndingSoonMessage-Hint": "",
 
-			"planningTimerEndingSoonSound-Label": "Ending Soon Sound",
+			"planningTimerEndingSoonSound-Label": "Critical Sound",
 			"planningTimerEndingSoonSound-Hint": "",
 
-			"planningTimerExpiredMessage-Label": "Expired Message",
+
+
+			"timerChatPlanningEnded-Label": "Send Planning Ended Message",
+			"timerChatPlanningEnded-Hint": "",
+
+			"planningTimerExpiredMessage-Label": "Planning Ended Message",
 			"planningTimerExpiredMessage-Hint": "",
 
-			"planningTimerExpiredSound-Label": "Expired Sound",
+			"planningTimerExpiredSound-Label": "Planning Ended Sound",
 			"planningTimerExpiredSound-Hint": "",
 
-		"headingH3CombatTimer-Label": "Combat Timer",
+		"headingH3CombatTimer-Label": "Turn Timer",
 		"headingH3CombatTimer-Hint": "At the start of a player turn, a combat timer will be displayed under thier slot in the combat tracker. This timer will allow the players to track the time remaining for each turn.",
 
-			"combatTimerEnabled-Label": "Enable Combat Turn Timer",
+			"combatTimerEnabled-Label": "Enable Turn Timer",
 			"combatTimerEnabled-Hint": "",
 
-			"combatTimerAutoStart-Label": "Auto-Start",
+			"combatTimerLabel-Label": "Timer Label",
+			"combatTimerLabel-Hint": "",
+
+			"combatTimerAutoStart-Label": "Auto-Start Turn Timer",
 			"combatTimerAutoStart-Hint": "",
 
 			"combatTimerActivityStart-Label": "Activity Trigger",
@@ -615,20 +609,21 @@
 			"combatTimerDuration-Label": "Turn Duration",
 			"combatTimerDuration-Hint": "",
 
-			"combatTimerStartSound-Label": "Start Sound",
+			"timerChatTurnStart-Label": "Turn Starting Notification",
+			"timerChatTurnStart-Hint": "",
+
+			"combatTimerStartSound-Label": "Turn Start Sound",
 			"combatTimerStartSound-Hint": "",
 
-			"combatTimerWarningThreshold-Label": "Ending Soon Threshold",
-			"combatTimerWarningThreshold-Hint": "",
 
-			"combatTimerLabel-Label": "Label",
-			"combatTimerLabel-Hint": "",
+			"combatTimerEndTurn-Label": "Auto-Advance Turn",
+			"combatTimerEndTurn-Hint": "",
 
-			"combatTimerWarningMessage-Label": "Ending Soon Message",
-			"combatTimerWarningMessage-Hint": "Use {name} to insert current combatant name.",
+			"combatTimerAutoAdvanceMessage-Label": "Auto Advance Message",
+			"combatTimerAutoAdvanceMessage-Hint": "",
 
-			"combatTimerWarningSound-Label": "Ending Soon Sound",
-			"combatTimerWarningSound-Hint": "",	
+			"combatTimerCriticalEnabled-Label": "Enable Critical Threshold Notifications",
+			"combatTimerCriticalEnabled-Hint": "When enabled, shows notifications and sends chat messages when the combat timer crosses the critical threshold.",
 
 			"combatTimerCriticalThreshold-Label": "Critical Threshold",
 			"combatTimerCriticalThreshold-Hint": "",
@@ -639,17 +634,17 @@
 			"combatTimerCriticalSound-Label": "Critical Sound",
 			"combatTimerCriticalSound-Hint": "",
 
+			
+			"timerChatTurnEnded-Label": "Turn Ended Notification",
+			"timerChatTurnEnded-Hint": "",
+
 			"combatTimerExpiredMessage-Label": "Expired Message",
 			"combatTimerExpiredMessage-Hint": "Use {name} to insert current combatant name.",
 
 			"combatTimerExpiredSound-Label": "Expired Sound",
 			"combatTimerExpiredSound-Hint": "",
 			
-			"combatTimerEndTurn-Label": "Auto-Advance Turn",
-			"combatTimerEndTurn-Hint": "",
 
-			"combatTimerAutoAdvanceMessage-Label": "Auto Advance Message",
-			"combatTimerAutoAdvanceMessage-Hint": "",
 			
 
 	"SEPARATOR-MANAGE-CONTENT": "-------------------------------------------------------",
