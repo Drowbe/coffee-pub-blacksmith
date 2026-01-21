@@ -197,7 +197,7 @@ class CombatTimer {
                     callback: () => {
                         // --- BEGIN - HOOKMANAGER CALLBACK ---
                         this.cleanupTimer();
-                        this.resetTimer();
+                        this.resetTimer(false);
                         this.state.isPaused = true;
                         // --- END - HOOKMANAGER CALLBACK ---
                     }
@@ -252,11 +252,11 @@ class CombatTimer {
 
         const autoStart = game.settings.get(MODULE.ID, 'combatTimerAutoStart');
         
-        this.resetTimer();
+        this.resetTimer(false);
         this.state.isPaused = !autoStart;
         
         if (autoStart) {
-            this.resumeTimer(false);
+            this.startTimer();
             const resumeSound = game.settings.get(MODULE.ID, 'timerPauseResumeSound');
             if (resumeSound !== 'none') {
                 playSound(resumeSound, this.getTimerVolume());
@@ -504,7 +504,7 @@ class CombatTimer {
         // Handle combat end - cleanup timers when combat stops
         if ("started" in changed && !changed.started) {
             this.cleanupTimer();
-            this.resetTimer();
+            this.resetTimer(false);
             this.state.isPaused = true;
             return;
         }
@@ -538,22 +538,23 @@ class CombatTimer {
             const autoStart = game.settings.get(MODULE.ID, 'combatTimerAutoStart');
             
             // Always reset to full time on round change
-            this.resetTimer();
+            this.resetTimer(false);
             this.state.isPaused = !autoStart;
             
             if (combat.turn === 0) {
+                // Planning phase: do not start combat timer
                 this.state.isPaused = true;
                 this.pauseTimer(false);
-            } else if (autoStart) {
-                this.resumeTimer(false);
-                
-                // Play start sound if configured
-                const startSound = game.settings.get(MODULE.ID, 'combatTimerStartSound');
-                if (startSound !== 'none') {
-                    playSound(startSound, this.getTimerVolume());
-                }
             } else {
-                this.pauseTimer();
+                if (autoStart) {
+                    // Play start sound if configured
+                    const startSound = game.settings.get(MODULE.ID, 'combatTimerStartSound');
+                    if (startSound !== 'none') {
+                        playSound(startSound, this.getTimerVolume());
+                    }
+                }
+                // Start timer; will only run if not paused
+                this.startTimer();
             }
             return;  // Don't process other changes on round change
         }
@@ -1020,7 +1021,7 @@ class CombatTimer {
         return game.settings.get(MODULE.ID, 'timerShowNotifications');
     }
 
-    static resetTimer() {
+    static resetTimer(startTimerFlag = true) {
 
         // Clear any existing timer
         if (this.timer) clearInterval(this.timer);
@@ -1038,7 +1039,9 @@ class CombatTimer {
         progressElements.forEach(el => el.classList.remove('expired'));
         
         // Start fresh timer (startTimer will send chat message if enabled)
-        this.startTimer();
+        if (startTimerFlag) {
+            this.startTimer();
+        }
 
     }
 
