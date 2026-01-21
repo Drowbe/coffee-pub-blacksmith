@@ -605,6 +605,18 @@ class CombatTimer {
 
     static startTimer(duration = null) {
         try {
+            // Check if all combatants have rolled initiative before starting timer
+            if (game.combat?.started) {
+                const combatants = game.combat.turns || [];
+                const combatantsNeedingInitiative = combatants.filter(c => 
+                    c.initiative === null && !c.isDefeated
+                );
+                if (combatantsNeedingInitiative.length > 0) {
+                    // Not all initiatives rolled yet - don't start timer or send messages
+                    return;
+                }
+            }
+            
             // If no duration provided, get from settings and update DEFAULTS
             if (duration === null) {
                 duration = game.settings.get(MODULE.ID, 'combatTimerDuration') ?? this.DEFAULTS.timeLimit;
