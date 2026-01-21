@@ -67,6 +67,12 @@
 - **Location**: `scripts/stats-combat.js`, potentially `scripts/stats-player.js`
 - **Need**: Review implementation, identify unused code/duplicates, check performance, review UI/UX
 
+#### Tune Default Zoom Levels for Broadcast Modes
+- **Issue**: Default zoom levels for broadcast modes (follow, combat, spectator) may need tuning for optimal viewing
+- **Status**: PENDING - Needs investigation and tuning
+- **Location**: `scripts/manager-broadcast.js`
+- **Need**: Review and adjust default zoom levels for each broadcast mode to ensure optimal framing and visibility
+
 #### Clarity / Quickview (GM-only vision aid)
 - **Issue**: GM-only local brightness filter and token vision override feature needs verification and finalization
 - **Status**: IN PROGRESS
