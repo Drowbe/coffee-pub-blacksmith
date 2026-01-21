@@ -568,7 +568,7 @@
 
 
 
-			"timerChatPlanningRunningOut-Label": "Send Critical Message",
+			"timerChatPlanningRunningOut-Label": "Critical Threshold Message",
 			"timerChatPlanningRunningOut-Hint": "",
 
 			"planningTimerEndingSoonThreshold-Label": "Critical Threshold",
@@ -622,8 +622,8 @@
 			"combatTimerAutoAdvanceMessage-Label": "Auto Advance Message",
 			"combatTimerAutoAdvanceMessage-Hint": "",
 
-			"combatTimerCriticalEnabled-Label": "Enable Critical Threshold Notifications",
-			"combatTimerCriticalEnabled-Hint": "When enabled, shows notifications and sends chat messages when the combat timer crosses the critical threshold.",
+			"combatTimerCriticalEnabled-Label": "Critical Threshold Messages",
+			"combatTimerCriticalEnabled-Hint": "",
 
 			"combatTimerCriticalThreshold-Label": "Critical Threshold",
 			"combatTimerCriticalThreshold-Hint": "",

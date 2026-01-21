@@ -100,7 +100,7 @@ class CombatTimer {
 							CombatTimer.state.showingMessage = false;
 							const timerText = document.querySelector('.combat-timer-text');
 							if (timerText) timerText.textContent = '';
-							CombatTimer.resumeTimer();
+							CombatTimer.resumeTimer(false);
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
@@ -125,7 +125,7 @@ class CombatTimer {
 							CombatTimer.state.showingMessage = false;
 							const timerText = document.querySelector('.combat-timer-text');
 							if (timerText) timerText.textContent = '';
-							CombatTimer.resumeTimer();
+							CombatTimer.resumeTimer(false);
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
@@ -150,7 +150,7 @@ class CombatTimer {
 							CombatTimer.state.showingMessage = false;
 							const timerText = document.querySelector('.combat-timer-text');
 							if (timerText) timerText.textContent = '';
-							CombatTimer.resumeTimer();
+							CombatTimer.resumeTimer(false);
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
@@ -182,7 +182,7 @@ class CombatTimer {
 							CombatTimer.state.showingMessage = false;
 							const timerText = document.querySelector('.combat-timer-text');
 							if (timerText) timerText.textContent = '';
-							CombatTimer.resumeTimer();
+							CombatTimer.resumeTimer(false);
 						}
 						// --- END - HOOKMANAGER CALLBACK ---
 					}
@@ -256,7 +256,7 @@ class CombatTimer {
         this.state.isPaused = !autoStart;
         
         if (autoStart) {
-            this.resumeTimer();
+            this.resumeTimer(false);
             const resumeSound = game.settings.get(MODULE.ID, 'timerPauseResumeSound');
             if (resumeSound !== 'none') {
                 playSound(resumeSound, this.getTimerVolume());
@@ -545,7 +545,7 @@ class CombatTimer {
                 this.state.isPaused = true;
                 this.pauseTimer(false);
             } else if (autoStart) {
-                this.resumeTimer();
+                this.resumeTimer(false);
                 
                 // Play start sound if configured
                 const startSound = game.settings.get(MODULE.ID, 'combatTimerStartSound');
@@ -586,7 +586,7 @@ class CombatTimer {
             
             // Start or pause based on setting
             if (autoStart) {
-                this.resumeTimer();
+                this.resumeTimer(false);
                 
                 // Play start sound if configured
                 const startSound = game.settings.get(MODULE.ID, 'combatTimerStartSound');
@@ -692,7 +692,7 @@ class CombatTimer {
         });
     }
 
-    static resumeTimer() {
+    static resumeTimer(sendMessage = true) {
         postConsoleAndNotification(MODULE.NAME, "Combat Timer | Resuming timer", "", true, false);
         
         // If we're in planning phase (turn 0), end the planning timer gracefully
@@ -723,8 +723,8 @@ class CombatTimer {
             // Record timer resume for stats
             CombatStats.recordTimerUnpause();
             
-            // Send chat message for resume if setting enabled
-            if (game.settings.get(MODULE.ID, 'timerChatPauseUnpause')) {
+            // Send chat message for resume if setting enabled and manual
+            if (sendMessage && game.settings.get(MODULE.ID, 'timerChatPauseUnpause')) {
                 this.sendChatMessage({
                     isTimerResumed: true,
                     timeRemaining: this.formatTime(this.state.remaining)
@@ -797,11 +797,15 @@ class CombatTimer {
                 }
                 
                 // Show critical warning notification and send chat message - only once
-                if (!this.state.hasHandledCritical && this.shouldShowNotification() && game.settings.get(MODULE.ID, 'combatTimerCriticalEnabled')) {
+                if (!this.state.hasHandledCritical && game.settings.get(MODULE.ID, 'combatTimerCriticalEnabled')) {
                     this.state.hasHandledCritical = true;
                     const message = game.settings.get(MODULE.ID, 'combatTimerCriticalMessage');
                     const formattedMessage = this.getFormattedMessage(message);
-                    ui.notifications.warn(formattedMessage);
+                    
+                    // Show notification if general notifications are enabled
+                    if (this.shouldShowNotification()) {
+                        ui.notifications.warn(formattedMessage);
+                    }
 
                     // Send critical warning chat message if GM
                     if (game.user.isGM) {
