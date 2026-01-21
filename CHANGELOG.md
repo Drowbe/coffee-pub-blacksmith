@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [13.0.13]
+## [13.1.0]
 
 ### Added
 - **Broadcast Window Tools**: Added broadcast tools for closing images, closing journals, closing all windows, refreshing the cameraman client, and opening settings on the cameraman.
@@ -17,10 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Broadcast View Fill**: Follow, combat, and spectator now use viewport fill percent instead of padding; settings renamed to view fill and legacy padding migration removed.
 - **Combat Mode Alignment**: Combat mode now mirrors follow behavior (fixed 3x3 minimum box, turn-start pan, movement follow) with its own view fill.
 - **Broadcast Auto-Close Flow**: Cameraman emits `broadcast.windowOpened`; GM starts the auto-close timer and sends close commands.
+- **Timer Notification System Simplified**: Removed warning threshold from combat timers - now only uses critical threshold for consistency with planning timers. Unified timer pause/unpause notification settings to control both planning and combat timers.
+- **Timer Critical Message Setting**: Renamed `timerChatTurnRunningOut` to `combatTimerCriticalEnabled` for clarity. This setting now controls both notification popups and chat messages for critical threshold warnings in combat timers.
+- **Timer Notification Labels**: Updated planning timer labels to use "Critical" terminology instead of "Ending Soon" for consistency.
 
 ### Fixed
 - **Menubar Enable Setting**: Fixed `enableMenubar` setting not controlling menubar visibility. Menubar now properly initializes only when enabled, removes DOM and resets CSS height variables when disabled, preventing content from being pushed down. Both `excludedUsersMenubar` and `enableMenubar` settings now work correctly together.
 - **Broadcast Follow Buttons on Scene Change**: Follow buttons now refresh when scenes change so the list matches current canvas tokens.
+- **Duplicate Timer Notifications**: Fixed timer notifications (sounds, chat messages, and notifications) being sent multiple times when crossing threshold. Added flags to ensure each notification type is sent only once per threshold crossing.
+- **Duplicate Turn Start Messages**: Fixed duplicate "Turn Started" messages appearing when combat timer resets. Removed duplicate message sending from `resetTimer()` method.
+- **Timer Pause/Resume Messages**: Fixed pause and resume messages appearing during automatic timer state changes (e.g., entering planning phase, turn changes). Messages now only appear when GM manually clicks pause/resume buttons.
+- **Timer Start Before Initiative Rolled**: Fixed combat turn timers starting and sending messages before all combatants have rolled initiative. Timer now checks that all combatants have rolled initiative before starting, matching planning timer behavior.
+- **Combat Timer During Planning Phase**: Fixed combat turn timer starting during planning phase. Timer now correctly checks if planning phase is active (turn 0) and prevents combat timer from starting until planning phase ends.
+- **Critical Message Not Showing**: Fixed `combatTimerCriticalEnabled` setting not showing critical messages. Setting now properly controls both notification popups and chat messages regardless of general notification settings.
 
 ## [13.0.12]
 
