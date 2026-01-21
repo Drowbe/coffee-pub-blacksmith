@@ -1686,7 +1686,7 @@ export const registerSettings = () => {
 				hint: MODULE.ID + '.enableBroadcast-Hint',
 				scope: 'world',
 				config: true,
-				requiresReload: false,
+				requiresReload: true,
 				type: Boolean,
 				default: false,
 				group: WORKFLOW_GROUPS.RUN_THE_GAME
@@ -1698,7 +1698,7 @@ export const registerSettings = () => {
 				hint: MODULE.ID + '.broadcastUserId-Hint',
 				scope: 'world',
 				config: true,
-				requiresReload: false,
+				requiresReload: true,
 				type: String,
 				default: '',
 				group: WORKFLOW_GROUPS.RUN_THE_GAME
@@ -1769,59 +1769,6 @@ export const registerSettings = () => {
 				group: WORKFLOW_GROUPS.RUN_THE_GAME
 			});
 
-			// Legacy auto-close settings (kept for migration)
-			game.settings.register(MODULE.ID, 'broadcastAutoCloseImages', {
-				name: 'Broadcast Auto Close Images (Legacy)',
-				hint: 'Deprecated: use broadcastAutoCloseWindows instead.',
-				scope: 'world',
-				config: false,
-				requiresReload: false,
-				type: Boolean,
-				default: true
-			});
-
-			game.settings.register(MODULE.ID, 'broadcastImageCloseDelaySeconds', {
-				name: 'Broadcast Image Close Delay (Legacy)',
-				hint: 'Deprecated: use broadcastAutoCloseDelaySeconds instead.',
-				scope: 'world',
-				config: false,
-				requiresReload: false,
-				type: Number,
-				default: 3
-			});
-
-			game.settings.register(MODULE.ID, 'broadcastAutoCloseJournals', {
-				name: 'Broadcast Auto Close Journals (Legacy)',
-				hint: 'Deprecated: use broadcastAutoCloseWindows instead.',
-				scope: 'world',
-				config: false,
-				requiresReload: false,
-				type: Boolean,
-				default: true
-			});
-
-			game.settings.register(MODULE.ID, 'broadcastJournalCloseDelaySeconds', {
-				name: 'Broadcast Journal Close Delay (Legacy)',
-				hint: 'Deprecated: use broadcastAutoCloseDelaySeconds instead.',
-				scope: 'world',
-				config: false,
-				requiresReload: false,
-				type: Number,
-				default: 3
-			});
-
-			const legacyAutoCloseEnabled = game.settings.get(MODULE.ID, 'broadcastAutoCloseImages')
-				|| game.settings.get(MODULE.ID, 'broadcastAutoCloseJournals');
-			const legacyDelay = game.settings.get(MODULE.ID, 'broadcastImageCloseDelaySeconds')
-				|| game.settings.get(MODULE.ID, 'broadcastJournalCloseDelaySeconds');
-
-			if (game.settings.get(MODULE.ID, 'broadcastAutoCloseWindows') === true && legacyAutoCloseEnabled === false) {
-				void game.settings.set(MODULE.ID, 'broadcastAutoCloseWindows', false);
-			}
-
-			if (legacyDelay && game.settings.get(MODULE.ID, 'broadcastAutoCloseDelaySeconds') === 3) {
-				void game.settings.set(MODULE.ID, 'broadcastAutoCloseDelaySeconds', legacyDelay);
-			}
 
 
 		// --------------------------------------
