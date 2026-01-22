@@ -29,9 +29,27 @@
     const pins = pinsAPI.list();
     console.log('BLACKSMITH | PINS Pins via API:', pins.length, pins);
 
-    const layer = canvas?.layers?.find(l => l.name === 'blacksmith-utilities-layer');
+    // Check layer - FoundryVTT uses bracket notation
+    const layer = canvas?.['blacksmith-utilities-layer'];
     console.log('BLACKSMITH | PINS Blacksmith layer:', !!layer, 'active:', layer?.active);
+    
+    // Check container via layer
+    if (layer) {
+        const container = layer.children?.find(c => c.name === 'blacksmith-pins-container');
+        console.log('BLACKSMITH | PINS Container in layer:', !!container);
+        if (container) {
+            console.log('BLACKSMITH | PINS Container children:', container.children.length);
+            console.log('BLACKSMITH | PINS Container visible:', container.visible, 'worldVisible:', container.worldVisible);
+        }
+    }
 
+    // Check and activate layer if needed
+    const layer = canvas?.['blacksmith-utilities-layer'];
+    if (layer && !layer.active) {
+        console.log('BLACKSMITH | PINS Activating layer...');
+        layer.activate();
+    }
+    
     if (pins.length > 0) {
         console.log('BLACKSMITH | PINS Running reload...');
         try {
@@ -39,6 +57,27 @@
             console.log('BLACKSMITH | PINS Reload result:', result);
             if (!result.containerReady) {
                 console.warn('BLACKSMITH | PINS Container not ready – pins may not render.');
+            }
+            
+            // Check pin visibility after reload
+            if (layer) {
+                const container = layer.children?.find(c => c.name === 'blacksmith-pins-container');
+                if (container) {
+                    console.log('BLACKSMITH | PINS Container children after reload:', container.children.length);
+                    container.children.forEach((pin, idx) => {
+                        const bounds = pin.getBounds();
+                        console.log(`BLACKSMITH | PINS Pin ${idx}:`, {
+                            id: pin.pinData?.id,
+                            x: pin.x,
+                            y: pin.y,
+                            visible: pin.visible,
+                            worldVisible: pin.worldVisible,
+                            bounds: bounds,
+                            hasCircle: !!pin._circle,
+                            hasIcon: !!pin._icon
+                        });
+                    });
+                }
             }
         } catch (err) {
             console.error('BLACKSMITH | PINS Reload failed:', err);

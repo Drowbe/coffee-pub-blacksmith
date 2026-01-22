@@ -581,6 +581,9 @@ function initializeSettingsDependentFeatures() {
                                 const { PinRenderer } = await import('./pins-renderer.js');
                                 const { PinManager } = await import('./manager-pins.js');
                                 const pins = PinManager.list({ sceneId: canvas.scene.id });
+                                if (pins.length > 0 && !blacksmithLayer.active) {
+                                    blacksmithLayer.activate();
+                                }
                                 await PinRenderer.loadScenePins(canvas.scene.id, pins);
                             }
                         }
@@ -619,9 +622,13 @@ function initializeSettingsDependentFeatures() {
                     
                     // If scene was activated, reload its pins
                     if (data.active === true && scene.id === canvas?.scene?.id) {
+                        const layer = canvas?.['blacksmith-utilities-layer'];
                         const { PinRenderer } = await import('./pins-renderer.js');
                         const { PinManager } = await import('./manager-pins.js');
                         const pins = PinManager.list({ sceneId: scene.id });
+                        if (pins.length > 0 && layer && !layer.active) {
+                            layer.activate();
+                        }
                         await PinRenderer.loadScenePins(scene.id, pins);
                     }
                     

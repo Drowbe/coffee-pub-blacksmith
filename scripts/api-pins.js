@@ -79,7 +79,7 @@ export class PinsAPI {
      * Does not use dynamic import – call via API only: `game.modules.get('coffee-pub-blacksmith')?.api?.pins?.reload()`.
      *
      * @param {{ sceneId?: string }} [options]
-     * @returns {Promise<{ reloaded: number; containerReady: boolean; pinsInData: number }>}
+     * @returns {Promise<{ reloaded: number; containerReady: boolean; pinsInData: number; layerActive: boolean }>}
      */
     static async reload(options = {}) {
         const sceneId = options.sceneId ?? canvas?.scene?.id;
@@ -88,12 +88,30 @@ export class PinsAPI {
         }
         const pins = PinManager.list({ sceneId });
         const { PinRenderer } = await import('./pins-renderer.js');
-        const container = PinRenderer.getContainer();
+        
+        // Check if container exists, if not try to initialize
+        let container = PinRenderer.getContainer();
         if (!container) {
-            return { reloaded: 0, containerReady: false, pinsInData: pins.length };
+            // Try to initialize if layer exists
+            const layer = canvas?.['blacksmith-utilities-layer'];
+            if (layer) {
+                PinRenderer.initialize(layer);
+                container = PinRenderer.getContainer();
+            }
         }
+        
+        if (!container) {
+            return { reloaded: 0, containerReady: false, pinsInData: pins.length, layerActive: false };
+        }
+        
+        const layer = canvas?.['blacksmith-utilities-layer'];
+        if (pins.length > 0 && layer && !layer.active) {
+            layer.activate();
+        }
+        const layerActive = layer?.active ?? false;
+        
         await PinRenderer.loadScenePins(sceneId, pins);
         const count = PinRenderer.getContainer()?.children?.length ?? 0;
-        return { reloaded: count, containerReady: true, pinsInData: pins.length };
+        return { reloaded: count, containerReady: true, pinsInData: pins.length, layerActive };
     }
 }

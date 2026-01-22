@@ -222,8 +222,22 @@ class PinGraphics extends PIXI.Container {
     }
 
     /**
-     * Load icon/image or Font Awesome icon
-     * @param {string} imagePathOrHtml - Image path or Font Awesome HTML string
+     * Resolve icon to Font Awesome classes. Pins use Font Awesome only; legacy paths (e.g. icons/svg/star.svg) map to default star.
+     * @param {string} [imagePathOrHtml]
+     * @returns {string} Font Awesome classes, e.g. "fa-solid fa-star"
+     * @private
+     */
+    _resolveFontAwesomeClasses(imagePathOrHtml) {
+        if (this._isFontAwesomeIcon(imagePathOrHtml)) {
+            const fa = this._extractFontAwesomeClasses(imagePathOrHtml);
+            if (fa) return fa;
+        }
+        return 'fa-solid fa-star';
+    }
+
+    /**
+     * Load icon. Uses Font Awesome only; legacy image paths are mapped to default star (no URL loading).
+     * @param {string} [imagePathOrHtml] - Font Awesome HTML or legacy path (ignored, we use default)
      * @private
      */
     async _loadIcon(imagePathOrHtml) {
@@ -234,23 +248,9 @@ class PinGraphics extends PIXI.Container {
             }
             
             const { size } = this.pinData;
-            const iconSize = Math.min(size.w, size.h) * 0.6; // Icon is 60% of pin size
-            
-            let texture;
-            
-            // Check if it's a Font Awesome icon
-            if (this._isFontAwesomeIcon(imagePathOrHtml)) {
-                const faClasses = this._extractFontAwesomeClasses(imagePathOrHtml);
-                if (faClasses) {
-                    texture = await this._createFontAwesomeTexture(faClasses, iconSize);
-                } else {
-                    postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Invalid Font Awesome format: ${imagePathOrHtml}`, '', false, false);
-                    return;
-                }
-            } else {
-                // Regular image path - use PIXI.Assets.load
-                texture = await PIXI.Assets.load(imagePathOrHtml);
-            }
+            const iconSize = Math.min(size.w, size.h) * 0.6;
+            const faClasses = this._resolveFontAwesomeClasses(imagePathOrHtml);
+            const texture = await this._createFontAwesomeTexture(faClasses, iconSize);
             
             this._icon = PIXI.Sprite.from(texture);
             this._icon.width = iconSize;
@@ -259,7 +259,7 @@ class PinGraphics extends PIXI.Container {
             this._icon.position.set(0, 0);
             this.addChild(this._icon);
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Failed to load icon ${imagePathOrHtml}`, error?.message ?? error, false, false);
+            postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Failed to load icon: ${error?.message ?? error}`, '', false, false);
         }
     }
 
