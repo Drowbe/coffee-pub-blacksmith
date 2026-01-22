@@ -57,7 +57,7 @@ const MIGRATION_MAP = new Map();
 // ------------------------------------------------------------------
 
 function _log(msg, detail = '') {
-    postConsoleAndNotification(MODULE.NAME, `Pins schema: ${msg}`, detail, true, false);
+    postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS schema: ${msg}`, detail, true, false);
 }
 
 /**

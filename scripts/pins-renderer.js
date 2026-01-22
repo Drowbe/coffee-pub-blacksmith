@@ -238,7 +238,7 @@ class PinGraphics extends PIXI.Container {
                 if (faClasses) {
                     texture = await this._createFontAwesomeTexture(faClasses, iconSize);
                 } else {
-                    postConsoleAndNotification(MODULE.NAME, `Pins: Invalid Font Awesome format: ${imagePathOrHtml}`, '', false, false);
+                    postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Invalid Font Awesome format: ${imagePathOrHtml}`, '', false, false);
                     return;
                 }
             } else {
@@ -253,7 +253,7 @@ class PinGraphics extends PIXI.Container {
             this._icon.position.set(0, 0);
             this.addChild(this._icon);
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Pins: Failed to load icon ${imagePathOrHtml}`, error?.message ?? error, false, false);
+            postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Failed to load icon ${imagePathOrHtml}`, error?.message ?? error, false, false);
         }
     }
 
@@ -323,7 +323,7 @@ export class PinRenderer {
      */
     static initialize(layer) {
         if (this._container) {
-            postConsoleAndNotification(MODULE.NAME, 'Pins: Container already initialized', '', true, false);
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Container already initialized', '', true, false);
             return;
         }
 
@@ -335,7 +335,7 @@ export class PinRenderer {
         // Add to layer (layer is a PIXI.Container)
         layer.addChild(this._container);
         
-        postConsoleAndNotification(MODULE.NAME, 'Pins: Renderer initialized', '', true, false);
+        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Renderer initialized', '', true, false);
     }
 
     /**
@@ -360,7 +360,7 @@ export class PinRenderer {
         this._currentSceneId = sceneId;
 
         if (!this._container) {
-            postConsoleAndNotification(MODULE.NAME, 'Pins: Container not initialized', '', false, true);
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Container not initialized', '', false, true);
             return;
         }
 
@@ -373,9 +373,9 @@ export class PinRenderer {
                 await this._addPin(pinData);
             }
 
-            postConsoleAndNotification(MODULE.NAME, `Pins: Loaded ${pins.length} pin(s) for scene`, sceneId, true, false);
+            postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Loaded ${pins.length} pin(s) for scene`, sceneId, true, false);
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Pins: Error loading scene pins', error?.message ?? error, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error loading scene pins', error?.message ?? error, false, true);
         }
     }
 

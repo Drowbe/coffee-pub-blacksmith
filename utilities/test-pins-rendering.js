@@ -32,31 +32,33 @@ const testPin = await pinsAPI.create({
 });
 console.log('📌 Created pin:', testPin);
 
-// 5. Check if renderer container exists (via dynamic import)
-const { PinRenderer } = await import('../scripts/pins-renderer.js');
-const container = PinRenderer.getContainer();
-console.log('🎨 Renderer container:', !!container);
-console.log('🎨 Container children count:', container?.children.length || 0);
+// 5. Check if renderer container exists (via canvas layer)
+// Note: Direct import doesn't work from console - pins are loaded via hooks
+const blacksmithLayer = canvas?.layers?.find(l => l.name === 'blacksmith-utilities-layer');
+const pinsContainer = blacksmithLayer?.children?.find(c => c.name === 'blacksmith-pins-container');
+console.log('🎨 Renderer container:', !!pinsContainer);
+console.log('🎨 Container children count:', pinsContainer?.children.length || 0);
 
 // 6. List all pins
 const allPins = pinsAPI.list();
 console.log('📋 All pins:', allPins);
 console.log('📋 Pin count:', allPins.length);
 
-// 7. Manually reload pins if they're not showing (force refresh)
-if (container && allPins.length > 0) {
-    console.log('🔄 Manually reloading pins...');
-    await PinRenderer.loadScenePins(scene.id, allPins);
-    console.log('✅ Reload complete. Check canvas for pins.');
-}
+// 7. Note: Pins are automatically loaded via hooks when created/updated
+// If pins don't appear, try reloading the scene or canvas
+console.log('ℹ️  Pins should appear automatically. If not, try:');
+console.log('   - Reload scene: await scene.activate()');
+console.log('   - Or reload canvas: window.location.reload()');
 
-// 8. Check if pin graphics exist in renderer
-const pinGraphics = PinRenderer.getPin(testPin.id);
-console.log('🎨 Pin graphics object:', !!pinGraphics);
-if (pinGraphics) {
-    console.log('🎨 Pin position:', pinGraphics.x, pinGraphics.y);
-    console.log('🎨 Pin visible:', pinGraphics.visible);
-    console.log('🎨 Pin children:', pinGraphics.children.length);
+// 8. Check if pin graphics exist in renderer (via container)
+if (pinsContainer) {
+    const pinGraphics = pinsContainer.children.find(c => c.pinData?.id === testPin.id);
+    console.log('🎨 Pin graphics object:', !!pinGraphics);
+    if (pinGraphics) {
+        console.log('🎨 Pin position:', pinGraphics.x, pinGraphics.y);
+        console.log('🎨 Pin visible:', pinGraphics.visible);
+        console.log('🎨 Pin children:', pinGraphics.children.length);
+    }
 }
 
 // 9. Create another pin with different style
@@ -76,9 +78,9 @@ const testPin2 = await pinsAPI.create({
 });
 console.log('📌 Created second pin:', testPin2);
 
-// 10. Force reload to see both pins
-await PinRenderer.loadScenePins(scene.id, pinsAPI.list());
+// 10. Pins should automatically appear - check canvas
 console.log('✅ Both pins should now be visible on canvas');
+console.log('   If not visible, pins will load on next scene activation');
 
 // 11. Update pin position (should update visually)
 await pinsAPI.update(testPin.id, { x: testX + 100, y: testY + 100 });
@@ -87,8 +89,8 @@ console.log('📌 Updated pin position');
 // 12. Check final state
 console.log('📊 Final state:');
 console.log('  - Pins in data:', pinsAPI.list().length);
-console.log('  - Pins in renderer:', PinRenderer.getContainer()?.children.length || 0);
-console.log('  - Current scene ID:', PinRenderer._currentSceneId);
+console.log('  - Pins in renderer:', pinsContainer?.children.length || 0);
+console.log('  - Current scene ID:', scene.id);
 
 // ============================================
 // VISUAL CHECKLIST:
