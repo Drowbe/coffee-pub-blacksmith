@@ -3378,7 +3378,21 @@ export const registerSettings = () => {
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
 	registerHeader('ManageContent', 'headingH1ManageContent-Label', 'headingH1ManageContent-Hint', 'H1', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
-	
+
+	// --------------------------------------
+	// -- H2: Canvas Pins
+	// --------------------------------------
+	registerHeader('Pins', 'headingH2Pins-Label', 'headingH2Pins-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+	game.settings.register(MODULE.ID, 'pinsAllowPlayerWrites', {
+		name: MODULE.ID + '.pinsAllowPlayerWrites-Label',
+		hint: MODULE.ID + '.pinsAllowPlayerWrites-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
 
 	// --------------------------------------
 	// -- H2: Imports

@@ -72,6 +72,7 @@ import { registerWindowQueryPartials } from './window-query-registration.js';
 import { SidebarPin } from './sidebar-pin.js';
 import { SidebarStyle } from './sidebar-style.js';
 import { LoadingProgressManager } from './manager-loading-progress.js';
+import { PinManager } from './manager-pins.js';
 import './sidebar-combat.js';
 import './combat-tools.js'; 
 // ================================================================== 
@@ -385,6 +386,9 @@ Hooks.once('ready', async () => {
         // Initialize CanvasTools
         LoadingProgressManager.logActivity("Initializing canvas tools...");
         CanvasTools.initialize();
+
+        // Initialize PinManager (canvas pins API)
+        PinManager.initialize();
         
         // No longer needed - cache management is now handled by the new simplified system
 
@@ -956,6 +960,15 @@ Hooks.once('init', async function() {
         // ✅ NEW: Canvas Layer API for external modules
         CanvasLayer: null,  // BlacksmithLayer instance (available after canvasReady)
         getCanvasLayer: null,  // Helper function to get BlacksmithLayer
+
+        // ✅ NEW: Canvas Pins API for external modules
+        pins: {
+            create: PinManager.create.bind(PinManager),
+            update: PinManager.update.bind(PinManager),
+            delete: PinManager.delete.bind(PinManager),
+            get: PinManager.get.bind(PinManager),
+            list: PinManager.list.bind(PinManager)
+        },
         
         // ✅ NEW: Socket API for external modules (set after SocketManager initializes)
         sockets: null

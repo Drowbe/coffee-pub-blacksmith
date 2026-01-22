@@ -656,6 +656,11 @@
 	"headingH1ManageContent-Label": "Manage Content",
 	"headingH1ManageContent-Hint": "Tools for managing tokens, images, and content.",
 
+		"headingH2Pins-Label": "Canvas Pins",
+		"headingH2Pins-Hint": "Settings for the canvas pins API used by modules such as Coffee Pub Squire.",
+		"pinsAllowPlayerWrites-Label": "Allow player writes",
+		"pinsAllowPlayerWrites-Hint": "If enabled, players with ownership of a pin can create, update, and delete pins. When disabled, only GMs can modify pins.",
+
 		"headingH2ContentImports-Label": "Content Imports",
 		"headingH2ContentImports-Hint": "Configurations for importing content into the game.",
 
