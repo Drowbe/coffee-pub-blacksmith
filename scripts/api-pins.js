@@ -64,15 +64,12 @@ export class PinsAPI {
     /**
      * Register an event handler. Returns a disposer function.
      * 
-     * TODO: Phase 1.3 - Implement event handler registration system
-     * 
-     * @param {string} eventType
-     * @param {Function} handler
-     * @param {Object} [options]
-     * @returns {() => void}
+     * @param {string} eventType - Event type: 'hoverIn', 'hoverOut', 'click', 'rightClick', 'middleClick', 'dragStart', 'dragMove', 'dragEnd'
+     * @param {Function} handler - Callback function that receives PinEvent
+     * @param {import('./manager-pins.js').PinEventHandlerOptions} [options]
+     * @returns {() => void} - Disposer function to unregister the handler
      */
     static on(eventType, handler, options) {
-        // Phase 1.3: Event handler registration will be implemented here
-        throw new Error('Event handler registration (pins.on) is not yet implemented. Coming in Phase 1.3.');
+        return PinManager.registerHandler(eventType, handler, options);
     }
 }

@@ -561,7 +561,7 @@ function initializeSettingsDependentFeatures() {
                     description: 'Blacksmith: Check for blacksmith utilities layer availability and expose to API',
                     context: 'blacksmith-canvas-layer-check',
                     priority: 3, // Normal priority - layer verification
-                    callback: (canvas) => {
+                    callback: async (canvas) => {
                         //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                         
                         const blacksmithLayer = canvas['blacksmith-utilities-layer'];
@@ -574,6 +574,14 @@ function initializeSettingsDependentFeatures() {
                                     return canvas['blacksmith-utilities-layer'] || null;
                                 };
                                 postConsoleAndNotification(MODULE.NAME, "BlacksmithLayer exposed to API", "", true, false);
+                            }
+                            
+                            // Load pins for current scene (renderer should be initialized by now via _draw)
+                            if (canvas.scene) {
+                                const { PinRenderer } = await import('./pins-renderer.js');
+                                const { PinManager } = await import('./manager-pins.js');
+                                const pins = PinManager.list({ sceneId: canvas.scene.id });
+                                await PinRenderer.loadScenePins(canvas.scene.id, pins);
                             }
                         }
                         
@@ -595,6 +603,27 @@ function initializeSettingsDependentFeatures() {
                     //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                     
                     NavigationManager._updateSceneIcons();
+                    
+                    //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+                }
+            });
+
+            // Register updateScene hook for pins reload when scene activates
+            const updateScenePinsHookId = HookManager.registerHook({
+                name: 'updateScene',
+                description: 'Blacksmith: Reload pins when scene is activated',
+                context: 'blacksmith-pins-scene-change',
+                priority: 3, // Normal priority
+                callback: async (scene, data) => {
+                    //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                    
+                    // If scene was activated, reload its pins
+                    if (data.active === true && scene.id === canvas?.scene?.id) {
+                        const { PinRenderer } = await import('./pins-renderer.js');
+                        const { PinManager } = await import('./manager-pins.js');
+                        const pins = PinManager.list({ sceneId: scene.id });
+                        await PinRenderer.loadScenePins(scene.id, pins);
+                    }
                     
                     //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
                 }

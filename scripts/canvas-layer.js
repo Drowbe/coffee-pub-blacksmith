@@ -1,5 +1,6 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
+import { PinRenderer } from './pins-renderer.js';
 
 export class BlacksmithLayer extends foundry.canvas.layers.CanvasLayer {
     constructor() {
@@ -9,16 +10,24 @@ export class BlacksmithLayer extends foundry.canvas.layers.CanvasLayer {
 
     async _draw() {
         postConsoleAndNotification(MODULE.NAME, "BlacksmithLayer: Drawing layer", "", true, false);
-        // Add your drawing logic here
+        // Initialize pins renderer
+        PinRenderer.initialize(this);
     }
 
     activate() {
         postConsoleAndNotification(MODULE.NAME, "BlacksmithLayer: Activated", "", true, false);
-        // Add any custom activation logic here
+        // Load pins for current scene when layer activates (if container is ready)
+        if (canvas?.scene && PinRenderer.getContainer()) {
+            import('./manager-pins.js').then(async ({ PinManager }) => {
+                const pins = PinManager.list({ sceneId: canvas.scene.id });
+                await PinRenderer.loadScenePins(canvas.scene.id, pins);
+            });
+        }
     }
 
     deactivate() {
         postConsoleAndNotification(MODULE.NAME, "BlacksmithLayer: Deactivated", "", true, false);
-        // Add any custom deactivation logic here
+        // Clear pins when layer deactivates
+        PinRenderer.clear();
     }
 }

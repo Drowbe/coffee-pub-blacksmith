@@ -1,8 +1,9 @@
 // ==================================================================
-// ===== MANAGER-PINS – Pin lifecycle, CRUD, permissions ============
+// ===== MANAGER-PINS – Pin lifecycle, CRUD, permissions, events ===
 // ==================================================================
-// Phase 1.2: PinManager. Uses pins-schema for validation/migration.
-// Pins stored in scene.flags[MODULE.ID].pins[]. No rendering here.
+// Phase 1.2 & 1.3: PinManager. Uses pins-schema for validation/migration.
+// Pins stored in scene.flags[MODULE.ID].pins[]. Event handler registration.
+// No rendering here (Phase 2).
 // ==================================================================
 
 import { MODULE } from './const.js';
@@ -52,9 +53,37 @@ const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
  * @property {string} [moduleId]
  */
 
+/**
+ * @typedef {Object} PinEventHandlerOptions
+ * @property {string} [pinId] - Handle events for a specific pin only
+ * @property {string} [moduleId] - Handle events for pins created by this module
+ * @property {string} [sceneId] - Scope to a specific scene
+ * @property {AbortSignal} [signal] - Auto-remove handler on abort
+ * @property {boolean} [dragEvents] - Opt in to dragStart/dragMove/dragEnd if you need them
+ */
+
+/**
+ * @typedef {Object} PinEventHandler
+ * @property {string} handlerId
+ * @property {string} eventType
+ * @property {Function} handler
+ * @property {PinEventHandlerOptions} options
+ * @property {number} registeredAt
+ */
+
 export class PinManager {
     static FLAG_KEY = 'pins';
     static SETTING_ALLOW_PLAYER_WRITES = 'pinsAllowPlayerWrites';
+
+    // Event handler storage: Map<eventType, Set<handler>>
+    static _eventHandlers = new Map();
+    static _handlerCounter = 0;
+
+    // Valid event types
+    static VALID_EVENT_TYPES = Object.freeze([
+        'hoverIn', 'hoverOut', 'click', 'rightClick', 'middleClick',
+        'dragStart', 'dragMove', 'dragEnd'
+    ]);
 
     /**
      * Resolve scene by id or active canvas. Throws if not found.
@@ -128,7 +157,177 @@ export class PinManager {
     }
 
     static initialize() {
+        // Register cleanup hook for module unload
+        Hooks.once('ready', () => {
+            Hooks.on('unloadModule', (moduleId) => {
+                if (moduleId === MODULE.ID) {
+                    this.cleanup();
+                }
+            });
+        });
+        
+        // Scene change hooks are handled in blacksmith.js to avoid circular dependency
+        
         postConsoleAndNotification(MODULE.NAME, 'PinManager initialized', '', true, false);
+    }
+
+    /**
+     * Cleanup on module unload
+     */
+    static cleanup() {
+        this.clearHandlers();
+        this._handlerCounter = 0;
+        postConsoleAndNotification(MODULE.NAME, 'PinManager: Cleanup complete', '', true, false);
+    }
+
+    /**
+     * Generate unique handler ID
+     * @returns {string}
+     */
+    static _makeHandlerId() {
+        return `pin_handler_${Date.now()}_${++this._handlerCounter}_${Math.random().toString(36).slice(2, 9)}`;
+    }
+
+    /**
+     * Register an event handler. Returns a disposer function.
+     * @param {string} eventType
+     * @param {Function} handler
+     * @param {PinEventHandlerOptions} [options]
+     * @returns {() => void}
+     */
+    static registerHandler(eventType, handler, options = {}) {
+        if (!this.VALID_EVENT_TYPES.includes(eventType)) {
+            throw new Error(`Invalid event type: ${eventType}. Valid types: ${this.VALID_EVENT_TYPES.join(', ')}`);
+        }
+        if (typeof handler !== 'function') {
+            throw new Error('Handler must be a function');
+        }
+
+        const handlerId = this._makeHandlerId();
+        const handlerRecord = {
+            handlerId,
+            eventType,
+            handler,
+            options: { ...options },
+            registeredAt: Date.now()
+        };
+
+        if (!this._eventHandlers.has(eventType)) {
+            this._eventHandlers.set(eventType, new Set());
+        }
+        this._eventHandlers.get(eventType).add(handlerRecord);
+
+        // Handle AbortSignal cleanup
+        if (options.signal) {
+            if (options.signal.aborted) {
+                this._removeHandler(eventType, handlerId);
+                return () => {};
+            }
+            options.signal.addEventListener('abort', () => {
+                this._removeHandler(eventType, handlerId);
+            });
+        }
+
+        // Return disposer function
+        return () => {
+            this._removeHandler(eventType, handlerId);
+        };
+    }
+
+    /**
+     * Remove a handler by ID
+     * @param {string} eventType
+     * @param {string} handlerId
+     * @private
+     */
+    static _removeHandler(eventType, handlerId) {
+        const handlers = this._eventHandlers.get(eventType);
+        if (!handlers) return;
+        for (const h of handlers) {
+            if (h.handlerId === handlerId) {
+                handlers.delete(h);
+                break;
+            }
+        }
+        if (handlers.size === 0) {
+            this._eventHandlers.delete(eventType);
+        }
+    }
+
+    /**
+     * Invoke handlers for an event. Used by rendering system (Phase 3).
+     * @param {string} eventType
+     * @param {import('./pins-schema.js').PinData} pin
+     * @param {string} sceneId
+     * @param {string} userId
+     * @param {Object} modifiers
+     * @param {PIXI.FederatedPointerEvent} originalEvent
+     * @private
+     */
+    static _invokeHandlers(eventType, pin, sceneId, userId, modifiers, originalEvent) {
+        const handlers = this._eventHandlers.get(eventType);
+        if (!handlers || handlers.size === 0) return;
+
+        const eventData = {
+            type: eventType,
+            pin: foundry.utils.deepClone(pin),
+            sceneId,
+            userId,
+            modifiers: { ...modifiers },
+            originalEvent
+        };
+
+        const toRemove = [];
+        for (const h of handlers) {
+            // Check filters
+            if (h.options.pinId && h.options.pinId !== pin.id) continue;
+            if (h.options.moduleId && h.options.moduleId !== pin.moduleId) continue;
+            if (h.options.sceneId && h.options.sceneId !== sceneId) continue;
+
+            // Check if handler wants drag events
+            if (['dragStart', 'dragMove', 'dragEnd'].includes(eventType) && !h.options.dragEvents) {
+                continue;
+            }
+
+            // Check AbortSignal
+            if (h.options.signal?.aborted) {
+                toRemove.push(h.handlerId);
+                continue;
+            }
+
+            try {
+                h.handler(eventData);
+            } catch (error) {
+                const errMsg = error instanceof Error ? error.message : String(error);
+                postConsoleAndNotification(
+                    MODULE.NAME,
+                    `Pins: Error in event handler for ${eventType}`,
+                    errMsg,
+                    false,
+                    true
+                );
+                console.error(`Pins: Error in event handler ${h.handlerId} for ${eventType}:`, error);
+            }
+        }
+
+        // Clean up aborted handlers
+        for (const id of toRemove) {
+            this._removeHandler(eventType, id);
+        }
+    }
+
+    /**
+     * Remove all handlers (cleanup)
+     * @param {string} [context] - Optional context filter (not used yet, for future batch cleanup)
+     */
+    static clearHandlers(context) {
+        if (context) {
+            // Future: support context-based cleanup
+            postConsoleAndNotification(MODULE.NAME, 'Pins: Context-based handler cleanup not yet implemented', context, true, false);
+            return;
+        }
+        this._eventHandlers.clear();
+        postConsoleAndNotification(MODULE.NAME, 'Pins: All event handlers cleared', '', true, false);
     }
 
     /**
@@ -152,6 +351,21 @@ export class PinManager {
         }
         const next = [...pins, foundry.utils.deepClone(pin)];
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
+        
+        // Update renderer if on current scene (dynamic import to avoid circular dependency)
+        if (scene.id === canvas?.scene?.id) {
+            import('./pins-renderer.js').then(async ({ PinRenderer }) => {
+                // Ensure container is initialized
+                if (!PinRenderer.getContainer()) {
+                    // Container not ready yet - pin will be loaded when scene activates
+                    return;
+                }
+                await PinRenderer.updatePin(pin);
+            }).catch(err => {
+                console.error('Pins: Error updating renderer after create:', err);
+            });
+        }
+        
         return foundry.utils.deepClone(pin);
     }
 
@@ -198,6 +412,21 @@ export class PinManager {
         const next = [...pins];
         next[idx] = foundry.utils.deepClone(updated);
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
+        
+        // Update renderer if on current scene (dynamic import to avoid circular dependency)
+        if (scene.id === canvas?.scene?.id) {
+            import('./pins-renderer.js').then(async ({ PinRenderer }) => {
+                // Ensure container is initialized
+                if (!PinRenderer.getContainer()) {
+                    // Container not ready yet - pin will be loaded when scene activates
+                    return;
+                }
+                await PinRenderer.updatePin(updated);
+            }).catch(err => {
+                console.error('Pins: Error updating renderer after update:', err);
+            });
+        }
+        
         return foundry.utils.deepClone(updated);
     }
 
@@ -220,6 +449,13 @@ export class PinManager {
         }
         const next = pins.filter((p) => p.id !== pinId);
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
+        
+        // Update renderer if on current scene (dynamic import to avoid circular dependency)
+        if (scene.id === canvas?.scene?.id) {
+            import('./pins-renderer.js').then(({ PinRenderer }) => {
+                PinRenderer.removePin(pinId);
+            });
+        }
     }
 
     /**

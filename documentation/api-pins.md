@@ -1,6 +1,6 @@
 # Canvas Pins API Documentation
 
-> **Status**: Phase 1.1 & 1.2 complete. Event handling (Phase 1.3) and rendering (Phase 2) in progress.
+> **Status**: Phase 1 (Core Infrastructure) complete. Rendering (Phase 2) and event dispatching (Phase 3) in progress.
 
 ## Overview
 
@@ -176,7 +176,7 @@ console.log(`Found ${pins.length} pins`);
 ### `pins.on(eventType, handler, options?)`
 Register an event handler. Returns a disposer function.
 
-> **Status**: Currently stubbed (Phase 1.3). Will be implemented with event handler registration system.
+> **Status**: Phase 1.3 complete. Handlers are registered and will be invoked when events occur (Phase 3).
 
 **Returns**: `() => void` - Disposer function to unregister the handler
 
@@ -187,9 +187,14 @@ const off = pinsAPI.on('click', (evt) => {
 
 // later
 off();
+
+// Or use AbortSignal for automatic cleanup
+const controller = new AbortController();
+pinsAPI.on('click', handler, { signal: controller.signal });
+// Later: controller.abort() automatically removes the handler
 ```
 
-**Event Types** (planned):
+**Event Types**:
 - `'hoverIn'` - Mouse enters pin
 - `'hoverOut'` - Mouse leaves pin
 - `'click'` - Left mouse button click
@@ -199,7 +204,7 @@ off();
 - `'dragMove'` - Drag operation continues (requires `dragEvents: true`)
 - `'dragEnd'` - Drag operation ends (requires `dragEvents: true`)
 
-**Options** (planned):
+**Options**:
 - `pinId` (string, optional): handle events for a specific pin only
 - `moduleId` (string, optional): handle events for pins created by this module
 - `sceneId` (string, optional): scope to a specific scene
@@ -209,7 +214,8 @@ off();
 **Throws**: 
 - `Error` if eventType is invalid
 - `Error` if handler is not a function
-- Currently throws: "Event handler registration (pins.on) is not yet implemented. Coming in Phase 1.3."
+
+**Note**: Handlers are registered immediately but will only be invoked when the rendering system (Phase 2/3) detects and dispatches events. The handler registration system is ready; event dispatching will be implemented in Phase 3.
 
 ## Permissions and Errors
 
@@ -231,12 +237,13 @@ off();
 
 ## Implementation Status
 
-- [x] Core infrastructure (Phase 1.1 & 1.2)
+- [x] Core infrastructure (Phase 1.1, 1.2, 1.3)
   - [x] Pin data model (`pins-schema.js`)
   - [x] Pin manager (`manager-pins.js`)
+  - [x] Event handler registration (`registerHandler()`, `_invokeHandlers()`)
   - [x] Public API wrapper (`api-pins.js`)
   - [x] API exposure in `blacksmith.js`
 - [ ] Rendering system (Phase 2)
-- [ ] Event handling (Phase 1.3 & 3)
-- [x] API methods (CRUD complete; `on()` stubbed for Phase 1.3)
+- [ ] Event dispatching (Phase 3) - handlers registered, need to wire to canvas events
+- [x] API methods (CRUD + `on()` complete)
 - [x] Documentation (this file)

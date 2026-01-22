@@ -26,12 +26,13 @@
 - [x] Add API guards for missing canvas/scene — `_getScene()` throws if scene not found
 
 ### 1.3 Event Handler Registration
-- [ ] Design event handler registration API (similar to HookManager/Menubar)
-- [ ] Support per-pin and global event handlers
-- [ ] Implement event callback invocation system with proper error handling
-- [ ] Use AbortController for automatic event cleanup (v13+ feature)
-- [ ] Add error logging and user notifications for callback failures
-- [ ] Ensure handlers can be removed via returned disposer or AbortSignal
+- [x] Design event handler registration API (similar to HookManager/Menubar) — `registerHandler()` in `manager-pins.js`
+- [x] Support per-pin and global event handlers — filtering via `pinId`, `moduleId`, `sceneId` options
+- [x] Implement event callback invocation system with proper error handling — `_invokeHandlers()` with try-catch
+- [x] Use AbortController for automatic event cleanup (v13+ feature) — `AbortSignal` support in `registerHandler()`
+- [x] Add error logging and user notifications for callback failures — `postConsoleAndNotification` on handler errors
+- [x] Ensure handlers can be removed via returned disposer or AbortSignal — disposer function + `signal` cleanup
+- [x] Wire `on()` method in `api-pins.js` — calls `PinManager.registerHandler()`
 
 ## Phase 2: Rendering System
 
@@ -71,11 +72,11 @@
 
 ### 3.2 Event Delegation
 - [ ] Set up event listeners on canvas layer using PIXI event system
-- [ ] Use AbortController for automatic event cleanup
+- [x] Use AbortController for automatic event cleanup — Phase 1.3 complete
 - [ ] Implement hit testing (determine which pin was clicked)
 - [ ] Hit area must include all visible elements (not just base shape)
-- [ ] Route events to appropriate registered handlers
-- [ ] Pass event data and pin context to callbacks
+- [x] Route events to appropriate registered handlers — `_invokeHandlers()` ready in Phase 1.3
+- [x] Pass event data and pin context to callbacks — `PinEvent` structure defined
 - [ ] Add debouncing for rapid state changes
 
 ### 3.3 Context Menu
