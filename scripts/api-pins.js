@@ -72,4 +72,28 @@ export class PinsAPI {
     static on(eventType, handler, options) {
         return PinManager.registerHandler(eventType, handler, options);
     }
+
+    /**
+     * Reload pins from scene flags and re-render on the canvas.
+     * Use from console when pins exist in data but don't appear (e.g. after refresh).
+     * Does not use dynamic import – call via API only: `game.modules.get('coffee-pub-blacksmith')?.api?.pins?.reload()`.
+     *
+     * @param {{ sceneId?: string }} [options]
+     * @returns {Promise<{ reloaded: number; containerReady: boolean; pinsInData: number }>}
+     */
+    static async reload(options = {}) {
+        const sceneId = options.sceneId ?? canvas?.scene?.id;
+        if (!sceneId) {
+            throw new Error('No scene; ensure canvas is ready and a scene is active.');
+        }
+        const pins = PinManager.list({ sceneId });
+        const { PinRenderer } = await import('./pins-renderer.js');
+        const container = PinRenderer.getContainer();
+        if (!container) {
+            return { reloaded: 0, containerReady: false, pinsInData: pins.length };
+        }
+        await PinRenderer.loadScenePins(sceneId, pins);
+        const count = PinRenderer.getContainer()?.children?.length ?? 0;
+        return { reloaded: count, containerReady: true, pinsInData: pins.length };
+    }
 }
