@@ -6,6 +6,8 @@ The Canvas Pins system provides a configurable, interactive pin system for the F
 
 **Target Version**: FoundryVTT v13+ only, with Application V2 API support required.
 
+**Implementation status**: Phases 1–3 are implemented. Pins render on the Blacksmith layer with Font Awesome icons, support CRUD and event handlers (hover, click, right-click, middle-click), and a right-click context menu. Drag-and-drop placement and drag-to-move are not yet implemented. See `plans-pins.md` for details.
+
 ## Core Requirements
 
 ### Storage
@@ -17,18 +19,19 @@ The Canvas Pins system provides a configurable, interactive pin system for the F
 - Include a pin data schema version for safe upgrades
 
 ### Configuration
-Pins must support the following configurable properties:
-- **Size**: Configurable size/dimensions
-- **Style**: Visual styling options (colors, borders, effects)
-- **Text**: Optional text label/description
-- **Image**: Optional image/icon to display
+Pins support the following configurable properties:
+- **Size**: Configurable size/dimensions (default 32×32)
+- **Style**: Visual styling (fill, stroke, strokeWidth, alpha)
+- **Text**: Optional text label (stored; rendering planned)
+- **Image**: Font Awesome HTML only (e.g. `<i class="fa-solid fa-star"></i>`). Legacy image paths are mapped to a default star icon.
 
 ### Interactivity
-Pins must support the following interactions:
-- **Droppable**: Can be placed on the canvas (drag-and-drop from a source)
-- **Draggable**: Can be moved around the canvas after placement
-- **Deletable**: Can be removed from the canvas
-- **Updateable**: Properties can be modified after creation
+Pins support the following interactions:
+- **Droppable**: Not yet implemented (drag-and-drop from a source)
+- **Draggable**: Not yet implemented (drag to move)
+- **Deletable**: Via API or context menu (right-click → Delete)
+- **Updateable**: Via API; context menu Edit/Properties placeholders
+- **Hover / Click**: Implemented (hoverIn, hoverOut, click, rightClick, middleClick; modifiers passed to handlers)
 
 ### Event Handling
 Pins must support the following events, with callbacks passed back to the caller:
@@ -44,9 +47,10 @@ The event system should work similarly to:
 - **Menubar**: Event delegation pattern where registered handlers are called
 
 ### Rendering
-- Pins must render on the **Blacksmith Layer** (`blacksmith-utilities-layer`)
-- Pins should be visible to all users (with appropriate permission checks)
-- Pins should update in real-time when modified
+- Pins render on the **Blacksmith Layer** (`blacksmith-utilities-layer`)
+- The layer auto-activates when loading scenes that contain pins, so pins are visible after refresh
+- Pins are visible to all users with view permission; create/update/delete respect ownership and `pinsAllowPlayerWrites`
+- Pins update in real-time when modified via the API
 
 ## Architecture Patterns
 
@@ -99,14 +103,12 @@ Pins should be stored in scene flags (not embedded documents):
 
 ### Layer Integration
 - Pins render on `BlacksmithLayer` (extends `foundry.canvas.layers.CanvasLayer`)
-- Use a PIXI.Container within the layer to hold all pins
-- Container should have `sortableChildren = true` for z-ordering
-- Container should have `eventMode = 'static'` (v13+ requirement)
-- Use FoundryVTT's canvas coordinate system
-- Single initialization point (in `canvasReady` hook)
-- Clear container contents when scenes change
-- Handle layer activation/deactivation properly
-- Support zoom and pan operations
+- A PIXI.Container within the layer holds all pins (`pins-renderer.js`)
+- Container has `sortableChildren = true`, `eventMode = 'static'`
+- Pins use scene coordinates; zoom/pan supported via canvas transform
+- Container initialized in layer `_draw()`; pins loaded via `canvasReady` and `updateScene` hooks
+- Container cleared when scenes change and when layer deactivates
+- Layer auto-activates when loading scenes that have pins
 
 ### Permissions Model
 - Default to GM-only create/update/delete
@@ -123,10 +125,10 @@ When creating pins, the following defaults apply if properties are not provided:
 - **`version`**: `1` - Current schema version (should use `PIN_SCHEMA_VERSION` constant)
 - **`ownership`**: `{default: 0}` - No ownership (GM-only by default)
 - **`text`**: `undefined` - No text label
-- **`image`**: `undefined` - No image/icon
+- **`image`**: `undefined` - No icon (circle only). When provided, use Font Awesome HTML only.
 - **`config`**: `{}` - Empty config object
 
-These defaults should be applied during pin creation/validation, not stored in scene flags (to minimize data size).
+These defaults are applied during pin creation/validation, not stored in scene flags (to minimize data size). Icons use Font Awesome only; legacy image paths (e.g. `icons/svg/star.svg`) are converted to a default star icon at render time.
 
 ## API Design Principles
 
@@ -196,15 +198,22 @@ These defaults should be applied during pin creation/validation, not stored in s
 
 ## Integration Points
 
-- **Scene Data**: Store pins in scene flags (format: `scene.flags['coffee-pub-blacksmith'].pins[]`)
-  - MODULE.ID = `'coffee-pub-blacksmith'` (from `scripts/const.js`)
-  - Pins stored as array of PinData objects
-  - Each scene maintains its own pins array
-- **Canvas Layer**: Render on `blacksmith-utilities-layer` using PIXI.Container
-- **Event System**: Use FoundryVTT's interaction system (mouse events, keyboard modifiers) with proper cleanup
-- **API Exposure**: Expose pin management through Blacksmith API
-  - **`scripts/pins-schema.js`**: Data model, validation, migration (internal)
-  - **`scripts/manager-pins.js`**: Internal manager with CRUD and permissions
-  - **`scripts/api-pins.js`**: Public API wrapper (`PinsAPI` class) following `api-stats.js` pattern
-  - **`scripts/blacksmith.js`**: Exposes `module.api.pins = PinsAPI` for external consumption
-- **Application V2**: Use FoundryVTT v13+ Application V2 API for any UI components
+- **Scene Data**: Pins stored in `scene.flags['coffee-pub-blacksmith'].pins[]` (MODULE.ID from `const.js`). Each scene has its own pins array.
+- **Canvas Layer**: `blacksmith-utilities-layer`; `PinRenderer` manages a PIXI.Container; `PinGraphics` per pin.
+- **Event System**: PIXI pointer events on each pin; `PinManager._invokeHandlers()` dispatches to registered handlers. AbortSignal supported for cleanup.
+- **API Exposure**:
+  - **`scripts/pins-schema.js`**: Data model, validation, migration
+  - **`scripts/manager-pins.js`**: CRUD, permissions, event handler registration
+  - **`scripts/pins-renderer.js`**: Pin graphics, Font Awesome icons, context menu
+  - **`scripts/api-pins.js`**: Public `PinsAPI` (create, update, delete, get, list, on, reload)
+  - **`scripts/blacksmith.js`**: `module.api.pins = PinsAPI`; `canvasReady` / `updateScene` hooks for pin loading
+- **Context Menu**: Custom HTML right-click menu (Edit, Delete, Properties). Application V2 could be used for Edit/Properties dialogs later.
+
+## Remaining Work
+
+See **`plans-pins.md`** for the full checklist. Outstanding items include:
+
+- **Phase 2.2**: Render pin `text` label; hit area including text bounds.
+- **Phase 2.3**: Drag-and-drop placement (`dropCanvasData`); drag to move existing pins.
+- **Phase 3.3**: Custom context menu items from callbacks; optional use of Foundry context menu.
+- **Phase 4–5**: Documentation (usage examples, event patterns), API availability checks, automated tests.

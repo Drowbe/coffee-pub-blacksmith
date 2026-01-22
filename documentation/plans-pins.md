@@ -2,6 +2,24 @@
 
 **Target**: FoundryVTT v13+ only with Application V2 API support
 
+**Last updated**: Post–Phase 3 implementation. Phases 1–3 core work complete; Phase 2.3 (drag) and Phase 4–5 items remain.
+
+---
+
+## Progress Summary
+
+| Phase | Status | Notes |
+|-------|--------|--------|
+| **1** | Complete | Data model, manager, CRUD, permissions, event handler registration |
+| **2.1–2.2** | Complete | Container, rendering (circle + Font Awesome icon), layer integration, hover feedback |
+| **2.3** | Not started | Drag-and-drop placement, drag to move |
+| **3.1–3.2** | Complete | Hover/click events, modifiers, PIXI listeners, context menu |
+| **3.3** | Partial | Edit/Delete/Properties done; custom menu items, Foundry menu system not done |
+| **4** | Partial | API complete + `reload()`; docs and availability checks incomplete |
+| **5** | Not started | Formal testing, full API reference |
+
+---
+
 ## Phase 1: Core Infrastructure
 
 ### 1.1 Pin Data Model
@@ -18,7 +36,7 @@
 - [x] Create `PinManager` class to handle pin lifecycle — `manager-pins.js`
 - [x] Implement pin CRUD operations (create, read, update, delete) — `create()`, `update()`, `delete()`, `get()`, `list()`
 - [x] Add scene change handling (load pins when scene changes) — `_getScenePins()` reads from flags, migrates/validates
-- [ ] Clear container contents on scene change (not just reload) — Phase 2 (container not created yet)
+- [x] Clear container contents on scene change — `PinRenderer.clear()` in `loadScenePins` and layer `deactivate()`
 - [x] Implement permission checks (GM-only for create/update/delete by default, per architecture) — `_canCreate()`, `_canEdit()`, `_canView()`
 - [x] Support ownership-based visibility/editability using Foundry ownership levels — uses `CONST.DOCUMENT_OWNERSHIP_LEVELS`
 - [x] Add configuration flag to allow or disallow player writes — `pinsAllowPlayerWrites` setting in `settings.js`
@@ -34,25 +52,27 @@
 - [x] Ensure handlers can be removed via returned disposer or AbortSignal — disposer function + `signal` cleanup
 - [x] Wire `on()` method in `api-pins.js` — calls `PinManager.registerHandler()`
 
+---
+
 ## Phase 2: Rendering System
 
 ### 2.1 Blacksmith Layer Integration
-- [ ] Create PIXI.Container within BlacksmithLayer for pins
-- [ ] Set container properties: `sortableChildren = true`, `eventMode = 'static'`
-- [ ] Single initialization point in `canvasReady` hook (avoid duplication)
-- [ ] Implement pin drawing/rendering logic
-- [ ] Handle layer activation/deactivation
-- [ ] Clear container on scene change
-- [ ] Support canvas zoom and pan
+- [x] Create PIXI.Container within BlacksmithLayer for pins — `PinRenderer.initialize(layer)` in `canvas-layer.js` `_draw()`
+- [x] Set container properties: `sortableChildren = true`, `eventMode = 'static'` — in `pins-renderer.js`
+- [x] Single initialization point — `_draw()` of BlacksmithLayer; pins loaded via `canvasReady` and `updateScene` hooks
+- [x] Implement pin drawing/rendering logic — `PinGraphics` in `pins-renderer.js`
+- [x] Handle layer activation/deactivation — `activate()` loads pins, `deactivate()` calls `PinRenderer.clear()`
+- [x] Clear container on scene change — `loadScenePins` calls `clear()` before loading; `deactivate` clears
+- [x] Support canvas zoom and pan — pins use scene coordinates; layer follows canvas transform
 
 ### 2.2 Pin Visual Representation
-- [ ] Render pin base (size, style) using PIXI.Graphics
-- [ ] Render pin image/icon if provided
-- [ ] Render pin text label if provided
-- [ ] **IMPORTANT**: Update existing graphics objects instead of recreating (performance)
-- [ ] Only recreate graphics when structure fundamentally changes
-- [ ] Implement hover/selection visual feedback
-- [ ] Calculate proper hit area that includes all visible elements (base + text bounds)
+- [x] Render pin base (size, style) using PIXI.Graphics — circle with fill/stroke
+- [x] Render pin image/icon if provided — Font Awesome only; legacy paths map to default `fa-solid fa-star`
+- [ ] Render pin text label if provided — `text` stored but not yet rendered
+- [x] Update existing graphics objects instead of recreating (performance) — `PinGraphics.update()` updates circle in place
+- [x] Only recreate graphics when structure fundamentally changes — rebuild when size/image changes
+- [x] Implement hover/selection visual feedback — scale to 1.1 on hover
+- [ ] Calculate proper hit area that includes all visible elements (base + text bounds) — currently circle only; extend when text added
 
 ### 2.3 Canvas Interaction
 - [ ] Implement drag-and-drop for pin placement (using `dropCanvasData` hook)
@@ -62,107 +82,112 @@
 - [ ] Handle canvas coordinate transformations
 - [ ] Prevent Foundry selection box during drag operations
 
+---
+
 ## Phase 3: Event System
 
 ### 3.1 Mouse Event Handling
-- [ ] Implement hover detection (mouse enter/leave) → `hoverIn` / `hoverOut`
-- [ ] Implement left click, right click, middle click → `click` / `rightClick` / `middleClick`
-- [ ] Detect keyboard modifiers (Ctrl, Alt, Shift, Meta) and pass in `PinEvent.modifiers`
-- [ ] Support modifier-click semantics per architecture (modifier state available to handlers)
+- [x] Implement hover detection (mouse enter/leave) → `hoverIn` / `hoverOut` — `PinGraphics` pointerenter/pointerleave
+- [x] Implement left click, right click, middle click → `click` / `rightClick` / `middleClick` — `pointerdown` + button detection
+- [x] Detect keyboard modifiers (Ctrl, Alt, Shift, Meta) and pass in `PinEvent.modifiers`
+- [x] Support modifier-click semantics (modifier state available to handlers)
 
 ### 3.2 Event Delegation
-- [ ] Set up event listeners on canvas layer using PIXI event system
-- [x] Use AbortController for automatic event cleanup — Phase 1.3 complete
-- [ ] Implement hit testing (determine which pin was clicked)
-- [ ] Hit area must include all visible elements (not just base shape)
-- [x] Route events to appropriate registered handlers — `_invokeHandlers()` ready in Phase 1.3
-- [x] Pass event data and pin context to callbacks — `PinEvent` structure defined
+- [x] Set up event listeners on pin graphics using PIXI event system — `_setupEventListeners()` in `PinGraphics`
+- [x] Use AbortController for automatic event cleanup — Phase 1.3; handlers support `signal`
+- [x] Implement hit testing (determine which pin was clicked) — per-pin hit area, `eventMode = 'static'`
+- [x] Hit area for base shape — circle; text bounds not yet included (no text rendering)
+- [x] Route events to appropriate registered handlers — `_invokeHandlers()` called from PinGraphics handlers
+- [x] Pass event data and pin context to callbacks — `PinEvent` structure with pin, sceneId, userId, modifiers, originalEvent
 - [ ] Add debouncing for rapid state changes
 
 ### 3.3 Context Menu
-- [ ] Create context menu for right-click on pins (using Application V2)
-- [ ] Add "Edit", "Delete", "Properties" options
+- [x] Create context menu for right-click on pins — custom HTML menu in `_showContextMenu` / `_renderContextMenu`
+- [x] Add "Edit", "Delete", "Properties" options — permission-aware; Delete calls API
 - [ ] Support custom context menu items from callbacks
-- [ ] Use FoundryVTT's context menu system (v13+)
+- [ ] Use FoundryVTT's context menu system (v13+) — currently custom implementation
+
+---
 
 ## Phase 4: API and Integration
 
 ### 4.1 Blacksmith API Integration
 - [x] Create `api-pins.js` wrapper class (`PinsAPI`) following `api-stats.js` pattern
-- [x] Expose pins API as `blacksmith.pins` (create, update, delete, get, list) per api-pins.md
+- [x] Expose pins API as `blacksmith.pins` (create, update, delete, get, list, on, reload)
 - [x] Wire `PinsAPI` in `blacksmith.js` (`module.api.pins = PinsAPI`)
-- [x] API guards for missing canvas/scene — `_getScene()` in `manager-pins.js` handles this
-- [ ] Ensure API available after `canvasReady` (guards for missing canvas/scene) - Phase 2 (for rendering)
-- [ ] Document API usage patterns
-- [ ] Add API availability checks
+- [x] API guards for missing canvas/scene — `_getScene()` throws
+- [x] Pins load after canvas ready — `canvasReady` and `updateScene` hooks; layer auto-activates when scene has pins
+- [ ] Document API usage patterns — `api-pins.md` partial; expand with examples
+- [ ] Add API availability checks (e.g. helper or guards pre–canvasReady)
 
 ### 4.2 Pin Configuration API
-- [x] Implement `create` / `update` / `delete` / `get` / `list` in `api-pins.js` (wraps `PinManager` methods)
-- [ ] Implement `on()` method in `api-pins.js` (event handler registration - Phase 1.3)
-- [ ] API for updating pin properties (with debouncing support) - Phase 2
-- [ ] API for registering event handlers (disposer + `signal` option; AbortController support) - Phase 1.3
-- [x] API for querying pins (by scene, by id, by moduleId, etc.) - `list()` with filters
-- [x] Validate pin `config` field - handled in `pins-schema.js`
-- [ ] Support config cache invalidation if we add external config (e.g. JSON) - future
-- [ ] Implement `PinEvent` payload and document error semantics (per api-pins.md) - Phase 1.3
+- [x] Implement `create` / `update` / `delete` / `get` / `list` in `api-pins.js`
+- [x] Implement `on()` method — event handler registration with disposer and `signal`
+- [x] Implement `reload()` method — reload pins from scene flags; optional layer init/activation
+- [ ] API for updating pin properties with debouncing support
+- [x] API for querying pins (scene, id, moduleId) — `list()` filters
+- [x] Validate pin `config` field — `pins-schema.js`
+- [ ] Support config cache invalidation if we add external config (e.g. JSON) — future
+- [x] Implement `PinEvent` payload and document error semantics — passed to handlers; see `api-pins.md`
 
 ### 4.3 Module Consumer Support
-- [ ] Create example usage patterns
-- [ ] Support module-specific pin types/styles
-- [ ] Handle module unload cleanup
-- [ ] Provide migration path for existing pin implementations
+- [x] Example usage — `utilities/test-pins-debug.js`, `test-pins-reload.js`; console examples in CHANGELOG
+- [ ] Support module-specific pin types/styles — not yet
+- [x] Handle module unload cleanup — `PinManager.cleanup()` / `clearHandlers()` on `unloadModule`
+- [ ] Provide migration path for existing pin implementations (e.g. Squire)
+
+---
 
 ## Phase 5: Testing and Documentation
 
 ### 5.1 Testing
-- [ ] Test pin creation/update/delete and API return types (create/update → PinData; delete → void)
-- [ ] Test `get()` returns `null` when pin not found (no throw); `update`/`delete` throw when not found
-- [ ] Test API throws on invalid data, missing scene, permission denied (per api-pins.md)
-- [ ] Test all event types (hoverIn/Out, click, rightClick, middleClick, modifiers; dragStart/Move/End with opt-in)
+- [x] Manual testing of create/update/delete, `get`/`list`, `reload`, events, context menu
+- [ ] Automated tests for API contracts, permissions, migration
+- [ ] Test all event types (hoverIn/Out, click, rightClick, middleClick, modifiers)
 - [ ] Test scene change handling and container cleanup
-- [ ] Test permission scenarios (GM vs player; ownership; config flag for player writes)
+- [ ] Test permission scenarios (GM vs player; `pinsAllowPlayerWrites`)
 - [ ] Test with multiple consumers (multiple modules)
-- [ ] Test orphaned pin cleanup
-- [ ] Test data migration scenarios (version map, run before validation, never fail scene load)
-- [ ] Test event cleanup (disposer, AbortSignal; no memory leaks)
-- [ ] Test hit area accuracy (including text bounds)
 - [ ] Test performance with many pins (100+)
-- [ ] Test drag operations with rapid movements
+- [ ] Test drag operations (when implemented)
 
 ### 5.2 Documentation
-- [ ] Update `api-pins.md` with complete API reference
-- [ ] Create usage examples
-- [ ] Document event handler patterns
-- [ ] Document pin configuration options
-- [ ] Document permission behavior and error handling
+- [x] `api-pins.md` — API reference, data types, permissions, errors
+- [ ] Usage examples section (create, list, events, reload, cleanup)
+- [ ] Event handler patterns and `AbortSignal` usage
+- [ ] Pin configuration options (size, style, image as Font Awesome)
+- [ ] Permission behavior and `pinsAllowPlayerWrites`
+
+---
 
 ## Key Implementation Notes (from Squire Lessons Learned)
 
 ### Performance Optimizations
-- **Update graphics, don't recreate**: Modify existing PIXI.Graphics objects instead of removing/recreating
-- **Batch updates**: Group multiple pin updates together
-- **Debounce rapid changes**: Add debouncing for state synchronization
-- **Cache parsed content**: Cache any parsed content (like HTML/DOM parsing)
+- **Update graphics, don't recreate**: `PinGraphics.update()` updates circle in place; rebuild only when size/image changes
+- **Batch updates**: Not yet implemented
+- **Debounce rapid changes**: Not yet implemented
+- **Cache parsed content**: Font Awesome classes resolved per pin; could cache FA texture by class string
 
 ### Event Handling
-- **AbortController**: Use AbortController for all event listeners (v13+ feature) for automatic cleanup
-- **Proper hit areas**: Calculate hit areas that include all visible elements, not just base shape
+- **AbortController**: Handler registration supports `signal`; drag listeners will use it when added
+- **Proper hit areas**: Circle only today; extend to include text when labels are rendered
 
 ### Data Management
-- **UUID-based IDs**: Use proper UUIDs, not timestamps (avoid collisions)
-- **Validate on load**: Always validate pin data structure when loading from scene flags
-- **Migration system**: Include data migration for pin format changes
-- **Orphaned cleanup**: Handle cleanup of pins referencing deleted entities
+- **UUID-based IDs**: Used throughout
+- **Validate on load**: `migrateAndValidatePins()` on scene load
+- **Migration system**: `PIN_SCHEMA_VERSION`, `MIGRATION_MAP`
+- **Orphaned cleanup**: Invalid pins dropped during migration/validation
 
 ### Code Organization
-- **Single initialization**: One place to create container (canvasReady hook)
-- **Proper cleanup**: Clear container contents on scene changes
-- **Error handling**: Proper logging and user notifications for failures
+- **Single initialization**: Container created in `_draw()`; pins loaded via `canvasReady` / `updateScene`
+- **Proper cleanup**: `clear()` on scene change and layer deactivate; `cleanup()` on module unload
+- **Error handling**: `postConsoleAndNotification` for pin/icon errors; all messages prefixed `BLACKSMITH | PINS`
 
 ### v13+ Specific
-- **Application V2**: Use Application V2 API for any dialogs/forms
-- **eventMode**: Use `eventMode = 'static'` for PIXI containers
-- **Modern patterns**: Leverage latest FoundryVTT APIs and patterns
+- **Application V2**: Context menu is custom HTML; Edit/Properties could use Application V2 later
+- **eventMode**: `eventMode = 'static'` on container and pin graphics
+- **Font Awesome only**: Icons are Font Awesome HTML only; legacy image paths map to default star
+
+---
 
 ## Future Considerations
 

@@ -1,6 +1,6 @@
 # Canvas Pins API Documentation
 
-> **Status**: Phase 1 (Core Infrastructure) complete. Rendering (Phase 2) and event dispatching (Phase 3) in progress.
+> **Status**: Phases 1–3 complete. Pins render on the Blacksmith layer, support Font Awesome icons, and dispatch hover/click/context-menu events. Phase 2.3 (drag-and-drop) and Phase 4–5 (docs, tests) remain.
 
 ## Overview
 
@@ -10,37 +10,30 @@ The Canvas Pins API provides a system for creating, managing, and interacting wi
 
 The pins API follows Blacksmith's standard pattern:
 - **`scripts/pins-schema.js`** - Data model, validation, migration (Phase 1.1)
-- **`scripts/manager-pins.js`** - Internal manager with CRUD operations and permissions (Phase 1.2)
-- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI` class) that exposes the manager methods
-- **`scripts/blacksmith.js`** - Exposes `module.api.pins = PinsAPI` for external consumption
+- **`scripts/manager-pins.js`** - Internal manager with CRUD, permissions, and event handler registration (Phase 1.2, 1.3)
+- **`scripts/pins-renderer.js`** - Pin graphics (circle + Font Awesome icon), PIXI events, context menu (Phase 2, 3)
+- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `on()`, and `reload()`
+- **`scripts/blacksmith.js`** - Exposes `module.api.pins = PinsAPI`; hooks for `canvasReady` / `updateScene` pin loading
 
 ## Getting Started
 
 ### Accessing the API
 
 ```javascript
-// Import the Blacksmith API bridge
-import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
+// Via game.modules (no imports – use in browser console or other modules)
+const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
 
-// Get the pins API
+// Or via Blacksmith API bridge
+import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
 const blacksmith = await BlacksmithAPI.get();
 const pinsAPI = blacksmith?.pins;
-if (pinsAPI) {
-    // Pins API is available
-}
 ```
 
 ### Checking Availability
 
-```javascript
-// Wait for canvas to be ready
-Hooks.once('canvasReady', async () => {
-    const blacksmith = await BlacksmithAPI.get();
-    if (blacksmith?.pins) {
-        // Pins API is ready
-    }
-});
-```
+- Pins API is available after Blacksmith initializes (`module.api.pins`).
+- Pin **rendering** requires canvas and an active scene. Use `canvasReady` (or ensure canvas is ready) before creating pins or calling `reload()`.
+- If pins exist in scene flags but don’t appear, activate the Blacksmith layer (scene controls) or call `pinsAPI.reload()`; the layer auto-activates when loading scenes with pins.
 
 ## Data Types
 
@@ -54,7 +47,7 @@ interface PinData {
   size?: { w: number; h: number };
   style?: { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number };
   text?: string;
-  image?: string;
+  image?: string;  // Font Awesome HTML only, e.g. '<i class="fa-solid fa-star"></i>'; legacy paths → default star
   config?: Record<string, unknown>;
   moduleId: string; // consumer module id
   ownership?: { default: number; users?: Record<string, number> };
@@ -88,7 +81,8 @@ const pin = await pinsAPI.create({
   x: 1200,
   y: 900,
   text: 'Forge',
-  moduleId: 'my-module'
+  moduleId: 'my-module',
+  image: '<i class="fa-solid fa-star"></i>'  // optional; Font Awesome only
 });
 ```
 
@@ -174,9 +168,7 @@ console.log(`Found ${pins.length} pins`);
 - `Error` if scene not found
 
 ### `pins.on(eventType, handler, options?)`
-Register an event handler. Returns a disposer function.
-
-> **Status**: Phase 1.3 complete. Handlers are registered and will be invoked when events occur (Phase 3).
+Register an event handler. Returns a disposer function. Events are dispatched when users interact with pins (hover, click, right-click, etc.).
 
 **Returns**: `() => void` - Disposer function to unregister the handler
 
@@ -215,7 +207,23 @@ pinsAPI.on('click', handler, { signal: controller.signal });
 - `Error` if eventType is invalid
 - `Error` if handler is not a function
 
-**Note**: Handlers are registered immediately but will only be invoked when the rendering system (Phase 2/3) detects and dispatches events. The handler registration system is ready; event dispatching will be implemented in Phase 3.
+### `pins.reload(options?)`
+Reload pins from scene flags and re-render on the canvas. Use when pins exist in data but don’t appear (e.g. after refresh or scene change). Calls via API only; no dynamic imports.
+
+**Returns**: `Promise<{ reloaded: number; containerReady: boolean; pinsInData: number; layerActive: boolean }>`
+
+```javascript
+const result = await pinsAPI.reload();
+// result.reloaded: number of pins now in container
+// result.containerReady: whether renderer container existed
+// result.pinsInData: pins in scene flags
+// result.layerActive: whether Blacksmith layer is active
+```
+
+**Options**:
+- `sceneId` (string, optional): target scene; defaults to active scene
+
+**Throws**: `Error` if no scene (e.g. canvas not ready).
 
 ## Permissions and Errors
 
@@ -238,12 +246,10 @@ pinsAPI.on('click', handler, { signal: controller.signal });
 ## Implementation Status
 
 - [x] Core infrastructure (Phase 1.1, 1.2, 1.3)
-  - [x] Pin data model (`pins-schema.js`)
-  - [x] Pin manager (`manager-pins.js`)
-  - [x] Event handler registration (`registerHandler()`, `_invokeHandlers()`)
-  - [x] Public API wrapper (`api-pins.js`)
-  - [x] API exposure in `blacksmith.js`
-- [ ] Rendering system (Phase 2)
-- [ ] Event dispatching (Phase 3) - handlers registered, need to wire to canvas events
-- [x] API methods (CRUD + `on()` complete)
-- [x] Documentation (this file)
+- [x] Rendering (Phase 2.1, 2.2): container, circle + Font Awesome icon, layer integration, hover feedback
+- [ ] Phase 2.3: drag-and-drop placement, drag to move
+- [x] Event system (Phase 3.1, 3.2): hover/click/right-click/middle-click, modifiers, PIXI listeners, handler dispatch
+- [x] Context menu (Phase 3.3): Edit, Delete, Properties (custom HTML); custom items and Foundry menu not done
+- [x] API: CRUD, `on()`, `reload()`; `pinsAllowPlayerWrites` setting
+- [x] Pin storage in scene flags; migration and validation on load
+- [ ] Full usage examples, automated tests, and remaining Phase 4–5 items (see `plans-pins.md`)
