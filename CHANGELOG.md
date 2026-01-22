@@ -8,12 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.1.1]
 
+### NEW FEATURE
+- **Canvas Pins System**: Complete pin system for placing configurable markers on the FoundryVTT canvas. Pins are stored in scene flags, support Font Awesome icons, and provide full CRUD operations with event handling. Designed for use by other Coffee Pub modules (e.g., Coffee Pub Squire).
+
+### Added
+- **Pin Data Model**: UUID-based pin IDs, schema versioning, validation, and migration system. Pins stored in `scene.flags['coffee-pub-blacksmith'].pins[]`.
+- **Pin CRUD API**: Full create, read, update, delete, and list operations via `game.modules.get('coffee-pub-blacksmith')?.api?.pins`.
+- **Event Handler System**: Register handlers for `hoverIn`, `hoverOut`, `click`, `rightClick`, `middleClick` events with filtering by `pinId`, `moduleId`, `sceneId`. Supports `AbortSignal` for automatic cleanup.
+- **Pin Rendering**: Pins render on Blacksmith layer as circles with Font Awesome icons. Hover feedback (scale animation) and visual styling (fill, stroke, size, alpha).
+- **Context Menu**: Right-click context menu with Edit, Delete, and Properties options. Permission-aware (respects ownership and `pinsAllowPlayerWrites` setting).
+- **Font Awesome Icon Support**: Pins use Font Awesome icons only (e.g., `<i class="fa-solid fa-star"></i>`). Legacy image paths automatically converted to default star icon.
+- **Auto-Layer Activation**: Blacksmith layer automatically activates when loading scenes with pins, ensuring pins are visible after refresh.
+- **Pin Reload API**: `pinsAPI.reload()` method for manual pin reload from console (useful for debugging).
+- **Permission System**: GM-only create/update/delete by default, configurable via `pinsAllowPlayerWrites` world setting. Ownership-based visibility/editability using Foundry's ownership levels.
+- **Scene Persistence**: Pins automatically load when scenes activate and persist across scene changes.
+
+### Changed
+- **Blacksmith Layer Auto-Activation**: Layer now automatically activates when loading scenes that contain pins, ensuring pins are visible without manual layer activation.
+
 ### Fixed
 - **Player Toolbar Refresh**: Removed GM-only render guard so player clients refresh toolbars when external modules register tools.
 - **Toolbar Hook Error**: Fixed undefined `toolsFromVisibleTools` reference during toolbar rebuild.
-
-### Changed
-- **Toolbar API Docs**: Updated `getToolbarSettings()` documentation to reflect `displayStyle` and corrected toolbar API usage examples.
+- **Icon Loading Errors**: Pins now use Font Awesome only, eliminating 404 errors from legacy SVG image paths. Legacy paths automatically converted to Font Awesome star icon.
 
 ### Removed
 - **Legacy Broadcast Auto-Close Settings**: Removed deprecated legacy broadcast auto-close settings (`broadcastAutoCloseImages`, `broadcastImageCloseDelaySeconds`, `broadcastAutoCloseJournals`, `broadcastJournalCloseDelaySeconds`) and their migration logic. These have been replaced by `broadcastAutoCloseWindows` and `broadcastAutoCloseDelaySeconds`.
