@@ -129,8 +129,7 @@ Gets current toolbar settings.
 **Returns:** `Object` - Current toolbar settings
 ```javascript
 {
-    showDividers: boolean,  // Whether to show toolbar dividers
-    showLabels: boolean     // Whether to show toolbar labels
+    displayStyle: string    // "none", "dividers", or "labels"
 }
 ```
 
@@ -140,8 +139,7 @@ Updates toolbar settings.
 
 **Parameters:**
 - `settings` (Object): Settings object
-  - `showDividers` (boolean, optional): Whether to show toolbar dividers
-  - `showLabels` (boolean, optional): Whether to show toolbar labels
+  - `displayStyle` (string, optional): "none", "dividers", or "labels"
 
 ## Toolbar Targeting
 
@@ -403,9 +401,9 @@ blacksmith.registerToolbarTool('my-conditional-tool', {
 // Unregister all tools when module is disabled
 Hooks.once('disableModule', (moduleId) => {
     if (moduleId === 'my-module') {
-        const tools = blacksmith.api.getToolsByModule('my-module');
+        const tools = blacksmith.getToolsByModule('my-module');
         tools.forEach(tool => {
-            blacksmith.api.unregisterToolbarTool(tool.name);
+            blacksmith.unregisterToolbarTool(tool.name);
         });
     }
 });
@@ -439,6 +437,7 @@ The API includes robust error handling:
 - Verify `onCoffeePub` or `onFoundry` functions return `true` if using function values
 - Check console for error messages
 - Ensure API is loaded: `blacksmith?.registerToolbarTool`
+- If players don't see newly registered tools, make sure a controls refresh runs on their client (e.g., after registration or when settings change)
 
 ### API Not Available
 - **Use correct API path**: `blacksmith.registerToolbarTool()` not `blacksmith.api.registerToolbarTool()`

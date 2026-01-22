@@ -508,9 +508,6 @@ function requestControlsRender() {
 function refreshSceneControls() {
     if (!ui?.controls) return false;
     
-    // Scene controls are GM-only
-    if (!game.user.isGM) return false;
-    
     // If controls haven't rendered yet, don't poke it
     if (!ui.controls.rendered) return false;
     
@@ -963,7 +960,7 @@ export async function addToolbarButton() {
                 postConsoleAndNotification(MODULE.NAME, "Coffee Pub Toolbar: Final newTools", {
                     finalToolNames: finalToolNames,
                     newToolsCount: finalToolNames.length,
-                    toolsCount: toolsFromVisibleTools.length
+                    toolsCount: visibleTools.length
                 }, true, false);
                 
                 // Replace the entire tools object to trigger v13 change detection
