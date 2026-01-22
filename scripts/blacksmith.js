@@ -73,6 +73,7 @@ import { SidebarPin } from './sidebar-pin.js';
 import { SidebarStyle } from './sidebar-style.js';
 import { LoadingProgressManager } from './manager-loading-progress.js';
 import { PinManager } from './manager-pins.js';
+import { PinsAPI } from './api-pins.js';
 import './sidebar-combat.js';
 import './combat-tools.js'; 
 // ================================================================== 
@@ -962,13 +963,7 @@ Hooks.once('init', async function() {
         getCanvasLayer: null,  // Helper function to get BlacksmithLayer
 
         // ✅ NEW: Canvas Pins API for external modules
-        pins: {
-            create: PinManager.create.bind(PinManager),
-            update: PinManager.update.bind(PinManager),
-            delete: PinManager.delete.bind(PinManager),
-            get: PinManager.get.bind(PinManager),
-            list: PinManager.list.bind(PinManager)
-        },
+        pins: PinsAPI,
         
         // ✅ NEW: Socket API for external modules (set after SocketManager initializes)
         sockets: null
