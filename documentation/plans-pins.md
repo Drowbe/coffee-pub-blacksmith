@@ -5,19 +5,21 @@
 ## Phase 1: Core Infrastructure
 
 ### 1.1 Pin Data Model
-- [ ] Define pin data structure (id: UUID, x, y, size, style, text, image, config, moduleId, version)
-- [ ] Use scene flags for storage (`scene.flags[MODULE.ID].pins[]`)
+- [ ] Define pin data structure (id, x, y, size, style, text, image, config, moduleId, version, ownership) — align with `PinData` in api-pins.md
+- [ ] Use scene flags for storage (`scene.flags['coffee-pub-blacksmith'].pins[]`; MODULE.ID)
 - [ ] Create pin schema/validation with data migration support
 - [ ] Implement UUID-based pin IDs (not timestamp-based to avoid collisions)
-- [ ] Add schema versioning and migration map
-- [ ] Validate and repair/drop invalid pin entries on load
+- [ ] Define `PIN_SCHEMA_VERSION` constant and add migration map (`Map<version, migrationFn>`)
+- [ ] Run migrations on scene load **before** validation; log migration actions
+- [ ] Validate and repair/drop invalid pin entries on load (never fail scene load)
+- [ ] Apply default values per architecture (size, style, version, ownership) when creating/validating
 
 ### 1.2 Pin Manager Class
 - [ ] Create `PinManager` class to handle pin lifecycle
 - [ ] Implement pin CRUD operations (create, read, update, delete)
 - [ ] Add scene change handling (load pins when scene changes)
 - [ ] Clear container contents on scene change (not just reload)
-- [ ] Implement permission checks (GM-only for create/delete by default)
+- [ ] Implement permission checks (GM-only for create/update/delete by default, per architecture)
 - [ ] Support ownership-based visibility/editability using Foundry ownership levels
 - [ ] Add configuration flag to allow or disallow player writes
 - [ ] Add orphaned pin cleanup (handle deleted references)
@@ -62,11 +64,10 @@
 ## Phase 3: Event System
 
 ### 3.1 Mouse Event Handling
-- [ ] Implement hover detection (mouse enter/leave)
-- [ ] Implement left click detection
-- [ ] Implement right click detection (context menu)
-- [ ] Implement middle click detection
-- [ ] Detect keyboard modifiers (Ctrl, Alt, Shift, Meta)
+- [ ] Implement hover detection (mouse enter/leave) → `hoverIn` / `hoverOut`
+- [ ] Implement left click, right click, middle click → `click` / `rightClick` / `middleClick`
+- [ ] Detect keyboard modifiers (Ctrl, Alt, Shift, Meta) and pass in `PinEvent.modifiers`
+- [ ] Support modifier-click semantics per architecture (modifier state available to handlers)
 
 ### 3.2 Event Delegation
 - [ ] Set up event listeners on canvas layer using PIXI event system
@@ -86,18 +87,18 @@
 ## Phase 4: API and Integration
 
 ### 4.1 Blacksmith API Integration
-- [ ] Expose PinManager through Blacksmith API
-- [ ] Create public API methods for consumers
+- [ ] Expose pins API as `blacksmith.pins` (create, update, delete, get, list, on) per api-pins.md
+- [ ] Ensure API available after `canvasReady` (guards for missing canvas/scene)
 - [ ] Document API usage patterns
 - [ ] Add API availability checks
 
 ### 4.2 Pin Configuration API
-- [ ] API for creating pins with configuration
+- [ ] Implement `create` / `update` / `delete` / `get` / `list` / `on` per api-pins.md (return types, options, throws)
 - [ ] API for updating pin properties (with debouncing support)
-- [ ] API for registering event handlers (with AbortController support)
+- [ ] API for registering event handlers (disposer + `signal` option; AbortController support)
 - [ ] API for querying pins (by scene, by id, by moduleId, etc.)
-- [ ] Config validation and cache invalidation support
-- [ ] Define event payload structure and error semantics
+- [ ] Validate pin `config` field; support config cache invalidation if we add external config (e.g. JSON)
+- [ ] Implement `PinEvent` payload and document error semantics (per api-pins.md)
 
 ### 4.3 Module Consumer Support
 - [ ] Create example usage patterns
@@ -108,14 +109,16 @@
 ## Phase 5: Testing and Documentation
 
 ### 5.1 Testing
-- [ ] Test pin creation/update/delete
-- [ ] Test all event types (hover, clicks, modifiers)
+- [ ] Test pin creation/update/delete and API return types (create/update → PinData; delete → void)
+- [ ] Test `get()` returns `null` when pin not found (no throw); `update`/`delete` throw when not found
+- [ ] Test API throws on invalid data, missing scene, permission denied (per api-pins.md)
+- [ ] Test all event types (hoverIn/Out, click, rightClick, middleClick, modifiers; dragStart/Move/End with opt-in)
 - [ ] Test scene change handling and container cleanup
-- [ ] Test permission scenarios
+- [ ] Test permission scenarios (GM vs player; ownership; config flag for player writes)
 - [ ] Test with multiple consumers (multiple modules)
 - [ ] Test orphaned pin cleanup
-- [ ] Test data migration scenarios
-- [ ] Test event cleanup (no memory leaks)
+- [ ] Test data migration scenarios (version map, run before validation, never fail scene load)
+- [ ] Test event cleanup (disposer, AbortSignal; no memory leaks)
 - [ ] Test hit area accuracy (including text bounds)
 - [ ] Test performance with many pins (100+)
 - [ ] Test drag operations with rapid movements
