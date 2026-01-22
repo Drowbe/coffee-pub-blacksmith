@@ -1245,13 +1245,15 @@ const assetLookup = BlacksmithAPI.getAssetLookup();
 const sounds = assetLookup.findByTag('notification');
 ```
 
-**Available Utilities**:
-
-| Function | Type | Description | Parameters |
-|----------|------|-------------|------------|
-| `postConsoleAndNotification` | Function | Console logging with debug support | `(moduleId, message, result, debug, notification)` |
-| `playSound` | Async Function | Sound playback | `(sound, volume, loop, broadcast)` |
-| `getSettingSafely` | Function | Safe settings access | `(moduleId, settingKey, defaultValue)` |
+  **Available Utilities**:
+  
+  | Function | Type | Description | Parameters |
+  |----------|------|-------------|------------|
+  | `postConsoleAndNotification` | Function | Console logging with debug support | `(moduleId, message, result, debug, notification)` |
+  | `playSound` | Async Function | Sound playback | `(sound, volume, loop, broadcast)` |
+  | `getSettingSafely` | Function | Safe settings access | `(moduleId, settingKey, defaultValue)` |
+  | `markdownToHtml` | Function | Convert subset Markdown to HTML | `(text)` |
+  | `htmlToMarkdown` | Function | Convert supported HTML subset to Markdown | `(html)` |
 | `setSettingSafely` | Function | Safe settings modification | `(moduleId, settingKey, value)` |
 | `formatTime` | Function | Time formatting utilities | `(ms, format)` |
 | `generateFormattedDate` | Function | Date formatting utilities | `(format)` |
@@ -1269,6 +1271,36 @@ const sounds = assetLookup.findByTag('notification');
 | `rollCoffeePubDice` | Async Function | Roll dice with Coffee Pub system | `(roll)` |
 | `resetModuleSettings` | Function | Reset module settings | `(moduleId)` |
 | `isPlayerCharacter` | Function | Check if entity is player character | `(entity)` |
+
+### **Markdown Utilities (Subset)**
+
+Blacksmith supports a small, predictable Markdown subset intended for chat/tool content. Anything outside this subset is treated as plain text.
+
+**Supported syntax**:
+- `#` / `##` / `###` headings
+- `---` horizontal rule (line by itself)
+- `**bold**` and `*italic*`
+- `-` or `*` unordered list items
+- `1.` ordered list items
+- `> ` blockquote lines
+
+**Example: Markdown to HTML**
+```javascript
+const markdown = `# Title\n- First item\n- **Bold** item\n> Quote line`;
+const html = BlacksmithUtils.markdownToHtml(markdown);
+console.log(html);
+```
+
+**Example: HTML to Markdown**
+```javascript
+const html = `
+  <h1>Title</h1>
+  <ul><li>First item</li></ul>
+  <blockquote><p>Quote line</p></blockquote>
+`;
+const markdown = BlacksmithUtils.htmlToMarkdown(html);
+console.log(markdown);
+```
 
 **Quick Examples**:
 ```javascript

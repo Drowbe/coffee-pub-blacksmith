@@ -2,7 +2,7 @@
 
 **Target**: FoundryVTT v13+ only with Application V2 API support
 
-**Last updated**: Post–Phase 3 implementation. Phases 1–3 core work complete; Phase 2.3 (drag) and Phase 4–5 items remain.
+**Last updated**: Post–Phase 2.3 implementation. Phases 1–3 and Phase 2.2–2.3 complete; Phase 4–5 items (docs, tests) remain.
 
 ---
 
@@ -11,8 +11,8 @@
 | Phase | Status | Notes |
 |-------|--------|--------|
 | **1** | Complete | Data model, manager, CRUD, permissions, event handler registration |
-| **2.1–2.2** | Complete | Container, rendering (circle + Font Awesome icon), layer integration, hover feedback |
-| **2.3** | Not started | Drag-and-drop placement, drag to move |
+| **2.1–2.2** | Complete | Container, rendering (circle + Font Awesome icon + text label), layer integration, hover feedback, hit area including text |
+| **2.3** | Complete | Drag-and-drop placement (dropCanvasData), drag to move, visual feedback, AbortController cleanup |
 | **3.1–3.2** | Complete | Hover/click events, modifiers, PIXI listeners, context menu |
 | **3.3** | Partial | Edit/Delete/Properties done; custom menu items, Foundry menu system not done |
 | **4** | Partial | API complete + `reload()`; docs and availability checks incomplete |
@@ -68,19 +68,19 @@
 ### 2.2 Pin Visual Representation
 - [x] Render pin base (size, style) using PIXI.Graphics — circle with fill/stroke
 - [x] Render pin image/icon if provided — Font Awesome only; legacy paths map to default `fa-solid fa-star`
-- [ ] Render pin text label if provided — `text` stored but not yet rendered
+- [x] Render pin text label if provided — `PIXI.Text` below circle, styled with stroke color
 - [x] Update existing graphics objects instead of recreating (performance) — `PinGraphics.update()` updates circle in place
-- [x] Only recreate graphics when structure fundamentally changes — rebuild when size/image changes
+- [x] Only recreate graphics when structure fundamentally changes — rebuild when size/image/text changes
 - [x] Implement hover/selection visual feedback — scale to 1.1 on hover
-- [ ] Calculate proper hit area that includes all visible elements (base + text bounds) — currently circle only; extend when text added
+- [x] Calculate proper hit area that includes all visible elements (base + text bounds) — `_updateHitArea()` creates rectangle including circle and text
 
 ### 2.3 Canvas Interaction
-- [ ] Implement drag-and-drop for pin placement (using `dropCanvasData` hook)
-- [ ] Implement drag for moving existing pins
-- [ ] Use AbortController for drag event listeners (proper cleanup)
-- [ ] Add clear visual feedback during drag operations
-- [ ] Handle canvas coordinate transformations
-- [ ] Prevent Foundry selection box during drag operations
+- [x] Implement drag-and-drop for pin placement (using `dropCanvasData` hook) — handles `type: 'blacksmith-pin'` drops
+- [x] Implement drag for moving existing pins — left-click + drag on editable pins; 5px threshold to distinguish from click
+- [x] Use AbortController for drag event listeners (proper cleanup) — `_dragAbortController` cleans up on abort
+- [x] Add clear visual feedback during drag operations — alpha 0.7, zIndex 1000 during drag
+- [x] Handle canvas coordinate transformations — converts global screen coords to scene coords via `stage.toLocal()`
+- [x] Prevent Foundry selection box during drag operations — sets `canvas.controls.activeControl = null`
 
 ---
 

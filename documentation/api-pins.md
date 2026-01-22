@@ -35,6 +35,34 @@ const pinsAPI = blacksmith?.pins;
 - Pin **rendering** requires canvas and an active scene. Use `canvasReady` (or ensure canvas is ready) before creating pins or calling `reload()`.
 - If pins exist in scene flags but don’t appear, activate the Blacksmith layer (scene controls) or call `pinsAPI.reload()`; the layer auto-activates when loading scenes with pins.
 
+### Testing Pins
+
+Blacksmith does **not** create a default or test pin. To exercise the pins API:
+
+1. **Another module** – Register a `canvasReady` hook, then create a pin via the API once the canvas is ready. This avoids timing issues (e.g. creating before the layer/renderer exist).
+2. **Browser console** – Use `game.modules.get('coffee-pub-blacksmith')?.api?.pins` and call `create()`, then `reload()` if the pin doesn't appear. See `utilities/test-pins-debug.js` and `utilities/test-pins-rendering.js` for patterns.
+3. **Drop on canvas** – Implement a draggable UI element that drops `{ type: 'blacksmith-pin', moduleId: 'your-module', ... }` onto the canvas; the `dropCanvasData` handler creates the pin.
+
+Example: a consumer module creating a test pin on `canvasReady`:
+
+```javascript
+Hooks.once('canvasReady', async () => {
+  const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+  if (!pinsAPI || !canvas?.scene) return;
+  const dims = canvas.dimensions ?? {};
+  const cx = (dims.width ?? 2000) / 2;
+  const cy = (dims.height ?? 2000) / 2;
+  await pinsAPI.create({
+    id: crypto.randomUUID(),
+    x: cx, y: cy,
+    moduleId: 'my-module',
+    text: 'Test pin',
+    image: '<i class="fa-solid fa-star"></i>'
+  });
+  await pinsAPI.reload();
+});
+```
+
 ## Data Types
 
 ### PinData
@@ -243,11 +271,60 @@ const result = await pinsAPI.reload();
   - **Scene not found**: When specified scene ID doesn't exist
   - **Invalid event type**: When registering handler with unsupported event type
 
+## Drag and Drop
+
+### Creating Pins via Drop
+
+Pins can be created by dropping data onto the canvas using FoundryVTT's `dropCanvasData` hook. The pin system listens for drops with `type: 'blacksmith-pin'`.
+
+**Data Format**:
+```javascript
+{
+  type: 'blacksmith-pin',
+  pinId: string,              // Optional: UUID; auto-generated if omitted
+  x: number,                  // Scene X coordinate (from drop event)
+  y: number,                  // Scene Y coordinate (from drop event)
+  moduleId: string,           // Required: consumer module ID
+  text: string,               // Optional: pin label
+  image: string,              // Optional: Font Awesome HTML (defaults to star)
+  size: { w: number, h: number }, // Optional: defaults to 32x32
+  style: { ... },             // Optional: style overrides
+  config: object,             // Optional: module-specific config
+  ownership: { ... }          // Optional: ownership settings
+}
+```
+
+**Example**: Create a draggable pin element in your module's UI:
+```javascript
+// In your module's HTML/Application
+element.setAttribute('draggable', 'true');
+element.addEventListener('dragstart', (e) => {
+  const data = {
+    type: 'blacksmith-pin',
+    moduleId: 'my-module',
+    text: 'Quest Location',
+    image: '<i class="fa-solid fa-map-pin"></i>'
+  };
+  e.dataTransfer.setData('text/plain', JSON.stringify(data));
+});
+```
+
+When dropped on the canvas, the pin will be created at the drop location. The `x` and `y` coordinates are automatically provided by FoundryVTT's drop event.
+
+### Dragging Existing Pins
+
+Pins can be moved by left-clicking and dragging. Only users with edit permissions can drag pins. The drag operation:
+- Starts after moving 5 pixels (distinguishes drag from click)
+- Shows visual feedback (alpha 0.7, elevated z-index)
+- Updates pin position in real-time
+- Saves final position on drag end
+- Fires `dragStart`, `dragMove`, and `dragEnd` events (requires `dragEvents: true` in handler options)
+
 ## Implementation Status
 
 - [x] Core infrastructure (Phase 1.1, 1.2, 1.3)
-- [x] Rendering (Phase 2.1, 2.2): container, circle + Font Awesome icon, layer integration, hover feedback
-- [ ] Phase 2.3: drag-and-drop placement, drag to move
+- [x] Rendering (Phase 2.1, 2.2): container, circle + Font Awesome icon + text label, layer integration, hover feedback, hit area
+- [x] Drag-and-drop (Phase 2.3): dropCanvasData for creation, drag-to-move, visual feedback, AbortController cleanup
 - [x] Event system (Phase 3.1, 3.2): hover/click/right-click/middle-click, modifiers, PIXI listeners, handler dispatch
 - [x] Context menu (Phase 3.3): Edit, Delete, Properties (custom HTML); custom items and Foundry menu not done
 - [x] API: CRUD, `on()`, `reload()`; `pinsAllowPlayerWrites` setting

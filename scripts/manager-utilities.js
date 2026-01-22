@@ -59,6 +59,17 @@ export class UtilsManager {
         return GlobalUtils.toSentenceCase(str);
     }
 
+    // Markup helpers
+    static markdownToHtml(text) {
+        this.checkInitialized();
+        return GlobalUtils.markdownToHtml(text);
+    }
+
+    static htmlToMarkdown(html) {
+        this.checkInitialized();
+        return GlobalUtils.htmlToMarkdown(html);
+    }
+
     // Game Entity Helpers
     static getActorId(actorName) {
         this.checkInitialized();
@@ -144,6 +155,8 @@ export class UtilsManager {
             generateFormattedDate: this.generateFormattedDate.bind(this),
             trimString: this.trimString.bind(this),
             toSentenceCase: this.toSentenceCase.bind(this),
+            markdownToHtml: this.markdownToHtml.bind(this),
+            htmlToMarkdown: this.htmlToMarkdown.bind(this),
             getActorId: this.getActorId.bind(this),
             getTokenImage: this.getTokenImage.bind(this),
             getPortraitImage: this.getPortraitImage.bind(this),

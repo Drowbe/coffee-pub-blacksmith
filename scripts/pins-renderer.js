@@ -22,7 +22,11 @@ class PinGraphics extends PIXI.Container {
         this.pinData = foundry.utils.deepClone(pinData);
         this._circle = null;
         this._icon = null;
+        this._text = null;
         this._isHovered = false;
+        this._isDragging = false;
+        this._dragStartPos = null;
+        this._dragAbortController = null;
         this._build();
         this._setupEventListeners();
     }
@@ -33,7 +37,7 @@ class PinGraphics extends PIXI.Container {
      */
     _build() {
         this.removeChildren();
-        const { size, style, image } = this.pinData;
+        const { size, style, image, text } = this.pinData;
         const radius = Math.min(size.w, size.h) / 2;
 
         // Circle base
@@ -71,13 +75,88 @@ class PinGraphics extends PIXI.Container {
             });
         }
 
+        // Text label if provided
+        if (text) {
+            this._buildText();
+        }
+
         // Set position
         this.position.set(this.pinData.x, this.pinData.y);
 
-        // Set hit area (circle)
-        this.hitArea = new PIXI.Circle(0, 0, radius);
+        // Set hit area (will be updated after text is built if text exists)
+        this._updateHitArea();
+        
         this.eventMode = 'static';
         this.cursor = 'pointer';
+    }
+
+    /**
+     * Build text label
+     * @private
+     */
+    _buildText() {
+        if (this._text) {
+            this.removeChild(this._text);
+            this._text.destroy();
+        }
+
+        const { text, size, style } = this.pinData;
+        if (!text) return;
+
+        // Create PIXI.Text for label
+        const fontSize = Math.max(10, Math.min(size.w, size.h) * 0.4); // 40% of pin size, min 10px
+        const textColor = style.stroke || '#ffffff'; // Use stroke color for text (usually white)
+        
+        // PIXI v7: Text constructor takes (text, style)
+        this._text = new PIXI.Text(text, {
+            fontFamily: 'Arial',
+            fontSize: fontSize,
+            fill: textColor,
+            align: 'center',
+            wordWrap: true,
+            wordWrapWidth: size.w * 2, // Allow text to wrap if needed
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+
+        // Position text below the circle
+        const radius = Math.min(size.w, size.h) / 2;
+        this._text.anchor.set(0.5, 0); // Center horizontally, top-aligned vertically
+        this._text.position.set(0, radius + 4); // 4px gap below circle
+
+        this.addChild(this._text);
+    }
+
+    /**
+     * Update hit area to include circle and text bounds
+     * @private
+     */
+    _updateHitArea() {
+        const { size } = this.pinData;
+        const radius = Math.min(size.w, size.h) / 2;
+        
+        // Start with circle bounds
+        let minX = -radius;
+        let maxX = radius;
+        let minY = -radius;
+        let maxY = radius;
+
+        // Include text bounds if text exists
+        if (this._text && this._text.visible) {
+            const textBounds = this._text.getBounds();
+            minX = Math.min(minX, textBounds.left);
+            maxX = Math.max(maxX, textBounds.right);
+            minY = Math.min(minY, textBounds.top);
+            maxY = Math.max(maxY, textBounds.bottom);
+        }
+
+        // Create hit area as rectangle that includes all visible elements
+        const width = maxX - minX;
+        const height = maxY - minY;
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+
+        this.hitArea = new PIXI.Rectangle(centerX - width / 2, centerY - height / 2, width, height);
     }
 
     /**
@@ -258,6 +337,9 @@ class PinGraphics extends PIXI.Container {
             this._icon.anchor.set(0.5);
             this._icon.position.set(0, 0);
             this.addChild(this._icon);
+            
+            // Update hit area after icon is added (icon size doesn't affect hit area, but ensure it's current)
+            this._updateHitArea();
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Failed to load icon: ${error?.message ?? error}`, '', false, false);
         }
@@ -268,10 +350,13 @@ class PinGraphics extends PIXI.Container {
      * @param {PinData} newData
      */
     update(newData) {
+        const oldText = this.pinData.text;
+        const oldStroke = this.pinData.style?.stroke;
         const needsRebuild = 
             newData.size.w !== this.pinData.size.w ||
             newData.size.h !== this.pinData.size.h ||
-            newData.image !== this.pinData.image;
+            newData.image !== this.pinData.image ||
+            newData.text !== oldText;
         
         this.pinData = foundry.utils.deepClone(newData);
         
@@ -301,8 +386,26 @@ class PinGraphics extends PIXI.Container {
             this._circle.lineStyle(strokeWidth, strokeColorNum, alpha);
             this._circle.drawCircle(0, 0, radius);
             
+            // Update text if it changed (but doesn't require rebuild)
+            const textChanged = newData.text !== oldText;
+            if (textChanged) {
+                if (newData.text) {
+                    this._buildText();
+                } else if (this._text) {
+                    this.removeChild(this._text);
+                    this._text.destroy();
+                    this._text = null;
+                }
+            }
+            
+            // Update text style if stroke color changed
+            if (this._text && style.stroke !== oldStroke) {
+                const textColor = style.stroke || '#ffffff';
+                this._text.style.fill = textColor;
+            }
+            
             this.position.set(this.pinData.x, this.pinData.y);
-            this.hitArea = new PIXI.Circle(0, 0, radius);
+            this._updateHitArea();
         }
     }
 
@@ -386,7 +489,7 @@ class PinGraphics extends PIXI.Container {
     }
 
     /**
-     * Handle pointer down (clicks)
+     * Handle pointer down (clicks and drag start)
      * @param {PIXI.FederatedPointerEvent} event
      * @private
      */
@@ -397,37 +500,191 @@ class PinGraphics extends PIXI.Container {
         const sceneId = canvas?.scene?.id || '';
         const userId = game.user?.id || '';
         
-        let eventType = null;
-        
-        // Determine event type based on button
+        // Left click - check if it's a drag or click
         if (button === 0) {
-            // Left click
-            eventType = 'click';
+            // Check if user can edit this pin
+            import('./manager-pins.js').then(({ PinManager }) => {
+                if (PinManager._canEdit(this.pinData, userId)) {
+                    // Start potential drag (will become drag if mouse moves enough)
+                    this._startPotentialDrag(event);
+                } else {
+                    // Just fire click event
+                    PinManager._invokeHandlers('click', this.pinData, sceneId, userId, modifiers, event);
+                }
+            }).catch(err => {
+                console.error('BLACKSMITH | PINS Error checking permissions for drag:', err);
+            });
         } else if (button === 2) {
             // Right click
-            eventType = 'rightClick';
-            // Prevent default context menu - we'll show our own
+            import('./manager-pins.js').then(({ PinManager }) => {
+                PinManager._invokeHandlers('rightClick', this.pinData, sceneId, userId, modifiers, event);
+                this._showContextMenu(event, modifiers);
+            }).catch(err => {
+                console.error('BLACKSMITH | PINS Error invoking rightClick handler:', err);
+            });
+            // Prevent default context menu
             if (originalEvent.preventDefault) {
                 originalEvent.preventDefault();
             }
         } else if (button === 1) {
             // Middle click
-            eventType = 'middleClick';
-        }
-        
-        if (eventType) {
-            // Dynamically import PinManager to avoid circular dependency
             import('./manager-pins.js').then(({ PinManager }) => {
-                PinManager._invokeHandlers(eventType, this.pinData, sceneId, userId, modifiers, event);
-                
-                // Show context menu for right-click
-                if (eventType === 'rightClick') {
-                    this._showContextMenu(event, modifiers);
-                }
+                PinManager._invokeHandlers('middleClick', this.pinData, sceneId, userId, modifiers, event);
             }).catch(err => {
-                console.error(`BLACKSMITH | PINS Error invoking ${eventType} handler:`, err);
+                console.error('BLACKSMITH | PINS Error invoking middleClick handler:', err);
             });
         }
+    }
+
+    /**
+     * Start potential drag (becomes drag if mouse moves enough)
+     * @param {PIXI.FederatedPointerEvent} event
+     * @private
+     */
+    _startPotentialDrag(event) {
+        if (this._isDragging) return;
+
+        // Create AbortController for drag cleanup
+        this._dragAbortController = new AbortController();
+        const signal = this._dragAbortController.signal;
+
+        // Store initial positions: global (screen) and scene (pin position)
+        const startGlobal = { x: event.global.x, y: event.global.y };
+        const startScenePos = { x: this.pinData.x, y: this.pinData.y };
+        
+        // Convert initial global to scene to establish baseline
+        const stage = canvas.stage;
+        const startGlobalAsScene = stage.toLocal(startGlobal);
+        
+        let dragStarted = false;
+        const DRAG_THRESHOLD = 5; // pixels in scene space (minimum movement to start drag)
+
+        // Prevent Foundry selection box
+        if (canvas.controls) {
+            canvas.controls.activeControl = null;
+        }
+
+        // Drag move handler
+        const onDragMove = (e) => {
+            if (signal.aborted) return;
+
+            // Convert current global position to scene coordinates
+            const currentGlobal = e.global;
+            const currentScenePos = stage.toLocal(currentGlobal);
+            
+            // Calculate delta in scene coordinates
+            const deltaX = currentScenePos.x - startGlobalAsScene.x;
+            const deltaY = currentScenePos.y - startGlobalAsScene.y;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+            // Start drag if moved beyond threshold
+            if (!dragStarted && distance > DRAG_THRESHOLD) {
+                dragStarted = true;
+                this._isDragging = true;
+                
+                // Visual feedback: slightly darker/translucent during drag
+                this.alpha = 0.7;
+                this.zIndex = 1000; // Bring to front
+
+                // Fire dragStart event
+                import('./manager-pins.js').then(({ PinManager }) => {
+                    const modifiers = this._extractModifiers(e);
+                    const sceneId = canvas?.scene?.id || '';
+                    const userId = game.user?.id || '';
+                    PinManager._invokeHandlers('dragStart', this.pinData, sceneId, userId, modifiers, e);
+                }).catch(() => {});
+            }
+
+            // Only update position if drag has started
+            if (dragStarted) {
+                // Update pin position
+                const newX = startScenePos.x + deltaX;
+                const newY = startScenePos.y + deltaY;
+
+                this.position.set(newX, newY);
+
+                // Fire dragMove event
+                import('./manager-pins.js').then(({ PinManager }) => {
+                    const modifiers = this._extractModifiers(e);
+                    const sceneId = canvas?.scene?.id || '';
+                    const userId = game.user?.id || '';
+                    PinManager._invokeHandlers('dragMove', { ...this.pinData, x: newX, y: newY }, sceneId, userId, modifiers, e);
+                }).catch(() => {});
+            }
+        };
+
+        // Drag end handler
+        const onDragEnd = async (e) => {
+            if (signal.aborted) return;
+
+            if (dragStarted) {
+                // Was a drag - update position
+                this._isDragging = false;
+                this.alpha = 1.0;
+                this.zIndex = 0;
+
+                // Get final position
+                const finalX = this.position.x;
+                const finalY = this.position.y;
+
+                // Update pin data via API
+                try {
+                    const { PinManager } = await import('./manager-pins.js');
+                    await PinManager.update(this.pinData.id, { x: finalX, y: finalY });
+                    
+                    // Fire dragEnd event
+                    const modifiers = this._extractModifiers(e);
+                    const sceneId = canvas?.scene?.id || '';
+                    const userId = game.user?.id || '';
+                    PinManager._invokeHandlers('dragEnd', { ...this.pinData, x: finalX, y: finalY }, sceneId, userId, modifiers, e);
+                } catch (err) {
+                    // Revert position on error
+                    this.position.set(this.pinData.x, this.pinData.y);
+                    postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error updating pin position', err?.message || err, false, true);
+                }
+            } else {
+                // Was a click - fire click event
+                import('./manager-pins.js').then(({ PinManager }) => {
+                    const modifiers = this._extractModifiers(e);
+                    const sceneId = canvas?.scene?.id || '';
+                    const userId = game.user?.id || '';
+                    PinManager._invokeHandlers('click', this.pinData, sceneId, userId, modifiers, e);
+                }).catch(() => {});
+            }
+
+            // Cleanup
+            this._cleanupDrag();
+        };
+
+        // Register global drag handlers
+        stage.on('pointermove', onDragMove);
+        stage.on('pointerup', onDragEnd);
+        stage.on('pointerupoutside', onDragEnd);
+
+        // Cleanup on abort
+        signal.addEventListener('abort', () => {
+            stage.off('pointermove', onDragMove);
+            stage.off('pointerup', onDragEnd);
+            stage.off('pointerupoutside', onDragEnd);
+            if (this._isDragging) {
+                this._isDragging = false;
+                this.alpha = 1.0;
+                this.zIndex = 0;
+            }
+        });
+    }
+
+    /**
+     * Clean up drag handlers
+     * @private
+     */
+    _cleanupDrag() {
+        if (this._dragAbortController) {
+            this._dragAbortController.abort();
+            this._dragAbortController = null;
+        }
+        this._isDragging = false;
+        this._dragStartPos = null;
     }
 
     /**
@@ -611,6 +868,9 @@ class PinGraphics extends PIXI.Container {
         this.off('pointerenter');
         this.off('pointerleave');
         this.off('pointerdown');
+        
+        // Cleanup drag
+        this._cleanupDrag();
         
         // Remove context menu if it exists
         const existing = document.getElementById('blacksmith-pin-context-menu');

@@ -6,7 +6,7 @@ The Canvas Pins system provides a configurable, interactive pin system for the F
 
 **Target Version**: FoundryVTT v13+ only, with Application V2 API support required.
 
-**Implementation status**: Phases 1–3 are implemented. Pins render on the Blacksmith layer with Font Awesome icons, support CRUD and event handlers (hover, click, right-click, middle-click), and a right-click context menu. Drag-and-drop placement and drag-to-move are not yet implemented. See `plans-pins.md` for details.
+**Implementation status**: Phases 1–3 and Phase 2.2–2.3 are implemented. Pins render on the Blacksmith layer with Font Awesome icons and optional text labels, support CRUD and event handlers (hover, click, right-click, middle-click, drag), drag-and-drop placement via `dropCanvasData`, drag-to-move for existing pins, and a right-click context menu. See `plans-pins.md` for details.
 
 ## Core Requirements
 
@@ -27,11 +27,11 @@ Pins support the following configurable properties:
 
 ### Interactivity
 Pins support the following interactions:
-- **Droppable**: Not yet implemented (drag-and-drop from a source)
-- **Draggable**: Not yet implemented (drag to move)
+- **Droppable**: Implemented via `dropCanvasData` hook (drop `type: 'blacksmith-pin'` data on canvas)
+- **Draggable**: Implemented (left-click + drag to move; 5px threshold distinguishes from click)
 - **Deletable**: Via API or context menu (right-click → Delete)
 - **Updateable**: Via API; context menu Edit/Properties placeholders
-- **Hover / Click**: Implemented (hoverIn, hoverOut, click, rightClick, middleClick; modifiers passed to handlers)
+- **Hover / Click / Drag**: Implemented (hoverIn, hoverOut, click, rightClick, middleClick, dragStart, dragMove, dragEnd; modifiers passed to handlers)
 
 ### Event Handling
 Pins must support the following events, with callbacks passed back to the caller:
@@ -213,7 +213,5 @@ These defaults are applied during pin creation/validation, not stored in scene f
 
 See **`plans-pins.md`** for the full checklist. Outstanding items include:
 
-- **Phase 2.2**: Render pin `text` label; hit area including text bounds.
-- **Phase 2.3**: Drag-and-drop placement (`dropCanvasData`); drag to move existing pins.
 - **Phase 3.3**: Custom context menu items from callbacks; optional use of Foundry context menu.
 - **Phase 4–5**: Documentation (usage examples, event patterns), API availability checks, automated tests.

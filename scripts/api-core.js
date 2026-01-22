@@ -237,6 +237,290 @@ export function toSentenceCase(str) {
 }
 
 // ************************************
+// ** UTILITY Convert Markdown to HTML (Subset)
+// ************************************
+const MARKUP_ALLOWED_TAGS = new Set([
+    'DIV',
+    'H1',
+    'H2',
+    'H3',
+    'HR',
+    'B',
+    'STRONG',
+    'I',
+    'EM',
+    'UL',
+    'OL',
+    'LI',
+    'BLOCKQUOTE',
+    'P',
+    'BR'
+]);
+
+function escapeMarkupText(text) {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function formatMarkupInline(text) {
+    let content = text;
+    if (content.includes('*') || content.includes('_')) {
+        content = content.replace(/(\*\*|__)(.*?)\1/g, '<b>$2</b>');
+        content = content.replace(/(\*|_)(.*?)\1/g, '<i>$2</i>');
+    }
+    return content;
+}
+
+function sanitizeMarkupHtml(html) {
+    if (!html) return '';
+    if (typeof DOMParser === 'undefined') return String(html);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(String(html), 'text/html');
+    const elementNode = 1;
+    const textNode = 3;
+
+    function sanitizeNode(node) {
+        if (node.nodeType === elementNode) {
+            if (!MARKUP_ALLOWED_TAGS.has(node.tagName)) {
+                const text = doc.createTextNode(node.textContent || '');
+                node.replaceWith(text);
+                return;
+            }
+            while (node.attributes.length > 0) {
+                node.removeAttribute(node.attributes[0].name);
+            }
+        }
+
+        if (node.nodeType !== elementNode && node.nodeType !== textNode) return;
+
+        const children = Array.from(node.childNodes);
+        for (const child of children) {
+            sanitizeNode(child);
+        }
+    }
+
+    sanitizeNode(doc.body);
+    return doc.body.innerHTML;
+}
+
+export function markdownToHtml(text) {
+    const lines = String(text ?? '').split('\n');
+    const html = [];
+    let inList = false;
+    let inBlockquote = false;
+    let inOrderedList = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmed = line.trim();
+        let content = escapeMarkupText(line);
+
+        if (trimmed === '>' || trimmed === '') {
+            continue;
+        }
+
+        if (trimmed === '---') {
+            if (inList) {
+                html.push('</ul>');
+                inList = false;
+            }
+            if (inOrderedList) {
+                html.push('</ol>');
+                inOrderedList = false;
+            }
+            if (inBlockquote) {
+                html.push('</blockquote>');
+                inBlockquote = false;
+            }
+            html.push('<hr class="coffee-pub-bibliosoph-markdown-hr" />');
+            continue;
+        }
+
+        content = formatMarkupInline(content);
+
+        const headingMatch = line.match(/^(#{1,3})\s+(.*)$/);
+        if (headingMatch) {
+            const level = headingMatch[1].length;
+            const headingText = formatMarkupInline(escapeMarkupText(headingMatch[2].trim()));
+            html.push(`<h${level} class="coffee-pub-bibliosoph-markdown-h${level}">${headingText}</h${level}>`);
+            continue;
+        }
+
+        if (/^(\*|-)\s+/.test(line)) {
+            if (!inList) {
+                html.push('<ul class="coffee-pub-bibliosoph-markdown-ul">');
+                inList = true;
+            }
+            content = formatMarkupInline(escapeMarkupText(line.replace(/^(\*|-)\s+/, '')));
+            html.push(`<li class="coffee-pub-bibliosoph-markdown-li">${content}</li>`);
+            if (i < lines.length - 1 && !/^(\*|-)\s+/.test(lines[i + 1])) {
+                html.push('</ul>');
+                inList = false;
+            }
+        } else if (/^\d+\.\s+/.test(line)) {
+            if (!inOrderedList) {
+                html.push('<ol class="coffee-pub-bibliosoph-markdown-ol">');
+                inOrderedList = true;
+            }
+            content = formatMarkupInline(escapeMarkupText(line.replace(/^\d+\.\s+/, '')));
+            html.push(`<li class="coffee-pub-bibliosoph-markdown-li">${content}</li>`);
+            if (i < lines.length - 1 && !/^\d+\.\s+/.test(lines[i + 1])) {
+                html.push('</ol>');
+                inOrderedList = false;
+            }
+        } else if (/^>\s?/.test(line)) {
+            if (!inBlockquote) {
+                html.push('<blockquote class="coffee-pub-bibliosoph-markdown-blockquote">');
+                inBlockquote = true;
+            }
+            content = formatMarkupInline(escapeMarkupText(line.replace(/^>\s?/, '')));
+            html.push(`<p class="coffee-pub-bibliosoph-markdown-p">${content}</p>`);
+        } else {
+            if (inList) {
+                html.push('</ul>');
+                inList = false;
+            }
+            if (inOrderedList) {
+                html.push('</ol>');
+                inOrderedList = false;
+            }
+            if (inBlockquote) {
+                html.push('</blockquote>');
+                inBlockquote = false;
+            }
+            html.push(`<p class="coffee-pub-bibliosoph-markdown-p">${content}</p>`);
+        }
+
+        if (inBlockquote && i < lines.length - 1 && !/^>\s?/.test(lines[i + 1])) {
+            html.push('</blockquote>');
+            inBlockquote = false;
+        }
+    }
+
+    if (inList) {
+        html.push('</ul>');
+    }
+
+    if (inBlockquote) {
+        html.push('</blockquote>');
+    }
+
+    if (inOrderedList) {
+        html.push('</ol>');
+    }
+
+    const output = html.join('\n');
+    if (!output.length) {
+        return '';
+    }
+
+    return `<div class="coffee-pub-bibliosoph-markdown-wrapper">${output}</div>`;
+}
+
+export function htmlToMarkdown(html) {
+    if (!html) return '';
+    const cleaned = sanitizeMarkupHtml(html);
+    if (typeof DOMParser === 'undefined') return String(cleaned);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(String(cleaned), 'text/html');
+    const elementNode = 1;
+    const textNode = 3;
+    const lines = [];
+
+    function inlineText(node) {
+        if (node.nodeType === textNode) return node.nodeValue || '';
+        if (node.nodeType !== elementNode) return '';
+
+        if (node.tagName === 'BR') return '\n';
+
+        const content = Array.from(node.childNodes).map(inlineText).join('');
+        if (node.tagName === 'B' || node.tagName === 'STRONG') return `**${content}**`;
+        if (node.tagName === 'I' || node.tagName === 'EM') return `*${content}*`;
+        return content;
+    }
+
+    function inlineWithBreaks(node) {
+        if (node.nodeType === textNode) return node.nodeValue || '';
+        if (node.nodeType !== elementNode) return '';
+
+        if (node.tagName === 'BR') return '\n';
+        if (node.tagName === 'P') return `${inlineText(node)}\n`;
+
+        return Array.from(node.childNodes).map(inlineWithBreaks).join('');
+    }
+
+    function pushBlock(text) {
+        const trimmed = text.trim();
+        if (trimmed) lines.push(trimmed);
+    }
+
+    function block(node) {
+        if (node.nodeType === textNode) {
+            pushBlock(node.nodeValue || '');
+            return;
+        }
+        if (node.nodeType !== elementNode) return;
+
+        if (node.tagName === 'H1' || node.tagName === 'H2' || node.tagName === 'H3') {
+            const level = node.tagName === 'H1' ? 1 : node.tagName === 'H2' ? 2 : 3;
+            const text = inlineText(node).trim();
+            if (text) lines.push(`${'#'.repeat(level)} ${text}`);
+            return;
+        }
+
+        if (node.tagName === 'HR') {
+            lines.push('---');
+            return;
+        }
+
+        if (node.tagName === 'P') {
+            pushBlock(inlineText(node));
+            return;
+        }
+
+        if (node.tagName === 'BLOCKQUOTE') {
+            const quoteText = inlineWithBreaks(node);
+            quoteText.split('\n').forEach((line) => {
+                const trimmed = line.trim();
+                if (trimmed) lines.push(`> ${trimmed}`);
+            });
+            return;
+        }
+
+        if (node.tagName === 'UL' || node.tagName === 'OL') {
+            const items = Array.from(node.children).filter(child => child.tagName === 'LI');
+            let index = 1;
+            for (const item of items) {
+                const text = inlineText(item).trim();
+                if (!text) continue;
+                if (node.tagName === 'OL') {
+                    lines.push(`${index}. ${text}`);
+                    index += 1;
+                } else {
+                    lines.push(`- ${text}`);
+                }
+            }
+            return;
+        }
+
+        if (node.tagName === 'LI') {
+            const text = inlineText(node).trim();
+            if (text) lines.push(`- ${text}`);
+            return;
+        }
+
+        Array.from(node.childNodes).forEach(block);
+    }
+
+    Array.from(doc.body.childNodes).forEach(block);
+    return lines.join('\n');
+}
+
+// ************************************
 // ** UTILITY Get Actor ID by Name
 // ************************************ 
 export function getActorId(actorName) {
@@ -869,4 +1153,3 @@ export function postConsoleAndNotification(
       }
     }
   }
-

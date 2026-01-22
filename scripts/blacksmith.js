@@ -636,6 +636,57 @@ function initializeSettingsDependentFeatures() {
                 }
             });
 
+            // Register dropCanvasData hook for pin creation via drag-and-drop
+            const dropCanvasDataPinsHookId = HookManager.registerHook({
+                name: 'dropCanvasData',
+                description: 'Blacksmith: Create pins when data is dropped on canvas',
+                context: 'blacksmith-pins-drop',
+                priority: 3, // Normal priority
+                callback: async (canvas, data) => {
+                    //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+                    
+                    // Only handle 'blacksmith-pin' type drops
+                    if (data.type !== 'blacksmith-pin') {
+                        return;
+                    }
+
+                    // Check permissions
+                    const { PinManager } = await import('./manager-pins.js');
+                    if (!PinManager._canCreate()) {
+                        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Permission denied: only GMs can create pins via drop', '', false, false);
+                        return;
+                    }
+
+                    // Get drop position in scene coordinates (data.x and data.y are already scene coordinates)
+                    const sceneX = data.x;
+                    const sceneY = data.y;
+
+                    // Extract pin data from drop data
+                    const pinData = {
+                        id: data.pinId || crypto.randomUUID(),
+                        x: sceneX,
+                        y: sceneY,
+                        moduleId: data.moduleId || 'unknown',
+                        text: data.text,
+                        image: data.image || '<i class="fa-solid fa-star"></i>',
+                        size: data.size,
+                        style: data.style,
+                        config: data.config || {},
+                        ownership: data.ownership || { default: 0 }
+                    };
+
+                    // Create the pin
+                    try {
+                        await PinManager.create(pinData);
+                        postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Pin created via drop: ${pinData.id}`, '', true, false);
+                    } catch (err) {
+                        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error creating pin via drop', err?.message || err, false, true);
+                    }
+                    
+                    //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+                }
+            });
+
             // Log hook registration
             postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateScene", "blacksmith-scene-icons", true, false);
             
