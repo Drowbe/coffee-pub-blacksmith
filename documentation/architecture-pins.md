@@ -88,6 +88,15 @@ Pins should be stored in scene flags (not embedded documents):
 - Log migration errors with actionable messages
 - Never fail scene load due to a bad pin entry
 
+**Migration Strategy**:
+- Migration map structure: `Map<version, migrationFunction>`
+- Runs on scene load before pin validation
+- Migrates pins in-place, updates `version` field
+- Migration functions receive pin data and return migrated pin data
+- Logs migration actions for debugging (which pins migrated, from what version to what version)
+- If migration fails for a pin, drop the pin and log error (never fail scene load)
+- Current schema version should be defined as a constant (e.g., `PIN_SCHEMA_VERSION = 1`)
+
 ### Layer Integration
 - Pins render on `BlacksmithLayer` (extends `foundry.canvas.layers.CanvasLayer`)
 - Use a PIXI.Container within the layer to hold all pins
@@ -106,6 +115,18 @@ Pins should be stored in scene flags (not embedded documents):
 - `ownership.default` and per-user overrides govern who can view or edit
 - GM always has full access
 - Enforce permissions in both UI interactions and API calls
+
+### Default Values
+When creating pins, the following defaults apply if properties are not provided:
+- **`size`**: `{w: 32, h: 32}` - Standard 32x32 pixel pin
+- **`style`**: `{fill: "#000000", stroke: "#ffffff", strokeWidth: 2, alpha: 1}` - Black fill, white stroke
+- **`version`**: `1` - Current schema version (should use `PIN_SCHEMA_VERSION` constant)
+- **`ownership`**: `{default: 0}` - No ownership (GM-only by default)
+- **`text`**: `undefined` - No text label
+- **`image`**: `undefined` - No image/icon
+- **`config`**: `{}` - Empty config object
+
+These defaults should be applied during pin creation/validation, not stored in scene flags (to minimize data size).
 
 ## API Design Principles
 
@@ -175,7 +196,10 @@ Pins should be stored in scene flags (not embedded documents):
 
 ## Integration Points
 
-- **Scene Data**: Store pins in scene flags (format: `scene.flags[MODULE.ID].pins[]`)
+- **Scene Data**: Store pins in scene flags (format: `scene.flags['coffee-pub-blacksmith'].pins[]`)
+  - MODULE.ID = `'coffee-pub-blacksmith'` (from `scripts/const.js`)
+  - Pins stored as array of PinData objects
+  - Each scene maintains its own pins array
 - **Canvas Layer**: Render on `blacksmith-utilities-layer` using PIXI.Container
 - **Event System**: Use FoundryVTT's interaction system (mouse events, keyboard modifiers) with proper cleanup
 - **API Exposure**: Expose pin management through Blacksmith API
