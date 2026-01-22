@@ -1,10 +1,18 @@
 # Canvas Pins API Documentation
 
-> **Status**: This API is under development. This document will be updated as implementation progresses.
+> **Status**: Phase 1.1 & 1.2 complete. Event handling (Phase 1.3) and rendering (Phase 2) in progress.
 
 ## Overview
 
 The Canvas Pins API provides a system for creating, managing, and interacting with configurable pins on the FoundryVTT canvas. Pins are visual markers that can be placed on scenes and respond to various user interactions.
+
+## Implementation Structure
+
+The pins API follows Blacksmith's standard pattern:
+- **`scripts/pins-schema.js`** - Data model, validation, migration (Phase 1.1)
+- **`scripts/manager-pins.js`** - Internal manager with CRUD operations and permissions (Phase 1.2)
+- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI` class) that exposes the manager methods
+- **`scripts/blacksmith.js`** - Exposes `module.api.pins = PinsAPI` for external consumption
 
 ## Getting Started
 
@@ -168,6 +176,8 @@ console.log(`Found ${pins.length} pins`);
 ### `pins.on(eventType, handler, options?)`
 Register an event handler. Returns a disposer function.
 
+> **Status**: Currently stubbed (Phase 1.3). Will be implemented with event handler registration system.
+
 **Returns**: `() => void` - Disposer function to unregister the handler
 
 ```javascript
@@ -179,7 +189,7 @@ const off = pinsAPI.on('click', (evt) => {
 off();
 ```
 
-**Event Types**:
+**Event Types** (planned):
 - `'hoverIn'` - Mouse enters pin
 - `'hoverOut'` - Mouse leaves pin
 - `'click'` - Left mouse button click
@@ -189,7 +199,7 @@ off();
 - `'dragMove'` - Drag operation continues (requires `dragEvents: true`)
 - `'dragEnd'` - Drag operation ends (requires `dragEvents: true`)
 
-**Options**:
+**Options** (planned):
 - `pinId` (string, optional): handle events for a specific pin only
 - `moduleId` (string, optional): handle events for pins created by this module
 - `sceneId` (string, optional): scope to a specific scene
@@ -199,6 +209,7 @@ off();
 **Throws**: 
 - `Error` if eventType is invalid
 - `Error` if handler is not a function
+- Currently throws: "Event handler registration (pins.on) is not yet implemented. Coming in Phase 1.3."
 
 ## Permissions and Errors
 
@@ -220,8 +231,12 @@ off();
 
 ## Implementation Status
 
-- [ ] Core infrastructure
-- [ ] Rendering system
-- [ ] Event handling
-- [ ] API methods
-- [ ] Documentation
+- [x] Core infrastructure (Phase 1.1 & 1.2)
+  - [x] Pin data model (`pins-schema.js`)
+  - [x] Pin manager (`manager-pins.js`)
+  - [x] Public API wrapper (`api-pins.js`)
+  - [x] API exposure in `blacksmith.js`
+- [ ] Rendering system (Phase 2)
+- [ ] Event handling (Phase 1.3 & 3)
+- [x] API methods (CRUD complete; `on()` stubbed for Phase 1.3)
+- [x] Documentation (this file)

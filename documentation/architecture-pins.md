@@ -203,4 +203,8 @@ These defaults should be applied during pin creation/validation, not stored in s
 - **Canvas Layer**: Render on `blacksmith-utilities-layer` using PIXI.Container
 - **Event System**: Use FoundryVTT's interaction system (mouse events, keyboard modifiers) with proper cleanup
 - **API Exposure**: Expose pin management through Blacksmith API
+  - **`scripts/pins-schema.js`**: Data model, validation, migration (internal)
+  - **`scripts/manager-pins.js`**: Internal manager with CRUD and permissions
+  - **`scripts/api-pins.js`**: Public API wrapper (`PinsAPI` class) following `api-stats.js` pattern
+  - **`scripts/blacksmith.js`**: Exposes `module.api.pins = PinsAPI` for external consumption
 - **Application V2**: Use FoundryVTT v13+ Application V2 API for any UI components

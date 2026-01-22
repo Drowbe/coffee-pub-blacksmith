@@ -5,25 +5,25 @@
 ## Phase 1: Core Infrastructure
 
 ### 1.1 Pin Data Model
-- [ ] Define pin data structure (id, x, y, size, style, text, image, config, moduleId, version, ownership) — align with `PinData` in api-pins.md
-- [ ] Use scene flags for storage (`scene.flags['coffee-pub-blacksmith'].pins[]`; MODULE.ID)
-- [ ] Create pin schema/validation with data migration support
-- [ ] Implement UUID-based pin IDs (not timestamp-based to avoid collisions)
-- [ ] Define `PIN_SCHEMA_VERSION` constant and add migration map (`Map<version, migrationFn>`)
-- [ ] Run migrations on scene load **before** validation; log migration actions
-- [ ] Validate and repair/drop invalid pin entries on load (never fail scene load)
-- [ ] Apply default values per architecture (size, style, version, ownership) when creating/validating
+- [x] Define pin data structure (id, x, y, size, style, text, image, config, moduleId, version, ownership) — `pins-schema.js` with PinData typedef
+- [x] Use scene flags for storage (`scene.flags['coffee-pub-blacksmith'].pins[]`; MODULE.ID) — implemented in `manager-pins.js`
+- [x] Create pin schema/validation with data migration support — `pins-schema.js` with `validatePinData()`, `migrateAndValidatePin()`, `migrateAndValidatePins()`
+- [x] Implement UUID-based pin IDs (not timestamp-based to avoid collisions) — consumers provide UUID via `crypto.randomUUID()`
+- [x] Define `PIN_SCHEMA_VERSION` constant and add migration map (`Map<version, migrationFn>`) — `PIN_SCHEMA_VERSION = 1`, `MIGRATION_MAP` ready
+- [x] Run migrations on scene load **before** validation; log migration actions — `migrateAndValidatePins()` runs migrations then validates
+- [x] Validate and repair/drop invalid pin entries on load (never fail scene load) — invalid pins dropped, errors logged, scene load never fails
+- [x] Apply default values per architecture (size, style, version, ownership) when creating/validating — `applyDefaults()` in `pins-schema.js`
 
 ### 1.2 Pin Manager Class
-- [ ] Create `PinManager` class to handle pin lifecycle
-- [ ] Implement pin CRUD operations (create, read, update, delete)
-- [ ] Add scene change handling (load pins when scene changes)
-- [ ] Clear container contents on scene change (not just reload)
-- [ ] Implement permission checks (GM-only for create/update/delete by default, per architecture)
-- [ ] Support ownership-based visibility/editability using Foundry ownership levels
-- [ ] Add configuration flag to allow or disallow player writes
-- [ ] Add orphaned pin cleanup (handle deleted references)
-- [ ] Add API guards for missing canvas/scene
+- [x] Create `PinManager` class to handle pin lifecycle — `manager-pins.js`
+- [x] Implement pin CRUD operations (create, read, update, delete) — `create()`, `update()`, `delete()`, `get()`, `list()`
+- [x] Add scene change handling (load pins when scene changes) — `_getScenePins()` reads from flags, migrates/validates
+- [ ] Clear container contents on scene change (not just reload) — Phase 2 (container not created yet)
+- [x] Implement permission checks (GM-only for create/update/delete by default, per architecture) — `_canCreate()`, `_canEdit()`, `_canView()`
+- [x] Support ownership-based visibility/editability using Foundry ownership levels — uses `CONST.DOCUMENT_OWNERSHIP_LEVELS`
+- [x] Add configuration flag to allow or disallow player writes — `pinsAllowPlayerWrites` setting in `settings.js`
+- [x] Add orphaned pin cleanup (handle deleted references) — invalid pins dropped during migration/validation
+- [x] Add API guards for missing canvas/scene — `_getScene()` throws if scene not found
 
 ### 1.3 Event Handler Registration
 - [ ] Design event handler registration API (similar to HookManager/Menubar)
@@ -87,18 +87,23 @@
 ## Phase 4: API and Integration
 
 ### 4.1 Blacksmith API Integration
-- [ ] Expose pins API as `blacksmith.pins` (create, update, delete, get, list, on) per api-pins.md
-- [ ] Ensure API available after `canvasReady` (guards for missing canvas/scene)
+- [x] Create `api-pins.js` wrapper class (`PinsAPI`) following `api-stats.js` pattern
+- [x] Expose pins API as `blacksmith.pins` (create, update, delete, get, list) per api-pins.md
+- [x] Wire `PinsAPI` in `blacksmith.js` (`module.api.pins = PinsAPI`)
+- [x] API guards for missing canvas/scene — `_getScene()` in `manager-pins.js` handles this
+- [ ] Ensure API available after `canvasReady` (guards for missing canvas/scene) - Phase 2 (for rendering)
 - [ ] Document API usage patterns
 - [ ] Add API availability checks
 
 ### 4.2 Pin Configuration API
-- [ ] Implement `create` / `update` / `delete` / `get` / `list` / `on` per api-pins.md (return types, options, throws)
-- [ ] API for updating pin properties (with debouncing support)
-- [ ] API for registering event handlers (disposer + `signal` option; AbortController support)
-- [ ] API for querying pins (by scene, by id, by moduleId, etc.)
-- [ ] Validate pin `config` field; support config cache invalidation if we add external config (e.g. JSON)
-- [ ] Implement `PinEvent` payload and document error semantics (per api-pins.md)
+- [x] Implement `create` / `update` / `delete` / `get` / `list` in `api-pins.js` (wraps `PinManager` methods)
+- [ ] Implement `on()` method in `api-pins.js` (event handler registration - Phase 1.3)
+- [ ] API for updating pin properties (with debouncing support) - Phase 2
+- [ ] API for registering event handlers (disposer + `signal` option; AbortController support) - Phase 1.3
+- [x] API for querying pins (by scene, by id, by moduleId, etc.) - `list()` with filters
+- [x] Validate pin `config` field - handled in `pins-schema.js`
+- [ ] Support config cache invalidation if we add external config (e.g. JSON) - future
+- [ ] Implement `PinEvent` payload and document error semantics (per api-pins.md) - Phase 1.3
 
 ### 4.3 Module Consumer Support
 - [ ] Create example usage patterns
