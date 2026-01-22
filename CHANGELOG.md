@@ -5,11 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-
-## [13.1.1]
+## [13.2.0] - Pin API Draft Release
 
 ### NEW FEATURE
 - **Canvas Pins System**: Complete pin system for placing configurable markers on the FoundryVTT canvas. Pins are stored in scene flags, support Font Awesome icons, and provide full CRUD operations with event handling. Designed for use by other Coffee Pub modules (e.g., Coffee Pub Squire).
+
+### Added
+- **Pin API Availability Checks**: Added `pins.isAvailable()`, `pins.isReady()`, and `pins.whenReady()` methods to help other modules safely use the pins API. `isAvailable()` checks if Blacksmith is loaded and the API is exposed. `isReady()` checks if the API is available, canvas is ready, and a scene is active. `whenReady()` returns a Promise that resolves when the canvas is ready (useful for modules that need to create pins at `init` or `ready`).
+- **Pin API Usage Documentation**: Expanded `api-pins.md` with comprehensive usage patterns, including cross-module integration examples, event handler patterns with `AbortSignal` cleanup, and step-by-step guides for creating pins from other modules. Added examples for `init`/`canvasReady` hooks, handler registration with cleanup, and sync guards before reload operations.
+- **Markdown Utilities (Subset)**: Added `markdownToHtml()` and `htmlToMarkdown()` to core utilities for the supported Markdown subset (headings, rules, emphasis, lists, blockquotes) with safe HTML sanitization and a wrapper class for styling.
+- **Markdown Utility Documentation**: Documented the supported subset with examples in `documentation/api-core.md`.
+
+
+## [13.1.1]
 
 ### Added
 - **Pin Data Model**: UUID-based pin IDs, schema versioning, validation, and migration system. Pins stored in `scene.flags['coffee-pub-blacksmith'].pins[]`.
