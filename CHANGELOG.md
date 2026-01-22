@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.1.1]
 
+### Fixed
+- **Player Toolbar Refresh**: Removed GM-only render guard so player clients refresh toolbars when external modules register tools.
+- **Toolbar Hook Error**: Fixed undefined `toolsFromVisibleTools` reference during toolbar rebuild.
+
+### Changed
+- **Toolbar API Docs**: Updated `getToolbarSettings()` documentation to reflect `displayStyle` and corrected toolbar API usage examples.
+
 ### Removed
 - **Legacy Broadcast Auto-Close Settings**: Removed deprecated legacy broadcast auto-close settings (`broadcastAutoCloseImages`, `broadcastImageCloseDelaySeconds`, `broadcastAutoCloseJournals`, `broadcastJournalCloseDelaySeconds`) and their migration logic. These have been replaced by `broadcastAutoCloseWindows` and `broadcastAutoCloseDelaySeconds`.
 
@@ -2099,4 +2106,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed MVP player name formatting
 - Adjusted fumble icon color for better visibility
-
