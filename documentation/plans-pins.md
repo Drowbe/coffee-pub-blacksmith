@@ -5,10 +5,12 @@
 ## Phase 1: Core Infrastructure
 
 ### 1.1 Pin Data Model
-- [ ] Define pin data structure (id: UUID, x, y, size, style, text, image, config, moduleId)
+- [ ] Define pin data structure (id: UUID, x, y, size, style, text, image, config, moduleId, version)
 - [ ] Use scene flags for storage (`scene.flags[MODULE.ID].pins[]`)
 - [ ] Create pin schema/validation with data migration support
 - [ ] Implement UUID-based pin IDs (not timestamp-based to avoid collisions)
+- [ ] Add schema versioning and migration map
+- [ ] Validate and repair/drop invalid pin entries on load
 
 ### 1.2 Pin Manager Class
 - [ ] Create `PinManager` class to handle pin lifecycle
@@ -16,7 +18,10 @@
 - [ ] Add scene change handling (load pins when scene changes)
 - [ ] Clear container contents on scene change (not just reload)
 - [ ] Implement permission checks (GM-only for create/delete by default)
+- [ ] Support ownership-based visibility/editability using Foundry ownership levels
+- [ ] Add configuration flag to allow or disallow player writes
 - [ ] Add orphaned pin cleanup (handle deleted references)
+- [ ] Add API guards for missing canvas/scene
 
 ### 1.3 Event Handler Registration
 - [ ] Design event handler registration API (similar to HookManager/Menubar)
@@ -24,6 +29,7 @@
 - [ ] Implement event callback invocation system with proper error handling
 - [ ] Use AbortController for automatic event cleanup (v13+ feature)
 - [ ] Add error logging and user notifications for callback failures
+- [ ] Ensure handlers can be removed via returned disposer or AbortSignal
 
 ## Phase 2: Rendering System
 
@@ -91,6 +97,7 @@
 - [ ] API for registering event handlers (with AbortController support)
 - [ ] API for querying pins (by scene, by id, by moduleId, etc.)
 - [ ] Config validation and cache invalidation support
+- [ ] Define event payload structure and error semantics
 
 ### 4.3 Module Consumer Support
 - [ ] Create example usage patterns
@@ -118,6 +125,7 @@
 - [ ] Create usage examples
 - [ ] Document event handler patterns
 - [ ] Document pin configuration options
+- [ ] Document permission behavior and error handling
 
 ## Key Implementation Notes (from Squire Lessons Learned)
 

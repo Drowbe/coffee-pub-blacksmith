@@ -37,6 +37,7 @@ Pins must support the following events, with callbacks passed back to the caller
 - **Right Click**: Context menu / right mouse button click
 - **Middle Click**: Middle mouse button click
 - **Modifier-Click**: Click with keyboard modifiers (Ctrl, Alt, Shift, Meta)
+- **Drag**: Drag start/move/end (opt-in for modules that need it)
 
 The event system should work similarly to:
 - **HookManager**: Register callbacks that get invoked when events occur
@@ -59,7 +60,7 @@ Similar to HookManager and Menubar, pins should support:
 
 ### Data Structure
 Pins should be stored in scene flags (not embedded documents):
-- Each pin needs: `id` (UUID), `x`, `y`, `size`, `style`, `text`, `image`, `config`, `moduleId`, `version`
+- Each pin needs: `id` (UUID), `x`, `y`, `size`, `style`, `text`, `image`, `config`, `moduleId`, `version`, `ownership`
 - Store only essential data - event handlers registered separately (not stored in scene data)
 - Pin configuration should be serializable and validated
 - Use proper hit area calculation that includes all visible elements (base, text, labels)
@@ -76,6 +77,7 @@ Pins should be stored in scene flags (not embedded documents):
   "image": "Optional path",
   "config": {},
   "moduleId": "consumer-module-id",
+  "ownership": { "default": 0, "users": { "USER_ID": 3 } },
   "version": 1
 }
 ```
@@ -100,7 +102,9 @@ Pins should be stored in scene flags (not embedded documents):
 ### Permissions Model
 - Default to GM-only create/update/delete
 - Allow read-only access for non-GM users
-- Apply per-pin checks if consumer modules request stricter controls
+- Use Foundry ownership semantics (`CONST.DOCUMENT_OWNERSHIP_LEVELS`) for pin visibility/editability
+- `ownership.default` and per-user overrides govern who can view or edit
+- GM always has full access
 - Enforce permissions in both UI interactions and API calls
 
 ## API Design Principles
