@@ -15,7 +15,7 @@
 | **2.3** | Complete | Drag-and-drop placement (dropCanvasData), drag to move, visual feedback, AbortController cleanup |
 | **3.1–3.2** | Complete | Hover/click events, modifiers, PIXI listeners, context menu |
 | **3.3** | Partial | Edit/Delete/Properties done; custom menu items, Foundry menu system not done |
-| **4** | Partial | API complete + `reload()`; docs and availability checks incomplete |
+| **4** | Partial | API complete + `reload()` + availability checks; 4.1 done; 4.2–4.3 partial |
 | **5** | Not started | Formal testing, full API reference |
 
 ---
@@ -113,12 +113,12 @@
 
 ### 4.1 Blacksmith API Integration
 - [x] Create `api-pins.js` wrapper class (`PinsAPI`) following `api-stats.js` pattern
-- [x] Expose pins API as `blacksmith.pins` (create, update, delete, get, list, on, reload)
+- [x] Expose pins API as `blacksmith.pins` (create, update, delete, get, list, on, reload, isAvailable, isReady, whenReady)
 - [x] Wire `PinsAPI` in `blacksmith.js` (`module.api.pins = PinsAPI`)
 - [x] API guards for missing canvas/scene — `_getScene()` throws
 - [x] Pins load after canvas ready — `canvasReady` and `updateScene` hooks; layer auto-activates when scene has pins
-- [ ] Document API usage patterns — `api-pins.md` partial; expand with examples
-- [ ] Add API availability checks (e.g. helper or guards pre–canvasReady)
+- [x] Document API usage patterns — `api-pins.md` expanded with Usage Patterns, cross-module examples, create/list/events/reload/cleanup
+- [x] Add API availability checks — `isAvailable()`, `isReady()`, `whenReady()` in `api-pins.js`; documented in `api-pins.md`
 
 ### 4.2 Pin Configuration API
 - [x] Implement `create` / `update` / `delete` / `get` / `list` in `api-pins.js`

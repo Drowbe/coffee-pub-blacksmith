@@ -7,10 +7,51 @@
 
 import { PinManager } from './manager-pins.js';
 
+/** Module ID for availability checks. */
+const MODULE_ID = 'coffee-pub-blacksmith';
+
 /**
  * PinsAPI - Provides access to Blacksmith's canvas pins system
  */
 export class PinsAPI {
+    /**
+     * Check whether the pins API is available (Blacksmith loaded, API exposed).
+     * Use this before calling any other API when using from another module.
+     * @returns {boolean}
+     */
+    static isAvailable() {
+        return !!(typeof game !== 'undefined' && game?.modules?.get(MODULE_ID)?.api?.pins);
+    }
+
+    /**
+     * Check whether the pins API is ready for create/list/reload: API available, canvas ready, and a scene active.
+     * Use as a guard before create/update/delete/reload when not using `whenReady()`.
+     * @returns {boolean}
+     */
+    static isReady() {
+        if (!this.isAvailable()) return false;
+        return !!(typeof canvas !== 'undefined' && canvas?.ready && canvas?.scene);
+    }
+
+    /**
+     * Promise that resolves when the canvas is ready and a scene is active.
+     * Use this from other modules before creating pins or calling reload (e.g. in init) to avoid timing issues.
+     * If already ready, resolves immediately.
+     * @returns {Promise<void>}
+     */
+    static whenReady() {
+        if (this.isReady()) return Promise.resolve();
+        return new Promise((resolve) => {
+            if (typeof Hooks === 'undefined') {
+                resolve();
+                return;
+            }
+            Hooks.once('canvasReady', () => {
+                resolve();
+            });
+        });
+    }
+
     /**
      * Create a pin on the active scene.
      * @param {Partial<import('./manager-pins.js').PinData> & { id: string; x: number; y: number; moduleId: string }} pinData

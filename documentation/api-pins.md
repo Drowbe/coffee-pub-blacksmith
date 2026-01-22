@@ -12,7 +12,7 @@ The pins API follows Blacksmith's standard pattern:
 - **`scripts/pins-schema.js`** - Data model, validation, migration (Phase 1.1)
 - **`scripts/manager-pins.js`** - Internal manager with CRUD, permissions, and event handler registration (Phase 1.2, 1.3)
 - **`scripts/pins-renderer.js`** - Pin graphics (circle + Font Awesome icon), PIXI events, context menu (Phase 2, 3)
-- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `on()`, and `reload()`
+- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `on()`, `reload()`, `isAvailable()`, `isReady()`, `whenReady()`
 - **`scripts/blacksmith.js`** - Exposes `module.api.pins = PinsAPI`; hooks for `canvasReady` / `updateScene` pin loading
 
 ## Getting Started
@@ -29,38 +29,103 @@ const blacksmith = await BlacksmithAPI.get();
 const pinsAPI = blacksmith?.pins;
 ```
 
-### Checking Availability
+### API Availability Checks
 
-- Pins API is available after Blacksmith initializes (`module.api.pins`).
-- Pin **rendering** requires canvas and an active scene. Use `canvasReady` (or ensure canvas is ready) before creating pins or calling `reload()`.
-- If pins exist in scene flags but don’t appear, activate the Blacksmith layer (scene controls) or call `pinsAPI.reload()`; the layer auto-activates when loading scenes with pins.
+Use these **before** calling create/update/delete/reload from another module or before canvas is ready:
+
+| Method | Returns | Use when |
+|--------|---------|----------|
+| `pins.isAvailable()` | `boolean` | Guard: is Blacksmith loaded and pins API exposed? |
+| `pins.isReady()` | `boolean` | Guard: API available, canvas ready, and a scene active? |
+| `pins.whenReady()` | `Promise<void>` | Wait: resolves when canvas is ready and a scene is active (or immediately if already). Use in `init` before creating pins. |
+
+- **`isAvailable()`**: Check that `game.modules.get('coffee-pub-blacksmith')?.api?.pins` exists. Use before any API use from another module.
+- **`isReady()`**: `isAvailable()` plus `canvas?.ready` and `canvas?.scene`. Use as a sync guard before create/reload when you know canvas may not be ready yet.
+- **`whenReady()`**: Returns a Promise that resolves when the canvas is ready and a scene is active. If already ready, resolves immediately. Use when your module runs at `init` or `ready` and you need to create pins—avoids creating before the layer/renderer exist.
+
+- If pins exist in scene flags but don’t appear, activate the Blacksmith layer (scene controls) or call `pins.reload()`; the layer auto-activates when loading scenes with pins.
 
 ### Testing Pins
 
 Blacksmith does **not** create a default or test pin. To exercise the pins API:
 
-1. **Another module** – Register a `canvasReady` hook, then create a pin via the API once the canvas is ready. This avoids timing issues (e.g. creating before the layer/renderer exist).
-2. **Browser console** – Use `game.modules.get('coffee-pub-blacksmith')?.api?.pins` and call `create()`, then `reload()` if the pin doesn't appear. See `utilities/test-pins-debug.js` and `utilities/test-pins-rendering.js` for patterns.
-3. **Drop on canvas** – Implement a draggable UI element that drops `{ type: 'blacksmith-pin', moduleId: 'your-module', ... }` onto the canvas; the `dropCanvasData` handler creates the pin.
+1. **Another module** – Use `whenReady()` (or a `canvasReady` hook), then create a pin. See [Usage patterns](#usage-patterns) below.
+2. **Browser console** – Use `game.modules.get('coffee-pub-blacksmith')?.api?.pins`, then `create()` and `reload()` if needed. See `utilities/test-pins-debug.js` and `utilities/test-pins-rendering.js`.
+3. **Drop on canvas** – Implement a draggable UI element that drops `{ type: 'blacksmith-pin', moduleId: 'your-module', ... }`; the `dropCanvasData` handler creates the pin.
 
-Example: a consumer module creating a test pin on `canvasReady`:
+### Usage Patterns
+
+#### Using the API from another module
+
+1. **Get the API** (no imports): `const pins = game.modules.get('coffee-pub-blacksmith')?.api?.pins;`
+2. **Check availability**: `if (!pins?.isAvailable()) return;`
+3. **Wait for canvas** (if using pins at init/ready): `await pins.whenReady();` then create/list/reload.
+4. **Create pins** with `moduleId: 'your-module-id'` so you can filter and manage them.
+5. **Register handlers** with `pins.on(...)`. Use `{ moduleId: 'your-module' }` to scope events, and `signal` or the returned disposer for cleanup.
+6. **Cleanup on unload**: Call your disposers or `controller.abort()` in your module's `Hooks.on('unloadModule', ...)` when your module ID unloads.
+
+#### Example: create a pin from another module (init)
 
 ```javascript
-Hooks.once('canvasReady', async () => {
-  const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-  if (!pinsAPI || !canvas?.scene) return;
+Hooks.once('init', async () => {
+  const pins = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+  if (!pins?.isAvailable()) return;
+
+  await pins.whenReady();
+  if (!canvas?.scene) return;
+
   const dims = canvas.dimensions ?? {};
   const cx = (dims.width ?? 2000) / 2;
   const cy = (dims.height ?? 2000) / 2;
-  await pinsAPI.create({
+
+  await pins.create({
     id: crypto.randomUUID(),
     x: cx, y: cy,
     moduleId: 'my-module',
     text: 'Test pin',
     image: '<i class="fa-solid fa-star"></i>'
   });
-  await pinsAPI.reload();
+  await pins.reload();
 });
+```
+
+#### Example: list and event handlers with cleanup
+
+```javascript
+const MODULE_ID = 'my-module';
+
+let offClick = null;
+const controller = new AbortController();
+
+Hooks.once('canvasReady', () => {
+  const pins = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+  if (!pins?.isReady()) return;
+
+  const list = pins.list({ moduleId: MODULE_ID });
+  console.log('My pins:', list.length);
+
+  offClick = pins.on('click', (evt) => {
+    console.log('Clicked:', evt.pin.id, evt.modifiers);
+  }, { moduleId: MODULE_ID, signal: controller.signal });
+});
+
+Hooks.on('unloadModule', (id) => {
+  if (id !== MODULE_ID) return;
+  controller.abort();
+  offClick?.();
+});
+```
+
+#### Example: sync guard before reload
+
+```javascript
+const pins = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+if (pins?.isReady()) {
+  const r = await pins.reload();
+  console.log('Reloaded', r.reloaded, 'pins');
+} else {
+  console.warn('Pins not ready (no canvas/scene)');
+}
 ```
 
 ## Data Types
@@ -97,6 +162,35 @@ interface PinEvent {
 ```
 
 ## API Reference
+
+### `pins.isAvailable()`
+Check whether the pins API is available (Blacksmith loaded, API exposed).
+
+**Returns**: `boolean`
+
+Use before any API use from another module. Safe to call before `canvasReady`.
+
+### `pins.isReady()`
+Check whether the API is ready for create/list/reload: API available, canvas ready, and a scene active.
+
+**Returns**: `boolean`
+
+Use as a sync guard before create/update/delete/reload when you know canvas may not be ready yet.
+
+### `pins.whenReady()`
+Promise that resolves when the canvas is ready and a scene is active. If already ready, resolves immediately.
+
+**Returns**: `Promise<void>`
+
+Use when your module runs at `init` or `ready` and you need to create pins—avoids creating before the layer/renderer exist.
+
+```javascript
+const pins = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+if (!pins?.isAvailable()) return;
+await pins.whenReady();
+await pins.create({ id: crypto.randomUUID(), x: 1000, y: 800, moduleId: 'my-module' });
+await pins.reload();
+```
 
 ### `pins.create(pinData, options?)`
 Create a pin on the active scene.
@@ -241,7 +335,7 @@ Reload pins from scene flags and re-render on the canvas. Use when pins exist in
 **Returns**: `Promise<{ reloaded: number; containerReady: boolean; pinsInData: number; layerActive: boolean }>`
 
 ```javascript
-const result = await pinsAPI.reload();
+const result = await pins.reload();
 // result.reloaded: number of pins now in container
 // result.containerReady: whether renderer container existed
 // result.pinsInData: pins in scene flags
@@ -327,6 +421,7 @@ Pins can be moved by left-clicking and dragging. Only users with edit permission
 - [x] Drag-and-drop (Phase 2.3): dropCanvasData for creation, drag-to-move, visual feedback, AbortController cleanup
 - [x] Event system (Phase 3.1, 3.2): hover/click/right-click/middle-click, modifiers, PIXI listeners, handler dispatch
 - [x] Context menu (Phase 3.3): Edit, Delete, Properties (custom HTML); custom items and Foundry menu not done
-- [x] API: CRUD, `on()`, `reload()`; `pinsAllowPlayerWrites` setting
+- [x] API: CRUD, `on()`, `reload()`, `isAvailable()`, `isReady()`, `whenReady()`; `pinsAllowPlayerWrites` setting
 - [x] Pin storage in scene flags; migration and validation on load
-- [ ] Full usage examples, automated tests, and remaining Phase 4–5 items (see `plans-pins.md`)
+- [x] Phase 4.1: API usage patterns documented; availability checks (`isAvailable` / `isReady` / `whenReady`) implemented
+- [ ] Full automated tests and remaining Phase 4–5 items (see `plans-pins.md`)
