@@ -170,16 +170,17 @@ class PinDOMElement {
     }
 
     /**
-     * Hide all pins (for performance during pan/zoom)
+     * Hide all pins (for performance during pan/zoom) - just hide, no fade
      */
     static _hideAllPins() {
         for (const pin of this._pins.values()) {
-            pin.style.display = 'none';
+            pin.style.visibility = 'hidden';
+            pin.style.opacity = '0';
         }
     }
 
     /**
-     * Show all pins (after pan/zoom)
+     * Show all pins (after pan/zoom) - show immediately, no fade
      */
     static _showAllPins() {
         // Pins will be shown when updatePosition is called
@@ -243,14 +244,16 @@ class PinDOMElement {
             pinElement.dataset.pinId = pinId;
             pinElement.style.position = 'absolute';
             pinElement.style.pointerEvents = 'auto';
-            pinElement.style.display = 'none'; // Start hidden - will be shown ONLY after correct position is calculated
+            pinElement.style.display = 'flex'; // Always flex for layout
             pinElement.style.alignItems = 'center';
             pinElement.style.justifyContent = 'center';
             pinElement.style.transformOrigin = 'center center';
-            pinElement.style.visibility = 'visible';
-            pinElement.style.opacity = '1';
+            pinElement.style.visibility = 'hidden'; // Start hidden - will fade in after correct position is calculated
+            pinElement.style.opacity = '0'; // Start transparent for fade-in
             pinElement.style.borderRadius = '50%';
             pinElement.style.boxSizing = 'border-box';
+            pinElement.style.transition = 'opacity 0.2s ease-in-out, visibility 0.2s ease-in-out'; // Smooth fade transition
+            pinElement.style.cursor = 'pointer'; // Show pointer cursor on hover
             
             // Set up event listeners
             this._setupEventListeners(pinElement, pinData);
@@ -258,8 +261,7 @@ class PinDOMElement {
             this._container.appendChild(pinElement);
             this._pins.set(pinId, pinElement);
         } else {
-            // Existing pin - hide it until we recalculate position correctly
-            pinElement.style.display = 'none';
+            // Existing pin - keep visible, will update position smoothly
         }
 
         // Update pin styling (circle background)
@@ -365,9 +367,6 @@ class PinDOMElement {
                 console.warn(`BLACKSMITH | PINS updatePosition: Invalid screen coordinates for ${pinId}`);
             }
             
-            // Hide pin BEFORE setting position (prevents flash of wrong position)
-            pinElement.style.display = 'none';
-            
             // Set position and size
             pinElement.style.left = `${left}px`;
             pinElement.style.top = `${top}px`;
@@ -389,13 +388,17 @@ class PinDOMElement {
             // Force a reflow to ensure position is applied
             void pinElement.offsetWidth;
             
-            // ONLY NOW show the pin - position is correctly calculated
-            pinElement.style.display = 'flex';
-            pinElement.style.visibility = 'visible';
-            pinElement.style.opacity = String(pinData.style?.alpha ?? 1);
-            
-            // Force another reflow to ensure display change is applied
-            void pinElement.offsetHeight;
+            // Fade in the pin if it's currently hidden (only on first creation)
+            if (pinElement.style.visibility === 'hidden' || pinElement.style.opacity === '0') {
+                pinElement.style.visibility = 'visible';
+                // Use requestAnimationFrame to ensure smooth fade-in transition
+                requestAnimationFrame(() => {
+                    pinElement.style.opacity = String(pinData.style?.alpha ?? 1);
+                });
+            } else {
+                // Already visible - just update opacity to match style (no fade)
+                pinElement.style.opacity = String(pinData.style?.alpha ?? 1);
+            }
         } catch (err) {
             postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Error updating pin position for ${pinId}`, err?.message || String(err), false, false);
         }
