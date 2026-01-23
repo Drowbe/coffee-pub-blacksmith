@@ -497,7 +497,8 @@ class PinGraphics extends PIXI.Container {
 
                 this.position.set(newX, newY);
                 
-                // Update HTML icon overlay position during drag
+                // Update HTML icon overlay position during drag using unified calculation
+                // This ensures drag uses the same alignment as initial creation
                 const tempPinData = { ...this.pinData, x: newX, y: newY };
                 PinIconOverlay.updatePosition(this.pinData.id, tempPinData);
 
@@ -829,7 +830,69 @@ class PinIconOverlay {
         postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Icon overlay container created', `z-index: ${container.style.zIndex}, parent: ${container.parentElement?.tagName}`, true, false);
 
         // Hook into canvas pan/zoom to update positions
-        Hooks.on('canvasPan', () => this._scheduleUpdate());
+        // Hide entire pins (PIXI + HTML) during pan/zoom for performance, show at end
+        let panZoomTimeout = null;
+        Hooks.on('canvasPan', () => {
+            // Hide all pins (both PIXI graphics and HTML icons) immediately when panning starts
+            this._hideAllPins();
+            // Clear any pending update
+            if (this._updateThrottle) {
+                cancelAnimationFrame(this._updateThrottle);
+                this._updateThrottle = null;
+            }
+            // Clear any pending show timeout
+            if (panZoomTimeout) {
+                clearTimeout(panZoomTimeout);
+            }
+            // Show and update after pan stops (debounce with delay to let canvas settle)
+            // Increased delay to ensure canvas has fully settled before calculating positions
+            panZoomTimeout = setTimeout(() => {
+                this._showAllPins();
+                // Additional small delay before updating positions to ensure canvas is fully settled
+                setTimeout(() => {
+                    this._scheduleUpdate();
+                }, 50);
+                panZoomTimeout = null;
+            }, 150);
+        });
+        
+        // Also handle zoom (canvasPan might not fire for zoom)
+        const originalZoom = canvas?.controls?.zoom;
+        if (originalZoom) {
+            const zoomHandler = () => {
+                this._hideAllPins();
+                if (panZoomTimeout) clearTimeout(panZoomTimeout);
+                // Increased delay to ensure canvas has fully settled after zoom
+                panZoomTimeout = setTimeout(() => {
+                    this._showAllPins();
+                    // Additional small delay before updating positions to ensure canvas is fully settled
+                    setTimeout(() => {
+                        this._scheduleUpdate();
+                    }, 50);
+                    panZoomTimeout = null;
+                }, 150);
+            };
+            // Hook into zoom if available
+            Hooks.on('canvasInit', () => {
+                if (canvas?.controls) {
+                    const originalZoomIn = canvas.controls.zoomIn;
+                    const originalZoomOut = canvas.controls.zoomOut;
+                    if (originalZoomIn) {
+                        canvas.controls.zoomIn = function(...args) {
+                            zoomHandler();
+                            return originalZoomIn.apply(this, args);
+                        };
+                    }
+                    if (originalZoomOut) {
+                        canvas.controls.zoomOut = function(...args) {
+                            zoomHandler();
+                            return originalZoomOut.apply(this, args);
+                        };
+                    }
+                }
+            });
+        }
+        
         Hooks.on('updateScene', () => this._scheduleUpdate());
         Hooks.on('canvasReady', () => {
             // When canvas becomes ready, update all icon positions
@@ -867,10 +930,16 @@ class PinIconOverlay {
             const stage = canvas.stage;
             
             // Use PIXI's coordinate conversion: create a point in scene space and convert to global (screen) space
+            // stage.toGlobal() converts from local (scene) coordinates to global (screen) coordinates
+            // The result is in screen pixels relative to the stage's container
             const scenePoint = new PIXI.Point(sceneX, sceneY);
             const globalPoint = stage.toGlobal(scenePoint);
             
-            // Global point is relative to the stage, need to add canvas offset
+            // globalPoint is in screen coordinates relative to the stage container
+            // The stage container is positioned at (0,0) relative to the canvas element
+            // So we need to add the canvas element's position to get absolute screen coordinates
+            // Also account for any transforms on the stage container
+            const stageWorldTransform = stage.worldTransform;
             const screenX = globalPoint.x + canvasRect.left;
             const screenY = globalPoint.y + canvasRect.top;
             
@@ -880,6 +949,46 @@ class PinIconOverlay {
             postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error converting scene to screen', err?.message || String(err), false, false);
             return { x: 0, y: 0 };
         }
+    }
+
+    /**
+     * Hide all icons (for performance during pan/zoom)
+     */
+    static _hideAllIcons() {
+        for (const icon of this._icons.values()) {
+            icon.style.display = 'none';
+        }
+    }
+
+    /**
+     * Hide all pins (PIXI graphics + HTML icons) for performance during pan/zoom
+     */
+    static _hideAllPins() {
+        // Hide HTML icons
+        this._hideAllIcons();
+        
+        // Hide PIXI graphics via PinRenderer
+        import('./pins-renderer.js').then(({ PinRenderer }) => {
+            const container = PinRenderer.getContainer();
+            if (container) {
+                container.visible = false;
+            }
+        }).catch(() => {});
+    }
+
+    /**
+     * Show all pins (PIXI graphics + HTML icons) after pan/zoom
+     */
+    static _showAllPins() {
+        // Show PIXI graphics via PinRenderer
+        import('./pins-renderer.js').then(({ PinRenderer }) => {
+            const container = PinRenderer.getContainer();
+            if (container) {
+                container.visible = true;
+            }
+        }).catch(() => {});
+        
+        // Icons will be shown when updatePosition is called
     }
 
     /**
@@ -920,7 +1029,7 @@ class PinIconOverlay {
             icon.dataset.pinId = pinId;
             icon.style.position = 'absolute';
             icon.style.pointerEvents = 'none';
-            icon.style.display = 'none'; // Start hidden, will be shown when positioned
+            icon.style.display = 'none'; // Start hidden - will be shown ONLY after correct position is calculated
             icon.style.alignItems = 'center';
             icon.style.justifyContent = 'center';
             icon.style.transformOrigin = 'center center';
@@ -928,22 +1037,20 @@ class PinIconOverlay {
             icon.style.opacity = '1';
             this._container.appendChild(icon);
             this._icons.set(pinId, icon);
+        } else {
+            // Existing icon - hide it until we recalculate position correctly
+            icon.style.display = 'none';
         }
 
         // Check if it's Font Awesome or an image URL
         const isFontAwesome = this._isFontAwesomeIcon(image);
         
-        // Get current zoom level for size calculation
-        const scale = canvas?.ready && canvas?.stage ? canvas.stage.scale.x : 1;
-        const iconSizeScene = Math.min(size.w, size.h) * 0.6;
-        const iconSizeScreen = iconSizeScene * scale;
-        
+        // Set icon content (size and position will be calculated in updatePosition using unified logic)
         if (isFontAwesome) {
             // Font Awesome icon
             const faClasses = this._extractFontAwesomeClasses(image);
             icon.innerHTML = `<i class="${faClasses}"></i>`;
             icon.style.color = '#ffffff';
-            icon.style.fontSize = `${iconSizeScreen}px`;
             icon.style.background = 'none';
             icon.style.border = 'none';
             icon.style.width = 'auto';
@@ -956,14 +1063,12 @@ class PinIconOverlay {
             icon.style.backgroundSize = 'contain';
             icon.style.backgroundRepeat = 'no-repeat';
             icon.style.backgroundPosition = 'center';
-            icon.style.width = `${iconSizeScreen}px`;
-            icon.style.height = `${iconSizeScreen}px`;
         }
         
         // Ensure icon is visible
         icon.style.zIndex = '2001';
 
-        // Always try to update position immediately, and schedule retry if needed
+        // Always try to update position immediately using unified calculation (same as pan/zoom)
         // More lenient check - only require stage and app
         if (canvas?.stage && canvas?.app) {
             this.updatePosition(pinId, pinData);
@@ -1000,7 +1105,105 @@ class PinIconOverlay {
     }
 
     /**
+     * Calculate icon position and size - unified function used for both creation and updates
+     * This ensures pin creation and pan/zoom use the exact same alignment logic
+     * @param {HTMLElement} icon - The icon DOM element
+     * @param {PinData} pinData - Pin data
+     * @returns {{ left: number, top: number, actualWidth: number, actualHeight: number, iconSizeScreen: number, screen: {x: number, y: number} }}
+     * @private
+     */
+    /**
+     * Calculate icon position and size - unified function used for both creation and updates
+     * This ensures pin creation and pan/zoom use the exact same alignment logic
+     * @param {HTMLElement} icon - The icon DOM element
+     * @param {PinData} pinData - Pin data
+     * @returns {{ left: number, top: number, actualWidth: number, actualHeight: number, iconSizeScreen: number, screen: {x: number, y: number} }}
+     * @private
+     */
+    static _calculateIconPosition(icon, pinData) {
+        // UNIFIED CALCULATION - Used by create, pan, zoom, and drag
+        // Convert scene coordinates to screen coordinates (same calculation for create and pan/zoom)
+        const screen = this._sceneToScreen(pinData.x, pinData.y);
+        const scale = canvas.stage.scale.x;
+        
+        // Icon size in scene units, converted to screen pixels
+        // pinData.size is the CIRCLE size, not the icon size
+        // Icon may have different aspect ratio (e.g., location-dot is taller than wide)
+        const iconSizeScene = Math.min(pinData.size.w, pinData.size.h) * 0.6;
+        const iconSizeScreen = iconSizeScene * scale;
+        
+        // Update icon size based on zoom
+        const isFontAwesome = icon.innerHTML.includes('<i class=');
+        let actualWidth, actualHeight;
+        
+        // CRITICAL: Icon must be visible to measure dimensions accurately
+        // offsetWidth/offsetHeight return 0 when display: none
+        // Store current display state and temporarily show if hidden
+        const wasHidden = icon.style.display === 'none' || icon.style.display === '';
+        const originalDisplay = icon.style.display;
+        
+        if (isFontAwesome) {
+            // Font Awesome icons: set fontSize, then measure ACTUAL rendered dimensions
+            // The icon may not be square - location-dot is taller than wide, circle is square
+            icon.style.fontSize = `${iconSizeScreen}px`;
+            
+            // Temporarily ensure icon is visible for measurement
+            if (wasHidden) {
+                icon.style.display = 'flex';
+                icon.style.visibility = 'visible';
+                icon.style.opacity = '1';
+                // Position off-screen so it's not visible during measurement
+                icon.style.left = '-9999px';
+                icon.style.top = '-9999px';
+            }
+            
+            // Force a reflow to get actual dimensions after fontSize is set
+            void icon.offsetWidth;
+            
+            // Get actual rendered dimensions (icon may have different width/height)
+            // offsetWidth/offsetHeight gives us the actual rendered size
+            // CRITICAL: Measure AFTER fontSize is set, icon is visible, and reflow is forced
+            actualWidth = icon.offsetWidth || iconSizeScreen;
+            actualHeight = icon.offsetHeight || iconSizeScreen;
+            
+            // Restore original display state
+            if (wasHidden) {
+                icon.style.display = originalDisplay || 'none';
+            }
+        } else {
+            // Image icons: we control width/height directly, so they're square
+            icon.style.width = `${iconSizeScreen}px`;
+            icon.style.height = `${iconSizeScreen}px`;
+            actualWidth = iconSizeScreen;
+            actualHeight = iconSizeScreen;
+        }
+        
+        // Center using ACTUAL dimensions, not assumed square size
+        // This fixes horizontal misalignment for non-square icons
+        // SAME calculation for create, pan, zoom, and drag
+        const left = Math.round(screen.x - actualWidth / 2);
+        const top = Math.round(screen.y - actualHeight / 2);
+        
+        // Debug: Log when unified calculation is used (first few times per pin)
+        const debugKey = `_calc_${pinData.id}_count`;
+        const calcCount = (window[debugKey] || 0) + 1;
+        window[debugKey] = calcCount;
+        if (calcCount <= 3) {
+            console.log(`BLACKSMITH | PINS _calculateIconPosition called (${calcCount}) for ${pinData.id}:`, {
+                scene: { x: pinData.x, y: pinData.y },
+                screen,
+                actualDimensions: { width: actualWidth, height: actualHeight },
+                calculatedPosition: { left, top },
+                wasHidden: icon.style.display === 'none'
+            });
+        }
+        
+        return { left, top, actualWidth, actualHeight, iconSizeScreen, screen };
+    }
+
+    /**
      * Update icon position for a specific pin
+     * Uses unified _calculateIconPosition for consistent alignment (same as pin creation)
      * @param {string} pinId
      * @param {PinData} pinData
      */
@@ -1024,7 +1227,14 @@ class PinIconOverlay {
         }
 
         try {
-            const screen = this._sceneToScreen(pinData.x, pinData.y);
+            // CRITICAL: Use unified calculation function (same as pin creation, pan, zoom, and drag)
+            // This is the ONLY place that calculates icon positions - no legacy code
+            // This function handles:
+            // 1. Scene to screen coordinate conversion
+            // 2. Icon size calculation based on zoom
+            // 3. Actual dimension measurement (for Font Awesome icons) - handles visibility internally
+            // 4. Centering calculation using actual dimensions
+            const { left, top, actualWidth, actualHeight, iconSizeScreen, screen } = this._calculateIconPosition(icon, pinData);
             
             // Check if screen coordinates are valid (not 0,0 which indicates error)
             if (screen.x === 0 && screen.y === 0 && (pinData.x !== 0 || pinData.y !== 0)) {
@@ -1036,33 +1246,25 @@ class PinIconOverlay {
                 // Don't return - try to show anyway with fallback position
             }
             
-            const scale = canvas.stage.scale.x;
-            // Icon size in scene units, converted to screen pixels
-            const iconSizeScene = Math.min(pinData.size.w, pinData.size.h) * 0.6;
-            const iconSizeScreen = iconSizeScene * scale;
+            // Hide icon BEFORE setting position (prevents flash of wrong position)
+            icon.style.display = 'none';
             
-            // Update icon size based on zoom
-            const isFontAwesome = icon.innerHTML.includes('<i class=');
-            if (isFontAwesome) {
-                icon.style.fontSize = `${iconSizeScreen}px`;
-            } else {
-                icon.style.width = `${iconSizeScreen}px`;
-                icon.style.height = `${iconSizeScreen}px`;
-            }
-            
-            // Center icon over the circle
-            const left = screen.x - iconSizeScreen / 2;
-            const top = screen.y - iconSizeScreen / 2;
+            // Set position using values from _calculateIconPosition - NO OTHER CALCULATION
+            // This is the ONLY place that sets icon.style.left and icon.style.top
             icon.style.left = `${left}px`;
             icon.style.top = `${top}px`;
+            icon.style.position = 'absolute';
             
-            // CRITICAL: Set display to flex to make icon visible
+            // Force a reflow to ensure position is applied
+            void icon.offsetWidth;
+            
+            // ONLY NOW show the icon - position is correctly calculated
+            // This prevents the off-center flash when pin is first created or during pan/zoom
             icon.style.display = 'flex';
             icon.style.visibility = 'visible';
             icon.style.opacity = '1';
-            icon.style.position = 'absolute';
             
-            // Force a reflow to ensure styles are applied
+            // Force another reflow to ensure display change is applied
             void icon.offsetHeight;
             
             // Debug: Always log first few position updates to diagnose
@@ -1075,10 +1277,11 @@ class PinIconOverlay {
                 console.log(`BLACKSMITH | PINS Icon position for ${pinId} (update #${debugCount}):`, {
                     scene: { x: pinData.x, y: pinData.y },
                     screen: screen,
-                    iconSize: iconSizeScreen,
+                    iconSizeCalculated: iconSizeScreen,
+                    iconSizeActual: { width: actualWidth, height: actualHeight },
                     finalPos: { left, top },
                     canvasRect: (canvas.app?.renderer?.view || canvas.app?.canvas || canvas.canvas)?.getBoundingClientRect(),
-                    stageScale: scale,
+                    stageScale: canvas.stage.scale.x,
                     displaySet: icon.style.display,
                     displayComputed: computed.display,
                     visibilityComputed: computed.visibility,
@@ -1094,6 +1297,7 @@ class PinIconOverlay {
 
     /**
      * Update all icon positions (called on pan/zoom)
+     * Uses unified updatePosition which calls _calculateIconPosition (same as pin creation)
      */
     static updateAllPositions() {
         if (!this._isInitialized) {
@@ -1118,7 +1322,7 @@ class PinIconOverlay {
             return;
         }
 
-        console.log(`BLACKSMITH | PINS updateAllPositions: Updating ${this._icons.size} icon(s)`);
+        console.log(`BLACKSMITH | PINS updateAllPositions: Updating ${this._icons.size} icon(s) using unified calculation`);
 
         // Import PinManager to get pin data
         import('./manager-pins.js').then(({ PinManager }) => {
@@ -1126,13 +1330,15 @@ class PinIconOverlay {
             for (const [pinId, icon] of this._icons.entries()) {
                 const pinData = PinManager.get(pinId);
                 if (pinData) {
+                    // CRITICAL: Use updatePosition which calls _calculateIconPosition (same as creation)
+                    // This ensures pan/zoom uses the exact same alignment logic as pin creation
                     this.updatePosition(pinId, pinData);
                     updated++;
                 } else {
                     console.warn(`BLACKSMITH | PINS updateAllPositions: No pin data for ${pinId}`);
                 }
             }
-            console.log(`BLACKSMITH | PINS updateAllPositions: Updated ${updated} icon(s)`);
+            console.log(`BLACKSMITH | PINS updateAllPositions: Updated ${updated} icon(s) using unified calculation`);
         }).catch(err => {
             postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error updating icon positions', err?.message || String(err), false, false);
         });
