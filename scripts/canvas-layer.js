@@ -16,14 +16,23 @@ export class BlacksmithLayer extends foundry.canvas.layers.CanvasLayer {
 
     activate() {
         postConsoleAndNotification(MODULE.NAME, "BlacksmithLayer: Activated", "", true, false);
-        // Load pins for current scene when layer activates (if system is ready)
+        // Load pins for current scene when layer activates
         // Use setTimeout to ensure system is fully initialized
         setTimeout(async () => {
-            if (canvas?.scene && PinRenderer.getContainer()) {
+            if (canvas?.scene) {
+                // Ensure renderer is initialized
+                if (!PinRenderer.getContainer()) {
+                    PinRenderer.initialize();
+                }
+                
                 const { PinManager } = await import('./manager-pins.js');
                 const pins = PinManager.list({ sceneId: canvas.scene.id });
+                
                 if (pins.length > 0) {
                     await PinRenderer.loadScenePins(canvas.scene.id, pins);
+                } else {
+                    // No pins, but clear any existing ones
+                    PinRenderer.clear();
                 }
             }
         }, 100);

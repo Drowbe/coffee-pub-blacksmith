@@ -116,12 +116,13 @@ class PinDOMElement {
             }
         });
         
-        Hooks.on('updateScene', () => this._scheduleUpdate());
+        Hooks.on('updateScene', () => {
+            // When scene changes, load pins for the new scene
+            this._scheduleSceneLoad();
+        });
         Hooks.on('canvasReady', () => {
-            // When canvas becomes ready, update all pin positions
-            setTimeout(() => {
-                this.updateAllPositions();
-            }, 100);
+            // When canvas becomes ready, load pins for current scene and update positions
+            this._scheduleSceneLoad();
         });
         
         // Update on window resize
@@ -196,6 +197,33 @@ class PinDOMElement {
             this.updateAllPositions();
             this._updateThrottle = null;
         });
+    }
+
+    /**
+     * Schedule loading pins for the current scene
+     * Note: PinRenderer is defined later in this file, so we reference it directly
+     * @private
+     */
+    static _scheduleSceneLoad() {
+        // Use a small delay to ensure scene is fully activated
+        setTimeout(async () => {
+            if (!canvas?.scene) return;
+            
+            try {
+                const { PinManager } = await import('./manager-pins.js');
+                const pins = PinManager.list({ sceneId: canvas.scene.id });
+                
+                // PinRenderer is in the same file, reference it directly
+                if (pins.length > 0) {
+                    await PinRenderer.loadScenePins(canvas.scene.id, pins);
+                } else {
+                    // No pins, but clear any existing ones
+                    PinRenderer.clear();
+                }
+            } catch (err) {
+                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error loading scene pins on scene change', err?.message || String(err), false, false);
+            }
+        }, 200);
     }
 
     /**
