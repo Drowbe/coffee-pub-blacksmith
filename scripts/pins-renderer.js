@@ -320,21 +320,32 @@ class PinDOMElement {
         if (isFontAwesome && image) {
             // Font Awesome icon
             const faClasses = this._extractFontAwesomeClasses(image);
-            iconElement.innerHTML = `<i class="${faClasses}"></i>`;
-            iconElement.style.color = '#ffffff';
-            iconElement.style.background = 'none';
-            iconElement.style.border = 'none';
+            if (faClasses) {
+                iconElement.innerHTML = `<i class="${faClasses}"></i>`;
+                iconElement.style.color = '#ffffff';
+                iconElement.style.background = 'none';
+                iconElement.style.border = 'none';
+                iconElement.style.backgroundImage = 'none'; // Clear any previous image
+                iconElement.style.width = 'auto';
+                iconElement.style.height = 'auto';
+            } else {
+                // Invalid Font Awesome format, treat as no icon
+                iconElement.innerHTML = '';
+                iconElement.style.backgroundImage = 'none';
+            }
         } else if (image) {
             // Image URL
-            iconElement.innerHTML = '';
+            iconElement.innerHTML = ''; // Clear any Font Awesome icon
             iconElement.style.backgroundImage = `url(${image})`;
             iconElement.style.backgroundSize = 'contain';
             iconElement.style.backgroundRepeat = 'no-repeat';
             iconElement.style.backgroundPosition = 'center';
+            iconElement.style.color = ''; // Clear Font Awesome color
         } else {
             // No icon
             iconElement.innerHTML = '';
             iconElement.style.backgroundImage = 'none';
+            iconElement.style.color = '';
         }
         
         // Always try to update position immediately using unified calculation
@@ -404,10 +415,16 @@ class PinDOMElement {
             // Update icon size
             const iconElement = pinElement.querySelector('.blacksmith-pin-icon');
             if (iconElement) {
-                const isFontAwesome = iconElement.innerHTML.includes('<i class=');
-                if (isFontAwesome) {
+                // Check pinData to determine if it's Font Awesome or image
+                const isFontAwesome = this._isFontAwesomeIcon(pinData.image);
+                if (isFontAwesome && pinData.image) {
+                    // Font Awesome icon - use fontSize
                     iconElement.style.fontSize = `${iconSizeScreen}px`;
-                } else {
+                    iconElement.style.width = 'auto';
+                    iconElement.style.height = 'auto';
+                } else if (pinData.image) {
+                    // Image URL - use width/height
+                    iconElement.style.fontSize = '';
                     iconElement.style.width = `${iconSizeScreen}px`;
                     iconElement.style.height = `${iconSizeScreen}px`;
                 }
