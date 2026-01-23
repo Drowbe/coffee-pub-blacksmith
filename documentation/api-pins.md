@@ -204,7 +204,14 @@ const pin = await pinsAPI.create({
   y: 900,
   text: 'Forge',
   moduleId: 'my-module',
-  image: '<i class="fa-solid fa-star"></i>'  // optional; Font Awesome only
+  image: '<i class="fa-solid fa-star"></i>',  // optional; Font Awesome only
+  size: { w: 48, h: 48 },  // optional; defaults to { w: 32, h: 32 }
+  style: {  // optional; defaults shown
+    fill: '#000000',
+    stroke: '#ffffff',
+    strokeWidth: 2,
+    alpha: 1
+  }
 });
 ```
 

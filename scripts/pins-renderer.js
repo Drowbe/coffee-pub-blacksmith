@@ -37,15 +37,16 @@ class PinGraphics extends PIXI.Container {
      */
     _build() {
         this.removeChildren();
-        const { size, style, image, text } = this.pinData;
+        const { size, style = {}, image, text } = this.pinData;
         const radius = Math.min(size.w, size.h) / 2;
 
         // Circle base
         this._circle = new PIXI.Graphics();
-        const fillColor = style.fill || '#000000';
-        const strokeColor = style.stroke || '#ffffff';
-        const strokeWidth = style.strokeWidth || 2;
-        const alpha = typeof style.alpha === 'number' ? style.alpha : 1;
+        // Ensure style object exists and has proper defaults
+        const fillColor = style?.fill || '#000000';
+        const strokeColor = style?.stroke || '#ffffff';
+        const strokeWidth = typeof style?.strokeWidth === 'number' ? style.strokeWidth : 2;
+        const alpha = typeof style?.alpha === 'number' ? style.alpha : 1;
         
         // Convert hex string to number if needed
         const fillColorNum = typeof fillColor === 'string' && fillColor.startsWith('#')
@@ -55,24 +56,20 @@ class PinGraphics extends PIXI.Container {
             ? parseInt(strokeColor.slice(1), 16)
             : (typeof strokeColor === 'number' ? strokeColor : 0xFFFFFF);
         
-        // Draw circle with fill
+        // Draw circle with both fill and stroke
+        // In PIXI, lineStyle must be set before beginFill to get both fill and stroke
+        this._circle.lineStyle(strokeWidth, strokeColorNum, alpha);
         this._circle.beginFill(fillColorNum, alpha);
         this._circle.drawCircle(0, 0, radius);
         this._circle.endFill();
         
-        // Draw stroke
-        this._circle.lineStyle(strokeWidth, strokeColorNum, alpha);
-        this._circle.drawCircle(0, 0, radius);
-        
         this.addChild(this._circle);
 
-        // Icon/image if provided (load async, don't block)
+        // Icon/image if provided - use HTML overlay (hybrid approach)
         if (image) {
-            // Fire and forget - icon will load asynchronously
-            this._loadIcon(image).catch(err => {
-                // Icon loading failed, but pin should still be visible (circle only)
-                console.error('BLACKSMITH | PINS Icon load error (non-fatal):', err);
-            });
+            // Create HTML overlay icon (Font Awesome or image URL)
+            // createOrUpdateIcon will handle canvas readiness checks
+            PinIconOverlay.createOrUpdateIcon(this.pinData.id, this.pinData);
         }
 
         // Text label if provided
@@ -190,113 +187,18 @@ class PinGraphics extends PIXI.Container {
      * @private
      */
     async _createFontAwesomeTexture(faClasses, size) {
-        // Create a temporary HTML element to render the Font Awesome icon
-        const tempDiv = document.createElement('div');
-        tempDiv.style.position = 'absolute';
-        tempDiv.style.left = '-9999px';
-        tempDiv.style.top = '-9999px';
-        tempDiv.style.width = `${size}px`;
-        tempDiv.style.height = `${size}px`;
-        tempDiv.style.display = 'flex';
-        tempDiv.style.alignItems = 'center';
-        tempDiv.style.justifyContent = 'center';
-        tempDiv.style.fontSize = `${size * 0.8}px`;
-        tempDiv.style.color = '#ffffff';
-        tempDiv.style.lineHeight = '1';
-        tempDiv.innerHTML = `<i class="${faClasses}"></i>`;
-        
-        document.body.appendChild(tempDiv);
-        
-        // Wait for Font Awesome font to load and render
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Get the icon element
-        const iconElement = tempDiv.querySelector('i');
-        if (!iconElement) {
-            document.body.removeChild(tempDiv);
-            throw new Error('Font Awesome icon element not found');
-        }
-        
-        // Try to get the ::before pseudo-element content (where FA icons are rendered)
-        let iconChar = '';
-        try {
-            const beforeStyle = window.getComputedStyle(iconElement, '::before');
-            const content = beforeStyle.content;
-            
-            // Extract Unicode from content (e.g., "\f005" or '"\\f005"')
-            if (content && content !== 'none' && content !== '""') {
-                const match = content.match(/["']?\\([0-9a-fA-F]{4})["']?/);
-                if (match) {
-                    const codePoint = parseInt(match[1], 16);
-                    iconChar = String.fromCharCode(codePoint);
-                }
-            }
-        } catch (e) {
-            // ::before access might fail in some browsers
-        }
-        
-        // Create canvas to render the icon
+        // Simple placeholder - icon rendering disabled to prevent Foundry crashes
+        // TODO: Implement proper icon rendering when html2canvas is available
         const canvas = document.createElement('canvas');
-        const padding = 4;
-        canvas.width = size + (padding * 2);
-        canvas.height = size + (padding * 2);
+        canvas.width = size;
+        canvas.height = size;
         const ctx = canvas.getContext('2d');
-        
-        if (iconChar) {
-            // Get Font Awesome font family
-            const computedStyle = window.getComputedStyle(iconElement);
-            const fontFamily = computedStyle.fontFamily;
-            const fontSize = size * 0.8;
-            
-            // Draw icon as text
-            ctx.fillStyle = '#ffffff';
-            ctx.font = `${fontSize}px ${fontFamily}`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(iconChar, (size + padding * 2) / 2, (size + padding * 2) / 2);
-        } else {
-            // Fallback: Use html2canvas if available, or draw placeholder
-            if (typeof html2canvas !== 'undefined') {
-                try {
-                    const canvas2 = await html2canvas(tempDiv, {
-                        width: size,
-                        height: size,
-                        backgroundColor: null,
-                        scale: 2,
-                        logging: false,
-                        useCORS: true
-                    });
-                    document.body.removeChild(tempDiv);
-                    return PIXI.Texture.from(canvas2);
-                } catch (e) {
-                    // html2canvas failed, fall through to placeholder
-                }
-            }
-            
-            // Last resort: draw a simple star placeholder
-            ctx.strokeStyle = '#ffffff';
-            ctx.fillStyle = '#ffffff';
-            ctx.lineWidth = 2;
-            const centerX = (size + padding * 2) / 2;
-            const centerY = (size + padding * 2) / 2;
-            const radius = size * 0.3;
-            
-            // Draw a simple 5-pointed star
-            ctx.beginPath();
-            for (let i = 0; i < 5; i++) {
-                const angle = (i * 4 * Math.PI / 5) - Math.PI / 2;
-                const x = centerX + radius * Math.cos(angle);
-                const y = centerY + radius * Math.sin(angle);
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            ctx.closePath();
-            ctx.fill();
-        }
-        
-        document.body.removeChild(tempDiv);
-        
-        // Create texture from canvas
+        ctx.strokeStyle = '#ffffff';
+        ctx.fillStyle = 'transparent';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size * 0.3, 0, Math.PI * 2);
+        ctx.stroke();
         return PIXI.Texture.from(canvas);
     }
 
@@ -307,6 +209,7 @@ class PinGraphics extends PIXI.Container {
      * @private
      */
     _resolveFontAwesomeClasses(imagePathOrHtml) {
+        if (!imagePathOrHtml) return 'fa-solid fa-star';
         if (this._isFontAwesomeIcon(imagePathOrHtml)) {
             const fa = this._extractFontAwesomeClasses(imagePathOrHtml);
             if (fa) return fa;
@@ -315,34 +218,15 @@ class PinGraphics extends PIXI.Container {
     }
 
     /**
-     * Load icon. Uses Font Awesome only; legacy image paths are mapped to default star (no URL loading).
-     * @param {string} [imagePathOrHtml] - Font Awesome HTML or legacy path (ignored, we use default)
+     * Load icon - now handled by HTML overlay system (hybrid approach)
+     * This method is kept for compatibility but does nothing (icons are HTML overlays)
+     * @param {string} [imagePathOrHtml] - Font Awesome HTML or image URL
      * @private
      */
     async _loadIcon(imagePathOrHtml) {
-        try {
-            if (this._icon) {
-                this.removeChild(this._icon);
-                this._icon.destroy();
-            }
-            
-            const { size } = this.pinData;
-            const iconSize = Math.min(size.w, size.h) * 0.6;
-            const faClasses = this._resolveFontAwesomeClasses(imagePathOrHtml);
-            const texture = await this._createFontAwesomeTexture(faClasses, iconSize);
-            
-            this._icon = PIXI.Sprite.from(texture);
-            this._icon.width = iconSize;
-            this._icon.height = iconSize;
-            this._icon.anchor.set(0.5);
-            this._icon.position.set(0, 0);
-            this.addChild(this._icon);
-            
-            // Update hit area after icon is added (icon size doesn't affect hit area, but ensure it's current)
-            this._updateHitArea();
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Failed to load icon: ${error?.message ?? error}`, '', false, false);
-        }
+        // Icons are now handled by PinIconOverlay (HTML overlay system)
+        // This method is kept for compatibility but no longer creates PIXI sprites
+        PinIconOverlay.createOrUpdateIcon(this.pinData.id, this.pinData);
     }
 
     /**
@@ -352,25 +236,35 @@ class PinGraphics extends PIXI.Container {
     update(newData) {
         const oldText = this.pinData.text;
         const oldStroke = this.pinData.style?.stroke;
+        const oldImage = this.pinData.image;
+        const oldX = this.pinData.x;
+        const oldY = this.pinData.y;
         const needsRebuild = 
             newData.size.w !== this.pinData.size.w ||
             newData.size.h !== this.pinData.size.h ||
-            newData.image !== this.pinData.image ||
+            newData.image !== oldImage ||
             newData.text !== oldText;
         
         this.pinData = foundry.utils.deepClone(newData);
+        
+        // Update HTML icon overlay if image, position, or size changed
+        if (newData.image !== oldImage || newData.x !== oldX || newData.y !== oldY || 
+            newData.size.w !== this.pinData.size.w || newData.size.h !== this.pinData.size.h) {
+            PinIconOverlay.createOrUpdateIcon(this.pinData.id, this.pinData);
+        }
         
         if (needsRebuild) {
             this._build();
         } else {
             // Update existing graphics
-            const { size, style } = this.pinData;
+            const { size, style = {} } = this.pinData;
             const radius = Math.min(size.w, size.h) / 2;
             
-            const fillColor = style.fill || '#000000';
-            const strokeColor = style.stroke || '#ffffff';
-            const strokeWidth = style.strokeWidth || 2;
-            const alpha = typeof style.alpha === 'number' ? style.alpha : 1;
+            // Ensure style object exists and has proper defaults
+            const fillColor = style?.fill || '#000000';
+            const strokeColor = style?.stroke || '#ffffff';
+            const strokeWidth = typeof style?.strokeWidth === 'number' ? style.strokeWidth : 2;
+            const alpha = typeof style?.alpha === 'number' ? style.alpha : 1;
             
             const fillColorNum = typeof fillColor === 'string' && fillColor.startsWith('#')
                 ? parseInt(fillColor.slice(1), 16)
@@ -380,11 +274,11 @@ class PinGraphics extends PIXI.Container {
                 : (typeof strokeColor === 'number' ? strokeColor : 0xFFFFFF);
             
             this._circle.clear();
+            // In PIXI, lineStyle must be set before beginFill to get both fill and stroke
+            this._circle.lineStyle(strokeWidth, strokeColorNum, alpha);
             this._circle.beginFill(fillColorNum, alpha);
             this._circle.drawCircle(0, 0, radius);
             this._circle.endFill();
-            this._circle.lineStyle(strokeWidth, strokeColorNum, alpha);
-            this._circle.drawCircle(0, 0, radius);
             
             // Update text if it changed (but doesn't require rebuild)
             const textChanged = newData.text !== oldText;
@@ -463,7 +357,7 @@ class PinGraphics extends PIXI.Container {
             const userId = game.user?.id || '';
             PinManager._invokeHandlers('hoverIn', this.pinData, sceneId, userId, modifiers, event);
         }).catch(err => {
-            console.error('BLACKSMITH | PINS Error invoking hoverIn handler:', err);
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error invoking hoverIn handler', err?.message || String(err), false, false);
         });
     }
 
@@ -484,7 +378,7 @@ class PinGraphics extends PIXI.Container {
             const userId = game.user?.id || '';
             PinManager._invokeHandlers('hoverOut', this.pinData, sceneId, userId, modifiers, event);
         }).catch(err => {
-            console.error('BLACKSMITH | PINS Error invoking hoverOut handler:', err);
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error invoking hoverOut handler', err?.message || String(err), false, false);
         });
     }
 
@@ -512,7 +406,7 @@ class PinGraphics extends PIXI.Container {
                     PinManager._invokeHandlers('click', this.pinData, sceneId, userId, modifiers, event);
                 }
             }).catch(err => {
-                console.error('BLACKSMITH | PINS Error checking permissions for drag:', err);
+                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error checking permissions for drag', err?.message || String(err), false, false);
             });
         } else if (button === 2) {
             // Right click
@@ -520,7 +414,7 @@ class PinGraphics extends PIXI.Container {
                 PinManager._invokeHandlers('rightClick', this.pinData, sceneId, userId, modifiers, event);
                 this._showContextMenu(event, modifiers);
             }).catch(err => {
-                console.error('BLACKSMITH | PINS Error invoking rightClick handler:', err);
+                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error invoking rightClick handler', err?.message || String(err), false, false);
             });
             // Prevent default context menu
             if (originalEvent.preventDefault) {
@@ -531,7 +425,7 @@ class PinGraphics extends PIXI.Container {
             import('./manager-pins.js').then(({ PinManager }) => {
                 PinManager._invokeHandlers('middleClick', this.pinData, sceneId, userId, modifiers, event);
             }).catch(err => {
-                console.error('BLACKSMITH | PINS Error invoking middleClick handler:', err);
+                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error invoking middleClick handler', err?.message || String(err), false, false);
             });
         }
     }
@@ -602,6 +496,10 @@ class PinGraphics extends PIXI.Container {
                 const newY = startScenePos.y + deltaY;
 
                 this.position.set(newX, newY);
+                
+                // Update HTML icon overlay position during drag
+                const tempPinData = { ...this.pinData, x: newX, y: newY };
+                PinIconOverlay.updatePosition(this.pinData.id, tempPinData);
 
                 // Fire dragMove event
                 import('./manager-pins.js').then(({ PinManager }) => {
@@ -872,6 +770,9 @@ class PinGraphics extends PIXI.Container {
         // Cleanup drag
         this._cleanupDrag();
         
+        // Remove HTML icon overlay
+        PinIconOverlay.removeIcon(this.pinData.id);
+        
         // Remove context menu if it exists
         const existing = document.getElementById('blacksmith-pin-context-menu');
         if (existing) {
@@ -879,6 +780,421 @@ class PinGraphics extends PIXI.Container {
         }
         
         super.destroy();
+    }
+}
+
+/**
+ * PinIconOverlay - Manages HTML overlays for pin icons (Font Awesome + images)
+ * Hybrid approach: PIXI for circle, HTML for icons
+ */
+class PinIconOverlay {
+    static _icons = new Map(); // pinId -> HTMLElement
+    static _container = null; // Container div for all icons
+    static _updateThrottle = null;
+    static _isInitialized = false;
+
+    /**
+     * Initialize the overlay system and hooks
+     */
+    static initialize() {
+        if (this._isInitialized) return;
+        
+        // Create container div for all pin icons
+        const container = document.createElement('div');
+        container.id = 'blacksmith-pins-icon-overlay';
+        container.className = 'blacksmith-pins-icon-overlay';
+        container.style.position = 'fixed';
+        container.style.top = '0';
+        container.style.left = '0';
+        container.style.width = '100vw';
+        container.style.height = '100vh';
+        container.style.pointerEvents = 'none';
+        // Foundry's canvas is typically at z-index 100, but we need to be above it
+        // Foundry's UI elements are usually 1000+, so we'll use 2000 to be safe
+        container.style.zIndex = '2000';
+        container.style.overflow = 'visible';
+        container.style.visibility = 'visible';
+        
+        // Find the canvas app element and insert after it (or at end of body)
+        const canvasApp = document.getElementById('board') || document.querySelector('#board');
+        if (canvasApp && canvasApp.parentElement) {
+            // Insert after canvas app
+            canvasApp.parentElement.insertBefore(container, canvasApp.nextSibling);
+        } else {
+            // Fallback: append to body
+            document.body.appendChild(container);
+        }
+        this._container = container;
+        
+        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Icon overlay container created', `z-index: ${container.style.zIndex}, parent: ${container.parentElement?.tagName}`, true, false);
+
+        // Hook into canvas pan/zoom to update positions
+        Hooks.on('canvasPan', () => this._scheduleUpdate());
+        Hooks.on('updateScene', () => this._scheduleUpdate());
+        Hooks.on('canvasReady', () => {
+            // When canvas becomes ready, update all icon positions
+            setTimeout(() => {
+                this.updateAllPositions();
+            }, 100);
+        });
+        
+        // Update on window resize
+        window.addEventListener('resize', () => this._scheduleUpdate());
+        
+        this._isInitialized = true;
+        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Icon overlay system initialized', '', true, false);
+    }
+
+    /**
+     * Convert scene coordinates to screen pixels
+     * @param {number} sceneX
+     * @param {number} sceneY
+     * @returns {{x: number, y: number}}
+     */
+    static _sceneToScreen(sceneX, sceneY) {
+        if (!canvas?.ready || !canvas?.stage) {
+            return { x: 0, y: 0 };
+        }
+
+        try {
+            // Get canvas element - Foundry uses canvas.app.renderer.view or canvas.app.canvas
+            const canvasElement = canvas.app?.renderer?.view || canvas.app?.canvas || canvas.canvas;
+            if (!canvasElement) {
+                return { x: 0, y: 0 };
+            }
+            
+            const canvasRect = canvasElement.getBoundingClientRect();
+            const stage = canvas.stage;
+            
+            // Use PIXI's coordinate conversion: create a point in scene space and convert to global (screen) space
+            const scenePoint = new PIXI.Point(sceneX, sceneY);
+            const globalPoint = stage.toGlobal(scenePoint);
+            
+            // Global point is relative to the stage, need to add canvas offset
+            const screenX = globalPoint.x + canvasRect.left;
+            const screenY = globalPoint.y + canvasRect.top;
+            
+            return { x: screenX, y: screenY };
+        } catch (err) {
+            // Canvas not fully initialized, return default position
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error converting scene to screen', err?.message || String(err), false, false);
+            return { x: 0, y: 0 };
+        }
+    }
+
+    /**
+     * Schedule a throttled update of all icon positions
+     */
+    static _scheduleUpdate() {
+        if (this._updateThrottle) return;
+        
+        this._updateThrottle = requestAnimationFrame(() => {
+            this.updateAllPositions();
+            this._updateThrottle = null;
+        });
+    }
+
+    /**
+     * Create or update an icon overlay
+     * @param {string} pinId
+     * @param {PinData} pinData
+     */
+    static createOrUpdateIcon(pinId, pinData) {
+        if (!this._isInitialized) this.initialize();
+        
+        let icon = this._icons.get(pinId);
+        const { image, size } = pinData;
+        
+        if (!image) {
+            // No image, remove if exists
+            if (icon) {
+                this.removeIcon(pinId);
+            }
+            return;
+        }
+
+        // Create new icon if doesn't exist
+        if (!icon) {
+            icon = document.createElement('div');
+            icon.className = 'blacksmith-pin-icon';
+            icon.dataset.pinId = pinId;
+            icon.style.position = 'absolute';
+            icon.style.pointerEvents = 'none';
+            icon.style.display = 'none'; // Start hidden, will be shown when positioned
+            icon.style.alignItems = 'center';
+            icon.style.justifyContent = 'center';
+            icon.style.transformOrigin = 'center center';
+            icon.style.visibility = 'visible';
+            icon.style.opacity = '1';
+            this._container.appendChild(icon);
+            this._icons.set(pinId, icon);
+        }
+
+        // Check if it's Font Awesome or an image URL
+        const isFontAwesome = this._isFontAwesomeIcon(image);
+        
+        // Get current zoom level for size calculation
+        const scale = canvas?.ready && canvas?.stage ? canvas.stage.scale.x : 1;
+        const iconSizeScene = Math.min(size.w, size.h) * 0.6;
+        const iconSizeScreen = iconSizeScene * scale;
+        
+        if (isFontAwesome) {
+            // Font Awesome icon
+            const faClasses = this._extractFontAwesomeClasses(image);
+            icon.innerHTML = `<i class="${faClasses}"></i>`;
+            icon.style.color = '#ffffff';
+            icon.style.fontSize = `${iconSizeScreen}px`;
+            icon.style.background = 'none';
+            icon.style.border = 'none';
+            icon.style.width = 'auto';
+            icon.style.height = 'auto';
+            icon.style.lineHeight = '1';
+        } else {
+            // Image URL
+            icon.innerHTML = '';
+            icon.style.backgroundImage = `url(${image})`;
+            icon.style.backgroundSize = 'contain';
+            icon.style.backgroundRepeat = 'no-repeat';
+            icon.style.backgroundPosition = 'center';
+            icon.style.width = `${iconSizeScreen}px`;
+            icon.style.height = `${iconSizeScreen}px`;
+        }
+        
+        // Ensure icon is visible
+        icon.style.zIndex = '2001';
+
+        // Always try to update position immediately, and schedule retry if needed
+        // More lenient check - only require stage and app
+        if (canvas?.stage && canvas?.app) {
+            this.updatePosition(pinId, pinData);
+        } else {
+            // Canvas not ready yet - schedule position update with multiple retries
+            const tryUpdate = () => {
+                if (canvas?.stage && canvas?.app) {
+                    this.updatePosition(pinId, pinData);
+                } else {
+                    // Retry after a short delay (max 10 retries)
+                    const retryCount = (window[`_pin_retry_${pinId}`] || 0) + 1;
+                    window[`_pin_retry_${pinId}`] = retryCount;
+                    if (retryCount < 10) {
+                        setTimeout(tryUpdate, 100);
+                    } else {
+                        console.warn(`BLACKSMITH | PINS Failed to update position for ${pinId} after 10 retries`);
+                    }
+                }
+            };
+            
+            // Try immediately on next frame
+            requestAnimationFrame(tryUpdate);
+            
+            // Also hook into canvasReady as backup
+            Hooks.once('canvasReady', () => {
+                setTimeout(() => {
+                    this.updatePosition(pinId, pinData);
+                }, 100);
+            });
+        }
+        
+        // Debug: Log icon creation
+        postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Icon overlay created for pin ${pinId}`, `Image: ${image}, IsFA: ${isFontAwesome}, Canvas ready: ${canvas?.ready}`, true, false);
+    }
+
+    /**
+     * Update icon position for a specific pin
+     * @param {string} pinId
+     * @param {PinData} pinData
+     */
+    static updatePosition(pinId, pinData) {
+        const icon = this._icons.get(pinId);
+        if (!icon || !pinData) {
+            console.warn(`BLACKSMITH | PINS updatePosition: Missing icon or pinData for ${pinId}`);
+            return;
+        }
+
+        // More lenient check - only require stage, canvas element can be accessed via app
+        if (!canvas?.stage || !canvas?.app) {
+            // Canvas not ready - don't hide, just return (will be called again when ready)
+            console.log(`BLACKSMITH | PINS updatePosition: Canvas not ready for ${pinId}`, {
+                ready: canvas?.ready,
+                stage: !!canvas?.stage,
+                app: !!canvas?.app,
+                canvasElement: !!(canvas?.app?.renderer?.view || canvas?.app?.canvas || canvas?.canvas)
+            });
+            return;
+        }
+
+        try {
+            const screen = this._sceneToScreen(pinData.x, pinData.y);
+            
+            // Check if screen coordinates are valid (not 0,0 which indicates error)
+            if (screen.x === 0 && screen.y === 0 && (pinData.x !== 0 || pinData.y !== 0)) {
+                // Likely an error in conversion - log it but still try to show
+                console.warn(`BLACKSMITH | PINS updatePosition: Invalid screen coordinates for ${pinId}`, {
+                    scene: { x: pinData.x, y: pinData.y },
+                    screen: screen
+                });
+                // Don't return - try to show anyway with fallback position
+            }
+            
+            const scale = canvas.stage.scale.x;
+            // Icon size in scene units, converted to screen pixels
+            const iconSizeScene = Math.min(pinData.size.w, pinData.size.h) * 0.6;
+            const iconSizeScreen = iconSizeScene * scale;
+            
+            // Update icon size based on zoom
+            const isFontAwesome = icon.innerHTML.includes('<i class=');
+            if (isFontAwesome) {
+                icon.style.fontSize = `${iconSizeScreen}px`;
+            } else {
+                icon.style.width = `${iconSizeScreen}px`;
+                icon.style.height = `${iconSizeScreen}px`;
+            }
+            
+            // Center icon over the circle
+            const left = screen.x - iconSizeScreen / 2;
+            const top = screen.y - iconSizeScreen / 2;
+            icon.style.left = `${left}px`;
+            icon.style.top = `${top}px`;
+            
+            // CRITICAL: Set display to flex to make icon visible
+            icon.style.display = 'flex';
+            icon.style.visibility = 'visible';
+            icon.style.opacity = '1';
+            icon.style.position = 'absolute';
+            
+            // Force a reflow to ensure styles are applied
+            void icon.offsetHeight;
+            
+            // Debug: Always log first few position updates to diagnose
+            const debugKey = `_pin_${pinId}_debug_count`;
+            const debugCount = (window[debugKey] || 0) + 1;
+            window[debugKey] = debugCount;
+            
+            if (debugCount <= 5) {
+                const computed = window.getComputedStyle(icon);
+                console.log(`BLACKSMITH | PINS Icon position for ${pinId} (update #${debugCount}):`, {
+                    scene: { x: pinData.x, y: pinData.y },
+                    screen: screen,
+                    iconSize: iconSizeScreen,
+                    finalPos: { left, top },
+                    canvasRect: (canvas.app?.renderer?.view || canvas.app?.canvas || canvas.canvas)?.getBoundingClientRect(),
+                    stageScale: scale,
+                    displaySet: icon.style.display,
+                    displayComputed: computed.display,
+                    visibilityComputed: computed.visibility,
+                    iconVisible: icon.offsetParent !== null,
+                    iconInDOM: document.body.contains(icon)
+                });
+            }
+        } catch (err) {
+            // Don't hide on error - just log it
+            postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Error updating icon position for ${pinId}`, err?.message || String(err), false, false);
+        }
+    }
+
+    /**
+     * Update all icon positions (called on pan/zoom)
+     */
+    static updateAllPositions() {
+        if (!this._isInitialized) {
+            console.warn('BLACKSMITH | PINS updateAllPositions: Not initialized');
+            return;
+        }
+        
+        // More lenient check - only require stage and app, not ready flag
+        if (!canvas?.stage || !canvas?.app) {
+            // Canvas not ready - schedule retry
+            console.log('BLACKSMITH | PINS updateAllPositions: Canvas not ready, scheduling retry', {
+                ready: canvas?.ready,
+                stage: !!canvas?.stage,
+                app: !!canvas?.app,
+                canvasElement: !!(canvas?.app?.renderer?.view || canvas?.app?.canvas || canvas?.canvas)
+            });
+            setTimeout(() => {
+                if (canvas?.stage && canvas?.app) {
+                    this.updateAllPositions();
+                }
+            }, 100);
+            return;
+        }
+
+        console.log(`BLACKSMITH | PINS updateAllPositions: Updating ${this._icons.size} icon(s)`);
+
+        // Import PinManager to get pin data
+        import('./manager-pins.js').then(({ PinManager }) => {
+            let updated = 0;
+            for (const [pinId, icon] of this._icons.entries()) {
+                const pinData = PinManager.get(pinId);
+                if (pinData) {
+                    this.updatePosition(pinId, pinData);
+                    updated++;
+                } else {
+                    console.warn(`BLACKSMITH | PINS updateAllPositions: No pin data for ${pinId}`);
+                }
+            }
+            console.log(`BLACKSMITH | PINS updateAllPositions: Updated ${updated} icon(s)`);
+        }).catch(err => {
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error updating icon positions', err?.message || String(err), false, false);
+        });
+    }
+
+    /**
+     * Remove an icon overlay
+     * @param {string} pinId
+     */
+    static removeIcon(pinId) {
+        const icon = this._icons.get(pinId);
+        if (icon) {
+            icon.remove();
+            this._icons.delete(pinId);
+        }
+    }
+
+    /**
+     * Remove all icon overlays
+     */
+    static clear() {
+        for (const icon of this._icons.values()) {
+            icon.remove();
+        }
+        this._icons.clear();
+    }
+
+    /**
+     * Check if image string is a Font Awesome icon HTML
+     * @param {string} imageStr
+     * @returns {boolean}
+     */
+    static _isFontAwesomeIcon(imageStr) {
+        if (typeof imageStr !== 'string') return false;
+        // Check for Font Awesome HTML pattern or image URL pattern
+        if (/<i\s+class=["']fa-/.test(imageStr)) return true;
+        // If it starts with http/https or /, it's likely an image URL
+        if (/^(https?:\/\/|\/)/.test(imageStr)) return false;
+        // Default to Font Awesome if it contains HTML tags
+        return /<[^>]+>/.test(imageStr);
+    }
+
+    /**
+     * Extract Font Awesome classes from HTML string
+     * @param {string} htmlStr
+     * @returns {string | null}
+     */
+    static _extractFontAwesomeClasses(htmlStr) {
+        const match = htmlStr.match(/class=["']([^"']+)["']/);
+        return match ? match[1] : null;
+    }
+
+    /**
+     * Cleanup on module unload
+     */
+    static cleanup() {
+        this.clear();
+        if (this._container) {
+            this._container.remove();
+            this._container = null;
+        }
+        this._isInitialized = false;
     }
 }
 
@@ -908,6 +1224,9 @@ export class PinRenderer {
         // Add to layer (layer is a PIXI.Container)
         layer.addChild(this._container);
         
+        // Initialize HTML icon overlay system
+        PinIconOverlay.initialize();
+        
         postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Renderer initialized', '', true, false);
     }
 
@@ -925,16 +1244,29 @@ export class PinRenderer {
      * @param {PinData[]} pins - Array of pin data to render
      */
     static async loadScenePins(sceneId, pins) {
-        if (this._currentSceneId === sceneId && this._pins.size > 0 && !pins) {
+        // Don't skip if we have pins to load (even if scene matches)
+        if (this._currentSceneId === sceneId && this._pins.size > 0 && (!pins || pins.length === 0)) {
             return; // Already loaded, no new data provided
         }
 
-        this.clear();
+        // Clear existing pins if scene changed
+        if (this._currentSceneId !== sceneId) {
+            this.clear();
+        }
         this._currentSceneId = sceneId;
 
         if (!this._container) {
-            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Container not initialized', '', false, true);
-            return;
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Container not initialized - pins will load when container is ready', '', false, false);
+            // Try to initialize if layer exists
+            const layer = canvas?.['blacksmith-utilities-layer'];
+            if (layer) {
+                this.initialize(layer);
+                if (!this._container) {
+                    return; // Still not initialized
+                }
+            } else {
+                return; // Layer doesn't exist yet
+            }
         }
 
         if (!pins || pins.length === 0) {
@@ -947,6 +1279,20 @@ export class PinRenderer {
             }
 
             postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Loaded ${pins.length} pin(s) for scene`, sceneId, true, false);
+            
+            // Force update all icon positions after loading
+            if (canvas?.ready && canvas?.canvas && canvas?.stage) {
+                setTimeout(() => {
+                    PinIconOverlay.updateAllPositions();
+                }, 200);
+            } else {
+                // Canvas not ready - hook into canvasReady
+                Hooks.once('canvasReady', () => {
+                    setTimeout(() => {
+                        PinIconOverlay.updateAllPositions();
+                    }, 200);
+                });
+            }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error loading scene pins', error?.message ?? error, false, true);
         }
@@ -968,6 +1314,7 @@ export class PinRenderer {
             this._pins.set(pinData.id, pinGraphics);
             if (this._container) {
                 this._container.addChild(pinGraphics);
+                // HTML icon overlay is created in _build() constructor
                 postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Added pin to container: ${pinData.id} at (${pinData.x}, ${pinData.y})`, '', true, false);
             } else {
                 postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Container not available when adding pin: ${pinData.id}`, '', false, true);
@@ -986,10 +1333,7 @@ export class PinRenderer {
         const existing = this._pins.get(pinData.id);
         if (existing) {
             existing.update(pinData);
-            // Reload icon if image changed
-            if (pinData.image && pinData.image !== existing.pinData.image) {
-                await existing._loadIcon(pinData.image);
-            }
+            // HTML icon overlay is updated in the update() method
         } else {
             await this._addPin(pinData);
         }
@@ -1022,6 +1366,9 @@ export class PinRenderer {
         }
         this._pins.clear();
         this._currentSceneId = null;
+        
+        // Clear HTML icon overlays
+        PinIconOverlay.clear();
     }
 
     /**
@@ -1042,5 +1389,6 @@ export class PinRenderer {
             this._container.destroy();
             this._container = null;
         }
+        PinIconOverlay.cleanup();
     }
 }

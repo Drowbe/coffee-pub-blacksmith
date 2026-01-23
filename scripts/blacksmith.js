@@ -581,10 +581,14 @@ function initializeSettingsDependentFeatures() {
                                 const { PinRenderer } = await import('./pins-renderer.js');
                                 const { PinManager } = await import('./manager-pins.js');
                                 const pins = PinManager.list({ sceneId: canvas.scene.id });
-                                if (pins.length > 0 && !blacksmithLayer.active) {
-                                    blacksmithLayer.activate();
+                                if (pins.length > 0) {
+                                    // Ensure layer is active to show pins
+                                    if (!blacksmithLayer.active) {
+                                        blacksmithLayer.activate();
+                                    }
+                                    // Load pins - container should be ready after _draw
+                                    await PinRenderer.loadScenePins(canvas.scene.id, pins);
                                 }
-                                await PinRenderer.loadScenePins(canvas.scene.id, pins);
                             }
                         }
                         
