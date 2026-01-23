@@ -355,9 +355,9 @@ export class PinManager {
         // Update renderer if on current scene (dynamic import to avoid circular dependency)
         if (scene.id === canvas?.scene?.id) {
             import('./pins-renderer.js').then(async ({ PinRenderer }) => {
-                // Ensure container is initialized
+                // Ensure system is initialized
                 if (!PinRenderer.getContainer()) {
-                    // Container not ready yet - pin will be loaded when scene activates
+                    // System not ready yet - pin will be loaded when scene activates
                     postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Pin created (will render on scene activation): ${pin.id}`, '', true, false);
                     return;
                 }
@@ -420,9 +420,9 @@ export class PinManager {
         // Update renderer if on current scene (dynamic import to avoid circular dependency)
         if (scene.id === canvas?.scene?.id) {
             import('./pins-renderer.js').then(async ({ PinRenderer }) => {
-                // Ensure container is initialized
+                // Ensure system is initialized
                 if (!PinRenderer.getContainer()) {
-                    // Container not ready yet - pin will be loaded when scene activates
+                    // System not ready yet - pin will be loaded when scene activates
                     postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Pin updated (will render on scene activation): ${pinId}`, '', true, false);
                     return;
                 }

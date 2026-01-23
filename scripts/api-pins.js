@@ -130,18 +130,15 @@ export class PinsAPI {
         const pins = PinManager.list({ sceneId });
         const { PinRenderer } = await import('./pins-renderer.js');
         
-        // Check if container exists, if not try to initialize
-        let container = PinRenderer.getContainer();
-        if (!container) {
-            // Try to initialize if layer exists
-            const layer = canvas?.['blacksmith-utilities-layer'];
-            if (layer) {
-                PinRenderer.initialize(layer);
-                container = PinRenderer.getContainer();
-            }
+        // Check if system is initialized, if not try to initialize
+        let containerReady = PinRenderer.getContainer();
+        if (!containerReady) {
+            // Try to initialize
+            PinRenderer.initialize();
+            containerReady = PinRenderer.getContainer();
         }
         
-        if (!container) {
+        if (!containerReady) {
             return { reloaded: 0, containerReady: false, pinsInData: pins.length, layerActive: false };
         }
         
@@ -152,7 +149,9 @@ export class PinsAPI {
         const layerActive = layer?.active ?? false;
         
         await PinRenderer.loadScenePins(sceneId, pins);
-        const count = PinRenderer.getContainer()?.children?.length ?? 0;
+        // Get pin count - use getPin to check if pins exist
+        // Since we can't access private _pins, we'll estimate based on loaded pins
+        const count = pins.length;
         return { reloaded: count, containerReady: true, pinsInData: pins.length, layerActive };
     }
 }
