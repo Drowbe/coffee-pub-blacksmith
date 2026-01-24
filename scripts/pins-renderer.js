@@ -334,13 +334,21 @@ class PinDOMElement {
                 iconElement.style.backgroundImage = 'none';
             }
         } else if (image) {
-            // Image URL
-            iconElement.innerHTML = ''; // Clear any Font Awesome icon
-            iconElement.style.backgroundImage = `url(${image})`;
-            iconElement.style.backgroundSize = 'contain';
-            iconElement.style.backgroundRepeat = 'no-repeat';
-            iconElement.style.backgroundPosition = 'center';
-            iconElement.style.color = ''; // Clear Font Awesome color
+            // Image URL or <img> tag - extract the URL
+            const imageUrl = this._extractImageUrl(image);
+            if (imageUrl) {
+                iconElement.innerHTML = ''; // Clear any Font Awesome icon
+                iconElement.style.backgroundImage = `url(${imageUrl})`;
+                iconElement.style.backgroundSize = 'contain';
+                iconElement.style.backgroundRepeat = 'no-repeat';
+                iconElement.style.backgroundPosition = 'center';
+                iconElement.style.color = ''; // Clear Font Awesome color
+            } else {
+                // Couldn't extract image URL, treat as no icon
+                iconElement.innerHTML = '';
+                iconElement.style.backgroundImage = 'none';
+                iconElement.style.color = '';
+            }
         } else {
             // No icon
             iconElement.innerHTML = '';
@@ -821,23 +829,59 @@ class PinDOMElement {
     }
 
     /**
-     * Check if image string is a Font Awesome icon HTML
+     * Check if image string is a Font Awesome icon HTML or class string
      * @param {string} imageStr
      * @returns {boolean}
      */
     static _isFontAwesomeIcon(imageStr) {
         if (typeof imageStr !== 'string') return false;
+        // Check for Font Awesome icon pattern: <i class="fa-...">
         if (/<i\s+class=["']fa-/.test(imageStr)) return true;
+        // Check for plain Font Awesome class string: "fa-solid fa-location-dot"
+        if (/^fa-/.test(imageStr.trim())) return true;
+        // If it's an <img> tag, it's not Font Awesome
+        if (/<img\s+/i.test(imageStr)) return false;
+        // If it starts with http/https or /, it's an image URL
         if (/^(https?:\/\/|\/)/.test(imageStr)) return false;
+        // Other HTML tags might be Font Awesome (legacy support)
         return /<[^>]+>/.test(imageStr);
     }
 
     /**
-     * Extract Font Awesome classes from HTML string
-     * @param {string} htmlStr
+     * Extract image URL from <img> tag or return the string if it's already a URL
+     * @param {string} imageStr
+     * @returns {string | null}
+     */
+    static _extractImageUrl(imageStr) {
+        if (typeof imageStr !== 'string') return null;
+        // Check if it's an <img> tag
+        const imgMatch = imageStr.match(/<img\s+[^>]*src=["']([^"']+)["']/i);
+        if (imgMatch) {
+            return imgMatch[1];
+        }
+        // If it's already a URL (starts with http/https or /), return as-is
+        if (/^(https?:\/\/|\/)/.test(imageStr)) {
+            return imageStr;
+        }
+        // If it doesn't contain HTML tags, treat as relative URL
+        if (!/<[^>]+>/.test(imageStr)) {
+            return imageStr;
+        }
+        return null;
+    }
+
+    /**
+     * Extract Font Awesome classes from HTML string or plain class string
+     * @param {string} htmlStr - Can be HTML like '<i class="fa-solid fa-location-dot"></i>' or plain class string like 'fa-solid fa-location-dot'
      * @returns {string | null}
      */
     static _extractFontAwesomeClasses(htmlStr) {
+        if (!htmlStr) return null;
+        // If it starts with 'fa-', it's already a plain class string
+        if (/^fa-/.test(htmlStr.trim())) {
+            return htmlStr.trim();
+        }
+        // Otherwise, try to extract from HTML
         const match = htmlStr.match(/class=["']([^"']+)["']/);
         return match ? match[1] : null;
     }
