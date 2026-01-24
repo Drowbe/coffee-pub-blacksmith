@@ -22,6 +22,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {string} [text]
  * @property {string} [image]
  * @property {'circle' | 'square' | 'none'} [shape] - Pin shape: 'circle' (default), 'square', or 'none' (icon only, no background)
+ * @property {boolean} [dropShadow] - Whether to show drop shadow (default: true)
  * @property {Record<string, unknown>} config
  * @property {string} moduleId
  * @property {{ default: number; users?: Record<string, number> }} ownership
@@ -40,6 +41,7 @@ export const PIN_DEFAULTS = Object.freeze({
     size: { w: 32, h: 32 },
     style: { fill: '#000000', stroke: '#ffffff', strokeWidth: 2, alpha: 1 },
     shape: 'circle', // 'circle' | 'square' | 'none'
+    dropShadow: true,
     version: PIN_SCHEMA_VERSION,
     ownership: { default: 0 },
     config: {}
@@ -104,6 +106,9 @@ export function applyDefaults(partial) {
             // Invalid shape, use default
             base.shape = PIN_DEFAULTS.shape;
         }
+    }
+    if (typeof partial.dropShadow === 'boolean') {
+        base.dropShadow = partial.dropShadow;
     }
     if (partial.text != null) base.text = String(partial.text).trim() || undefined;
     if (partial.image != null) base.image = String(partial.image).trim() || undefined;

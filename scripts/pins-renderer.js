@@ -294,6 +294,13 @@ class PinDOMElement {
             pinElement.style.border = 'none';
         }
         
+        // Add drop shadow via data attribute (default: true, controlled by CSS)
+        if (pinData.dropShadow === false) {
+            pinElement.dataset.noShadow = 'true';
+        } else {
+            delete pinElement.dataset.noShadow;
+        }
+        
         // Apply opacity - if color already has alpha (RGBA/HSLA), this multiplies with it
         // Example: rgba(255, 0, 0, 0.5) + opacity: 0.9 = final alpha of 0.45
         // To use RGBA alpha only, set style.alpha to 1.0

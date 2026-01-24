@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [13.2.1] - Pin System Enhancements
 
 ### Added
+- **Drop Shadow Property**: Added `dropShadow` property to pin data (default: `true`). Adds a subtle drop shadow to pins for better visual depth and separation from the canvas background. Shadow styling is controlled via CSS variable `--blacksmith-pin-drop-shadow` for easy customization (default: `drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))`).
 - **Pin Animation System**: Added `pins.ping(pinId, options)` method to animate pins and draw attention. Supports 10 animation types (pulse, ripple, flash, glow, bounce, scale-small/medium/large, rotate, shake), configurable loops, optional sound effects, and future broadcast support. Animations use CSS keyframes for smooth performance.
 - **Pin Pan-to-Location API**: Added `pins.panTo(pinId)` method to pan the canvas to a pin's location. Supports optional `ping` parameter to automatically animate the pin after panning. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin).
 - **Context Menu Ping**: Added "Ping Pin" option to right-click context menu (available to all users) with combo animation (scale-large followed by ripple).

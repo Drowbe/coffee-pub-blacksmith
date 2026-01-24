@@ -143,6 +143,7 @@ interface PinData {
   text?: string;
   image?: string;  // Font Awesome HTML (e.g. '<i class="fa-solid fa-star"></i>'), Font Awesome class string (e.g. 'fa-solid fa-star'), or image URL (e.g. 'icons/svg/star.svg' or '<img src="path/to/image.webp">')
   shape?: 'circle' | 'square' | 'none'; // Pin shape: 'circle' (default), 'square' (rounded corners), or 'none' (icon only, no background)
+  dropShadow?: boolean; // Whether to show drop shadow (default: true) - controlled via CSS variable --blacksmith-pin-drop-shadow
   config?: Record<string, unknown>;
   moduleId: string; // consumer module id
   ownership?: { default: number; users?: Record<string, number> };
@@ -208,6 +209,7 @@ const pin = await pinsAPI.create({
   moduleId: 'my-module',
   image: '<i class="fa-solid fa-star"></i>',  // optional; Font Awesome HTML, Font Awesome class string, or image URL
   shape: 'circle',  // optional; 'circle' (default), 'square', or 'none' (icon only)
+  dropShadow: true,  // optional; adds subtle drop shadow (default: true)
   size: { w: 48, h: 48 },  // optional; defaults to { w: 32, h: 32 }
   style: {  // optional; defaults shown (supports hex, rgb, rgba, hsl, hsla, named colors)
     fill: '#000000',  // or 'rgba(0, 0, 0, 0.5)' for transparency
@@ -215,6 +217,17 @@ const pin = await pinsAPI.create({
     strokeWidth: 2,
     alpha: 1  // Overall opacity (multiplies with RGBA alpha if color has alpha)
   }
+});
+```
+
+```javascript
+// Create pin without drop shadow
+const flatPin = await pinsAPI.create({
+  id: crypto.randomUUID(),
+  x: 1200,
+  y: 900,
+  moduleId: 'my-module',
+  dropShadow: false  // Disable drop shadow
 });
 ```
 
@@ -561,6 +574,42 @@ await pins.create({
   - **Invalid data**: When pin data doesn't match schema or validation rules
   - **Scene not found**: When specified scene ID doesn't exist
   - **Invalid event type**: When registering handler with unsupported event type
+
+## CSS Customization
+
+Pin appearance can be customized globally via CSS variables in `styles/pins.css`:
+
+```css
+:root {
+  /* Icon size relative to pin size (default: 0.90 = 90% of pin diameter) */
+  --blacksmith-pin-icon-size-ratio: 0.90;
+  
+  /* Border radius for square pins (default: 15%) */
+  --blacksmith-pin-square-border-radius: 15%;
+  
+  /* Drop shadow for pins (default: subtle shadow for depth) */
+  --blacksmith-pin-drop-shadow: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+```
+
+**Customization Examples**:
+
+```css
+/* Stronger shadow */
+:root {
+  --blacksmith-pin-drop-shadow: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+
+/* No shadow globally (overrides dropShadow: true) */
+:root {
+  --blacksmith-pin-drop-shadow: none;
+}
+
+/* Larger icons */
+:root {
+  --blacksmith-pin-icon-size-ratio: 0.95;
+}
+```
 
 ## Drag and Drop
 

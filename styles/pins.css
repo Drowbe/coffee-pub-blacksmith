@@ -7,6 +7,7 @@
     --blacksmith-pin-icon-size-ratio: 0.90; /* 90% of pin size - change this to adjust image size */
     --blacksmith-pin-icon-border-radius: 50%;
     --blacksmith-pin-square-border-radius: 15%; /* Border radius for square pins (rounded corners) */
+    --blacksmith-pin-drop-shadow: drop-shadow(0 0px 5px rgba(0, 0, 0, 0.9)); /* Drop shadow for depth */
 }
 
 /* Container for all pins overlay */
@@ -33,6 +34,12 @@
     box-sizing: border-box;
     transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
     cursor: pointer;
+    filter: var(--blacksmith-pin-drop-shadow);
+}
+
+/* Pin without drop shadow */
+.blacksmith-pin[data-no-shadow="true"] {
+    filter: none;
 }
 
 /* Pin shapes */
