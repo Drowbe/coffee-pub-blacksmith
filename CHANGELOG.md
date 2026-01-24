@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [13.2.1] - Pin System Enhancements
 
 ### Added
+- **Pin Pan-to-Location API**: Added `pins.panTo(pinId)` method to pan the canvas to a pin's location. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin).
 - **Pure DOM Pin Rendering**: Refactored pin rendering from hybrid PIXI+HTML approach to pure DOM approach for better layering, styling flexibility, and performance. Pins now render as HTML divs in a fixed overlay container (`#blacksmith-pins-overlay`) with `z-index: 2000`.
 - **Pin Shape Support**: Added `shape` property to pin data with support for `'circle'` (default), `'square'` (rounded corners), and `'none'` (icon only, no background). Square pins use configurable border radius via CSS variable.
 - **Double-Click Event**: Added `'doubleClick'` event type to pin event system. Double-click detection uses a 300ms window and prevents false clicks/double-clicks during drag operations.

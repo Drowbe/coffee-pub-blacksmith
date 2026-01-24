@@ -340,6 +340,28 @@ pinsAPI.on('click', handler, { signal: controller.signal });
 - `Error` if eventType is invalid
 - `Error` if handler is not a function
 
+### `pins.panTo(pinId, options?)`
+Pan the canvas to center on a pin's location. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin).
+
+**Returns**: `Promise<boolean>` - Returns `true` if pan was successful, `false` if pin not found or canvas not ready
+
+```javascript
+// Pan to a pin when clicking on a note
+const pinId = noteData.flags['coffee-pub-squire']?.pinId;
+if (pinId) {
+    const success = await pins.panTo(pinId);
+    if (success) {
+        console.log('Panned to pin');
+    }
+}
+```
+
+**Options**:
+- `sceneId` (string, optional): target scene; defaults to active scene
+
+**Throws**: 
+- No errors thrown; returns `false` if pin not found or canvas not ready
+
 ### `pins.reload(options?)`
 Reload pins from scene flags and re-render on the canvas. Use when pins exist in data but don’t appear (e.g. after refresh or scene change). Calls via API only; no dynamic imports.
 

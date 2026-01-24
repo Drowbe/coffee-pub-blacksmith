@@ -141,6 +141,34 @@ export class PinsAPI {
     }
 
     /**
+     * Pan the canvas to center on a pin's location.
+     * Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin).
+     * @param {string} pinId - The pin ID to pan to
+     * @param {PinGetOptions} [options] - Options including optional sceneId
+     * @returns {Promise<boolean>} - Returns true if pan was successful, false if pin not found or canvas not ready
+     */
+    static async panTo(pinId, options = {}) {
+        if (!this.isReady()) {
+            console.warn('Pins API: Cannot pan to pin - canvas not ready');
+            return false;
+        }
+        
+        const pin = PinManager.get(pinId, options);
+        if (!pin) {
+            console.warn(`Pins API: Pin not found: ${pinId}`);
+            return false;
+        }
+        
+        try {
+            await canvas.animatePan({ x: pin.x, y: pin.y });
+            return true;
+        } catch (err) {
+            console.error('Pins API: Error panning to pin', err);
+            return false;
+        }
+    }
+
+    /**
      * Reload pins from scene flags and re-render on the canvas.
      * Use from console when pins exist in data but don't appear (e.g. after refresh).
      * Does not use dynamic import – call via API only: `game.modules.get('coffee-pub-blacksmith')?.api?.pins?.reload()`.
