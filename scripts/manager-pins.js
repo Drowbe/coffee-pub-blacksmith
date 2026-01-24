@@ -81,9 +81,13 @@ export class PinManager {
 
     // Valid event types
     static VALID_EVENT_TYPES = Object.freeze([
-        'hoverIn', 'hoverOut', 'click', 'rightClick', 'middleClick',
+        'hoverIn', 'hoverOut', 'click', 'doubleClick', 'rightClick', 'middleClick',
         'dragStart', 'dragMove', 'dragEnd'
     ]);
+    
+    // Context menu item storage: Map<itemId, menuItem>
+    static _contextMenuItems = new Map();
+    static _contextMenuItemCounter = 0;
 
     /**
      * Resolve scene by id or active canvas. Throws if not found.
@@ -316,6 +320,98 @@ export class PinManager {
         }
     }
 
+    /**
+     * Register a context menu item. Returns a disposer function.
+     * @param {string} itemId - Unique identifier for the menu item
+     * @param {Object} itemData - Menu item configuration
+     * @param {string} itemData.name - Display name
+     * @param {string} itemData.icon - Font Awesome icon HTML or class string
+     * @param {Function} itemData.onClick - Callback function (receives pinData)
+     * @param {string} [itemData.moduleId] - Only show for pins from this module
+     * @param {number} [itemData.order] - Order in menu (lower = higher, default: 999)
+     * @param {Function|boolean} [itemData.visible] - Visibility function or boolean (default: true)
+     * @returns {() => void} - Disposer function to unregister
+     */
+    static registerContextMenuItem(itemId, itemData) {
+        if (!itemId || typeof itemId !== 'string') {
+            throw new Error('Context menu itemId must be a non-empty string');
+        }
+        if (!itemData || typeof itemData !== 'object') {
+            throw new Error('Context menu itemData must be an object');
+        }
+        if (!itemData.name || typeof itemData.name !== 'string') {
+            throw new Error('Context menu item must have a name');
+        }
+        if (typeof itemData.onClick !== 'function') {
+            throw new Error('Context menu item must have an onClick function');
+        }
+        
+        const menuItem = {
+            itemId,
+            name: itemData.name,
+            icon: itemData.icon || '<i class="fa-solid fa-circle"></i>',
+            onClick: itemData.onClick,
+            moduleId: itemData.moduleId,
+            order: typeof itemData.order === 'number' ? itemData.order : 999,
+            visible: itemData.visible !== undefined ? itemData.visible : true
+        };
+        
+        this._contextMenuItems.set(itemId, menuItem);
+        
+        // Return disposer function
+        return () => {
+            this._contextMenuItems.delete(itemId);
+        };
+    }
+    
+    /**
+     * Unregister a context menu item
+     * @param {string} itemId
+     * @returns {boolean} - Success status
+     */
+    static unregisterContextMenuItem(itemId) {
+        return this._contextMenuItems.delete(itemId);
+    }
+    
+    /**
+     * Get all context menu items for a pin (filtered by moduleId, visible, etc.)
+     * @param {PinData} pinData
+     * @param {string} userId
+     * @returns {Array} - Sorted array of menu items
+     */
+    static getContextMenuItems(pinData, userId) {
+        const items = [];
+        
+        // Add registered items (filtered by moduleId and visible)
+        for (const [itemId, item] of this._contextMenuItems.entries()) {
+            // Filter by moduleId if specified
+            if (item.moduleId && item.moduleId !== pinData.moduleId) {
+                continue;
+            }
+            
+            // Check visibility
+            const isVisible = typeof item.visible === 'function' 
+                ? item.visible(pinData, userId)
+                : item.visible;
+            if (!isVisible) {
+                continue;
+            }
+            
+            items.push({
+                itemId,
+                name: item.name,
+                icon: item.icon,
+                onClick: () => item.onClick(pinData),
+                order: item.order
+            });
+        }
+        
+        // Sort by order (lower numbers first)
+        items.sort((a, b) => a.order - b.order);
+        
+        return items;
+    }
+    
     /**
      * Remove all handlers (cleanup)
      * @param {string} [context] - Optional context filter (not used yet, for future batch cleanup)

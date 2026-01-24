@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.2.1] - Pin System Enhancements
+
+### Added
+- **Pure DOM Pin Rendering**: Refactored pin rendering from hybrid PIXI+HTML approach to pure DOM approach for better layering, styling flexibility, and performance. Pins now render as HTML divs in a fixed overlay container (`#blacksmith-pins-overlay`) with `z-index: 2000`.
+- **Pin Shape Support**: Added `shape` property to pin data with support for `'circle'` (default), `'square'` (rounded corners), and `'none'` (icon only, no background). Square pins use configurable border radius via CSS variable.
+- **Double-Click Event**: Added `'doubleClick'` event type to pin event system. Double-click detection uses a 300ms window and prevents false clicks/double-clicks during drag operations.
+- **Context Menu Registration System**: Added `pins.registerContextMenuItem()` and `pins.unregisterContextMenuItem()` API methods allowing modules to register custom context menu items. Menu items can be filtered by `moduleId` and `visible` function, and sorted by `order` property. Default items (Delete Pin, Properties) are always included.
+- **RGBA Color Support**: Pin style properties (`fill`, `stroke`) now support RGBA, HSL, HSLA, and named colors in addition to hex colors. Alpha channel is properly handled.
+- **Enhanced Image Support**: Pin `image` property now supports multiple formats:
+  - Font Awesome HTML: `<i class="fa-solid fa-star"></i>`
+  - Font Awesome class strings: `'fa-solid fa-star'`
+  - Image URLs: `'icons/svg/star.svg'` or `'assets/images/portrait.webp'`
+  - Image tags: `<img src="path/to/image.webp">`
+- **CSS-Based Styling**: All pin styles moved to `styles/pins.css` with CSS variables for configuration:
+  - `--blacksmith-pin-icon-size-ratio`: Controls image size within pin (default: 0.90 = 90%)
+  - `--blacksmith-pin-square-border-radius`: Controls corner radius for square pins (default: 15%)
+- **Fade-In Animations**: Pins now fade in smoothly (0.2s transition) when created or shown after scene load.
+- **Performance Optimizations**: Pins hide during canvas pan/zoom operations and update positions after a debounced delay (200ms) to allow canvas to settle, eliminating lag during canvas interactions.
+
+### Changed
+- **Pin Rendering Architecture**: Complete refactor from hybrid PIXI+HTML to pure DOM approach. Pins are now HTML divs with CSS styling instead of PIXI.Graphics objects. This improves layering (pins appear above tokens), simplifies styling, and provides better browser compatibility.
+- **Event System**: Switched from PIXI event system to DOM event system. All events now use DOM MouseEvent instead of PIXI.FederatedPointerEvent. Event listeners are attached directly to pin DOM elements.
+- **Context Menu**: Enhanced context menu system with registration API. Modules can now add custom menu items that appear alongside default items. Menu items are filtered and sorted automatically.
+- **Pin Visibility**: Pins now properly load and display on scene activation. Added `_scheduleSceneLoad()` method to ensure pins are loaded after canvas is fully initialized.
+
+### Fixed
+- **Pin Positioning**: Fixed icon centering issues by dynamically measuring Font Awesome icon dimensions after rendering instead of assuming square dimensions.
+- **Scene Load**: Fixed pins not appearing on scene load until a new pin was added. Pins now load automatically when scenes activate.
+- **Pan/Zoom Performance**: Fixed lag during canvas pan/zoom by hiding pins instantly and showing them after canvas settles, with debounced position updates.
+- **Visual Glitches**: Fixed pins appearing off-center then snapping into place by ensuring positions are calculated before pins become visible.
+- **Image Rendering**: Images now render nicely within pin shapes using `background-size: cover` and circular clipping for proper fill without gaps.
+
+### Technical Details
+- **Coordinate Conversion**: Pins use `PIXI.Point` and `stage.toGlobal()` for converting scene coordinates to screen pixels, accounting for canvas scale and position.
+- **CSS Variables**: All configurable styling moved to CSS variables in `:root` selector at top of `pins.css` for easy customization.
+- **DOM Reflow**: Uses `void element.offsetWidth` to force browser reflow when needed for accurate positioning.
+- **Event Cleanup**: All event listeners use AbortController pattern for automatic cleanup on pin removal or module unload. 
+
 ## [13.2.0] - Pin API Draft Release
 
 ### NEW FEATURE

@@ -2,7 +2,7 @@
 
 **Target**: FoundryVTT v13+ only with Application V2 API support
 
-**Last updated**: Post–Phase 2.3 implementation. Phases 1–3 and Phase 2.2–2.3 complete; Phase 4–5 items (docs, tests) remain.
+**Last updated**: Post–Phase 4 implementation. Phases 1–4 complete; Phase 5 (automated tests) remains. Pure DOM rendering, shape support, context menu registration, RGBA colors, enhanced image support, and CSS-based styling all implemented.
 
 ---
 
@@ -11,11 +11,11 @@
 | Phase | Status | Notes |
 |-------|--------|--------|
 | **1** | Complete | Data model, manager, CRUD, permissions, event handler registration |
-| **2.1–2.2** | Complete | Container, rendering (circle + Font Awesome icon + text label), layer integration, hover feedback, hit area including text |
+| **2.1–2.2** | Complete | Pure DOM rendering (circle/square/none shapes), Font Awesome/icons/images, CSS-based styling, fade-in animations, performance optimizations |
 | **2.3** | Complete | Drag-and-drop placement (dropCanvasData), drag to move, visual feedback, AbortController cleanup |
-| **3.1–3.2** | Complete | Hover/click events, modifiers, PIXI listeners, context menu |
-| **3.3** | Partial | Edit/Delete/Properties done; custom menu items, Foundry menu system not done |
-| **4** | Partial | API complete + `reload()` + availability checks; 4.1 done; 4.2–4.3 partial |
+| **3.1–3.2** | Complete | Hover/click/double-click events, modifiers, DOM listeners, context menu |
+| **3.3** | Complete | Context menu registration system; default items (Delete, Properties); modules can register custom items |
+| **4** | Complete | API complete + `reload()` + availability checks + context menu registration; shape, color, image support |
 | **5** | Not started | Formal testing, full API reference |
 
 ---
@@ -56,23 +56,25 @@
 
 ## Phase 2: Rendering System
 
-### 2.1 Blacksmith Layer Integration
-- [x] Create PIXI.Container within BlacksmithLayer for pins — `PinRenderer.initialize(layer)` in `canvas-layer.js` `_draw()`
-- [x] Set container properties: `sortableChildren = true`, `eventMode = 'static'` — in `pins-renderer.js`
-- [x] Single initialization point — `_draw()` of BlacksmithLayer; pins loaded via `canvasReady` and `updateScene` hooks
-- [x] Implement pin drawing/rendering logic — `PinGraphics` in `pins-renderer.js`
-- [x] Handle layer activation/deactivation — `activate()` loads pins, `deactivate()` calls `PinRenderer.clear()`
-- [x] Clear container on scene change — `loadScenePins` calls `clear()` before loading; `deactivate` clears
-- [x] Support canvas zoom and pan — pins use scene coordinates; layer follows canvas transform
+### 2.1 Rendering System Integration
+- [x] Create DOM overlay container for pins — `PinDOMElement.initialize()` creates `#blacksmith-pins-overlay`
+- [x] Set container properties: `position: fixed`, `z-index: 2000`, `pointer-events: none` — in `pins.css`
+- [x] Single initialization point — `PinRenderer.initialize()` calls `PinDOMElement.initialize()`; pins loaded via `canvasReady` and `updateScene` hooks
+- [x] Implement pin DOM rendering logic — `PinDOMElement` class in `pins-renderer.js`
+- [x] Handle scene loading — `_scheduleSceneLoad()` ensures pins load on scene activation
+- [x] Clear pins on scene change — `loadScenePins` calls `clear()` before loading
+- [x] Support canvas zoom and pan — pins use scene coordinates converted to screen pixels; hide during pan/zoom for performance
 
 ### 2.2 Pin Visual Representation
-- [x] Render pin base (size, style) using PIXI.Graphics — circle with fill/stroke
-- [x] Render pin image/icon if provided — Font Awesome only; legacy paths map to default `fa-solid fa-star`
-- [x] Render pin text label if provided — `PIXI.Text` below circle, styled with stroke color
-- [x] Update existing graphics objects instead of recreating (performance) — `PinGraphics.update()` updates circle in place
-- [x] Only recreate graphics when structure fundamentally changes — rebuild when size/image/text changes
-- [x] Implement hover/selection visual feedback — scale to 1.1 on hover
-- [x] Calculate proper hit area that includes all visible elements (base + text bounds) — `_updateHitArea()` creates rectangle including circle and text
+- [x] Render pin base (size, style, shape) using pure DOM — circle/square/none with CSS styling
+- [x] Render pin image/icon if provided — Font Awesome (HTML or class strings) and image URLs (including `<img>` tags)
+- [x] Render pin text label if provided — Planned for future (text rendering not yet implemented)
+- [x] Pure DOM approach — No PIXI, all HTML divs with CSS
+- [x] CSS-based styling — All styles in `pins.css` with configurable variables
+- [x] Shape support — circle (default), square (rounded corners), none (icon only)
+- [x] Fade-in animations — Smooth 0.2s fade-in on creation
+- [x] Performance optimization — Hide pins during pan/zoom, update after canvas settles
+- [x] Implement hover/selection visual feedback — CSS `:hover` scale transform (1.1)
 
 ### 2.3 Canvas Interaction
 - [x] Implement drag-and-drop for pin placement (using `dropCanvasData` hook) — handles `type: 'blacksmith-pin'` drops
@@ -93,19 +95,21 @@
 - [x] Support modifier-click semantics (modifier state available to handlers)
 
 ### 3.2 Event Delegation
-- [x] Set up event listeners on pin graphics using PIXI event system — `_setupEventListeners()` in `PinGraphics`
+- [x] Set up event listeners on pin DOM elements using DOM event system — `_setupEventListeners()` in `PinDOMElement`
 - [x] Use AbortController for automatic event cleanup — Phase 1.3; handlers support `signal`
-- [x] Implement hit testing (determine which pin was clicked) — per-pin hit area, `eventMode = 'static'`
-- [x] Hit area for base shape — circle; text bounds not yet included (no text rendering)
-- [x] Route events to appropriate registered handlers — `_invokeHandlers()` called from PinGraphics handlers
-- [x] Pass event data and pin context to callbacks — `PinEvent` structure with pin, sceneId, userId, modifiers, originalEvent
-- [ ] Add debouncing for rapid state changes
+- [x] Implement hit testing (determine which pin was clicked) — per-pin DOM element, pointer-events
+- [x] Double-click detection — 300ms window, prevents false clicks/double-clicks during drag
+- [x] Route events to appropriate registered handlers — `_invokeHandlers()` called from DOM event handlers
+- [x] Pass event data and pin context to callbacks — `PinEvent` structure with pin, sceneId, userId, modifiers, originalEvent (DOM MouseEvent)
+- [x] Performance optimization — Hide pins during pan/zoom, debounced position updates after canvas settles
 
 ### 3.3 Context Menu
 - [x] Create context menu for right-click on pins — custom HTML menu in `_showContextMenu` / `_renderContextMenu`
-- [x] Add "Edit", "Delete", "Properties" options — permission-aware; Delete calls API
-- [ ] Support custom context menu items from callbacks
-- [ ] Use FoundryVTT's context menu system (v13+) — currently custom implementation
+- [x] Add default items ("Delete Pin", "Properties") — permission-aware; Delete calls API
+- [x] Context menu item registration system — `registerContextMenuItem()` / `unregisterContextMenuItem()` in API
+- [x] Filter menu items by moduleId and visible function — modules can scope items to their pins
+- [x] Sort menu items by order property — lower numbers appear first
+- [ ] Use FoundryVTT's context menu system (v13+) — currently custom HTML implementation
 
 ---
 
@@ -122,12 +126,14 @@
 
 ### 4.2 Pin Configuration API
 - [x] Implement `create` / `update` / `delete` / `get` / `list` in `api-pins.js`
-- [x] Implement `on()` method — event handler registration with disposer and `signal`
+- [x] Implement `on()` method — event handler registration with disposer and `signal`; supports double-click event
+- [x] Implement `registerContextMenuItem()` / `unregisterContextMenuItem()` — context menu item registration system
 - [x] Implement `reload()` method — reload pins from scene flags; optional layer init/activation
-- [ ] API for updating pin properties with debouncing support
+- [x] Shape support — `shape` property: 'circle' (default), 'square', 'none' (icon only)
+- [x] Color support — RGBA, HSL, named colors in addition to hex
+- [x] Image support — Font Awesome HTML, Font Awesome class strings, image URLs, `<img>` tags
 - [x] API for querying pins (scene, id, moduleId) — `list()` filters
 - [x] Validate pin `config` field — `pins-schema.js`
-- [ ] Support config cache invalidation if we add external config (e.g. JSON) — future
 - [x] Implement `PinEvent` payload and document error semantics — passed to handlers; see `api-pins.md`
 
 ### 4.3 Module Consumer Support
@@ -151,41 +157,49 @@
 - [ ] Test drag operations (when implemented)
 
 ### 5.2 Documentation
-- [x] `api-pins.md` — API reference, data types, permissions, errors
-- [ ] Usage examples section (create, list, events, reload, cleanup)
-- [ ] Event handler patterns and `AbortSignal` usage
-- [ ] Pin configuration options (size, style, image as Font Awesome)
-- [ ] Permission behavior and `pinsAllowPlayerWrites`
+- [x] `api-pins.md` — API reference, data types, permissions, errors, usage patterns
+- [x] Usage examples section (create, list, events, reload, cleanup) — documented in `api-pins.md`
+- [x] Event handler patterns and `AbortSignal` usage — documented in `api-pins.md`
+- [x] Pin configuration options (size, style, shape, image formats) — documented in `api-pins.md` and `architecture-pins.md`
+- [x] Permission behavior and `pinsAllowPlayerWrites` — documented in `api-pins.md`
+- [x] Context menu registration system — documented in `api-pins.md`
 
 ---
 
 ## Key Implementation Notes (from Squire Lessons Learned)
 
 ### Performance Optimizations
-- **Update graphics, don't recreate**: `PinGraphics.update()` updates circle in place; rebuild only when size/image changes
-- **Batch updates**: Not yet implemented
-- **Debounce rapid changes**: Not yet implemented
-- **Cache parsed content**: Font Awesome classes resolved per pin; could cache FA texture by class string
+- **Pure DOM rendering**: Pins are HTML divs with CSS styling, no PIXI overhead
+- **Hide during pan/zoom**: Pins hide instantly during canvas pan/zoom, then update positions after debounced delay (200ms) to allow canvas to settle
+- **Fade-in animations**: Smooth 0.2s CSS transitions for pin visibility
+- **Dynamic icon measurement**: Font Awesome icons are measured after rendering for accurate centering (handles non-square icons)
+- **CSS-based styling**: All styles in `pins.css` with CSS variables for easy configuration
 
 ### Event Handling
-- **AbortController**: Handler registration supports `signal`; drag listeners will use it when added
-- **Proper hit areas**: Circle only today; extend to include text when labels are rendered
+- **AbortController**: Handler registration supports `signal`; all event listeners use AbortController pattern
+- **DOM event system**: Direct DOM event listeners on pin elements (mousedown, mouseenter, mouseleave, etc.)
+- **Double-click detection**: 300ms window with proper drag detection to prevent false clicks/double-clicks
+- **Context menu registration**: Modules can register custom menu items with filtering and sorting
 
 ### Data Management
 - **UUID-based IDs**: Used throughout
 - **Validate on load**: `migrateAndValidatePins()` on scene load
 - **Migration system**: `PIN_SCHEMA_VERSION`, `MIGRATION_MAP`
 - **Orphaned cleanup**: Invalid pins dropped during migration/validation
+- **Shape support**: `shape` property with 'circle'`, `'square'`, `'none'` options
+- **Enhanced color support**: RGBA, HSL, HSLA, named colors in addition to hex
+- **Enhanced image support**: Font Awesome HTML, class strings, image URLs, `<img>` tags
 
 ### Code Organization
-- **Single initialization**: Container created in `_draw()`; pins loaded via `canvasReady` / `updateScene`
-- **Proper cleanup**: `clear()` on scene change and layer deactivate; `cleanup()` on module unload
+- **Single initialization**: DOM overlay container created in `PinDOMElement.initialize()`; pins loaded via `canvasReady` / `updateScene`
+- **Proper cleanup**: `clear()` on scene change; `cleanup()` on module unload
 - **Error handling**: `postConsoleAndNotification` for pin/icon errors; all messages prefixed `BLACKSMITH | PINS`
+- **CSS separation**: All static styles in `styles/pins.css` with CSS variables at top
 
 ### v13+ Specific
 - **Application V2**: Context menu is custom HTML; Edit/Properties could use Application V2 later
-- **eventMode**: `eventMode = 'static'` on container and pin graphics
-- **Font Awesome only**: Icons are Font Awesome HTML only; legacy image paths map to default star
+- **Pure DOM approach**: No PIXI dependency for pin rendering; uses HTML/CSS for better layering and styling
+- **Multiple image formats**: Font Awesome (HTML or class strings) and image URLs (including `<img>` tags)
 
 ---
 

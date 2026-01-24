@@ -254,23 +254,14 @@ class PinDOMElement {
         let pinElement = this._pins.get(pinId);
         const { image, size, style = {} } = pinData;
         
-        // Create new pin element if doesn't exist
+        // Create new pin element if doesn't exist (base styles in pins.css)
         if (!pinElement) {
             pinElement = document.createElement('div');
             pinElement.className = 'blacksmith-pin';
             pinElement.dataset.pinId = pinId;
-            pinElement.style.position = 'absolute';
-            pinElement.style.pointerEvents = 'auto';
-            pinElement.style.display = 'flex'; // Always flex for layout
-            pinElement.style.alignItems = 'center';
-            pinElement.style.justifyContent = 'center';
-            pinElement.style.transformOrigin = 'center center';
-            pinElement.style.visibility = 'hidden'; // Start hidden - will fade in after correct position is calculated
-            pinElement.style.opacity = '0'; // Start transparent for fade-in
-            pinElement.style.borderRadius = '50%';
-            pinElement.style.boxSizing = 'border-box';
-            pinElement.style.transition = 'opacity 0.2s ease-in-out, visibility 0.2s ease-in-out'; // Smooth fade transition
-            pinElement.style.cursor = 'pointer'; // Show pointer cursor on hover
+            // Start hidden - will fade in after correct position is calculated
+            pinElement.style.visibility = 'hidden';
+            pinElement.style.opacity = '0';
             
             // Set up event listeners
             this._setupEventListeners(pinElement, pinData);
@@ -281,7 +272,11 @@ class PinDOMElement {
             // Existing pin - keep visible, will update position smoothly
         }
 
-        // Update pin styling (circle background)
+        // Update pin shape
+        const shape = pinData.shape || 'circle';
+        pinElement.dataset.shape = shape;
+        
+        // Update pin styling (background and border)
         // Support hex colors (#000000), RGBA (rgba(0, 0, 0, 0.5)), rgb, hsl, named colors, etc.
         // CSS natively accepts all these formats
         const fillColor = style?.fill || '#000000';
@@ -290,8 +285,14 @@ class PinDOMElement {
         const alpha = typeof style?.alpha === 'number' ? style.alpha : 1;
         
         // Apply colors - CSS supports: hex, rgb, rgba, hsl, hsla, named colors
-        pinElement.style.backgroundColor = fillColor;
-        pinElement.style.border = `${strokeWidth}px solid ${strokeColor}`;
+        // For 'none' shape, don't apply background or border (icon only)
+        if (shape !== 'none') {
+            pinElement.style.backgroundColor = fillColor;
+            pinElement.style.border = `${strokeWidth}px solid ${strokeColor}`;
+        } else {
+            pinElement.style.backgroundColor = 'transparent';
+            pinElement.style.border = 'none';
+        }
         
         // Apply opacity - if color already has alpha (RGBA/HSLA), this multiplies with it
         // Example: rgba(255, 0, 0, 0.5) + opacity: 0.9 = final alpha of 0.45
@@ -333,6 +334,7 @@ class PinDOMElement {
                 // Image styles (background-size, border-radius, overflow) handled by CSS
                 // But we need to ensure the class selector matches
                 iconElement.style.color = ''; // Clear Font Awesome color
+                // Border radius for images - use CSS variable (handled by CSS)
                 iconElement.style.borderRadius = '50%';
                 iconElement.style.overflow = 'hidden';
             } else {
@@ -516,7 +518,11 @@ class PinDOMElement {
             }).catch(() => {});
         });
         
-        // Click events
+        // Click events and double-click detection
+        let clickTimeout = null;
+        let clickCount = 0;
+        const clickState = { timeout: null, count: 0 };
+        
         pinElement.addEventListener('mousedown', (e) => {
             const button = e.button;
             const modifiers = this._extractModifiers(e);
@@ -524,23 +530,58 @@ class PinDOMElement {
             const userId = game.user?.id || '';
             
             if (button === 0) {
-                // Left click - check if it's a drag or click
-                import('./manager-pins.js').then(({ PinManager }) => {
-                    if (PinManager._canEdit(pinData, userId)) {
-                        this._startPotentialDrag(pinElement, pinData, e);
-                    } else {
-                        PinManager._invokeHandlers('click', pinData, sceneId, userId, modifiers, e);
+                // Left click - detect double-click
+                clickState.count++;
+                if (clickState.timeout) {
+                    clearTimeout(clickState.timeout);
+                }
+                
+                clickState.timeout = setTimeout(() => {
+                    // Single click - check if it's a drag or click
+                    if (clickState.count === 1) {
+                        import('./manager-pins.js').then(({ PinManager }) => {
+                            if (PinManager._canEdit(pinData, userId)) {
+                                this._startPotentialDrag(pinElement, pinData, e, clickState);
+                            } else {
+                                PinManager._invokeHandlers('click', pinData, sceneId, userId, modifiers, e);
+                            }
+                        }).catch(() => {});
                     }
-                }).catch(() => {});
+                    clickState.count = 0;
+                    clickState.timeout = null;
+                }, 300); // 300ms window for double-click
+                
+                // Double-click detection
+                if (clickState.count === 2) {
+                    clearTimeout(clickState.timeout);
+                    clickState.count = 0;
+                    clickState.timeout = null;
+                    
+                    import('./manager-pins.js').then(({ PinManager }) => {
+                        PinManager._invokeHandlers('doubleClick', pinData, sceneId, userId, modifiers, e);
+                    }).catch(() => {});
+                }
             } else if (button === 2) {
                 // Right click
                 e.preventDefault();
+                // Clear any pending click timeout
+                if (clickState.timeout) {
+                    clearTimeout(clickState.timeout);
+                    clickState.count = 0;
+                    clickState.timeout = null;
+                }
                 import('./manager-pins.js').then(({ PinManager }) => {
                     PinManager._invokeHandlers('rightClick', pinData, sceneId, userId, modifiers, e);
                     this._showContextMenu(pinElement, pinData, e);
                 }).catch(() => {});
             } else if (button === 1) {
                 // Middle click
+                // Clear any pending click timeout
+                if (clickState.timeout) {
+                    clearTimeout(clickState.timeout);
+                    clickState.count = 0;
+                    clickState.timeout = null;
+                }
                 import('./manager-pins.js').then(({ PinManager }) => {
                     PinManager._invokeHandlers('middleClick', pinData, sceneId, userId, modifiers, e);
                 }).catch(() => {});
@@ -568,9 +609,10 @@ class PinDOMElement {
      * @param {HTMLElement} pinElement
      * @param {PinData} pinData
      * @param {MouseEvent} event
+     * @param {Object} clickState - Click state object to clear timeout when drag starts
      * @private
      */
-    static _startPotentialDrag(pinElement, pinData, event) {
+    static _startPotentialDrag(pinElement, pinData, event, clickState) {
         const dragAbortController = new AbortController();
         const signal = dragAbortController.signal;
         
@@ -614,6 +656,13 @@ class PinDOMElement {
             if (!dragStarted && distance > DRAG_THRESHOLD) {
                 dragStarted = true;
                 pinElement.style.opacity = '0.7';
+                
+                // Clear click timeout since this is now a drag, not a click
+                if (clickState?.timeout) {
+                    clearTimeout(clickState.timeout);
+                    clickState.count = 0;
+                    clickState.timeout = null;
+                }
                 
                 import('./manager-pins.js').then(({ PinManager }) => {
                     const modifiers = this._extractModifiers(e);
@@ -706,19 +755,21 @@ class PinDOMElement {
         
         const menuItems = [];
         
-        if (canEdit) {
+        // Get registered context menu items (filtered by moduleId, visible, etc.)
+        const registeredItems = PinManager.getContextMenuItems(pinData, userId);
+        for (const item of registeredItems) {
             menuItems.push({
-                name: 'Edit',
-                icon: '<i class="fa-solid fa-edit"></i>',
-                callback: () => {
-                    postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Edit pin (not yet implemented)', pinData.id, true, false);
-                }
+                name: item.name,
+                icon: item.icon,
+                callback: item.onClick
             });
         }
         
+        // Add default universal items (always at the end, after registered items)
+        // Delete pin (if user can delete)
         if (canDelete) {
             menuItems.push({
-                name: 'Delete',
+                name: 'Delete Pin',
                 icon: '<i class="fa-solid fa-trash"></i>',
                 callback: async () => {
                     try {
@@ -732,6 +783,7 @@ class PinDOMElement {
             });
         }
         
+        // Properties (always available)
         menuItems.push({
             name: 'Properties',
             icon: '<i class="fa-solid fa-info-circle"></i>',

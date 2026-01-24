@@ -21,6 +21,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {{ fill?: string; stroke?: string; strokeWidth?: number; alpha?: number }} style
  * @property {string} [text]
  * @property {string} [image]
+ * @property {'circle' | 'square' | 'none'} [shape] - Pin shape: 'circle' (default), 'square', or 'none' (icon only, no background)
  * @property {Record<string, unknown>} config
  * @property {string} moduleId
  * @property {{ default: number; users?: Record<string, number> }} ownership
@@ -38,6 +39,7 @@ export const PIN_SCHEMA_VERSION = 1;
 export const PIN_DEFAULTS = Object.freeze({
     size: { w: 32, h: 32 },
     style: { fill: '#000000', stroke: '#ffffff', strokeWidth: 2, alpha: 1 },
+    shape: 'circle', // 'circle' | 'square' | 'none'
     version: PIN_SCHEMA_VERSION,
     ownership: { default: 0 },
     config: {}
@@ -72,6 +74,7 @@ export function applyDefaults(partial) {
         y: 0,
         size: { ...PIN_DEFAULTS.size },
         style: { ...PIN_DEFAULTS.style },
+        shape: PIN_DEFAULTS.shape,
         text: undefined,
         image: undefined,
         config: { ...(PIN_DEFAULTS.config) },
@@ -91,6 +94,16 @@ export function applyDefaults(partial) {
         if (partial.style.stroke != null) base.style.stroke = String(partial.style.stroke);
         if (typeof partial.style.strokeWidth === 'number') base.style.strokeWidth = partial.style.strokeWidth;
         if (typeof partial.style.alpha === 'number') base.style.alpha = partial.style.alpha;
+    }
+    if (partial.shape != null) {
+        const shape = String(partial.shape).toLowerCase();
+        // Validate shape - only allow supported shapes
+        if (shape === 'circle' || shape === 'square' || shape === 'none') {
+            base.shape = shape;
+        } else {
+            // Invalid shape, use default
+            base.shape = PIN_DEFAULTS.shape;
+        }
     }
     if (partial.text != null) base.text = String(partial.text).trim() || undefined;
     if (partial.image != null) base.image = String(partial.image).trim() || undefined;

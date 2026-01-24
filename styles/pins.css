@@ -4,8 +4,9 @@
 
 /* CSS Variables - configurable at the root level */
 :root {
-    --blacksmith-pin-icon-size-ratio: 0.90; /* 60% of pin size - change this to adjust image size */
+    --blacksmith-pin-icon-size-ratio: 0.90; /* 90% of pin size - change this to adjust image size */
     --blacksmith-pin-icon-border-radius: 50%;
+    --blacksmith-pin-square-border-radius: 15%; /* Border radius for square pins (rounded corners) */
 }
 
 /* Container for all pins overlay */
@@ -29,10 +30,24 @@
     align-items: center;
     justify-content: center;
     transform-origin: center center;
-    border-radius: 50%;
     box-sizing: border-box;
     transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
     cursor: pointer;
+}
+
+/* Pin shapes */
+.blacksmith-pin[data-shape="circle"] {
+    border-radius: 50%;
+}
+
+.blacksmith-pin[data-shape="square"] {
+    border-radius: var(--blacksmith-pin-square-border-radius);
+}
+
+.blacksmith-pin[data-shape="none"] {
+    border-radius: 0;
+    background: none !important;
+    border: none !important;
 }
 
 /* Pin icon container */

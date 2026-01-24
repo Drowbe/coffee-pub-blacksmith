@@ -105,13 +105,39 @@ export class PinsAPI {
     /**
      * Register an event handler. Returns a disposer function.
      * 
-     * @param {string} eventType - Event type: 'hoverIn', 'hoverOut', 'click', 'rightClick', 'middleClick', 'dragStart', 'dragMove', 'dragEnd'
+     * @param {string} eventType - Event type: 'hoverIn', 'hoverOut', 'click', 'doubleClick', 'rightClick', 'middleClick', 'dragStart', 'dragMove', 'dragEnd'
      * @param {Function} handler - Callback function that receives PinEvent
      * @param {import('./manager-pins.js').PinEventHandlerOptions} [options]
      * @returns {() => void} - Disposer function to unregister the handler
      */
     static on(eventType, handler, options) {
         return PinManager.registerHandler(eventType, handler, options);
+    }
+
+    /**
+     * Register a context menu item. Returns a disposer function.
+     * 
+     * @param {string} itemId - Unique identifier for the menu item
+     * @param {Object} itemData - Menu item configuration
+     * @param {string} itemData.name - Display name
+     * @param {string} [itemData.icon] - Font Awesome icon HTML or class string
+     * @param {Function} itemData.onClick - Callback function (receives pinData)
+     * @param {string} [itemData.moduleId] - Only show for pins from this module
+     * @param {number} [itemData.order] - Order in menu (lower = higher, default: 999)
+     * @param {Function|boolean} [itemData.visible] - Visibility function or boolean (default: true)
+     * @returns {() => void} - Disposer function to unregister
+     */
+    static registerContextMenuItem(itemId, itemData) {
+        return PinManager.registerContextMenuItem(itemId, itemData);
+    }
+
+    /**
+     * Unregister a context menu item
+     * @param {string} itemId
+     * @returns {boolean} - Success status
+     */
+    static unregisterContextMenuItem(itemId) {
+        return PinManager.unregisterContextMenuItem(itemId);
     }
 
     /**

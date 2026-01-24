@@ -1,6 +1,6 @@
 # Canvas Pins API Documentation
 
-> **Status**: Phases 1–3 complete. Pins render on the Blacksmith layer, support Font Awesome icons, and dispatch hover/click/context-menu events. Phase 2.3 (drag-and-drop) and Phase 4–5 (docs, tests) remain.
+> **Status**: Phases 1–3 complete. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Phase 4–5 (docs, tests) remain.
 
 ## Overview
 
@@ -10,10 +10,11 @@ The Canvas Pins API provides a system for creating, managing, and interacting wi
 
 The pins API follows Blacksmith's standard pattern:
 - **`scripts/pins-schema.js`** - Data model, validation, migration (Phase 1.1)
-- **`scripts/manager-pins.js`** - Internal manager with CRUD, permissions, and event handler registration (Phase 1.2, 1.3)
-- **`scripts/pins-renderer.js`** - Pin graphics (circle + Font Awesome icon), PIXI events, context menu (Phase 2, 3)
-- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `on()`, `reload()`, `isAvailable()`, `isReady()`, `whenReady()`
+- **`scripts/manager-pins.js`** - Internal manager with CRUD, permissions, event handler registration, and context menu item registration (Phase 1.2, 1.3)
+- **`scripts/pins-renderer.js`** - Pure DOM pin rendering (circle/square/none + Font Awesome icons or image URLs), DOM events, context menu (Phase 2, 3)
+- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `on()`, `registerContextMenuItem()`, `reload()`, `isAvailable()`, `isReady()`, `whenReady()`
 - **`scripts/blacksmith.js`** - Exposes `module.api.pins = PinsAPI`; hooks for `canvasReady` / `updateScene` pin loading
+- **`styles/pins.css`** - All pin styling (CSS variables for configuration)
 
 ## Getting Started
 
@@ -138,9 +139,10 @@ interface PinData {
   x: number;
   y: number;
   size?: { w: number; h: number };
-  style?: { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number };
+  style?: { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number }; // Supports hex, rgb, rgba, hsl, hsla, named colors
   text?: string;
-  image?: string;  // Font Awesome HTML only, e.g. '<i class="fa-solid fa-star"></i>'; legacy paths → default star
+  image?: string;  // Font Awesome HTML (e.g. '<i class="fa-solid fa-star"></i>'), Font Awesome class string (e.g. 'fa-solid fa-star'), or image URL (e.g. 'icons/svg/star.svg' or '<img src="path/to/image.webp">')
+  shape?: 'circle' | 'square' | 'none'; // Pin shape: 'circle' (default), 'square' (rounded corners), or 'none' (icon only, no background)
   config?: Record<string, unknown>;
   moduleId: string; // consumer module id
   ownership?: { default: number; users?: Record<string, number> };
@@ -152,12 +154,12 @@ interface PinData {
 
 ```typescript
 interface PinEvent {
-  type: 'hoverIn' | 'hoverOut' | 'click' | 'rightClick' | 'middleClick' | 'dragStart' | 'dragMove' | 'dragEnd';
+  type: 'hoverIn' | 'hoverOut' | 'click' | 'doubleClick' | 'rightClick' | 'middleClick' | 'dragStart' | 'dragMove' | 'dragEnd';
   pin: PinData;
   sceneId: string;
   userId: string;
   modifiers: { shift: boolean; ctrl: boolean; alt: boolean; meta: boolean };
-  originalEvent: PIXI.FederatedPointerEvent;
+  originalEvent: MouseEvent; // DOM MouseEvent (pure DOM approach)
 }
 ```
 
@@ -204,13 +206,14 @@ const pin = await pinsAPI.create({
   y: 900,
   text: 'Forge',
   moduleId: 'my-module',
-  image: '<i class="fa-solid fa-star"></i>',  // optional; Font Awesome only
+  image: '<i class="fa-solid fa-star"></i>',  // optional; Font Awesome HTML, Font Awesome class string, or image URL
+  shape: 'circle',  // optional; 'circle' (default), 'square', or 'none' (icon only)
   size: { w: 48, h: 48 },  // optional; defaults to { w: 32, h: 32 }
-  style: {  // optional; defaults shown
-    fill: '#000000',
-    stroke: '#ffffff',
+  style: {  // optional; defaults shown (supports hex, rgb, rgba, hsl, hsla, named colors)
+    fill: '#000000',  // or 'rgba(0, 0, 0, 0.5)' for transparency
+    stroke: '#ffffff',  // or 'rgba(255, 255, 255, 0.8)'
     strokeWidth: 2,
-    alpha: 1
+    alpha: 1  // Overall opacity (multiplies with RGBA alpha if color has alpha)
   }
 });
 ```
@@ -297,7 +300,7 @@ console.log(`Found ${pins.length} pins`);
 - `Error` if scene not found
 
 ### `pins.on(eventType, handler, options?)`
-Register an event handler. Returns a disposer function. Events are dispatched when users interact with pins (hover, click, right-click, etc.).
+Register an event handler. Returns a disposer function. Events are dispatched when users interact with pins (hover, click, double-click, right-click, middle-click, drag, etc.).
 
 **Returns**: `() => void` - Disposer function to unregister the handler
 
@@ -318,8 +321,9 @@ pinsAPI.on('click', handler, { signal: controller.signal });
 **Event Types**:
 - `'hoverIn'` - Mouse enters pin
 - `'hoverOut'` - Mouse leaves pin
-- `'click'` - Left mouse button click
-- `'rightClick'` - Right mouse button click
+- `'click'` - Single left mouse button click (or left click that didn't drag)
+- `'doubleClick'` - Double left mouse button click (within 300ms window)
+- `'rightClick'` - Right mouse button click (also shows context menu)
 - `'middleClick'` - Middle mouse button click
 - `'dragStart'` - Drag operation starts (requires `dragEvents: true`)
 - `'dragMove'` - Drag operation continues (requires `dragEvents: true`)
@@ -424,11 +428,15 @@ Pins can be moved by left-clicking and dragging. Only users with edit permission
 ## Implementation Status
 
 - [x] Core infrastructure (Phase 1.1, 1.2, 1.3)
-- [x] Rendering (Phase 2.1, 2.2): container, circle + Font Awesome icon + text label, layer integration, hover feedback, hit area
+- [x] Rendering (Phase 2.1, 2.2): Pure DOM approach (no PIXI), circle/square/none shapes, Font Awesome icons and image URLs, CSS-based styling, fade-in animations
 - [x] Drag-and-drop (Phase 2.3): dropCanvasData for creation, drag-to-move, visual feedback, AbortController cleanup
-- [x] Event system (Phase 3.1, 3.2): hover/click/right-click/middle-click, modifiers, PIXI listeners, handler dispatch
-- [x] Context menu (Phase 3.3): Edit, Delete, Properties (custom HTML); custom items and Foundry menu not done
-- [x] API: CRUD, `on()`, `reload()`, `isAvailable()`, `isReady()`, `whenReady()`; `pinsAllowPlayerWrites` setting
+- [x] Event system (Phase 3.1, 3.2): hover/click/double-click/right-click/middle-click, modifiers, DOM event listeners, handler dispatch
+- [x] Context menu (Phase 3.3): Default items (Delete, Properties), context menu item registration system for modules
+- [x] API: CRUD, `on()`, `registerContextMenuItem()`, `unregisterContextMenuItem()`, `reload()`, `isAvailable()`, `isReady()`, `whenReady()`; `pinsAllowPlayerWrites` setting
 - [x] Pin storage in scene flags; migration and validation on load
+- [x] Shape support: circle (default), square (rounded corners), none (icon only)
+- [x] Color support: hex, rgb, rgba, hsl, hsla, named colors
+- [x] Image support: Font Awesome HTML, Font Awesome class strings, image URLs, `<img>` tags
+- [x] CSS configuration: Image size ratio, border radius, all styling in `pins.css`
 - [x] Phase 4.1: API usage patterns documented; availability checks (`isAvailable` / `isReady` / `whenReady`) implemented
 - [ ] Full automated tests and remaining Phase 4–5 items (see `plans-pins.md`)
