@@ -25,21 +25,10 @@ class PinDOMElement {
     static initialize() {
         if (this._isInitialized) return;
         
-        // Create container div for all pins
+        // Create container div for all pins (styles in pins.css)
         const container = document.createElement('div');
         container.id = 'blacksmith-pins-overlay';
         container.className = 'blacksmith-pins-overlay';
-        container.style.position = 'fixed';
-        container.style.top = '0';
-        container.style.left = '0';
-        container.style.width = '100vw';
-        container.style.height = '100vh';
-        container.style.pointerEvents = 'none';
-        // Foundry's canvas is typically at z-index 100, but we need to be above it
-        // Foundry's UI elements are usually 1000+, so we'll use 2000 to be safe
-        container.style.zIndex = '2000';
-        container.style.overflow = 'visible';
-        container.style.visibility = 'visible';
         
         // Find the canvas app element and insert after it (or at end of body)
         const canvasApp = document.getElementById('board') || document.querySelector('#board');
@@ -302,15 +291,10 @@ class PinDOMElement {
         pinElement.style.border = `${strokeWidth}px solid ${strokeColor}`;
         pinElement.style.opacity = String(alpha);
         
-        // Update icon content
+        // Update icon content (base styles in pins.css)
         const iconElement = pinElement.querySelector('.blacksmith-pin-icon') || document.createElement('div');
         if (!pinElement.contains(iconElement)) {
             iconElement.className = 'blacksmith-pin-icon';
-            iconElement.style.display = 'flex';
-            iconElement.style.alignItems = 'center';
-            iconElement.style.justifyContent = 'center';
-            iconElement.style.width = '100%';
-            iconElement.style.height = '100%';
             pinElement.appendChild(iconElement);
         }
         
@@ -337,12 +321,13 @@ class PinDOMElement {
             // Image URL or <img> tag - extract the URL
             const imageUrl = this._extractImageUrl(image);
             if (imageUrl) {
-                iconElement.innerHTML = ''; // Clear any Font Awesome icon
+                iconElement.innerHTML = ''; // Clear Font Awesome icon
                 iconElement.style.backgroundImage = `url(${imageUrl})`;
-                iconElement.style.backgroundSize = 'contain';
-                iconElement.style.backgroundRepeat = 'no-repeat';
-                iconElement.style.backgroundPosition = 'center';
+                // Image styles (background-size, border-radius, overflow) handled by CSS
+                // But we need to ensure the class selector matches
                 iconElement.style.color = ''; // Clear Font Awesome color
+                iconElement.style.borderRadius = '50%';
+                iconElement.style.overflow = 'hidden';
             } else {
                 // Couldn't extract image URL, treat as no icon
                 iconElement.innerHTML = '';
@@ -426,15 +411,19 @@ class PinDOMElement {
                 // Check pinData to determine if it's Font Awesome or image
                 const isFontAwesome = this._isFontAwesomeIcon(pinData.image);
                 if (isFontAwesome && pinData.image) {
-                    // Font Awesome icon - use fontSize
+                    // Font Awesome icon - use fontSize (size controlled dynamically)
                     iconElement.style.fontSize = `${iconSizeScreen}px`;
                     iconElement.style.width = 'auto';
                     iconElement.style.height = 'auto';
+                    iconElement.style.borderRadius = ''; // No border radius for Font Awesome
+                    iconElement.style.overflow = ''; // No overflow clipping for Font Awesome
                 } else if (pinData.image) {
-                    // Image URL - use width/height
+                    // Image URL - size controlled by CSS variable --icon-size-ratio
+                    // CSS handles width/height via calc(100% * var(--icon-size-ratio))
                     iconElement.style.fontSize = '';
-                    iconElement.style.width = `${iconSizeScreen}px`;
-                    iconElement.style.height = `${iconSizeScreen}px`;
+                    // Don't set width/height here - let CSS handle it via the variable
+                    iconElement.style.borderRadius = '50%'; // Circular clipping for images
+                    iconElement.style.overflow = 'hidden'; // Clip to circle
                 }
             }
             
@@ -501,9 +490,8 @@ class PinDOMElement {
      * @private
      */
     static _setupEventListeners(pinElement, pinData) {
-        // Hover events
+        // Hover events (transform handled by CSS :hover)
         pinElement.addEventListener('mouseenter', (e) => {
-            pinElement.style.transform = 'scale(1.1)';
             import('./manager-pins.js').then(({ PinManager }) => {
                 const modifiers = this._extractModifiers(e);
                 const sceneId = canvas?.scene?.id || '';
@@ -513,7 +501,6 @@ class PinDOMElement {
         });
         
         pinElement.addEventListener('mouseleave', (e) => {
-            pinElement.style.transform = 'scale(1.0)';
             import('./manager-pins.js').then(({ PinManager }) => {
                 const modifiers = this._extractModifiers(e);
                 const sceneId = canvas?.scene?.id || '';

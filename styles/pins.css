@@ -1,0 +1,75 @@
+/* ==================================================================
+   PINS CSS - Styles for canvas pin rendering
+   ================================================================== */
+
+/* CSS Variables - configurable at the root level */
+:root {
+    --blacksmith-pin-icon-size-ratio: 0.90; /* 60% of pin size - change this to adjust image size */
+    --blacksmith-pin-icon-border-radius: 50%;
+}
+
+/* Container for all pins overlay */
+.blacksmith-pins-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 1;
+    overflow: visible;
+    visibility: visible;
+}
+
+/* Individual pin element */
+.blacksmith-pin {
+    position: absolute;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+    border-radius: 50%;
+    box-sizing: border-box;
+    transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+/* Pin icon container */
+.blacksmith-pin-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+/* Font Awesome icon styling */
+.blacksmith-pin-icon i {
+    color: #ffffff;
+}
+
+/* Image icon styling */
+/* Image size is controlled by --blacksmith-pin-icon-size-ratio CSS variable (default: 0.6 = 60% of pin size) */
+/* Adjust this value in :root to change how large images appear within the pin */
+/* Example: 0.6 = 60%, 0.8 = 80%, 1.0 = 100% (fills entire pin) */
+.blacksmith-pin-icon[style*="background-image"] {
+    width: calc(100% * var(--blacksmith-pin-icon-size-ratio));
+    height: calc(100% * var(--blacksmith-pin-icon-size-ratio));
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    border-radius: var(--blacksmith-pin-icon-border-radius);
+    overflow: hidden;
+}
+
+/* Hover state - scale up slightly */
+.blacksmith-pin:hover {
+    transform: scale(1.1);
+}
+
+/* Hidden state */
+.blacksmith-pin[data-hidden="true"] {
+    visibility: hidden;
+    opacity: 0;
+}

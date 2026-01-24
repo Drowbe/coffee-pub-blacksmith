@@ -44,6 +44,9 @@
 /* --- Menubar ---------------------- */
 @import "menubar.css";
 
+/* --- Pins ---------------------- */
+@import "pins.css";
+
 /* --- Links ---------------------- */
 @import "links-themes.css";
 
