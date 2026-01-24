@@ -109,6 +109,25 @@ export class PinManager {
     }
 
     /**
+     * Find which scene contains a pin with the given ID.
+     * Searches all scenes in the world.
+     * @param {string} pinId - The pin ID to search for
+     * @returns {string | null} - The scene ID containing the pin, or null if not found
+     */
+    static findSceneForPin(pinId) {
+        if (!game.scenes) return null;
+        
+        for (const scene of game.scenes) {
+            const pins = scene.getFlag(MODULE.ID, this.FLAG_KEY) || [];
+            if (pins.some(p => p.id === pinId)) {
+                return scene.id;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
      * @param {PinData} pin
      * @param {string} userId
      * @returns {boolean}
@@ -540,11 +559,21 @@ export class PinManager {
      * @returns {Promise<void>}
      */
     static async delete(pinId, options = {}) {
-        const scene = this._getScene(options.sceneId);
+        let sceneId = options.sceneId;
+        
+        // If no sceneId provided, try to find which scene has this pin
+        if (!sceneId) {
+            sceneId = this.findSceneForPin(pinId);
+            if (!sceneId) {
+                throw new Error(`Pin not found: ${pinId} (searched all scenes)`);
+            }
+        }
+        
+        const scene = this._getScene(sceneId);
         const pins = this._getScenePins(scene);
         const idx = pins.findIndex((p) => p.id === pinId);
         if (idx === -1) {
-            throw new Error(`Pin not found: ${pinId}`);
+            throw new Error(`Pin not found: ${pinId} in scene ${sceneId}`);
         }
         const existing = pins[idx];
         const userId = game.user?.id ?? '';

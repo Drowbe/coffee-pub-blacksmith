@@ -536,32 +536,36 @@ class PinDOMElement {
             const freshPinData = PinManager.get(pinData.id) || pinData;
             
             if (button === 0) {
-                // Left click - detect double-click
-                clickState.count++;
-                if (clickState.timeout) {
-                    clearTimeout(clickState.timeout);
-                }
+                // Left click - set up drag detection IMMEDIATELY
+                // We can't wait 300ms or the click will be missed
                 
-                clickState.timeout = setTimeout(async () => {
-                    // Single click - check if it's a drag or click
-                    // Get fresh pin data again in case it changed
-                    const currentPinData = PinManager.get(pinData.id) || freshPinData;
-                    if (PinManager._canEdit(currentPinData, userId)) {
-                        await this._startPotentialDrag(pinElement, currentPinData, e, clickState);
-                    } else {
-                        PinManager._invokeHandlers('click', currentPinData, sceneId, userId, modifiers, e);
+                const currentPinData = PinManager.get(pinData.id) || freshPinData;
+                
+                if (PinManager._canEdit(currentPinData, userId)) {
+                    // Start potential drag immediately - it will decide if it's click or drag
+                    await this._startPotentialDrag(pinElement, currentPinData, e, clickState);
+                } else {
+                    // Not editable - handle click/double-click
+                    clickState.count++;
+                    if (clickState.timeout) {
+                        clearTimeout(clickState.timeout);
                     }
-                    clickState.count = 0;
-                    clickState.timeout = null;
-                }, 300); // 300ms window for double-click
-                
-                // Double-click detection
-                if (clickState.count === 2) {
-                    clearTimeout(clickState.timeout);
-                    clickState.count = 0;
-                    clickState.timeout = null;
                     
-                    PinManager._invokeHandlers('doubleClick', freshPinData, sceneId, userId, modifiers, e);
+                    clickState.timeout = setTimeout(() => {
+                        if (clickState.count === 1) {
+                            PinManager._invokeHandlers('click', currentPinData, sceneId, userId, modifiers, e);
+                        }
+                        clickState.count = 0;
+                        clickState.timeout = null;
+                    }, 300);
+                    
+                    // Double-click detection
+                    if (clickState.count === 2) {
+                        clearTimeout(clickState.timeout);
+                        clickState.count = 0;
+                        clickState.timeout = null;
+                        PinManager._invokeHandlers('doubleClick', currentPinData, sceneId, userId, modifiers, e);
+                    }
                 }
             } else if (button === 2) {
                 // Right click
@@ -641,8 +645,9 @@ class PinDOMElement {
         const startSceneFromScreen = canvas.stage.toLocal(new PIXI.Point(startScreenRelative.x, startScreenRelative.y));
         
         let dragStarted = false;
+        let mouseMoved = false; // Track if mouse moved at all
         let lastDraggedPosition = null; // Track the last dragged position
-        const DRAG_THRESHOLD = 5; // pixels in scene space
+        const DRAG_THRESHOLD = 10; // pixels in screen space (increased for better click detection)
         
         // Prevent Foundry selection box
         if (canvas.controls) {
@@ -654,19 +659,21 @@ class PinDOMElement {
             
             const currentScreenX = e.clientX;
             const currentScreenY = e.clientY;
-            const currentScreenRelative = {
-                x: currentScreenX - canvasRect.left,
-                y: currentScreenY - canvasRect.top
-            };
-            const currentSceneFromScreen = canvas.stage.toLocal(new PIXI.Point(currentScreenRelative.x, currentScreenRelative.y));
             
-            const deltaX = currentSceneFromScreen.x - startSceneFromScreen.x;
-            const deltaY = currentSceneFromScreen.y - startSceneFromScreen.y;
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            // Calculate distance in screen pixels (more reliable than scene coordinates)
+            // This prevents accidental drags from tiny movements when zoomed out
+            const screenDeltaX = currentScreenX - startScreenX;
+            const screenDeltaY = currentScreenY - startScreenY;
+            const screenDistance = Math.sqrt(screenDeltaX * screenDeltaX + screenDeltaY * screenDeltaY);
             
-            if (!dragStarted && distance > DRAG_THRESHOLD) {
+            // Track if mouse moved at all (even < threshold)
+            if (screenDistance > 1) {
+                mouseMoved = true;
+            }
+            
+            // Only start visual drag if mouse moved more than threshold in screen space
+            if (!dragStarted && screenDistance > DRAG_THRESHOLD) {
                 dragStarted = true;
-                pinElement.style.opacity = '0.7';
                 
                 // Clear click timeout since this is now a drag, not a click
                 if (clickState?.timeout) {
@@ -674,6 +681,8 @@ class PinDOMElement {
                     clickState.count = 0;
                     clickState.timeout = null;
                 }
+                
+                pinElement.style.opacity = '0.7';
                 
                 import('./manager-pins.js').then(({ PinManager }) => {
                     const modifiers = this._extractModifiers(e);
@@ -684,6 +693,16 @@ class PinDOMElement {
             }
             
             if (dragStarted) {
+                // Calculate scene coordinates for position update
+                const currentScreenRelative = {
+                    x: currentScreenX - canvasRect.left,
+                    y: currentScreenY - canvasRect.top
+                };
+                const currentSceneFromScreen = canvas.stage.toLocal(new PIXI.Point(currentScreenRelative.x, currentScreenRelative.y));
+                
+                const deltaX = currentSceneFromScreen.x - startSceneFromScreen.x;
+                const deltaY = currentSceneFromScreen.y - startSceneFromScreen.y;
+                
                 const newX = startScenePos.x + deltaX;
                 const newY = startScenePos.y + deltaY;
                 
@@ -705,7 +724,17 @@ class PinDOMElement {
         const onDragEnd = async (e) => {
             if (signal.aborted) return;
             
-            if (dragStarted) {
+            // Calculate final distance to determine if this was really a drag or just a click
+            const currentScreenX = e.clientX;
+            const currentScreenY = e.clientY;
+            const screenDeltaX = currentScreenX - startScreenX;
+            const screenDeltaY = currentScreenY - startScreenY;
+            const totalDistance = Math.sqrt(screenDeltaX * screenDeltaX + screenDeltaY * screenDeltaY);
+            
+            // Decide if this was a drag or a click based on total movement
+            const wasActualDrag = totalDistance > DRAG_THRESHOLD;
+            
+            if (wasActualDrag) {
                 pinElement.style.opacity = String(pinData.style?.alpha ?? 1);
                 
                 // Use the last dragged position if available, otherwise calculate from mouse event
@@ -714,9 +743,7 @@ class PinDOMElement {
                     // Use the tracked position from the last drag move
                     finalScene = lastDraggedPosition;
                 } else {
-                    // Fallback: calculate from mouse event (shouldn't happen, but safety check)
-                    const currentScreenX = e.clientX;
-                    const currentScreenY = e.clientY;
+                    // Calculate from final mouse position
                     const currentScreenRelative = {
                         x: currentScreenX - canvasRect.left,
                         y: currentScreenY - canvasRect.top
@@ -736,12 +763,42 @@ class PinDOMElement {
                     postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error updating pin position', err?.message || err, false, true);
                 }
             } else {
-                import('./manager-pins.js').then(({ PinManager }) => {
+                // No significant drag occurred - this was a click
+                // Reset opacity if visual drag started
+                if (dragStarted) {
+                    pinElement.style.opacity = String(pinData.style?.alpha ?? 1);
+                }
+                
+                // Handle click/double-click for editable pins (we're in the drag system)
+                clickState.count++;
+                if (clickState.timeout) {
+                    clearTimeout(clickState.timeout);
+                }
+                
+                clickState.timeout = setTimeout(async () => {
+                    if (clickState.count === 1) {
+                        const { PinManager } = await import('./manager-pins.js');
+                        const modifiers = this._extractModifiers(e);
+                        const sceneId = canvas?.scene?.id || '';
+                        const userId = game.user?.id || '';
+                        PinManager._invokeHandlers('click', pinData, sceneId, userId, modifiers, e);
+                    }
+                    clickState.count = 0;
+                    clickState.timeout = null;
+                }, 300);
+                
+                // Double-click detection
+                if (clickState.count === 2) {
+                    clearTimeout(clickState.timeout);
+                    clickState.count = 0;
+                    clickState.timeout = null;
+                    
+                    const { PinManager } = await import('./manager-pins.js');
                     const modifiers = this._extractModifiers(e);
                     const sceneId = canvas?.scene?.id || '';
                     const userId = game.user?.id || '';
-                    PinManager._invokeHandlers('click', pinData, sceneId, userId, modifiers, e);
-                }).catch(() => {});
+                    PinManager._invokeHandlers('doubleClick', pinData, sceneId, userId, modifiers, e);
+                }
             }
             
             document.removeEventListener('mousemove', onDragMove);
@@ -802,16 +859,6 @@ class PinDOMElement {
                 }
             });
         }
-        
-        // Properties (always available)
-        menuItems.push({
-            name: 'Properties',
-            icon: '<i class="fa-solid fa-info-circle"></i>',
-            callback: () => {
-                const pinInfo = `ID: ${pinData.id}\nModule: ${pinData.moduleId}\nPosition: (${pinData.x}, ${pinData.y})\nText: ${pinData.text || 'None'}`;
-                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Pin properties', pinInfo, true, false);
-            }
-        });
         
         if (menuItems.length > 0) {
             this._renderContextMenu(menuItems, menuX, menuY);

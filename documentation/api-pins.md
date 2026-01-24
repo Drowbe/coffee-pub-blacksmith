@@ -247,22 +247,44 @@ const updatedPin = await pinsAPI.update(pin.id, { text: 'Hot Forge' });
 - `Error` if permission denied
 
 ### `pins.delete(pinId, options?)`
-Delete a pin from a scene.
+Delete a pin from a scene. If no `sceneId` is provided, automatically searches all scenes to find the pin.
 
 **Returns**: `Promise<void>`
 
 ```javascript
+// Delete from current scene
 await pinsAPI.delete(pin.id);
+
+// Delete from specific scene
+await pinsAPI.delete(pin.id, { sceneId: 'some-scene-id' });
+
+// Delete without knowing which scene (searches all scenes)
+await pinsAPI.delete(pin.id); // Finds and deletes from any scene
 ```
 
 **Options**:
-- `sceneId` (string, optional): target scene; defaults to active scene
+- `sceneId` (string, optional): target scene; if not provided, searches all scenes to find the pin
 - `silent` (boolean, optional): skip event emission
 
 **Throws**: 
-- `Error` if pin not found
-- `Error` if scene not found
+- `Error` if pin not found in any scene
+- `Error` if scene not found (when sceneId provided)
 - `Error` if permission denied
+
+### `pins.findScene(pinId)`
+Find which scene contains a pin with the given ID. Useful for cross-scene operations.
+
+**Returns**: `string | null` - The scene ID containing the pin, or `null` if not found
+
+```javascript
+// Find which scene has this pin
+const sceneId = pinsAPI.findScene(pinId);
+if (sceneId) {
+    console.log(`Pin is on scene: ${sceneId}`);
+    // Can now delete, update, or pan to it
+    await pinsAPI.delete(pinId, { sceneId });
+}
+```
 
 ### `pins.get(pinId, options?)`
 Get a single pin by id.
@@ -453,7 +475,7 @@ Pins can be moved by left-clicking and dragging. Only users with edit permission
 - [x] Rendering (Phase 2.1, 2.2): Pure DOM approach (no PIXI), circle/square/none shapes, Font Awesome icons and image URLs, CSS-based styling, fade-in animations
 - [x] Drag-and-drop (Phase 2.3): dropCanvasData for creation, drag-to-move, visual feedback, AbortController cleanup
 - [x] Event system (Phase 3.1, 3.2): hover/click/double-click/right-click/middle-click, modifiers, DOM event listeners, handler dispatch
-- [x] Context menu (Phase 3.3): Default items (Delete, Properties), context menu item registration system for modules
+- [x] Context menu (Phase 3.3): Default items (Delete), context menu item registration system for modules
 - [x] API: CRUD, `on()`, `registerContextMenuItem()`, `unregisterContextMenuItem()`, `reload()`, `isAvailable()`, `isReady()`, `whenReady()`; `pinsAllowPlayerWrites` setting
 - [x] Pin storage in scene flags; migration and validation on load
 - [x] Shape support: circle (default), square (rounded corners), none (icon only)

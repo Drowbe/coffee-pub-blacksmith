@@ -75,12 +75,22 @@ export class PinsAPI {
 
     /**
      * Delete a pin from a scene.
+     * If no sceneId is provided, automatically searches all scenes to find the pin.
      * @param {string} pinId
      * @param {import('./manager-pins.js').PinDeleteOptions} [options]
      * @returns {Promise<void>}
      */
     static delete(pinId, options) {
         return PinManager.delete(pinId, options);
+    }
+
+    /**
+     * Find which scene contains a pin with the given ID.
+     * @param {string} pinId - The pin ID to search for
+     * @returns {string | null} - The scene ID containing the pin, or null if not found
+     */
+    static findScene(pinId) {
+        return PinManager.findSceneForPin(pinId);
     }
 
     /**

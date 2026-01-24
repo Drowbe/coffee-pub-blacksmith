@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Pin Pan-to-Location API**: Added `pins.panTo(pinId)` method to pan the canvas to a pin's location. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin).
+- **Cross-Scene Pin Deletion**: `pins.delete(pinId)` now automatically searches all scenes to find the pin if no `sceneId` is provided. This makes it easy to delete pins from notes/UI without tracking which scene they're on.
+- **Find Pin Scene Helper**: Added `pins.findScene(pinId)` method to find which scene contains a specific pin.
 - **Pure DOM Pin Rendering**: Refactored pin rendering from hybrid PIXI+HTML approach to pure DOM approach for better layering, styling flexibility, and performance. Pins now render as HTML divs in a fixed overlay container (`#blacksmith-pins-overlay`) with `z-index: 2000`.
 - **Pin Shape Support**: Added `shape` property to pin data with support for `'circle'` (default), `'square'` (rounded corners), and `'none'` (icon only, no background). Square pins use configurable border radius via CSS variable.
 - **Double-Click Event**: Added `'doubleClick'` event type to pin event system. Double-click detection uses a 300ms window and prevents false clicks/double-clicks during drag operations.
@@ -39,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Image Rendering**: Images now render nicely within pin shapes using `background-size: cover` and circular clipping for proper fill without gaps.
 - **Drag Position Persistence**: Fixed pins snapping back to original position after drag by tracking and saving the final dragged position instead of using stale pin data.
 - **Subsequent Drag Operations**: Fixed pins jumping away from mouse cursor on second and subsequent drags by fetching fresh pin data at the start of each drag operation instead of using stale closure data.
+- **Double-Click Detection**: Fixed double-click events not firing for editable pins by removing a faulty condition that prevented the second click from being registered when a timeout from the first click was still active.
 
 ### Technical Details
 - **Coordinate Conversion**: Pins use `PIXI.Point` and `stage.toGlobal()` for converting scene coordinates to screen pixels, accounting for canvas scale and position.
