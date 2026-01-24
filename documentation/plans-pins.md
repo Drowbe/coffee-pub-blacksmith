@@ -2,7 +2,7 @@
 
 **Target**: FoundryVTT v13+ only with Application V2 API support
 
-**Last updated**: Post–Phase 4 implementation. Phases 1–4 complete; Phase 5 (automated tests) remains. Pure DOM rendering, shape support, context menu registration, RGBA colors, enhanced image support, and CSS-based styling all implemented.
+**Last updated**: Post–Phase 4 implementation with Phase 5.2 (documentation) complete. Phases 1–4 complete; Phase 5.1 (automated tests) remains. Pure DOM rendering, shape support, context menu registration, RGBA colors, enhanced image support, CSS-based styling, pin animations, and drop shadows all implemented. Pan/zoom performance optimized (removed hide/show logic).
 
 ---
 
@@ -163,6 +163,12 @@
 - [x] Pin configuration options (size, style, shape, image formats) — documented in `api-pins.md` and `architecture-pins.md`
 - [x] Permission behavior and `pinsAllowPlayerWrites` — documented in `api-pins.md`
 - [x] Context menu registration system — documented in `api-pins.md`
+- [x] Shape examples — All three shapes (`'circle'`, `'square'`, `'none'`) documented with code examples
+- [x] Animation system — `ping()` method with 11 animation types documented, including 'ping' combo animation
+- [x] Sound support — Blacksmith sound names and full paths documented with examples
+- [x] Drop shadow property — `dropShadow` property and CSS variable documented
+- [x] CSS customization — CSS variables section with examples
+- [x] Ownership examples — Four concrete examples showing different ownership patterns
 
 ---
 
@@ -170,10 +176,10 @@
 
 ### Performance Optimizations
 - **Pure DOM rendering**: Pins are HTML divs with CSS styling, no PIXI overhead
-- **Hide during pan/zoom**: Pins hide instantly during canvas pan/zoom, then update positions after debounced delay (200ms) to allow canvas to settle
-- **Fade-in animations**: Smooth 0.2s CSS transitions for pin visibility
-- **Dynamic icon measurement**: Font Awesome icons are measured after rendering for accurate centering (handles non-square icons)
+- **Pan/zoom optimization**: Pins remain visible during pan/zoom with real-time position updates (removed hide/show logic for better UX)
 - **CSS-based styling**: All styles in `pins.css` with CSS variables for easy configuration
+- **Dynamic icon measurement**: Font Awesome icons are measured after rendering for accurate centering (handles non-square icons)
+- **Pin animations**: 11 animation types using CSS keyframes for smooth, performant animations
 
 ### Event Handling
 - **AbortController**: Handler registration supports `signal`; all event listeners use AbortController pattern
