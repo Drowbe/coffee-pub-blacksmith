@@ -18,6 +18,10 @@ class PinDOMElement {
     static _container = null; // Container div for all pins
     static _updateThrottle = null;
     static _isInitialized = false;
+    static _hookIds = []; // Store hook IDs for cleanup
+    static _resizeListener = null; // Store resize listener for cleanup
+    static _reusablePoint = null; // Reusable PIXI.Point to avoid allocations (for coordinate conversion)
+    static _reusableDragPoint = null; // Reusable PIXI.Point for drag operations
 
     /**
      * Initialize the DOM pin system and hooks
@@ -41,22 +45,34 @@ class PinDOMElement {
         }
         this._container = container;
 
-        // Hook into canvas pan to update positions
-        Hooks.on('canvasPan', () => {
-            this._scheduleUpdate();
-        });
+        // Hook into canvas pan to update positions (store hook IDs for cleanup)
+        this._hookIds.push(
+            Hooks.on('canvasPan', () => {
+                this._scheduleUpdate();
+            })
+        );
         
-        Hooks.on('updateScene', () => {
-            // When scene changes, load pins for the new scene
-            this._scheduleSceneLoad();
-        });
-        Hooks.on('canvasReady', () => {
-            // When canvas becomes ready, load pins for current scene and update positions
-            this._scheduleSceneLoad();
-        });
+        this._hookIds.push(
+            Hooks.on('updateScene', () => {
+                // When scene changes, load pins for the new scene
+                this._scheduleSceneLoad();
+            })
+        );
         
-        // Update on window resize
-        window.addEventListener('resize', () => this._scheduleUpdate());
+        this._hookIds.push(
+            Hooks.on('canvasReady', () => {
+                // When canvas becomes ready, load pins for current scene and update positions
+                this._scheduleSceneLoad();
+            })
+        );
+        
+        // Update on window resize (store listener for cleanup)
+        this._resizeListener = () => this._scheduleUpdate();
+        window.addEventListener('resize', this._resizeListener);
+        
+        // Initialize reusable PIXI.Point for coordinate conversion
+        this._reusablePoint = new PIXI.Point(0, 0);
+        this._reusableDragPoint = new PIXI.Point(0, 0);
         
         this._isInitialized = true;
     }
@@ -82,9 +98,12 @@ class PinDOMElement {
             const canvasRect = canvasElement.getBoundingClientRect();
             const stage = canvas.stage;
             
-            // Use PIXI's coordinate conversion: create a point in scene space and convert to global (screen) space
-            const scenePoint = new PIXI.Point(sceneX, sceneY);
-            const globalPoint = stage.toGlobal(scenePoint);
+            // Reuse PIXI.Point to avoid allocations (performance optimization)
+            if (!this._reusablePoint) {
+                this._reusablePoint = new PIXI.Point(0, 0);
+            }
+            this._reusablePoint.set(sceneX, sceneY);
+            const globalPoint = stage.toGlobal(this._reusablePoint);
             
             // globalPoint is in screen coordinates relative to the stage container
             // Add the canvas element's position to get absolute screen coordinates
@@ -554,7 +573,12 @@ class PinDOMElement {
             x: startScreenX - canvasRect.left,
             y: startScreenY - canvasRect.top
         };
-        const startSceneFromScreen = canvas.stage.toLocal(new PIXI.Point(startScreenRelative.x, startScreenRelative.y));
+        // Reuse PIXI.Point to avoid allocations (performance optimization)
+        if (!PinDOMElement._reusableDragPoint) {
+            PinDOMElement._reusableDragPoint = new PIXI.Point(0, 0);
+        }
+        PinDOMElement._reusableDragPoint.set(startScreenRelative.x, startScreenRelative.y);
+        const startSceneFromScreen = canvas.stage.toLocal(PinDOMElement._reusableDragPoint);
         
         let dragStarted = false;
         let mouseMoved = false; // Track if mouse moved at all
@@ -610,7 +634,9 @@ class PinDOMElement {
                     x: currentScreenX - canvasRect.left,
                     y: currentScreenY - canvasRect.top
                 };
-                const currentSceneFromScreen = canvas.stage.toLocal(new PIXI.Point(currentScreenRelative.x, currentScreenRelative.y));
+                // Reuse PIXI.Point to avoid allocations
+                PinDOMElement._reusableDragPoint.set(currentScreenRelative.x, currentScreenRelative.y);
+                const currentSceneFromScreen = canvas.stage.toLocal(PinDOMElement._reusableDragPoint);
                 
                 const deltaX = currentSceneFromScreen.x - startSceneFromScreen.x;
                 const deltaY = currentSceneFromScreen.y - startSceneFromScreen.y;
@@ -660,7 +686,9 @@ class PinDOMElement {
                         x: currentScreenX - canvasRect.left,
                         y: currentScreenY - canvasRect.top
                     };
-                    finalScene = canvas.stage.toLocal(new PIXI.Point(currentScreenRelative.x, currentScreenRelative.y));
+                    // Reuse PIXI.Point to avoid allocations
+                    PinDOMElement._reusableDragPoint.set(currentScreenRelative.x, currentScreenRelative.y);
+                    finalScene = canvas.stage.toLocal(PinDOMElement._reusableDragPoint);
                 }
                 
                 try {
@@ -1109,11 +1137,37 @@ class PinDOMElement {
      * Cleanup on module unload
      */
     static cleanup() {
+        // Remove all pins
         this.clear();
+        
+        // Remove container
         if (this._container) {
             this._container.remove();
             this._container = null;
         }
+        
+        // Remove window resize listener
+        if (this._resizeListener) {
+            window.removeEventListener('resize', this._resizeListener);
+            this._resizeListener = null;
+        }
+        
+        // Remove all hook listeners
+        for (const hookId of this._hookIds) {
+            Hooks.off(hookId);
+        }
+        this._hookIds = [];
+        
+        // Clear reusable points
+        this._reusablePoint = null;
+        this._reusableDragPoint = null;
+        
+        // Cancel any pending updates
+        if (this._updateThrottle) {
+            cancelAnimationFrame(this._updateThrottle);
+            this._updateThrottle = null;
+        }
+        
         this._isInitialized = false;
     }
 }
