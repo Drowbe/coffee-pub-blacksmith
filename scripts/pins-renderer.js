@@ -43,66 +43,9 @@ class PinDOMElement {
         
         postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS DOM overlay container created', `z-index: ${container.style.zIndex}, parent: ${container.parentElement?.tagName}`, true, false);
 
-        // Hook into canvas pan/zoom to update positions
-        // Hide all pins during pan/zoom for performance, show at end
-        let panZoomTimeout = null;
+        // Hook into canvas pan to update positions
         Hooks.on('canvasPan', () => {
-            // Hide all pins immediately when panning starts
-            this._hideAllPins();
-            // Clear any pending update
-            if (this._updateThrottle) {
-                cancelAnimationFrame(this._updateThrottle);
-                this._updateThrottle = null;
-            }
-            // Clear any pending show timeout
-            if (panZoomTimeout) {
-                clearTimeout(panZoomTimeout);
-            }
-            // Show and update after pan stops (debounce with delay to let canvas settle)
-            panZoomTimeout = setTimeout(() => {
-                this._showAllPins();
-                // Additional small delay before updating positions to ensure canvas is fully settled
-                setTimeout(() => {
-                    this._scheduleUpdate();
-                }, 50);
-                panZoomTimeout = null;
-            }, 150);
-        });
-        
-        // Also handle zoom (canvasPan might not fire for zoom)
-        Hooks.on('canvasInit', () => {
-            if (canvas?.controls) {
-                const originalZoomIn = canvas.controls.zoomIn;
-                const originalZoomOut = canvas.controls.zoomOut;
-                if (originalZoomIn) {
-                    canvas.controls.zoomIn = function(...args) {
-                        PinDOMElement._hideAllPins();
-                        if (panZoomTimeout) clearTimeout(panZoomTimeout);
-                        panZoomTimeout = setTimeout(() => {
-                            PinDOMElement._showAllPins();
-                            setTimeout(() => {
-                                PinDOMElement._scheduleUpdate();
-                            }, 50);
-                            panZoomTimeout = null;
-                        }, 150);
-                        return originalZoomIn.apply(this, args);
-                    };
-                }
-                if (originalZoomOut) {
-                    canvas.controls.zoomOut = function(...args) {
-                        PinDOMElement._hideAllPins();
-                        if (panZoomTimeout) clearTimeout(panZoomTimeout);
-                        panZoomTimeout = setTimeout(() => {
-                            PinDOMElement._showAllPins();
-                            setTimeout(() => {
-                                PinDOMElement._scheduleUpdate();
-                            }, 50);
-                            panZoomTimeout = null;
-                        }, 150);
-                        return originalZoomOut.apply(this, args);
-                    };
-                }
-            }
+            this._scheduleUpdate();
         });
         
         Hooks.on('updateScene', () => {
@@ -159,22 +102,6 @@ class PinDOMElement {
         }
     }
 
-    /**
-     * Hide all pins (for performance during pan/zoom) - just hide, no fade
-     */
-    static _hideAllPins() {
-        for (const pin of this._pins.values()) {
-            pin.style.visibility = 'hidden';
-            pin.style.opacity = '0';
-        }
-    }
-
-    /**
-     * Show all pins (after pan/zoom) - show immediately, no fade
-     */
-    static _showAllPins() {
-        // Pins will be shown when updatePosition is called
-    }
 
     /**
      * Schedule a throttled update of all pin positions
@@ -259,9 +186,8 @@ class PinDOMElement {
             pinElement = document.createElement('div');
             pinElement.className = 'blacksmith-pin';
             pinElement.dataset.pinId = pinId;
-            // Start hidden - will fade in after correct position is calculated
-            pinElement.style.visibility = 'hidden';
-            pinElement.style.opacity = '0';
+            // Start with correct opacity (will be positioned immediately)
+            pinElement.style.opacity = String(pinData.style?.alpha ?? 1);
             
             // Set up event listeners
             this._setupEventListeners(pinElement, pinData);
@@ -443,20 +369,8 @@ class PinDOMElement {
                 }
             }
             
-            // Force a reflow to ensure position is applied
-            void pinElement.offsetWidth;
-            
-            // Fade in the pin if it's currently hidden (only on first creation)
-            if (pinElement.style.visibility === 'hidden' || pinElement.style.opacity === '0') {
-                pinElement.style.visibility = 'visible';
-                // Use requestAnimationFrame to ensure smooth fade-in transition
-                requestAnimationFrame(() => {
-                    pinElement.style.opacity = String(pinData.style?.alpha ?? 1);
-                });
-            } else {
-                // Already visible - just update opacity to match style (no fade)
-                pinElement.style.opacity = String(pinData.style?.alpha ?? 1);
-            }
+            // Update opacity to match style
+            pinElement.style.opacity = String(pinData.style?.alpha ?? 1);
         } catch (err) {
             postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Error updating pin position for ${pinId}`, err?.message || String(err), false, false);
         }
@@ -1404,3 +1318,7 @@ export class PinRenderer {
         PinDOMElement.cleanup();
     }
 }
+
+
+
+
