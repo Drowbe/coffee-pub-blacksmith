@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pan/Zoom Performance**: Fixed lag during canvas pan/zoom by hiding pins instantly and showing them after canvas settles, with debounced position updates.
 - **Visual Glitches**: Fixed pins appearing off-center then snapping into place by ensuring positions are calculated before pins become visible.
 - **Image Rendering**: Images now render nicely within pin shapes using `background-size: cover` and circular clipping for proper fill without gaps.
+- **Drag Position Persistence**: Fixed pins snapping back to original position after drag by tracking and saving the final dragged position instead of using stale pin data.
+- **Subsequent Drag Operations**: Fixed pins jumping away from mouse cursor on second and subsequent drags by fetching fresh pin data at the start of each drag operation instead of using stale closure data.
 
 ### Technical Details
 - **Coordinate Conversion**: Pins use `PIXI.Point` and `stage.toGlobal()` for converting scene coordinates to screen pixels, accounting for canvas scale and position.

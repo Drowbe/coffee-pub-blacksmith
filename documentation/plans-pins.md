@@ -149,12 +149,12 @@
 ### 5.1 Testing
 - [x] Manual testing of create/update/delete, `get`/`list`, `reload`, events, context menu
 - [ ] Automated tests for API contracts, permissions, migration
-- [ ] Test all event types (hoverIn/Out, click, rightClick, middleClick, modifiers)
+- [ ] Test all event types (hoverIn/Out, click, doubleClick, rightClick, middleClick, modifiers)
 - [ ] Test scene change handling and container cleanup
 - [ ] Test permission scenarios (GM vs player; `pinsAllowPlayerWrites`)
 - [ ] Test with multiple consumers (multiple modules)
 - [ ] Test performance with many pins (100+)
-- [ ] Test drag operations (when implemented)
+- [ ] Test drag operations (dragStart, dragMove, dragEnd events, position persistence)
 
 ### 5.2 Documentation
 - [x] `api-pins.md` — API reference, data types, permissions, errors, usage patterns

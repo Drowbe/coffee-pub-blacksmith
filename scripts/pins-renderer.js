@@ -499,23 +499,25 @@ class PinDOMElement {
      * @private
      */
     static _setupEventListeners(pinElement, pinData) {
+        const pinId = pinData.id; // Store pinId for fetching fresh data
+        
         // Hover events (transform handled by CSS :hover)
-        pinElement.addEventListener('mouseenter', (e) => {
-            import('./manager-pins.js').then(({ PinManager }) => {
-                const modifiers = this._extractModifiers(e);
-                const sceneId = canvas?.scene?.id || '';
-                const userId = game.user?.id || '';
-                PinManager._invokeHandlers('hoverIn', pinData, sceneId, userId, modifiers, e);
-            }).catch(() => {});
+        pinElement.addEventListener('mouseenter', async (e) => {
+            const { PinManager } = await import('./manager-pins.js');
+            const freshPinData = PinManager.get(pinId) || pinData;
+            const modifiers = this._extractModifiers(e);
+            const sceneId = canvas?.scene?.id || '';
+            const userId = game.user?.id || '';
+            PinManager._invokeHandlers('hoverIn', freshPinData, sceneId, userId, modifiers, e);
         });
         
-        pinElement.addEventListener('mouseleave', (e) => {
-            import('./manager-pins.js').then(({ PinManager }) => {
-                const modifiers = this._extractModifiers(e);
-                const sceneId = canvas?.scene?.id || '';
-                const userId = game.user?.id || '';
-                PinManager._invokeHandlers('hoverOut', pinData, sceneId, userId, modifiers, e);
-            }).catch(() => {});
+        pinElement.addEventListener('mouseleave', async (e) => {
+            const { PinManager } = await import('./manager-pins.js');
+            const freshPinData = PinManager.get(pinId) || pinData;
+            const modifiers = this._extractModifiers(e);
+            const sceneId = canvas?.scene?.id || '';
+            const userId = game.user?.id || '';
+            PinManager._invokeHandlers('hoverOut', freshPinData, sceneId, userId, modifiers, e);
         });
         
         // Click events and double-click detection
@@ -523,11 +525,15 @@ class PinDOMElement {
         let clickCount = 0;
         const clickState = { timeout: null, count: 0 };
         
-        pinElement.addEventListener('mousedown', (e) => {
+        pinElement.addEventListener('mousedown', async (e) => {
             const button = e.button;
             const modifiers = this._extractModifiers(e);
             const sceneId = canvas?.scene?.id || '';
             const userId = game.user?.id || '';
+            
+            // Get fresh pin data - pinData in closure may be stale after previous drag
+            const { PinManager } = await import('./manager-pins.js');
+            const freshPinData = PinManager.get(pinData.id) || pinData;
             
             if (button === 0) {
                 // Left click - detect double-click
@@ -536,16 +542,14 @@ class PinDOMElement {
                     clearTimeout(clickState.timeout);
                 }
                 
-                clickState.timeout = setTimeout(() => {
+                clickState.timeout = setTimeout(async () => {
                     // Single click - check if it's a drag or click
-                    if (clickState.count === 1) {
-                        import('./manager-pins.js').then(({ PinManager }) => {
-                            if (PinManager._canEdit(pinData, userId)) {
-                                this._startPotentialDrag(pinElement, pinData, e, clickState);
-                            } else {
-                                PinManager._invokeHandlers('click', pinData, sceneId, userId, modifiers, e);
-                            }
-                        }).catch(() => {});
+                    // Get fresh pin data again in case it changed
+                    const currentPinData = PinManager.get(pinData.id) || freshPinData;
+                    if (PinManager._canEdit(currentPinData, userId)) {
+                        await this._startPotentialDrag(pinElement, currentPinData, e, clickState);
+                    } else {
+                        PinManager._invokeHandlers('click', currentPinData, sceneId, userId, modifiers, e);
                     }
                     clickState.count = 0;
                     clickState.timeout = null;
@@ -557,9 +561,7 @@ class PinDOMElement {
                     clickState.count = 0;
                     clickState.timeout = null;
                     
-                    import('./manager-pins.js').then(({ PinManager }) => {
-                        PinManager._invokeHandlers('doubleClick', pinData, sceneId, userId, modifiers, e);
-                    }).catch(() => {});
+                    PinManager._invokeHandlers('doubleClick', freshPinData, sceneId, userId, modifiers, e);
                 }
             } else if (button === 2) {
                 // Right click
@@ -570,10 +572,8 @@ class PinDOMElement {
                     clickState.count = 0;
                     clickState.timeout = null;
                 }
-                import('./manager-pins.js').then(({ PinManager }) => {
-                    PinManager._invokeHandlers('rightClick', pinData, sceneId, userId, modifiers, e);
-                    this._showContextMenu(pinElement, pinData, e);
-                }).catch(() => {});
+                PinManager._invokeHandlers('rightClick', freshPinData, sceneId, userId, modifiers, e);
+                this._showContextMenu(pinElement, freshPinData, e);
             } else if (button === 1) {
                 // Middle click
                 // Clear any pending click timeout
@@ -582,9 +582,7 @@ class PinDOMElement {
                     clickState.count = 0;
                     clickState.timeout = null;
                 }
-                import('./manager-pins.js').then(({ PinManager }) => {
-                    PinManager._invokeHandlers('middleClick', pinData, sceneId, userId, modifiers, e);
-                }).catch(() => {});
+                PinManager._invokeHandlers('middleClick', freshPinData, sceneId, userId, modifiers, e);
             }
         });
     }
@@ -607,12 +605,24 @@ class PinDOMElement {
     /**
      * Start potential drag (becomes drag if mouse moves enough)
      * @param {HTMLElement} pinElement
-     * @param {PinData} pinData
+     * @param {PinData} pinData - Initial pin data (may be stale, will fetch fresh)
      * @param {MouseEvent} event
      * @param {Object} clickState - Click state object to clear timeout when drag starts
      * @private
      */
-    static _startPotentialDrag(pinElement, pinData, event, clickState) {
+    static async _startPotentialDrag(pinElement, pinData, event, clickState) {
+        // Get fresh pin data to ensure we have the current position
+        // This is important because pinData in the closure may be stale after a previous drag
+        const { PinManager } = await import('./manager-pins.js');
+        const freshPinData = PinManager.get(pinData.id);
+        if (!freshPinData) {
+            console.warn(`BLACKSMITH | PINS _startPotentialDrag: Pin ${pinData.id} not found`);
+            return;
+        }
+        
+        // Use fresh pin data
+        pinData = freshPinData;
+        
         const dragAbortController = new AbortController();
         const signal = dragAbortController.signal;
         
@@ -631,6 +641,7 @@ class PinDOMElement {
         const startSceneFromScreen = canvas.stage.toLocal(new PIXI.Point(startScreenRelative.x, startScreenRelative.y));
         
         let dragStarted = false;
+        let lastDraggedPosition = null; // Track the last dragged position
         const DRAG_THRESHOLD = 5; // pixels in scene space
         
         // Prevent Foundry selection box
@@ -676,6 +687,9 @@ class PinDOMElement {
                 const newX = startScenePos.x + deltaX;
                 const newY = startScenePos.y + deltaY;
                 
+                // Track the last dragged position
+                lastDraggedPosition = { x: newX, y: newY };
+                
                 const tempPinData = { ...pinData, x: newX, y: newY };
                 this.updatePosition(pinData.id, tempPinData);
                 
@@ -694,15 +708,21 @@ class PinDOMElement {
             if (dragStarted) {
                 pinElement.style.opacity = String(pinData.style?.alpha ?? 1);
                 
-                // Get final position from pin element
-                const finalScreen = this._sceneToScreen(pinData.x, pinData.y);
-                const canvasElement = canvas.app?.renderer?.view || canvas.app?.canvas || canvas.canvas;
-                const canvasRect = canvasElement.getBoundingClientRect();
-                const finalScreenRelative = {
-                    x: finalScreen.x - canvasRect.left,
-                    y: finalScreen.y - canvasRect.top
-                };
-                const finalScene = canvas.stage.toLocal(new PIXI.Point(finalScreenRelative.x, finalScreenRelative.y));
+                // Use the last dragged position if available, otherwise calculate from mouse event
+                let finalScene;
+                if (lastDraggedPosition) {
+                    // Use the tracked position from the last drag move
+                    finalScene = lastDraggedPosition;
+                } else {
+                    // Fallback: calculate from mouse event (shouldn't happen, but safety check)
+                    const currentScreenX = e.clientX;
+                    const currentScreenY = e.clientY;
+                    const currentScreenRelative = {
+                        x: currentScreenX - canvasRect.left,
+                        y: currentScreenY - canvasRect.top
+                    };
+                    finalScene = canvas.stage.toLocal(new PIXI.Point(currentScreenRelative.x, currentScreenRelative.y));
+                }
                 
                 try {
                     const { PinManager } = await import('./manager-pins.js');
