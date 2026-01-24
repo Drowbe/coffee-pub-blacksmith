@@ -456,6 +456,11 @@ class SocketManager {
                 postConsoleAndNotification(MODULE.NAME, "SocketManager: Error calling LatencyChecker._handleSocketMessage for latencyUpdate", error, true, false);
             }
         });
+        
+        // Pin broadcast handlers
+        // Note: PinRenderer will also register these handlers dynamically when it initializes:
+        // - 'pingPin': Broadcast pin animations to all users who can see the pin
+        // - 'panToPin': Broadcast pan-to-pin (Bring Players Here) to all users who can see the pin
 
         postConsoleAndNotification(MODULE.NAME, "SocketManager: All socket functions registered", "", true, false);
     }

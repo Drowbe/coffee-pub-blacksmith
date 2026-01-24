@@ -94,6 +94,16 @@ export class PinsAPI {
     }
 
     /**
+     * Check if a pin exists on a scene.
+     * @param {string} pinId - The pin ID to check
+     * @param {import('./manager-pins.js').PinGetOptions} [options] - Optional sceneId to check specific scene
+     * @returns {boolean} - True if pin exists, false otherwise
+     */
+    static exists(pinId, options) {
+        return PinManager.exists(pinId, options);
+    }
+
+    /**
      * Get a single pin by id.
      * @param {string} pinId
      * @param {import('./manager-pins.js').PinGetOptions} [options]
@@ -169,6 +179,29 @@ export class PinsAPI {
         if (!pin) {
             console.warn(`Pins API: Pin not found: ${pinId}`);
             return false;
+        }
+        
+        // Handle broadcast to all players
+        if (options.broadcast) {
+            try {
+                const { SocketManager } = await import('./manager-sockets.js');
+                const socket = SocketManager.getSocket();
+                
+                if (socket) {
+                    socket.emit('panToPin', {
+                        pinId,
+                        ping: options.ping || null
+                    });
+                    console.log(`BLACKSMITH | PINS Broadcast panTo to all players`, { pinId });
+                } else {
+                    console.warn('BLACKSMITH | PINS Socket not ready, broadcast panTo not sent');
+                }
+            } catch (err) {
+                console.warn('BLACKSMITH | PINS Error broadcasting panTo', err);
+            }
+            
+            // Also pan locally for the sender
+            // Fall through to local pan (don't return)
         }
         
         try {

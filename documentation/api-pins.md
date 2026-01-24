@@ -195,6 +195,35 @@ await pins.create({ id: crypto.randomUUID(), x: 1000, y: 800, moduleId: 'my-modu
 await pins.reload();
 ```
 
+### `pins.exists(pinId, options?)`
+Check if a pin exists on a scene. Useful before attempting to create a pin to avoid duplicate ID errors.
+
+**Returns**: `boolean` - True if pin exists, false otherwise
+
+```javascript
+// Check if pin exists before creating
+if (!pins.exists('my-pin-id')) {
+    await pins.create({
+        id: 'my-pin-id',
+        moduleId: 'my-module',
+        x: 1000,
+        y: 1000
+    });
+} else {
+    console.log('Pin already exists, updating instead');
+    await pins.update('my-pin-id', { x: 1000, y: 1000 });
+}
+
+// Check on a specific scene
+const existsOnOtherScene = pins.exists('my-pin-id', { sceneId: 'other-scene-id' });
+```
+
+**Options**:
+- `sceneId` (string, optional): scene to check; defaults to active scene
+
+**Throws**: 
+- No errors thrown; returns `false` if scene not found
+
 ### `pins.create(pinData, options?)`
 Create a pin on the active scene.
 
@@ -340,6 +369,11 @@ const pin = pinsAPI.get(pin.id);
 if (pin) {
   console.log('Found pin:', pin.text);
 }
+
+// Can also use pins.exists() to just check existence
+if (pins.exists('my-pin-id')) {
+    console.log('Pin exists');
+}
 ```
 
 **Options**:
@@ -441,10 +475,17 @@ await pins.panTo(pinId, {
         sound: 'modules/my-module/sounds/ping.mp3'
     } 
 });
+
+// Bring all players to this pin (broadcast) with ping
+await pins.panTo(pinId, { 
+    broadcast: true,
+    ping: { animation: 'ping', loops: 1 }
+});
 ```
 
 **Options**:
 - `sceneId` (string, optional): target scene; defaults to active scene
+- `broadcast` (boolean, optional): If `true`, pan all connected users to the pin (default: `false`). Only users who can see the pin (based on `ownership`) will be panned. The sender is also panned.
 - `ping` (boolean|object, optional): ping the pin after panning
   - If `true`: uses default 'ping' animation (combo: scale-large with sound, then ripple)
   - If object: passes options to `ping()` method (see below)
@@ -503,7 +544,7 @@ await pins.ping(pinId, {
   - `'rotate'`: 360-degree rotation
   - `'shake'`: Horizontal jiggle
 - `loops` (number, optional): Number of times to loop animation (default: 1)
-- `broadcast` (boolean, optional): If `true`, show animation to all users (default: `false`, **not yet implemented** - logs warning)
+- `broadcast` (boolean, optional): If `true`, show animation to all users who can see the pin (default: `false`). Uses Blacksmith socket system. Only users with view permissions for the pin will see the animation.
 - `sound` (string, optional): Sound to play once. Can be:
   - Blacksmith sound name: `'interface-ping-01'` (auto-resolves to `modules/coffee-pub-blacksmith/sounds/interface-ping-01.mp3`)
   - Full path: `'modules/my-module/sounds/ping.mp3'`
@@ -512,7 +553,9 @@ await pins.ping(pinId, {
 **Notes**:
 - The `'ping'` animation automatically includes the default sound (`'interface-ping-01'`) unless a custom `sound` is provided
 - Sounds play once regardless of loops
-- Broadcast functionality is not yet implemented (will log warning and play locally only)
+- Broadcast respects pin visibility: only users who can view the pin (based on `ownership` property) will see the animation
+- Broadcasting requires the Blacksmith socket system to be initialized
+- The sender of a broadcast also sees the animation locally
 - Animations are defined in `styles/pins.css` with CSS keyframes
 - Ripple creates a temporary DOM element that is removed after animation completes
 

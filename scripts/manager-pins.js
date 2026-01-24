@@ -446,6 +446,18 @@ export class PinManager {
     }
 
     /**
+     * Check if a pin exists on a scene.
+     * @param {string} pinId - The pin ID to check
+     * @param {PinGetOptions} [options] - Optional sceneId to check specific scene
+     * @returns {boolean} - True if pin exists, false otherwise
+     */
+    static exists(pinId, options = {}) {
+        const scene = this._getScene(options.sceneId);
+        const pins = this._getScenePins(scene);
+        return pins.some((p) => p.id === pinId);
+    }
+
+    /**
      * @param {Partial<PinData> & { id: string; x: number; y: number; moduleId: string }} pinData
      * @param {PinCreateOptions} [options]
      * @returns {Promise<PinData>}

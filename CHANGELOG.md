@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Drop Shadow Property**: Added `dropShadow` property to pin data (default: `true`). Adds a subtle drop shadow to pins for better visual depth and separation from the canvas background. Shadow styling is controlled via CSS variable `--blacksmith-pin-drop-shadow` for easy customization (default: `drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))`).
 - **Enhanced API Documentation**: Added comprehensive shape examples to API documentation showing all three pin shapes (`'circle'`, `'square'`, `'none'`) with code examples demonstrating usage for each shape type.
+- **Pin Animation Broadcasting**: Implemented `broadcast` parameter for `pins.ping()` method. When `broadcast: true`, animations are shown to all connected users who have permission to view the pin. Uses Blacksmith socket system with automatic permission filtering.
+- **Bring Players Here**: Added "Bring Players Here" to pin context menu. Pans all connected players to the pin and plays ping animation. Available to all users (for now). Uses `broadcast` option on `pins.panTo()` method.
+- **`pins.exists()` Helper**: Added `pins.exists(pinId, options?)` method to check if a pin already exists on a scene before attempting creation. Helps modules avoid duplicate ID errors by checking first.
 
 ### Changed
 - **Pan/Zoom Performance**: Removed pan/zoom hide/show logic. Pins now remain visible during canvas pan and zoom operations. Pure DOM rendering handles position updates smoothly without needing to hide pins, providing better UX and simpler code.

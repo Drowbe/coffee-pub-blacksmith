@@ -209,11 +209,18 @@
 
 ---
 
+## Recent Additions (Post-Phase 4)
+
+- [x] Drop shadow property with CSS variable control
+- [x] Pan/zoom optimization (removed hide/show logic)
+- [x] 'Ping' combo animation type
+- [x] Broadcast support for pin animations (socket-based, permission-filtered)
+- [x] Enhanced documentation with shape examples and ownership patterns
+
 ## Future Considerations
 
 - Pin grouping/categories
 - Pin visibility filters
-- Pin animation/effects
 - Pin templates/presets
 - Pin import/export
 - Pin search/filtering
