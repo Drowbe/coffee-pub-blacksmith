@@ -229,6 +229,37 @@ const flatPin = await pinsAPI.create({
   moduleId: 'my-module',
   dropShadow: false  // Disable drop shadow
 });
+
+// Different pin shapes
+// Circle pin (default)
+const circlePin = await pinsAPI.create({
+  id: 'circle-pin',
+  x: 1000,
+  y: 1000,
+  moduleId: 'my-module',
+  shape: 'circle',  // Round background
+  image: '<i class="fa-solid fa-location-dot"></i>'
+});
+
+// Square pin with rounded corners
+const squarePin = await pinsAPI.create({
+  id: 'square-pin',
+  x: 1100,
+  y: 1000,
+  moduleId: 'my-module',
+  shape: 'square',  // Square with rounded corners
+  image: '<i class="fa-solid fa-flag"></i>'
+});
+
+// Icon-only pin (no background shape)
+const iconPin = await pinsAPI.create({
+  id: 'icon-pin',
+  x: 1200,
+  y: 1000,
+  moduleId: 'my-module',
+  shape: 'none',  // Icon only, no background circle/square
+  image: '<i class="fa-solid fa-star"></i>'
+});
 ```
 
 **Options**:
