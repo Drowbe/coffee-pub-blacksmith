@@ -843,6 +843,35 @@ class PinDOMElement {
         }
         
         // Add default universal items (always at the end, after registered items)
+        
+        // Ping Pin (available to all users) - combo animation: scale-large then ripple
+        menuItems.push({
+            name: 'Ping Pin',
+            icon: '<i class="fa-solid fa-bell"></i>',
+            callback: async () => {
+                try {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) {
+                        // First: big scale with sound
+                        await pinsAPI.ping(pinData.id, { 
+                            animation: 'scale-large',
+                            loops: 1,
+                            sound: 'modules/coffee-pub-blacksmith/sounds/interface-ping-01.mp3'
+                        });
+                        // Then: ripple (no sound)
+                        await pinsAPI.ping(pinData.id, { 
+                            animation: 'ripple',
+                            loops: 1
+                        });
+                    } else {
+                        console.warn('BLACKSMITH | PINS Ping API not available');
+                    }
+                } catch (err) {
+                    postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error pinging pin', err?.message || err, false, true);
+                }
+            }
+        });
+        
         // Delete pin (if user can delete)
         if (canDelete) {
             menuItems.push({
@@ -1022,6 +1051,87 @@ class PinDOMElement {
     }
 
     /**
+     * Play standard animation (pulse, flash, glow, bounce, scale, rotate, shake)
+     * @param {HTMLElement} pinElement
+     * @param {string} animation
+     * @param {number} loops
+     * @private
+     */
+    static async _pingStandard(pinElement, animation, loops) {
+        const className = `blacksmith-pin-animate-${animation}`;
+        
+        // Get animation duration from CSS (computed style after class is applied)
+        pinElement.classList.add(className);
+        const style = window.getComputedStyle(pinElement);
+        const animationDuration = parseFloat(style.animationDuration) || 0.8; // fallback to 0.8s
+        const durationMs = animationDuration * 1000;
+        pinElement.classList.remove(className);
+        
+        for (let i = 0; i < loops; i++) {
+            // Add animation class
+            pinElement.classList.add(className);
+            
+            // Wait for animation to complete
+            await new Promise(resolve => setTimeout(resolve, durationMs));
+            
+            // Remove animation class
+            pinElement.classList.remove(className);
+            
+            // Small delay between loops
+            if (i < loops - 1) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+    }
+
+    /**
+     * Play ripple animation (creates expanding circle element)
+     * @param {HTMLElement} pinElement
+     * @param {number} loops
+     * @private
+     */
+    static async _pingRipple(pinElement, loops) {
+        const pinRect = pinElement.getBoundingClientRect();
+        const centerX = pinRect.left + pinRect.width / 2;
+        const centerY = pinRect.top + pinRect.height / 2;
+        const pinSize = Math.max(pinRect.width, pinRect.height); // Use larger dimension
+        
+        // Get pin color for ripple
+        const pinColor = pinElement.style.borderColor || pinElement.style.backgroundColor || '#ffffff';
+        
+        const durationMs = 1000; // ripple animation is 1s
+        
+        for (let i = 0; i < loops; i++) {
+            // Create ripple element
+            const ripple = document.createElement('div');
+            ripple.className = 'blacksmith-pin-ripple';
+            ripple.style.left = `${centerX}px`;
+            ripple.style.top = `${centerY}px`;
+            ripple.style.transform = 'translate(-50%, -50%)';
+            ripple.style.borderColor = pinColor;
+            ripple.style.color = pinColor;
+            // Set initial size to match pin size (start at edge)
+            ripple.style.setProperty('--pin-size', `${pinSize}px`);
+            
+            // Add to pin's parent container
+            if (this._container) {
+                this._container.appendChild(ripple);
+            }
+            
+            // Wait for animation to complete
+            await new Promise(resolve => setTimeout(resolve, durationMs));
+            
+            // Remove ripple element
+            ripple.remove();
+            
+            // Small delay between loops
+            if (i < loops - 1) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+    }
+
+    /**
      * Cleanup on module unload
      */
     static cleanup() {
@@ -1147,6 +1257,60 @@ export class PinRenderer {
      */
     static getPin(pinId) {
         return PinDOMElement._pins.get(pinId) || null;
+    }
+
+    /**
+     * Ping (animate) a pin to draw attention
+     * @param {string} pinId
+     * @param {Object} options
+     * @param {string} options.animation - Animation type (pulse, ripple, flash, glow, bounce, scale-small, scale-medium, scale-large, rotate, shake)
+     * @param {number} [options.loops=1] - Number of times to loop animation
+     * @param {boolean} [options.broadcast=false] - If true, show to all users (not yet implemented)
+     * @param {string} [options.sound] - Full path to sound file to play
+     * @returns {Promise<void>}
+     */
+    static async ping(pinId, options = {}) {
+        const { animation, loops = 1, broadcast = false, sound } = options;
+        
+        // Validate animation type
+        const validAnimations = [
+            'pulse', 'ripple', 'flash', 'glow', 'bounce',
+            'scale-small', 'scale-medium', 'scale-large',
+            'rotate', 'shake'
+        ];
+        
+        if (!animation || !validAnimations.includes(animation)) {
+            console.warn(`BLACKSMITH | PINS Invalid animation type: ${animation}. Valid types: ${validAnimations.join(', ')}`);
+            return;
+        }
+        
+        // Warn if broadcast requested (not yet implemented)
+        if (broadcast) {
+            console.warn('BLACKSMITH | PINS Broadcast ping not yet implemented. Only local user will see animation.');
+        }
+        
+        // Play sound if provided
+        if (sound) {
+            try {
+                await AudioHelper.play({ src: sound, volume: 0.8, loop: false }, false);
+            } catch (err) {
+                console.warn(`BLACKSMITH | PINS Failed to play sound: ${sound}`, err);
+            }
+        }
+        
+        // Get pin element
+        const pinElement = PinDOMElement._pins.get(pinId);
+        if (!pinElement) {
+            console.warn(`BLACKSMITH | PINS Cannot ping pin ${pinId}: pin element not found`);
+            return;
+        }
+        
+        // Ripple is special - creates a separate element
+        if (animation === 'ripple') {
+            await PinDOMElement._pingRipple(pinElement, loops);
+        } else {
+            await PinDOMElement._pingStandard(pinElement, animation, loops);
+        }
     }
 
     /**

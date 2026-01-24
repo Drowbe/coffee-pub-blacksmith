@@ -88,3 +88,169 @@
     visibility: hidden;
     opacity: 0;
 }
+
+/* ========================================
+   PIN ANIMATIONS (ping system)
+   ======================================== */
+
+/* Pulse - pulsing border */
+@keyframes blacksmith-pin-pulse {
+    0%, 100% {
+        box-shadow: 0 0 10px 0 rgba(255, 140, 0, 0.9);
+        border-color: rgba(255, 140, 0, 1);
+    }
+    50% {
+        box-shadow: 0 0 20px 20px rgba(255, 140, 0, 0);
+        border-color: rgba(255, 200, 0, 1);
+    }
+}
+
+.blacksmith-pin-animate-pulse {
+    animation: blacksmith-pin-pulse 0.8s ease-out;
+    /* Override any existing box-shadow during animation */
+    box-shadow: 0 0 10px 0 rgba(255, 140, 0, 0.9) !important;
+    border-color: rgba(255, 140, 0, 1) !important;
+}
+
+/* Flash - opacity flash */
+@keyframes blacksmith-pin-flash {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
+}
+
+.blacksmith-pin-animate-flash {
+    animation: blacksmith-pin-flash 0.5s ease-in-out;
+}
+
+/* Glow - glowing border effect */
+@keyframes blacksmith-pin-glow {
+    0%, 100% {
+        box-shadow: 0 0 5px currentColor;
+    }
+    50% {
+        box-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
+    }
+}
+
+.blacksmith-pin-animate-glow {
+    animation: blacksmith-pin-glow 1s ease-in-out;
+}
+
+/* Bounce - vertical bounce */
+@keyframes blacksmith-pin-bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    25% {
+        transform: translateY(-15px);
+    }
+    50% {
+        transform: translateY(0);
+    }
+    75% {
+        transform: translateY(-7px);
+    }
+}
+
+.blacksmith-pin-animate-bounce {
+    animation: blacksmith-pin-bounce 0.6s ease-in-out;
+}
+
+/* Scale Small - subtle grow/shrink */
+@keyframes blacksmith-pin-scale-small {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+}
+
+.blacksmith-pin-animate-scale-small {
+    animation: blacksmith-pin-scale-small 0.5s ease-in-out;
+}
+
+/* Scale Medium - moderate grow/shrink */
+@keyframes blacksmith-pin-scale-medium {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.35);
+    }
+}
+
+.blacksmith-pin-animate-scale-medium {
+    animation: blacksmith-pin-scale-medium 0.6s ease-in-out;
+}
+
+/* Scale Large - dramatic grow/shrink */
+@keyframes blacksmith-pin-scale-large {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.6);
+    }
+}
+
+.blacksmith-pin-animate-scale-large {
+    animation: blacksmith-pin-scale-large 0.7s ease-in-out;
+}
+
+/* Rotate - 360 degree rotation */
+@keyframes blacksmith-pin-rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.blacksmith-pin-animate-rotate {
+    animation: blacksmith-pin-rotate 0.8s ease-in-out;
+}
+
+/* Shake - horizontal jiggle */
+@keyframes blacksmith-pin-shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-5px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(5px);
+    }
+}
+
+.blacksmith-pin-animate-shake {
+    animation: blacksmith-pin-shake 0.5s ease-in-out;
+}
+
+/* Ripple - expanding circle (applied to separate ripple element) */
+@keyframes blacksmith-pin-ripple {
+    0% {
+        width: var(--pin-size, 0);
+        height: var(--pin-size, 0);
+        opacity: 0.8;
+    }
+    100% {
+        width: calc(var(--pin-size, 0) + 150px);
+        height: calc(var(--pin-size, 0) + 150px);
+        opacity: 0;
+    }
+}
+
+.blacksmith-pin-ripple {
+    position: absolute;
+    border: 3px solid currentColor;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: blacksmith-pin-ripple 1s ease-out;
+}

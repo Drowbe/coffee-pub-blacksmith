@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [13.2.1] - Pin System Enhancements
 
 ### Added
-- **Pin Pan-to-Location API**: Added `pins.panTo(pinId)` method to pan the canvas to a pin's location. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin).
+- **Pin Animation System**: Added `pins.ping(pinId, options)` method to animate pins and draw attention. Supports 10 animation types (pulse, ripple, flash, glow, bounce, scale-small/medium/large, rotate, shake), configurable loops, optional sound effects, and future broadcast support. Animations use CSS keyframes for smooth performance.
+- **Pin Pan-to-Location API**: Added `pins.panTo(pinId)` method to pan the canvas to a pin's location. Supports optional `ping` parameter to automatically animate the pin after panning. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin).
+- **Context Menu Ping**: Added "Ping Pin" option to right-click context menu (available to all users) with combo animation (scale-large followed by ripple).
 - **Cross-Scene Pin Deletion**: `pins.delete(pinId)` now automatically searches all scenes to find the pin if no `sceneId` is provided. This makes it easy to delete pins from notes/UI without tracking which scene they're on.
 - **Find Pin Scene Helper**: Added `pins.findScene(pinId)` method to find which scene contains a specific pin.
 - **Pure DOM Pin Rendering**: Refactored pin rendering from hybrid PIXI+HTML approach to pure DOM approach for better layering, styling flexibility, and performance. Pins now render as HTML divs in a fixed overlay container (`#blacksmith-pins-overlay`) with `z-index: 2000`.

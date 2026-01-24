@@ -363,7 +363,7 @@ pinsAPI.on('click', handler, { signal: controller.signal });
 - `Error` if handler is not a function
 
 ### `pins.panTo(pinId, options?)`
-Pan the canvas to center on a pin's location. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin).
+Pan the canvas to center on a pin's location. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin). Optionally ping the pin after panning to draw attention.
 
 **Returns**: `Promise<boolean>` - Returns `true` if pan was successful, `false` if pin not found or canvas not ready
 
@@ -376,13 +376,77 @@ if (pinId) {
         console.log('Panned to pin');
     }
 }
+
+// Pan and ping with default animation (scale-large + ripple combo)
+await pins.panTo(pinId, { ping: true });
+
+// Pan and ping with custom animation
+await pins.panTo(pinId, { 
+    ping: { 
+        animation: 'ripple', 
+        loops: 3,
+        sound: 'modules/my-module/sounds/ping.mp3'
+    } 
+});
 ```
 
 **Options**:
 - `sceneId` (string, optional): target scene; defaults to active scene
+- `ping` (boolean|object, optional): ping the pin after panning
+  - If `true`: uses default combo animation (scale-large, then ripple)
+  - If object: passes options to `ping()` method (see below)
 
 **Throws**: 
 - No errors thrown; returns `false` if pin not found or canvas not ready
+
+### `pins.ping(pinId, options)`
+Ping (animate) a pin to draw attention to it. Useful for highlighting pins, showing navigation targets, or responding to game events.
+
+**Returns**: `Promise<void>`
+
+```javascript
+// Pulse animation (2 loops)
+await pins.ping(pinId, { animation: 'pulse', loops: 2 });
+
+// Ripple animation with sound
+await pins.ping(pinId, { 
+    animation: 'ripple', 
+    loops: 1,
+    sound: 'modules/my-module/sounds/alert.mp3'
+});
+
+// Scale animation
+await pins.ping(pinId, { animation: 'scale-large', loops: 3 });
+
+// Broadcast to all users (not yet implemented - logs warning)
+await pins.ping(pinId, { 
+    animation: 'glow', 
+    loops: 1,
+    broadcast: true 
+});
+```
+
+**Options** (all required except as noted):
+- `animation` (string, **required**): Animation type
+  - `'pulse'`: Pulsing border
+  - `'ripple'`: Expanding circle emanating from pin
+  - `'flash'`: Opacity flash
+  - `'glow'`: Glowing border effect
+  - `'bounce'`: Vertical bounce
+  - `'scale-small'`: Subtle grow/shrink (1x → 1.15x → 1x)
+  - `'scale-medium'`: Moderate grow/shrink (1x → 1.35x → 1x)
+  - `'scale-large'`: Dramatic grow/shrink (1x → 1.6x → 1x)
+  - `'rotate'`: 360-degree rotation
+  - `'shake'`: Horizontal jiggle
+- `loops` (number, optional): Number of times to loop animation (default: 1)
+- `broadcast` (boolean, optional): If `true`, show animation to all users (default: `false`, **not yet implemented** - logs warning)
+- `sound` (string, optional): Full path to sound file to play once (e.g., `'modules/my-module/sounds/ping.mp3'`)
+
+**Notes**:
+- Sounds play once regardless of loops
+- Broadcast functionality is not yet implemented (will log warning and play locally only)
+- Animations are defined in `styles/pins.css` with CSS keyframes
+- Ripple creates a temporary DOM element that is removed after animation completes
 
 ### `pins.reload(options?)`
 Reload pins from scene flags and re-render on the canvas. Use when pins exist in data but don’t appear (e.g. after refresh or scene change). Calls via API only; no dynamic imports.
@@ -475,7 +539,7 @@ Pins can be moved by left-clicking and dragging. Only users with edit permission
 - [x] Rendering (Phase 2.1, 2.2): Pure DOM approach (no PIXI), circle/square/none shapes, Font Awesome icons and image URLs, CSS-based styling, fade-in animations
 - [x] Drag-and-drop (Phase 2.3): dropCanvasData for creation, drag-to-move, visual feedback, AbortController cleanup
 - [x] Event system (Phase 3.1, 3.2): hover/click/double-click/right-click/middle-click, modifiers, DOM event listeners, handler dispatch
-- [x] Context menu (Phase 3.3): Default items (Delete), context menu item registration system for modules
+- [x] Context menu (Phase 3.3): Default items (Ping Pin, Delete), context menu item registration system for modules
 - [x] API: CRUD, `on()`, `registerContextMenuItem()`, `unregisterContextMenuItem()`, `reload()`, `isAvailable()`, `isReady()`, `whenReady()`; `pinsAllowPlayerWrites` setting
 - [x] Pin storage in scene flags; migration and validation on load
 - [x] Shape support: circle (default), square (rounded corners), none (icon only)

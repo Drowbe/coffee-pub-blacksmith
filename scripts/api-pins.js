@@ -154,7 +154,9 @@ export class PinsAPI {
      * Pan the canvas to center on a pin's location.
      * Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin).
      * @param {string} pinId - The pin ID to pan to
-     * @param {PinGetOptions} [options] - Options including optional sceneId
+     * @param {Object} [options] - Options
+     * @param {string} [options.sceneId] - Optional scene ID
+     * @param {boolean|Object} [options.ping] - Ping the pin after panning. If true, uses default pulse animation. If object, passes to ping()
      * @returns {Promise<boolean>} - Returns true if pan was successful, false if pin not found or canvas not ready
      */
     static async panTo(pinId, options = {}) {
@@ -171,11 +173,43 @@ export class PinsAPI {
         
         try {
             await canvas.animatePan({ x: pin.x, y: pin.y });
+            
+            // Ping after pan if requested
+            if (options.ping) {
+                if (options.ping === true) {
+                    // Default combo: scale-large with sound, then ripple
+                    await this.ping(pinId, { 
+                        animation: 'scale-large', 
+                        loops: 1,
+                        sound: 'modules/coffee-pub-blacksmith/sounds/interface-ping-01.mp3'
+                    });
+                    await this.ping(pinId, { animation: 'ripple', loops: 1 });
+                } else {
+                    // Custom ping options
+                    await this.ping(pinId, options.ping);
+                }
+            }
+            
             return true;
         } catch (err) {
             console.error('Pins API: Error panning to pin', err);
             return false;
         }
+    }
+
+    /**
+     * Ping (animate) a pin to draw attention to it.
+     * @param {string} pinId - Pin ID to ping
+     * @param {Object} options - Ping options
+     * @param {string} options.animation - Animation type: 'pulse', 'ripple', 'flash', 'glow', 'bounce', 'scale-small', 'scale-medium', 'scale-large', 'rotate', 'shake'
+     * @param {number} [options.loops=1] - Number of times to loop animation (default: 1)
+     * @param {boolean} [options.broadcast=false] - If true, show animation to all users (not yet implemented, logs warning)
+     * @param {string} [options.sound] - Full path to sound file to play (e.g., 'modules/my-module/sounds/ping.mp3')
+     * @returns {Promise<void>}
+     */
+    static async ping(pinId, options) {
+        const { PinRenderer } = await import('./pins-renderer.js');
+        return PinRenderer.ping(pinId, options);
     }
 
     /**
