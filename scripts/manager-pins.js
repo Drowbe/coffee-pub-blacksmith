@@ -190,8 +190,6 @@ export class PinManager {
         });
         
         // Scene change hooks are handled in blacksmith.js to avoid circular dependency
-        
-        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS PinManager initialized', '', true, false);
     }
 
     /**
@@ -200,7 +198,6 @@ export class PinManager {
     static cleanup() {
         this.clearHandlers();
         this._handlerCounter = 0;
-        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS PinManager: Cleanup complete', '', true, false);
     }
 
     /**
@@ -438,11 +435,9 @@ export class PinManager {
     static clearHandlers(context) {
         if (context) {
             // Future: support context-based cleanup
-            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Context-based handler cleanup not yet implemented', context, true, false);
             return;
         }
         this._eventHandlers.clear();
-        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS All event handlers cleared', '', true, false);
     }
 
     /**
@@ -485,16 +480,12 @@ export class PinManager {
                 // Ensure system is initialized
                 if (!PinRenderer.getContainer()) {
                     // System not ready yet - pin will be loaded when scene activates
-                    postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Pin created (will render on scene activation): ${pin.id}`, '', true, false);
                     return;
                 }
                 await PinRenderer.updatePin(pin);
-                postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Pin created and rendered: ${pin.id}`, '', true, false);
             }).catch(err => {
                 console.error('BLACKSMITH | PINS Error updating renderer after create:', err);
             });
-        } else {
-            postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Pin created (different scene): ${pin.id}`, '', true, false);
         }
         
         return foundry.utils.deepClone(pin);
@@ -550,16 +541,12 @@ export class PinManager {
                 // Ensure system is initialized
                 if (!PinRenderer.getContainer()) {
                     // System not ready yet - pin will be loaded when scene activates
-                    postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Pin updated (will render on scene activation): ${pinId}`, '', true, false);
                     return;
                 }
                 await PinRenderer.updatePin(updated);
-                postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Pin updated and rendered: ${pinId}`, '', true, false);
             }).catch(err => {
                 console.error('BLACKSMITH | PINS Error updating renderer after update:', err);
             });
-        } else {
-            postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Pin updated (different scene): ${pinId}`, '', true, false);
         }
         
         return foundry.utils.deepClone(updated);
@@ -599,12 +586,9 @@ export class PinManager {
         if (scene.id === canvas?.scene?.id) {
             import('./pins-renderer.js').then(({ PinRenderer }) => {
                 PinRenderer.removePin(pinId);
-                postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Pin deleted and removed from canvas: ${pinId}`, '', true, false);
             }).catch(err => {
                 console.error('BLACKSMITH | PINS Error removing pin from renderer:', err);
             });
-        } else {
-            postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Pin deleted (different scene): ${pinId}`, '', true, false);
         }
     }
 

@@ -192,7 +192,6 @@ export class PinsAPI {
                         pinId,
                         ping: options.ping || null
                     });
-                    console.log(`BLACKSMITH | PINS Broadcast panTo to all players`, { pinId });
                 } else {
                     console.warn('BLACKSMITH | PINS Socket not ready, broadcast panTo not sent');
                 }

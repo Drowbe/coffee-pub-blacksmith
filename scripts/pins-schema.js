@@ -61,7 +61,7 @@ const MIGRATION_MAP = new Map();
 // ------------------------------------------------------------------
 
 function _log(msg, detail = '') {
-    postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS schema: ${msg}`, detail, true, false);
+    // Silent - validation messages not needed in production
 }
 
 /**

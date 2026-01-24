@@ -40,8 +40,6 @@ class PinDOMElement {
             document.body.appendChild(container);
         }
         this._container = container;
-        
-        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS DOM overlay container created', `z-index: ${container.style.zIndex}, parent: ${container.parentElement?.tagName}`, true, false);
 
         // Hook into canvas pan to update positions
         Hooks.on('canvasPan', () => {
@@ -61,7 +59,6 @@ class PinDOMElement {
         window.addEventListener('resize', () => this._scheduleUpdate());
         
         this._isInitialized = true;
-        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS DOM pin system initialized', '', true, false);
     }
 
     /**
@@ -310,8 +307,6 @@ class PinDOMElement {
                 }, 100);
             });
         }
-        
-        postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Pin DOM element created for pin ${pinId}`, `Image: ${image || 'none'}, Canvas ready: ${canvas?.ready}`, true, false);
     }
 
     /**
@@ -328,7 +323,6 @@ class PinDOMElement {
         }
 
         if (!canvas?.stage || !canvas?.app) {
-            console.log(`BLACKSMITH | PINS updatePosition: Canvas not ready for ${pinId}`);
             return;
         }
 
@@ -394,8 +388,6 @@ class PinDOMElement {
             return;
         }
 
-        console.log(`BLACKSMITH | PINS updateAllPositions: Updating ${this._pins.size} pin(s) using unified calculation`);
-
         import('./manager-pins.js').then(({ PinManager }) => {
             let updated = 0;
             for (const [pinId, pinElement] of this._pins.entries()) {
@@ -407,9 +399,8 @@ class PinDOMElement {
                     console.warn(`BLACKSMITH | PINS updateAllPositions: No pin data for ${pinId}`);
                 }
             }
-            console.log(`BLACKSMITH | PINS updateAllPositions: Updated ${updated} pin(s) using unified calculation`);
         }).catch(err => {
-            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error updating pin positions', err?.message || String(err), false, false);
+            console.error('BLACKSMITH | PINS Error updating pin positions', err?.message || String(err));
         });
     }
 
@@ -820,7 +811,6 @@ class PinDOMElement {
                     try {
                         const { PinManager } = await import('./manager-pins.js');
                         await PinManager.delete(pinData.id);
-                        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Pin deleted', pinData.id, true, false);
                     } catch (err) {
                         postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error deleting pin', err?.message || err, false, true);
                     }
@@ -1145,8 +1135,6 @@ export class PinRenderer {
         
         // Register socket handlers for broadcast pings
         this._registerSocketHandlers();
-        
-        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Renderer initialized', '', true, false);
     }
     
     /**
@@ -1187,8 +1175,6 @@ export class PinRenderer {
                     sound: sound || null,
                     broadcast: false // Prevent infinite loop
                 });
-                
-                postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Received broadcast ping from ${senderId}`, { pinId, animation }, true, false);
             });
             
             // Register handler for receiving broadcast panTo (Bring Players Here)
@@ -1211,12 +1197,9 @@ export class PinRenderer {
                     ping: ping || null,
                     broadcast: false // Prevent infinite loop
                 });
-                
-                postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Received broadcast panTo from ${senderId}`, { pinId }, true, false);
             });
             
             this._socketRegistered = true;
-            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Socket handlers registered', '', true, false);
             
         } catch (error) {
             console.warn('BLACKSMITH | PINS Error registering socket handlers', error);
@@ -1262,13 +1245,9 @@ export class PinRenderer {
             const userId = game.user?.id || '';
             const visiblePins = pins.filter(pin => PinManager._canView(pin, userId));
 
-            postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Loading ${visiblePins.length}/${pins.length} visible pin(s) for scene`, sceneId, true, false);
-
             for (const pinData of visiblePins) {
                 await this._addPin(pinData);
             }
-
-            postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Loaded ${visiblePins.length} pin(s) for scene`, sceneId, true, false);
             
             if (canvas?.ready && canvas?.stage && canvas?.app) {
                 setTimeout(() => {
@@ -1311,7 +1290,6 @@ export class PinRenderer {
             // User can no longer see the pin - remove it if it exists
             if (PinDOMElement._pins.has(pinData.id)) {
                 PinDOMElement.removePin(pinData.id);
-                postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Pin ${pinData.id} removed (no longer visible)`, '', true, false);
             }
         }
     }
@@ -1426,7 +1404,6 @@ export class PinRenderer {
                     loops,
                     sound: sound || null
                 });
-                postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Broadcast ping to all users`, { pinId, animation }, true, false);
             } else {
                 console.warn('BLACKSMITH | PINS Socket not ready, broadcast ping not sent');
             }
