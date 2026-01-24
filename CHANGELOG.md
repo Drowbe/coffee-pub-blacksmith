@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pin Visibility**: Pins now properly load and display on scene activation. Added `_scheduleSceneLoad()` method to ensure pins are loaded after canvas is fully initialized.
 
 ### Fixed
+- **Ownership Visibility**: Fixed pins to only render for users with view permissions. Pins now respect the `ownership` property and automatically filter based on user permissions during scene load and updates.
+- **Ownership Permission Bug**: Fixed `_canView()` to require at least LIMITED (level 1) permission instead of incorrectly allowing NONE (level 0).
 - **Pin Positioning**: Fixed icon centering issues by dynamically measuring Font Awesome icon dimensions after rendering instead of assuming square dimensions.
 - **Scene Load**: Fixed pins not appearing on scene load until a new pin was added. Pins now load automatically when scenes activate.
 - **Pan/Zoom Performance**: Fixed lag during canvas pan/zoom by hiding pins instantly and showing them after canvas settles, with debounced position updates.

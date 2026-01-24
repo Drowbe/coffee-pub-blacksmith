@@ -181,7 +181,7 @@ export class PinsAPI {
                     await this.ping(pinId, { 
                         animation: 'scale-large', 
                         loops: 1,
-                        sound: 'modules/coffee-pub-blacksmith/sounds/interface-ping-01.mp3'
+                        sound: 'interface-ping-01'
                     });
                     await this.ping(pinId, { animation: 'ripple', loops: 1 });
                 } else {
@@ -204,7 +204,7 @@ export class PinsAPI {
      * @param {string} options.animation - Animation type: 'pulse', 'ripple', 'flash', 'glow', 'bounce', 'scale-small', 'scale-medium', 'scale-large', 'rotate', 'shake'
      * @param {number} [options.loops=1] - Number of times to loop animation (default: 1)
      * @param {boolean} [options.broadcast=false] - If true, show animation to all users (not yet implemented, logs warning)
-     * @param {string} [options.sound] - Full path to sound file to play (e.g., 'modules/my-module/sounds/ping.mp3')
+     * @param {string} [options.sound] - Sound to play. Can be blacksmith sound name ('interface-ping-01') or full path ('modules/my-module/sounds/ping.mp3')
      * @returns {Promise<void>}
      */
     static async ping(pinId, options) {

@@ -1,6 +1,6 @@
 # Canvas Pins API Documentation
 
-> **Status**: Phases 1–3 complete. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Phase 4–5 (docs, tests) remain.
+> **Status**: Phases 1–3 complete. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 10 animation types and sound support. Automatic visibility filtering based on ownership permissions. Phase 4–5 (docs, tests) remain.
 
 ## Overview
 
@@ -380,7 +380,16 @@ if (pinId) {
 // Pan and ping with default animation (scale-large + ripple combo)
 await pins.panTo(pinId, { ping: true });
 
-// Pan and ping with custom animation
+// Pan and ping with custom animation (blacksmith sound)
+await pins.panTo(pinId, { 
+    ping: { 
+        animation: 'ripple', 
+        loops: 3,
+        sound: 'interface-notification-01'
+    } 
+});
+
+// Or with custom sound from your module
 await pins.panTo(pinId, { 
     ping: { 
         animation: 'ripple', 
@@ -408,7 +417,14 @@ Ping (animate) a pin to draw attention to it. Useful for highlighting pins, show
 // Pulse animation (2 loops)
 await pins.ping(pinId, { animation: 'pulse', loops: 2 });
 
-// Ripple animation with sound
+// Ripple animation with sound (blacksmith sound name)
+await pins.ping(pinId, { 
+    animation: 'ripple', 
+    loops: 1,
+    sound: 'interface-ping-01'
+});
+
+// Or with full path
 await pins.ping(pinId, { 
     animation: 'ripple', 
     loops: 1,
@@ -440,7 +456,10 @@ await pins.ping(pinId, {
   - `'shake'`: Horizontal jiggle
 - `loops` (number, optional): Number of times to loop animation (default: 1)
 - `broadcast` (boolean, optional): If `true`, show animation to all users (default: `false`, **not yet implemented** - logs warning)
-- `sound` (string, optional): Full path to sound file to play once (e.g., `'modules/my-module/sounds/ping.mp3'`)
+- `sound` (string, optional): Sound to play once. Can be:
+  - Blacksmith sound name: `'interface-ping-01'` (auto-resolves to `modules/coffee-pub-blacksmith/sounds/interface-ping-01.mp3`)
+  - Full path: `'modules/my-module/sounds/ping.mp3'`
+  - URL: `'https://example.com/sound.mp3'`
 
 **Notes**:
 - Sounds play once regardless of loops
@@ -472,6 +491,65 @@ const result = await pins.reload();
 - Create/update/delete default to GM-only unless the PinManager configuration allows otherwise.
 - `ownership` uses Foundry ownership levels (`CONST.DOCUMENT_OWNERSHIP_LEVELS`); GM always has full access.
 - Ownership should be supplied by the calling module per its needs; Blacksmith enforces and validates it.
+- **Visibility Filtering**: Pins are automatically filtered during rendering based on ownership. Only pins the current user has permission to view (LIMITED level or higher) are displayed on the canvas.
+
+#### Ownership Levels
+- **NONE (0)**: User cannot see the pin (GM-only)
+- **LIMITED (1)**: User can see the pin
+- **OBSERVER (2)**: User can see the pin (standard visibility)
+- **OWNER (3)**: User can see and edit the pin (if `pinsAllowPlayerWrites` is enabled)
+
+#### Ownership Examples
+
+**GM-Only Pin** (hidden from all players):
+```javascript
+await pins.create({
+  id: 'secret-pin',
+  x: 1000,
+  y: 1500,
+  moduleId: 'my-module',
+  ownership: { default: 0 }  // NONE - only GMs can see
+});
+```
+
+**Visible to Everyone**:
+```javascript
+await pins.create({
+  id: 'quest-marker',
+  x: 1000,
+  y: 1500,
+  moduleId: 'my-module',
+  ownership: { default: 2 }  // OBSERVER - all users can see
+});
+```
+
+**Visible to Specific User Only**:
+```javascript
+await pins.create({
+  id: 'player-note',
+  x: 1000,
+  y: 1500,
+  moduleId: 'my-module',
+  ownership: { 
+    default: 0,                    // NONE - hidden by default
+    'user-abc-123': 2              // This specific user can see it
+  }
+});
+```
+
+**Visible to All, Editable by One Player**:
+```javascript
+await pins.create({
+  id: 'shared-marker',
+  x: 1000,
+  y: 1500,
+  moduleId: 'my-module',
+  ownership: { 
+    default: 2,                    // OBSERVER - everyone can see
+    'user-abc-123': 3              // This user can edit (if pinsAllowPlayerWrites enabled)
+  }
+});
+```
 
 ### Error Handling
 - API calls validate input and throw on invalid data or missing scene.

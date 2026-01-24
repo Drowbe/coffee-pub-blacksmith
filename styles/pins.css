@@ -126,18 +126,27 @@
     animation: blacksmith-pin-flash 0.5s ease-in-out;
 }
 
-/* Glow - glowing border effect */
+/* Glow - glowing border effect (3 pulses per loop) */
 @keyframes blacksmith-pin-glow {
     0%, 100% {
-        box-shadow: 0 0 5px currentColor;
+        box-shadow: 0 0 5px 2px rgba(255, 180, 0, 0.4);
+        border-color: rgba(255, 180, 0, 0.6);
     }
-    50% {
-        box-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
+    16.6%, 50%, 83.3% {
+        box-shadow: 0 0 25px 12px rgba(255, 200, 0, 0.9), 0 0 40px 20px rgba(255, 200, 0, 0.5);
+        border-color: rgba(255, 200, 0, 1);
+    }
+    33.3%, 66.6% {
+        box-shadow: 0 0 5px 2px rgba(255, 180, 0, 0.4);
+        border-color: rgba(255, 180, 0, 0.6);
     }
 }
 
 .blacksmith-pin-animate-glow {
-    animation: blacksmith-pin-glow 1s ease-in-out;
+    animation: blacksmith-pin-glow 1.5s ease-in-out;
+    /* Override existing shadows during animation */
+    box-shadow: 0 0 5px 2px rgba(255, 180, 0, 0.4) !important;
+    border-color: rgba(255, 180, 0, 0.6) !important;
 }
 
 /* Bounce - vertical bounce */
@@ -160,46 +169,64 @@
     animation: blacksmith-pin-bounce 0.6s ease-in-out;
 }
 
-/* Scale Small - subtle grow/shrink */
+/* Scale Small - subtle grow/shrink with rebound */
 @keyframes blacksmith-pin-scale-small {
-    0%, 100% {
+    0% {
         transform: scale(1);
     }
     50% {
         transform: scale(1.15);
     }
+    75% {
+        transform: scale(0.95);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 .blacksmith-pin-animate-scale-small {
-    animation: blacksmith-pin-scale-small 0.5s ease-in-out;
+    animation: blacksmith-pin-scale-small 0.6s ease-in-out;
 }
 
-/* Scale Medium - moderate grow/shrink */
+/* Scale Medium - moderate grow/shrink with rebound */
 @keyframes blacksmith-pin-scale-medium {
-    0%, 100% {
+    0% {
         transform: scale(1);
     }
     50% {
         transform: scale(1.35);
     }
+    75% {
+        transform: scale(0.92);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 .blacksmith-pin-animate-scale-medium {
-    animation: blacksmith-pin-scale-medium 0.6s ease-in-out;
+    animation: blacksmith-pin-scale-medium 0.7s ease-in-out;
 }
 
-/* Scale Large - dramatic grow/shrink */
+/* Scale Large - dramatic grow/shrink with rebound */
 @keyframes blacksmith-pin-scale-large {
-    0%, 100% {
+    0% {
         transform: scale(1);
     }
     50% {
         transform: scale(1.6);
     }
+    75% {
+        transform: scale(0.90);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 .blacksmith-pin-animate-scale-large {
-    animation: blacksmith-pin-scale-large 0.7s ease-in-out;
+    animation: blacksmith-pin-scale-large 0.8s ease-in-out;
 }
 
 /* Rotate - 360 degree rotation */

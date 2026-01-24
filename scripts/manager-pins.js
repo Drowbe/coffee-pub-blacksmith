@@ -138,7 +138,7 @@ export class PinManager {
         const level = ow.users && typeof ow.users[userId] === 'number'
             ? ow.users[userId]
             : (typeof ow.default === 'number' ? ow.default : NONE);
-        return level >= NONE;
+        return level > NONE; // Must have at least LIMITED (1) to view
     }
 
     /**

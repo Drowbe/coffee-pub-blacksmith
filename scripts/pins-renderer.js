@@ -856,7 +856,7 @@ class PinDOMElement {
                         await pinsAPI.ping(pinData.id, { 
                             animation: 'scale-large',
                             loops: 1,
-                            sound: 'modules/coffee-pub-blacksmith/sounds/interface-ping-01.mp3'
+                            sound: 'interface-ping-01'
                         });
                         // Then: ripple (no sound)
                         await pinsAPI.ping(pinData.id, { 
@@ -884,6 +884,41 @@ class PinDOMElement {
                         postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Pin deleted', pinData.id, true, false);
                     } catch (err) {
                         postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error deleting pin', err?.message || err, false, true);
+                    }
+                }
+            });
+        }
+        
+        // Ping animations (for testing - all animation types)
+        const animations = [
+            { name: 'Bounce', animation: 'bounce', icon: '<i class="fa-solid fa-arrow-up-short-wide"></i>' },
+            { name: 'Pulse', animation: 'pulse', icon: '<i class="fa-solid fa-heart-pulse"></i>' },
+            { name: 'Ripple', animation: 'ripple', icon: '<i class="fa-solid fa-water"></i>' },
+            { name: 'Flash', animation: 'flash', icon: '<i class="fa-solid fa-bolt"></i>' },
+            { name: 'Glow', animation: 'glow', icon: '<i class="fa-solid fa-sun"></i>' },
+            { name: 'Scale Small', animation: 'scale-small', icon: '<i class="fa-solid fa-magnifying-glass"></i>' },
+            { name: 'Scale Medium', animation: 'scale-medium', icon: '<i class="fa-solid fa-magnifying-glass-plus"></i>' },
+            { name: 'Scale Large', animation: 'scale-large', icon: '<i class="fa-solid fa-expand"></i>' },
+            { name: 'Rotate', animation: 'rotate', icon: '<i class="fa-solid fa-rotate"></i>' },
+            { name: 'Shake', animation: 'shake', icon: '<i class="fa-solid fa-shake"></i>' }
+        ];
+        
+        for (const anim of animations) {
+            menuItems.push({
+                name: anim.name,
+                icon: anim.icon,
+                callback: async () => {
+                    try {
+                        const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                        if (pinsAPI) {
+                            await pinsAPI.ping(pinData.id, { 
+                                animation: anim.animation
+                            });
+                        } else {
+                            console.warn('BLACKSMITH | PINS Ping API not available');
+                        }
+                    } catch (err) {
+                        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error pinging pin', err?.message || err, false, true);
                     }
                 }
             });
@@ -1195,11 +1230,18 @@ export class PinRenderer {
         }
 
         try {
-            for (const pinData of pins) {
+            // Filter pins based on visibility permissions
+            const { PinManager } = await import('./manager-pins.js');
+            const userId = game.user?.id || '';
+            const visiblePins = pins.filter(pin => PinManager._canView(pin, userId));
+
+            postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Loading ${visiblePins.length}/${pins.length} visible pin(s) for scene`, sceneId, true, false);
+
+            for (const pinData of visiblePins) {
                 await this._addPin(pinData);
             }
 
-            postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Loaded ${pins.length} pin(s) for scene`, sceneId, true, false);
+            postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Loaded ${visiblePins.length} pin(s) for scene`, sceneId, true, false);
             
             if (canvas?.ready && canvas?.stage && canvas?.app) {
                 setTimeout(() => {
@@ -1231,7 +1273,20 @@ export class PinRenderer {
      * @param {PinData} pinData
      */
     static async updatePin(pinData) {
-        PinDOMElement.createOrUpdatePin(pinData.id, pinData);
+        // Check visibility before updating
+        const { PinManager } = await import('./manager-pins.js');
+        const userId = game.user?.id || '';
+        
+        if (PinManager._canView(pinData, userId)) {
+            // User can see the pin - create or update it
+            PinDOMElement.createOrUpdatePin(pinData.id, pinData);
+        } else {
+            // User can no longer see the pin - remove it if it exists
+            if (PinDOMElement._pins.has(pinData.id)) {
+                PinDOMElement.removePin(pinData.id);
+                postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Pin ${pinData.id} removed (no longer visible)`, '', true, false);
+            }
+        }
     }
 
     /**
@@ -1260,13 +1315,33 @@ export class PinRenderer {
     }
 
     /**
+     * Resolve sound path - accepts full path or blacksmith sound name
+     * @param {string} sound - Full path or sound name (e.g., 'interface-ping-01' or 'modules/.../sound.mp3')
+     * @returns {string} - Full sound path
+     * @private
+     */
+    static _resolveSoundPath(sound) {
+        if (!sound) return null;
+        
+        // If it's already a full path (starts with 'modules/' or 'http'), return as-is
+        if (sound.startsWith('modules/') || sound.startsWith('http://') || sound.startsWith('https://') || sound.startsWith('/')) {
+            return sound;
+        }
+        
+        // Otherwise, treat as blacksmith sound name
+        // Add .mp3 if not present
+        const soundFile = sound.endsWith('.mp3') ? sound : `${sound}.mp3`;
+        return `modules/${MODULE.ID}/sounds/${soundFile}`;
+    }
+
+    /**
      * Ping (animate) a pin to draw attention
      * @param {string} pinId
      * @param {Object} options
      * @param {string} options.animation - Animation type (pulse, ripple, flash, glow, bounce, scale-small, scale-medium, scale-large, rotate, shake)
      * @param {number} [options.loops=1] - Number of times to loop animation
      * @param {boolean} [options.broadcast=false] - If true, show to all users (not yet implemented)
-     * @param {string} [options.sound] - Full path to sound file to play
+     * @param {string} [options.sound] - Sound path (full path or blacksmith sound name like 'interface-ping-01')
      * @returns {Promise<void>}
      */
     static async ping(pinId, options = {}) {
@@ -1292,7 +1367,8 @@ export class PinRenderer {
         // Play sound if provided
         if (sound) {
             try {
-                await AudioHelper.play({ src: sound, volume: 0.8, loop: false }, false);
+                const soundPath = PinRenderer._resolveSoundPath(sound);
+                await AudioHelper.play({ src: soundPath, volume: 0.8, loop: false }, false);
             } catch (err) {
                 console.warn(`BLACKSMITH | PINS Failed to play sound: ${sound}`, err);
             }
