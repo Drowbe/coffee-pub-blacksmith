@@ -282,13 +282,20 @@ class PinDOMElement {
         }
 
         // Update pin styling (circle background)
+        // Support hex colors (#000000), RGBA (rgba(0, 0, 0, 0.5)), rgb, hsl, named colors, etc.
+        // CSS natively accepts all these formats
         const fillColor = style?.fill || '#000000';
         const strokeColor = style?.stroke || '#ffffff';
         const strokeWidth = typeof style?.strokeWidth === 'number' ? style.strokeWidth : 2;
         const alpha = typeof style?.alpha === 'number' ? style.alpha : 1;
         
+        // Apply colors - CSS supports: hex, rgb, rgba, hsl, hsla, named colors
         pinElement.style.backgroundColor = fillColor;
         pinElement.style.border = `${strokeWidth}px solid ${strokeColor}`;
+        
+        // Apply opacity - if color already has alpha (RGBA/HSLA), this multiplies with it
+        // Example: rgba(255, 0, 0, 0.5) + opacity: 0.9 = final alpha of 0.45
+        // To use RGBA alpha only, set style.alpha to 1.0
         pinElement.style.opacity = String(alpha);
         
         // Update icon content (base styles in pins.css)
