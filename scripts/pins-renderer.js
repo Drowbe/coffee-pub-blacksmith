@@ -773,17 +773,8 @@ class PinDOMElement {
                 try {
                     const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
                     if (pinsAPI) {
-                        // First: big scale with sound
-                        await pinsAPI.ping(pinData.id, { 
-                            animation: 'scale-large',
-                            loops: 1,
-                            sound: 'interface-ping-01'
-                        });
-                        // Then: ripple (no sound)
-                        await pinsAPI.ping(pinData.id, { 
-                            animation: 'ripple',
-                            loops: 1
-                        });
+                        // Use 'ping' animation type (combo of scale-large + ripple with sound)
+                        await pinsAPI.ping(pinData.id, { animation: 'ping', loops: 1 });
                     } else {
                         console.warn('BLACKSMITH | PINS Ping API not available');
                     }
@@ -1270,13 +1261,30 @@ export class PinRenderer {
         
         // Validate animation type
         const validAnimations = [
-            'pulse', 'ripple', 'flash', 'glow', 'bounce',
+            'ping', 'pulse', 'ripple', 'flash', 'glow', 'bounce',
             'scale-small', 'scale-medium', 'scale-large',
             'rotate', 'shake'
         ];
         
         if (!animation || !validAnimations.includes(animation)) {
             console.warn(`BLACKSMITH | PINS Invalid animation type: ${animation}. Valid types: ${validAnimations.join(', ')}`);
+            return;
+        }
+        
+        // Handle 'ping' as a special combo animation
+        if (animation === 'ping') {
+            // Execute combo: scale-large with sound, then ripple
+            await this.ping(pinId, { 
+                animation: 'scale-large', 
+                loops: 1,
+                sound: sound || 'interface-ping-01',
+                broadcast
+            });
+            await this.ping(pinId, { 
+                animation: 'ripple', 
+                loops: 1,
+                broadcast
+            });
             return;
         }
         

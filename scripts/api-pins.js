@@ -177,13 +177,8 @@ export class PinsAPI {
             // Ping after pan if requested
             if (options.ping) {
                 if (options.ping === true) {
-                    // Default combo: scale-large with sound, then ripple
-                    await this.ping(pinId, { 
-                        animation: 'scale-large', 
-                        loops: 1,
-                        sound: 'interface-ping-01'
-                    });
-                    await this.ping(pinId, { animation: 'ripple', loops: 1 });
+                    // Default: use 'ping' animation type (combo of scale-large + ripple)
+                    await this.ping(pinId, { animation: 'ping', loops: 1 });
                 } else {
                     // Custom ping options
                     await this.ping(pinId, options.ping);

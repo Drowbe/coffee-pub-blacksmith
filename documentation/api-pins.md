@@ -1,6 +1,6 @@
 # Canvas Pins API Documentation
 
-> **Status**: Phases 1–3 complete. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 10 animation types and sound support. Automatic visibility filtering based on ownership permissions. Phase 4–5 (docs, tests) remain.
+> **Status**: Phases 1–3 complete. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support. Automatic visibility filtering based on ownership permissions. Phase 4–5 (docs, tests) remain.
 
 ## Overview
 
@@ -415,7 +415,7 @@ await pins.panTo(pinId, {
 **Options**:
 - `sceneId` (string, optional): target scene; defaults to active scene
 - `ping` (boolean|object, optional): ping the pin after panning
-  - If `true`: uses default combo animation (scale-large, then ripple)
+  - If `true`: uses default 'ping' animation (combo: scale-large with sound, then ripple)
   - If object: passes options to `ping()` method (see below)
 
 **Throws**: 
@@ -427,6 +427,9 @@ Ping (animate) a pin to draw attention to it. Useful for highlighting pins, show
 **Returns**: `Promise<void>`
 
 ```javascript
+// Ping animation (recommended for navigation - combo with sound)
+await pins.ping(pinId, { animation: 'ping', loops: 1 });
+
 // Pulse animation (2 loops)
 await pins.ping(pinId, { animation: 'pulse', loops: 2 });
 
