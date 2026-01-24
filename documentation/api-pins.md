@@ -460,6 +460,7 @@ await pins.ping(pinId, {
 
 **Options** (all required except as noted):
 - `animation` (string, **required**): Animation type
+  - `'ping'`: **Combo animation** - scale-large with sound + ripple (recommended for navigation and attention)
   - `'pulse'`: Pulsing border
   - `'ripple'`: Expanding circle emanating from pin
   - `'flash'`: Opacity flash
@@ -478,6 +479,7 @@ await pins.ping(pinId, {
   - URL: `'https://example.com/sound.mp3'`
 
 **Notes**:
+- The `'ping'` animation automatically includes the default sound (`'interface-ping-01'`) unless a custom `sound` is provided
 - Sounds play once regardless of loops
 - Broadcast functionality is not yet implemented (will log warning and play locally only)
 - Animations are defined in `styles/pins.css` with CSS keyframes
