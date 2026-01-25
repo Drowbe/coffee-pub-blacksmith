@@ -25,6 +25,22 @@
 
 ### Medium Priority
 
+#### Window API
+- **Issue**: Create a Window API for managing and controlling Blacksmith windows
+- **Status**: PENDING - Needs implementation
+- **Location**: New API file (e.g., `scripts/api-windows.js`)
+- **Need**: API for creating, managing, and controlling Blacksmith windows (similar to pins API pattern)
+
+#### Configure Pin
+- **Issue**: Add pin configuration functionality accessible both programmatically (via API) and via right-click context menu
+- **Status**: PENDING - Needs implementation
+- **Location**: `scripts/api-pins.js`, `scripts/pins-renderer.js` (context menu)
+- **Need**: 
+  - API method: `pins.configure(pinId, options?)` - Opens configuration dialog for a pin
+  - Context menu item: "Configure Pin" - Opens configuration dialog from right-click menu
+  - Configuration dialog should allow editing all pin properties (text, image, shape, style, size, ownership, etc.)
+  - Should respect permissions (only users who can edit the pin can configure it)
+
 #### Hide Dead and Skip Dead Options for Menubar and Combat Tracker
 - **Issue**: Need options to hide and skip dead combatants in menubar and combat tracker
 - **Status**: PENDING - Needs implementation
