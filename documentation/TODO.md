@@ -2,6 +2,18 @@
 
 ## CRITICAL BUGS
 
+### Chat Card API
+- **Issue**: Chat card system exists internally but is not exposed via API for external modules
+- **Status**: PENDING - Critical need for external module integration
+- **Location**: `scripts/manager-rolls.js`, new API file (e.g., `scripts/api-chatcards.js`)
+- **Need**: 
+  - Expose chat card creation/update functionality via API
+  - Allow external modules to create and manage chat cards similar to pins API pattern
+  - API methods: `chatCards.create()`, `chatCards.update()`, `chatCards.delete()`, etc.
+  - Support for custom card templates and styling
+  - Integration with existing roll system and skill check system
+- **Priority**: CRITICAL - Needed for external module development
+
 ### Memory Leak Investigation
 - **Issue**: Browser tab memory grows to 9.5 GB in ~3 hours while heap stays ~950 MB, leading to crashes.
 - **Status**: IN PROGRESS — see `documentation/performance.md` for full investigation notes, findings, and next steps.
