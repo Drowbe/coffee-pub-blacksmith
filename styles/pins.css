@@ -73,13 +73,11 @@
 }
 
 /* Image icon styling */
-/* Image size is controlled by --blacksmith-pin-icon-size-ratio CSS variable (default: 0.90 = 90% of pin size) */
-/* Adjust this value in :root to change how large images appear within the pin */
-/* Example: 0.6 = 60%, 0.8 = 80%, 1.0 = 100% (fills entire pin) */
-/* Note: Image is clipped to pin shape by parent container's overflow: hidden and border-radius */
+/* Images fill the entire pin container and are clipped by the pin's border-radius */
+/* The --blacksmith-pin-icon-size-ratio variable is not used for images - they always fill 100% */
 .blacksmith-pin-icon[style*="background-image"] {
-    width: calc(100% * var(--blacksmith-pin-icon-size-ratio));
-    height: calc(100% * var(--blacksmith-pin-icon-size-ratio));
+    width: 100%;
+    height: 100%;
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;

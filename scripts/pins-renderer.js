@@ -379,10 +379,10 @@ class PinDOMElement {
                     iconElement.style.borderRadius = ''; // No border radius for Font Awesome
                     iconElement.style.overflow = ''; // No overflow clipping for Font Awesome
                 } else if (pinData.image) {
-                    // Image URL - size controlled by CSS variable --icon-size-ratio
-                    // CSS handles width/height via calc(100% * var(--icon-size-ratio))
+                    // Image URL - fills 100% of pin container, clipped by pin's border-radius
+                    // CSS handles width/height (100%) and background-size: cover
                     iconElement.style.fontSize = '';
-                    // Don't set width/height here - let CSS handle it via the variable
+                    // Don't set width/height here - CSS handles it (100% fill)
                     iconElement.style.borderRadius = ''; // No border radius - pin shape handles clipping
                     iconElement.style.overflow = ''; // Not needed - parent clips
                 }
