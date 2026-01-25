@@ -218,6 +218,10 @@ class PinDOMElement {
         const shape = pinData.shape || 'circle';
         pinElement.dataset.shape = shape;
         
+        // Update text layout for CSS
+        const textLayout = pinData.textLayout || 'under';
+        pinElement.dataset.textLayout = textLayout;
+        
         // Update pin styling (background and border)
         // Support hex colors (#000000), RGBA (rgba(0, 0, 0, 0.5)), rgb, hsl, named colors, etc.
         // CSS natively accepts all these formats
@@ -280,12 +284,11 @@ class PinDOMElement {
             if (imageUrl) {
                 iconElement.innerHTML = ''; // Clear Font Awesome icon
                 iconElement.style.backgroundImage = `url(${imageUrl})`;
-                // Image styles (background-size, border-radius, overflow) handled by CSS
-                // But we need to ensure the class selector matches
+                // Image styles (background-size, cover, center) handled by CSS
+                // Border radius not needed - image is clipped to pin shape by parent container
                 iconElement.style.color = ''; // Clear Font Awesome color
-                // Border radius for images - use CSS variable (handled by CSS)
-                iconElement.style.borderRadius = '50%';
-                iconElement.style.overflow = 'hidden';
+                iconElement.style.borderRadius = ''; // No border radius - pin shape handles clipping
+                iconElement.style.overflow = ''; // Not needed - parent clips
             } else {
                 // Couldn't extract image URL, treat as no icon
                 iconElement.innerHTML = '';
@@ -298,6 +301,9 @@ class PinDOMElement {
             iconElement.style.backgroundImage = 'none';
             iconElement.style.color = '';
         }
+        
+        // Update text content and display
+        this._updatePinText(pinElement, pinData);
         
         // Always try to update position immediately using unified calculation
         if (canvas?.stage && canvas?.app) {
@@ -377,8 +383,8 @@ class PinDOMElement {
                     // CSS handles width/height via calc(100% * var(--icon-size-ratio))
                     iconElement.style.fontSize = '';
                     // Don't set width/height here - let CSS handle it via the variable
-                    iconElement.style.borderRadius = '50%'; // Circular clipping for images
-                    iconElement.style.overflow = 'hidden'; // Clip to circle
+                    iconElement.style.borderRadius = ''; // No border radius - pin shape handles clipping
+                    iconElement.style.overflow = ''; // Not needed - parent clips
                 }
             }
             
@@ -439,6 +445,15 @@ class PinDOMElement {
             const modifiers = this._extractModifiers(e);
             const sceneId = canvas?.scene?.id || '';
             const userId = game.user?.id || '';
+            
+            // Show text on hover if display mode is 'hover'
+            if (freshPinData.textDisplay === 'hover' && freshPinData.text) {
+                const textElement = pinElement.querySelector('.blacksmith-pin-text');
+                if (textElement) {
+                    textElement.style.display = 'block';
+                }
+            }
+            
             PinManager._invokeHandlers('hoverIn', freshPinData, sceneId, userId, modifiers, e);
         });
         
@@ -448,6 +463,15 @@ class PinDOMElement {
             const modifiers = this._extractModifiers(e);
             const sceneId = canvas?.scene?.id || '';
             const userId = game.user?.id || '';
+            
+            // Hide text on hover leave if display mode is 'hover'
+            if (freshPinData.textDisplay === 'hover') {
+                const textElement = pinElement.querySelector('.blacksmith-pin-text');
+                if (textElement) {
+                    textElement.style.display = 'none';
+                }
+            }
+            
             PinManager._invokeHandlers('hoverOut', freshPinData, sceneId, userId, modifiers, e);
         });
         
@@ -994,6 +1018,83 @@ class PinDOMElement {
         // Otherwise, try to extract from HTML
         const match = htmlStr.match(/class=["']([^"']+)["']/);
         return match ? match[1] : null;
+    }
+
+    /**
+     * Update pin text display
+     * @param {HTMLElement} pinElement
+     * @param {PinData} pinData
+     * @private
+     */
+    static _updatePinText(pinElement, pinData) {
+        // Get or create text element
+        let textElement = pinElement.querySelector('.blacksmith-pin-text');
+        if (!textElement) {
+            textElement = document.createElement('div');
+            textElement.className = 'blacksmith-pin-text';
+            pinElement.appendChild(textElement);
+        }
+
+        const text = pinData.text || '';
+        const textLayout = pinData.textLayout || 'under';
+        const textDisplay = pinData.textDisplay || 'always';
+        const textColor = pinData.textColor || '#ffffff';
+        const textSize = pinData.textSize || 12;
+        const textMaxLength = pinData.textMaxLength || 0;
+        const isGM = game.user?.isGM || false;
+
+        // Check if text should be visible
+        let shouldShow = false;
+        if (text && text.trim()) {
+            if (textDisplay === 'always') {
+                shouldShow = true;
+            } else if (textDisplay === 'hover') {
+                shouldShow = false; // Will be shown on hover via CSS
+            } else if (textDisplay === 'gm') {
+                shouldShow = isGM;
+            } else if (textDisplay === 'never') {
+                shouldShow = false;
+            }
+        }
+
+        // Set text content with ellipsis if needed
+        if (text && text.trim()) {
+            let displayText = text.trim();
+            if (textMaxLength > 0 && displayText.length > textMaxLength) {
+                displayText = displayText.substring(0, textMaxLength) + '...';
+            }
+            textElement.textContent = displayText;
+        } else {
+            textElement.textContent = '';
+            shouldShow = false;
+        }
+
+        // Set text layout
+        textElement.dataset.layout = textLayout;
+
+        // Set text display mode on pin element (for CSS)
+        pinElement.dataset.textDisplay = textDisplay;
+
+        // Apply text styling
+        textElement.style.color = textColor;
+        textElement.style.fontSize = `${textSize}px`;
+
+        // Apply drop shadow if pin has drop shadow
+        if (pinData.dropShadow !== false) {
+            textElement.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.8)';
+        } else {
+            textElement.style.textShadow = 'none';
+        }
+
+        // Show/hide text based on display mode
+        if (shouldShow) {
+            textElement.style.display = 'block';
+        } else if (textDisplay === 'hover') {
+            // Will be shown on hover via CSS/JavaScript
+            textElement.style.display = 'none';
+        } else {
+            textElement.style.display = 'none';
+        }
     }
 
     /**

@@ -19,10 +19,15 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {number} y
  * @property {{ w: number; h: number }} size
  * @property {{ fill?: string; stroke?: string; strokeWidth?: number; alpha?: number }} style
- * @property {string} [text]
+ * @property {string} [text] - Text content to display
  * @property {string} [image]
  * @property {'circle' | 'square' | 'none'} [shape] - Pin shape: 'circle' (default), 'square', or 'none' (icon only, no background)
  * @property {boolean} [dropShadow] - Whether to show drop shadow (default: true)
+ * @property {'under' | 'around'} [textLayout] - Text layout: 'under' (default) or 'around' (wraps around pin)
+ * @property {'always' | 'hover' | 'never' | 'gm'} [textDisplay] - Text display mode: 'always' (default), 'hover', 'never', or 'gm' (GM only)
+ * @property {string} [textColor] - Text color (default: '#ffffff')
+ * @property {number} [textSize] - Text size in pixels (default: 12)
+ * @property {number} [textMaxLength] - Maximum text length before ellipsis (default: 0 = no limit)
  * @property {Record<string, unknown>} config
  * @property {string} moduleId
  * @property {{ default: number; users?: Record<string, number> }} ownership
@@ -42,6 +47,11 @@ export const PIN_DEFAULTS = Object.freeze({
     style: { fill: '#000000', stroke: '#ffffff', strokeWidth: 2, alpha: 1 },
     shape: 'circle', // 'circle' | 'square' | 'none'
     dropShadow: true,
+    textLayout: 'under', // 'under' | 'around'
+    textDisplay: 'always', // 'always' | 'hover' | 'never' | 'gm'
+    textColor: '#ffffff',
+    textSize: 12,
+    textMaxLength: 0, // 0 = no limit
     version: PIN_SCHEMA_VERSION,
     ownership: { default: 0 },
     config: {}
@@ -112,6 +122,21 @@ export function applyDefaults(partial) {
     }
     if (partial.text != null) base.text = String(partial.text).trim() || undefined;
     if (partial.image != null) base.image = String(partial.image).trim() || undefined;
+    if (partial.textLayout != null) {
+        const layout = String(partial.textLayout).toLowerCase();
+        if (layout === 'under' || layout === 'around') {
+            base.textLayout = layout;
+        }
+    }
+    if (partial.textDisplay != null) {
+        const display = String(partial.textDisplay).toLowerCase();
+        if (display === 'always' || display === 'hover' || display === 'never' || display === 'gm') {
+            base.textDisplay = display;
+        }
+    }
+    if (partial.textColor != null) base.textColor = String(partial.textColor);
+    if (typeof partial.textSize === 'number' && partial.textSize > 0) base.textSize = partial.textSize;
+    if (typeof partial.textMaxLength === 'number' && partial.textMaxLength >= 0) base.textMaxLength = partial.textMaxLength;
     if (partial.config != null && typeof partial.config === 'object' && !Array.isArray(partial.config)) {
         base.config = foundry.utils.deepClone(partial.config);
     }

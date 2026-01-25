@@ -140,10 +140,15 @@ interface PinData {
   y: number;
   size?: { w: number; h: number };
   style?: { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number }; // Supports hex, rgb, rgba, hsl, hsla, named colors
-  text?: string;
+  text?: string; // Text label content
   image?: string;  // Font Awesome HTML (e.g. '<i class="fa-solid fa-star"></i>'), Font Awesome class string (e.g. 'fa-solid fa-star'), or image URL (e.g. 'icons/svg/star.svg' or '<img src="path/to/image.webp">')
   shape?: 'circle' | 'square' | 'none'; // Pin shape: 'circle' (default), 'square' (rounded corners), or 'none' (icon only, no background)
   dropShadow?: boolean; // Whether to show drop shadow (default: true) - controlled via CSS variable --blacksmith-pin-drop-shadow
+  textLayout?: 'under' | 'around'; // Text layout: 'under' (default, text below icon) or 'around' (text centered over icon)
+  textDisplay?: 'always' | 'hover' | 'never' | 'gm'; // Text display mode: 'always' (default), 'hover' (show on hover), 'never', or 'gm' (GM only)
+  textColor?: string; // Text color (default: '#ffffff') - supports hex, rgb, rgba, hsl, hsla, named colors
+  textSize?: number; // Text size in pixels (default: 12)
+  textMaxLength?: number; // Maximum text length before ellipsis (default: 0 = no limit)
   config?: Record<string, unknown>;
   moduleId: string; // consumer module id
   ownership?: { default: number; users?: Record<string, number> };
@@ -239,6 +244,11 @@ const pin = await pinsAPI.create({
   image: '<i class="fa-solid fa-star"></i>',  // optional; Font Awesome HTML, Font Awesome class string, or image URL
   shape: 'circle',  // optional; 'circle' (default), 'square', or 'none' (icon only)
   dropShadow: true,  // optional; adds subtle drop shadow (default: true)
+  textLayout: 'under',  // optional; 'under' (text below icon, default) or 'around' (text centered over icon)
+  textDisplay: 'always',  // optional; 'always' (default), 'hover', 'never', or 'gm' (GM only)
+  textColor: '#ffffff',  // optional; text color (default: '#ffffff')
+  textSize: 12,  // optional; text size in pixels (default: 12)
+  textMaxLength: 0,  // optional; max length before ellipsis (default: 0 = no limit)
   size: { w: 48, h: 48 },  // optional; defaults to { w: 32, h: 32 }
   style: {  // optional; defaults shown (supports hex, rgb, rgba, hsl, hsla, named colors)
     fill: '#000000',  // or 'rgba(0, 0, 0, 0.5)' for transparency
@@ -288,6 +298,33 @@ const iconPin = await pinsAPI.create({
   moduleId: 'my-module',
   shape: 'none',  // Icon only, no background circle/square
   image: '<i class="fa-solid fa-star"></i>'
+});
+
+// Pin with text display options
+const textPin = await pinsAPI.create({
+  id: 'text-pin',
+  x: 1300,
+  y: 1000,
+  moduleId: 'my-module',
+  text: 'Secret Location',
+  textLayout: 'under',  // Text below icon
+  textDisplay: 'hover',  // Show text only on hover
+  textColor: '#ffff00',  // Yellow text
+  textSize: 14,  // Larger text
+  textMaxLength: 15,  // Truncate after 15 characters
+  image: '<i class="fa-solid fa-location-dot"></i>'
+});
+
+// GM-only text pin
+const gmTextPin = await pinsAPI.create({
+  id: 'gm-text-pin',
+  x: 1400,
+  y: 1000,
+  moduleId: 'my-module',
+  text: 'GM Notes: Hidden treasure here',
+  textDisplay: 'gm',  // Only GM can see this text
+  textLayout: 'around',  // Text centered over pin
+  image: '<i class="fa-solid fa-map"></i>'
 });
 ```
 

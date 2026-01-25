@@ -5,7 +5,6 @@
 /* CSS Variables - configurable at the root level */
 :root {
     --blacksmith-pin-icon-size-ratio: 0.90; /* 90% of pin size - change this to adjust image size */
-    --blacksmith-pin-icon-border-radius: 50%;
     --blacksmith-pin-square-border-radius: 15%; /* Border radius for square pins (rounded corners) */
     --blacksmith-pin-drop-shadow: drop-shadow(0 0px 5px rgba(0, 0, 0, 0.9)); /* Drop shadow for depth */
 }
@@ -27,11 +26,11 @@
 .blacksmith-pin {
     position: absolute;
     pointer-events: auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    place-items: center; /* Center icon in pin */
     transform-origin: center center;
     box-sizing: border-box;
+    overflow: hidden; /* Clip children (icon) to pin shape */
     transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
     cursor: pointer;
     filter: var(--blacksmith-pin-drop-shadow);
@@ -64,6 +63,8 @@
     justify-content: center;
     width: 100%;
     height: 100%;
+    grid-area: 1 / 1; /* Place in same grid cell for proper centering */
+    position: relative; /* For proper layering with text */
 }
 
 /* Font Awesome icon styling */
@@ -72,18 +73,88 @@
 }
 
 /* Image icon styling */
-/* Image size is controlled by --blacksmith-pin-icon-size-ratio CSS variable (default: 0.6 = 60% of pin size) */
+/* Image size is controlled by --blacksmith-pin-icon-size-ratio CSS variable (default: 0.90 = 90% of pin size) */
 /* Adjust this value in :root to change how large images appear within the pin */
 /* Example: 0.6 = 60%, 0.8 = 80%, 1.0 = 100% (fills entire pin) */
+/* Note: Image is clipped to pin shape by parent container's overflow: hidden and border-radius */
 .blacksmith-pin-icon[style*="background-image"] {
     width: calc(100% * var(--blacksmith-pin-icon-size-ratio));
     height: calc(100% * var(--blacksmith-pin-icon-size-ratio));
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
-    border-radius: var(--blacksmith-pin-icon-border-radius);
-    overflow: hidden;
+    display: block; /* Remove flex display for images */
+    flex-shrink: 0; /* Prevent shrinking */
 }
+
+/* Pin text element */
+.blacksmith-pin-text {
+    position: absolute;
+    pointer-events: none;
+    user-select: none;
+    font-weight: bold;
+    line-height: 1.2;
+    text-align: center;
+    z-index: 2; /* Above icon */
+    grid-area: 1 / 1; /* Place in same grid cell for "around" layout */
+}
+
+/* Text layout: under icon */
+.blacksmith-pin-text[data-layout="under"] {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 4px;
+    width: auto;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    grid-area: auto; /* Remove from grid for absolute positioning */
+}
+
+/* Text layout: around icon (centered over pin) */
+.blacksmith-pin-text[data-layout="around"] {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    height: 90%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow: hidden;
+    padding: 2px;
+    box-sizing: border-box;
+    text-align: center;
+    /* Text overlays the pin, centered */
+}
+
+/* Text display: always on */
+.blacksmith-pin[data-text-display="always"] .blacksmith-pin-text {
+    display: block;
+}
+
+/* Text display: on hover */
+.blacksmith-pin[data-text-display="hover"] .blacksmith-pin-text {
+    display: none;
+}
+
+.blacksmith-pin[data-text-display="hover"]:hover .blacksmith-pin-text {
+    display: block;
+}
+
+/* Text display: never */
+.blacksmith-pin[data-text-display="never"] .blacksmith-pin-text {
+    display: none !important;
+}
+
+/* Text display: GM only - visibility controlled by JavaScript based on user.isGM */
+/* Note: GM-only visibility is handled in _updatePinText() JavaScript function */
 
 /* Hover state - scale up slightly */
 .blacksmith-pin:hover {
