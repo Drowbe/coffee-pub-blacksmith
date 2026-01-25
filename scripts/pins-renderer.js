@@ -794,18 +794,26 @@ class PinDOMElement {
             name: 'Bring Players Here',
             icon: '<i class="fa-solid fa-users-viewfinder"></i>',
             callback: async () => {
+                console.log('BLACKSMITH | PINS Bring Players Here clicked for pin:', pinData.id);
                 try {
                     const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    console.log('BLACKSMITH | PINS pinsAPI available:', !!pinsAPI);
                     if (pinsAPI) {
+                        console.log('BLACKSMITH | PINS Calling panTo with broadcast for pin:', pinData.id);
                         // Pan all players to this pin with ping animation (broadcast)
-                        await pinsAPI.panTo(pinData.id, { 
+                        const result = await pinsAPI.panTo(pinData.id, { 
                             broadcast: true,
                             ping: { animation: 'ping', loops: 1 }
                         });
+                        console.log('BLACKSMITH | PINS panTo result:', result);
+                        if (!result) {
+                            console.warn('BLACKSMITH | PINS panTo returned false - pin may not exist or canvas not ready');
+                        }
                     } else {
-                        console.warn('BLACKSMITH | PINS Ping API not available');
+                        console.warn('BLACKSMITH | PINS API not available');
                     }
                 } catch (err) {
+                    console.error('BLACKSMITH | PINS Error bringing players to pin', err);
                     postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error bringing players to pin', err?.message || err, false, true);
                 }
             }
@@ -841,41 +849,6 @@ class PinDOMElement {
                         await PinManager.delete(pinData.id);
                     } catch (err) {
                         postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error deleting pin', err?.message || err, false, true);
-                    }
-                }
-            });
-        }
-        
-        // Ping animations (for testing - all animation types)
-        const animations = [
-            { name: 'Bounce', animation: 'bounce', icon: '<i class="fa-solid fa-arrow-up-short-wide"></i>' },
-            { name: 'Pulse', animation: 'pulse', icon: '<i class="fa-solid fa-heart-pulse"></i>' },
-            { name: 'Ripple', animation: 'ripple', icon: '<i class="fa-solid fa-water"></i>' },
-            { name: 'Flash', animation: 'flash', icon: '<i class="fa-solid fa-bolt"></i>' },
-            { name: 'Glow', animation: 'glow', icon: '<i class="fa-solid fa-sun"></i>' },
-            { name: 'Scale Small', animation: 'scale-small', icon: '<i class="fa-solid fa-magnifying-glass"></i>' },
-            { name: 'Scale Medium', animation: 'scale-medium', icon: '<i class="fa-solid fa-magnifying-glass-plus"></i>' },
-            { name: 'Scale Large', animation: 'scale-large', icon: '<i class="fa-solid fa-expand"></i>' },
-            { name: 'Rotate', animation: 'rotate', icon: '<i class="fa-solid fa-rotate"></i>' },
-            { name: 'Shake', animation: 'shake', icon: '<i class="fa-solid fa-shake"></i>' }
-        ];
-        
-        for (const anim of animations) {
-            menuItems.push({
-                name: anim.name,
-                icon: anim.icon,
-                callback: async () => {
-                    try {
-                        const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                        if (pinsAPI) {
-                            await pinsAPI.ping(pinData.id, { 
-                                animation: anim.animation
-                            });
-                        } else {
-                            console.warn('BLACKSMITH | PINS Ping API not available');
-                        }
-                    } catch (err) {
-                        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error pinging pin', err?.message || err, false, true);
                     }
                 }
             });
@@ -1233,24 +1206,34 @@ export class PinRenderer {
             
             // Register handler for receiving broadcast panTo (Bring Players Here)
             socket.register('panToPin', async (data, senderId) => {
-                const { pinId, ping } = data;
-                
-                // Check if this user can see the pin
-                const { PinManager } = await import('./manager-pins.js');
-                const userId = game.user?.id || '';
-                const pinData = PinManager.get(pinId);
-                
-                if (!pinData || !PinManager._canView(pinData, userId)) {
-                    // User cannot see this pin, ignore the broadcast
-                    return;
+                console.log('BLACKSMITH | PINS Received panToPin socket event from', senderId, 'data:', data);
+                try {
+                    const { pinId, ping } = data;
+                    console.log('BLACKSMITH | PINS panToPin handler: Processing pinId:', pinId);
+                    
+                    // Check if this user can see the pin
+                    const { PinManager } = await import('./manager-pins.js');
+                    const userId = game.user?.id || '';
+                    const pinData = PinManager.get(pinId);
+                    console.log('BLACKSMITH | PINS panToPin handler: Pin found:', !!pinData);
+                    
+                    if (!pinData || !PinManager._canView(pinData, userId)) {
+                        // User cannot see this pin, ignore the broadcast
+                        console.log('BLACKSMITH | PINS panToPin handler: User cannot view pin, ignoring');
+                        return;
+                    }
+                    
+                    console.log('BLACKSMITH | PINS panToPin handler: User can view pin, calling panTo locally');
+                    // Pan to the pin locally (without broadcasting again)
+                    const { PinsAPI } = await import('./api-pins.js');
+                    const result = await PinsAPI.panTo(pinId, {
+                        ping: ping || null,
+                        broadcast: false // Prevent infinite loop
+                    });
+                    console.log('BLACKSMITH | PINS panToPin handler: Local panTo result:', result);
+                } catch (err) {
+                    console.error('BLACKSMITH | PINS Error handling broadcast panTo', err);
                 }
-                
-                // Pan to the pin locally (without broadcasting again)
-                const { PinsAPI } = await import('./api-pins.js');
-                await PinsAPI.panTo(pinId, {
-                    ping: ping || null,
-                    broadcast: false // Prevent infinite loop
-                });
             });
             
             this._socketRegistered = true;
@@ -1452,7 +1435,8 @@ export class PinRenderer {
             const socket = SocketManager.getSocket();
             
             if (socket) {
-                socket.emit('pingPin', {
+                // Use executeForOthers directly since handler is registered with SocketLib directly
+                socket.executeForOthers('pingPin', {
                     pinId,
                     animation,
                     loops,

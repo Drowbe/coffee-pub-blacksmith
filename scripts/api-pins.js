@@ -183,20 +183,29 @@ export class PinsAPI {
         
         // Handle broadcast to all players
         if (options.broadcast) {
+            console.log('BLACKSMITH | PINS panTo: broadcast=true, emitting socket event for pinId:', pinId);
             try {
                 const { SocketManager } = await import('./manager-sockets.js');
+                console.log('BLACKSMITH | PINS panTo: Waiting for socket ready...');
+                // Wait for socket to be ready
+                await SocketManager.waitForReady();
+                console.log('BLACKSMITH | PINS panTo: Socket ready, getting socket...');
                 const socket = SocketManager.getSocket();
+                console.log('BLACKSMITH | PINS panTo: Socket obtained:', !!socket);
                 
                 if (socket) {
-                    socket.emit('panToPin', {
+                    console.log('BLACKSMITH | PINS panTo: Executing panToPin for others with data:', { pinId, ping: options.ping || null });
+                    // Use executeForOthers directly since handler is registered with SocketLib directly
+                    socket.executeForOthers('panToPin', {
                         pinId,
                         ping: options.ping || null
                     });
+                    console.log('BLACKSMITH | PINS panTo: Socket executeForOthers completed');
                 } else {
-                    console.warn('BLACKSMITH | PINS Socket not ready, broadcast panTo not sent');
+                    console.warn('BLACKSMITH | PINS Socket not available, broadcast panTo not sent');
                 }
             } catch (err) {
-                console.warn('BLACKSMITH | PINS Error broadcasting panTo', err);
+                console.error('BLACKSMITH | PINS Error broadcasting panTo', err);
             }
             
             // Also pan locally for the sender

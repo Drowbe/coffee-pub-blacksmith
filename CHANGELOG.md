@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Pan/Zoom Performance**: Removed pan/zoom hide/show logic. Pins now remain visible during canvas pan and zoom operations. Pure DOM rendering handles position updates smoothly without needing to hide pins, providing better UX and simpler code.
-- **Pin Animation System**: Added `pins.ping(pinId, options)` method to animate pins and draw attention. Supports 11 animation types including new `'ping'` combo animation (scale-large with sound + ripple - recommended for navigation), plus pulse, ripple, flash, glow, bounce, scale-small/medium/large, rotate, and shake. Configurable loops, optional sound effects, and future broadcast support. Animations use CSS keyframes for smooth performance.
+- **Pin Animation System**: Added `pins.ping(pinId, options)` method to animate pins and draw attention. Supports 11 animation types including new `'ping'` combo animation (scale-large with sound + ripple - recommended for navigation), plus pulse, ripple, flash, glow, bounce, scale-small/medium/large, rotate, and shake. Configurable loops, optional sound effects, and broadcast support. Animations use CSS keyframes for smooth performance.
+- **Context Menu Reorganization**: Restructured pin right-click menu with separator between module-registered commands and built-in commands. Built-in commands now appear in order: "Bring Players Here", "Ping Pin", "Delete Pin". Removed test animation menu items (Bounce, Pulse, Ripple, Flash, Glow, Scale Small/Medium/Large, Rotate, Shake) from production menu.
 - **Pin Pan-to-Location API**: Added `pins.panTo(pinId)` method to pan the canvas to a pin's location. Supports optional `ping` parameter to automatically animate the pin after panning. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin).
 - **Context Menu Ping**: Added "Ping Pin" option to right-click context menu (available to all users) with combo animation (scale-large followed by ripple).
 - **Cross-Scene Pin Deletion**: `pins.delete(pinId)` now automatically searches all scenes to find the pin if no `sceneId` is provided. This makes it easy to delete pins from notes/UI without tracking which scene they're on.
@@ -54,12 +55,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Drag Position Persistence**: Fixed pins snapping back to original position after drag by tracking and saving the final dragged position instead of using stale pin data.
 - **Subsequent Drag Operations**: Fixed pins jumping away from mouse cursor on second and subsequent drags by fetching fresh pin data at the start of each drag operation instead of using stale closure data.
 - **Double-Click Detection**: Fixed double-click events not firing for editable pins by removing a faulty condition that prevented the second click from being registered when a timeout from the first click was still active.
+- **Memory Leaks**: Fixed critical memory leaks in pin system:
+  - Hook listeners (`canvasPan`, `updateScene`, `canvasReady`) now properly removed on module cleanup
+  - Window resize listener now properly removed on module cleanup
+  - Pending animation frames now canceled on cleanup
+- **Performance Optimizations**: Eliminated PIXI.Point allocations in hot paths by reusing single point instances for coordinate conversion. Pan/zoom operations and drag operations now use zero allocations for coordinate math, reducing garbage collection pressure.
+- **"Bring Players Here" Socket Issue**: Fixed "Bring Players Here" context menu option not working. Changed from `socket.emit()` (which routes through generic event system) to `socket.executeForOthers()` (which directly calls SocketLib handlers). Now properly broadcasts pan-to-pin and ping animation to all connected players.
 
 ### Technical Details
-- **Coordinate Conversion**: Pins use `PIXI.Point` and `stage.toGlobal()` for converting scene coordinates to screen pixels, accounting for canvas scale and position.
+- **Coordinate Conversion**: Pins use `PIXI.Point` and `stage.toGlobal()` for converting scene coordinates to screen pixels, accounting for canvas scale and position. Reuses single point instances to avoid allocations.
 - **CSS Variables**: All configurable styling moved to CSS variables in `:root` selector at top of `pins.css` for easy customization.
 - **DOM Reflow**: Uses `void element.offsetWidth` to force browser reflow when needed for accurate positioning.
-- **Event Cleanup**: All event listeners use AbortController pattern for automatic cleanup on pin removal or module unload. 
+- **Event Cleanup**: All event listeners use AbortController pattern for automatic cleanup on pin removal or module unload. Hook listeners and window listeners properly cleaned up in `cleanup()` method.
+- **Socket Integration**: Pin broadcasting uses SocketLib's `executeForOthers()` method directly to match handler registration pattern, ensuring reliable cross-client communication. 
 
 ## [13.2.0] - Pin API Draft Release
 
