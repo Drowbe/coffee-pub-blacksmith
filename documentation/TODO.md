@@ -43,6 +43,29 @@
 - **Location**: New API file (e.g., `scripts/api-windows.js`)
 - **Need**: API for creating, managing, and controlling Blacksmith windows (similar to pins API pattern)
 
+#### Pin Text Display System
+- **Issue**: Pin text property exists but is not displayed. Need to implement text display system similar to Foundry's note/token text.
+- **Status**: PENDING - Needs implementation
+- **Location**: `scripts/pins-schema.js`, `scripts/pins-renderer.js`, `styles/pins.css`
+- **Need**: 
+  - **Text Layout Options:**
+    - Text under icon (default/standard)
+    - Text around icon (wrapping around circular/square pin)
+  - **Text Display Options:**
+    - Text always on
+    - Text on hover
+    - Never show text
+    - Only GM sees text
+  - **Text Format Options:**
+    - Color (configurable)
+    - Size (configurable)
+    - Length before ellipsis (truncation with "...")
+    - Drop shadow (honor pin's `dropShadow` setting)
+  - Add text display properties to `PinData` schema
+  - Render text element in pin DOM structure
+  - CSS styling for text positioning and formatting
+  - Permission checks for GM-only text visibility
+
 #### Configure Pin
 - **Issue**: Add pin configuration functionality accessible both programmatically (via API) and via right-click context menu
 - **Status**: PENDING - Needs implementation
@@ -50,7 +73,7 @@
 - **Need**: 
   - API method: `pins.configure(pinId, options?)` - Opens configuration dialog for a pin
   - Context menu item: "Configure Pin" - Opens configuration dialog from right-click menu
-  - Configuration dialog should allow editing all pin properties (text, image, shape, style, size, ownership, etc.)
+  - Configuration dialog should allow editing all pin properties (text, image, shape, style, size, ownership, text display options, etc.)
   - Should respect permissions (only users who can edit the pin can configure it)
 
 #### Hide Dead and Skip Dead Options for Menubar and Combat Tracker
