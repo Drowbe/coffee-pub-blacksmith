@@ -1,6 +1,6 @@
 # Canvas Pins API Documentation
 
-> **Status**: Phases 1–3 complete. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support. Automatic visibility filtering based on ownership permissions. Phase 4–5 (docs, tests) remain.
+> **Status**: Phases 1–3 complete. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Automatic visibility filtering based on ownership permissions. Text display system with multiple layouts (under, over, around), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Helper methods: `exists()`, `panTo()`, `findScene()`. Phase 4–5 (docs, tests) remain.
 
 ## Overview
 
@@ -245,7 +245,7 @@ const pin = await pinsAPI.create({
   image: '<i class="fa-solid fa-star"></i>',  // optional; Font Awesome HTML, Font Awesome class string, or image URL
   shape: 'circle',  // optional; 'circle' (default), 'square', or 'none' (icon only)
   dropShadow: true,  // optional; adds subtle drop shadow (default: true)
-  textLayout: 'under',  // optional; 'under' (text below icon, default) or 'around' (text centered over icon)
+  textLayout: 'under',  // optional; 'under' (text below pin), 'over' (text centered over pin), or 'around' (text curved around pin edge)
   textDisplay: 'always',  // optional; 'always' (default), 'hover', 'never', or 'gm' (GM only)
   textColor: '#ffffff',  // optional; text color (default: '#ffffff')
   textSize: 12,  // optional; text size in pixels (default: 12)
