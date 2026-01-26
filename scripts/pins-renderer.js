@@ -253,15 +253,51 @@ class PinDOMElement {
         pinElement.style.opacity = String(alpha);
         
         // Update icon content (base styles in pins.css)
-        const iconElement = pinElement.querySelector('.blacksmith-pin-icon') || document.createElement('div');
-        if (!pinElement.contains(iconElement)) {
+        // Get existing icon element and check current type
+        let iconElement = pinElement.querySelector('.blacksmith-pin-icon');
+        const currentIconType = iconElement?.dataset.iconType; // 'fa', 'image', or undefined
+        
+        // Determine new icon type
+        const isFontAwesome = this._isFontAwesomeIcon(image);
+        const newIconType = image 
+            ? (isFontAwesome ? 'fa' : 'image')
+            : 'none';
+        
+        // If icon type changed, rebuild the icon element to avoid stale state
+        const iconTypeChanged = currentIconType && currentIconType !== newIconType;
+        if (iconTypeChanged && iconElement) {
+            // Remove old icon element completely
+            iconElement.remove();
+            iconElement = null;
+        }
+        
+        // Create new icon element if needed
+        if (!iconElement) {
+            iconElement = document.createElement('div');
             iconElement.className = 'blacksmith-pin-icon';
             pinElement.appendChild(iconElement);
         }
         
-        // Check if it's Font Awesome or an image URL
-        const isFontAwesome = this._isFontAwesomeIcon(image);
+        // Store the new icon type for future comparisons
+        if (newIconType !== 'none') {
+            iconElement.dataset.iconType = newIconType;
+        } else {
+            delete iconElement.dataset.iconType;
+        }
         
+        // Clear all icon-related styles first to ensure clean state
+        iconElement.style.color = '';
+        iconElement.style.background = '';
+        iconElement.style.backgroundImage = '';
+        iconElement.style.border = '';
+        iconElement.style.borderRadius = '';
+        iconElement.style.overflow = '';
+        iconElement.style.width = '';
+        iconElement.style.height = '';
+        iconElement.style.fontSize = '';
+        iconElement.innerHTML = '';
+        
+        // Apply new icon/image based on type
         if (isFontAwesome && image) {
             // Font Awesome icon
             const faClasses = this._extractFontAwesomeClasses(image);
@@ -270,7 +306,7 @@ class PinDOMElement {
                 iconElement.style.color = '#ffffff';
                 iconElement.style.background = 'none';
                 iconElement.style.border = 'none';
-                iconElement.style.backgroundImage = 'none'; // Clear any previous image
+                iconElement.style.backgroundImage = 'none';
                 iconElement.style.width = 'auto';
                 iconElement.style.height = 'auto';
             } else {
@@ -282,13 +318,13 @@ class PinDOMElement {
             // Image URL or <img> tag - extract the URL
             const imageUrl = this._extractImageUrl(image);
             if (imageUrl) {
-                iconElement.innerHTML = ''; // Clear Font Awesome icon
+                iconElement.innerHTML = '';
                 iconElement.style.backgroundImage = `url(${imageUrl})`;
                 // Image styles (background-size, cover, center) handled by CSS
                 // Border radius not needed - image is clipped to pin shape by parent container
-                iconElement.style.color = ''; // Clear Font Awesome color
-                iconElement.style.borderRadius = ''; // No border radius - pin shape handles clipping
-                iconElement.style.overflow = ''; // Not needed - parent clips
+                iconElement.style.color = '';
+                iconElement.style.borderRadius = '';
+                iconElement.style.overflow = '';
             } else {
                 // Couldn't extract image URL, treat as no icon
                 iconElement.innerHTML = '';
@@ -1648,6 +1684,37 @@ export class PinRenderer {
      */
     static removePin(pinId) {
         PinDOMElement.removePin(pinId);
+    }
+
+    /**
+     * Refresh/re-render a single pin by forcing a rebuild of its icon element.
+     * Useful for edge cases where update() doesn't fully refresh the visual.
+     * Note: This should rarely be needed as update() now handles icon/image type changes automatically.
+     * @param {string} pinId - The pin ID to refresh
+     * @param {import('./manager-pins.js').PinGetOptions} [options] - Optional sceneId
+     * @returns {Promise<boolean>} - True if pin was refreshed, false if not found
+     */
+    static async refreshPin(pinId, options = {}) {
+        const { PinManager } = await import('./manager-pins.js');
+        const pinData = PinManager.get(pinId, options);
+        
+        if (!pinData) {
+            return false;
+        }
+        
+        // Force refresh by removing icon type tracking, then rebuilding
+        const pinElement = PinDOMElement._pins.get(pinId);
+        if (pinElement) {
+            const iconElement = pinElement.querySelector('.blacksmith-pin-icon');
+            if (iconElement) {
+                // Remove icon type tracking to force rebuild
+                delete iconElement.dataset.iconType;
+            }
+        }
+        
+        // Rebuild the pin with fresh data
+        await this.updatePin(pinData);
+        return true;
     }
 
     /**

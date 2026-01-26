@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pin Animation Broadcasting**: Implemented `broadcast` parameter for `pins.ping()` method. When `broadcast: true`, animations are shown to all connected users who have permission to view the pin. Uses Blacksmith socket system with automatic permission filtering.
 - **Bring Players Here**: Added "Bring Players Here" to pin context menu. Pans all connected players to the pin and plays ping animation. Available to all users (for now). Uses `broadcast` option on `pins.panTo()` method.
 - **`pins.exists()` Helper**: Added `pins.exists(pinId, options?)` method to check if a pin already exists on a scene before attempting creation. Helps modules avoid duplicate ID errors by checking first.
+- **`pins.refreshPin()` Method**: Added `pins.refreshPin(pinId, options?)` method to force a single pin to rebuild its icon element. Useful for edge cases where `update()` doesn't fully refresh the visual. Note: This should rarely be needed as `update()` now automatically handles icon/image type changes.
 
 ### Changed
 - **Pan/Zoom Performance**: Removed pan/zoom hide/show logic. Pins now remain visible during canvas pan and zoom operations. Pure DOM rendering handles position updates smoothly without needing to hide pins, providing better UX and simpler code.
@@ -61,13 +62,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Pending animation frames now canceled on cleanup
 - **Performance Optimizations**: Eliminated PIXI.Point allocations in hot paths by reusing single point instances for coordinate conversion. Pan/zoom operations and drag operations now use zero allocations for coordinate math, reducing garbage collection pressure.
 - **"Bring Players Here" Socket Issue**: Fixed "Bring Players Here" context menu option not working. Changed from `socket.emit()` (which routes through generic event system) to `socket.executeForOthers()` (which directly calls SocketLib handlers). Now properly broadcasts pan-to-pin and ping animation to all connected players.
+- **Icon/Image Type Change Rendering**: Fixed pins not updating visually when switching between icon and image types (e.g., from Font Awesome icon to `<img>` tag or vice versa). The renderer now automatically detects icon/image type changes during `update()` and rebuilds the icon element when needed, eliminating the need for manual `reload()` calls. Pins now update immediately when changing icon/image types without requiring a page refresh.
 
 ### Technical Details
 - **Coordinate Conversion**: Pins use `PIXI.Point` and `stage.toGlobal()` for converting scene coordinates to screen pixels, accounting for canvas scale and position. Reuses single point instances to avoid allocations.
 - **CSS Variables**: All configurable styling moved to CSS variables in `:root` selector at top of `pins.css` for easy customization.
 - **DOM Reflow**: Uses `void element.offsetWidth` to force browser reflow when needed for accurate positioning.
 - **Event Cleanup**: All event listeners use AbortController pattern for automatic cleanup on pin removal or module unload. Hook listeners and window listeners properly cleaned up in `cleanup()` method.
-- **Socket Integration**: Pin broadcasting uses SocketLib's `executeForOthers()` method directly to match handler registration pattern, ensuring reliable cross-client communication. 
+- **Socket Integration**: Pin broadcasting uses SocketLib's `executeForOthers()` method directly to match handler registration pattern, ensuring reliable cross-client communication.
+- **Icon Type Tracking**: Pin renderer tracks icon type (`'fa'`, `'image'`, or `'none'`) using `dataset.iconType` on the icon element. When `update()` detects a type change, it removes the old icon element and creates a new one to ensure clean state and prevent stale rendering. All icon-related styles are cleared before applying new styles to avoid visual artifacts. 
 
 ## [13.2.0] - Pin API Draft Release
 

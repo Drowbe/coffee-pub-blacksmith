@@ -1,6 +1,6 @@
 # Canvas Pins API Documentation
 
-> **Status**: Phases 1–3 complete. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Automatic visibility filtering based on ownership permissions. Text display system with multiple layouts (under, over, around), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Helper methods: `exists()`, `panTo()`, `findScene()`. Phase 4–5 (docs, tests) remain.
+> **Status**: Phases 1–3 complete. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Automatic visibility filtering based on ownership permissions. Text display system with multiple layouts (under, over, around), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Icon/image type changes (icon ↔ image swaps) are automatically detected and handled during `update()`. Helper methods: `exists()`, `panTo()`, `findScene()`, `refreshPin()`. Phase 4–5 (docs, tests) remain.
 
 ## Overview
 
@@ -12,7 +12,7 @@ The pins API follows Blacksmith's standard pattern:
 - **`scripts/pins-schema.js`** - Data model, validation, migration (Phase 1.1)
 - **`scripts/manager-pins.js`** - Internal manager with CRUD, permissions, event handler registration, and context menu item registration (Phase 1.2, 1.3)
 - **`scripts/pins-renderer.js`** - Pure DOM pin rendering (circle/square/none + Font Awesome icons or image URLs), DOM events, context menu (Phase 2, 3)
-- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `on()`, `registerContextMenuItem()`, `reload()`, `isAvailable()`, `isReady()`, `whenReady()`
+- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `on()`, `registerContextMenuItem()`, `reload()`, `refreshPin()`, `isAvailable()`, `isReady()`, `whenReady()`
 - **`scripts/blacksmith.js`** - Exposes `module.api.pins = PinsAPI`; hooks for `canvasReady` / `updateScene` pin loading
 - **`styles/pins.css`** - All pin styling (CSS variables for configuration)
 
@@ -370,23 +370,36 @@ const gmTextPin = await pinsAPI.create({
 - `Error` if permission denied
 
 ### `pins.update(pinId, patch, options?)`
-Update properties for an existing pin.
+Update properties for an existing pin. Automatically detects and handles icon/image type changes (e.g., switching from Font Awesome icon to image URL, or vice versa) by rebuilding the icon element when needed.
 
-**Returns**: `Promise<PinData>` - The updated pin data
+**Returns**: `Promise<PinData | null>` - The updated pin data, or `null` if pin not found
 
 ```javascript
+// Update text
 const updatedPin = await pinsAPI.update(pin.id, { text: 'Hot Forge' });
+
+// Switch from icon to image (automatically handled)
+await pinsAPI.update(pin.id, { 
+    image: '<img src="icons/svg/treasure.svg">' 
+});
+
+// Switch from image to icon (automatically handled)
+await pinsAPI.update(pin.id, { 
+    image: '<i class="fa-solid fa-star"></i>' 
+});
 ```
 
 **Options**:
-- `sceneId` (string, optional): target scene; defaults to active scene
+- `sceneId` (string, optional): target scene; defaults to active scene. If pin not found on specified scene, automatically searches other scenes.
 - `silent` (boolean, optional): skip event emission
 
 **Throws**: 
-- `Error` if pin not found
 - `Error` if patch data is invalid
-- `Error` if scene not found
-- `Error` if permission denied
+- `Error` if scene not found (when sceneId provided and scene doesn't exist)
+
+**Note**: Returns `null` (instead of throwing) if pin not found anywhere, allowing calling modules to handle missing pins gracefully.
+
+**Icon/Image Type Changes**: When updating the `image` property to change from an icon to an image (or vice versa), the renderer automatically detects the type change and rebuilds the icon element. No manual refresh or reload is needed.
 
 ### `pins.delete(pinId, options?)`
 Delete a pin from a scene. If no `sceneId` is provided, automatically searches all scenes to find the pin.
@@ -815,7 +828,7 @@ Pins can be moved by left-clicking and dragging. Only users with edit permission
 - [x] Drag-and-drop (Phase 2.3): dropCanvasData for creation, drag-to-move, visual feedback, AbortController cleanup
 - [x] Event system (Phase 3.1, 3.2): hover/click/double-click/right-click/middle-click, modifiers, DOM event listeners, handler dispatch
 - [x] Context menu (Phase 3.3): Default items (Ping Pin, Delete), context menu item registration system for modules
-- [x] API: CRUD, `on()`, `registerContextMenuItem()`, `unregisterContextMenuItem()`, `reload()`, `isAvailable()`, `isReady()`, `whenReady()`; `pinsAllowPlayerWrites` setting
+- [x] API: CRUD, `on()`, `registerContextMenuItem()`, `unregisterContextMenuItem()`, `reload()`, `refreshPin()`, `isAvailable()`, `isReady()`, `whenReady()`; `pinsAllowPlayerWrites` setting
 - [x] Pin storage in scene flags; migration and validation on load
 - [x] Shape support: circle (default), square (rounded corners), none (icon only)
 - [x] Color support: hex, rgb, rgba, hsl, hsla, named colors

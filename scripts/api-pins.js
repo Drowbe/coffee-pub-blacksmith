@@ -243,6 +243,20 @@ export class PinsAPI {
     }
 
     /**
+     * Refresh/re-render a single pin by forcing a rebuild of its icon element.
+     * Useful for edge cases where update() doesn't fully refresh the visual.
+     * Note: This should rarely be needed as update() now handles icon/image type changes automatically.
+     *
+     * @param {string} pinId - The pin ID to refresh
+     * @param {import('./manager-pins.js').PinGetOptions} [options] - Optional sceneId
+     * @returns {Promise<boolean>} - True if pin was refreshed, false if not found
+     */
+    static async refreshPin(pinId, options = {}) {
+        const { PinRenderer } = await import('./pins-renderer.js');
+        return PinRenderer.refreshPin(pinId, options);
+    }
+
+    /**
      * Reload pins from scene flags and re-render on the canvas.
      * Use from console when pins exist in data but don't appear (e.g. after refresh).
      * Does not use dynamic import – call via API only: `game.modules.get('coffee-pub-blacksmith')?.api?.pins?.reload()`.
