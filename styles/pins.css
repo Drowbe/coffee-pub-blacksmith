@@ -108,7 +108,6 @@
     line-height: 1.2;
     text-align: center;
     z-index: 2; /* Above icon */
-    grid-area: 1 / 1; /* Place in same grid cell for "around" layout */
 }
 
 /* Text layout: under icon */
@@ -133,16 +132,19 @@
     left: 50%;
     transform: translate(-50%, -50%);
     width: 90%;
-    height: 90%;
+    max-width: 90%;
+    height: auto;
+    min-height: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     white-space: normal;
     word-wrap: break-word;
-    overflow: hidden;
+    overflow: visible; /* Allow text to be visible */
     padding: 2px;
     box-sizing: border-box;
     text-align: center;
+    z-index: 10; /* Ensure text is above icon */
     /* Text overlays the pin, centered */
 }
 
