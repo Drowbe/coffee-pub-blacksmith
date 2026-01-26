@@ -183,7 +183,7 @@ class PinDOMElement {
         const left = Math.round(screen.x - pinSizeScreen / 2);
         const top = Math.round(screen.y - pinSizeScreen / 2);
         
-        return { left, top, width: pinSizeScreen, height: pinSizeScreen, iconSizeScreen, screen };
+        return { left, top, width: pinSizeScreen, height: pinSizeScreen, iconSizeScreen, screen, scale };
     }
 
     /**
@@ -353,7 +353,7 @@ class PinDOMElement {
 
         try {
             // Use unified calculation function
-            const { left, top, width, height, iconSizeScreen, screen } = this._calculatePinPosition(pinElement, pinData);
+            const { left, top, width, height, iconSizeScreen, screen, scale } = this._calculatePinPosition(pinElement, pinData);
             
             // Check if screen coordinates are valid
             if (screen.x === 0 && screen.y === 0 && (pinData.x !== 0 || pinData.y !== 0)) {
@@ -386,6 +386,15 @@ class PinDOMElement {
                     iconElement.style.borderRadius = ''; // No border radius - pin shape handles clipping
                     iconElement.style.overflow = ''; // Not needed - parent clips
                 }
+            }
+            
+            // Update border width to scale with zoom
+            const baseStrokeWidth = typeof pinData.style?.strokeWidth === 'number' ? pinData.style.strokeWidth : 2;
+            const scaledStrokeWidth = baseStrokeWidth * scale;
+            const strokeColor = pinData.style?.stroke || '#ffffff';
+            const shape = pinData.shape || 'circle';
+            if (shape !== 'none') {
+                pinElement.style.border = `${scaledStrokeWidth}px solid ${strokeColor}`;
             }
             
             // Update opacity to match style
