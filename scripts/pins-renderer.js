@@ -1183,14 +1183,13 @@ class PinDOMElement {
         
         // Get border width to position text just outside
         const borderWidth = parseFloat(pinElement.style.borderWidth) || (pinData.style?.strokeWidth || 2);
-        const offset = 8; // Offset from pin edge (similar to "below" margin)
-        const radius = (pinSize / 2) + borderWidth + offset; // Position text just outside the pin border with offset
+        const offset = 8; // Offset from pin edge (similar to "below" margin) - measured from bottom of text
         
         // For "around" layout, always use base text size (ignore scale setting to prevent breaking on small pins)
         const baseTextSize = parseFloat(textElement.dataset.baseTextSize) || pinData.textSize || 12;
         const textSize = baseTextSize; // Always use base size, don't scale
         
-        // Create a temporary element to measure text width
+        // Create a temporary element to measure text width and height
         const measureEl = document.createElement('span');
         measureEl.style.position = 'absolute';
         measureEl.style.visibility = 'hidden';
@@ -1201,6 +1200,14 @@ class PinDOMElement {
         const computedStyle = window.getComputedStyle(textElement);
         measureEl.style.fontFamily = computedStyle.fontFamily;
         document.body.appendChild(measureEl);
+        
+        // Measure text height to position baseline correctly
+        measureEl.textContent = 'M'; // Use a tall character to measure height
+        const textHeight = measureEl.offsetHeight;
+        
+        // Position text so the baseline (bottom) is at the offset distance from pin edge
+        // Radius is from center to baseline, so we add pin radius + border + offset
+        const radius = (pinSize / 2) + borderWidth + offset;
         
         // Split text into characters (preserve spaces)
         const chars = text.split('');
@@ -1262,11 +1269,16 @@ class PinDOMElement {
             const angleRad = (charAngle * Math.PI) / 180;
             
             // Calculate position on circle (relative to pin center)
+            // The radius represents the distance to the text baseline (bottom of text)
             const x = Math.cos(angleRad) * radius;
             const y = Math.sin(angleRad) * radius;
             
             // Only create visible span for non-space characters
             if (char !== ' ') {
+                // Measure this character's height for baseline positioning
+                measureEl.textContent = char;
+                const charHeight = measureEl.offsetHeight;
+                
                 // Create span for this character
                 const span = document.createElement('span');
                 span.className = 'text-char';
@@ -1276,10 +1288,12 @@ class PinDOMElement {
                 span.style.fontSize = `${textSize}px`; // Use fixed size
                 
                 // Position the character relative to pin center (50%, 50% of pin element)
+                // Adjust Y position to account for text height - position so baseline is at radius
                 span.style.left = '50%';
                 span.style.top = '50%';
-                // Transform: translate to center, then offset by circle position, then rotate to follow curve
-                span.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(${charAngle + 90}deg)`;
+                // Transform: translate to center, then offset by circle position (baseline), 
+                // then adjust up by half character height to center on baseline, then rotate to follow curve
+                span.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px - ${charHeight / 2}px)) rotate(${charAngle + 90}deg)`;
                 span.style.transformOrigin = 'center center';
                 
                 textElement.appendChild(span);
