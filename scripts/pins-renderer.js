@@ -408,10 +408,12 @@ class PinDOMElement {
                     // Always use base size for "around" layout
                     textElement.style.fontSize = `${baseTextSize}px`;
                     
-                    // Recalculate character positions when zoom changes (radius changes)
+                    // Recalculate character positions on every position update
+                    // This ensures text stays centered when pin moves or canvas scrolls
                     const originalText = textElement.dataset.originalText || pinData.text || '';
                     if (originalText) {
-                        this._createCurvedText(textElement, originalText, pinData);
+                        // Pass the pinElement to get current screen size, not just pinData
+                        this._createCurvedText(textElement, originalText, pinData, pinElement);
                     }
                 } else {
                     // For "under" and "over" layouts, respect scale setting
@@ -1106,9 +1108,10 @@ class PinDOMElement {
             
             // For "around" layout, create curved text using individual characters
             if (textLayout === 'around') {
-                // Store original text for recalculation on zoom
+                // Store original text for recalculation on zoom/scroll
                 textElement.dataset.originalText = displayText;
-                this._createCurvedText(textElement, displayText, pinData);
+                // Pass pinElement to ensure we use current screen size
+                this._createCurvedText(textElement, displayText, pinData, pinElement);
             } else {
                 // For "under" and "over", use simple text content
                 textElement.textContent = displayText;
@@ -1167,16 +1170,20 @@ class PinDOMElement {
      * @param {HTMLElement} textElement
      * @param {string} text
      * @param {PinData} pinData
+     * @param {HTMLElement} [pinElement] - Optional pin element (will be found if not provided)
      * @private
      */
-    static _createCurvedText(textElement, text, pinData) {
+    static _createCurvedText(textElement, text, pinData, pinElement = null) {
         // Clear existing content
         textElement.innerHTML = '';
         
         // Get current pin size in screen pixels (for accurate positioning)
-        const pinElement = textElement.closest('.blacksmith-pin');
+        if (!pinElement) {
+            pinElement = textElement.closest('.blacksmith-pin');
+        }
         if (!pinElement) return;
         
+        // Always use the current screen size from the pin element (not pinData which has scene coordinates)
         const pinWidth = parseFloat(pinElement.style.width) || Math.min(pinData.size.w, pinData.size.h);
         const pinHeight = parseFloat(pinElement.style.height) || Math.min(pinData.size.w, pinData.size.h);
         const pinSize = Math.min(pinWidth, pinHeight);
