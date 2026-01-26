@@ -30,7 +30,7 @@
     place-items: center; /* Center icon in pin */
     transform-origin: center center;
     box-sizing: border-box;
-    overflow: hidden; /* Clip children (icon) to pin shape */
+    overflow: visible; /* Allow text to overflow below pin */
     transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
     cursor: pointer;
     filter: var(--blacksmith-pin-drop-shadow);
@@ -46,14 +46,26 @@
     border-radius: 50%;
 }
 
+.blacksmith-pin[data-shape="circle"] .blacksmith-pin-icon {
+    border-radius: 50%; /* Match pin shape for icon clipping */
+}
+
 .blacksmith-pin[data-shape="square"] {
     border-radius: var(--blacksmith-pin-square-border-radius);
+}
+
+.blacksmith-pin[data-shape="square"] .blacksmith-pin-icon {
+    border-radius: var(--blacksmith-pin-square-border-radius); /* Match pin shape for icon clipping */
 }
 
 .blacksmith-pin[data-shape="none"] {
     border-radius: 0;
     background: none !important;
     border: none !important;
+}
+
+.blacksmith-pin[data-shape="none"] .blacksmith-pin-icon {
+    border-radius: 0; /* No border radius for "none" shape */
 }
 
 /* Pin icon container */
@@ -65,6 +77,8 @@
     height: 100%;
     grid-area: 1 / 1; /* Place in same grid cell for proper centering */
     position: relative; /* For proper layering with text */
+    overflow: hidden; /* Clip icon to pin shape */
+    border-radius: inherit; /* Inherit pin's border-radius for clipping */
 }
 
 /* Font Awesome icon styling */
@@ -103,7 +117,7 @@
     top: 100%;
     left: 50%;
     transform: translateX(-50%);
-    margin-top: 4px;
+    margin-top: 8px;
     width: auto;
     max-width: 200px;
     white-space: nowrap;

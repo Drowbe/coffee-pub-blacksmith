@@ -495,14 +495,40 @@ export class PinManager {
      * @param {string} pinId
      * @param {Partial<PinData>} patch
      * @param {PinUpdateOptions} [options]
-     * @returns {Promise<PinData>}
+     * @returns {Promise<PinData | null>} Returns null if pin not found (allows graceful handling)
      */
     static async update(pinId, patch, options = {}) {
-        const scene = this._getScene(options.sceneId);
-        const pins = this._getScenePins(scene);
-        const idx = pins.findIndex((p) => p.id === pinId);
+        let scene = options.sceneId ? this._getScene(options.sceneId) : null;
+        let pins = scene ? this._getScenePins(scene) : [];
+        let idx = pins.findIndex((p) => p.id === pinId);
+        
+        // If pin not found and no sceneId specified, try to find it across all scenes
+        if (idx === -1 && !options.sceneId) {
+            const foundSceneId = this.findSceneForPin(pinId);
+            if (foundSceneId) {
+                scene = this._getScene(foundSceneId);
+                pins = this._getScenePins(scene);
+                idx = pins.findIndex((p) => p.id === pinId);
+            }
+        }
+        
+        // If pin not found on specified scene, try to find it on any scene
+        if (idx === -1 && options.sceneId) {
+            const foundSceneId = this.findSceneForPin(pinId);
+            if (foundSceneId && foundSceneId !== options.sceneId) {
+                // Pin exists on a different scene - update it there instead
+                scene = this._getScene(foundSceneId);
+                pins = this._getScenePins(scene);
+                idx = pins.findIndex((p) => p.id === pinId);
+            }
+        }
+        
+        // If pin still not found, return null instead of throwing (allows graceful handling by calling modules)
         if (idx === -1) {
-            throw new Error(`Pin not found: ${pinId}`);
+            // Return null instead of throwing - allows calling modules to handle missing pins gracefully
+            // This prevents errors when pins are deleted or moved between scenes
+            console.warn(`BLACKSMITH | PINS Pin not found: ${pinId}${options.sceneId ? ` on scene ${options.sceneId}` : ''}. Returning null.`);
+            return null;
         }
         const existing = pins[idx];
         const userId = game.user?.id ?? '';

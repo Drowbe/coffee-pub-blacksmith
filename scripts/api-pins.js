@@ -67,7 +67,7 @@ export class PinsAPI {
      * @param {string} pinId
      * @param {Partial<import('./manager-pins.js').PinData>} patch
      * @param {import('./manager-pins.js').PinUpdateOptions} [options]
-     * @returns {Promise<import('./manager-pins.js').PinData>}
+     * @returns {Promise<import('./manager-pins.js').PinData | null>} Returns null if pin not found
      */
     static update(pinId, patch, options) {
         return PinManager.update(pinId, patch, options);
