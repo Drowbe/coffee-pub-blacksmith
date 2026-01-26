@@ -53,13 +53,25 @@ To hide Foundry's default chat message header, add this at the very beginning of
 
 The theme system controls the color scheme of your card. Apply a theme by adding the theme class to the `.blacksmith-card` element.
 
+### Theme Types
+
+Themes are organized into two types:
+
+- **Card Themes** - Light backgrounds with dark text. Suitable for general chat cards, skill checks, combat summaries, etc.
+- **Announcement Themes** - Dark backgrounds with light header text. Designed for important announcements that need to stand out.
+
 ### Available Themes
+
+#### Card Themes (Light Backgrounds)
 
 - **`theme-default`** - Light background, subtle borders
 - **`theme-blue`** - Blue accent theme
 - **`theme-green`** - Green accent theme
 - **`theme-red`** - Red accent theme
 - **`theme-orange`** - Orange accent theme
+
+#### Announcement Themes (Dark Backgrounds)
+
 - **`theme-announcement-green`** - Dark green background for announcements
 - **`theme-announcement-blue`** - Dark blue background for announcements
 - **`theme-announcement-red`** - Dark red background for announcements
@@ -569,6 +581,214 @@ Blacksmith's template examples:
 6. Add event handlers for interactive elements
 7. Test with different themes and content
 
+## Chat Card Themes API
+
+The Blacksmith module exposes a Chat Cards API that provides access to available themes for use in dropdowns and other UI elements.
+
+### Accessing the API
+
+```javascript
+// Via game.modules
+const chatCardsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.chatCards;
+
+// Or via Blacksmith API bridge
+import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
+const blacksmith = await BlacksmithAPI.get();
+const chatCardsAPI = blacksmith?.chatCards;
+```
+
+### Available Methods
+
+#### `chatCards.getThemes([type])`
+
+Returns an array of all available themes with full information. Optionally filter by type (`'card'` or `'announcement'`):
+
+```javascript
+// Get all themes
+const themes = chatCardsAPI.getThemes();
+// Returns:
+// [
+//   { id: 'default', name: 'Default', className: 'theme-default', type: 'card', description: 'Light background, subtle borders' },
+//   { id: 'blue', name: 'Blue', className: 'theme-blue', type: 'card', description: 'Blue accent theme' },
+//   ...
+// ]
+
+// Get only card themes
+const cardThemes = chatCardsAPI.getThemes('card');
+
+// Get only announcement themes
+const announcementThemes = chatCardsAPI.getThemes('announcement');
+```
+
+#### `chatCards.getThemeChoices([type])`
+
+Returns an object suitable for Foundry settings dropdowns, with theme IDs as keys:
+
+```javascript
+// Get all theme choices
+const choices = chatCardsAPI.getThemeChoices();
+// Returns:
+// {
+//   'default': 'Default',
+//   'blue': 'Blue',
+//   'green': 'Green',
+//   ...
+// }
+
+// Get only card theme choices
+const cardChoices = chatCardsAPI.getThemeChoices('card');
+
+// Get only announcement theme choices
+const announcementChoices = chatCardsAPI.getThemeChoices('announcement');
+```
+
+#### `chatCards.getThemeChoicesWithClassNames([type])` ⭐ **Recommended**
+
+Returns an object with **CSS class names as keys** instead of theme IDs. This is the recommended approach for new code as it eliminates the need to convert IDs to class names:
+
+```javascript
+// Get all theme choices with CSS class names as keys
+const choices = chatCardsAPI.getThemeChoicesWithClassNames();
+// Returns:
+// {
+//   'theme-default': 'Default',
+//   'theme-blue': 'Blue',
+//   'theme-green': 'Green',
+//   ...
+// }
+
+// Get only card theme choices with class names
+const cardChoices = chatCardsAPI.getThemeChoicesWithClassNames('card');
+
+// Get only announcement theme choices with class names
+const announcementChoices = chatCardsAPI.getThemeChoicesWithClassNames('announcement');
+```
+
+**Benefits:**
+- Store CSS class names directly in settings
+- Use setting value directly in templates: `<div class="blacksmith-card {{cardTheme}}">`
+- No ID-to-class-name conversion needed
+- More efficient (no API calls during rendering)
+
+#### `chatCards.getTheme(themeId)`
+
+Get a specific theme by ID:
+
+```javascript
+const theme = chatCardsAPI.getTheme('blue');
+// Returns: { id: 'blue', name: 'Blue', className: 'theme-blue', type: 'card', description: 'Blue accent theme' }
+```
+
+#### `chatCards.getThemeClassName(themeId)`
+
+Get the CSS class name for a theme ID:
+
+```javascript
+const className = chatCardsAPI.getThemeClassName('blue');
+// Returns: 'theme-blue'
+
+// Use in template:
+const html = `<div class="blacksmith-card ${className}">...</div>`;
+```
+
+**Note:** If you use `getThemeChoicesWithClassNames()` for settings, you won't need this method for conversion.
+
+### Example: Creating a Theme Dropdown (Recommended Approach)
+
+**Using CSS class names directly** (recommended for new code):
+
+```javascript
+// In your module's settings registration
+Hooks.once('init', () => {
+    const chatCardsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.chatCards;
+    
+    if (chatCardsAPI) {
+        // Store CSS class names directly in settings
+        game.settings.register('my-module', 'cardTheme', {
+            name: 'Chat Card Theme',
+            hint: 'Choose the theme for chat cards created by this module',
+            scope: 'world',
+            config: true,
+            type: String,
+            default: 'theme-default',  // CSS class name, not ID
+            choices: chatCardsAPI.getThemeChoicesWithClassNames('card')  // Keys are CSS class names
+        });
+    }
+});
+
+// In your Handlebars template (my-card.hbs):
+// <div class="blacksmith-card {{cardTheme}}">
+//     <div class="card-header">My Card</div>
+//     <div class="section-content">Content here</div>
+// </div>
+
+// In your template rendering - use setting value directly
+async function renderMyCard(data) {
+    // Get CSS class name directly from settings - no conversion needed!
+    const themeClassName = game.settings.get('my-module', 'cardTheme') || 'theme-default';
+    
+    const templateData = {
+        ...data,
+        cardTheme: themeClassName  // Pass directly to template
+    };
+    
+    const html = await foundry.applications.handlebars.renderTemplate(
+        'modules/my-module/templates/my-card.hbs',
+        templateData
+    );
+    
+    await ChatMessage.create({
+        content: html,
+        style: CONST.CHAT_MESSAGE_STYLES.OTHER
+    });
+}
+```
+
+### Example: Alternative Approach (Using Theme IDs)
+
+If you prefer to store theme IDs and convert them when rendering:
+
+```javascript
+// In your module's settings registration
+Hooks.once('init', () => {
+    const chatCardsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.chatCards;
+    
+    if (chatCardsAPI) {
+        game.settings.register('my-module', 'cardTheme', {
+            name: 'Chat Card Theme',
+            hint: 'Choose the theme for chat cards created by this module',
+            scope: 'world',
+            config: true,
+            type: String,
+            default: 'default',  // Theme ID
+            choices: chatCardsAPI.getThemeChoices('card')  // Keys are theme IDs
+        });
+    }
+});
+
+// In your template rendering - convert ID to class name
+async function renderMyCard(data) {
+    const chatCardsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.chatCards;
+    const themeId = game.settings.get('my-module', 'cardTheme') || 'default';
+    const themeClassName = chatCardsAPI?.getThemeClassName(themeId) || 'theme-default';
+    
+    const templateData = {
+        ...data,
+        themeClassName: themeClassName
+    };
+    
+    const html = await foundry.applications.handlebars.renderTemplate(
+        'modules/my-module/templates/my-card.hbs',
+        templateData
+    );
+    
+    await ChatMessage.create({
+        content: html,
+        style: CONST.CHAT_MESSAGE_STYLES.OTHER
+    });
+}
+```
+
 ## Support
 
 For issues or questions:
@@ -579,4 +799,4 @@ For issues or questions:
 
 ---
 
-**Note:** This guide covers the HTML/CSS framework for chat cards. A future API will provide programmatic methods for creating, updating, and managing chat cards. For now, use the template rendering approach described above.
+**Note:** This guide covers the HTML/CSS framework for chat cards. The Chat Cards API provides programmatic access to themes. A future API will provide programmatic methods for creating, updating, and managing chat cards. For now, use the template rendering approach described above.

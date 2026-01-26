@@ -74,6 +74,7 @@ import { SidebarStyle } from './sidebar-style.js';
 import { LoadingProgressManager } from './manager-loading-progress.js';
 import { PinManager } from './manager-pins.js';
 import { PinsAPI } from './api-pins.js';
+import { ChatCardsAPI } from './api-chat-cards.js';
 import './sidebar-combat.js';
 import './combat-tools.js'; 
 // ================================================================== 
@@ -1055,6 +1056,9 @@ Hooks.once('init', async function() {
 
         // ✅ NEW: Canvas Pins API for external modules
         pins: PinsAPI,
+        
+        // ✅ NEW: Chat Cards API for external modules
+        chatCards: ChatCardsAPI,
         
         // ✅ NEW: Socket API for external modules (set after SocketManager initializes)
         sockets: null
