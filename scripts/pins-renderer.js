@@ -402,11 +402,18 @@ class PinDOMElement {
             if (textElement) {
                 const textScaleWithPin = textElement.dataset.textScaleWithPin !== 'false'; // Default to true
                 const baseTextSize = parseFloat(textElement.dataset.baseTextSize) || pinData.textSize || 12;
+                const textLayout = pinData.textLayout || 'under';
                 
                 if (textScaleWithPin) {
                     // Scale text with zoom
                     const scaledTextSize = baseTextSize * scale;
                     textElement.style.fontSize = `${scaledTextSize}px`;
+                    
+                    // For "around" layout, also need to recalculate character positions
+                    if (textLayout === 'around' && textElement.textContent) {
+                        const text = textElement.textContent;
+                        this._createCurvedText(textElement, text, pinData);
+                    }
                 } else {
                     // Fixed size - use base size
                     textElement.style.fontSize = `${baseTextSize}px`;
@@ -1088,7 +1095,16 @@ class PinDOMElement {
             if (textMaxLength > 0 && displayText.length > textMaxLength) {
                 displayText = displayText.substring(0, textMaxLength) + '...';
             }
-            textElement.textContent = displayText;
+            
+            // For "around" layout, create curved text using individual characters
+            if (textLayout === 'around') {
+                // Store original text for recalculation on zoom
+                textElement.dataset.originalText = displayText;
+                this._createCurvedText(textElement, displayText, pinData);
+            } else {
+                // For "under" and "over", use simple text content
+                textElement.textContent = displayText;
+            }
         } else {
             textElement.textContent = '';
             shouldShow = false;
@@ -1135,6 +1151,67 @@ class PinDOMElement {
         } else {
             textElement.style.display = 'none';
         }
+    }
+
+    /**
+     * Create curved text around the pin edge
+     * @param {HTMLElement} textElement
+     * @param {string} text
+     * @param {PinData} pinData
+     * @private
+     */
+    static _createCurvedText(textElement, text, pinData) {
+        // Clear existing content
+        textElement.innerHTML = '';
+        
+        // Get current pin size in screen pixels (for accurate positioning)
+        const pinElement = textElement.closest('.blacksmith-pin');
+        if (!pinElement) return;
+        
+        const pinWidth = parseFloat(pinElement.style.width) || Math.min(pinData.size.w, pinData.size.h);
+        const pinHeight = parseFloat(pinElement.style.height) || Math.min(pinData.size.w, pinData.size.h);
+        const pinSize = Math.min(pinWidth, pinHeight);
+        
+        // Get border width to position text just outside
+        const borderWidth = parseFloat(pinElement.style.borderWidth) || (pinData.style?.strokeWidth || 2);
+        const radius = (pinSize / 2) + borderWidth + 3; // Position text just outside the pin border
+        
+        // Split text into characters (include spaces but they'll be positioned)
+        const chars = text.split('');
+        const charCount = chars.length;
+        if (charCount === 0) return;
+        
+        // Calculate angle step (distribute characters around the circle)
+        // Start at top (-90 degrees) and go clockwise
+        const startAngle = -90; // Top of circle
+        const totalAngle = 360; // Full circle
+        const angleStep = totalAngle / charCount;
+        
+        chars.forEach((char, index) => {
+            const span = document.createElement('span');
+            span.className = 'text-char';
+            span.textContent = char;
+            span.style.position = 'absolute';
+            span.style.whiteSpace = 'nowrap';
+            
+            // Calculate angle for this character
+            const angle = startAngle + (angleStep * index);
+            const angleRad = (angle * Math.PI) / 180;
+            
+            // Calculate position on circle (relative to center)
+            const x = Math.cos(angleRad) * radius;
+            const y = Math.sin(angleRad) * radius;
+            
+            // Position the character at the center, then offset
+            span.style.left = '50%';
+            span.style.top = '50%';
+            // Transform: translate to center, then offset by circle position, then rotate to follow curve
+            // Add 90 degrees to rotation so text reads correctly along the curve
+            span.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(${angle + 90}deg)`;
+            span.style.transformOrigin = 'center center';
+            
+            textElement.appendChild(span);
+        });
     }
 
     /**

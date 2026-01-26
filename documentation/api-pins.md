@@ -144,11 +144,12 @@ interface PinData {
   image?: string;  // Font Awesome HTML (e.g. '<i class="fa-solid fa-star"></i>'), Font Awesome class string (e.g. 'fa-solid fa-star'), or image URL (e.g. 'icons/svg/star.svg' or '<img src="path/to/image.webp">')
   shape?: 'circle' | 'square' | 'none'; // Pin shape: 'circle' (default), 'square' (rounded corners), or 'none' (icon only, no background)
   dropShadow?: boolean; // Whether to show drop shadow (default: true) - controlled via CSS variable --blacksmith-pin-drop-shadow
-  textLayout?: 'under' | 'around'; // Text layout: 'under' (default, text below icon) or 'around' (text centered over icon)
+  textLayout?: 'under' | 'over' | 'around'; // Text layout: 'under' (text below pin), 'over' (text centered over pin), or 'around' (text curved around pin edge)
   textDisplay?: 'always' | 'hover' | 'never' | 'gm'; // Text display mode: 'always' (default), 'hover' (show on hover), 'never', or 'gm' (GM only)
   textColor?: string; // Text color (default: '#ffffff') - supports hex, rgb, rgba, hsl, hsla, named colors
   textSize?: number; // Text size in pixels (default: 12)
   textMaxLength?: number; // Maximum text length before ellipsis (default: 0 = no limit)
+  textScaleWithPin?: boolean; // Whether text scales with pin size based on zoom (default: true). If false, text stays fixed size.
   config?: Record<string, unknown>;
   moduleId: string; // consumer module id
   ownership?: { default: number; users?: Record<string, number> };
@@ -307,23 +308,54 @@ const textPin = await pinsAPI.create({
   y: 1000,
   moduleId: 'my-module',
   text: 'Secret Location',
-  textLayout: 'under',  // Text below icon
+  textLayout: 'under',  // Text below pin
   textDisplay: 'hover',  // Show text only on hover
   textColor: '#ffff00',  // Yellow text
   textSize: 14,  // Larger text
   textMaxLength: 15,  // Truncate after 15 characters
+  textScaleWithPin: true,  // Text scales with zoom
+  image: '<i class="fa-solid fa-location-dot"></i>'
+});
+
+// Pin with text over icon
+const overTextPin = await pinsAPI.create({
+  id: 'over-text-pin',
+  x: 1400,
+  y: 1000,
+  moduleId: 'my-module',
+  text: 'Return Here',
+  textLayout: 'over',  // Text centered over pin
+  textDisplay: 'always',
+  textColor: '#ffffff',
+  textSize: 14,
+  textScaleWithPin: false,  // Fixed size text
+  image: '<i class="fa-solid fa-map"></i>'
+});
+
+// Pin with text curved around edge
+const aroundTextPin = await pinsAPI.create({
+  id: 'around-text-pin',
+  x: 1500,
+  y: 1000,
+  moduleId: 'my-module',
+  text: 'WRAP YOUR TEXT AROUND A CIRCLE',
+  textLayout: 'around',  // Text curved around pin edge
+  textDisplay: 'always',
+  textColor: '#ffffff',
+  textSize: 12,
+  textScaleWithPin: true,  // Text scales with zoom
   image: '<i class="fa-solid fa-location-dot"></i>'
 });
 
 // GM-only text pin
 const gmTextPin = await pinsAPI.create({
   id: 'gm-text-pin',
-  x: 1400,
+  x: 1600,
   y: 1000,
   moduleId: 'my-module',
   text: 'GM Notes: Hidden treasure here',
   textDisplay: 'gm',  // Only GM can see this text
-  textLayout: 'around',  // Text centered over pin
+  textLayout: 'over',  // Text centered over pin
   image: '<i class="fa-solid fa-map"></i>'
 });
 ```
