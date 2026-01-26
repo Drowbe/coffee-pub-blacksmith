@@ -397,6 +397,22 @@ class PinDOMElement {
                 pinElement.style.border = `${scaledStrokeWidth}px solid ${strokeColor}`;
             }
             
+            // Update text size based on scale setting
+            const textElement = pinElement.querySelector('.blacksmith-pin-text');
+            if (textElement) {
+                const textScaleWithPin = textElement.dataset.textScaleWithPin !== 'false'; // Default to true
+                const baseTextSize = parseFloat(textElement.dataset.baseTextSize) || pinData.textSize || 12;
+                
+                if (textScaleWithPin) {
+                    // Scale text with zoom
+                    const scaledTextSize = baseTextSize * scale;
+                    textElement.style.fontSize = `${scaledTextSize}px`;
+                } else {
+                    // Fixed size - use base size
+                    textElement.style.fontSize = `${baseTextSize}px`;
+                }
+            }
+            
             // Update opacity to match style
             pinElement.style.opacity = String(pinData.style?.alpha ?? 1);
         } catch (err) {
@@ -1086,7 +1102,22 @@ class PinDOMElement {
 
         // Apply text styling
         textElement.style.color = textColor;
-        textElement.style.fontSize = `${textSize}px`;
+        
+        // Store base text size as data attribute for scaling
+        textElement.dataset.baseTextSize = String(textSize);
+        
+        // Apply initial text size (will be scaled in updatePosition if textScaleWithPin is true)
+        const textScaleWithPin = pinData.textScaleWithPin !== false; // Default to true
+        textElement.dataset.textScaleWithPin = String(textScaleWithPin);
+        
+        if (textScaleWithPin) {
+            // Will be scaled in updatePosition based on zoom level
+            // For now, use base size (will be updated on next position update)
+            textElement.style.fontSize = `${textSize}px`;
+        } else {
+            // Fixed size - don't scale
+            textElement.style.fontSize = `${textSize}px`;
+        }
 
         // Apply drop shadow if pin has drop shadow
         if (pinData.dropShadow !== false) {
