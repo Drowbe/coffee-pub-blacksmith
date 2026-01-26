@@ -400,23 +400,31 @@ class PinDOMElement {
             // Update text size based on scale setting
             const textElement = pinElement.querySelector('.blacksmith-pin-text');
             if (textElement) {
-                const textScaleWithPin = textElement.dataset.textScaleWithPin !== 'false'; // Default to true
-                const baseTextSize = parseFloat(textElement.dataset.baseTextSize) || pinData.textSize || 12;
                 const textLayout = pinData.textLayout || 'under';
+                const baseTextSize = parseFloat(textElement.dataset.baseTextSize) || pinData.textSize || 12;
                 
-                if (textScaleWithPin) {
-                    // Scale text with zoom
-                    const scaledTextSize = baseTextSize * scale;
-                    textElement.style.fontSize = `${scaledTextSize}px`;
+                // "around" layout always uses fixed size (ignores scale setting)
+                if (textLayout === 'around') {
+                    // Always use base size for "around" layout
+                    textElement.style.fontSize = `${baseTextSize}px`;
                     
-                    // For "around" layout, also need to recalculate character positions
-                    if (textLayout === 'around' && textElement.textContent) {
-                        const text = textElement.textContent;
-                        this._createCurvedText(textElement, text, pinData);
+                    // Recalculate character positions when zoom changes (radius changes)
+                    const originalText = textElement.dataset.originalText || pinData.text || '';
+                    if (originalText) {
+                        this._createCurvedText(textElement, originalText, pinData);
                     }
                 } else {
-                    // Fixed size - use base size
-                    textElement.style.fontSize = `${baseTextSize}px`;
+                    // For "under" and "over" layouts, respect scale setting
+                    const textScaleWithPin = textElement.dataset.textScaleWithPin !== 'false'; // Default to true
+                    
+                    if (textScaleWithPin) {
+                        // Scale text with zoom
+                        const scaledTextSize = baseTextSize * scale;
+                        textElement.style.fontSize = `${scaledTextSize}px`;
+                    } else {
+                        // Fixed size - use base size
+                        textElement.style.fontSize = `${baseTextSize}px`;
+                    }
                 }
             }
             
@@ -1123,7 +1131,8 @@ class PinDOMElement {
         textElement.dataset.baseTextSize = String(textSize);
         
         // Apply initial text size (will be scaled in updatePosition if textScaleWithPin is true)
-        const textScaleWithPin = pinData.textScaleWithPin !== false; // Default to true
+        // Exception: "around" layout always uses fixed size (ignores scale setting)
+        const textScaleWithPin = (textLayout === 'around') ? false : (pinData.textScaleWithPin !== false); // Default to true, but false for "around"
         textElement.dataset.textScaleWithPin = String(textScaleWithPin);
         
         if (textScaleWithPin) {
@@ -1131,7 +1140,7 @@ class PinDOMElement {
             // For now, use base size (will be updated on next position update)
             textElement.style.fontSize = `${textSize}px`;
         } else {
-            // Fixed size - don't scale
+            // Fixed size - don't scale (used for "around" layout and when textScaleWithPin is false)
             textElement.style.fontSize = `${textSize}px`;
         }
 
@@ -1174,44 +1183,120 @@ class PinDOMElement {
         
         // Get border width to position text just outside
         const borderWidth = parseFloat(pinElement.style.borderWidth) || (pinData.style?.strokeWidth || 2);
-        const radius = (pinSize / 2) + borderWidth + 3; // Position text just outside the pin border
+        const offset = 8; // Offset from pin edge (similar to "below" margin)
+        const radius = (pinSize / 2) + borderWidth + offset; // Position text just outside the pin border with offset
         
-        // Split text into characters (include spaces but they'll be positioned)
+        // For "around" layout, always use base text size (ignore scale setting to prevent breaking on small pins)
+        const baseTextSize = parseFloat(textElement.dataset.baseTextSize) || pinData.textSize || 12;
+        const textSize = baseTextSize; // Always use base size, don't scale
+        
+        // Create a temporary element to measure text width
+        const measureEl = document.createElement('span');
+        measureEl.style.position = 'absolute';
+        measureEl.style.visibility = 'hidden';
+        measureEl.style.whiteSpace = 'nowrap';
+        measureEl.style.fontSize = `${textSize}px`;
+        measureEl.style.fontWeight = 'bold';
+        // Match font family if possible
+        const computedStyle = window.getComputedStyle(textElement);
+        measureEl.style.fontFamily = computedStyle.fontFamily;
+        document.body.appendChild(measureEl);
+        
+        // Split text into characters (preserve spaces)
         const chars = text.split('');
-        const charCount = chars.length;
-        if (charCount === 0) return;
+        if (chars.length === 0) {
+            document.body.removeChild(measureEl);
+            return;
+        }
         
-        // Calculate angle step (distribute characters around the circle)
-        // Start at top (-90 degrees) and go clockwise
-        const startAngle = -90; // Top of circle
-        const totalAngle = 360; // Full circle
-        const angleStep = totalAngle / charCount;
+        // Letter spacing (add extra space between letters)
+        const letterSpacing = 2; // pixels of extra space between letters
+        const wordSpacing = 8; // pixels of extra space for word separation (spaces)
+        
+        // Measure total text width with letter spacing to center it
+        // Calculate total width: sum of character widths + letter spacing between them + word spacing for spaces
+        let totalTextWidth = 0;
+        chars.forEach((char, index) => {
+            if (char === ' ') {
+                // Space character - use word spacing
+                totalTextWidth += wordSpacing;
+            } else {
+                measureEl.textContent = char;
+                totalTextWidth += measureEl.offsetWidth;
+            }
+            // Add letter spacing between characters (except after last character)
+            if (index < chars.length - 1) {
+                totalTextWidth += letterSpacing;
+            }
+        });
+        
+        // Calculate starting angle to center text at top
+        // Arc length = radius * angle (in radians)
+        // We want to center the text, so start from -90 degrees and offset by half the text arc
+        const totalArcLength = totalTextWidth;
+        const totalArcAngle = (totalArcLength / radius) * (180 / Math.PI); // Convert to degrees
+        const startAngle = -90 - (totalArcAngle / 2); // Start before top center to center the text
+        
+        // Calculate angle per pixel
+        const anglePerPixel = 180 / (Math.PI * radius);
+        
+        let currentAngle = startAngle;
         
         chars.forEach((char, index) => {
-            const span = document.createElement('span');
-            span.className = 'text-char';
-            span.textContent = char;
-            span.style.position = 'absolute';
-            span.style.whiteSpace = 'nowrap';
+            let charWidth = 0;
+            let charAngleSpan = 0;
             
-            // Calculate angle for this character
-            const angle = startAngle + (angleStep * index);
-            const angleRad = (angle * Math.PI) / 180;
+            if (char === ' ') {
+                // Space character - use word spacing width
+                charWidth = wordSpacing;
+                charAngleSpan = wordSpacing * anglePerPixel;
+            } else {
+                // Regular character - measure its width
+                measureEl.textContent = char;
+                charWidth = measureEl.offsetWidth;
+                charAngleSpan = charWidth * anglePerPixel;
+            }
             
-            // Calculate position on circle (relative to center)
+            // Position character at current angle (centered on its width)
+            const charAngle = currentAngle + (charAngleSpan / 2);
+            const angleRad = (charAngle * Math.PI) / 180;
+            
+            // Calculate position on circle (relative to pin center)
             const x = Math.cos(angleRad) * radius;
             const y = Math.sin(angleRad) * radius;
             
-            // Position the character at the center, then offset
-            span.style.left = '50%';
-            span.style.top = '50%';
-            // Transform: translate to center, then offset by circle position, then rotate to follow curve
-            // Add 90 degrees to rotation so text reads correctly along the curve
-            span.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(${angle + 90}deg)`;
-            span.style.transformOrigin = 'center center';
+            // Only create visible span for non-space characters
+            if (char !== ' ') {
+                // Create span for this character
+                const span = document.createElement('span');
+                span.className = 'text-char';
+                span.textContent = char;
+                span.style.position = 'absolute';
+                span.style.whiteSpace = 'nowrap';
+                span.style.fontSize = `${textSize}px`; // Use fixed size
+                
+                // Position the character relative to pin center (50%, 50% of pin element)
+                span.style.left = '50%';
+                span.style.top = '50%';
+                // Transform: translate to center, then offset by circle position, then rotate to follow curve
+                span.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(${charAngle + 90}deg)`;
+                span.style.transformOrigin = 'center center';
+                
+                textElement.appendChild(span);
+            }
             
-            textElement.appendChild(span);
+            // Move to next character position (character width + letter spacing)
+            currentAngle += charAngleSpan;
+            
+            // Add letter spacing angle (except after last character)
+            if (index < chars.length - 1) {
+                const spacingAngle = letterSpacing * anglePerPixel;
+                currentAngle += spacingAngle;
+            }
         });
+        
+        // Clean up measurement element
+        document.body.removeChild(measureEl);
     }
 
     /**

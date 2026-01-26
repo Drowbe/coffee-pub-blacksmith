@@ -151,17 +151,19 @@
 /* Text layout: around icon (curved around pin edge) */
 .blacksmith-pin-text[data-layout="around"] {
     position: absolute;
-    top: 50%;
+    top: 0;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
     width: 100%;
     height: 100%;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     pointer-events: none;
     z-index: 10;
-    /* Text will be positioned around the circle using JavaScript */
+    padding-top: 8px; /* Offset from pin edge, similar to "below" margin */
+    box-sizing: border-box;
+    /* Text will be positioned around the circle using JavaScript, centered at top */
 }
 
 /* Individual character/word spans for curved text */
