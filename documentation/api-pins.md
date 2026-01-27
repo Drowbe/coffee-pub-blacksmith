@@ -741,12 +741,32 @@ const window = await pinsAPI.configure(pinId);
 
 // Open configuration window for a pin on a specific scene
 await pinsAPI.configure(pinId, { sceneId: 'some-scene-id' });
+
+// Open with callback to receive configuration data
+await pinsAPI.configure(pinId, {
+    sceneId: 'some-scene-id',
+    onSelect: (configData) => {
+        console.log('Pin configured:', configData);
+        // Use the configuration data in your module
+    }
+});
+
+// Open with "Use as Default" toggle enabled
+await pinsAPI.configure(pinId, {
+    moduleId: 'my-module',
+    defaultSettingKey: 'defaultPinDesign',
+    useAsDefault: true
+});
 ```
 
 **Parameters**:
 - `pinId` (string, required): Pin ID to configure
 - `options` (object, optional): Options
   - `sceneId` (string, optional): Scene ID (defaults to active scene)
+  - `onSelect` (Function, optional): Callback function called when configuration is saved. Receives the configuration data object as parameter.
+  - `useAsDefault` (boolean, optional): Show "Use as Default" toggle in the window header (default: `false`)
+  - `defaultSettingKey` (string, optional): Module setting key where default configuration will be saved when "Use as Default" is enabled
+  - `moduleId` (string, optional): Calling module ID (required if `useAsDefault` is `true`)
 
 **Throws**: 
 - `Error` if pin not found
@@ -758,14 +778,16 @@ await pinsAPI.configure(pinId, { sceneId: 'some-scene-id' });
 - Only users who can edit the pin (based on ownership) can open the configuration window
 - The window includes fields for:
   - **Appearance**: Shape, size, colors (fill, stroke), stroke width, opacity, drop shadow
-  - **Icon/Image**: Font Awesome icon or image URL
+  - **Icon/Image**: Font Awesome icon or image URL (toggle between icon library and image URL)
   - **Text**: Content, layout (under/over/around), display mode (always/hover/never/gm), color, size, max length, scaling
   - **Metadata**: Pin type/category
   - **Ownership** (GM only): Default ownership level and user-specific ownership levels
 - Changes are saved via `pins.update()` when the form is submitted
+- If `onSelect` callback is provided, it is called with the configuration data after saving
+- If `useAsDefault` is enabled and `defaultSettingKey` and `moduleId` are provided, the configuration can be saved as a module default setting
 - The window is also accessible via the right-click context menu ("Configure Pin")
 
-**Note**: The configuration window is automatically added to the pin context menu for users who can edit the pin.
+**Note**: The configuration window is automatically added to the pin context menu for users who can edit the pin. The window uses the same styling and structure as other Blacksmith windows (targets `div#blacksmith-pin-config` and `.window-content`).
 
 ### `pins.findScene(pinId)`
 Find which scene contains a pin with the given ID. Useful for cross-scene operations.

@@ -190,6 +190,10 @@ export class PinsAPI {
      * @param {string} pinId - Pin ID to configure
      * @param {Object} [options] - Options
      * @param {string} [options.sceneId] - Scene ID (defaults to active scene)
+     * @param {Function} [options.onSelect] - Callback function called when configuration is saved. Receives the configuration data object.
+     * @param {boolean} [options.useAsDefault] - Show "Use as Default" toggle in the window header (default: false)
+     * @param {string} [options.defaultSettingKey] - Module setting key where default configuration will be saved when "Use as Default" is enabled
+     * @param {string} [options.moduleId] - Calling module ID (required if useAsDefault is true)
      * @returns {Promise<Application>} - The opened window instance
      */
     static async configure(pinId, options = {}) {
