@@ -29,6 +29,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {number} [textSize] - Text size in pixels (default: 12)
  * @property {number} [textMaxLength] - Maximum text length before ellipsis (default: 0 = no limit)
  * @property {boolean} [textScaleWithPin] - Whether text scales with pin size based on zoom (default: true). If false, text stays fixed size.
+ * @property {string} [type] - Pin type/category (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified. Used for filtering and organization.
  * @property {Record<string, unknown>} config
  * @property {string} moduleId
  * @property {{ default: number; users?: Record<string, number> }} ownership
@@ -40,7 +41,7 @@ import { postConsoleAndNotification } from './api-core.js';
 // ------------------------------------------------------------------
 
 /** Current pin data schema version. Bump when format changes and add migration. */
-export const PIN_SCHEMA_VERSION = 1;
+export const PIN_SCHEMA_VERSION = 2;
 
 /** Default values per architecture (apply when creating/validating, not stored if omitted). */
 export const PIN_DEFAULTS = Object.freeze({
@@ -54,6 +55,7 @@ export const PIN_DEFAULTS = Object.freeze({
     textSize: 12,
     textMaxLength: 0, // 0 = no limit
     textScaleWithPin: true, // If true, text scales with zoom; if false, text stays fixed size
+    type: 'default', // Pin type/category - defaults to 'default' if not specified
     version: PIN_SCHEMA_VERSION,
     ownership: { default: 0 },
     config: {}
@@ -65,8 +67,15 @@ export const PIN_DEFAULTS = Object.freeze({
 
 const MIGRATION_MAP = new Map();
 
-// When we add version 2, we'd add:
-// MIGRATION_MAP.set(1, (pin) => ({ ...pin, version: 2, ... }));
+// Migration from v1 to v2: Add type field with default 'default'
+MIGRATION_MAP.set(2, (pin) => {
+    const migrated = { ...pin };
+    // If type doesn't exist, set to 'default'
+    if (migrated.type == null || migrated.type === '') {
+        migrated.type = 'default';
+    }
+    return migrated;
+});
 
 // ------------------------------------------------------------------
 // Helpers
@@ -91,6 +100,7 @@ export function applyDefaults(partial) {
         shape: PIN_DEFAULTS.shape,
         text: undefined,
         image: undefined,
+        type: PIN_DEFAULTS.type, // Always set default type
         config: { ...(PIN_DEFAULTS.config) },
         moduleId: '',
         ownership: { ...PIN_DEFAULTS.ownership },
@@ -140,6 +150,11 @@ export function applyDefaults(partial) {
     if (typeof partial.textSize === 'number' && partial.textSize > 0) base.textSize = partial.textSize;
     if (typeof partial.textMaxLength === 'number' && partial.textMaxLength >= 0) base.textMaxLength = partial.textMaxLength;
     if (typeof partial.textScaleWithPin === 'boolean') base.textScaleWithPin = partial.textScaleWithPin;
+    if (partial.type != null) {
+        base.type = String(partial.type).trim() || PIN_DEFAULTS.type;
+    } else {
+        base.type = PIN_DEFAULTS.type; // Always set default type
+    }
     if (partial.config != null && typeof partial.config === 'object' && !Array.isArray(partial.config)) {
         base.config = foundry.utils.deepClone(partial.config);
     }

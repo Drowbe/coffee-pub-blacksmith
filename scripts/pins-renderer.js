@@ -891,6 +891,26 @@ class PinDOMElement {
         
         // Add default universal items (after registered items)
         
+        // Configure Pin (if user can edit)
+        if (canEdit) {
+            menuItems.push({
+                name: 'Configure Pin',
+                icon: '<i class="fa-solid fa-cog"></i>',
+                callback: async () => {
+                    try {
+                        const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                        if (pinsAPI) {
+                            await pinsAPI.configure(pinData.id, { sceneId: canvas?.scene?.id });
+                        } else {
+                            console.warn('BLACKSMITH | PINS API not available');
+                        }
+                    } catch (err) {
+                        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error opening pin configuration', err?.message || err, false, true);
+                    }
+                }
+            });
+        }
+        
         // Bring Players Here (available to all users) - pan all players and ping
         menuItems.push({
             name: 'Bring Players Here',
@@ -944,6 +964,73 @@ class PinDOMElement {
                         await PinManager.delete(pinData.id);
                     } catch (err) {
                         postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error deleting pin', err?.message || err, false, true);
+                    }
+                }
+            });
+        }
+        
+        // GM-only bulk delete options
+        if (game.user?.isGM) {
+            // Add separator before GM controls
+            if (menuItems.length > 0) {
+                menuItems.push({ separator: true });
+            }
+            
+            // Get all pin types on current scene for "Delete All of Type" submenu
+            const { PinManager } = await import('./manager-pins.js');
+            const allPins = PinManager.list({ sceneId: canvas?.scene?.id });
+            const pinTypes = new Set();
+            for (const pin of allPins) {
+                pinTypes.add(pin.type || 'default');
+            }
+            
+            // Delete all pins of this pin's type
+            const currentPinType = pinData.type || 'default';
+            if (pinTypes.size > 0) {
+                menuItems.push({
+                    name: `Delete All "${currentPinType}" Pins`,
+                    icon: '<i class="fa-solid fa-trash-can"></i>',
+                    callback: async () => {
+                        try {
+                            const confirmed = await Dialog.confirm({
+                                title: 'Delete All Pins of Type',
+                                content: `<p>Are you sure you want to delete all pins of type "<strong>${currentPinType}</strong>" on this scene?</p><p>This action cannot be undone.</p>`,
+                                yes: () => true,
+                                no: () => false,
+                                defaultYes: false
+                            });
+                            if (confirmed) {
+                                const { PinManager } = await import('./manager-pins.js');
+                                const count = await PinManager.deleteAllByType(currentPinType);
+                                ui.notifications.info(`Deleted ${count} pin${count !== 1 ? 's' : ''} of type "${currentPinType}".`);
+                            }
+                        } catch (err) {
+                            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error deleting pins by type', err?.message || err, false, true);
+                        }
+                    }
+                });
+            }
+            
+            // Delete all pins
+            menuItems.push({
+                name: 'Delete All Pins',
+                icon: '<i class="fa-solid fa-trash-can"></i>',
+                callback: async () => {
+                    try {
+                        const confirmed = await Dialog.confirm({
+                            title: 'Delete All Pins',
+                            content: '<p>Are you sure you want to delete <strong>ALL</strong> pins on this scene?</p><p>This action cannot be undone.</p>',
+                            yes: () => true,
+                            no: () => false,
+                            defaultYes: false
+                        });
+                        if (confirmed) {
+                            const { PinManager } = await import('./manager-pins.js');
+                            const count = await PinManager.deleteAll();
+                            ui.notifications.info(`Deleted ${count} pin${count !== 1 ? 's' : ''}.`);
+                        }
+                    } catch (err) {
+                        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error deleting all pins', err?.message || err, false, true);
                     }
                 }
             });

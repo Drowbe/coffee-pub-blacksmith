@@ -1,0 +1,171 @@
+<form class="pin-config-form">
+  <div class="pin-config-section">
+    <h3><i class="fas fa-image"></i> Appearance</h3>
+    
+    <div class="form-group">
+      <label>Shape</label>
+      <select name="shape" value="{{pin.shape}}">
+        {{#each shapes}}
+        <option value="{{value}}" {{#if (eq ../pin.shape value)}}selected{{/if}}>
+          {{label}}
+        </option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Size (Width × Height)</label>
+      <div class="size-inputs">
+        <input type="number" name="size-width" value="{{pin.size.w}}" min="16" max="128" step="1">
+        <span>×</span>
+        <input type="number" name="size-height" value="{{pin.size.h}}" min="16" max="128" step="1">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Fill Color</label>
+      <input type="color" name="style-fill" value="{{pin.style.fill}}">
+    </div>
+
+    <div class="form-group">
+      <label>Stroke Color</label>
+      <input type="color" name="style-stroke" value="{{pin.style.stroke}}">
+    </div>
+
+    <div class="form-group">
+      <label>Stroke Width</label>
+      <input type="number" name="style-strokeWidth" value="{{pin.style.strokeWidth}}" min="0" max="10" step="1">
+    </div>
+
+    <div class="form-group">
+      <label>Opacity (Alpha)</label>
+      <input type="range" name="style-alpha" value="{{pin.style.alpha}}" min="0" max="1" step="0.1">
+      <span class="alpha-value">{{pin.style.alpha}}</span>
+    </div>
+
+    <div class="form-group">
+      <label>
+        <input type="checkbox" name="dropShadow" {{#if pin.dropShadow}}checked{{/if}}>
+        Drop Shadow
+      </label>
+    </div>
+  </div>
+
+  <div class="pin-config-section">
+    <h3><i class="fas fa-image"></i> Icon/Image</h3>
+    
+    <div class="form-group">
+      <label>Image/Icon</label>
+      <textarea name="image" rows="2" placeholder='Font Awesome: &lt;i class="fa-solid fa-star"&gt;&lt;/i&gt; or Image URL: icons/svg/star.svg'>{{pin.image}}</textarea>
+      <small>Enter Font Awesome HTML, class string, or image URL</small>
+    </div>
+  </div>
+
+  <div class="pin-config-section">
+    <h3><i class="fas fa-font"></i> Text</h3>
+    
+    <div class="form-group">
+      <label>Text Content</label>
+      <textarea name="text" rows="3" placeholder="Optional text label">{{pin.text}}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Text Layout</label>
+      <select name="textLayout">
+        {{#each textLayouts}}
+        <option value="{{value}}" {{#if (eq ../pin.textLayout value)}}selected{{/if}}>
+          {{label}}
+        </option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Text Display</label>
+      <select name="textDisplay">
+        {{#each textDisplays}}
+        <option value="{{value}}" {{#if (eq ../pin.textDisplay value)}}selected{{/if}}>
+          {{label}}
+        </option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Text Color</label>
+      <input type="color" name="textColor" value="{{pin.textColor}}">
+    </div>
+
+    <div class="form-group">
+      <label>Text Size</label>
+      <input type="number" name="textSize" value="{{pin.textSize}}" min="8" max="24" step="1">
+    </div>
+
+    <div class="form-group">
+      <label>Max Text Length (0 = no limit)</label>
+      <input type="number" name="textMaxLength" value="{{pin.textMaxLength}}" min="0" step="1">
+    </div>
+
+    <div class="form-group">
+      <label>
+        <input type="checkbox" name="textScaleWithPin" {{#if pin.textScaleWithPin}}checked{{/if}}>
+        Scale Text with Pin
+      </label>
+    </div>
+  </div>
+
+  <div class="pin-config-section">
+    <h3><i class="fas fa-tag"></i> Metadata</h3>
+    
+    <div class="form-group">
+      <label>Pin Type</label>
+      <input type="text" name="type" value="{{pin.type}}" placeholder="default">
+      <small>Category/type for filtering (e.g., 'note', 'quest', 'location')</small>
+    </div>
+  </div>
+
+  {{#if (isGM)}}
+  <div class="pin-config-section">
+    <h3><i class="fas fa-shield-alt"></i> Ownership</h3>
+    
+    <div class="form-group">
+      <label>Default Ownership Level</label>
+      <select name="ownership-default">
+        {{#each ownershipLevels}}
+        <option value="{{value}}" {{#if (eq ../currentOwnership.default value)}}selected{{/if}}>
+          {{label}}
+        </option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>User-Specific Ownership</label>
+      <div class="user-ownership-list">
+        {{#each users}}
+        <div class="user-ownership-item">
+          <span class="user-name">{{name}}{{#if isGM}} (GM){{/if}}</span>
+          <select name="ownership-user-{{id}}">
+            <option value="0" {{#unless level}}selected{{/unless}}>Inherit Default</option>
+            {{#each ../ownershipLevels}}
+            <option value="{{value}}" {{#if (eq ../level value)}}selected{{/if}}>
+              {{label}}
+            </option>
+            {{/each}}
+          </select>
+        </div>
+        {{/each}}
+      </div>
+    </div>
+  </div>
+  {{/if}}
+
+  <div class="form-actions">
+    <button type="submit" class="submit-button">
+      <i class="fas fa-save"></i> Save Changes
+    </button>
+    <button type="button" class="cancel-button">
+      <i class="fas fa-times"></i> Cancel
+    </button>
+  </div>
+</form>

@@ -4907,7 +4907,7 @@ export const registerSettings = () => {
 
 
 	// Monster Mapping Data - HIDDEN SETTING
-	game.settings.register(MODULE.ID, 'targetedIndicatorEnabled', {
+	game.settings.register(MODULE.ID, 'tokenImageReplacementMonsterMapping', {
 		type: Object,
 		config: false,
 		scope: 'world',

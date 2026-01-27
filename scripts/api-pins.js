@@ -85,12 +85,116 @@ export class PinsAPI {
     }
 
     /**
+     * Delete all pins from a scene (GM only).
+     * @param {Object} [options]
+     * @param {string} [options.sceneId] - Target scene; defaults to active scene
+     * @param {string} [options.moduleId] - Filter by module ID (optional)
+     * @param {boolean} [options.silent] - Skip event emission
+     * @returns {Promise<number>} - Number of pins deleted
+     */
+    static deleteAll(options) {
+        return PinManager.deleteAll(options);
+    }
+
+    /**
+     * Delete all pins of a specific type from a scene (GM only).
+     * @param {string} type - Pin type to delete (e.g., 'note', 'quest', 'default')
+     * @param {Object} [options]
+     * @param {string} [options.sceneId] - Target scene; defaults to active scene
+     * @param {string} [options.moduleId] - Filter by module ID (optional)
+     * @param {boolean} [options.silent] - Skip event emission
+     * @returns {Promise<number>} - Number of pins deleted
+     */
+    static deleteAllByType(type, options) {
+        return PinManager.deleteAllByType(type, options);
+    }
+
+    /**
+     * Create a pin as GM (bypasses permission checks, executes on GM client).
+     * @param {string} sceneId - Target scene
+     * @param {Partial<import('./manager-pins.js').PinData> & { id: string; x: number; y: number; moduleId: string }} pinData - Pin data
+     * @param {import('./manager-pins.js').PinCreateOptions} [options] - Additional options
+     * @returns {Promise<import('./manager-pins.js').PinData>} - Created pin data
+     */
+    static createAsGM(sceneId, pinData, options) {
+        return PinManager.createAsGM(sceneId, pinData, options);
+    }
+
+    /**
+     * Update a pin as GM (bypasses permission checks, executes on GM client).
+     * @param {string} sceneId - Target scene
+     * @param {string} pinId - Pin ID to update
+     * @param {Partial<import('./manager-pins.js').PinData>} patch - Update patch
+     * @param {import('./manager-pins.js').PinUpdateOptions} [options] - Additional options
+     * @returns {Promise<import('./manager-pins.js').PinData | null>} - Updated pin data or null if not found
+     */
+    static updateAsGM(sceneId, pinId, patch, options) {
+        return PinManager.updateAsGM(sceneId, pinId, patch, options);
+    }
+
+    /**
+     * Delete a pin as GM (bypasses permission checks, executes on GM client).
+     * @param {string} sceneId - Target scene
+     * @param {string} pinId - Pin ID to delete
+     * @param {import('./manager-pins.js').PinDeleteOptions} [options] - Additional options
+     * @returns {Promise<void>}
+     */
+    static deleteAsGM(sceneId, pinId, options) {
+        return PinManager.deleteAsGM(sceneId, pinId, options);
+    }
+
+    /**
+     * Request GM to perform a pin action (for non-GM users).
+     * Uses socket system to forward request to GM. If caller is already GM, executes directly.
+     * @param {string} action - Action type: 'create', 'update', or 'delete'
+     * @param {Object} params - Action parameters
+     * @param {string} params.sceneId - Target scene
+     * @param {string} [params.pinId] - Pin ID (for update/delete)
+     * @param {Object} [params.payload] - Pin data (for create)
+     * @param {Object} [params.patch] - Update patch (for update)
+     * @param {Object} [params.options] - Additional options
+     * @returns {Promise<import('./manager-pins.js').PinData | number | void>} - Result depends on action type
+     */
+    static requestGM(action, params) {
+        return PinManager.requestGM(action, params);
+    }
+
+    /**
+     * Reconcile module-tracked pin IDs with actual pins on canvas.
+     * Helps modules repair broken links between their data and pins.
+     * @param {Object} options
+     * @param {string | string[]} [options.sceneId] - Scene ID(s) to reconcile (defaults to active scene)
+     * @param {string} options.moduleId - Module ID to filter pins
+     * @param {Array} options.items - Array of items that track pin IDs
+     * @param {Function} options.getPinId - Function to get pinId from item: (item) => string | null
+     * @param {Function} options.setPinId - Function to set pinId on item: (item, pinId) => void
+     * @param {Function} [options.setSceneId] - Optional: Function to set sceneId on item: (item, sceneId) => void
+     * @param {Function} [options.setPosition] - Optional: Function to set position on item: (item, x, y) => void
+     * @returns {Promise<{ linked: number; unlinked: number; repaired: number; errors: string[] }>}
+     */
+    static reconcile(options) {
+        return PinManager.reconcile(options);
+    }
+
+    /**
      * Find which scene contains a pin with the given ID.
      * @param {string} pinId - The pin ID to search for
      * @returns {string | null} - The scene ID containing the pin, or null if not found
      */
     static findScene(pinId) {
         return PinManager.findSceneForPin(pinId);
+    }
+
+    /**
+     * Open the pin configuration window for a pin.
+     * @param {string} pinId - Pin ID to configure
+     * @param {Object} [options] - Options
+     * @param {string} [options.sceneId] - Scene ID (defaults to active scene)
+     * @returns {Promise<Application>} - The opened window instance
+     */
+    static async configure(pinId, options = {}) {
+        const { PinConfigurationWindow } = await import('./window-pin-config.js');
+        return PinConfigurationWindow.open(pinId, options);
     }
 
     /**

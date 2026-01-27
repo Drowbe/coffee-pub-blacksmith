@@ -51,6 +51,7 @@ const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
  * @typedef {Object} PinListOptions
  * @property {string} [sceneId]
  * @property {string} [moduleId]
+ * @property {string} [type] - Filter by pin type
  */
 
 /**
@@ -88,6 +89,9 @@ export class PinManager {
     // Context menu item storage: Map<itemId, menuItem>
     static _contextMenuItems = new Map();
     static _contextMenuItemCounter = 0;
+    
+    // GM proxy handler registration flag
+    static _gmProxyHandlerRegistered = false;
 
     /**
      * Resolve scene by id or active canvas. Throws if not found.
@@ -457,6 +461,35 @@ export class PinManager {
      * @param {PinCreateOptions} [options]
      * @returns {Promise<PinData>}
      */
+    /**
+     * Resolve ownership for a pin using hooks or default
+     * @param {Object} context - Context for ownership resolution
+     * @param {string} context.moduleId - Module creating the pin
+     * @param {string} context.userId - User creating the pin
+     * @param {string} context.sceneId - Scene ID
+     * @param {Record<string, unknown>} [context.metadata] - Additional metadata
+     * @param {Object} [providedOwnership] - Ownership provided in pinData (takes precedence)
+     * @returns {Object} - Ownership object
+     * @private
+     */
+    static _resolveOwnership(context, providedOwnership = null) {
+        // If ownership is explicitly provided, use it
+        if (providedOwnership != null && typeof providedOwnership === 'object') {
+            return providedOwnership;
+        }
+        
+        // Call ownership resolver hook
+        const hookResult = Hooks.call('blacksmith.pins.resolveOwnership', context);
+        
+        // If hook returns ownership, use it
+        if (hookResult != null && typeof hookResult === 'object' && !Array.isArray(hookResult)) {
+            return hookResult;
+        }
+        
+        // Default: GM-only (NONE for all users)
+        return { default: NONE };
+    }
+
     static async create(pinData, options = {}) {
         const scene = this._getScene(options.sceneId);
         if (!this._canCreate()) {
@@ -467,6 +500,16 @@ export class PinManager {
             throw new Error(validated.error);
         }
         const pin = validated.pin;
+        
+        // Resolve ownership using hook if not explicitly provided
+        const context = {
+            moduleId: pin.moduleId,
+            userId: game.user?.id || '',
+            sceneId: scene.id,
+            metadata: pin.config || {}
+        };
+        pin.ownership = this._resolveOwnership(context, pin.ownership);
+        
         const pins = this._getScenePins(scene);
         if (pins.some((p) => p.id === pin.id)) {
             throw new Error(`A pin with id "${pin.id}" already exists on this scene.`);
@@ -536,6 +579,17 @@ export class PinManager {
             throw new Error('Permission denied: you cannot update this pin.');
         }
         const merged = foundry.utils.deepClone(existing);
+        
+        // If ownership is being updated, resolve it using hook
+        if (patch.ownership !== undefined) {
+            const context = {
+                moduleId: existing.moduleId,
+                userId: game.user?.id || '',
+                sceneId: scene.id,
+                metadata: existing.config || {}
+            };
+            merged.ownership = this._resolveOwnership(context, patch.ownership);
+        }
         if (patch.x != null && Number.isFinite(patch.x)) merged.x = patch.x;
         if (patch.y != null && Number.isFinite(patch.y)) merged.y = patch.y;
         if (patch.size != null && typeof patch.size === 'object') {
@@ -645,6 +699,364 @@ export class PinManager {
         if (options.moduleId != null && options.moduleId !== '') {
             pins = pins.filter((p) => p.moduleId === options.moduleId);
         }
+        if (options.type != null && options.type !== '') {
+            pins = pins.filter((p) => (p.type || 'default') === options.type);
+        }
         return pins.map((p) => foundry.utils.deepClone(p));
+    }
+
+    /**
+     * Delete all pins from a scene (GM only)
+     * @param {Object} [options]
+     * @param {string} [options.sceneId] - Target scene; defaults to active scene
+     * @param {string} [options.moduleId] - Filter by module ID (optional)
+     * @param {boolean} [options.silent] - Skip event emission
+     * @returns {Promise<number>} - Number of pins deleted
+     */
+    static async deleteAll(options = {}) {
+        if (!game.user?.isGM) {
+            throw new Error('Permission denied: only GMs can delete all pins.');
+        }
+
+        const scene = this._getScene(options.sceneId);
+        let pins = this._getScenePins(scene);
+        
+        // Filter by moduleId if provided
+        if (options.moduleId != null && options.moduleId !== '') {
+            pins = pins.filter((p) => p.moduleId === options.moduleId);
+        }
+        
+        const count = pins.length;
+
+        if (count === 0) {
+            return 0;
+        }
+
+        // If filtering by moduleId, remove only those pins; otherwise clear all
+        if (options.moduleId != null && options.moduleId !== '') {
+            const pinIdsToDelete = new Set(pins.map(p => p.id));
+            const remainingPins = this._getScenePins(scene).filter((p) => !pinIdsToDelete.has(p.id));
+            await scene.setFlag(MODULE.ID, this.FLAG_KEY, remainingPins);
+        } else {
+            // Clear all pins
+            await scene.setFlag(MODULE.ID, this.FLAG_KEY, []);
+        }
+
+        // Remove from renderer
+        const { PinRenderer } = await import('./pins-renderer.js');
+        for (const pin of pins) {
+            PinRenderer.removePin(pin.id);
+        }
+
+        // Emit event if not silent
+        if (!options.silent) {
+            Hooks.callAll('blacksmith.pins.deletedAll', { sceneId: scene.id, moduleId: options.moduleId, count });
+        }
+
+        return count;
+    }
+
+    /**
+     * Delete all pins of a specific type from a scene (GM only)
+     * @param {string} type - Pin type to delete
+     * @param {Object} [options]
+     * @param {string} [options.sceneId] - Target scene; defaults to active scene
+     * @param {string} [options.moduleId] - Filter by module ID (optional)
+     * @param {boolean} [options.silent] - Skip event emission
+     * @returns {Promise<number>} - Number of pins deleted
+     */
+    static async deleteAllByType(type, options = {}) {
+        if (!game.user?.isGM) {
+            throw new Error('Permission denied: only GMs can delete pins by type.');
+        }
+
+        if (!type || typeof type !== 'string') {
+            throw new Error('Type must be a non-empty string.');
+        }
+
+        const scene = this._getScene(options.sceneId);
+        let pins = this._getScenePins(scene);
+        
+        // Filter pins by type (use 'default' if type is not set)
+        let pinsToDelete = pins.filter((p) => (p.type || 'default') === type);
+        
+        // Filter by moduleId if provided
+        if (options.moduleId != null && options.moduleId !== '') {
+            pinsToDelete = pinsToDelete.filter((p) => p.moduleId === options.moduleId);
+        }
+        
+        const count = pinsToDelete.length;
+
+        if (count === 0) {
+            return 0;
+        }
+
+        // Remove pins from array
+        const pinIdsToDelete = new Set(pinsToDelete.map(p => p.id));
+        const remainingPins = pins.filter((p) => !pinIdsToDelete.has(p.id));
+
+        // Save updated pins
+        await scene.setFlag(MODULE.ID, this.FLAG_KEY, remainingPins);
+
+        // Remove from renderer
+        const { PinRenderer } = await import('./pins-renderer.js');
+        for (const pin of pinsToDelete) {
+            PinRenderer.removePin(pin.id);
+        }
+
+        // Emit event if not silent
+        if (!options.silent) {
+            Hooks.callAll('blacksmith.pins.deletedAllByType', { sceneId: scene.id, type, moduleId: options.moduleId, count });
+        }
+
+        return count;
+    }
+
+    /**
+     * Create a pin as GM (bypasses permission checks, executes on GM client)
+     * @param {string} sceneId - Target scene
+     * @param {Partial<PinData> & { id: string; x: number; y: number; moduleId: string }} pinData - Pin data
+     * @param {PinCreateOptions} [options] - Additional options
+     * @returns {Promise<PinData>} - Created pin data
+     */
+    static async createAsGM(sceneId, pinData, options = {}) {
+        if (!game.user?.isGM) {
+            throw new Error('Permission denied: only GMs can use createAsGM.');
+        }
+        return this.create(pinData, { ...options, sceneId });
+    }
+
+    /**
+     * Update a pin as GM (bypasses permission checks, executes on GM client)
+     * @param {string} sceneId - Target scene
+     * @param {string} pinId - Pin ID to update
+     * @param {Partial<PinData>} patch - Update patch
+     * @param {PinUpdateOptions} [options] - Additional options
+     * @returns {Promise<PinData | null>} - Updated pin data or null if not found
+     */
+    static async updateAsGM(sceneId, pinId, patch, options = {}) {
+        if (!game.user?.isGM) {
+            throw new Error('Permission denied: only GMs can use updateAsGM.');
+        }
+        return this.update(pinId, patch, { ...options, sceneId });
+    }
+
+    /**
+     * Delete a pin as GM (bypasses permission checks, executes on GM client)
+     * @param {string} sceneId - Target scene
+     * @param {string} pinId - Pin ID to delete
+     * @param {PinDeleteOptions} [options] - Additional options
+     * @returns {Promise<void>}
+     */
+    static async deleteAsGM(sceneId, pinId, options = {}) {
+        if (!game.user?.isGM) {
+            throw new Error('Permission denied: only GMs can use deleteAsGM.');
+        }
+        return this.delete(pinId, { ...options, sceneId });
+    }
+
+    /**
+     * Request GM to perform a pin action (for non-GM users)
+     * Uses socket system to forward request to GM
+     * @param {string} action - Action type: 'create', 'update', or 'delete'
+     * @param {Object} params - Action parameters
+     * @param {string} params.sceneId - Target scene
+     * @param {string} [params.pinId] - Pin ID (for update/delete)
+     * @param {Object} [params.payload] - Pin data (for create)
+     * @param {Object} [params.patch] - Update patch (for update)
+     * @returns {Promise<PinData | number | void>} - Result depends on action type
+     */
+    static async requestGM(action, params) {
+        if (game.user?.isGM) {
+            // If caller is already GM, execute directly
+            switch (action) {
+                case 'create':
+                    return this.createAsGM(params.sceneId, params.payload, params.options);
+                case 'update':
+                    return this.updateAsGM(params.sceneId, params.pinId, params.patch, params.options);
+                case 'delete':
+                    return this.deleteAsGM(params.sceneId, params.pinId, params.options);
+                default:
+                    throw new Error(`Unknown action: ${action}`);
+            }
+        }
+
+        // Check if any GM is online
+        const gms = game.users?.filter(u => u.isGM && u.active) || [];
+        if (gms.length === 0) {
+            throw new Error('No GM is currently online to process this request.');
+        }
+
+        // Use socket to request GM action
+        const { SocketManager } = await import('./manager-sockets.js');
+        await SocketManager.waitForReady();
+        const socket = SocketManager.getSocket();
+        
+        if (!socket) {
+            throw new Error('Socket system not available.');
+        }
+
+        // Register handler once if not already registered
+        const handlerName = 'blacksmith-pins-gm-proxy';
+        if (!this._gmProxyHandlerRegistered && socket.register) {
+            socket.register(handlerName, async (data) => {
+                if (!game.user?.isGM) {
+                    return { error: 'Permission denied: only GMs can execute pin actions.' };
+                }
+
+                try {
+                    switch (data.action) {
+                        case 'create':
+                            const created = await this.createAsGM(data.params.sceneId, data.params.payload, data.params.options || {});
+                            return { success: true, data: created };
+                        case 'update':
+                            const updated = await this.updateAsGM(data.params.sceneId, data.params.pinId, data.params.patch, data.params.options || {});
+                            return { success: true, data: updated };
+                        case 'delete':
+                            await this.deleteAsGM(data.params.sceneId, data.params.pinId, data.params.options || {});
+                            return { success: true };
+                        default:
+                            return { error: `Unknown action: ${data.action}` };
+                    }
+                } catch (err) {
+                    return { error: err.message || String(err) };
+                }
+            });
+            this._gmProxyHandlerRegistered = true;
+        }
+
+        // Execute on GM using socket
+        if (socket.executeAsGM) {
+            const result = await socket.executeAsGM(handlerName, {
+                action,
+                params
+            });
+            
+            if (result?.error) {
+                throw new Error(result.error);
+            }
+            
+            return result?.data;
+        } else {
+            // Fallback: emit to all and let GM handle it
+            socket.emit(handlerName, { action, params });
+            throw new Error('GM proxy requires SocketLib with executeAsGM support.');
+        }
+    }
+
+    /**
+     * Reconcile module-tracked pin IDs with actual pins on canvas
+     * Helps modules repair broken links between their data and pins
+     * @param {Object} options
+     * @param {string | string[]} [options.sceneId] - Scene ID(s) to reconcile (defaults to active scene)
+     * @param {string} options.moduleId - Module ID to filter pins
+     * @param {Array} options.items - Array of items that track pin IDs
+     * @param {Function} options.getPinId - Function to get pinId from item: (item) => string | null
+     * @param {Function} options.setPinId - Function to set pinId on item: (item, pinId) => void
+     * @param {Function} [options.setSceneId] - Optional: Function to set sceneId on item: (item, sceneId) => void
+     * @param {Function} [options.setPosition] - Optional: Function to set position on item: (item, x, y) => void
+     * @returns {Promise<{ linked: number; unlinked: number; repaired: number; errors: string[] }>}
+     */
+    static async reconcile(options) {
+        const { sceneId, moduleId, items, getPinId, setPinId, setSceneId, setPosition } = options;
+        
+        if (!moduleId || typeof moduleId !== 'string') {
+            throw new Error('moduleId is required and must be a string.');
+        }
+        if (!Array.isArray(items)) {
+            throw new Error('items must be an array.');
+        }
+        if (typeof getPinId !== 'function') {
+            throw new Error('getPinId must be a function.');
+        }
+        if (typeof setPinId !== 'function') {
+            throw new Error('setPinId must be a function.');
+        }
+
+        const sceneIds = Array.isArray(sceneId) ? sceneId : (sceneId ? [sceneId] : [canvas?.scene?.id].filter(Boolean));
+        if (sceneIds.length === 0) {
+            throw new Error('No scene ID provided and no active scene.');
+        }
+
+        const results = {
+            linked: 0,
+            unlinked: 0,
+            repaired: 0,
+            errors: []
+        };
+
+        // Get all pins for the module across specified scenes
+        const allPins = new Map(); // pinId -> { pin, sceneId }
+        for (const sid of sceneIds) {
+            try {
+                const scene = this._getScene(sid);
+                const scenePins = this._getScenePins(scene);
+                // Filter by moduleId and user visibility
+                const userId = game.user?.id ?? '';
+                const visiblePins = scenePins.filter((p) => {
+                    if (p.moduleId !== moduleId) return false;
+                    return this._canView(p, userId);
+                });
+                for (const pin of visiblePins) {
+                    allPins.set(pin.id, { pin, sceneId: sid });
+                }
+            } catch (err) {
+                results.errors.push(`Error reading scene ${sid}: ${err.message}`);
+            }
+        }
+
+        // Process each item
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            try {
+                const trackedPinId = getPinId(item);
+                
+                if (!trackedPinId) {
+                    // Item doesn't track a pin - check if it should (optional repair)
+                    continue;
+                }
+
+                const pinData = allPins.get(trackedPinId);
+                
+                if (!pinData) {
+                    // Pin doesn't exist - unlink
+                    setPinId(item, null);
+                    if (setSceneId) setSceneId(item, null);
+                    results.unlinked++;
+                } else {
+                    // Pin exists - ensure item is properly linked
+                    results.linked++;
+                    
+                    // Optional: Repair sceneId if provided
+                    if (setSceneId && pinData.sceneId) {
+                        const currentSceneId = typeof item.sceneId === 'string' ? item.sceneId : null;
+                        if (currentSceneId !== pinData.sceneId) {
+                            setSceneId(item, pinData.sceneId);
+                            results.repaired++;
+                        }
+                    }
+                    
+                    // Optional: Repair position if provided
+                    if (setPosition && pinData.pin.x != null && pinData.pin.y != null) {
+                        setPosition(item, pinData.pin.x, pinData.pin.y);
+                        results.repaired++;
+                    }
+                }
+            } catch (err) {
+                results.errors.push(`Error processing item ${i}: ${err.message}`);
+            }
+        }
+
+        // Check for orphaned pins (pins that exist but aren't tracked by any item)
+        // This is informational only - we don't auto-delete orphaned pins
+        const trackedPinIds = new Set(items.map(item => getPinId(item)).filter(Boolean));
+        const orphanedPins = Array.from(allPins.keys()).filter(pid => !trackedPinIds.has(pid));
+        
+        if (orphanedPins.length > 0 && game.user?.isGM) {
+            // Log orphaned pins for GM awareness (but don't auto-delete)
+            console.log(`BLACKSMITH | PINS Reconcile: Found ${orphanedPins.length} orphaned pin(s) for module ${moduleId}`, orphanedPins);
+        }
+
+        return results;
     }
 }

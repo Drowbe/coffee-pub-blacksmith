@@ -1,0 +1,173 @@
+<div class="notes-icon-picker" data-icon-mode="{{iconMode}}">
+    <div class="window-note-header">
+        <div class="window-note-header-content">
+            <div class="window-note-header-title">
+                <div class="notes-icon-picker-title"><i class="fa-solid fa-location-dot"></i> Token Design</div>
+            </div>
+            <div class="window-note-header-controls">
+                <div class="notes-edit-toggle-container">
+                    <span class="notes-edit-toggle-label">Use as Default</span>
+                    <div class="notes-edit-toggle">
+                        <input type="checkbox" id="notes-pin-default-toggle" class="notes-pin-default">
+                        <label for="notes-pin-default-toggle" class="notes-edit-toggle-slider"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="window-note-body">
+        <div class="notes-section notes-pin-design-section">
+            <div class="notes-section-header"><i class="fa-solid fa-ruler-combined"></i> Pin Design</div>
+            <div class="notes-section-body">
+                <div class="notes-pin-design-row">
+                    <label class="notes-pin-design-field">
+                        <span>Width</span>
+                        <input type="number" class="notes-input notes-pin-width" min="8" step="1" value="{{pinWidth}}">
+                    </label>
+                    <label class="notes-pin-design-field">
+                        <span>Height</span>
+                        <input type="number" class="notes-input notes-pin-height" min="8" step="1" value="{{pinHeight}}">
+                    </label>
+                </div>
+                <label class="notes-pin-design-toggle">
+                    <input type="checkbox" class="notes-pin-lock" {{#if lockProportions}}checked{{/if}}>
+                    Constrain proportions
+                </label>
+                <div class="notes-pin-design-row">
+                    <label class="notes-pin-design-field">
+                        <span>Shape</span>
+                        <select class="notes-input notes-pin-shape">
+                            <option value="circle" {{#if (eq pinShape "circle")}}selected{{/if}}>Circle</option>
+                            <option value="square" {{#if (eq pinShape "square")}}selected{{/if}}>Square</option>
+                            <option value="none" {{#if (eq pinShape "none")}}selected{{/if}}>None</option>
+                        </select>
+                    </label>
+                    <label class="notes-pin-design-field">
+                        <span>Background</span>
+                        <div class="notes-pin-color-row">
+                            <input type="text" class="notes-input notes-pin-color-text notes-pin-fill-text" value="{{pinFill}}">
+                            <input type="color" class="notes-pin-color-picker notes-pin-fill" value="{{pinFill}}">
+                        </div>
+                    </label>
+                </div>
+                <div class="notes-pin-design-row">
+                    <label class="notes-pin-design-field">
+                        <span>Border</span>
+                        <div class="notes-pin-border-row">
+                            <div class="notes-pin-color-row">
+                                <input type="text" class="notes-input notes-pin-color-text notes-pin-stroke-text" value="{{pinStroke}}">
+                                <input type="color" class="notes-pin-color-picker notes-pin-stroke" value="{{pinStroke}}">
+                            </div>
+                            <input type="number" class="notes-input notes-pin-stroke-width" min="0" step="1" value="{{pinStrokeWidth}}">
+                        </div>
+                    </label>
+                </div>
+                <label class="notes-pin-design-toggle">
+                    <input type="checkbox" class="notes-pin-shadow" {{#if pinDropShadow}}checked{{/if}}>
+                    Drop shadow
+                </label>
+            </div>
+        </div>
+
+        <div class="notes-section notes-pin-text-section">
+            <div class="notes-section-header"><i class="fa-solid fa-font"></i> Text Format</div>
+            <div class="notes-section-body">
+                <div class="notes-pin-design-row">
+                    <label class="notes-pin-design-field">
+                        <span>Text layout</span>
+                        <select class="notes-input notes-pin-text-layout">
+                            <option value="under" {{#if (eq pinTextLayout "under")}}selected{{/if}}>Under</option>
+                            <option value="over" {{#if (eq pinTextLayout "over")}}selected{{/if}}>Over</option>
+                            <option value="around" {{#if (eq pinTextLayout "around")}}selected{{/if}}>Around</option>
+                        </select>
+                    </label>
+                    <label class="notes-pin-design-field">
+                        <span>Text display</span>
+                        <select class="notes-input notes-pin-text-display">
+                            <option value="always" {{#if (eq pinTextDisplay "always")}}selected{{/if}}>Always</option>
+                            <option value="hover" {{#if (eq pinTextDisplay "hover")}}selected{{/if}}>Hover</option>
+                            <option value="never" {{#if (eq pinTextDisplay "never")}}selected{{/if}}>Never</option>
+                            <option value="gm" {{#if (eq pinTextDisplay "gm")}}selected{{/if}}>GM only</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="notes-pin-design-row">
+                    <label class="notes-pin-design-field">
+                        <span>Text color</span>
+                        <div class="notes-pin-color-row">
+                            <input type="text" class="notes-input notes-pin-color-text notes-pin-text-color-text" value="{{pinTextColor}}">
+                            <input type="color" class="notes-pin-color-picker notes-pin-text-color" value="{{pinTextColor}}">
+                        </div>
+                    </label>
+                    <label class="notes-pin-design-field">
+                        <span>Text size</span>
+                        <input type="number" class="notes-input notes-pin-text-size" min="6" step="1" value="{{pinTextSize}}">
+                    </label>
+                </div>
+                <div class="notes-pin-design-row">
+                    <label class="notes-pin-design-field">
+                        <span>Max length</span>
+                        <input type="number" class="notes-input notes-pin-text-max-length" min="0" step="1" value="{{pinTextMaxLength}}">
+                    </label>
+                </div>
+                <label class="notes-pin-design-toggle">
+                    <input type="checkbox" class="notes-pin-text-scale" {{#if pinTextScaleWithPin}}checked{{/if}}>
+                    Scale text with pin
+                </label>
+            </div>
+        </div>
+
+        <div class="notes-icon-source-toggle">
+            <span class="notes-icon-source-label">Image</span>
+            <div class="notes-icon-source-switch">
+                <input type="checkbox" id="notes-icon-source-toggle" class="notes-icon-source-toggle-input" {{#if (eq iconMode 'icon')}}checked{{/if}}>
+                <label for="notes-icon-source-toggle" class="notes-icon-source-toggle-slider"></label>
+            </div>
+            <span class="notes-icon-source-label">Icon</span>
+        </div>
+
+        <div class="notes-section notes-icon-image-section">
+            <div class="notes-section-header"><i class="fa-solid fa-image"></i> Image URL</div>
+            <div class="notes-section-body">
+                <div class="notes-icon-image-row">
+                    <input type="text" class="notes-input notes-icon-image-input" placeholder="Paste image URL..." value="{{imageValue}}">
+                    <button type="button" class="btn-secondary notes-icon-browse"><i class="fa-solid fa-folder-open"></i> Browse</button>
+                </div>
+                <div class="notes-icon-image-preview-wrap">
+                    <img class="notes-icon-image-preview {{#unless imageValue}}is-hidden{{/unless}}" src="{{imageValue}}" alt="Pin preview">
+                </div>
+            </div>
+        </div>
+
+        <div class="notes-section notes-icon-library-section">
+            <div class="notes-section-header"><i class="fa-solid fa-icons"></i> Icon Library</div>
+            <div class="notes-section-body">
+                {{#each iconCategories}}
+                <div class="notes-icon-category">
+                    <div class="notes-icon-category-title">{{this.category}}</div>
+                    {{#if this.description}}
+                        <div class="notes-icon-category-description">{{this.description}}</div>
+                    {{/if}}
+                    <div class="notes-icon-grid">
+                        {{#each this.icons}}
+                        <button type="button" class="notes-icon-option {{#if this.isSelected}}selected{{/if}}" data-type="fa" data-value="{{this.value}}" title="{{this.label}}">
+                            <i class="{{this.value}}"></i>
+                        </button>
+                        {{/each}}
+                    </div>
+                </div>
+                {{/each}}
+            </div>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="button" class="btn-secondary cancel">
+            <i class="fa-solid fa-times"></i> Cancel
+        </button>
+        <button type="button" class="btn-primary notes-icon-use">
+            <i class="fa-solid fa-check"></i> Save pin design
+        </button>
+    </div>
+</div>

@@ -254,22 +254,42 @@ export class ImageCacheManager {
 
     /**
      * Load monster mapping data from resources and store in settings
+     * Includes migration logic to preserve data from old setting key
      */
-    static async _loadtargetedIndicatorEnabled() {
+    static async _loadMonsterMappingData() {
         try {
-            // Check if we already have the data
-            const existingData = game.settings.get(MODULE.ID, 'targetedIndicatorEnabled');
+            const newSettingKey = 'tokenImageReplacementMonsterMapping';
+            const oldSettingKey = 'targetedIndicatorEnabled'; // Old key (was incorrectly used)
+            
+            // Check if we already have the data in the new location
+            let existingData = game.settings.get(MODULE.ID, newSettingKey);
             if (existingData && Object.keys(existingData).length > 0) {
                 return;
             }
             
+            // Migration: Check if data exists in old location and migrate it
+            try {
+                const oldData = game.settings.get(MODULE.ID, oldSettingKey);
+                if (oldData && typeof oldData === 'object' && Object.keys(oldData).length > 0 && oldData.monsters) {
+                    // This is monster mapping data in the wrong location - migrate it
+                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Migrating monster mapping data to new setting key...", "", true, false);
+                    await game.settings.set(MODULE.ID, newSettingKey, oldData);
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Migrated monster mapping data with ${Object.keys(oldData.monsters).length} monsters`, "", true, false);
+                    return;
+                }
+            } catch (migrationError) {
+                // Old setting might not exist or might be the Boolean value - that's fine, continue to load from file
+                console.log('No existing monster mapping data to migrate:', migrationError);
+            }
+            
+            // No existing data found - load from resources
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Loading monster mapping data...", "", true, false);
             
             // Load monster mapping from resources
             const response = await fetch('modules/coffee-pub-blacksmith/resources/monster-mapping.json');
             if (response.ok) {
                 const monsterData = await response.json();
-                await game.settings.set(MODULE.ID, 'targetedIndicatorEnabled', monsterData);
+                await game.settings.set(MODULE.ID, newSettingKey, monsterData);
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Loaded monster mapping data with ${Object.keys(monsterData.monsters).length} monsters`, "", true, false);
             } else {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Failed to load monster mapping data - HTTP ${response.status}`, "", true, false);
@@ -289,16 +309,29 @@ export class ImageCacheManager {
         }
         
         try {
-            // Load monster mapping from resources
-            const mappingPath = 'modules/coffee-pub-blacksmith/resources/monster-mapping.json';
-            const mappingData = game.settings.get(MODULE.ID, 'targetedIndicatorEnabled');
+            // Load monster mapping from settings (new key)
+            const mappingData = game.settings.get(MODULE.ID, 'tokenImageReplacementMonsterMapping');
             
-            if (mappingData) {
+            if (mappingData && typeof mappingData === 'object' && mappingData.monsters) {
                 this.monsterMapping = mappingData;
             } else {
-                // Fallback: try to load from file system (for development)
-                console.warn('Monster mapping not found in settings, using empty mapping');
-                this.monsterMapping = { monsters: {} };
+                // Fallback: try old key for migration compatibility
+                try {
+                    const oldData = game.settings.get(MODULE.ID, 'targetedIndicatorEnabled');
+                    if (oldData && typeof oldData === 'object' && oldData.monsters) {
+                        // This is monster mapping data - use it temporarily
+                        this.monsterMapping = oldData;
+                        console.warn('Using monster mapping from old setting key. Migration recommended.');
+                    } else {
+                        // Fallback: empty mapping
+                        console.warn('Monster mapping not found in settings, using empty mapping');
+                        this.monsterMapping = { monsters: {} };
+                    }
+                } catch (fallbackError) {
+                    // Old setting might be Boolean (correct usage) - use empty mapping
+                    console.warn('Monster mapping not found in settings, using empty mapping');
+                    this.monsterMapping = { monsters: {} };
+                }
             }
         } catch (error) {
             console.warn('Failed to load monster mapping:', error);
@@ -792,7 +825,7 @@ export class ImageCacheManager {
         this._addConsoleCommands();
         
         // Load monster mapping data
-        await this._loadtargetedIndicatorEnabled();
+        await this._loadMonsterMappingData();
         
         // Initialize the caching system immediately since we're already in the ready hook
         // Initialize both token and portrait caches

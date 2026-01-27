@@ -1,6 +1,6 @@
 # Canvas Pins API Documentation
 
-> **Status**: Phases 1–3 complete. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Automatic visibility filtering based on ownership permissions. Text display system with multiple layouts (under, over, around), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Icon/image type changes (icon ↔ image swaps) are automatically detected and handled during `update()`. Helper methods: `exists()`, `panTo()`, `findScene()`, `refreshPin()`. Phase 4–5 (docs, tests) remain.
+> **Status**: Phases 1–3 complete. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Automatic visibility filtering based on ownership permissions. Text display system with multiple layouts (under, over, around), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Icon/image type changes (icon ↔ image swaps) are automatically detected and handled during `update()`. Pin type system with default 'default' type for categorization and filtering. GM bulk delete controls (`deleteAll()`, `deleteAllByType()`) available via API and context menu with `moduleId` filtering. GM proxy methods (`createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`) for permission escalation. Ownership resolver hook (`blacksmith.pins.resolveOwnership`) for custom ownership mapping. Reconciliation helper (`reconcile()`) for repairing module-tracked pin links. Helper methods: `exists()`, `panTo()`, `findScene()`, `refreshPin()`. Phase 4–5 (docs, tests) remain.
 
 ## Overview
 
@@ -12,7 +12,7 @@ The pins API follows Blacksmith's standard pattern:
 - **`scripts/pins-schema.js`** - Data model, validation, migration (Phase 1.1)
 - **`scripts/manager-pins.js`** - Internal manager with CRUD, permissions, event handler registration, and context menu item registration (Phase 1.2, 1.3)
 - **`scripts/pins-renderer.js`** - Pure DOM pin rendering (circle/square/none + Font Awesome icons or image URLs), DOM events, context menu (Phase 2, 3)
-- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `on()`, `registerContextMenuItem()`, `reload()`, `refreshPin()`, `isAvailable()`, `isReady()`, `whenReady()`
+- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `on()`, `registerContextMenuItem()`, `reload()`, `refreshPin()`, `deleteAll()`, `deleteAllByType()`, `createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`, `reconcile()`, `isAvailable()`, `isReady()`, `whenReady()`
 - **`scripts/blacksmith.js`** - Exposes `module.api.pins = PinsAPI`; hooks for `canvasReady` / `updateScene` pin loading
 - **`styles/pins.css`** - All pin styling (CSS variables for configuration)
 
@@ -133,6 +133,8 @@ if (pins?.isReady()) {
 
 ### PinData
 
+The pin data structure includes all configurable properties for a pin:
+
 ```typescript
 interface PinData {
   id: string; // UUID
@@ -150,6 +152,7 @@ interface PinData {
   textSize?: number; // Text size in pixels (default: 12)
   textMaxLength?: number; // Maximum text length before ellipsis (default: 0 = no limit)
   textScaleWithPin?: boolean; // Whether text scales with pin size based on zoom (default: true). If false, text stays fixed size.
+  type?: string; // Pin type/category (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified. Used for filtering and organization.
   config?: Record<string, unknown>;
   moduleId: string; // consumer module id
   ownership?: { default: number; users?: Record<string, number> };
@@ -242,6 +245,7 @@ const pin = await pinsAPI.create({
   y: 900,
   text: 'Forge',
   moduleId: 'my-module',
+  type: 'note',  // optional; pin type/category (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified
   image: '<i class="fa-solid fa-star"></i>',  // optional; Font Awesome HTML, Font Awesome class string, or image URL
   shape: 'circle',  // optional; 'circle' (default), 'square', or 'none' (icon only)
   dropShadow: true,  // optional; adds subtle drop shadow (default: true)
@@ -358,6 +362,38 @@ const gmTextPin = await pinsAPI.create({
   textLayout: 'over',  // Text centered over pin
   image: '<i class="fa-solid fa-map"></i>'
 });
+
+// Pin with type for categorization
+const notePin = await pinsAPI.create({
+  id: 'note-pin-1',
+  x: 1200,
+  y: 800,
+  moduleId: 'my-module',
+  type: 'note',  // Categorize as 'note' type
+  text: 'Important Note',
+  image: '<i class="fa-solid fa-sticky-note"></i>'
+});
+
+const questPin = await pinsAPI.create({
+  id: 'quest-pin-1',
+  x: 1400,
+  y: 900,
+  moduleId: 'my-module',
+  type: 'quest',  // Categorize as 'quest' type
+  text: 'Main Quest',
+  image: '<i class="fa-solid fa-flag"></i>'
+});
+
+// Pin without type (defaults to 'default')
+const defaultPin = await pinsAPI.create({
+  id: 'default-pin-1',
+  x: 1000,
+  y: 700,
+  moduleId: 'my-module',
+  // type not specified - will default to 'default'
+  text: 'Default Pin',
+  image: '<i class="fa-solid fa-star"></i>'
+});
 ```
 
 **Options**:
@@ -426,6 +462,311 @@ await pinsAPI.delete(pin.id); // Finds and deletes from any scene
 - `Error` if scene not found (when sceneId provided)
 - `Error` if permission denied
 
+### `pins.deleteAll(options?)`
+Delete all pins from a scene (GM only). Useful for cleaning up scenes or resetting pin data.
+
+**Returns**: `Promise<number>` - Number of pins deleted
+
+```javascript
+// Delete all pins on current scene
+const count = await pinsAPI.deleteAll();
+console.log(`Deleted ${count} pins`);
+
+// Delete all pins on specific scene
+await pinsAPI.deleteAll({ sceneId: 'some-scene-id' });
+```
+
+**Options**:
+- `sceneId` (string, optional): target scene; defaults to active scene
+- `moduleId` (string, optional): filter by module ID (e.g., delete all pins for a specific module)
+- `silent` (boolean, optional): skip event emission
+
+**Throws**: 
+- `Error` if user is not a GM
+- `Error` if scene not found
+
+**Note**: This action is destructive and cannot be undone. Consider using `pins.deleteAllByType()` for more selective deletion.
+
+```javascript
+// Delete all pins on current scene
+const count = await pinsAPI.deleteAll();
+
+// Delete all pins for a specific module
+await pinsAPI.deleteAll({ moduleId: 'coffee-pub-squire' });
+
+// Delete all pins for a module on a specific scene
+await pinsAPI.deleteAll({ sceneId: 'some-scene-id', moduleId: 'my-module' });
+```
+
+### `pins.deleteAllByType(type, options?)`
+Delete all pins of a specific type from a scene (GM only). Useful for cleaning up specific pin categories (e.g., all 'note' pins, all 'quest' pins).
+
+**Returns**: `Promise<number>` - Number of pins deleted
+
+```javascript
+// Delete all 'note' pins
+const count = await pinsAPI.deleteAllByType('note');
+console.log(`Deleted ${count} note pins`);
+
+// Delete all 'quest' pins on specific scene
+await pinsAPI.deleteAllByType('quest', { sceneId: 'some-scene-id' });
+
+// Delete all pins with default type
+await pinsAPI.deleteAllByType('default');
+```
+
+**Parameters**:
+- `type` (string, required): Pin type to delete (e.g., 'note', 'quest', 'default')
+
+**Options**:
+- `sceneId` (string, optional): target scene; defaults to active scene
+- `moduleId` (string, optional): filter by module ID (e.g., delete all 'note' pins for a specific module)
+- `silent` (boolean, optional): skip event emission
+
+**Throws**: 
+- `Error` if user is not a GM
+- `Error` if type is not a non-empty string
+- `Error` if scene not found
+
+**Note**: Pins without a type are treated as type 'default'. This action is destructive and cannot be undone.
+
+```javascript
+// Delete all 'note' pins
+const count = await pinsAPI.deleteAllByType('note');
+
+// Delete all 'quest' pins for a specific module
+await pinsAPI.deleteAllByType('quest', { moduleId: 'coffee-pub-squire' });
+
+// Delete all 'default' pins for a module on a specific scene
+await pinsAPI.deleteAllByType('default', { sceneId: 'some-scene-id', moduleId: 'my-module' });
+```
+
+### `pins.createAsGM(sceneId, pinData, options?)`
+Create a pin as GM, bypassing permission checks. Only GMs can call this method directly.
+
+**Returns**: `Promise<PinData>` - Created pin data
+
+```javascript
+// GM creates a pin directly
+const pin = await pinsAPI.createAsGM(sceneId, {
+  id: crypto.randomUUID(),
+  x: 1200,
+  y: 900,
+  moduleId: 'my-module',
+  type: 'note'
+});
+```
+
+**Parameters**:
+- `sceneId` (string, required): Target scene ID
+- `pinData` (object, required): Pin data (same as `create()`)
+- `options` (object, optional): Additional options (same as `create()`)
+
+**Throws**: 
+- `Error` if user is not a GM
+- `Error` if pin data is invalid
+- `Error` if scene not found
+
+**Note**: This method is primarily used internally by `requestGM()`. For non-GM users, use `requestGM('create', ...)` instead.
+
+### `pins.updateAsGM(sceneId, pinId, patch, options?)`
+Update a pin as GM, bypassing permission checks. Only GMs can call this method directly.
+
+**Returns**: `Promise<PinData | null>` - Updated pin data or null if not found
+
+```javascript
+// GM updates a pin directly
+const updated = await pinsAPI.updateAsGM(sceneId, pinId, { text: 'Updated text' });
+```
+
+**Parameters**:
+- `sceneId` (string, required): Target scene ID
+- `pinId` (string, required): Pin ID to update
+- `patch` (object, required): Update patch (same as `update()`)
+- `options` (object, optional): Additional options (same as `update()`)
+
+**Throws**: 
+- `Error` if user is not a GM
+- `Error` if patch data is invalid
+- `Error` if scene not found
+
+**Note**: This method is primarily used internally by `requestGM()`. For non-GM users, use `requestGM('update', ...)` instead.
+
+### `pins.deleteAsGM(sceneId, pinId, options?)`
+Delete a pin as GM, bypassing permission checks. Only GMs can call this method directly.
+
+**Returns**: `Promise<void>`
+
+```javascript
+// GM deletes a pin directly
+await pinsAPI.deleteAsGM(sceneId, pinId);
+```
+
+**Parameters**:
+- `sceneId` (string, required): Target scene ID
+- `pinId` (string, required): Pin ID to delete
+- `options` (object, optional): Additional options (same as `delete()`)
+
+**Throws**: 
+- `Error` if user is not a GM
+- `Error` if pin not found
+- `Error` if scene not found
+
+**Note**: This method is primarily used internally by `requestGM()`. For non-GM users, use `requestGM('delete', ...)` instead.
+
+### `pins.requestGM(action, params)`
+Request a GM to perform a pin action (for non-GM users). Uses socket system to forward request to GM. If the caller is already a GM, executes directly without socket overhead.
+
+**Returns**: `Promise<PinData | number | void>` - Result depends on action type
+
+```javascript
+// Non-GM requests pin creation
+const pin = await pinsAPI.requestGM('create', {
+  sceneId: canvas.scene.id,
+  payload: {
+    id: crypto.randomUUID(),
+    x: 1200,
+    y: 900,
+    moduleId: 'my-module',
+    type: 'note'
+  }
+});
+
+// Non-GM requests pin update
+await pinsAPI.requestGM('update', {
+  sceneId: canvas.scene.id,
+  pinId: 'pin-id',
+  patch: { text: 'Updated text' }
+});
+
+// Non-GM requests pin deletion
+await pinsAPI.requestGM('delete', {
+  sceneId: canvas.scene.id,
+  pinId: 'pin-id'
+});
+```
+
+**Parameters**:
+- `action` (string, required): Action type - `'create'`, `'update'`, or `'delete'`
+- `params` (object, required): Action parameters
+  - `sceneId` (string, required): Target scene
+  - `pinId` (string, optional): Pin ID (required for 'update' and 'delete')
+  - `payload` (object, optional): Pin data (required for 'create')
+  - `patch` (object, optional): Update patch (required for 'update')
+  - `options` (object, optional): Additional options
+
+**Throws**: 
+- `Error` if no GM is online
+- `Error` if socket system not available
+- `Error` if action parameters are invalid
+- `Error` if GM execution fails
+
+**Behavior**:
+- If caller is already GM, executes directly (no socket call)
+- If caller is not GM, forwards request to GM via socket
+- Requires at least one active GM to be online
+- Uses SocketLib's `executeAsGM()` if available, otherwise falls back to broadcast pattern
+
+**Use Case**: Allows players to request pin actions that require GM permissions, enabling modules to implement player-initiated pin operations that are executed by GMs.
+
+### `pins.reconcile(options)`
+Reconcile module-tracked pin IDs with actual pins on canvas. Helps modules repair broken links between their data and pins.
+
+**Returns**: `Promise<{ linked: number; unlinked: number; repaired: number; errors: string[] }>`
+
+```javascript
+// Reconcile note flags with pins
+const results = await pinsAPI.reconcile({
+  sceneId: canvas.scene.id,
+  moduleId: 'coffee-pub-squire',
+  items: journalEntries, // Array of journal entries that track pin IDs
+  getPinId: (entry) => entry.flags?.['coffee-pub-squire']?.pinId || null,
+  setPinId: (entry, pinId) => {
+    if (!entry.flags) entry.flags = {};
+    if (!entry.flags['coffee-pub-squire']) entry.flags['coffee-pub-squire'] = {};
+    entry.flags['coffee-pub-squire'].pinId = pinId;
+  },
+  setSceneId: (entry, sceneId) => {
+    if (!entry.flags) entry.flags = {};
+    if (!entry.flags['coffee-pub-squire']) entry.flags['coffee-pub-squire'] = {};
+    entry.flags['coffee-pub-squire'].sceneId = sceneId;
+  }
+});
+
+console.log(`Linked: ${results.linked}, Unlinked: ${results.unlinked}, Repaired: ${results.repaired}`);
+if (results.errors.length > 0) {
+  console.warn('Reconciliation errors:', results.errors);
+}
+```
+
+**Parameters**:
+- `options` (object, required): Reconciliation options
+  - `sceneId` (string | string[], optional): Scene ID(s) to reconcile (defaults to active scene)
+  - `moduleId` (string, required): Module ID to filter pins
+  - `items` (Array, required): Array of items that track pin IDs
+  - `getPinId` (Function, required): Function to get pinId from item: `(item) => string | null`
+  - `setPinId` (Function, required): Function to set pinId on item: `(item, pinId) => void`
+  - `setSceneId` (Function, optional): Function to set sceneId on item: `(item, sceneId) => void`
+  - `setPosition` (Function, optional): Function to set position on item: `(item, x, y) => void`
+
+**Returns**:
+- `linked` (number): Number of items successfully linked to existing pins
+- `unlinked` (number): Number of items that had pin IDs but pins no longer exist (unlinked)
+- `repaired` (number): Number of items that had incorrect sceneId or position (repaired)
+- `errors` (string[]): Array of error messages encountered during reconciliation
+
+**Throws**: 
+- `Error` if moduleId is missing or invalid
+- `Error` if items is not an array
+- `Error` if getPinId or setPinId are not functions
+- `Error` if no scene ID provided and no active scene
+
+**Behavior**:
+- For each item, checks if the tracked pin ID exists on the canvas
+- If pin doesn't exist, clears the pin ID from the item (unlinks)
+- If pin exists, ensures item is properly linked
+- Optionally repairs sceneId and position if those functions are provided
+- Logs orphaned pins (pins that exist but aren't tracked by any item) for GM awareness
+
+**Use Case**: When modules store pin IDs in their own data structures (e.g., journal entry flags), this method helps repair broken links when pins are deleted or moved between scenes.
+
+### `pins.configure(pinId, options?)`
+Open the pin configuration window for a pin. This provides a user-friendly interface to edit all pin properties.
+
+**Returns**: `Promise<Application>` - The opened window instance
+
+```javascript
+// Open configuration window for a pin
+const window = await pinsAPI.configure(pinId);
+
+// Open configuration window for a pin on a specific scene
+await pinsAPI.configure(pinId, { sceneId: 'some-scene-id' });
+```
+
+**Parameters**:
+- `pinId` (string, required): Pin ID to configure
+- `options` (object, optional): Options
+  - `sceneId` (string, optional): Scene ID (defaults to active scene)
+
+**Throws**: 
+- `Error` if pin not found
+- `Error` if user doesn't have permission to edit the pin
+- `Error` if Pins API not available
+
+**Behavior**:
+- Opens an Application V2 window with a form for editing pin properties
+- Only users who can edit the pin (based on ownership) can open the configuration window
+- The window includes fields for:
+  - **Appearance**: Shape, size, colors (fill, stroke), stroke width, opacity, drop shadow
+  - **Icon/Image**: Font Awesome icon or image URL
+  - **Text**: Content, layout (under/over/around), display mode (always/hover/never/gm), color, size, max length, scaling
+  - **Metadata**: Pin type/category
+  - **Ownership** (GM only): Default ownership level and user-specific ownership levels
+- Changes are saved via `pins.update()` when the form is submitted
+- The window is also accessible via the right-click context menu ("Configure Pin")
+
+**Note**: The configuration window is automatically added to the pin context menu for users who can edit the pin.
+
 ### `pins.findScene(pinId)`
 Find which scene contains a pin with the given ID. Useful for cross-scene operations.
 
@@ -477,9 +818,24 @@ console.log(`Found ${pins.length} pins`);
 **Options**:
 - `sceneId` (string, optional): target scene; defaults to active scene
 - `moduleId` (string, optional): filter by consumer module
+- `type` (string, optional): filter by pin type (e.g., 'note', 'quest', 'default')
 
 **Throws**: 
 - `Error` if scene not found
+
+```javascript
+// List all pins
+const allPins = pinsAPI.list();
+
+// List pins by module
+const myPins = pinsAPI.list({ moduleId: 'my-module' });
+
+// List pins by type
+const notePins = pinsAPI.list({ type: 'note' });
+
+// List pins by module and type
+const questPins = pinsAPI.list({ moduleId: 'coffee-pub-squire', type: 'quest' });
+```
 
 ### `pins.on(eventType, handler, options?)`
 Register an event handler. Returns a disposer function. Events are dispatched when users interact with pins (hover, click, double-click, right-click, middle-click, drag, etc.).
@@ -664,8 +1020,70 @@ const result = await pins.reload();
 ### Permissions
 - Create/update/delete default to GM-only unless the PinManager configuration allows otherwise.
 - `ownership` uses Foundry ownership levels (`CONST.DOCUMENT_OWNERSHIP_LEVELS`); GM always has full access.
-- Ownership should be supplied by the calling module per its needs; Blacksmith enforces and validates it.
+- Ownership can be explicitly provided in pin data, or resolved automatically using the ownership resolver hook.
 - **Visibility Filtering**: Pins are automatically filtered during rendering based on ownership. Only pins the current user has permission to view (LIMITED level or higher) are displayed on the canvas.
+
+### Ownership Resolver Hook
+
+The pins API supports an ownership resolver hook that allows modules to customize how pin ownership is determined when creating or updating pins. This is useful when ownership should be derived from module-specific data (e.g., note visibility, quest state, etc.).
+
+**Hook Name**: `blacksmith.pins.resolveOwnership`
+
+**Hook Signature**: 
+```javascript
+Hooks.on('blacksmith.pins.resolveOwnership', (context) => {
+  // Return ownership object or null/undefined to use default
+  return { default: 1, users: { 'user-id': 2 } };
+});
+```
+
+**Context Object**:
+```javascript
+{
+  moduleId: string,      // Module creating/updating the pin
+  userId: string,        // User performing the action
+  sceneId: string,       // Scene ID
+  metadata: object       // Additional metadata from pin.config
+}
+```
+
+**Return Value**:
+- Return an ownership object: `{ default: number, users?: Record<string, number> }` - This ownership will be used
+- Return `null` or `undefined` - Default ownership will be used (GM-only: `{ default: 0 }`)
+
+**Example Usage**:
+```javascript
+// Register ownership resolver for your module
+Hooks.on('blacksmith.pins.resolveOwnership', (context) => {
+  // Only resolve for your module
+  if (context.moduleId !== 'coffee-pub-squire') {
+    return null; // Use default
+  }
+  
+  // Get note visibility from metadata
+  const noteVisibility = context.metadata?.noteVisibility || 'gm-only';
+  
+  // Map note visibility to pin ownership
+  switch (noteVisibility) {
+    case 'visible':
+      return { default: 2 }; // OBSERVER - all users can see
+    case 'limited':
+      return { default: 1 }; // LIMITED - all users can see
+    case 'gm-only':
+    default:
+      return { default: 0 }; // NONE - GM only
+  }
+});
+```
+
+**When the Hook is Called**:
+- During `pins.create()` - If ownership is not explicitly provided in pinData
+- During `pins.update()` - If ownership is being updated in the patch
+
+**Priority**:
+1. Explicit ownership in pinData/patch (highest priority)
+2. Ownership resolver hook result
+3. Default ownership: `{ default: 0 }` (GM-only)
 
 #### Ownership Levels
 - **NONE (0)**: User cannot see the pin (GM-only)
@@ -724,6 +1142,25 @@ await pins.create({
   }
 });
 ```
+
+### Context Menu
+
+Pins have a right-click context menu with the following options:
+
+**Available to All Users:**
+- **Ping Pin**: Animates the pin to draw attention (combo animation: scale-large + ripple with sound)
+
+**Available to Users with Edit Permissions:**
+- **Delete Pin**: Deletes the individual pin
+
+**GM-Only Options** (appear below a separator):
+- **Delete All "[type]" Pins**: Deletes all pins of the same type as the clicked pin (e.g., "Delete All 'note' Pins"). Shows a confirmation dialog.
+- **Delete All Pins**: Deletes all pins on the current scene. Shows a confirmation dialog.
+
+**Module-Registered Items:**
+- Modules can register custom context menu items using `pins.registerContextMenuItem()`. These appear above the separator, before the built-in options.
+
+**Note**: GM bulk delete operations require confirmation via dialog to prevent accidental deletion. The "Delete All of Type" option only appears if there are pins of that type on the scene.
 
 ### Error Handling
 - API calls validate input and throw on invalid data or missing scene.
@@ -828,7 +1265,12 @@ Pins can be moved by left-clicking and dragging. Only users with edit permission
 - [x] Drag-and-drop (Phase 2.3): dropCanvasData for creation, drag-to-move, visual feedback, AbortController cleanup
 - [x] Event system (Phase 3.1, 3.2): hover/click/double-click/right-click/middle-click, modifiers, DOM event listeners, handler dispatch
 - [x] Context menu (Phase 3.3): Default items (Ping Pin, Delete), context menu item registration system for modules
-- [x] API: CRUD, `on()`, `registerContextMenuItem()`, `unregisterContextMenuItem()`, `reload()`, `refreshPin()`, `isAvailable()`, `isReady()`, `whenReady()`; `pinsAllowPlayerWrites` setting
+- [x] API: CRUD, `on()`, `registerContextMenuItem()`, `unregisterContextMenuItem()`, `reload()`, `refreshPin()`, `deleteAll()`, `deleteAllByType()`, `createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`, `reconcile()`, `isAvailable()`, `isReady()`, `whenReady()`; `pinsAllowPlayerWrites` setting
+- [x] Pin type system: Optional `type` field (defaults to 'default') for categorization and filtering; type-based filtering in `list()` method
+- [x] GM bulk delete controls: Context menu items for "Delete All Pins" and "Delete All Pins of Type X" (GM only, with confirmation dialogs); supports `moduleId` filtering
+- [x] GM proxy methods: `createAsGM()`, `updateAsGM()`, `deleteAsGM()` for direct GM execution; `requestGM()` for non-GM users to request GM actions via socket
+- [x] Ownership resolver hook: `blacksmith.pins.resolveOwnership` hook for custom ownership mapping based on module-specific context
+- [x] Reconciliation helper: `reconcile()` method for repairing broken links between module-tracked items and pins on canvas
 - [x] Pin storage in scene flags; migration and validation on load
 - [x] Shape support: circle (default), square (rounded corners), none (icon only)
 - [x] Color support: hex, rgb, rgba, hsl, hsla, named colors
