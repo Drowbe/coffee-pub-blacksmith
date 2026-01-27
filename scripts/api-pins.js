@@ -193,8 +193,8 @@ export class PinsAPI {
      * @returns {Promise<Application>} - The opened window instance
      */
     static async configure(pinId, options = {}) {
-        const { PinConfigurationWindow } = await import('./window-pin-config.js');
-        return PinConfigurationWindow.open(pinId, options);
+        const { PinConfigWindow } = await import('./window-pin-config.js');
+        return PinConfigWindow.open(pinId, options);
     }
 
     /**

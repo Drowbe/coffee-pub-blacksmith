@@ -2,36 +2,163 @@
 // ===== WINDOW-PIN-CONFIG – Pin Configuration Window ===============
 // ==================================================================
 // Application V2 window for configuring pin properties.
+// Ported from Squire's NoteIconPicker with Blacksmith integration.
 // ==================================================================
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 
 /**
- * PinConfigurationWindow - Application V2 window for configuring pins
+ * PinConfigWindow - Application V2 window for configuring pins
+ * Supports both direct API updates and callback pattern for modules
  */
-export class PinConfigurationWindow extends Application {
+export class PinConfigWindow extends Application {
     constructor(pinId, options = {}) {
         super(options);
         this.pinId = pinId;
         this.sceneId = options.sceneId || canvas?.scene?.id;
+        this.onSelect = options.onSelect || null;
+        this.useAsDefault = options.useAsDefault || false;
+        this.defaultSettingKey = options.defaultSettingKey || null;
+        this.moduleId = options.moduleId || null;
+        
+        // Will be populated from pin data
+        this.selected = null; // { type: 'fa'|'img', value: string } or null
+        this.iconMode = 'icon'; // 'icon' or 'image'
+        this.lastIconSelection = null;
+        this.pinSize = { w: 32, h: 32 };
+        this.lockProportions = true;
+        this.pinShape = 'circle';
+        this.pinStyle = { fill: '#000000', stroke: '#ffffff', strokeWidth: 2 };
+        this.dropShadow = true;
+        this.pinTextLayout = 'under';
+        this.pinTextDisplay = 'always';
+        this.pinTextColor = '#ffffff';
+        this.pinTextSize = 12;
+        this.pinTextMaxLength = 0;
+        this.pinTextScaleWithPin = true;
+        this._pinRatio = 1;
     }
 
     static get defaultOptions() {
         return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'blacksmith-pin-config',
-            template: `modules/${MODULE.ID}/templates/window-pin-config.hbs`,
-            classes: ['blacksmith', 'pin-config-window'],
             title: 'Configure Pin',
-            width: 600,
-            height: 700,
+            template: `modules/${MODULE.ID}/templates/window-pin-config.hbs`,
+            width: 700,
+            height: 600,
             resizable: true,
-            minimizable: true
+            classes: ['blacksmith-window', 'blacksmith-pin-config-window']
         });
     }
 
+    static iconCategories = null;
+
+    static async loadIconCategories() {
+        if (this.iconCategories) {
+            return this.iconCategories;
+        }
+        try {
+            const response = await fetch(`modules/${MODULE.ID}/resources/pin-icons.json`);
+            if (!response.ok) {
+                throw new Error(`Failed to load pin icons: ${response.status}`);
+            }
+            this.iconCategories = await response.json();
+            return this.iconCategories;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Failed to load pin icons.', error?.message || error, false, true);
+            this.iconCategories = [];
+            return this.iconCategories;
+        }
+    }
+
+    static formatIconLabel(iconClass) {
+        if (!iconClass) return '';
+        const name = iconClass.split(' ').find(cls => cls.startsWith('fa-')) || iconClass;
+        return name.replace(/^fa-/, '').replace(/-/g, ' ');
+    }
+
+    /**
+     * Convert pin image string to icon format { type, value }
+     * @param {string} imageString - Pin image string (Font Awesome HTML, class string, or image URL)
+     * @returns {{ type: 'fa'|'img', value: string }|null}
+     */
+    static convertPinImageToIcon(imageString) {
+        if (!imageString || typeof imageString !== 'string') return null;
+        const trimmed = imageString.trim();
+        if (!trimmed) return null;
+        
+        // Check for Font Awesome HTML
+        const faHtmlMatch = trimmed.match(/<i\s+[^>]*class=["']([^"']+)["']/i);
+        if (faHtmlMatch?.[1]) {
+            const classes = faHtmlMatch[1].split(/\s+/).filter(c => c.startsWith('fa-'));
+            if (classes.length > 0) {
+                return { type: 'fa', value: classes.join(' ') };
+            }
+        }
+        
+        // Check for Font Awesome class string
+        if (trimmed.includes('fa-')) {
+            const classes = trimmed.split(/\s+/).filter(c => c.startsWith('fa-'));
+            if (classes.length > 0) {
+                return { type: 'fa', value: classes.join(' ') };
+            }
+        }
+        
+        // Check for image URL or <img> tag
+        const imgMatch = trimmed.match(/<img\s+[^>]*src=["']([^"']+)["']/i);
+        if (imgMatch?.[1]) {
+            return { type: 'img', value: imgMatch[1] };
+        }
+        
+        // Check if it's a URL
+        if (/^(https?:\/\/|\/|data:)/i.test(trimmed)) {
+            return { type: 'img', value: trimmed };
+        }
+        
+        // Assume it's an image path
+        if (trimmed.startsWith('modules/')) {
+            return { type: 'img', value: `/${trimmed}` };
+        }
+        
+        return { type: 'img', value: trimmed };
+    }
+
+    /**
+     * Convert icon format to pin image string
+     * @param {{ type: 'fa'|'img', value: string }} icon - Icon object
+     * @returns {string} - Pin image string
+     */
+    static convertIconToPinImage(icon) {
+        if (!icon || typeof icon !== 'object') return '';
+        if (icon.type === 'fa') {
+            // Return Font Awesome HTML
+            return `<i class="${icon.value}"></i>`;
+        }
+        if (icon.type === 'img') {
+            // Return image URL or <img> tag
+            return icon.value;
+        }
+        return '';
+    }
+
+    /**
+     * Build icon HTML for preview
+     * @param {{ type: 'fa'|'img', value: string }|null} iconData - Icon object
+     * @param {string} imgClass - CSS class for image
+     * @returns {string} - HTML string
+     */
+    static buildIconHtml(iconData, imgClass = '') {
+        if (!iconData) return `<i class="fa-solid fa-location-dot"></i>`;
+        if (iconData.type === 'fa') {
+            return `<i class="${iconData.value}"></i>`;
+        }
+        const classAttr = imgClass ? ` class="${imgClass}"` : '';
+        return `<img src="${iconData.value}"${classAttr} alt="Pin icon">`;
+    }
+
     async getData() {
-        // Get pin data
+        // Load pin data
         const { PinManager } = await import('./manager-pins.js');
         const pin = PinManager.get(this.pinId, { sceneId: this.sceneId });
         
@@ -45,153 +172,416 @@ export class PinConfigurationWindow extends Application {
             throw new Error('Permission denied: you cannot edit this pin.');
         }
 
-        // Prepare form data with defaults
-        const data = {
-            pin: foundry.utils.deepClone(pin),
-            // Shape options
-            shapes: [
-                { value: 'circle', label: 'Circle', icon: 'fa-circle' },
-                { value: 'square', label: 'Square', icon: 'fa-square' },
-                { value: 'none', label: 'Icon Only', icon: 'fa-image' }
-            ],
-            // Text layout options
-            textLayouts: [
-                { value: 'under', label: 'Under Pin' },
-                { value: 'over', label: 'Over Pin' },
-                { value: 'around', label: 'Around Pin' }
-            ],
-            // Text display options
-            textDisplays: [
-                { value: 'always', label: 'Always' },
-                { value: 'hover', label: 'On Hover' },
-                { value: 'never', label: 'Never' },
-                { value: 'gm', label: 'GM Only' }
-            ],
-            // Ownership levels for ownership editor
-            ownershipLevels: [
-                { value: 0, label: 'None' },
-                { value: 1, label: 'Limited' },
-                { value: 2, label: 'Observer' },
-                { value: 3, label: 'Owner' }
-            ],
-            // Current ownership display
-            currentOwnership: pin.ownership || { default: 0 },
-            // User list for ownership editor
-            users: game.users?.map(u => ({
-                id: u.id,
-                name: u.name,
-                isGM: u.isGM,
-                level: pin.ownership?.users?.[u.id] ?? null
-            })) || []
+        // Convert pin data to window format
+        this.selected = PinConfigWindow.convertPinImageToIcon(pin.image);
+        this.iconMode = this.selected?.type === 'img' ? 'image' : 'icon';
+        this.lastIconSelection = this.selected?.type === 'fa' ? this.selected : null;
+        this.pinSize = pin.size || { w: 32, h: 32 };
+        this.lockProportions = true; // Default, could be stored in pin.config if needed
+        this.pinShape = pin.shape || 'circle';
+        this.pinStyle = {
+            fill: pin.style?.fill || '#000000',
+            stroke: pin.style?.stroke || '#ffffff',
+            strokeWidth: pin.style?.strokeWidth || 2,
+            alpha: pin.style?.alpha ?? 1
         };
+        this.dropShadow = pin.dropShadow !== false;
+        this.pinTextLayout = pin.textLayout || 'under';
+        this.pinTextDisplay = pin.textDisplay || 'always';
+        this.pinTextColor = pin.textColor || '#ffffff';
+        this.pinTextSize = pin.textSize || 12;
+        this.pinTextMaxLength = pin.textMaxLength ?? 0;
+        this.pinTextScaleWithPin = pin.textScaleWithPin !== false;
+        this._pinRatio = this.pinSize.h ? this.pinSize.w / this.pinSize.h : 1;
 
-        return data;
+        // Load icon categories
+        const categories = await PinConfigWindow.loadIconCategories();
+        const iconCategories = (categories || []).map(category => {
+            const icons = (category.icons || []).map(iconClass => ({
+                value: iconClass,
+                label: PinConfigWindow.formatIconLabel(iconClass),
+                isSelected: this.selected?.type === 'fa' && this.selected.value === iconClass
+            }));
+            return {
+                category: category.category || 'Icons',
+                description: category.description || '',
+                icons
+            };
+        });
+
+        const imageValue = this.selected?.type === 'img' ? this.selected.value : '';
+
+        return {
+            previewHtml: PinConfigWindow.buildIconHtml(this.selected, 'window-note-header-image'),
+            imageValue,
+            iconCategories,
+            pinWidth: this.pinSize.w,
+            pinHeight: this.pinSize.h,
+            lockProportions: this.lockProportions,
+            pinShape: this.pinShape,
+            pinStroke: this.pinStyle.stroke,
+            pinStrokeWidth: this.pinStyle.strokeWidth,
+            pinFill: this.pinStyle.fill,
+            pinDropShadow: this.dropShadow,
+            pinTextLayout: this.pinTextLayout,
+            pinTextDisplay: this.pinTextDisplay,
+            pinTextColor: this.pinTextColor,
+            pinTextSize: this.pinTextSize,
+            pinTextMaxLength: this.pinTextMaxLength,
+            pinTextScaleWithPin: this.pinTextScaleWithPin,
+            iconMode: this.iconMode,
+            showUseAsDefault: true // Always show toggle - modules can handle saving defaults themselves
+        };
     }
 
     activateListeners(html) {
         super.activateListeners(html);
+        const nativeHtml = html?.[0] || html;
 
-        // Color picker handlers (if using color inputs)
-        html.find('input[type="color"]').on('change', (e) => {
-            // Update preview if needed
-        });
+        const root = nativeHtml?.classList?.contains('blacksmith-pin-config')
+            ? nativeHtml
+            : nativeHtml.querySelector('.blacksmith-pin-config');
+        // Preview element is optional - may not exist in template
+        const preview = nativeHtml.querySelector('.window-note-header-icon') || null;
+        const imageInput = nativeHtml.querySelector('.blacksmith-pin-config-image-input');
+        const imageRow = nativeHtml.querySelector('.blacksmith-pin-config-image-row');
+        const imagePreview = nativeHtml.querySelector('.blacksmith-pin-config-image-preview');
+        const widthInput = nativeHtml.querySelector('.blacksmith-pin-config-width');
+        const heightInput = nativeHtml.querySelector('.blacksmith-pin-config-height');
+        const lockInput = nativeHtml.querySelector('.blacksmith-pin-config-lock');
+        const shapeInput = nativeHtml.querySelector('.blacksmith-pin-config-shape');
+        const strokeInput = nativeHtml.querySelector('.blacksmith-pin-config-stroke');
+        const strokeTextInput = nativeHtml.querySelector('.blacksmith-pin-config-stroke-text');
+        const strokeWidthInput = nativeHtml.querySelector('.blacksmith-pin-config-stroke-width');
+        const fillInput = nativeHtml.querySelector('.blacksmith-pin-config-fill');
+        const fillTextInput = nativeHtml.querySelector('.blacksmith-pin-config-fill-text');
+        const shadowInput = nativeHtml.querySelector('.blacksmith-pin-config-shadow');
+        const textLayoutInput = nativeHtml.querySelector('.blacksmith-pin-config-text-layout');
+        const textDisplayInput = nativeHtml.querySelector('.blacksmith-pin-config-text-display');
+        const textColorInput = nativeHtml.querySelector('.blacksmith-pin-config-text-color');
+        const textColorTextInput = nativeHtml.querySelector('.blacksmith-pin-config-text-color-text');
+        const textSizeInput = nativeHtml.querySelector('.blacksmith-pin-config-text-size');
+        const textMaxLengthInput = nativeHtml.querySelector('.blacksmith-pin-config-text-max-length');
+        const textScaleInput = nativeHtml.querySelector('.blacksmith-pin-config-text-scale');
+        const defaultInput = nativeHtml.querySelector('.blacksmith-pin-config-default');
+        const sourceToggle = nativeHtml.querySelector('.blacksmith-pin-config-source-toggle-input');
 
-        // Image/icon preview handler
-        html.find('.pin-preview').on('click', () => {
-            // Could open image picker here
-        });
-
-        // Form submission
-        html.find('form').on('submit', (e) => {
-            e.preventDefault();
-            this._onSubmit(e);
-        });
-
-        // Cancel button
-        html.find('.cancel-button').on('click', () => {
-            this.close();
-        });
-    }
-
-    async _onSubmit(event) {
-        const form = event.target;
-        const formData = new FormData(form);
-        const updateData = {};
-
-        // Extract all form fields
-        // Size
-        const width = parseInt(formData.get('size-width')) || 32;
-        const height = parseInt(formData.get('size-height')) || 32;
-        updateData.size = { w: width, h: height };
-
-        // Style
-        updateData.style = {
-            fill: formData.get('style-fill') || '#000000',
-            stroke: formData.get('style-stroke') || '#ffffff',
-            strokeWidth: parseInt(formData.get('style-strokeWidth')) || 2,
-            alpha: parseFloat(formData.get('style-alpha')) || 1
+        const updatePreview = () => {
+            if (preview) {
+                preview.innerHTML = PinConfigWindow.buildIconHtml(this.selected, 'window-note-header-image');
+            }
+            if (imageRow) {
+                imageRow.classList.toggle('selected', this.selected?.type === 'img');
+            }
+            if (imagePreview) {
+                const src = imageInput?.value?.trim() || '';
+                imagePreview.src = src;
+                imagePreview.classList.toggle('is-hidden', !src);
+            }
         };
 
-        // Shape
-        updateData.shape = formData.get('shape') || 'circle';
-
-        // Drop shadow
-        updateData.dropShadow = formData.get('dropShadow') === 'true' || formData.get('dropShadow') === 'on';
-
-        // Text properties
-        updateData.text = formData.get('text') || '';
-        updateData.textLayout = formData.get('textLayout') || 'under';
-        updateData.textDisplay = formData.get('textDisplay') || 'always';
-        updateData.textColor = formData.get('textColor') || '#ffffff';
-        updateData.textSize = parseInt(formData.get('textSize')) || 12;
-        updateData.textMaxLength = parseInt(formData.get('textMaxLength')) || 0;
-        updateData.textScaleWithPin = formData.get('textScaleWithPin') === 'true' || formData.get('textScaleWithPin') === 'on';
-
-        // Type
-        updateData.type = formData.get('type') || 'default';
-
-        // Image/icon
-        const image = formData.get('image');
-        if (image) {
-            updateData.image = image;
-        }
-
-        // Ownership (if GM)
-        if (game.user?.isGM) {
-            const defaultLevel = parseInt(formData.get('ownership-default')) || 0;
-            updateData.ownership = { default: defaultLevel };
-            
-            // User-specific ownership
-            const userOwnership = {};
-            for (const user of game.users || []) {
-                const level = formData.get(`ownership-user-${user.id}`);
-                if (level !== null) {
-                    const levelNum = parseInt(level);
-                    if (!isNaN(levelNum) && levelNum > 0) {
-                        userOwnership[user.id] = levelNum;
-                    }
+        const updateMode = (mode) => {
+            this.iconMode = mode;
+            if (mode === 'image') {
+                if (this.selected?.type === 'fa') {
+                    this.lastIconSelection = this.selected;
+                }
+                const imgValue = imageInput?.value?.trim() || '';
+                if (imgValue) {
+                    this.selected = { type: 'img', value: imgValue };
+                }
+            } else {
+                if (this.lastIconSelection) {
+                    this.selected = this.lastIconSelection;
+                } else if (this.selected?.type !== 'fa') {
+                    this.selected = { type: 'fa', value: 'fa-solid fa-location-dot' };
                 }
             }
-            if (Object.keys(userOwnership).length > 0) {
-                updateData.ownership.users = userOwnership;
+            if (root) {
+                root.dataset.iconMode = mode;
             }
-        }
+            if (sourceToggle) {
+                sourceToggle.checked = mode === 'icon';
+            }
+            updatePreview();
+        };
 
-        // Update pin via API
-        try {
-            const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-            if (!pinsAPI) {
-                throw new Error('Pins API not available');
+        const clampDimension = (value, fallback) => {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) return fallback;
+            return Math.max(8, Math.round(parsed));
+        };
+
+        const clampStrokeWidth = (value, fallback) => {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) return fallback;
+            return Math.max(0, Math.round(parsed));
+        };
+
+        const clampTextSize = (value, fallback) => {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) return fallback;
+            return Math.max(6, Math.round(parsed));
+        };
+
+        const clampTextMaxLength = (value, fallback) => {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) return fallback;
+            return Math.max(0, Math.round(parsed));
+        };
+
+        const syncPinSize = (source) => {
+            if (!widthInput || !heightInput) return;
+            let width = clampDimension(widthInput.value, this.pinSize.w);
+            let height = clampDimension(heightInput.value, this.pinSize.h);
+
+            if (lockInput?.checked) {
+                if (source === 'width') {
+                    height = clampDimension(Math.round(width / (this._pinRatio || 1)), height);
+                    heightInput.value = height;
+                } else if (source === 'height') {
+                    width = clampDimension(Math.round(height * (this._pinRatio || 1)), width);
+                    widthInput.value = width;
+                }
+            } else {
+                this._pinRatio = height ? width / height : this._pinRatio;
             }
 
-            await pinsAPI.update(this.pinId, updateData, { sceneId: this.sceneId });
-            
-            ui.notifications.info('Pin configuration updated.');
-            this.close();
-        } catch (err) {
-            postConsoleAndNotification(MODULE.NAME, 'Error updating pin configuration', err?.message || err, false, true);
-            ui.notifications.error(`Failed to update pin: ${err.message}`);
-        }
+            this.pinSize = { w: width, h: height };
+        };
+
+        nativeHtml.querySelectorAll('.blacksmith-pin-config-icon-option').forEach(button => {
+            button.addEventListener('click', () => {
+                const value = button.dataset.value;
+                this.selected = { type: 'fa', value };
+                this.lastIconSelection = this.selected;
+                nativeHtml.querySelectorAll('.blacksmith-pin-config-icon-option').forEach(btn => btn.classList.remove('selected'));
+                button.classList.add('selected');
+                if (imageInput) {
+                    imageInput.value = '';
+                }
+                updateMode('icon');
+            });
+        });
+
+        imageInput?.addEventListener('input', () => {
+            const value = imageInput.value.trim();
+            if (value) {
+                this.selected = { type: 'img', value };
+                nativeHtml.querySelectorAll('.blacksmith-pin-config-icon-option').forEach(btn => btn.classList.remove('selected'));
+                updateMode('image');
+            }
+        });
+
+        widthInput?.addEventListener('input', () => syncPinSize('width'));
+        heightInput?.addEventListener('input', () => syncPinSize('height'));
+        lockInput?.addEventListener('change', () => {
+            if (widthInput && heightInput) {
+                const width = clampDimension(widthInput.value, this.pinSize.w);
+                const height = clampDimension(heightInput.value, this.pinSize.h);
+                this._pinRatio = height ? width / height : this._pinRatio;
+            }
+            this.lockProportions = !!lockInput.checked;
+            syncPinSize('width');
+        });
+        shapeInput?.addEventListener('change', () => {
+            const shape = shapeInput.value;
+            if (shape === 'circle' || shape === 'square' || shape === 'none') {
+                this.pinShape = shape;
+            }
+        });
+        strokeTextInput?.addEventListener('input', () => {
+            const value = strokeTextInput.value.trim();
+            if (value) {
+                this.pinStyle.stroke = value;
+                if (strokeInput) {
+                    strokeInput.value = value;
+                }
+            }
+        });
+        strokeInput?.addEventListener('input', () => {
+            const value = strokeInput.value.trim();
+            if (value) {
+                this.pinStyle.stroke = value;
+                if (strokeTextInput) {
+                    strokeTextInput.value = value;
+                }
+            }
+        });
+        fillTextInput?.addEventListener('input', () => {
+            const value = fillTextInput.value.trim();
+            if (value) {
+                this.pinStyle.fill = value;
+                if (fillInput) {
+                    fillInput.value = value;
+                }
+            }
+        });
+        fillInput?.addEventListener('input', () => {
+            const value = fillInput.value.trim();
+            if (value) {
+                this.pinStyle.fill = value;
+                if (fillTextInput) {
+                    fillTextInput.value = value;
+                }
+            }
+        });
+        strokeWidthInput?.addEventListener('input', () => {
+            const width = clampStrokeWidth(strokeWidthInput.value, this.pinStyle.strokeWidth);
+            this.pinStyle.strokeWidth = width;
+        });
+        shadowInput?.addEventListener('change', () => {
+            this.dropShadow = !!shadowInput.checked;
+        });
+        textLayoutInput?.addEventListener('change', () => {
+            const layout = textLayoutInput.value;
+            if (layout === 'under' || layout === 'over' || layout === 'around') {
+                this.pinTextLayout = layout;
+            }
+        });
+        textDisplayInput?.addEventListener('change', () => {
+            const display = textDisplayInput.value;
+            if (display === 'always' || display === 'hover' || display === 'never' || display === 'gm') {
+                this.pinTextDisplay = display;
+            }
+        });
+        textColorTextInput?.addEventListener('input', () => {
+            const value = textColorTextInput.value.trim();
+            if (value) {
+                this.pinTextColor = value;
+                if (textColorInput) {
+                    textColorInput.value = value;
+                }
+            }
+        });
+        textColorInput?.addEventListener('input', () => {
+            const value = textColorInput.value.trim();
+            if (value) {
+                this.pinTextColor = value;
+                if (textColorTextInput) {
+                    textColorTextInput.value = value;
+                }
+            }
+        });
+        textSizeInput?.addEventListener('input', () => {
+            this.pinTextSize = clampTextSize(textSizeInput.value, this.pinTextSize);
+        });
+        textMaxLengthInput?.addEventListener('input', () => {
+            this.pinTextMaxLength = clampTextMaxLength(textMaxLengthInput.value, this.pinTextMaxLength);
+        });
+        textScaleInput?.addEventListener('change', () => {
+            this.pinTextScaleWithPin = !!textScaleInput.checked;
+        });
+        sourceToggle?.addEventListener('change', () => {
+            updateMode(sourceToggle.checked ? 'icon' : 'image');
+        });
+
+        nativeHtml.querySelector('.blacksmith-pin-config-browse')?.addEventListener('click', async () => {
+            const picker = new FilePicker({
+                type: 'image',
+                callback: (path) => {
+                    if (!imageInput) return;
+                    imageInput.value = path;
+                    this.selected = { type: 'img', value: path };
+                    nativeHtml.querySelectorAll('.blacksmith-pin-config-icon-option').forEach(btn => btn.classList.remove('selected'));
+                    updateMode('image');
+                }
+            });
+            picker.browse();
+        });
+
+        nativeHtml.querySelector('button.cancel')?.addEventListener('click', () => this.close());
+
+        nativeHtml.querySelector('.blacksmith-pin-config-save')?.addEventListener('click', async () => {
+            const mode = this.iconMode === 'image' ? 'image' : 'icon';
+            let finalSelection = null;
+            if (mode === 'image') {
+                const value = imageInput?.value?.trim() || '';
+                if (!value) {
+                    ui.notifications?.warn('Select an image for the pin.');
+                    return;
+                }
+                finalSelection = { type: 'img', value };
+            } else {
+                finalSelection = this.selected?.type === 'fa'
+                    ? this.selected
+                    : { type: 'fa', value: 'fa-solid fa-location-dot' };
+            }
+
+            // Prepare config data for callback
+            const configData = {
+                icon: finalSelection,
+                pinSize: { w: this.pinSize.w, h: this.pinSize.h },
+                pinShape: this.pinShape,
+                pinStyle: { ...this.pinStyle },
+                pinDropShadow: this.dropShadow,
+                pinTextConfig: {
+                    textLayout: this.pinTextLayout,
+                    textDisplay: this.pinTextDisplay,
+                    textColor: this.pinTextColor,
+                    textSize: this.pinTextSize,
+                    textMaxLength: this.pinTextMaxLength,
+                    textScaleWithPin: this.pinTextScaleWithPin
+                }
+            };
+
+            // Convert to pin API format
+            const pinUpdateData = {
+                size: configData.pinSize,
+                shape: configData.pinShape,
+                style: {
+                    fill: configData.pinStyle.fill,
+                    stroke: configData.pinStyle.stroke,
+                    strokeWidth: configData.pinStyle.strokeWidth,
+                    alpha: configData.pinStyle.alpha ?? 1
+                },
+                dropShadow: configData.pinDropShadow,
+                image: PinConfigWindow.convertIconToPinImage(finalSelection),
+                textLayout: configData.pinTextConfig.textLayout,
+                textDisplay: configData.pinTextConfig.textDisplay,
+                textColor: configData.pinTextConfig.textColor,
+                textSize: configData.pinTextConfig.textSize,
+                textMaxLength: configData.pinTextConfig.textMaxLength,
+                textScaleWithPin: configData.pinTextConfig.textScaleWithPin
+            };
+
+            try {
+                // Always update pin via API
+                const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                if (!pinsAPI) {
+                    throw new Error('Pins API not available');
+                }
+
+                await pinsAPI.update(this.pinId, pinUpdateData, { sceneId: this.sceneId });
+
+                // If "Use as Default" checked, save to module settings
+                const makeDefault = !!defaultInput?.checked;
+                if (makeDefault && this.defaultSettingKey && this.moduleId) {
+                    await game.settings.set(this.moduleId, this.defaultSettingKey, {
+                        size: configData.pinSize,
+                        lockProportions: this.lockProportions,
+                        shape: configData.pinShape,
+                        style: configData.pinStyle,
+                        dropShadow: configData.pinDropShadow,
+                        ...configData.pinTextConfig
+                    });
+                }
+
+                // If callback provided, call it with configData
+                if (this.onSelect) {
+                    this.onSelect(configData);
+                }
+
+                ui.notifications.info('Pin configuration updated.');
+                this.close();
+            } catch (err) {
+                postConsoleAndNotification(MODULE.NAME, 'Error updating pin configuration', err?.message || err, false, true);
+                ui.notifications.error(`Failed to update pin: ${err.message}`);
+            }
+        });
+
+        updatePreview();
+        updateMode(this.iconMode);
     }
 
     /**
@@ -199,10 +589,14 @@ export class PinConfigurationWindow extends Application {
      * @param {string} pinId - Pin ID to configure
      * @param {Object} [options] - Options
      * @param {string} [options.sceneId] - Scene ID (defaults to active scene)
-     * @returns {Promise<PinConfigurationWindow>} - The opened window instance
+     * @param {Function} [options.onSelect] - Callback when config is saved
+     * @param {boolean} [options.useAsDefault] - Show "Use as Default" toggle
+     * @param {string} [options.defaultSettingKey] - Module setting key for defaults
+     * @param {string} [options.moduleId] - Calling module ID (for defaults)
+     * @returns {Promise<PinConfigWindow>} - The opened window instance
      */
     static async open(pinId, options = {}) {
-        const window = new PinConfigurationWindow(pinId, options);
+        const window = new PinConfigWindow(pinId, options);
         await window.render(true);
         return window;
     }

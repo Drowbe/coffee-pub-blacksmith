@@ -22,6 +22,7 @@
 @import "window-roll-normal.css";
 @import "window-roll-cinematic.css";
 @import "window-token-replacement.css";
+@import "window-pin-config.css";
 
 /* --- Tabs ---------------------- */
 @import "tabs-scenes.css";
