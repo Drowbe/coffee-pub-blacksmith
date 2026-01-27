@@ -238,6 +238,8 @@ Create a pin on the active scene.
 
 **Returns**: `Promise<PinData>` - The created pin data with defaults applied
 
+**Before creating**: Use `pins.exists(pinId)` to check if a pin with that ID already exists. If it does, use `pins.update()` instead, or generate a new unique ID (e.g., `crypto.randomUUID()`).
+
 ```javascript
 const pin = await pinsAPI.create({
   id: crypto.randomUUID(),
@@ -404,6 +406,38 @@ const defaultPin = await pinsAPI.create({
 - `Error` if pin data is invalid
 - `Error` if scene not found
 - `Error` if permission denied
+- `Error` if a pin with the same `id` already exists on the scene (message: `"A pin with id \"{id}\" already exists on this scene."`)
+
+**Duplicate ID handling**: If you're not sure whether a pin ID exists, check first:
+```javascript
+// Option 1: Check before creating (recommended)
+if (!pins.exists('my-pin-id')) {
+    await pins.create({ id: 'my-pin-id', x: 1000, y: 1000, moduleId: 'my-module' });
+} else {
+    // Pin exists - update it instead
+    await pins.update('my-pin-id', { x: 1000, y: 1000 });
+}
+
+// Option 2: Use a unique ID (recommended for new pins)
+await pins.create({ 
+    id: crypto.randomUUID(),  // Always unique
+    x: 1000, 
+    y: 1000, 
+    moduleId: 'my-module' 
+});
+
+// Option 3: Try/catch if you want to handle the error
+try {
+    await pins.create({ id: 'my-pin-id', x: 1000, y: 1000, moduleId: 'my-module' });
+} catch (err) {
+    if (err.message.includes('already exists')) {
+        // Update existing pin instead
+        await pins.update('my-pin-id', { x: 1000, y: 1000 });
+    } else {
+        throw err; // Re-throw other errors
+    }
+}
+```
 
 ### `pins.update(pinId, patch, options?)`
 Update properties for an existing pin. Automatically detects and handles icon/image type changes (e.g., switching from Font Awesome icon to image URL, or vice versa) by rebuilding the icon element when needed.
@@ -730,8 +764,107 @@ if (results.errors.length > 0) {
 
 **Use Case**: When modules store pin IDs in their own data structures (e.g., journal entry flags), this method helps repair broken links when pins are deleted or moved between scenes.
 
+---
+
+### Pin configuration window – contracts and behavior
+
+The following clarifies payload shapes, storage contracts, and integration points so modules can integrate without guessing. See `pins.configure()` for the API entry point.
+
+#### 1. `onSelect` payload (exact shape)
+
+The callback receives a **stable** object. This is the current contract (matches the window’s internal config):
+
+```ts
+// Exact shape passed to onSelect(config)
+{
+  icon:       { type: 'fa' | 'img'; value: string };
+  pinSize:    { w: number; h: number };
+  pinShape:   'circle' | 'square' | 'none';
+  pinStyle:   { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number };
+  pinDropShadow: boolean;
+  pinTextConfig: {
+    textLayout:   'under' | 'over' | 'around';
+    textDisplay:  'always' | 'hover' | 'never' | 'gm';
+    textColor:    string;
+    textSize:     number;
+    textMaxLength: number;
+    textScaleWithPin: boolean;
+  };
+}
+```
+
+- **`icon`**: Internal format. For persistence or API calls, normalize as below.
+- **`pinTextConfig`**: Does not include `text`/content; the window does not edit pin text content. Use `pins.update(pinId, { text: '...' }, opts)` separately if needed.
+
+#### 2. Image/icon normalization
+
+The window uses an internal `{ type, value }` format. For storage or passing into `pins.update()` / `pins.create()`:
+
+- **Font Awesome**  
+  - **Normalized string format (recommended for storage)**: FA class string, e.g. `'fa-solid fa-star'`.  
+  - **Accepted by pin `image`**: That same class string, or HTML `<i class="fa-solid fa-star"></i>`.
+- **Image**  
+  - **Normalized**: Image URL string (e.g. `'https://…'` or a path like `'path/to/image.webp'`).  
+  - **Accepted by pin `image`**: That URL string (or an `<img src="…">` string if you prefer; the renderer supports both).
+
+Recommendation: store **FA as class string** and **images as URL string** so all modules and the API stay consistent.
+
+#### 3. Default storage schema (`useAsDefault`)
+
+When “Use as Default” is checked and `defaultSettingKey` + `moduleId` are provided, the window writes this **exact** object to `game.settings.set(moduleId, defaultSettingKey, value)`:
+
+```ts
+{
+  size:           { w: number; h: number };
+  lockProportions: boolean;
+  shape:          'circle' | 'square' | 'none';
+  style:          { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number };
+  dropShadow:     boolean;
+  textLayout:     'under' | 'over' | 'around';
+  textDisplay:    'always' | 'hover' | 'never' | 'gm';
+  textColor:      string;
+  textSize:       number;
+  textMaxLength:  number;
+  textScaleWithPin: boolean;
+}
+```
+
+No extra or omitted keys. When applying this as default for new pins, modules should merge this object with any other defaults and pass the result into `pins.create()` / `pins.update()` (using the same property names as in [PinData](#pin-data-schema)).
+
+#### 4. Pin type handling
+
+- **Current**: The config window does not show or edit pin `type`. The pin keeps its existing type on save.
+- **Planned**: Options such as `pinType` (fixed type), `allowTypeEdit` (show type control), and `typeChoices` (labels or list) are under consideration for a future release.
+
+#### 5. Icon library and image options
+
+- **Default**: Icon categories come from Blacksmith’s `resources/pin-icons.json`.
+- **Browse**: The window includes a built-in **FilePicker** “Browse” control for image selection.
+- **Planned**: Override/defaults for icon categories (e.g. `iconCategories`) and toggles like `allowImageUrl` / `allowFilePicker` may be added as options.
+
+#### 6. Permission gating
+
+- **Current**: Only users who can **edit** the pin (ownership-based) can open the config window. There is no separate `permission` option.
+- **Planned**: A `permission` option (e.g. `'gm' | 'owner' | 'any'`) is under consideration.
+
+#### 7. Ownership preservation
+
+`pins.update(pinId, patch, opts)` only changes flags that you pass in `patch`. It does **not** clear or change `ownership` unless `patch.ownership` is included. So saving from the config window does not alter visibility/ownership unless a future version explicitly sends ownership in the update.
+
+#### 8. Styling hooks (stable selectors)
+
+For theming or layout overrides, use these roots so they remain valid across updates:
+
+- **Window shell**: `div#blacksmith-pin-config` — the Application root id.
+- **Content**: `div#blacksmith-pin-config .window-content` — Foundry window content wrapper.
+- **Form**: `.blacksmith-pin-config` — root class of the inner form (flex column, etc.).
+
+Custom CSS should scope under `#blacksmith-pin-config` or `.blacksmith-pin-config` to avoid affecting other Blacksmith UI.
+
+---
+
 ### `pins.configure(pinId, options?)`
-Open the pin configuration window for a pin. This provides a user-friendly interface to edit all pin properties.
+Open the pin configuration window for a pin. This provides a user-friendly interface to edit all pin properties. For payload shape, default storage schema, and behavior, see [Pin configuration window – contracts and behavior](#pin-configuration-window--contracts-and-behavior) above.
 
 **Returns**: `Promise<Application>` - The opened window instance
 
@@ -742,16 +875,19 @@ const window = await pinsAPI.configure(pinId);
 // Open configuration window for a pin on a specific scene
 await pinsAPI.configure(pinId, { sceneId: 'some-scene-id' });
 
-// Open with callback to receive configuration data
+// Open with callback to receive configuration data (exact shape documented above)
 await pinsAPI.configure(pinId, {
     sceneId: 'some-scene-id',
-    onSelect: (configData) => {
-        console.log('Pin configured:', configData);
-        // Use the configuration data in your module
+    onSelect: (config) => {
+        // config.icon, config.pinSize, config.pinShape, config.pinStyle,
+        // config.pinDropShadow, config.pinTextConfig — all stable
+        const faClass = config.icon?.type === 'fa' ? config.icon.value : null;
+        const imageUrl = config.icon?.type === 'img' ? config.icon.value : null;
+        // Persist faClass or imageUrl per your module
     }
 });
 
-// Open with "Use as Default" toggle enabled
+// Open with "Use as Default" toggle enabled (storage schema documented above)
 await pinsAPI.configure(pinId, {
     moduleId: 'my-module',
     defaultSettingKey: 'defaultPinDesign',
@@ -763,31 +899,26 @@ await pinsAPI.configure(pinId, {
 - `pinId` (string, required): Pin ID to configure
 - `options` (object, optional): Options
   - `sceneId` (string, optional): Scene ID (defaults to active scene)
-  - `onSelect` (Function, optional): Callback function called when configuration is saved. Receives the configuration data object as parameter.
-  - `useAsDefault` (boolean, optional): Show "Use as Default" toggle in the window header (default: `false`)
-  - `defaultSettingKey` (string, optional): Module setting key where default configuration will be saved when "Use as Default" is enabled
+  - `onSelect` (Function, optional): Callback when configuration is saved. Receives the [exact payload](#1-onselect-payload-exact-shape) (`icon`, `pinSize`, `pinShape`, `pinStyle`, `pinDropShadow`, `pinTextConfig`).
+  - `useAsDefault` (boolean, optional): Show “Use as Default” toggle in the window header (default: `false`)
+  - `defaultSettingKey` (string, optional): Module setting key where the [default storage object](#3-default-storage-schema-useasdefault) is written when “Use as Default” is checked
   - `moduleId` (string, optional): Calling module ID (required if `useAsDefault` is `true`)
+
+  **Planned** (not yet in this release): `pinType`, `allowTypeEdit`, `typeChoices`, `iconCategories`, `permission`, `allowImageUrl`, `allowFilePicker` — see [Pin configuration window – contracts and behavior](#pin-configuration-window--contracts-and-behavior) for current vs planned behavior.
 
 **Throws**: 
 - `Error` if pin not found
-- `Error` if user doesn't have permission to edit the pin
+- `Error` if user doesn’t have permission to edit the pin
 - `Error` if Pins API not available
 
 **Behavior**:
-- Opens an Application V2 window with a form for editing pin properties
-- Only users who can edit the pin (based on ownership) can open the configuration window
-- The window includes fields for:
-  - **Appearance**: Shape, size, colors (fill, stroke), stroke width, opacity, drop shadow
-  - **Icon/Image**: Font Awesome icon or image URL (toggle between icon library and image URL)
-  - **Text**: Content, layout (under/over/around), display mode (always/hover/never/gm), color, size, max length, scaling
-  - **Metadata**: Pin type/category
-  - **Ownership** (GM only): Default ownership level and user-specific ownership levels
-- Changes are saved via `pins.update()` when the form is submitted
-- If `onSelect` callback is provided, it is called with the configuration data after saving
-- If `useAsDefault` is enabled and `defaultSettingKey` and `moduleId` are provided, the configuration can be saved as a module default setting
-- The window is also accessible via the right-click context menu ("Configure Pin")
+- Opens an Application V2 window with a form for editing pin properties.
+- Only users who can **edit** the pin (ownership-based) can open the window.
+- The window includes: **Appearance** (shape, size, fill, stroke, stroke width, opacity, drop shadow); **Icon/Image** (Font Awesome library + image URL with built-in FilePicker “Browse”); **Text** (layout, display mode, color, size, max length, scale-with-pin). Pin **type** is not currently editable in the window; **ownership** is not changed by the save.
+- On submit, the pin is updated via `pins.update()` (ownership is preserved). If “Use as Default” is checked, the [default storage schema](#3-default-storage-schema-useasdefault) is written to `game.settings.set(moduleId, defaultSettingKey, …)`. If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
+- The window is also available from the pin’s right-click context menu (“Configure Pin”).
 
-**Note**: The configuration window is automatically added to the pin context menu for users who can edit the pin. The window uses the same styling and structure as other Blacksmith windows (targets `div#blacksmith-pin-config` and `.window-content`).
+**Styling**: Use the [stable selectors](#8-styling-hooks-stable-selectors) `div#blacksmith-pin-config`, `.blacksmith-pin-config`, and `div#blacksmith-pin-config .window-content` for theming.
 
 ### `pins.findScene(pinId)`
 Find which scene contains a pin with the given ID. Useful for cross-scene operations.
@@ -899,6 +1030,55 @@ pinsAPI.on('click', handler, { signal: controller.signal });
 **Throws**: 
 - `Error` if eventType is invalid
 - `Error` if handler is not a function
+
+### `pins.registerContextMenuItem(itemId, itemData)`
+Register a custom context menu item for pins. The item appears above the separator, before built-in options (Ping Pin, Delete Pin, etc.). Returns a disposer function; call it to unregister.
+
+**Returns**: `() => void` - Disposer function to unregister the item
+
+```javascript
+const unregister = pins.registerContextMenuItem('my-module-bring-here', {
+  name: 'Bring Players Here',
+  icon: '<i class="fa-solid fa-users"></i>',
+  onClick: async (pinData) => {
+    await pins.panTo(pinData.id, { broadcast: true, ping: { animation: 'ping', loops: 1 } });
+  },
+  moduleId: 'my-module',
+  order: 100,
+  visible: true
+});
+
+// later
+unregister();
+```
+
+**Parameters**:
+- `itemId` (string, required): Unique identifier for the menu item (e.g. module-prefixed: `'my-module-action-name'`).
+- `itemData` (object, required): Menu item configuration
+  - `name` (string, required): Display name in the menu
+  - `icon` (string, optional): Font Awesome icon HTML or class string (default: `'<i class="fa-solid fa-circle"></i>'`)
+  - `onClick` (Function, required): Callback invoked when the item is clicked. Receives `(pinData)`.
+  - `moduleId` (string, optional): If set, item is only shown for pins whose `moduleId` matches
+  - `order` (number, optional): Sort order in menu; lower values appear higher (default: `999`)
+  - `visible` (boolean | Function, optional): If `true`, item is shown (default). If `false`, hidden. If a function `(pinData, userId) => boolean`, run for each pin to decide visibility.
+
+**Throws**: 
+- `Error` if `itemId` is missing or not a non-empty string
+- `Error` if `itemData` is missing or not an object
+- `Error` if `itemData.name` is missing or not a string
+- `Error` if `itemData.onClick` is not a function
+
+### `pins.unregisterContextMenuItem(itemId)`
+Unregister a context menu item previously added with `registerContextMenuItem()`.
+
+**Returns**: `boolean` - `true` if an item with that `itemId` was removed, `false` otherwise
+
+```javascript
+pins.unregisterContextMenuItem('my-module-bring-here');
+```
+
+**Parameters**:
+- `itemId` (string, required): The same id passed to `registerContextMenuItem()`
 
 ### `pins.panTo(pinId, options?)`
 Pan the canvas to center on a pin's location. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin). Optionally ping the pin after panning to draw attention.
@@ -1165,6 +1345,50 @@ await pins.create({
 });
 ```
 
+### Hooks fired by the Pins API
+
+The pins system fires the following hooks so other modules can react to bulk deletes. Use `Hooks.on()` (not `Hooks.call`); these are invoked with `Hooks.callAll()`.
+
+**`blacksmith.pins.deletedAll`**  
+Fired when `pins.deleteAll()` completes successfully.
+
+**Payload**:
+```js
+{ sceneId: string, moduleId?: string, count: number }
+```
+- `sceneId`: Scene where pins were deleted
+- `moduleId`: Value of the `moduleId` filter passed to `deleteAll()`, or `undefined` if all pins were deleted
+- `count`: Number of pins deleted
+
+```javascript
+Hooks.on('blacksmith.pins.deletedAll', ({ sceneId, moduleId, count }) => {
+  if (moduleId === 'my-module') {
+    console.log(`Deleted ${count} pins on scene ${sceneId}`);
+    // e.g. clear note flags, refresh UI
+  }
+});
+```
+
+**`blacksmith.pins.deletedAllByType`**  
+Fired when `pins.deleteAllByType(type, options)` completes successfully.
+
+**Payload**:
+```js
+{ sceneId: string, type: string, moduleId?: string, count: number }
+```
+- `sceneId`: Scene where pins were deleted
+- `type`: Pin type that was deleted (e.g. `'note'`, `'quest'`)
+- `moduleId`: Value of the `moduleId` filter passed to `deleteAllByType()`, or `undefined`
+- `count`: Number of pins deleted
+
+```javascript
+Hooks.on('blacksmith.pins.deletedAllByType', ({ sceneId, type, moduleId, count }) => {
+  if (type === 'quest' && moduleId === 'my-module') {
+    console.log(`Deleted ${count} quest pins on scene ${sceneId}`);
+  }
+});
+```
+
 ### Context Menu
 
 Pins have a right-click context menu with the following options:
@@ -1180,7 +1404,7 @@ Pins have a right-click context menu with the following options:
 - **Delete All Pins**: Deletes all pins on the current scene. Shows a confirmation dialog.
 
 **Module-Registered Items:**
-- Modules can register custom context menu items using `pins.registerContextMenuItem()`. These appear above the separator, before the built-in options.
+- Modules can register custom context menu items using `pins.registerContextMenuItem()`. These appear above the separator, before the built-in options. See [`pins.registerContextMenuItem()`](#pinsregistercontextmenuitemitemid-itemdata) and [`pins.unregisterContextMenuItem()`](#pinsunregistercontextmenuitemitemid) for the full API.
 
 **Note**: GM bulk delete operations require confirmation via dialog to prevent accidental deletion. The "Delete All of Type" option only appears if there are pins of that type on the scene.
 
