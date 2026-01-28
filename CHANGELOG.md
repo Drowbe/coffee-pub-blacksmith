@@ -8,8 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.2.2] - Asset Update
 
+### Added
+- **Context Menu Stylesheet**: Pin context menu styles moved from inline JS to `styles/menu-context-global.css`. Menu container, separator, and item (including hover) styling are now in CSS for easier theming; `left`/`top` remain in JS for positioning.
+- **Context Menu Zones**: Pin right-click menu split into three zone divs—`context-menu-zone-module`, `context-menu-zone-core`, `context-menu-zone-gm`—so each can be styled independently. Module zone holds registered items, core holds built-in actions, GM zone holds GM-only bulk-delete options. Separators are rendered between zones when the next zone has items.
+
 ### Changed
 - **Asset Updates**: Updated portrait images
+- **Core Menu Order**: Pin context menu core items reordered to: Ping Pin, Bring Players Here, Configure Pin, Delete Pin.
+- **Context Menu Icons**: Ping Pin uses `fa-signal-stream`; Bring Players Here uses `fa-location-crosshairs`. All delete actions (Delete Pin, Delete All of Type, Delete All Pins) use the same trash icon (`fa-trash`).
 
 
 ## [13.2.1] - Pin System Enhancements
