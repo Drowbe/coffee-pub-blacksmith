@@ -94,6 +94,16 @@
 - **Location**: `scripts/window-query.js`
 - **Need**: Verify all tabs work, review/fix drop functionality design, fix JSON generation
 
+#### Token/Portrait Image Cache – Expand Filename Parsing for Tags
+- **Issue**: Only filename parts that match specific patterns (class, weapon, armor, size) become tags. Unmatched parts (e.g. profession, race, gender) are discarded. Example: `merchant-shopkeeper-butcher-human-male-03.webp` currently yields only `MERCHANT`; user expects tags: merchant, shopkeeper, butcher, human, male.
+- **Status**: PENDING - Plan agreed; implementation not started
+- **Location**: `scripts/manager-image-cache.js` – `METADATA_PATTERNS`, `IGNORED_WORDS`, `_extractMetadata()` (lines 386–409), `_generateTagsFromMetadata()` (lines 474–507)
+- **Need**:
+  - Collect unmatched filename parts (after pattern checks and IGNORED_WORDS) into a new metadata array (e.g. `metadata.filenameTags` or similar).
+  - In `_generateTagsFromMetadata()`, add those parts as tags (uppercase) in addition to existing pattern-derived tags.
+  - Optionally wire in more `METADATA_PATTERNS` (e.g. profession, action, direction, quality, creatureType) if they should feed tags; currently only class, weapon, armor, size are used in the loop.
+- **Notes**: Same parsing applies to both token and portrait caches. Class, weapon, armor, size remain used by the matching algorithm; new tags are for display/filtering and search.
+
 #### Add Enable Setting for Nameplate Styling
 - **Issue**: Nameplate styling should operate independently from nameplate content/formatting
 - **Status**: PENDING - Needs implementation

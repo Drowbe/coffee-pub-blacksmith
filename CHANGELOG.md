@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [13.2.2] - Asset Update
+## [13.2.2] - Pin Configuration Migration
 
 ### Added
 - **Context Menu Stylesheet**: Pin context menu styles moved from inline JS to `styles/menu-context-global.css`. Menu container, separator, and item (including hover) styling are now in CSS for easier theming; `left`/`top` remain in JS for positioning.
@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Asset Updates**: Updated portrait images
 - **Core Menu Order**: Pin context menu core items reordered to: Ping Pin, Bring Players Here, Configure Pin, Delete Pin.
 - **Context Menu Icons**: Ping Pin uses `fa-signal-stream`; Bring Players Here uses `fa-location-crosshairs`. All delete actions (Delete Pin, Delete All of Type, Delete All Pins) use the same trash icon (`fa-trash`).
+- **Menubar API – Optional Title**: `registerMenubarTool()` no longer requires `title`. If omitted, it defaults to the tool's `name`. Validation now checks for `undefined` only (allows `null`, empty strings, and functions). Enables external modules to register left-zone buttons without a title. Documentation (`api-menubar.md`) and JSDoc updated accordingly.
+- **Pins API Documentation – Unplaced as Primary**: API documentation (`documentation/api-pins.md`) updated to treat unplaced pins as the normal, primary use case. Added "Unplaced Pins" section; documented `place()`, `unplace()`, `list({ unplacedOnly: true })`, and hooks `blacksmith.pins.created`, `blacksmith.pins.placed`, `blacksmith.pins.unplaced`. PinData and method docs now clarify optional `x`/`y`/`sceneId` and lookup order (unplaced first, then scenes). Examples and status line updated accordingly.
+
+### Fixed
+- **GM Proxy Socket Handler**: Fixed "No socket handler with the name 'blacksmith-pins-gm-proxy' has been registered" when a non-GM called `pins.requestGM()`. The handler was only registered on the calling client; SocketLib's `executeAsGM` runs the handler on the GM client. The pins GM-proxy handler is now registered on all clients when the socket is ready (`Hooks.once('blacksmith.socketReady')` in `manager-pins.js`), so the GM has the handler before any request.
+- **Configure Pin Window for Unplaced Pins**: Fixed "Pin not found" when opening the Configure Pin window for an unplaced pin. `PinConfigWindow` no longer defaults `sceneId` to the active scene when not provided; `getData()` calls `PinManager.get()` without `sceneId` when appropriate, so the unplaced store is checked first, then all scenes. `pins.configure(pinId)` now works for unplaced pins (the primary use case).
+- **Monster Mapping / Targeted Indicator Setting Conflict**: Fixed a bug where token image replacement stored monster mapping data in the same setting key (`targetedIndicatorEnabled`) used by the targeting indicator toggle. The targeting feature expects a Boolean; monster mapping stored a large Object, which could break the targeting check. Monster mapping now uses a dedicated setting key `tokenImageReplacementMonsterMapping`. The loader was renamed from `_loadtargetedIndicatorEnabled()` to `_loadMonsterMappingData()`. Migration logic moves existing monster mapping data from the old key to the new key on first load. `_loadMonsterMapping()` reads from the new key with fallback to the old key for compatibility.
 
 
 ## [13.2.1] - Pin System Enhancements
