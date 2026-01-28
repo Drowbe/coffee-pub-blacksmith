@@ -37,6 +37,54 @@ import { postConsoleAndNotification } from './api-core.js';
  */
 
 // ------------------------------------------------------------------
+// Icon normalization (Notes-compatible contract: store FA as class string, images as URL; no HTML)
+// ------------------------------------------------------------------
+
+/**
+ * Normalize Font Awesome class list: dedupe tokens, no repeated fa-solid, extract from <i> if needed.
+ * @param {string} value - Raw value (HTML or class string)
+ * @returns {string} - Deduplicated class string e.g. "fa-solid fa-book-open", or ""
+ */
+export function normalizeFaClassList(value) {
+    if (typeof value !== 'string') return '';
+    const classMatch = value.trim().startsWith('<i')
+        ? value.match(/class=["']([^"']+)["']/i)?.[1]
+        : value;
+    const tokens = String(classMatch || '')
+        .split(/\s+/)
+        .map((token) => token.trim())
+        .filter(Boolean);
+    const deduped = Array.from(new Set(tokens));
+    if (!deduped.some((token) => token.startsWith('fa-') || token.startsWith('fa'))) {
+        return '';
+    }
+    return deduped.join(' ');
+}
+
+/**
+ * Normalize pin image for storage: FA → class string only, image → URL only. No HTML in storage.
+ * @param {string} value - Raw value (HTML, class string, or URL)
+ * @returns {string} - "fa-solid fa-book-open" or "icons/svg/book.svg", or "" if empty/invalid
+ */
+export function normalizePinImageForStorage(value) {
+    if (!value) return '';
+    if (typeof value !== 'string') return '';
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('<img')) {
+        const match = trimmed.match(/src=["']([^"']+)["']/i);
+        return (match?.[1] || '').trim();
+    }
+    if (trimmed.startsWith('<i')) {
+        return normalizeFaClassList(trimmed);
+    }
+    if (trimmed.includes('fa-') || trimmed.startsWith('fa')) {
+        return normalizeFaClassList(trimmed);
+    }
+    return trimmed;
+}
+
+// ------------------------------------------------------------------
 // Constants
 // ------------------------------------------------------------------
 
@@ -133,7 +181,10 @@ export function applyDefaults(partial) {
         base.dropShadow = partial.dropShadow;
     }
     if (partial.text != null) base.text = String(partial.text).trim() || undefined;
-    if (partial.image != null) base.image = String(partial.image).trim() || undefined;
+    if (partial.image != null) {
+        const stored = normalizePinImageForStorage(partial.image);
+        base.image = stored || undefined;
+    }
     if (partial.textLayout != null) {
         const layout = String(partial.textLayout).toLowerCase();
         if (layout === 'under' || layout === 'over' || layout === 'around') {

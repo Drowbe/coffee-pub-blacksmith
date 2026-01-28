@@ -12,7 +12,8 @@ import {
     PIN_SCHEMA_VERSION,
     applyDefaults,
     validatePinData,
-    migrateAndValidatePins
+    migrateAndValidatePins,
+    normalizePinImageForStorage
 } from './pins-schema.js';
 
 const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
@@ -599,7 +600,10 @@ export class PinManager {
             merged.style = { ...merged.style, ...patch.style };
         }
         if (patch.text !== undefined) merged.text = patch.text ? String(patch.text).trim() : undefined;
-        if (patch.image !== undefined) merged.image = patch.image ? String(patch.image).trim() : undefined;
+        if (patch.image !== undefined) {
+            const stored = normalizePinImageForStorage(patch.image);
+            merged.image = stored || undefined;
+        }
         if (patch.config != null && typeof patch.config === 'object' && !Array.isArray(patch.config)) {
             merged.config = { ...merged.config, ...patch.config };
         }

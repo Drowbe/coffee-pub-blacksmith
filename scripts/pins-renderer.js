@@ -175,8 +175,12 @@ class PinDOMElement {
         const pinSizeScene = Math.min(pinData.size.w, pinData.size.h);
         const pinSizeScreen = pinSizeScene * scale;
         
-        // Icon size is 60% of pin size
-        const iconSizeScene = pinSizeScene * 0.6;
+        // Icon (FA symbol) size uses CSS variable --blacksmith-pin-icon-size-ratio (default 0.6 to match note panel)
+        const ratioStr = typeof document !== 'undefined'
+            ? getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-pin-icon-size-ratio').trim()
+            : '';
+        const iconRatio = (parseFloat(ratioStr) || 0.6);
+        const iconSizeScene = pinSizeScene * iconRatio;
         const iconSizeScreen = iconSizeScene * scale;
         
         // Center pin on screen coordinates

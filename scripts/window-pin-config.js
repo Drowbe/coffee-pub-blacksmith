@@ -125,21 +125,34 @@ export class PinConfigWindow extends Application {
     }
 
     /**
-     * Convert icon format to pin image string
+     * Convert icon format to pin image string (for display/preview only).
+     * Do not use for storage — use iconToStoredImage() when saving to pin data.
      * @param {{ type: 'fa'|'img', value: string }} icon - Icon object
-     * @returns {string} - Pin image string
+     * @returns {string} - HTML for FA, URL for img (preview use)
      */
     static convertIconToPinImage(icon) {
         if (!icon || typeof icon !== 'object') return '';
         if (icon.type === 'fa') {
-            // Return Font Awesome HTML
             return `<i class="${icon.value}"></i>`;
         }
         if (icon.type === 'img') {
-            // Return image URL or <img> tag
             return icon.value;
         }
         return '';
+    }
+
+    /**
+     * Return storage format for pin.image: FA as class string, image as URL only. No HTML.
+     * @param {{ type: 'fa'|'img', value: string }|null} icon - Icon object from picker
+     * @returns {string|undefined} - "fa-solid fa-book-open" or "icons/svg/…", or undefined if empty
+     */
+    static iconToStoredImage(icon) {
+        if (!icon || typeof icon !== 'object') return undefined;
+        const v = (icon.value || '').trim();
+        if (!v) return undefined;
+        if (icon.type === 'fa') return v; // class string only
+        if (icon.type === 'img') return v; // URL only
+        return undefined;
     }
 
     /**
@@ -525,7 +538,7 @@ export class PinConfigWindow extends Application {
                 }
             };
 
-            // Convert to pin API format
+            // Convert to pin API format — store FA as class string, image as URL only (no HTML)
             const pinUpdateData = {
                 size: configData.pinSize,
                 shape: configData.pinShape,
@@ -536,7 +549,7 @@ export class PinConfigWindow extends Application {
                     alpha: configData.pinStyle.alpha ?? 1
                 },
                 dropShadow: configData.pinDropShadow,
-                image: PinConfigWindow.convertIconToPinImage(finalSelection),
+                image: PinConfigWindow.iconToStoredImage(finalSelection),
                 textLayout: configData.pinTextConfig.textLayout,
                 textDisplay: configData.pinTextConfig.textDisplay,
                 textColor: configData.pinTextConfig.textColor,
