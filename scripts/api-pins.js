@@ -205,10 +205,11 @@ export class PinsAPI {
     }
 
     /**
-     * Open the pin configuration window for a pin.
+     * Open the pin configuration window for a pin (placed or unplaced).
+     * When sceneId is omitted, the window will resolve the pin from the unplaced store first, then all scenes.
      * @param {string} pinId - Pin ID to configure
      * @param {Object} [options] - Options
-     * @param {string} [options.sceneId] - Scene ID (defaults to active scene)
+     * @param {string} [options.sceneId] - Scene ID (if omitted, resolves pin from unplaced store first, then all scenes)
      * @param {Function} [options.onSelect] - Callback function called when configuration is saved. Receives the configuration data object.
      * @param {boolean} [options.useAsDefault] - Show "Use as Default" toggle in the window header (default: false)
      * @param {string} [options.defaultSettingKey] - Module setting key where default configuration will be saved when "Use as Default" is enabled

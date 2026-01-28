@@ -1542,13 +1542,17 @@ class MenuBar {
                 return false;
             }
 
-            const requiredFields = ['icon', 'name', 'title', 'onClick'];
+            // Validate required fields - check for undefined specifically (allow null, empty strings, and functions)
+            const requiredFields = ['icon', 'name', 'onClick'];
             for (const field of requiredFields) {
-                if (!toolData[field]) {
+                if (toolData[field] === undefined) {
                     postConsoleAndNotification(MODULE.NAME, `Menubar API: Missing required field '${field}'`, { toolId, toolData }, false, false);
                     return false;
                 }
             }
+            
+            // Title is optional - default to name if not provided
+            // This allows tools without visible labels (icon-only buttons)
 
             // Check for duplicate toolId
             if (this.toolbarIcons.has(toolId)) {
@@ -1586,7 +1590,7 @@ class MenuBar {
             const tool = {
                 icon: toolData.icon,
                 name: toolData.name,
-                title: toolData.title,
+                title: toolData.title !== undefined ? toolData.title : (toolData.name || ''),
                 onClick: toolData.onClick,
                 zone: toolData.zone || 'left',
                 group: group,

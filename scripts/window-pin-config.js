@@ -16,7 +16,8 @@ export class PinConfigWindow extends Application {
     constructor(pinId, options = {}) {
         super(options);
         this.pinId = pinId;
-        this.sceneId = options.sceneId || canvas?.scene?.id;
+        // Only set sceneId if explicitly provided; undefined allows PinManager.get() to check unplaced first
+        this.sceneId = options.sceneId !== undefined ? options.sceneId : undefined;
         this.onSelect = options.onSelect || null;
         this.useAsDefault = options.useAsDefault || false;
         this.defaultSettingKey = options.defaultSettingKey || null;
@@ -172,8 +173,9 @@ export class PinConfigWindow extends Application {
 
     async getData() {
         // Load pin data
+        // If sceneId is undefined, PinManager.get() will check unplaced store first, then all scenes
         const { PinManager } = await import('./manager-pins.js');
-        const pin = PinManager.get(this.pinId, { sceneId: this.sceneId });
+        const pin = PinManager.get(this.pinId, this.sceneId !== undefined ? { sceneId: this.sceneId } : {});
         
         if (!pin) {
             throw new Error(`Pin not found: ${this.pinId}`);

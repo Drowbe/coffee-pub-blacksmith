@@ -33,13 +33,13 @@ const success = blacksmith.registerMenubarTool('my-custom-tool', {
     // Required parameters
     icon: "fa-solid fa-dice-d20",      // FontAwesome icon class
     name: "my-custom-tool",             // Tool name (used for data-tool attribute)
-    title: "My Custom Tool",            // Tooltip text (can be a function for dynamic content)
     onClick: () => {                    // Click handler function
         // Your tool logic here
         console.log("My custom tool clicked!");
     },
     
     // Optional parameters - recommended to set explicitly
+    title: "My Custom Tool",            // Optional: Tooltip text and label (can be a function for dynamic content, defaults to name if omitted)
     tooltip: "My Custom Tool",          // Optional: explicit tooltip (defaults to title if omitted)
     zone: "left",                       // Optional: "left", "middle", "right" (default: "left")
     group: "general",                   // Optional: group name (default: "general")
@@ -217,7 +217,7 @@ Registers a new tool with the Blacksmith menubar system.
 **Tool Data Properties:**
 - `icon` (string, required): FontAwesome icon class (e.g., "fa-solid fa-dice-d20")
 - `name` (string, required): Tool name (used for data-tool attribute)
-- `title` (string|Function, required): Tooltip text displayed on hover. Can be a function that returns a string for dynamic tooltips.
+- `title` (string|Function, optional): Tooltip text and label displayed on hover. Can be a function that returns a string for dynamic tooltips. Defaults to `name` if omitted. Can be an empty string or null for icon-only buttons.
 - `tooltip` (string|Function, optional): Alternative tooltip text. If provided, overrides `title` for tooltip display. Can be a function that returns a string for dynamic tooltips.
 - `onClick` (Function, required): Function to execute when tool is clicked
 - `zone` (string, optional): Zone placement - "left", "middle", "right" (default: "left")
