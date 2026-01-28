@@ -53,8 +53,8 @@ export class PinsAPI {
     }
 
     /**
-     * Create a pin on the active scene.
-     * @param {Partial<import('./manager-pins.js').PinData> & { id: string; x: number; y: number; moduleId: string }} pinData
+     * Create a pin. Omit sceneId and x/y to create an unplaced pin (not on canvas).
+     * @param {Partial<import('./manager-pins.js').PinData> & { id: string; moduleId: string } & { x?: number; y?: number }} pinData
      * @param {import('./manager-pins.js').PinCreateOptions} [options]
      * @returns {Promise<import('./manager-pins.js').PinData>}
      */
@@ -63,7 +63,7 @@ export class PinsAPI {
     }
 
     /**
-     * Update properties for an existing pin.
+     * Update an existing pin (placed or unplaced). Pass { sceneId, x, y } to place an unplaced pin.
      * @param {string} pinId
      * @param {Partial<import('./manager-pins.js').PinData>} patch
      * @param {import('./manager-pins.js').PinUpdateOptions} [options]
@@ -74,8 +74,27 @@ export class PinsAPI {
     }
 
     /**
-     * Delete a pin from a scene.
-     * If no sceneId is provided, automatically searches all scenes to find the pin.
+     * Place an unplaced pin on a scene.
+     * @param {string} pinId
+     * @param {{ sceneId: string; x: number; y: number }} placement
+     * @returns {Promise<import('./manager-pins.js').PinData | null>} The placed pin or null if not found / not unplaced
+     */
+    static place(pinId, placement) {
+        return PinManager.place(pinId, placement);
+    }
+
+    /**
+     * Unplace a pin (remove from canvas but keep pin data).
+     * @param {string} pinId
+     * @returns {Promise<import('./manager-pins.js').PinData | null>} The unplaced pin data or null
+     */
+    static unplace(pinId) {
+        return PinManager.unplace(pinId);
+    }
+
+    /**
+     * Delete a pin (placed or unplaced).
+     * If no sceneId is provided, searches unplaced store then all scenes.
      * @param {string} pinId
      * @param {import('./manager-pins.js').PinDeleteOptions} [options]
      * @returns {Promise<void>}

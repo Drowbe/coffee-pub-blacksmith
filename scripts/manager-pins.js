@@ -50,7 +50,8 @@ const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
 
 /**
  * @typedef {Object} PinListOptions
- * @property {string} [sceneId]
+ * @property {string} [sceneId] - List pins on this scene; omit and use unplacedOnly for unplaced
+ * @property {boolean} [unplacedOnly] - If true, list unplaced pins (no sceneId needed)
  * @property {string} [moduleId]
  * @property {string} [type] - Filter by pin type
  */
@@ -73,9 +74,13 @@ const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
  * @property {number} registeredAt
  */
 
+/** World setting key for unplaced pins (not on any scene). */
+const UNPLACED_SETTING_KEY = 'pinsUnplaced';
+
 export class PinManager {
     static FLAG_KEY = 'pins';
     static SETTING_ALLOW_PLAYER_WRITES = 'pinsAllowPlayerWrites';
+    static UNPLACED_SETTING_KEY = UNPLACED_SETTING_KEY;
 
     // Event handler storage: Map<eventType, Set<handler>>
     static _eventHandlers = new Map();
@@ -185,7 +190,14 @@ export class PinManager {
     }
 
     static initialize() {
-        // Register cleanup hook for module unload
+        if (typeof game !== 'undefined' && game.settings) {
+            game.settings.register(MODULE.ID, UNPLACED_SETTING_KEY, {
+                scope: 'world',
+                config: false,
+                type: Object,
+                default: { version: 1, pins: [] }
+            });
+        }
         Hooks.once('ready', () => {
             Hooks.on('unloadModule', (moduleId) => {
                 if (moduleId === MODULE.ID) {
@@ -193,8 +205,44 @@ export class PinManager {
                 }
             });
         });
-        
-        // Scene change hooks are handled in blacksmith.js to avoid circular dependency
+    }
+
+    /** @returns {PinData[]} */
+    static _getUnplacedPins() {
+        try {
+            const data = game.settings?.get(MODULE.ID, UNPLACED_SETTING_KEY);
+            return Array.isArray(data?.pins) ? data.pins : [];
+        } catch {
+            return [];
+        }
+    }
+
+    /** @param {PinData[]} pins */
+    static async _setUnplacedPins(pins) {
+        await game.settings.set(MODULE.ID, UNPLACED_SETTING_KEY, { version: 1, pins });
+    }
+
+    /**
+     * Find where a pin lives: unplaced store or a scene.
+     * @param {string} pinId
+     * @returns {{ location: 'unplaced'; pin: PinData; index: number } | { location: 'scene'; scene: Scene; sceneId: string; pin: PinData; index: number } | null}
+     */
+    static _findPinLocation(pinId) {
+        const unplaced = this._getUnplacedPins();
+        const ui = unplaced.findIndex((p) => p.id === pinId);
+        if (ui >= 0) {
+            return { location: 'unplaced', pin: unplaced[ui], index: ui };
+        }
+        const sceneId = this.findSceneForPin(pinId);
+        if (!sceneId || !game.scenes) return null;
+        const scene = game.scenes.get(sceneId);
+        if (!scene) return null;
+        const pins = this._getScenePins(scene);
+        const si = pins.findIndex((p) => p.id === pinId);
+        if (si >= 0) {
+            return { location: 'scene', scene, sceneId, pin: pins[si], index: si };
+        }
+        return null;
     }
 
     /**
@@ -446,15 +494,21 @@ export class PinManager {
     }
 
     /**
-     * Check if a pin exists on a scene.
+     * Check if a pin exists (on a scene or unplaced).
      * @param {string} pinId - The pin ID to check
-     * @param {PinGetOptions} [options] - Optional sceneId to check specific scene
+     * @param {PinGetOptions} [options] - sceneId to check only that scene; omit to check anywhere
      * @returns {boolean} - True if pin exists, false otherwise
      */
     static exists(pinId, options = {}) {
-        const scene = this._getScene(options.sceneId);
-        const pins = this._getScenePins(scene);
-        return pins.some((p) => p.id === pinId);
+        if (options.sceneId != null) {
+            try {
+                const scene = this._getScene(options.sceneId);
+                return this._getScenePins(scene).some((p) => p.id === pinId);
+            } catch {
+                return false;
+            }
+        }
+        return this._findPinLocation(pinId) != null;
     }
 
     /**
@@ -491,104 +545,161 @@ export class PinManager {
         return { default: NONE };
     }
 
+    /**
+     * Create a pin. Omit sceneId and x/y to create an unplaced pin (not on canvas).
+     * @param {Partial<PinData> & { id: string; moduleId: string } & { x?: number; y?: number }} pinData
+     * @param {PinCreateOptions} [options]
+     * @returns {Promise<PinData>}
+     */
     static async create(pinData, options = {}) {
-        const scene = this._getScene(options.sceneId);
         if (!this._canCreate()) {
             throw new Error('Permission denied: only GMs can create pins unless pinsAllowPlayerWrites is enabled.');
         }
-        const validated = validatePinData(applyDefaults(pinData));
+        const isUnplaced = options.sceneId == null && pinData.x == null && pinData.y == null;
+        const validated = isUnplaced
+            ? validatePinData(applyDefaults(pinData), { allowUnplaced: true })
+            : validatePinData(applyDefaults(pinData));
         if (!validated.ok) {
             throw new Error(validated.error);
         }
         const pin = validated.pin;
-        
-        // Resolve ownership using hook if not explicitly provided
-        const context = {
-            moduleId: pin.moduleId,
-            userId: game.user?.id || '',
-            sceneId: scene.id,
-            metadata: pin.config || {}
-        };
+
+        if (isUnplaced) {
+            pin.x = undefined;
+            pin.y = undefined;
+            const context = { moduleId: pin.moduleId, userId: game.user?.id || '', sceneId: null, metadata: pin.config || {} };
+            pin.ownership = this._resolveOwnership(context, pin.ownership);
+            const unplaced = this._getUnplacedPins();
+            if (unplaced.some((p) => p.id === pin.id)) {
+                throw new Error(`A pin with id "${pin.id}" already exists (unplaced).`);
+            }
+            const next = [...unplaced, foundry.utils.deepClone(pin)];
+            await this._setUnplacedPins(next);
+            if (typeof Hooks !== 'undefined') {
+                Hooks.callAll('blacksmith.pins.created', { pinId: pin.id, moduleId: pin.moduleId, placement: 'unplaced', pin: foundry.utils.deepClone(pin) });
+            }
+            return foundry.utils.deepClone(pin);
+        }
+
+        const scene = this._getScene(options.sceneId);
+        const context = { moduleId: pin.moduleId, userId: game.user?.id || '', sceneId: scene.id, metadata: pin.config || {} };
         pin.ownership = this._resolveOwnership(context, pin.ownership);
-        
         const pins = this._getScenePins(scene);
         if (pins.some((p) => p.id === pin.id)) {
             throw new Error(`A pin with id "${pin.id}" already exists on this scene.`);
         }
         const next = [...pins, foundry.utils.deepClone(pin)];
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
-        
-        // Update renderer if on current scene (dynamic import to avoid circular dependency)
+        if (typeof Hooks !== 'undefined') {
+            Hooks.callAll('blacksmith.pins.created', { pinId: pin.id, sceneId: scene.id, moduleId: pin.moduleId, placement: 'placed', pin: foundry.utils.deepClone(pin) });
+        }
         if (scene.id === canvas?.scene?.id) {
             import('./pins-renderer.js').then(async ({ PinRenderer }) => {
-                // Ensure system is initialized
-                if (!PinRenderer.getContainer()) {
-                    // System not ready yet - pin will be loaded when scene activates
-                    return;
-                }
+                if (!PinRenderer.getContainer()) return;
                 await PinRenderer.updatePin(pin);
             }).catch(err => {
                 console.error('BLACKSMITH | PINS Error updating renderer after create:', err);
             });
         }
-        
         return foundry.utils.deepClone(pin);
     }
 
     /**
+     * Update a pin. Works for both placed and unplaced pins.
+     * To place an unplaced pin, pass { sceneId, x, y }. To unplace, use pins.unplace(pinId).
      * @param {string} pinId
      * @param {Partial<PinData>} patch
      * @param {PinUpdateOptions} [options]
-     * @returns {Promise<PinData | null>} Returns null if pin not found (allows graceful handling)
+     * @returns {Promise<PinData | null>} Returns null if pin not found
      */
     static async update(pinId, patch, options = {}) {
-        let scene = options.sceneId ? this._getScene(options.sceneId) : null;
-        let pins = scene ? this._getScenePins(scene) : [];
-        let idx = pins.findIndex((p) => p.id === pinId);
-        
-        // If pin not found and no sceneId specified, try to find it across all scenes
-        if (idx === -1 && !options.sceneId) {
-            const foundSceneId = this.findSceneForPin(pinId);
-            if (foundSceneId) {
-                scene = this._getScene(foundSceneId);
-                pins = this._getScenePins(scene);
-                idx = pins.findIndex((p) => p.id === pinId);
-            }
-        }
-        
-        // If pin not found on specified scene, try to find it on any scene
-        if (idx === -1 && options.sceneId) {
-            const foundSceneId = this.findSceneForPin(pinId);
-            if (foundSceneId && foundSceneId !== options.sceneId) {
-                // Pin exists on a different scene - update it there instead
-                scene = this._getScene(foundSceneId);
-                pins = this._getScenePins(scene);
-                idx = pins.findIndex((p) => p.id === pinId);
-            }
-        }
-        
-        // If pin still not found, return null instead of throwing (allows graceful handling by calling modules)
-        if (idx === -1) {
-            // Return null instead of throwing - allows calling modules to handle missing pins gracefully
-            // This prevents errors when pins are deleted or moved between scenes
-            console.warn(`BLACKSMITH | PINS Pin not found: ${pinId}${options.sceneId ? ` on scene ${options.sceneId}` : ''}. Returning null.`);
+        const loc = this._findPinLocation(pinId);
+        if (!loc) {
+            console.warn(`BLACKSMITH | PINS Pin not found: ${pinId}. Returning null.`);
             return null;
         }
-        const existing = pins[idx];
         const userId = game.user?.id ?? '';
-        if (!this._canEdit(existing, userId)) {
+        if (!this._canEdit(loc.pin, userId)) {
             throw new Error('Permission denied: you cannot update this pin.');
         }
+
+        if (loc.location === 'unplaced') {
+            const merged = foundry.utils.deepClone(loc.pin);
+            this._applyPatch(merged, patch, null);
+            if (patch.sceneId != null && typeof patch.x === 'number' && Number.isFinite(patch.x) && typeof patch.y === 'number' && Number.isFinite(patch.y)) {
+                merged.x = patch.x;
+                merged.y = patch.y;
+                const validated = validatePinData(merged);
+                if (!validated.ok) throw new Error(validated.error);
+                const placed = validated.pin;
+                const unplaced = this._getUnplacedPins().filter((p) => p.id !== pinId);
+                await this._setUnplacedPins(unplaced);
+                const scene = this._getScene(patch.sceneId);
+                const scenePins = this._getScenePins(scene);
+                const next = [...scenePins, foundry.utils.deepClone(placed)];
+                await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
+                if (typeof Hooks !== 'undefined') {
+                    Hooks.callAll('blacksmith.pins.placed', { pinId, sceneId: scene.id, moduleId: placed.moduleId, type: placed.type ?? 'default', pin: foundry.utils.deepClone(placed) });
+                }
+                if (scene.id === canvas?.scene?.id) {
+                    import('./pins-renderer.js').then(async ({ PinRenderer }) => {
+                        if (!PinRenderer.getContainer()) return;
+                        await PinRenderer.updatePin(placed);
+                    }).catch(() => {});
+                }
+                return foundry.utils.deepClone(placed);
+            }
+            const validated = validatePinData(merged, { allowUnplaced: true });
+            if (!validated.ok) throw new Error(validated.error);
+            const updated = validated.pin;
+            const unplaced = this._getUnplacedPins();
+            const next = unplaced.map((p) => (p.id === pinId ? foundry.utils.deepClone(updated) : p));
+            await this._setUnplacedPins(next);
+            if (typeof Hooks !== 'undefined') {
+                Hooks.callAll('blacksmith.pins.updated', { pinId, sceneId: null, moduleId: updated.moduleId, type: updated.type ?? 'default', patch, pin: foundry.utils.deepClone(updated) });
+            }
+            return foundry.utils.deepClone(updated);
+        }
+
+        const scene = loc.scene;
+        const pins = this._getScenePins(scene);
+        const idx = loc.index;
+        const existing = pins[idx];
+        if (patch.unplace === true) {
+            return this.unplace(pinId) ?? null;
+        }
         const merged = foundry.utils.deepClone(existing);
-        
-        // If ownership is being updated, resolve it using hook
-        if (patch.ownership !== undefined) {
-            const context = {
-                moduleId: existing.moduleId,
-                userId: game.user?.id || '',
-                sceneId: scene.id,
-                metadata: existing.config || {}
-            };
+        this._applyPatch(merged, patch, scene.id);
+        const validated = validatePinData(merged);
+        if (!validated.ok) throw new Error(validated.error);
+        const updated = validated.pin;
+        const next = [...pins];
+        next[idx] = foundry.utils.deepClone(updated);
+        await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
+        if (typeof Hooks !== 'undefined') {
+            Hooks.callAll('blacksmith.pins.updated', { pinId, sceneId: scene.id, moduleId: updated.moduleId ?? existing.moduleId, type: updated.type ?? existing.type, patch, pin: foundry.utils.deepClone(updated) });
+        }
+        if (scene.id === canvas?.scene?.id) {
+            import('./pins-renderer.js').then(async ({ PinRenderer }) => {
+                if (!PinRenderer.getContainer()) return;
+                await PinRenderer.updatePin(updated);
+            }).catch(err => {
+                console.error('BLACKSMITH | PINS Error updating renderer after update:', err);
+            });
+        }
+        return foundry.utils.deepClone(updated);
+    }
+
+    /**
+     * Apply patch onto merged pin (mutates merged). Does not handle place/unplace.
+     * @param {Record<string, unknown>} merged
+     * @param {Partial<PinData>} patch
+     * @param {string | null} sceneId - For ownership context
+     * @private
+     */
+    static _applyPatch(merged, patch, sceneId) {
+        if (patch.ownership !== undefined && sceneId != null) {
+            const context = { moduleId: merged.moduleId, userId: game.user?.id || '', sceneId, metadata: merged.config || {} };
             merged.ownership = this._resolveOwnership(context, patch.ownership);
         }
         if (patch.x != null && Number.isFinite(patch.x)) merged.x = patch.x;
@@ -610,116 +721,170 @@ export class PinManager {
         if (patch.ownership != null && typeof patch.ownership === 'object') {
             merged.ownership = { ...merged.ownership, ...patch.ownership };
         }
-        const validated = validatePinData(merged);
-        if (!validated.ok) {
-            throw new Error(validated.error);
-        }
-        const updated = validated.pin;
-        const next = [...pins];
-        next[idx] = foundry.utils.deepClone(updated);
-        await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
-        
-        // Fire hook so modules can sync their data (e.g. note flags, UI) after pin update or configure save
-        if (typeof Hooks !== 'undefined') {
-            Hooks.callAll('blacksmith.pins.updated', {
-                pinId,
-                sceneId: scene.id,
-                moduleId: updated.moduleId ?? existing.moduleId,
-                type: updated.type ?? existing.type,
-                patch,
-                pin: foundry.utils.deepClone(updated)
-            });
-        }
-        
-        // Update renderer if on current scene (dynamic import to avoid circular dependency)
-        if (scene.id === canvas?.scene?.id) {
-            import('./pins-renderer.js').then(async ({ PinRenderer }) => {
-                // Ensure system is initialized
-                if (!PinRenderer.getContainer()) {
-                    // System not ready yet - pin will be loaded when scene activates
-                    return;
-                }
-                await PinRenderer.updatePin(updated);
-            }).catch(err => {
-                console.error('BLACKSMITH | PINS Error updating renderer after update:', err);
-            });
-        }
-        
-        return foundry.utils.deepClone(updated);
     }
 
     /**
+     * Place an unplaced pin on a scene. No-op if pin is already on a scene.
      * @param {string} pinId
-     * @param {PinDeleteOptions} [options]
-     * @returns {Promise<void>}
+     * @param {{ sceneId: string; x: number; y: number }} placement
+     * @returns {Promise<PinData | null>} The placed pin or null if not found (e.g. not unplaced)
      */
-    static async delete(pinId, options = {}) {
-        let sceneId = options.sceneId;
-        
-        // If no sceneId provided, try to find which scene has this pin
-        if (!sceneId) {
-            sceneId = this.findSceneForPin(pinId);
-            if (!sceneId) {
-                throw new Error(`Pin not found: ${pinId} (searched all scenes)`);
-            }
+    static async place(pinId, placement) {
+        const loc = this._findPinLocation(pinId);
+        if (!loc || loc.location !== 'unplaced') {
+            console.warn(`BLACKSMITH | PINS Pin ${pinId} not found or not unplaced. Cannot place.`);
+            return null;
         }
-        
-        const scene = this._getScene(sceneId);
-        const pins = this._getScenePins(scene);
-        const idx = pins.findIndex((p) => p.id === pinId);
-        if (idx === -1) {
-            throw new Error(`Pin not found: ${pinId} in scene ${sceneId}`);
-        }
-        const existing = pins[idx];
         const userId = game.user?.id ?? '';
-        if (!this._canEdit(existing, userId)) {
-            throw new Error('Permission denied: you cannot delete this pin.');
+        if (!this._canEdit(loc.pin, userId)) {
+            throw new Error('Permission denied: you cannot place this pin.');
         }
-        const next = pins.filter((p) => p.id !== pinId);
+        const scene = this._getScene(placement.sceneId);
+        const pin = foundry.utils.deepClone(loc.pin);
+        pin.x = placement.x;
+        pin.y = placement.y;
+        const validated = validatePinData(pin);
+        if (!validated.ok) throw new Error(validated.error);
+        const placed = validated.pin;
+        const unplaced = this._getUnplacedPins().filter((p) => p.id !== pinId);
+        await this._setUnplacedPins(unplaced);
+        const pins = this._getScenePins(scene);
+        const next = [...pins, foundry.utils.deepClone(placed)];
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
-        
-        // Fire hook so modules can sync their data (e.g. clear note pin flags, refresh UI)
         if (typeof Hooks !== 'undefined') {
-            Hooks.callAll('blacksmith.pins.deleted', {
-                pinId,
-                sceneId: scene.id,
-                moduleId: existing.moduleId ?? undefined,
-                type: existing.type ?? undefined,
-                pin: foundry.utils.deepClone(existing),
-                config: existing.config ?? undefined
+            Hooks.callAll('blacksmith.pins.placed', { pinId, sceneId: scene.id, moduleId: placed.moduleId, type: placed.type ?? 'default', pin: foundry.utils.deepClone(placed) });
+        }
+        if (scene.id === canvas?.scene?.id) {
+            import('./pins-renderer.js').then(async ({ PinRenderer }) => {
+                if (!PinRenderer.getContainer()) return;
+                await PinRenderer.updatePin(placed);
+            }).catch(err => {
+                console.error('BLACKSMITH | PINS Error updating renderer after place:', err);
             });
         }
-        
-        // Update renderer if on current scene (dynamic import to avoid circular dependency)
-        if (scene.id === canvas?.scene?.id) {
+        return foundry.utils.deepClone(placed);
+    }
+
+    /**
+     * Unplace a pin (remove from canvas but keep pin data). Moves pin to unplaced store.
+     * @param {string} pinId
+     * @returns {Promise<PinData | null>} The unplaced pin data or null if not found
+     */
+    static async unplace(pinId) {
+        const loc = this._findPinLocation(pinId);
+        if (!loc || loc.location !== 'scene') {
+            console.warn(`BLACKSMITH | PINS Pin ${pinId} not found on a scene. Cannot unplace.`);
+            return null;
+        }
+        const userId = game.user?.id ?? '';
+        if (!this._canEdit(loc.pin, userId)) {
+            throw new Error('Permission denied: you cannot unplace this pin.');
+        }
+        const pin = foundry.utils.deepClone(loc.pin);
+        pin.x = undefined;
+        pin.y = undefined;
+        const unplaced = this._getUnplacedPins();
+        const next = [...unplaced, pin];
+        await this._setUnplacedPins(next);
+        const pins = this._getScenePins(loc.scene).filter((p) => p.id !== pinId);
+        await loc.scene.setFlag(MODULE.ID, this.FLAG_KEY, pins);
+        if (typeof Hooks !== 'undefined') {
+            Hooks.callAll('blacksmith.pins.unplaced', { pinId, sceneId: loc.sceneId, moduleId: pin.moduleId, type: pin.type ?? 'default', pin: foundry.utils.deepClone(pin) });
+        }
+        if (loc.scene.id === canvas?.scene?.id) {
             import('./pins-renderer.js').then(({ PinRenderer }) => {
                 PinRenderer.removePin(pinId);
             }).catch(err => {
                 console.error('BLACKSMITH | PINS Error removing pin from renderer:', err);
             });
         }
+        return foundry.utils.deepClone(pin);
     }
 
     /**
+     * Delete a pin (placed or unplaced).
+     * @param {string} pinId
+     * @param {PinDeleteOptions} [options]
+     * @returns {Promise<void>}
+     */
+    static async delete(pinId, options = {}) {
+        const loc = this._findPinLocation(pinId);
+        if (!loc) {
+            throw new Error(`Pin not found: ${pinId}`);
+        }
+        const existing = loc.pin;
+        const userId = game.user?.id ?? '';
+        if (!this._canEdit(existing, userId)) {
+            throw new Error('Permission denied: you cannot delete this pin.');
+        }
+        if (loc.location === 'unplaced') {
+            const next = this._getUnplacedPins().filter((p) => p.id !== pinId);
+            await this._setUnplacedPins(next);
+        } else {
+            const pins = this._getScenePins(loc.scene).filter((p) => p.id !== pinId);
+            await loc.scene.setFlag(MODULE.ID, this.FLAG_KEY, pins);
+            if (loc.scene.id === canvas?.scene?.id) {
+                import('./pins-renderer.js').then(({ PinRenderer }) => {
+                    PinRenderer.removePin(pinId);
+                }).catch(() => {});
+            }
+        }
+        if (typeof Hooks !== 'undefined') {
+            Hooks.callAll('blacksmith.pins.deleted', {
+                pinId,
+                sceneId: loc.location === 'scene' ? loc.sceneId : null,
+                moduleId: existing.moduleId ?? undefined,
+                type: existing.type ?? undefined,
+                pin: foundry.utils.deepClone(existing),
+                config: existing.config ?? undefined
+            });
+        }
+    }
+
+    /**
+     * Get a pin by id. If options.sceneId is omitted, looks in unplaced then on any scene.
      * @param {string} pinId
      * @param {PinGetOptions} [options]
      * @returns {PinData | null}
      */
     static get(pinId, options = {}) {
-        const scene = this._getScene(options.sceneId);
-        const pins = this._getScenePins(scene);
-        const pin = pins.find((p) => p.id === pinId) ?? null;
-        if (!pin) return null;
+        if (options.sceneId != null) {
+            try {
+                const scene = this._getScene(options.sceneId);
+                const pin = this._getScenePins(scene).find((p) => p.id === pinId) ?? null;
+                if (!pin) return null;
+                const userId = game.user?.id ?? '';
+                if (!this._canView(pin, userId)) return null;
+                return foundry.utils.deepClone(pin);
+            } catch {
+                return null;
+            }
+        }
+        const loc = this._findPinLocation(pinId);
+        if (!loc) return null;
         const userId = game.user?.id ?? '';
-        if (!this._canView(pin, userId)) return null;
-        return foundry.utils.deepClone(pin);
+        if (!this._canView(loc.pin, userId)) return null;
+        return foundry.utils.deepClone(loc.pin);
     }
 
     /**
+     * List pins. Use unplacedOnly: true for unplaced pins; otherwise use sceneId for a scene.
      * @param {PinListOptions} [options]
      * @returns {PinData[]}
      */
     static list(options = {}) {
+        if (options.unplacedOnly) {
+            let pins = this._getUnplacedPins();
+            const userId = game.user?.id ?? '';
+            pins = pins.filter((p) => this._canView(p, userId));
+            if (options.moduleId != null && options.moduleId !== '') {
+                pins = pins.filter((p) => p.moduleId === options.moduleId);
+            }
+            if (options.type != null && options.type !== '') {
+                pins = pins.filter((p) => (p.type || 'default') === options.type);
+            }
+            return pins.map((p) => foundry.utils.deepClone(p));
+        }
         const scene = this._getScene(options.sceneId);
         let pins = this._getScenePins(scene);
         const userId = game.user?.id ?? '';

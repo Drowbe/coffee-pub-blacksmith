@@ -1,10 +1,20 @@
 # Canvas Pins API Documentation
 
-> **Status**: Phases 1–3 complete. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Automatic visibility filtering based on ownership permissions. Text display system with multiple layouts (under, over, around), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Icon/image type changes (icon ↔ image swaps) are automatically detected and handled during `update()`. Pin type system with default 'default' type for categorization and filtering. GM bulk delete controls (`deleteAll()`, `deleteAllByType()`) available via API and context menu with `moduleId` filtering. GM proxy methods (`createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`) for permission escalation. Ownership resolver hook (`blacksmith.pins.resolveOwnership`) for custom ownership mapping. Reconciliation helper (`reconcile()`) for repairing module-tracked pin links. Helper methods: `exists()`, `panTo()`, `findScene()`, `refreshPin()`. Phase 4–5 (docs, tests) remain.
+> **Status**: Phases 1–3 complete. **Unplaced pins are the normal, primary use case**: most pins are created and configured without being on the canvas (notes, quests, etc. have pin data; only some are placed). Unplaced pin support is implemented: create without `sceneId`/x/y → unplaced; `place(pinId, { sceneId, x, y })` to put on a scene; `unplace(pinId)` to remove from canvas but keep data; `list({ unplacedOnly: true })`; hooks `blacksmith.pins.created`, `blacksmith.pins.placed`, `blacksmith.pins.unplaced`. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Automatic visibility filtering based on ownership permissions. Text display system with multiple layouts (under, over, around), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Icon/image type changes (icon ↔ image swaps) are automatically detected and handled during `update()`. Pin type system with default 'default' type for categorization and filtering. GM bulk delete controls (`deleteAll()`, `deleteAllByType()`) available via API and context menu with `moduleId` filtering. GM proxy methods (`createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`) for permission escalation. Ownership resolver hook (`blacksmith.pins.resolveOwnership`) for custom ownership mapping. Reconciliation helper (`reconcile()`) for repairing module-tracked pin links. Helper methods: `exists()`, `panTo()`, `findScene()`, `refreshPin()`, `place()`, `unplace()`. Phase 4–5 (docs, tests) remain.
 
 ## Overview
 
-The Canvas Pins API provides a system for creating, managing, and interacting with configurable pins on the FoundryVTT canvas. Pins are visual markers that can be placed on scenes and respond to various user interactions.
+The Canvas Pins API provides a system for creating, managing, and interacting with configurable pins. **The normal use case is unplaced pins**: notes, quests, locations, and similar data define pin configuration (icon, text, type, etc.) without being on any scene. Only some of those pins are *placed* on a scene—i.e., given `sceneId`, `x`, and `y`—so they appear on the canvas. Placed pins are the special case; unplaced pins are the default. Create pins without `sceneId`/x/y to keep them unplaced; use `place(pinId, { sceneId, x, y })` when you want them on the canvas, and `unplace(pinId)` to remove them from the canvas while keeping their data.
+
+### Unplaced Pins
+
+- **Unplaced** = pin data exists in the pins system but the pin is not on any scene. It has no `sceneId`, and typically no `x`/`y`. Most pins (notes, quests, locations, etc.) are unplaced until a user or module chooses to put them on a scene.
+- **Create unplaced**: Call `create(pinData)` with no `sceneId`, `x`, or `y` in `pinData`. Omit those fields (or pass them as `undefined`) to create an unplaced pin. You can still pass `options.sceneId` and coordinates in `pinData` if you want to create and place in one step.
+- **Place an unplaced pin**: `place(pinId, { sceneId, x, y })` moves the pin onto that scene at those coordinates. The pin must currently be unplaced.
+- **Unplace a pin**: `unplace(pinId)` removes the pin from the canvas but keeps its data. The pin becomes unplaced again. The pin must currently be on a scene.
+- **Lookup**: When you call `get(pinId)` or `exists(pinId)` without `sceneId`, the API looks in the unplaced store first, then in scenes. So you can resolve a pin by ID without knowing whether it is placed.
+- **List unplaced only**: `list({ unplacedOnly: true })` returns only unplaced pins. No `sceneId` is required. Combine with `moduleId` or `type` as needed.
+- **Delete**: `delete(pinId)` works for both placed and unplaced pins. Without `sceneId`, the API searches the unplaced store then all scenes.
 
 ## Implementation Structure
 
@@ -12,7 +22,7 @@ The pins API follows Blacksmith's standard pattern:
 - **`scripts/pins-schema.js`** - Data model, validation, migration (Phase 1.1)
 - **`scripts/manager-pins.js`** - Internal manager with CRUD, permissions, event handler registration, and context menu item registration (Phase 1.2, 1.3)
 - **`scripts/pins-renderer.js`** - Pure DOM pin rendering (circle/square/none + Font Awesome icons or image URLs), DOM events, context menu (Phase 2, 3)
-- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `on()`, `registerContextMenuItem()`, `reload()`, `refreshPin()`, `deleteAll()`, `deleteAllByType()`, `createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`, `reconcile()`, `isAvailable()`, `isReady()`, `whenReady()`
+- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `place()`, `unplace()`, `on()`, `registerContextMenuItem()`, `reload()`, `refreshPin()`, `deleteAll()`, `deleteAllByType()`, `createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`, `reconcile()`, `isAvailable()`, `isReady()`, `whenReady()`
 - **`scripts/blacksmith.js`** - Exposes `module.api.pins = PinsAPI`; hooks for `canvasReady` / `updateScene` pin loading
 - **`styles/pins.css`** - All pin styling (CSS variables for configuration)
 
@@ -65,28 +75,31 @@ Blacksmith does **not** create a default or test pin. To exercise the pins API:
 5. **Register handlers** with `pins.on(...)`. Use `{ moduleId: 'your-module' }` to scope events, and `signal` or the returned disposer for cleanup.
 6. **Cleanup on unload**: Call your disposers or `controller.abort()` in your module's `Hooks.on('unloadModule', ...)` when your module ID unloads.
 
-#### Example: create a pin from another module (init)
+#### Example: create unplaced pin, then optionally place (recommended pattern)
 
 ```javascript
 Hooks.once('init', async () => {
   const pins = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
   if (!pins?.isAvailable()) return;
 
-  await pins.whenReady();
-  if (!canvas?.scene) return;
-
-  const dims = canvas.dimensions ?? {};
-  const cx = (dims.width ?? 2000) / 2;
-  const cy = (dims.height ?? 2000) / 2;
-
-  await pins.create({
+  // Create unplaced pin (no sceneId, x, or y) — normal case
+  const pin = await pins.create({
     id: crypto.randomUUID(),
-    x: cx, y: cy,
     moduleId: 'my-module',
+    type: 'note',
     text: 'Test pin',
     image: '<i class="fa-solid fa-star"></i>'
   });
-  await pins.reload();
+
+  // Optionally place on current scene when canvas is ready
+  await pins.whenReady();
+  if (canvas?.scene) {
+    const dims = canvas.dimensions ?? {};
+    const cx = (dims.width ?? 2000) / 2;
+    const cy = (dims.height ?? 2000) / 2;
+    await pins.place(pin.id, { sceneId: canvas.scene.id, x: cx, y: cy });
+    await pins.reload();
+  }
 });
 ```
 
@@ -102,8 +115,10 @@ Hooks.once('canvasReady', () => {
   const pins = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
   if (!pins?.isReady()) return;
 
+  // List placed pins on active scene, or unplaced only
   const list = pins.list({ moduleId: MODULE_ID });
-  console.log('My pins:', list.length);
+  const unplaced = pins.list({ unplacedOnly: true, moduleId: MODULE_ID });
+  console.log('My pins on scene:', list.length, 'unplaced:', unplaced.length);
 
   offClick = pins.on('click', (evt) => {
     console.log('Clicked:', evt.pin.id, evt.modifiers);
@@ -135,11 +150,14 @@ if (pins?.isReady()) {
 
 The pin data structure includes all configurable properties for a pin:
 
+`x`, `y`, and `sceneId` are optional. Omit them for unplaced pins.
+
 ```typescript
 interface PinData {
   id: string; // UUID
-  x: number;
-  y: number;
+  x?: number;   // Omit for unplaced pins
+  y?: number;   // Omit for unplaced pins
+  sceneId?: string;  // Omit for unplaced pins; set when placed
   size?: { w: number; h: number };
   style?: { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number }; // Supports hex, rgb, rgba, hsl, hsla, named colors
   text?: string; // Text label content
@@ -200,51 +218,62 @@ Use when your module runs at `init` or `ready` and you need to create pins—avo
 const pins = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
 if (!pins?.isAvailable()) return;
 await pins.whenReady();
-await pins.create({ id: crypto.randomUUID(), x: 1000, y: 800, moduleId: 'my-module' });
-await pins.reload();
+// Create unplaced (normal case); optionally place when scene is ready
+const pin = await pins.create({ id: crypto.randomUUID(), moduleId: 'my-module' });
+if (canvas?.scene) {
+  await pins.place(pin.id, { sceneId: canvas.scene.id, x: 1000, y: 800 });
+  await pins.reload();
+}
 ```
 
 ### `pins.exists(pinId, options?)`
-Check if a pin exists on a scene. Useful before attempting to create a pin to avoid duplicate ID errors.
+Check if a pin exists (unplaced or on a scene). When `sceneId` is omitted, the API checks the unplaced store first, then all scenes.
 
 **Returns**: `boolean` - True if pin exists, false otherwise
 
 ```javascript
-// Check if pin exists before creating
+// Check if pin exists before creating (searches unplaced then all scenes)
 if (!pins.exists('my-pin-id')) {
     await pins.create({
         id: 'my-pin-id',
-        moduleId: 'my-module',
-        x: 1000,
-        y: 1000
+        moduleId: 'my-module'
+        // no x, y, sceneId → unplaced
     });
 } else {
     console.log('Pin already exists, updating instead');
-    await pins.update('my-pin-id', { x: 1000, y: 1000 });
+    await pins.update('my-pin-id', { text: 'Updated' });
 }
 
-// Check on a specific scene
+// Create unplaced (primary pattern): no sceneId, x, or y
+await pins.create({
+    id: crypto.randomUUID(),
+    moduleId: 'my-module',
+    type: 'note',
+    text: 'Important Note',
+    image: '<i class="fa-solid fa-sticky-note"></i>'
+});
+
+// Check on a specific scene only
 const existsOnOtherScene = pins.exists('my-pin-id', { sceneId: 'other-scene-id' });
 ```
 
 **Options**:
-- `sceneId` (string, optional): scene to check; defaults to active scene
+- `sceneId` (string, optional): if provided, only that scene is checked; if omitted, lookup is unplaced then all scenes
 
 **Throws**: 
-- No errors thrown; returns `false` if scene not found
+- No errors thrown; returns `false` if scene not found when `sceneId` is provided
 
 ### `pins.create(pinData, options?)`
-Create a pin on the active scene.
+Create a pin. **Normal case: create unplaced** by omitting `sceneId`, `x`, and `y`. Optionally place at creation by passing `options.sceneId` and `x`/`y` in `pinData`.
 
 **Returns**: `Promise<PinData>` - The created pin data with defaults applied
 
-**Before creating**: Use `pins.exists(pinId)` to check if a pin with that ID already exists. If it does, use `pins.update()` instead, or generate a new unique ID (e.g., `crypto.randomUUID()`).
+**Before creating**: Use `pins.exists(pinId)` to check if a pin with that ID already exists (searches unplaced then all scenes). If it does, use `pins.update()` instead, or generate a new unique ID (e.g., `crypto.randomUUID()`).
 
 ```javascript
+// Primary pattern: create unplaced (no sceneId, x, or y)
 const pin = await pinsAPI.create({
   id: crypto.randomUUID(),
-  x: 1200,
-  y: 900,
   text: 'Forge',
   moduleId: 'my-module',
   type: 'note',  // optional; pin type/category (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified
@@ -264,6 +293,19 @@ const pin = await pinsAPI.create({
     alpha: 1  // Overall opacity (multiplies with RGBA alpha if color has alpha)
   }
 });
+// Pin is unplaced. Call pins.place(pin.id, { sceneId, x, y }) when you want it on a scene.
+
+// Create and place in one step (optional)
+const placedPin = await pinsAPI.create({
+  id: crypto.randomUUID(),
+  x: 1200,
+  y: 900,
+  text: 'Forge',
+  moduleId: 'my-module',
+  type: 'note',
+  image: '<i class="fa-solid fa-star"></i>'
+}, { sceneId: canvas.scene?.id });
+await pins.reload();
 ```
 
 ```javascript
@@ -399,54 +441,60 @@ const defaultPin = await pinsAPI.create({
 ```
 
 **Options**:
-- `sceneId` (string, optional): target scene; defaults to active scene
+- `sceneId` (string, optional): if provided with x/y in pinData, the pin is placed on this scene at creation; if omitted (and no x/y), the pin is created unplaced
 - `silent` (boolean, optional): skip event emission
 
 **Throws**: 
 - `Error` if pin data is invalid
-- `Error` if scene not found
+- `Error` if scene not found (when placing via `options.sceneId`)
 - `Error` if permission denied
-- `Error` if a pin with the same `id` already exists on the scene (message: `"A pin with id \"{id}\" already exists on this scene."`)
+- `Error` if a pin with the same `id` already exists (unplaced or on a scene)
 
 **Duplicate ID handling**: If you're not sure whether a pin ID exists, check first:
 ```javascript
-// Option 1: Check before creating (recommended)
+// Option 1: Check before creating (recommended) — exists() searches unplaced then all scenes
 if (!pins.exists('my-pin-id')) {
-    await pins.create({ id: 'my-pin-id', x: 1000, y: 1000, moduleId: 'my-module' });
+    await pins.create({ id: 'my-pin-id', moduleId: 'my-module' });  // unplaced
 } else {
     // Pin exists - update it instead
-    await pins.update('my-pin-id', { x: 1000, y: 1000 });
+    await pins.update('my-pin-id', { text: 'Updated' });
 }
 
 // Option 2: Use a unique ID (recommended for new pins)
 await pins.create({ 
     id: crypto.randomUUID(),  // Always unique
-    x: 1000, 
-    y: 1000, 
     moduleId: 'my-module' 
-});
+});  // unplaced
 
 // Option 3: Try/catch if you want to handle the error
 try {
-    await pins.create({ id: 'my-pin-id', x: 1000, y: 1000, moduleId: 'my-module' });
+    await pins.create({ id: 'my-pin-id', moduleId: 'my-module' });
 } catch (err) {
     if (err.message.includes('already exists')) {
-        // Update existing pin instead
-        await pins.update('my-pin-id', { x: 1000, y: 1000 });
+        await pins.update('my-pin-id', { text: 'Updated' });
     } else {
-        throw err; // Re-throw other errors
+        throw err;
     }
 }
 ```
 
 ### `pins.update(pinId, patch, options?)`
-Update properties for an existing pin. Automatically detects and handles icon/image type changes (e.g., switching from Font Awesome icon to image URL, or vice versa) by rebuilding the icon element when needed.
+Update properties for an existing pin (placed or unplaced). When `sceneId` is omitted, lookup is unplaced then all scenes. Automatically detects and handles icon/image type changes (e.g., switching from Font Awesome icon to image URL, or vice versa) by rebuilding the icon element when needed.
 
 **Returns**: `Promise<PinData | null>` - The updated pin data, or `null` if pin not found
+
+**Placement via patch**: To place an unplaced pin, include `{ sceneId, x, y }` in `patch`. To unplace a pin (remove from canvas but keep data), pass `patch.unplace === true`.
 
 ```javascript
 // Update text
 const updatedPin = await pinsAPI.update(pin.id, { text: 'Hot Forge' });
+
+// Place an unplaced pin via update
+await pinsAPI.update(pin.id, { sceneId: canvas.scene.id, x: 1200, y: 900 });
+await pins.reload();
+
+// Unplace a pin (remove from canvas, keep data)
+await pinsAPI.update(pin.id, { unplace: true });
 
 // Switch from icon to image (automatically handled)
 await pinsAPI.update(pin.id, { 
@@ -460,40 +508,81 @@ await pinsAPI.update(pin.id, {
 ```
 
 **Options**:
-- `sceneId` (string, optional): target scene; defaults to active scene. If pin not found on specified scene, automatically searches other scenes.
+- `sceneId` (string, optional): target scene when you know where the pin is; if omitted, lookup is unplaced then all scenes
 - `silent` (boolean, optional): skip event emission
 
 **Throws**: 
 - `Error` if patch data is invalid
 - `Error` if scene not found (when sceneId provided and scene doesn't exist)
 
-**Note**: Returns `null` (instead of throwing) if pin not found anywhere, allowing calling modules to handle missing pins gracefully.
+**Note**: Returns `null` (instead of throwing) if pin not found anywhere (unplaced or on any scene), allowing calling modules to handle missing pins gracefully.
 
 **Icon/Image Type Changes**: When updating the `image` property to change from an icon to an image (or vice versa), the renderer automatically detects the type change and rebuilds the icon element. No manual refresh or reload is needed.
 
 ### `pins.delete(pinId, options?)`
-Delete a pin from a scene. If no `sceneId` is provided, automatically searches all scenes to find the pin.
+Delete a pin (placed or unplaced). When `sceneId` is omitted, the API searches the unplaced store first, then all scenes. Works for both unplaced and placed pins.
 
 **Returns**: `Promise<void>`
 
 ```javascript
-// Delete from current scene
+// Delete by ID — finds pin whether unplaced or on any scene
 await pinsAPI.delete(pin.id);
 
-// Delete from specific scene
+// Delete from specific scene (when you know where it is)
 await pinsAPI.delete(pin.id, { sceneId: 'some-scene-id' });
-
-// Delete without knowing which scene (searches all scenes)
-await pinsAPI.delete(pin.id); // Finds and deletes from any scene
 ```
 
 **Options**:
-- `sceneId` (string, optional): target scene; if not provided, searches all scenes to find the pin
+- `sceneId` (string, optional): if provided, only that scene is searched; if omitted, search is unplaced then all scenes
 - `silent` (boolean, optional): skip event emission
 
 **Throws**: 
-- `Error` if pin not found in any scene
+- `Error` if pin not found (unplaced or on any scene)
 - `Error` if scene not found (when sceneId provided)
+- `Error` if permission denied
+
+### `pins.place(pinId, placement)`
+Place an unplaced pin on a scene at the given coordinates. The pin must currently be unplaced. After placing, call `pins.reload()` if you need the pin to appear on the canvas immediately.
+
+**Returns**: `Promise<PinData | null>` - The updated pin data (with `sceneId`, `x`, `y` set), or `null` if the pin was not found or was not unplaced
+
+**Parameters**:
+- `pinId` (string, required): Pin ID to place
+- `placement` (object, required): `{ sceneId: string, x: number, y: number }`
+
+```javascript
+// Create unplaced, then place when user chooses a scene/position
+const pin = await pins.create({
+  id: crypto.randomUUID(),
+  moduleId: 'my-module',
+  type: 'note',
+  text: 'Quest Goal',
+  image: '<i class="fa-solid fa-flag"></i>'
+});
+await pins.place(pin.id, { sceneId: canvas.scene.id, x: 1200, y: 900 });
+await pins.reload();
+```
+
+**Throws**: 
+- `Error` if pin not found or pin is already placed
+- `Error` if scene not found
+- `Error` if permission denied
+
+### `pins.unplace(pinId)`
+Remove a pin from the canvas but keep its data. The pin becomes unplaced (no `sceneId`, and typically no `x`/`y`). The pin must currently be on a scene.
+
+**Returns**: `Promise<PinData | null>` - The pin data after unplacing (no longer on a scene), or `null` if the pin was not found or was not placed
+
+```javascript
+// Unplace a pin (e.g. user removes it from map but keeps the note/quest)
+const unplaced = await pins.unplace(pinId);
+if (unplaced) {
+  console.log('Pin is now unplaced, data preserved');
+}
+```
+
+**Throws**: 
+- `Error` if pin not found or pin is already unplaced
 - `Error` if permission denied
 
 ### `pins.deleteAll(options?)`
@@ -936,14 +1025,16 @@ if (sceneId) {
 ```
 
 ### `pins.get(pinId, options?)`
-Get a single pin by id.
+Get a single pin by id. When `sceneId` is omitted, lookup checks the unplaced store first, then all scenes. Use this when you have a pin ID (e.g. from a note or quest) and may not know whether it is placed.
 
 **Returns**: `PinData | null` - Pin data if found, `null` if not found
 
 ```javascript
-const pin = pinsAPI.get(pin.id);
+// Resolve by ID — works for unplaced or placed
+const pin = pinsAPI.get(pinId);
 if (pin) {
   console.log('Found pin:', pin.text);
+  if (pin.sceneId) console.log('Placed on scene:', pin.sceneId);
 }
 
 // Can also use pins.exists() to just check existence
@@ -953,42 +1044,37 @@ if (pins.exists('my-pin-id')) {
 ```
 
 **Options**:
-- `sceneId` (string, optional): target scene; defaults to active scene
+- `sceneId` (string, optional): if provided, only that scene is checked; if omitted, lookup is unplaced then all scenes
 
 **Throws**: 
-- `Error` if scene not found
+- `Error` if scene not found (when sceneId provided)
 
 ### `pins.list(options?)`
-List pins with filters.
+List pins with filters. Use `unplacedOnly: true` to list only unplaced pins (no `sceneId` required). Without `unplacedOnly`, `sceneId` defaults to the active scene and only placed pins on that scene are returned.
 
 **Returns**: `PinData[]` - Array of pin data matching filters
 
 ```javascript
+// List unplaced pins only (no sceneId needed)
+const unplaced = pinsAPI.list({ unplacedOnly: true });
+const myUnplaced = pinsAPI.list({ unplacedOnly: true, moduleId: 'my-module' });
+
+// List placed pins on active scene
 const pins = pinsAPI.list({ moduleId: 'my-module' });
 console.log(`Found ${pins.length} pins`);
+
+// List placed pins on a specific scene
+const scenePins = pinsAPI.list({ sceneId: 'some-scene-id', type: 'note' });
 ```
 
 **Options**:
-- `sceneId` (string, optional): target scene; defaults to active scene
+- `unplacedOnly` (boolean, optional): if `true`, return only unplaced pins; `sceneId` is ignored
+- `sceneId` (string, optional): when listing placed pins, target scene; defaults to active scene when `unplacedOnly` is not set
 - `moduleId` (string, optional): filter by consumer module
 - `type` (string, optional): filter by pin type (e.g., 'note', 'quest', 'default')
 
 **Throws**: 
-- `Error` if scene not found
-
-```javascript
-// List all pins
-const allPins = pinsAPI.list();
-
-// List pins by module
-const myPins = pinsAPI.list({ moduleId: 'my-module' });
-
-// List pins by type
-const notePins = pinsAPI.list({ type: 'note' });
-
-// List pins by module and type
-const questPins = pinsAPI.list({ moduleId: 'coffee-pub-squire', type: 'quest' });
-```
+- `Error` if scene not found (when sceneId required and invalid)
 
 ### `pins.on(eventType, handler, options?)`
 Register an event handler. Returns a disposer function. Events are dispatched when users interact with pins (hover, click, double-click, right-click, middle-click, drag, etc.).
@@ -1351,15 +1437,54 @@ The pins system fires the following hooks so other modules can sync their data (
 
 #### Single-pin hooks
 
+**`blacksmith.pins.created`**  
+Fired when a pin is created: after `pins.create()` returns successfully. Payload includes `placement: 'unplaced' | 'placed'` and, when placed, `sceneId`.
+
+**Payload**:
+```js
+{ pinId: string, moduleId: string, placement: 'unplaced' | 'placed', pin: PinData [, sceneId: string ] }
+```
+- `pinId`: Pin ID that was created
+- `moduleId`: Pin's `moduleId`
+- `placement`: `'unplaced'` if the pin has no scene, or `'placed'` if it was created on a scene
+- `pin`: The full pin data after creation
+- `sceneId`: Present only when `placement === 'placed'`; scene where the pin was placed
+
+**`blacksmith.pins.placed`**  
+Fired when an unplaced pin is placed on a scene: after `pins.place()` or `pins.update()` with `{ sceneId, x, y }` returns successfully.
+
+**Payload**:
+```js
+{ pinId: string, sceneId: string, moduleId: string, type?: string, pin: PinData }
+```
+- `pinId`: Pin ID that was placed
+- `sceneId`: Scene where the pin was placed
+- `moduleId`: Pin's `moduleId`
+- `type`: Pin's `type` (e.g. `'note'`, `'quest'`, `'default'`)
+- `pin`: The full pin data after placement
+
+**`blacksmith.pins.unplaced`**  
+Fired when a placed pin is removed from the canvas but its data is kept: after `pins.unplace()` or `pins.update(..., { unplace: true })` returns successfully.
+
+**Payload**:
+```js
+{ pinId: string, sceneId: string, moduleId: string, type?: string, pin: PinData }
+```
+- `pinId`: Pin ID that was unplaced
+- `sceneId`: Scene the pin was removed from
+- `moduleId`: Pin's `moduleId`
+- `type`: Pin's `type` (e.g. `'note'`, `'quest'`, `'default'`)
+- `pin`: The full pin data after unplacing (no longer on a scene)
+
 **`blacksmith.pins.updated`**  
 Fired when a pin is updated: after `pins.update()` returns successfully, and when the core **Configure Pin** window saves (it calls `pins.update()`). Use this to keep module data in sync (e.g. journal note flags, notes panel UI) without registering a duplicate “Configure Pin” menu item.
 
 **Payload**:
 ```js
-{ pinId: string, sceneId: string, moduleId: string, type?: string, patch: object, pin: PinData }
+{ pinId: string, sceneId: string | null, moduleId: string, type?: string, patch: object, pin: PinData }
 ```
 - `pinId`: Pin ID that was updated
-- `sceneId`: Scene where the pin lives
+- `sceneId`: Scene where the pin lives, or `null` if the pin is unplaced
 - `moduleId`: Pin’s `moduleId`
 - `type`: Pin’s `type` (e.g. `'note'`, `'quest'`, `'default'`)
 - `patch`: The update patch passed to `pins.update()`
@@ -1384,14 +1509,14 @@ Hooks.on('blacksmith.pins.updated', async ({ pinId, moduleId, pin, patch }) => {
 ```
 
 **`blacksmith.pins.deleted`**  
-Fired when a single pin is deleted: after `pins.delete()` returns successfully. Use this to clear module data tied to the pin (e.g. clear `pinId` / `sceneId` from a note, refresh UI). Fired for both API-driven deletes and the core **Delete Pin** context menu.
+Fired when a single pin is deleted: after `pins.delete()` returns successfully. Use this to clear module data tied to the pin (e.g. clear `pinId` / `sceneId` from a note, refresh UI). Fired for both API-driven deletes and the core **Delete Pin** context menu. Works for both placed and unplaced pins.
 
 **Payload**:
 ```js
-{ pinId: string, sceneId: string, moduleId?: string, type?: string, pin?: PinData, config?: object }
+{ pinId: string, sceneId: string | null, moduleId?: string, type?: string, pin?: PinData, config?: object }
 ```
 - `pinId`: Pin ID that was deleted
-- `sceneId`: Scene where the pin lived
+- `sceneId`: Scene where the pin lived, or `null` if the pin was unplaced
 - `moduleId`: Pin’s `moduleId` (if any)
 - `type`: Pin’s `type` (if any)
 - `pin`: Full pin data **before** deletion (useful for looking up linked documents)

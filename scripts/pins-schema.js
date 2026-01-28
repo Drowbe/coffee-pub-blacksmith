@@ -15,8 +15,9 @@ import { postConsoleAndNotification } from './api-core.js';
 /**
  * @typedef {Object} PinData
  * @property {string} id
- * @property {number} x
- * @property {number} y
+ * @property {number} [x] - Omit for unplaced pins
+ * @property {number} [y] - Omit for unplaced pins
+ * @property {string} [sceneId] - Set when placed on a scene (or implicit from storage)
  * @property {{ w: number; h: number }} size
  * @property {{ fill?: string; stroke?: string; strokeWidth?: number; alpha?: number }} style
  * @property {string} [text] - Text content to display
@@ -141,8 +142,8 @@ function _log(msg, detail = '') {
 export function applyDefaults(partial) {
     const base = {
         id: '',
-        x: 0,
-        y: 0,
+        x: undefined,
+        y: undefined,
         size: { ...PIN_DEFAULTS.size },
         style: { ...PIN_DEFAULTS.style },
         shape: PIN_DEFAULTS.shape,
@@ -155,8 +156,8 @@ export function applyDefaults(partial) {
         version: PIN_SCHEMA_VERSION
     };
     if (partial.id != null) base.id = String(partial.id).trim();
-    if (typeof partial.x === 'number') base.x = partial.x;
-    if (typeof partial.y === 'number') base.y = partial.y;
+    if (typeof partial.x === 'number' && Number.isFinite(partial.x)) base.x = partial.x;
+    if (typeof partial.y === 'number' && Number.isFinite(partial.y)) base.y = partial.y;
     if (partial.size != null && typeof partial.size === 'object') {
         if (typeof partial.size.w === 'number') base.size.w = partial.size.w;
         if (typeof partial.size.h === 'number') base.size.h = partial.size.h;
@@ -224,9 +225,11 @@ export function applyDefaults(partial) {
 /**
  * Validate a single pin after defaults applied. Returns { ok, pin, error }.
  * @param {unknown} raw
+ * @param {{ allowUnplaced?: boolean }} [opts] - If allowUnplaced, x/y are not required (unplaced pins).
  * @returns {{ ok: true; pin: PinData } | { ok: false; error: string }}
  */
-export function validatePinData(raw) {
+export function validatePinData(raw, opts = {}) {
+    const allowUnplaced = !!opts.allowUnplaced;
     if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
         return { ok: false, error: 'Pin must be a non-null object.' };
     }
@@ -234,11 +237,13 @@ export function validatePinData(raw) {
     if (typeof o.id !== 'string' || !o.id.trim()) {
         return { ok: false, error: 'Pin id must be a non-empty string (UUID).' };
     }
-    if (typeof o.x !== 'number' || !Number.isFinite(o.x)) {
-        return { ok: false, error: 'Pin x must be a finite number.' };
-    }
-    if (typeof o.y !== 'number' || !Number.isFinite(o.y)) {
-        return { ok: false, error: 'Pin y must be a finite number.' };
+    if (!allowUnplaced) {
+        if (typeof o.x !== 'number' || !Number.isFinite(o.x)) {
+            return { ok: false, error: 'Pin x must be a finite number (or create as unplaced with no x/y).' };
+        }
+        if (typeof o.y !== 'number' || !Number.isFinite(o.y)) {
+            return { ok: false, error: 'Pin y must be a finite number (or create as unplaced with no x/y).' };
+        }
     }
     if (typeof o.moduleId !== 'string' || !o.moduleId.trim()) {
         return { ok: false, error: 'Pin moduleId must be a non-empty string.' };
