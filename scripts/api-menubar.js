@@ -1519,7 +1519,7 @@ class MenuBar {
      * @param {Object} toolData - Tool configuration object
      * @param {string} toolData.icon - FontAwesome icon class
      * @param {string} toolData.name - Tool name (used for data-tool attribute)
-     * @param {string} toolData.title - Tooltip text displayed on hover
+     * @param {string|Function} [toolData.title] - Optional: Tooltip text and label displayed on hover. Can be a function that returns a string for dynamic tooltips. Defaults to `name` if omitted. Can be an empty string or null for icon-only buttons.
      * @param {Function} toolData.onClick - Function to execute when tool is clicked
      * @param {string} toolData.zone - Zone placement (left, middle, right)
      * @param {number} toolData.order - Order within zone (lower numbers appear first)
