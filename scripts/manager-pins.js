@@ -1253,3 +1253,44 @@ export class PinManager {
         return results;
     }
 }
+
+// Register pins GM-proxy socket handler on all clients when socket is ready.
+// SocketLib executeAsGM runs the handler on the GM client, so the GM must have it registered
+// before any non-GM calls requestGM(). Lazy registration in requestGM() only runs on the
+// calling client; we need the handler registered on the GM via this hook.
+if (typeof Hooks !== 'undefined') {
+    Hooks.once('blacksmith.socketReady', async () => {
+        try {
+            const { SocketManager } = await import('./manager-sockets.js');
+            const socket = SocketManager.getSocket();
+            if (!socket?.register) return;
+            if (PinManager._gmProxyHandlerRegistered) return;
+            const handlerName = 'blacksmith-pins-gm-proxy';
+            socket.register(handlerName, async (data) => {
+                if (!game.user?.isGM) {
+                    return { error: 'Permission denied: only GMs can execute pin actions.' };
+                }
+                try {
+                    switch (data.action) {
+                        case 'create':
+                            const created = await PinManager.createAsGM(data.params.sceneId, data.params.payload, data.params.options || {});
+                            return { success: true, data: created };
+                        case 'update':
+                            const updated = await PinManager.updateAsGM(data.params.sceneId, data.params.pinId, data.params.patch, data.params.options || {});
+                            return { success: true, data: updated };
+                        case 'delete':
+                            await PinManager.deleteAsGM(data.params.sceneId, data.params.pinId, data.params.options || {});
+                            return { success: true };
+                        default:
+                            return { error: `Unknown action: ${data.action}` };
+                    }
+                } catch (err) {
+                    return { error: err.message || String(err) };
+                }
+            });
+            PinManager._gmProxyHandlerRegistered = true;
+        } catch (_) {
+            // Socket or registration failed; requestGM will still attempt lazy registration when called
+        }
+    });
+}
