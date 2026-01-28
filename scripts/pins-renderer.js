@@ -872,28 +872,58 @@ class PinDOMElement {
         const canEdit = PinManager._canEdit(pinData, userId);
         const canDelete = canEdit;
         
-        const menuItems = [];
+        const moduleItems = [];
+        const coreItems = [];
+        const gmItems = [];
         
-        // Get registered context menu items (filtered by moduleId, visible, etc.)
+        // Module zone: registered context menu items (filtered by moduleId, visible, etc.)
         const registeredItems = PinManager.getContextMenuItems(pinData, userId);
         for (const item of registeredItems) {
-            menuItems.push({
+            moduleItems.push({
                 name: item.name,
                 icon: item.icon,
                 callback: item.onClick
             });
         }
         
-        // Add separator if module commands exist
-        if (registeredItems.length > 0) {
-            menuItems.push({ separator: true });
-        }
+        // Core zone: Ping Pin, Bring Players Here, Configure Pin, Delete Pin
+        coreItems.push({
+            name: 'Ping Pin',
+            icon: '<i class="fa-solid fa-signal-stream"></i>',
+            callback: async () => {
+                try {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) {
+                        await pinsAPI.ping(pinData.id, { animation: 'ping', loops: 1 });
+                    } else {
+                        console.warn('BLACKSMITH | PINS API not available');
+                    }
+                } catch (err) {
+                    postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error pinging pin', err?.message || err, false, true);
+                }
+            }
+        });
         
-        // Add default universal items (after registered items)
+        coreItems.push({
+            name: 'Bring Players Here',
+            icon: '<i class="fa-solid fa-location-crosshairs"></i>',
+            callback: async () => {
+                try {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) {
+                        await pinsAPI.panTo(pinData.id, { broadcast: true, ping: { animation: 'ping', loops: 1 } });
+                    } else {
+                        console.warn('BLACKSMITH | PINS API not available');
+                    }
+                } catch (err) {
+                    console.error('BLACKSMITH | PINS Error bringing players to pin', err);
+                    postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error bringing players to pin', err?.message || err, false, true);
+                }
+            }
+        });
         
-        // Configure Pin (if user can edit)
         if (canEdit) {
-            menuItems.push({
+            coreItems.push({
                 name: 'Configure Pin',
                 icon: '<i class="fa-solid fa-cog"></i>',
                 callback: async () => {
@@ -911,51 +941,8 @@ class PinDOMElement {
             });
         }
         
-        // Bring Players Here (available to all users) - pan all players and ping
-        menuItems.push({
-            name: 'Bring Players Here',
-            icon: '<i class="fa-solid fa-users-viewfinder"></i>',
-            callback: async () => {
-                try {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) {
-                        // Pan all players to this pin with ping animation (broadcast)
-                        await pinsAPI.panTo(pinData.id, { 
-                            broadcast: true,
-                            ping: { animation: 'ping', loops: 1 }
-                        });
-                    } else {
-                        console.warn('BLACKSMITH | PINS API not available');
-                    }
-                } catch (err) {
-                    console.error('BLACKSMITH | PINS Error bringing players to pin', err);
-                    postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error bringing players to pin', err?.message || err, false, true);
-                }
-            }
-        });
-        
-        // Ping Pin (available to all users) - local ping only
-        menuItems.push({
-            name: 'Ping Pin',
-            icon: '<i class="fa-solid fa-bell"></i>',
-            callback: async () => {
-                try {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) {
-                        // Use 'ping' animation type (combo of scale-large + ripple with sound)
-                        await pinsAPI.ping(pinData.id, { animation: 'ping', loops: 1 });
-                    } else {
-                        console.warn('BLACKSMITH | PINS Ping API not available');
-                    }
-                } catch (err) {
-                    postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error pinging pin', err?.message || err, false, true);
-                }
-            }
-        });
-        
-        // Delete pin (if user can delete)
         if (canDelete) {
-            menuItems.push({
+            coreItems.push({
                 name: 'Delete Pin',
                 icon: '<i class="fa-solid fa-trash"></i>',
                 callback: async () => {
@@ -969,25 +956,16 @@ class PinDOMElement {
             });
         }
         
-        // GM-only bulk delete options
+        // GM zone: bulk delete options (only when user is GM)
         if (game.user?.isGM) {
-            // Add separator before GM controls
-            if (menuItems.length > 0) {
-                menuItems.push({ separator: true });
-            }
-            
-            // Get all pin types on current scene for "Delete All of Type" submenu
-            const { PinManager } = await import('./manager-pins.js');
             const allPins = PinManager.list({ sceneId: canvas?.scene?.id });
             const pinTypes = new Set();
             for (const pin of allPins) {
                 pinTypes.add(pin.type || 'default');
             }
-            
-            // Delete all pins of this pin's type
             const currentPinType = pinData.type || 'default';
             if (pinTypes.size > 0) {
-                menuItems.push({
+                gmItems.push({
                     name: `Delete All "${currentPinType}" Pins`,
                     icon: '<i class="fa-solid fa-trash-can"></i>',
                     callback: async () => {
@@ -1010,11 +988,9 @@ class PinDOMElement {
                     }
                 });
             }
-            
-            // Delete all pins
-            menuItems.push({
+            gmItems.push({
                 name: 'Delete All Pins',
-                icon: '<i class="fa-solid fa-trash-can"></i>',
+                icon: '<i class="fa-solid fa-trash"></i>',
                 callback: async () => {
                     try {
                         const confirmed = await Dialog.confirm({
@@ -1036,19 +1012,20 @@ class PinDOMElement {
             });
         }
         
-        if (menuItems.length > 0) {
-            this._renderContextMenu(menuItems, menuX, menuY);
+        const totalItems = moduleItems.length + coreItems.length + gmItems.length;
+        if (totalItems > 0) {
+            this._renderContextMenu({ module: moduleItems, core: coreItems, gm: gmItems }, menuX, menuY);
         }
     }
 
     /**
-     * Render context menu at screen coordinates
-     * @param {Array} menuItems
+     * Render context menu at screen coordinates with module, core, and gm zones.
+     * @param {{ module: Array, core: Array, gm: Array }} zones - Item arrays per zone
      * @param {number} x
      * @param {number} y
      * @private
      */
-    static _renderContextMenu(menuItems, x, y) {
+    static _renderContextMenu(zones, x, y) {
         const existing = document.getElementById('blacksmith-pin-context-menu');
         if (existing) {
             existing.remove();
@@ -1057,51 +1034,43 @@ class PinDOMElement {
         const menu = document.createElement('div');
         menu.id = 'blacksmith-pin-context-menu';
         menu.className = 'context-menu';
-        menu.style.position = 'fixed';
         menu.style.left = `${x}px`;
         menu.style.top = `${y}px`;
-        menu.style.zIndex = '10000';
-        menu.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-        menu.style.border = '1px solid #666';
-        menu.style.borderRadius = '4px';
-        menu.style.padding = '4px';
-        menu.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.5)';
-        menu.style.minWidth = '150px';
         
-        menuItems.forEach(item => {
-            // Handle separator
-            if (item.separator) {
-                const separator = document.createElement('div');
-                separator.style.height = '1px';
-                separator.style.backgroundColor = '#666';
-                separator.style.margin = '4px 0';
-                menu.appendChild(separator);
-                return;
-            }
-            
-            const menuItem = document.createElement('div');
-            menuItem.className = 'context-menu-item';
-            menuItem.style.padding = '6px 12px';
-            menuItem.style.cursor = 'pointer';
-            menuItem.style.color = '#fff';
-            menuItem.style.display = 'flex';
-            menuItem.style.alignItems = 'center';
-            menuItem.style.gap = '8px';
-            menuItem.innerHTML = `${item.icon} ${item.name}`;
-            
-            menuItem.addEventListener('mouseenter', () => {
-                menuItem.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+        const appendZone = (zoneName, items) => {
+            if (!items?.length) return;
+            const zone = document.createElement('div');
+            zone.className = `context-menu-zone context-menu-zone-${zoneName}`;
+            items.forEach(item => {
+                if (item.separator) {
+                    const sep = document.createElement('div');
+                    sep.className = 'context-menu-separator';
+                    zone.appendChild(sep);
+                    return;
+                }
+                const menuItemEl = document.createElement('div');
+                menuItemEl.className = 'context-menu-item';
+                menuItemEl.innerHTML = `${item.icon} ${item.name}`;
+                menuItemEl.addEventListener('click', () => {
+                    item.callback();
+                    menu.remove();
+                });
+                zone.appendChild(menuItemEl);
             });
-            menuItem.addEventListener('mouseleave', () => {
-                menuItem.style.backgroundColor = 'transparent';
-            });
-            menuItem.addEventListener('click', () => {
-                item.callback();
-                menu.remove();
-            });
-            
-            menu.appendChild(menuItem);
-        });
+            menu.appendChild(zone);
+        };
+        
+        const addSeparator = () => {
+            const sep = document.createElement('div');
+            sep.className = 'context-menu-separator';
+            menu.appendChild(sep);
+        };
+        
+        appendZone('module', zones.module);
+        if (zones.module?.length) addSeparator();
+        appendZone('core', zones.core);
+        if (zones.gm?.length) addSeparator();
+        appendZone('gm', zones.gm);
         
         document.body.appendChild(menu);
         

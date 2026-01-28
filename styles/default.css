@@ -45,6 +45,9 @@
 /* --- Menubar ---------------------- */
 @import "menubar.css";
 
+/* --- Context Menus (global) ------ */
+@import "menu-context-global.css";
+
 /* --- Pins ---------------------- */
 @import "pins.css";
 

@@ -1347,7 +1347,72 @@ await pins.create({
 
 ### Hooks fired by the Pins API
 
-The pins system fires the following hooks so other modules can react to bulk deletes. Use `Hooks.on()` (not `Hooks.call`); these are invoked with `Hooks.callAll()`.
+The pins system fires the following hooks so other modules can sync their data (e.g. note flags, UI) when pins change. Use `Hooks.on()` (not `Hooks.call`); these are invoked with `Hooks.callAll()`.
+
+#### Single-pin hooks
+
+**`blacksmith.pins.updated`**  
+Fired when a pin is updated: after `pins.update()` returns successfully, and when the core **Configure Pin** window saves (it calls `pins.update()`). Use this to keep module data in sync (e.g. journal note flags, notes panel UI) without registering a duplicate “Configure Pin” menu item.
+
+**Payload**:
+```js
+{ pinId: string, sceneId: string, moduleId: string, type?: string, patch: object, pin: PinData }
+```
+- `pinId`: Pin ID that was updated
+- `sceneId`: Scene where the pin lives
+- `moduleId`: Pin’s `moduleId`
+- `type`: Pin’s `type` (e.g. `'note'`, `'quest'`, `'default'`)
+- `patch`: The update patch passed to `pins.update()`
+- `pin`: The full pin data after the update
+
+```javascript
+Hooks.on('blacksmith.pins.updated', async ({ pinId, moduleId, pin, patch }) => {
+  if (moduleId !== 'coffee-pub-squire') return;
+  const noteUuid = pin?.config?.noteUuid;
+  if (!noteUuid) return;
+
+  const page = await fromUuid(noteUuid);
+  if (!page) return;
+
+  // Sync note flags from updated pin
+  await page.setFlag('coffee-pub-squire', 'notePinSize', pin?.size);
+  await page.setFlag('coffee-pub-squire', 'notePinShape', pin?.shape);
+  // ... other flags ...
+
+  game.modules.get('coffee-pub-squire')?.api?.PanelManager?.instance?.notesPanel?._refreshData?.();
+});
+```
+
+**`blacksmith.pins.deleted`**  
+Fired when a single pin is deleted: after `pins.delete()` returns successfully. Use this to clear module data tied to the pin (e.g. clear `pinId` / `sceneId` from a note, refresh UI). Fired for both API-driven deletes and the core **Delete Pin** context menu.
+
+**Payload**:
+```js
+{ pinId: string, sceneId: string, moduleId?: string, type?: string, pin?: PinData, config?: object }
+```
+- `pinId`: Pin ID that was deleted
+- `sceneId`: Scene where the pin lived
+- `moduleId`: Pin’s `moduleId` (if any)
+- `type`: Pin’s `type` (if any)
+- `pin`: Full pin data **before** deletion (useful for looking up linked documents)
+- `config`: Pin’s `config` object (e.g. `noteUuid` for Squire) for clearing links
+
+```javascript
+Hooks.on('blacksmith.pins.deleted', async ({ pinId, moduleId, config }) => {
+  if (moduleId !== 'coffee-pub-squire') return;
+  const noteUuid = config?.noteUuid;
+  if (!noteUuid) return;
+
+  const page = await fromUuid(noteUuid);
+  if (!page) return;
+
+  await page.setFlag('coffee-pub-squire', 'pinId', null);
+  await page.setFlag('coffee-pub-squire', 'sceneId', null);
+  // ... refresh notes UI ...
+});
+```
+
+#### Bulk-delete hooks
 
 **`blacksmith.pins.deletedAll`**  
 Fired when `pins.deleteAll()` completes successfully.

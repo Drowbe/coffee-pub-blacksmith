@@ -615,6 +615,18 @@ export class PinManager {
         next[idx] = foundry.utils.deepClone(updated);
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
         
+        // Fire hook so modules can sync their data (e.g. note flags, UI) after pin update or configure save
+        if (typeof Hooks !== 'undefined') {
+            Hooks.callAll('blacksmith.pins.updated', {
+                pinId,
+                sceneId: scene.id,
+                moduleId: updated.moduleId ?? existing.moduleId,
+                type: updated.type ?? existing.type,
+                patch,
+                pin: foundry.utils.deepClone(updated)
+            });
+        }
+        
         // Update renderer if on current scene (dynamic import to avoid circular dependency)
         if (scene.id === canvas?.scene?.id) {
             import('./pins-renderer.js').then(async ({ PinRenderer }) => {
@@ -661,6 +673,18 @@ export class PinManager {
         }
         const next = pins.filter((p) => p.id !== pinId);
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
+        
+        // Fire hook so modules can sync their data (e.g. clear note pin flags, refresh UI)
+        if (typeof Hooks !== 'undefined') {
+            Hooks.callAll('blacksmith.pins.deleted', {
+                pinId,
+                sceneId: scene.id,
+                moduleId: existing.moduleId ?? undefined,
+                type: existing.type ?? undefined,
+                pin: foundry.utils.deepClone(existing),
+                config: existing.config ?? undefined
+            });
+        }
         
         // Update renderer if on current scene (dynamic import to avoid circular dependency)
         if (scene.id === canvas?.scene?.id) {
