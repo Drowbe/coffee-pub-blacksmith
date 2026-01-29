@@ -1002,7 +1002,7 @@ class MenuBar {
         this.registerMenubarTool('create-combat', {
             icon: "fas fa-swords",
             name: "create-combat",
-            title: "Create Combat",
+            title: "Create",
             tooltip: "Create combat encounter with selected or all tokens on canvas",
             onClick: () => {
                 this.createCombat();
@@ -1063,7 +1063,7 @@ class MenuBar {
             title: () => {
                 // Dynamic title based on combat bar state
                 const isCombatBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'combat';
-                return isCombatBarOpen ? "Combat Bar" : "Combat Bar";
+                return isCombatBarOpen ? "Bar" : "Bar";
             },
             tooltip: () => {
                 // Dynamic tooltip based on combat bar state
@@ -1097,7 +1097,7 @@ class MenuBar {
         this.registerMenubarTool('combat-window', {
             icon: "fas fa-swords",
             name: "combat-window",
-            title: "Combat Tracker",
+            title: "Tracker",
             tooltip: "Show the FoundryVTT Combat Tracker window",
             onClick: () => {
                 this.toggleCombatTracker();
@@ -1125,7 +1125,7 @@ class MenuBar {
         this.registerMenubarTool('xp-distribution', {
             icon: "fas fa-star",
             name: "xp-distribution",
-            title: "XP Distribution",
+            title: "Experience",
             tooltip: "Open Experience Points Distribution Worksheet",
             onClick: () => {
                 this.openXpDistribution();
@@ -1153,7 +1153,7 @@ class MenuBar {
         this.registerMenubarTool('skillcheck', {
             icon: "fa-solid fa-dice",
             name: "skillcheck",
-            title: "Request a Roll",
+            title: "Request Roll",
             tooltip: null,
             onClick: () => {
                 new SkillCheckDialog().render(true);
@@ -1239,8 +1239,8 @@ class MenuBar {
         this.registerMenubarTool('party-stats', {
             icon: "fas fa-chart-line",
             name: "party-stats",
-            title: "Party Statistics",
-            tooltip: "Open combat history and MVP leaderboard",
+            title: "Statistics",
+            tooltip: "Open combat statistics, history, and leaderboard",
             onClick: () => {
                 this.openStatsWindow();
             },

@@ -901,7 +901,7 @@ class PinDOMElement {
                 try {
                     const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
                     if (pinsAPI) {
-                        await pinsAPI.ping(pinData.id, { animation: 'ping', loops: 1 });
+                        await pinsAPI.ping(pinData.id, { animation: 'ping', loops: 1, broadcast: true });
                     } else {
                         console.warn('BLACKSMITH | PINS API not available');
                     }
@@ -1612,7 +1612,7 @@ export class PinRenderer {
                 }
                 
                 // Animate the pin locally (without broadcasting again)
-                await PinDOMElement.ping(pinId, {
+                await PinRenderer.ping(pinId, {
                     animation,
                     loops: loops || 1,
                     sound: sound || null,
