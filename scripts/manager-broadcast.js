@@ -1084,6 +1084,11 @@ export class BroadcastManager {
                 }
             }
             // Cameraman: just wait for socket message (handled by socket handler)
+        } else if (mode === 'mapview') {
+            // Map View mode: broadcast user fits scene to viewport
+            if (this._isBroadcastUser()) {
+                await this._applyMapView();
+            }
         } else if (typeof mode === 'string' && mode.startsWith('playerview-')) {
             // For player view, the player client sends initial sync, cameraman receives it
             // Player: trigger initial sync (not the broadcast user, so early return doesn't apply)
@@ -2064,11 +2069,11 @@ export class BroadcastManager {
         });
 
 
-        // Register Map View button (fit scene to viewport)
+        // Register Map View mode button (fit scene to viewport)
         MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-mapview', {
             icon: 'fa-solid fa-map',
             label: null,
-            tooltip: 'Map View - Fit scene to viewport',
+            tooltip: 'Map View - Fit scene to viewport (camera mode)',
             group: 'modes',
             toggleable: false,
             order: 4,
@@ -2077,12 +2082,12 @@ export class BroadcastManager {
             borderColor: null,
             visible: true,
             onClick: async () => {
-                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Map View button clicked", "", true, false);
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Map View mode button clicked", "", true, false);
                 if (!game.user.isGM) {
-                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can use Map View", "", false, false);
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
                     return;
                 }
-                await this._emitMapView();
+                await this._setBroadcastMode('mapview');
             }
         });
 
@@ -2175,7 +2180,8 @@ export class BroadcastManager {
             'spectator': 'broadcast-mode-spectator',
             'combat': 'broadcast-mode-combat',
             'gmview': 'broadcast-mode-gmview',
-            'manual': 'broadcast-mode-manual'
+            'manual': 'broadcast-mode-manual',
+            'mapview': 'broadcast-mode-mapview'
         };
         
         // Check if mode is a playerview mode (playerview-{userId})
@@ -2230,7 +2236,8 @@ export class BroadcastManager {
                             'spectator': 'broadcast-mode-spectator',
                             'combat': 'broadcast-mode-combat',
                             'gmview': 'broadcast-mode-gmview',
-                            'manual': 'broadcast-mode-manual'
+                            'manual': 'broadcast-mode-manual',
+                            'mapview': 'broadcast-mode-mapview'
                         };
                         const activeItemId = modeItemMap[value] || 'broadcast-mode-spectator';
                         MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
@@ -2299,6 +2306,7 @@ export class BroadcastManager {
                 'gmview': 'GM View',
                 'combat': 'Combat',
                 'spectator': 'Spectator',
+                'mapview': 'Map View',
                 'playerview': 'Player View'
             };
             return modeNames[mode] || 'Manual';
@@ -2314,6 +2322,7 @@ export class BroadcastManager {
                 'gmview': 'fa-solid fa-chess-king',
                 'combat': 'fa-solid fa-swords',
                 'spectator': 'fa-solid fa-users',
+                'mapview': 'fa-solid fa-map',
                 'playerview': 'fa-solid fa-helmet-battle'
             };
             return modeIcons[mode] || 'fa-solid fa-hand';
@@ -2361,12 +2370,12 @@ export class BroadcastManager {
             contextMenuItems: (toolId, tool) => {
                 if (!game.user.isGM || !this.isEnabled()) return [];
 
-                // Persistent broadcast modes only - Map View is a one-shot action available in the secondary bar
                 const items = [
                     { name: 'Manual', icon: 'fa-solid fa-hand', onClick: async () => { await this._setBroadcastMode('manual'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-manual', true); MenuBar.renderMenubar(); } },
                     { name: 'GM View', icon: 'fa-solid fa-chess-king', onClick: async () => { await this._setBroadcastMode('gmview'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-gmview', true); MenuBar.renderMenubar(); } },
                     { name: 'Combat', icon: 'fa-solid fa-swords', onClick: async () => { await this._setBroadcastMode('combat'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-combat', true); MenuBar.renderMenubar(); } },
-                    { name: 'Spectator', icon: 'fa-solid fa-users', onClick: async () => { await this._setBroadcastMode('spectator'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-spectator', true); MenuBar.renderMenubar(); } }
+                    { name: 'Spectator', icon: 'fa-solid fa-users', onClick: async () => { await this._setBroadcastMode('spectator'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-spectator', true); MenuBar.renderMenubar(); } },
+                    { name: 'Map View', icon: 'fa-solid fa-map', onClick: async () => { await this._setBroadcastMode('mapview'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-mapview', true); MenuBar.renderMenubar(); } }
                 ];
 
                 const mirrorUsers = this._getPartyTokensWithUsers().map(entry => entry.user).filter(Boolean);
