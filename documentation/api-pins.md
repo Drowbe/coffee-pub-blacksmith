@@ -531,6 +531,8 @@ await pinsAPI.update(pin.id, { style: { iconColor: '#ffd700' } });
 
 **Note**: Returns `null` (instead of throwing) if pin not found anywhere (unplaced or on any scene), allowing calling modules to handle missing pins gracefully.
 
+**Non-GM callers**: Placed pins are stored in scene flags; unplaced pins are stored in the world setting `pinsUnplaced`. Only GMs can write scene documents or world settings. When a non-GM with edit permission calls `update()`, Blacksmith routes the write through `requestGM` (action `'update'` for placed pins, `'updateUnplaced'` for unplaced pins) so the GM client performs the write. No world or scene setting write is attempted on the player client. A GM must be online for the update to succeed.
+
 **Icon/Image Type Changes**: When updating the `image` property to change from an icon to an image (or vice versa), the renderer automatically detects the type change and rebuilds the icon element. No manual refresh or reload is needed.
 
 ### `pins.delete(pinId, options?)`

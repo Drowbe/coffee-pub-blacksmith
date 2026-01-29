@@ -223,7 +223,7 @@ export class PinManager {
         }
     }
 
-    /** @param {PinData[]} pins */
+    /** @param {PinData[]} pins - Only call from GM context; world setting write requires GM. Non-GM updates to unplaced pins are routed through requestGM('updateUnplaced'). */
     static async _setUnplacedPins(pins) {
         await game.settings.set(MODULE.ID, UNPLACED_SETTING_KEY, { version: 1, pins });
     }
@@ -630,6 +630,11 @@ export class PinManager {
         }
 
         if (loc.location === 'unplaced') {
+            // Unplaced pins live in world setting 'pinsUnplaced'; only GMs can write world settings. Non-GM users with edit permission use requestGM so the GM client performs the write.
+            if (!game.user?.isGM) {
+                const result = await this.requestGM('updateUnplaced', { pinId, patch, options });
+                return result ?? null;
+            }
             const merged = foundry.utils.deepClone(loc.pin);
             this._applyPatch(merged, patch, null);
             if (patch.sceneId != null && typeof patch.x === 'number' && Number.isFinite(patch.x) && typeof patch.y === 'number' && Number.isFinite(patch.y)) {
@@ -1074,13 +1079,14 @@ export class PinManager {
 
     /**
      * Request GM to perform a pin action (for non-GM users)
-     * Uses socket system to forward request to GM
-     * @param {string} action - Action type: 'create', 'update', or 'delete'
-     * @param {Object} params - Action parameters
-     * @param {string} params.sceneId - Target scene
-     * @param {string} [params.pinId] - Pin ID (for update/delete)
-     * @param {Object} [params.payload] - Pin data (for create)
-     * @param {Object} [params.patch] - Update patch (for update)
+     * Uses socket system to forward request to GM. Used when the caller has edit permission but cannot write the backing store (scene flags require Scene update; unplaced pins use world setting 'pinsUnplaced').
+     * @param {string} action - Action type: 'create', 'update', 'updateUnplaced', or 'delete'
+     * @param {Object} params - Action parameters. For 'update': sceneId, pinId, patch, options. For 'updateUnplaced': pinId, patch, options (no sceneId).
+     * @param {string} [params.sceneId] - Target scene (create, update, delete)
+     * @param {string} [params.pinId] - Pin ID (update, updateUnplaced, delete)
+     * @param {Object} [params.patch] - Update patch (update, updateUnplaced)
+     * @param {Object} [params.options] - Options (update, updateUnplaced)
+     * @param {Object} [params.payload] - Pin data (create)
      * @returns {Promise<PinData | number | void>} - Result depends on action type
      */
     static async requestGM(action, params) {
@@ -1091,6 +1097,8 @@ export class PinManager {
                     return this.createAsGM(params.sceneId, params.payload, params.options);
                 case 'update':
                     return this.updateAsGM(params.sceneId, params.pinId, params.patch, params.options);
+                case 'updateUnplaced':
+                    return this.update(params.pinId, params.patch, params.options || {});
                 case 'delete':
                     return this.deleteAsGM(params.sceneId, params.pinId, params.options);
                 default:
@@ -1129,6 +1137,9 @@ export class PinManager {
                         case 'update':
                             const updated = await this.updateAsGM(data.params.sceneId, data.params.pinId, data.params.patch, data.params.options || {});
                             return { success: true, data: updated };
+                        case 'updateUnplaced':
+                            const updatedUnplaced = await this.update(data.params.pinId, data.params.patch, data.params.options || {});
+                            return { success: true, data: updatedUnplaced };
                         case 'delete':
                             await this.deleteAsGM(data.params.sceneId, data.params.pinId, data.params.options || {});
                             return { success: true };

@@ -1,3 +1,4 @@
+
 /* ==================================================================
    PINS CSS - Styles for canvas pin rendering
    ================================================================== */
@@ -403,3 +404,31 @@
     pointer-events: none;
     animation: blacksmith-pin-ripple 1s ease-out;
 }
+
+
+
+
+/* ================================
+   FIX: FontAwesome pins get clipped
+   ================================ */
+
+.blacksmith-pin-icon[data-icon-type="fa"] {
+    width: 100% !important;
+    height: 100% !important;
+
+    /* The pin itself is the shape. Don't mask the icon. */
+    overflow: visible !important;
+    border-radius: 0 !important;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.blacksmith-pin-icon[data-icon-type="fa"] i {
+    line-height: 1;
+    display: block;
+    flex-shrink: 0;
+    font-size: 0.75em; /* try 0.7–0.8 */
+}
+
