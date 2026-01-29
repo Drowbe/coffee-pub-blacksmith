@@ -1239,8 +1239,7 @@ export class BroadcastManager {
             const dims = canvas.scene?.dimensions;
             if (!dims) return;
 
-            const viewWidth = canvas.app?.renderer?.width ?? 0;
-            const viewHeight = canvas.app?.renderer?.height ?? 0;
+            const { width: viewWidth, height: viewHeight } = this._getViewportCssSize();
             if (!viewWidth || !viewHeight) return;
 
             const rect = dims.sceneRect || { x: 0, y: 0, width: dims.width, height: dims.height };
@@ -1609,6 +1608,38 @@ export class BroadcastManager {
     }
 
     /**
+     * Get viewport size in CSS pixels (independent of renderer DPR).
+     * @returns {Object} { width, height }
+     */
+    static _getViewportCssSize() {
+        try {
+            const view = canvas?.app?.view;
+            if (view?.getBoundingClientRect) {
+                const rect = view.getBoundingClientRect();
+                if (rect?.width && rect?.height) {
+                    return { width: rect.width, height: rect.height };
+                }
+            }
+        } catch (error) {
+            // Ignore and fall through to renderer/window sizing
+        }
+
+        const renderer = canvas?.app?.renderer;
+        if (renderer?.width && renderer?.height) {
+            const resolution = renderer.resolution || window.devicePixelRatio || 1;
+            return {
+                width: renderer.width / resolution,
+                height: renderer.height / resolution
+            };
+        }
+
+        return {
+            width: window.innerWidth || 1920,
+            height: window.innerHeight || 1080
+        };
+    }
+
+    /**
      * Calculate zoom level for a box to fill a percentage of the viewport.
      * @param {number} boxWidth - Box width in pixels
      * @param {number} boxHeight - Box height in pixels
@@ -1617,8 +1648,7 @@ export class BroadcastManager {
      */
     static _calculateViewportFillZoom(boxWidth, boxHeight, fillPercent) {
         if (!boxWidth || !boxHeight || boxWidth <= 0 || boxHeight <= 0) return null;
-        const viewportWidth = canvas.app?.renderer?.width || window.innerWidth || 1920;
-        const viewportHeight = canvas.app?.renderer?.height || window.innerHeight || 1080;
+        const { width: viewportWidth, height: viewportHeight } = this._getViewportCssSize();
         const clampedFill = Math.max(1, Math.min(100, fillPercent));
         const fillFraction = clampedFill / 100;
 
@@ -1690,8 +1720,7 @@ export class BroadcastManager {
         
         // Check if any party tokens are off-screen or near edge - always pan in this case
         if (partyTokens && partyTokens.length > 0) {
-            const viewportWidth = canvas.app?.renderer?.width || window.innerWidth || 1920;
-            const viewportHeight = canvas.app?.renderer?.height || window.innerHeight || 1080;
+            const { width: viewportWidth, height: viewportHeight } = this._getViewportCssSize();
             const currentZoom = canvas.stage?.scale?.x ?? 1.0;
             
             // Viewport bounds in world coordinates
