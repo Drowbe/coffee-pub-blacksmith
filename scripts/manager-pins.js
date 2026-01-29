@@ -871,6 +871,18 @@ export class PinManager {
         if (!this._canEdit(existing, userId)) {
             throw new Error('Permission denied: you cannot delete this pin.');
         }
+        // Deleting writes scene flags (placed) or world setting (unplaced); only GMs can write. Non-GM users use requestGM so the GM client performs the write.
+        if (!game.user?.isGM) {
+            const sceneId = loc.location === 'scene' ? loc.scene.id : null;
+            const wasOnCurrentScene = loc.location === 'scene' && loc.scene.id === canvas?.scene?.id;
+            await this.requestGM('delete', { sceneId, pinId, options });
+            if (wasOnCurrentScene) {
+                import('./pins-renderer.js').then(({ PinRenderer }) => {
+                    PinRenderer.removePin(pinId);
+                }).catch(() => {});
+            }
+            return;
+        }
         if (loc.location === 'unplaced') {
             const next = this._getUnplacedPins().filter((p) => p.id !== pinId);
             await this._setUnplacedPins(next);
