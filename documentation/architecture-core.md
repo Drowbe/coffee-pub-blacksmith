@@ -4,7 +4,9 @@
 > 
 > This document covers the **internal architecture** of Coffee Pub Blacksmith. 
 > 
-> **If you're developing another module** that wants to integrate with Blacksmith, see `BLACKSMITH-API.md` for the external API.
+> **If you're developing another module** that wants to integrate with Blacksmith, see `api-core.md` and the other `api-*.md` docs for the external API.
+
+**Audience:** Contributors to the Blacksmith codebase.
 
 ## **Overview**
 This document outlines the technical architecture and design decisions for the Coffee Pub Blacksmith module. The module has undergone significant architectural improvements and now features a robust, enterprise-grade socket communication system.
@@ -17,7 +19,7 @@ This document outlines the technical architecture and design decisions for the C
 - **Flexibility**: Full access to internal systems
 - **Use Case**: When developing Blacksmith itself
 
-### **🌐 External APIs (BLACKSMITH-API.md)**
+### **🌐 External APIs (api-core.md and api-*.md)**
 - **Bridge Access**: `await BlacksmithAPI.getHookManager()`
 - **Stability**: Consistent interface that won't break
 - **Safety**: Automatic timing and availability handling

@@ -1,5 +1,7 @@
 # Blacksmith Canvas Layer API Documentation
 
+**Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
+
 ## Overview
 
 The Blacksmith Canvas Layer API provides access to the `BlacksmithLayer`, a custom canvas layer that enables centralized canvas management for Coffee Pub modules. This layer is ideal for temporary drawings, UI overlays, and coordinated canvas interactions.

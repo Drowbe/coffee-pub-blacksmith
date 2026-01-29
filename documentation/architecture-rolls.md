@@ -1,5 +1,7 @@
 # Blacksmith Rolls Architecture
 
+**Audience:** Contributors to the Blacksmith codebase.
+
 ## Overview
 
 The Blacksmith rolls system provides a unified 4-function architecture for handling all skill checks, ability checks, saving throws, and tool checks in Foundry VTT. The system supports both window mode (traditional chat-based rolls) and cinema mode (full-screen cinematic experience) with real-time synchronization across all clients.

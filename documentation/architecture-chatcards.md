@@ -1,5 +1,7 @@
 # Chat Cards Architecture
 
+**Audience:** Contributors to the Blacksmith codebase.
+
 This document describes how Blacksmith's chat card system is built: HTML/CSS contract, theme system, current API, and how internal changes or new features are migrated. It is an architecture reference; for usage (how to create cards in your module) see `migration-guide-chat-cards.md`; for API method details see `api-chat-cards.md`.
 
 ## Overview

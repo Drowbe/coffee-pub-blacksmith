@@ -1,5 +1,7 @@
 # Blacksmith Toolbar API Documentation
 
+**Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
+
 ## Overview
 
 The Blacksmith Toolbar API allows external modules to register custom tools with the Blacksmith toolbar system. This provides a unified interface for adding functionality to both the Blacksmith Utilities toolbar and FoundryVTT's token control toolbar.

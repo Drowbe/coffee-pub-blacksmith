@@ -1,5 +1,7 @@
 # Stats System Architecture
 
+**Audience:** Contributors to the Blacksmith codebase.
+
 ## Overview
 
 This document outlines the current state and proposed architecture for the Coffee Pub Blacksmith statistics tracking system. The system tracks combat statistics at three levels: round-by-round, per-combat, and lifetime player stats.

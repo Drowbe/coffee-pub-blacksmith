@@ -1,5 +1,7 @@
 # HookManager - Correct Implementation Approach
 
+**Audience:** Contributors to the Blacksmith codebase.
+
 ## **The Right Way: Simple Orchestration Layer**
 
 The HookManager should act as an **orchestration layer** where you just register a hook and a callback. It should be simple, not complex.

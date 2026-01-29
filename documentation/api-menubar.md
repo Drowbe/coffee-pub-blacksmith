@@ -1,5 +1,7 @@
 # Blacksmith Menubar API Documentation
 
+**Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
+
 ## Overview
 
 The Blacksmith Menubar API allows external modules to register custom tools with the Blacksmith menubar system. This provides a unified interface for adding functionality to the global menubar that appears above the FoundryVTT interface.

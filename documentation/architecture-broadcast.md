@@ -6,6 +6,8 @@
 > 
 > The Broadcast feature enables streaming/recording of FoundryVTT sessions by designating a specific user as the "cameraman" who sees a clean, UI-free view that automatically follows tokens.
 
+**Audience:** Contributors to the Blacksmith codebase.
+
 ## **Overview**
 
 The Broadcast feature provides a simple, powerful system for streaming FoundryVTT sessions. Unlike modules that attempt to detect OBS automatically, Blacksmith uses a **user-based approach**: a designated user (the "cameraman") logs into the session and receives a specially configured view.

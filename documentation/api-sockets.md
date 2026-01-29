@@ -6,6 +6,8 @@
 > 
 > **If you're developing Blacksmith itself**, see `architecture-socketmanager.md` for internal architecture details.
 
+**Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
+
 ## Overview
 
 Blacksmith provides a unified socket management API that handles SocketLib integration, fallback to native Foundry sockets, and automatic initialization. This allows other modules to leverage Blacksmith's socket infrastructure without managing SocketLib setup themselves.

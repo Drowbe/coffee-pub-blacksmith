@@ -1,5 +1,7 @@
 # Chat Cards API Documentation
 
+**Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
+
 > **Status**: Chat Cards API available. Provides access to chat card themes for use in dropdowns and UI elements. Full chat card creation/management API coming in future release.
 
 ## Overview

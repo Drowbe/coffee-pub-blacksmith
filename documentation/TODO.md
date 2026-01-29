@@ -44,6 +44,13 @@
 
 ### Medium Priority
 
+#### Rolls API as first-class surface
+- **Issue**: Rolls are exposed only via `module.api.BLACKSMITH.rolls.execute`; there is no `module.api.rolls` namespace and no dedicated API doc.
+- **Status**: PENDING - Future enhancement
+- **Location**: `scripts/blacksmith.js` (module.api assignment), new `documentation/api-rolls.md`
+- **Need**: Expose a first-class rolls surface (e.g. `module.api.rolls = { execute: ... }` or small namespace); add `BlacksmithAPI.getRolls()` in `api/blacksmith-api.js` if desired; document in `api-rolls.md` for developers leveraging the roll system.
+- **Priority**: Medium – Improves discoverability and consistency with pins/chatCards/stats APIs
+
 #### Window API
 - **Issue**: Create a Window API for managing and controlling Blacksmith windows
 - **Status**: PENDING - Needs implementation

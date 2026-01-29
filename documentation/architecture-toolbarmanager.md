@@ -1,5 +1,7 @@
 # Blacksmith Toolbar Manager Architecture
 
+**Audience:** Contributors to the Blacksmith codebase.
+
 ## Overview
 
 This document outlines the architecture for extending Blacksmith's toolbar system to support dynamic tool registration for both the Blacksmith toolbar and FoundryVTT's token control toolbar, while providing an API for other modules to register tools.

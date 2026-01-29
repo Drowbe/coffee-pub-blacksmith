@@ -1,5 +1,7 @@
 # SocketManager - Internal Architecture
 
+**Audience:** Contributors to the Blacksmith codebase.
+
 ## **Overview**
 This document details the internal architecture and implementation of Blacksmith's SocketManager system. This is for developers who want to understand how the socket system works internally, not for module consumers.
 

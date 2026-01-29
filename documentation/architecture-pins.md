@@ -1,5 +1,7 @@
 # Canvas Pins Architecture
 
+**Audience:** Contributors to the Blacksmith codebase.
+
 This document describes how the Canvas Pins system is built and how its parts interact. It is an architecture reference, not an API reference (see `api-pins.md` for the public API).
 
 ## Overview

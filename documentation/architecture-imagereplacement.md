@@ -1,5 +1,7 @@
 # Token and Portrait Image Replacement Architecture
 
+**Audience:** Contributors to the Blacksmith codebase.
+
 ## Overview
 The Token / Portrait Image Replacement system allows GMs to replace token and portrait images with alternatives from cached libraries. **Token** and **portrait** modes share the same matching algorithm and UI patterns but use **separate caches** and mode-specific settings. The system uses a unified matching algorithm across all interfaces; the main difference is auto-apply vs. user choice and token vs. portrait target.
 

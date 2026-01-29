@@ -1,5 +1,7 @@
 # API: OpenAI Integration
 
+**Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
+
 This document describes the OpenAI integration API provided by Coffee Pub Blacksmith for AI-powered functionality.
 
 ## **Accessing the OpenAI API**

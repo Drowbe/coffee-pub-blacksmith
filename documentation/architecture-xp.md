@@ -1,5 +1,7 @@
 # XP Distribution System Architecture
 
+**Audience:** Contributors to the Blacksmith codebase.
+
 ## Overview
 
 The XP Distribution system is a dual-mode experience point allocation tool for FoundryVTT that supports both monster-based XP (Experience Points mode) and manual milestone XP (Milestones mode). The system can operate in combat mode (when combat is active) or non-combat mode (when opened from the menubar).

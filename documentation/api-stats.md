@@ -1,5 +1,7 @@
 # Blacksmith Stats API
 
+**Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
+
 This document serves as the authoritative reference for the Coffee Pub Blacksmith statistics surface. It explains how the API is exposed, which namespaces are available, and how data flows through the round, combat, and lifetime tiers.
 
 ---

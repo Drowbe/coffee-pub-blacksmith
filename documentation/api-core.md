@@ -4,7 +4,9 @@
 > 
 > This document covers how **other FoundryVTT modules** can integrate with Coffee Pub Blacksmith. 
 > 
-> **If you're developing Blacksmith itself**, see `BLACKSMITH-ARCHITECTURE.md` for internal architecture details.
+> **If you're developing Blacksmith itself**, see `architecture-blacksmith.md` and `architecture-core.md` for internal architecture details.
+
+**Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
 
 ## **What This API Provides**
 
@@ -46,13 +48,13 @@ We believe external modules should have a **simple, predictable interface** that
 ## **Internal vs External APIs - What's the Difference?**
 
 ### **🔧 Internal API (for Blacksmith developers)**
-- **Location**: `BLACKSMITH-ARCHITECTURE.md`
+- **Location**: `architecture-blacksmith.md`, `architecture-core.md`
 - **Access**: Direct manager access (e.g., `HookManager.registerHook()`)
 - **Use case**: When developing Blacksmith itself
 - **Example**: `scripts/blacksmith.js` uses internal APIs
 
 ### **🌐 External API (for other modules)**
-- **Location**: This document (`BLACKSMITH-API.md`)
+- **Location**: This document (`api-core.md`)
 - **Access**: Global objects (e.g., `BlacksmithHookManager`, `BlacksmithUtils`)
 - **Use case**: When your module wants to integrate with Blacksmith
 - **Example**: Other Coffee Pub modules use external APIs
