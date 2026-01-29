@@ -49,6 +49,8 @@ To hide Foundry's default chat message header, add this at the very beginning of
 <span style="visibility: hidden">coffeepub-hide-header</span>
 ```
 
+**Note:** Use `visibility: hidden` (not `visibility: none` — that value is invalid in CSS).
+
 ## Themes
 
 The theme system controls the color scheme of your card. Apply a theme by adding the theme class to the `.blacksmith-card` element.
@@ -121,6 +123,8 @@ The main content area for your card body.
 - Proper spacing and margins
 - Theme-aware text colors
 - Supports paragraphs, lists, and other HTML elements
+
+**Important (from migration experience):** Style **only** content inside `.section-content`. Do **not** add your own CSS for `.card-header`, the header icon, or the header title — Blacksmith themes provide that. Your module’s CSS should target `.blacksmith-card .section-content` and your custom elements within it (e.g. `.blacksmith-card .section-content [id^="my-module-"]`) so you don’t override Blacksmith’s header styling.
 
 ### Section Headers
 
@@ -381,35 +385,30 @@ You can add custom CSS classes to your cards for module-specific styling:
 </div>
 ```
 
-Then add custom CSS in your module's stylesheet:
+Then add custom CSS in your module's stylesheet. **Scope all custom styles to `.section-content`** so you don’t override Blacksmith’s card header or wrapper:
 
 ```css
-.my-module-card {
-    /* Your custom styles */
+/* Only style content inside section-content */
+.blacksmith-card .section-content [id^="my-module-"] {
+    /* Your custom content styles */
 }
 ```
 
-**Important:** Always scope your custom styles to avoid conflicts:
-
-```css
-.my-module-card .section-content {
-    /* Scoped to your module's cards only */
-}
-```
+**Important:** Do **not** style `.card-header`, the header icon, or the header title in your CSS. Blacksmith drives those. Restrict your rules to descendants of `.blacksmith-card .section-content` (and your own IDs/classes) to avoid conflicts with Blacksmith and other modules.
 
 ### Icon Usage
 
-Icons use Font Awesome. Common icon classes:
+Icons use Font Awesome. In Foundry v13+, Font Awesome 6 is used; prefer the `fa-solid` prefix:
 
-- `fas fa-dice` - Dice icon
-- `fas fa-check` - Checkmark
-- `fas fa-times` - X mark
-- `fas fa-info-circle` - Information
-- `fas fa-exclamation-triangle` - Warning
-- `fas fa-star` - Star
-- `fas fa-users` - Users/Party
-- `fas fa-sword` - Combat
-- `fas fa-coins` - Loot/Currency
+- `fa-solid fa-dice` - Dice icon (or `fas fa-dice` where still supported)
+- `fa-solid fa-check` - Checkmark
+- `fa-solid fa-times` - X mark
+- `fa-solid fa-info-circle` - Information
+- `fa-solid fa-exclamation-triangle` - Warning
+- `fa-solid fa-star` - Star
+- `fa-solid fa-users` - Users/Party
+- `fa-solid fa-sword` - Combat
+- `fa-solid fa-coins` - Loot/Currency
 
 See [Font Awesome Icons](https://fontawesome.com/icons) for the full list.
 
@@ -417,12 +416,14 @@ See [Font Awesome Icons](https://fontawesome.com/icons) for the full list.
 
 1. **Always use the base structure**: Start with `.blacksmith-card` and a theme class
 2. **Use semantic classes**: Use `.card-header`, `.section-content`, `.section-header` for consistency
-3. **Hide Foundry header**: Add the hide-header span at the beginning of your template
-4. **Choose appropriate themes**: Match theme colors to your card's purpose (blue for info, red for warnings, etc.)
-5. **Use data attributes**: Add `data-*` attributes to buttons and elements for event handling
-6. **Scope custom CSS**: Always scope your custom styles to avoid conflicts with other modules
-7. **Test with different themes**: Ensure your content is readable with all theme options
-8. **Use Handlebars conditionals**: Use `{{#if}}` blocks to show/hide optional content
+3. **Hide Foundry header**: Add the hide-header span at the beginning of your template (`visibility: hidden`, not `none`)
+4. **Choose appropriate themes**: Use **announcement themes** for announcements (rounds, alerts); use **card themes** for regular chat cards (turns, skill checks). Don’t mix both in one dropdown — use separate settings and API methods per type
+5. **Style only section-content**: Add CSS only for content inside `.blacksmith-card .section-content`. Do not style `.card-header` or the wrapper — Blacksmith themes handle those
+6. **Use data attributes**: Add `data-*` attributes to buttons and elements for event handling
+7. **Scope custom CSS**: Scope all custom styles to `.blacksmith-card .section-content` and your own IDs/classes to avoid conflicts
+8. **Test with different themes**: Ensure your content is readable with all theme options
+9. **Use Handlebars conditionals**: Use `{{#if}}` blocks to show/hide optional content
+10. **Use the API for theme choices**: Use `getThemeChoicesWithClassNames()` (or the card/announcement variants) so settings store CSS class names; then pass the value directly into templates with no ID-to-class conversion
 
 ## Common Patterns
 
@@ -532,11 +533,17 @@ Hooks.on('renderChatMessage', (message, html, data) => {
 
 ## Troubleshooting
 
+### "Setting is not registered" at startup
+
+- Theme choices come from the Chat Cards API asynchronously. Register settings in a `ready` hook (not `init`) and **await** your `registerSettings()` function before reading any of those settings (e.g. before calling `getRoundInitialized()` or other code that uses theme-related settings).
+- Ensure `registerSettings` is async and that you `await registerSettings()` in your ready callback.
+
 ### Card Not Styling Correctly
 
 - Ensure Coffee Pub Blacksmith module is active
 - Check that you're using `.blacksmith-card` as the base class
 - Verify a theme class is applied (e.g., `theme-default`)
+- Do not add your own CSS for `.card-header` — style only content inside `.section-content`
 - Check browser console for CSS errors
 
 ### Icons Not Showing
@@ -570,6 +577,16 @@ Blacksmith's template examples:
 - `templates/cards-common.hbs` - Common card patterns
 - `templates/cards-xp.hbs` - XP distribution card example
 - `templates/card-skill-check.hbs` - Skill check card example
+
+## Lessons from Migration (Coffee Pub Crier)
+
+When migrating an existing chat card system to Blacksmith:
+
+1. **Structure as contract** — Use exactly: hide-header span → `.blacksmith-card` + theme → `.card-header` (don’t style) → `.section-content` (style only this). Don’t add extra wrapper classes (e.g. `crier`) on the card; scope your CSS to `.blacksmith-card .section-content` instead.
+2. **Theme type separation** — Use `getAnnouncementThemeChoicesWithClassNames()` only for round/announcement cards and `getCardThemeChoicesWithClassNames()` only for turn/regular cards. Don’t mix both in one dropdown.
+3. **Async settings** — Because theme choices come from the API, register settings in a `ready` hook and `await registerSettings()` before reading any of those settings. Otherwise you can hit “setting is not registered” at startup.
+4. **No legacy theme mapping** — Remove old theme keys (e.g. `cardsdark`, `cardsgreen`) and use only API themes; store CSS class names in settings and pass them straight into templates.
+5. **Generic content selectors** — Prefer attribute selectors like `[class^="my-module-user-"]` or `[id^="my-module-"]` instead of theme-specific classes so new themes work without CSS changes.
 
 ## Next Steps
 
@@ -670,6 +687,12 @@ const announcementChoices = chatCardsAPI.getThemeChoicesWithClassNames('announce
 - No ID-to-class-name conversion needed
 - More efficient (no API calls during rendering)
 
+**Convenience methods** (no type argument needed):
+- `chatCards.getCardThemeChoicesWithClassNames()` — card themes only
+- `chatCards.getAnnouncementThemeChoicesWithClassNames()` — announcement themes only
+
+Use these for separate dropdowns: e.g. one setting for “round/announcement” cards (announcement themes only) and one for “turn/regular” cards (card themes only).
+
 #### `chatCards.getTheme(themeId)`
 
 Get a specific theme by ID:
@@ -695,25 +718,46 @@ const html = `<div class="blacksmith-card ${className}">...</div>`;
 
 ### Example: Creating a Theme Dropdown (Recommended Approach)
 
-**Using CSS class names directly** (recommended for new code):
+**Using CSS class names directly** (recommended for new code). **Important:** Theme choices come from the Chat Cards API, which is available asynchronously. Register settings in a `ready` hook and **await** your choices so the API is available:
 
 ```javascript
-// In your module's settings registration
-Hooks.once('init', () => {
-    const chatCardsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.chatCards;
+// Register settings in ready (not init) so Blacksmith API is available
+export const registerSettings = async () => {
+    const blacksmith = await BlacksmithAPI.get();
+    const chatCardsAPI = blacksmith?.chatCards;
     
-    if (chatCardsAPI) {
-        // Store CSS class names directly in settings
-        game.settings.register('my-module', 'cardTheme', {
-            name: 'Chat Card Theme',
-            hint: 'Choose the theme for chat cards created by this module',
-            scope: 'world',
-            config: true,
-            type: String,
-            default: 'theme-default',  // CSS class name, not ID
-            choices: chatCardsAPI.getThemeChoicesWithClassNames('card')  // Keys are CSS class names
-        });
+    if (!chatCardsAPI) {
+        console.warn('Blacksmith Chat Cards API not available');
+        return;
     }
+    
+    // Store CSS class names directly in settings
+    game.settings.register('my-module', 'cardTheme', {
+        name: 'Chat Card Theme',
+        hint: 'Choose the theme for chat cards created by this module',
+        scope: 'world',
+        config: true,
+        type: String,
+        default: 'theme-default',  // CSS class name, not ID
+        choices: chatCardsAPI.getCardThemeChoicesWithClassNames()  // Keys are CSS class names
+    });
+    
+    // Separate setting for announcements — use announcement themes only
+    game.settings.register('my-module', 'announcementTheme', {
+        name: 'Announcement Theme',
+        hint: 'Choose the theme for round/announcement cards',
+        scope: 'world',
+        config: true,
+        type: String,
+        default: 'theme-announcement-green',
+        choices: chatCardsAPI.getAnnouncementThemeChoicesWithClassNames()
+    });
+};
+
+// In your module's ready hook, await registration before using any settings
+Hooks.once('ready', async () => {
+    await registerSettings();
+    // Now safe to read game.settings.get(MODULE.ID, 'cardTheme') etc.
 });
 
 // In your Handlebars template (my-card.hbs):
@@ -722,9 +766,8 @@ Hooks.once('init', () => {
 //     <div class="section-content">Content here</div>
 // </div>
 
-// In your template rendering - use setting value directly
+// In your template rendering - use setting value directly (no conversion)
 async function renderMyCard(data) {
-    // Get CSS class name directly from settings - no conversion needed!
     const themeClassName = game.settings.get('my-module', 'cardTheme') || 'theme-default';
     
     const templateData = {
