@@ -35,6 +35,13 @@
 
 ### High Priority
 
+#### Card CSS migration to theme system
+- **Issue**: Card-type CSS files (`cards-xp.css`, `cards-skill-check.css`, `cards-stats.css`) still use hardcoded colors; they should use the CSS variable theme system for consistency and themeability.
+- **Status**: PENDING – Checklist and strategy documented
+- **Location**: `documentation/architecture-chatcards.md` → “Migration (internal)” → “Card CSS migration checklist (detailed)”; `styles/cards-xp.css`, `styles/cards-skill-check.css`, `styles/cards-stats.css`
+- **Need**: Replace hardcoded colors with `var(--blacksmith-card-*)`; add XP/skill-check/stats-specific or semantic variables where needed; define new variables in `cards-layout.css` / `cards-themes.css`; test all card types with all themes.
+- **Priority**: High – Improves theme consistency and maintainability
+
 ### Medium Priority
 
 #### Window API

@@ -589,6 +589,117 @@ const useBlacksmithSystem = game.settings.get(MODULE.ID, 'diceRollToolSystem') =
 - [ ] Enhanced error handling
 - [ ] Performance optimization
 
+---
+
+## Migration Plan (Roll System)
+
+This section is the roll system migration plan: current status, root cause analysis, phased implementation, and progress tracking. It was merged from the standalone migration plan document.
+
+### Current Status
+
+**Critical fix completed:** Duplicate card creation bug fixed; window mode roll flow works. The roll system is in a transitional state: new 4-function architecture is implemented and working for some entry points; window mode is now functional after fixes.
+
+**What's working:** Socket system operational (SocketLib); cross-client communication; new 4-function architecture in `manager-rolls.js`; roll execution logic; chat card system and chat card click integration.
+
+**Partially working:** Cinema mode (overlay shows, roll execution complete but some polish pending); Roll Window class (exists, integration improved).
+
+**Broken / incomplete:** Query window integration still uses old system; system selection (`diceRollToolSystem`) not respected in `processRoll()` (hardcoded to Blacksmith).
+
+**Summary:** Socket system production ready; cross-client sync functional; new architecture implemented; chat card integration working; window mode fixed; cinema mode implemented; query integration and system selection remain.
+
+### Detailed Technical Analysis
+
+**Architecture mismatch:** Target is a unified flow (Request → Route → Presentation → Unified Execution → Unified Resolution). In practice there were two paths: (1) Chat card clicks → `orchestrateRoll()` → new 4-function system ✅ (2) Window mode → `RollWindow` → old patterns ❌. Window mode has been fixed to use the new system; query window still needs updating.
+
+**Function status:**
+
+| Function | Status | Integration |
+|----------|--------|-------------|
+| `requestRoll()` | ✅ Complete | Used by chat cards |
+| `orchestrateRoll()` | ✅ Complete | Used by chat cards, window, cinema |
+| `processRoll()` | ✅ Complete | Used by chat cards, window, cinema; system selection not yet respected |
+| `deliverRollResults()` | ✅ Complete | Used by chat cards, window, cinema |
+| `showRollWindow()` | ✅ Fixed | Uses new flow |
+| `showCinemaOverlay()` | ✅ Implemented | Roll execution connected |
+
+**Socket integration:** New system uses `emitRollUpdate()` and `deliverRollResults()`; old direct socket calls should be removed from any remaining code paths (e.g. query window when updated).
+
+### Root Cause Analysis
+
+**Primary:** Migration from old system to 4-function architecture was partially completed (new functions + chat card + window + cinema done; query window and system selection remain).
+
+**Secondary:** Architectural inconsistency—two competing paths—addressed for window and cinema; query window and system selection still to do.
+
+**Critical issues addressed:** (1) Window mode broken → fixed. (2) Cinema mode incomplete → implemented. (3) Query window integration missing → pending. (4) Socket pattern inconsistency → reduced; query and any legacy paths to be unified.
+
+### Phased Implementation Plan
+
+#### Phase 1: Critical Fixes
+
+- **1.1 Fix Window Mode Integration** ✅ Completed  
+  - Duplicate card fix (existingMessageId), connect `RollWindow._performRoll()` to new system, test window mode and cross-client sync, window polish (size, background, Dice So Nice).
+- **1.2 Complete Cinema Mode Implementation** ✅ Completed  
+  - Roll execution in cinema, overlay functions, end-to-end testing, cross-client sync, cinema polish (success/fail overlay, animation timing, crit/fumble effects).
+- **1.3 Update Query Window Integration** (pending)  
+  - Modify `window-query.js` to use `orchestrateRoll()`; replace direct `SkillCheckDialog` creation; test and verify cross-client sync.
+
+#### Phase 2: Architecture Unification
+
+- **2.1 Unify Execution Paths**  
+  - Audit all entry points; ensure each uses `orchestrateRoll()` → `processRoll()` → `deliverRollResults()`; remove old socket patterns; document unified path.
+- **2.2 Complete Migration**  
+  - Fix system selection: `processRoll()` respects `diceRollToolSystem`, implement `_executeFoundryRoll()` if needed, add selection logic. Remove old roll execution code; clean legacy patterns; ensure single source of truth in `manager-rolls.js`.
+
+#### Phase 3: Validation and Cleanup
+
+- **3.1 End-to-End Testing**  
+  - Test all entry points (dialog, cinema, query, chat cards); verify cross-client sync; validate window and cinema use same execution path.
+- **3.2 Legacy Code Removal**  
+  - Remove `utils-rolls-OLD.js` if present; clean remaining old functions; optimize and document final system.
+
+#### Phase 4: Production Readiness
+
+- **4.1 Performance Optimization** – Roll execution and memory usage.
+- **4.2 Error Handling and Resilience** – Comprehensive error handling, network resilience.
+- **4.3 User Experience Polish** – Chat card tooltips/sounds, cinema crit/fumble effects, window polish, accessibility.
+- **4.4 Documentation and Maintenance** – API docs, roll guide, troubleshooting, code quality and tests.
+
+### Function Specifications (Current Status)
+
+**Implemented and working:** `requestRoll()`, `orchestrateRoll()`, `processRoll()`, `deliverRollResults()` — used by chat cards, window mode, and cinema mode.
+
+**Helper functions:** `_executeBuiltInRoll()`, `prepareRollData()`, `emitRollUpdate()`.
+
+**Pending:** Query window to use `orchestrateRoll()`; `processRoll()` to respect `diceRollToolSystem` and support Foundry roll path when selected.
+
+### Success Metrics
+
+- **Technical:** Socket communication ✅; roll execution ✅ (chat cards, window, cinema); chat card updates ✅; cross-client sync ✅; query window ❌ pending; system selection ❌ pending.
+- **User experience:** Rolls complete and display correctly for window and cinema; query to be aligned; error handling in place.
+- **Development:** Code maintainable; functions separated; extension points clear; performance to be validated after query and system-selection work.
+
+### Risk Assessment
+
+- **High risk (addressed):** Window mode integration ✅ fixed; cinema mode roll execution ✅ implemented.
+- **Remaining:** Query window integration; system selection respect.
+- **Low risk:** Socket communication; cross-client sync; chat card integration.
+
+**Mitigation:** Incremental fixes, test each change, keep fallbacks until new path proven, user feedback after fixes.
+
+### Progress Tracking
+
+- **Phase 1:** 1.1 Window mode ✅; 1.2 Cinema mode ✅; 1.3 Query window pending.
+- **Phase 2–4:** Architecture unification, validation, production readiness — pending.
+
+**Critical path:** (1) Socket system ✅ (2) Phase 1.1 Window mode ✅ (3) Phase 1.2 Cinema mode ✅ (4) Phase 1.3 Query window (5) Phase 2–4.
+
+**Success criteria (summary):** Phase 1 complete when window, cinema, and query all use the new flow and cross-client sync works. Phase 2 when all entry points use the same path and old patterns are removed. Phase 3 when tested and legacy removed. Phase 4 when performance, error handling, UX polish, and docs are complete.
+
+**Last updated:** Current session — window and cinema flows implemented and functional.  
+**Next milestone:** Phase 1.3 Query window integration; then system selection and Phase 2–4.
+
+---
+
 ## File Structure
 
 ### Core Files
