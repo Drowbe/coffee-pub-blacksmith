@@ -1,7 +1,7 @@
-# Token Image Replacement Architecture
+# Token and Portrait Image Replacement Architecture
 
 ## Overview
-The Token Image Replacement system is a FoundryVTT module that allows GMs to automatically replace token images with better alternatives from a cached library of images. The system uses a unified matching algorithm across all interfaces, with the only difference being auto-apply vs. user choice.
+The Token / Portrait Image Replacement system allows GMs to replace token and portrait images with alternatives from cached libraries. **Token** and **portrait** modes share the same matching algorithm and UI patterns but use **separate caches** and mode-specific settings. The system uses a unified matching algorithm across all interfaces; the main difference is auto-apply vs. user choice and token vs. portrait target.
 
 ## Core Philosophy
 **Token Drop = Selected Tab + Auto-Apply**
@@ -409,3 +409,34 @@ ELSE (browsing mode):
 - Two-phase search: fast filename search first, comprehensive search second
 - Search scope optimization using creature types
 - Cached search terms for selected token filter
+
+---
+
+## Implementation Status (Token / Portrait Separation)
+
+The system has been migrated so token and portrait experiences are fully separated while sharing core logic.
+
+### What’s in place
+- **Separate caches**: `portraitCache` and token `cache`; scan, refresh, delete, pause are mode-aware.
+- **Mode toggle**: UI switches between token and portrait; categories, tags, search, and apply target are mode-specific.
+- **Search terms**: `_getSearchTerms(source, mode)` — portrait from actor, token from token.document.
+- **Apply target**: Portrait uses `actor.update({ img })`; token uses `token.update({ texture.src })`.
+- **Settings**: Portrait-specific settings (ignored folders, auto-update, deprioritized/ignored words) and mode-specific thresholds/variability.
+- **Cache key**: Path+filename so same-named files in different folders are distinct.
+- **Global controls**: Mode toggle, Convert Dead, Loot Dead in a global header; mode-specific controls (fuzzy search, update dropped, threshold, scan, delete cache) in the main header with mode-specific labels and notifications.
+
+### Variability
+- **Token**: `tokenImageReplacementVariability` — random selection from top-scoring matches; applied on token drop.
+- **Portrait**: `portraitImageReplacementVariability` — same logic; applied when portraits are updated on drop.
+- **Selection**: `_selectMatchingImage()` finds all matches with the highest score and randomly picks one when variability is on; otherwise best match.
+- **Update dropped**: `portraitImageReplacementUpdateDropped` — portrait-specific toggle to update actor portraits when tokens are created; works independently from token replacement.
+
+### Testing (summary)
+- **Token mode**: Scan/categories/tags/thumbnails/search/apply/delete cache/variability/update dropped all token-only.
+- **Portrait mode**: Same checks for portrait cache and actor target.
+- **Mode switch**: Categories, tags, and cache operations update correctly; selection state preserved as intended.
+- **Global controls**: Mode toggle, Convert Dead, Loot Dead apply to both modes and stay visible.
+
+### Planned: Phase 6 — Bulk migration tool
+- **Goal**: Migrate existing tokens/portraits to use image-replacement cache (match by filename, apply from cache).
+- **Planned pieces**: Migration button (mode-specific), settings (compendiums, include world, backup, dry run), scan world/compendiums, match by filename, apply updates with progress, report (counts, unmatched list, export). Safety: backup option, dry-run preview, confirmation. Not yet implemented.

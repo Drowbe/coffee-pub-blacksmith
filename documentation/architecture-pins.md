@@ -1,231 +1,175 @@
 # Canvas Pins Architecture
 
+This document describes how the Canvas Pins system is built and how its parts interact. It is an architecture reference, not an API reference (see `api-pins.md` for the public API).
+
 ## Overview
 
-The Canvas Pins system provides a configurable, interactive pin system for the FoundryVTT canvas. Pins are visual markers that can be placed on scenes, configured with various properties, and respond to user interactions. The system is designed to be consumed by other modules (such as Coffee Pub Squire) while being managed by Blacksmith.
+The Canvas Pins system provides configurable, interactive markers on the FoundryVTT canvas. Pins can be **placed** on a scene (visible on the canvas) or **unplaced** (data only; typical for notes, quests, etc.). The system is consumed by other modules (e.g. Coffee Pub Squire) and managed by Blacksmith.
 
-**Target Version**: FoundryVTT v13+ only, with Application V2 API support required.
+**Target**: FoundryVTT v13+ only. Application V2 is used for the pin configuration window.
 
-**Implementation status**: Phases 1–3 and Phase 2.2–2.3 are implemented. Pins render using pure DOM approach (no PIXI) on a fixed overlay, support multiple shapes (circle, square, none), Font Awesome icons and image URLs, CSS-based styling with configurable variables, support CRUD and event handlers (hover, click, double-click, right-click, middle-click, drag), drag-and-drop placement via `dropCanvasData`, drag-to-move for existing pins, and a right-click context menu with registration system for modules. See `plans-pins.md` for details.
+**Implementation**: Pins render as **pure DOM** (no PIXI graphics) in a fixed overlay. Storage is split: placed pins in scene flags, unplaced pins in a world setting. CRUD, permissions, events, and context menu registration are centralized in PinManager; rendering and coordinate conversion live in the pins renderer.
 
-## Core Requirements
+---
 
-### Storage
-- Pins must be stored in the scene they are placed on (using scene flags)
-- Each pin should have a unique identifier within the scene (UUID-based, not timestamp)
-- Pin data should persist across scene loads and module reloads
-- Include data migration system for pin format changes
-- Validate loaded pin data structure on scene load
-- Include a pin data schema version for safe upgrades
+## Storage
 
-### Configuration
-Pins support the following configurable properties:
-- **Size**: Configurable size/dimensions (default 32×32)
-- **Style**: Visual styling (fill, stroke, strokeWidth, alpha) - supports hex, rgb, rgba, hsl, hsla, named colors
-- **Shape**: Pin shape - 'circle' (default), 'square' (rounded corners), or 'none' (icon only, no background)
-- **Text**: Optional text label (stored; rendering planned)
-- **Image**: Font Awesome HTML (e.g. `<i class="fa-solid fa-star"></i>`), Font Awesome class string (e.g. `'fa-solid fa-star'`), or image URL (e.g. `'icons/svg/star.svg'` or `<img src="path/to/image.webp">`)
+### Placed pins
 
-### Interactivity
-Pins support the following interactions:
-- **Droppable**: Implemented via `dropCanvasData` hook (drop `type: 'blacksmith-pin'` data on canvas)
-- **Draggable**: Implemented (left-click + drag to move; 5px threshold distinguishes from click)
-- **Deletable**: Via API or context menu (right-click → Delete Pin)
-- **Updateable**: Via API; context menu supports custom items via registration system
-- **Hover / Click / Double-Click / Drag**: Implemented (hoverIn, hoverOut, click, doubleClick, rightClick, middleClick, dragStart, dragMove, dragEnd; modifiers passed to handlers)
-- **Context Menu**: Right-click shows menu with registered items (modules can register custom items) plus default items (Delete Pin, Properties)
+- **Where**: `scene.flags[MODULE.ID].pins` (array of pin objects).
+- **When**: Pins that have `sceneId`, `x`, and `y` are “placed” and appear on the canvas for that scene.
+- **Shape**: Each pin has `id`, `x`, `y`, `size`, `style`, `shape`, `text`, `image`, `config`, `moduleId`, `ownership`, `version`, etc. See `pins-schema.js` and the schema section below.
 
-### Event Handling
-Pins support the following events, with callbacks passed back to the caller:
-- **Hover**: Mouse enter/leave events (hoverIn, hoverOut)
-- **Left Click**: Single left mouse button click
-- **Double-Click**: Double left mouse button click (300ms window)
-- **Right Click**: Context menu / right mouse button click (shows menu with registered + default items)
-- **Middle Click**: Middle mouse button click
-- **Modifier-Click**: All click events include modifier keys (Ctrl, Alt, Shift, Meta)
-- **Drag**: Drag start/move/end (opt-in for modules that need `dragEvents: true`)
+### Unplaced pins
 
-The event system should work similarly to:
-- **HookManager**: Register callbacks that get invoked when events occur
-- **Menubar**: Event delegation pattern where registered handlers are called
+- **Where**: World setting `pinsUnplaced` (object with a `pins` array). Same pin shape as placed pins but without `sceneId`/`x`/`y` (or omitted for unplaced).
+- **When**: Created via the API without `sceneId`/`x`/`y`; moved here when unplaced from a scene. Not rendered on the canvas; used for notes, quests, etc.
+- **Resolve order**: When looking up a pin by id without `sceneId`, the system checks the unplaced store first, then any scene.
 
-### Rendering
-- Pins render using **pure DOM approach** (no PIXI) - HTML divs positioned over the canvas
-- Pins are in a fixed overlay container (`#blacksmith-pins-overlay`) with `z-index: 2000`
-- Pins support multiple shapes: `circle` (default, 50% border-radius), `square` (rounded corners via CSS variable), or `none` (icon only, no background)
-- Icons support Font Awesome (HTML or class strings) and image URLs (including `<img>` tags)
-- All styling is CSS-based (`styles/pins.css`) with configurable variables (icon size ratio, border radius)
-- Pins fade in smoothly on creation (0.2s transition)
-- Pins hide during pan/zoom for performance, then update positions after canvas settles
-- The layer auto-activates when loading scenes that contain pins, so pins are visible after refresh
-- Pins are visible to all users with view permission; create/update/delete respect ownership and `pinsAllowPlayerWrites`
-- Pins update in real-time when modified via the API
+### Data flow
 
-## Architecture Patterns
+- **Create (unplaced)**: `create(data)` with no `sceneId`/`x`/`y` → append to `pinsUnplaced.pins`, fire `blacksmith.pins.created` with `placement: 'unplaced'`.
+- **Create (placed)**: `create(data)` with `sceneId`, `x`, `y` → append to `scene.flags[MODULE.ID].pins`, fire `blacksmith.pins.created` with `placement: 'placed'`.
+- **Place**: `place(pinId, { sceneId, x, y })` → remove from unplaced, add to scene flags, fire `blacksmith.pins.placed`.
+- **Unplace**: `unplace(pinId)` → remove from scene flags, add to unplaced, fire `blacksmith.pins.unplaced`.
+- **Update**: `update(pinId, patch, opts)` works for both placed and unplaced; can include `sceneId`, `x`, `y` to place an unplaced pin.
+- **Delete**: Removes from either store; fire `blacksmith.pins.deleted`.
 
-### Event Callback Pattern
-Similar to HookManager and Menubar, pins support:
-1. Registration of event handlers per pin or globally (via `pinsAPI.on()`)
-2. Event delegation from DOM event listeners on pin elements
-3. Callback invocation with structured event data (type, pin, sceneId, userId, modifiers, originalEvent)
-4. Error handling for callback failures (isolated per handler, doesn't break other handlers)
-5. Easy unregistration via return handle or AbortSignal
-6. Context menu item registration (modules can add custom menu items via `pinsAPI.registerContextMenuItem()`)
+Only GMs can write scene flags and the world setting. Non-GM users with edit permission use a GM proxy (socket/requestGM) so the GM client performs the write.
 
-### Data Structure
-Pins should be stored in scene flags (not embedded documents):
-- Each pin needs: `id` (UUID), `x`, `y`, `size`, `style`, `text`, `image`, `config`, `moduleId`, `version`, `ownership`
-- Store only essential data - event handlers registered separately (not stored in scene data)
-- Pin configuration should be serializable and validated
-- Use proper hit area calculation that includes all visible elements (base, text, labels)
+---
 
-**Recommended minimal schema**:
-```json
-{
-  "id": "uuid",
-  "x": 0,
-  "y": 0,
-  "size": { "w": 32, "h": 32 },
-  "style": { "fill": "#000000", "stroke": "#ffffff", "strokeWidth": 2, "alpha": 1 },
-  "shape": "circle",
-  "text": "Optional label",
-  "image": "Optional Font Awesome HTML, class string, or image URL",
-  "config": {},
-  "moduleId": "consumer-module-id",
-  "ownership": { "default": 0, "users": { "USER_ID": 3 } },
-  "version": 1
-}
-```
+## Components
 
-### Validation and Migration
-- Validate pins on load; drop or repair invalid entries
-- Keep a migration map keyed by `version`
-- Log migration errors with actionable messages
-- Never fail scene load due to a bad pin entry
+### PinManager (`scripts/manager-pins.js`)
 
-**Migration Strategy**:
-- Migration map structure: `Map<version, migrationFunction>`
-- Runs on scene load before pin validation
-- Migrates pins in-place, updates `version` field
-- Migration functions receive pin data and return migrated pin data
-- Logs migration actions for debugging (which pins migrated, from what version to what version)
-- If migration fails for a pin, drop the pin and log error (never fail scene load)
-- Current schema version should be defined as a constant (e.g., `PIN_SCHEMA_VERSION = 1`)
+- **Responsibility**: Single source of truth for pin data, permissions, and event routing.
+- **CRUD**: Create, update, delete, get, list. Resolves pin location (unplaced vs scene) via `_getPinLocation(pinId)`.
+- **Place / unplace**: Moves pins between unplaced store and scene flags.
+- **Permissions**: `_canEdit(pin, userId)` uses ownership (and optional hook `blacksmith.pins.resolveOwnership`). Create is gated by world setting `pinsAllowPlayerWrites`; edit/configure/delete by ownership; GM always full access.
+- **Events**: Registers handlers via `pins.on(eventType, handler, options)`. Valid types: `hoverIn`, `hoverOut`, `click`, `doubleClick`, `rightClick`, `middleClick`, `dragStart`, `dragMove`, `dragEnd`. Options can scope by `pinId`, `moduleId`, `sceneId` and support `AbortSignal` and `dragEvents`.
+- **Context menu**: `registerContextMenuItem(id, item)` / `unregisterContextMenuItem(id)`. Modules add custom items; default items (e.g. Delete Pin, Configure Pin) are always shown when applicable. Items filtered by `moduleId` and `visible` function.
+- **Schema**: Uses `pins-schema.js` for defaults, validation, and migration before persisting.
 
-### Rendering System
-- Pins render using **pure DOM approach** - HTML divs in a fixed overlay container
-- Overlay container (`#blacksmith-pins-overlay`) is `position: fixed`, covers full viewport, `z-index: 2000`
-- Each pin is a DOM div with CSS styling (circle/square/none shape, colors, transitions)
-- Icons are HTML elements (Font Awesome via innerHTML, images via backgroundImage)
-- Pins use scene coordinates converted to screen pixels; zoom/pan supported via coordinate conversion
-- System initialized on `canvasReady`; pins loaded via `canvasReady` and `updateScene` hooks
-- Pins cleared when scenes change
-- Layer auto-activates when loading scenes that have pins (for compatibility, though pins don't use the layer)
+### Pins renderer (`scripts/pins-renderer.js`)
 
-### Permissions Model
-- Default to GM-only create/update/delete
-- Allow read-only access for non-GM users
-- Use Foundry ownership semantics (`CONST.DOCUMENT_OWNERSHIP_LEVELS`) for pin visibility/editability
-- `ownership.default` and per-user overrides govern who can view or edit
-- GM always has full access
-- Enforce permissions in both UI interactions and API calls
+- **Responsibility**: Visual representation and input handling only. No ownership of pin data.
+- **PinDOMElement**: Static class that owns the **DOM overlay** (`#blacksmith-pins-overlay`) and one **DOM element per pin** (div with class `blacksmith-pin`). No PIXI graphics for pins; styling is CSS (`styles/pins.css`). Shapes: `circle`, `square`, `none` (icon only). Icons: Font Awesome (class string or HTML) or image URL.
+- **Coordinate conversion**: Scene coordinates → screen pixels via `_sceneToScreen(sceneX, sceneY)` using `canvas.stage.toGlobal()` (reuses a PIXI.Point for performance). Positions updated on canvas pan, zoom, and resize (throttled).
+- **Lifecycle**: Initialized on first use. On `canvasReady` and `updateScene`, loads pins for the current scene via `PinManager.list({ sceneId })` and calls `PinRenderer.loadScenePins(sceneId, pins)`. Clearing the overlay when the scene has no pins. Only **placed** pins for the active scene are rendered; unplaced pins are never drawn.
+- **PinRenderer**: Same file; orchestrates loading/clearing and delegates DOM creation/update to PinDOMElement. Context menu is custom HTML; “Configure Pin” calls `pinsAPI.configure(pinId, { sceneId })`.
 
-### Default Values
-When creating pins, the following defaults apply if properties are not provided:
-- **`size`**: `{w: 32, h: 32}` - Standard 32x32 pixel pin
-- **`style`**: `{fill: "#000000", stroke: "#ffffff", strokeWidth: 2, alpha: 1}` - Black fill, white stroke (supports RGBA, HSL, etc.)
-- **`shape`**: `'circle'` - Circular pin (50% border-radius)
-- **`version`**: `1` - Current schema version (uses `PIN_SCHEMA_VERSION` constant)
-- **`ownership`**: `{default: 0}` - No ownership (GM-only by default)
-- **`text`**: `undefined` - No text label
-- **`image`**: `undefined` - No icon (circle only). When provided, supports Font Awesome HTML, Font Awesome class strings, or image URLs.
-- **`config`**: `{}` - Empty config object
+### Pins schema (`scripts/pins-schema.js`)
 
-These defaults are applied during pin creation/validation, not stored in scene flags (to minimize data size). Image property supports multiple formats: Font Awesome HTML (`<i class="fa-solid fa-star"></i>`), Font Awesome class strings (`'fa-solid fa-star'`), image URLs (`'icons/svg/star.svg'`), or `<img>` tags (`<img src="path/to/image.webp">`).
+- **Responsibility**: Pin data shape, defaults, validation, and migration.
+- **Version**: `PIN_SCHEMA_VERSION`; each pin has a `version` field.
+- **Defaults**: Applied on create/validation (e.g. size, style, shape, ownership). Not necessarily stored to keep payloads small.
+- **Validation**: `validatePinData(pin, opts)` — e.g. `allowUnplaced` omits x/y requirement. Invalid pins are dropped or repaired on load; scene load never fails due to a bad pin.
+- **Migration**: Migration map keyed by version; runs on scene load before validation. Migrates in place and logs; on failure for a pin, drop that pin and log.
 
-## API Design Principles
+### API layer (`scripts/api-pins.js`)
 
-1. **Module Consumer Pattern**: Other modules register pins and event handlers
-2. **Event Forwarding**: Events bubble from canvas -> pin system -> registered callbacks
-3. **Permission Awareness**: Respect FoundryVTT permissions for create/update/delete
-4. **Performance**: Efficient rendering and event handling for many pins
-5. **Extensibility**: Easy to add new pin types, styles, or event types
+- **Responsibility**: Public interface for other modules. Thin wrapper over PinManager and PinConfigWindow.
+- **Methods**: create, update, delete, get, list, place, unplace, on, registerContextMenuItem, unregisterContextMenuItem, configure, reload. See `api-pins.md` for contracts.
 
-## Lessons Learned from Squire Implementation
+### Pin configuration window (`scripts/window-pin-config.js`)
 
-### What Worked Well
-- **Scene flags for storage**: Reliable and persists properly
-- **PIXI.Container organization**: Good structure for managing multiple pins
-- **State-based appearance**: Automatic visual updates based on state changes
-- **Drop canvas data hook**: Clean integration with Foundry's drag-and-drop system
+- **Responsibility**: Application V2 window for editing pin properties (size, shape, style, icon, text, etc.).
+- **Entry**: `pinsAPI.configure(pinId, options)` (exposed in `api-pins.js`; loads `PinConfigWindow` and calls `PinConfigWindow.open(pinId, options)`).
+- **Resolve pin**: `getData()` calls `PinManager.get(this.pinId, this.sceneId !== undefined ? { sceneId: this.sceneId } : {})` — no default `sceneId` so unplaced store is checked first when omitted.
+- **Permission**: `PinManager._canEdit(pin, userId)` in `getData()`; window does not open without edit permission (API also enforces on update).
+- **Save**: On submit, window builds a patch (size, shape, style, dropShadow, image, textLayout, textDisplay, textColor, textSize, textMaxLength, textScaleWithPin) and calls `pinsAPI.update(this.pinId, patch, { sceneId: this.sceneId })`.
+- **Context menu**: “Configure Pin” in `pins-renderer.js` is shown only when the user can edit; it calls `pinsAPI.configure(pinId, { sceneId: canvas?.scene?.id })` (or without `sceneId` for unplaced).
+- **Class**: Exported as `PinConfigWindow`; static `open(pinId, options)`; constructor accepts `pinId` and `options` (e.g. `sceneId`, `onSelect`, `useAsDefault`, `moduleId`).
+- **Files**: `scripts/window-pin-config.js`, `templates/window-pin-config.hbs`, `styles/window-pin-config.css`. Application id `blacksmith-pin-config`; root form class `blacksmith-pin-config`. Stable selectors for theming: `#blacksmith-pin-config`, `.blacksmith-pin-config`, `.window-content` (see `api-pins.md` for contracts).
+- **Ownership**: Ownership editor is not in the current window; permissions are enforced by the API. Full payload shape, default schema, and config-window contracts are in `api-pins.md`.
 
-### What to Do Differently
+**Config window checklist (current state):** Window extends Application V2; exports `PinConfigWindow`; static `open(pinId, options)`; `getData()` uses `PinManager.get()` with optional `sceneId` (omit for unplaced); permission check in `getData()` via `_canEdit()`; form submission calls `pinsAPI.update()`; template covers size, shape, style, icon color, text config; context menu and `pins.configure()` wired. Ownership editor not in window (optional future).
 
-#### 1. Container Management
-- **Issue**: Duplicated creation across multiple hooks
-- **Solution**: Single centralized initialization in `canvasReady` hook only
-- **Solution**: Proper cleanup when scenes change
+**Testing:** Right-click pin → “Configure Pin” opens only if user can edit; save updates pin on canvas or unplaced list; `pinsAPI.configure(pinId)` with no `sceneId` works for unplaced pins; non-editing user gets permission error or no open.
 
-#### 2. Pin Appearance Updates
-- **Issue**: Removes all children and recreates graphics on every update (inefficient)
-- **Solution**: Update existing PIXI.Graphics objects, only recreate when structure fundamentally changes
-- **Solution**: Batch multiple pin updates together
+---
 
-#### 3. Event Cleanup
-- **Issue**: Manual cleanup of global event listeners (`document.addEventListener`) must be tracked
-- **Solution**: Use `AbortController` for event listeners (v13+ feature)
-- **Solution**: Automatic cleanup on pin destruction
+## Rendering pipeline
 
-#### 4. Hit Area Calculation
-- **Issue**: Hit area only covers inner shape, not title text
-- **Solution**: Calculate proper hit area that includes all visible elements (base shape + text bounds)
+1. **Scene load / change**: `canvasReady` or `updateScene` → renderer schedules load → `PinManager.list({ sceneId: canvas.scene.id })` → only placed pins for that scene.
+2. **Pin list**: PinManager returns array from `scene.flags[MODULE.ID].pins`.
+3. **DOM**: For each pin, PinDOMElement creates or updates a div (position, size, shape, icon, text from pin data). Coordinates converted from scene to screen; overlay is fixed, so pins are positioned in screen space.
+4. **Pan / zoom / resize**: Throttled update runs `_sceneToScreen` for each pin and updates div position/size. Pins can be hidden during pan/zoom for performance, then shown again after.
 
-#### 5. State Parsing
-- **Issue**: Regex parsing of HTML content is fragile
-- **Solution**: Use DOM parser consistently for any content parsing
-- **Solution**: Cache parsed results to avoid redundant parsing
+No canvas “layer” is used for pins; the overlay is a sibling of the canvas app element in the DOM.
 
-#### 6. Debouncing
-- **Issue**: No debouncing for rapid state changes or journal updates
-- **Solution**: Add debouncing for update operations
-- **Solution**: Batch multiple updates when possible
+---
 
-#### 7. Error Handling
-- **Issue**: Try-catch blocks with silent failures
-- **Solution**: Proper error logging with user notifications for critical failures
+## Event flow
 
-#### 8. Data Validation
-- **Issue**: No validation of saved pin data structure
-- **Solution**: Validate pin data on load, handle missing/invalid data gracefully
-- **Solution**: Migration system for pin data format changes
+1. **DOM**: PinDOMElement attaches listeners to each pin div (click, contextmenu, pointer move, drag, etc.).
+2. **Delegation**: On interaction, the renderer resolves `pinId` and `pinData` and calls `PinManager._invokeHandlers(eventType, pin, sceneId, …)` with structured payload (e.g. modifiers, originalEvent).
+3. **Handlers**: PinManager looks up registered handlers for that event type (and optional pinId/moduleId/sceneId) and invokes each. Errors are isolated so one failing handler does not break others. AbortSignal and drag opt-in are respected.
 
-#### 9. Config Management
-- **Issue**: Config cache never invalidated, no validation
-- **Solution**: Add config validation and cache invalidation
-- **Solution**: Support hot-reload for testing
+---
 
-#### 10. Modern APIs (v13+ Only)
-- Use Application V2 API for any dialogs/forms
-- Use modern event handling patterns (AbortController)
-- Leverage latest FoundryVTT canvas APIs
+## Permissions model
 
-## Integration Points
+- **Visibility**: Who can see a pin is determined by ownership (default + per-user overrides). GM sees all.
+- **Create**: Allowed only if `pinsAllowPlayerWrites` is true or user is GM.
+- **Edit / Configure / Delete**: Any user with OWNER (or higher) on the pin can edit, configure, or delete that pin, regardless of `pinsAllowPlayerWrites`. GM can always do everything.
+- **Write path**: Scene flags and world setting `pinsUnplaced` are written only by the GM client; non-GM editors go through requestGM/socket so the GM performs the write.
 
-- **Scene Data**: Pins stored in `scene.flags['coffee-pub-blacksmith'].pins[]` (MODULE.ID from `const.js`). Each scene has its own pins array.
-- **Canvas Layer**: `blacksmith-utilities-layer`; `PinRenderer` manages a PIXI.Container; `PinGraphics` per pin.
-- **Event System**: PIXI pointer events on each pin; `PinManager._invokeHandlers()` dispatches to registered handlers. AbortSignal supported for cleanup.
-- **API Exposure**:
-  - **`scripts/pins-schema.js`**: Data model, validation, migration
-  - **`scripts/manager-pins.js`**: CRUD, permissions, event handler registration, context menu item registration
-  - **`scripts/pins-renderer.js`**: Pure DOM pin rendering, Font Awesome/icons/images, context menu rendering
-  - **`scripts/api-pins.js`**: Public `PinsAPI` (create, update, delete, get, list, on, registerContextMenuItem, unregisterContextMenuItem, reload)
-  - **`scripts/blacksmith.js`**: `module.api.pins = PinsAPI`; `canvasReady` / `updateScene` hooks for pin loading
-  - **`styles/pins.css`**: All pin styling with CSS variables for configuration
-- **Context Menu**: Custom HTML right-click menu with registration system. Modules can register custom items; default items (Delete Pin, Properties) always shown. Menu items filtered by `moduleId` and `visible` function.
+---
 
-## Remaining Work
+## Default values and schema (reference)
 
-See **`plans-pins.md`** for the full checklist. Outstanding items include:
+Applied during create/validation when not provided:
 
-- **Phase 3.3**: Context menu registration system implemented; optional use of Foundry context menu system remains.
-- **Phase 4–5**: Documentation updates, automated tests.
+- **size**: `{ w: 32, h: 32 }`
+- **style**: `{ fill: "#000000", stroke: "#ffffff", strokeWidth: 2, alpha: 1, iconColor: "#ffffff" }`
+- **shape**: `'circle'`
+- **version**: `PIN_SCHEMA_VERSION`
+- **ownership**: `{ default: 0 }`
+- **text**: undefined
+- **image**: undefined (or Font Awesome class string / image URL)
+- **config**: `{}`
+
+Image supports Font Awesome class strings and image URLs (no HTML in stored value). Full schema and validation rules are in `pins-schema.js`.
+
+---
+
+## Integration points (summary)
+
+| Concern            | Location / mechanism |
+|--------------------|----------------------|
+| Placed pin storage | `scene.flags[MODULE.ID].pins` (array) |
+| Unplaced pin storage | World setting `pinsUnplaced` (object with `pins` array) |
+| Rendering          | DOM overlay `#blacksmith-pins-overlay`; PinDOMElement per pin; `styles/pins.css` |
+| Coordinate conversion | `PinDOMElement._sceneToScreen()` using canvas.stage.toGlobal (PIXI.Point reused) |
+| CRUD & permissions | PinManager (`manager-pins.js`) |
+| Schema & migration | `pins-schema.js` |
+| Public API         | `api-pins.js` → `game.modules.get('coffee-pub-blacksmith')?.api?.pins` |
+| Config UI          | `window-pin-config.js` (PinConfigWindow); opened via `pinsAPI.configure()`; context menu “Configure Pin” in `pins-renderer.js` |
+| Hooks              | `blacksmith.js`: canvasReady / updateScene trigger pin load; dropCanvasData for dropping pins onto canvas |
+
+---
+
+## Lessons learned (from Squire implementation)
+
+### What worked well
+
+- Scene flags for placed pins: reliable and persistent.
+- State-driven appearance: visuals update from pin data.
+- Drop canvas data hook: clean integration with Foundry drag-and-drop.
+
+### What we do differently
+
+- **No PIXI for pin graphics**: Pins are DOM elements in a fixed overlay; only coordinate conversion uses the canvas/PIXI stack.
+- **Single init**: Pin overlay and hooks initialized once (e.g. on first use); no duplicate creation across hooks.
+- **Unplaced vs placed**: Explicit two-store model (world setting vs scene flags) so most pins can stay unplaced and only some are placed.
+- **Event cleanup**: Handlers can be unregistered via AbortSignal or explicit API.
+- **Validation and migration**: Schema version and migration map; invalid pins dropped without failing scene load.
+- **Context menu**: Registration API so modules add items without editing core renderer code.
+
+---
+
+## Remaining work
+
+See **`plans-pins.md`** for the full checklist. Examples: optional use of Foundry’s context menu system, documentation and test updates.

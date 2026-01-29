@@ -17,7 +17,7 @@
 
 ### Reference Documents
 - **`migration-global.md`** - Global migration patterns and best practices
-- **`migration-plan-socketmanager.md`** - Socket manager specific migration
+- **`architecture-socketmanager.md`** - SocketManager architecture and migration plan (god module cleanup)
 - **`migration-plan-architecture.md`** - Architecture specific migration
 - **`migration-plan-rolls.md`** - Rolls system specific migration
 

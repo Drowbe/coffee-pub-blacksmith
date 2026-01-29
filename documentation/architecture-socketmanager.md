@@ -536,6 +536,89 @@ static registerModuleHandler(moduleId, eventName, handler) {
 
 ---
 
+## **Migration Plan: God Module Cleanup and API Exposure**
+
+This section outlines the plan to clean up SocketManager from a "god module" architecture and expose it through the Blacksmith API. **Phase 2** work; execute after the core API (HookManager, ModuleManager, Utils) is fully functional and tested.
+
+### **Current Status**
+
+**Phase 1 – Core API (in progress or complete):**
+- HookManager migration – complete (68 hooks migrated)
+- Module API exposure – complete (HookManager exposed through `module.api`)
+- Bridge file – complete (`blacksmith-api.js` for external modules)
+- API documentation – in progress
+- SocketManager cleanup – not started (Phase 2)
+
+**Phase 1 priority:** Get the core API working and documented before changing SocketManager.
+
+### **Phase 2: Problem and Target**
+
+**Current problem – SocketManager as a god module:**  
+SocketManager currently imports other systems (e.g. CombatTimer, PlanningTimer, MenuBar, VoteManager, CSSEditor, LatencyChecker). That violates separation of concerns: SocketManager should **provide socket services** to other systems and **not import** them; other systems should **import / use** SocketManager, not the other way around.
+
+**Target architecture – clean service pattern:**
+```
+Other Systems → SocketManager → Transport Layer
+     ↓              ↓              ↓
+CombatTimer    (uses)         SocketLib
+PlanningTimer  (uses)         Native FoundryVTT
+MenuBar        (uses)         Local Mode
+VoteManager    (uses)
+```
+
+### **Migration Steps (Phase 2)**
+
+1. **Remove god module dependencies**  
+   Remove imports of CombatTimer, PlanningTimer, MenuBar, VoteManager, CSSEditor, LatencyChecker from SocketManager. Keep only essential imports (e.g. `const.js`, `api-core.js`).
+
+2. **Refactor to event-driven usage**  
+   Other systems emit events or call SocketManager; SocketManager does not import those systems. SocketManager sets up socket infrastructure and listens for events (e.g. `blacksmith.socket.ready`, `blacksmith.socket.error`) as needed; business logic stays in the other systems, which use the socket API.
+
+3. **Expose through module.api**  
+   Add SocketManager to `module.api` in `blacksmith.js` so it is available as `game.modules.get('coffee-pub-blacksmith')?.api?.sockets` (or equivalent).
+
+4. **Add bridge methods in blacksmith-api.js**  
+   Expose socket access for external modules, e.g. `getSocketManager()` or `getSocketUtils()` that resolve the API and return the SocketManager instance or a thin wrapper (emit, on, off, etc.).
+
+5. **Update other systems to use SocketManager**  
+   Timers, MenuBar, VoteManager, etc. obtain the socket API (via `module.api` or bridge) and call `emit` / register handlers instead of being imported by SocketManager.
+
+### **Benefits**
+
+- **Separation of concerns:** SocketManager = socket infrastructure only; other systems = business logic + socket usage; no circular dependencies.
+- **Easier testing:** SocketManager testable in isolation; other systems can mock socket behavior.
+- **Maintainability:** Changes to timers do not affect socket code; changes to sockets do not affect timer code.
+- **API exposure:** Other modules can use socket features via a clean, documented API.
+
+### **Implementation Timeline**
+
+**Phase 1 (current):** Core API – HookManager migration, module API exposure, bridge file, API documentation, core API testing.
+
+**Phase 2 (future):** SocketManager cleanup – remove god module dependencies; refactor to event-driven usage; expose through `module.api`; add bridge methods; update other systems; test socket functionality; update documentation.
+
+### **Risk Assessment**
+
+- **Low:** Core API and documentation updates (no SocketManager behavior change).
+- **Medium:** SocketManager refactor and event-driven changes (internal architecture).
+- **High:** Breaking existing socket behavior or performance regressions; mitigate with tests and staged rollout.
+
+### **Testing Strategy**
+
+- **Phase 1:** Core API (HookManager, ModuleManager, Utils), bridge file access, documentation accuracy.
+- **Phase 2:** Socket functionality, event emission/handling, performance, integration of all systems that use sockets.
+
+### **Success Criteria**
+
+- **Phase 1:** HookManager migrated and exposed, bridge working, API docs complete, no functionality broken.
+- **Phase 2:** SocketManager has no god module dependencies; event-driven usage in place; SocketManager exposed via `module.api` and bridge; existing socket functionality preserved; performance maintained or improved.
+
+### **Next Steps**
+
+- **Phase 1:** Complete API documentation, test core API, validate bridge file, then treat Phase 1 complete.
+- **Phase 2:** Detailed design for SocketManager refactor, implement cleanup and API exposure, test and validate, update documentation.
+
+---
+
 **Last Updated**: Current session - Socket system fully functional
 **Status**: Production ready with comprehensive architecture
-**Next Milestone**: Enhanced security and performance features
+**Next Milestone**: Phase 1 API completion; Phase 2 SocketManager cleanup and API exposure
