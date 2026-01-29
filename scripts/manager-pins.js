@@ -674,6 +674,24 @@ export class PinManager {
         if (patch.unplace === true) {
             return this.unplace(pinId) ?? null;
         }
+        // Placed pins live in scene flags; only GMs can update Scene. Non-GM users with edit permission use requestGM so the GM client performs the write.
+        if (!game.user?.isGM) {
+            const result = await this.requestGM('update', {
+                sceneId: scene.id,
+                pinId,
+                patch,
+                options
+            });
+            if (result != null && scene.id === canvas?.scene?.id) {
+                import('./pins-renderer.js').then(async ({ PinRenderer }) => {
+                    if (!PinRenderer.getContainer()) return;
+                    await PinRenderer.updatePin(result);
+                }).catch(err => {
+                    console.error('BLACKSMITH | PINS Error updating renderer after requestGM update:', err);
+                });
+            }
+            return result ?? null;
+        }
         const merged = foundry.utils.deepClone(existing);
         this._applyPatch(merged, patch, scene.id);
         const validated = validatePinData(merged);

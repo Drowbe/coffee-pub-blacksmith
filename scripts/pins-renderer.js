@@ -307,7 +307,10 @@ class PinDOMElement {
             const faClasses = this._extractFontAwesomeClasses(image);
             if (faClasses) {
                 iconElement.innerHTML = `<i class="${faClasses}"></i>`;
-                iconElement.style.color = pinData.style?.iconColor || '#ffffff';
+                const iconColor = pinData.style?.iconColor || '#ffffff';
+                iconElement.style.color = iconColor;
+                const innerI = iconElement.querySelector('i');
+                if (innerI) innerI.style.color = iconColor; // Override CSS .blacksmith-pin-icon[data-icon-type="fa"] i { color }
                 iconElement.style.background = 'none';
                 iconElement.style.border = 'none';
                 iconElement.style.backgroundImage = 'none';
