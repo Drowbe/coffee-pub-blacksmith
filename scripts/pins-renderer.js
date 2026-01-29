@@ -307,7 +307,7 @@ class PinDOMElement {
             const faClasses = this._extractFontAwesomeClasses(image);
             if (faClasses) {
                 iconElement.innerHTML = `<i class="${faClasses}"></i>`;
-                iconElement.style.color = '#ffffff';
+                iconElement.style.color = pinData.style?.iconColor || '#ffffff';
                 iconElement.style.background = 'none';
                 iconElement.style.border = 'none';
                 iconElement.style.backgroundImage = 'none';

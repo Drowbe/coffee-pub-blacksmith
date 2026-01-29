@@ -222,6 +222,19 @@ export class PinsAPI {
     }
 
     /**
+     * Get the current user's default pin design for a module (saved via Configure Pin "Use as Default").
+     * Stored in client scope so each player can have their own default. Use when creating new pins.
+     * @param {string} moduleId - Module ID (e.g. 'coffee-pub-squire') that opened Configure Pin with useAsDefault
+     * @returns {Object | null} Default design object (size, shape, style, dropShadow, textLayout, etc.) or null
+     */
+    static getDefaultPinDesign(moduleId) {
+        if (!moduleId || typeof game?.settings?.get !== 'function') return null;
+        const store = game.settings.get(MODULE.ID, 'clientPinDefaultDesigns');
+        const design = store?.[moduleId] ?? null;
+        return design ? { ...design } : null;
+    }
+
+    /**
      * Check if a pin exists on a scene.
      * @param {string} pinId - The pin ID to check
      * @param {import('./manager-pins.js').PinGetOptions} [options] - Optional sceneId to check specific scene

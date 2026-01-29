@@ -30,7 +30,7 @@ export class PinConfigWindow extends Application {
         this.pinSize = { w: 32, h: 32 };
         this.lockProportions = true;
         this.pinShape = 'circle';
-        this.pinStyle = { fill: '#000000', stroke: '#ffffff', strokeWidth: 2 };
+        this.pinStyle = { fill: '#000000', stroke: '#ffffff', strokeWidth: 2, iconColor: '#ffffff' };
         this.dropShadow = true;
         this.pinTextLayout = 'under';
         this.pinTextDisplay = 'always';
@@ -198,7 +198,8 @@ export class PinConfigWindow extends Application {
             fill: pin.style?.fill || '#000000',
             stroke: pin.style?.stroke || '#ffffff',
             strokeWidth: pin.style?.strokeWidth || 2,
-            alpha: pin.style?.alpha ?? 1
+            alpha: pin.style?.alpha ?? 1,
+            iconColor: pin.style?.iconColor ?? '#ffffff'
         };
         this.dropShadow = pin.dropShadow !== false;
         this.pinTextLayout = pin.textLayout || 'under';
@@ -237,6 +238,7 @@ export class PinConfigWindow extends Application {
             pinStroke: this.pinStyle.stroke,
             pinStrokeWidth: this.pinStyle.strokeWidth,
             pinFill: this.pinStyle.fill,
+            pinIconColor: this.pinStyle.iconColor ?? '#ffffff',
             pinDropShadow: this.dropShadow,
             pinTextLayout: this.pinTextLayout,
             pinTextDisplay: this.pinTextDisplay,
@@ -270,6 +272,8 @@ export class PinConfigWindow extends Application {
         const strokeWidthInput = nativeHtml.querySelector('.blacksmith-pin-config-stroke-width');
         const fillInput = nativeHtml.querySelector('.blacksmith-pin-config-fill');
         const fillTextInput = nativeHtml.querySelector('.blacksmith-pin-config-fill-text');
+        const iconColorInput = nativeHtml.querySelector('.blacksmith-pin-config-icon-color');
+        const iconColorTextInput = nativeHtml.querySelector('.blacksmith-pin-config-icon-color-text');
         const shadowInput = nativeHtml.querySelector('.blacksmith-pin-config-shadow');
         const textLayoutInput = nativeHtml.querySelector('.blacksmith-pin-config-text-layout');
         const textDisplayInput = nativeHtml.querySelector('.blacksmith-pin-config-text-display');
@@ -441,6 +445,24 @@ export class PinConfigWindow extends Application {
                 }
             }
         });
+        iconColorTextInput?.addEventListener('input', () => {
+            const value = iconColorTextInput.value.trim();
+            if (value) {
+                this.pinStyle.iconColor = value;
+                if (iconColorInput) {
+                    iconColorInput.value = value;
+                }
+            }
+        });
+        iconColorInput?.addEventListener('input', () => {
+            const value = iconColorInput.value.trim();
+            if (value) {
+                this.pinStyle.iconColor = value;
+                if (iconColorTextInput) {
+                    iconColorTextInput.value = value;
+                }
+            }
+        });
         strokeWidthInput?.addEventListener('input', () => {
             const width = clampStrokeWidth(strokeWidthInput.value, this.pinStyle.strokeWidth);
             this.pinStyle.strokeWidth = width;
@@ -548,7 +570,8 @@ export class PinConfigWindow extends Application {
                     fill: configData.pinStyle.fill,
                     stroke: configData.pinStyle.stroke,
                     strokeWidth: configData.pinStyle.strokeWidth,
-                    alpha: configData.pinStyle.alpha ?? 1
+                    alpha: configData.pinStyle.alpha ?? 1,
+                    iconColor: configData.pinStyle.iconColor ?? '#ffffff'
                 },
                 dropShadow: configData.pinDropShadow,
                 image: PinConfigWindow.iconToStoredImage(finalSelection),
@@ -569,22 +592,36 @@ export class PinConfigWindow extends Application {
 
                 await pinsAPI.update(this.pinId, pinUpdateData, { sceneId: this.sceneId });
 
-                // If "Use as Default" checked, save to module settings
+                // If "Use as Default" checked, save to client-scope store (each player can have their own default)
                 const makeDefault = !!defaultInput?.checked;
-                if (makeDefault && this.defaultSettingKey && this.moduleId) {
-                    await game.settings.set(this.moduleId, this.defaultSettingKey, {
-                        size: configData.pinSize,
-                        lockProportions: this.lockProportions,
-                        shape: configData.pinShape,
-                        style: configData.pinStyle,
-                        dropShadow: configData.pinDropShadow,
-                        ...configData.pinTextConfig
-                    });
+                if (makeDefault && this.moduleId) {
+                    try {
+                        const design = {
+                            size: configData.pinSize,
+                            lockProportions: this.lockProportions,
+                            shape: configData.pinShape,
+                            style: configData.pinStyle,
+                            dropShadow: configData.pinDropShadow,
+                            ...configData.pinTextConfig
+                        };
+                        const cur = game.settings.get(MODULE.ID, 'clientPinDefaultDesigns') || {};
+                        await game.settings.set(MODULE.ID, 'clientPinDefaultDesigns', { ...cur, [this.moduleId]: design });
+                    } catch (defaultErr) {
+                        postConsoleAndNotification(MODULE.NAME, 'Use as Default not saved', defaultErr?.message || defaultErr, false, false);
+                    }
                 }
 
-                // If callback provided, call it with configData
+                // If callback provided, call it with configData (e.g. notes module may sync flags)
                 if (this.onSelect) {
-                    this.onSelect(configData);
+                    try {
+                        const result = this.onSelect(configData);
+                        if (result != null && typeof result.then === 'function') {
+                            await result;
+                        }
+                    } catch (callbackErr) {
+                        // Callback may try to write world settings (player lacks permission); don't fail the save
+                        postConsoleAndNotification(MODULE.NAME, 'Pin config callback error', callbackErr?.message || callbackErr, false, false);
+                    }
                 }
 
                 ui.notifications.info('Pin configuration updated.');

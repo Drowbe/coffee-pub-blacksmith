@@ -152,19 +152,25 @@ export class PinManager {
     }
 
     /**
+     * Can this user edit (configure/update/delete) this pin?
+     * GMs can always edit. Non-GMs can edit if they have OWNER (or higher) on this pin;
+     * pinsAllowPlayerWrites is not required for editing pins you own (it only gates creation).
      * @param {PinData} pin
      * @param {string} userId
      * @returns {boolean}
      */
     static _canEdit(pin, userId) {
         if (game.user?.isGM) return true;
-        const allow = getSettingSafely(MODULE.ID, this.SETTING_ALLOW_PLAYER_WRITES, false);
-        if (!allow) return false;
         const ow = pin.ownership ?? { default: NONE };
         const level = ow.users && typeof ow.users[userId] === 'number'
             ? ow.users[userId]
             : (typeof ow.default === 'number' ? ow.default : NONE);
-        return level >= OWNER;
+        if (level >= OWNER) return true;
+        // Non-owners cannot edit (pinsAllowPlayerWrites does not override ownership for edit)
+        if (game.modules.get(MODULE.ID)?.api?.pins && typeof console !== 'undefined' && console.debug) {
+            console.debug('BLACKSMITH | PINS _canEdit denied', { userId, level, required: OWNER, pinId: pin?.id });
+        }
+        return false;
     }
 
     static _canCreate() {

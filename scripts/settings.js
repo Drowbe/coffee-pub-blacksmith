@@ -3394,6 +3394,14 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
 
+	// Per-user default pin design per module (Configure Pin "Use as Default"). Client scope so players can save their own.
+	game.settings.register(MODULE.ID, 'clientPinDefaultDesigns', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
 	// --------------------------------------
 	// -- H2: Imports
 	// --------------------------------------

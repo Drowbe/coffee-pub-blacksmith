@@ -62,6 +62,13 @@
                             <input type="number" class="blacksmith-input blacksmith-pin-config-stroke-width" min="0" step="1" value="{{pinStrokeWidth}}">
                         </div>
                     </label>
+                    <label class="blacksmith-pin-config-design-field">
+                        <span>Icon Color</span>
+                        <div class="blacksmith-pin-config-color-row">
+                            <input type="text" class="blacksmith-input blacksmith-pin-config-color-text blacksmith-pin-config-icon-color-text" value="{{pinIconColor}}">
+                            <input type="color" class="blacksmith-pin-config-color-picker blacksmith-pin-config-icon-color" value="{{pinIconColor}}">
+                        </div>
+                    </label>
                 </div>
                 <label class="blacksmith-pin-config-design-toggle">
                     <input type="checkbox" class="blacksmith-pin-config-shadow" {{#if pinDropShadow}}checked{{/if}}>

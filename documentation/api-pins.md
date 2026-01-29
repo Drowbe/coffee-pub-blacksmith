@@ -159,7 +159,7 @@ interface PinData {
   y?: number;   // Omit for unplaced pins
   sceneId?: string;  // Omit for unplaced pins; set when placed
   size?: { w: number; h: number };
-  style?: { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number }; // Supports hex, rgb, rgba, hsl, hsla, named colors
+  style?: { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number; iconColor?: string }; // Supports hex, rgb, rgba, hsl, hsla, named colors. iconColor applies to Font Awesome icons (default '#ffffff').
   text?: string; // Text label content
   image?: string;  // Font Awesome HTML (e.g. '<i class="fa-solid fa-star"></i>'), Font Awesome class string (e.g. 'fa-solid fa-star'), or image URL (e.g. 'icons/svg/star.svg' or '<img src="path/to/image.webp">')
   shape?: 'circle' | 'square' | 'none'; // Pin shape: 'circle' (default), 'square' (rounded corners), or 'none' (icon only, no background)
@@ -290,7 +290,8 @@ const pin = await pinsAPI.create({
     fill: '#000000',  // or 'rgba(0, 0, 0, 0.5)' for transparency
     stroke: '#ffffff',  // or 'rgba(255, 255, 255, 0.8)'
     strokeWidth: 2,
-    alpha: 1  // Overall opacity (multiplies with RGBA alpha if color has alpha)
+    alpha: 1,  // Overall opacity (multiplies with RGBA alpha if color has alpha)
+    iconColor: '#ffffff'  // Color of Font Awesome icon (ignored for image URLs)
   }
 });
 // Pin is unplaced. Call pins.place(pin.id, { sceneId, x, y }) when you want it on a scene.
@@ -347,6 +348,16 @@ const iconPin = await pinsAPI.create({
   moduleId: 'my-module',
   shape: 'none',  // Icon only, no background circle/square
   image: '<i class="fa-solid fa-star"></i>'
+});
+
+// Pin with custom icon color (Font Awesome icons only; image URLs are not tinted)
+const goldIconPin = await pinsAPI.create({
+  id: 'gold-icon-pin',
+  x: 1250,
+  y: 1000,
+  moduleId: 'my-module',
+  image: '<i class="fa-solid fa-star"></i>',
+  style: { iconColor: '#ffd700' }  // Gold icon; fill/stroke/alpha use defaults
 });
 
 // Pin with text display options
@@ -505,6 +516,9 @@ await pinsAPI.update(pin.id, {
 await pinsAPI.update(pin.id, { 
     image: '<i class="fa-solid fa-star"></i>' 
 });
+
+// Update icon color (Font Awesome icons only)
+await pinsAPI.update(pin.id, { style: { iconColor: '#ffd700' } });
 ```
 
 **Options**:
@@ -869,7 +883,7 @@ The callback receives a **stable** object. This is the current contract (matches
   icon:       { type: 'fa' | 'img'; value: string };
   pinSize:    { w: number; h: number };
   pinShape:   'circle' | 'square' | 'none';
-  pinStyle:   { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number };
+  pinStyle:   { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number; iconColor?: string };
   pinDropShadow: boolean;
   pinTextConfig: {
     textLayout:   'under' | 'over' | 'around';
@@ -907,7 +921,7 @@ When “Use as Default” is checked and `defaultSettingKey` + `moduleId` are pr
   size:           { w: number; h: number };
   lockProportions: boolean;
   shape:          'circle' | 'square' | 'none';
-  style:          { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number };
+  style:          { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number; iconColor?: string };
   dropShadow:     boolean;
   textLayout:     'under' | 'over' | 'around';
   textDisplay:    'always' | 'hover' | 'never' | 'gm';
@@ -918,7 +932,7 @@ When “Use as Default” is checked and `defaultSettingKey` + `moduleId` are pr
 }
 ```
 
-No extra or omitted keys. When applying this as default for new pins, modules should merge this object with any other defaults and pass the result into `pins.create()` / `pins.update()` (using the same property names as in [PinData](#pin-data-schema)).
+No extra or omitted keys. When creating new pins, call **`pins.getDefaultPinDesign(moduleId)`** to get the current user's saved default (or `null`). Merge that with any other defaults and pass the result into `pins.create()` / `pins.update()` (using the same property names as in [PinData](#pin-data-schema)).
 
 #### 4. Pin type handling
 
@@ -1003,11 +1017,27 @@ await pinsAPI.configure(pinId, {
 **Behavior**:
 - Opens an Application V2 window with a form for editing pin properties.
 - Only users who can **edit** the pin (ownership-based) can open the window.
-- The window includes: **Appearance** (shape, size, fill, stroke, stroke width, opacity, drop shadow); **Icon/Image** (Font Awesome library + image URL with built-in FilePicker “Browse”); **Text** (layout, display mode, color, size, max length, scale-with-pin). Pin **type** is not currently editable in the window; **ownership** is not changed by the save.
+- The window includes: **Appearance** (shape, size, fill, stroke, stroke width, icon color, opacity, drop shadow); **Icon/Image** (Font Awesome library + image URL with built-in FilePicker “Browse”); **Text** (layout, display mode, color, size, max length, scale-with-pin). Pin **type** is not currently editable in the window; **ownership** is not changed by the save.
 - On submit, the pin is updated via `pins.update()` (ownership is preserved). If “Use as Default” is checked, the [default storage schema](#3-default-storage-schema-useasdefault) is written to `game.settings.set(moduleId, defaultSettingKey, …)`. If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
 - The window is also available from the pin’s right-click context menu (“Configure Pin”).
 
 **Styling**: Use the [stable selectors](#8-styling-hooks-stable-selectors) `div#blacksmith-pin-config`, `.blacksmith-pin-config`, and `div#blacksmith-pin-config .window-content` for theming.
+
+### `pins.getDefaultPinDesign(moduleId)`
+Get the current user's default pin design for a module (saved via Configure Pin "Use as Default"). Stored in client scope so each player can have their own default.
+
+**Returns**: `Object | null` - Default design object (size, shape, style including fill/stroke/iconColor/alpha, dropShadow, textLayout, textDisplay, textColor, textSize, textMaxLength, textScaleWithPin, lockProportions) or `null` if none saved.
+
+```javascript
+// When creating a new pin, apply the user's saved default if any
+const defaultDesign = pinsAPI.getDefaultPinDesign('coffee-pub-squire');
+await pinsAPI.create({
+  id: crypto.randomUUID(),
+  moduleId: 'coffee-pub-squire',
+  ...defaultDesign,
+  text: 'New note'
+});
+```
 
 ### `pins.findScene(pinId)`
 Find which scene contains a pin with the given ID. Useful for cross-scene operations.
@@ -1306,10 +1336,11 @@ const result = await pins.reload();
 ## Permissions and Errors
 
 ### Permissions
-- Create/update/delete default to GM-only unless the PinManager configuration allows otherwise.
+- **Creation** is gated by the world setting `pinsAllowPlayerWrites`: only GMs can create pins unless that setting is enabled. **Edit, Configure Pin, and Delete** are based on ownership only: any user with OWNER (or higher) on a pin can edit/configure/delete that pin regardless of `pinsAllowPlayerWrites`. GMs can always do everything.
 - `ownership` uses Foundry ownership levels (`CONST.DOCUMENT_OWNERSHIP_LEVELS`); GM always has full access.
 - Ownership can be explicitly provided in pin data, or resolved automatically using the ownership resolver hook.
 - **Visibility Filtering**: Pins are automatically filtered during rendering based on ownership. Only pins the current user has permission to view (LIMITED level or higher) are displayed on the canvas.
+- **Configure Pin**: The Configure Pin window and context menu item are shown only to users who can edit the pin (GM or ownership level ≥ OWNER). No separate gate from `pinsAllowPlayerWrites` for opening the window.
 
 ### Ownership Resolver Hook
 
@@ -1377,7 +1408,7 @@ Hooks.on('blacksmith.pins.resolveOwnership', (context) => {
 - **NONE (0)**: User cannot see the pin (GM-only)
 - **LIMITED (1)**: User can see the pin
 - **OBSERVER (2)**: User can see the pin (standard visibility)
-- **OWNER (3)**: User can see and edit the pin (if `pinsAllowPlayerWrites` is enabled)
+- **OWNER (3)**: User can see and edit the pin (Configure Pin, update, delete). Edit/configure/delete for pins you own do **not** require `pinsAllowPlayerWrites`; that setting only gates **creation** of new pins by non-GMs.
 
 #### Ownership Examples
 
@@ -1426,7 +1457,7 @@ await pins.create({
   moduleId: 'my-module',
   ownership: { 
     default: 2,                    // OBSERVER - everyone can see
-    'user-abc-123': 3              // This user can edit (if pinsAllowPlayerWrites enabled)
+    'user-abc-123': 3              // This user can edit (OWNER can always configure/update/delete)
   }
 });
 ```
@@ -1662,7 +1693,7 @@ Pins can be created by dropping data onto the canvas using FoundryVTT's `dropCan
   text: string,               // Optional: pin label
   image: string,              // Optional: Font Awesome HTML (defaults to star)
   size: { w: number, h: number }, // Optional: defaults to 32x32
-  style: { ... },             // Optional: style overrides
+  style: { fill?, stroke?, strokeWidth?, alpha?, iconColor? },  // Optional: style overrides (iconColor = Font Awesome icon color)
   config: object,             // Optional: module-specific config
   ownership: { ... }          // Optional: ownership settings
 }
@@ -1709,7 +1740,7 @@ Pins can be moved by left-clicking and dragging. Only users with edit permission
 - [x] Reconciliation helper: `reconcile()` method for repairing broken links between module-tracked items and pins on canvas
 - [x] Pin storage in scene flags; migration and validation on load
 - [x] Shape support: circle (default), square (rounded corners), none (icon only)
-- [x] Color support: hex, rgb, rgba, hsl, hsla, named colors
+- [x] Color support: fill, stroke, icon color (Font Awesome), hex, rgb, rgba, hsl, hsla, named colors
 - [x] Image support: Font Awesome HTML, Font Awesome class strings, image URLs, `<img>` tags
 - [x] CSS configuration: Image size ratio, border radius, all styling in `pins.css`
 - [x] Phase 4.1: API usage patterns documented; availability checks (`isAvailable` / `isReady` / `whenReady`) implemented

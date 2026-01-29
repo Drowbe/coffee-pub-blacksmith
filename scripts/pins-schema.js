@@ -19,7 +19,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {number} [y] - Omit for unplaced pins
  * @property {string} [sceneId] - Set when placed on a scene (or implicit from storage)
  * @property {{ w: number; h: number }} size
- * @property {{ fill?: string; stroke?: string; strokeWidth?: number; alpha?: number }} style
+ * @property {{ fill?: string; stroke?: string; strokeWidth?: number; alpha?: number; iconColor?: string }} style
  * @property {string} [text] - Text content to display
  * @property {string} [image]
  * @property {'circle' | 'square' | 'none'} [shape] - Pin shape: 'circle' (default), 'square', or 'none' (icon only, no background)
@@ -95,7 +95,7 @@ export const PIN_SCHEMA_VERSION = 2;
 /** Default values per architecture (apply when creating/validating, not stored if omitted). */
 export const PIN_DEFAULTS = Object.freeze({
     size: { w: 32, h: 32 },
-    style: { fill: '#000000', stroke: '#ffffff', strokeWidth: 2, alpha: 1 },
+    style: { fill: '#000000', stroke: '#ffffff', strokeWidth: 2, alpha: 1, iconColor: '#ffffff' },
     shape: 'circle', // 'circle' | 'square' | 'none'
     dropShadow: true,
     textLayout: 'under', // 'under' | 'around'
@@ -167,6 +167,7 @@ export function applyDefaults(partial) {
         if (partial.style.stroke != null) base.style.stroke = String(partial.style.stroke);
         if (typeof partial.style.strokeWidth === 'number') base.style.strokeWidth = partial.style.strokeWidth;
         if (typeof partial.style.alpha === 'number') base.style.alpha = partial.style.alpha;
+        if (partial.style.iconColor != null) base.style.iconColor = String(partial.style.iconColor);
     }
     if (partial.shape != null) {
         const shape = String(partial.shape).toLowerCase();
