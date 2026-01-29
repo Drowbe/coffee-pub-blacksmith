@@ -69,6 +69,8 @@ class MenuBar {
     // Event listener reference tracking for cleanup
     static _clickHandler = null;
     static _clickHandlerContainer = null;
+    static _contextMenuHandler = null;
+    static _contextMenuHandlerContainer = null;
 
     static async initialize() {
         // Check if menubar is enabled
@@ -1527,6 +1529,7 @@ class MenuBar {
      * @param {boolean} toolData.gmOnly - Whether tool is GM-only
      * @param {boolean} toolData.leaderOnly - Whether tool is leader-only
      * @param {boolean} toolData.visible - Whether tool is visible (can be function)
+     * @param {Array|Function} [toolData.contextMenuItems] - Optional: right-click context menu. Array of { name, icon, onClick } or function (toolId, tool) => array. If present, right-click on the tool shows this menu instead of browser default.
      * @returns {boolean} Success status
      */
     static registerMenubarTool(toolId, toolData) {
@@ -1586,7 +1589,7 @@ class MenuBar {
                 groupOrder = this.GROUP_ORDER.GENERAL; // Force to 999 (last)
             }
             
-            // Set defaults
+            // Set defaults (contextMenuItems optional: array or function(toolId, tool) => array of { name, icon, onClick })
             const tool = {
                 icon: toolData.icon,
                 name: toolData.name,
@@ -1604,7 +1607,8 @@ class MenuBar {
                 active: toolData.active || false,
                 iconColor: toolData.iconColor || null,  // Any valid CSS color (e.g., "#ff0000", "rgba(255, 0, 0, 0.8)", "red")
                 buttonNormalTint: toolData.buttonNormalTint || null,  // Any valid CSS color (e.g., "#ff0000", "rgba(255, 0, 0, 0.8)", "red")
-                buttonSelectedTint: toolData.buttonSelectedTint || null  // Any valid CSS color (e.g., "#ff0000", "rgba(255, 0, 0, 0.8)", "red")
+                buttonSelectedTint: toolData.buttonSelectedTint || null,  // Any valid CSS color (e.g., "#ff0000", "rgba(255, 0, 0, 0.8)", "red")
+                contextMenuItems: toolData.contextMenuItems !== undefined ? toolData.contextMenuItems : null  // Optional: array or (toolId, tool) => array of { name, icon, onClick }
             };
 
             // Register the tool
@@ -4013,12 +4017,18 @@ class MenuBar {
         const menubarContainer = document.querySelector('.blacksmith-menubar-container');
         if (!menubarContainer) return;
 
-        // Remove old click handler if it exists and is still attached to a container
+        // Remove old click and contextmenu handlers if they exist
         if (this._clickHandler && this._clickHandlerContainer) {
             this._clickHandlerContainer.removeEventListener('click', this._clickHandler);
             this._clickHandler = null;
             this._clickHandlerContainer = null;
         }
+        if (this._contextMenuHandler && this._contextMenuHandlerContainer) {
+            this._contextMenuHandlerContainer.removeEventListener('contextmenu', this._contextMenuHandler);
+            this._contextMenuHandler = null;
+            this._contextMenuHandlerContainer = null;
+        }
+        this._closeMenubarContextMenu();
 
         // Create the click handler function
         const clickHandler = (event) => {
@@ -4122,6 +4132,39 @@ class MenuBar {
 
         // Add the event listener to both menubar and secondary bar
         menubarContainer.addEventListener('click', clickHandler);
+
+        // Right-click (contextmenu) for tools that provide contextMenuItems
+        const contextMenuHandler = (event) => {
+            const toolElement = event.target.closest('[data-tool]');
+            if (!toolElement) return;
+
+            const toolName = toolElement.getAttribute('data-tool');
+            if (!toolName) return;
+
+            let tool = null;
+            let toolId = null;
+            this.toolbarIcons.forEach((registeredTool, id) => {
+                if (registeredTool.name === toolName) {
+                    tool = registeredTool;
+                    toolId = id;
+                }
+            });
+
+            if (!tool || !tool.contextMenuItems) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const raw = tool.contextMenuItems;
+            const items = typeof raw === 'function' ? raw(toolId, tool) : raw;
+            if (!Array.isArray(items) || items.length === 0) return;
+
+            this._showMenubarContextMenu(items, event.clientX, event.clientY);
+        };
+
+        this._contextMenuHandler = contextMenuHandler;
+        this._contextMenuHandlerContainer = menubarContainer;
+        menubarContainer.addEventListener('contextmenu', contextMenuHandler);
         
         // Also attach to secondary bar if it exists
         const secondaryBar = document.querySelector('.blacksmith-menubar-secondary');
@@ -4141,9 +4184,123 @@ class MenuBar {
             this._clickHandlerContainer.removeEventListener('click', this._clickHandler);
             this._clickHandler = null;
             this._clickHandlerContainer = null;
-        } else {
-            postConsoleAndNotification(MODULE.NAME, "MENUBAR MEMORY TEST | removeClickHandlers() called - no handler to remove", "", true, false);
         }
+        if (this._contextMenuHandler && this._contextMenuHandlerContainer) {
+            this._contextMenuHandlerContainer.removeEventListener('contextmenu', this._contextMenuHandler);
+            this._contextMenuHandler = null;
+            this._contextMenuHandlerContainer = null;
+        }
+        this._closeMenubarContextMenu();
+    }
+
+    /**
+     * Close the menubar context menu if open (and remove listeners).
+     * @private
+     */
+    static _closeMenubarContextMenu() {
+        const menu = document.getElementById('blacksmith-menubar-context-menu');
+        if (menu && menu._menubarCloseListeners) {
+            document.removeEventListener('click', menu._menubarCloseListeners.click);
+            document.removeEventListener('keydown', menu._menubarCloseListeners.keydown);
+            menu._menubarCloseListeners = null;
+        }
+        if (menu) menu.remove();
+    }
+
+    /**
+     * Show a context menu for a menubar tool at the given coordinates.
+     * Items: Array<{ name: string, icon: string, onClick: () => void }>.
+     * Closes on item click, click outside, or Escape.
+     * @param {Array<{ name: string, icon: string, onClick: () => void }>} items
+     * @param {number} x - clientX
+     * @param {number} y - clientY
+     * @private
+     */
+    static _showMenubarContextMenu(items, x, y) {
+        this._closeMenubarContextMenu();
+
+        const menu = document.createElement('div');
+        menu.id = 'blacksmith-menubar-context-menu';
+        menu.className = 'context-menu';
+        // Position off-screen initially so we can measure without flicker
+        menu.style.visibility = 'hidden';
+        menu.style.left = '0px';
+        menu.style.top = '0px';
+
+        const zone = document.createElement('div');
+        zone.className = 'context-menu-zone context-menu-zone-core';
+
+        for (const item of items) {
+            const menuItemEl = document.createElement('div');
+            menuItemEl.className = 'context-menu-item';
+            const iconHtml = typeof item.icon === 'string' && item.icon.trim().startsWith('<') ? item.icon : `<i class="${item.icon}"></i>`;
+            menuItemEl.innerHTML = `${iconHtml} ${item.name}`;
+            const callback = item.onClick;
+            menuItemEl.addEventListener('click', async () => {
+                if (typeof callback === 'function') {
+                    try {
+                        await callback();
+                    } catch (err) {
+                        postConsoleAndNotification(MODULE.NAME, 'Menubar context menu item error', err?.message || err, false, true);
+                    }
+                }
+                this._closeMenubarContextMenu();
+            });
+            zone.appendChild(menuItemEl);
+        }
+
+        menu.appendChild(zone);
+        document.body.appendChild(menu);
+
+        // Measure menu dimensions and adjust position to stay within viewport
+        const menuRect = menu.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const padding = 8; // Minimum distance from viewport edge
+
+        let finalX = x;
+        let finalY = y;
+
+        // Adjust horizontal position if menu would go off-screen to the right
+        if (x + menuRect.width + padding > viewportWidth) {
+            finalX = viewportWidth - menuRect.width - padding;
+        }
+        // Ensure menu doesn't go off-screen to the left
+        if (finalX < padding) {
+            finalX = padding;
+        }
+
+        // Adjust vertical position if menu would go off-screen at the bottom
+        if (y + menuRect.height + padding > viewportHeight) {
+            finalY = viewportHeight - menuRect.height - padding;
+        }
+        // Ensure menu doesn't go off-screen at the top
+        if (finalY < padding) {
+            finalY = padding;
+        }
+
+        // Apply final position and make visible
+        menu.style.left = `${finalX}px`;
+        menu.style.top = `${finalY}px`;
+        menu.style.visibility = 'visible';
+
+        const clickClose = (e) => {
+            if (!menu.isConnected) return;
+            if (!menu.contains(e.target)) {
+                this._closeMenubarContextMenu();
+            }
+        };
+        const keyClose = (e) => {
+            if (e.key === 'Escape') {
+                this._closeMenubarContextMenu();
+            }
+        };
+
+        menu._menubarCloseListeners = { click: clickClose, keydown: keyClose };
+        setTimeout(() => {
+            document.addEventListener('click', clickClose);
+            document.addEventListener('keydown', keyClose);
+        }, 10);
     }
 
     /**

@@ -2334,7 +2334,7 @@ export class BroadcastManager {
                     return 'View Mode (Not Active)';
                 }
                 const mode = this._getCachedBroadcastMode();
-                return `${getModeDisplayName(mode)} - Click to change`;
+                return `${getModeDisplayName(mode)} - Left-click: show broadcast bar; Right-click: change mode`;
             },
             zone: 'right',
             group: 'general',
@@ -2353,127 +2353,53 @@ export class BroadcastManager {
             iconColor: null,
             buttonNormalTint: null,
             buttonSelectedTint: null,
-            onClick: async () => {
-                if (!game.user.isGM) {
-                    ui.notifications.warn("Only GMs can change broadcast mode");
-                    return;
-                }
+            onClick: () => {
+                // Left-click: toggle the broadcast bar (Option B)
+                if (!this.isEnabled()) return;
+                MenuBar.toggleSecondaryBar('broadcast');
+            },
+            contextMenuItems: (toolId, tool) => {
+                if (!game.user.isGM || !this.isEnabled()) return [];
 
-                if (!this.isEnabled()) {
-                    ui.notifications.warn("Broadcast is not enabled");
-                    return;
-                }
-
-                const currentMode = this._getCachedBroadcastMode();
-                
-                // Create mode selection dialog
-                const modeOptions = [
-                    { value: 'manual', label: 'Manual' },
-                    { value: 'gmview', label: 'GM View' },
-                    { value: 'combat', label: 'Combat' },
-                    { value: 'spectator', label: 'Spectator' },
-                    { value: 'mapview', label: 'Map View' }
+                // Persistent broadcast modes only - Map View is a one-shot action available in the secondary bar
+                const items = [
+                    { name: 'Manual', icon: 'fa-solid fa-hand', onClick: async () => { await this._setBroadcastMode('manual'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-manual', true); MenuBar.renderMenubar(); } },
+                    { name: 'GM View', icon: 'fa-solid fa-chess-king', onClick: async () => { await this._setBroadcastMode('gmview'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-gmview', true); MenuBar.renderMenubar(); } },
+                    { name: 'Combat', icon: 'fa-solid fa-swords', onClick: async () => { await this._setBroadcastMode('combat'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-combat', true); MenuBar.renderMenubar(); } },
+                    { name: 'Spectator', icon: 'fa-solid fa-users', onClick: async () => { await this._setBroadcastMode('spectator'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-spectator', true); MenuBar.renderMenubar(); } }
                 ];
 
-                const mirrorUsers = this._getPartyTokensWithUsers()
-                    .map(entry => entry.user)
-                    .filter(Boolean);
+                const mirrorUsers = this._getPartyTokensWithUsers().map(entry => entry.user).filter(Boolean);
                 for (const user of mirrorUsers) {
-                    modeOptions.push({
-                        value: `mirror:${user.id}`,
-                        label: `Mirror: ${user.name}`
+                    const userId = user.id;
+                    items.push({
+                        name: `Mirror: ${user.name}`,
+                        icon: 'fa-solid fa-helmet-battle',
+                        onClick: async () => {
+                            await this._setBroadcastMode(`playerview-${userId}`);
+                            MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-mode-player-${userId}`, true);
+                            MenuBar.renderMenubar();
+                        }
                     });
                 }
 
                 const followTokens = this._getPartyTokensOnCanvas();
                 for (const token of followTokens) {
                     const label = token?.actor?.name || token?.name || 'Token';
-                    modeOptions.push({
-                        value: `follow:${token.id}`,
-                        label: `Follow: ${label}`
+                    const tokenId = token.id;
+                    items.push({
+                        name: `Follow: ${label}`,
+                        icon: 'fa-solid fa-location-crosshairs',
+                        onClick: async () => {
+                            await game.settings.set(MODULE.ID, 'broadcastFollowTokenId', tokenId);
+                            await this._setBroadcastMode('playerview-follow');
+                            MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${tokenId}`, true);
+                            MenuBar.renderMenubar();
+                        }
                     });
                 }
 
-                // Determine which option should be selected
-                let selectedValue = currentMode;
-                if (currentMode === 'playerview-follow') {
-                    const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
-                    selectedValue = followTokenId ? `follow:${followTokenId}` : 'playerview-follow';
-                } else if (currentMode.startsWith('playerview-')) {
-                    const userId = currentMode.replace('playerview-', '');
-                    selectedValue = `mirror:${userId}`;
-                }
-
-                const content = `
-                    <form>
-                        <div class="form-group">
-                            <label>Select Broadcast Mode:</label>
-                            <select name="mode" id="broadcast-mode-select">
-                                ${modeOptions.map(mode => {
-                                    const isSelected = selectedValue === mode.value;
-                                    return `<option value="${mode.value}" ${isSelected ? 'selected' : ''}>${mode.label}</option>`;
-                                }).join('')}
-                            </select>
-                        </div>
-                    </form>
-                `;
-
-                const dialog = new Dialog({
-                    title: 'Select Broadcast Mode',
-                    content: content,
-                    buttons: {
-                        set: {
-                            icon: '<i class="fas fa-check"></i>',
-                            label: "Set Mode",
-                            callback: async (html) => {
-                                // v13: Detect and convert jQuery to native DOM if needed
-                                let nativeDialogHtml = html;
-                                if (html && (html.jquery || typeof html.find === 'function')) {
-                                    nativeDialogHtml = html[0] || html.get?.(0) || html;
-                                }
-                        
-                                const modeSelect = nativeDialogHtml.querySelector('#broadcast-mode-select');
-                                const modeValue = modeSelect ? modeSelect.value : '';
-                                
-                                    if (modeValue) {
-                                        if (modeValue === 'mapview') {
-                                            await this._emitMapView();
-                                        } else if (modeValue.startsWith('mirror:')) {
-                                            const userId = modeValue.replace('mirror:', '');
-                                            await this._setBroadcastMode(`playerview-${userId}`);
-                                            MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-mode-player-${userId}`, true);
-                                        } else if (modeValue.startsWith('follow:')) {
-                                            const tokenId = modeValue.replace('follow:', '');
-                                            await game.settings.set(MODULE.ID, 'broadcastFollowTokenId', tokenId);
-                                            await this._setBroadcastMode('playerview-follow');
-                                            MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${tokenId}`, true);
-                                        } else {
-                                            await this._setBroadcastMode(modeValue);
-                                            const modeItemMap = {
-                                                'spectator': 'broadcast-mode-spectator',
-                                                'combat': 'broadcast-mode-combat',
-                                                'gmview': 'broadcast-mode-gmview',
-                                                'manual': 'broadcast-mode-manual'
-                                            };
-                                            const activeItemId = modeItemMap[modeValue];
-                                            if (activeItemId) {
-                                                MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
-                                            }
-                                        }
-                                        
-                                        MenuBar.renderMenubar(); // Update button text
-                                    }
-                            }
-                        },
-                        cancel: {
-                            icon: '<i class="fas fa-times"></i>',
-                            label: "Cancel"
-                        }
-                    },
-                    default: "set"
-                });
-
-                dialog.render(true);
+                return items;
             }
         });
 
