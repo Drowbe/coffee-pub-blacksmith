@@ -1860,6 +1860,7 @@ export const registerSettings = () => {
 				choices: {
 					'spectator': 'Spectator',
 					'combat': 'Combat',
+					'combatant': 'Combatant',
 					'gmview': 'GM View',
 					'manual': 'Manual'
 				},

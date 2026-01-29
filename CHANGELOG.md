@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [13.2.2] - Pin Configuration Migration
 
 ### Added
+- **Broadcast Combatant Mode**: Added a new broadcast view mode that frames all visible combatant tokens (from the combat tracker) on the current scene, mirroring Spectator behavior but using combatants instead of party tokens.
 - **Icon Color Pin Setting**: Added `style.iconColor` to pin data (default: `'#ffffff'`). Configure Pin window now includes an "Icon Color" field (text + color picker) alongside Background and Border. Applies to Font Awesome icons only; image URLs are not tinted. Schema (`pins-schema.js`), config window, renderer, and API documentation (`api-pins.md`) updated with examples and default-design support.
 - **Context Menu Stylesheet**: Pin context menu styles moved from inline JS to `styles/menu-context-global.css`. Menu container, separator, and item (including hover) styling are now in CSS for easier theming; `left`/`top` remain in JS for positioning.
 - **Context Menu Zones**: Pin right-click menu split into three zone divs—`context-menu-zone-module`, `context-menu-zone-core`, `context-menu-zone-gm`—so each can be styled independently. Module zone holds registered items, core holds built-in actions, GM zone holds GM-only bulk-delete options. Separators are rendered between zones when the next zone has items.

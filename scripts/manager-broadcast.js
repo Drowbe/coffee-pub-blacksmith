@@ -169,6 +169,15 @@ export class BroadcastManager {
                     await this._onTokenUpdate(null, {});
                 }, 500);
             }
+            // Initialize combatant mode camera
+            if (mode === 'combatant') {
+                // Wait a bit for canvas to fully initialize
+                setTimeout(async () => {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Initializing camera on scene load (combatant mode)", "", true, false);
+                    // Trigger camera update by calling _onCombatantTokensUpdate with null changes
+                    await this._onCombatantTokensUpdate(null, {});
+                }, 500);
+            }
             // For gmview mode, the GM client will send initial sync via socket
             // The cameraman client just needs to wait for the socket message
         };
@@ -254,6 +263,10 @@ export class BroadcastManager {
                     }
                     return;
                 }
+                if (mode === 'combatant') {
+                    await this._onCombatantTokensUpdate(tokenDocument, changes);
+                    return;
+                }
                 if (mode !== 'spectator') {
                     postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Not in spectator mode, skipping", { mode }, true, false);
                     return;
@@ -308,6 +321,16 @@ export class BroadcastManager {
                     }
                     return;
                 }
+                if (mode === 'combatant') {
+                    // Wait a bit for token to be fully added to canvas, then reframe combatants
+                    setTimeout(async () => {
+                        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Processing token creation (combatant mode)", { 
+                            tokenId: tokenDocument?.id
+                        }, true, false);
+                        await this._onCombatantTokensUpdate(tokenDocument, {});
+                    }, 100);
+                    return;
+                }
                 if (mode !== 'spectator') {
                     postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Not in spectator mode, skipping", { mode }, true, false);
                     return;
@@ -343,6 +366,11 @@ export class BroadcastManager {
                 
                 // Check if we're in combat mode
                 const mode = getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator');
+                if (mode === 'combatant') {
+                    // Reframe combatants when combat state changes
+                    this._onCombatantTokensUpdate(null, {}, true);
+                    return;
+                }
                 if (mode !== 'combat') return;
                 
                 // Only process on turn change (when current turn index changes)
@@ -353,6 +381,40 @@ export class BroadcastManager {
                 
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
+        });
+
+        // Hooks for combatant list changes (combatant mode)
+        const combatantUpdateHandler = async () => {
+            //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
+            if (!this._isBroadcastUser()) return;
+            if (!this.isEnabled()) return;
+            if (getSettingSafely(MODULE.ID, 'broadcastMode', 'spectator') !== 'combatant') return;
+            await this._onCombatantTokensUpdate(null, {}, true);
+            //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+        };
+
+        HookManager.registerHook({
+            name: 'createCombatant',
+            description: 'BroadcastManager: Reframe combatants when combatant is created (combatant mode)',
+            context: 'broadcast-camera',
+            priority: 3,
+            callback: combatantUpdateHandler
+        });
+
+        HookManager.registerHook({
+            name: 'updateCombatant',
+            description: 'BroadcastManager: Reframe combatants when combatant updates (combatant mode)',
+            context: 'broadcast-camera',
+            priority: 3,
+            callback: combatantUpdateHandler
+        });
+
+        HookManager.registerHook({
+            name: 'deleteCombatant',
+            description: 'BroadcastManager: Reframe combatants when combatant is deleted (combatant mode)',
+            context: 'broadcast-camera',
+            priority: 3,
+            callback: combatantUpdateHandler
         });
 
         // Hook for target changes (combat mode)
@@ -1037,6 +1099,154 @@ export class BroadcastManager {
     }
 
     /**
+     * Handle combatant token updates (combatant mode)
+     *
+     * This mirrors spectator mode but uses active combatant tokens instead of party tokens.
+     *
+     * @param {TokenDocument} tokenDocument - The token document that was updated
+     * @param {Object} changes - The changes made to the token
+     * @param {boolean} forcePan - Force pan/zoom regardless of thresholds
+     */
+    static async _onCombatantTokensUpdate(tokenDocument, changes, forcePan = false) {
+        try {
+            const isInitialization = !tokenDocument;
+
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: _onCombatantTokensUpdate called", {
+                tokenId: tokenDocument?.id,
+                changes: changes,
+                isInitialization: isInitialization,
+                forcePan: forcePan
+            }, true, false);
+
+            // Get visible combatant tokens
+            let combatTokens = this._getVisibleCombatTokens();
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Found combatant tokens", {
+                count: combatTokens?.length || 0,
+                tokenIds: combatTokens?.map(t => t.id) || []
+            }, true, false);
+
+            if (!combatTokens || combatTokens.length === 0) {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: No combatant tokens found, skipping", "", true, false);
+                return;
+            }
+
+            // If we have a tokenDocument with position changes, update the corresponding token's position
+            if (tokenDocument && changes && (changes.x !== undefined || changes.y !== undefined)) {
+                combatTokens = combatTokens.map(token => {
+                    if (token.id === tokenDocument.id) {
+                        const updatedToken = Object.assign({}, token);
+                        updatedToken.x = changes.x !== undefined ? changes.x : token.x;
+                        updatedToken.y = changes.y !== undefined ? changes.y : token.y;
+                        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Updated combatant token position from changes", {
+                            tokenId: token.id,
+                            oldX: token.x,
+                            oldY: token.y,
+                            newX: updatedToken.x,
+                            newY: updatedToken.y
+                        }, true, false);
+                        return updatedToken;
+                    }
+                    return token;
+                });
+            }
+
+            // Calculate target position (center of combatant tokens in world coordinates)
+            const targetPosition = combatTokens.length === 1
+                ? this._getTokenCenter(combatTokens[0])
+                : this._getGroupCenter(combatTokens);
+
+            if (!targetPosition) return;
+
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Combatant target position calculated", {
+                tokenCount: combatTokens.length,
+                targetPosition: targetPosition
+            }, true, false);
+
+            // Calculate zoom based on bounding box + viewport fill
+            let finalZoom;
+            const fillPercent = getSettingSafely(MODULE.ID, 'broadcastSpectatorPartyBoxFill', 20);
+            const autoFitZoom = this._calculateAutoFitZoom(combatTokens, fillPercent);
+
+            if (autoFitZoom !== null) {
+                finalZoom = autoFitZoom;
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Combatant auto-fit zoom calculated", {
+                    tokenCount: combatTokens.length,
+                    fillPercent: fillPercent,
+                    autoFitZoom: autoFitZoom
+                }, true, false);
+            } else {
+                finalZoom = canvas.stage?.scale?.x ?? 1.0;
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Combatant auto-fit zoom failed, using current", {
+                    finalZoom: finalZoom
+                }, false, false);
+            }
+
+            const shouldPan = forcePan ? true : (isInitialization ? true : this._shouldPan(targetPosition, combatTokens));
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Combatant should pan check", {
+                shouldPan: shouldPan,
+                targetPosition: targetPosition,
+                lastPanPosition: this._lastPanPosition
+            }, true, false);
+
+            const currentZoom = canvas.stage?.scale?.x ?? canvas.scene?._viewPosition?.scale ?? 1.0;
+            const shouldZoom = Math.abs(currentZoom - finalZoom) > 0.001;
+
+            if (!shouldPan && !shouldZoom) {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Combatant pan/zoom blocked by threshold/throttle", {
+                    shouldPan: shouldPan,
+                    shouldZoom: shouldZoom
+                }, true, false);
+                return;
+            }
+
+            if (finalZoom !== undefined) {
+                if (!Number.isFinite(finalZoom)) {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Invalid combatant finalZoom", {
+                        finalZoom: finalZoom
+                    }, false, false);
+                    return;
+                }
+                const min = canvas.scene?._viewPosition?.minScale ?? 0.25;
+                const max = canvas.scene?._viewPosition?.maxScale ?? 3.0;
+                if (finalZoom < min || finalZoom > max) {
+                    postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Combatant finalZoom outside bounds, clamping", {
+                        finalZoom: finalZoom,
+                        min: min,
+                        max: max
+                    }, false, false);
+                    finalZoom = Math.max(min, Math.min(max, finalZoom));
+                }
+            }
+
+            const animationDuration = getSettingSafely(MODULE.ID, 'broadcastAnimationDuration', 500);
+            const panOptions = {
+                x: targetPosition.x,
+                y: targetPosition.y,
+                scale: finalZoom,
+                duration: animationDuration,
+                easing: "easeInOutCosine"
+            };
+
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Combatant pan/zoom execute", {
+                shouldPan: shouldPan,
+                shouldZoom: shouldZoom,
+                currentZoom: currentZoom,
+                finalZoom: finalZoom,
+                panOptions: panOptions
+            }, true, false);
+
+            await canvas.animatePan(panOptions);
+
+            if (shouldPan) {
+                this._lastPanPosition = targetPosition;
+                this._lastPanTime = Date.now();
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Error following combatant tokens", error, false, false);
+        }
+    }
+
+    /**
      * Adjust viewport immediately when mode changes
      * @param {string} mode - The new broadcast mode
      */
@@ -1054,6 +1264,12 @@ export class BroadcastManager {
             if (this._isBroadcastUser()) {
                 // Immediately pan/zoom to party tokens
                 await this._onTokenUpdate(null, {});
+            }
+        } else if (mode === 'combatant') {
+            // Only adjust viewport for broadcast user (cameraman)
+            if (this._isBroadcastUser()) {
+                // Immediately pan/zoom to combatant tokens
+                await this._onCombatantTokensUpdate(null, {}, true);
             }
         } else if (mode === 'combat') {
             // Only adjust viewport for broadcast user (cameraman)
@@ -1283,6 +1499,39 @@ export class BroadcastManager {
             // Fallback: check if token is visible on canvas
             return token.visible;
         });
+    }
+
+    /**
+     * Get combatant tokens visible to the broadcast user on the current scene.
+     * @returns {Array} Array of visible combatant token placeables
+     */
+    static _getVisibleCombatTokens() {
+        if (!canvas || !canvas.tokens) return [];
+        const combat = game.combat;
+        if (!combat?.combatants?.size) return [];
+
+        const broadcastUser = this._getBroadcastUser();
+        if (!broadcastUser) return [];
+
+        const tokens = [];
+        for (const combatant of combat.combatants) {
+            const tokenDoc = combatant?.token;
+            if (!tokenDoc) continue;
+            if (tokenDoc.scene?.id && canvas.scene?.id && tokenDoc.scene.id !== canvas.scene.id) continue;
+
+            const token = canvas.tokens.get(tokenDoc.id);
+            if (!token) continue;
+
+            if (token.document?.testUserVisibility) {
+                if (!token.document.testUserVisibility(broadcastUser)) continue;
+            } else if (!token.visible) {
+                continue;
+            }
+
+            tokens.push(token);
+        }
+
+        return tokens;
     }
 
     /**
@@ -2072,6 +2321,32 @@ export class BroadcastManager {
         });
 
         
+        // Register Combatant mode button
+        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-combatant', {
+            icon: 'fa-solid fa-people-group',
+            label: null,
+            tooltip: 'Combatant - Frame all visible combatants automatically',
+            group: 'modes',
+            toggleable: false,
+            order: 3,
+            iconColor: null,
+            buttonColor: null,
+            borderColor: null,
+            visible: true,
+            onClick: async () => {
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Combatant mode button clicked", "", true, false);
+                // Only GMs can change broadcast mode
+                if (!game.user.isGM) {
+                    postConsoleAndNotification(MODULE.NAME, "Broadcast: Only GMs can change broadcast mode", "", false, false);
+                    return;
+                }
+                postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Setting broadcast mode to 'combatant'", "", true, false);
+                await this._setBroadcastMode('combatant');
+                // Switch mode automatically manages active state - no manual re-rendering needed
+            }
+        });
+
+
         // Register Spectator mode button
         MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-spectator', {
             icon: 'fa-solid fa-users',
@@ -2079,7 +2354,7 @@ export class BroadcastManager {
             tooltip: 'Spectator - Follow party tokens automatically',
             group: 'modes',
             toggleable: false,
-            order: 3,
+            order: 4,
             iconColor: null,
             buttonColor: null,
             borderColor: null,
@@ -2105,7 +2380,7 @@ export class BroadcastManager {
             tooltip: 'Map View - Fit scene to viewport (camera mode)',
             group: 'modes',
             toggleable: false,
-            order: 4,
+            order: 5,
             iconColor: null,
             buttonColor: null,
             borderColor: null,
@@ -2208,6 +2483,7 @@ export class BroadcastManager {
         const modeItemMap = {
             'spectator': 'broadcast-mode-spectator',
             'combat': 'broadcast-mode-combat',
+            'combatant': 'broadcast-mode-combatant',
             'gmview': 'broadcast-mode-gmview',
             'manual': 'broadcast-mode-manual',
             'mapview': 'broadcast-mode-mapview'
@@ -2264,6 +2540,7 @@ export class BroadcastManager {
                         const modeItemMap = {
                             'spectator': 'broadcast-mode-spectator',
                             'combat': 'broadcast-mode-combat',
+                            'combatant': 'broadcast-mode-combatant',
                             'gmview': 'broadcast-mode-gmview',
                             'manual': 'broadcast-mode-manual',
                             'mapview': 'broadcast-mode-mapview'
@@ -2334,6 +2611,7 @@ export class BroadcastManager {
                 'manual': 'Manual',
                 'gmview': 'GM View',
                 'combat': 'Combat',
+                'combatant': 'Combatant',
                 'spectator': 'Spectator',
                 'mapview': 'Map View',
                 'playerview': 'Player View'
@@ -2350,6 +2628,7 @@ export class BroadcastManager {
                 'manual': 'fa-solid fa-hand',
                 'gmview': 'fa-solid fa-chess-king',
                 'combat': 'fa-solid fa-swords',
+                'combatant': 'fa-solid fa-people-group',
                 'spectator': 'fa-solid fa-users',
                 'mapview': 'fa-solid fa-map',
                 'playerview': 'fa-solid fa-helmet-battle'
@@ -2403,6 +2682,7 @@ export class BroadcastManager {
                     { name: 'Manual', icon: 'fa-solid fa-hand', onClick: async () => { await this._setBroadcastMode('manual'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-manual', true); MenuBar.renderMenubar(); } },
                     { name: 'GM View', icon: 'fa-solid fa-chess-king', onClick: async () => { await this._setBroadcastMode('gmview'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-gmview', true); MenuBar.renderMenubar(); } },
                     { name: 'Combat', icon: 'fa-solid fa-swords', onClick: async () => { await this._setBroadcastMode('combat'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-combat', true); MenuBar.renderMenubar(); } },
+                    { name: 'Combatant', icon: 'fa-solid fa-people-group', onClick: async () => { await this._setBroadcastMode('combatant'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-combatant', true); MenuBar.renderMenubar(); } },
                     { name: 'Spectator', icon: 'fa-solid fa-users', onClick: async () => { await this._setBroadcastMode('spectator'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-spectator', true); MenuBar.renderMenubar(); } },
                     { name: 'Map View', icon: 'fa-solid fa-map', onClick: async () => { await this._setBroadcastMode('mapview'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-mapview', true); MenuBar.renderMenubar(); } }
                 ];
