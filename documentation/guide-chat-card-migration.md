@@ -569,8 +569,8 @@ Hooks.on('renderChatMessage', (message, html, data) => {
 ## File Locations Reference
 
 Blacksmith's chat card CSS files (for reference):
-- `styles/cards-layout.css` - Layout, spacing, typography
-- `styles/cards-themes.css` - Theme color definitions
+- `styles/cards-common-layout.css` - Layout, spacing, typography
+- `styles/cards-common-themes.css` - Theme color definitions
 - `styles/cards-skill-check.css` - Skill check specific styles (example of extension)
 
 Blacksmith's template examples:

@@ -1667,17 +1667,25 @@ div#blacksmith-message-content h5 {
 }
 
 
-/* Div Selector */
+/* Div Selector - legacy (cardsdark) */
 #cards-user-cardsdark.bibliosoph-option-div-selected {
 	background-color: #a4c76a;
 	color: #000000;
 	filter: brightness(100%);
 }
+#cards-user-cardsdark.bibliosoph-option-div-selected img {
+	border-color: #293C00;
+	filter: brightness(120%);
+}
 
-
-#cards-user-cardsdark.bibliosoph-option-div-selected img{
-    /* Add your preferred styling here */
-    border-color: #293C00;
+/* Div Selector - namespaced (blacksmith-card) */
+.blacksmith-card .container-user.bibliosoph-option-div-selected {
+	background-color: #a4c76a;
+	color: #000000;
+	filter: brightness(100%);
+}
+.blacksmith-card .container-user.bibliosoph-option-div-selected img {
+	border-color: #293C00;
 	filter: brightness(120%);
 }
 
@@ -1773,7 +1781,11 @@ div#blacksmith-message-content h5 {
 	cursor: pointer;
 }
 
-#cards-user-cardsdark.bibliosoph-option-div-selected img{
+#cards-user-cardsdark.bibliosoph-option-div-selected img {
+	border-width: 1px;
+	border-style: solid;
+}
+.blacksmith-card .container-user.bibliosoph-option-div-selected img {
 	border-width: 1px;
 	border-style: solid;
 }

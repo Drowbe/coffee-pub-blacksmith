@@ -35,8 +35,8 @@
 
 /* --- Cards ---------------------- */
 @import "cards-legacy.css"; /* LEGACY layout + theme (cardsdark) for old cards */
-@import "cards-layout.css"; /* master Layout */
-@import "cards-themes.css"; /* master Themes */
+@import "cards-common-layout.css"; /* master Layout */
+@import "cards-common-themes.css"; /* master Themes */
 @import "cards-xp.css";
 @import "cards-stats.css";
 @import "cards-skill-check.css";

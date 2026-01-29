@@ -335,7 +335,7 @@ export function markdownToHtml(text) {
                 html.push('</blockquote>');
                 inBlockquote = false;
             }
-            html.push('<hr class="coffee-pub-bibliosoph-markdown-hr" />');
+            html.push('<hr class="markdown-hr" />');
             continue;
         }
 
@@ -345,39 +345,39 @@ export function markdownToHtml(text) {
         if (headingMatch) {
             const level = headingMatch[1].length;
             const headingText = formatMarkupInline(escapeMarkupText(headingMatch[2].trim()));
-            html.push(`<h${level} class="coffee-pub-bibliosoph-markdown-h${level}">${headingText}</h${level}>`);
+            html.push(`<h${level} class="markdown-h${level}">${headingText}</h${level}>`);
             continue;
         }
 
         if (/^(\*|-)\s+/.test(line)) {
             if (!inList) {
-                html.push('<ul class="coffee-pub-bibliosoph-markdown-ul">');
+                html.push('<ul class="markdown-ul">');
                 inList = true;
             }
             content = formatMarkupInline(escapeMarkupText(line.replace(/^(\*|-)\s+/, '')));
-            html.push(`<li class="coffee-pub-bibliosoph-markdown-li">${content}</li>`);
+            html.push(`<li class="markdown-li">${content}</li>`);
             if (i < lines.length - 1 && !/^(\*|-)\s+/.test(lines[i + 1])) {
                 html.push('</ul>');
                 inList = false;
             }
         } else if (/^\d+\.\s+/.test(line)) {
             if (!inOrderedList) {
-                html.push('<ol class="coffee-pub-bibliosoph-markdown-ol">');
+                html.push('<ol class="markdown-ol">');
                 inOrderedList = true;
             }
             content = formatMarkupInline(escapeMarkupText(line.replace(/^\d+\.\s+/, '')));
-            html.push(`<li class="coffee-pub-bibliosoph-markdown-li">${content}</li>`);
+            html.push(`<li class="markdown-li">${content}</li>`);
             if (i < lines.length - 1 && !/^\d+\.\s+/.test(lines[i + 1])) {
                 html.push('</ol>');
                 inOrderedList = false;
             }
         } else if (/^>\s?/.test(line)) {
             if (!inBlockquote) {
-                html.push('<blockquote class="coffee-pub-bibliosoph-markdown-blockquote">');
+                html.push('<blockquote class="markdown-blockquote">');
                 inBlockquote = true;
             }
             content = formatMarkupInline(escapeMarkupText(line.replace(/^>\s?/, '')));
-            html.push(`<p class="coffee-pub-bibliosoph-markdown-p">${content}</p>`);
+            html.push(`<p class="markdown-p">${content}</p>`);
         } else {
             if (inList) {
                 html.push('</ul>');
@@ -391,7 +391,7 @@ export function markdownToHtml(text) {
                 html.push('</blockquote>');
                 inBlockquote = false;
             }
-            html.push(`<p class="coffee-pub-bibliosoph-markdown-p">${content}</p>`);
+            html.push(`<p class="markdown-p">${content}</p>`);
         }
 
         if (inBlockquote && i < lines.length - 1 && !/^>\s?/.test(lines[i + 1])) {
@@ -417,7 +417,7 @@ export function markdownToHtml(text) {
         return '';
     }
 
-    return `<div class="coffee-pub-bibliosoph-markdown-wrapper">${output}</div>`;
+    return `<div class="markdown-div">${output}</div>`;
 }
 
 export function htmlToMarkdown(html) {

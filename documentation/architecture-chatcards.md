@@ -41,18 +41,18 @@ Layout and semantics are defined by these classes; theme colors are applied via 
 
 ### CSS Layers
 
-- **`styles/cards-layout.css`** – Base layout, spacing, typography, and default values for CSS variables (`:root`). Defines `.blacksmith-card`, `.card-header`, `.section-*`, `.section-table`, `.blacksmith-chat-buttons`, etc. Layout and structure only; colors use variables so themes can override.
-- **`styles/cards-themes.css`** – Theme definitions only. Each theme is a selector like `.blacksmith-card.theme-default`, `.blacksmith-card.theme-blue`, `.blacksmith-card.theme-announcement-green`, etc., setting `--blacksmith-card-bg`, `--blacksmith-card-header-text`, and other `--blacksmith-card-*` variables. No layout rules.
+- **`styles/cards-common-layout.css`** – Base layout, spacing, typography, and default values for CSS variables (`:root`). Defines `.blacksmith-card`, `.card-header`, `.section-*`, `.section-table`, `.blacksmith-chat-buttons`, etc. Layout and structure only; colors use variables so themes can override.
+- **`styles/cards-common-themes.css`** – Theme definitions only. Each theme is a selector like `.blacksmith-card.theme-default`, `.blacksmith-card.theme-blue`, `.blacksmith-card.theme-announcement-green`, etc., setting `--blacksmith-card-bg`, `--blacksmith-card-header-text`, and other `--blacksmith-card-*` variables. No layout rules.
 - **Card-type-specific** – `cards-xp.css`, `cards-skill-check.css`, `cards-stats.css` add styles for specific card types (XP, skill checks, combat/stats). These may still use hardcoded colors; see “Migration (internal)” below.
 - **Legacy** – `cards-layout-legacy.css` and `cards-themes-legacy.css` support older card markup during migration. New cards should use the main layout and theme files.
 
-Load order (in `default.css`): legacy first, then `cards-layout.css`, then `cards-themes.css`, then card-type-specific files. Theme variables are resolved at use; layout variables can be set in `:root` or overridden per theme.
+Load order (in `default.css`): legacy first, then `cards-common-layout.css`, then `cards-common-themes.css`, then card-type-specific files. Theme variables are resolved at use; layout variables can be set in `:root` or overridden per theme.
 
 ### Theme System
 
 - **Types**: `card` (light backgrounds, dark text) and `announcement` (dark backgrounds, light header text).
 - **Theme list**: Defined in `scripts/api-chat-cards.js` as `CHAT_CARD_THEMES` (id, name, className, type, description). Class names follow `theme-{id}` (e.g. `theme-default`, `theme-announcement-green`).
-- **Variables** (in `cards-themes.css` per theme): e.g. `--blacksmith-card-bg`, `--blacksmith-card-border`, `--blacksmith-card-text`, `--blacksmith-card-header-text`, `--blacksmith-card-section-header-text`, `--blacksmith-card-section-header-border`, `--blacksmith-card-section-subheader-*`, `--blacksmith-card-section-content-text`, `--blacksmith-card-hover-color`, `--blacksmith-card-button-*`, `--blacksmith-card-button-container-bg`. All prefixed with `--blacksmith-card-` to avoid clashes.
+- **Variables** (in `cards-common-themes.css` per theme): e.g. `--blacksmith-card-bg`, `--blacksmith-card-border`, `--blacksmith-card-text`, `--blacksmith-card-header-text`, `--blacksmith-card-section-header-text`, `--blacksmith-card-section-header-border`, `--blacksmith-card-section-subheader-*`, `--blacksmith-card-section-content-text`, `--blacksmith-card-hover-color`, `--blacksmith-card-button-*`, `--blacksmith-card-button-container-bg`. All prefixed with `--blacksmith-card-` to avoid clashes.
 - **Custom themes**: External modules or world CSS can add new `.blacksmith-card.theme-*` rules that set the same variables; the HTML contract does not change.
 
 ### Rendering Flow
@@ -93,11 +93,11 @@ Card-type-specific files (`cards-xp.css`, `cards-skill-check.css`, `cards-stats.
 **Steps**:
 
 1. **Identify usages** – In each card file, find `color`, `background`, `border-color`, etc. that are literal values.
-2. **Map to variables** – Use existing `--blacksmith-card-*` variables from `cards-themes.css` where the meaning matches (e.g. text → `--blacksmith-card-text`, section header → `--blacksmith-card-section-header-text`). See `api-chat-cards.md` or `cards-themes.css` for the full list.
+2. **Map to variables** – Use existing `--blacksmith-card-*` variables from `cards-common-themes.css` where the meaning matches (e.g. text → `--blacksmith-card-text`, section header → `--blacksmith-card-section-header-text`). See `api-chat-cards.md` or `cards-common-themes.css` for the full list.
 3. **Add variables only when necessary** – If a color is semantic (e.g. success green, failure red) or card-specific (e.g. XP row background), add a new variable:
-   - In `cards-layout.css` under `:root` and/or in theme blocks in `cards-themes.css`, define e.g. `--blacksmith-card-xp-row-bg`, `--blacksmith-card-success-color`. Document whether it is themeable or global.
+   - In `cards-common-layout.css` under `:root` and/or in theme blocks in `cards-common-themes.css`, define e.g. `--blacksmith-card-xp-row-bg`, `--blacksmith-card-success-color`. Document whether it is themeable or global.
    - In the card file, use `var(--blacksmith-card-...)`.
-4. **Semantic colors** – Decide per variable whether it should be theme-dependent or fixed (e.g. success/failure might stay consistent across themes). If theme-dependent, add it to each theme in `cards-themes.css`.
+4. **Semantic colors** – Decide per variable whether it should be theme-dependent or fixed (e.g. success/failure might stay consistent across themes). If theme-dependent, add it to each theme in `cards-common-themes.css`.
 5. **Test** – Run each card type under several themes; ensure no regressions and that new variables resolve correctly.
 
 **Files and priorities** (detailed checklist below):
@@ -124,7 +124,7 @@ Use this checklist when performing the migration. Line numbers may shift as file
 - Line 148: `color: rgba(62, 18, 18, 0.9)` (total XP)
 - Line 162: `color: rgba(223, 87, 0, 0.9)` (level up – semantic warning)
 
-Recommendation: Add XP-specific variables (e.g. `--blacksmith-card-xp-row-bg`, `--blacksmith-card-xp-content-text`, `--blacksmith-card-xp-points-color`, `--blacksmith-card-xp-player-item-bg`, `--blacksmith-card-xp-gained-color`, `--blacksmith-card-xp-total-color`, `--blacksmith-card-xp-level-up-color`) in `:root` / `cards-layout.css` and per theme in `cards-themes.css`, or reuse existing theme/semantic variables where appropriate.
+Recommendation: Add XP-specific variables (e.g. `--blacksmith-card-xp-row-bg`, `--blacksmith-card-xp-content-text`, `--blacksmith-card-xp-points-color`, `--blacksmith-card-xp-player-item-bg`, `--blacksmith-card-xp-gained-color`, `--blacksmith-card-xp-total-color`, `--blacksmith-card-xp-level-up-color`) in `:root` / `cards-common-layout.css` and per theme in `cards-common-themes.css`, or reuse existing theme/semantic variables where appropriate.
 
 **2. `styles/cards-skill-check.css`** — Status: needs migration (high priority; most instances).
 
@@ -140,7 +140,7 @@ Recommendation: Add XP-specific variables (e.g. `--blacksmith-card-xp-row-bg`, `
 
 **Migration strategy (order of work):**
 
-1. Add new CSS variables to `:root` in `cards-layout.css` and define them in each theme in `cards-themes.css`.
+1. Add new CSS variables to `:root` in `cards-common-layout.css` and define them in each theme in `cards-common-themes.css`.
 2. Replace hardcoded colors: start with `cards-skill-check.css`, then section headers and generic text, then card-specific/semantic variables.
 3. Decide whether semantic colors (success/failure/warning) are themeable; if yes, add to theme system; if no, keep hardcoded and document.
 4. Test each card type with all themes; verify no visual regressions.
@@ -181,8 +181,8 @@ Design details (signatures, options, and storage of card metadata if any) are to
 | Concern | Location / mechanism |
 |--------|----------------------|
 | HTML contract | `.blacksmith-card`, `.theme-*`, `.card-header`, `.section-*`, `.section-table`, `.blacksmith-chat-buttons` (see migration-guide-chat-cards.md) |
-| Layout & base variables | `styles/cards-layout.css` |
-| Theme colors | `styles/cards-themes.css` (per-theme variable blocks) |
+| Layout & base variables | `styles/cards-common-layout.css` |
+| Theme colors | `styles/cards-common-themes.css` (per-theme variable blocks) |
 | Card-type styles | `styles/cards-xp.css`, `styles/cards-skill-check.css`, `styles/cards-stats.css` |
 | Theme list & API | `scripts/api-chat-cards.js` (`CHAT_CARD_THEMES`, `ChatCardsAPI`); `module.api.chatCards` in `blacksmith.js` |
 | Style loading | `styles/default.css` imports layout and theme files |

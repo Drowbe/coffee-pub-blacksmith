@@ -31,6 +31,9 @@
     --blacksmith-card-button-border: #999;
     --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
+
+    /* generic colors */
+    --blacksmith-card-background: rgba(0, 0, 0, 0.15);
 }
 
 /* Base Container */
@@ -138,11 +141,8 @@
     padding-top: 2px;
 }
 
-
-
-
-
 /* ********** SECTION CONTENT ********** */
+
 /* Section content styling - works with both old and new collapsible structures */
 .blacksmith-card .section-content,
 .blacksmith-card .collapsible-content {
@@ -329,5 +329,244 @@
 
 
 
-/* ********** Element Migration ********** */
+/* ******************************************** */
+/* *****        COMMON ELEMENTS           ***** */
+/* ******************************************** */
 
+/* HR */
+.blacksmith-card hr {
+    margin: 4px 0;
+    padding: 0;
+}
+/* H1 */
+.blacksmith-card h1 {
+    font-weight:550;
+    font-size: 1.2em;
+    font-style: normal;
+    text-transform: uppercase;
+	display: inline; 
+    margin: 4px 0;
+    padding: 0 0 4px 0;
+}
+/* H2 */
+.blacksmith-card h2 {
+	font-weight:550;
+    font-size: 1.0em;
+	text-transform: uppercase;
+    margin: 4px 0;
+    padding: 0;
+}
+/* H3 */
+.blacksmith-card h3 {
+	font-weight:400;
+    font-size: 0.85em;
+    margin: 10px 0 0 0;
+    padding: 0;
+}
+/* Lists */
+.blacksmith-card ol,
+.blacksmith-card ul {
+	font-weight:400;
+    font-size: 1.0em;
+    margin: 5px 0 5px 20px;
+    padding: 0;
+}
+/* List Items */
+.blacksmith-card li {
+	font-weight:400;
+    font-size: 0.9em;
+    margin: 2px 0 0 0;
+    padding: 0;
+}
+/* Paragraph */
+.blacksmith-card p {
+	font-weight:400;
+    font-size: 1.0em;
+    margin: 0;
+    padding: 2px 0;
+}
+/* Table */
+.blacksmith-card table {
+    font-size: 0.8em;
+    margin: 8px 0;
+}
+/* Table Heading */
+.blacksmith-card table th {
+    font-size: 1.0em;
+	vertical-align: bottom;
+    padding: 3px 8px;
+}
+/* Table Row */
+.blacksmith-card table tr {
+    font-size: 1.0em;
+    padding: 3px 4px;
+}
+/* Table Cell */
+.blacksmith-card table td {
+    font-size: 1.0em;
+    padding: 3px 8px;
+}
+/* Preformatted */
+.blacksmith-card pre {
+    white-space: pre-wrap;
+	font-size: 0.8em;
+	font-family: var(--font-primary);
+    margin: 0;
+    padding: 3px 0;
+}
+
+
+
+/* ******************************************** */
+/* *****      MARKDOWN OVERRIDES          ***** */
+/* ******************************************** */
+.blacksmith-card .markdown-div {
+	font-size: 1.0em;
+}
+.blacksmith-card .markdown-h1 {
+	font-size: 1.3em;
+	font-weight: 900;
+}
+.blacksmith-card .markdown-h2 {
+	font-size: 1.1em;
+	font-weight: 900;
+}
+.blacksmith-card .markdown-h3 {
+	font-size: 0.9em;
+	font-weight: 900;
+}
+.blacksmith-card .markdown-p {
+	font-size: 1.0em;
+	font-weight: 400;
+	margin: 4px 0;
+}
+.blacksmith-card .markdown-blockquote {
+	background-color: #f0ecdd;
+	padding: 3px 8px;
+	margin: 10px 0;
+	border-left: 5px solid #8a857c;
+	border-right: 0 solid #8a857c;
+	border-top: 0 solid #8a857c;
+	border-bottom: 0 solid #8a857c;
+	box-shadow: 0 0 0 0 #8a857c;
+	border-radius: 2px;
+}
+.blacksmith-card .markdown-ul {
+	font-size: 1.0em;
+	font-weight: 400;
+	padding: 3px 8px 3px 0;
+	margin: 4px 0;
+	list-style-type: disc;
+}
+.blacksmith-card .markdown-ol {
+	font-size: 1.0em;
+	font-weight: 400;
+	padding: 3px 8px 3px 0;
+	margin: 4px 0;
+	list-style-type: decimal-leading-zero;
+}
+.blacksmith-card .markdown-hr {
+	border-top: 1px dotted #8a857c;
+	margin: 0;
+}
+
+
+
+/* ******************************************** */
+/* *****        COMMON ELEMENTS           ***** */
+/* ******************************************** */
+.token-background-themecolor,
+.token-background-brick,
+.token-background-cobblestone,
+.token-background-dessert,
+.token-background-parchment,
+.token-background-rock,
+.token-background-stone,
+.token-background-clothdark,
+.token-background-clothlight,
+.token-background-stonefloor,
+.token-background-grass,
+.token-background-dirt {
+    background-repeat: repeat;
+    background-size: cover;
+}
+.token-background-themecolor {
+	background-color: transparent;
+}
+.token-background-dirt {
+	background-image: url(../images/tiles/tile-dirt.webp);
+}
+.token-background-grass {
+	background-image: url(../images/tiles/tile-grass.webp);
+}
+.token-background-parchment {
+	background-image: url(../images/tiles/tile-parchment.webp);
+}
+.token-background-clothlight {
+	background-image: url(../images/tiles/tile-clothlight.webp);
+}
+.token-background-clothdark {
+	background-image: url(../images/tiles/tile-clothdark.webp);
+}
+.token-background-brick {
+	background-image: url(../images/tiles/tile-brick.webp);
+}
+.token-background-cobblestone {
+	background-image: url(../images/tiles/tile-cobblestone.webp);
+}
+.token-background-dessert {
+	background-image: url(../images/tiles/tile-dessert.webp);
+}
+.token-background-stonefloor {
+	background-image: url(../images/tiles/tile-stonefloor.webp);
+}
+.token-background-rock {
+	background-image: url(../images/tiles/tile-rock.webp);
+}
+.token-background-stone {
+	background-image: url(../images/tiles/tile-stone.webp);
+}
+
+
+
+
+/* ------------------------------------ */
+/* --- CARD LAYOUTS ------------------- */
+/* ------------------------------------ */
+
+.blacksmith-card .container-user {
+    display: flex;
+    align-items: center;
+    color: #faf6e6;
+    background: var(--blacksmith-card-background);
+    border-radius: 4px;
+    padding: 6px;
+    margin: 5px 0;
+  }
+  
+  .blacksmith-card .token-image {
+    height: 40px;
+    border-radius: 4px;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+  
+  .blacksmith-card .token-text-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+  
+  .blacksmith-card .token-name {
+    font-weight: 100;
+    font-size: 1.1em;
+    margin: 0;
+  }
+  
+  .blacksmith-card .token-character {
+    font-weight: 100;
+    font-size: 0.7em;
+    margin: 0;
+  }
+  

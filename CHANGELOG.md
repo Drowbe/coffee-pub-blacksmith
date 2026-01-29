@@ -450,8 +450,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Token and Portrait Replacement Filtering**: Enhanced both token and portrait image replacement processing to respect actor type and linked token settings. Both systems now check actor type (monster, NPC, vehicle, character) and linked token status before processing replacements, ensuring consistent behavior across both replacement modes. Added `_shouldUpdateActor()` helper function that centralizes the filtering logic for both token and portrait replacement.
 - **Card CSS Architecture Refactoring**: Refactored card CSS system to use CSS variables for complete themeability. Separated layout and theme concerns:
-  - `cards-layout.css` - Contains all layout, spacing, typography, and structure (uses CSS variables)
-  - `cards-themes.css` - Contains only color definitions via CSS variables
+  - `cards-common-layout.css` - Contains all layout, spacing, typography, and structure (uses CSS variables)
+  - `cards-common-themes.css` - Contains only color definitions via CSS variables
   - All CSS variables are namespaced with `blacksmith-card-` prefix to avoid conflicts with other modules
   - Default variable values defined in `:root {}` for proper CSS inheritance
   - Theme classes only override CSS variable values, never layout properties
