@@ -11,28 +11,32 @@
     --blacksmith-dnd5e2-window-header-header-button-font-size: 14px;
  }
 
+
+
+
 /* --- Window Titlebars --- */ 
 /* header-button control configure-sheet */
 /* Text */ 
 .window-header a {
-	font-size: var(--blacksmith-window-header-a-font-size);
-	vertical-align: middle;
+	/* font-size: var(--blacksmith-window-header-a-font-size);
+	vertical-align: middle; */
 }
 /* Icon */ 
 .window-header a i {
-  	font-size: var(--blacksmith-window-header-a-i-font-size);
+  	/* font-size: var(--blacksmith-window-header-a-i-font-size);
 	margin-left: var(--blacksmith-window-header-a-i-margin-left);
-    vertical-align: middle;
-	/* color: #ffffff; */
+    vertical-align: middle; */
 }
 /* Not Sure What this Does */ 
 .window-header a span {
-	font-size: var(--blacksmith-window-header-a-span-font-size);
+	/* font-size: var(--blacksmith-window-header-a-span-font-size); */
 }
 /* --- New Fancy Headers --- */
 .dnd5e2 .window-header .header-button {
-	font-size: var(--blacksmith-dnd5e2-window-header-header-button-font-size);
+	/* font-size: var(--blacksmith-dnd5e2-window-header-header-button-font-size); */
 }
+
+
 
 
 /* ------------------------------------ */
@@ -41,12 +45,10 @@
 
 /* These are not in Settings yet */
 
-
 /* Stonger Normal H2 */
 .journal-page-content h2 {
     font-weight: 700;
     font-size: 1.9em;
-    margin: 16px 0px 8px 0px;
 }
 
 /* Stonger Normal H4 */
@@ -55,17 +57,6 @@
     font-size: 1.25em;
 }
 
-/* Stonger Normal H2 */
-.journal-page-content h2 {
-    color: var(--color-text-emphatic);
-    border-bottom: 1px solid var(--color-text-emphatic);
-}
-/* Stonger Normal H4 */
-.journal-page-content h4 {
-    color: var(--color-text-emphatic);
-    border-bottom: 0px solid var(--color-text-emphatic);
-    margin: 12px 0px 6px 0px;
-}
 /* Image */
 section.journal-page-content img {
     border-radius: 4px;
