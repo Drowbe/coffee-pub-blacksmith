@@ -658,30 +658,17 @@ We're storing full event arrays in multiple places:
 
 ### Phase 2: Cleanup and Consolidation
 
-1. ✅ Remove event arrays from `combatStats`
-2. ✅ Clear timer flags at combat end
-3. ✅ Consolidate tracking to eliminate duplication
-4. ✅ Update `stats-player.js` to consume combat summaries
+Done; see CHANGELOG for completed work.
 
 ### Phase 3: Refactor for Clarity
 
-1. ✅ Document tier boundaries clearly (module headers & section comments added)
-2. ✅ Refactor `stats-combat.js` for clarity (grouped helpers, shared MVP scorer)
-3. ✅ Add JSDoc comments (core entry points and helpers annotated)
-4. ✅ Update API documentation (MVP aggregate usage + querying examples)
+Done; see CHANGELOG for completed work.
 
 ---
 
 ## Success Criteria
 
-- ✅ Round summaries continue to work as expected
-- ✅ Combat summaries are saved and retrievable (now including MVP rankings for team stack-ranks)
-- ✅ Lifetime stats continue to update correctly
-- ✅ Memory usage is bounded and predictable
-- ✅ No data loss at combat end
-- ✅ All temporary flags are cleaned up
-- ✅ Clear separation of concerns between files
-- ✅ No redundant tracking
+Round, combat, and lifetime tiers are in place; aggregates and MVP tracking work. Remaining work (if any) is in **TODO.md**.
 
 ---
 
@@ -776,8 +763,7 @@ Lifetime stats persist in actor flags forever
 - [ ] Update cleanup in `timer-round.js` to clear timing flags
 - [ ] Test data flow: round → combat → lifetime
 - [ ] Verify no data loss and proper cleanup
-- [ ] ✅ `combatStats.hits[]` replaced with `combatStats.totals.attacks.hits` (round summaries still use `currentStats.hits[]`)
-- [ ] ✅ `combatStats.misses[]` replaced with `combatStats.totals.attacks.misses`
+(Combat-level arrays replaced with aggregates; round summaries still use `currentStats`. See CHANGELOG for completed work.)
 
 ---
 

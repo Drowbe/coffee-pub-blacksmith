@@ -1,5 +1,7 @@
 # TODO - Active Work and Future Ideas
 
+**Master list:** This file contains all todos referenced in architecture and API documentation. **Process:** When a task is completed, add it to **`CHANGELOG.md`**, then remove it from this file and from any completed-task language in API/architecture docs.
+
 ## CRITICAL BUGS
 
 ### Chat Card API
@@ -44,12 +46,36 @@
 
 ### Medium Priority
 
+#### Roll system: Query window integration (architecture-rolls Phase 1.3)
+- **Issue**: Query window does not use `orchestrateRoll()`; needs to use unified 4-function flow for cross-client sync.
+- **Status**: PENDING
+- **Location**: `documentation/architecture-rolls.md`, `scripts/window-query.js`
+- **Need**: Modify `window-query.js` to use `orchestrateRoll()`; replace direct `SkillCheckDialog` creation; test cross-client sync. Then Phase 2–4 (architecture unification, validation, production readiness) per architecture-rolls.md.
+
+#### Roll system: System selection respect
+- **Issue**: `processRoll()` does not respect `diceRollToolSystem`; hardcoded to Blacksmith roll path.
+- **Status**: PENDING
+- **Location**: `scripts/manager-rolls.js`, `documentation/architecture-rolls.md`
+- **Need**: `processRoll()` respects `diceRollToolSystem`; implement Foundry roll path when selected; document in api-rolls when that doc exists.
+
 #### Rolls API as first-class surface
 - **Issue**: Rolls are exposed only via `module.api.BLACKSMITH.rolls.execute`; there is no `module.api.rolls` namespace and no dedicated API doc.
 - **Status**: PENDING - Future enhancement
 - **Location**: `scripts/blacksmith.js` (module.api assignment), new `documentation/api-rolls.md`
 - **Need**: Expose a first-class rolls surface (e.g. `module.api.rolls = { execute: ... }` or small namespace); add `BlacksmithAPI.getRolls()` in `api/blacksmith-api.js` if desired; document in `api-rolls.md` for developers leveraging the roll system.
 - **Priority**: Medium – Improves discoverability and consistency with pins/chatCards/stats APIs
+
+#### Toolbar Phase 4: Testing & Validation (architecture-toolbarmanager)
+- **Issue**: Toolbar Phases 1–3 are done; Phase 4 (testing and validation) remains.
+- **Status**: PENDING
+- **Location**: `documentation/architecture-toolbarmanager.md`, `scripts/manager-toolbar.js`
+- **Need**: Test tool registration/unregistration; verify compatibility with existing modules; test Foundry v12/v13; validate API stability.
+
+#### Pins: Full automated tests and Phase 4–5 (architecture-pins)
+- **Issue**: Pins API and rendering are in place; full automated tests and Phase 4–5 (documentation, validation) remain.
+- **Status**: PENDING
+- **Location**: `documentation/architecture-pins.md`, `scripts/manager-pins.js`, `scripts/pins-renderer.js`
+- **Need**: Full automated tests; complete Phase 4–5 documentation and validation items. TODO.md is the master list; remove items when completed and added to CHANGELOG.
 
 #### Window API
 - **Issue**: Create a Window API for managing and controlling Blacksmith windows
@@ -212,10 +238,8 @@ Keep jQuery detection during migration, but treat it as technical debt. Once all
 **Action Item:** After migration, audit all jQuery detection patterns and remove those where the source is guaranteed to be native DOM (e.g., `querySelector()` results).
 
 **Migration Task:**
-- [x] Audit all jQuery detection patterns after v13 migration is complete ✅ **COMPLETE** - See `documentation/jquery-detection-audit.md`
 - [ ] Identify which detections are unnecessary (source is guaranteed native DOM) - **IN PROGRESS** - Testing required
 - [ ] Remove unnecessary jQuery detection code - **PENDING** - Awaiting test results
-- [x] Document which detections are necessary and why ✅ **COMPLETE** - See audit report
 - [ ] Create test cases to verify native DOM is always passed - **PENDING** - See audit report testing plan
 
 **Audit Status:** Initial audit complete. Found 74 instances across 5 categories. Key finding: Inconsistency in `activateListeners(html)` and `this.element` handling suggests some detections may be unnecessary. Testing plan created to verify necessity. See `documentation/jquery-detection-audit.md` for full report.

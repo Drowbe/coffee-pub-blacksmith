@@ -2,7 +2,9 @@
 
 **Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
 
-> **Status**: Phases 1–3 complete. **Unplaced pins are the normal, primary use case**: most pins are created and configured without being on the canvas (notes, quests, etc. have pin data; only some are placed). Unplaced pin support is implemented: create without `sceneId`/x/y → unplaced; `place(pinId, { sceneId, x, y })` to put on a scene; `unplace(pinId)` to remove from canvas but keep data; `list({ unplacedOnly: true })`; hooks `blacksmith.pins.created`, `blacksmith.pins.placed`, `blacksmith.pins.unplaced`. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Automatic visibility filtering based on ownership permissions. Text display system with multiple layouts (under, over, around), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Icon/image type changes (icon ↔ image swaps) are automatically detected and handled during `update()`. Pin type system with default 'default' type for categorization and filtering. GM bulk delete controls (`deleteAll()`, `deleteAllByType()`) available via API and context menu with `moduleId` filtering. GM proxy methods (`createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`) for permission escalation. Ownership resolver hook (`blacksmith.pins.resolveOwnership`) for custom ownership mapping. Reconciliation helper (`reconcile()`) for repairing module-tracked pin links. Helper methods: `exists()`, `panTo()`, `findScene()`, `refreshPin()`, `place()`, `unplace()`. Phase 4–5 (docs, tests) remain.
+> **Current state:** Unplaced pins are the normal, primary use case. **Remaining work** (tests, Phase 4–5) is tracked in `architecture-pins.md` and `TODO.md`.
+>
+> **Unplaced pins:** most pins are created and configured without being on the canvas (notes, quests, etc. have pin data; only some are placed). Unplaced pin support is implemented: create without `sceneId`/x/y → unplaced; `place(pinId, { sceneId, x, y })` to put on a scene; `unplace(pinId)` to remove from canvas but keep data; `list({ unplacedOnly: true })`; hooks `blacksmith.pins.created`, `blacksmith.pins.placed`, `blacksmith.pins.unplaced`. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Automatic visibility filtering based on ownership permissions. Text display system with multiple layouts (under, over, around), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Icon/image type changes (icon ↔ image swaps) are automatically detected and handled during `update()`. Pin type system with default 'default' type for categorization and filtering. GM bulk delete controls (`deleteAll()`, `deleteAllByType()`) available via API and context menu with `moduleId` filtering. GM proxy methods (`createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`) for permission escalation. Ownership resolver hook (`blacksmith.pins.resolveOwnership`) for custom ownership mapping. Reconciliation helper (`reconcile()`) for repairing module-tracked pin links. Helper methods: `exists()`, `panTo()`, `findScene()`, `refreshPin()`, `place()`, `unplace()`.
 
 ## Overview
 
@@ -1728,24 +1730,3 @@ Pins can be moved by left-clicking and dragging. Only users with edit permission
 - Updates pin position in real-time
 - Saves final position on drag end
 - Fires `dragStart`, `dragMove`, and `dragEnd` events (requires `dragEvents: true` in handler options)
-
-## Implementation Status
-
-- [x] Core infrastructure (Phase 1.1, 1.2, 1.3)
-- [x] Rendering (Phase 2.1, 2.2): Pure DOM approach (no PIXI), circle/square/none shapes, Font Awesome icons and image URLs, CSS-based styling, fade-in animations
-- [x] Drag-and-drop (Phase 2.3): dropCanvasData for creation, drag-to-move, visual feedback, AbortController cleanup
-- [x] Event system (Phase 3.1, 3.2): hover/click/double-click/right-click/middle-click, modifiers, DOM event listeners, handler dispatch
-- [x] Context menu (Phase 3.3): Default items (Ping Pin, Delete), context menu item registration system for modules
-- [x] API: CRUD, `on()`, `registerContextMenuItem()`, `unregisterContextMenuItem()`, `reload()`, `refreshPin()`, `deleteAll()`, `deleteAllByType()`, `createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`, `reconcile()`, `isAvailable()`, `isReady()`, `whenReady()`; `pinsAllowPlayerWrites` setting
-- [x] Pin type system: Optional `type` field (defaults to 'default') for categorization and filtering; type-based filtering in `list()` method
-- [x] GM bulk delete controls: Context menu items for "Delete All Pins" and "Delete All Pins of Type X" (GM only, with confirmation dialogs); supports `moduleId` filtering
-- [x] GM proxy methods: `createAsGM()`, `updateAsGM()`, `deleteAsGM()` for direct GM execution; `requestGM()` for non-GM users to request GM actions via socket
-- [x] Ownership resolver hook: `blacksmith.pins.resolveOwnership` hook for custom ownership mapping based on module-specific context
-- [x] Reconciliation helper: `reconcile()` method for repairing broken links between module-tracked items and pins on canvas
-- [x] Pin storage in scene flags; migration and validation on load
-- [x] Shape support: circle (default), square (rounded corners), none (icon only)
-- [x] Color support: fill, stroke, icon color (Font Awesome), hex, rgb, rgba, hsl, hsla, named colors
-- [x] Image support: Font Awesome HTML, Font Awesome class strings, image URLs, `<img>` tags
-- [x] CSS configuration: Image size ratio, border radius, all styling in `pins.css`
-- [x] Phase 4.1: API usage patterns documented; availability checks (`isAvailable` / `isReady` / `whenReady`) implemented
-- [ ] Full automated tests and remaining Phase 4–5 items (see `plans-pins.md`)

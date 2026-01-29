@@ -174,4 +174,4 @@ Image supports Font Awesome class strings and image URLs (no HTML in stored valu
 
 ## Remaining work
 
-See **`plans-pins.md`** for the full checklist. Examples: optional use of Foundry’s context menu system, documentation and test updates.
+See **`TODO.md`** for the master list of work. Examples: full automated tests, Phase 4–5 items. Architecture drives API development; pins-specific todos are in TODO.md. Optional: Foundry’s context menu system, documentation and test updates.

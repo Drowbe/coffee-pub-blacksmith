@@ -16,10 +16,7 @@ The Broadcast feature provides a simple, powerful system for streaming FoundryVT
 
 ## **Current Status: IMPLEMENTED (Active)**
 
-### **Status:**
-- ✅ **Architecture Designed**: User-based approach defined
-- ✅ **Patterns Identified**: Existing "hide from user" patterns found
-- ⏳ **Implementation**: Not yet started
+User-based broadcast approach; modes and secondary bar in place. Remaining work (if any) in **`TODO.md`**.
 
 ## **Current Implementation (v13.0.13)**
 

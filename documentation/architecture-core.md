@@ -25,20 +25,9 @@ This document outlines the technical architecture and design decisions for the C
 - **Safety**: Automatic timing and availability handling
 - **Use Case**: When other modules want to integrate with Blacksmith
 
-## **Current Status: PRODUCTION READY + ASSET SYSTEM IN DEVELOPMENT**
+## **Current Status**
 
-### **✅ Major Achievements:**
-- **Socket System**: Fully operational with SocketLib integration
-- **Cross-Client Communication**: All features sync in real-time
-- **File Organization**: Consistent naming and loading patterns
-- **Module Architecture**: Clean, maintainable, and extensible
-- **Menubar System**: Global menu bar with extensible API for tools and notifications
-
-### **🚧 In Development:**
-- **Asset Management System**: **PARTIALLY COMPLETED** - Data structure refactored with `value` field
-- **Constants Migration**: **MAJOR PROGRESS** - ~90+ constants migrated, data collections established
-- **Data Collections**: **COMPLETED** - Centralized asset metadata storage with new structure
-- **Asset Lookup Tool**: **COMPLETED** - Flexible, tag-based asset access system
+Socket system operational (SocketLib integration, cross-client sync). Module architecture: consistent naming, menubar API, toolbar API. Asset system: data structure with `value` field; ConstantsGenerator and Asset Lookup in place. Remaining work (asset migration, tests) is in **`TODO.md`**.
 
 ## **Core Architecture Principles**
 

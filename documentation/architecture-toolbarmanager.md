@@ -70,28 +70,7 @@ This document outlines the architecture for extending Blacksmith's toolbar syste
 
 ## Technical Implementation Plan
 
-### **Phase 1: Blacksmith Toolbar Extension** ✅ COMPLETED
-1. ✅ Create `BlacksmithToolbarManager` class (`scripts/manager-blacksmith-toolbar.js`)
-2. ✅ Modify `manager-toolbar.js` to use dynamic tool collection
-3. ✅ Add tool registration/unregistration methods
-4. ✅ Update API exposure in `blacksmith.js`
-5. ✅ **Migrate existing hardcoded tools** to new registration system
-6. ✅ **Add Zone System** for tool organization and visual grouping
-7. ✅ **Add CSS Styling** for zone-based visual organization (`styles/toolbar-zones.css`)
-
-### **Phase 2: Token Control Toolbar Integration** ✅ COMPLETED
-1. ✅ **Research and identify correct FoundryVTT hooks** - Using `getSceneControlButtons` hook
-2. ✅ **Integrate with existing toolbar system** - Added token toolbar integration to `manager-toolbar.js`
-3. ✅ **Implement tool visibility logic** - Same three-tier visibility system as Blacksmith toolbar
-4. ✅ **Add Request Roll tool to token toolbar** - GM-only tool appears in Foundry's default token control toolbar
-
-### **Phase 3: API Integration** ✅ COMPLETED
-1. ✅ **Extend module API** - Added toolbar methods to `module.api` in `blacksmith.js`
-2. ✅ **Create API functions** - Implemented 7 toolbar API functions in `manager-toolbar.js`
-3. ✅ **Create comprehensive documentation** - Added `api-toolbar.md` with complete API reference
-4. ✅ **Add example usage patterns** - Created `example-module-integration.js` and `api-toolbar-test.js`
-
-### **Phase 4: Testing & Validation**
+### **Phase 4: Testing & Validation** (pending)
 1. Test tool registration/unregistration
 2. Verify compatibility with existing modules
 3. Test FoundryVTT v12 and v13 compatibility
@@ -149,14 +128,9 @@ Since we are the only consumers of the current toolbar system, we will migrate e
 
 ## Implementation Status
 
-- [x] Phase 1: Blacksmith Toolbar Extension
-- [x] Phase 2: Token Control Toolbar Integration  
-- [x] Phase 3: API Integration
-- [ ] Phase 4: Testing & Validation
+- [ ] Phase 4: Testing & Validation (see TODO.md)
 
 ## Current Implementation Details
-
-### **Phase 1 Implementation** ✅ COMPLETED
 
 #### **Consolidated Toolbar Management** (`scripts/manager-toolbar.js`)
 - **Single File Architecture**: All toolbar management consolidated into `manager-toolbar.js`
@@ -214,8 +188,6 @@ Since we are the only consumers of the current toolbar system, we will migrate e
 - **Direct Integration**: Toolbar management handled directly in `manager-toolbar.js`
 - **Timing**: Toolbar initialization occurs during module startup
 
-### **Phase 2 Implementation** ✅ COMPLETED
-
 #### **Token Control Toolbar Integration**
 - **Hook Used**: `getSceneControlButtons` - Same hook as Blacksmith toolbar
 - **Target Control**: Foundry's default "token" control toolbar
@@ -232,8 +204,6 @@ Since we are the only consumers of the current toolbar system, we will migrate e
 #### **Current Tools in Token Toolbar**
 - **Request Roll**: GM-only tool for requesting skill checks from players
 - **Integration**: Appears alongside Foundry's default token tools (Select, Target, etc.)
-
-### **Phase 3 Implementation** ✅ COMPLETED
 
 #### **API Functions** (`scripts/manager-toolbar.js`)
 - **`registerToolbarTool(toolId, toolData)`** - Register a new tool with the toolbar system

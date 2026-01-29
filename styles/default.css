@@ -34,8 +34,7 @@
 @import "journal-tools.css";
 
 /* --- Cards ---------------------- */
-@import "cards-layout-legacy.css"; /* LEGACY THEMES - STILL USED FOR OLD CARDS */
-@import "cards-themes-legacy.css"; /* LEGACY THEMES - STILL USED FOR OLD CARDS */
+@import "cards-layout-legacy.css"; /* LEGACY layout + theme (cardsdark) for old cards */
 @import "cards-layout.css"; /* master Layout */
 @import "cards-themes.css"; /* master Themes */
 @import "cards-xp.css";

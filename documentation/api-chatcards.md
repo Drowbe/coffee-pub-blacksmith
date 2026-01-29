@@ -2,7 +2,7 @@
 
 **Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
 
-> **Status**: Chat Cards API available. Provides access to chat card themes for use in dropdowns and UI elements. Full chat card creation/management API coming in future release.
+> **Status**: Chat Cards API provides theme access for dropdowns and UI. For planned full chat card API (create/update/delete), see `architecture-chatcards.md` and `TODO.md`.
 
 ## Overview
 
@@ -678,10 +678,6 @@ const html = await renderTemplate('modules/my-module/templates/my-card.hbs', {
 - **`api-core.md`** - Core Blacksmith API documentation
 - **Chat Card Templates** - See `templates/cards-common.hbs`, `templates/cards-xp.hbs` for examples
 
-## Future Enhancements
-
-A full Chat Card API for programmatic creation, updating, and management of chat cards is planned for a future release. The current API focuses on theme access to support dropdowns and UI integration.
-
----
+For planned full chat card API (create/update/delete), see **`architecture-chatcards.md`** and **`TODO.md`**.
 
 **Note**: This API provides access to themes only. For creating and rendering chat cards, use the template rendering approach documented in `migration-chat-cards.md`.
