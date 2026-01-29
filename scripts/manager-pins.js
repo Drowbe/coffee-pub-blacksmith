@@ -768,6 +768,19 @@ export class PinManager {
         if (!this._canEdit(loc.pin, userId)) {
             throw new Error('Permission denied: you cannot place this pin.');
         }
+        // Placing removes from unplaced (world setting) and adds to scene (scene flag); only GMs can write either. Non-GM users use requestGM so the GM client performs both writes.
+        if (!game.user?.isGM) {
+            const result = await this.requestGM('place', { pinId, placement });
+            if (result != null && placement.sceneId === canvas?.scene?.id) {
+                import('./pins-renderer.js').then(async ({ PinRenderer }) => {
+                    if (!PinRenderer.getContainer()) return;
+                    await PinRenderer.updatePin(result);
+                }).catch(err => {
+                    console.error('BLACKSMITH | PINS Error updating renderer after requestGM place:', err);
+                });
+            }
+            return result ?? null;
+        }
         const scene = this._getScene(placement.sceneId);
         const pin = foundry.utils.deepClone(loc.pin);
         pin.x = placement.x;
@@ -808,6 +821,18 @@ export class PinManager {
         const userId = game.user?.id ?? '';
         if (!this._canEdit(loc.pin, userId)) {
             throw new Error('Permission denied: you cannot unplace this pin.');
+        }
+        // Unplacing removes from scene (scene flag) and adds to unplaced (world setting); only GMs can write either. Non-GM users use requestGM so the GM client performs both writes.
+        if (!game.user?.isGM) {
+            const result = await this.requestGM('unplace', { pinId, sceneId: loc.scene.id });
+            if (result != null && loc.scene.id === canvas?.scene?.id) {
+                import('./pins-renderer.js').then(({ PinRenderer }) => {
+                    PinRenderer.removePin(pinId);
+                }).catch(err => {
+                    console.error('BLACKSMITH | PINS Error removing pin from renderer after requestGM unplace:', err);
+                });
+            }
+            return result ?? null;
         }
         const pin = foundry.utils.deepClone(loc.pin);
         pin.x = undefined;
@@ -1080,8 +1105,8 @@ export class PinManager {
     /**
      * Request GM to perform a pin action (for non-GM users)
      * Uses socket system to forward request to GM. Used when the caller has edit permission but cannot write the backing store (scene flags require Scene update; unplaced pins use world setting 'pinsUnplaced').
-     * @param {string} action - Action type: 'create', 'update', 'updateUnplaced', or 'delete'
-     * @param {Object} params - Action parameters. For 'update': sceneId, pinId, patch, options. For 'updateUnplaced': pinId, patch, options (no sceneId).
+     * @param {string} action - Action type: 'create', 'update', 'updateUnplaced', 'place', 'unplace', or 'delete'
+     * @param {Object} params - Action parameters. For 'update': sceneId, pinId, patch, options. For 'updateUnplaced': pinId, patch, options. For 'place': pinId, placement. For 'unplace': pinId.
      * @param {string} [params.sceneId] - Target scene (create, update, delete)
      * @param {string} [params.pinId] - Pin ID (update, updateUnplaced, delete)
      * @param {Object} [params.patch] - Update patch (update, updateUnplaced)
@@ -1099,6 +1124,10 @@ export class PinManager {
                     return this.updateAsGM(params.sceneId, params.pinId, params.patch, params.options);
                 case 'updateUnplaced':
                     return this.update(params.pinId, params.patch, params.options || {});
+                case 'place':
+                    return this.place(params.pinId, params.placement);
+                case 'unplace':
+                    return this.unplace(params.pinId);
                 case 'delete':
                     return this.deleteAsGM(params.sceneId, params.pinId, params.options);
                 default:
@@ -1140,6 +1169,12 @@ export class PinManager {
                         case 'updateUnplaced':
                             const updatedUnplaced = await this.update(data.params.pinId, data.params.patch, data.params.options || {});
                             return { success: true, data: updatedUnplaced };
+                        case 'place':
+                            const placed = await this.place(data.params.pinId, data.params.placement);
+                            return { success: true, data: placed };
+                        case 'unplace':
+                            const unplaced = await this.unplace(data.params.pinId);
+                            return { success: true, data: unplaced };
                         case 'delete':
                             await this.deleteAsGM(data.params.sceneId, data.params.pinId, data.params.options || {});
                             return { success: true };
