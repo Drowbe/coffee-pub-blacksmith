@@ -1658,8 +1658,8 @@ Pin appearance can be customized globally via CSS variables in `styles/pins.css`
   /* Icon size relative to pin size (default: 0.60 = 60% of pin diameter) */
   --blacksmith-pin-icon-size-ratio: 0.60;
   
-  /* "Around" text size relative to pin size (default: 0.28 = 28% of pin diameter) */
-  --blacksmith-pin-around-text-size-ratio: 0.28;
+  /* "Around" text size relative to pin size (default: 0.24 = 24% of pin diameter) */
+  --blacksmith-pin-around-text-size-ratio: 0.24;
   
   /* Border radius for square pins (default: 15%) */
   --blacksmith-pin-square-border-radius: 15%;
