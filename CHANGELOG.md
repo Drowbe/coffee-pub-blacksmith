@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [13.2.4]
+
+### Changed
+- **Chat card legacy themes**: Removed support for `cardsred`, `cardsgreen`, and `cardsblue`. Only `cardsdark` remains for legacy chat cards. All related CSS was removed from legacy card styles.
+- **Legacy card CSS merge**: Merged `cards-themes-legacy.css` into `cards-layout-legacy.css` (layout + theme for cardsdark in one file). Removed `cards-themes-legacy.css` and its import from `default.css`.
+- **Legacy card CSS shorthand**: Padding and margin in `cards-layout-legacy.css` converted to single-line shorthand (e.g. `padding: 5px 10px`); `border-radius` values simplified where applicable.
+- **Common card layout – namespaced typography**: In `cards-common-layout.css`, typography rules (hr, h1–h3, ol, ul, li, p, table, pre) and markdown overrides are now scoped under `.blacksmith-card` instead of `#cards-wrapper-cardsdark`. Markdown class names simplified from `coffee-pub-bibliosoph-markdown-*` to `markdown-*` (e.g. `markdown-div`, `markdown-h1`, `markdown-p`, `markdown-blockquote`, `markdown-ul`, `markdown-ol`, `markdown-hr`).
+- **markdownToHtml() output**: `api-core.js` `markdownToHtml()` now emits the new markdown class names (`markdown-hr`, `markdown-h1`–`markdown-h3`, `markdown-ul`, `markdown-ol`, `markdown-li`, `markdown-p`, `markdown-blockquote`, `markdown-div`). Legacy `cards-legacy.css` markdown overrides updated to use `.markdown-*` selectors.
+- **User/token card layout – namespaced**: User and token block styles in `cards-common-layout.css` moved to `.blacksmith-card` with simplified class names: `container-user` (was `#cards-user-cardsdark`), `token-image`, `token-text-wrapper`, `token-name`, `token-character`. Legacy `#cards-*` rules remain in `cards-legacy.css` for existing chat messages. `window-common.css` now includes `.blacksmith-card .container-user.bibliosoph-option-div-selected` (and img) for the new namespaced cards alongside existing `#cards-user-cardsdark` selected-state rules.
+
 ## [13.2.3] 
 
 ### Added
