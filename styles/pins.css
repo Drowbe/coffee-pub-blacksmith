@@ -3,9 +3,11 @@
    PINS CSS - Styles for canvas pin rendering
    ================================================================== */
 
+
 /* CSS Variables - configurable at the root level */
 :root {
     --blacksmith-pin-icon-size-ratio: 0.60; /* 60% of pin size - used for Font Awesome icon scaling only; matches note-panel icon size; images always fill 100% with cover */
+    --blacksmith-pin-around-text-size-ratio: 0.22; /* 22% of pin size - used for "around" text layout sizing */
     --blacksmith-pin-square-border-radius: 15%; /* Border radius for square pins (rounded corners) */
     --blacksmith-pin-drop-shadow: drop-shadow(0 0px 5px rgba(0, 0, 0, 0.9)); /* Drop shadow for depth */
 }
@@ -431,4 +433,3 @@
     flex-shrink: 0;
     font-size: 0.75em; /* try 0.7–0.8 */
 }
-
