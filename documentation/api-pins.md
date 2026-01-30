@@ -161,7 +161,7 @@ interface PinData {
   id: string; // UUID
   x?: number;   // Omit for unplaced pins
   y?: number;   // Omit for unplaced pins
-  sceneId?: string;  // Omit for unplaced pins; set when placed
+  sceneId?: string;  // Not persisted on stored pins; use findScene() to resolve placement (used only in placement patches)
   size?: { w: number; h: number };
   style?: { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number; iconColor?: string }; // Supports hex, rgb, rgba, hsl, hsla, named colors. iconColor applies to Font Awesome icons (default '#ffffff').
   text?: string; // Text label content
@@ -790,12 +790,13 @@ await pinsAPI.requestGM('delete', {
 ```
 
 **Parameters**:
-- `action` (string, required): Action type - `'create'`, `'update'`, or `'delete'`
+- `action` (string, required): Action type - `'create'`, `'update'`, `'updateUnplaced'`, `'place'`, `'unplace'`, or `'delete'`
 - `params` (object, required): Action parameters
-  - `sceneId` (string, required): Target scene
-  - `pinId` (string, optional): Pin ID (required for 'update' and 'delete')
+  - `sceneId` (string, optional): Target scene (required for 'create', 'update', 'delete')
+  - `pinId` (string, optional): Pin ID (required for 'update', 'updateUnplaced', 'place', 'unplace', and 'delete')
   - `payload` (object, optional): Pin data (required for 'create')
-  - `patch` (object, optional): Update patch (required for 'update')
+  - `patch` (object, optional): Update patch (required for 'update' and 'updateUnplaced')
+  - `placement` (object, optional): Placement payload (required for 'place')
   - `options` (object, optional): Additional options
 
 **Throws**: 
@@ -808,7 +809,7 @@ await pinsAPI.requestGM('delete', {
 - If caller is already GM, executes directly (no socket call)
 - If caller is not GM, forwards request to GM via socket
 - Requires at least one active GM to be online
-- Uses SocketLib's `executeAsGM()` if available, otherwise falls back to broadcast pattern
+- Requires SocketLib `executeAsGM()` support; otherwise `requestGM()` throws
 
 **Use Case**: Allows players to request pin actions that require GM permissions, enabling modules to implement player-initiated pin operations that are executed by GMs.
 
@@ -1622,8 +1623,10 @@ Pins have a right-click context menu with the following options:
 
 **Available to All Users:**
 - **Ping Pin**: Animates the pin to draw attention (combo animation: scale-large + ripple with sound)
+- **Bring Players Here**: Pans all connected users who can see the pin to its location (optionally with ping)
 
 **Available to Users with Edit Permissions:**
+- **Configure Pin**: Opens the Configure Pin window for visual and layout settings
 - **Delete Pin**: Deletes the individual pin
 
 **GM-Only Options** (appear below a separator):
@@ -1652,14 +1655,14 @@ Pin appearance can be customized globally via CSS variables in `styles/pins.css`
 
 ```css
 :root {
-  /* Icon size relative to pin size (default: 0.90 = 90% of pin diameter) */
-  --blacksmith-pin-icon-size-ratio: 0.90;
+  /* Icon size relative to pin size (default: 0.60 = 60% of pin diameter) */
+  --blacksmith-pin-icon-size-ratio: 0.60;
   
   /* Border radius for square pins (default: 15%) */
   --blacksmith-pin-square-border-radius: 15%;
   
-  /* Drop shadow for pins (default: subtle shadow for depth) */
-  --blacksmith-pin-drop-shadow: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  /* Drop shadow for pins (default: 0 0px 5px rgba(0, 0, 0, 0.9)) */
+  --blacksmith-pin-drop-shadow: drop-shadow(0 0px 5px rgba(0, 0, 0, 0.9));
 }
 ```
 
@@ -1725,7 +1728,7 @@ When dropped on the canvas, the pin will be created at the drop location. The `x
 ### Dragging Existing Pins
 
 Pins can be moved by left-clicking and dragging. Only users with edit permissions can drag pins. The drag operation:
-- Starts after moving 5 pixels (distinguishes drag from click)
+- Starts after moving 10 pixels (distinguishes drag from click)
 - Shows visual feedback (alpha 0.7, elevated z-index)
 - Updates pin position in real-time
 - Saves final position on drag end

@@ -229,7 +229,7 @@ export class PinsAPI {
      */
     static getDefaultPinDesign(moduleId) {
         if (!moduleId || typeof game?.settings?.get !== 'function') return null;
-        const store = game.settings.get(MODULE.ID, 'clientPinDefaultDesigns');
+        const store = game.settings.get(MODULE_ID, 'clientPinDefaultDesigns');
         const design = store?.[moduleId] ?? null;
         return design ? { ...design } : null;
     }
@@ -307,6 +307,7 @@ export class PinsAPI {
      * @param {string} pinId - The pin ID to pan to
      * @param {Object} [options] - Options
      * @param {string} [options.sceneId] - Optional scene ID
+     * @param {boolean} [options.broadcast] - If true, pan all connected users who can see the pin (via socket)
      * @param {boolean|Object} [options.ping] - Ping the pin after panning. If true, uses default pulse animation. If object, passes to ping()
      * @returns {Promise<boolean>} - Returns true if pan was successful, false if pin not found or canvas not ready
      */
@@ -372,9 +373,9 @@ export class PinsAPI {
      * Ping (animate) a pin to draw attention to it.
      * @param {string} pinId - Pin ID to ping
      * @param {Object} options - Ping options
-     * @param {string} options.animation - Animation type: 'pulse', 'ripple', 'flash', 'glow', 'bounce', 'scale-small', 'scale-medium', 'scale-large', 'rotate', 'shake'
+     * @param {string} options.animation - Animation type: 'ping', 'pulse', 'ripple', 'flash', 'glow', 'bounce', 'scale-small', 'scale-medium', 'scale-large', 'rotate', 'shake'
      * @param {number} [options.loops=1] - Number of times to loop animation (default: 1)
-     * @param {boolean} [options.broadcast=false] - If true, show animation to all users (not yet implemented, logs warning)
+     * @param {boolean} [options.broadcast=false] - If true, show animation to all users who can see the pin (via socket)
      * @param {string} [options.sound] - Sound to play. Can be blacksmith sound name ('interface-ping-01') or full path ('modules/my-module/sounds/ping.mp3')
      * @returns {Promise<void>}
      */

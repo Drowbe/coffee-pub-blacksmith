@@ -736,13 +736,42 @@ export class PinManager {
         if (patch.size != null && typeof patch.size === 'object') {
             merged.size = { ...merged.size, ...patch.size };
         }
+        if (patch.shape != null) {
+            const shape = String(patch.shape).toLowerCase();
+            if (shape === 'circle' || shape === 'square' || shape === 'none') {
+                merged.shape = shape;
+            }
+        }
+        if (typeof patch.dropShadow === 'boolean') {
+            merged.dropShadow = patch.dropShadow;
+        }
         if (patch.style != null && typeof patch.style === 'object') {
             merged.style = { ...merged.style, ...patch.style };
         }
         if (patch.text !== undefined) merged.text = patch.text ? String(patch.text).trim() : undefined;
+        if (patch.textLayout != null) {
+            const layout = String(patch.textLayout).toLowerCase();
+            if (layout === 'under' || layout === 'over' || layout === 'around') {
+                merged.textLayout = layout;
+            }
+        }
+        if (patch.textDisplay != null) {
+            const display = String(patch.textDisplay).toLowerCase();
+            if (display === 'always' || display === 'hover' || display === 'never' || display === 'gm') {
+                merged.textDisplay = display;
+            }
+        }
+        if (patch.textColor != null) merged.textColor = String(patch.textColor);
+        if (typeof patch.textSize === 'number' && patch.textSize > 0) merged.textSize = patch.textSize;
+        if (typeof patch.textMaxLength === 'number' && patch.textMaxLength >= 0) merged.textMaxLength = patch.textMaxLength;
+        if (typeof patch.textScaleWithPin === 'boolean') merged.textScaleWithPin = patch.textScaleWithPin;
         if (patch.image !== undefined) {
             const stored = normalizePinImageForStorage(patch.image);
             merged.image = stored || undefined;
+        }
+        if (patch.type != null) {
+            const type = String(patch.type).trim();
+            merged.type = type || 'default';
         }
         if (patch.config != null && typeof patch.config === 'object' && !Array.isArray(patch.config)) {
             merged.config = { ...merged.config, ...patch.config };
