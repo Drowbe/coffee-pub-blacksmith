@@ -104,7 +104,6 @@
       "fa-solid fa-screwdriver",
       "fa-solid fa-gears",
       "fa-solid fa-cog",
-      "fa-solid fa-anvil",
       "fa-solid fa-toolbox",
       "fa-solid fa-ruler-combined",
       "fa-solid fa-scissors",
@@ -213,6 +212,27 @@
       "fa-solid fa-person-falling",
       "fa-solid fa-arrow-right",
       "fa-solid fa-arrows-spin"
+    ]
+  },
+  {
+    "category": "Weapons",
+    "description": "Weapons, combat gear, and martial tools.",
+    "icons": [
+      "fa-solid fa-sword",
+      "fa-solid fa-swords",
+      "fa-solid fa-dagger",
+      "fa-solid fa-axe",
+      "fa-solid fa-axe-battle",
+      "fa-solid fa-shield",
+      "fa-solid fa-shield-halved",
+      "fa-solid fa-bow-arrow",
+      "fa-solid fa-crossbow",
+      "fa-solid fa-mace",
+      "fa-solid fa-club",
+      "fa-solid fa-hammer",
+      "fa-solid fa-gun",
+      "fa-solid fa-bomb",
+      "fa-solid fa-skull-crossbones"
     ]
   },
   {

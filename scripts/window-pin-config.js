@@ -224,6 +224,7 @@ export class PinConfigWindow extends Application {
                 icons
             };
         });
+        const iconCategoryOptions = Array.from(new Set(iconCategories.map(cat => cat.category))).filter(Boolean);
 
         const imageValue = this.selected?.type === 'img' ? this.selected.value : '';
 
@@ -231,6 +232,7 @@ export class PinConfigWindow extends Application {
             previewHtml: PinConfigWindow.buildIconHtml(this.selected, 'window-note-header-image'),
             imageValue,
             iconCategories,
+            iconCategoryOptions,
             pinWidth: this.pinSize.w,
             pinHeight: this.pinSize.h,
             lockProportions: this.lockProportions,
@@ -263,6 +265,8 @@ export class PinConfigWindow extends Application {
         const imageInput = nativeHtml.querySelector('.blacksmith-pin-config-image-input');
         const imageRow = nativeHtml.querySelector('.blacksmith-pin-config-image-row');
         const imagePreview = nativeHtml.querySelector('.blacksmith-pin-config-image-preview');
+        const iconSearchInput = nativeHtml.querySelector('.blacksmith-pin-config-icon-search');
+        const iconCategoryFilter = nativeHtml.querySelector('.blacksmith-pin-config-icon-category-filter');
         const widthInput = nativeHtml.querySelector('.blacksmith-pin-config-width');
         const heightInput = nativeHtml.querySelector('.blacksmith-pin-config-height');
         const lockInput = nativeHtml.querySelector('.blacksmith-pin-config-lock');
@@ -284,6 +288,48 @@ export class PinConfigWindow extends Application {
         const textScaleInput = nativeHtml.querySelector('.blacksmith-pin-config-text-scale');
         const defaultInput = nativeHtml.querySelector('.blacksmith-pin-config-default');
         const sourceToggle = nativeHtml.querySelector('.blacksmith-pin-config-source-toggle-input');
+        const shapeNoneNote = nativeHtml.querySelector('.blacksmith-pin-config-shape-none-note');
+        const iconModeNote = nativeHtml.querySelector('.blacksmith-pin-config-icon-mode-note');
+
+        const applyIconFilter = () => {
+            const query = (iconSearchInput?.value || '').trim().toLowerCase();
+            const category = iconCategoryFilter?.value || 'all';
+            const iconButtons = nativeHtml.querySelectorAll('.blacksmith-pin-config-icon-option');
+            iconButtons.forEach(button => {
+                const label = (button.dataset.label || '').toLowerCase();
+                const value = (button.dataset.value || '').toLowerCase();
+                const iconCategory = (button.dataset.category || '').toLowerCase();
+                const matchesQuery = !query || label.includes(query) || value.includes(query);
+                const matchesCategory = category === 'all' || iconCategory === category.toLowerCase();
+                button.style.display = (matchesQuery && matchesCategory) ? '' : 'none';
+            });
+
+            nativeHtml.querySelectorAll('.blacksmith-pin-config-icon-category').forEach(section => {
+                const anyVisible = Array.from(section.querySelectorAll('.blacksmith-pin-config-icon-option'))
+                    .some(button => button.style.display !== 'none');
+                section.style.display = anyVisible ? '' : 'none';
+            });
+        };
+
+        iconSearchInput?.addEventListener('input', applyIconFilter);
+        iconCategoryFilter?.addEventListener('change', applyIconFilter);
+
+        const applyIconModeState = () => {
+            const isIconMode = (this.iconMode || 'icon') === 'icon';
+            if (iconColorInput) iconColorInput.disabled = !isIconMode;
+            if (iconColorTextInput) iconColorTextInput.disabled = !isIconMode;
+            if (iconModeNote) iconModeNote.style.display = isIconMode ? 'none' : 'block';
+        };
+
+        const applyShapeState = () => {
+            const isNone = (this.pinShape || 'circle') === 'none';
+            if (fillInput) fillInput.disabled = isNone;
+            if (fillTextInput) fillTextInput.disabled = isNone;
+            if (strokeInput) strokeInput.disabled = isNone;
+            if (strokeTextInput) strokeTextInput.disabled = isNone;
+            if (strokeWidthInput) strokeWidthInput.disabled = isNone;
+            if (shapeNoneNote) shapeNoneNote.style.display = isNone ? 'block' : 'none';
+        };
 
         const updatePreview = () => {
             if (preview) {
@@ -323,6 +369,10 @@ export class PinConfigWindow extends Application {
                 sourceToggle.checked = mode === 'icon';
             }
             updatePreview();
+            if (mode === 'icon') {
+                applyIconFilter();
+            }
+            applyIconModeState();
         };
 
         const clampDimension = (value, fallback) => {
@@ -408,6 +458,7 @@ export class PinConfigWindow extends Application {
             if (shape === 'circle' || shape === 'square' || shape === 'none') {
                 this.pinShape = shape;
             }
+            applyShapeState();
         });
         strokeTextInput?.addEventListener('input', () => {
             const value = strokeTextInput.value.trim();
@@ -470,11 +521,23 @@ export class PinConfigWindow extends Application {
         shadowInput?.addEventListener('change', () => {
             this.dropShadow = !!shadowInput.checked;
         });
+        const aroundNote = nativeHtml.querySelector('.blacksmith-pin-config-text-around-note');
+        const applyTextLayoutState = () => {
+            if (!textLayoutInput) return;
+            const layout = textLayoutInput.value;
+            const isAround = layout === 'around';
+            if (textSizeInput) textSizeInput.disabled = isAround;
+            if (textScaleInput) textScaleInput.disabled = isAround;
+            if (aroundNote) aroundNote.style.display = isAround ? 'block' : 'none';
+        };
+        applyTextLayoutState();
+
         textLayoutInput?.addEventListener('change', () => {
             const layout = textLayoutInput.value;
             if (layout === 'under' || layout === 'over' || layout === 'around') {
                 this.pinTextLayout = layout;
             }
+            applyTextLayoutState();
         });
         textDisplayInput?.addEventListener('change', () => {
             const display = textDisplayInput.value;
@@ -512,6 +575,9 @@ export class PinConfigWindow extends Application {
         sourceToggle?.addEventListener('change', () => {
             updateMode(sourceToggle.checked ? 'icon' : 'image');
         });
+
+        applyShapeState();
+        applyIconModeState();
 
         nativeHtml.querySelector('.blacksmith-pin-config-browse')?.addEventListener('click', async () => {
             const picker = new FilePicker({

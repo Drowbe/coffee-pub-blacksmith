@@ -193,6 +193,27 @@ div#blacksmith-pin-config .window-content {
     margin: 0;
 }
 
+.blacksmith-pin-config-help {
+    font-size: 0.8em;
+    color: rgba(210, 200, 170, 0.75);
+    margin: 6px 0 10px;
+}
+
+.blacksmith-pin-config-icon-filters {
+    display: grid;
+    grid-template-columns: 1fr 180px;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.blacksmith-pin-config-icon-search {
+    width: 100%;
+}
+
+.blacksmith-pin-config-icon-category-filter {
+    width: 100%;
+}
+
 .blacksmith-pin-config-icon-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
