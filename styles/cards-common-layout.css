@@ -33,7 +33,8 @@
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
 
     /* generic colors */
-    --blacksmith-card-background: rgba(0, 0, 0, 0.15);
+    --blacksmith-card-background: rgba(0, 0, 0, 0.08);
+    --blacksmith-card-border-color: rgba(0, 0, 0, 0.05);
 }
 
 /* Base Container */
@@ -152,6 +153,14 @@
     color: var(--blacksmith-card-section-content-text);
 }
 
+.blacksmith-card .section-content.section-dark,
+.blacksmith-card .collapsible-content.section-dark {
+    background-color: var(--blacksmith-card-background);
+    border: 1px solid var(--blacksmith-card-border-color);
+    padding: 4px 6px 4px 6px;
+    border-radius: 4px;
+}
+
 /* Foundry handles collapsing, but we keep this for backward compatibility */
 .blacksmith-card .section-content.collapsed {
     max-height: 0 !important;
@@ -178,6 +187,20 @@
 .blacksmith-card .collapsible-content li {
     margin: 2px 0;
 }
+
+
+.blacksmith-card .section-content img,
+.blacksmith-card .collapsible-content img {
+    border: 1px solid var(--blacksmith-card-border-color) !important;
+    border-radius: 4px !important;
+    margin: 6px auto !important;
+    padding: 0 !important;
+}
+
+
+
+
+
 
 
 .blacksmith-card .section-label {
@@ -337,6 +360,8 @@
 .blacksmith-card hr {
     margin: 4px 0;
     padding: 0;
+    border: none;
+    border-top: 1px dotted #323030;
 }
 /* H1 */
 .blacksmith-card h1 {
@@ -389,17 +414,25 @@
 .blacksmith-card table {
     font-size: 0.8em;
     margin: 8px 0;
+    border-top: 1px solid #BDB7A0;
+	border-bottom: 1px solid #BDB7A0;
+	border-left: 1px dotted #BDB7A0;
+	border-right: 1px dotted #BDB7A0;
 }
 /* Table Heading */
 .blacksmith-card table th {
     font-size: 1.0em;
 	vertical-align: bottom;
     padding: 3px 8px;
+    background: #E5E1D5;
+	border-bottom: 1px solid #BDB7A0;
 }
 /* Table Row */
 .blacksmith-card table tr {
     font-size: 1.0em;
     padding: 3px 4px;
+    background: #F3F1E9;
+    border-bottom: 1px dotted #CAC5B0;
 }
 /* Table Cell */
 .blacksmith-card table td {
@@ -413,6 +446,10 @@
 	font-family: var(--font-primary);
     margin: 0;
     padding: 3px 0;
+    border-top: 0px solid #7A7972;
+	border-bottom: 0px solid #7A7972;
+	border-left: 0px dotted #BDB7A0;
+	border-right: 0px dotted #BDB7A0;
 }
 
 
@@ -534,39 +571,46 @@
 /* --- CARD LAYOUTS ------------------- */
 /* ------------------------------------ */
 
+
 .blacksmith-card .container-user {
     display: flex;
     align-items: center;
-    color: #faf6e6;
     background: var(--blacksmith-card-background);
     border-radius: 4px;
-    padding: 6px;
-    margin: 5px 0;
-  }
-  
-  .blacksmith-card .token-image {
-    height: 40px;
+    padding: 6px 6px 6px 6px;
+    margin: 6px 0;
+}
+.blacksmith-card .container-user .token-image {
+    height: 32px;
     border-radius: 4px;
-    margin-right: 8px;
+    margin-right: 4px;
     flex-shrink: 0;
-  }
-  
-  .blacksmith-card .token-text-wrapper {
+}
+
+.blacksmith-card .container-user .token-text-wrapper {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    text-align: left;
-  }
-  
-  .blacksmith-card .token-name {
-    font-weight: 100;
+    gap: 2px;         /* controls the space between the two lines */
+    line-height: 1.1; /* keeps things tight */
+}
+
+
+.blacksmith-card .container-user .token-name {
+    font-weight: 900;
     font-size: 1.1em;
     margin: 0;
-  }
-  
-  .blacksmith-card .token-character {
+}
+
+.blacksmith-card .container-user .token-character {
     font-weight: 100;
-    font-size: 0.7em;
+    font-size: 0.85em;
     margin: 0;
-  }
+}
+
+.blacksmith-card .container-user .token-name,
+.blacksmith-card .container-user .token-character {
+    line-height: 1.1;
+    display: block; /* makes sure no weird inline line-box behavior */
+}
+
   
