@@ -1239,9 +1239,10 @@ class PinDOMElement {
             if (textMaxLength > 0 && displayText.length > textMaxLength) {
                 displayText = displayText.substring(0, textMaxLength) + '...';
             }
-            // Character-based wrap at word boundary (under/over only)
+            // Character-based wrap at word boundary (under/over only). Only source of line breaks when > 0.
             if ((textLayout === 'under' || textLayout === 'over') && textMaxWidth > 0) {
-                displayText = this._breakTextAtWordBoundary(displayText, textMaxWidth);
+                const oneLine = displayText.replace(/\s+/g, ' ').trim();
+                displayText = this._breakTextAtWordBoundary(oneLine, textMaxWidth);
             }
             
             // For "around" layout, create curved text using individual characters
@@ -1285,17 +1286,22 @@ class PinDOMElement {
             textElement.style.fontSize = `${textSize}px`;
         }
 
-        // Chars-per-line wrap: we insert newlines in displayText above; use pre-line so they break.
-        // Override CSS max-width so only our character count controls lines (no pixel-based wrap).
+        // Chars-per-line wrap: set width in character units (ch) so the element is not constrained by the pin.
+        // The text div lives inside the pin; with width:auto it was limited to the pin's pixel width (~53px).
+        // We never set width before—only maxWidth—so the containing block (pin) was always the limit.
         if (textLayout === 'under' || textLayout === 'over') {
             if (textMaxWidth > 0) {
-                textElement.style.whiteSpace = 'pre-line';
+                textElement.style.width = `${textMaxWidth}ch`;
                 textElement.style.maxWidth = 'none';
+                textElement.style.whiteSpace = 'pre-line';
+                textElement.style.overflowWrap = 'break-word';
                 textElement.style.overflow = 'visible';
                 textElement.style.textOverflow = '';
             } else {
-                textElement.style.whiteSpace = '';
+                textElement.style.width = '';
                 textElement.style.maxWidth = '';
+                textElement.style.whiteSpace = '';
+                textElement.style.overflowWrap = '';
                 textElement.style.overflow = '';
                 textElement.style.textOverflow = '';
             }

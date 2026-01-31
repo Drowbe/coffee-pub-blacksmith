@@ -204,7 +204,11 @@ export function applyDefaults(partial) {
     if (partial.textColor != null) base.textColor = String(partial.textColor);
     if (typeof partial.textSize === 'number' && partial.textSize > 0) base.textSize = partial.textSize;
     if (typeof partial.textMaxLength === 'number' && partial.textMaxLength >= 0) base.textMaxLength = partial.textMaxLength;
-    if (typeof partial.textMaxWidth === 'number' && partial.textMaxWidth >= 0) base.textMaxWidth = partial.textMaxWidth;
+    const rawMaxWidth = partial.textMaxWidth;
+    if (rawMaxWidth != null && rawMaxWidth !== '') {
+        const n = Math.max(0, parseInt(String(rawMaxWidth), 10) | 0);
+        if (Number.isFinite(n)) base.textMaxWidth = n;
+    }
     if (typeof partial.textScaleWithPin === 'boolean') base.textScaleWithPin = partial.textScaleWithPin;
     if (partial.type != null) {
         base.type = String(partial.type).trim() || PIN_DEFAULTS.type;
