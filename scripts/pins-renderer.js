@@ -1214,7 +1214,9 @@ class PinDOMElement {
         const textColor = pinData.textColor || '#ffffff';
         const textSize = pinData.textSize || 12;
         const textMaxLength = pinData.textMaxLength || 0;
-        const textMaxWidth = Math.max(0, parseInt(String(pinData.textMaxWidth ?? 0), 10) || 0);
+        // Purely character count: wrap at N chars per line (word boundary). No pixels.
+        const rawMaxWidth = pinData.textMaxWidth ?? pinData.config?.textMaxWidth ?? 0;
+        const textMaxWidth = Math.max(0, parseInt(String(rawMaxWidth), 10) || 0);
         const isGM = game.user?.isGM || false;
 
         // Check if text should be visible
@@ -1283,12 +1285,19 @@ class PinDOMElement {
             textElement.style.fontSize = `${textSize}px`;
         }
 
-        // Chars-per-line wrap: use pre-line so inserted newlines break (under/over only)
+        // Chars-per-line wrap: we insert newlines in displayText above; use pre-line so they break.
+        // Override CSS max-width so only our character count controls lines (no pixel-based wrap).
         if (textLayout === 'under' || textLayout === 'over') {
             if (textMaxWidth > 0) {
                 textElement.style.whiteSpace = 'pre-line';
+                textElement.style.maxWidth = 'none';
+                textElement.style.overflow = 'visible';
+                textElement.style.textOverflow = '';
             } else {
                 textElement.style.whiteSpace = '';
+                textElement.style.maxWidth = '';
+                textElement.style.overflow = '';
+                textElement.style.textOverflow = '';
             }
         }
 

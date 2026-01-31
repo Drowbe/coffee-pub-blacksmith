@@ -4939,30 +4939,138 @@ class MenuBar {
         if (setAsDefault) {
             await game.settings.set(MODULE.ID, 'sessionTimerDefault', hours * 60 + minutes);
         }
+        await game.settings.set(MODULE.ID, 'sessionTimerLastUsed', {
+            mode: 'duration',
+            minutes: hours * 60 + minutes,
+            endTime: ''
+        });
 
         await this.updateTimer(this.sessionEndTime, this.sessionStartTime, true);
         this.updateTimerDisplay();
     }
 
     static async showTimerMenu(event) {
+        const defaultMinutes = game.settings.get(MODULE.ID, 'sessionTimerDefault') || 0;
+        const defaultHours = Math.floor(defaultMinutes / 60);
+        const defaultMins = defaultMinutes % 60;
+        const defaultLabel = `${defaultHours}h ${defaultMins.toString().padStart(2, '0')}m`;
+
+        const lastUsed = game.settings.get(MODULE.ID, 'sessionTimerLastUsed') || { mode: '', minutes: 0, endTime: '' };
+        const hasLastUsed = !!(lastUsed?.mode === 'duration' && lastUsed?.minutes) || !!(lastUsed?.mode === 'end' && lastUsed?.endTime);
+        let lastUsedLabel = 'Not set';
+        if (lastUsed?.mode === 'duration') {
+            const lh = Math.floor((lastUsed.minutes || 0) / 60);
+            const lm = (lastUsed.minutes || 0) % 60;
+            lastUsedLabel = `${lh}h ${lm.toString().padStart(2, '0')}m`;
+        } else if (lastUsed?.mode === 'end' && lastUsed.endTime) {
+            const [hh, mm] = lastUsed.endTime.split(':').map(n => parseInt(n, 10));
+            const hour24 = Number.isFinite(hh) ? hh : 0;
+            const hour12 = ((hour24 + 11) % 12) + 1;
+            const ampm = hour24 >= 12 ? 'PM' : 'AM';
+            const minutes = Number.isFinite(mm) ? mm : 0;
+            lastUsedLabel = `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+        }
+
+        const durationPresets = [
+            { name: 'Custom…', icon: 'fa-solid fa-sliders', callback: () => this.showTimerDurationDialog() },
+            ...Array.from({ length: 16 }, (_, i) => {
+                const minutes = (i + 1) * 30;
+                const hours = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+                return {
+                    name: `${hours}h ${mins.toString().padStart(2, '0')}m`,
+                    icon: 'fa-solid fa-hourglass-half',
+                    callback: async () => this._applyTimerDuration(hours, mins, false)
+                };
+            })
+        ];
+
+        const endTimePresets = [
+            { name: 'Custom…', icon: 'fa-solid fa-sliders', callback: () => this.showTimerEndTimeDialog() },
+            ...Array.from({ length: 24 }, (_, i) => {
+                const h = i;
+                const m = 0;
+                const hour12 = ((h + 11) % 12) + 1;
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                const label = `${hour12} ${ampm}`;
+                const endTimeValue = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                return {
+                    name: label,
+                    icon: 'fa-solid fa-clock',
+                    callback: async () => {
+                        const end = new Date();
+                        end.setHours(h, m, 0, 0);
+                        if (end.getTime() <= Date.now()) {
+                            end.setDate(end.getDate() + 1);
+                        }
+                        this.sessionStartTime = Date.now();
+                        this.sessionEndTime = end.getTime();
+                        await game.settings.set(MODULE.ID, 'sessionEndTime', this.sessionEndTime);
+                        await game.settings.set(MODULE.ID, 'sessionStartTime', this.sessionStartTime);
+                        await game.settings.set(MODULE.ID, 'sessionTimerDate', new Date().toDateString());
+                        await game.settings.set(MODULE.ID, 'sessionTimerLastUsed', {
+                            mode: 'end',
+                            minutes: 0,
+                            endTime: endTimeValue
+                        });
+                        await this.updateTimer(this.sessionEndTime, this.sessionStartTime, true);
+                        this.updateTimerDisplay();
+                    }
+                };
+            })
+        ];
+
         const items = [
             {
-                name: 'Set Duration…',
-                description: 'Choose hours and minutes.',
+                name: 'Default Time',
+                description: defaultLabel,
+                icon: 'fa-solid fa-clock-rotate-left',
+                callback: async () => {
+                    await this._applyTimerDuration(defaultHours, defaultMins, false);
+                }
+            },
+            {
+                name: 'Last Used',
+                description: lastUsedLabel,
+                icon: 'fa-solid fa-rotate',
+                disabled: !hasLastUsed,
+                callback: async () => {
+                    if (!hasLastUsed) return;
+                    if (lastUsed.mode === 'duration') {
+                        const lh = Math.floor(lastUsed.minutes / 60);
+                        const lm = lastUsed.minutes % 60;
+                        await this._applyTimerDuration(lh, lm, false);
+                        return;
+                    }
+                        if (lastUsed.mode === 'end' && lastUsed.endTime) {
+                            const [hh, mm] = lastUsed.endTime.split(':').map(n => parseInt(n, 10));
+                            const end = new Date();
+                            end.setHours(hh || 0, mm || 0, 0, 0);
+                            if (end.getTime() <= Date.now()) {
+                                end.setDate(end.getDate() + 1);
+                            }
+                        this.sessionStartTime = Date.now();
+                        this.sessionEndTime = end.getTime();
+                        await game.settings.set(MODULE.ID, 'sessionEndTime', this.sessionEndTime);
+                        await game.settings.set(MODULE.ID, 'sessionStartTime', this.sessionStartTime);
+                        await game.settings.set(MODULE.ID, 'sessionTimerDate', new Date().toDateString());
+                        await this.updateTimer(this.sessionEndTime, this.sessionStartTime, true);
+                        this.updateTimerDisplay();
+                    }
+                }
+            },
+            { separator: true },
+            {
+                name: 'Set Duration',
+                description: 'Up to 8 hours in 30 minute increments.',
                 icon: 'fa-solid fa-hourglass-half',
-                callback: () => this.showTimerDurationDialog()
+                submenu: durationPresets
             },
             {
-                name: 'Set End Time…',
-                description: 'Pick a clock time (e.g., 9:30 PM).',
+                name: 'Set Time',
+                description: 'Hour-based end time (AM/PM).',
                 icon: 'fa-solid fa-clock',
-                callback: () => this.showTimerEndTimeDialog()
-            },
-            {
-                name: 'Custom…',
-                description: 'Use the legacy timer dialog.',
-                icon: 'fa-solid fa-sliders',
-                callback: () => this.showTimerDialog()
+                submenu: endTimePresets
             }
         ];
 
@@ -4992,22 +5100,48 @@ class MenuBar {
             currentMinutes = defaultMinutes % 60;
         }
 
+        const durationOptions = [
+            { value: 'custom', label: 'Custom' },
+            ...Array.from({ length: 16 }, (_, i) => {
+                const minutes = (i + 1) * 30;
+                const hours = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+                return {
+                    value: String(minutes),
+                    label: `${hours}h ${mins.toString().padStart(2, '0')}m`
+                };
+            })
+        ];
+
         const content = `
             <form>
                 <div class="form-group">
                     <label>Session Duration:</label>
-                    <div style="display: flex; gap: 10px;">
-                        <select name="hours" id="hours-select">
-                            ${Array.from({length: 13}, (_, i) =>
-                                `<option value="${i}" ${i === currentHours ? 'selected' : ''}>${i.toString().padStart(2, '0')} hours</option>`
+                    <div style="display: grid; gap: 10px;">
+                        <select name="duration-preset" id="duration-preset">
+                            ${durationOptions.map(opt =>
+                                `<option value="${opt.value}">${opt.label}</option>`
                             ).join('')}
                         </select>
-                        <select name="minutes" id="minutes-select">
-                            ${Array.from({length: 60}, (_, i) =>
-                                `<option value="${i}" ${i === currentMinutes ? 'selected' : ''}>${i.toString().padStart(2, '0')} minutes</option>`
-                            ).join('')}
-                        </select>
+                        <div style="display: flex; gap: 10px;">
+                            <select name="hours" id="hours-select">
+                                ${Array.from({length: 9}, (_, i) =>
+                                    `<option value="${i}" ${i === currentHours ? 'selected' : ''}>${i.toString().padStart(2, '0')} hours</option>`
+                                ).join('')}
+                            </select>
+                            <select name="minutes" id="minutes-select">
+                                ${[0, 30].map(i =>
+                                    `<option value="${i}" ${i === currentMinutes ? 'selected' : ''}>${i.toString().padStart(2, '0')} minutes</option>`
+                                ).join('')}
+                            </select>
+                        </div>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="set-default-duration" name="set-default-duration">
+                        Set as new default time
+                    </label>
                 </div>
             </form>
         `;
@@ -5026,9 +5160,19 @@ class MenuBar {
                         }
                         const hoursSelect = nativeDialogHtml.querySelector('#hours-select');
                         const minutesSelect = nativeDialogHtml.querySelector('#minutes-select');
-                        const hours = parseInt(hoursSelect ? hoursSelect.value : '0');
-                        const minutes = parseInt(minutesSelect ? minutesSelect.value : '0');
-                        await this._applyTimerDuration(hours, minutes, false);
+                        const presetSelect = nativeDialogHtml.querySelector('#duration-preset');
+                        const presetValue = presetSelect ? presetSelect.value : 'custom';
+                        const setDefaultCheckbox = nativeDialogHtml.querySelector('#set-default-duration');
+                        const setAsDefault = setDefaultCheckbox ? setDefaultCheckbox.checked : false;
+
+                        let hours = parseInt(hoursSelect ? hoursSelect.value : '0');
+                        let minutes = parseInt(minutesSelect ? minutesSelect.value : '0');
+                        if (presetValue !== 'custom') {
+                            const total = parseInt(presetValue);
+                            hours = Math.floor(total / 60);
+                            minutes = total % 60;
+                        }
+                        await this._applyTimerDuration(hours, minutes, setAsDefault);
                     }
                 },
                 cancel: {
@@ -5042,38 +5186,52 @@ class MenuBar {
 
     static async showTimerEndTimeDialog() {
         const now = new Date();
-        let hours = now.getHours();
-        let minutes = now.getMinutes();
-        minutes = Math.ceil(minutes / 5) * 5;
-        if (minutes === 60) {
-            minutes = 0;
-            hours = (hours + 1) % 24;
-        }
-        const isPm = hours >= 12;
-        const displayHour = ((hours + 11) % 12) + 1;
+        const hours24 = now.getHours();
+        const hour12Default = ((hours24 + 11) % 12) + 1;
+        const ampmDefault = hours24 >= 12 ? 'PM' : 'AM';
+
+        const timeOptions = [
+            { value: 'custom', label: 'Custom' },
+            ...Array.from({ length: 24 }, (_, i) => {
+                const h = i;
+                const hour12 = ((h + 11) % 12) + 1;
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                return {
+                    value: `${h.toString().padStart(2, '0')}:00`,
+                    label: `${hour12} ${ampm}`
+                };
+            })
+        ];
 
         const content = `
             <form>
                 <div class="form-group">
                     <label>End Time:</label>
-                    <div style="display: flex; gap: 10px;">
-                        <select name="end-hour" id="end-hour">
-                            ${Array.from({length: 12}, (_, i) => {
-                                const h = i + 1;
-                                return `<option value="${h}" ${h === displayHour ? 'selected' : ''}>${h}</option>`;
-                            }).join('')}
+                    <div style="display: grid; gap: 10px;">
+                        <select name="end-time-preset" id="end-time-preset">
+                            ${timeOptions.map(opt =>
+                                `<option value="${opt.value}">${opt.label}</option>`
+                            ).join('')}
                         </select>
-                        <select name="end-minute" id="end-minute">
-                            ${Array.from({length: 12}, (_, i) => {
-                                const m = i * 5;
-                                return `<option value="${m}" ${m === minutes ? 'selected' : ''}>${m.toString().padStart(2, '0')}</option>`;
-                            }).join('')}
-                        </select>
-                        <select name="end-ampm" id="end-ampm">
-                            <option value="AM" ${!isPm ? 'selected' : ''}>AM</option>
-                            <option value="PM" ${isPm ? 'selected' : ''}>PM</option>
-                        </select>
+                        <div style="display: flex; gap: 10px;">
+                            <select name="end-hour" id="end-hour">
+                                ${Array.from({length: 12}, (_, i) => {
+                                    const h = i + 1;
+                                    return `<option value="${h}" ${h === hour12Default ? 'selected' : ''}>${h}</option>`;
+                                }).join('')}
+                            </select>
+                            <select name="end-ampm" id="end-ampm">
+                                <option value="AM" ${ampmDefault === 'AM' ? 'selected' : ''}>AM</option>
+                                <option value="PM" ${ampmDefault === 'PM' ? 'selected' : ''}>PM</option>
+                            </select>
+                        </div>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="set-default-endtime" name="set-default-endtime">
+                        Set as new default time
+                    </label>
                 </div>
             </form>
         `;
@@ -5090,15 +5248,24 @@ class MenuBar {
                         if (html && (html.jquery || typeof html.find === 'function')) {
                             nativeDialogHtml = html[0] || html.get?.(0) || html;
                         }
+                        const presetSelect = nativeDialogHtml.querySelector('#end-time-preset');
+                        const presetValue = presetSelect ? presetSelect.value : 'custom';
                         const hourSelect = nativeDialogHtml.querySelector('#end-hour');
-                        const minuteSelect = nativeDialogHtml.querySelector('#end-minute');
                         const ampmSelect = nativeDialogHtml.querySelector('#end-ampm');
-                        const h = parseInt(hourSelect ? hourSelect.value : '12');
-                        const m = parseInt(minuteSelect ? minuteSelect.value : '0');
-                        const ampm = ampmSelect ? ampmSelect.value : 'AM';
-
-                        let hour24 = h % 12;
-                        if (ampm === 'PM') hour24 += 12;
+                        const setDefaultCheckbox = nativeDialogHtml.querySelector('#set-default-endtime');
+                        const setAsDefault = setDefaultCheckbox ? setDefaultCheckbox.checked : false;
+                        let hour24 = 0;
+                        let m = 0;
+                        if (presetValue !== 'custom') {
+                            const [ph, pm] = presetValue.split(':').map(n => parseInt(n, 10));
+                            hour24 = ph || 0;
+                            m = pm || 0;
+                        } else {
+                            const h12 = parseInt(hourSelect ? hourSelect.value : '12');
+                            const ampm = ampmSelect ? ampmSelect.value : 'AM';
+                            hour24 = h12 % 12;
+                            if (ampm === 'PM') hour24 += 12;
+                        }
 
                         const end = new Date();
                         end.setHours(hour24, m, 0, 0);
@@ -5112,6 +5279,16 @@ class MenuBar {
                         await game.settings.set(MODULE.ID, 'sessionEndTime', this.sessionEndTime);
                         await game.settings.set(MODULE.ID, 'sessionStartTime', this.sessionStartTime);
                         await game.settings.set(MODULE.ID, 'sessionTimerDate', new Date().toDateString());
+
+                        await game.settings.set(MODULE.ID, 'sessionTimerLastUsed', {
+                            mode: 'end',
+                            minutes: 0,
+                            endTime: `${hour24.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+                        });
+                        if (setAsDefault) {
+                            const totalMinutes = Math.max(0, Math.round((this.sessionEndTime - this.sessionStartTime) / 60000));
+                            await game.settings.set(MODULE.ID, 'sessionTimerDefault', totalMinutes);
+                        }
 
                         await this.updateTimer(this.sessionEndTime, this.sessionStartTime, true);
                         this.updateTimerDisplay();

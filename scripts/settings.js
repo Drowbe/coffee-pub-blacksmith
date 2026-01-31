@@ -2927,6 +2927,15 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// Session Timer Last Used - HIDDEN SETTINGS
+	game.settings.register(MODULE.ID, 'sessionTimerLastUsed', {
+		scope: 'world',
+		config: false,
+		type: Object,
+		default: { mode: '', minutes: 0, endTime: '' },
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// Menubar Settings
 	game.settings.register(MODULE.ID, 'sessionTimerDefault', {
 		name: MODULE.ID + '.sessionTimerDefault-Label',
