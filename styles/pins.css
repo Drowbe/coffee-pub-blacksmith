@@ -218,7 +218,7 @@
     justify-content: center;
     pointer-events: none;
     z-index: 10;
-    /* Text will be positioned around the circle using JavaScript, centered at top */
+    /* Text will be positioned around the circle using JavaScript, centered below pin */
     /* Offset is calculated from baseline (bottom of text) in JavaScript */
 }
 

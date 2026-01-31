@@ -902,7 +902,7 @@ class PinDOMElement {
             });
         }
         
-        // Core zone: Ping Pin, Bring Players Here, Configure Pin, Delete Pin
+        // Core zone: Ping Pin, Bring Players Here, Animate, Configure Pin, Delete Pin
         coreItems.push({
             name: 'Ping Pin',
             icon: '<i class="fa-solid fa-signal-stream"></i>',
@@ -916,6 +916,24 @@ class PinDOMElement {
                     }
                 } catch (err) {
                     postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error pinging pin', err?.message || err, false, true);
+                }
+            }
+        });
+
+        coreItems.push({
+            name: 'Bring Players Here',
+            icon: '<i class="fa-solid fa-location-crosshairs"></i>',
+            callback: async () => {
+                try {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) {
+                        await pinsAPI.panTo(pinData.id, { broadcast: true, ping: { animation: 'ping', loops: 1 } });
+                    } else {
+                        console.warn('BLACKSMITH | PINS API not available');
+                    }
+                } catch (err) {
+                    console.error('BLACKSMITH | PINS Error bringing players to pin', err);
+                    postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error bringing players to pin', err?.message || err, false, true);
                 }
             }
         });
@@ -969,24 +987,6 @@ class PinDOMElement {
                     if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'shake', loops: 1, broadcast: true });
                 }}
             ]
-        });
-        
-        coreItems.push({
-            name: 'Bring Players Here',
-            icon: '<i class="fa-solid fa-location-crosshairs"></i>',
-            callback: async () => {
-                try {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) {
-                        await pinsAPI.panTo(pinData.id, { broadcast: true, ping: { animation: 'ping', loops: 1 } });
-                    } else {
-                        console.warn('BLACKSMITH | PINS API not available');
-                    }
-                } catch (err) {
-                    console.error('BLACKSMITH | PINS Error bringing players to pin', err);
-                    postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error bringing players to pin', err?.message || err, false, true);
-                }
-            }
         });
         
         if (canEdit) {
@@ -1293,164 +1293,216 @@ class PinDOMElement {
     }
 
     /**
-     * Create curved text around the pin edge
-     * @param {HTMLElement} textElement
+     * Break text into lines of at most maxChPerLine characters, at word boundaries when possible.
      * @param {string} text
-     * @param {PinData} pinData
-     * @param {HTMLElement} [pinElement] - Optional pin element (will be found if not provided)
+     * @param {number} maxChPerLine - Max characters per line (0 = no wrap, return single line).
+     * @returns {string[]}
      * @private
      */
-    static _createCurvedText(textElement, text, pinData, pinElement = null) {
-        // Clear existing content
-        textElement.innerHTML = '';
-        
-        // Get current pin size in screen pixels (for accurate positioning)
-        if (!pinElement) {
-            pinElement = textElement.closest('.blacksmith-pin');
-        }
-        if (!pinElement) return;
-        
-        // Always use the current screen size from the pin element (not pinData which has scene coordinates)
-        const pinWidth = parseFloat(pinElement.style.width) || Math.min(pinData.size.w, pinData.size.h);
-        const pinHeight = parseFloat(pinElement.style.height) || Math.min(pinData.size.w, pinData.size.h);
-        const pinSize = Math.min(pinWidth, pinHeight);
-        
-        // Get border width to position text just outside
-        const borderWidth = parseFloat(pinElement.style.borderWidth) || (pinData.style?.strokeWidth || 2);
-        
-        // Use current rendered text size so "around" scales with zoom
-        const computedFontSize = parseFloat(window.getComputedStyle(textElement).fontSize);
-        const textSize = Number.isFinite(computedFontSize) && computedFontSize > 0
-            ? computedFontSize
-            : (parseFloat(textElement.dataset.baseTextSize) || pinData.textSize || 12);
-        
-        // Create a temporary element to measure text width and height
-        const measureEl = document.createElement('span');
-        measureEl.style.position = 'absolute';
-        measureEl.style.visibility = 'hidden';
-        measureEl.style.whiteSpace = 'nowrap';
-        measureEl.style.fontSize = `${textSize}px`;
-        measureEl.style.fontWeight = 'bold';
-        // Match font family if possible
-        const computedStyle = window.getComputedStyle(textElement);
-        measureEl.style.fontFamily = computedStyle.fontFamily;
-        document.body.appendChild(measureEl);
-        
-        // Measure text height to position baseline correctly
-        measureEl.textContent = 'M'; // Use a tall character to measure height
-        const textHeight = measureEl.offsetHeight;
-        const offset = textHeight; // Offset from pin edge by roughly one line height
-        
-        // Position text so the baseline (bottom) is at the offset distance from pin edge
-        // Radius is from center to baseline, so we add pin radius + border + offset
-        const radius = (pinSize / 2) + borderWidth + offset;
-        
-        // Split text into characters (preserve spaces)
-        const chars = text.split('');
-        if (chars.length === 0) {
-            document.body.removeChild(measureEl);
-            return;
-        }
-        
-        // Letter spacing (add extra space between letters)
-        const letterSpacing = 2; // pixels of extra space between letters
-        const wordSpacing = 8; // pixels of extra space for word separation (spaces)
-        
-        // Measure total text width with letter spacing to center it
-        // Calculate total width: sum of character widths + letter spacing between them + word spacing for spaces
-        let totalTextWidth = 0;
-        chars.forEach((char, index) => {
-            if (char === ' ') {
-                // Space character - use word spacing
-                totalTextWidth += wordSpacing;
+    static _breakTextIntoLines(text, maxChPerLine) {
+        const maxCh = Number(maxChPerLine);
+        if (!Number.isFinite(maxCh) || maxCh <= 0) return [text];
+        const lines = [];
+        const words = text.split(/\s+/).filter(Boolean);
+        let current = '';
+        for (const word of words) {
+            const withSpace = current ? current + ' ' + word : word;
+            if (withSpace.length <= maxCh) {
+                current = withSpace;
             } else {
-                measureEl.textContent = char;
-                totalTextWidth += measureEl.offsetWidth;
+                if (current) lines.push(current);
+                if (word.length > maxCh) {
+                    for (let i = 0; i < word.length; i += maxCh) {
+                        lines.push(word.slice(i, i + maxCh));
+                    }
+                    current = '';
+                } else {
+                    current = word;
+                }
             }
-            // Add letter spacing between characters (except after last character)
-            if (index < chars.length - 1) {
-                totalTextWidth += letterSpacing;
-            }
-        });
-        
-        // Calculate starting angle to center text at top
-        // Arc length = radius * angle (in radians)
-        // We want to center the text, so start from -90 degrees and offset by half the text arc
-        const totalArcLength = totalTextWidth;
-        const totalArcAngle = (totalArcLength / radius) * (180 / Math.PI); // Convert to degrees
-        const startAngle = -90 - (totalArcAngle / 2); // Start before top center to center the text
-        
-        // Calculate angle per pixel
-        const anglePerPixel = 180 / (Math.PI * radius);
-        
-        let currentAngle = startAngle;
-        
-        chars.forEach((char, index) => {
-            let charWidth = 0;
-            let charAngleSpan = 0;
-            
-            if (char === ' ') {
-                // Space character - use word spacing width
-                charWidth = wordSpacing;
-                charAngleSpan = wordSpacing * anglePerPixel;
-            } else {
-                // Regular character - measure its width
-                measureEl.textContent = char;
-                charWidth = measureEl.offsetWidth;
-                charAngleSpan = charWidth * anglePerPixel;
-            }
-            
-            // Position character at current angle (centered on its width)
-            const charAngle = currentAngle + (charAngleSpan / 2);
-            const angleRad = (charAngle * Math.PI) / 180;
-            
-            // Calculate position on circle (relative to pin center)
-            // The radius represents the distance to the text baseline (bottom of text)
-            const x = Math.cos(angleRad) * radius;
-            const y = Math.sin(angleRad) * radius;
-            
-            // Only create visible span for non-space characters
-            if (char !== ' ') {
-                // Measure this character's height for baseline positioning
-                measureEl.textContent = char;
-                const charHeight = measureEl.offsetHeight;
-                
-                // Create span for this character
-                const span = document.createElement('span');
-                span.className = 'text-char';
-                span.textContent = char;
-                span.style.position = 'absolute';
-                span.style.whiteSpace = 'nowrap';
-                span.style.fontSize = `${textSize}px`; // Use fixed size
-                
-                // Position the character relative to pin center (50%, 50% of pin element)
-                // Adjust along the radial direction so the text baseline sits on the circle
-                span.style.left = '50%';
-                span.style.top = '50%';
-                const radialOffset = charHeight / 2;
-                const xAdjusted = x - Math.cos(angleRad) * radialOffset;
-                const yAdjusted = y - Math.sin(angleRad) * radialOffset;
-                // Transform: translate to center, then offset by circle position (baseline), 
-                // then shift along the radius by half character height, then rotate to follow curve
-                span.style.transform = `translate(calc(-50% + ${xAdjusted}px), calc(-50% + ${yAdjusted}px)) rotate(${charAngle + 90}deg)`;
-                span.style.transformOrigin = 'center center';
-                
-                textElement.appendChild(span);
-            }
-            
-            // Move to next character position (character width + letter spacing)
-            currentAngle += charAngleSpan;
-            
-            // Add letter spacing angle (except after last character)
-            if (index < chars.length - 1) {
-                const spacingAngle = letterSpacing * anglePerPixel;
-                currentAngle += spacingAngle;
-            }
-        });
-        
-        // Clean up measurement element
-        document.body.removeChild(measureEl);
+        }
+        if (current) lines.push(current);
+        return lines.length ? lines : [text];
     }
+
+
+
+
+
+
+    /**
+ * Create curved text around the pin edge. Honors max characters (caller truncates) and chars per line (multi-line arcs).
+ * @param {HTMLElement} textElement
+ * @param {string} text
+ * @param {PinData} pinData
+ * @param {HTMLElement} [pinElement] - Optional pin element (will be found if not provided)
+ * @param {object} [opts]
+ * @param {"below"|"above"} [opts.position="below"] - Where to center the arc relative to the pin.
+ * @private
+ */
+static _createCurvedText(textElement, text, pinData, pinElement = null, opts = {}) {
+    const position = opts?.position === "above" ? "above" : "below";
+  
+    // Clear existing content
+    textElement.innerHTML = "";
+  
+    // Get current pin size in screen pixels (for accurate positioning)
+    if (!pinElement) pinElement = textElement.closest(".blacksmith-pin");
+    if (!pinElement) return;
+  
+    // Always use the current screen size from the pin element (not pinData which has scene coordinates)
+    const pinWidth = parseFloat(pinElement.style.width) || Math.min(pinData.size.w, pinData.size.h);
+    const pinHeight = parseFloat(pinElement.style.height) || Math.min(pinData.size.w, pinData.size.h);
+    const pinSize = Math.min(pinWidth, pinHeight);
+  
+    // Get border width to position text just outside
+    const borderWidth = parseFloat(pinElement.style.borderWidth) || (pinData.style?.strokeWidth || 2);
+  
+    // Use current rendered text size so "around" scales with zoom
+    const computedFontSize = parseFloat(window.getComputedStyle(textElement).fontSize);
+    const textSize =
+      Number.isFinite(computedFontSize) && computedFontSize > 0
+        ? computedFontSize
+        : (parseFloat(textElement.dataset.baseTextSize) || pinData.textSize || 12);
+  
+    // Create a temporary element to measure text width and height
+    const measureEl = document.createElement("span");
+    measureEl.style.position = "absolute";
+    measureEl.style.visibility = "hidden";
+    measureEl.style.whiteSpace = "nowrap";
+    measureEl.style.fontSize = `${textSize}px`;
+    measureEl.style.fontWeight = "bold";
+  
+    // Match font family if possible
+    const computedStyle = window.getComputedStyle(textElement);
+    measureEl.style.fontFamily = computedStyle.fontFamily;
+    document.body.appendChild(measureEl);
+  
+    // Measure text height to position baseline correctly
+    measureEl.textContent = "M";
+    const textHeight = measureEl.offsetHeight;
+    const lineGap = 2;
+    const lineOffset = textHeight + lineGap; // Per-line vertical step for multi-line "around"
+    const offset = textHeight; // Offset from pin edge by roughly one line height
+  
+    // Chars per line for "around": break into lines; each line gets its own arc (outer radius increases per line)
+    const textMaxWidth = Number(pinData?.textMaxWidth) || 0;
+    const lines = textMaxWidth > 0 ? this._breakTextIntoLines(text, textMaxWidth) : [text];
+  
+    // Spacing
+    const letterSpacing = 2; // px between letters
+    const wordSpacing = 8;   // px for spaces
+  
+    // In DOM coords: 0° = right, 90° = down, 180° = left, 270° = up
+    const centerAngle = position === "above" ? 270 : 90;
+  
+    // For LTR reading:
+    // - Bottom arc (center 90): must DECREASE angle to go left->right.
+    // - Top arc (center 270): must INCREASE angle to go left->right.
+    const direction = position === "above" ? +1 : -1;
+  
+    lines.forEach((line, lineIndex) => {
+      const chars = line.split("");
+      if (chars.length === 0) return;
+  
+      // Radius for this line: first line at base, each additional line further out
+      const radius = (pinSize / 2) + borderWidth + offset + (lineIndex * lineOffset);
+  
+      // Measure total text width with spacing (for centering)
+      let totalTextWidth = 0;
+      chars.forEach((char, index) => {
+        if (char === " ") {
+          totalTextWidth += wordSpacing;
+        } else {
+          measureEl.textContent = char;
+          totalTextWidth += measureEl.offsetWidth;
+        }
+        if (index < chars.length - 1) totalTextWidth += letterSpacing;
+      });
+  
+      const totalArcAngle = (totalTextWidth / radius) * (180 / Math.PI);
+      const anglePerPixel = 180 / (Math.PI * radius);
+  
+      // Start on the left side of the arc and walk to the right.
+      // Left edge is center - totalArc/2 for increasing traversal,
+      // or center + totalArc/2 for decreasing traversal.
+      const startAngle = direction === +1
+        ? (centerAngle - (totalArcAngle / 2))
+        : (centerAngle + (totalArcAngle / 2));
+  
+      let currentAngle = startAngle;
+  
+      chars.forEach((char, index) => {
+        let charWidth = 0;
+        let charAngleSpan = 0;
+  
+        if (char === " ") {
+          charWidth = wordSpacing;
+          charAngleSpan = wordSpacing * anglePerPixel;
+        } else {
+          measureEl.textContent = char;
+          charWidth = measureEl.offsetWidth;
+          charAngleSpan = charWidth * anglePerPixel;
+        }
+  
+        // Midpoint for the glyph on the arc, respecting traversal direction
+        const charAngle = currentAngle + direction * (charAngleSpan / 2);
+        const angleRad = (charAngle * Math.PI) / 180;
+  
+        const x = Math.cos(angleRad) * radius;
+        const y = Math.sin(angleRad) * radius;
+  
+        if (char !== " ") {
+          measureEl.textContent = char;
+          const charHeight = measureEl.offsetHeight;
+  
+          const span = document.createElement("span");
+          span.className = "text-char";
+          span.textContent = char;
+  
+          span.style.position = "absolute";
+          span.style.whiteSpace = "nowrap";
+          span.style.fontSize = `${textSize}px`;
+          span.style.left = "50%";
+          span.style.top = "50%";
+  
+          // Push glyph outward from the arc a bit
+          const radialOffset = charHeight / 2;
+          const xAdjusted = x - Math.cos(angleRad) * radialOffset;
+          const yAdjusted = y - Math.sin(angleRad) * radialOffset;
+  
+          // Tangent rotation should follow traversal direction:
+          // - If direction is +1 (increasing angles), tangent is angle + 90
+          // - If direction is -1 (decreasing angles), tangent is angle - 90
+          const rotationDeg = charAngle + (direction * 90);
+  
+          span.style.transform = `
+            translate(calc(-50% + ${xAdjusted}px), calc(-50% + ${yAdjusted}px))
+            rotate(${rotationDeg}deg)
+          `.trim();
+  
+          span.style.transformOrigin = "center center";
+  
+          textElement.appendChild(span);
+        }
+  
+        // Advance along the arc
+        currentAngle += direction * charAngleSpan;
+        if (index < chars.length - 1) currentAngle += direction * (letterSpacing * anglePerPixel);
+      });
+    });
+  
+    document.body.removeChild(measureEl);
+  }
+  
+
+
+
+
+
+
+
+
 
     /**
      * Remove a pin DOM element
