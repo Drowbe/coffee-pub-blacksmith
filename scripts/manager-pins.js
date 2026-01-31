@@ -781,7 +781,11 @@ export class PinManager {
         }
         if (patch.textColor != null) merged.textColor = String(patch.textColor);
         if (typeof patch.textSize === 'number' && patch.textSize > 0) merged.textSize = patch.textSize;
-        if (typeof patch.textMaxLength === 'number' && patch.textMaxLength >= 0) merged.textMaxLength = patch.textMaxLength;
+        const rawMaxLength = patch.textMaxLength;
+        if (rawMaxLength != null && rawMaxLength !== '') {
+            const n = Math.max(0, parseInt(String(rawMaxLength), 10) | 0);
+            if (Number.isFinite(n)) merged.textMaxLength = n;
+        }
         const rawMaxWidth = patch.textMaxWidth;
         if (rawMaxWidth != null && rawMaxWidth !== '') {
             const n = Math.max(0, parseInt(String(rawMaxWidth), 10) | 0);

@@ -1179,7 +1179,8 @@ class PinDOMElement {
         const textDisplay = pinData.textDisplay || 'always';
         const textColor = pinData.textColor || '#ffffff';
         const textSize = pinData.textSize || 12;
-        const textMaxLength = pinData.textMaxLength || 0;
+        const rawMaxLength = pinData.textMaxLength ?? 0;
+        const textMaxLength = Math.max(0, parseInt(String(rawMaxLength), 10) || 0);
         const rawMaxWidth = pinData.textMaxWidth ?? 0;
         const textMaxWidth = Math.max(0, parseInt(String(rawMaxWidth), 10) || 0);
         const isGM = game.user?.isGM || false;
@@ -1251,7 +1252,7 @@ class PinDOMElement {
             textElement.style.fontSize = `${textSize}px`;
         }
 
-        // Chars per line: width in ch so label isn't constrained by pin container; browser wraps at word boundary.
+        // Under/over: avoid CSS clipping so Max characters is the only truncation. Chars per line 0 = as wide as needed.
         if (textLayout === 'under' || textLayout === 'over') {
             if (textMaxWidth > 0) {
                 textElement.style.width = `${textMaxWidth}ch`;
@@ -1261,11 +1262,12 @@ class PinDOMElement {
                 textElement.style.overflow = 'visible';
                 textElement.style.textOverflow = '';
             } else {
-                textElement.style.width = '';
-                textElement.style.maxWidth = '';
-                textElement.style.whiteSpace = '';
+                // Chars per line 0: label as wide as content (max-content) so CSS overflow:hidden + ellipsis don't clip; only Max characters truncates.
+                textElement.style.width = 'max-content';
+                textElement.style.maxWidth = 'none';
+                textElement.style.whiteSpace = 'nowrap';
                 textElement.style.overflowWrap = '';
-                textElement.style.overflow = '';
+                textElement.style.overflow = 'visible';
                 textElement.style.textOverflow = '';
             }
         }

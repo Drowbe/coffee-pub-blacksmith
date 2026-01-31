@@ -203,7 +203,11 @@ export function applyDefaults(partial) {
     }
     if (partial.textColor != null) base.textColor = String(partial.textColor);
     if (typeof partial.textSize === 'number' && partial.textSize > 0) base.textSize = partial.textSize;
-    if (typeof partial.textMaxLength === 'number' && partial.textMaxLength >= 0) base.textMaxLength = partial.textMaxLength;
+    const rawMaxLength = partial.textMaxLength;
+    if (rawMaxLength != null && rawMaxLength !== '') {
+        const n = Math.max(0, parseInt(String(rawMaxLength), 10) | 0);
+        if (Number.isFinite(n)) base.textMaxLength = n;
+    }
     const rawMaxWidth = partial.textMaxWidth;
     if (rawMaxWidth != null && rawMaxWidth !== '') {
         const n = Math.max(0, parseInt(String(rawMaxWidth), 10) | 0);
