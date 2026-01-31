@@ -6,6 +6,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
+import { UIContextMenu } from './ui-context-menu.js';
 
 /** @typedef {import('./manager-pins.js').PinData} PinData */
 
@@ -895,7 +896,8 @@ class PinDOMElement {
             moduleItems.push({
                 name: item.name,
                 icon: item.icon,
-                callback: item.onClick
+                callback: item.callback,
+                submenu: item.submenu || null
             });
         }
         
@@ -915,6 +917,57 @@ class PinDOMElement {
                     postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error pinging pin', err?.message || err, false, true);
                 }
             }
+        });
+
+        coreItems.push({
+            name: 'Animate',
+            icon: '<i class="fa-solid fa-wand-sparkles"></i>',
+            submenu: [
+                { name: 'Ping', icon: '<i class="fa-solid fa-bullseye"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'ping', loops: 1, broadcast: true });
+                }},
+                { name: 'Pulse', icon: '<i class="fa-solid fa-circle-dot"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'pulse', loops: 1, broadcast: true });
+                }},
+                { name: 'Ripple', icon: '<i class="fa-solid fa-water"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'ripple', loops: 1, broadcast: true });
+                }},
+                { name: 'Flash', icon: '<i class="fa-solid fa-bolt-lightning"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'flash', loops: 1, broadcast: true });
+                }},
+                { name: 'Glow', icon: '<i class="fa-solid fa-sun"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'glow', loops: 1, broadcast: true });
+                }},
+                { name: 'Bounce', icon: '<i class="fa-solid fa-arrow-up-from-line"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'bounce', loops: 1, broadcast: true });
+                }},
+                { name: 'Scale (Small)', icon: '<i class="fa-solid fa-down-left-and-up-right-to-center"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'scale-small', loops: 1, broadcast: true });
+                }},
+                { name: 'Scale (Medium)', icon: '<i class="fa-solid fa-up-right-and-down-left-from-center"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'scale-medium', loops: 1, broadcast: true });
+                }},
+                { name: 'Scale (Large)', icon: '<i class="fa-solid fa-up-right-and-down-left-from-center"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'scale-large', loops: 1, broadcast: true });
+                }},
+                { name: 'Rotate', icon: '<i class="fa-solid fa-rotate-right"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'rotate', loops: 1, broadcast: true });
+                }},
+                { name: 'Shake', icon: '<i class="fa-solid fa-hand"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'shake', loops: 1, broadcast: true });
+                }}
+            ]
         });
         
         coreItems.push({
@@ -1039,74 +1092,12 @@ class PinDOMElement {
      * @private
      */
     static _renderContextMenu(zones, x, y) {
-        const existing = document.getElementById('blacksmith-pin-context-menu');
-        if (existing) {
-            existing.remove();
-        }
-        
-        const menu = document.createElement('div');
-        menu.id = 'blacksmith-pin-context-menu';
-        menu.className = 'context-menu';
-        menu.style.left = `${x}px`;
-        menu.style.top = `${y}px`;
-        
-        const appendZone = (zoneName, items) => {
-            if (!items?.length) return;
-            const zone = document.createElement('div');
-            zone.className = `context-menu-zone context-menu-zone-${zoneName}`;
-            items.forEach(item => {
-                if (item.separator) {
-                    const sep = document.createElement('div');
-                    sep.className = 'context-menu-separator';
-                    zone.appendChild(sep);
-                    return;
-                }
-                const menuItemEl = document.createElement('div');
-                menuItemEl.className = 'context-menu-item';
-                menuItemEl.innerHTML = `${item.icon} ${item.name}`;
-                menuItemEl.addEventListener('click', () => {
-                    item.callback();
-                    menu.remove();
-                });
-                zone.appendChild(menuItemEl);
-            });
-            menu.appendChild(zone);
-        };
-        
-        const addSeparator = () => {
-            const sep = document.createElement('div');
-            sep.className = 'context-menu-separator';
-            menu.appendChild(sep);
-        };
-        
-        appendZone('module', zones.module);
-        if (zones.module?.length) addSeparator();
-        appendZone('core', zones.core);
-        if (zones.gm?.length) addSeparator();
-        appendZone('gm', zones.gm);
-        
-        document.body.appendChild(menu);
-        
-        const closeMenu = (e) => {
-            if (!menu.contains(e.target)) {
-                menu.remove();
-                document.removeEventListener('click', closeMenu);
-                document.removeEventListener('keydown', closeOnEscape);
-            }
-        };
-        
-        const closeOnEscape = (e) => {
-            if (e.key === 'Escape') {
-                menu.remove();
-                document.removeEventListener('click', closeMenu);
-                document.removeEventListener('keydown', closeOnEscape);
-            }
-        };
-        
-        setTimeout(() => {
-            document.addEventListener('click', closeMenu);
-            document.addEventListener('keydown', closeOnEscape);
-        }, 10);
+        UIContextMenu.show({
+            id: 'blacksmith-pin-context-menu',
+            x,
+            y,
+            zones
+        });
     }
 
     /**

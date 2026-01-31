@@ -2,9 +2,9 @@
 /* --- CONTEXT MENU (GLOBAL) ---------- */
 /* ------------------------------------ */
 
-/* Used by pin context menu; left/top set in JS. */
+/* Used by pin/menubar context menus; left/top set in JS. */
 
-#blacksmith-pin-context-menu.context-menu {
+.context-menu {
     position: fixed;
     z-index: 10000;
     background-color: rgba(0, 0, 0, 0.7);
@@ -20,29 +20,29 @@
 /* ZONES */
 
 /* Zone wrappers: module (registered items), core (default items), gm (GM-only). */
-#blacksmith-pin-context-menu .context-menu-zone {
+.context-menu .context-menu-zone {
     display: flex;
     flex-direction: column;
     border-radius: 6px;
     padding: 4px 0px;
 }
 
-#blacksmith-pin-context-menu .context-menu-zone-module { 
+.context-menu .context-menu-zone-module { 
     background-color: rgba(0, 0, 0, 0.0);
 }
 
-#blacksmith-pin-context-menu .context-menu-zone-core { 
+.context-menu .context-menu-zone-core { 
     background-color: rgba(0, 0, 0, 0.2);
 }
 
 
-#blacksmith-pin-context-menu .context-menu-zone-gm { 
+.context-menu .context-menu-zone-gm { 
     background-color: rgba(67, 23, 22, 0.3);
 }
 
 /* SEPARATOR */
 
-#blacksmith-pin-context-menu .context-menu-separator {
+.context-menu .context-menu-separator {
     height: 0px;
     background-color: rgba(0, 0, 0, 0.0);
     margin: 3px 0;
@@ -52,7 +52,7 @@
 
 /* MENU ITEM */
 
-#blacksmith-pin-context-menu .context-menu-item {
+.context-menu .context-menu-item {
     padding: 6px 12px;
     cursor: pointer;
     color: rgba(255, 255, 255, 0.9);
@@ -62,47 +62,26 @@
     background-color: transparent;
 }
 
-#blacksmith-pin-context-menu .context-menu-item:hover {
+.context-menu .context-menu-item:hover {
     background-color: rgba(255, 255, 255, 0.2);
     border-radius: 4px;
 }
 
-/* Menubar tool context menu (same structure as pin menu) */
-#blacksmith-menubar-context-menu.context-menu {
-    position: fixed;
-    z-index: 10000;
-    background-color: rgba(0, 0, 0, 0.7);
-    border: 1px solid #666;
-    border-radius: 6px;
-    padding: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-    min-width: 150px;
-    font-size: .9em;
-    font-weight: 400;
+.context-menu .context-menu-item.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
-#blacksmith-menubar-context-menu .context-menu-zone {
-    display: flex;
-    flex-direction: column;
-    border-radius: 6px;
-    padding: 4px 0px;
+.context-menu .context-menu-item.has-submenu {
+    position: relative;
+    justify-content: space-between;
 }
 
-#blacksmith-menubar-context-menu .context-menu-zone-core {
-    background-color: rgba(0, 0, 0, 0.2);
+.context-menu .context-menu-submenu-arrow {
+    margin-left: auto;
+    opacity: 0.7;
 }
 
-#blacksmith-menubar-context-menu .context-menu-item {
-    padding: 6px 12px;
-    cursor: pointer;
-    color: rgba(255, 255, 255, 0.9);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background-color: transparent;
-}
-
-#blacksmith-menubar-context-menu .context-menu-item:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
+.context-menu.context-menu-submenu {
+    min-width: 140px;
 }

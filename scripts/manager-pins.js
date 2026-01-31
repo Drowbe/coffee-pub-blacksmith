@@ -401,7 +401,8 @@ export class PinManager {
      * @param {Object} itemData - Menu item configuration
      * @param {string} itemData.name - Display name
      * @param {string} itemData.icon - Font Awesome icon HTML or class string
-     * @param {Function} itemData.onClick - Callback function (receives pinData)
+     * @param {Function} [itemData.onClick] - Callback function (receives pinData)
+     * @param {Array} [itemData.submenu] - Optional submenu items [{ name, icon, onClick }]
      * @param {string} [itemData.moduleId] - Only show for pins from this module
      * @param {number} [itemData.order] - Order in menu (lower = higher, default: 999)
      * @param {Function|boolean} [itemData.visible] - Visibility function or boolean (default: true)
@@ -417,8 +418,9 @@ export class PinManager {
         if (!itemData.name || typeof itemData.name !== 'string') {
             throw new Error('Context menu item must have a name');
         }
-        if (typeof itemData.onClick !== 'function') {
-            throw new Error('Context menu item must have an onClick function');
+        const hasSubmenu = Array.isArray(itemData.submenu) && itemData.submenu.length > 0;
+        if (!hasSubmenu && typeof itemData.onClick !== 'function') {
+            throw new Error('Context menu item must have an onClick function or a submenu');
         }
         
         const menuItem = {
@@ -426,6 +428,7 @@ export class PinManager {
             name: itemData.name,
             icon: itemData.icon || '<i class="fa-solid fa-circle"></i>',
             onClick: itemData.onClick,
+            submenu: hasSubmenu ? itemData.submenu : null,
             moduleId: itemData.moduleId,
             order: typeof itemData.order === 'number' ? itemData.order : 999,
             visible: itemData.visible !== undefined ? itemData.visible : true
@@ -472,11 +475,22 @@ export class PinManager {
                 continue;
             }
             
+            const submenu = Array.isArray(item.submenu)
+                ? item.submenu
+                    .filter((sub) => sub && typeof sub === 'object')
+                    .map((sub) => ({
+                        name: sub.name,
+                        icon: sub.icon || '<i class="fa-solid fa-circle"></i>',
+                        callback: () => sub.onClick?.(pinData)
+                    }))
+                : null;
+
             items.push({
                 itemId,
                 name: item.name,
                 icon: item.icon,
-                onClick: () => item.onClick(pinData),
+                callback: () => item.onClick?.(pinData),
+                submenu,
                 order: item.order
             });
         }

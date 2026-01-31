@@ -18,6 +18,7 @@ import { deployParty } from './utility-party.js';
 import { getDeploymentPatternName } from './api-tokens.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
 import { BroadcastManager } from './manager-broadcast.js';
+import { UIContextMenu } from './ui-context-menu.js';
 
 class MenuBar {
     static ID = 'menubar';
@@ -4198,13 +4199,7 @@ class MenuBar {
      * @private
      */
     static _closeMenubarContextMenu() {
-        const menu = document.getElementById('blacksmith-menubar-context-menu');
-        if (menu && menu._menubarCloseListeners) {
-            document.removeEventListener('click', menu._menubarCloseListeners.click);
-            document.removeEventListener('keydown', menu._menubarCloseListeners.keydown);
-            menu._menubarCloseListeners = null;
-        }
-        if (menu) menu.remove();
+        UIContextMenu.close('blacksmith-menubar-context-menu');
     }
 
     /**
@@ -4219,88 +4214,34 @@ class MenuBar {
     static _showMenubarContextMenu(items, x, y) {
         this._closeMenubarContextMenu();
 
-        const menu = document.createElement('div');
-        menu.id = 'blacksmith-menubar-context-menu';
-        menu.className = 'context-menu';
-        // Position off-screen initially so we can measure without flicker
-        menu.style.visibility = 'hidden';
-        menu.style.left = '0px';
-        menu.style.top = '0px';
-
-        const zone = document.createElement('div');
-        zone.className = 'context-menu-zone context-menu-zone-core';
-
-        for (const item of items) {
-            const menuItemEl = document.createElement('div');
-            menuItemEl.className = 'context-menu-item';
-            const iconHtml = typeof item.icon === 'string' && item.icon.trim().startsWith('<') ? item.icon : `<i class="${item.icon}"></i>`;
-            menuItemEl.innerHTML = `${iconHtml} ${item.name}`;
-            const callback = item.onClick;
-            menuItemEl.addEventListener('click', async () => {
-                if (typeof callback === 'function') {
+        const mapped = (items || []).map((item) => ({
+            name: item.name,
+            icon: item.icon,
+            callback: async () => {
+                if (typeof item.onClick === 'function') {
                     try {
-                        await callback();
+                        await item.onClick();
                     } catch (err) {
                         postConsoleAndNotification(MODULE.NAME, 'Menubar context menu item error', err?.message || err, false, true);
                     }
                 }
-                this._closeMenubarContextMenu();
-            });
-            zone.appendChild(menuItemEl);
-        }
+            },
+            submenu: Array.isArray(item.submenu)
+                ? item.submenu.map((sub) => ({
+                    name: sub.name,
+                    icon: sub.icon,
+                    callback: sub.onClick
+                }))
+                : null
+        }));
 
-        menu.appendChild(zone);
-        document.body.appendChild(menu);
-
-        // Measure menu dimensions and adjust position to stay within viewport
-        const menuRect = menu.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        const padding = 8; // Minimum distance from viewport edge
-
-        let finalX = x;
-        let finalY = y;
-
-        // Adjust horizontal position if menu would go off-screen to the right
-        if (x + menuRect.width + padding > viewportWidth) {
-            finalX = viewportWidth - menuRect.width - padding;
-        }
-        // Ensure menu doesn't go off-screen to the left
-        if (finalX < padding) {
-            finalX = padding;
-        }
-
-        // Adjust vertical position if menu would go off-screen at the bottom
-        if (y + menuRect.height + padding > viewportHeight) {
-            finalY = viewportHeight - menuRect.height - padding;
-        }
-        // Ensure menu doesn't go off-screen at the top
-        if (finalY < padding) {
-            finalY = padding;
-        }
-
-        // Apply final position and make visible
-        menu.style.left = `${finalX}px`;
-        menu.style.top = `${finalY}px`;
-        menu.style.visibility = 'visible';
-
-        const clickClose = (e) => {
-            if (!menu.isConnected) return;
-            if (!menu.contains(e.target)) {
-                this._closeMenubarContextMenu();
-            }
-        };
-        const keyClose = (e) => {
-            if (e.key === 'Escape') {
-                this._closeMenubarContextMenu();
-            }
-        };
-
-        menu._menubarCloseListeners = { click: clickClose, keydown: keyClose };
-        setTimeout(() => {
-            document.addEventListener('click', clickClose);
-            document.addEventListener('keydown', keyClose);
-        }, 10);
+        UIContextMenu.show({
+            id: 'blacksmith-menubar-context-menu',
+            x,
+            y,
+            zones: mapped,
+            zoneClass: 'core'
+        });
     }
 
     /**
