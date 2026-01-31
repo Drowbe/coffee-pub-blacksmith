@@ -1335,8 +1335,13 @@ class MenuBar {
             name: "movement",
             title: "Change Party Movement",
             tooltip: null,
-            onClick: () => {
-                new MovementConfig().render(true);
+            onClick: (event) => {
+                if (!game.user.isGM) return;
+                if (!event || typeof event.clientX !== 'number' || typeof event.clientY !== 'number') {
+                    new MovementConfig().render(true);
+                    return;
+                }
+                this.showMovementMenu(event);
             },
             zone: "right",
             group: "general",
@@ -4217,6 +4222,7 @@ class MenuBar {
         const mapped = (items || []).map((item) => ({
             name: item.name,
             icon: item.icon,
+            description: item.description,
             callback: async () => {
                 if (typeof item.onClick === 'function') {
                     try {
@@ -4229,6 +4235,7 @@ class MenuBar {
             submenu: Array.isArray(item.submenu)
                 ? item.submenu.map((sub) => ({
                     name: sub.name,
+                    description: sub.description,
                     icon: sub.icon,
                     callback: sub.onClick
                 }))
@@ -4564,6 +4571,49 @@ class MenuBar {
 
         UIContextMenu.show({
             id: 'blacksmith-menubar-leader-menu',
+            x: event.clientX,
+            y: event.clientY,
+            zones: items,
+            zoneClass: 'core'
+        });
+    }
+
+    static async showMovementMenu(event) {
+        const config = new MovementConfig();
+        const movementTypes = config.getData().MovementTypes || [];
+        const currentMovement = game.settings.get(MODULE.ID, 'movementType') || 'normal-movement';
+        const spacing = game.settings.get(MODULE.ID, 'tokenSpacing') || 0;
+
+        const items = movementTypes.map((type) => ({
+            name: type.name,
+            description: type.description,
+            icon: `fa-solid ${type.icon}`,
+            disabled: type.id === currentMovement,
+            callback: async () => {
+                await config._handleMovementChange(type.id);
+            }
+        }));
+
+        items.push({ separator: true });
+        items.push({
+            name: `Token Spacing: ${spacing}`,
+            description: 'Controls the space between tokens in Conga and Follow modes.',
+            icon: 'fa-solid fa-people-arrows',
+            submenu: [
+                { name: '0 Grid Units', icon: spacing === 0 ? 'fa-solid fa-check' : 'fa-solid fa-square', description: 'No spacing', callback: async () => {
+                    await game.settings.set(MODULE.ID, 'tokenSpacing', 0);
+                }},
+                { name: '1 Grid Unit', icon: spacing === 1 ? 'fa-solid fa-check' : 'fa-solid fa-grip', description: '1 grid unit spacing', callback: async () => {
+                    await game.settings.set(MODULE.ID, 'tokenSpacing', 1);
+                }},
+                { name: '2 Grid Units', icon: spacing === 2 ? 'fa-solid fa-check' : 'fa-solid fa-grip-lines', description: '2 grid unit spacing', callback: async () => {
+                    await game.settings.set(MODULE.ID, 'tokenSpacing', 2);
+                }}
+            ]
+        });
+
+        UIContextMenu.show({
+            id: 'blacksmith-menubar-movement-menu',
             x: event.clientX,
             y: event.clientY,
             zones: items,

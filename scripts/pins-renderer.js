@@ -896,6 +896,7 @@ class PinDOMElement {
             moduleItems.push({
                 name: item.name,
                 icon: item.icon,
+                description: item.description,
                 callback: item.callback,
                 submenu: item.submenu || null
             });
@@ -1159,6 +1160,40 @@ class PinDOMElement {
     }
 
     /**
+     * Break text into lines of at most maxCharsPerLine characters, at word boundaries.
+     * Words longer than maxCharsPerLine stay on their own line.
+     * @param {string} text - Trimmed text
+     * @param {number} maxCharsPerLine - Max characters per line (> 0)
+     * @returns {string} - Text with newlines between lines
+     * @private
+     */
+    static _breakTextAtWordBoundary(text, maxCharsPerLine) {
+        if (!text || maxCharsPerLine <= 0) return text;
+        const words = text.split(/\s+/).filter(Boolean);
+        if (words.length === 0) return '';
+        const lines = [];
+        let currentLine = [];
+        let currentLength = 0;
+        for (const word of words) {
+            const needSpace = currentLine.length > 0 ? 1 : 0;
+            if (currentLength + needSpace + word.length <= maxCharsPerLine) {
+                currentLine.push(word);
+                currentLength += needSpace + word.length;
+            } else {
+                if (currentLine.length > 0) {
+                    lines.push(currentLine.join(' '));
+                    currentLine = [];
+                    currentLength = 0;
+                }
+                currentLine.push(word);
+                currentLength = word.length;
+            }
+        }
+        if (currentLine.length > 0) lines.push(currentLine.join(' '));
+        return lines.join('\n');
+    }
+
+    /**
      * Update pin text display
      * @param {HTMLElement} pinElement
      * @param {PinData} pinData
@@ -1179,6 +1214,7 @@ class PinDOMElement {
         const textColor = pinData.textColor || '#ffffff';
         const textSize = pinData.textSize || 12;
         const textMaxLength = pinData.textMaxLength || 0;
+        const textMaxWidth = Math.max(0, parseInt(String(pinData.textMaxWidth ?? 0), 10) || 0);
         const isGM = game.user?.isGM || false;
 
         // Check if text should be visible
@@ -1200,6 +1236,10 @@ class PinDOMElement {
             let displayText = text.trim();
             if (textMaxLength > 0 && displayText.length > textMaxLength) {
                 displayText = displayText.substring(0, textMaxLength) + '...';
+            }
+            // Character-based wrap at word boundary (under/over only)
+            if ((textLayout === 'under' || textLayout === 'over') && textMaxWidth > 0) {
+                displayText = this._breakTextAtWordBoundary(displayText, textMaxWidth);
             }
             
             // For "around" layout, create curved text using individual characters
@@ -1241,6 +1281,15 @@ class PinDOMElement {
         } else {
             // Fixed size - don't scale (used for "around" layout and when textScaleWithPin is false)
             textElement.style.fontSize = `${textSize}px`;
+        }
+
+        // Chars-per-line wrap: use pre-line so inserted newlines break (under/over only)
+        if (textLayout === 'under' || textLayout === 'over') {
+            if (textMaxWidth > 0) {
+                textElement.style.whiteSpace = 'pre-line';
+            } else {
+                textElement.style.whiteSpace = '';
+            }
         }
 
         // Apply drop shadow if pin has drop shadow

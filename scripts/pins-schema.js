@@ -29,6 +29,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {string} [textColor] - Text color (default: '#ffffff')
  * @property {number} [textSize] - Text size in pixels (default: 12)
  * @property {number} [textMaxLength] - Maximum text length before ellipsis (default: 0 = no limit)
+ * @property {number} [textMaxWidth] - Max characters per line before wrap (default: 0 = single line); break at word boundary
  * @property {boolean} [textScaleWithPin] - Whether text scales with pin size based on zoom (default: true). If false, text stays fixed size.
  * @property {string} [type] - Pin type/category (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified. Used for filtering and organization.
  * @property {Record<string, unknown>} config
@@ -103,6 +104,7 @@ export const PIN_DEFAULTS = Object.freeze({
     textColor: '#ffffff',
     textSize: 12,
     textMaxLength: 0, // 0 = no limit
+    textMaxWidth: 0, // 0 = single line; >0 = max chars per line, break at word
     textScaleWithPin: true, // If true, text scales with zoom; if false, text stays fixed size
     type: 'default', // Pin type/category - defaults to 'default' if not specified
     version: PIN_SCHEMA_VERSION,
@@ -202,6 +204,7 @@ export function applyDefaults(partial) {
     if (partial.textColor != null) base.textColor = String(partial.textColor);
     if (typeof partial.textSize === 'number' && partial.textSize > 0) base.textSize = partial.textSize;
     if (typeof partial.textMaxLength === 'number' && partial.textMaxLength >= 0) base.textMaxLength = partial.textMaxLength;
+    if (typeof partial.textMaxWidth === 'number' && partial.textMaxWidth >= 0) base.textMaxWidth = partial.textMaxWidth;
     if (typeof partial.textScaleWithPin === 'boolean') base.textScaleWithPin = partial.textScaleWithPin;
     if (partial.type != null) {
         base.type = String(partial.type).trim() || PIN_DEFAULTS.type;

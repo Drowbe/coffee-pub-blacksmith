@@ -62,6 +62,21 @@
     background-color: transparent;
 }
 
+.context-menu .context-menu-item-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.context-menu .context-menu-item-label {
+    font-size: 0.95em;
+}
+
+.context-menu .context-menu-item-description {
+    font-size: 0.75em;
+    color: rgba(210, 200, 170, 0.75);
+}
+
 .context-menu .context-menu-item:hover {
     background-color: rgba(255, 255, 255, 0.2);
     border-radius: 4px;

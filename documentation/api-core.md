@@ -2323,7 +2323,7 @@ ContextMenu.show({
 
 ## **Schema**
 
-`ContextMenu.show({ id, x, y, zones, zoneClass?, className? })`
+`ContextMenu.show({ id, x, y, zones, zoneClass?, className?, maxWidth? })`
 
 - `id` (string, required): Unique menu id; used to close or replace an existing menu
 - `x`, `y` (number, required): Screen coordinates (clientX/clientY)
@@ -2332,10 +2332,12 @@ ContextMenu.show({
   - **Object**: `{ module?: [], core?: [], gm?: [] }` to render zones with separators
 - `zoneClass` (string, optional): zone name for flat lists (default `core`)
 - `className` (string, optional): extra CSS class(es) for styling
+- `maxWidth` (number, optional): max width in pixels (default `300`)
 
 **Menu Item**
 - `name` (string, required)
 - `icon` (string, optional): Font Awesome class (e.g., `fa-solid fa-star`) or HTML string
+- `description` (string, optional): Secondary text shown under the label
 - `callback` (function, optional): Click handler (ignored if `submenu` exists)
 - `submenu` (array, optional): array of menu items (flyout)
 - `disabled` (boolean, optional): renders as disabled

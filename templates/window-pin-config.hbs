@@ -120,8 +120,12 @@
                 </div>
                 <div class="blacksmith-pin-config-design-row">
                     <label class="blacksmith-pin-config-design-field">
-                        <span>Max length</span>
+                        <span>Max characters</span>
                         <input type="number" class="blacksmith-input blacksmith-pin-config-text-max-length" min="0" step="1" value="{{pinTextMaxLength}}">
+                    </label>
+                    <label class="blacksmith-pin-config-design-field">
+                        <span>Chars per line</span>
+                        <input type="number" class="blacksmith-input blacksmith-pin-config-text-max-width" min="0" step="1" value="{{pinTextMaxWidth}}" title="Max characters per line before wrap (0 = single line); breaks at word boundary">
                     </label>
                 </div>
                 <label class="blacksmith-pin-config-design-toggle">

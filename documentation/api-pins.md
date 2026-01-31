@@ -173,6 +173,7 @@ interface PinData {
   textColor?: string; // Text color (default: '#ffffff') - supports hex, rgb, rgba, hsl, hsla, named colors
   textSize?: number; // Text size in pixels (default: 12)
   textMaxLength?: number; // Maximum text length before ellipsis (default: 0 = no limit)
+  textMaxWidth?: number; // Max characters per line before wrap (default: 0 = single line); break at word boundary
   textScaleWithPin?: boolean; // Whether text scales with pin size based on zoom (default: true). If false, text stays fixed size.
   type?: string; // Pin type/category (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified. Used for filtering and organization.
   config?: Record<string, unknown>;
@@ -289,6 +290,7 @@ const pin = await pinsAPI.create({
   textColor: '#ffffff',  // optional; text color (default: '#ffffff')
   textSize: 12,  // optional; text size in pixels (default: 12)
   textMaxLength: 0,  // optional; max length before ellipsis (default: 0 = no limit)
+  textMaxWidth: 0,  // optional; max chars per line before wrap, break at word (default: 0 = single line)
   size: { w: 48, h: 48 },  // optional; defaults to { w: 32, h: 32 }
   style: {  // optional; defaults shown (supports hex, rgb, rgba, hsl, hsla, named colors)
     fill: '#000000',  // or 'rgba(0, 0, 0, 0.5)' for transparency
@@ -376,6 +378,7 @@ const textPin = await pinsAPI.create({
   textColor: '#ffff00',  // Yellow text
   textSize: 14,  // Larger text
   textMaxLength: 15,  // Truncate after 15 characters
+  textMaxWidth: 20,  // Wrap at 20 characters per line (break at word)
   textScaleWithPin: true,  // Text scales with zoom
   image: '<i class="fa-solid fa-location-dot"></i>'
 });
@@ -898,6 +901,7 @@ The callback receives a **stable** object. This is the current contract (matches
     textColor:    string;
     textSize:     number;
     textMaxLength: number;
+    textMaxWidth: number;   // max chars per line; 0 = single line; break at word
     textScaleWithPin: boolean;
   };
 }
@@ -935,6 +939,7 @@ When “Use as Default” is checked and `defaultSettingKey` + `moduleId` are pr
   textColor:      string;
   textSize:       number;
   textMaxLength:  number;
+  textMaxWidth:   number;
   textScaleWithPin: boolean;
 }
 ```
@@ -1024,7 +1029,7 @@ await pinsAPI.configure(pinId, {
 **Behavior**:
 - Opens an Application V2 window with a form for editing pin properties.
 - Only users who can **edit** the pin (ownership-based) can open the window.
-- The window includes: **Appearance** (shape, size, fill, stroke, stroke width, icon color, opacity, drop shadow); **Icon/Image** (Font Awesome library + image URL with built-in FilePicker “Browse”); **Text** (layout, display mode, color, size, max length, scale-with-pin). Pin **type** is not currently editable in the window; **ownership** is not changed by the save.
+- The window includes: **Appearance** (shape, size, fill, stroke, stroke width, icon color, opacity, drop shadow); **Icon/Image** (Font Awesome library + image URL with built-in FilePicker “Browse”); **Text** (layout, display mode, color, size, max characters, chars per line, scale-with-pin). Pin **type** is not currently editable in the window; **ownership** is not changed by the save.
 - On submit, the pin is updated via `pins.update()` (ownership is preserved). If “Use as Default” is checked, the [default storage schema](#3-default-storage-schema-useasdefault) is written to `game.settings.set(moduleId, defaultSettingKey, …)`. If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
 - The window is also available from the pin’s right-click context menu (“Configure Pin”).
 
@@ -1033,7 +1038,7 @@ await pinsAPI.configure(pinId, {
 ### `pins.getDefaultPinDesign(moduleId)`
 Get the current user's default pin design for a module (saved via Configure Pin "Use as Default"). Stored in client scope so each player can have their own default.
 
-**Returns**: `Object | null` - Default design object (size, shape, style including fill/stroke/iconColor/alpha, dropShadow, textLayout, textDisplay, textColor, textSize, textMaxLength, textScaleWithPin, lockProportions) or `null` if none saved.
+**Returns**: `Object | null` - Default design object (size, shape, style including fill/stroke/iconColor/alpha, dropShadow, textLayout, textDisplay, textColor, textSize, textMaxLength, textMaxWidth, textScaleWithPin, lockProportions) or `null` if none saved.
 
 ```javascript
 // When creating a new pin, apply the user's saved default if any

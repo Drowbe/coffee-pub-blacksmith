@@ -401,8 +401,9 @@ export class PinManager {
      * @param {Object} itemData - Menu item configuration
      * @param {string} itemData.name - Display name
      * @param {string} itemData.icon - Font Awesome icon HTML or class string
+     * @param {string} [itemData.description] - Optional description text
      * @param {Function} [itemData.onClick] - Callback function (receives pinData)
-     * @param {Array} [itemData.submenu] - Optional submenu items [{ name, icon, onClick }]
+     * @param {Array} [itemData.submenu] - Optional submenu items [{ name, icon, description, onClick }]
      * @param {string} [itemData.moduleId] - Only show for pins from this module
      * @param {number} [itemData.order] - Order in menu (lower = higher, default: 999)
      * @param {Function|boolean} [itemData.visible] - Visibility function or boolean (default: true)
@@ -427,6 +428,7 @@ export class PinManager {
             itemId,
             name: itemData.name,
             icon: itemData.icon || '<i class="fa-solid fa-circle"></i>',
+            description: itemData.description || '',
             onClick: itemData.onClick,
             submenu: hasSubmenu ? itemData.submenu : null,
             moduleId: itemData.moduleId,
@@ -480,6 +482,7 @@ export class PinManager {
                     .filter((sub) => sub && typeof sub === 'object')
                     .map((sub) => ({
                         name: sub.name,
+                        description: sub.description || '',
                         icon: sub.icon || '<i class="fa-solid fa-circle"></i>',
                         callback: () => sub.onClick?.(pinData)
                     }))
@@ -489,6 +492,7 @@ export class PinManager {
                 itemId,
                 name: item.name,
                 icon: item.icon,
+                description: item.description || '',
                 callback: () => item.onClick?.(pinData),
                 submenu,
                 order: item.order
@@ -778,6 +782,7 @@ export class PinManager {
         if (patch.textColor != null) merged.textColor = String(patch.textColor);
         if (typeof patch.textSize === 'number' && patch.textSize > 0) merged.textSize = patch.textSize;
         if (typeof patch.textMaxLength === 'number' && patch.textMaxLength >= 0) merged.textMaxLength = patch.textMaxLength;
+        if (typeof patch.textMaxWidth === 'number' && patch.textMaxWidth >= 0) merged.textMaxWidth = patch.textMaxWidth;
         if (typeof patch.textScaleWithPin === 'boolean') merged.textScaleWithPin = patch.textScaleWithPin;
         if (patch.image !== undefined) {
             const stored = normalizePinImageForStorage(patch.image);

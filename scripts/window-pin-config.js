@@ -37,6 +37,7 @@ export class PinConfigWindow extends Application {
         this.pinTextColor = '#ffffff';
         this.pinTextSize = 12;
         this.pinTextMaxLength = 0;
+        this.pinTextMaxWidth = 0;
         this.pinTextScaleWithPin = true;
         this._pinRatio = 1;
     }
@@ -207,6 +208,7 @@ export class PinConfigWindow extends Application {
         this.pinTextColor = pin.textColor || '#ffffff';
         this.pinTextSize = pin.textSize || 12;
         this.pinTextMaxLength = pin.textMaxLength ?? 0;
+        this.pinTextMaxWidth = pin.textMaxWidth ?? 0;
         this.pinTextScaleWithPin = pin.textScaleWithPin !== false;
         this._pinRatio = this.pinSize.h ? this.pinSize.w / this.pinSize.h : 1;
 
@@ -247,6 +249,7 @@ export class PinConfigWindow extends Application {
             pinTextColor: this.pinTextColor,
             pinTextSize: this.pinTextSize,
             pinTextMaxLength: this.pinTextMaxLength,
+            pinTextMaxWidth: this.pinTextMaxWidth,
             pinTextScaleWithPin: this.pinTextScaleWithPin,
             iconMode: this.iconMode,
             showUseAsDefault: true // Always show toggle - modules can handle saving defaults themselves
@@ -285,6 +288,7 @@ export class PinConfigWindow extends Application {
         const textColorTextInput = nativeHtml.querySelector('.blacksmith-pin-config-text-color-text');
         const textSizeInput = nativeHtml.querySelector('.blacksmith-pin-config-text-size');
         const textMaxLengthInput = nativeHtml.querySelector('.blacksmith-pin-config-text-max-length');
+        const textMaxWidthInput = nativeHtml.querySelector('.blacksmith-pin-config-text-max-width');
         const textScaleInput = nativeHtml.querySelector('.blacksmith-pin-config-text-scale');
         const defaultInput = nativeHtml.querySelector('.blacksmith-pin-config-default');
         const sourceToggle = nativeHtml.querySelector('.blacksmith-pin-config-source-toggle-input');
@@ -394,6 +398,12 @@ export class PinConfigWindow extends Application {
         };
 
         const clampTextMaxLength = (value, fallback) => {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) return fallback;
+            return Math.max(0, Math.round(parsed));
+        };
+
+        const clampTextMaxWidth = (value, fallback) => {
             const parsed = Number(value);
             if (!Number.isFinite(parsed)) return fallback;
             return Math.max(0, Math.round(parsed));
@@ -569,6 +579,9 @@ export class PinConfigWindow extends Application {
         textMaxLengthInput?.addEventListener('input', () => {
             this.pinTextMaxLength = clampTextMaxLength(textMaxLengthInput.value, this.pinTextMaxLength);
         });
+        textMaxWidthInput?.addEventListener('input', () => {
+            this.pinTextMaxWidth = clampTextMaxWidth(textMaxWidthInput.value, this.pinTextMaxWidth);
+        });
         textScaleInput?.addEventListener('change', () => {
             this.pinTextScaleWithPin = !!textScaleInput.checked;
         });
@@ -624,6 +637,7 @@ export class PinConfigWindow extends Application {
                     textColor: this.pinTextColor,
                     textSize: this.pinTextSize,
                     textMaxLength: this.pinTextMaxLength,
+                    textMaxWidth: this.pinTextMaxWidth,
                     textScaleWithPin: this.pinTextScaleWithPin
                 }
             };
@@ -646,6 +660,7 @@ export class PinConfigWindow extends Application {
                 textColor: configData.pinTextConfig.textColor,
                 textSize: configData.pinTextConfig.textSize,
                 textMaxLength: configData.pinTextConfig.textMaxLength,
+                textMaxWidth: configData.pinTextConfig.textMaxWidth,
                 textScaleWithPin: configData.pinTextConfig.textScaleWithPin
             };
 

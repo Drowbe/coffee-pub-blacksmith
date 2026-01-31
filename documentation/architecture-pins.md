@@ -80,7 +80,7 @@ Only GMs can write scene flags and the world setting. Non-GM users with edit per
 - **Entry**: `pinsAPI.configure(pinId, options)` (exposed in `api-pins.js`; loads `PinConfigWindow` and calls `PinConfigWindow.open(pinId, options)`).
 - **Resolve pin**: `getData()` calls `PinManager.get(this.pinId, this.sceneId !== undefined ? { sceneId: this.sceneId } : {})` — no default `sceneId` so unplaced store is checked first when omitted.
 - **Permission**: `PinManager._canEdit(pin, userId)` in `getData()`; window does not open without edit permission (API also enforces on update).
-- **Save**: On submit, window builds a patch (size, shape, style, dropShadow, image, textLayout, textDisplay, textColor, textSize, textMaxLength, textScaleWithPin) and calls `pinsAPI.update(this.pinId, patch, { sceneId: this.sceneId })`.
+- **Save**: On submit, window builds a patch (size, shape, style, dropShadow, image, textLayout, textDisplay, textColor, textSize, textMaxLength, textMaxWidth, textScaleWithPin) and calls `pinsAPI.update(this.pinId, patch, { sceneId: this.sceneId })`.
 - **Context menu**: “Configure Pin” in `pins-renderer.js` is shown only when the user can edit; it calls `pinsAPI.configure(pinId, { sceneId: canvas?.scene?.id })` (or without `sceneId` for unplaced).
 - **Class**: Exported as `PinConfigWindow`; static `open(pinId, options)`; constructor accepts `pinId` and `options` (e.g. `sceneId`, `onSelect`, `useAsDefault`, `moduleId`).
 - **Files**: `scripts/window-pin-config.js`, `templates/window-pin-config.hbs`, `styles/window-pin-config.css`. Application id `blacksmith-pin-config`; root form class `blacksmith-pin-config`. Stable selectors for theming: `#blacksmith-pin-config`, `.blacksmith-pin-config`, `.window-content` (see `api-pins.md` for contracts).

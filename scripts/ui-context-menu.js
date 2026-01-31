@@ -29,7 +29,7 @@ export class UIContextMenu {
      * @param {string} [options.zoneClass] - Class to use for flat items zone (default core)
      */
     static show(options) {
-        const { id, x, y, zones, className = '', zoneClass = 'core' } = options || {};
+        const { id, x, y, zones, className = '', zoneClass = 'core', maxWidth = 300 } = options || {};
         if (!id) throw new Error('UIContextMenu.show requires an id');
 
         this.close(id);
@@ -40,6 +40,9 @@ export class UIContextMenu {
         menu.style.visibility = 'hidden';
         menu.style.left = '0px';
         menu.style.top = '0px';
+        if (maxWidth) {
+            menu.style.maxWidth = `${maxWidth}px`;
+        }
 
         const root = document.body;
 
@@ -121,7 +124,28 @@ export class UIContextMenu {
                 : `<i class="${item.icon}"></i>`)
             : '';
         const label = item.name || '';
-        menuItemEl.innerHTML = `${iconHtml}${label ? ` ${label}` : ''}`;
+        const description = item.description || '';
+
+        if (iconHtml) {
+            const iconWrap = document.createElement('span');
+            iconWrap.className = 'context-menu-item-icon';
+            iconWrap.innerHTML = iconHtml;
+            menuItemEl.appendChild(iconWrap);
+        }
+
+        const content = document.createElement('span');
+        content.className = 'context-menu-item-content';
+        const labelEl = document.createElement('span');
+        labelEl.className = 'context-menu-item-label';
+        labelEl.textContent = label;
+        content.appendChild(labelEl);
+        if (description) {
+            const descEl = document.createElement('span');
+            descEl.className = 'context-menu-item-description';
+            descEl.textContent = description;
+            content.appendChild(descEl);
+        }
+        menuItemEl.appendChild(content);
 
         if (item.submenu && Array.isArray(item.submenu) && item.submenu.length) {
             menuItemEl.classList.add('has-submenu');
