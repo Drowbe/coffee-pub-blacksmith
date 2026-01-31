@@ -322,6 +322,12 @@ div#blacksmith-pin-config .window-content {
     box-shadow: 0 0 4px rgba(201, 185, 147, 0.3);
 }
 
+/* Select dropdown: style options so the open list matches the dark theme (avoids light/grey native list) */
+.blacksmith-pin-config select.blacksmith-input option {
+    background-color: #2a2a2a;
+    color: #f2f0e6;
+}
+
 /* Section styling */
 .blacksmith-pin-config-section {
     margin-bottom: 16px;
