@@ -1160,40 +1160,6 @@ class PinDOMElement {
     }
 
     /**
-     * Break text into lines of at most maxCharsPerLine characters, at word boundaries.
-     * Words longer than maxCharsPerLine stay on their own line.
-     * @param {string} text - Trimmed text
-     * @param {number} maxCharsPerLine - Max characters per line (> 0)
-     * @returns {string} - Text with newlines between lines
-     * @private
-     */
-    static _breakTextAtWordBoundary(text, maxCharsPerLine) {
-        if (!text || maxCharsPerLine <= 0) return text;
-        const words = text.split(/\s+/).filter(Boolean);
-        if (words.length === 0) return '';
-        const lines = [];
-        let currentLine = [];
-        let currentLength = 0;
-        for (const word of words) {
-            const needSpace = currentLine.length > 0 ? 1 : 0;
-            if (currentLength + needSpace + word.length <= maxCharsPerLine) {
-                currentLine.push(word);
-                currentLength += needSpace + word.length;
-            } else {
-                if (currentLine.length > 0) {
-                    lines.push(currentLine.join(' '));
-                    currentLine = [];
-                    currentLength = 0;
-                }
-                currentLine.push(word);
-                currentLength = word.length;
-            }
-        }
-        if (currentLine.length > 0) lines.push(currentLine.join(' '));
-        return lines.join('\n');
-    }
-
-    /**
      * Update pin text display
      * @param {HTMLElement} pinElement
      * @param {PinData} pinData
@@ -1214,8 +1180,7 @@ class PinDOMElement {
         const textColor = pinData.textColor || '#ffffff';
         const textSize = pinData.textSize || 12;
         const textMaxLength = pinData.textMaxLength || 0;
-        // Purely character count: wrap at N chars per line (word boundary). No pixels.
-        const rawMaxWidth = pinData.textMaxWidth ?? pinData.config?.textMaxWidth ?? 0;
+        const rawMaxWidth = pinData.textMaxWidth ?? 0;
         const textMaxWidth = Math.max(0, parseInt(String(rawMaxWidth), 10) || 0);
         const isGM = game.user?.isGM || false;
 
@@ -1233,16 +1198,16 @@ class PinDOMElement {
             }
         }
 
-        // Set text content with ellipsis if needed
+        // Set text content. Max characters and chars per line are independent: either or both can be set.
         if (text && text.trim()) {
             let displayText = text.trim();
+            // Max characters: truncate to N chars and add "..." (0 = no limit). Does not depend on chars per line.
             if (textMaxLength > 0 && displayText.length > textMaxLength) {
                 displayText = displayText.substring(0, textMaxLength) + '...';
             }
-            // Character-based wrap at word boundary (under/over only). Only source of line breaks when > 0.
+            // Chars per line (under/over): normalize source newlines; browser wraps at word boundary within width (ch). Does not depend on max characters.
             if ((textLayout === 'under' || textLayout === 'over') && textMaxWidth > 0) {
-                const oneLine = displayText.replace(/\s+/g, ' ').trim();
-                displayText = this._breakTextAtWordBoundary(oneLine, textMaxWidth);
+                displayText = displayText.replace(/\s+/g, ' ').trim();
             }
             
             // For "around" layout, create curved text using individual characters
@@ -1286,14 +1251,12 @@ class PinDOMElement {
             textElement.style.fontSize = `${textSize}px`;
         }
 
-        // Chars-per-line wrap: set width in character units (ch) so the element is not constrained by the pin.
-        // The text div lives inside the pin; with width:auto it was limited to the pin's pixel width (~53px).
-        // We never set width before—only maxWidth—so the containing block (pin) was always the limit.
+        // Chars per line: width in ch so label isn't constrained by pin container; browser wraps at word boundary.
         if (textLayout === 'under' || textLayout === 'over') {
             if (textMaxWidth > 0) {
                 textElement.style.width = `${textMaxWidth}ch`;
                 textElement.style.maxWidth = 'none';
-                textElement.style.whiteSpace = 'pre-line';
+                textElement.style.whiteSpace = 'normal';
                 textElement.style.overflowWrap = 'break-word';
                 textElement.style.overflow = 'visible';
                 textElement.style.textOverflow = '';
