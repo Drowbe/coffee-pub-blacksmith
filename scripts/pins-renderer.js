@@ -1338,237 +1338,237 @@ class PinDOMElement {
 
 
 
-/**
- * Create curved text around the pin edge. Honors max characters (caller truncates) and chars per line (multi-line arcs).
- * @param {HTMLElement} textElement
- * @param {string} text
- * @param {PinData} pinData
- * @param {HTMLElement} [pinElement] - Optional pin element (will be found if not provided)
- * @param {object} [opts]
- * @param {"below"|"above"} [opts.position="below"] - Where to center the arc relative to the pin.
- * @private
- */
-static _createCurvedText(textElement, text, pinData, pinElement = null, opts = {}) {
-    const position = opts?.position === "above" ? "above" : "below";
-  
-    textElement.innerHTML = "";
-  
-    if (!pinElement) pinElement = textElement.closest(".blacksmith-pin");
-    if (!pinElement) return;
-  
-    const pinWidth = parseFloat(pinElement.style.width) || Math.min(pinData.size.w, pinData.size.h);
-    const pinHeight = parseFloat(pinElement.style.height) || Math.min(pinData.size.w, pinData.size.h);
-    const pinSize = Math.min(pinWidth, pinHeight);
-  
-    const borderWidth = parseFloat(pinElement.style.borderWidth) || (pinData.style?.strokeWidth || 2);
-  
-    const computedFontSize = parseFloat(window.getComputedStyle(textElement).fontSize);
-    const textSize =
-      Number.isFinite(computedFontSize) && computedFontSize > 0
-        ? computedFontSize
-        : (parseFloat(textElement.dataset.baseTextSize) || pinData.textSize || 12);
-  
-    const measureEl = document.createElement("span");
-    measureEl.style.position = "absolute";
-    measureEl.style.visibility = "hidden";
-    measureEl.style.whiteSpace = "nowrap";
-    measureEl.style.fontSize = `${textSize}px`;
-    measureEl.style.fontWeight = "bold";
-  
-    const computedStyle = window.getComputedStyle(textElement);
-    measureEl.style.fontFamily = computedStyle.fontFamily;
-    document.body.appendChild(measureEl);
-  
-    // Height + line stepping
-    measureEl.textContent = "M";
-    const textHeight = measureEl.offsetHeight;
-    const lineGap = 2;
-    const lineOffset = textHeight + lineGap;
-    const offset = textHeight;
-  
-    // Spacing
-    const letterSpacing = 2;
-    const wordSpacing = 8;
-  
-    // Arc orientation
-    const centerAngle = position === "above" ? 270 : 90;
-    const direction = position === "above" ? +1 : -1;
-  
-    // Base radius (closest possible line to pin)
-    const baseRadius = (pinSize / 2) + borderWidth + offset;
-  
-    // User config (could be "chars" or "px")
-    const textMaxWidth = Number(pinData?.textMaxWidth) || 0;
-  
-    const measureWidth = (str) => {
-      let w = 0;
-      const chars = String(str).split("");
-      chars.forEach((ch, i) => {
-        if (ch === " ") {
-          w += wordSpacing;
-        } else {
-          measureEl.textContent = ch;
-          w += measureEl.offsetWidth;
-        }
-        if (i < chars.length - 1) w += letterSpacing;
-      });
-      return w;
-    };
-  
-    // Convert setting into a pixel budget (at some reference radius)
-    const toPixelBudget = (val) => {
-      if (!val) return 0;
-  
-      // Heuristic: small numbers are probably "chars"
-      if (val <= 80) {
+    /**
+     * Create curved text around the pin edge. Honors max characters (caller truncates) and chars per line (multi-line arcs).
+     * @param {HTMLElement} textElement
+     * @param {string} text
+     * @param {PinData} pinData
+     * @param {HTMLElement} [pinElement] - Optional pin element (will be found if not provided)
+     * @param {object} [opts]
+     * @param {"below"|"above"} [opts.position="below"] - Where to center the arc relative to the pin.
+     * @private
+     */
+    static _createCurvedText(textElement, text, pinData, pinElement = null, opts = {}) {
+        const position = opts?.position === "above" ? "above" : "below";
+    
+        textElement.innerHTML = "";
+    
+        if (!pinElement) pinElement = textElement.closest(".blacksmith-pin");
+        if (!pinElement) return;
+    
+        const pinWidth = parseFloat(pinElement.style.width) || Math.min(pinData.size.w, pinData.size.h);
+        const pinHeight = parseFloat(pinElement.style.height) || Math.min(pinData.size.w, pinData.size.h);
+        const pinSize = Math.min(pinWidth, pinHeight);
+    
+        const borderWidth = parseFloat(pinElement.style.borderWidth) || (pinData.style?.strokeWidth || 2);
+    
+        const computedFontSize = parseFloat(window.getComputedStyle(textElement).fontSize);
+        const textSize =
+        Number.isFinite(computedFontSize) && computedFontSize > 0
+            ? computedFontSize
+            : (parseFloat(textElement.dataset.baseTextSize) || pinData.textSize || 12);
+    
+        const measureEl = document.createElement("span");
+        measureEl.style.position = "absolute";
+        measureEl.style.visibility = "hidden";
+        measureEl.style.whiteSpace = "nowrap";
+        measureEl.style.fontSize = `${textSize}px`;
+        measureEl.style.fontWeight = "bold";
+    
+        const computedStyle = window.getComputedStyle(textElement);
+        measureEl.style.fontFamily = computedStyle.fontFamily;
+        document.body.appendChild(measureEl);
+    
+        // Height + line stepping
         measureEl.textContent = "M";
-        const avgChar = measureEl.offsetWidth + letterSpacing;
-        return Math.max(10, val * avgChar);
-      }
-  
-      // Otherwise treat as px
-      return val;
-    };
-  
-    const basePixelBudget = toPixelBudget(textMaxWidth);
-  
-    // Compute stack index for a line, given total line count
-    // - below: lineIndex 0 is closest, then outward
-    // - above: lineIndex 0 is outermost, then inward
-    const getStackIndex = (lineIndex, totalLines) => {
-      return position === "above" ? (totalLines - 1 - lineIndex) : lineIndex;
-    };
-  
-    // Radius for a given line index, given total line count
-    const getRadius = (lineIndex, totalLines) => {
-      const stackIndex = getStackIndex(lineIndex, totalLines);
-      return baseRadius + (stackIndex * lineOffset);
-    };
-  
-    // Break text into lines using per-line budgets that match the final radii
-    const breakIntoArcLines = (fullText) => {
-      if (!basePixelBudget) return [String(fullText)];
-  
-      const words = String(fullText).trim().split(/\s+/).filter(Boolean);
-      if (!words.length) return [""];
-  
-      // Iteratively converge on line count so "above" can budget the outermost line correctly
-      let lines = [];
-      let guessLines = 1;
-  
-      for (let pass = 0; pass < 5; pass++) {
-        lines = [];
-        let idx = 0;
-  
-        while (idx < words.length && lines.length < 50) {
-          const lineIndex = lines.length;
-          const totalLinesAssumed = Math.max(guessLines, lineIndex + 1);
-  
-          // IMPORTANT: budget must be computed using the SAME radius mapping as rendering.
-          // Use the assumed total line count to compute this line's radius.
-          const radius = getRadius(lineIndex, totalLinesAssumed);
-  
-          // Scale pixel budget by radius relative to the reference radius for line 0.
-          // For "above", line 0 is outermost, so reference should be its radius, not baseRadius.
-          const refRadius = getRadius(0, totalLinesAssumed);
-          const budget = basePixelBudget * (radius / refRadius);
-  
-          // Greedy fill line with whole words
-          let line = words[idx];
-          while (idx + 1 < words.length) {
-            const candidate = `${line} ${words[idx + 1]}`;
-            if (measureWidth(candidate) <= budget) {
-              idx++;
-              line = candidate;
+        const textHeight = measureEl.offsetHeight;
+        const lineGap = 2;
+        const lineOffset = textHeight + lineGap;
+        const offset = textHeight;
+    
+        // Spacing
+        const letterSpacing = 2;
+        const wordSpacing = 8;
+    
+        // Arc orientation
+        const centerAngle = position === "above" ? 270 : 90;
+        const direction = position === "above" ? +1 : -1;
+    
+        // Base radius (closest possible line to pin)
+        const baseRadius = (pinSize / 2) + borderWidth + offset;
+    
+        // User config (could be "chars" or "px")
+        const textMaxWidth = Number(pinData?.textMaxWidth) || 0;
+    
+        const measureWidth = (str) => {
+        let w = 0;
+        const chars = String(str).split("");
+        chars.forEach((ch, i) => {
+            if (ch === " ") {
+            w += wordSpacing;
             } else {
-              break;
+            measureEl.textContent = ch;
+            w += measureEl.offsetWidth;
             }
-          }
-  
-          lines.push(line);
-          idx++;
+            if (i < chars.length - 1) w += letterSpacing;
+        });
+        return w;
+        };
+    
+        // Convert setting into a pixel budget (at some reference radius)
+        const toPixelBudget = (val) => {
+        if (!val) return 0;
+    
+        // Heuristic: small numbers are probably "chars"
+        if (val <= 80) {
+            measureEl.textContent = "M";
+            const avgChar = measureEl.offsetWidth + letterSpacing;
+            return Math.max(10, val * avgChar);
         }
-  
-        // Converge: if our guess matches produced lines, stop
-        if (lines.length === guessLines) break;
-        guessLines = lines.length;
-      }
-  
-      return lines;
-    };
-  
-    const lines = breakIntoArcLines(text);
-  
-    // Render
-    lines.forEach((line, lineIndex) => {
-      const chars = line.split("");
-      if (!chars.length) return;
-  
-      const radius = getRadius(lineIndex, lines.length);
-  
-      const totalTextWidth = measureWidth(line);
-      const totalArcAngle = (totalTextWidth / radius) * (180 / Math.PI);
-      const anglePerPixel = 180 / (Math.PI * radius);
-  
-      const startAngle = direction === +1
-        ? (centerAngle - (totalArcAngle / 2))
-        : (centerAngle + (totalArcAngle / 2));
-  
-      let currentAngle = startAngle;
-  
-      chars.forEach((char, index) => {
-        let charAngleSpan = 0;
-  
-        if (char === " ") {
-          charAngleSpan = wordSpacing * anglePerPixel;
-        } else {
-          measureEl.textContent = char;
-          charAngleSpan = measureEl.offsetWidth * anglePerPixel;
+    
+        // Otherwise treat as px
+        return val;
+        };
+    
+        const basePixelBudget = toPixelBudget(textMaxWidth);
+    
+        // Compute stack index for a line, given total line count
+        // - below: lineIndex 0 is closest, then outward
+        // - above: lineIndex 0 is outermost, then inward
+        const getStackIndex = (lineIndex, totalLines) => {
+        return position === "above" ? (totalLines - 1 - lineIndex) : lineIndex;
+        };
+    
+        // Radius for a given line index, given total line count
+        const getRadius = (lineIndex, totalLines) => {
+        const stackIndex = getStackIndex(lineIndex, totalLines);
+        return baseRadius + (stackIndex * lineOffset);
+        };
+    
+        // Break text into lines using per-line budgets that match the final radii
+        const breakIntoArcLines = (fullText) => {
+        if (!basePixelBudget) return [String(fullText)];
+    
+        const words = String(fullText).trim().split(/\s+/).filter(Boolean);
+        if (!words.length) return [""];
+    
+        // Iteratively converge on line count so "above" can budget the outermost line correctly
+        let lines = [];
+        let guessLines = 1;
+    
+        for (let pass = 0; pass < 5; pass++) {
+            lines = [];
+            let idx = 0;
+    
+            while (idx < words.length && lines.length < 50) {
+            const lineIndex = lines.length;
+            const totalLinesAssumed = Math.max(guessLines, lineIndex + 1);
+    
+            // IMPORTANT: budget must be computed using the SAME radius mapping as rendering.
+            // Use the assumed total line count to compute this line's radius.
+            const radius = getRadius(lineIndex, totalLinesAssumed);
+    
+            // Scale pixel budget by radius relative to the reference radius for line 0.
+            // For "above", line 0 is outermost, so reference should be its radius, not baseRadius.
+            const refRadius = getRadius(0, totalLinesAssumed);
+            const budget = basePixelBudget * (radius / refRadius);
+    
+            // Greedy fill line with whole words
+            let line = words[idx];
+            while (idx + 1 < words.length) {
+                const candidate = `${line} ${words[idx + 1]}`;
+                if (measureWidth(candidate) <= budget) {
+                idx++;
+                line = candidate;
+                } else {
+                break;
+                }
+            }
+    
+            lines.push(line);
+            idx++;
+            }
+    
+            // Converge: if our guess matches produced lines, stop
+            if (lines.length === guessLines) break;
+            guessLines = lines.length;
         }
-  
-        const charAngle = currentAngle + direction * (charAngleSpan / 2);
-        const angleRad = (charAngle * Math.PI) / 180;
-  
-        const x = Math.cos(angleRad) * radius;
-        const y = Math.sin(angleRad) * radius;
-  
-        if (char !== " ") {
-          measureEl.textContent = char;
-          const charHeight = measureEl.offsetHeight;
-  
-          const span = document.createElement("span");
-          span.className = "text-char";
-          span.textContent = char;
-  
-          span.style.position = "absolute";
-          span.style.whiteSpace = "nowrap";
-          span.style.fontSize = `${textSize}px`;
-          span.style.left = "50%";
-          span.style.top = "50%";
-  
-          const radialOffset = charHeight / 2;
-          const xAdjusted = x - Math.cos(angleRad) * radialOffset;
-          const yAdjusted = y - Math.sin(angleRad) * radialOffset;
-  
-          const rotationDeg = charAngle + (direction * 90);
-  
-          span.style.transform = `
-            translate(calc(-50% + ${xAdjusted}px), calc(-50% + ${yAdjusted}px))
-            rotate(${rotationDeg}deg)
-          `.trim();
-  
-          span.style.transformOrigin = "center center";
-          textElement.appendChild(span);
-        }
-  
-        currentAngle += direction * charAngleSpan;
-        if (index < chars.length - 1) currentAngle += direction * (letterSpacing * anglePerPixel);
-      });
-    });
-  
-    document.body.removeChild(measureEl);
-  }
-  
+    
+        return lines;
+        };
+    
+        const lines = breakIntoArcLines(text);
+    
+        // Render
+        lines.forEach((line, lineIndex) => {
+        const chars = line.split("");
+        if (!chars.length) return;
+    
+        const radius = getRadius(lineIndex, lines.length);
+    
+        const totalTextWidth = measureWidth(line);
+        const totalArcAngle = (totalTextWidth / radius) * (180 / Math.PI);
+        const anglePerPixel = 180 / (Math.PI * radius);
+    
+        const startAngle = direction === +1
+            ? (centerAngle - (totalArcAngle / 2))
+            : (centerAngle + (totalArcAngle / 2));
+    
+        let currentAngle = startAngle;
+    
+        chars.forEach((char, index) => {
+            let charAngleSpan = 0;
+    
+            if (char === " ") {
+            charAngleSpan = wordSpacing * anglePerPixel;
+            } else {
+            measureEl.textContent = char;
+            charAngleSpan = measureEl.offsetWidth * anglePerPixel;
+            }
+    
+            const charAngle = currentAngle + direction * (charAngleSpan / 2);
+            const angleRad = (charAngle * Math.PI) / 180;
+    
+            const x = Math.cos(angleRad) * radius;
+            const y = Math.sin(angleRad) * radius;
+    
+            if (char !== " ") {
+            measureEl.textContent = char;
+            const charHeight = measureEl.offsetHeight;
+    
+            const span = document.createElement("span");
+            span.className = "text-char";
+            span.textContent = char;
+    
+            span.style.position = "absolute";
+            span.style.whiteSpace = "nowrap";
+            span.style.fontSize = `${textSize}px`;
+            span.style.left = "50%";
+            span.style.top = "50%";
+    
+            const radialOffset = charHeight / 2;
+            const xAdjusted = x - Math.cos(angleRad) * radialOffset;
+            const yAdjusted = y - Math.sin(angleRad) * radialOffset;
+    
+            const rotationDeg = charAngle + (direction * 90);
+    
+            span.style.transform = `
+                translate(calc(-50% + ${xAdjusted}px), calc(-50% + ${yAdjusted}px))
+                rotate(${rotationDeg}deg)
+            `.trim();
+    
+            span.style.transformOrigin = "center center";
+            textElement.appendChild(span);
+            }
+    
+            currentAngle += direction * charAngleSpan;
+            if (index < chars.length - 1) currentAngle += direction * (letterSpacing * anglePerPixel);
+        });
+        });
+    
+        document.body.removeChild(measureEl);
+    }
+    
 
 
 

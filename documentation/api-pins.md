@@ -173,7 +173,7 @@ interface PinData {
   textColor?: string; // Text color (default: '#ffffff') - supports hex, rgb, rgba, hsl, hsla, named colors
   textSize?: number; // Text size in pixels (default: 12)
   textMaxLength?: number; // Maximum text length before ellipsis (default: 0 = no limit)
-  textMaxWidth?: number; // Max characters per line before wrap (default: 0 = single line); break at word boundary
+  textMaxWidth?: number; // Max characters per line before wrap (default: 0 = single line); break at word boundary. For arc layouts, used as a character-based or pixel-based line budget that scales with arc radius (outer arcs fit more text).
   textScaleWithPin?: boolean; // Whether text scales with pin size based on zoom (default: true). If false, text stays fixed size.
   type?: string; // Pin type/category (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified. Used for filtering and organization.
   config?: Record<string, unknown>;
@@ -398,7 +398,7 @@ const overTextPin = await pinsAPI.create({
   image: '<i class="fa-solid fa-map"></i>'
 });
 
-// Pin with text curved in an arc below the pin
+// Pin with text curved in an arc below the pin (multi-line arcs supported; textMaxWidth controls wrapping)
 const arcBelowPin = await pinsAPI.create({
   id: 'arc-below-pin',
   x: 1500,
@@ -409,6 +409,7 @@ const arcBelowPin = await pinsAPI.create({
   textDisplay: 'always',
   textColor: '#ffffff',
   textSize: 12,
+  textMaxWidth: 20,  // optional; wrap into multiple arcs (line budget scales with radius)
   textScaleWithPin: true,  // Arc text always scales with pin
   image: '<i class="fa-solid fa-location-dot"></i>'
 });
