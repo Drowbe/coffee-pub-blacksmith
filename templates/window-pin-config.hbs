@@ -121,11 +121,11 @@
                 <div class="blacksmith-pin-config-design-row">
                     <label class="blacksmith-pin-config-design-field">
                         <span>Max characters</span>
-                        <input type="number" class="blacksmith-input blacksmith-pin-config-text-max-length" min="0" step="1" value="{{pinTextMaxLength}}">
+                        <input type="number" class="blacksmith-input blacksmith-pin-config-text-max-length" min="0" step="1" value="{{pinTextMaxLengthDisplay}}" placeholder="">
                     </label>
                     <label class="blacksmith-pin-config-design-field">
                         <span>Chars per line</span>
-                        <input type="number" class="blacksmith-input blacksmith-pin-config-text-max-width" min="0" step="1" value="{{pinTextMaxWidth}}" title="Max characters per line before wrap (0 = single line); breaks at word boundary">
+                        <input type="number" class="blacksmith-input blacksmith-pin-config-text-max-width" min="0" step="1" value="{{pinTextMaxWidthDisplay}}" placeholder="" title="Max characters per line before wrap; empty = single line, no wrap">
                     </label>
                 </div>
                 <label class="blacksmith-pin-config-design-toggle">

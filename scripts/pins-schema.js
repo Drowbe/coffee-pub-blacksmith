@@ -203,15 +203,19 @@ export function applyDefaults(partial) {
     }
     if (partial.textColor != null) base.textColor = String(partial.textColor);
     if (typeof partial.textSize === 'number' && partial.textSize > 0) base.textSize = partial.textSize;
-    const rawMaxLength = partial.textMaxLength;
-    if (rawMaxLength != null && rawMaxLength !== '') {
-        const n = Math.max(0, parseInt(String(rawMaxLength), 10) | 0);
-        if (Number.isFinite(n)) base.textMaxLength = n;
+    if (partial.textMaxLength !== undefined) {
+        if (partial.textMaxLength === '' || partial.textMaxLength == null) base.textMaxLength = 0;
+        else {
+            const n = Math.max(0, parseInt(String(partial.textMaxLength), 10) | 0);
+            if (Number.isFinite(n)) base.textMaxLength = n;
+        }
     }
-    const rawMaxWidth = partial.textMaxWidth;
-    if (rawMaxWidth != null && rawMaxWidth !== '') {
-        const n = Math.max(0, parseInt(String(rawMaxWidth), 10) | 0);
-        if (Number.isFinite(n)) base.textMaxWidth = n;
+    if (partial.textMaxWidth !== undefined) {
+        if (partial.textMaxWidth === '' || partial.textMaxWidth == null) base.textMaxWidth = 0;
+        else {
+            const n = Math.max(0, parseInt(String(partial.textMaxWidth), 10) | 0);
+            if (Number.isFinite(n)) base.textMaxWidth = n;
+        }
     }
     if (typeof partial.textScaleWithPin === 'boolean') base.textScaleWithPin = partial.textScaleWithPin;
     if (partial.type != null) {

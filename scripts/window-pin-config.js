@@ -250,6 +250,8 @@ export class PinConfigWindow extends Application {
             pinTextSize: this.pinTextSize,
             pinTextMaxLength: this.pinTextMaxLength,
             pinTextMaxWidth: this.pinTextMaxWidth,
+            pinTextMaxLengthDisplay: (this.pinTextMaxLength === 0 || this.pinTextMaxLength == null) ? '' : this.pinTextMaxLength,
+            pinTextMaxWidthDisplay: (this.pinTextMaxWidth === 0 || this.pinTextMaxWidth == null) ? '' : this.pinTextMaxWidth,
             pinTextScaleWithPin: this.pinTextScaleWithPin,
             iconMode: this.iconMode,
             showUseAsDefault: true // Always show toggle - modules can handle saving defaults themselves
@@ -398,14 +400,16 @@ export class PinConfigWindow extends Application {
         };
 
         const clampTextMaxLength = (value, fallback) => {
+            if (value === '' || value == null || (typeof value === 'string' && value.trim() === '')) return 0;
             const parsed = Number(value);
-            if (!Number.isFinite(parsed)) return fallback;
+            if (!Number.isFinite(parsed)) return 0;
             return Math.max(0, Math.round(parsed));
         };
 
         const clampTextMaxWidth = (value, fallback) => {
+            if (value === '' || value == null || (typeof value === 'string' && value.trim() === '')) return 0;
             const parsed = Number(value);
-            if (!Number.isFinite(parsed)) return fallback;
+            if (!Number.isFinite(parsed)) return 0;
             return Math.max(0, Math.round(parsed));
         };
 
@@ -578,9 +582,11 @@ export class PinConfigWindow extends Application {
         });
         textMaxLengthInput?.addEventListener('input', () => {
             this.pinTextMaxLength = clampTextMaxLength(textMaxLengthInput.value, this.pinTextMaxLength);
+            if (this.pinTextMaxLength === 0 && textMaxLengthInput) textMaxLengthInput.value = '';
         });
         textMaxWidthInput?.addEventListener('input', () => {
             this.pinTextMaxWidth = clampTextMaxWidth(textMaxWidthInput.value, this.pinTextMaxWidth);
+            if (this.pinTextMaxWidth === 0 && textMaxWidthInput) textMaxWidthInput.value = '';
         });
         textScaleInput?.addEventListener('change', () => {
             this.pinTextScaleWithPin = !!textScaleInput.checked;
