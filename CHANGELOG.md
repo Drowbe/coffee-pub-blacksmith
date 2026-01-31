@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.2.5]
+
+### Added
+- **Pin label “Chars per line”**: New setting in Configure Pin (TEXT FORMAT) to limit characters per line before wrap; breaks at word boundary. Value is a character count (e.g. 15 or 100); 0 = single line. Stored as `textMaxWidth` on pin data. Schema, config window, renderer, manager merge, and API docs updated.
+
+### Changed
+- **Pin label “Max length” → “Max characters”**: Configure Pin TEXT FORMAT field renamed from “Max length” to “Max characters” (still truncates label text at that character count with ellipsis; 0 = no limit).
+- **Pin label wrap – character-based only**: When Chars per line &gt; 0, the label element’s width is set to `${textMaxWidth}ch` so wrapping is driven by character count, not the pin’s pixel width. Label is no longer constrained by the pin container (~53px); `white-space: pre-line` and our word-boundary newlines (or browser wrap within the `ch` width) control line breaks.
+
+### Fixed
+- **Chars per line not applied**: `textMaxWidth` was only accepted when `typeof === 'number'`, so values from storage or form (e.g. string `"100"`) were dropped. Schema `applyDefaults()` and manager `_applyPatch()` now coerce number or string to a non-negative integer so the setting is persisted and used.
+- **Pin label width always ~53px**: We only cleared `maxWidth` and never set `width`; the label lives inside the pin div, so with `width: auto` it was limited by the pin’s pixel width. When Chars per line &gt; 0 we now set the label element’s width in `ch` units (e.g. `100ch`) so the label has an explicit character-based width and wraps correctly.
+- **Source newlines overriding character wrap**: Pin text that already contained newlines (e.g. from a note) was shown as multiple lines regardless of Chars per line. When applying character wrap we now normalize whitespace (e.g. `replace(/\s+/g, ' ')`) so only our character-count / word-boundary logic (and the `ch` width) control line breaks.
+
 ## [13.2.4]
 
 ### Changed
