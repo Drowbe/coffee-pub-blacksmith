@@ -769,7 +769,7 @@ export class PinManager {
         if (patch.text !== undefined) merged.text = patch.text ? String(patch.text).trim() : undefined;
         if (patch.textLayout != null) {
             const layout = String(patch.textLayout).toLowerCase();
-            if (layout === 'under' || layout === 'over' || layout === 'around') {
+            if (['under', 'over', 'around', 'above', 'right', 'left'].includes(layout)) {
                 merged.textLayout = layout;
             }
         }

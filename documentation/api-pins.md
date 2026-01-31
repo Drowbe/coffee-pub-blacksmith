@@ -168,7 +168,7 @@ interface PinData {
   image?: string;  // Font Awesome HTML (e.g. '<i class="fa-solid fa-star"></i>'), Font Awesome class string (e.g. 'fa-solid fa-star'), or image URL (e.g. 'icons/svg/star.svg' or '<img src="path/to/image.webp">')
   shape?: 'circle' | 'square' | 'none'; // Pin shape: 'circle' (default), 'square' (rounded corners), or 'none' (icon only, no background)
   dropShadow?: boolean; // Whether to show drop shadow (default: true) - controlled via CSS variable --blacksmith-pin-drop-shadow
-  textLayout?: 'under' | 'over' | 'around'; // Text layout: 'under' (text below pin), 'over' (text centered over pin), or 'around' (text curved around pin edge)
+  textLayout?: 'under' | 'over' | 'around' | 'above' | 'right' | 'left'; // Text layout: 'under' (below), 'over' (centered over), 'around' (curved), 'above' (above pin), 'right' (right of pin, left-aligned), 'left' (left of pin, right-aligned)
   textDisplay?: 'always' | 'hover' | 'never' | 'gm'; // Text display mode: 'always' (default), 'hover' (show on hover), 'never', or 'gm' (GM only)
   textColor?: string; // Text color (default: '#ffffff') - supports hex, rgb, rgba, hsl, hsla, named colors
   textSize?: number; // Text size in pixels (default: 12)
@@ -285,7 +285,7 @@ const pin = await pinsAPI.create({
   image: '<i class="fa-solid fa-star"></i>',  // optional; Font Awesome HTML, Font Awesome class string, or image URL
   shape: 'circle',  // optional; 'circle' (default), 'square', or 'none' (icon only)
   dropShadow: true,  // optional; adds subtle drop shadow (default: true)
-  textLayout: 'under',  // optional; 'under' (text below pin), 'over' (text centered over pin), or 'around' (text curved around pin edge)
+  textLayout: 'under',  // optional; 'under' | 'over' | 'around' | 'above' | 'right' | 'left'
   textDisplay: 'always',  // optional; 'always' (default), 'hover', 'never', or 'gm' (GM only)
   textColor: '#ffffff',  // optional; text color (default: '#ffffff')
   textSize: 12,  // optional; text size in pixels (default: 12)
@@ -896,7 +896,7 @@ The callback receives a **stable** object. This is the current contract (matches
   pinStyle:   { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number; iconColor?: string };
   pinDropShadow: boolean;
   pinTextConfig: {
-    textLayout:   'under' | 'over' | 'around';
+    textLayout:   'under' | 'over' | 'around' | 'above' | 'right' | 'left';
     textDisplay:  'always' | 'hover' | 'never' | 'gm';
     textColor:    string;
     textSize:     number;
@@ -934,7 +934,7 @@ When “Use as Default” is checked and `defaultSettingKey` + `moduleId` are pr
   shape:          'circle' | 'square' | 'none';
   style:          { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number; iconColor?: string };
   dropShadow:     boolean;
-  textLayout:     'under' | 'over' | 'around';
+  textLayout:     'under' | 'over' | 'around' | 'above' | 'right' | 'left';
   textDisplay:    'always' | 'hover' | 'never' | 'gm';
   textColor:      string;
   textSize:       number;

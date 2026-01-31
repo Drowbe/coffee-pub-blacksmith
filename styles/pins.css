@@ -125,13 +125,61 @@
     top: 100%;
     left: 50%;
     transform: translateX(-50%);
-    margin-top: 8px;
+    margin-top: 16px;
     width: auto;
     max-width: 200px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     grid-area: auto; /* Remove from grid for absolute positioning */
+}
+
+/* Text layout: above icon */
+.blacksmith-pin-text[data-layout="above"] {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 16px;
+    width: auto;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    grid-area: auto;
+}
+
+/* Text layout: right of icon (left-justified) */
+.blacksmith-pin-text[data-layout="right"] {
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 16px;
+    width: auto;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+    grid-area: auto;
+}
+
+/* Text layout: left of icon (right-justified) */
+.blacksmith-pin-text[data-layout="left"] {
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-right: 16px;
+    width: auto;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+    grid-area: auto;
 }
 
 /* Text layout: over icon (centered over pin) */
@@ -150,7 +198,7 @@
     white-space: normal;
     word-wrap: break-word;
     overflow: visible; /* Allow text to be visible */
-    padding: 2px;
+    padding: 4px;
     box-sizing: border-box;
     text-align: center;
     z-index: 10; /* Ensure text is above icon */

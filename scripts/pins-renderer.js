@@ -1206,8 +1206,9 @@ class PinDOMElement {
             if (textMaxLength > 0 && displayText.length > textMaxLength) {
                 displayText = displayText.substring(0, textMaxLength) + '...';
             }
-            // Chars per line (under/over): normalize source newlines; browser wraps at word boundary within width (ch). Does not depend on max characters.
-            if ((textLayout === 'under' || textLayout === 'over') && textMaxWidth > 0) {
+            // Chars per line (linear layouts): normalize source newlines; browser wraps at word boundary within width (ch). Does not depend on max characters.
+            const linearLayouts = ['under', 'over', 'above', 'right', 'left'];
+            if (linearLayouts.includes(textLayout) && textMaxWidth > 0) {
                 displayText = displayText.replace(/\s+/g, ' ').trim();
             }
             
@@ -1218,7 +1219,7 @@ class PinDOMElement {
                 // Pass pinElement to ensure we use current screen size
                 this._createCurvedText(textElement, displayText, pinData, pinElement);
             } else {
-                // For "under" and "over", use simple text content
+                // For linear layouts (under, over, above, right, left), use simple text content
                 textElement.textContent = displayText;
             }
         } else {
@@ -1252,8 +1253,9 @@ class PinDOMElement {
             textElement.style.fontSize = `${textSize}px`;
         }
 
-        // Under/over: avoid CSS clipping so Max characters is the only truncation. Chars per line 0 = as wide as needed.
-        if (textLayout === 'under' || textLayout === 'over') {
+        // Linear layouts (under, over, above, right, left): avoid CSS clipping so Max characters is the only truncation. Chars per line 0 = as wide as needed.
+        const linearLayouts = ['under', 'over', 'above', 'right', 'left'];
+        if (linearLayouts.includes(textLayout)) {
             if (textMaxWidth > 0) {
                 textElement.style.width = `${textMaxWidth}ch`;
                 textElement.style.maxWidth = 'none';

@@ -548,7 +548,7 @@ export class PinConfigWindow extends Application {
 
         textLayoutInput?.addEventListener('change', () => {
             const layout = textLayoutInput.value;
-            if (layout === 'under' || layout === 'over' || layout === 'around') {
+            if (['under', 'over', 'around', 'above', 'right', 'left'].includes(layout)) {
                 this.pinTextLayout = layout;
             }
             applyTextLayoutState();
