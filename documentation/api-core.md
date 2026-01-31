@@ -2273,6 +2273,78 @@ const result = await BlacksmithErrorHandler.safeOperation(
 
 The Blacksmith menubar provides a global menu system that other modules can extend with tools and notifications.
 
+# **Context Menu API (Shared)**
+
+Blacksmith exposes a shared context menu helper that supports **flyouts** (submenus). This is used by pins and the menubar and can be reused by other modules.
+
+## **Accessing the Context Menu API**
+
+```javascript
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+const ContextMenu = blacksmith?.uiContextMenu;
+```
+
+## **Basic Usage**
+
+```javascript
+ContextMenu.show({
+  id: 'my-context-menu',
+  x: event.clientX,
+  y: event.clientY,
+  zones: [
+    { name: 'Open', icon: 'fa-solid fa-folder-open', callback: () => console.log('Open') },
+    { name: 'Delete', icon: 'fa-solid fa-trash', callback: () => console.log('Delete') }
+  ],
+  zoneClass: 'core'
+});
+```
+
+## **Flyout Example**
+
+```javascript
+ContextMenu.show({
+  id: 'pin-animate-menu',
+  x: event.clientX,
+  y: event.clientY,
+  zones: [
+    {
+      name: 'Animate',
+      icon: 'fa-solid fa-wand-sparkles',
+      submenu: [
+        { name: 'Ping', icon: 'fa-solid fa-bullseye', callback: () => pins.ping(pinId, { animation: 'ping' }) },
+        { name: 'Pulse', icon: 'fa-solid fa-circle-dot', callback: () => pins.ping(pinId, { animation: 'pulse' }) },
+        { name: 'Ripple', icon: 'fa-solid fa-water', callback: () => pins.ping(pinId, { animation: 'ripple' }) }
+      ]
+    }
+  ],
+  zoneClass: 'core'
+});
+```
+
+## **Schema**
+
+`ContextMenu.show({ id, x, y, zones, zoneClass?, className? })`
+
+- `id` (string, required): Unique menu id; used to close or replace an existing menu
+- `x`, `y` (number, required): Screen coordinates (clientX/clientY)
+- `zones` (object or array, required):
+  - **Array**: flat list of items (use `zoneClass` to label the zone)
+  - **Object**: `{ module?: [], core?: [], gm?: [] }` to render zones with separators
+- `zoneClass` (string, optional): zone name for flat lists (default `core`)
+- `className` (string, optional): extra CSS class(es) for styling
+
+**Menu Item**
+- `name` (string, required)
+- `icon` (string, optional): Font Awesome class (e.g., `fa-solid fa-star`) or HTML string
+- `callback` (function, optional): Click handler (ignored if `submenu` exists)
+- `submenu` (array, optional): array of menu items (flyout)
+- `disabled` (boolean, optional): renders as disabled
+- `separator` (boolean, optional): render a separator line instead of an item
+
+**Styling**
+- Base styles are in `styles/menu-context-global.css` (`.context-menu`, `.context-menu-item`, `.context-menu-submenu`)
+
+
 ## **Accessing the Menubar API**
 
 ```javascript

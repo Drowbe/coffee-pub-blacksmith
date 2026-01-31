@@ -68,6 +68,7 @@ import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
 import { ConstantsGenerator } from './constants-generator.js';
 import { assetLookup } from './asset-lookup.js';
+import { UIContextMenu } from './ui-context-menu.js';
 import { registerWindowQueryPartials } from './window-query-registration.js';
 import { SidebarPin } from './sidebar-pin.js';
 import { SidebarStyle } from './sidebar-style.js';
@@ -1007,6 +1008,7 @@ Hooks.once('init', async function() {
         ConstantsGenerator,  // ✅ NEW: Expose ConstantsGenerator for constants generation
         assetLookup,  // ✅ NEW: Expose AssetLookup for flexible asset access
         openai: OpenAIAPI,  // ✅ NEW: Expose OpenAI API for AI functionality
+        uiContextMenu: UIContextMenu,  // ✅ NEW: Shared context menu with flyouts
         // ✅ NEW: Toolbar API for external modules
         registerToolbarTool: null,  // Will be set after toolbar manager loads
         unregisterToolbarTool: null,
@@ -3991,5 +3993,3 @@ postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderActorDirectory", "
 
 // ================================================================== 
 // ===== WINDOW-QUERY PARTIAL REGISTRATION ==========================
-
-

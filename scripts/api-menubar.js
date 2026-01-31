@@ -1309,9 +1309,9 @@ class MenuBar {
             name: "leader-section",
             title: "Party Leader",
             tooltip: null,
-            onClick: () => {
+            onClick: (event) => {
                 if (game.user.isGM) {
-                    this.showLeaderDialog();
+                    this.showLeaderMenu(event);
                 }
             },
             zone: "right",
@@ -4120,7 +4120,7 @@ class MenuBar {
             // Execute the tool's onClick function
             if (typeof tool.onClick === 'function') {
                 try {
-                    tool.onClick();
+                    tool.onClick(event);
                 } catch (error) {
                     postConsoleAndNotification(MODULE.NAME, `Error executing tool ${toolId}:`, error, false, false);
                 }
@@ -4495,20 +4495,15 @@ class MenuBar {
         });
     }
 
-    static async showLeaderDialog() {
-
-        // Get all player-owned characters that aren't excluded
-        const excludedUsers = game.settings.get(MODULE.ID, 'excludedUsersMenubar').split(',').map(id => id.trim());
-        
-        // Get all character actors and their owners
-        const characterEntries = game.actors
-            .filter(actor => 
-                actor.type === 'character' && 
+    static _getLeaderEntries() {
+        return game.actors
+            .filter(actor =>
+                actor.type === 'character' &&
                 actor.hasPlayerOwner
             )
             .map(actor => {
                 const ownerEntry = Object.entries(actor.ownership)
-                    .filter(([userId, level]) => 
+                    .filter(([userId, level]) =>
                         level === 3 &&
                         !this._isUserExcluded(game.users.get(userId))
                     )
@@ -4527,7 +4522,58 @@ class MenuBar {
                 }
                 return null;
             })
-            .filter(entry => entry !== null); // Remove any entries where we didn't find an active owner
+            .filter(entry => entry !== null);
+    }
+
+    static showLeaderMenu(event) {
+        if (!game.user?.isGM) return;
+        if (!event || typeof event.clientX !== 'number' || typeof event.clientY !== 'number') {
+            this.showLeaderDialog();
+            return;
+        }
+
+        const characterEntries = this._getLeaderEntries();
+        const leaderData = getSettingSafely(MODULE.ID, 'partyLeader', { userId: '', actorId: '' });
+        const currentActorId = leaderData?.actorId || '';
+
+        const items = [
+            {
+                name: 'None',
+                icon: currentActorId ? 'fa-regular fa-circle-xmark' : 'fa-solid fa-check',
+                disabled: !currentActorId,
+                callback: async () => {
+                    await setSettingSafely(MODULE.ID, 'partyLeader', { userId: '', actorId: '' });
+                    this.currentLeader = null;
+                    await this.updateLeader(null);
+                }
+            }
+        ];
+
+        for (const entry of characterEntries) {
+            const label = `${entry.actor.name} (${entry.owner.name})`;
+            const isCurrent = entry.actor.id === currentActorId;
+            items.push({
+                name: label,
+                icon: isCurrent ? 'fa-solid fa-check' : 'fa-solid fa-crown',
+                disabled: isCurrent,
+                callback: async () => {
+                    await MenuBar.setNewLeader({ userId: entry.owner.id, actorId: entry.actor.id }, true);
+                }
+            });
+        }
+
+        UIContextMenu.show({
+            id: 'blacksmith-menubar-leader-menu',
+            x: event.clientX,
+            y: event.clientY,
+            zones: items,
+            zoneClass: 'core'
+        });
+    }
+
+    static async showLeaderDialog() {
+
+        const characterEntries = this._getLeaderEntries();
 
 
 
