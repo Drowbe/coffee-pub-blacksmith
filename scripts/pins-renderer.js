@@ -1334,7 +1334,11 @@ class PinDOMElement {
 
 
 
-    /**
+
+
+
+
+/**
  * Create curved text around the pin edge. Honors max characters (caller truncates) and chars per line (multi-line arcs).
  * @param {HTMLElement} textElement
  * @param {string} text
@@ -1375,26 +1379,27 @@ static _createCurvedText(textElement, text, pinData, pinElement = null, opts = {
     measureEl.style.fontFamily = computedStyle.fontFamily;
     document.body.appendChild(measureEl);
   
+    // Height + line stepping
     measureEl.textContent = "M";
     const textHeight = measureEl.offsetHeight;
     const lineGap = 2;
     const lineOffset = textHeight + lineGap;
     const offset = textHeight;
   
+    // Spacing
     const letterSpacing = 2;
     const wordSpacing = 8;
   
+    // Arc orientation
     const centerAngle = position === "above" ? 270 : 90;
     const direction = position === "above" ? +1 : -1;
   
-    // Base radius (the line closest to the pin, before stacking tweaks)
+    // Base radius (closest possible line to pin)
     const baseRadius = (pinSize / 2) + borderWidth + offset;
   
-    // Base wrapping budget from pinData (treat as the budget for the base radius)
-    // If you stored "characters per line" here, this still works because we convert to pixels.
+    // User config (could be "chars" or "px")
     const textMaxWidth = Number(pinData?.textMaxWidth) || 0;
   
-    // Helper: measure a string's pixel width with the same spacing rules you render with
     const measureWidth = (str) => {
       let w = 0;
       const chars = String(str).split("");
@@ -1410,71 +1415,83 @@ static _createCurvedText(textElement, text, pinData, pinElement = null, opts = {
       return w;
     };
   
-    // Convert the user's "max width" into a pixel budget at the base radius.
-    // If textMaxWidth is already pixels, great. If it's "chars", we approximate using "M".
-    let basePixelBudget = 0;
-    if (textMaxWidth > 0) {
-      // Heuristic: if it’s small-ish (like 10–60), it’s probably "chars"
-      // If it’s big (like 120+), it’s probably pixels. Tweak threshold if needed.
-      if (textMaxWidth <= 80) {
+    // Convert setting into a pixel budget (at some reference radius)
+    const toPixelBudget = (val) => {
+      if (!val) return 0;
+  
+      // Heuristic: small numbers are probably "chars"
+      if (val <= 80) {
         measureEl.textContent = "M";
         const avgChar = measureEl.offsetWidth + letterSpacing;
-        basePixelBudget = Math.max(10, textMaxWidth * avgChar);
-      } else {
-        basePixelBudget = textMaxWidth;
+        return Math.max(10, val * avgChar);
       }
-    }
   
-    // Break text into lines using a radius-aware pixel budget
+      // Otherwise treat as px
+      return val;
+    };
+  
+    const basePixelBudget = toPixelBudget(textMaxWidth);
+  
+    // Compute stack index for a line, given total line count
+    // - below: lineIndex 0 is closest, then outward
+    // - above: lineIndex 0 is outermost, then inward
+    const getStackIndex = (lineIndex, totalLines) => {
+      return position === "above" ? (totalLines - 1 - lineIndex) : lineIndex;
+    };
+  
+    // Radius for a given line index, given total line count
+    const getRadius = (lineIndex, totalLines) => {
+      const stackIndex = getStackIndex(lineIndex, totalLines);
+      return baseRadius + (stackIndex * lineOffset);
+    };
+  
+    // Break text into lines using per-line budgets that match the final radii
     const breakIntoArcLines = (fullText) => {
-      if (!basePixelBudget) return [fullText];
+      if (!basePixelBudget) return [String(fullText)];
   
-      const words = String(fullText).trim().split(/\s+/);
-      const lines = [];
-      let idx = 0;
+      const words = String(fullText).trim().split(/\s+/).filter(Boolean);
+      if (!words.length) return [""];
   
-      // We build each next line with its own budget based on radius ratio.
-      // We'll assume up to a reasonable number of lines; you can cap if you want.
-      for (let lineIndex = 0; idx < words.length && lineIndex < 10; lineIndex++) {
-        // Stacking index affects radius: above wants reversed stack visually.
-        const stackIndex = position === "above"
-          ? (999999) // placeholder, we'll compute from prospective line count later
-          : lineIndex;
+      // Iteratively converge on line count so "above" can budget the outermost line correctly
+      let lines = [];
+      let guessLines = 1;
   
-        // We don't actually know final stack order until we know line count,
-        // but the *budget* should be based on the radius distance from the pin.
-        // For "below": lineIndex grows outward (bigger radius).
-        // For "above": lineIndex also grows outward (bigger radius), just drawn above.
-        const radius = baseRadius + (lineIndex * lineOffset);
+      for (let pass = 0; pass < 5; pass++) {
+        lines = [];
+        let idx = 0;
   
-        // Scale budget by radius
-        const budget = basePixelBudget * (radius / baseRadius);
+        while (idx < words.length && lines.length < 50) {
+          const lineIndex = lines.length;
+          const totalLinesAssumed = Math.max(guessLines, lineIndex + 1);
   
-        let line = words[idx];
-        let best = line;
+          // IMPORTANT: budget must be computed using the SAME radius mapping as rendering.
+          // Use the assumed total line count to compute this line's radius.
+          const radius = getRadius(lineIndex, totalLinesAssumed);
   
-        // Greedy fill: add words while it fits the budget
-        while (idx + 1 < words.length) {
-          const candidate = `${line} ${words[idx + 1]}`;
-          if (measureWidth(candidate) <= budget) {
-            idx++;
-            line = candidate;
-            best = line;
-          } else {
-            break;
+          // Scale pixel budget by radius relative to the reference radius for line 0.
+          // For "above", line 0 is outermost, so reference should be its radius, not baseRadius.
+          const refRadius = getRadius(0, totalLinesAssumed);
+          const budget = basePixelBudget * (radius / refRadius);
+  
+          // Greedy fill line with whole words
+          let line = words[idx];
+          while (idx + 1 < words.length) {
+            const candidate = `${line} ${words[idx + 1]}`;
+            if (measureWidth(candidate) <= budget) {
+              idx++;
+              line = candidate;
+            } else {
+              break;
+            }
           }
+  
+          lines.push(line);
+          idx++;
         }
   
-        lines.push(best);
-        idx++;
-  
-        // If the current word alone exceeds budget, we still place it as-is.
-        // Optionally you could hyphenate here.
-      }
-  
-      // If we hit the line cap, dump remaining words into the last line
-      if (idx < words.length) {
-        lines[lines.length - 1] += " " + words.slice(idx).join(" ");
+        // Converge: if our guess matches produced lines, stop
+        if (lines.length === guessLines) break;
+        guessLines = lines.length;
       }
   
       return lines;
@@ -1482,20 +1499,14 @@ static _createCurvedText(textElement, text, pinData, pinElement = null, opts = {
   
     const lines = breakIntoArcLines(text);
   
+    // Render
     lines.forEach((line, lineIndex) => {
       const chars = line.split("");
-      if (chars.length === 0) return;
+      if (!chars.length) return;
   
-      // Correct line stacking for above vs below
-      const stackIndex = position === "above"
-        ? (lines.length - 1 - lineIndex)
-        : lineIndex;
+      const radius = getRadius(lineIndex, lines.length);
   
-      const radius = baseRadius + (stackIndex * lineOffset);
-  
-      // Measure total rendered width of this line (with spacing)
       const totalTextWidth = measureWidth(line);
-  
       const totalArcAngle = (totalTextWidth / radius) * (180 / Math.PI);
       const anglePerPixel = 180 / (Math.PI * radius);
   
@@ -1558,6 +1569,17 @@ static _createCurvedText(textElement, text, pinData, pinElement = null, opts = {
     document.body.removeChild(measureEl);
   }
   
+
+
+
+
+
+
+
+
+
+
+    
     
 
 
