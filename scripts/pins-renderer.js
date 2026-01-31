@@ -447,8 +447,9 @@ class PinDOMElement {
                 const textLayout = pinData.textLayout || 'under';
                 const baseTextSize = parseFloat(textElement.dataset.baseTextSize) || pinData.textSize || 12;
                 
-                // "around" layout always scales with pin
-                if (textLayout === 'around') {
+                // Arc layouts (arc-above, arc-below) always scale with pin
+                const arcLayouts = ['arc-above', 'arc-below'];
+                if (arcLayouts.includes(textLayout) || textLayout === 'around') {
                     const ratioStr = typeof document !== 'undefined'
                         ? getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-pin-around-text-size-ratio').trim()
                         : '';
@@ -462,8 +463,8 @@ class PinDOMElement {
                     // This ensures text stays centered when pin moves or canvas scrolls
                     const originalText = textElement.dataset.originalText || pinData.text || '';
                     if (originalText) {
-                        // Pass the pinElement to get current screen size, not just pinData
-                        this._createCurvedText(textElement, originalText, pinData, pinElement);
+                        const position = (textLayout === 'arc-above') ? 'above' : 'below';
+                        this._createCurvedText(textElement, originalText, pinData, pinElement, { position });
                     }
                 } else {
                     // For "under" and "over" layouts, respect scale setting
@@ -1212,12 +1213,12 @@ class PinDOMElement {
                 displayText = displayText.replace(/\s+/g, ' ').trim();
             }
             
-            // For "around" layout, create curved text using individual characters
-            if (textLayout === 'around') {
-                // Store original text for recalculation on zoom/scroll
+            // For arc layouts (arc-above, arc-below), create curved text; pass position for above/below
+            const arcLayouts = ['arc-above', 'arc-below'];
+            if (arcLayouts.includes(textLayout) || textLayout === 'around') {
                 textElement.dataset.originalText = displayText;
-                // Pass pinElement to ensure we use current screen size
-                this._createCurvedText(textElement, displayText, pinData, pinElement);
+                const position = (textLayout === 'arc-above') ? 'above' : 'below';
+                this._createCurvedText(textElement, displayText, pinData, pinElement, { position });
             } else {
                 // For linear layouts (under, over, above, right, left), use simple text content
                 textElement.textContent = displayText;
@@ -1240,8 +1241,9 @@ class PinDOMElement {
         textElement.dataset.baseTextSize = String(textSize);
         
         // Apply initial text size (will be scaled in updatePosition if textScaleWithPin is true)
-        // Exception: "around" layout always uses fixed size (ignores scale setting)
-        const textScaleWithPin = (textLayout === 'around') ? true : (pinData.textScaleWithPin !== false); // Default to true; "around" always scales
+        // Exception: arc layouts always scale with pin (ignore scale setting)
+        const arcLayouts = ['arc-above', 'arc-below'];
+        const textScaleWithPin = (arcLayouts.includes(textLayout) || textLayout === 'around') ? true : (pinData.textScaleWithPin !== false);
         textElement.dataset.textScaleWithPin = String(textScaleWithPin);
         
         if (textScaleWithPin) {
@@ -1249,7 +1251,7 @@ class PinDOMElement {
             // For now, use base size (will be updated on next position update)
             textElement.style.fontSize = `${textSize}px`;
         } else {
-            // Fixed size - don't scale (used for "around" layout and when textScaleWithPin is false)
+            // Fixed size - don't scale (used for arc layouts and when textScaleWithPin is false)
             textElement.style.fontSize = `${textSize}px`;
         }
 
@@ -1330,6 +1332,8 @@ class PinDOMElement {
 
 
 
+
+
     /**
  * Create curved text around the pin edge. Honors max characters (caller truncates) and chars per line (multi-line arcs).
  * @param {HTMLElement} textElement
@@ -1343,29 +1347,23 @@ class PinDOMElement {
 static _createCurvedText(textElement, text, pinData, pinElement = null, opts = {}) {
     const position = opts?.position === "above" ? "above" : "below";
   
-    // Clear existing content
     textElement.innerHTML = "";
   
-    // Get current pin size in screen pixels (for accurate positioning)
     if (!pinElement) pinElement = textElement.closest(".blacksmith-pin");
     if (!pinElement) return;
   
-    // Always use the current screen size from the pin element (not pinData which has scene coordinates)
     const pinWidth = parseFloat(pinElement.style.width) || Math.min(pinData.size.w, pinData.size.h);
     const pinHeight = parseFloat(pinElement.style.height) || Math.min(pinData.size.w, pinData.size.h);
     const pinSize = Math.min(pinWidth, pinHeight);
   
-    // Get border width to position text just outside
     const borderWidth = parseFloat(pinElement.style.borderWidth) || (pinData.style?.strokeWidth || 2);
   
-    // Use current rendered text size so "around" scales with zoom
     const computedFontSize = parseFloat(window.getComputedStyle(textElement).fontSize);
     const textSize =
       Number.isFinite(computedFontSize) && computedFontSize > 0
         ? computedFontSize
         : (parseFloat(textElement.dataset.baseTextSize) || pinData.textSize || 12);
   
-    // Create a temporary element to measure text width and height
     const measureEl = document.createElement("span");
     measureEl.style.position = "absolute";
     measureEl.style.visibility = "hidden";
@@ -1373,59 +1371,134 @@ static _createCurvedText(textElement, text, pinData, pinElement = null, opts = {
     measureEl.style.fontSize = `${textSize}px`;
     measureEl.style.fontWeight = "bold";
   
-    // Match font family if possible
     const computedStyle = window.getComputedStyle(textElement);
     measureEl.style.fontFamily = computedStyle.fontFamily;
     document.body.appendChild(measureEl);
   
-    // Measure text height to position baseline correctly
     measureEl.textContent = "M";
     const textHeight = measureEl.offsetHeight;
     const lineGap = 2;
-    const lineOffset = textHeight + lineGap; // Per-line vertical step for multi-line "around"
-    const offset = textHeight; // Offset from pin edge by roughly one line height
+    const lineOffset = textHeight + lineGap;
+    const offset = textHeight;
   
-    // Chars per line for "around": break into lines; each line gets its own arc (outer radius increases per line)
-    const textMaxWidth = Number(pinData?.textMaxWidth) || 0;
-    const lines = textMaxWidth > 0 ? this._breakTextIntoLines(text, textMaxWidth) : [text];
+    const letterSpacing = 2;
+    const wordSpacing = 8;
   
-    // Spacing
-    const letterSpacing = 2; // px between letters
-    const wordSpacing = 8;   // px for spaces
-  
-    // In DOM coords: 0° = right, 90° = down, 180° = left, 270° = up
     const centerAngle = position === "above" ? 270 : 90;
-  
-    // For LTR reading:
-    // - Bottom arc (center 90): must DECREASE angle to go left->right.
-    // - Top arc (center 270): must INCREASE angle to go left->right.
     const direction = position === "above" ? +1 : -1;
+  
+    // Base radius (the line closest to the pin, before stacking tweaks)
+    const baseRadius = (pinSize / 2) + borderWidth + offset;
+  
+    // Base wrapping budget from pinData (treat as the budget for the base radius)
+    // If you stored "characters per line" here, this still works because we convert to pixels.
+    const textMaxWidth = Number(pinData?.textMaxWidth) || 0;
+  
+    // Helper: measure a string's pixel width with the same spacing rules you render with
+    const measureWidth = (str) => {
+      let w = 0;
+      const chars = String(str).split("");
+      chars.forEach((ch, i) => {
+        if (ch === " ") {
+          w += wordSpacing;
+        } else {
+          measureEl.textContent = ch;
+          w += measureEl.offsetWidth;
+        }
+        if (i < chars.length - 1) w += letterSpacing;
+      });
+      return w;
+    };
+  
+    // Convert the user's "max width" into a pixel budget at the base radius.
+    // If textMaxWidth is already pixels, great. If it's "chars", we approximate using "M".
+    let basePixelBudget = 0;
+    if (textMaxWidth > 0) {
+      // Heuristic: if it’s small-ish (like 10–60), it’s probably "chars"
+      // If it’s big (like 120+), it’s probably pixels. Tweak threshold if needed.
+      if (textMaxWidth <= 80) {
+        measureEl.textContent = "M";
+        const avgChar = measureEl.offsetWidth + letterSpacing;
+        basePixelBudget = Math.max(10, textMaxWidth * avgChar);
+      } else {
+        basePixelBudget = textMaxWidth;
+      }
+    }
+  
+    // Break text into lines using a radius-aware pixel budget
+    const breakIntoArcLines = (fullText) => {
+      if (!basePixelBudget) return [fullText];
+  
+      const words = String(fullText).trim().split(/\s+/);
+      const lines = [];
+      let idx = 0;
+  
+      // We build each next line with its own budget based on radius ratio.
+      // We'll assume up to a reasonable number of lines; you can cap if you want.
+      for (let lineIndex = 0; idx < words.length && lineIndex < 10; lineIndex++) {
+        // Stacking index affects radius: above wants reversed stack visually.
+        const stackIndex = position === "above"
+          ? (999999) // placeholder, we'll compute from prospective line count later
+          : lineIndex;
+  
+        // We don't actually know final stack order until we know line count,
+        // but the *budget* should be based on the radius distance from the pin.
+        // For "below": lineIndex grows outward (bigger radius).
+        // For "above": lineIndex also grows outward (bigger radius), just drawn above.
+        const radius = baseRadius + (lineIndex * lineOffset);
+  
+        // Scale budget by radius
+        const budget = basePixelBudget * (radius / baseRadius);
+  
+        let line = words[idx];
+        let best = line;
+  
+        // Greedy fill: add words while it fits the budget
+        while (idx + 1 < words.length) {
+          const candidate = `${line} ${words[idx + 1]}`;
+          if (measureWidth(candidate) <= budget) {
+            idx++;
+            line = candidate;
+            best = line;
+          } else {
+            break;
+          }
+        }
+  
+        lines.push(best);
+        idx++;
+  
+        // If the current word alone exceeds budget, we still place it as-is.
+        // Optionally you could hyphenate here.
+      }
+  
+      // If we hit the line cap, dump remaining words into the last line
+      if (idx < words.length) {
+        lines[lines.length - 1] += " " + words.slice(idx).join(" ");
+      }
+  
+      return lines;
+    };
+  
+    const lines = breakIntoArcLines(text);
   
     lines.forEach((line, lineIndex) => {
       const chars = line.split("");
       if (chars.length === 0) return;
   
-      // Radius for this line: first line at base, each additional line further out
-      const radius = (pinSize / 2) + borderWidth + offset + (lineIndex * lineOffset);
+      // Correct line stacking for above vs below
+      const stackIndex = position === "above"
+        ? (lines.length - 1 - lineIndex)
+        : lineIndex;
   
-      // Measure total text width with spacing (for centering)
-      let totalTextWidth = 0;
-      chars.forEach((char, index) => {
-        if (char === " ") {
-          totalTextWidth += wordSpacing;
-        } else {
-          measureEl.textContent = char;
-          totalTextWidth += measureEl.offsetWidth;
-        }
-        if (index < chars.length - 1) totalTextWidth += letterSpacing;
-      });
+      const radius = baseRadius + (stackIndex * lineOffset);
+  
+      // Measure total rendered width of this line (with spacing)
+      const totalTextWidth = measureWidth(line);
   
       const totalArcAngle = (totalTextWidth / radius) * (180 / Math.PI);
       const anglePerPixel = 180 / (Math.PI * radius);
   
-      // Start on the left side of the arc and walk to the right.
-      // Left edge is center - totalArc/2 for increasing traversal,
-      // or center + totalArc/2 for decreasing traversal.
       const startAngle = direction === +1
         ? (centerAngle - (totalArcAngle / 2))
         : (centerAngle + (totalArcAngle / 2));
@@ -1433,19 +1506,15 @@ static _createCurvedText(textElement, text, pinData, pinElement = null, opts = {
       let currentAngle = startAngle;
   
       chars.forEach((char, index) => {
-        let charWidth = 0;
         let charAngleSpan = 0;
   
         if (char === " ") {
-          charWidth = wordSpacing;
           charAngleSpan = wordSpacing * anglePerPixel;
         } else {
           measureEl.textContent = char;
-          charWidth = measureEl.offsetWidth;
-          charAngleSpan = charWidth * anglePerPixel;
+          charAngleSpan = measureEl.offsetWidth * anglePerPixel;
         }
   
-        // Midpoint for the glyph on the arc, respecting traversal direction
         const charAngle = currentAngle + direction * (charAngleSpan / 2);
         const angleRad = (charAngle * Math.PI) / 180;
   
@@ -1466,14 +1535,10 @@ static _createCurvedText(textElement, text, pinData, pinElement = null, opts = {
           span.style.left = "50%";
           span.style.top = "50%";
   
-          // Push glyph outward from the arc a bit
           const radialOffset = charHeight / 2;
           const xAdjusted = x - Math.cos(angleRad) * radialOffset;
           const yAdjusted = y - Math.sin(angleRad) * radialOffset;
   
-          // Tangent rotation should follow traversal direction:
-          // - If direction is +1 (increasing angles), tangent is angle + 90
-          // - If direction is -1 (decreasing angles), tangent is angle - 90
           const rotationDeg = charAngle + (direction * 90);
   
           span.style.transform = `
@@ -1482,11 +1547,9 @@ static _createCurvedText(textElement, text, pinData, pinElement = null, opts = {
           `.trim();
   
           span.style.transformOrigin = "center center";
-  
           textElement.appendChild(span);
         }
   
-        // Advance along the arc
         currentAngle += direction * charAngleSpan;
         if (index < chars.length - 1) currentAngle += direction * (letterSpacing * anglePerPixel);
       });
@@ -1495,13 +1558,7 @@ static _createCurvedText(textElement, text, pinData, pinElement = null, opts = {
     document.body.removeChild(measureEl);
   }
   
-
-
-
-
-
-
-
+    
 
 
     /**

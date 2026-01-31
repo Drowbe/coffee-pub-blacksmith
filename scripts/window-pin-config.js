@@ -203,7 +203,7 @@ export class PinConfigWindow extends Application {
             iconColor: pin.style?.iconColor ?? '#ffffff'
         };
         this.dropShadow = pin.dropShadow !== false;
-        this.pinTextLayout = pin.textLayout || 'under';
+        this.pinTextLayout = (pin.textLayout === 'around' ? 'arc-below' : pin.textLayout) || 'under';
         this.pinTextDisplay = pin.textDisplay || 'always';
         this.pinTextColor = pin.textColor || '#ffffff';
         this.pinTextSize = pin.textSize || 12;
@@ -536,19 +536,20 @@ export class PinConfigWindow extends Application {
             this.dropShadow = !!shadowInput.checked;
         });
         const aroundNote = nativeHtml.querySelector('.blacksmith-pin-config-text-around-note');
+        const arcLayouts = ['arc-above', 'arc-below'];
         const applyTextLayoutState = () => {
             if (!textLayoutInput) return;
             const layout = textLayoutInput.value;
-            const isAround = layout === 'around';
-            if (textSizeInput) textSizeInput.disabled = isAround;
-            if (textScaleInput) textScaleInput.disabled = isAround;
-            if (aroundNote) aroundNote.style.display = isAround ? 'block' : 'none';
+            const isArc = arcLayouts.includes(layout);
+            if (textSizeInput) textSizeInput.disabled = isArc;
+            if (textScaleInput) textScaleInput.disabled = isArc;
+            if (aroundNote) aroundNote.style.display = isArc ? 'block' : 'none';
         };
         applyTextLayoutState();
 
         textLayoutInput?.addEventListener('change', () => {
             const layout = textLayoutInput.value;
-            if (['under', 'over', 'around', 'above', 'right', 'left'].includes(layout)) {
+            if (['under', 'over', 'above', 'right', 'left', 'arc-above', 'arc-below'].includes(layout)) {
                 this.pinTextLayout = layout;
             }
             applyTextLayoutState();

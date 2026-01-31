@@ -95,7 +95,8 @@
                             <option value="above" {{#if (eq pinTextLayout "above")}}selected{{/if}}>Above</option>
                             <option value="right" {{#if (eq pinTextLayout "right")}}selected{{/if}}>Right</option>
                             <option value="left" {{#if (eq pinTextLayout "left")}}selected{{/if}}>Left</option>
-                            <option value="around" {{#if (eq pinTextLayout "around")}}selected{{/if}}>Around</option>
+                            <option value="arc-above" {{#if (eq pinTextLayout "arc-above")}}selected{{/if}}>Arc Above</option>
+                            <option value="arc-below" {{#if (eq pinTextLayout "arc-below")}}selected{{/if}}>Arc Below</option>
                         </select>
                     </label>
                     <label class="blacksmith-pin-config-design-field">
@@ -136,7 +137,7 @@
                     Scale text with pin
                 </label>
                 <div class="blacksmith-pin-config-help blacksmith-pin-config-text-around-note" style="display: none;">
-                    “Around” text size and scaling are controlled by the pin-size ratio and ignore these settings.
+                    Arc text size and scaling are controlled by the pin-size ratio and ignore these settings.
                 </div>
             </div>
         </div>

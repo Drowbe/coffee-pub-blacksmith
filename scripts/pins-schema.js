@@ -24,7 +24,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {string} [image]
  * @property {'circle' | 'square' | 'none'} [shape] - Pin shape: 'circle' (default), 'square', or 'none' (icon only, no background)
  * @property {boolean} [dropShadow] - Whether to show drop shadow (default: true)
- * @property {'under' | 'over' | 'around' | 'above' | 'right' | 'left'} [textLayout] - Text layout: 'under' (below), 'over' (centered over), 'around' (curved), 'above' (above pin), 'right' (right of pin, left-aligned), 'left' (left of pin, right-aligned)
+ * @property {'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'} [textLayout] - Text layout: 'under' (below), 'over' (centered over), 'above' (above pin), 'right' (right of pin, left-aligned), 'left' (left of pin, right-aligned), 'arc-above' (curved above pin), 'arc-below' (curved below pin). Legacy 'around' is treated as 'arc-below'.
  * @property {'always' | 'hover' | 'never' | 'gm'} [textDisplay] - Text display mode: 'always' (default), 'hover', 'never', or 'gm' (GM only)
  * @property {string} [textColor] - Text color (default: '#ffffff')
  * @property {number} [textSize] - Text size in pixels (default: 12)
@@ -191,9 +191,9 @@ export function applyDefaults(partial) {
     }
     if (partial.textLayout != null) {
         const layout = String(partial.textLayout).toLowerCase();
-        if (['under', 'over', 'around', 'above', 'right', 'left'].includes(layout)) {
-            base.textLayout = layout;
-        }
+        const allowed = ['under', 'over', 'above', 'right', 'left', 'arc-above', 'arc-below'];
+        if (allowed.includes(layout)) base.textLayout = layout;
+        else if (layout === 'around') base.textLayout = 'arc-below'; // legacy
     }
     if (partial.textDisplay != null) {
         const display = String(partial.textDisplay).toLowerCase();

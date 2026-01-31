@@ -205,8 +205,10 @@
     /* Text overlays the pin, centered, but not constrained to pin width */
 }
 
-/* Text layout: around icon (curved around pin edge) */
-.blacksmith-pin-text[data-layout="around"] {
+/* Text layout: arc above/below (curved around pin edge); "around" kept for legacy */
+.blacksmith-pin-text[data-layout="around"],
+.blacksmith-pin-text[data-layout="arc-above"],
+.blacksmith-pin-text[data-layout="arc-below"] {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -218,12 +220,13 @@
     justify-content: center;
     pointer-events: none;
     z-index: 10;
-    /* Text will be positioned around the circle using JavaScript, centered below pin */
-    /* Offset is calculated from baseline (bottom of text) in JavaScript */
+    /* Arc position (above/below) is set in JavaScript via _createCurvedText opts.position */
 }
 
-/* Individual character/word spans for curved text */
-.blacksmith-pin-text[data-layout="around"] .text-char {
+/* Individual character spans for curved text */
+.blacksmith-pin-text[data-layout="around"] .text-char,
+.blacksmith-pin-text[data-layout="arc-above"] .text-char,
+.blacksmith-pin-text[data-layout="arc-below"] .text-char {
     position: absolute;
     transform-origin: center center;
     white-space: nowrap;

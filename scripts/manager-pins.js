@@ -767,11 +767,11 @@ export class PinManager {
             merged.style = { ...merged.style, ...patch.style };
         }
         if (patch.text !== undefined) merged.text = patch.text ? String(patch.text).trim() : undefined;
-        if (patch.textLayout != null) {
+            if (patch.textLayout != null) {
             const layout = String(patch.textLayout).toLowerCase();
-            if (['under', 'over', 'around', 'above', 'right', 'left'].includes(layout)) {
-                merged.textLayout = layout;
-            }
+            const allowed = ['under', 'over', 'above', 'right', 'left', 'arc-above', 'arc-below'];
+            if (allowed.includes(layout)) merged.textLayout = layout;
+            else if (layout === 'around') merged.textLayout = 'arc-below';
         }
         if (patch.textDisplay != null) {
             const display = String(patch.textDisplay).toLowerCase();
