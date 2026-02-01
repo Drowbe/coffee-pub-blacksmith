@@ -77,11 +77,15 @@ const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
 
 /** World setting key for unplaced pins (not on any scene). */
 const UNPLACED_SETTING_KEY = 'pinsUnplaced';
+const PINS_HIDDEN_MODULES_KEY = 'pinsHiddenModules';
+const PINS_HIDE_ALL_KEY = 'pinsHideAll';
 
 export class PinManager {
     static FLAG_KEY = 'pins';
     static SETTING_ALLOW_PLAYER_WRITES = 'pinsAllowPlayerWrites';
     static UNPLACED_SETTING_KEY = UNPLACED_SETTING_KEY;
+    static HIDDEN_MODULES_SETTING_KEY = PINS_HIDDEN_MODULES_KEY;
+    static HIDE_ALL_SETTING_KEY = PINS_HIDE_ALL_KEY;
 
     // Event handler storage: Map<eventType, Set<handler>>
     static _eventHandlers = new Map();
@@ -177,6 +181,53 @@ export class PinManager {
     static _canCreate() {
         if (game.user?.isGM) return true;
         return !!getSettingSafely(MODULE.ID, this.SETTING_ALLOW_PLAYER_WRITES, false);
+    }
+
+    static _getHiddenModulesMap() {
+        const raw = getSettingSafely(MODULE.ID, this.HIDDEN_MODULES_SETTING_KEY, {});
+        return raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : {};
+    }
+
+    static isGlobalHidden() {
+        return !!getSettingSafely(MODULE.ID, this.HIDE_ALL_SETTING_KEY, false);
+    }
+
+    static isModuleHidden(moduleId) {
+        if (!moduleId) return false;
+        const map = this._getHiddenModulesMap();
+        return !!map[moduleId];
+    }
+
+    static _isHiddenByFilter(pin) {
+        if (this.isGlobalHidden()) return true;
+        if (pin?.moduleId && this.isModuleHidden(pin.moduleId)) return true;
+        return false;
+    }
+
+    static _isHiddenFromPlayers(pin) {
+        if (!pin) return false;
+        const ow = pin.ownership ?? { default: NONE };
+        const defaultLevel = typeof ow.default === 'number' ? ow.default : NONE;
+        if (defaultLevel > NONE) return false;
+        const users = ow.users && typeof ow.users === 'object' && !Array.isArray(ow.users) ? ow.users : null;
+        if (!users) return true;
+        return !Object.values(users).some((level) => typeof level === 'number' && level > NONE);
+    }
+
+    static async setGlobalHidden(hidden) {
+        await game.settings.set(MODULE.ID, this.HIDE_ALL_SETTING_KEY, !!hidden);
+        const { PinRenderer } = await import('./pins-renderer.js');
+        PinRenderer.applyVisibilityFilters();
+    }
+
+    static async setModuleHidden(moduleId, hidden) {
+        if (!moduleId || typeof moduleId !== 'string') return;
+        const map = this._getHiddenModulesMap();
+        if (hidden) map[moduleId] = true;
+        else delete map[moduleId];
+        await game.settings.set(MODULE.ID, this.HIDDEN_MODULES_SETTING_KEY, map);
+        const { PinRenderer } = await import('./pins-renderer.js');
+        PinRenderer.applyVisibilityFilters();
     }
 
     /**
@@ -406,6 +457,7 @@ export class PinManager {
      * @param {Function} [itemData.onClick] - Callback function (receives pinData)
      * @param {Array} [itemData.submenu] - Optional submenu items [{ name, icon, description, onClick }]
      * @param {string} [itemData.moduleId] - Only show for pins from this module
+     * @param {boolean} [itemData.gmOnly] - Only show for GMs (default: false)
      * @param {number} [itemData.order] - Order in menu (lower = higher, default: 999)
      * @param {Function|boolean} [itemData.visible] - Visibility function or boolean (default: true)
      * @returns {() => void} - Disposer function to unregister
@@ -434,6 +486,7 @@ export class PinManager {
             submenu: hasSubmenu ? itemData.submenu : null,
             moduleId: itemData.moduleId,
             order: typeof itemData.order === 'number' ? itemData.order : 999,
+            gmOnly: itemData.gmOnly === true,
             visible: itemData.visible !== undefined ? itemData.visible : true
         };
         
@@ -470,6 +523,11 @@ export class PinManager {
                 continue;
             }
             
+            // Check GM-only
+            if (item.gmOnly && !game.user?.isGM) {
+                continue;
+            }
+
             // Check visibility
             const isVisible = typeof item.visible === 'function' 
                 ? item.visible(pinData, userId)
@@ -481,6 +539,7 @@ export class PinManager {
             const submenu = Array.isArray(item.submenu)
                 ? item.submenu
                     .filter((sub) => sub && typeof sub === 'object')
+                    .filter((sub) => !(sub.gmOnly && !game.user?.isGM))
                     .map((sub) => ({
                         name: sub.name,
                         description: sub.description || '',

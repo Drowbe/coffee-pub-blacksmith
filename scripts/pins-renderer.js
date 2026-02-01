@@ -222,6 +222,11 @@ class PinDOMElement {
         // Update pin shape
         const shape = pinData.shape || 'circle';
         pinElement.dataset.shape = shape;
+        if (pinData.moduleId) {
+            pinElement.dataset.moduleId = pinData.moduleId;
+        } else {
+            delete pinElement.dataset.moduleId;
+        }
         
         // Update text layout for CSS
         const textLayout = pinData.textLayout || 'under';
@@ -1835,6 +1840,7 @@ export class PinRenderer {
             for (const pinData of visiblePins) {
                 await this._addPin(pinData);
             }
+            await this.applyVisibilityFilters();
             
             if (canvas?.ready && canvas?.stage && canvas?.app) {
                 setTimeout(() => {
@@ -1859,6 +1865,7 @@ export class PinRenderer {
      */
     static async _addPin(pinData) {
         PinDOMElement.createOrUpdatePin(pinData.id, pinData);
+        await this._applyVisibilityForPin(pinData);
     }
 
     /**
@@ -1873,10 +1880,45 @@ export class PinRenderer {
         if (PinManager._canView(pinData, userId)) {
             // User can see the pin - create or update it
             PinDOMElement.createOrUpdatePin(pinData.id, pinData);
+            await this._applyVisibilityForPin(pinData);
         } else {
             // User can no longer see the pin - remove it if it exists
             if (PinDOMElement._pins.has(pinData.id)) {
                 PinDOMElement.removePin(pinData.id);
+            }
+        }
+    }
+
+    static async _applyVisibilityForPin(pinData) {
+        const pinElement = PinDOMElement._pins.get(pinData.id);
+        if (!pinElement) return;
+        const { PinManager } = await import('./manager-pins.js');
+        const hiddenByFilter = PinManager._isHiddenByFilter(pinData);
+        if (hiddenByFilter) {
+            pinElement.dataset.hiddenByFilter = 'true';
+            pinElement.style.display = 'none';
+        } else {
+            delete pinElement.dataset.hiddenByFilter;
+            pinElement.style.display = '';
+        }
+        if (game.user?.isGM && PinManager._isHiddenFromPlayers(pinData)) {
+            pinElement.dataset.gmHidden = 'true';
+        } else {
+            delete pinElement.dataset.gmHidden;
+        }
+    }
+
+    static async applyVisibilityFilters() {
+        if (!PinDOMElement._isInitialized) return;
+        const { PinManager } = await import('./manager-pins.js');
+        if (PinDOMElement._container) {
+            if (PinManager.isGlobalHidden()) PinDOMElement._container.dataset.hidden = 'true';
+            else delete PinDOMElement._container.dataset.hidden;
+        }
+        for (const [pinId] of PinDOMElement._pins.entries()) {
+            const pinData = PinManager.get(pinId);
+            if (pinData) {
+                await this._applyVisibilityForPin(pinData);
             }
         }
     }

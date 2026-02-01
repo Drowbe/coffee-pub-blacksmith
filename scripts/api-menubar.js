@@ -19,6 +19,7 @@ import { getDeploymentPatternName } from './api-tokens.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
 import { BroadcastManager } from './manager-broadcast.js';
 import { UIContextMenu } from './ui-context-menu.js';
+import { PinManager } from './manager-pins.js';
 
 class MenuBar {
     static ID = 'menubar';
@@ -933,6 +934,39 @@ class MenuBar {
             buttonSelectedTint: null
         });
 
+        // TOGGLE PINS
+        this.registerMenubarTool('pins-visibility', {
+            icon: () => {
+                return PinManager.isGlobalHidden() ? "fa-solid fa-map-pin-slash" : "fa-solid fa-map-pin";
+            },
+            name: "pins-visibility",
+            title: () => {
+                return PinManager.isGlobalHidden() ? "Show Pins" : "Hide Pins";
+            },
+            tooltip: "Hide/Show all pins",
+            onClick: async () => {
+                await PinManager.setGlobalHidden(!PinManager.isGlobalHidden());
+                MenuBar.renderMenubar();
+            },
+            zone: "left",
+            group: "general",
+            groupOrder: this.GROUP_ORDER.GENERAL,
+            order: 4,
+            moduleId: "blacksmith-core",
+            gmOnly: false,
+            leaderOnly: false,
+            visible: () => {
+                return game.settings.get(MODULE.ID, 'menubarShowPins');
+            },
+            toggleable: true,
+            active: () => {
+                return PinManager.isGlobalHidden();
+            },
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
+        });
+
         // QUICKVIEW
         this.registerMenubarTool('quickview', {
             icon: () => {
@@ -951,7 +985,7 @@ class MenuBar {
             zone: "left",
             group: "general",
             groupOrder: this.GROUP_ORDER.GENERAL,
-            order: 4,
+            order: 5,
             moduleId: "blacksmith-core",
             gmOnly: true,
             leaderOnly: false,

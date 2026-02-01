@@ -25,6 +25,10 @@
     visibility: visible;
 }
 
+.blacksmith-pins-overlay[data-hidden="true"] {
+    display: none;
+}
+
 /* Individual pin element */
 .blacksmith-pin {
     position: absolute;
@@ -37,6 +41,27 @@
     transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
     cursor: pointer;
     filter: var(--blacksmith-pin-drop-shadow);
+}
+
+.blacksmith-pin[data-gm-hidden="true"]::after {
+    content: "\f521"; /* fa-crown */
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 18px;
+    height: 18px;
+    display: grid;
+    place-items: center;
+    font-size: 10px;
+    color: #f4d06f;
+    background: rgba(20, 16, 10, 0.9);
+    border: 1px solid rgba(244, 208, 111, 0.8);
+    border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+    z-index: 5;
 }
 
 /* Pin without drop shadow */

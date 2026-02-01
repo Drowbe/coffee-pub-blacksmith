@@ -3412,6 +3412,22 @@ export const registerSettings = () => {
 		default: {}
 	});
 
+	// Per-user pin visibility: global hide/show
+	game.settings.register(MODULE.ID, 'pinsHideAll', {
+		scope: 'client',
+		config: false,
+		type: Boolean,
+		default: false
+	});
+
+	// Per-user pin visibility: hidden modules map
+	game.settings.register(MODULE.ID, 'pinsHiddenModules', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
 	// --------------------------------------
 	// -- H2: Imports
 	// --------------------------------------
@@ -5761,6 +5777,17 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'menubarShowRefresh', {
 		name: MODULE.ID + '.menubarShowRefresh-Label',
 		hint: MODULE.ID + '.menubarShowRefresh-Hint',
+		scope: 'user',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+	});
+
+	// Show Pins Toggle Tool
+	game.settings.register(MODULE.ID, 'menubarShowPins', {
+		name: MODULE.ID + '.menubarShowPins-Label',
+		hint: MODULE.ID + '.menubarShowPins-Hint',
 		scope: 'user',
 		config: true,
 		type: Boolean,

@@ -302,6 +302,42 @@ export class PinsAPI {
     }
 
     /**
+     * Hide or show all pins globally for the current user (client scope).
+     * @param {boolean} visible - If false, hides all pins; if true, shows them.
+     * @returns {Promise<void>}
+     */
+    static async setGlobalVisibility(visible) {
+        await PinManager.setGlobalHidden(!visible);
+    }
+
+    /**
+     * Get global pin visibility for the current user.
+     * @returns {boolean} - True if pins are visible.
+     */
+    static getGlobalVisibility() {
+        return !PinManager.isGlobalHidden();
+    }
+
+    /**
+     * Hide or show pins for a specific module (client scope).
+     * @param {string} moduleId
+     * @param {boolean} visible - If false, hides module pins; if true, shows them.
+     * @returns {Promise<void>}
+     */
+    static async setModuleVisibility(moduleId, visible) {
+        await PinManager.setModuleHidden(moduleId, !visible);
+    }
+
+    /**
+     * Get visibility for a specific module's pins.
+     * @param {string} moduleId
+     * @returns {boolean} - True if module pins are visible.
+     */
+    static getModuleVisibility(moduleId) {
+        return !PinManager.isModuleHidden(moduleId);
+    }
+
+    /**
      * Pan the canvas to center on a pin's location.
      * Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin).
      * @param {string} pinId - The pin ID to pan to

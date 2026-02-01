@@ -1302,6 +1302,9 @@
 				"menubarShowRefresh-Label": "Show Refresh Tool",
 				"menubarShowRefresh-Hint": "Show the refresh tool in the menubar left zone.",
 
+				"menubarShowPins-Label": "Show Pins Toggle Tool",
+				"menubarShowPins-Hint": "Show the pins visibility toggle in the menubar left zone.",
+
 				"menubarShowPerformance-Label": "Show Performance Monitor Tool",
 				"menubarShowPerformance-Hint": "Show the performance monitor tool in the menubar left zone.",
 

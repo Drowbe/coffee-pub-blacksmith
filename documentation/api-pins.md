@@ -4,7 +4,7 @@
 
 > **Current state:** Unplaced pins are the normal, primary use case. **Remaining work** (tests, Phase 4–5) is tracked in `architecture-pins.md` and `TODO.md`.
 >
-> **Unplaced pins:** most pins are created and configured without being on the canvas (notes, quests, etc. have pin data; only some are placed). Unplaced pin support is implemented: create without `sceneId`/x/y → unplaced; `place(pinId, { sceneId, x, y })` to put on a scene; `unplace(pinId)` to remove from canvas but keep data; `list({ unplacedOnly: true })`; hooks `blacksmith.pins.created`, `blacksmith.pins.placed`, `blacksmith.pins.unplaced`. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Automatic visibility filtering based on ownership permissions. Text display system with multiple layouts (under, over, above, right, left, arc-above, arc-below), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Icon/image type changes (icon ↔ image swaps) are automatically detected and handled during `update()`. Pin type system with default 'default' type for categorization and filtering. GM bulk delete controls (`deleteAll()`, `deleteAllByType()`) available via API and context menu with `moduleId` filtering. GM proxy methods (`createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`) for permission escalation. Ownership resolver hook (`blacksmith.pins.resolveOwnership`) for custom ownership mapping. Reconciliation helper (`reconcile()`) for repairing module-tracked pin links. Helper methods: `exists()`, `panTo()`, `findScene()`, `refreshPin()`, `place()`, `unplace()`.
+> **Unplaced pins:** most pins are created and configured without being on the canvas (notes, quests, etc. have pin data; only some are placed). Unplaced pin support is implemented: create without `sceneId`/x/y → unplaced; `place(pinId, { sceneId, x, y })` to put on a scene; `unplace(pinId)` to remove from canvas but keep data; `list({ unplacedOnly: true })`; hooks `blacksmith.pins.created`, `blacksmith.pins.placed`, `blacksmith.pins.unplaced`. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Automatic visibility filtering based on ownership permissions and per-user visibility filters (`pins.setGlobalVisibility`, `pins.setModuleVisibility`). Text display system with multiple layouts (under, over, above, right, left, arc-above, arc-below), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Icon/image type changes (icon ↔ image swaps) are automatically detected and handled during `update()`. Pin type system with default 'default' type for categorization and filtering. GM bulk delete controls (`deleteAll()`, `deleteAllByType()`) available via API and context menu with `moduleId` filtering. GM proxy methods (`createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`) for permission escalation. Ownership resolver hook (`blacksmith.pins.resolveOwnership`) for custom ownership mapping. Reconciliation helper (`reconcile()`) for repairing module-tracked pin links. Helper methods: `exists()`, `panTo()`, `findScene()`, `refreshPin()`, `place()`, `unplace()`.
 
 ## Overview
 
@@ -26,7 +26,7 @@ The pins API follows Blacksmith's standard pattern:
 - **`scripts/pins-schema.js`** - Data model, validation, migration (Phase 1.1)
 - **`scripts/manager-pins.js`** - Internal manager with CRUD, permissions, event handler registration, and context menu item registration (Phase 1.2, 1.3)
 - **`scripts/pins-renderer.js`** - Pure DOM pin rendering (circle/square/none + Font Awesome icons or image URLs), DOM events, context menu (Phase 2, 3)
-- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `place()`, `unplace()`, `on()`, `registerContextMenuItem()`, `reload()`, `refreshPin()`, `deleteAll()`, `deleteAllByType()`, `createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`, `reconcile()`, `isAvailable()`, `isReady()`, `whenReady()`
+- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `place()`, `unplace()`, `on()`, `registerContextMenuItem()`, `reload()`, `refreshPin()`, `deleteAll()`, `deleteAllByType()`, `createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`, `reconcile()`, visibility filters (`setGlobalVisibility`, `setModuleVisibility`), `isAvailable()`, `isReady()`, `whenReady()`
 - **`scripts/blacksmith.js`** - Exposes `module.api.pins = PinsAPI`; hooks for `canvasReady` / `updateScene` pin loading
 - **`styles/pins.css`** - All pin styling (CSS variables for configuration)
 
@@ -1188,6 +1188,7 @@ unregister();
   - `icon` (string, optional): Font Awesome icon HTML or class string (default: `'<i class="fa-solid fa-circle"></i>'`)
   - `onClick` (Function, required): Callback invoked when the item is clicked. Receives `(pinData)`.
   - `moduleId` (string, optional): If set, item is only shown for pins whose `moduleId` matches
+  - `gmOnly` (boolean, optional): If `true`, item is only shown to GMs
   - `order` (number, optional): Sort order in menu; lower values appear higher (default: `999`)
   - `visible` (boolean | Function, optional): If `true`, item is shown (default). If `false`, hidden. If a function `(pinData, userId) => boolean`, run for each pin to decide visibility.
 
@@ -1208,6 +1209,44 @@ pins.unregisterContextMenuItem('my-module-bring-here');
 
 **Parameters**:
 - `itemId` (string, required): The same id passed to `registerContextMenuItem()`
+
+### Visibility Filters (per-user)
+
+These are **client-side visibility filters**. They do **not** change pin ownership and do **not** mutate pin data. Use these when a user wants to hide all pins from a module (or all pins entirely) without recalculating ownership or reloading pins.
+
+#### `pins.setGlobalVisibility(visible)`
+Hide or show all pins for the current user.
+
+```javascript
+await pins.setGlobalVisibility(false); // Hide all pins
+await pins.setGlobalVisibility(true);  // Show all pins
+```
+
+#### `pins.getGlobalVisibility()`
+Returns `true` if pins are visible for the current user, `false` if hidden.
+
+```javascript
+const visible = pins.getGlobalVisibility();
+```
+
+#### `pins.setModuleVisibility(moduleId, visible)`
+Hide or show pins for a specific module for the current user.
+
+```javascript
+await pins.setModuleVisibility('coffee-pub-squire', false); // Hide Squire pins
+await pins.setModuleVisibility('coffee-pub-squire', true);  // Show Squire pins
+```
+
+#### `pins.getModuleVisibility(moduleId)`
+Returns `true` if the module's pins are visible for the current user.
+
+```javascript
+const visible = pins.getModuleVisibility('coffee-pub-squire');
+```
+
+### GM-Only Hidden Indicator
+
+When a pin is **hidden from players** (ownership default is `NONE` and no user overrides grant visibility), GMs see a small crown badge on the pin. Players never see the pin at all. This is purely visual and does not affect ownership.
 
 ### `pins.panTo(pinId, options?)`
 Pan the canvas to center on a pin's location. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin). Optionally ping the pin after panning to draw attention.
@@ -1357,7 +1396,7 @@ const result = await pins.reload();
 
 ### Ownership Resolver Hook
 
-The pins API supports an ownership resolver hook that allows modules to customize how pin ownership is determined when creating or updating pins. This is useful when ownership should be derived from module-specific data (e.g., note visibility, quest state, etc.).
+The pins API supports an ownership resolver hook that allows modules to **centralize ownership logic** in one place. Use this when ownership should be derived from module-specific data (e.g., note visibility, quest state, or player-facing toggles). This is the **recommended** way to keep ownership consistent across create/update calls.
 
 **Hook Name**: `blacksmith.pins.resolveOwnership`
 
