@@ -64,6 +64,7 @@ export class TokenImageReplacementWindow extends Application {
         this._teardownExecuted = false;
         this._hookRegistrationTimeoutId = null;
         this._activeImageElements = new Set();
+        this._canvasUpdateInProgress = false;
     }
 
     /**
@@ -651,6 +652,7 @@ export class TokenImageReplacementWindow extends Application {
         
         // Delete cache button
         this._registerDomEvent(htmlElement, '.button-delete-cache', 'click', this._onDeleteCache);
+        this._registerDomEvent(htmlElement, '.button-update-canvas', 'click', this._onUpdateCanvas);
         
         
         // Close button
@@ -1135,6 +1137,81 @@ export class TokenImageReplacementWindow extends Application {
             } catch (error) {
                 ui.notifications.error(`Failed to delete ${modeLabel.toLowerCase()} cache: ${error.message}`);
             }
+        }
+    }
+
+    async _onUpdateCanvas(event) {
+        if (event?.preventDefault) {
+            event.preventDefault();
+        }
+
+        if (!game.user.isGM) {
+            ui.notifications.warn('Token Image Replacement: Only GMs can update the canvas.');
+            return;
+        }
+
+        const canvasTokens = canvas?.tokens?.placeables ?? [];
+        if (canvasTokens.length === 0) {
+            ui.notifications.info('Token Image Replacement: No tokens on the canvas to update.');
+            return;
+        }
+
+        if (this._canvasUpdateInProgress) {
+            ui.notifications.warn('Token Image Replacement: Canvas update already in progress.');
+            return;
+        }
+
+        const button = event?.currentTarget;
+        const modeLabel = this._getModeLabel();
+        this._canvasUpdateInProgress = true;
+        if (button) button.disabled = true;
+
+        try {
+            ui.notifications.info(`${modeLabel} Image Replacement: Updating canvas...`);
+
+            let processed = 0;
+            if (this.mode === ImageCacheManager.MODES.TOKEN) {
+                const tokenEnabled = getSettingSafely(MODULE.ID, 'tokenImageReplacementEnabled', false);
+                const updateDroppedTokens = getSettingSafely(MODULE.ID, 'tokenImageReplacementUpdateDropped', true);
+                if (!tokenEnabled || !updateDroppedTokens) {
+                    ui.notifications.info(`${modeLabel} Image Replacement: Token updates are disabled in settings.`);
+                    return;
+                }
+
+                for (const token of canvasTokens) {
+                    if (!token?.document) continue;
+                    await TokenImageReplacementWindow._processTokenImageReplacement(token.document);
+                    processed++;
+                }
+            } else {
+                const portraitEnabled = getSettingSafely(MODULE.ID, 'portraitImageReplacementEnabled', false);
+                const updateDroppedPortraits = getSettingSafely(MODULE.ID, 'portraitImageReplacementUpdateDropped', true);
+                if (!portraitEnabled || !updateDroppedPortraits) {
+                    ui.notifications.info(`${modeLabel} Image Replacement: Portrait updates are disabled in settings.`);
+                    return;
+                }
+
+                const processedActors = new Set();
+                for (const token of canvasTokens) {
+                    const actor = token?.actor;
+                    if (!actor || !token?.document) continue;
+                    if (processedActors.has(actor.id)) continue;
+                    processedActors.add(actor.id);
+                    await TokenImageReplacementWindow._processPortraitImageReplacement(actor, token.document);
+                    processed++;
+                }
+            }
+
+            if (processed === 0) {
+                ui.notifications.info(`${modeLabel} Image Replacement: No ${modeLabel.toLowerCase()}s on the canvas needed updating.`);
+            } else {
+                ui.notifications.info(`${modeLabel} Image Replacement: Updated ${processed} ${modeLabel.toLowerCase()}${processed === 1 ? '' : 's'} on the canvas.`);
+            }
+        } catch (error) {
+            ui.notifications.error(`${modeLabel} Image Replacement: Canvas update failed: ${error.message}`);
+        } finally {
+            this._canvasUpdateInProgress = false;
+            if (button) button.disabled = false;
         }
     }
 
