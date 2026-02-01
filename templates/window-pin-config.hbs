@@ -90,13 +90,13 @@
                     <label class="blacksmith-pin-config-design-field">
                         <span>Text layout</span>
                         <select class="blacksmith-input blacksmith-pin-config-text-layout">
-                            <option value="under" {{#if (eq pinTextLayout "under")}}selected{{/if}}>Under</option>
-                            <option value="over" {{#if (eq pinTextLayout "over")}}selected{{/if}}>Over</option>
-                            <option value="above" {{#if (eq pinTextLayout "above")}}selected{{/if}}>Above</option>
-                            <option value="right" {{#if (eq pinTextLayout "right")}}selected{{/if}}>Right</option>
-                            <option value="left" {{#if (eq pinTextLayout "left")}}selected{{/if}}>Left</option>
-                            <option value="arc-above" {{#if (eq pinTextLayout "arc-above")}}selected{{/if}}>Arc Above</option>
-                            <option value="arc-below" {{#if (eq pinTextLayout "arc-below")}}selected{{/if}}>Arc Below</option>
+                            <option value="under" {{#if (eq pinTextLayout "under")}}selected{{/if}}>Below the Pin</option>
+                            <option value="above" {{#if (eq pinTextLayout "above")}}selected{{/if}}>Above the Pin</option>
+                            <option value="right" {{#if (eq pinTextLayout "right")}}selected{{/if}}>To the Right of the Pin</option>
+                            <option value="left" {{#if (eq pinTextLayout "left")}}selected{{/if}}>To the Leftof the Pin</option>
+                            <option value="arc-below" {{#if (eq pinTextLayout "arc-below")}}selected{{/if}}>Arc Below the Pin</option>
+                            <option value="arc-above" {{#if (eq pinTextLayout "arc-above")}}selected{{/if}}>Arc Above the Pin</option>
+                            <option value="over" {{#if (eq pinTextLayout "over")}}selected{{/if}}>Overlay the Pin</option>
                         </select>
                     </label>
                     <label class="blacksmith-pin-config-design-field">

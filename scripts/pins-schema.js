@@ -86,6 +86,29 @@ export function normalizePinImageForStorage(value) {
     return trimmed;
 }
 
+/**
+ * Normalize text layout values to canonical tokens.
+ * @param {string} value
+ * @returns {'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below' | ''} - Empty string if invalid.
+ */
+export function normalizeTextLayout(value) {
+    if (value == null) return '';
+    const raw = String(value).trim().toLowerCase();
+    if (!raw) return '';
+    const normalized = raw.replace(/_/g, '-').replace(/\s+/g, '-');
+    if (normalized === 'below' || normalized === 'bottom') return 'under';
+    if (normalized === 'top') return 'above';
+    if (normalized === 'around') return 'arc-below';
+    if (normalized === 'arcabove' || normalized === 'arc-above') return 'arc-above';
+    if (normalized === 'arcbelow' || normalized === 'arc-below') return 'arc-below';
+    if (normalized.includes('arc') && normalized.includes('above')) return 'arc-above';
+    if (normalized.includes('arc') && normalized.includes('below')) return 'arc-below';
+    if (normalized === 'under' || normalized === 'over' || normalized === 'above' || normalized === 'right' || normalized === 'left') {
+        return /** @type {'under' | 'over' | 'above' | 'right' | 'left'} */ (normalized);
+    }
+    return '';
+}
+
 // ------------------------------------------------------------------
 // Constants
 // ------------------------------------------------------------------
@@ -99,7 +122,7 @@ export const PIN_DEFAULTS = Object.freeze({
     style: { fill: '#000000', stroke: '#ffffff', strokeWidth: 2, alpha: 1, iconColor: '#ffffff' },
     shape: 'circle', // 'circle' | 'square' | 'none'
     dropShadow: true,
-    textLayout: 'under', // 'under' | 'around'
+    textLayout: 'under', // 'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'
     textDisplay: 'always', // 'always' | 'hover' | 'never' | 'gm'
     textColor: '#ffffff',
     textSize: 12,
@@ -142,6 +165,23 @@ function _log(msg, detail = '') {
  * @returns {PinData}
  */
 export function applyDefaults(partial) {
+    const config = (partial && typeof partial === 'object' && partial.config && typeof partial.config === 'object' && !Array.isArray(partial.config))
+        ? partial.config
+        : null;
+    const normalizedTextLayout = normalizeTextLayout(partial?.textLayout);
+    const configTextLayout = normalizeTextLayout(
+        config?.blacksmithTextLayout
+        ?? config?._blacksmithTextLayout
+        ?? config?.pinTextConfig?.textLayout
+        ?? config?.textLayout
+        ?? config?.notePinTextLayout
+    );
+    const textLayoutCandidate = (() => {
+        if (configTextLayout && (!normalizedTextLayout || (normalizedTextLayout === 'under' && configTextLayout !== 'under'))) {
+            return configTextLayout;
+        }
+        return normalizedTextLayout;
+    })();
     const base = {
         id: '',
         x: undefined,
@@ -155,7 +195,16 @@ export function applyDefaults(partial) {
         config: { ...(PIN_DEFAULTS.config) },
         moduleId: '',
         ownership: { ...PIN_DEFAULTS.ownership },
-        version: PIN_SCHEMA_VERSION
+        version: PIN_SCHEMA_VERSION,
+        // Optional design fields so returned pin always has them (persists arc-above/arc-below after refresh)
+        dropShadow: PIN_DEFAULTS.dropShadow,
+        textLayout: PIN_DEFAULTS.textLayout,
+        textDisplay: PIN_DEFAULTS.textDisplay,
+        textColor: PIN_DEFAULTS.textColor,
+        textSize: PIN_DEFAULTS.textSize,
+        textMaxLength: PIN_DEFAULTS.textMaxLength,
+        textMaxWidth: PIN_DEFAULTS.textMaxWidth,
+        textScaleWithPin: PIN_DEFAULTS.textScaleWithPin
     };
     if (partial.id != null) base.id = String(partial.id).trim();
     if (typeof partial.x === 'number' && Number.isFinite(partial.x)) base.x = partial.x;
@@ -189,11 +238,11 @@ export function applyDefaults(partial) {
         const stored = normalizePinImageForStorage(partial.image);
         base.image = stored || undefined;
     }
-    if (partial.textLayout != null) {
-        const layout = String(partial.textLayout).toLowerCase();
-        const allowed = ['under', 'over', 'above', 'right', 'left', 'arc-above', 'arc-below'];
-        if (allowed.includes(layout)) base.textLayout = layout;
-        else if (layout === 'around') base.textLayout = 'arc-below'; // legacy
+    if (textLayoutCandidate) {
+        base.textLayout = textLayoutCandidate;
+    } else if (partial.textLayout != null) {
+        const normalized = normalizeTextLayout(partial.textLayout);
+        if (normalized) base.textLayout = normalized;
     }
     if (partial.textDisplay != null) {
         const display = String(partial.textDisplay).toLowerCase();

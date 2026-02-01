@@ -13,7 +13,8 @@ import {
     applyDefaults,
     validatePinData,
     migrateAndValidatePins,
-    normalizePinImageForStorage
+    normalizePinImageForStorage,
+    normalizeTextLayout
 } from './pins-schema.js';
 
 const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
@@ -767,11 +768,11 @@ export class PinManager {
             merged.style = { ...merged.style, ...patch.style };
         }
         if (patch.text !== undefined) merged.text = patch.text ? String(patch.text).trim() : undefined;
-            if (patch.textLayout != null) {
-            const layout = String(patch.textLayout).toLowerCase();
-            const allowed = ['under', 'over', 'above', 'right', 'left', 'arc-above', 'arc-below'];
-            if (allowed.includes(layout)) merged.textLayout = layout;
-            else if (layout === 'around') merged.textLayout = 'arc-below';
+        if (patch.textLayout != null) {
+            const normalized = normalizeTextLayout(patch.textLayout);
+            if (normalized) {
+                merged.textLayout = normalized;
+        }
         }
         if (patch.textDisplay != null) {
             const display = String(patch.textDisplay).toLowerCase();

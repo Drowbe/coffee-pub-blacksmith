@@ -7,6 +7,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
+import { normalizeTextLayout } from './pins-schema.js';
 
 /**
  * PinConfigWindow - Application V2 window for configuring pins
@@ -203,7 +204,8 @@ export class PinConfigWindow extends Application {
             iconColor: pin.style?.iconColor ?? '#ffffff'
         };
         this.dropShadow = pin.dropShadow !== false;
-        this.pinTextLayout = (pin.textLayout === 'around' ? 'arc-below' : pin.textLayout) || 'under';
+        const normalizedLayout = normalizeTextLayout(pin.textLayout);
+        this.pinTextLayout = normalizedLayout || 'under';
         this.pinTextDisplay = pin.textDisplay || 'always';
         this.pinTextColor = pin.textColor || '#ffffff';
         this.pinTextSize = pin.textSize || 12;
@@ -631,6 +633,14 @@ export class PinConfigWindow extends Application {
                     : { type: 'fa', value: 'fa-solid fa-location-dot' };
             }
 
+            // Read text layout from DOM at save time so selection is never lost (e.g. if change didn't fire)
+            const allowedLayouts = ['under', 'over', 'above', 'right', 'left', 'arc-above', 'arc-below'];
+            const rawLayout = textLayoutInput?.value ?? this.pinTextLayout ?? 'under';
+            const normalizedLayout = normalizeTextLayout(rawLayout);
+            const savedTextLayout = (normalizedLayout && allowedLayouts.includes(normalizedLayout))
+                ? normalizedLayout
+                : 'under';
+
             // Prepare config data for callback
             const configData = {
                 icon: finalSelection,
@@ -639,7 +649,7 @@ export class PinConfigWindow extends Application {
                 pinStyle: { ...this.pinStyle },
                 pinDropShadow: this.dropShadow,
                 pinTextConfig: {
-                    textLayout: this.pinTextLayout,
+                    textLayout: savedTextLayout,
                     textDisplay: this.pinTextDisplay,
                     textColor: this.pinTextColor,
                     textSize: this.pinTextSize,

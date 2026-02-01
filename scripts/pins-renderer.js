@@ -1327,17 +1327,6 @@ class PinDOMElement {
         return lines.length ? lines : [text];
     }
 
-
-
-
-
-
-
-
-
-
-
-
     /**
      * Create curved text around the pin edge. Honors max characters (caller truncates) and chars per line (multi-line arcs).
      * @param {HTMLElement} textElement
@@ -1569,19 +1558,6 @@ class PinDOMElement {
         document.body.removeChild(measureEl);
     }
     
-
-
-
-
-
-
-
-
-
-
-    
-    
-
 
     /**
      * Remove a pin DOM element
