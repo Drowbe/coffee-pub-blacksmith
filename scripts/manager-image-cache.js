@@ -2781,11 +2781,11 @@ export class ImageCacheManager {
      * Compress folder data
      */
     static _compressFolderData(folderData) {
-        return JSON.stringify({
-            id: folderData.isDirectory,
-            sd: folderData.subdirectories || [],
-            fp: folderData.folderPath
-        });
+        const folderFiles = Array.isArray(folderData)
+            ? folderData
+            : (folderData?.files || []);
+
+        return JSON.stringify(folderFiles);
     }
     
     /**

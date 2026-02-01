@@ -436,7 +436,8 @@ export class TokenImageReplacementWindow extends Application {
                             const cache = ImageCacheManager.getCache(this.mode);
                             for (const [folderPath, files] of cache.folders.entries()) {
                                 // If folderPath has no slashes, it's a root folder category
-                                if (!folderPath.includes('/') && files.includes(pathParts[0])) {
+                                const folderFiles = Array.isArray(files) ? files : (files?.files || []);
+                                if (!folderPath.includes('/') && folderFiles.includes(pathParts[0])) {
                                     categoryFolder = folderPath;
                                     break;
                                 }
@@ -3078,7 +3079,8 @@ export class TokenImageReplacementWindow extends Application {
                     const cache = ImageCacheManager.getCache(this.mode);
                     for (const [folderPath, files] of cache.folders.entries()) {
                         // If folderPath has no slashes, it's a root folder category
-                        if (!folderPath.includes('/') && files.includes(pathParts[0])) {
+                        const folderFiles = Array.isArray(files) ? files : (files?.files || []);
+                        if (!folderPath.includes('/') && folderFiles.includes(pathParts[0])) {
                             fileCategory = folderPath;
                             break;
                         }
@@ -3689,4 +3691,3 @@ export class TokenImageReplacementWindow extends Application {
     }
 
 }
-
