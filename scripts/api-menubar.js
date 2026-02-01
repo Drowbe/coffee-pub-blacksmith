@@ -963,16 +963,6 @@ class MenuBar {
             buttonSelectedTint: null,
             contextMenuItems: (toolId, tool) => {
                 const globalHidden = PinManager.isGlobalHidden();
-                const items = [
-                    {
-                        name: globalHidden ? "Show all pins" : "Hide all pins",
-                        icon: "fa-solid fa-map-pin",
-                        onClick: async () => {
-                            await PinManager.setGlobalHidden(!globalHidden);
-                            MenuBar.renderMenubar(true);
-                        }
-                    }
-                ];
                 const sceneId = canvas?.scene?.id;
                 const scenePins = sceneId ? PinManager.list({ sceneId }) : [];
                 const unplacedPins = PinManager.list({ unplacedOnly: true }) || [];
@@ -983,15 +973,45 @@ class MenuBar {
                     return [pairKey(p), { moduleId: p.moduleId, type }];
                 })).values()];
                 pairs.sort((a, b) => (a.moduleId + a.type).localeCompare(b.moduleId + b.type));
-                for (const { moduleId, type } of pairs) {
-                    const typeHidden = PinManager.isModuleTypeHidden(moduleId, type);
-                    const friendlyName = PinManager.getPinTypeLabel(moduleId, type);
-                    const label = friendlyName ? friendlyName : `${game.modules.get(moduleId)?.title ?? moduleId} ${type}`;
-                    items.push({
-                        name: typeHidden ? `Show ${label}` : `Hide ${label}`,
+
+                // Show all: turn on all pins (global + every module-type). Hide all: turn off all.
+                const items = [
+                    {
+                        name: "Hide all pins",
                         icon: "fa-solid fa-map-pin",
                         onClick: async () => {
-                            await PinManager.setModuleTypeHidden(moduleId, type, !typeHidden);
+                            await PinManager.setGlobalHidden(true);
+                            for (const { moduleId, type } of pairs) await PinManager.setModuleTypeHidden(moduleId, type, true);
+                            MenuBar.renderMenubar(true);
+                        }
+                    },
+                    {
+                        name: "Show all pins",
+                        icon: "fa-solid fa-map-pin",
+                        onClick: async () => {
+                            await PinManager.setGlobalHidden(false);
+                            for (const { moduleId, type } of pairs) await PinManager.setModuleTypeHidden(moduleId, type, false);
+                            MenuBar.renderMenubar(true);
+                        }
+                    }
+                ];
+
+                // Per-type: only that type. (If global is on and we "Show", clear global so this type can show.)
+                for (const { moduleId, type } of pairs) {
+                    const typeHidden = PinManager.isModuleTypeHidden(moduleId, type);
+                    const showLabel = globalHidden || typeHidden;
+                    const friendlyName = PinManager.getPinTypeLabel(moduleId, type);
+                    const label = friendlyName || `${game.modules.get(moduleId)?.title ?? moduleId} ${type}`;
+                    items.push({
+                        name: showLabel ? `Show ${label}` : `Hide ${label}`,
+                        icon: "fa-solid fa-map-pin",
+                        onClick: async () => {
+                            if (showLabel) {
+                                await PinManager.setGlobalHidden(false);
+                                await PinManager.setModuleTypeHidden(moduleId, type, false);
+                            } else {
+                                await PinManager.setModuleTypeHidden(moduleId, type, true);
+                            }
                             MenuBar.renderMenubar(true);
                         }
                     });
