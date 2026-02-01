@@ -934,19 +934,15 @@ class MenuBar {
             buttonSelectedTint: null
         });
 
-        // TOGGLE PINS
+        // TOGGLE PINS — left click: hide/show all; right click: context menu (all + per module+type with registered friendly name)
         this.registerMenubarTool('pins-visibility', {
-            icon: () => {
-                return PinManager.isGlobalHidden() ? "fa-solid fa-map-pin-slash" : "fa-solid fa-map-pin";
-            },
+            icon: "fa-solid fa-map-pin",
             name: "pins-visibility",
-            title: () => {
-                return PinManager.isGlobalHidden() ? "Show Pins" : "Hide Pins";
-            },
+            title: '',
             tooltip: "Hide/Show all pins",
             onClick: async () => {
                 await PinManager.setGlobalHidden(!PinManager.isGlobalHidden());
-                MenuBar.renderMenubar();
+                MenuBar.renderMenubar(true);
             },
             zone: "left",
             group: "general",
@@ -964,7 +960,44 @@ class MenuBar {
             },
             iconColor: null,
             buttonNormalTint: null,
-            buttonSelectedTint: null
+            buttonSelectedTint: null,
+            contextMenuItems: (toolId, tool) => {
+                const globalHidden = PinManager.isGlobalHidden();
+                const items = [
+                    {
+                        name: globalHidden ? "Show all pins" : "Hide all pins",
+                        icon: "fa-solid fa-map-pin",
+                        onClick: async () => {
+                            await PinManager.setGlobalHidden(!globalHidden);
+                            MenuBar.renderMenubar(true);
+                        }
+                    }
+                ];
+                const sceneId = canvas?.scene?.id;
+                const scenePins = sceneId ? PinManager.list({ sceneId }) : [];
+                const unplacedPins = PinManager.list({ unplacedOnly: true }) || [];
+                const allPins = [...scenePins, ...unplacedPins];
+                const pairKey = (p) => `${p.moduleId || ''}|${(p.type != null && p.type !== '') ? p.type : 'default'}`;
+                const pairs = [...new Map(allPins.filter((p) => p.moduleId).map((p) => {
+                    const type = (p.type != null && p.type !== '') ? p.type : 'default';
+                    return [pairKey(p), { moduleId: p.moduleId, type }];
+                })).values()];
+                pairs.sort((a, b) => (a.moduleId + a.type).localeCompare(b.moduleId + b.type));
+                for (const { moduleId, type } of pairs) {
+                    const typeHidden = PinManager.isModuleTypeHidden(moduleId, type);
+                    const friendlyName = PinManager.getPinTypeLabel(moduleId, type);
+                    const label = friendlyName ? friendlyName : `${game.modules.get(moduleId)?.title ?? moduleId} ${type}`;
+                    items.push({
+                        name: typeHidden ? `Show ${label}` : `Hide ${label}`,
+                        icon: "fa-solid fa-map-pin",
+                        onClick: async () => {
+                            await PinManager.setModuleTypeHidden(moduleId, type, !typeHidden);
+                            MenuBar.renderMenubar(true);
+                        }
+                    });
+                }
+                return items;
+            }
         });
 
         // QUICKVIEW
@@ -1814,9 +1847,19 @@ class MenuBar {
                     activeState = tool.active || false;
                 }
                 
+                let resolvedIcon;
+                try {
+                    resolvedIcon = typeof tool.icon === 'function' ? tool.icon() : tool.icon;
+                } catch (e) {
+                    resolvedIcon = (tool.name === 'pins-visibility') ? 'fa-solid fa-map-pin' : (tool.icon || '');
+                }
+                if (resolvedIcon == null || String(resolvedIcon).trim() === '') {
+                    resolvedIcon = (tool.name === 'pins-visibility') ? 'fa-solid fa-map-pin' : (tool.icon || '');
+                }
                 const processedTool = {
                     toolId,
                     ...tool,
+                    icon: resolvedIcon,
                     title: typeof tool.title === 'function' ? tool.title() : tool.title,
                     tooltip: typeof tool.tooltip === 'function' ? tool.tooltip() : tool.tooltip,
                     active: activeState

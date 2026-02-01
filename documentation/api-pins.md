@@ -26,7 +26,7 @@ The pins API follows Blacksmith's standard pattern:
 - **`scripts/pins-schema.js`** - Data model, validation, migration (Phase 1.1)
 - **`scripts/manager-pins.js`** - Internal manager with CRUD, permissions, event handler registration, and context menu item registration (Phase 1.2, 1.3)
 - **`scripts/pins-renderer.js`** - Pure DOM pin rendering (circle/square/none + Font Awesome icons or image URLs), DOM events, context menu (Phase 2, 3)
-- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `place()`, `unplace()`, `on()`, `registerContextMenuItem()`, `reload()`, `refreshPin()`, `deleteAll()`, `deleteAllByType()`, `createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`, `reconcile()`, visibility filters (`setGlobalVisibility`, `setModuleVisibility`), `isAvailable()`, `isReady()`, `whenReady()`
+- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `place()`, `unplace()`, `on()`, `registerContextMenuItem()`, `registerPinType()`, `getPinTypeLabel()`, `reload()`, `refreshPin()`, `deleteAll()`, `deleteAllByType()`, `createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`, `reconcile()`, visibility filters (`setGlobalVisibility`, `setModuleVisibility`), `isAvailable()`, `isReady()`, `whenReady()`
 - **`scripts/blacksmith.js`** - Exposes `module.api.pins = PinsAPI`; hooks for `canvasReady` / `updateScene` pin loading
 - **`styles/pins.css`** - All pin styling (CSS variables for configuration)
 
@@ -78,6 +78,27 @@ Blacksmith does **not** create a default or test pin. To exercise the pins API:
 4. **Create pins** with `moduleId: 'your-module-id'` so you can filter and manage them.
 5. **Register handlers** with `pins.on(...)`. Use `{ moduleId: 'your-module' }` to scope events, and `signal` or the returned disposer for cleanup.
 6. **Cleanup on unload**: Call your disposers or `controller.abort()` in your module's `Hooks.on('unloadModule', ...)` when your module ID unloads.
+7. **Register pin types with friendly names**: If your module uses multiple pin types (e.g. sticky-notes vs pins), call `pins.registerPinType(moduleId, type, friendlyName)` so context menus, tools, and other UI show the name you provide (e.g. "Squire Sticky Notes") instead of inferring a label. See [Registering pin types (friendly names)](#registering-pin-types-friendly-names).
+
+#### Registering pin types (friendly names)
+
+Modules that create pins should pass three things so we don't assume labels anywhere in the pins system:
+
+1. **Module id** – your module id (e.g. `'squire'`).
+2. **Pin type** – internal key (e.g. `'sticky-notes'`, `'pins'`). Stored on each pin as `pin.type`; used for filtering and grouping.
+3. **Friendly name** – display string (e.g. `"Sticky Notes"` or `"Squire Sticky Notes"`). This is what appears in context menus, tools, and any other pins UI.
+
+Register the friendly name when your module initializes:
+
+```javascript
+const pins = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+if (pins?.isAvailable()) {
+  pins.registerPinType('squire', 'sticky-notes', 'Squire Sticky Notes');
+  pins.registerPinType('squire', 'pins', 'Squire Pins');
+}
+```
+
+Anywhere the pins system needs to show a label for a (moduleId, type) pair, it uses `pins.getPinTypeLabel(moduleId, type)`. If you didn't register a friendly name, the system does not assume one—callers may fall back to the raw type or an empty string.
 
 #### Example: create unplaced pin, then optionally place (recommended pattern)
 
@@ -1197,6 +1218,22 @@ unregister();
 - `Error` if `itemData` is missing or not an object
 - `Error` if `itemData.name` is missing or not a string
 - `Error` if `itemData.onClick` is not a function
+
+### `pins.registerPinType(moduleId, type, friendlyName)`
+Register a friendly name for a pin type so context menus, tools, and other pins UI show the name you provide instead of inferring a label. Call from your module at init/ready.
+
+- `moduleId` (string, required): Your module id.
+- `type` (string, required): Pin type key (e.g. `'sticky-notes'`, `'pins'`). Must match the `type` you set on pins.
+- `friendlyName` (string, required): Display name (e.g. `"Sticky Notes"`, `"Squire Sticky Notes"`).
+
+Registrations are in-memory and cleared when your module unloads.
+
+### `pins.getPinTypeLabel(moduleId, type)`
+Get the registered friendly name for a (moduleId, type) pair. Returns empty string if none was registered.
+
+- `moduleId` (string, required)
+- `type` (string, optional): Pin type; defaults to `'default'` if omitted.
+- **Returns**: `string`
 
 ### `pins.unregisterContextMenuItem(itemId)`
 Unregister a context menu item previously added with `registerContextMenuItem()`.

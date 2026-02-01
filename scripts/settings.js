@@ -3428,6 +3428,14 @@ export const registerSettings = () => {
 		default: {}
 	});
 
+	// Per-user pin visibility: hidden (moduleId|type) map, e.g. { "squire|sticky-notes": true }
+	game.settings.register(MODULE.ID, 'pinsHiddenModuleTypes', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
 	// --------------------------------------
 	// -- H2: Imports
 	// --------------------------------------

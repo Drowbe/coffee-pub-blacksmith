@@ -123,7 +123,7 @@ export const PIN_DEFAULTS = Object.freeze({
     shape: 'circle', // 'circle' | 'square' | 'none'
     dropShadow: true,
     textLayout: 'under', // 'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'
-    textDisplay: 'always', // 'always' | 'hover' | 'never' | 'gm'
+    textDisplay: 'hover', // 'always' | 'hover' | 'never' | 'gm'
     textColor: '#ffffff',
     textSize: 12,
     textMaxLength: 0, // 0 = no limit

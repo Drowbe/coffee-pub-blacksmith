@@ -78,6 +78,7 @@ const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
 /** World setting key for unplaced pins (not on any scene). */
 const UNPLACED_SETTING_KEY = 'pinsUnplaced';
 const PINS_HIDDEN_MODULES_KEY = 'pinsHiddenModules';
+const PINS_HIDDEN_MODULE_TYPES_KEY = 'pinsHiddenModuleTypes';
 const PINS_HIDE_ALL_KEY = 'pinsHideAll';
 
 export class PinManager {
@@ -85,6 +86,7 @@ export class PinManager {
     static SETTING_ALLOW_PLAYER_WRITES = 'pinsAllowPlayerWrites';
     static UNPLACED_SETTING_KEY = UNPLACED_SETTING_KEY;
     static HIDDEN_MODULES_SETTING_KEY = PINS_HIDDEN_MODULES_KEY;
+    static HIDDEN_MODULE_TYPES_SETTING_KEY = PINS_HIDDEN_MODULE_TYPES_KEY;
     static HIDE_ALL_SETTING_KEY = PINS_HIDE_ALL_KEY;
 
     // Event handler storage: Map<eventType, Set<handler>>
@@ -100,9 +102,45 @@ export class PinManager {
     // Context menu item storage: Map<itemId, menuItem>
     static _contextMenuItems = new Map();
     static _contextMenuItemCounter = 0;
-    
+
+    /** In-memory registry: (moduleId|type) -> friendly name for UI. Modules register so we don't assume labels. */
+    static _pinTypeLabels = new Map();
+
     // GM proxy handler registration flag
     static _gmProxyHandlerRegistered = false;
+
+    /** Composite key for pin type registry: "moduleId|type". */
+    static _pinTypeKey(moduleId, type) {
+        const m = (moduleId && String(moduleId).trim()) || '';
+        const t = (type != null && type !== '') ? String(type).trim() : 'default';
+        return `${m}|${t}`;
+    }
+
+    /**
+     * Register a friendly name for a pin type. Use in context menus, tools, etc. so we don't assume labels.
+     * @param {string} moduleId - Your module id
+     * @param {string} type - Pin type key (e.g. 'sticky-notes', 'quest')
+     * @param {string} friendlyName - Display name (e.g. 'Sticky Notes', 'Squire Sticky Notes')
+     */
+    static registerPinType(moduleId, type, friendlyName) {
+        if (!moduleId || typeof moduleId !== 'string') return;
+        const key = this._pinTypeKey(moduleId, type ?? 'default');
+        const name = (friendlyName != null && String(friendlyName).trim()) ? String(friendlyName).trim() : '';
+        if (name) this._pinTypeLabels.set(key, name);
+        else this._pinTypeLabels.delete(key);
+    }
+
+    /**
+     * Get the registered friendly name for (moduleId, type). Returns empty string if not registered.
+     * @param {string} moduleId
+     * @param {string} [type]
+     * @returns {string}
+     */
+    static getPinTypeLabel(moduleId, type) {
+        if (!moduleId) return '';
+        const key = this._pinTypeKey(moduleId, type);
+        return this._pinTypeLabels.get(key) ?? '';
+    }
 
     /**
      * Resolve scene by id or active canvas. Throws if not found.
@@ -188,6 +226,11 @@ export class PinManager {
         return raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : {};
     }
 
+    static _getHiddenModuleTypesMap() {
+        const raw = getSettingSafely(MODULE.ID, this.HIDDEN_MODULE_TYPES_SETTING_KEY, {});
+        return raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : {};
+    }
+
     static isGlobalHidden() {
         return !!getSettingSafely(MODULE.ID, this.HIDE_ALL_SETTING_KEY, false);
     }
@@ -198,9 +241,17 @@ export class PinManager {
         return !!map[moduleId];
     }
 
+    static isModuleTypeHidden(moduleId, type) {
+        if (!moduleId) return false;
+        const map = this._getHiddenModuleTypesMap();
+        const key = this._pinTypeKey(moduleId, type);
+        return !!map[key];
+    }
+
     static _isHiddenByFilter(pin) {
         if (this.isGlobalHidden()) return true;
         if (pin?.moduleId && this.isModuleHidden(pin.moduleId)) return true;
+        if (pin?.moduleId && pin?.type != null && this.isModuleTypeHidden(pin.moduleId, pin.type)) return true;
         return false;
     }
 
@@ -226,6 +277,17 @@ export class PinManager {
         if (hidden) map[moduleId] = true;
         else delete map[moduleId];
         await game.settings.set(MODULE.ID, this.HIDDEN_MODULES_SETTING_KEY, map);
+        const { PinRenderer } = await import('./pins-renderer.js');
+        PinRenderer.applyVisibilityFilters();
+    }
+
+    static async setModuleTypeHidden(moduleId, type, hidden) {
+        if (!moduleId || typeof moduleId !== 'string') return;
+        const map = this._getHiddenModuleTypesMap();
+        const key = this._pinTypeKey(moduleId, type);
+        if (hidden) map[key] = true;
+        else delete map[key];
+        await game.settings.set(MODULE.ID, this.HIDDEN_MODULE_TYPES_SETTING_KEY, map);
         const { PinRenderer } = await import('./pins-renderer.js');
         PinRenderer.applyVisibilityFilters();
     }
@@ -260,6 +322,12 @@ export class PinManager {
             Hooks.on('unloadModule', (moduleId) => {
                 if (moduleId === MODULE.ID) {
                     this.cleanup();
+                } else {
+                    // Clear pin type labels registered by the unloaded module
+                    const prefix = `${moduleId}|`;
+                    for (const key of this._pinTypeLabels.keys()) {
+                        if (key.startsWith(prefix)) this._pinTypeLabels.delete(key);
+                    }
                 }
             });
         });

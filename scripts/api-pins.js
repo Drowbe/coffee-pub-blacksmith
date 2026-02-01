@@ -302,6 +302,26 @@ export class PinsAPI {
     }
 
     /**
+     * Register a friendly name for a pin type. Use in context menus, tools, etc. so we don't assume labels.
+     * @param {string} moduleId - Your module id
+     * @param {string} type - Pin type key (e.g. 'sticky-notes', 'quest')
+     * @param {string} friendlyName - Display name (e.g. 'Sticky Notes', 'Squire Sticky Notes')
+     */
+    static registerPinType(moduleId, type, friendlyName) {
+        PinManager.registerPinType(moduleId, type, friendlyName);
+    }
+
+    /**
+     * Get the registered friendly name for (moduleId, type). Returns empty string if not registered.
+     * @param {string} moduleId
+     * @param {string} [type]
+     * @returns {string}
+     */
+    static getPinTypeLabel(moduleId, type) {
+        return PinManager.getPinTypeLabel(moduleId, type);
+    }
+
+    /**
      * Hide or show all pins globally for the current user (client scope).
      * @param {boolean} visible - If false, hides all pins; if true, shows them.
      * @returns {Promise<void>}
