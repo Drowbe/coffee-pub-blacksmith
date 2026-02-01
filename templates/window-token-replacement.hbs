@@ -122,15 +122,24 @@
     <div class="tir-token-replacement-header-container">
         <div class="tir-token-replacement-header-left"><i class="fas fa-search"></i> Search Filters</div>
         <div class="tir-token-replacement-header-right">
+
+            <!-- DELETE CACHE -->
             <button class="button-delete-cache" data-tooltip="Delete Cache: This will completely remove all cached image data."><i class="fas fa-trash"></i> Delete Cache</button>
-            <span class="button-divider">|</span>
-            <button class="button-update-canvas" data-tooltip="Update Canvas: Re-run token/portrait replacements for every token on the current canvas using the active mode."><i class="fas fa-sync"></i> Update Canvas</button>
-            <span class="button-divider">|</span>
+
+            <span class="button-divider"> • </span>
+
+            <!-- SCAN FOR IMAGES -->
             {{#if isScanning}}
-            <button class="button-pause-cache" data-tooltip="Stop Image Scan: This will result in incomplete image lokups."><i class="fas fa-pause"></i> Delay Scan</span></button>
+                <button class="button-pause-cache" data-tooltip="Stop Image Scan: This will result in incomplete image lokups."><i class="fas fa-pause"></i> Delay Scan</span></button>
             {{else}}
-            <button class="button-scan-images" data-tooltip="Scan for Images: This will update the image cache with any new or changed images."><i class="fas fa-search"></i> Scan for Images</button>
+                <button class="button-scan-images" data-tooltip="Scan for Images: This will update the image cache with any new or changed images."><i class="fas fa-search"></i> Scan for Images</button>
             {{/if}}
+
+            <span class="button-divider"> | </span>
+
+            <!-- UPDATE CANVAS -->
+            <button class="button-update-canvas" data-tooltip="Update Canvas: Re-run token/portrait replacements for every token on the current canvas using the active mode."><i class="fas fa-sync"></i> Update Canvas</button>
+
         </div>
     </div>
 
