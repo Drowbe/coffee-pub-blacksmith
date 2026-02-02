@@ -829,6 +829,13 @@ export class EncounterToolbar {
         return (encounterData.monsters.length > 0 || encounterData.npcs.length > 0 || encounterData.difficulty) ? encounterData : null;
     }
 
+    static _hasEncounterCombatants(encounterData) {
+        if (!encounterData) return false;
+        const monsterCount = Array.isArray(encounterData.monsters) ? encounterData.monsters.length : 0;
+        const npcCount = Array.isArray(encounterData.npcs) ? encounterData.npcs.length : 0;
+        return (monsterCount + npcCount) > 0;
+    }
+
     // Parse JSON encounter data
     static _parseJSONEncounter(htmlContent) {
         try {
@@ -919,6 +926,13 @@ export class EncounterToolbar {
         let encounterData = await this._scanJournalContent(html, pageId);
         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Content scan result", encounterData, true, false);
         
+        const hasCombatants = this._hasEncounterCombatants(encounterData);
+        if (!hasCombatants) {
+            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No combatants detected, removing toolbar", { pageId, encounterData }, true, false);
+            toolbar?.remove();
+            return;
+        }
+        
         if (encounterData) {
             // We have encounter data - use the full toolbar
             postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found encounter data, updating toolbar", "", true, false);
@@ -988,54 +1002,10 @@ export class EncounterToolbar {
                 
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error processing encounter data", error, true, false);
-                // Fall through to create "no encounter" toolbar
+                toolbar?.remove();
+                return;
             }
         }
-        
-        // If we don't have encounter data or there was an error, create a "no encounter" toolbar using the template
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No encounter data found, showing placeholder", "", true, false);
-        
-        // Calculate CR values even when there's no encounter data
-        const partyCR = this.getPartyCR();
-        const monsterCR = this.getMonsterCR({ monsters: [] }); // Pass empty metadata for canvas-only calculation
-        
-        // Calculate difficulty based on canvas tokens
-        const difficultyData = this._calculateEncounterDifficulty(partyCR, monsterCR);
-        
-        // Get the template
-        const templatePath = `modules/${MODULE.ID}/templates/encounter-toolbar.hbs`;
-        getCachedTemplate(templatePath).then(template => {
-            // v13: Detect and convert jQuery to native DOM if needed
-            let nativeHtml = html;
-            if (html && (html.jquery || typeof html.find === 'function')) {
-                nativeHtml = html[0] || html.get?.(0) || html;
-            }
-            // Prepare the data for the template (no encounter case)
-            const journalSheet = nativeHtml.closest('.journal-sheet');
-            const journalId = journalSheet ? journalSheet.getAttribute('data-document-id') : 'unknown';
-            const templateData = {
-                journalId: journalId,
-                hasEncounterData: false,
-                hasMonsters: false,
-                hasNpcs: false,
-                difficulty: difficultyData.difficulty,
-                difficultyClass: difficultyData.difficultyClass,
-                partyCR: partyCR,
-                monsterCR: monsterCR,
-                deploymentPattern: this._getDeploymentPatternName(game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern')),
-                deploymentVisibility: this._getDeploymentVisibilityName(game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden')),
-                isGM: game.user.isGM
-            };
-            
-            // Render the toolbar
-            const renderedHtml = template(templateData);
-            toolbar.innerHTML = renderedHtml;
-            
-            // Add event listeners even when there's no encounter data (for the Reveal button)
-            this._addEventListeners(toolbar, { monsters: [], npcs: [] });
-            
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Updated with no encounter data", "", true, false);
-        });
     }
 
     static _addEventListeners(toolbar, metadata) {
