@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Chars per line not applied**: `textMaxWidth` was only accepted when `typeof === 'number'`, so values from storage or form (e.g. string `"100"`) were dropped. Schema `applyDefaults()` and manager `_applyPatch()` now coerce number or string to a non-negative integer so the setting is persisted and used.
 - **Pin label width always ~53px**: We only cleared `maxWidth` and never set `width`; the label lives inside the pin div, so with `width: auto` it was limited by the pin’s pixel width. When Chars per line &gt; 0 we now set the label element’s width in `ch` units (e.g. `100ch`) so the label has an explicit character-based width and wraps correctly.
 - **Source newlines overriding character wrap**: Pin text that already contained newlines (e.g. from a note) was shown as multiple lines regardless of Chars per line. When applying character wrap we now normalize whitespace (e.g. `replace(/\s+/g, ' ')`) so only our character-count / word-boundary logic (and the `ch` width) control line breaks.
+- **Context menu flyout disappearing**: The submenu (e.g. Animate on pin context menu) could close as soon as the mouse left the parent item when moving into the flyout, because crossing the gap fired `mouseleave` with `relatedTarget` null. Flyout close is now delayed 200ms and cancelled if the pointer enters the submenu or the parent item, so the flyout stays open when moving into it.
 
 ## [13.2.4]
 
