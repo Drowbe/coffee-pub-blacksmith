@@ -10,10 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Pin label “Chars per line”**: New setting in Configure Pin (TEXT FORMAT) to limit characters per line before wrap; breaks at word boundary. Value is a character count (e.g. 15 or 100); 0 = single line. Stored as `textMaxWidth` on pin data. Schema, config window, renderer, manager merge, and API docs updated.
+- **Pin center text (`iconText`)**: Pins can now use plain text in the center instead of an icon or image. Pass `iconText: '1'` (or any string) to display text in the pin; it inherits the same styling as Font Awesome icons (iconColor, scaling). `iconText` takes precedence over `image` when both are set. Schema, renderer, manager merge, and API docs updated.
+- **Image Replacement “Update Canvas” action**: Added a button beside the Delete/Scan controls that re-runs token/portrait replacements for every token on the canvas while honoring the existing enabled switches, filters, and variability logic so a GM can refresh a scene without re-dropping tokens.
 
 ### Changed
 - **Pin label “Max length” → “Max characters”**: Configure Pin TEXT FORMAT field renamed from “Max length” to “Max characters” (still truncates label text at that character count with ellipsis; 0 = no limit).
 - **Pin label wrap – character-based only**: When Chars per line &gt; 0, the label element’s width is set to `${textMaxWidth}ch` so wrapping is driven by character count, not the pin’s pixel width. Label is no longer constrained by the pin container (~53px); `white-space: pre-line` and our word-boundary newlines (or browser wrap within the `ch` width) control line breaks.
+- **Image Replacement tags split**: Image cache now keeps tiered tags (`primaryTags` for structured metadata + `secondaryTags` for the remaining filename/folder keywords plus a `tagTypes` map) so both cache storage and the UI know which tags come from the spinner-controlling sliders vs. descriptive leftovers. The Image Replacement window renders primary/secondary rows, counts/sorts tags per group, and favorites use the new tag helpers; a TODO hints at a future right-click menu for tag actions such as “Add to Ignored.”
 
 ### Fixed
 - **Chars per line not applied**: `textMaxWidth` was only accepted when `typeof === 'number'`, so values from storage or form (e.g. string `"100"`) were dropped. Schema `applyDefaults()` and manager `_applyPatch()` now coerce number or string to a non-negative integer so the setting is persisted and used.

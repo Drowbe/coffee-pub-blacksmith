@@ -404,6 +404,7 @@ export class ImageCacheManager {
         // Extract filename without extension
         const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
         const nameParts = nameWithoutExt.split(/[-_]/).filter(part => part.length > 0);
+        const secondaryParts = [];
         
         // Try to identify monster type from filename using monster mapping
         const monsterData = this._identifyMonsterFromFilename(nameWithoutExt);
@@ -419,6 +420,7 @@ export class ImageCacheManager {
         // Process each part of the filename - only extract what we need for matching
         for (const part of nameParts) {
             const cleanPart = part.toLowerCase();
+            let matched = false;
             
             // Skip ignored words
             if (this.IGNORED_WORDS.includes(cleanPart)) {
@@ -428,20 +430,29 @@ export class ImageCacheManager {
             // Only check patterns that matter for token matching
             if (this.METADATA_PATTERNS.class.test(cleanPart)) {
                 metadata.class = cleanPart;
+                matched = true;
             } else if (this.METADATA_PATTERNS.weapon.test(cleanPart)) {
                 if (!metadata.weapons.includes(cleanPart)) {
                     metadata.weapons.push(cleanPart);
                 }
+                matched = true;
             } else if (this.METADATA_PATTERNS.armor.test(cleanPart)) {
                 if (!metadata.armor.includes(cleanPart)) {
                     metadata.armor.push(cleanPart);
                 }
+                matched = true;
             } else if (this.METADATA_PATTERNS.size.test(cleanPart)) {
                 metadata.size = this._normalizeSize(cleanPart);
+                matched = true;
+            }
+
+            if (!matched) {
+                secondaryParts.push(cleanPart);
             }
         }
         
         // Generate tags from metadata
+        metadata.secondaryParts = secondaryParts;
         metadata.tags = this._generateTagsFromMetadata(metadata);
         
         return metadata;
@@ -504,24 +515,90 @@ export class ImageCacheManager {
     /**
      * Generate tags from extracted metadata
      */
+    static _ensureTagMetadata(metadata) {
+        if (!metadata) return;
+        metadata.tags = metadata.tags || [];
+        metadata.primaryTags = metadata.primaryTags || [];
+        metadata.secondaryTags = metadata.secondaryTags || [];
+        metadata.tagTypes = metadata.tagTypes || {};
+    }
+
+    static _cleanSecondaryTerm(term) {
+        if (!term || typeof term !== 'string') return '';
+        return term
+            .replace(/[^\w\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    static _markTag(metadata, tag, type = 'secondary') {
+        if (!metadata || !tag) return;
+        const normalized = tag.toString().trim();
+        if (!normalized) return;
+        const upper = normalized.toUpperCase();
+        this._ensureTagMetadata(metadata);
+        const existingType = metadata.tagTypes[upper];
+        const resolvedType = (existingType === 'primary' || type === 'primary') ? 'primary' : 'secondary';
+        metadata.tagTypes[upper] = resolvedType;
+        if (!metadata.tags.includes(upper)) {
+            metadata.tags.push(upper);
+        }
+        if (resolvedType === 'primary') {
+            if (!metadata.primaryTags.includes(upper)) {
+                metadata.primaryTags.push(upper);
+            }
+            metadata.secondaryTags = metadata.secondaryTags.filter(t => t !== upper);
+        } else {
+            if (!metadata.secondaryTags.includes(upper)) {
+                metadata.secondaryTags.push(upper);
+            }
+        }
+    }
+
+    static _removeTag(metadata, tag) {
+        if (!metadata || !tag) return;
+        const normalized = tag.toString().trim();
+        if (!normalized) return;
+        const upper = normalized.toUpperCase();
+        if (metadata.tags) {
+            metadata.tags = metadata.tags.filter(t => t !== upper);
+        }
+        if (metadata.primaryTags) {
+            metadata.primaryTags = metadata.primaryTags.filter(t => t !== upper);
+        }
+        if (metadata.secondaryTags) {
+            metadata.secondaryTags = metadata.secondaryTags.filter(t => t !== upper);
+        }
+        if (metadata.tagTypes) {
+            delete metadata.tagTypes[upper];
+        }
+    }
+
     static _generateTagsFromMetadata(metadata) {
-        const tags = [];
-        
+        this._ensureTagMetadata(metadata);
+
+        const addPrimary = (value) => {
+            if (value) this._markTag(metadata, value, 'primary');
+        };
+        const addSecondary = (value) => {
+            if (value) this._markTag(metadata, value, 'secondary');
+        };
+
         // Add D&D 5e data tags (for matching)
-        if (metadata.dnd5eType) tags.push(metadata.dnd5eType.toUpperCase());
-        if (metadata.dnd5eSubtype) tags.push(metadata.dnd5eSubtype.toUpperCase());
-        if (metadata.size) tags.push(metadata.size.toUpperCase());
-        if (metadata.alignment) tags.push(metadata.alignment.toUpperCase());
+        addPrimary(metadata.dnd5eType);
+        addPrimary(metadata.dnd5eSubtype);
+        addPrimary(metadata.size);
+        addPrimary(metadata.alignment);
         
         // Add class tags (for matching)
-        if (metadata.class) tags.push(metadata.class.toUpperCase());
+        addPrimary(metadata.class);
         
         // Add equipment tags (for matching)
         if (metadata.weapons && metadata.weapons.length > 0) {
-            metadata.weapons.forEach(weapon => tags.push(weapon.toUpperCase()));
+            metadata.weapons.forEach(weapon => addPrimary(weapon));
         }
         if (metadata.armor && metadata.armor.length > 0) {
-            metadata.armor.forEach(armor => tags.push(armor.toUpperCase()));
+            metadata.armor.forEach(armor => addPrimary(armor));
         }
         
         // Add folder tags (for filtering)
@@ -530,13 +607,23 @@ export class ImageCacheManager {
                 if (folder && folder !== 'assets' && folder !== 'images' && folder !== 'tokens') {
                     const cleanFolder = this._cleanCategoryName(folder);
                     if (cleanFolder) {
-                        tags.push(cleanFolder.toUpperCase());
+                        addPrimary(cleanFolder);
                     }
                 }
             });
         }
-        
-        return [...new Set(tags)]; // Remove duplicates
+
+        // Add leftover filename parts as secondary tags
+        if (Array.isArray(metadata.secondaryParts)) {
+            metadata.secondaryParts.forEach(part => {
+                const clean = this._cleanSecondaryTerm(part);
+                if (clean) {
+                    addSecondary(clean);
+                }
+            });
+        }
+
+        return [...new Set(metadata.tags)]; // Return deduped tag list
     }
 
     /**
@@ -1592,11 +1679,9 @@ export class ImageCacheManager {
                         if (!fileInfo.metadata) {
                             fileInfo.metadata = {};
                         }
-                        if (!Array.isArray(fileInfo.metadata.tags)) {
-                            fileInfo.metadata.tags = [];
-                        }
+                        this._ensureTagMetadata(fileInfo.metadata);
                         if (!fileInfo.metadata.tags.includes('FAVORITE')) {
-                            fileInfo.metadata.tags.push('FAVORITE');
+                            this._markTag(fileInfo.metadata, 'FAVORITE', 'primary');
                             restoredCount++;
                         }
                     } else {
@@ -2265,18 +2350,13 @@ export class ImageCacheManager {
             return;
         }
         
-        // Ensure tags array exists
-        if (!fileInfo.metadata.tags) {
-            fileInfo.metadata.tags = [];
-        }
+        this._ensureTagMetadata(fileInfo.metadata);
         
         // Add creature type tags if file was categorized
         for (const [creatureType, files] of cache.creatureTypes.entries()) {
             if (Array.isArray(files) && files.includes(fileName)) {
                 const cleanType = creatureType.toLowerCase().replace(/\s+/g, '');
-                if (!fileInfo.metadata.tags.includes(cleanType.toUpperCase())) {
-                    fileInfo.metadata.tags.push(cleanType.toUpperCase());
-                }
+                this._markTag(fileInfo.metadata, cleanType, 'primary');
             }
         }
         
@@ -2297,9 +2377,7 @@ export class ImageCacheManager {
             
             if (category && !ignoredFolders.includes(category)) {
                 const cleanCategory = category.toLowerCase().replace(/\s+/g, '');
-                if (!fileInfo.metadata.tags.includes(cleanCategory.toUpperCase())) {
-                    fileInfo.metadata.tags.push(cleanCategory.toUpperCase());
-                }
+                this._markTag(fileInfo.metadata, cleanCategory, 'primary');
             }
         }
     }
@@ -2770,6 +2848,9 @@ export class ImageCacheManager {
         if (fileData.metadata) {
             compressed.m = {
                 t: fileData.metadata.tags || [],
+                pt: fileData.metadata.primaryTags || [],
+                st: fileData.metadata.secondaryTags || [],
+                tt: fileData.metadata.tagTypes || {},
                 ct: fileData.metadata.creatureType || ''
             };
         }
@@ -2846,8 +2927,11 @@ export class ImageCacheManager {
                 .replace(/"files"/g, '"f"')
                 .replace(/"folders"/g, '"fo"')
                 .replace(/"creatureTypes"/g, '"ct"')
-                .replace(/"metadata"/g, '"m"')
-                .replace(/"tags"/g, '"t"');
+            .replace(/"metadata"/g, '"m"')
+            .replace(/"primaryTags"/g, '"pt"')
+            .replace(/"secondaryTags"/g, '"st"')
+            .replace(/"tagTypes"/g, '"tt"')
+            .replace(/"tags"/g, '"t"');
             
             return compressed;
         } catch (error) {
@@ -2885,6 +2969,9 @@ export class ImageCacheManager {
                 .replace(/"fo"/g, '"folders"')
                 .replace(/"ct"/g, '"creatureTypes"')
                 .replace(/"m"/g, '"metadata"')
+                .replace(/"pt"/g, '"primaryTags"')
+                .replace(/"st"/g, '"secondaryTags"')
+                .replace(/"tt"/g, '"tagTypes"')
                 .replace(/"t"/g, '"tags"');
             
             return decompressed;

@@ -21,7 +21,8 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {{ w: number; h: number }} size
  * @property {{ fill?: string; stroke?: string; strokeWidth?: number; alpha?: number; iconColor?: string }} style
  * @property {string} [text] - Text content to display
- * @property {string} [image]
+ * @property {string} [image] - Font Awesome class string, image URL, or (when iconText is not set) used for pin center
+ * @property {string} [iconText] - Text to display in pin center instead of icon/image; inherits icon styling (iconColor, scaling)
  * @property {'circle' | 'square' | 'none'} [shape] - Pin shape: 'circle' (default), 'square', or 'none' (icon only, no background)
  * @property {boolean} [dropShadow] - Whether to show drop shadow (default: true)
  * @property {'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'} [textLayout] - Text layout: 'under' (below), 'over' (centered over), 'above' (above pin), 'right' (right of pin, left-aligned), 'left' (left of pin, right-aligned), 'arc-above' (curved above pin), 'arc-below' (curved below pin). Legacy 'around' is treated as 'arc-below'.
@@ -191,6 +192,7 @@ export function applyDefaults(partial) {
         shape: PIN_DEFAULTS.shape,
         text: undefined,
         image: undefined,
+        iconText: undefined,
         type: PIN_DEFAULTS.type, // Always set default type
         config: { ...(PIN_DEFAULTS.config) },
         moduleId: '',
@@ -237,6 +239,9 @@ export function applyDefaults(partial) {
     if (partial.image != null) {
         const stored = normalizePinImageForStorage(partial.image);
         base.image = stored || undefined;
+    }
+    if (partial.iconText !== undefined) {
+        base.iconText = partial.iconText ? String(partial.iconText).trim() : undefined;
     }
     if (textLayoutCandidate) {
         base.textLayout = textLayoutCandidate;

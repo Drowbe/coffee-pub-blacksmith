@@ -570,6 +570,7 @@ export class TokenImageReplacementWindow extends Application {
             }
         }
         
+        const aggregatedTags = this._getAggregatedTags();
         return {
             selectedToken: selectedTokenData,
             matches: this.matches,
@@ -592,8 +593,8 @@ export class TokenImageReplacementWindow extends Application {
             sortOrder: this.sortOrder,
             categoryStyle: getSettingSafely(MODULE.ID, 'tokenImageReplacementCategoryStyle', 'buttons'),
             categories: this._getCategories(),
-            aggregatedTags: this._getAggregatedTags(),
-            hasAggregatedTags: this._getAggregatedTags().length > 0,
+            aggregatedTags,
+            hasAggregatedTags: aggregatedTags.primary.length + aggregatedTags.secondary.length > 0,
             overallProgress: ImageCacheManager.getCache(this.mode).overallProgress,
             totalSteps: ImageCacheManager.getCache(this.mode).totalSteps,
             overallProgressPercentage: ImageCacheManager.getCache(this.mode).totalSteps > 0 ? Math.round((ImageCacheManager.getCache(this.mode).overallProgress / ImageCacheManager.getCache(this.mode).totalSteps) * 100) : 0,
@@ -677,6 +678,7 @@ export class TokenImageReplacementWindow extends Application {
         this._registerDomEvent(htmlElement, '.tir-filter-category', 'click', this._onCategoryFilterClick, true);
         
         // Tag click handlers for new tags row
+        // TODO: Add right-click context menu for tags (e.g., Add to Ignored, Favorite, etc.)
         this._registerDomEvent(htmlElement, '.tir-search-tools-tag', 'click', this._onTagClick, true);
         
         // Clear search button
@@ -961,17 +963,15 @@ export class TokenImageReplacementWindow extends Application {
             if (!fileInfo.metadata) {
                 fileInfo.metadata = {};
             }
-        if (!Array.isArray(fileInfo.metadata.tags)) {
-                fileInfo.metadata.tags = [];
-            }
+            ImageCacheManager._ensureTagMetadata(fileInfo.metadata);
 
             const isFavorited = fileInfo.metadata.tags.includes('FAVORITE');
 
             if (isFavorited) {
-                fileInfo.metadata.tags = fileInfo.metadata.tags.filter(tag => tag !== 'FAVORITE');
+                ImageCacheManager._removeTag(fileInfo.metadata, 'FAVORITE');
                 ui.notifications.info(`Removed ${imageName} from favorites`);
             } else {
-                fileInfo.metadata.tags.push('FAVORITE');
+                ImageCacheManager._markTag(fileInfo.metadata, 'FAVORITE', 'primary');
                 ui.notifications.info(`Added ${imageName} to favorites`);
             }
 
@@ -2415,6 +2415,21 @@ export class TokenImageReplacementWindow extends Application {
         return [...new Set(tags)]; // Remove duplicates
     }
 
+    _getTagTypeForMetadata(tag, metadata) {
+        if (!tag) return 'primary';
+        const upper = tag.toUpperCase();
+        if (metadata?.tagTypes?.[upper]) {
+            return metadata.tagTypes[upper];
+        }
+        if (Array.isArray(metadata?.primaryTags) && metadata.primaryTags.includes(upper)) {
+            return 'primary';
+        }
+        if (Array.isArray(metadata?.secondaryTags) && metadata.secondaryTags.includes(upper)) {
+            return 'secondary';
+        }
+        return 'primary';
+    }
+
 
 
 
@@ -3188,11 +3203,27 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     _getAggregatedTags() {
-        const tagCounts = new Map();
-        
+        const primaryCounts = new Map();
+        const secondaryCounts = new Map();
+        const addTag = (tag, metadata) => {
+            if (!tag) return;
+            const upper = tag.toUpperCase();
+            const tagType = this._getTagTypeForMetadata(upper, metadata);
+            const counts = tagType === 'secondary' ? secondaryCounts : primaryCounts;
+            counts.set(upper, (counts.get(upper) || 0) + 1);
+        };
+
         // Check if we're in category mode (no search term)
         const isCategoryMode = !this.searchTerm;
-        
+
+        const processFiles = (files) => {
+            files.forEach(file => {
+                const metadata = file.metadata || {};
+                const allTags = this._getTagsForFile(file);
+                allTags.forEach(tag => addTag(tag, metadata));
+            });
+        };
+
         if (isCategoryMode) {
             // Category mode: Show ALL tags for this category
             const allFiles = Array.from(ImageCacheManager.getCache(this.mode).files.values());
@@ -3215,7 +3246,6 @@ export class TokenImageReplacementWindow extends Application {
                         // Extract relative path from fullPath if path is empty
                         let path = file.path || '';
                         if (!path && file.fullPath) {
-                            // Use sourcePath from metadata if available, otherwise try first configured path
                             const basePath = file.metadata?.sourcePath || (getTokenImagePaths()[0] || '');
                             if (basePath) {
                                 path = file.fullPath.replace(`${basePath}/`, '');
@@ -3234,16 +3264,13 @@ export class TokenImageReplacementWindow extends Application {
             } else {
                 // For other categories, filter by folder
                 categoryFiles = allFiles.filter(file => {
-                    // Extract relative path from fullPath if path is empty
                     let path = file.path || '';
                     if (!path && file.fullPath) {
-                        // Use sourcePath from metadata if available, otherwise try first configured path
                         const basePath = file.metadata?.sourcePath || (getTokenImagePaths()[0] || '');
                         if (basePath) {
                             path = file.fullPath.replace(`${basePath}/`, '');
                         }
                     }
-                    // First part of relative path is the category
                     const pathParts = path.split('/').filter(p => p);
                     
                     let categoryFolder = null;
@@ -3254,49 +3281,41 @@ export class TokenImageReplacementWindow extends Application {
                     return categoryFolder ? categoryFolder.toLowerCase() === this.currentFilter : false;
                 });
             }
-            
-            // Count ALL tags from all files in this category (metadata + creature types + folders)
-            categoryFiles.forEach(file => {
-                const allTags = this._getTagsForFile(file);  // Gets ALL tag types!
-                allTags.forEach(tag => {
-                    tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
-                });
-            });
-            
-            // Return ALL tags for category (no limit)
-            return Array.from(tagCounts.entries())
-                .sort((a, b) => this._sortTagsByMode(a, b)) // Sort by current mode
-                .map(([tag]) => tag); // Return just the tag names
+
+            processFiles(categoryFiles);
         } else {
             // Search/Selected mode: Show tags from currently displayed results
             this.matches.forEach(match => {
+                const metadata = match.metadata || {};
                 const tags = this._getTagsForMatch(match);
                 tags.forEach(tag => {
-                    if (tag !== 'CURRENT IMAGE') { // Don't count current image tag
-                        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+                    if (tag !== 'CURRENT IMAGE') {
+                        addTag(tag, metadata);
                     }
                 });
             });
             
             // ALWAYS include selected tags, even if they don't appear in current results
             this.selectedTags.forEach(selectedTag => {
-                if (!tagCounts.has(selectedTag)) {
-                    tagCounts.set(selectedTag, 0); // Add with 0 count but still show it
+                if (!primaryCounts.has(selectedTag) && !secondaryCounts.has(selectedTag)) {
+                    addTag(selectedTag, {});
                 }
             });
-            
-            // Sort by current mode and return all tags
-            return Array.from(tagCounts.entries())
-                .sort((a, b) => {
-                    // Selected tags should appear first, then by current sort mode
-                    const aIsSelected = this.selectedTags.has(a[0]);
-                    const bIsSelected = this.selectedTags.has(b[0]);
-                    if (aIsSelected && !bIsSelected) return -1;
-                    if (!aIsSelected && bIsSelected) return 1;
-                    return this._sortTagsByMode(a, b);
-                })
-                .map(([tag]) => tag); // Return just the tag names
         }
+
+        const sortEntries = (counts) => Array.from(counts.entries())
+            .sort((a, b) => {
+                const aIsSelected = this.selectedTags.has(a[0]);
+                const bIsSelected = this.selectedTags.has(b[0]);
+                if (aIsSelected && !bIsSelected) return -1;
+                if (!aIsSelected && bIsSelected) return 1;
+                return this._sortTagsByMode(a, b);
+            });
+
+        return {
+            primary: sortEntries(primaryCounts).map(([tag]) => tag),
+            secondary: sortEntries(secondaryCounts).map(([tag]) => tag)
+        };
     }
 
     /**
@@ -3383,10 +3402,25 @@ export class TokenImageReplacementWindow extends Application {
         if (!element) return;
 
         const aggregatedTags = this._getAggregatedTags();
-        const tagHtml = aggregatedTags.map(tag => {
-            const isSelected = this.selectedTags.has(tag);
-            const selectedClass = isSelected ? ' selected' : '';
-            return `<span class="tir-search-tools-tag${selectedClass}" data-search-term="${tag}">${tag}</span>`;
+        const groups = [
+            { label: 'Primary Tags', list: aggregatedTags.primary, css: 'primary' },
+            { label: 'Secondary Tags', list: aggregatedTags.secondary, css: 'secondary' }
+        ];
+        const tagHtml = groups.map(group => {
+            if (!group.list || group.list.length === 0) return '';
+            const tags = group.list.map(tag => {
+                const isSelected = this.selectedTags.has(tag);
+                const selectedClass = isSelected ? ' selected' : '';
+                return `<span class="tir-search-tools-tag${selectedClass}" data-search-term="${tag}">${tag}</span>`;
+            }).join('');
+            return `
+                <div class="tir-search-tools-tag-group tir-search-tools-tag-group-${group.css}">
+                    <span class="tir-search-tools-tag-group-label">${group.label}</span>
+                    <div class="tir-search-tools-tag-row">
+                        ${tags}
+                    </div>
+                </div>
+            `;
         }).join('');
         
         const tagContainer = element.querySelector('#tir-search-tools-tag-container');
@@ -3394,7 +3428,8 @@ export class TokenImageReplacementWindow extends Application {
             tagContainer.innerHTML = tagHtml;
             
             // Show/hide tags row based on whether there are tags and current mode
-            if (aggregatedTags.length > 0 && this.tagSortMode !== 'hidden') {
+            const hasTags = aggregatedTags.primary.length + aggregatedTags.secondary.length > 0;
+            if (hasTags && this.tagSortMode !== 'hidden') {
                 tagContainer.style.display = '';
             } else {
                 tagContainer.style.display = 'none';

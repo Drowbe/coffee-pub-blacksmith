@@ -4,7 +4,7 @@
 
 > **Current state:** Unplaced pins are the normal, primary use case. **Remaining work** (tests, Phase 4–5) is tracked in `architecture-pins.md` and `TODO.md`.
 >
-> **Unplaced pins:** most pins are created and configured without being on the canvas (notes, quests, etc. have pin data; only some are placed). Unplaced pin support is implemented: create without `sceneId`/x/y → unplaced; `place(pinId, { sceneId, x, y })` to put on a scene; `unplace(pinId)` to remove from canvas but keep data; `list({ unplacedOnly: true })`; hooks `blacksmith.pins.created`, `blacksmith.pins.placed`, `blacksmith.pins.unplaced`. Pins render using pure DOM approach (no PIXI), support Font Awesome icons and image URLs, support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Automatic visibility filtering based on ownership permissions and per-user visibility filters (`pins.setGlobalVisibility`, `pins.setModuleVisibility`). Text display system with multiple layouts (under, over, above, right, left, arc-above, arc-below), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Icon/image type changes (icon ↔ image swaps) are automatically detected and handled during `update()`. Pin type system with default 'default' type for categorization and filtering. GM bulk delete controls (`deleteAll()`, `deleteAllByType()`) available via API and context menu with `moduleId` filtering. GM proxy methods (`createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`) for permission escalation. Ownership resolver hook (`blacksmith.pins.resolveOwnership`) for custom ownership mapping. Reconciliation helper (`reconcile()`) for repairing module-tracked pin links. Helper methods: `exists()`, `panTo()`, `findScene()`, `refreshPin()`, `place()`, `unplace()`.
+> **Unplaced pins:** most pins are created and configured without being on the canvas (notes, quests, etc. have pin data; only some are placed). Unplaced pin support is implemented: create without `sceneId`/x/y → unplaced; `place(pinId, { sceneId, x, y })` to put on a scene; `unplace(pinId)` to remove from canvas but keep data; `list({ unplacedOnly: true })`; hooks `blacksmith.pins.created`, `blacksmith.pins.placed`, `blacksmith.pins.unplaced`. Pins render using pure DOM approach (no PIXI), support Font Awesome icons, image URLs, and text (iconText), support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Automatic visibility filtering based on ownership permissions and per-user visibility filters (`pins.setGlobalVisibility`, `pins.setModuleVisibility`). Text display system with multiple layouts (under, over, above, right, left, arc-above, arc-below), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Icon/image type changes (icon ↔ image swaps) are automatically detected and handled during `update()`. Pin type system with default 'default' type for categorization and filtering. GM bulk delete controls (`deleteAll()`, `deleteAllByType()`) available via API and context menu with `moduleId` filtering. GM proxy methods (`createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`) for permission escalation. Ownership resolver hook (`blacksmith.pins.resolveOwnership`) for custom ownership mapping. Reconciliation helper (`reconcile()`) for repairing module-tracked pin links. Helper methods: `exists()`, `panTo()`, `findScene()`, `refreshPin()`, `place()`, `unplace()`.
 
 ## Overview
 
@@ -187,6 +187,7 @@ interface PinData {
   style?: { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number; iconColor?: string }; // Supports hex, rgb, rgba, hsl, hsla, named colors. iconColor applies to Font Awesome icons (default '#ffffff').
   text?: string; // Text label content
   image?: string;  // Font Awesome HTML (e.g. '<i class="fa-solid fa-star"></i>'), Font Awesome class string (e.g. 'fa-solid fa-star'), or image URL (e.g. 'icons/svg/star.svg' or '<img src="path/to/image.webp">')
+  iconText?: string; // Text to display in pin center instead of icon/image; inherits icon styling (iconColor, scaling). Takes precedence over image when set.
   shape?: 'circle' | 'square' | 'none'; // Pin shape: 'circle' (default), 'square' (rounded corners), or 'none' (icon only, no background)
   dropShadow?: boolean; // Whether to show drop shadow (default: true) - controlled via CSS variable --blacksmith-pin-drop-shadow
   textLayout?: 'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'; // Text layout: 'under' (below), 'over' (centered over), 'above' (above pin), 'right' (right of pin, left-aligned), 'left' (left of pin, right-aligned), 'arc-above' (curved above pin), 'arc-below' (curved below pin). Legacy 'around' is accepted and treated as 'arc-below'.
@@ -385,6 +386,16 @@ const goldIconPin = await pinsAPI.create({
   moduleId: 'my-module',
   image: '<i class="fa-solid fa-star"></i>',
   style: { iconColor: '#ffd700' }  // Gold icon; fill/stroke/alpha use defaults
+});
+
+// Pin with text as center content (instead of icon/image) - inherits icon styling
+const textCenterPin = await pinsAPI.create({
+  id: 'text-center-pin',
+  x: 1275,
+  y: 1000,
+  moduleId: 'my-module',
+  iconText: '1',  // Display "1" in pin center; uses iconColor, scales like icon
+  style: { iconColor: '#ffffff' }  // Text color
 });
 
 // Pin with text display options

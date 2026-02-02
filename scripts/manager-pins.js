@@ -24,7 +24,7 @@ const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
     ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
     : 0;
 
-/** @typedef {{ id: string; x: number; y: number; size: { w: number; h: number }; style: object; text?: string; image?: string; config: object; moduleId: string; ownership: { default: number; users?: Record<string, number> }; version: number }} PinData */
+/** @typedef {{ id: string; x: number; y: number; size: { w: number; h: number }; style: object; text?: string; image?: string; iconText?: string; config: object; moduleId: string; ownership: { default: number; users?: Record<string, number> }; version: number }} PinData */
 
 /**
  * @typedef {Object} PinCreateOptions
@@ -927,6 +927,9 @@ export class PinManager {
         if (patch.image !== undefined) {
             const stored = normalizePinImageForStorage(patch.image);
             merged.image = stored || undefined;
+        }
+        if (patch.iconText !== undefined) {
+            merged.iconText = patch.iconText ? String(patch.iconText).trim() : undefined;
         }
         if (patch.type != null) {
             const type = String(patch.type).trim();

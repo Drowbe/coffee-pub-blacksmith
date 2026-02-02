@@ -121,6 +121,16 @@
     /* Size from JS fontSize; no extra classes — matches note header icon */
 }
 
+/* Text (plain text in center) - same layout/styling as FA icon */
+.blacksmith-pin-icon[data-icon-type="text"] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
 /* Image (photo/art) - fills pin with cover; own styling, distinct from icons */
 .blacksmith-pin-icon[data-icon-type="image"] {
     display: block;
@@ -490,11 +500,12 @@
    FIX: FontAwesome pins get clipped
    ================================ */
 
-.blacksmith-pin-icon[data-icon-type="fa"] {
+.blacksmith-pin-icon[data-icon-type="fa"],
+.blacksmith-pin-icon[data-icon-type="text"] {
     width: 100% !important;
     height: 100% !important;
 
-    /* The pin itself is the shape. Don't mask the icon. */
+    /* The pin itself is the shape. Don't mask the icon/text. */
     overflow: visible !important;
     border-radius: 0 !important;
 

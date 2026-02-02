@@ -200,7 +200,7 @@ class PinDOMElement {
         if (!this._isInitialized) this.initialize();
         
         let pinElement = this._pins.get(pinId);
-        const { image, size, style = {} } = pinData;
+        const { image, iconText, size, style = {} } = pinData;
         
         // Create new pin element if doesn't exist (base styles in pins.css)
         if (!pinElement) {
@@ -267,11 +267,13 @@ class PinDOMElement {
         let iconElement = pinElement.querySelector('.blacksmith-pin-icon');
         const currentIconType = iconElement?.dataset.iconType; // 'fa', 'image', or undefined
         
-        // Determine new icon type
+        // Determine new icon type (iconText takes precedence over image)
         const isFontAwesome = this._isFontAwesomeIcon(image);
-        const newIconType = image 
-            ? (isFontAwesome ? 'fa' : 'image')
-            : 'none';
+        const newIconType = iconText && String(iconText).trim()
+            ? 'text'
+            : image
+                ? (isFontAwesome ? 'fa' : 'image')
+                : 'none';
         
         // If icon type changed, rebuild the icon element to avoid stale state
         const iconTypeChanged = currentIconType && currentIconType !== newIconType;
@@ -307,8 +309,16 @@ class PinDOMElement {
         iconElement.style.fontSize = '';
         iconElement.innerHTML = '';
         
-        // Apply new icon/image based on type
-        if (isFontAwesome && image) {
+        // Apply new icon/image/text based on type
+        if (newIconType === 'text' && iconText) {
+            // Text as pin center content - styled like FA icon (centered, iconColor)
+            const textContent = String(iconText).trim();
+            iconElement.textContent = textContent;
+            const iconColor = pinData.style?.iconColor || '#ffffff';
+            iconElement.style.color = iconColor;
+            iconElement.style.background = 'none';
+            iconElement.style.backgroundImage = 'none';
+        } else if (isFontAwesome && image) {
             // Font Awesome icon
             const faClasses = this._extractFontAwesomeClasses(image);
             if (faClasses) {
@@ -418,9 +428,17 @@ class PinDOMElement {
             // Update icon size
             const iconElement = pinElement.querySelector('.blacksmith-pin-icon');
             if (iconElement) {
-                // Check pinData to determine if it's Font Awesome or image
+                const iconType = iconElement.dataset.iconType;
+                const isText = iconType === 'text';
                 const isFontAwesome = this._isFontAwesomeIcon(pinData.image);
-                if (isFontAwesome && pinData.image) {
+                if (isText && pinData.iconText) {
+                    // Text - same sizing as FA icon (scale with pin)
+                    iconElement.style.fontSize = `${iconSizeScreen}px`;
+                    iconElement.style.width = 'auto';
+                    iconElement.style.height = 'auto';
+                    iconElement.style.borderRadius = '';
+                    iconElement.style.overflow = '';
+                } else if (isFontAwesome && pinData.image) {
                     // Font Awesome icon - use fontSize (size controlled dynamically)
                     iconElement.style.fontSize = `${iconSizeScreen}px`;
                     iconElement.style.width = 'auto';
