@@ -195,17 +195,41 @@ export class UIContextMenu {
         const y = rect.top;
         this._positionMenu(submenu, x, y);
 
-        const closeOnLeave = (e) => {
-            if (!submenu.isConnected) return;
-            if (!submenu.contains(e.relatedTarget) && !anchorEl.contains(e.relatedTarget)) {
+        let closeTimeout = null;
+        const SUBMENU_LEAVE_DELAY_MS = 200;
+
+        const scheduleClose = () => {
+            if (closeTimeout) return;
+            closeTimeout = setTimeout(() => {
+                closeTimeout = null;
+                if (!submenu.isConnected) return;
                 submenu.remove();
                 anchorEl.removeEventListener('mouseleave', closeOnLeave);
                 submenu.removeEventListener('mouseleave', closeOnLeave);
+                submenu.removeEventListener('mouseenter', cancelClose);
+                anchorEl.removeEventListener('mouseenter', cancelClose);
+            }, SUBMENU_LEAVE_DELAY_MS);
+        };
+
+        const cancelClose = () => {
+            if (closeTimeout) {
+                clearTimeout(closeTimeout);
+                closeTimeout = null;
             }
+        };
+
+        const closeOnLeave = (e) => {
+            if (!submenu.isConnected) return;
+            const target = e.relatedTarget;
+            if (target && submenu.contains(target)) return;
+            if (target && anchorEl.contains(target)) return;
+            scheduleClose();
         };
 
         anchorEl.addEventListener('mouseleave', closeOnLeave);
         submenu.addEventListener('mouseleave', closeOnLeave);
+        submenu.addEventListener('mouseenter', cancelClose);
+        anchorEl.addEventListener('mouseenter', cancelClose);
 
         return submenu;
     }
