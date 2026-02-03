@@ -38,19 +38,20 @@ JSON TEMPLATE
 [
   {
     "tableName": "TABLENAME",
-    "tableDescription": "TABLEDESCRIPTION", 
-    "tableImagePath": "TABLEIMAGEPATH", 
+    "tableDescription": "TABLEDESCRIPTION",
+    "tableImagePath": "TABLEIMAGEPATH",
     "drawWithReplacement": true,
     "displayRollFormula": false,
     "results": [
       {
-        "resultType": RESULTTYPE,
-        "resultImagePath": RESULTIMAGEPATH,
-        "resultCompendium": RESULTCOMPENDIUM,
+        "resultType": "RESULTTYPE",
+        "resultDocumentType": "RESULTDOCUMENTTYPE",
+        "resultImagePath": "RESULTIMAGEPATH",
+        "resultCompendium": "RESULTCOMPENDIUM",
         "resultText": "RESULTTEXT",
         "resultWeight": RESULTWEIGHT,
         "resultRangeLower": RESULTRANGELOWER,
-        "resultRangeUpper": RESULTRANGEUPPER,
+        "resultRangeUpper": RESULTRANGEUPPER
       }
     ]
   }
@@ -86,6 +87,7 @@ CUSTOM INSTRUCTIONS
 
 - The roll tables should have enough implied mystery or narrative weight to make them interesting.
 - This is a roll table of Items in the campaign.
+- Use the maximum number of eligible items you can find, capped at 200, and include only items that verifiably exist in the listed compendiums.
 - Available items in the compendiume are: 
 
 [ADD-COMPENDIUM-ITEMS-HERE]
