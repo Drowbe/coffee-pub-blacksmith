@@ -86,6 +86,6 @@ CUSTOM INSTRUCTIONS
 
 - The roll tables should have enough implied mystery or narrative weight to make them interesting.
 - This is a roll table of Actors in the campaign.
-- Available actors in the compendiume are: 
+- The unfiltered, complete set of actors in the compendiums is listed below, grouped by compendium and then by CR (Challenge Rating). Use RESULTCOMPENDIUM and RESULTTEXT to match actors from this list.
 
 [ADD-COMPENDIUM-ACTORS-HERE]

@@ -2999,80 +2999,180 @@ function getActorCompendiumsList() {
   }
 }
 
-// Helper to get formatted list of items from all selected item compendiums
+// D&D 5e item rarity display order (missing/other last)
+const ITEM_RARITY_ORDER = ['common', 'uncommon', 'rare', 'very rare', 'legendary', 'artifact'];
+
+function getItemRarityKey(item) {
+  const r = item?.system?.rarity;
+  if (!r || typeof r !== 'string') return 'other';
+  return r.trim().toLowerCase();
+}
+
+function formatRarityLabel(rarityKey) {
+  if (rarityKey === 'other') return 'Other';
+  return rarityKey.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+// Helper to get formatted list of items from all selected item compendiums, grouped by rarity
 async function getCompendiumItemsList() {
   try {
     const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsItem') ?? 1;
-    const compendiumItems = [];
-    
+    const compendiumBlocks = [];
+
     for (let i = 1; i <= numCompendiums; i++) {
       const compendiumId = game.settings.get(MODULE.ID, `itemCompendium${i}`);
       if (!compendiumId || compendiumId === 'none') {
         continue;
       }
-      
+
       try {
         const compendium = game.packs.get(compendiumId);
         if (!compendium) {
           postConsoleAndNotification(MODULE.NAME, "Configured compendium not found", compendiumId, false, false);
           continue;
         }
-        
-        const index = await compendium.getIndex();
-        if (!index || index.length === 0) {
-          // Skip empty compendiums
+
+        const documents = await compendium.getDocuments();
+        if (!documents?.length) {
           continue;
         }
-        
-        const itemNames = index.map(entry => entry.name).join(', ');
-        compendiumItems.push(`${compendiumId}: ${itemNames}`);
+
+        // Group by rarity (D&D 5e: item.system.rarity)
+        const byRarity = new Map();
+        for (const doc of documents) {
+          const key = getItemRarityKey(doc);
+          if (!byRarity.has(key)) byRarity.set(key, []);
+          byRarity.get(key).push(doc.name);
+        }
+
+        // Sort rarities: standard order then "other"
+        const sortedRarityKeys = [...byRarity.keys()].sort((a, b) => {
+          const ia = ITEM_RARITY_ORDER.indexOf(a);
+          const ib = ITEM_RARITY_ORDER.indexOf(b);
+          if (ia === -1 && ib === -1) return a.localeCompare(b);
+          if (ia === -1) return 1;
+          if (ib === -1) return -1;
+          return ia - ib;
+        });
+
+        const rarityLines = sortedRarityKeys.map(rarityKey => {
+          const names = byRarity.get(rarityKey).join(', ');
+          return `RARITY: ${formatRarityLabel(rarityKey)}\n${names}`;
+        });
+
+        compendiumBlocks.push(`${compendiumId}\n\n${rarityLines.join('\n\n')}`);
       } catch (e) {
         postConsoleAndNotification(MODULE.NAME, `Error getting items from compendium ${compendiumId}`, e, false, false);
         continue;
       }
     }
-    
-    return compendiumItems.join('\n\n');
+
+    return compendiumBlocks.join('\n\n');
   } catch (e) {
     postConsoleAndNotification(MODULE.NAME, "Error getting compendium items list", e, false, false);
     return 'Error retrieving compendium items';
   }
 }
 
-// Helper to get formatted list of actors from all selected actor compendiums
+// D&D 5e CR numeric values for sorting (fractional CRs)
+const CR_SORT_OTHER = -1;
+
+function getActorCr(actor) {
+  let cr = null;
+  if (actor?.system?.details?.cr?.value !== undefined) {
+    cr = actor.system.details.cr.value;
+  } else if (actor?.system?.details?.cr !== undefined) {
+    cr = actor.system.details.cr;
+  } else if (actor?.system?.cr !== undefined) {
+    cr = actor.system.cr;
+  }
+  const num = parseCrToNumber(cr);
+  const sortKey = num !== null ? num : CR_SORT_OTHER;
+  const label = num !== null ? formatCrLabel(num) : 'Other';
+  return { sortKey, label };
+}
+
+function parseCrToNumber(cr) {
+  if (typeof cr === 'number' && !Number.isNaN(cr)) return cr;
+  if (typeof cr === 'string' && cr.trim() !== '') {
+    const lower = cr.trim().toLowerCase();
+    if (lower === '1/8') return 0.125;
+    if (lower === '1/4') return 0.25;
+    if (lower === '1/2') return 0.5;
+    const n = Number(cr);
+    if (!Number.isNaN(n)) return n;
+  }
+  return null;
+}
+
+function formatCrLabel(num) {
+  if (num === 0) return '0';
+  if (num === 0.125) return '1/8';
+  if (num === 0.25) return '1/4';
+  if (num === 0.5) return '1/2';
+  return String(num);
+}
+
+// Helper to get formatted list of actors from all selected actor compendiums, grouped by CR
 async function getCompendiumActorsList() {
   try {
     const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsActor') ?? 1;
-    const compendiumActors = [];
-    
+    const compendiumBlocks = [];
+
     for (let i = 1; i <= numCompendiums; i++) {
       const compendiumId = game.settings.get(MODULE.ID, `monsterCompendium${i}`);
       if (!compendiumId || compendiumId === 'none') {
         continue;
       }
-      
+
       try {
         const compendium = game.packs.get(compendiumId);
         if (!compendium) {
           postConsoleAndNotification(MODULE.NAME, "Configured compendium not found", compendiumId, false, false);
           continue;
         }
-        
-        const index = await compendium.getIndex();
-        if (!index || index.length === 0) {
-          // Skip empty compendiums
+
+        const documents = await compendium.getDocuments();
+        if (!documents?.length) {
           continue;
         }
-        
-        const actorNames = index.map(entry => entry.name).join(', ');
-        compendiumActors.push(`${compendiumId}: ${actorNames}`);
+
+        // Group by CR (D&D 5e: actor.system.details.cr or .value)
+        const byCr = new Map();
+        for (const doc of documents) {
+          const { label } = getActorCr(doc);
+          if (!byCr.has(label)) byCr.set(label, []);
+          byCr.get(label).push(doc.name);
+        }
+
+        // Sort CR groups: numeric CRs ascending, then "Other"
+        const crSortKeys = new Map();
+        for (const doc of documents) {
+          const { sortKey, label } = getActorCr(doc);
+          if (!crSortKeys.has(label)) crSortKeys.set(label, sortKey);
+        }
+        const sortedCrLabels = [...byCr.keys()].sort((a, b) => {
+          const sa = crSortKeys.get(a) ?? CR_SORT_OTHER;
+          const sb = crSortKeys.get(b) ?? CR_SORT_OTHER;
+          if (sa === CR_SORT_OTHER && sb === CR_SORT_OTHER) return a.localeCompare(b);
+          if (sa === CR_SORT_OTHER) return 1;
+          if (sb === CR_SORT_OTHER) return -1;
+          return sa - sb;
+        });
+
+        const crLines = sortedCrLabels.map(crLabel => {
+          const names = byCr.get(crLabel).join(', ');
+          return `CR: ${crLabel}\n${names}`;
+        });
+
+        compendiumBlocks.push(`${compendiumId}\n\n${crLines.join('\n\n')}`);
       } catch (e) {
         postConsoleAndNotification(MODULE.NAME, `Error getting actors from compendium ${compendiumId}`, e, false, false);
         continue;
       }
     }
-    
-    return compendiumActors.join('\n\n');
+
+    return compendiumBlocks.join('\n\n');
   } catch (e) {
     postConsoleAndNotification(MODULE.NAME, "Error getting compendium actors list", e, false, false);
     return 'Error retrieving compendium actors';
