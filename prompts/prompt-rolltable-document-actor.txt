@@ -42,13 +42,14 @@ JSON TEMPLATE
     "results": [
       {
         "resultType": "document",
+        "resultDocumentType": "RESULTDOCUMENTTYPE",
         "resultImagePath": RESULTIMAGEPATH,
         "resultDocumentType": "actor",
         "resultCompendium": " ",
         "resultText": "RESULTTEXT",
         "resultWeight": RESULTWEIGHT,
         "resultRangeLower": RESULTRANGELOWER,
-        "resultRangeUpper": RESULTRANGEUPPER,
+        "resultRangeUpper": RESULTRANGEUPPER
       }
     ]
   }
@@ -83,4 +84,6 @@ CUSTOM INSTRUCTIONS
 
 - The roll tables should have enough implied mystery or narrative weight to make them interesting.
 - This is a roll table of Actors in the world.
-- Available actors are: [ADD-ACTORS-HERE]
+- Available actors are: 
+
+[ADD-ACTORS-HERE]

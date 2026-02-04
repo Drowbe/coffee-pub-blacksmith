@@ -88,10 +88,15 @@ CUSTOM INSTRUCTIONS
 - The roll tables should have enough implied mystery or narrative weight to make them interesting.
 - This is a roll table of Items to be used in the campaign and can only include content loaded into the campaign.
 - Use the maximum number of eligible items you can find, capped at 200, and include only items that verifiably exist in the listed compendiums.
-- For this table, every entry should meet at least one of these criteria:
-  1. The item is itself a [ITEMS TYPES HERE]
-  2. The item contains a [ADD SPECIFICS HERE]
-  3. The item is a[ITEM TYPE] whose primary purpose is [ITEM TYPE PURPOSE] 
-- The unfiltered, complete set of all items in the compendiums is listed below, grouped by compendium and then by RARITY (Common, Uncommon, Rare, etc.). Use RESULTCOMPENDIUM and RESULTTEXT to match items from this list.
+- For this table, every entry should meet these criteria:
+  1. The item is itself a [ITEM-TYPE e.g. potion, posining, weapon]
+  2. The item is a RARITY of [RARITY e.g. any, other, common, uncommon, rare, very rare, legendary]
+
+===================
+COMPENDIUM ITEMS
+===================
+
+- The unfiltered, complete set of all items in the compendiums is listed below, grouped by compendium and then by RARITY (Common, Uncommon, Rare, etc.).
+- Use RESULTCOMPENDIUM and RESULTTEXT to match items from this list:
 
 [ADD-COMPENDIUM-ITEMS-HERE]

@@ -45,12 +45,13 @@ JSON TEMPLATE
     "results": [
       {
         "resultType": RESULTTYPE,
+        "resultDocumentType": "RESULTDOCUMENTTYPE",
         "resultImagePath": RESULTIMAGEPATH,
         "resultCompendium": RESULTCOMPENDIUM,
         "resultText": "RESULTTEXT",
         "resultWeight": RESULTWEIGHT,
         "resultRangeLower": RESULTRANGELOWER,
-        "resultRangeUpper": RESULTRANGEUPPER,
+        "resultRangeUpper": RESULTRANGEUPPER
       }
     ]
   }
@@ -86,6 +87,15 @@ CUSTOM INSTRUCTIONS
 
 - The roll tables should have enough implied mystery or narrative weight to make them interesting.
 - This is a roll table of Actors in the campaign.
-- The unfiltered, complete set of actors in the compendiums is listed below, grouped by compendium and then by CR (Challenge Rating). Use RESULTCOMPENDIUM and RESULTTEXT to match actors from this list.
+- For this table, every entry should meet these criteria:
+  1. The actor is of CR LEVEL [CR] to [CR]
+  2. The actor is of HABITAT [HABITAT e.g. Any, Arctic, Coastal, Desert, Forest, Grassland, Hill, Mountain, Planar, Swamp, Underdark, Underwater, Urban]
+
+===================
+COMPENDIUM ACTORS
+===================
+
+- The unfiltered, complete set of actors in the compendiums is listed below, grouped by compendium and then by CR (Challenge Rating). 
+- Use RESULTCOMPENDIUM and RESULTTEXT to match actors from this list:
 
 [ADD-COMPENDIUM-ACTORS-HERE]
