@@ -1061,7 +1061,15 @@ Hooks.once('init', async function() {
         
         // ✅ NEW: Chat Cards API for external modules
         chatCards: ChatCardsAPI,
-        
+
+        // ✅ Combat assessment API (party CR, monster CR, encounter difficulty) from encounter toolbar
+        getPartyCR: EncounterToolbar.getPartyCR.bind(EncounterToolbar),
+        getMonsterCR: EncounterToolbar.getMonsterCR.bind(EncounterToolbar),
+        calculateEncounterDifficulty: EncounterToolbar.calculateEncounterDifficulty.bind(EncounterToolbar),
+        getCombatAssessment: EncounterToolbar.getCombatAssessment.bind(EncounterToolbar),
+        parseCR: EncounterToolbar.parseCR.bind(EncounterToolbar),
+        formatCR: EncounterToolbar.formatCR.bind(EncounterToolbar),
+
         // ✅ NEW: Socket API for external modules (set after SocketManager initializes)
         sockets: null
     };

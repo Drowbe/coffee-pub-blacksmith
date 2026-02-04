@@ -1586,13 +1586,13 @@ export class EncounterToolbar {
     static _calculateEncounterDifficulty(partyCR, monsterCR) {
         // Calculate difficulty based on the ratio of monster CR to party CR
         // Using the same formula as the encounter configuration system
-        
+
         if (partyCR <= 0 || monsterCR <= 0) {
             return { difficulty: "None", difficultyClass: "none" };
         }
-        
+
         const ratio = monsterCR / partyCR;
-        
+
         if (ratio <= 0) {
             return { difficulty: "None", difficultyClass: "none" };
         } else if (ratio < 0.25) {
@@ -1612,6 +1612,40 @@ export class EncounterToolbar {
         } else {
             return { difficulty: "Impossible", difficultyClass: "impossible" };
         }
+    }
+
+    /**
+     * Public API: Calculate encounter difficulty from party CR and monster CR (numeric or parseable).
+     * @param {number|string} partyCR - Party challenge rating (number or string e.g. "39", "1/2")
+     * @param {number|string} monsterCR - Monster challenge rating (number or string)
+     * @returns {{ difficulty: string, difficultyClass: string }}
+     */
+    static calculateEncounterDifficulty(partyCR, monsterCR) {
+        const p = typeof partyCR === 'number' ? partyCR : this.parseCR(String(partyCR ?? '0'));
+        const m = typeof monsterCR === 'number' ? monsterCR : this.parseCR(String(monsterCR ?? '0'));
+        return this._calculateEncounterDifficulty(p, m);
+    }
+
+    /**
+     * Public API: Get full combat assessment (party CR, monster CR, difficulty) for the current canvas.
+     * Uses tokens on the current scene: player-owned character tokens for party CR, NPC tokens for monster CR.
+     * @param {Object} [metadata] - Optional encounter metadata; if provided with monsters/npcs, getMonsterCR may use it (toolbar uses {} for canvas-only).
+     * @returns {{ partyCR: number, monsterCR: number, partyCRDisplay: string, monsterCRDisplay: string, difficulty: string, difficultyClass: string }}
+     */
+    static getCombatAssessment(metadata = {}) {
+        const partyCRDisplay = this.getPartyCR();
+        const monsterCRDisplay = this.getMonsterCR(metadata);
+        const partyCR = this.parseCR(partyCRDisplay);
+        const monsterCR = this.parseCR(monsterCRDisplay);
+        const { difficulty, difficultyClass } = this.calculateEncounterDifficulty(partyCR, monsterCR);
+        return {
+            partyCR,
+            monsterCR,
+            partyCRDisplay,
+            monsterCRDisplay,
+            difficulty,
+            difficultyClass
+        };
     }
 
     static async _cycleDeploymentPattern() {

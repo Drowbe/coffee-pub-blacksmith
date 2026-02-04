@@ -195,6 +195,71 @@ export class BlacksmithAPI {
     }
 
     /**
+     * Get combat assessment (party CR, monster CR, encounter difficulty) for the current canvas.
+     * Uses the same logic as the encounter toolbar: player character tokens = party CR, NPC tokens = monster CR.
+     * @param {Object} [metadata] - Optional encounter metadata (e.g. { monsters: [] }); pass {} for canvas-only monster CR.
+     * @returns {Promise<{ partyCR: number, monsterCR: number, partyCRDisplay: string, monsterCRDisplay: string, difficulty: string, difficultyClass: string }>}
+     */
+    static getCombatAssessment(metadata = {}) {
+        return this.waitForReady().then(() => {
+            try {
+                const api = this._getAPI();
+                if (!api.getCombatAssessment) {
+                    throw new Error('Combat assessment API not available');
+                }
+                return api.getCombatAssessment(metadata);
+            } catch (error) {
+                throw new Error(`Failed to get combat assessment: ${error.message}`);
+            }
+        });
+    }
+
+    /**
+     * Get party CR (display string) from tokens on the current scene.
+     * @returns {Promise<string>}
+     */
+    static getPartyCR() {
+        return this.waitForReady().then(() => {
+            try {
+                return this._getAPI().getPartyCR();
+            } catch (error) {
+                throw new Error(`Failed to get party CR: ${error.message}`);
+            }
+        });
+    }
+
+    /**
+     * Get monster CR (display string) from tokens on the current scene.
+     * @param {Object} [metadata] - Optional encounter metadata; use {} for canvas-only.
+     * @returns {Promise<string>}
+     */
+    static getMonsterCR(metadata = {}) {
+        return this.waitForReady().then(() => {
+            try {
+                return this._getAPI().getMonsterCR(metadata);
+            } catch (error) {
+                throw new Error(`Failed to get monster CR: ${error.message}`);
+            }
+        });
+    }
+
+    /**
+     * Calculate encounter difficulty from party CR and monster CR (numeric or parseable string).
+     * @param {number|string} partyCR
+     * @param {number|string} monsterCR
+     * @returns {Promise<{ difficulty: string, difficultyClass: string }>}
+     */
+    static calculateEncounterDifficulty(partyCR, monsterCR) {
+        return this.waitForReady().then(() => {
+            try {
+                return this._getAPI().calculateEncounterDifficulty(partyCR, monsterCR);
+            } catch (error) {
+                throw new Error(`Failed to calculate encounter difficulty: ${error.message}`);
+            }
+        });
+    }
+
+    /**
      * Check if Blacksmith is ready
      * @returns {boolean} True if ready
      */

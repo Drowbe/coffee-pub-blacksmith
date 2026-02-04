@@ -40,6 +40,7 @@ const utils = BlacksmithUtils;
 - **Compendium Configuration**: Access configured compendium arrays for all document types (v12.1.19+)
 - **Canvas Layer API**: Access to BlacksmithLayer for canvas drawing and UI overlays (available after canvasReady)
 - **Socket API**: Unified socket management with SocketLib integration and native fallback (see `api-sockets.md`)
+- **Combat assessment API**: Party CR, monster CR, and encounter difficulty for the current canvas (same logic as the encounter toolbar)
 
 ## **Integration Philosophy**
 
@@ -2456,6 +2457,41 @@ For full canvas layer API documentation, see: **`documentation/api-canvas.md`**
 - [ ] Always provide context for hook cleanup
 - [ ] Use proper error handling and availability checks
 - [ ] Test integration with provided console commands
+
+---
+
+## **Combat assessment API**
+
+The same party CR, monster CR, and encounter difficulty shown in the encounter toolbar are available to other modules. Values are derived from the current scene: **party CR** from player-owned character tokens, **monster CR** from NPC tokens.
+
+**Bridge (async):**
+
+```javascript
+import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
+
+// Full assessment (party CR, monster CR, difficulty)
+const assessment = await BlacksmithAPI.getCombatAssessment();
+// { partyCR, monsterCR, partyCRDisplay, monsterCRDisplay, difficulty, difficultyClass }
+
+// Individual values (return display strings for CR)
+const partyCRDisplay = await BlacksmithAPI.getPartyCR();
+const monsterCRDisplay = await BlacksmithAPI.getMonsterCR({}); // {} = canvas-only
+
+// Difficulty from two CRs (numeric or parseable string)
+const { difficulty, difficultyClass } = await BlacksmithAPI.calculateEncounterDifficulty(39, 8);
+```
+
+**Direct API (after `await BlacksmithAPI.get()`):**
+
+```javascript
+const blacksmith = await BlacksmithAPI.get();
+const assessment = blacksmith.getCombatAssessment(); // sync
+blacksmith.getPartyCR();       // sync
+blacksmith.getMonsterCR({});   // sync
+blacksmith.calculateEncounterDifficulty(39, 8); // sync
+blacksmith.parseCR('1/2');    // => 0.5
+blacksmith.formatCR(0.5);     // => '1/2'
+```
 
 ---
 
