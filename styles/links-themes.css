@@ -55,6 +55,13 @@
     color: var(--a-content-link-i-color);
 }
 
+.message-content a.inline-roll > i.fa-dice-d20 {
+    background: none !important;
+    -webkit-mask: url("/icons/svg/d20-black.svg") no-repeat center / contain;
+    mask: url("/icons/svg/d20-black.svg") no-repeat center / contain;
+    background-color: var(--a-content-link-i-color) !important; /* this is the icon color */
+  }
+
 /* Do not override journals for now */
 /* journal-entry-content */
 /* 
