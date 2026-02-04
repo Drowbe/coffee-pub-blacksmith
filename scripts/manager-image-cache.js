@@ -50,7 +50,8 @@ export class ImageCacheManager {
         currentStepTotal: 0,       // total items in current step
         currentPath: '',           // remaining folder path (e.g., "Creatures | Humanoid")
         currentFileName: '',       // current file being processed
-        ignoredFilesCount: 0       // count of files ignored by ignored words filter
+        ignoredFilesCount: 0,      // count of files ignored by ignored words filter
+        needsRescan: false          // flag for external changes without rescanning
     };
     
     // Cache structure for storing file information (portrait mode)
@@ -75,7 +76,8 @@ export class ImageCacheManager {
         currentStepTotal: 0,       // total items in current step
         currentPath: '',           // remaining folder path (e.g., "Creatures | Humanoid")
         currentFileName: '',       // current file being processed
-        ignoredFilesCount: 0       // count of files ignored by ignored words filter
+        ignoredFilesCount: 0,      // count of files ignored by ignored words filter
+        needsRescan: false          // flag for external changes without rescanning
     };
     
     /**
@@ -2668,6 +2670,7 @@ export class ImageCacheManager {
     static async _saveCacheToStorage(mode = 'token', isIncremental = false) {
         try {
             const cache = this.getCache(mode);
+            cache.needsRescan = false;
             const cacheSettingKey = this.getCacheSettingKey(mode);
             const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
             // Get all configured image paths for this mode
@@ -3049,10 +3052,10 @@ export class ImageCacheManager {
             // Check version compatibility
             const version = cacheData.version || cacheData.v;
             if (!version || !version.startsWith('1.')) {
-                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache version incompatible (${version}), will rescan`, "", false, false);
-                return false;
+                postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Cache version incompatible (${version}), cache may need a rescan`, "", false, false);
+                cache.needsRescan = true;
             }
-            
+
             // Check if base paths changed (handle both old single path and new array format)
             const currentBasePaths = this.getTokenImagePathsForMode(mode);
             const cacheBasePath = cacheData.basePath || cacheData.bp;
@@ -3066,31 +3069,17 @@ export class ImageCacheManager {
                 cachePaths = [cacheBasePath];
             }
             
-            // Compare paths (order matters for priority)
             if (currentBasePaths.length !== cachePaths.length) {
-                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Number of paths changed, will rescan", "", true, false);
-                return false;
-            }
-            
-            // Check if any paths changed
-            for (let i = 0; i < currentBasePaths.length; i++) {
-                if (currentBasePaths[i] !== cachePaths[i]) {
-                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Path configuration changed, will rescan", "", true, false);
-                    return false;
-                }
-            }
-            
-            // Check if cache is still valid (less than 30 days old)
-            // Only check age if lastScan exists and is not from an incremental save
-            const lastScan = cacheData.lastScan || cacheData.ls;
-            const isIncremental = cacheData.isIncremental || cacheData.ii;
-            if (lastScan && !isIncremental) {
-                const cacheAge = Date.now() - lastScan;
-                const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-                
-                if (cacheAge > maxAge) {
-                    postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Cache is stale (older than 30 days), will rescan", "", false, false);
-                    return false;
+                postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Number of paths changed; cache may be stale", "", true, false);
+                cache.needsRescan = true;
+            } else {
+                // Check if any paths changed (order matters for priority)
+                for (let i = 0; i < currentBasePaths.length; i++) {
+                    if (currentBasePaths[i] !== cachePaths[i]) {
+                        postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Path configuration changed; cache may be stale", "", true, false);
+                        cache.needsRescan = true;
+                        break;
+                    }
                 }
             }
             
@@ -3101,40 +3090,22 @@ export class ImageCacheManager {
                 
                 // CRITICAL FIX: Validate saved fingerprint
                 if (savedFingerprint === 'error' || savedFingerprint === 'no-path') {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Saved cache has invalid fingerprint (${savedFingerprint}), will update cache`, "", false, false);
-                    // Don't force rescan, just need to update fingerprint via incremental update
+                    postConsoleAndNotification(MODULE.NAME, `Token Image Replacement: Saved cache has invalid fingerprint (${savedFingerprint}); cache may need a rescan`, "", false, false);
+                    cache.needsRescan = true;
                 } else {
                     // Use first path for fingerprint check (fingerprint is per-path, but we check first one for now)
                     const firstPath = currentBasePaths.length > 0 ? currentBasePaths[0] : null;
                     if (firstPath) {
                         const currentFingerprint = await this._generateFolderFingerprint(firstPath);
                         if (savedFingerprint !== currentFingerprint) {
-                            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed, will rescan", "", true, false);
-                            return false;
+                            postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Folder structure changed; cache may be stale", "", true, false);
+                            cache.needsRescan = true;
                         }
                     }
                 }
             } else if (!cacheData.folderFingerprint && !cacheData.isIncremental) {
                 postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Saved cache missing fingerprint (likely from failed scan), cache may be incomplete", "", false, false);
-            }
-            
-            // Check if we need to update the cache
-            const autoUpdate = getSettingSafely(MODULE.ID, 'tokenImageReplacementAutoUpdate', false);
-            const firstPath = currentBasePaths.length > 0 ? currentBasePaths[0] : null;
-            const needsUpdate = firstPath ? await this._checkForIncrementalUpdates(firstPath, mode) : false;
-            
-            if (needsUpdate && autoUpdate) {
-                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Changes detected, performing automatic incremental update`, "", false, false);
-                ui.notifications.info(`${modeLabel} Image Replacement changes detected: Performing incremental update.`);
-                // For incremental updates, process each path
-                for (const basePath of currentBasePaths) {
-                    await this._doIncrementalUpdate(basePath, mode);
-                }
-                return true; // Cache was updated, proceed with loaded cache
-            } else if (needsUpdate && !autoUpdate) {
-                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Changes detected, manual update needed`, "", false, true);
-                ui.notifications.info(`${modeLabel} Image Replacement changes detected. You should scan for images to get the latest images.`);
-                // Still load existing cache, just notify user
+                cache.needsRescan = true;
             }
             
             // Restore cache (handle both old and new compressed formats)
@@ -3387,6 +3358,8 @@ export class ImageCacheManager {
         const cacheSettingKey = this.getCacheSettingKey(mode);
         
         try {
+            const cache = this.getCache(mode);
+            let changeDetected = false;
             // Check if folder fingerprint changed (file system changes)
             const currentFingerprint = await this._generateFolderFingerprint(basePath);
             const savedCache = game.settings.get(MODULE.ID, cacheSettingKey);
@@ -3401,21 +3374,22 @@ export class ImageCacheManager {
                 const savedFingerprint = cacheData.folderFingerprint || cacheData.ff;
                 postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: DEBUG (_checkForIncrementalUpdates) - Comparing paths: cached="${cacheData.basePath || cacheData.bp}" vs current="${basePath}"`, "", true, false);
                 postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: DEBUG (_checkForIncrementalUpdates) - Comparing fingerprints: cached="${savedFingerprint}" vs current="${currentFingerprint}"`, "", true, false);
-                if (savedFingerprint !== currentFingerprint) {
-                    // Only start scan if auto-update is enabled
-                    const autoUpdate = getSettingSafely(MODULE.ID, 'tokenImageReplacementAutoUpdate', false);
-                    if (autoUpdate) {
-                        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Folder structure changed, performing incremental update...`, "", false, false);
-                        await this._doIncrementalUpdate(basePath, mode);
-                    } else {
-                        postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Folder structure changed, manual update needed`, "", false, true);
-                    }
+                if (savedFingerprint === 'error' || savedFingerprint === 'no-path') {
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Saved cache has invalid fingerprint (${savedFingerprint}); cache may need a rescan`, "", false, false);
+                    cache.needsRescan = true;
+                    changeDetected = true;
+                } else if (savedFingerprint !== currentFingerprint) {
+                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Folder structure changed; cache may be stale`, "", true, false);
+                    cache.needsRescan = true;
+                    changeDetected = true;
                 } else {
                     postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cache is up to date`, "", true, false);
                 }
             }
+            return changeDetected;
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Error checking for incremental updates: ${error.message}`, "", false, false);
+            return false;
         }
     }
 

@@ -3106,6 +3106,9 @@ export class TokenImageReplacementWindow extends Application {
                 notificationText += ` (${cache.completionData.ignoredFiles} files ignored)`;
             }
             this.notificationText = notificationText;
+        } else if (cache.needsRescan) {
+            this.notificationIcon = 'fas fa-info-circle';
+            this.notificationText = `${modeLabel} cache detected changes in your images. Consider rescanning to pick up the updates.`;
         } else if (cache.files.size === 0) {
             this.notificationIcon = 'fas fa-exclamation-triangle';
             this.notificationText = `No ${modeLabel.toLowerCase()} image cache found - Please scan for images.`;
