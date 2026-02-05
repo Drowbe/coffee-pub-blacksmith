@@ -260,6 +260,27 @@ export class BlacksmithAPI {
     }
 
     /**
+     * Deploy monsters/NPCs to the canvas (same logic as the journal encounter toolbar).
+     * Requires GM. Uses module deployment pattern/hidden settings unless overridden.
+     * @param {Object} metadata - { monsters?: Array<string|{uuid}>, npcs?: Array<string|{uuid}> } (UUIDs or objects with .uuid)
+     * @param {Object} [options] - deploymentPattern, deploymentHidden, position {x,y}, isAltHeld
+     * @returns {Promise<Array>} Created token documents
+     */
+    static deployMonsters(metadata, options = {}) {
+        return this.waitForReady().then(() => {
+            try {
+                const api = this._getAPI();
+                if (!api.deployMonsters) {
+                    throw new Error('Deploy monsters API not available');
+                }
+                return api.deployMonsters(metadata, options);
+            } catch (error) {
+                throw new Error(`Failed to deploy monsters: ${error.message}`);
+            }
+        });
+    }
+
+    /**
      * Check if Blacksmith is ready
      * @returns {boolean} True if ready
      */

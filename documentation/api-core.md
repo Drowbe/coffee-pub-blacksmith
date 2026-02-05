@@ -41,6 +41,7 @@ const utils = BlacksmithUtils;
 - **Canvas Layer API**: Access to BlacksmithLayer for canvas drawing and UI overlays (available after canvasReady)
 - **Socket API**: Unified socket management with SocketLib integration and native fallback (see `api-sockets.md`)
 - **Combat assessment API**: Party CR, monster CR, and encounter difficulty for the current canvas (same logic as the encounter toolbar)
+- **Monster deployment API**: Deploy monsters/NPCs to the canvas (same as journal encounter toolbar; GM only; supports UUIDs or metadata and optional position/pattern overrides)
 
 ## **Integration Philosophy**
 
@@ -2492,6 +2493,41 @@ blacksmith.calculateEncounterDifficulty(39, 8); // sync
 blacksmith.parseCR('1/2');    // => 0.5
 blacksmith.formatCR(0.5);     // => '1/2'
 ```
+
+---
+
+## **Monster deployment API**
+
+Other modules can deploy monsters/NPCs to the canvas using the same logic as the journal encounter toolbar (compendium or world actors, deployment pattern, hidden/visible). **GM only.**
+
+**Metadata shape:** `{ monsters?: Array<string|{uuid: string}>, npcs?: Array<string|{uuid: string}> }`. Each entry is an actor UUID string or an object with a `uuid` property (e.g. from encounter data).
+
+**Options (optional):** `deploymentPattern` (e.g. `"circle"`, `"line"`, `"scatter"`, `"grid"`, `"sequential"`), `deploymentHidden` (boolean), `position` `{ x, y }` (scene coordinates; skips the “click to place” step), `isAltHeld` (when using `position`).
+
+**Bridge (async):**
+
+```javascript
+const metadata = {
+    monsters: ['Compendium.dnd5e.monsters.ActorId1', 'Compendium.dnd5e.monsters.ActorId2'],
+    npcs: []   // optional
+};
+const tokens = await BlacksmithAPI.deployMonsters(metadata);
+// With overrides (e.g. deploy at position without clicking):
+const tokensAt = await BlacksmithAPI.deployMonsters(metadata, {
+    position: { x: 1200, y: 800 },
+    deploymentPattern: 'circle',
+    deploymentHidden: false
+});
+```
+
+**Direct API (sync after ready):**
+
+```javascript
+const blacksmith = await BlacksmithAPI.get();
+const tokens = await blacksmith.deployMonsters(metadata, options);
+```
+
+When `position` is not provided, the user is prompted to click on the canvas to choose the placement point (same as the toolbar). Compendium actors are created as world actors in the configured encounter folder before token creation.
 
 ---
 

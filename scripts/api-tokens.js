@@ -329,8 +329,20 @@ export function getDeploymentPatternName(pattern) {
 }
 
 /**
+ * Normalize actor list to array of UUID strings (accepts UUID strings or objects with .uuid).
+ * @param {Array<string|{uuid: string}>} actorUUIDs - Array of UUIDs or objects with uuid property
+ * @returns {string[]} Array of UUID strings
+ */
+export function normalizeActorUUIDs(actorUUIDs) {
+    if (!Array.isArray(actorUUIDs) || actorUUIDs.length === 0) return [];
+    return actorUUIDs
+        .map(item => (typeof item === 'string' ? item : item?.uuid ?? item))
+        .filter(Boolean);
+}
+
+/**
  * Deploy tokens to the canvas
- * @param {string[]} actorUUIDs - Array of actor UUIDs to deploy
+ * @param {string[]|Array<{uuid: string}>} actorUUIDs - Array of actor UUIDs (or objects with .uuid) to deploy
  * @param {Object} options - Deployment options
  * @param {string} options.deploymentPattern - Pattern: "circle", "line", "scatter", "grid", "sequential"
  * @param {boolean} options.deploymentHidden - Whether tokens should be hidden
@@ -347,11 +359,12 @@ export async function deployTokens(actorUUIDs, options = {}) {
     if (!game.user.isGM) {
         return [];
     }
-    
-    if (!actorUUIDs || actorUUIDs.length === 0) {
+
+    actorUUIDs = normalizeActorUUIDs(actorUUIDs);
+    if (actorUUIDs.length === 0) {
         return [];
     }
-    
+
     const deploymentPattern = options.deploymentPattern || "line";
     const deploymentHidden = options.deploymentHidden || false;
     
@@ -608,11 +621,12 @@ export async function deployTokensSequential(actorUUIDs, options = {}) {
     if (!game.user.isGM) {
         return [];
     }
-    
-    if (!actorUUIDs || actorUUIDs.length === 0) {
+
+    actorUUIDs = normalizeActorUUIDs(actorUUIDs);
+    if (actorUUIDs.length === 0) {
         return [];
     }
-    
+
     // Validate we have a scene
     if (!canvas.scene) {
         postConsoleAndNotification(MODULE.NAME, "Token API: No active scene for deployment", "", false, false);

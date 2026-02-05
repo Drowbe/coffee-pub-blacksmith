@@ -1145,25 +1145,35 @@ export class EncounterToolbar {
         });
     }
 
-    static async _deployMonsters(metadata) {
+    /**
+     * Public API: Deploy monsters/NPCs to the canvas (same logic as the journal toolbar).
+     * @param {Object} metadata - Encounter data: { monsters?: Array<string|{uuid: string, name?, cr?, portrait?}>, npcs?: Array<...> }
+     * @param {Object} [options] - Overrides: deploymentPattern, deploymentHidden, position {x,y} (skips click), sceneId (future)
+     * @returns {Promise<Array>} Created token documents
+     */
+    static async deployMonsters(metadata, options = {}) {
+        return this._deployMonsters(metadata, options);
+    }
+
+    static async _deployMonsters(metadata, overrides = {}) {
         // Check if user has permission to create tokens
         if (!game.user.isGM) {
             return [];
         }
-        
+
         // Combine monsters and NPCs for deployment
         const allTokens = [...(metadata.monsters || []), ...(metadata.npcs || [])];
-        
+
         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment - monsters array", metadata.monsters || [], true, false);
         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment - npcs array", metadata.npcs || [], true, false);
         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment - combined allTokens", allTokens, true, false);
-        
+
         if (allTokens.length === 0) {
             return [];
         }
 
-        // Get the deployment pattern setting
-        const deploymentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
+        // Deployment pattern and visibility: overrides or module settings
+        const deploymentPattern = overrides.deploymentPattern ?? game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
         postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment pattern", deploymentPattern, true, false);
 
         // Handle sequential deployment (now uses shared API)
@@ -1216,17 +1226,17 @@ export class EncounterToolbar {
                 `;
             };
             
-            const deploymentHidden = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden');
-            
+            const deploymentHidden = overrides.deploymentHidden ?? game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden');
+
             return await deployTokensSequential(allTokens, {
-                deploymentHidden: deploymentHidden,
-                onActorPrepared: onActorPrepared,
-                getTooltipContent: getTooltipContent
+                deploymentHidden,
+                onActorPrepared,
+                getTooltipContent
             });
         }
-        
+
         // Use shared deployment API for non-sequential deployments
-        const deploymentHidden = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden');
+        const deploymentHidden = overrides.deploymentHidden ?? game.settings.get(MODULE.ID, 'encounterToolbarDeploymentHidden');
         const isSingleToken = allTokens.length === 1;
         
         // Custom tooltip content function
@@ -1300,14 +1310,19 @@ export class EncounterToolbar {
             return worldActor;
         };
         
-        // Deploy using shared API
-        const deployedTokens = await deployTokens(allTokens, {
-            deploymentPattern: deploymentPattern,
-            deploymentHidden: deploymentHidden,
+        // Deploy using shared API (optionally use provided position to skip click)
+        const deployOptions = {
+            deploymentPattern,
+            deploymentHidden,
             getTooltipContent: getTooltipContent,
             onActorPrepared: onActorPrepared
-        });
-        
+        };
+        if (overrides.position != null) {
+            deployOptions.position = overrides.position;
+            deployOptions.isAltHeld = overrides.isAltHeld ?? false;
+        }
+        const deployedTokens = await deployTokens(allTokens, deployOptions);
+
         return deployedTokens;
     }
 

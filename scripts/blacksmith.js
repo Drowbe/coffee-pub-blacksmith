@@ -61,6 +61,7 @@ import { CombatTracker } from './combat-tracker.js';
 import { LatencyChecker } from './latency-checker.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
 import { JournalTools } from './journal-tools.js';
+import { JournalPagePins } from './journal-page-pins.js';
 import { CSSEditor } from './window-gmtools.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
 import { XpManager } from './xp-manager.js';
@@ -435,6 +436,10 @@ Hooks.once('ready', async () => {
         // JOURNAL TOOLS
         LoadingProgressManager.logActivity("Initializing journal tools...");
         JournalTools.init();
+        
+        // JOURNAL PAGE PINS
+        LoadingProgressManager.logActivity("Enabling journal page pins...");
+        JournalPagePins.init();
         
         // ENCOUNTER TOOLBAR
         LoadingProgressManager.logActivity("Setting up encounter toolbar...");
@@ -1069,6 +1074,9 @@ Hooks.once('init', async function() {
         getCombatAssessment: EncounterToolbar.getCombatAssessment.bind(EncounterToolbar),
         parseCR: EncounterToolbar.parseCR.bind(EncounterToolbar),
         formatCR: EncounterToolbar.formatCR.bind(EncounterToolbar),
+
+        // ✅ Monster deployment API (same as journal encounter toolbar)
+        deployMonsters: EncounterToolbar.deployMonsters.bind(EncounterToolbar),
 
         // ✅ NEW: Socket API for external modules (set after SocketManager initializes)
         sockets: null
