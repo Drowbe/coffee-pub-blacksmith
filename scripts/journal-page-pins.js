@@ -13,6 +13,12 @@ export class JournalPagePins {
     static init() {
         this._registerPinType();
         this._registerHooks();
+        this._registerPinEvents();
+
+        // If the game is already ready (late load / hot reload), run ready tasks now
+        if (game?.ready) {
+            this._afterReady();
+        }
     }
 
     static _registerPinType() {
@@ -34,6 +40,13 @@ export class JournalPagePins {
         // Fallback direct registration in case HookManager is bypassed
         Hooks.on('renderJournalSheet', (app, html, data) => this._onRenderSheet(app, html, data));
         Hooks.on('renderJournalPageSheet', (app, html, data) => this._onRenderSheet(app, html, data));
+        Hooks.on('renderApplication', (app, html, data) => {
+            const name = app?.constructor?.name || '';
+            if (name.includes('Journal') || app?.document?.documentName === 'JournalEntry' || app?.document?.documentName === 'JournalEntryPage') {
+                this._onRenderSheet(app, html, data);
+            }
+        });
+        Hooks.once('ready', () => this._afterReady());
 
         HookManager.registerHook({
             name: 'renderJournalSheet',
@@ -50,6 +63,38 @@ export class JournalPagePins {
             priority: 3,
             callback: this._onRenderSheet.bind(this)
         });
+    }
+
+    static _registerPinEvents() {
+        Hooks.once('ready', () => {
+            const pins = this._getPinsApi();
+            if (!pins?.isAvailable?.()) return;
+            pins.on('doubleClick', async (evt) => {
+                try {
+                    const pageUuid = evt?.pin?.config?.journalPageUuid;
+                    if (!pageUuid) return;
+                    const page = await fromUuid(pageUuid);
+                    if (!page) return;
+                    const sheet = page.sheet ?? page?.parent?.sheet;
+                    if (sheet?.render) sheet.render(true);
+                } catch (err) {
+                    console.error('[Blacksmith] JournalPagePins: error opening page on doubleClick', err);
+                }
+            }, { moduleId: MODULE.ID, type: this.PIN_TYPE });
+        });
+    }
+
+    static _afterReady() {
+        // Late-pass: process any already-open journal windows
+        setTimeout(() => this._processOpenSheets(), 300);
+        this._setupDomObserver();
+        // Periodic safety scan (last resort)
+        if (!this._intervalId) {
+            this._intervalId = setInterval(() => this._scanUiWindows(), 2000);
+        }
+        // Immediate scan now
+        this._scanUiWindows();
+        console.log('[Blacksmith] JournalPagePins: ready tasks completed');
     }
 
     static _onRenderSheet(app, html) {
@@ -70,6 +115,82 @@ export class JournalPagePins {
         this._injectButton(root, page);
         // Re-run shortly after render in case other modules mutate the header
         setTimeout(() => this._injectButton(root, page), 200);
+    }
+
+    static _processOpenSheets() {
+        const nodes = document.querySelectorAll('.journal-sheet, .journal-entry');
+        nodes.forEach((node) => {
+            this._onRenderSheet(null, node, {});
+        });
+        // Kick an immediate window scan too
+        this._scanUiWindows();
+    }
+
+    static _scanUiWindows() {
+        if (!ui?.windows) return;
+        for (const win of Object.values(ui.windows)) {
+            const name = win?.constructor?.name || '';
+            if (name.includes('Journal')) {
+                const el = win.element?.length ? win.element[0] : win.element;
+                if (el) {
+                    console.log('[Blacksmith] JournalPagePins: scanning window', name);
+                    this._onRenderSheet(win, el, {});
+                }
+            }
+        }
+    }
+
+    static _setupDomObserver() {
+        if (this._domObserver) return;
+        this._domObserver = new MutationObserver((mutations) => {
+            for (const m of mutations) {
+                for (const node of m.addedNodes) {
+                    this._processNode(node);
+                }
+            }
+        });
+        this._domObserver.observe(document.body, { childList: true, subtree: true });
+    }
+
+    static _processNode(node) {
+        if (!(node instanceof HTMLElement)) return;
+        const headers = node.matches('.window-header')
+            ? [node]
+            : Array.from(node.querySelectorAll('.window-header'));
+        headers.forEach((header) => {
+            const page = this._resolvePageFromDom(header);
+            if (page) {
+                this._injectButton(header.closest('.journal-sheet, .journal-entry') || header.parentElement || header, page);
+            } else {
+                console.log('[Blacksmith] JournalPagePins: header found but page not resolved', header.className);
+            }
+        });
+    }
+
+    static _resolvePageFromDom(header) {
+        const form = header.closest('.journal-sheet, .journal-entry, form');
+        const docId = form?.dataset?.entryId || form?.dataset?.documentId || form?.dataset?.id || null;
+        let pageId = form?.dataset?.pageId || form?.dataset?.pageid || header?.dataset?.pageId || null;
+        if (!pageId) {
+            const pageNode = (form || header.closest('.journal-page'))?.querySelector('[data-page-id], [data-pageid]');
+            pageId = pageNode?.dataset?.pageId || pageNode?.dataset?.pageid || null;
+        }
+
+        // Page sheets often have data-page-id on the article element
+        if (!docId && !pageId) return null;
+
+        let journal = docId ? game.journal?.get(docId) : null;
+
+        if (pageId) {
+            if (journal?.pages?.get(pageId)) return journal.pages.get(pageId);
+            // Fallback: search all journals for the page
+            for (const j of game.journal.contents) {
+                const p = j.pages?.get(pageId);
+                if (p) return p;
+            }
+        }
+
+        return null;
     }
 
     static _normalizeHtml(html, app) {
@@ -132,9 +253,14 @@ export class JournalPagePins {
             this._beginPlacement(page);
         });
 
-        const closeButton = header.querySelector('.header-button.close, .header-control.close, button.close, a.close');
-        if (closeButton) closeButton.insertAdjacentElement('beforebegin', button);
-        else header.appendChild(button);
+        const closeButton = header.querySelector('[data-action="close"], .header-button.close, .header-control.close, button.close, a.close, i.fa-xmark');
+        if (closeButton?.parentElement === header) {
+            closeButton.insertAdjacentElement('beforebegin', button);
+        } else if (closeButton) {
+            closeButton.closest('button, a')?.insertAdjacentElement('beforebegin', button);
+        } else {
+            header.appendChild(button);
+        }
 
         console.log('[Blacksmith] JournalPagePins: button injected', { page: page.id, headerClass: header.className });
     }

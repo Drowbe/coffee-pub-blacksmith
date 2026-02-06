@@ -43,18 +43,19 @@
     filter: var(--blacksmith-pin-drop-shadow);
 }
 
+
+/* GM ONLY INDICATOR */
 .blacksmith-pin[data-gm-hidden="true"]::after {
-    content: "\f521"; /* fa-crown */
-    font-family: "Font Awesome 6 Free";
+    content: "GM";
     font-weight: 900;
     position: absolute;
-    top: -8px;
-    right: -8px;
-    width: 18px;
-    height: 18px;
+    top: -11px;
+    right: -11px;
+    width: 22px;
+    height: 22px;
     display: grid;
     place-items: center;
-    font-size: 10px;
+    font-size: .5em;
     color: #f4d06f;
     background: rgba(20, 16, 10, 0.9);
     border: 1px solid rgba(244, 208, 111, 0.8);
@@ -63,6 +64,11 @@
     pointer-events: none;
     z-index: 5;
 }
+
+
+
+
+/* Hide GM crown badge for Blacksmith journal-page pins (not needed for players) */
 
 /* Pin without drop shadow */
 .blacksmith-pin[data-no-shadow="true"] {

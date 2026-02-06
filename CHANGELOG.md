@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.2.6]
+
+### Added
+- **Monster deployment API**: Encounter toolbar’s monster/NPC deployment is exposed so other modules can deploy to the canvas (GM only). `module.api.deployMonsters(metadata, options)` and `BlacksmithAPI.deployMonsters(metadata, options)` accept `metadata`: `{ monsters?: Array<string|{uuid}>, npcs?: Array<...> }` and optional `options`: `deploymentPattern`, `deploymentHidden`, `position` `{ x, y }` (skips click-to-place), `isAltHeld`. Encounter toolbar: public `deployMonsters(metadata, options)` and `_deployMonsters(metadata, overrides)` with overrides for pattern, hidden, and position. Token API: `normalizeActorUUIDs(actorUUIDs)` and `deployTokens` / `deployTokensSequential` now accept UUID strings or objects with `.uuid`. Documentation: `api-core.md` “Monster deployment API” section and “Available now” bullet.
+- **Journal page pins**: Journal page sheets now get a “Pin page” header control (with hook + MutationObserver fallback) that creates or reuses an unplaced Blacksmith pin of type `journal-page`, enters click-to-place mode with crosshair cursor (Esc/right-click to cancel), reloads pins after placement, and stores `pinId`/`sceneId` on the page. Double-clicking a placed journal-page pin opens its linked journal page.
+
 ## [13.2.5]
 
 ### Added
