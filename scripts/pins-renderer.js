@@ -419,11 +419,12 @@ class PinDOMElement {
                 console.warn(`BLACKSMITH | PINS updatePosition: Invalid screen coordinates for ${pinId}`);
             }
             
-            // Set position and size
+            // Set position and size (--pin-size-px used by GM badge so it scales with pin)
             pinElement.style.left = `${left}px`;
             pinElement.style.top = `${top}px`;
             pinElement.style.width = `${width}px`;
             pinElement.style.height = `${height}px`;
+            pinElement.style.setProperty('--pin-size-px', `${width}px`);
             
             // Update icon size
             const iconElement = pinElement.querySelector('.blacksmith-pin-icon');

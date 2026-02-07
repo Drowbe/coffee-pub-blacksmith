@@ -44,27 +44,37 @@
 }
 
 
-/* GM ONLY INDICATOR */
+
+
+/* GM ONLY INDICATOR - scales with pin (uses --pin-size-px set by renderer on each pin) */
 .blacksmith-pin[data-gm-hidden="true"]::after {
     content: "GM";
     font-weight: 900;
     position: absolute;
-    top: -11px;
-    right: -11px;
-    width: 22px;
-    height: 22px;
+    --gm-badge-size: calc(var(--pin-size-px, 53px) * 0.38);
+    top: calc(var(--gm-badge-size) * -0.5);
+    right: calc(var(--gm-badge-size) * -0.5);
+    width: var(--gm-badge-size);
+    height: var(--gm-badge-size);
+    /* min-width: 14px;
+    min-height: 14px;
+    max-width: 28px;
+    max-height: 28px; */
     display: grid;
     place-items: center;
-    font-size: .5em;
+    font-size: calc(var(--gm-badge-size) * 0.48);
+    line-height: 1;
+    letter-spacing: -0.02em;
     color: #f4d06f;
     background: rgba(20, 16, 10, 0.9);
-    border: 1px solid rgba(244, 208, 111, 0.8);
-    border-radius: 999px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgba(244, 208, 111, 0.8);
+    border-radius: 50%;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
     pointer-events: none;
     z-index: 5;
 }
-
 
 
 
@@ -305,6 +315,11 @@
     visibility: hidden;
     opacity: 0;
 }
+
+
+
+
+
 
 /* ========================================
    PIN ANIMATIONS (ping system)
