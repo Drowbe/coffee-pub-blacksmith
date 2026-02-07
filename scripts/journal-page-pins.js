@@ -66,22 +66,68 @@ export class JournalPagePins {
     }
 
     static _registerPinEvents() {
-        Hooks.once('ready', () => {
-            const pins = this._getPinsApi();
-            if (!pins?.isAvailable?.()) return;
-            pins.on('doubleClick', async (evt) => {
-                try {
-                    const pageUuid = evt?.pin?.config?.journalPageUuid;
-                    if (!pageUuid) return;
-                    const page = await fromUuid(pageUuid);
-                    if (!page) return;
-                    const sheet = page.sheet ?? page?.parent?.sheet;
-                    if (sheet?.render) sheet.render(true);
-                } catch (err) {
-                    console.error('[Blacksmith] JournalPagePins: error opening page on doubleClick', err);
+        // Register with PinManager directly so we don't depend on module.api.pins being set
+        // (Blacksmith assigns module.api after JournalPagePins.init() in the same ready callback).
+        PinManager.registerHandler('doubleClick', async (evt) => {
+            try {
+                postConsoleAndNotification(MODULE.NAME, 'Journal page pin: doubleClick received', { type: evt?.pin?.config?.type, journalPageUuid: evt?.pin?.config?.journalPageUuid, pinId: evt?.pin?.id }, true, false);
+                const pageUuid = evt?.pin?.config?.journalPageUuid;
+                if (!pageUuid) {
+                    postConsoleAndNotification(MODULE.NAME, 'Journal page pin: no journalPageUuid in pin config', evt?.pin?.config, true, false);
+                    return;
                 }
-            }, { moduleId: MODULE.ID, type: this.PIN_TYPE });
-        });
+                const page = await fromUuid(pageUuid);
+                if (!page) {
+                    postConsoleAndNotification(MODULE.NAME, 'Journal page pin: fromUuid returned null', pageUuid, true, false);
+                    return;
+                }
+                postConsoleAndNotification(MODULE.NAME, 'Journal page pin: opening journal page', { journal: page.parent?.name, pageId: page.id }, true, false);
+                this._viewJournalPage(page.parent, page.id);
+            } catch (err) {
+                postConsoleAndNotification(MODULE.NAME, 'Journal page pin: error on doubleClick', err?.message || err, false, true);
+            }
+        }, { moduleId: MODULE.ID });
+    }
+
+    /**
+     * Open the journal and show the given page (not just the journal).
+     * @param {JournalEntry} journal - The journal entry
+     * @param {string} pageId - The page ID to view
+     */
+    static _viewJournalPage(journal, pageId) {
+        postConsoleAndNotification(MODULE.NAME, 'Journal page pin: _viewJournalPage called', { journal: journal?.name, pageId }, true, false);
+        if (!journal || !pageId) {
+            postConsoleAndNotification(MODULE.NAME, 'Journal page pin: _viewJournalPage early return (missing journal or pageId)', null, true, false);
+            return;
+        }
+        const sheet = journal.sheet;
+        if (typeof journal.show === 'function') {
+            try {
+                postConsoleAndNotification(MODULE.NAME, 'Journal page pin: using journal.show({ pageId, force: true })', pageId, true, false);
+                journal.show({ pageId, force: true });
+                return;
+            } catch (e) {
+                postConsoleAndNotification(MODULE.NAME, 'Journal page pin: journal.show failed', e?.message || e, true, false);
+            }
+        }
+        if (sheet && typeof sheet.viewPage === 'function') {
+            try {
+                postConsoleAndNotification(MODULE.NAME, 'Journal page pin: using sheet.viewPage', pageId, true, false);
+                if (!sheet.rendered) sheet.render(true);
+                sheet.viewPage(pageId);
+                return;
+            } catch (e) {
+                postConsoleAndNotification(MODULE.NAME, 'Journal page pin: sheet.viewPage failed', e?.message || e, true, false);
+            }
+        }
+        const page = journal.pages?.get(pageId);
+        if (page?.sheet) {
+            postConsoleAndNotification(MODULE.NAME, 'Journal page pin: using page.sheet.render', pageId, true, false);
+            page.sheet.render(true);
+            return;
+        }
+        postConsoleAndNotification(MODULE.NAME, 'Journal page pin: fallback sheet.render(true)', null, true, false);
+        if (sheet?.render) sheet.render(true);
     }
 
     static _afterReady() {
