@@ -296,7 +296,7 @@ export class JournalPagePins {
                 return;
             }
 
-            await this._enterPlacementMode({ pinId, page, pins, currentSceneId: sceneId });
+            await this._enterPlacementMode({ pinId, page, pins, pin, currentSceneId: sceneId });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Journal Page Pins: Error starting placement', error?.message || error, false, true);
             ui.notifications.error(`Pin placement failed: ${error?.message || error}`);
@@ -348,7 +348,7 @@ export class JournalPagePins {
         return { pinId, pin, sceneId };
     }
 
-    static async _enterPlacementMode({ pinId, page, pins, currentSceneId }) {
+    static async _enterPlacementMode({ pinId, page, pins, pin, currentSceneId }) {
         if (this._cleanupPlacement) {
             this._cleanupPlacement();
             this._cleanupPlacement = null;
@@ -356,7 +356,18 @@ export class JournalPagePins {
 
         const originalCursor = canvas.stage.cursor;
         canvas.stage.cursor = 'crosshair';
+        const canvasEl = document.getElementById('board') || canvas.app?.element;
+        const originalCanvasCursor = canvasEl?.style?.cursor;
+        if (canvasEl) canvasEl.style.cursor = 'crosshair';
         document.body.classList.add(this.PLACEMENT_CLASS);
+
+        const overlay = document.getElementById('blacksmith-pins-overlay');
+        const preview = overlay ? this._createPlacementPreview(pin) : null;
+        if (preview && overlay) {
+            overlay.appendChild(preview);
+            preview.style.pointerEvents = 'none';
+            preview.classList.add('blacksmith-pin-placement-preview');
+        }
 
         const cancelPlacement = () => {
             cleanup();
@@ -367,6 +378,17 @@ export class JournalPagePins {
             if (event.key === 'Escape') {
                 cancelPlacement();
             }
+        };
+
+        const onPointerMove = (event) => {
+            if (!preview) return;
+            const oe = event.data?.originalEvent;
+            const clientX = oe?.clientX ?? 0;
+            const clientY = oe?.clientY ?? 0;
+            const w = preview.offsetWidth || 46;
+            const h = preview.offsetHeight || 46;
+            preview.style.left = `${clientX - w / 2}px`;
+            preview.style.top = `${clientY - h / 2}px`;
         };
 
         const onPointerDown = async (event) => {
@@ -413,15 +435,60 @@ export class JournalPagePins {
 
         const cleanup = () => {
             canvas.stage.off('pointerdown', onPointerDown);
+            canvas.stage.off('pointermove', onPointerMove);
             document.removeEventListener('keydown', onKeyDown);
             canvas.stage.cursor = originalCursor || 'default';
+            if (canvasEl) canvasEl.style.cursor = originalCanvasCursor ?? '';
             document.body.classList.remove(this.PLACEMENT_CLASS);
+            if (preview?.parentElement) preview.remove();
             this._cleanupPlacement = null;
         };
 
         canvas.stage.on('pointerdown', onPointerDown);
+        canvas.stage.on('pointermove', onPointerMove);
         document.addEventListener('keydown', onKeyDown);
         this._cleanupPlacement = cleanup;
+    }
+
+    static _createPlacementPreview(pin) {
+        const scale = canvas.stage?.scale?.x ?? 1;
+        const size = Math.round((pin.size?.w ?? 46) * scale);
+        const style = pin.style || {};
+        const shape = pin.shape || 'circle';
+        const fillColor = style.fill || '#1f3a4d';
+        const strokeColor = style.stroke || '#5fb3ff';
+        const strokeWidth = typeof style.strokeWidth === 'number' ? style.strokeWidth : 2;
+        const iconColor = style.iconColor || '#ffffff';
+
+        const el = document.createElement('div');
+        el.className = 'blacksmith-pin';
+        el.dataset.shape = shape;
+        el.style.position = 'absolute';
+        el.style.width = `${size}px`;
+        el.style.height = `${size}px`;
+        el.style.backgroundColor = fillColor;
+        el.style.border = `${strokeWidth}px solid ${strokeColor}`;
+        el.style.borderRadius = shape === 'circle' ? '50%' : '15%';
+        el.style.opacity = '0.9';
+        el.style.left = '-9999px';
+        el.style.top = '-9999px';
+
+        const icon = document.createElement('div');
+        icon.className = 'blacksmith-pin-icon';
+        icon.dataset.iconType = pin.iconText ? 'text' : 'fa';
+        if (pin.iconText) {
+            icon.textContent = String(pin.iconText).trim();
+            icon.style.color = iconColor;
+        } else {
+            const img = pin.image ?? '<i class="fa-solid fa-book-open"></i>';
+            icon.innerHTML = typeof img === 'string' && img.includes('<i ') ? img : `<i class="fa-solid fa-map-pin"></i>`;
+            const i = icon.querySelector('i');
+            if (i) i.style.color = iconColor;
+        }
+        icon.style.fontSize = `${Math.round(size * 0.6)}px`;
+        el.appendChild(icon);
+
+        return el;
     }
 
     static _getPinsApi() {

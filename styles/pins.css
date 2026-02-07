@@ -76,7 +76,11 @@
     z-index: 5;
 }
 
-
+/* Placement preview: follows cursor during pin place, drawn on top */
+.blacksmith-pin-placement-preview {
+    pointer-events: none;
+    z-index: 9999;
+}
 
 /* Hide GM crown badge for Blacksmith journal-page pins (not needed for players) */
 
