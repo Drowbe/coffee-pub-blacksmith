@@ -5,7 +5,7 @@ import { HookManager } from './manager-hooks.js';
 import { PinManager } from './manager-pins.js';
 
 export class JournalPagePins {
-    static PIN_TYPE = 'journal-collection';
+    static PIN_TYPE = 'journal-page';
     static BUTTON_CLASS = 'journal-page-pin-button';
     static PLACEMENT_CLASS = 'journal-page-pin-placement-mode';
     static _cleanupPlacement = null;
@@ -24,19 +24,19 @@ export class JournalPagePins {
     static _registerPinType() {
         const pins = this._getPinsApi();
         if (pins?.isAvailable?.()) {
-            pins.registerPinType(MODULE.ID, this.PIN_TYPE, 'Journal');
+            pins.registerPinType(MODULE.ID, this.PIN_TYPE, 'Journal Page');
             return;
         }
         Hooks.once('ready', () => {
             const readyPins = this._getPinsApi();
             if (readyPins?.isAvailable?.()) {
-                readyPins.registerPinType(MODULE.ID, this.PIN_TYPE, 'Journal');
+                readyPins.registerPinType(MODULE.ID, this.PIN_TYPE, 'Journal Page');
             }
         });
     }
 
     static _registerHooks() {
-        console.log('[Blacksmith] JournalPagePins: registering hooks');
+        postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: registering hooks', null, true, false);
         // Fallback direct registration in case HookManager is bypassed
         Hooks.on('renderJournalSheet', (app, html, data) => this._onRenderSheet(app, html, data));
         Hooks.on('renderJournalPageSheet', (app, html, data) => this._onRenderSheet(app, html, data));
@@ -67,64 +67,73 @@ export class JournalPagePins {
 
     static _registerPinEvents() {
         // Register with PinManager directly so we don't depend on module.api.pins being set
-        // (Blacksmith assigns module.api after JournalPagePins.init() in the same ready callback).
         PinManager.registerHandler('doubleClick', async (evt) => {
             try {
-                const journalUuid = evt?.pin?.config?.journalUuid;
-                if (!journalUuid) return;
-                const journal = await fromUuid(journalUuid);
-                if (!journal) return;
-                this._viewJournal(journal);
+                const pageUuid = evt?.pin?.config?.journalPageUuid;
+                if (!pageUuid) return;
+                const page = await fromUuid(pageUuid);
+                if (!page) return;
+                this._viewJournalPage(page.parent, page.id);
             } catch (err) {
-                postConsoleAndNotification(MODULE.NAME, 'Journal pin: error on doubleClick', err?.message || err, false, true);
+                postConsoleAndNotification(MODULE.NAME, 'Journal page pin: error on doubleClick', err?.message || err, false, true);
             }
         }, { moduleId: MODULE.ID });
     }
 
     /**
-     * Open the journal (let the system show it; no specific page).
-     * @param {JournalEntry} journal - The journal entry
+     * Open the journal and show the given page (not just the journal).
      */
-    static _viewJournal(journal) {
-        if (!journal) return;
+    static _viewJournalPage(journal, pageId) {
+        if (!journal || !pageId) return;
+        const sheet = journal.sheet;
         if (typeof journal.show === 'function') {
             try {
-                journal.show({ force: true });
+                journal.show({ pageId, force: true });
                 return;
             } catch (e) { /* fall through */ }
         }
-        const sheet = journal.sheet;
+        if (sheet && typeof sheet.viewPage === 'function') {
+            try {
+                if (!sheet.rendered) sheet.render(true);
+                sheet.viewPage(pageId);
+                return;
+            } catch (e) { /* fall through */ }
+        }
+        const page = journal.pages?.get(pageId);
+        if (page?.sheet) {
+            page.sheet.render(true);
+            return;
+        }
         if (sheet?.render) sheet.render(true);
     }
 
     static _afterReady() {
-        // Late-pass: process any already-open journal windows
         setTimeout(() => this._processOpenSheets(), 300);
         this._setupDomObserver();
-        // Periodic safety scan (last resort)
         if (!this._intervalId) {
             this._intervalId = setInterval(() => this._scanUiWindows(), 2000);
         }
-        // Immediate scan now
         this._scanUiWindows();
-        console.log('[Blacksmith] JournalPagePins: ready tasks completed');
+        postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: ready tasks completed', null, true, false);
     }
 
     static _onRenderSheet(app, html) {
-        let root = this._normalizeHtml(html, app);
-        if (!root) return;
-        // When hook passes only the page (article), use the full sheet so we find the header (AppV2 uses form.application)
-        if (root.closest) {
-            const sheet = root.closest('.journal-sheet, .journal-entry, form.application');
-            if (sheet) root = sheet;
+        postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: render hook fired', app?.constructor?.name, true, false);
+        const root = this._normalizeHtml(html, app);
+        if (!root) {
+            postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: no root element', app?.constructor?.name, true, false);
+            return;
         }
         if (this._isEditMode(root)) return;
 
-        const journal = this._resolveJournal(app, root);
-        if (!journal) return;
+        const page = this._resolvePage(app, root);
+        if (!page) {
+            postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: no page resolved', app?.constructor?.name, true, false);
+            return;
+        }
 
-        this._injectButton(root, journal);
-        setTimeout(() => this._injectButton(root, journal), 200);
+        this._injectButton(root, page);
+        setTimeout(() => this._injectButton(root, page), 200);
     }
 
     static _processOpenSheets() {
@@ -132,7 +141,6 @@ export class JournalPagePins {
         nodes.forEach((node) => {
             this._onRenderSheet(null, node, {});
         });
-        // Kick an immediate window scan too
         this._scanUiWindows();
     }
 
@@ -143,7 +151,7 @@ export class JournalPagePins {
             if (name.includes('Journal')) {
                 const el = win.element?.length ? win.element[0] : win.element;
                 if (el) {
-                    console.log('[Blacksmith] JournalPagePins: scanning window', name);
+                    postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: scanning window', name, true, false);
                     this._onRenderSheet(win, el, {});
                 }
             }
@@ -168,30 +176,11 @@ export class JournalPagePins {
             ? [node]
             : Array.from(node.querySelectorAll('.window-header'));
         headers.forEach((header) => {
-            const sheet = header.closest('.journal-sheet, .journal-entry') || header.parentElement || header;
-            const journal = this._resolveJournalFromDom(sheet);
-            if (journal) {
-                this._injectButton(sheet, journal);
+            const page = this._resolvePageFromDom(header);
+            if (page) {
+                this._injectButton(header.closest('.journal-sheet, .journal-entry') || header.parentElement || header, page);
             }
         });
-    }
-
-    static _resolveJournal(app, root) {
-        const doc = app?.document ?? app?.object ?? null;
-        if (doc?.documentName === 'JournalEntry') return doc;
-        if (doc?.documentName === 'JournalEntryPage' && doc?.parent) return doc.parent;
-        const form = root?.closest?.('.journal-sheet, .journal-entry') || root;
-        const docId = form?.dataset?.documentId || form?.dataset?.entryId || form?.dataset?.id || null;
-        if (docId && game.journal?.get) return game.journal.get(docId) || null;
-        return null;
-    }
-
-    static _resolveJournalFromDom(sheet) {
-        if (!sheet) return null;
-        const form = sheet.matches?.('.journal-sheet, .journal-entry') ? sheet : sheet.closest?.('.journal-sheet, .journal-entry') || sheet;
-        const docId = form?.dataset?.documentId || form?.dataset?.entryId || form?.dataset?.id || null;
-        if (!docId || !game.journal?.get) return null;
-        return game.journal.get(docId) || null;
     }
 
     static _resolvePageFromDom(header) {
@@ -202,21 +191,16 @@ export class JournalPagePins {
             const pageNode = (form || header.closest('.journal-page'))?.querySelector('[data-page-id], [data-pageid]');
             pageId = pageNode?.dataset?.pageId || pageNode?.dataset?.pageid || null;
         }
-
-        // Page sheets often have data-page-id on the article element
         if (!docId && !pageId) return null;
 
         let journal = docId ? game.journal?.get(docId) : null;
-
         if (pageId) {
             if (journal?.pages?.get(pageId)) return journal.pages.get(pageId);
-            // Fallback: search all journals for the page
             for (const j of game.journal.contents) {
                 const p = j.pages?.get(pageId);
                 if (p) return p;
             }
         }
-
         return null;
     }
 
@@ -226,31 +210,18 @@ export class JournalPagePins {
             if (el?.length) return el[0];
             return null;
         }
-        // native HTMLElement
         if (html instanceof HTMLElement) return html;
-        // jQuery-like
         if (html[0] instanceof HTMLElement) return html[0];
         if (html.jquery || typeof html.find === 'function') {
             const el = html[0] || html.get?.(0);
             if (el instanceof HTMLElement) return el;
         }
-        // DocumentFragment
         if (html instanceof DocumentFragment) return html;
         return null;
     }
 
     static _isEditMode(root) {
-        const appEl = root.closest?.('form.application') ?? root;
-
-        // Common AppV2 signals
-        if (appEl?.classList?.contains('editable')) return true;
-        if (appEl?.dataset?.mode === 'edit') return true;
-
-        // Classic sheets sometimes mark editing like this
-        if (appEl?.classList?.contains('editing')) return true;
-
-        // Fallback: an actual editor UI that indicates edit controls (not just display)
-        return !!appEl?.querySelector?.('.editor-edit, button.save, [data-action="save"]');
+        return !!root.querySelector('.editor-container, .editor-edit');
     }
 
     static _resolvePage(app, root) {
@@ -263,103 +234,94 @@ export class JournalPagePins {
             const candidate = pages.get(activeId);
             if (candidate?.documentName === 'JournalEntryPage') return candidate;
         }
-
         if (app?.document?.pages && typeof app.document.pages.get === 'function') {
             const fallback = app.document.pages.get(activeId);
             if (fallback?.documentName === 'JournalEntryPage') return fallback;
         }
-
         return null;
     }
 
-    static _injectButton(root, journal) {
-        const appEl = root.closest?.('form.application') ?? root;
-        const header =
-            appEl?.querySelector?.(':scope > header.window-header') ||
-            appEl?.querySelector?.('header.window-header') ||
-            root.querySelector?.('header.window-header');
-
-        if (!header) return;
+    static _injectButton(root, page) {
+        const header = root.querySelector('.window-header, header.window-header, .app-header, .journal-header, .sheet-header, .titlebar') || root.querySelector('header');
+        if (!header) {
+            postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: header not found on render', null, true, false);
+            return;
+        }
         if (header.querySelector(`.${this.BUTTON_CLASS}`)) return;
 
-        const button = document.createElement('button');
-        button.type = 'button';
+        const button = document.createElement('a');
         button.className = `header-control icon ${this.BUTTON_CLASS}`;
-        button.dataset.tooltip = 'Pin this journal to the current scene';
-        button.setAttribute('aria-label', 'Pin this journal to the current scene');
+        button.title = 'Pin this journal page to the current scene';
         button.innerHTML = '<i class="fa-solid fa-map-pin"></i>';
-
         button.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
-            this._beginPlacement(journal);
+            this._beginPlacement(page);
         });
 
-        const closeBtn = header.querySelector('[data-action="close"]');
-        if (closeBtn) closeBtn.insertAdjacentElement('beforebegin', button);
-        else header.appendChild(button);
+        const closeButton = header.querySelector('[data-action="close"], .header-button.close, .header-control.close, button.close, a.close, i.fa-xmark');
+        if (closeButton?.parentElement === header) {
+            closeButton.insertAdjacentElement('beforebegin', button);
+        } else if (closeButton) {
+            closeButton.closest('button, a')?.insertAdjacentElement('beforebegin', button);
+        } else {
+            header.appendChild(button);
+        }
+        postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: button injected', { page: page.id, headerClass: header.className }, true, false);
     }
 
-    static async _beginPlacement(journal) {
+    static async _beginPlacement(page) {
         try {
-            if (!journal?.isOwner) {
-                ui.notifications.warn('You need owner permission on this journal to place a pin.');
+            if (!page?.isOwner) {
+                ui.notifications.warn('You need owner permission on this page to place a pin.');
                 return;
             }
-
             const pins = this._getPinsApi();
             if (!pins?.isAvailable?.()) {
                 ui.notifications.warn('Blacksmith pins are not available yet.');
                 return;
             }
-
             const allowPlayerWrites = game.settings.get(MODULE.ID, PinManager.SETTING_ALLOW_PLAYER_WRITES) ?? false;
             if (!game.user.isGM && !allowPlayerWrites) {
                 ui.notifications.warn('Only a GM can create pins (Pins setting).');
                 return;
             }
-
             await pins.whenReady?.();
             if (!canvas?.scene) {
                 ui.notifications.warn('Open a scene before placing a pin.');
                 return;
             }
-
-            const { pinId, pin, sceneId } = await this._ensurePin(journal, pins);
+            const { pinId, pin, sceneId } = await this._ensurePin(page, pins);
             if (!pinId || !pin) {
-                ui.notifications.error('Could not create a pin for this journal.');
+                ui.notifications.error('Could not create a pin for this page.');
                 return;
             }
-
-            await this._enterPlacementMode({ pinId, journal, pins, pin, currentSceneId: sceneId });
+            await this._enterPlacementMode({ pinId, page, pins, pin, currentSceneId: sceneId });
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Journal Pins: Error starting placement', error?.message || error, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'Journal Page Pins: Error starting placement', error?.message || error, false, true);
             ui.notifications.error(`Pin placement failed: ${error?.message || error}`);
         }
     }
 
-    static async _ensurePin(journal, pins) {
-        let pinId = journal.getFlag(MODULE.ID, 'journalPinId') || null;
+    static async _ensurePin(page, pins) {
+        let pinId = page.getFlag(MODULE.ID, 'pinId') || null;
         let pin = pinId ? pins.get(pinId) : null;
-
         const isTargetPin = pin
             && pin.moduleId === MODULE.ID
             && pin.type === this.PIN_TYPE
-            && pin.config?.journalUuid === journal.uuid;
-
+            && pin.config?.journalPageUuid === page.uuid;
         if (!isTargetPin) {
             pin = null;
             pinId = null;
         }
-
         if (!pin) {
-            const label = journal.name || 'Journal';
+            const label = page.name || page.parent?.name || 'Journal Page';
             const pinData = {
                 id: pinId ?? crypto.randomUUID(),
                 moduleId: MODULE.ID,
                 type: this.PIN_TYPE,
                 text: label,
-                image: '<i class="fa-solid fa-book"></i>',
+                image: '<i class="fa-solid fa-book-open"></i>',
                 size: { w: 46, h: 46 },
                 style: { fill: '#1f3a4d', stroke: '#5fb3ff', strokeWidth: 2, iconColor: '#ffffff' },
                 dropShadow: true,
@@ -367,24 +329,25 @@ export class JournalPagePins {
                 textDisplay: 'hover',
                 textColor: '#ffffff',
                 textSize: 12,
-                config: { journalUuid: journal.uuid }
+                config: {
+                    journalPageUuid: page.uuid,
+                    journalId: page.parent?.id ?? '',
+                    pageId: page.id ?? ''
+                }
             };
-
             pin = await pins.create(pinData);
             pinId = pin.id;
-            await journal.setFlag(MODULE.ID, 'journalPinId', pinId);
+            await page.setFlag(MODULE.ID, 'pinId', pinId);
         }
-
         const sceneId = typeof pins.findScene === 'function' ? pins.findScene(pinId) : null;
         return { pinId, pin, sceneId };
     }
 
-    static async _enterPlacementMode({ pinId, journal, pins, pin, currentSceneId }) {
+    static async _enterPlacementMode({ pinId, page, pins, pin, currentSceneId }) {
         if (this._cleanupPlacement) {
             this._cleanupPlacement();
             this._cleanupPlacement = null;
         }
-
         const originalCursor = canvas.stage.cursor;
         canvas.stage.cursor = 'crosshair';
         const canvasEl = document.getElementById('board') || canvas.app?.element;
@@ -399,18 +362,13 @@ export class JournalPagePins {
             preview.style.pointerEvents = 'none';
             preview.classList.add('blacksmith-pin-placement-preview');
         }
-
         const cancelPlacement = () => {
             cleanup();
             ui.notifications.info('Pin placement cancelled.');
         };
-
         const onKeyDown = (event) => {
-            if (event.key === 'Escape') {
-                cancelPlacement();
-            }
+            if (event.key === 'Escape') cancelPlacement();
         };
-
         const onPointerMove = (event) => {
             if (!preview) return;
             const oe = event.data?.originalEvent;
@@ -421,48 +379,38 @@ export class JournalPagePins {
             preview.style.left = `${clientX - w / 2}px`;
             preview.style.top = `${clientY - h / 2}px`;
         };
-
         const onPointerDown = async (event) => {
             if (event.data?.originalEvent?.button === 2) {
                 cancelPlacement();
                 return;
             }
-
             const global = event.data?.global;
             if (!global) return;
-
             const local = canvas.stage.toLocal(global);
             const snapped = canvas.grid?.getSnappedPosition
                 ? canvas.grid.getSnappedPosition(local.x, local.y, 1)
                 : local;
             cleanup();
-
             try {
                 let placed = null;
                 const targetSceneId = canvas.scene.id;
-
                 if (currentSceneId && currentSceneId !== targetSceneId) {
                     await pins.unplace(pinId);
                     currentSceneId = null;
                 }
-
                 if (currentSceneId === targetSceneId) {
                     placed = await pins.update(pinId, { x: snapped.x, y: snapped.y }, { sceneId: targetSceneId });
                 } else {
                     placed = await pins.place(pinId, { sceneId: targetSceneId, x: snapped.x, y: snapped.y });
                 }
-
-                await journal.setFlag(MODULE.ID, 'journalPinSceneId', targetSceneId);
+                await page.setFlag(MODULE.ID, 'pinId', pinId);
+                await page.setFlag(MODULE.ID, 'sceneId', targetSceneId);
                 await pins.reload({ sceneId: targetSceneId });
-
-                if (placed) {
-                    ui.notifications.info('Journal pinned to the scene.');
-                }
+                if (placed) ui.notifications.info('Journal page pinned to the scene.');
             } catch (error) {
                 ui.notifications.error(`Could not place pin: ${error?.message || error}`);
             }
         };
-
         const cleanup = () => {
             canvas.stage.off('pointerdown', onPointerDown);
             canvas.stage.off('pointermove', onPointerMove);
@@ -473,7 +421,6 @@ export class JournalPagePins {
             if (preview?.parentElement) preview.remove();
             this._cleanupPlacement = null;
         };
-
         canvas.stage.on('pointerdown', onPointerDown);
         canvas.stage.on('pointermove', onPointerMove);
         document.addEventListener('keydown', onKeyDown);
@@ -489,7 +436,6 @@ export class JournalPagePins {
         const strokeColor = style.stroke || '#5fb3ff';
         const strokeWidth = typeof style.strokeWidth === 'number' ? style.strokeWidth : 2;
         const iconColor = style.iconColor || '#ffffff';
-
         const el = document.createElement('div');
         el.className = 'blacksmith-pin';
         el.dataset.shape = shape;
@@ -502,7 +448,6 @@ export class JournalPagePins {
         el.style.opacity = '0.9';
         el.style.left = '-9999px';
         el.style.top = '-9999px';
-
         const icon = document.createElement('div');
         icon.className = 'blacksmith-pin-icon';
         icon.dataset.iconType = pin.iconText ? 'text' : 'fa';
@@ -517,7 +462,6 @@ export class JournalPagePins {
         }
         icon.style.fontSize = `${Math.round(size * 0.6)}px`;
         el.appendChild(icon);
-
         return el;
     }
 
