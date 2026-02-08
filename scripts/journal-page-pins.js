@@ -86,9 +86,17 @@ export class JournalPagePins {
     static _viewJournalPage(journal, pageId) {
         if (!journal || !pageId) return;
         const sheet = journal.sheet;
+        // Open journal in default (tabbed) mode, then switch to the page (avoid single-page/PDF mode)
         if (typeof journal.show === 'function') {
             try {
-                journal.show({ pageId, force: true });
+                journal.show({ force: true });
+                if (sheet && typeof sheet.viewPage === 'function') {
+                    if (sheet.rendered) {
+                        sheet.viewPage(pageId);
+                    } else {
+                        setTimeout(() => sheet.viewPage?.(pageId), 100);
+                    }
+                }
                 return;
             } catch (e) { /* fall through */ }
         }
@@ -315,7 +323,7 @@ export class JournalPagePins {
             pinId = null;
         }
         if (!pin) {
-            const label = page.name || page.parent?.name || 'Journal Page';
+            const label = page.parent?.name || page.name || 'Journal Page';
             const pinData = {
                 id: pinId ?? crypto.randomUUID(),
                 moduleId: MODULE.ID,
