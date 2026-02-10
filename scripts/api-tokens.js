@@ -60,98 +60,154 @@ export async function validateActorUUID(uuid) {
 }
 
 /**
- * Get target position from canvas click
+ * Get token preview data from an actor (for ghost-under-cursor placement).
+ * @param {Actor} actor - Actor with prototypeToken
+ * @returns {{ width: number, height: number, textureSrc: string }} Preview data
+ */
+export function getPreviewDataFromActor(actor) {
+    const pt = actor?.prototypeToken;
+    const width = Math.max(1, Number(pt?.width) || 1);
+    const height = Math.max(1, Number(pt?.height) || 1);
+    const textureSrc = pt?.texture?.src ?? pt?.img ?? "icons/svg/mystery-man.svg";
+    return { width, height, textureSrc };
+}
+
+/**
+ * Create a PIXI container showing a token ghost for placement preview.
+ * @param {{ width: number, height: number, textureSrc: string }} previewData
+ * @param {number} gridSize
+ * @returns {PIXI.Container} Container to add to the token layer and update position on mousemove
+ */
+function createTokenPreviewGhost(previewData, gridSize) {
+    const { width, height, textureSrc } = previewData;
+    const w = gridSize * width;
+    const h = gridSize * height;
+    const container = new PIXI.Container();
+    container.visible = false;
+
+    const bg = new PIXI.Graphics();
+    bg.beginFill(0x000000, 0.25);
+    bg.drawRoundedRect(0, 0, w, h, 4);
+    bg.endFill();
+    bg.lineStyle(2, 0xffffff, 0.9);
+    bg.drawRoundedRect(0, 0, w, h, 4);
+    container.addChild(bg);
+
+    const sprite = PIXI.Sprite.from(textureSrc);
+    sprite.width = w;
+    sprite.height = h;
+    sprite.alpha = 0.7;
+    sprite.eventMode = "none";
+    container.addChild(sprite);
+
+    container.setTransform(0, 0);
+    return container;
+}
+
+/**
+ * Get target position from canvas click, optionally showing a token ghost under the cursor.
  * @param {boolean} allowMultiple - Whether to allow multiple clicks (CTRL key)
+ * @param {Object} options - Options
+ * @param {{ width: number, height: number, textureSrc: string }} options.previewTokenData - If set, show a token ghost under the cursor while choosing position
  * @returns {Promise<Object|null>} Position result with {position: {x, y}, isAltHeld: boolean} or null if cancelled
  */
-export async function getTargetPosition(allowMultiple = false) {
+export async function getTargetPosition(allowMultiple = false, options = {}) {
+    const previewTokenData = options.previewTokenData ?? null;
+    const gridSize = canvas.scene?.grid?.size ?? 50;
+
+    let previewGhost = null;
+    let previewParent = null;
+
+    const removePreview = () => {
+        if (previewGhost && previewParent) {
+            previewParent.removeChild(previewGhost);
+            previewGhost.destroy({ children: true });
+            previewGhost = null;
+            previewParent = null;
+        }
+    };
+
+    const updatePreviewPosition = (event) => {
+        if (!previewGhost || !canvas.scene) return;
+        const stage = canvas.stage;
+        const globalPoint = new PIXI.Point(event.global.x, event.global.y);
+        const localPoint = stage.toLocal(globalPoint);
+        const gs = canvas.scene.grid.size;
+        const snappedX = Math.floor(localPoint.x / gs) * gs;
+        const snappedY = Math.floor(localPoint.y / gs) * gs;
+        previewGhost.setTransform(snappedX, snappedY);
+        previewGhost.visible = true;
+    };
+
+    if (previewTokenData && canvas.tokens) {
+        previewGhost = createTokenPreviewGhost(previewTokenData, gridSize);
+        previewParent = canvas.tokens.preview ?? canvas.tokens;
+        if (previewParent) {
+            previewParent.addChild(previewGhost);
+        } else {
+            previewGhost.destroy({ children: true });
+            previewGhost = null;
+        }
+    }
+
     return new Promise((resolve) => {
-        postConsoleAndNotification(MODULE.NAME, "Token API: Setting up click handler for target position", `Allow multiple: ${allowMultiple}`, true, false);
-        
-        // Use FoundryVTT's canvas pointer handling
+        const cleanup = (result) => {
+            canvas.stage.off("pointerdown", handler);
+            canvas.stage.off("pointerdown", rightClickHandler);
+            document.removeEventListener("keyup", keyUpHandler);
+            if (previewGhost) {
+                canvas.stage.off("mousemove", previewMoveHandler);
+            }
+            removePreview();
+            resolve(result);
+        };
+
+        let previewMoveHandler = null;
+        if (previewGhost) {
+            previewMoveHandler = (event) => updatePreviewPosition(event);
+            canvas.stage.on("mousemove", previewMoveHandler);
+        }
+
         const handler = (event) => {
-            postConsoleAndNotification(MODULE.NAME, "Token API: Canvas pointer event! Event type", event.type, true, false);
-            
-            // Only handle pointerdown events (clicks)
-            if (event.type !== 'pointerdown') {
-                return;
-            }
-            
-            // Ignore right-clicks (button 2)
-            if (event.data.originalEvent && event.data.originalEvent.button === 2) {
-                postConsoleAndNotification(MODULE.NAME, "Token API: Right-click ignored by main handler", "", true, false);
-                return;
-            }
-            
-            // Use FoundryVTT's built-in coordinate conversion
+            if (event.type !== "pointerdown") return;
+            if (event.data.originalEvent?.button === 2) return;
+
             const stage = canvas.stage;
             const globalPoint = new PIXI.Point(event.global.x, event.global.y);
             const localPoint = stage.toLocal(globalPoint);
-            
-            // Use the exact click position first, then snap to grid square center
-            let position = { x: localPoint.x, y: localPoint.y };
-            
-            // Get the grid size and calculate grid square center
-            const gridSize = canvas.scene.grid.size;
-            
-            // Snap to top-left of the grid square (token coordinates are top-left, not center)
             const snappedX = Math.floor(localPoint.x / gridSize) * gridSize;
             const snappedY = Math.floor(localPoint.y / gridSize) * gridSize;
-            
-            position = { x: snappedX, y: snappedY };
-            
-            // Check if CTRL is held down for multiple deployments
-            const isCtrlHeld = event.data.originalEvent && event.data.originalEvent.ctrlKey;
-            // Check if ALT is held down for invisible deployment
-            const isAltHeld = event.data.originalEvent && event.data.originalEvent.altKey;
-            
-            // If not allowing multiple or CTRL not held, remove the handler
+            const position = { x: snappedX, y: snappedY };
+            const isCtrlHeld = event.data.originalEvent?.ctrlKey;
+            const isAltHeld = event.data.originalEvent?.altKey;
+
             if (!allowMultiple || !isCtrlHeld) {
-                canvas.stage.off('pointerdown', handler);
-                document.removeEventListener('keyup', keyUpHandler);
-                postConsoleAndNotification(MODULE.NAME, "Token API: Click handler removed, resolving position", "", true, false);
+                canvas.stage.off("pointerdown", handler);
+                canvas.stage.off("pointerdown", rightClickHandler);
+                document.removeEventListener("keyup", keyUpHandler);
+                if (previewGhost) canvas.stage.off("mousemove", previewMoveHandler);
+                removePreview();
+                resolve({ position, isAltHeld: !!isAltHeld });
             } else {
-                postConsoleAndNotification(MODULE.NAME, "Token API: CTRL held, keeping handler for multiple deployments", "", true, false);
-            }
-            
-            // Resolve with the position and key states
-            if (position) {
-                const result = {
-                    position: position,
-                    isAltHeld: isAltHeld
-                };
-                postConsoleAndNotification(MODULE.NAME, "Token API: Resolving position", result, true, false);
-                resolve(result);
-            } else {
-                postConsoleAndNotification(MODULE.NAME, "Token API: No valid position obtained, resolving null", "", true, false);
-                resolve(null);
+                resolve({ position, isAltHeld: !!isAltHeld });
             }
         };
-        
-        // Key up handler to detect when CTRL is released
+
         const keyUpHandler = (event) => {
-            if (event.key === 'Control' && allowMultiple) {
-                canvas.stage.off('pointerdown', handler);
-                document.removeEventListener('keyup', keyUpHandler);
-                resolve(null);
+            if (event.key === "Control" && allowMultiple) {
+                cleanup(null);
             }
         };
-        
-        // Right-click handler to detect cancellation
+
         const rightClickHandler = (event) => {
-            if (event.data.originalEvent && event.data.originalEvent.button === 2) {
-                postConsoleAndNotification(MODULE.NAME, "Token API: Right-click detected, cancelling deployment", "", true, false);
-                canvas.stage.off('pointerdown', handler);
-                canvas.stage.off('pointerdown', rightClickHandler);
-                document.removeEventListener('keyup', keyUpHandler);
-                resolve(null);
+            if (event.data.originalEvent?.button === 2) {
+                cleanup(null);
             }
         };
-        
-        // Add the event listeners
-        canvas.stage.on('pointerdown', handler);
-        canvas.stage.on('pointerdown', rightClickHandler);
-        document.addEventListener('keyup', keyUpHandler);
+
+        canvas.stage.on("pointerdown", handler);
+        canvas.stage.on("pointerdown", rightClickHandler);
+        document.addEventListener("keyup", keyUpHandler);
     });
 }
 
@@ -747,11 +803,12 @@ export async function deployTokensSequential(actorUUIDs, options = {}) {
             tooltip.innerHTML = tooltipContent;
             tooltip.classList.add('show');
             
-            // Add mouse move handler
+            // Add mouse move handler for tooltip
             canvas.stage.on('mousemove', mouseMoveHandler);
             
-            // Get position for this token
-            const positionResult = await getTargetPosition(false);
+            // Get position for this token (with token ghost under cursor so user sees size)
+            const previewTokenData = getPreviewDataFromActor(currentActor);
+            const positionResult = await getTargetPosition(false, { previewTokenData });
             
             // Remove mouse move handler
             canvas.stage.off('mousemove', mouseMoveHandler);
