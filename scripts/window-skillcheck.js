@@ -201,6 +201,28 @@ export class SkillCheckDialog extends Application {
 
         postConsoleAndNotification(MODULE.NAME, "SKILLROLLL | LOCATION CHECK: We are in skill-check-dialogue.js and in activateListeners(html)...", "", true, false);
 
+        // Apply initial filter (API can pass initialFilter; else selected tokens or party)
+        const hasSelectedTokens = canvas.tokens.controlled.length > 0;
+        const initialFilter = this.initialFilter ?? (hasSelectedTokens ? 'selected' : 'party');
+
+        // Set initial active state on actor filter button (left column) (v13: native DOM)
+        const firstColumn = htmlElement.querySelector('.cpb-dialog-column:first-child');
+        const initialFilterBtn = firstColumn?.querySelector(`.cpb-filter-btn[data-filter="${initialFilter}"]`);
+        if (initialFilterBtn) initialFilterBtn.classList.add('active');
+        
+        // Apply initial actor filter
+        this._applyFilter(htmlElement, initialFilter);
+        
+        // Roll type filter (middle column): when API passed initialType/initialValue, show that tab first so selection is visible
+        const secondColumn = htmlElement.querySelector('.cpb-dialog-column:nth-child(2)');
+        const rollTypeFilter = (this.selectedType && ['skill', 'ability', 'save'].includes(this.selectedType))
+            ? this.selectedType
+            : 'quick';
+        secondColumn?.querySelectorAll('.cpb-filter-btn').forEach(btn => btn.classList.remove('active'));
+        const rollTypeFilterBtn = secondColumn?.querySelector(`.cpb-filter-btn[data-filter="${rollTypeFilter}"]`);
+        if (rollTypeFilterBtn) rollTypeFilterBtn.classList.add('active');
+        this._applyRollTypeFilter(htmlElement, rollTypeFilter);
+        
         // If we have an initial roll type selection (skill, ability, or save), pre-select it (v13: native DOM)
         if (this.selectedType && this.selectedValue) {
             const item = htmlElement.querySelector(`.cpb-check-item[data-type="${this.selectedType}"][data-value="${this.selectedValue}"]`);
@@ -218,30 +240,12 @@ export class SkillCheckDialog extends Application {
         postConsoleAndNotification(MODULE.NAME, 'Tool items with unavailable class:', unavailableTools.length, true, false);
         htmlElement.querySelectorAll('.cpb-check-item[data-type="tool"]').forEach((el) => {
             postConsoleAndNotification(MODULE.NAME, 'Tool item:', {
-                name: el.querySelector('span').textContent,
+                name: el.querySelector('span')?.textContent,
                 hasUnavailableClass: el.classList.contains('cpb-tool-unavailable'),
                 dataCommon: el.dataset.common,
                 classList: Array.from(el.classList)
             }, true, false);
         });
-
-        // Apply initial filter (API can pass initialFilter; else selected tokens or party)
-        const hasSelectedTokens = canvas.tokens.controlled.length > 0;
-        const initialFilter = this.initialFilter ?? (hasSelectedTokens ? 'selected' : 'party');
-        
-        // Set initial active state on actor filter button (left column) (v13: native DOM)
-        const firstColumn = htmlElement.querySelector('.cpb-dialog-column:first-child');
-        const initialFilterBtn = firstColumn?.querySelector(`.cpb-filter-btn[data-filter="${initialFilter}"]`);
-        if (initialFilterBtn) initialFilterBtn.classList.add('active');
-        
-        // Apply initial actor filter
-        this._applyFilter(htmlElement, initialFilter);
-        
-        // Set initial roll type filter to "quick" and apply it (middle column) (v13: native DOM)
-        const secondColumn = htmlElement.querySelector('.cpb-dialog-column:nth-child(2)');
-        const quickFilterBtn = secondColumn?.querySelector(`.cpb-filter-btn[data-filter="quick"]`);
-        if (quickFilterBtn) quickFilterBtn.classList.add('active');
-        this._applyRollTypeFilter(htmlElement, 'quick');
 
         // If tokens are selected on the canvas, pre-select them in the dialog (v13: native DOM)
         if (hasSelectedTokens) {
