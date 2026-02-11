@@ -289,6 +289,7 @@ export class BlacksmithAPI {
      * @param {string} [options.initialSkill] - Legacy: same as initialType:'skill' with initialValue set
      * @param {number|string} [options.dc] - Default DC value shown in the dialog
      * @param {string} [options.initialFilter] - Actor filter: 'selected' | 'party'
+     * @param {boolean} [options.groupRoll] - Pre-check the "Group roll" checkbox (default false when omitted)
      * @param {Function} [options.callback] - Callback (if used by dialog)
      * @param {Function} [options.onRollComplete] - Callback when roll completes
      * @returns {Promise<Application>} The opened SkillCheckDialog instance

@@ -25,6 +25,8 @@ export class SkillCheckDialog extends Application {
         this.initialDc = data.dc != null ? String(data.dc) : null;
         this.initialFilter = data.initialFilter ?? null; // 'selected' | 'party'
         this.apiRollTitle = (data.title != null && data.title !== '') ? data.title : null; // Used as roll/card title when creating the request
+        // API: when opened via API (_api), default groupRoll to false if not passed; when opened from UI, use saved preference (null)
+        this.initialGroupRoll = data._api ? (data.hasOwnProperty('groupRoll') ? !!data.groupRoll : false) : null;
 
         // Load user preferences
         this.userPreferences = game.settings.get('coffee-pub-blacksmith', 'skillCheckPreferences') || {
@@ -114,7 +116,10 @@ export class SkillCheckDialog extends Application {
             tools,
             hasSelectedTokens,
             initialFilter,
-            userPreferences: this.userPreferences,
+            userPreferences: {
+                ...this.userPreferences,
+                groupRoll: this.initialGroupRoll !== null ? this.initialGroupRoll : this.userPreferences.groupRoll
+            },
             dcValue: this.initialDc ?? '' // API can pass default DC
         };
 

@@ -1080,7 +1080,7 @@ Hooks.once('init', async function() {
 
         // ✅ Request a Roll (Skill Check) dialog – open with optional parameters
         openRequestRollDialog: (options = {}) => {
-            const dialog = new SkillCheckDialog(options);
+            const dialog = new SkillCheckDialog({ ...options, _api: true });
             dialog.render(true);
             return dialog;
         },

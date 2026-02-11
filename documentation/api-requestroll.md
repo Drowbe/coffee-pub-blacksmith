@@ -10,6 +10,7 @@ Use this API when your module needs to:
 - Open the Request a Roll dialog from a button, macro, or hook
 - Pre-select a roll type (e.g. Perception, Stealth, Strength save)
 - Set a default DC or actor filter (selected tokens vs party)
+- Pre-check the "Group roll" option (e.g. for party group checks)
 - Override the dialog title for context (e.g. “Spot the trap”)
 
 ## Getting Started
@@ -59,6 +60,7 @@ Opens the Request a Roll (Skill Check) dialog. Optionally pass an options object
 | `options.initialSkill` | `string` | **Legacy.** Same as `initialType: 'skill'` with `initialValue` set to this (e.g. `'perception'`). |
 | `options.dc` | `number` or `string` | Default DC value shown in the dialog’s DC field. |
 | `options.initialFilter` | `string` | Which actor list is active: `'selected'` (only selected tokens) or `'party'` (party filter). When `'party'`, all visible party actors are also pre-selected as challengers. |
+| `options.groupRoll` | `boolean` | If `true`, the "Group roll" checkbox is checked initially (multiple challengers roll as a group); if `false` or omitted, it is unchecked. |
 | `options.callback` | `Function` | Callback used by the dialog (if applicable). |
 | `options.onRollComplete` | `Function` | Callback when the roll completes (if applicable). |
 | `options.actors` | `Array` | Optional actor list (if the dialog supports it). |
@@ -91,13 +93,14 @@ game.modules.get('coffee-pub-blacksmith').api.openRequestRollDialog({
     initialValue: 'str'
 });
 
-// Open with custom title, default DC 15, and party filter
+// Open with custom title, default DC 15, party filter, and group roll checked
 game.modules.get('coffee-pub-blacksmith').api.openRequestRollDialog({
     title: 'Spot the trap',
     initialType: 'skill',
     initialValue: 'perception',
     dc: 15,
-    initialFilter: 'party'
+    initialFilter: 'party',
+    groupRoll: true
 });
 
 // Via BlacksmithAPI (async)
@@ -140,12 +143,13 @@ if (api?.openRequestRollDialog) {
         initialType: 'skill',
         initialValue: 'perception',
         initialFilter: 'party',
-        dc: 12
+        dc: 12,
+        groupRoll: true
     });
 }
 ```
 
-Optional: set a custom title (e.g. `title: 'Spot the ambush'`). The dialog opens with the Party filter active, all party actors pre-selected as challengers, Perception pre-selected as the roll type, and DC 12; the user only needs to click the request button (or change anything first).
+Optional: set a custom title (e.g. `title: 'Spot the ambush'`). The dialog opens with the Party filter active, all party actors pre-selected as challengers, Perception pre-selected as the roll type, DC 12, and the "Group roll" checkbox checked; the user only needs to click the request button (or change anything first).
 
 ### Example 1: Button that opens a Perception check
 
