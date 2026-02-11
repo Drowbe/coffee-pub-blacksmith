@@ -213,6 +213,19 @@ export class SkillCheckDialog extends Application {
         // Apply initial actor filter
         this._applyFilter(htmlElement, initialFilter);
         
+        // When API passed initialFilter 'party', select all visible (party) actors as challengers
+        if (initialFilter === 'party') {
+            htmlElement.querySelectorAll('.cpb-actor-list .cpb-actor-item').forEach((actorItem) => {
+                if (actorItem.style.display === 'none') return;
+                const indicator = actorItem.querySelector('.cpb-group-indicator');
+                if (!indicator) return;
+                actorItem.classList.remove('cpb-group-2');
+                actorItem.classList.add('selected', 'cpb-group-1');
+                indicator.innerHTML = '<i class="fas fa-swords" title="Challengers"></i>';
+            });
+            this._updateToolList();
+        }
+        
         // Roll type filter (middle column): when API passed initialType/initialValue, show that tab first so selection is visible
         const secondColumn = htmlElement.querySelector('.cpb-dialog-column:nth-child(2)');
         const rollTypeFilter = (this.selectedType && ['skill', 'ability', 'save'].includes(this.selectedType))
@@ -223,9 +236,10 @@ export class SkillCheckDialog extends Application {
         if (rollTypeFilterBtn) rollTypeFilterBtn.classList.add('active');
         this._applyRollTypeFilter(htmlElement, rollTypeFilter);
         
-        // If we have an initial roll type selection (skill, ability, or save), pre-select it (v13: native DOM)
+        // If we have an initial roll type selection (skill, ability, or save), resolve value to CONFIG id then pre-select (v13: native DOM)
         if (this.selectedType && this.selectedValue) {
-            const item = htmlElement.querySelector(`.cpb-check-item[data-type="${this.selectedType}"][data-value="${this.selectedValue}"]`);
+            const resolvedValue = this._resolveRollTypeValue(this.selectedType, this.selectedValue);
+            const item = htmlElement.querySelector(`.cpb-check-item[data-type="${this.selectedType}"][data-value="${resolvedValue}"]`);
             if (item) {
                 item.classList.add('selected', 'cpb-skill-challenger');
                 const indicator = item.querySelector('.cpb-roll-type-indicator');
@@ -1384,6 +1398,40 @@ export class SkillCheckDialog extends Application {
             htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('cpb-skill-defender'));
             this.defenderRoll = { type: null, value: null };
         }
+    }
+
+    /**
+     * Resolve API initialValue (e.g. "perception") to the CONFIG id used in the template (e.g. "prc").
+     * @param {string} type - 'skill' | 'ability' | 'save'
+     * @param {string} value - API value (id or friendly name like "perception")
+     * @returns {string} CONFIG id for data-value
+     */
+    _resolveRollTypeValue(type, value) {
+        if (!value || typeof value !== 'string') return value;
+        const v = value.trim().toLowerCase();
+        if (type === 'skill' && CONFIG.DND5E?.skills) {
+            if (CONFIG.DND5E.skills[value]) return value;
+            const entry = Object.entries(CONFIG.DND5E.skills).find(([id, data]) =>
+                id.toLowerCase() === v || (data?.label && game.i18n.localize(data.label).toLowerCase() === v)
+            );
+            return entry ? entry[0] : value;
+        }
+        if (type === 'ability' && CONFIG.DND5E?.abilities) {
+            if (CONFIG.DND5E.abilities[value]) return value;
+            const entry = Object.entries(CONFIG.DND5E.abilities).find(([id, data]) =>
+                id.toLowerCase() === v || (data?.label && game.i18n.localize(data.label).toLowerCase() === v)
+            );
+            return entry ? entry[0] : value;
+        }
+        if (type === 'save' && CONFIG.DND5E?.abilities) {
+            if (value === 'death' || v === 'death') return 'death';
+            if (CONFIG.DND5E.abilities[value]) return value;
+            const entry = Object.entries(CONFIG.DND5E.abilities).find(([id, data]) =>
+                id.toLowerCase() === v || (data?.label && game.i18n.localize(data.label).toLowerCase() === v)
+            );
+            return entry ? entry[0] : value;
+        }
+        return value;
     }
 
     /**

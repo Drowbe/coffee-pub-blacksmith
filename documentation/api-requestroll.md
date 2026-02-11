@@ -55,10 +55,10 @@ Opens the Request a Roll (Skill Check) dialog. Optionally pass an options object
 | `options` | `Object` | Optional. All properties are optional. |
 | `options.title` | `string` | Override the dialog window title (e.g. `"Spot the trap"`). |
 | `options.initialType` | `string` | Pre-select the roll type: `'skill'`, `'ability'`, or `'save'`. |
-| `options.initialValue` | `string` | Id for that type. Examples: skills `'perception'`, `'stealth'`, `'insight'`; abilities `'str'`, `'dex'`, `'con'`, `'int'`, `'wis'`, `'cha'`; saves same as abilities plus `'death'`. |
+| `options.initialValue` | `string` | Id or friendly name for that type. You can pass the system’s CONFIG id (e.g. `'prc'` for Perception in D&D 5e) or a friendly/localized name (e.g. `'perception'`); the dialog resolves it automatically. Skills: `'perception'`, `'stealth'`, `'insight'`, etc.; abilities: `'str'`, `'dex'`, `'con'`, `'int'`, `'wis'`, `'cha'`; saves: same as abilities plus `'death'`. |
 | `options.initialSkill` | `string` | **Legacy.** Same as `initialType: 'skill'` with `initialValue` set to this (e.g. `'perception'`). |
 | `options.dc` | `number` or `string` | Default DC value shown in the dialog’s DC field. |
-| `options.initialFilter` | `string` | Which actor list is active: `'selected'` (only selected tokens) or `'party'` (party filter). |
+| `options.initialFilter` | `string` | Which actor list is active: `'selected'` (only selected tokens) or `'party'` (party filter). When `'party'`, all visible party actors are also pre-selected as challengers. |
 | `options.callback` | `Function` | Callback used by the dialog (if applicable). |
 | `options.onRollComplete` | `Function` | Callback when the roll completes (if applicable). |
 | `options.actors` | `Array` | Optional actor list (if the dialog supports it). |
@@ -111,14 +111,13 @@ const dialog = await BlacksmithAPI.openRequestRollDialog({
 
 ## Roll Type and Value Reference
 
+You can pass either the system’s CONFIG id (e.g. D&D 5e uses `prc` for Perception) or a friendly/localized name (e.g. `perception`); the dialog resolves it automatically.
+
 ### Skills (`initialType: 'skill'`)
 
-Use D&D 5e skill ids as `initialValue`, for example:
+Use skill ids or names as `initialValue`, for example:
 
-- `acrobatics`, `animal_handling`, `arcana`, `athletics`
-- `deception`, `history`, `insight`, `intimidation`, `investigation`
-- `medicine`, `nature`, `perception`, `performance`, `persuasion`
-- `religion`, `sleight_of_hand`, `stealth`, `survival`
+- `perception` (or `prc` in D&D 5e), `stealth`, `insight`, `investigation`, `athletics`, `acrobatics`, `arcana`, `deception`, `history`, `intimidation`, `medicine`, `nature`, `performance`, `persuasion`, `religion`, `sleight_of_hand`, `survival`
 
 ### Abilities (`initialType: 'ability'`)
 
@@ -146,7 +145,7 @@ if (api?.openRequestRollDialog) {
 }
 ```
 
-Optional: set a custom title (e.g. `title: 'Spot the ambush'`). The dialog opens with Perception selected, party filter active, and DC 12; the user can still change anything before submitting.
+Optional: set a custom title (e.g. `title: 'Spot the ambush'`). The dialog opens with the Party filter active, all party actors pre-selected as challengers, Perception pre-selected as the roll type, and DC 12; the user only needs to click the request button (or change anything first).
 
 ### Example 1: Button that opens a Perception check
 
