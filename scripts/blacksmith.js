@@ -1078,6 +1078,13 @@ Hooks.once('init', async function() {
         // ✅ Monster deployment API (same as journal encounter toolbar)
         deployMonsters: EncounterToolbar.deployMonsters.bind(EncounterToolbar),
 
+        // ✅ Request a Roll (Skill Check) dialog – open with optional parameters
+        openRequestRollDialog: (options = {}) => {
+            const dialog = new SkillCheckDialog(options);
+            dialog.render(true);
+            return dialog;
+        },
+
         // ✅ NEW: Socket API for external modules (set after SocketManager initializes)
         sockets: null
     };

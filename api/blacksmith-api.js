@@ -281,6 +281,33 @@ export class BlacksmithAPI {
     }
 
     /**
+     * Open the Request a Roll (Skill Check) dialog with optional parameters.
+     * @param {Object} [options] - Dialog options
+     * @param {string} [options.title] - Override dialog title
+     * @param {string} [options.initialType] - Pre-select roll type: 'skill' | 'ability' | 'save'
+     * @param {string} [options.initialValue] - Id for the roll (e.g. 'perception', 'str', 'dex', 'death')
+     * @param {string} [options.initialSkill] - Legacy: same as initialType:'skill' with initialValue set
+     * @param {number|string} [options.dc] - Default DC value shown in the dialog
+     * @param {string} [options.initialFilter] - Actor filter: 'selected' | 'party'
+     * @param {Function} [options.callback] - Callback (if used by dialog)
+     * @param {Function} [options.onRollComplete] - Callback when roll completes
+     * @returns {Promise<Application>} The opened SkillCheckDialog instance
+     */
+    static openRequestRollDialog(options = {}) {
+        return this.waitForReady().then(() => {
+            try {
+                const api = this._getAPI();
+                if (!api.openRequestRollDialog) {
+                    throw new Error('Request a Roll API not available');
+                }
+                return api.openRequestRollDialog(options);
+            } catch (error) {
+                throw new Error(`Failed to open Request a Roll dialog: ${error.message}`);
+            }
+        });
+    }
+
+    /**
      * Check if Blacksmith is ready
      * @returns {boolean} True if ready
      */

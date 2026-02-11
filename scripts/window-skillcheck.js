@@ -10,15 +10,20 @@ export class SkillCheckDialog extends Application {
     constructor(data = {}) {
         super();
         this.actors = data.actors || [];
-        this.selectedType = data.initialSkill ? 'skill' : null;
-        this.selectedValue = data.initialSkill || null;
+        // Initial roll type: 'skill' | 'ability' | 'save' (initialSkill is legacy, same as initialType:'skill' + initialValue)
+        this.selectedType = data.initialType ?? (data.initialSkill ? 'skill' : null);
+        this.selectedValue = data.initialValue ?? data.initialSkill ?? null;
         this.challengerRoll = { type: null, value: null };
         this.defenderRoll = { type: null, value: null };
         this.callback = data.callback || null;
         this.onRollComplete = data.onRollComplete || null;
-        this._isQuickPartyRoll = false; // Track if the current roll is a quick party roll
-        this._quickRollOverrides = undefined; // Track quick roll overrides
-        
+        this._isQuickPartyRoll = false;
+        this._quickRollOverrides = undefined;
+        // API: optional initial state for the dialog
+        this.initialDc = data.dc != null ? String(data.dc) : null;
+        this.initialFilter = data.initialFilter ?? null; // 'selected' | 'party'
+        if (data.title != null) this.options.title = data.title;
+
         // Load user preferences
         this.userPreferences = game.settings.get('coffee-pub-blacksmith', 'skillCheckPreferences') || {
             showRollExplanation: true,
@@ -62,6 +67,7 @@ export class SkillCheckDialog extends Application {
 
         // Check if there are any selected tokens
         const hasSelectedTokens = canvas.tokens.controlled.length > 0;
+        const initialFilter = this.initialFilter ?? (hasSelectedTokens ? 'selected' : 'party');
 
         // Get tools directly using _getToolProficiencies
         const tools = this._getToolProficiencies();
@@ -105,9 +111,9 @@ export class SkillCheckDialog extends Application {
             saves,
             tools,
             hasSelectedTokens,
-            initialFilter: hasSelectedTokens ? 'selected' : 'party',
+            initialFilter,
             userPreferences: this.userPreferences,
-            dcValue: '' // Default DC value, will be updated by user input
+            dcValue: this.initialDc ?? '' // API can pass default DC
         };
 
         postConsoleAndNotification(MODULE.NAME, 'Final template data:', templateData, true, false);
@@ -195,12 +201,12 @@ export class SkillCheckDialog extends Application {
 
         postConsoleAndNotification(MODULE.NAME, "SKILLROLLL | LOCATION CHECK: We are in skill-check-dialogue.js and in activateListeners(html)...", "", true, false);
 
-        // If we have an initial skill selection, trigger a click on it (v13: native DOM)
-        if (this.selectedType === 'skill' && this.selectedValue) {
-            const skillItem = htmlElement.querySelector(`.cpb-check-item[data-type="skill"][data-value="${this.selectedValue}"]`);
-            if (skillItem) {
-                skillItem.classList.add('selected', 'cpb-skill-challenger');
-                const indicator = skillItem.querySelector('.cpb-roll-type-indicator');
+        // If we have an initial roll type selection (skill, ability, or save), pre-select it (v13: native DOM)
+        if (this.selectedType && this.selectedValue) {
+            const item = htmlElement.querySelector(`.cpb-check-item[data-type="${this.selectedType}"][data-value="${this.selectedValue}"]`);
+            if (item) {
+                item.classList.add('selected', 'cpb-skill-challenger');
+                const indicator = item.querySelector('.cpb-roll-type-indicator');
                 if (indicator) {
                     indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
                 }
@@ -219,9 +225,9 @@ export class SkillCheckDialog extends Application {
             }, true, false);
         });
 
-        // Apply initial filter if there are selected tokens (v13: native DOM)
+        // Apply initial filter (API can pass initialFilter; else selected tokens or party)
         const hasSelectedTokens = canvas.tokens.controlled.length > 0;
-        const initialFilter = hasSelectedTokens ? 'selected' : 'party';
+        const initialFilter = this.initialFilter ?? (hasSelectedTokens ? 'selected' : 'party');
         
         // Set initial active state on actor filter button (left column) (v13: native DOM)
         const firstColumn = htmlElement.querySelector('.cpb-dialog-column:first-child');
@@ -1120,6 +1126,11 @@ export class SkillCheckDialog extends Application {
         // Update DC display when DC input changes (v13: native DOM)
         const dcInput = htmlElement.querySelector('input[name="dc"]');
         if (dcInput) {
+            if (this.initialDc != null && this.initialDc !== '') {
+                dcInput.value = this.initialDc;
+                const dcDisplay = htmlElement.querySelector('.unified-dc-display, .unified-dc-input');
+                if (dcDisplay) dcDisplay.value = this.initialDc;
+            }
             const handleDCChange = (ev) => {
                 const dcValue = ev.currentTarget.value;
                 // Update the unified header DC display
