@@ -295,6 +295,18 @@
   color: rgba(255, 255, 255, 0.2) !important;
 }
 
+/* Dropdown options: avoid native "white on tan"; match dark theme when list is open */
+.tir-form-fields select option,
+.tir-select option {
+  background-color: #232323 !important;
+  color: #e0e0e0 !important;
+}
+.tir-form-fields select option:checked,
+.tir-select option:checked {
+  background-color: rgba(29, 57, 28, 0.95) !important;
+  color: #e0e0e0 !important;
+}
+
 
 
 

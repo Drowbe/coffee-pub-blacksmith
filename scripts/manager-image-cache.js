@@ -252,7 +252,20 @@ export class ImageCacheManager {
             .join(' ');
     }
 
-
+    /**
+     * Decode URL-encoded path segments (e.g. %20 → space).
+     * FilePicker can return encoded paths; we decode so tags and display use readable names.
+     * @param {string} path - Path that may contain %XX encoding
+     * @returns {string} Decoded path, or original on error
+     */
+    static _safeDecodePath(path) {
+        if (typeof path !== 'string') return path;
+        try {
+            return decodeURIComponent(path);
+        } catch (e) {
+            return path;
+        }
+    }
 
     /**
      * Load monster mapping data from resources and store in settings
@@ -2145,6 +2158,7 @@ export class ImageCacheManager {
      * @param {number} sourceIndex - 1-based index of the source path (for priority tracking)
      */
     static async _processFileInfo(filePath, basePath, sourceIndex = 1) {
+        filePath = this._safeDecodePath(filePath);
         const fileName = filePath.split('/').pop()?.toLowerCase() || '';
         
         // Skip common system files
