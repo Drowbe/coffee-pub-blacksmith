@@ -8,7 +8,9 @@ import { skillDescriptions, abilityDescriptions, saveDescriptions, toolDescripti
 
 export class SkillCheckDialog extends Application {
     constructor(data = {}) {
-        super();
+        const options = {};
+        if (data.title != null && data.title !== '') options.title = data.title;
+        super(options);
         this.actors = data.actors || [];
         // Initial roll type: 'skill' | 'ability' | 'save' (initialSkill is legacy, same as initialType:'skill' + initialValue)
         this.selectedType = data.initialType ?? (data.initialSkill ? 'skill' : null);
@@ -22,7 +24,7 @@ export class SkillCheckDialog extends Application {
         // API: optional initial state for the dialog
         this.initialDc = data.dc != null ? String(data.dc) : null;
         this.initialFilter = data.initialFilter ?? null; // 'selected' | 'party'
-        if (data.title != null) this.options.title = data.title;
+        this.apiRollTitle = (data.title != null && data.title !== '') ? data.title : null; // Used as roll/card title when creating the request
 
         // Load user preferences
         this.userPreferences = game.settings.get('coffee-pub-blacksmith', 'skillCheckPreferences') || {
@@ -1037,7 +1039,7 @@ export class SkillCheckDialog extends Application {
             // Create message data with processed actors
             const messageData = {
                 skillName: challengerInfo.name,
-                rollTitle: (this._isQuickPartyRoll && this._quickRollOverrides?.rollTitle) || this.selectedRollTitle || challengerInfo.name, // Use quick roll title, selected roll title, or fallback to skill name
+                rollTitle: this.apiRollTitle || (this._isQuickPartyRoll && this._quickRollOverrides?.rollTitle) || this.selectedRollTitle || challengerInfo.name, // API title, then quick roll, selected roll title, or fallback to skill name
                 defenderSkillName: isContestedRoll && defenderInfo ? defenderInfo.name : null,
                 skillAbbr: challengerRollType === 'tool' ? (processedActors[0]?.toolId || null) : challengerRollValue,
                 defenderSkillAbbr: isContestedRoll ? (defenderRollType === 'tool' ? (processedActors.find(a => a.group === 2)?.toolId || null) : defenderRollValue) : null,
