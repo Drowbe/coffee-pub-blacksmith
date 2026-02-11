@@ -3418,7 +3418,7 @@ export class TokenImageReplacementWindow extends Application {
             }).join('');
             return `
                 <div class="tir-search-tools-tag-group tir-search-tools-tag-group-${group.css}">
-                    <span class="tir-search-tools-tag-group-label">${group.label}</span>
+                    <div class="tir-search-tools-tag-group-label">${group.label}</div>
                     <div class="tir-search-tools-tag-row">
                         ${tags}
                     </div>

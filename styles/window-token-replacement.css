@@ -853,10 +853,22 @@
     overflow-y: auto;
     overflow-x: hidden;
 }
+
+
+.tir-search-tools-tag-group-label {
+    padding: 2px 4px 2px 4px;
+    margin: 0px 0px 4px 0px;
+    border-radius: 3px;
+    color: rgba(156, 143, 116, 0.9);
+    text-transform: uppercase;
+    font-weight: 900;
+    background-color: rgba(0, 0, 0, 0.9);
+  }
+
 .tir-search-tools-tag {
     display: inline-block;
     padding: 2px 6px;
-    margin: 0px;
+    margin: 2px;
     background: rgba(19, 46, 76, 0.9);
     border: 1px solid rgba(120, 170, 230, 0.3);
     border-radius: 3px;

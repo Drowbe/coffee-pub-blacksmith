@@ -190,7 +190,7 @@
         <div id="tir-search-tools-tag-container" class="tir-search-tools-tag-container">
             {{#if aggregatedTags.primary.length}}
             <div class="tir-search-tools-tag-group tir-search-tools-tag-group-primary">
-                <span class="tir-search-tools-tag-group-label">Primary Tags</span>
+                <div class="tir-search-tools-tag-group-label">Primary Tags</div>
                 <div class="tir-search-tools-tag-row">
                     {{#each aggregatedTags.primary}}
                     <span class="tir-search-tools-tag" data-search-term="{{this}}">{{this}}</span>
@@ -200,7 +200,7 @@
             {{/if}}
             {{#if aggregatedTags.secondary.length}}
             <div class="tir-search-tools-tag-group tir-search-tools-tag-group-secondary">
-                <span class="tir-search-tools-tag-group-label">Secondary Tags</span>
+                <div class="tir-search-tools-tag-group-label">Secondary Tags</div>
                 <div class="tir-search-tools-tag-row">
                     {{#each aggregatedTags.secondary}}
                     <span class="tir-search-tools-tag" data-search-term="{{this}}">{{this}}</span>

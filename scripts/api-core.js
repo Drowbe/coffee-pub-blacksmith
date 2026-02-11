@@ -561,6 +561,44 @@ export function getPortraitImage(actor) {
 }
 
 // ************************************
+// ** UTILITY Resolve wildcard token path (multiple-variant support)
+// ************************************
+/**
+ * Resolve wildcard token path (e.g. arch-hag-*.webp) to a concrete file.
+ * Foundry uses * in prototypeToken paths for multiple token variants; we resolve to a real path for display.
+ * If no wildcard, returns original path. Uses random selection among matches (suitable for encounter cards).
+ * @param {string} path - Image path, possibly containing *
+ * @returns {Promise<string>} Resolved path or original on failure/no wildcard
+ */
+export async function resolveWildcardPath(path) {
+    if (!path || typeof path !== 'string' || !path.includes('*')) return path;
+
+    try {
+        const parts = path.split('/');
+        const pattern = parts.pop();
+        const dir = parts.join('/');
+
+        const response = await FilePicker.browse('data', dir);
+        if (!response?.files?.length) return path;
+
+        const regex = new RegExp(
+            '^' + pattern.replace(/\./g, '\\.').replace(/\*/g, '.*') + '$'
+        );
+
+        const matches = response.files.filter(f =>
+            regex.test(f.split('/').pop())
+        );
+
+        if (!matches.length) return path;
+
+        return matches[Math.floor(Math.random() * matches.length)];
+    } catch (err) {
+        console.error('Wildcard token resolution failed:', err);
+        return path;
+    }
+}
+
+// ************************************
 // ** UTILITY Get Token ID with Name
 // ************************************ 
 export function getTokenId(tokenName) {

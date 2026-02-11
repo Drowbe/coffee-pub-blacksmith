@@ -4,7 +4,7 @@
 
 import { MODULE } from './const.js';
 import { getCachedTemplate } from './blacksmith.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, resolveWildcardPath } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { deployTokens, deployTokensSequential, getDefaultTokenData, validateActorUUID, getTargetPosition, calculateCirclePosition, calculateScatterPosition, calculateSquarePosition, getDeploymentPatternName } from './api-tokens.js';
 
@@ -647,12 +647,15 @@ export class EncounterToolbar {
                         cr = actor.system.cr;
                     }
                     
-                    // Get portrait - try multiple sources
+                    // Get portrait - try multiple sources; resolve wildcards for display (multiple-variant tokens)
                     let portrait = null;
                     if (actor.img) {
                         portrait = actor.img;
                     } else if (actor.prototypeToken?.texture?.src) {
                         portrait = actor.prototypeToken.texture.src;
+                    }
+                    if (portrait && typeof portrait === 'string' && portrait.includes('*')) {
+                        portrait = await resolveWildcardPath(portrait);
                     }
                     
                     monsterDetails.push({ uuid, name, cr, portrait });

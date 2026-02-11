@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, resolveWildcardPath } from './api-core.js';
 
 /**
  * Shared token deployment API for use by encounter toolbar, party tools, and other features
@@ -807,7 +807,10 @@ export async function deployTokensSequential(actorUUIDs, options = {}) {
             canvas.stage.on('mousemove', mouseMoveHandler);
             
             // Get position for this token (with token ghost under cursor so user sees size)
-            const previewTokenData = getPreviewDataFromActor(currentActor);
+            let previewTokenData = getPreviewDataFromActor(currentActor);
+            if (previewTokenData.textureSrc && previewTokenData.textureSrc.includes('*')) {
+                previewTokenData = { ...previewTokenData, textureSrc: await resolveWildcardPath(previewTokenData.textureSrc) };
+            }
             const positionResult = await getTargetPosition(false, { previewTokenData });
             
             // Remove mouse move handler
