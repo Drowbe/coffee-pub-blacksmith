@@ -194,6 +194,14 @@ export class ImageCacheManager {
         /warforged/i
     ];
     
+    // Regexes for filename parts that should not become tags (dimensions, variant codes, etc.)
+    static GARBAGE_TAG_PATTERNS = [
+        /^\d+x\d+$/i,           // Dimensions: 16X32, 4x5, 8X13
+        /^\d{2,}[a-z]?$/i,      // Numeric codes: 001, 002, 001A, 002B
+        /^[a-z]\d{1,2}$/i,      // Letter+digit variant: A1, B2, A12
+        /^\d+$/                 // All digits: 21, 33, 001
+    ];
+
     // Words to ignore when extracting tags
     static IGNORED_WORDS = [
         // Articles
@@ -220,6 +228,23 @@ export class ImageCacheManager {
         'A1', 'A2', 'B1', 'B2', 'C1', 'C2'
     ];
     
+    /**
+     * Extract words from a token image path/filename for portrait matching.
+     * Used so portrait can prefer images that share filename words (e.g. female, farmer) with the token.
+     * @param {string} path - Full path or filename (e.g. "path/to/female-farmer-01.webp")
+     * @returns {Array<string>} Lowercase words, length >= 2, excluding IGNORED_WORDS
+     */
+    static extractWordsFromTokenFilename(path) {
+        if (!path || typeof path !== 'string') return [];
+        const filename = path.split('/').pop() || path;
+        const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
+        const parts = nameWithoutExt.split(/[-_]/).filter(p => p.length > 0);
+        const ignored = new Set(this.IGNORED_WORDS.map(w => String(w).toLowerCase()));
+        return parts
+            .map(p => p.toLowerCase().trim())
+            .filter(p => p.length >= 2 && !ignored.has(p));
+    }
+
     /**
      * Check if a folder should be ignored based on settings
      */
@@ -462,7 +487,9 @@ export class ImageCacheManager {
             }
 
             if (!matched) {
-                secondaryParts.push(cleanPart);
+                if (!this._isGarbageTagPart(cleanPart)) {
+                    secondaryParts.push(cleanPart);
+                }
             }
         }
         
@@ -544,6 +571,18 @@ export class ImageCacheManager {
             .replace(/[^\w\s]/g, ' ')
             .replace(/\s+/g, ' ')
             .trim();
+    }
+
+    /**
+     * Whether a filename part should not be used as a tag (dimensions, variant codes, etc.).
+     * @param {string} part - Lowercase part from filename
+     * @returns {boolean}
+     */
+    static _isGarbageTagPart(part) {
+        if (!part || typeof part !== 'string') return true;
+        const p = part.trim();
+        if (!p.length) return true;
+        return this.GARBAGE_TAG_PATTERNS.some(re => re.test(p));
     }
 
     static _markTag(metadata, tag, type = 'secondary') {
@@ -628,11 +667,11 @@ export class ImageCacheManager {
             });
         }
 
-        // Add leftover filename parts as secondary tags
+        // Add leftover filename parts as secondary tags (skip garbage and user-ignored patterns)
         if (Array.isArray(metadata.secondaryParts)) {
             metadata.secondaryParts.forEach(part => {
                 const clean = this._cleanSecondaryTerm(part);
-                if (clean) {
+                if (clean && !this._shouldIgnoreTagByPattern(clean)) {
                     addSecondary(clean);
                 }
             });
@@ -2450,7 +2489,36 @@ export class ImageCacheManager {
         
         return false;
     }
-    
+
+    /**
+     * Check if a tag should be excluded based on the ignored-tag-patterns setting.
+     * Same wildcard rules as _shouldIgnoreFile: *prefix*, *suffix, prefix*, exact.
+     * @param {string} tag - Tag string (e.g. "001A" or "16X32")
+     * @returns {boolean} True if the tag should not be added
+     */
+    static _shouldIgnoreTagByPattern(tag) {
+        const setting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredTagPatterns', '');
+        if (!setting || typeof setting !== 'string' || setting.trim() === '') return false;
+        const patterns = setting.split(',').map(p => p.trim()).filter(p => p.length > 0);
+        const tagLower = String(tag).toLowerCase();
+        for (const pattern of patterns) {
+            const patternLower = pattern.toLowerCase();
+            if (patternLower.startsWith('*') && patternLower.endsWith('*')) {
+                const searchTerm = patternLower.slice(1, -1);
+                if (searchTerm && tagLower.includes(searchTerm)) return true;
+            } else if (patternLower.startsWith('*')) {
+                const searchTerm = patternLower.slice(1);
+                if (searchTerm && tagLower.endsWith(searchTerm)) return true;
+            } else if (patternLower.endsWith('*')) {
+                const searchTerm = patternLower.slice(0, -1);
+                if (searchTerm && tagLower.startsWith(searchTerm)) return true;
+            } else {
+                if (tagLower === patternLower || tagLower.includes(patternLower)) return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Categorize a file by its folder structure
      * @param {string} fileName - The filename

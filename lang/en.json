@@ -1070,7 +1070,7 @@
 
 
 
-			"headingH3TokenImageReplacementDataWeights-Label": "Token Data Weighting",
+			"headingH3TokenImageReplacementDataWeights-Label": "Data Weighting",
 			"headingH3TokenImageReplacementDataWeights-Hint": "The weighting for the data used to calculate the best match for a token and portrait image replacement.",
 
 				"tokenImageReplacementWeightActorName-Label": "Actor Name",
@@ -1093,6 +1093,9 @@
 				
 				"tokenImageReplacementWeightSize-Label": "Size",
 				"tokenImageReplacementWeightSize-Hint": "",
+
+				"tokenImageReplacementWeightTags-Label": "Tag Match",
+				"tokenImageReplacementWeightTags-Hint": "Weight for matches against file tags (primary and secondary). Helps portraits and token variants that share filename words (e.g. female, scholar).",
 
 			"headingH3TokenReplacement-Label": "Token Image Replacement",
 			"headingH3TokenReplacement-Hint": "",
@@ -1148,6 +1151,9 @@
 				
 				"tokenImageReplacementIgnoredWords-Label": "Ignored Words",
 				"tokenImageReplacementIgnoredWords-Hint": "Comma-separated list of patterns to completely exclude files from cache. Supports the * wildcard.",
+
+				"tokenImageReplacementIgnoredTagPatterns-Label": "Ignored Tag Patterns",
+				"tokenImageReplacementIgnoredTagPatterns-Hint": "Comma-separated patterns for tags to exclude when scanning. Supports * wildcard (e.g. 00*, *X* for dimensions). Built-in filter already excludes dimensions (16X32), variant codes (001A, A1), and all-digit tags. Use this to add more.",
 
 
 

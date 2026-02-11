@@ -824,6 +824,7 @@ export class TokenImageReplacementWindow extends Application {
                 let searchMode = 'browse';
                 let searchTerms = null;
                 let tokenDocument = null;
+                let tokenFilenameTerms = null;
                 
                 if (this.searchTerm && this.searchTerm.length >= 3) {
                     // SEARCH MODE: Use search term matching (highest priority)
@@ -840,11 +841,15 @@ export class TokenImageReplacementWindow extends Application {
                         // _extractTokenData expects tokenDocument.actor, so we create a wrapper
                         let actor = this.selectedToken;
                         if (actor && actor.actor) {
-                            // If it's a token, get the actor
                             actor = actor.actor;
                         }
-                        // Create a fake tokenDocument that has an actor property
                         tokenDocument = { actor: actor };
+                        // Use token image filename as extra context so portraits prefer matching words (e.g. female, farmer)
+                        const tokenOrActor = this.selectedToken;
+                        const texturePath = tokenOrActor.document?.texture?.src ?? tokenOrActor.prototypeToken?.texture?.src ?? null;
+                        if (texturePath) {
+                            tokenFilenameTerms = ImageCacheManager.extractWordsFromTokenFilename(texturePath);
+                        }
                     } else {
                         // Token mode: use token document
                         tokenDocument = this.selectedToken.document;
@@ -862,7 +867,7 @@ export class TokenImageReplacementWindow extends Application {
                 // Apply unified matching
                 // Apply threshold only on SELECTED tab (but still calculate scores for all tabs when token/actor is selected)
                 const applyThreshold = this.currentFilter === 'selected';
-                const matchedResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerms, tokenDocument, searchMode, ImageCacheManager.getCache(this.mode), ImageCacheManager._extractTokenData, applyThreshold);
+                const matchedResults = await ImageMatching._applyUnifiedMatching(tagFilteredFiles, searchTerms, tokenDocument, searchMode, ImageCacheManager.getCache(this.mode), ImageCacheManager._extractTokenData, applyThreshold, tokenFilenameTerms);
                 
                 // Filter out any results that are the current image to avoid duplicates
                 const filteredResults = matchedResults.filter(result => !result.isCurrent);
@@ -3773,12 +3778,16 @@ export class TokenImageReplacementWindow extends Application {
         // Create a fake tokenDocument-like object for matching if not provided
         const matchingTokenDocument = tokenDocument || { actor: actor };
         
+        // Use token image filename as extra context so portraits prefer matching words (e.g. female, farmer)
+        const texturePath = tokenDocument?.texture?.src ?? actor.prototypeToken?.texture?.src ?? null;
+        const tokenFilenameTerms = texturePath ? ImageCacheManager.extractWordsFromTokenFilename(texturePath) : null;
+        
         // Wait a moment for the actor to be fully ready
         await new Promise(resolve => setTimeout(resolve, 100));
         
         // Find matching image using unified matching system
         const allFiles = Array.from(ImageCacheManager.getCache(portraitMode).files.values());
-        const matches = await ImageMatching._applyUnifiedMatching(allFiles, null, matchingTokenDocument, 'token', ImageCacheManager.getCache(portraitMode), ImageCacheManager._extractTokenData, true);
+        const matches = await ImageMatching._applyUnifiedMatching(allFiles, null, matchingTokenDocument, 'token', ImageCacheManager.getCache(portraitMode), ImageCacheManager._extractTokenData, true, tokenFilenameTerms);
         
         // Get the matching image (with variability if enabled)
         const matchingImage = TokenImageReplacementWindow._selectMatchingImage(matches, ImageCacheManager.MODES.PORTRAIT);

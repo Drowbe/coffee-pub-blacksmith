@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+
+## [13.2.9]
+
+### Added
+- **Request a Roll API – groupRoll option**: `openRequestRollDialog(options)` now accepts `options.groupRoll` (boolean). When the dialog is opened via the API, if `groupRoll` is omitted it defaults to false (unchecked); when opened from the UI, the saved preference is used. JSDoc and `documentation/api-requestroll.md` updated.
+- **Wildcard token path resolution**: Foundry’s multiple-variant token paths (e.g. `arch-hag-*.webp`) are now resolved to a concrete file for display. New `resolveWildcardPath(path)` in api-core.js (FilePicker browse + regex + random match). Encounter toolbar: portrait in `_getMonsterDetails()` is resolved when it contains `*`. Token deployment: `deployTokensSequential()` resolves `previewTokenData.textureSrc` before showing the placement ghost so the ghost and result cards use a real path.
+- **Image Replacement – Tag Match weight**: New slider in Image Replacement Data Weights (0–100, default 25) controls how much file tag overlap contributes to relevance. Matching now scores overlap between token/actor data (and, in portrait mode, token image filename words) and the file’s primary/secondary tags; this weight makes tags (e.g. female, scholar, farmer) tunable for both token and portrait results. Setting: `tokenImageReplacementWeightTags`; lang: "Tag Match" with hint.
+- **Image Replacement – Portrait uses token image filename**: Portrait matching now uses words from the token’s current image path as extra context. When a portrait is chosen for a token (or on "update dropped"), words are extracted from the token texture filename (e.g. `female-farmer-01.webp` → female, farmer) and merged into tag matching, so portraits that share those words in name or tags rank higher. New helper `ImageCacheManager.extractWordsFromTokenFilename(path)`; token filename terms passed into `_applyUnifiedMatching` / `_calculateRelevanceScore` in the portrait window flow and in `_processPortraitImageReplacement`.
+
+### Fixed
+- **Image Replacement – %20 in tags**: FilePicker can return URL-encoded paths (e.g. `%20` for spaces). Added `_safeDecodePath(path)` in manager-image-cache.js and decode at the start of `_processFileInfo()` so metadata and tags use readable names (spaces instead of `%20`).
+- **Image Replacement – dropdown white on tan**: Sort dropdown options (e.g. "Sort by Relevance", "Alphabetical: A to Z") now use the dark theme (background `#232323`, color `#e0e0e0`); selected option uses the green accent. Styling in `window-token-replacement.css` for `select option` and `option:checked`.
+
 ## [13.2.8] - Release fix
 
 ## [13.2.7]

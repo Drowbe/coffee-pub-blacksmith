@@ -5043,6 +5043,18 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
+	// Tag Match Weight (primary + secondary tags; helps portraits and token variants)
+	game.settings.register(MODULE.ID, 'tokenImageReplacementWeightTags', {
+		name: MODULE.ID + '.tokenImageReplacementWeightTags-Label',
+		hint: MODULE.ID + '.tokenImageReplacementWeightTags-Hint',
+		type: Number,
+		config: true,
+		scope: 'world',
+		range: { min: 0, max: 100, step: 5 },
+		default: 25,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
 
 	// --------------------------------------
 	// -- H3: TOKEN REPLACEMENT
@@ -5288,6 +5300,18 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredWords', {
 		name: MODULE.ID + '.tokenImageReplacementIgnoredWords-Label',
 		hint: MODULE.ID + '.tokenImageReplacementIgnoredWords-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '',
+		requiresReload: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Ignored Tag Patterns (exclude tags when scanning; reduces garbage like 001A, 16X32)
+	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredTagPatterns', {
+		name: MODULE.ID + '.tokenImageReplacementIgnoredTagPatterns-Label',
+		hint: MODULE.ID + '.tokenImageReplacementIgnoredTagPatterns-Hint',
 		scope: 'world',
 		config: true,
 		type: String,

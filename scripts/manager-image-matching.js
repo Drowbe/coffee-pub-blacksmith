@@ -276,9 +276,10 @@ export class ImageMatching {
      * @param {Object} cache - Cache object
      * @param {Function} extractTokenDataFunction - Function to extract token data
      * @param {Object} weights - Cached weight settings (Performance optimization)
+     * @param {Array<string>} [tokenFilenameTerms] - Extra terms from token image filename (portrait mode); merged into tag matching
      * @returns {number} Relevance score (0.0 to 1.0)
      */
-    static async _calculateRelevanceScore(fileInfo, searchTerms, tokenDocument = null, searchMode = 'search', cache = null, extractTokenDataFunction = null, weights = null) {
+    static async _calculateRelevanceScore(fileInfo, searchTerms, tokenDocument = null, searchMode = 'search', cache = null, extractTokenDataFunction = null, weights = null, tokenFilenameTerms = null) {
         const fileName = fileInfo.name || fileInfo.fullPath?.split('/').pop() || '';
         const fileNameLower = fileName.toLowerCase();
         const filePath = fileInfo.path || fileInfo.fullPath || '';
@@ -293,7 +294,8 @@ export class ImageMatching {
                 creatureType: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureType') / 100,
                 creatureSubtype: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype') / 100,
                 equipment: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightEquipment') / 100,
-                size: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSize') / 100
+                size: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSize') / 100,
+                tagMatch: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightTags') / 100
             };
         }
         
@@ -328,6 +330,7 @@ export class ImageMatching {
             if (tokenData.creatureSubtype) maxPossibleScore += weights.creatureSubtype;
             if (tokenData.equipment && tokenData.equipment.length > 0) maxPossibleScore += weights.equipment;
             if (tokenData.size) maxPossibleScore += weights.size;
+            if (weights.tagMatch != null) maxPossibleScore += weights.tagMatch;
         }
         
         // Search mode categories - fixed weights for search terms
@@ -456,6 +459,35 @@ export class ImageMatching {
                     foundMatch = true;
                 }
             }
+
+            // Tag match: explicit weight for overlap between token/actor words (and token filename terms) and file tags
+            if (weights.tagMatch != null && weights.tagMatch > 0 && fileInfo.metadata?.tags?.length) {
+                const valueWords = new Set();
+                const addWords = (text) => {
+                    if (!text || typeof text !== 'string') return;
+                    const words = this._extractWords(this._normalizeText(text)).filter(w => w.length >= 2);
+                    words.forEach(w => valueWords.add(w));
+                };
+                if (tokenDocument?.actor?.name) addWords(tokenDocument.actor.name);
+                if (tokenDocument?.name) addWords(tokenDocument.name);
+                if (tokenData.representedActor) addWords(tokenData.representedActor);
+                if (tokenData.creatureType) addWords(String(tokenData.creatureType));
+                if (tokenData.creatureSubtype) addWords(String(tokenData.creatureSubtype));
+                if (tokenData.size) addWords(String(tokenData.size));
+                if (tokenData.equipment?.length) tokenData.equipment.forEach(e => addWords(String(e)));
+                if (Array.isArray(tokenFilenameTerms)) tokenFilenameTerms.forEach(t => { if (t && String(t).trim().length >= 2) valueWords.add(String(t).trim().toLowerCase()); });
+                const allValueWords = [...valueWords];
+                if (allValueWords.length > 0) {
+                    let tagMatchScore = 0;
+                    for (const tag of fileInfo.metadata.tags) {
+                        const tagLower = String(tag).toLowerCase();
+                        const match = this._matchCombinations(allValueWords, tagLower);
+                        if (match.matched) tagMatchScore += match.score;
+                    }
+                    totalScore += tagMatchScore * weights.tagMatch;
+                    if (tagMatchScore > 0) foundMatch = true;
+                }
+            }
             
         }
         
@@ -526,9 +558,10 @@ export class ImageMatching {
      * @param {Array|string} searchTerms - Search terms (array for token matching, string for search)
      * @param {Object} tokenDocument - The token document (for context weighting)
      * @param {string} searchMode - 'token', 'search', or 'browse'
+     * @param {Array<string>} [tokenFilenameTerms] - Extra terms from token image filename (portrait mode)
      * @returns {Array} Array of matching files with scores
      */
-    static async _applyUnifiedMatching(filesToSearch, searchTerms = null, tokenDocument = null, searchMode = 'browse', cache = null, extractTokenDataFunction = null, applyThreshold = true) {
+    static async _applyUnifiedMatching(filesToSearch, searchTerms = null, tokenDocument = null, searchMode = 'browse', cache = null, extractTokenDataFunction = null, applyThreshold = true, tokenFilenameTerms = null) {
         const results = [];
         
         // BROWSE MODE: No relevance scoring, just return all files
@@ -555,12 +588,13 @@ export class ImageMatching {
             creatureType: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureType') / 100,
             creatureSubtype: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightCreatureSubtype') / 100,
             equipment: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightEquipment') / 100,
-            size: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSize') / 100
+            size: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightSize') / 100,
+            tagMatch: game.settings.get(MODULE.ID, 'tokenImageReplacementWeightTags') / 100
         };
                 
         for (let i = 0; i < filesToSearch.length; i++) {
             const fileInfo = filesToSearch[i]; 
-            const relevanceScore = await this._calculateRelevanceScore(fileInfo, searchTerms, tokenDocument, searchMode, cache, extractTokenDataFunction, weights);
+            const relevanceScore = await this._calculateRelevanceScore(fileInfo, searchTerms, tokenDocument, searchMode, cache, extractTokenDataFunction, weights, tokenFilenameTerms);
                         
             // Only include results above threshold
             if (relevanceScore >= threshold) {
