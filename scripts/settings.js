@@ -5062,6 +5062,78 @@ export const registerSettings = () => {
 
 
 	// --------------------------------------
+	// -- H4: Ignored Folders, FILES, and TAGS
+	// --------------------------------------
+	registerHeader('TokenImageReplacementIgnored', 'TokenImageReplacementIgnored-Label', 'TokenImageReplacementIgnored-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
+
+	// IGNORED FOLDERS 
+	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredFolders', {
+		name: MODULE.ID + '.tokenImageReplacementIgnoredFolders-Label',
+		hint: MODULE.ID + '.tokenImageReplacementIgnoredFolders-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '.DS_Store',
+		requiresReload: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Deprioritized Words
+	game.settings.register(MODULE.ID, 'tokenImageReplacementDeprioritizedWords', {
+		name: MODULE.ID + '.tokenImageReplacementDeprioritizedWords-Label',
+		hint: MODULE.ID + '.tokenImageReplacementDeprioritizedWords-Hint',
+		type: String,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: 'spirit',
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Ignored Words (File Exclusion)
+	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredWords', {
+		name: MODULE.ID + '.tokenImageReplacementIgnoredWords-Label',
+		hint: MODULE.ID + '.tokenImageReplacementIgnoredWords-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '',
+		requiresReload: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Ignored Tag Patterns (exclude tags when scanning; reduces garbage like 001A, 16X32)
+	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredTagPatterns', {
+		name: MODULE.ID + '.tokenImageReplacementIgnoredTagPatterns-Label',
+		hint: MODULE.ID + '.tokenImageReplacementIgnoredTagPatterns-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '',
+		requiresReload: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	// Filter garbage tags (dimensions, variant codes) when scanning; applies to token and portrait
+	game.settings.register(MODULE.ID, 'tokenImageReplacementFilterGarbageTags', {
+		name: MODULE.ID + '.tokenImageReplacementFilterGarbageTags-Label',
+		hint: MODULE.ID + '.tokenImageReplacementFilterGarbageTags-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		requiresReload: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	
+
+
+
+
+
+
+	// --------------------------------------
 	// -- H3: TOKEN REPLACEMENT
 	// --------------------------------------
 	registerHeader('headingH3TokenReplacement', 'headingH3TokenReplacement-Label', 'headingH3TokenReplacement-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
@@ -5196,23 +5268,8 @@ export const registerSettings = () => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	// --------------------------------------
-	// -- H2: Token Image Replacement Cache
+	// -- H3: Token Image Replacement Cache
 	// --------------------------------------
 	registerHeader('TokenImageReplacementCache', 'headingH3TokenImageReplacementCache-Label', 'headingH3TokenImageReplacementCache-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
@@ -5254,16 +5311,16 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
-	// Cache Stats
-	game.settings.register(MODULE.ID, "headingH4tokenImageReplacementCacheStats", {
-		name: MODULE.ID + '.tokenImageReplacementCacheStats-Label',
-		hint: getTokenImageReplacementCacheStats() + ". (Updated on client load and cache operations)", 
-		scope: "world",
-		config: true,
-		default: "",
-		type: String,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
+	// // Cache Stats
+	// game.settings.register(MODULE.ID, "headingH4tokenImageReplacementCacheStats", {
+	// 	name: MODULE.ID + '.tokenImageReplacementCacheStats-Label',
+	// 	hint: getTokenImageReplacementCacheStats() + ". (Updated on client load and cache operations)", 
+	// 	scope: "world",
+	// 	config: true,
+	// 	default: "",
+	// 	type: String,
+	// 	group: WORKFLOW_GROUPS.AUTOMATION
+	// });
 
 
 	// Number of Image Replacement Paths (0-15 slider)
@@ -5281,74 +5338,6 @@ export const registerSettings = () => {
 
 	// Register numbered image replacement path settings dynamically
 	registerImageReplacementPaths();
-
-	// IGNORED FOLDERS 
-	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredFolders', {
-		name: MODULE.ID + '.tokenImageReplacementIgnoredFolders-Label',
-		hint: MODULE.ID + '.tokenImageReplacementIgnoredFolders-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '.DS_Store',
-		requiresReload: true
-	});
-
-	// Deprioritized Words
-	game.settings.register(MODULE.ID, 'tokenImageReplacementDeprioritizedWords', {
-		name: MODULE.ID + '.tokenImageReplacementDeprioritizedWords-Label',
-		hint: MODULE.ID + '.tokenImageReplacementDeprioritizedWords-Hint',
-		type: String,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: 'spirit',
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Ignored Words (File Exclusion)
-	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredWords', {
-		name: MODULE.ID + '.tokenImageReplacementIgnoredWords-Label',
-		hint: MODULE.ID + '.tokenImageReplacementIgnoredWords-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '',
-		requiresReload: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Ignored Tag Patterns (exclude tags when scanning; reduces garbage like 001A, 16X32)
-	game.settings.register(MODULE.ID, 'tokenImageReplacementIgnoredTagPatterns', {
-		name: MODULE.ID + '.tokenImageReplacementIgnoredTagPatterns-Label',
-		hint: MODULE.ID + '.tokenImageReplacementIgnoredTagPatterns-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '',
-		requiresReload: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	// Filter garbage tags (dimensions, variant codes) when scanning; applies to token and portrait
-	game.settings.register(MODULE.ID, 'tokenImageReplacementFilterGarbageTags', {
-		name: MODULE.ID + '.tokenImageReplacementFilterGarbageTags-Label',
-		hint: MODULE.ID + '.tokenImageReplacementFilterGarbageTags-Hint',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: true,
-		requiresReload: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
-	
-
-
-
-
-
-
-
 
 	// --------------------------------------
 	// -- H3: Portrait Image Replacement

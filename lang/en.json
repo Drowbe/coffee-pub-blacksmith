@@ -1084,7 +1084,7 @@
 				"tokenImageReplacementShowInFoundryToolbar-Hint": "",
 				
 				"tokenImageReplacementCategoryStyle-Label": "Category Style",
-				"tokenImageReplacementCategoryStyle-Hint": "Choose how category filters are displayed in the Token Image Replacement window. Buttons show as clickable buttons, Tabs show as traditional tab interface.",
+				"tokenImageReplacementCategoryStyle-Hint": "",
 
 				"tokenImageReplacementTagSortMode-Label": "Tag Sort Mode",
 				"tokenImageReplacementTagSortMode-Hint": "",
@@ -1122,34 +1122,51 @@
 				"tokenImageReplacementWeightSize-Label": "Size",
 				"tokenImageReplacementWeightSize-Hint": "",
 
-				"tokenImageReplacementWeightTags-Label": "Tag Match",
-				"tokenImageReplacementWeightTags-Hint": "Weight for matches against file tags (primary and secondary). Helps portraits and token variants that share filename words (e.g. female, scholar).",
+				"tokenImageReplacementWeightTags-Label": "Tags",
+				"tokenImageReplacementWeightTags-Hint": "",
 
 
 
 
 
+			"TokenImageReplacementIgnored-Label": "Ignored Folders, Files, and Tags",
+			"TokenImageReplacementIgnored-Hint": "Comma-separated list of folder names to ignore when scanning. Applies to both token and portrait image replacement.",
+
+
+				"tokenImageReplacementIgnoredFolders-Label": "Ignored Folders",
+				"tokenImageReplacementIgnoredFolders-Hint": "Examples: _gsdata_, .DS_Store",
+
+				"tokenImageReplacementDeprioritizedWords-Label": "Deprioritized Words",
+				"tokenImageReplacementDeprioritizedWords-Hint": "Example: spirit",
+
+				"tokenImageReplacementIgnoredWords-Label": "Ignored Words",
+				"tokenImageReplacementIgnoredWords-Hint": "Supports * wildcard. Example: *Scale*, *.png, *.jpeg, *alternate*",
+
+				"tokenImageReplacementIgnoredTagPatterns-Label": "Ignored Tag Patterns",
+				"tokenImageReplacementIgnoredTagPatterns-Hint": "Supports * wildcard. Example: 00*, *X* (for dimensions)",
+
+				"tokenImageReplacementFilterGarbageTags-Label": "Auto-Filter Garbage Tags",
+				"tokenImageReplacementFilterGarbageTags-Hint": "Skip adding tags that look like dimensions (16X32), variant codes (001A, A1), or all-digit parts.",
 
 
 
-
-			"headingH3TokenReplacement-Label": "Token Image Replacement",
+			"headingH3TokenReplacement-Label": "Token Replacement",
 			"headingH3TokenReplacement-Hint": "",
 			
-				"tokenImageReplacementEnabled-Label": "Enable Token Image Replacement",
+				"tokenImageReplacementEnabled-Label": "Enable Token Replacement",
 				"tokenImageReplacementEnabled-Hint": "",
 
 				"tokenImageReplacementUpdateDropped-Label": "Update Dropped Token Images",
 				"tokenImageReplacementUpdateDropped-Hint": "",
 
 				"tokenImageReplacementThreshold-Label": "Matching Threshold",
-				"tokenImageReplacementThreshold-Hint": "How strict the matching algorithm should be. Lower values = more fuzzy matching, higher values = more exact matching.",
+				"tokenImageReplacementThreshold-Hint": "Lower values = more fuzzy matching, higher values = more exact matching.",
 
 				"tokenImageReplacementFuzzySearch-Label": "Fuzzy Search",
-				"tokenImageReplacementFuzzySearch-Hint": "When enabled, searches for individual words independently. When disabled, searches for exact string matches.",
+				"tokenImageReplacementFuzzySearch-Hint": "When disabled, searches for exact string matches.",
 
 				"tokenImageReplacementVariability-Label": "Token Image Variability",
-				"tokenImageReplacementVariability-Hint": "When enabled, tokens will randomly select from all images with the highest matching score instead of always using the same top match. This adds visual variety when multiple tokens of the same type are created.",
+				"tokenImageReplacementVariability-Hint": "Randomly select from all images with the highest matching score.",
 
 				"tokenImageReplacementUpdateMonsters-Label": "Update Monsters",
 				"tokenImageReplacementUpdateMonsters-Hint": "",
@@ -1168,44 +1185,14 @@
 
 
 
+			"headingH3TokenImageReplacementCache-Label": "Token Image Folders",
+			"headingH3TokenImageReplacementCache-Hint": "",
 
 
-
-
-
-			"headingH3TokenImageReplacementCache-Label": "Token Image Cache",
-			"headingH3TokenImageReplacementCache-Hint": "The cache is where we store the image references that are used for token image replacement. It also contains the tags, cateogries and other metadata for the images.",
-
-
-
-
-
-			
 			"tokenImageReplacementCacheStats-Label": "Token Cache Status",
 
 				"numImageReplacementPaths-Label": "Number of Image Folders",
-				"numImageReplacementPaths-Hint": "Number of image folders to scan for token images (0-15). Folders are checked in priority order. You must save to see the new folder selections below.",
-
-
-				"tokenImageReplacementIgnoredFolders-Label": "Ignored Folders",
-				"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning. Applies to both token and portrait image replacement. These folders will be completely skipped. Examples: _gsdata_, .DS_Store",
-
-				"tokenImageReplacementDeprioritizedWords-Label": "Deprioritized Words",
-				"tokenImageReplacementDeprioritizedWords-Hint": "Comma-separated list of words that should reduce the match score of images containing them. Applies to both token and portrait replacement.",
-
-				"tokenImageReplacementIgnoredWords-Label": "Ignored Words",
-				"tokenImageReplacementIgnoredWords-Hint": "Comma-separated list of patterns to completely exclude files from cache. Applies to both token and portrait. Supports the * wildcard.",
-
-				"tokenImageReplacementIgnoredTagPatterns-Label": "Ignored Tag Patterns",
-				"tokenImageReplacementIgnoredTagPatterns-Hint": "Comma-separated patterns for tags to exclude when scanning. Supports * wildcard (e.g. 00*, *X* for dimensions). Built-in filter already excludes dimensions (16X32), variant codes (001A, A1), and all-digit tags. Use this to add more.",
-
-				"tokenImageReplacementFilterGarbageTags-Label": "Filter Garbage Tags",
-				"tokenImageReplacementFilterGarbageTags-Hint": "When enabled (default), skip adding tags that look like dimensions (16X32), variant codes (001A, A1), or all-digit parts. Applies to both token and portrait scanning. Disable to include all filename parts as tags.",
-
-
-
-
-
+				"numImageReplacementPaths-Hint": "",
 
 
 
@@ -1219,59 +1206,37 @@
 				"portraitImageReplacementUpdateDropped-Hint": "When enabled, actor portraits will be automatically updated with the best matching portrait when tokens are created on the canvas.",
 
 
-
 				"portraitImageReplacementThreshold-Label": "Matching Threshold",
-				"portraitImageReplacementThreshold-Hint": "How strict the matching algorithm should be for portrait images. Lower values = more fuzzy matching, higher values = more exact matching.",
+				"portraitImageReplacementThreshold-Hint": "Lower values = more fuzzy matching, higher values = more exact matching.",
 
 				"portraitImageReplacementFuzzySearch-Label": "Fuzzy Search",
-				"portraitImageReplacementFuzzySearch-Hint": "When enabled, searches for individual words independently in portrait images. When disabled, searches for exact string matches.",
+				"portraitImageReplacementFuzzySearch-Hint": "When disabled, searches for exact string matches.",
 
 				
 				"portraitImageReplacementVariability-Label": "Portrait Image Variability",
-				"portraitImageReplacementVariability-Hint": "When enabled, portraits will randomly select from all images with the highest matching score instead of always using the same top match. This adds visual variety when multiple actors of the same type are created.",
+				"portraitImageReplacementVariability-Hint": "Randomly select from all images with the highest matching score.",
 
 				"portraitImageReplacementUpdateMonsters-Label": "Update Monsters",
-				"portraitImageReplacementUpdateMonsters-Hint": "Replace images for monster portraits.",
+				"portraitImageReplacementUpdateMonsters-Hint": "",
 
 				"portraitImageReplacementUpdateNPCs-Label": "Update NPCs",
-				"portraitImageReplacementUpdateNPCs-Hint": "Replace images for NPC portraits.",
+				"portraitImageReplacementUpdateNPCs-Hint": "",
 
 				"portraitImageReplacementUpdateVehicles-Label": "Update Vehicles",
-				"portraitImageReplacementUpdateVehicles-Hint": "Replace images for vehicle portraits.",
+				"portraitImageReplacementUpdateVehicles-Hint": "",
 
 				"portraitImageReplacementUpdateActors-Label": "Update Actors",
-				"portraitImageReplacementUpdateActors-Hint": "Replace images for actor portraits.",
+				"portraitImageReplacementUpdateActors-Hint": "",
 
 				"portraitImageReplacementSkipLinked-Label": "Skip Linked Tokens",
-				"portraitImageReplacementSkipLinked-Hint": "Do not replace portrait images for linked actors (usually player characters).",
+				"portraitImageReplacementSkipLinked-Hint": "",
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-			"headingH3PortraitImageReplacementCache-Label": "Portrait Image Cache",
-			"headingH3PortraitImageReplacementCache-Hint": "The cache is where we store the image references that are used for portrait image replacement. It also contains the tags, categories and other metadata for the images.",
-
+			"headingH3PortraitImageReplacementCache-Label": "Portrait Image Folders",
+			"headingH3PortraitImageReplacementCache-Hint": "",
 
 
 				"numPortraitImageReplacementPaths-Label": "Number of Image Folders",
-				"numPortraitImageReplacementPaths-Hint": "Number of image folders to scan for portrait images (0-15). Folders are checked in priority order. You must save to see the new folder selections below.",
+				"numPortraitImageReplacementPaths-Hint": "",
 
 
 
