@@ -249,11 +249,8 @@ export class ImageCacheManager {
      * Check if a folder should be ignored based on settings
      */
     static _isFolderIgnored(folderName, mode = 'token') {
-        // Get mode-specific ignored folders setting
-        const ignoredFoldersKey = mode === this.MODES.PORTRAIT 
-            ? 'portraitImageReplacementIgnoredFolders' 
-            : 'tokenImageReplacementIgnoredFolders';
-        const ignoredFoldersSetting = getSettingSafely(MODULE.ID, ignoredFoldersKey, '_gsdata_,Build_a_Token,.DS_Store');
+        // Single setting for both token and portrait
+        const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '_gsdata_,Build_a_Token,.DS_Store');
         const ignoredFolders = ignoredFoldersSetting.split(',').map(folder => folder.trim().toLowerCase());
         const folderNameLower = folderName.toLowerCase();
         const isIgnored = ignoredFolders.includes(folderNameLower);
@@ -487,9 +484,11 @@ export class ImageCacheManager {
             }
 
             if (!matched) {
-                if (!this._isGarbageTagPart(cleanPart)) {
-                    secondaryParts.push(cleanPart);
+                const filterGarbage = getSettingSafely(MODULE.ID, 'tokenImageReplacementFilterGarbageTags', true);
+                if (filterGarbage && this._isGarbageTagPart(cleanPart)) {
+                    continue;
                 }
+                secondaryParts.push(cleanPart);
             }
         }
         
@@ -1556,31 +1555,12 @@ export class ImageCacheManager {
             // Update the cache status setting for display
             this._updateCacheStatusSetting(mode);
             
-            // Check if we need incremental updates (use first path for fingerprint check)
-            if (basePaths.length > 0) {
-                await this._checkForIncrementalUpdates(basePaths[0], mode);
-            }
-            
             return;
         }
         
-        // No cache found - show appropriate notification
-        // Get mode-specific auto update setting
-        const autoUpdateKey = mode === this.MODES.PORTRAIT 
-            ? 'portraitImageReplacementAutoUpdate' 
-            : 'tokenImageReplacementAutoUpdate';
-        const autoUpdate = getSettingSafely(MODULE.ID, autoUpdateKey, false);
+        // No cache found - user must scan manually
         const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
-        if (autoUpdate) {
-            ui.notifications.info(`No ${modeLabel} Image Replacement images found. Scanning for images.`);
-        } else {
-            ui.notifications.info(`No ${modeLabel} Image Replacement images found. You need to scan for images before replacements will work.`);
-        }
-        
-        // Start background scan if no valid cache found and auto-update is enabled
-        if (autoUpdate) {
-            await this._scanFolderStructure(mode); // Will use getTokenImagePathsForMode() internally
-        }
+        ui.notifications.info(`No ${modeLabel} Image Replacement images found. Use "Update Images" in the replacement window to scan.`);
     }
     
     /**
@@ -2421,11 +2401,8 @@ export class ImageCacheManager {
         const pathParts = filePath.split('/').filter(p => p);
         if (pathParts.length > 1) {
             const category = pathParts[0];
-            // Get mode-specific ignored folders setting
-            const ignoredFoldersKey = mode === this.MODES.PORTRAIT 
-                ? 'portraitImageReplacementIgnoredFolders' 
-                : 'tokenImageReplacementIgnoredFolders';
-            const ignoredFoldersSetting = getSettingSafely(MODULE.ID, ignoredFoldersKey, '');
+            // Single setting for both token and portrait
+            const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
             const ignoredFolders = ignoredFoldersSetting 
                 ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
                 : [];
@@ -2445,11 +2422,8 @@ export class ImageCacheManager {
      * @returns {boolean} True if the file should be ignored
      */
     static _shouldIgnoreFile(fileName, mode = 'token') {
-        // Get mode-specific ignored words setting
-        const ignoredWordsKey = mode === this.MODES.PORTRAIT 
-            ? 'portraitImageReplacementIgnoredWords' 
-            : 'tokenImageReplacementIgnoredWords';
-        const ignoredWords = getSettingSafely(MODULE.ID, ignoredWordsKey, '');
+        // Single setting for both token and portrait
+        const ignoredWords = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredWords', '');
         if (!ignoredWords || ignoredWords.trim() === '') {
             return false;
         }
@@ -3431,51 +3405,6 @@ export class ImageCacheManager {
     }
 
     /**
-     * Check for incremental updates to the cache
-     * @param {string} basePath - Base path to check
-     * @param {string} mode - 'token' or 'portrait'
-     */
-    static async _checkForIncrementalUpdates(basePath, mode = 'token') {
-        const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
-        const cacheSettingKey = this.getCacheSettingKey(mode);
-        
-        try {
-            const cache = this.getCache(mode);
-            let changeDetected = false;
-            // Check if folder fingerprint changed (file system changes)
-            const currentFingerprint = await this._generateFolderFingerprint(basePath);
-            const savedCache = game.settings.get(MODULE.ID, cacheSettingKey);
-            
-            if (savedCache) {
-                let cacheData;
-                try {
-                    cacheData = JSON.parse(this._decompressCacheData(savedCache));
-                } catch (e) {
-                    cacheData = JSON.parse(savedCache);
-                }
-                const savedFingerprint = cacheData.folderFingerprint || cacheData.ff;
-                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: DEBUG (_checkForIncrementalUpdates) - Comparing paths: cached="${cacheData.basePath || cacheData.bp}" vs current="${basePath}"`, "", true, false);
-                postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: DEBUG (_checkForIncrementalUpdates) - Comparing fingerprints: cached="${savedFingerprint}" vs current="${currentFingerprint}"`, "", true, false);
-                if (savedFingerprint === 'error' || savedFingerprint === 'no-path') {
-                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Saved cache has invalid fingerprint (${savedFingerprint}); cache may need a rescan`, "", false, false);
-                    cache.needsRescan = true;
-                    changeDetected = true;
-                } else if (savedFingerprint !== currentFingerprint) {
-                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Folder structure changed; cache may be stale`, "", true, false);
-                    cache.needsRescan = true;
-                    changeDetected = true;
-                } else {
-                    postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cache is up to date`, "", true, false);
-                }
-            }
-            return changeDetected;
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Error checking for incremental updates: ${error.message}`, "", false, false);
-            return false;
-        }
-    }
-
-    /**
      * Get discovered categories from actual cache data
      * Returns the actual folder names found in the cache, respecting user settings
      * @returns {Array<string>} Array of category folder names
@@ -3483,11 +3412,8 @@ export class ImageCacheManager {
     static getDiscoveredCategories(mode = 'token') {
         const cache = this.getCache(mode);
         
-        // Get mode-specific ignored folders setting
-        const ignoredFoldersKey = mode === this.MODES.PORTRAIT 
-            ? 'portraitImageReplacementIgnoredFolders' 
-            : 'tokenImageReplacementIgnoredFolders';
-        const ignoredFoldersSetting = getSettingSafely(MODULE.ID, ignoredFoldersKey, '');
+        // Single setting for both token and portrait
+        const ignoredFoldersSetting = getSettingSafely(MODULE.ID, 'tokenImageReplacementIgnoredFolders', '');
         const ignoredFolders = ignoredFoldersSetting 
             ? ignoredFoldersSetting.split(',').map(f => f.trim()).filter(f => f)
             : [];

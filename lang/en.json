@@ -1048,11 +1048,33 @@
 				"nameplateOutlineColor-Label": " Outline Color",
 				"nameplateOutlineColor-Hint": "Sets the outline color for nameplates under tokens. Default: #111111.",
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				
 		"headingH2TokenImagePortraitReplacement-Label": "Token and Portrait Image Replacement",
 		"headingH2TokenImagePortraitReplacement-Hint": "When tokens are dropped on the canvas, this module will automatically replace the token image with the best matching image from the cache.",
 
 
-			"headingH3TokenReplaceShared-Label": "Shared Settings",
+
+
+
+
+
+			"headingH3TokenReplaceShared-Label": "General",
 			"headingH3TokenReplaceShared-Hint": "",
 
 				"tokenImageReplacementShowInCoffeePubToolbar-Label": "Show in CoffeePub Toolbar",
@@ -1066,6 +1088,12 @@
 
 				"tokenImageReplacementTagSortMode-Label": "Tag Sort Mode",
 				"tokenImageReplacementTagSortMode-Hint": "",
+
+
+
+
+
+
 
 
 
@@ -1096,6 +1124,14 @@
 
 				"tokenImageReplacementWeightTags-Label": "Tag Match",
 				"tokenImageReplacementWeightTags-Hint": "Weight for matches against file tags (primary and secondary). Helps portraits and token variants that share filename words (e.g. female, scholar).",
+
+
+
+
+
+
+
+
 
 			"headingH3TokenReplacement-Label": "Token Image Replacement",
 			"headingH3TokenReplacement-Hint": "",
@@ -1130,9 +1166,21 @@
 				"tokenImageReplacementSkipLinked-Label": "Skip Linked Tokens",
 				"tokenImageReplacementSkipLinked-Hint": "",
 
+
+
+
+
+
+
+
 			"headingH3TokenImageReplacementCache-Label": "Token Image Cache",
 			"headingH3TokenImageReplacementCache-Hint": "The cache is where we store the image references that are used for token image replacement. It also contains the tags, cateogries and other metadata for the images.",
 
+
+
+
+
+			
 			"tokenImageReplacementCacheStats-Label": "Token Cache Status",
 
 				"numImageReplacementPaths-Label": "Number of Image Folders",
@@ -1140,20 +1188,24 @@
 
 
 				"tokenImageReplacementIgnoredFolders-Label": "Ignored Folders",
-				"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for token images. These folders will be completely skipped during the scan process. Examples: _gsdata_, .DS_Store",
-
-
-				"tokenImageReplacementAutoUpdate-Label": "Monitor Image Folder for Changes",
-				"tokenImageReplacementAutoUpdate-Hint": "Monitor the image folder for changes and update the cache accordingly. (experimental)",
+				"tokenImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning. Applies to both token and portrait image replacement. These folders will be completely skipped. Examples: _gsdata_, .DS_Store",
 
 				"tokenImageReplacementDeprioritizedWords-Label": "Deprioritized Words",
-				"tokenImageReplacementDeprioritizedWords-Hint": "Comma-separated list of words that should reduce the match score of images containing them.",
-				
+				"tokenImageReplacementDeprioritizedWords-Hint": "Comma-separated list of words that should reduce the match score of images containing them. Applies to both token and portrait replacement.",
+
 				"tokenImageReplacementIgnoredWords-Label": "Ignored Words",
-				"tokenImageReplacementIgnoredWords-Hint": "Comma-separated list of patterns to completely exclude files from cache. Supports the * wildcard.",
+				"tokenImageReplacementIgnoredWords-Hint": "Comma-separated list of patterns to completely exclude files from cache. Applies to both token and portrait. Supports the * wildcard.",
 
 				"tokenImageReplacementIgnoredTagPatterns-Label": "Ignored Tag Patterns",
 				"tokenImageReplacementIgnoredTagPatterns-Hint": "Comma-separated patterns for tags to exclude when scanning. Supports * wildcard (e.g. 00*, *X* for dimensions). Built-in filter already excludes dimensions (16X32), variant codes (001A, A1), and all-digit tags. Use this to add more.",
+
+				"tokenImageReplacementFilterGarbageTags-Label": "Filter Garbage Tags",
+				"tokenImageReplacementFilterGarbageTags-Hint": "When enabled (default), skip adding tags that look like dimensions (16X32), variant codes (001A, A1), or all-digit parts. Applies to both token and portrait scanning. Disable to include all filename parts as tags.",
+
+
+
+
+
 
 
 
@@ -1194,6 +1246,25 @@
 				"portraitImageReplacementSkipLinked-Hint": "Do not replace portrait images for linked actors (usually player characters).",
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 			"headingH3PortraitImageReplacementCache-Label": "Portrait Image Cache",
 			"headingH3PortraitImageReplacementCache-Hint": "The cache is where we store the image references that are used for portrait image replacement. It also contains the tags, categories and other metadata for the images.",
 
@@ -1201,18 +1272,6 @@
 
 				"numPortraitImageReplacementPaths-Label": "Number of Image Folders",
 				"numPortraitImageReplacementPaths-Hint": "Number of image folders to scan for portrait images (0-15). Folders are checked in priority order. You must save to see the new folder selections below.",
-
-				"portraitImageReplacementIgnoredFolders-Label": "Ignored Folders",
-				"portraitImageReplacementIgnoredFolders-Hint": "Comma-separated list of folder names to ignore when scanning for portrait images. These folders will be completely skipped during the scan process. Examples: _gsdata_, .DS_Store",
-
-				"portraitImageReplacementAutoUpdate-Label": "Monitor Image Folder for Changes",
-				"portraitImageReplacementAutoUpdate-Hint": "If enabled, the module will monitor the image folder for changes and update the cache accordingly. If disabled, the module will only update the cache when the 'Update Images' button is clicked.",
-
-				"portraitImageReplacementDeprioritizedWords-Label": "Deprioritized Words",
-				"portraitImageReplacementDeprioritizedWords-Hint": "Comma-separated list of words that should reduce the match score of images containing them. Use this to prefer base creature types over specialized variants (e.g., 'spirit,ghost,undead,shadow').",
-
-				"portraitImageReplacementIgnoredWords-Label": "Ignored Words",
-				"portraitImageReplacementIgnoredWords-Hint": "Comma-separated list of patterns to completely exclude files from cache. Supports wildcards: 'spirit' (exact), '*spirit' (ends with), 'spirit*' (starts with), '*spirit*' (contains), '*.png' (extension). Files matching any pattern will not be scanned or cached.",
 
 
 

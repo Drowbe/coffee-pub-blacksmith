@@ -4861,7 +4861,7 @@ export const registerSettings = () => {
 
 
 	// --------------------------------------
-	// -- H2: Token Replace Shared
+	// -- H2: TOKEN AND PORTRAIT REPLACEMENT
 	// --------------------------------------
 	registerHeader('TokenImagePortraitReplacement', 'headingH2TokenImagePortraitReplacement-Label', 'headingH2TokenImagePortraitReplacement-Hint', 'H2	', WORKFLOW_GROUPS.AUTOMATION, 'world');
 
@@ -5056,6 +5056,11 @@ export const registerSettings = () => {
 	});
 
 
+
+
+
+
+
 	// --------------------------------------
 	// -- H3: TOKEN REPLACEMENT
 	// --------------------------------------
@@ -5190,6 +5195,22 @@ export const registerSettings = () => {
 	});
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	// --------------------------------------
 	// -- H2: Token Image Replacement Cache
 	// --------------------------------------
@@ -5272,18 +5293,6 @@ export const registerSettings = () => {
 		requiresReload: true
 	});
 
-	// Automatically Update Image Cache
-	game.settings.register(MODULE.ID, 'tokenImageReplacementAutoUpdate', {
-		name: MODULE.ID + '.tokenImageReplacementAutoUpdate-Label',
-		hint: MODULE.ID + '.tokenImageReplacementAutoUpdate-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
 	// Deprioritized Words
 	game.settings.register(MODULE.ID, 'tokenImageReplacementDeprioritizedWords', {
 		name: MODULE.ID + '.tokenImageReplacementDeprioritizedWords-Label',
@@ -5319,6 +5328,26 @@ export const registerSettings = () => {
 		requiresReload: true,
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
+
+	// Filter garbage tags (dimensions, variant codes) when scanning; applies to token and portrait
+	game.settings.register(MODULE.ID, 'tokenImageReplacementFilterGarbageTags', {
+		name: MODULE.ID + '.tokenImageReplacementFilterGarbageTags-Label',
+		hint: MODULE.ID + '.tokenImageReplacementFilterGarbageTags-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		requiresReload: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
+	
+
+
+
+
+
+
 
 
 	// --------------------------------------
@@ -5452,6 +5481,35 @@ export const registerSettings = () => {
 	});
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	// --------------------------------------
 	// -- H3: Portrait Image Replacement Cache
 	// --------------------------------------
@@ -5484,53 +5542,31 @@ export const registerSettings = () => {
 	registerPortraitImageReplacementPaths();
 
 
-	// Portrait Image Replacement Ignored Folders
-	game.settings.register(MODULE.ID, 'portraitImageReplacementIgnoredFolders', {
-		name: MODULE.ID + '.portraitImageReplacementIgnoredFolders-Label',
-		hint: MODULE.ID + '.portraitImageReplacementIgnoredFolders-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '.DS_Store',
-		requiresReload: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
 
-	// Automatically Update Portrait Image Cache
-	game.settings.register(MODULE.ID, 'portraitImageReplacementAutoUpdate', {
-		name: MODULE.ID + '.portraitImageReplacementAutoUpdate-Label',
-		hint: MODULE.ID + '.portraitImageReplacementAutoUpdate-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
 
-	// Portrait Deprioritized Words
-	game.settings.register(MODULE.ID, 'portraitImageReplacementDeprioritizedWords', {
-		name: MODULE.ID + '.portraitImageReplacementDeprioritizedWords-Label',
-		hint: MODULE.ID + '.portraitImageReplacementDeprioritizedWords-Hint',
-		type: String,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: '',
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
 
-	// Portrait Ignored Words (File Exclusion)
-	game.settings.register(MODULE.ID, 'portraitImageReplacementIgnoredWords', {
-		name: MODULE.ID + '.portraitImageReplacementIgnoredWords-Label',
-		hint: MODULE.ID + '.portraitImageReplacementIgnoredWords-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '',
-		requiresReload: true,
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -338,10 +338,13 @@ export class TokenImageUtilities {
         if (!tokenDocument || !tokenDocument.texture) {
             return;
         }
-        
+        const src = tokenDocument.texture?.src ?? tokenDocument.texture?.path ?? null;
+        if (src == null || typeof src !== 'string') {
+            return;
+        }
         const originalImage = {
-            path: tokenDocument.texture.src,
-            name: tokenDocument.texture.src.split('/').pop(),
+            path: src,
+            name: src.split('/').pop(),
             timestamp: Date.now()
         };
         
