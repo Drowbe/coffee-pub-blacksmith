@@ -53,21 +53,24 @@ export class SkillCheckDialog extends Application {
         // Get all tokens from the canvas, including NPCs and monsters
         const canvasTokens = canvas.tokens.placeables
             .filter(t => t.actor)
-            .map(t => ({
-                id: t.id,
-                name: t.name, // Use the token's name for display
-                hasOwner: t.actor.hasPlayerOwner,
-                actor: t.actor,
-                isSelected: t.isSelected,
-                // Add additional info for display
-                level: t.actor.type === 'character' ? t.actor.system.details.level : null,
-                class: t.actor.type === 'character' ? t.actor.system.details.class : null,
-                type: t.actor.type,
-                hp: {
-                    value: t.actor.system.attributes.hp.value,
-                    max: t.actor.system.attributes.hp.max
-                }
-            }));
+            .map(t => {
+                const hp = t.actor.system?.attributes?.hp;
+                return {
+                    id: t.id,
+                    name: t.name, // Use the token's name for display
+                    hasOwner: t.actor.hasPlayerOwner,
+                    actor: t.actor,
+                    isSelected: t.isSelected,
+                    // Add additional info for display
+                    level: t.actor.type === 'character' ? t.actor.system?.details?.level : null,
+                    class: t.actor.type === 'character' ? t.actor.system?.details?.class : null,
+                    type: t.actor.type,
+                    hp: hp ? {
+                        value: hp.value ?? 0,
+                        max: hp.max ?? 0
+                    } : { value: 0, max: 0 }
+                };
+            });
 
         // Check if there are any selected tokens
         const hasSelectedTokens = canvas.tokens.controlled.length > 0;

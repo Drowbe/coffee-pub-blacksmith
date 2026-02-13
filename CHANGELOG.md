@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.2.10]
+### Fixed
+- **Skill Check dialog – undefined hp crash**: When opening the Request a Roll (Skill Check) dialog, actors without `system.attributes.hp` (e.g. vehicles, some NPCs, or alternate data structures) caused "Cannot read properties of undefined (reading 'value')". `getData()` now uses optional chaining and fallbacks for `hp`, `level`, and `class` so the dialog renders safely for all actor types.
+
 
 ## [13.2.9]
 
