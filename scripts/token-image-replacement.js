@@ -9,6 +9,7 @@ import { ImageCacheManager } from './manager-image-cache.js';
 import { ImageMatching } from './manager-image-matching.js';
 import { TokenImageUtilities } from './token-image-utilities.js';
 import { getTokenImagePaths, getPortraitImagePaths } from './settings.js';
+import { UIContextMenu } from './ui-context-menu.js';
 
 /**
  * Token Image Replacement Window
@@ -922,6 +923,7 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     async _onSelectImage(event) {
+        if (event.button === 2) return;
         const imagePath = event.currentTarget.dataset.imagePath;
         const imageName = event.currentTarget.dataset.imageName;
         const isQuickApply = event.target.closest('[data-quick-apply="true"]');
@@ -948,50 +950,116 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     /**
-     * Handle right-click on image to toggle favorite status
+     * Handle right-click on image tile - show API context menu
      */
-    async _onImageRightClick(event) {
+    _onImageRightClick(event) {
         event.preventDefault();
-        
-        const imagePath = event.currentTarget.dataset.imagePath;
-        const imageName = event.currentTarget.dataset.imageName;
-        
+        event.stopPropagation();
+
+        const tile = event.currentTarget;
+        const imagePath = tile?.dataset?.imagePath;
+        const imageName = tile?.dataset?.imageName;
+
         if (!imagePath) return;
 
-        try {
-            const fileInfo = this._getFileInfoFromCache(imageName);
-            if (!fileInfo) {
-                ui.notifications.warn(`Could not find file info for ${imageName}`);
-                return;
-            }
+        const doc = tile.ownerDocument || document;
+        const menuRoot = doc.body;
 
-            if (!fileInfo.metadata) {
-                fileInfo.metadata = {};
-            }
+        const fileInfo = this._getFileInfoFromCache(imageName);
+        if (fileInfo) {
+            if (!fileInfo.metadata) fileInfo.metadata = {};
             ImageCacheManager._ensureTagMetadata(fileInfo.metadata);
+        }
 
+        const imageTileData = {
+            imagePath,
+            imageName,
+            fullPath: imagePath,
+            mode: this.mode,
+            selectedToken: this.selectedToken,
+            fileInfo: fileInfo || null
+        };
+
+        const menuX = event.clientX;
+        const menuY = event.clientY;
+
+        const moduleItems = ImageCacheManager.getImageTileContextMenuItems(imageTileData);
+
+        const coreItems = [];
+
+        if (fileInfo) {
             const isFavorited = fileInfo.metadata.tags.includes('FAVORITE');
-
             if (isFavorited) {
-                ImageCacheManager._removeTag(fileInfo.metadata, 'FAVORITE');
-                ui.notifications.info(`Removed ${imageName} from favorites`);
+                coreItems.push({
+                    name: 'Remove from Favorites',
+                    icon: 'fa-solid fa-heart-crack',
+                    callback: async () => {
+                        ImageCacheManager._removeTag(fileInfo.metadata, 'FAVORITE');
+                        await ImageCacheManager._saveCacheToStorage(true);
+                        ui.notifications.info(`Removed ${imageName} from favorites`);
+                        if (this.currentFilter === 'favorites') {
+                            this._showSearchSpinner();
+                            await this._findMatches();
+                            this._hideSearchSpinner();
+                        } else {
+                            this._updateResults();
+                        }
+                    }
+                });
             } else {
-                ImageCacheManager._markTag(fileInfo.metadata, 'FAVORITE', 'primary');
-                ui.notifications.info(`Added ${imageName} to favorites`);
+                coreItems.push({
+                    name: 'Add to Favorites',
+                    icon: 'fa-solid fa-heart',
+                    callback: async () => {
+                        ImageCacheManager._markTag(fileInfo.metadata, 'FAVORITE', 'primary');
+                        await ImageCacheManager._saveCacheToStorage(true);
+                        ui.notifications.info(`Added ${imageName} to favorites`);
+                        if (this.currentFilter === 'favorites') {
+                            this._showSearchSpinner();
+                            await this._findMatches();
+                            this._hideSearchSpinner();
+                        } else {
+                            this._updateResults();
+                        }
+                    }
+                });
             }
+        }
 
-        await ImageCacheManager._saveCacheToStorage(true);
+        if (this.selectedToken) {
+            const modeLabel = this._getModeLabel();
+            coreItems.push({
+                name: `Apply to ${modeLabel}`,
+                icon: 'fa-solid fa-check',
+                description: `Apply this image to ${this.selectedToken.name}`,
+                callback: async () => {
+                    await this._applyImageToToken(imagePath, imageName);
+                }
+            });
+        }
 
-            if (this.currentFilter === 'favorites') {
-                this._showSearchSpinner();
-                await this._findMatches();
-                this._hideSearchSpinner();
-            } else {
-                this._updateResults();
+        coreItems.push({
+            name: 'Copy Image Path',
+            icon: 'fa-solid fa-copy',
+            callback: () => {
+                navigator.clipboard.writeText(imagePath).then(() => {
+                    ui.notifications.info('Image path copied to clipboard');
+                }).catch(() => {
+                    ui.notifications.error('Failed to copy path');
+                });
             }
+        });
 
-        } catch (error) {
-            ui.notifications.error(`Failed to toggle favorite: ${error.message}`);
+        const totalItems = moduleItems.length + coreItems.length;
+        if (totalItems > 0) {
+            UIContextMenu.show({
+                id: 'blacksmith-image-replacement-context-menu',
+                x: menuX,
+                y: menuY,
+                root: menuRoot,
+                className: 'context-menu-above-dialogs',
+                zones: { module: moduleItems, core: coreItems, gm: [] }
+            });
         }
     }
 

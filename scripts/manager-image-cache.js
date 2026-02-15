@@ -110,9 +110,111 @@ export class ImageCacheManager {
             ? getPortraitImagePaths() 
             : getTokenImagePaths();
     }
+
+    /**
+     * Register a context menu item for image tiles in the Image Replacement window.
+     * @param {string} itemId - Unique identifier for the menu item
+     * @param {Object} itemData - Menu item configuration
+     * @param {string} itemData.name - Display name
+     * @param {string} [itemData.icon] - Font Awesome icon HTML or class string
+     * @param {string} [itemData.description] - Optional description
+     * @param {Function} itemData.onClick - Callback (receives imageTileData: { imagePath, imageName, fullPath, mode, selectedToken, fileInfo })
+     * @param {Array} [itemData.submenu] - Optional submenu items [{ name, icon, description, onClick }]
+     * @param {boolean} [itemData.gmOnly] - Only show for GMs (default: false)
+     * @param {number} [itemData.order] - Order in menu (lower = higher, default: 999)
+     * @param {Function|boolean} [itemData.visible] - Visibility function or boolean (default: true)
+     * @returns {() => void} - Disposer function to unregister
+     */
+    static registerImageTileContextMenuItem(itemId, itemData) {
+        if (!itemId || typeof itemId !== 'string') {
+            throw new Error('Context menu itemId must be a non-empty string');
+        }
+        if (!itemData || typeof itemData !== 'object') {
+            throw new Error('Context menu itemData must be an object');
+        }
+        if (!itemData.name || typeof itemData.name !== 'string') {
+            throw new Error('Context menu item must have a name');
+        }
+        const hasSubmenu = Array.isArray(itemData.submenu) && itemData.submenu.length > 0;
+        if (!hasSubmenu && typeof itemData.onClick !== 'function') {
+            throw new Error('Context menu item must have an onClick function or a submenu');
+        }
+
+        const menuItem = {
+            itemId,
+            name: itemData.name,
+            icon: itemData.icon || '<i class="fa-solid fa-circle"></i>',
+            description: itemData.description || '',
+            onClick: itemData.onClick,
+            submenu: hasSubmenu ? itemData.submenu : null,
+            order: typeof itemData.order === 'number' ? itemData.order : 999,
+            gmOnly: itemData.gmOnly === true,
+            visible: itemData.visible !== undefined ? itemData.visible : true
+        };
+
+        this._imageTileContextMenuItems.set(itemId, menuItem);
+
+        return () => {
+            this._imageTileContextMenuItems.delete(itemId);
+        };
+    }
+
+    /**
+     * Unregister a context menu item for image tiles
+     * @param {string} itemId
+     * @returns {boolean} - Success status
+     */
+    static unregisterImageTileContextMenuItem(itemId) {
+        return this._imageTileContextMenuItems.delete(itemId);
+    }
+
+    /**
+     * Get all context menu items for an image tile (filtered by visible, gmOnly, etc.)
+     * @param {Object} imageTileData - { imagePath, imageName, fullPath, mode, selectedToken, fileInfo }
+     * @returns {Array} - Sorted array of menu items for UIContextMenu
+     */
+    static getImageTileContextMenuItems(imageTileData) {
+        const items = [];
+
+        for (const [itemId, item] of this._imageTileContextMenuItems.entries()) {
+            if (item.gmOnly && !game.user?.isGM) continue;
+
+            const isVisible = typeof item.visible === 'function'
+                ? item.visible(imageTileData)
+                : item.visible;
+            if (!isVisible) continue;
+
+            const submenu = Array.isArray(item.submenu)
+                ? item.submenu
+                    .filter((sub) => sub && typeof sub === 'object')
+                    .filter((sub) => !(sub.gmOnly && !game.user?.isGM))
+                    .map((sub) => ({
+                        name: sub.name,
+                        description: sub.description || '',
+                        icon: sub.icon || '<i class="fa-solid fa-circle"></i>',
+                        callback: () => sub.onClick?.(imageTileData)
+                    }))
+                : null;
+
+            items.push({
+                name: item.name,
+                icon: item.icon,
+                description: item.description || '',
+                callback: () => item.onClick?.(imageTileData),
+                submenu,
+                order: item.order
+            });
+        }
+
+        items.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+        return items;
+    }
     
     // Supported image formats
     static SUPPORTED_FORMATS = ['.webp', '.png', '.jpg', '.jpeg'];
+
+    /** @type {Map<string, Object>} Context menu items registered by external modules for image tiles */
+    static _imageTileContextMenuItems = new Map();
     
     // Creature type to folder mapping (D&D 5e common types)
     static CREATURE_TYPE_FOLDERS = {

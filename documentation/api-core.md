@@ -456,7 +456,7 @@ BlacksmithAPIHookStats()
 // Hook expanded details by priority
 BlacksmithAPIHookExpandedDetails()
 ```
-**Hook Management Commands** - Use these for debugging hook registrations and performance.
+**Hook Management Commands** - Use these for debugging hook registrations. See **[api-hookmanager.md](api-hookmanager.md)** for full Hook Manager documentation.
 
 ## **🔧 Utilities & Settings**
 
@@ -980,119 +980,7 @@ Before asking for help, verify:
 import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
 ```
 
-**📋 Parameter Order**: All examples follow the recommended order: `name`, `description`, `context`, `priority`, `key`, `options`, `callback` (callback always last for readability).
-
-**📋 API Usage**: All BlacksmithAPI methods return Promises that automatically wait for Blacksmith to be ready. Use `await` or `.then()` to handle the asynchronous nature.
-
-## **Basic Hook Registration**
-```javascript
-// Direct access - no await needed!
-const hookId = BlacksmithHookManager.registerHook({
-    name: 'updateActor',
-    description: 'My module: Track actor changes',
-    context: 'my-module',
-    priority: 3,
-    callback: (actor, changes) => {
-        // My logic here
-        console.log(`Actor ${actor.name} updated:`, changes);
-    }
-});
-```
-
-## **Hook with All Parameters (Recommended Order)**
-```javascript
-// Example showing the recommended parameter order
-const fullHookId = BlacksmithHookManager.registerHook({
-    name: 'updateActor',
-    description: 'My module: Track actor changes',
-    context: 'my-module',
-    priority: 3,
-    key: 'unique-actor-tracker', // Prevents duplicate registrations
-    options: { 
-        once: false,           // Don't auto-cleanup
-        throttleMs: 100        // Max once per 100ms
-    },
-    callback: (actor, changes) => {
-        // My logic here
-        console.log(`Actor ${actor.name} updated:`, changes);
-    }
-});
-```
-
-## **Combat Tracking Hook**
-```javascript
-// Combat-related hooks
-const combatHookId = BlacksmithHookManager.registerHook({
-    name: 'updateCombat',
-    description: 'My module: Track combat changes',
-    context: 'my-combat-tracker', // For batch cleanup
-    priority: 2, // High priority - core functionality
-    callback: (combat, changed) => {
-        if (changed.round !== undefined) {
-            console.log(`Round changed to ${changed.round}`);
-        }
-    }
-});
-```
-
-## **UI Enhancement Hook**
-```javascript
-// UI enhancement hooks
-const uiHookId = BlacksmithHookManager.registerHook({
-    name: 'renderChatMessage',
-    description: 'My module: Enhance chat messages',
-    context: 'my-chat-enhancer', // For batch cleanup
-    priority: 4, // Low priority - UI updates
-    callback: (message, html, data) => {
-        // Modify the HTML before display
-        html.find('.message-content').addClass('my-enhanced-style');
-    }
-});
-```
-
-## **One-time Hook with Auto-cleanup**
-```javascript
-// One-time hooks with auto-cleanup
-const welcomeHookId = BlacksmithHookManager.registerHook({
-    name: 'userLogin',
-    description: 'My module: Welcome message',
-    context: 'my-welcome', // For batch cleanup
-    priority: 5, // Lowest priority
-    options: { once: true }, // Auto-cleanup after first execution
-    callback: (user) => {
-        console.log(`Welcome back, ${user.name}!`);
-    }
-});
-```
-
-## **Performance-Optimized Hooks**
-```javascript
-// Throttle noisy hooks (e.g., updateToken)
-const throttledHookId = BlacksmithHookManager.registerHook({
-    name: 'updateToken',
-    description: 'My module: Throttled token updates',
-    context: 'my-token-tracker',
-    priority: 4,
-    options: { throttleMs: 50 }, // Max once per 50ms
-    callback: (token, changes) => {
-        // Only runs at most once every 50ms
-        console.log('Token updated:', token.name);
-    }
-});
-
-// Debounce for final state (e.g., search input)
-const debouncedHookId = BlacksmithHookManager.registerHook({
-    name: 'searchInput',
-    description: 'My module: Debounced search',
-    context: 'my-search',
-    priority: 4,
-    options: { debounceMs: 300 }, // Wait 300ms after last input
-    callback: (input) => {
-        // Only runs after user stops typing
-        console.log('Searching for:', input);
-    }
-});
-```
+**📋 Hook Manager Examples**: For complete hook registration examples (basic, combat, UI, performance-optimized, one-time cleanup), see **[api-hookmanager.md](api-hookmanager.md)**.
 
 ## **Complete Module Initialization**
 ```javascript
@@ -1111,14 +999,13 @@ Hooks.once('ready', async () => {
             ]
         });
         
-        // Set up hooks
+        // Set up hooks (see api-hookmanager.md for full examples)
         const hookId = BlacksmithHookManager.registerHook({
             name: 'updateActor',
             description: 'My module: Track actor changes',
-            context: 'my-awesome-module', // For batch cleanup
+            context: 'my-awesome-module',
             priority: 3,
             callback: (actor, changes) => {
-                // My logic here
                 BlacksmithUtils.postConsoleAndNotification(
                     'my-awesome-module', 
                     'Actor updated!', 
@@ -1147,68 +1034,20 @@ Hooks.once('ready', async () => {
 **📋 API Order**: APIs are ordered by most commonly used first - HookManager (core functionality), Utils (everyday helpers), ModuleManager (setup), and Stats API (advanced features).
 
 ## **HookManager - Centralized Hook Management**
-**Purpose**: Register and manage FoundryVTT hooks with priority ordering and cleanup
+**Purpose**: Register and manage FoundryVTT hooks with priority ordering and cleanup.
 
-**Key Features**:
-- **Priority-based execution** (1=Critical, 2=High, 3=Normal, 4=Low, 5=Lowest)
-- **Context-based cleanup** for batch operations
-- **Throttle/debounce support** for performance optimization
-- **Dedupe protection** to prevent duplicate registrations
-- **Automatic cleanup** for "once" hooks
-
-**Core Methods**:
+**Quick usage**:
 ```javascript
-// Register a hook
-const callbackId = hookManager.registerHook({
-    name: 'hookName',                    // Required: FoundryVTT hook name
-    description: 'Description',           // Optional: Human-readable description
-    context: 'context-name',             // Optional: Batch cleanup identifier
-    priority: 3,                         // Optional: 1-5, default: 3
-    key: 'uniqueKey',                    // Optional: Dedupe protection
-    options: {                            // Optional: Performance options
-        once: true,                       // Auto-cleanup after first execution
-        throttleMs: 50,                   // Max once per 50ms
-        debounceMs: 300                   // Wait 300ms after last call
-    },
-    callback: (args) => { /* logic */ }   // Required: Your callback function - ALWAYS LAST
+BlacksmithHookManager.registerHook({
+    name: 'updateActor',
+    description: 'My module: Track actor changes',
+    context: 'my-module',
+    priority: 3,
+    callback: (actor, changes) => { /* logic */ }
 });
 ```
 
-**IMPORTANT: Parameter Order**
-The HookManager uses destructured parameters, so the order doesn't matter as long as you use the correct property names. However, for **readability and consistency**, we strongly recommend this order:
-1. `name` (required)
-2. `description` (optional)
-3. `context` (optional)
-4. `priority` (optional)
-5. `key` (optional)
-6. `options` (optional)
-7. `callback` (required) - **ALWAYS LAST for readability**
-
-**What We Actually Support:**
-- **Required**: `name`, `callback`
-- **Optional**: `description`, `priority`, `options`, `key`, `context`
-- **Options**: `once`, `throttleMs`, `debounceMs`
-- **Performance**: Throttling and debouncing work as documented
-- **Cleanup**: `once: true` auto-removes hooks after first execution
-- **Dedupe**: `key` prevents duplicate registrations
-- **Batch cleanup**: `context` enables group removal
-
-**Usage Examples**:
-
-```javascript
-// Remove a specific callback
-const removed = hookManager.removeCallback(callbackId);
-
-// Cleanup by context
-hookManager.disposeByContext('context-name');
-
-// Get statistics and debugging info
-hookManager.showHooks();
-hookManager.showHookDetails();
-hookManager.getStats();
-```
-
-**📚 See the Working Examples section above for complete hook registration examples with different use cases and performance optimizations.**
+**📚 Full documentation**: See **[api-hookmanager.md](api-hookmanager.md)** for the complete API reference, working examples, priority guidelines, performance options (throttle/debounce), best practices, and debugging.
 
 
 ***
@@ -1441,7 +1280,7 @@ Blacksmith exposes a global `BlacksmithStats` helper (installed by the API bridg
 
 # **Integration Patterns**
 
-**📚 Note**: For complete, working examples of these patterns, see the **Working Examples** section above.
+**📚 Note**: For complete, working examples of these patterns, see the **Working Examples** section above and **[api-hookmanager.md](api-hookmanager.md)** for hook examples.
 
 ## **Module Initialization Pattern**
 ```javascript
@@ -1541,78 +1380,8 @@ try {
 
 # **Performance Considerations**
 
-## **Hook Priority Guidelines**
-```javascript
-// Priority 1 (CRITICAL) - System cleanup, critical features
-// Use for: Must-run-first operations, system integrity
-hookManager.registerHook({
-    name: 'closeGame',
-    priority: 1,
-    // ...
-});
+**Hook Manager**: For hook priority guidelines, throttling, debouncing, and one-time hooks, see **[api-hookmanager.md](api-hookmanager.md)**.
 
-// Priority 2 (HIGH) - Core functionality, data validation  
-// Use for: Core features, data integrity, early processing
-hookManager.registerHook({
-    name: 'updateActor',
-    priority: 2,
-    // ...
-});
-
-// Priority 3 (NORMAL) - Standard features
-// Use for: Most hooks, standard functionality
-hookManager.registerHook({
-    name: 'renderChatMessage',
-    priority: 3, // Default
-    // ...
-});
-
-// Priority 4 (LOW) - Nice-to-have features, UI updates
-// Use for: UI enhancements, cosmetic features
-hookManager.registerHook({
-    name: 'renderApplication',
-    priority: 4,
-    // ...
-});
-
-// Priority 5 (LOWEST) - Cosmetic features, debug hooks
-// Use for: Debug logging, cosmetic updates
-hookManager.registerHook({
-    name: 'renderPlayerList',
-    priority: 5,
-    // ...
-});
-```
-
-## **Performance Optimization Options**
-```javascript
-// Throttle noisy hooks (e.g., updateToken)
-hookManager.registerHook({
-    name: 'updateToken',
-    options: { throttleMs: 50 }, // Max once per 50ms
-    callback: (token, changes) => {
-        // Only runs at most once every 50ms
-    }
-});
-
-// Debounce for final state (e.g., search input)
-hookManager.registerHook({
-    name: 'searchInput',
-    options: { debounceMs: 300 }, // Wait 300ms after last input
-    callback: (input) => {
-        // Only runs after user stops typing
-    }
-});
-
-// One-time hooks with auto-cleanup
-hookManager.registerHook({
-    name: 'userLogin',
-    options: { once: true }, // Auto-cleanup after first execution
-    callback: (user) => {
-        // Hook automatically removes itself after this runs
-    }
-});
-```
 
 
 
@@ -1621,54 +1390,7 @@ hookManager.registerHook({
 
 # **Debugging and Troubleshooting**
 
-## **Console Commands**
-Blacksmith provides console commands for debugging hook registrations:
-
-```javascript
-// Show all registered hooks
-BlacksmithAPIHooks();
-
-// Show detailed hook information with priority grouping
-BlacksmithAPIHookDetails();
-
-// Get raw hook statistics
-BlacksmithAPIHookStats();
-```
-
-## **Common Issues and Solutions**
-
-**Issue: "HookManager is not defined"**
-```javascript
-// Solution: Use global objects directly
-BlacksmithHookManager.registerHook(...)
-```
-
-**Issue: Hook not executing**
-```javascript
-// Check if hook is registered
-const stats = BlacksmithHookManager.getStats();
-console.log('Registered hooks:', stats.hooks);
-
-// Verify hook name is correct
-// FoundryVTT hook names are case-sensitive
-```
-
-**Issue: Performance problems**
-```javascript
-// Use throttling for noisy hooks
-BlacksmithHookManager.registerHook({
-    name: 'updateToken',
-    options: { throttleMs: 100 }, // Reduce frequency
-    // ...
-});
-
-// Use debouncing for user input
-BlacksmithHookManager.registerHook({
-    name: 'searchInput', 
-    options: { debounceMs: 500 }, // Wait longer
-    // ...
-});
-```
+**Hook Manager**: For hook-specific debugging (console commands, common issues), see **[api-hookmanager.md](api-hookmanager.md)**.
 
 # **Best Practices**
 
@@ -1690,48 +1412,9 @@ const utils = BlacksmithUtils;
 - **Consistent pattern** - same approach everywhere
 - **Simpler code** - one less step
 
-## **2. Always Use Contexts**
-```javascript
-// GOOD: Descriptive context for cleanup
-BlacksmithHookManager.registerHook({
-    name: 'updateActor',
-    context: 'my-module-actor-tracking',
-    // ...
-});
+**Hook Manager**: For hook-specific best practices (contexts, descriptions, priorities, cleanup), see **[api-hookmanager.md](api-hookmanager.md)**.
 
-// BAD: No context makes cleanup difficult
-BlacksmithHookManager.registerHook({
-    name: 'updateActor',
-    // Missing context
-    // ...
-});
-```
-
-## **3. Provide Clear Descriptions**
-```javascript
-// GOOD: Clear, descriptive hook description
-BlacksmithHookManager.registerHook({
-    name: 'updateActor',
-    description: 'My Module: Track actor HP changes for health panel updates',
-    // ...
-});
-
-// BAD: Vague description makes debugging hard
-BlacksmithHookManager.registerHook({
-    name: 'updateActor',
-    description: 'Updates stuff',
-    // ...
-});
-```
-
-## **3. Use Appropriate Priorities**
-```javascript
-// Use priority 3 (NORMAL) for most hooks
-// Only use 1 or 2 for critical/core functionality
-// Use 4 or 5 for cosmetic/debug features
-```
-
-## **4. Handle Errors Gracefully**
+## **2. Handle Errors Gracefully**
 ```javascript
 // Always check if APIs are available
 if (!BlacksmithAPI.isReady()) {
@@ -1741,39 +1424,11 @@ if (!BlacksmithAPI.isReady()) {
 }
 ```
 
-## **5. Clean Up When Done**
-```javascript
-// Store hook IDs for cleanup
-const myHookIds = [];
-
-myHookIds.push(BlacksmithHookManager.registerHook({
-    name: 'updateActor',
-    context: 'my-module',
-    // ...
-}));
-
-// Clean up when module disables
-Hooks.once('closeGame', () => {
-    myHookIds.forEach(id => BlacksmithHookManager.removeCallback(id));
-});
-```
-
 # **Testing**
 
 ## **Console Testing Commands**
 
-Blacksmith provides console commands for testing and debugging:
-
-```javascript
-// Show all registered hooks
-BlacksmithAPIHooks();
-
-// Show detailed hook information with priority grouping
-BlacksmithAPIHookDetails();
-
-// Get raw hook statistics
-BlacksmithAPIHookStats();
-```
+For hook-specific testing commands (`BlacksmithAPIHooks`, `BlacksmithAPIHookDetails`, `BlacksmithAPIHookStats`), see **[api-hookmanager.md](api-hookmanager.md)**.
 
 ## **Integration Validation Checklist**
 
@@ -2533,6 +2188,7 @@ When `position` is not provided, the user is prompted to click on the canvas to 
 
 ## **Related Documentation**
 
+- **[Hook Manager API Documentation](api-hookmanager.md)** - Hook registration, priority, performance, and debugging
 - **[OpenAI API Documentation](api-openai.md)** - AI-powered functionality and content generation
 - **[Toolbar API Documentation](api-toolbar.md)** - Dynamic toolbar system for external modules
 - **[Menubar API Documentation](api-menubar.md)** - Global menubar and secondary bars for external modules

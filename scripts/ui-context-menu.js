@@ -25,16 +25,20 @@ export class UIContextMenu {
      * @param {number} options.x - clientX
      * @param {number} options.y - clientY
      * @param {{ module?: Array, core?: Array, gm?: Array }|Array} options.zones - zones object or flat items array
+     * @param {HTMLElement} [options.root] - Root element to append menu to (default: document.body). Use when the trigger is in a popout window.
      * @param {string} [options.className] - Extra class for styling
      * @param {string} [options.zoneClass] - Class to use for flat items zone (default core)
      */
     static show(options) {
-        const { id, x, y, zones, className = '', zoneClass = 'core', maxWidth = 300 } = options || {};
+        const { id, x, y, zones, root: rootOption, className = '', zoneClass = 'core', maxWidth = 300 } = options || {};
         if (!id) throw new Error('UIContextMenu.show requires an id');
 
         this.close(id);
 
-        const menu = document.createElement('div');
+        const root = rootOption || document.body;
+        const doc = root.ownerDocument || document;
+
+        const menu = doc.createElement('div');
         menu.id = id;
         menu.className = `context-menu ${className}`.trim();
         menu.style.visibility = 'hidden';
@@ -44,20 +48,18 @@ export class UIContextMenu {
             menu.style.maxWidth = `${maxWidth}px`;
         }
 
-        const root = document.body;
-
         const appendZone = (zoneName, items) => {
             if (!items?.length) return;
-            const zone = document.createElement('div');
+            const zone = doc.createElement('div');
             zone.className = `context-menu-zone context-menu-zone-${zoneName}`;
             items.forEach((item) => {
-                this._appendItem(zone, item, menu, id);
+                this._appendItem(zone, item, menu, id, doc);
             });
             menu.appendChild(zone);
         };
 
         const addSeparator = () => {
-            const sep = document.createElement('div');
+            const sep = doc.createElement('div');
             sep.className = 'context-menu-separator';
             menu.appendChild(sep);
         };
@@ -90,8 +92,8 @@ export class UIContextMenu {
 
         const close = () => {
             this._closeSubmenu(menu);
-            document.removeEventListener('click', clickClose);
-            document.removeEventListener('keydown', keyClose);
+            doc.removeEventListener('click', clickClose);
+            doc.removeEventListener('keydown', keyClose);
             menu.remove();
             this._openMenus.delete(id);
         };
@@ -99,20 +101,20 @@ export class UIContextMenu {
         this._openMenus.set(id, { root: menu, close });
 
         setTimeout(() => {
-            document.addEventListener('click', clickClose);
-            document.addEventListener('keydown', keyClose);
-        }, 10);
+            doc.addEventListener('click', clickClose);
+            doc.addEventListener('keydown', keyClose);
+        }, 150);
     }
 
-    static _appendItem(zoneEl, item, rootMenu, rootId) {
+    static _appendItem(zoneEl, item, rootMenu, rootId, doc = document) {
         if (item.separator) {
-            const sep = document.createElement('div');
+            const sep = doc.createElement('div');
             sep.className = 'context-menu-separator';
             zoneEl.appendChild(sep);
             return;
         }
 
-        const menuItemEl = document.createElement('div');
+        const menuItemEl = doc.createElement('div');
         menuItemEl.className = 'context-menu-item';
         if (item.disabled) {
             menuItemEl.classList.add('is-disabled');
@@ -127,20 +129,20 @@ export class UIContextMenu {
         const description = item.description || '';
 
         if (iconHtml) {
-            const iconWrap = document.createElement('span');
+            const iconWrap = doc.createElement('span');
             iconWrap.className = 'context-menu-item-icon';
             iconWrap.innerHTML = iconHtml;
             menuItemEl.appendChild(iconWrap);
         }
 
-        const content = document.createElement('span');
+        const content = doc.createElement('span');
         content.className = 'context-menu-item-content';
-        const labelEl = document.createElement('span');
+        const labelEl = doc.createElement('span');
         labelEl.className = 'context-menu-item-label';
         labelEl.textContent = label;
         content.appendChild(labelEl);
         if (description) {
-            const descEl = document.createElement('span');
+            const descEl = doc.createElement('span');
             descEl.className = 'context-menu-item-description';
             descEl.textContent = description;
             content.appendChild(descEl);
@@ -149,7 +151,7 @@ export class UIContextMenu {
 
         if (item.submenu && Array.isArray(item.submenu) && item.submenu.length) {
             menuItemEl.classList.add('has-submenu');
-            const arrow = document.createElement('span');
+            const arrow = doc.createElement('span');
             arrow.className = 'context-menu-submenu-arrow';
             arrow.textContent = '›';
             menuItemEl.appendChild(arrow);
@@ -176,19 +178,20 @@ export class UIContextMenu {
     }
 
     static _buildSubmenu(anchorEl, items, rootId) {
-        const submenu = document.createElement('div');
+        const doc = anchorEl.ownerDocument || document;
+        const submenu = doc.createElement('div');
         submenu.className = 'context-menu context-menu-submenu';
         submenu.style.visibility = 'hidden';
         submenu.style.left = '0px';
         submenu.style.top = '0px';
 
-        const zone = document.createElement('div');
+        const zone = doc.createElement('div');
         zone.className = 'context-menu-zone context-menu-zone-core';
         items.forEach((item) => {
-            this._appendItem(zone, item, submenu, rootId);
+            this._appendItem(zone, item, submenu, rootId, doc);
         });
         submenu.appendChild(zone);
-        document.body.appendChild(submenu);
+        doc.body.appendChild(submenu);
 
         const rect = anchorEl.getBoundingClientRect();
         const x = rect.right + 6;

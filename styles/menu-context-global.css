@@ -17,6 +17,10 @@
     font-weight: 400;
 }
 
+.context-menu.context-menu-above-dialogs {
+    z-index: 999999;
+}
+
 /* ZONES */
 
 /* Zone wrappers: module (registered items), core (default items), gm (GM-only). */

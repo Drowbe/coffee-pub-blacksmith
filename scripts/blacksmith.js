@@ -77,6 +77,7 @@ import { LoadingProgressManager } from './manager-loading-progress.js';
 import { PinManager } from './manager-pins.js';
 import { PinsAPI } from './api-pins.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
+import { ImageCacheManager } from './manager-image-cache.js';
 import './sidebar-combat.js';
 import './combat-tools.js'; 
 // ================================================================== 
@@ -1063,6 +1064,12 @@ Hooks.once('init', async function() {
 
         // ✅ NEW: Canvas Pins API for external modules
         pins: PinsAPI,
+
+        // ✅ NEW: Image Replacement context menu API for external modules
+        imageReplacement: {
+            registerContextMenuItem: ImageCacheManager.registerImageTileContextMenuItem.bind(ImageCacheManager),
+            unregisterContextMenuItem: ImageCacheManager.unregisterImageTileContextMenuItem.bind(ImageCacheManager)
+        },
         
         // ✅ NEW: Chat Cards API for external modules
         chatCards: ChatCardsAPI,
@@ -2090,24 +2097,34 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
         const injuryTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-injuries.txt')).text();
         const encounterTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-encounter.txt')).text();
 
-        // Build dialog content with dropdown and button
+        // Build dialog content with template, file select, and paste textbox
         const dialogContent = `
-        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-            <select id="template-type" style="flex: 0 0 auto;">
-            <option value="narrative">Narrative</option>
-            <option value="encounter">Encounter</option>
-            <option value="injury">Injury</option>
-            </select>
-            <button id="copy-template-btn" type="button">Copy Template to Clipboard</button>
+        <div class="form-group">
+            <label><strong>Base Prompt Template</strong></label>
+            <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <select id="template-type" style="flex: 0 0 auto;">
+                    <option value="narrative">Narrative</option>
+                    <option value="encounter">Encounter</option>
+                    <option value="injury">Injury</option>
+                </select>
+                <button id="copy-template-btn" type="button" class="file-picker-button"><i class="fa-solid fa-clipboard"></i> Copy to Clipboard</button>
+            </div>
         </div>
-        <textarea id="json-input" style="width:100%;height:400px;"></textarea>
+        <div class="form-group">
+            <label><strong>Select or Paste JSON</strong></label>
+            <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <input type="file" id="journal-json-file-input" accept=".json,application/json" style="display:none">
+                <button id="select-journal-json-btn" type="button" class="file-picker-button" style="background: #2d5c27; color: white;"><i class="fa-solid fa-folder-open"></i> Select JSON File</button>
+            </div>
+            <textarea id="json-input" style="width:100%;height:400px;" placeholder="Paste JSON here or select a file above..."></textarea>
+        </div>
         `;
 
         const button = document.createElement('button');
         button.innerHTML = '<i class="fa-solid fa-masks-theater"></i> Import';
         button.addEventListener('click', () => {
         new Dialog({
-            title: "Paste JSON",
+            title: "Import Journal Entries from JSON",
             width: 800,
             content: dialogContent,
             buttons: {
@@ -2162,6 +2179,23 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
             let nativeHtmlDialog = htmlDialog;
             if (htmlDialog && (htmlDialog.jquery || typeof htmlDialog.find === 'function')) {
                 nativeHtmlDialog = htmlDialog[0] || htmlDialog.get?.(0) || htmlDialog;
+            }
+            // Select JSON File button - trigger file input and load into textarea
+            const selectJsonBtn = nativeHtmlDialog.querySelector("#select-journal-json-btn");
+            const fileInput = nativeHtmlDialog.querySelector("#journal-json-file-input");
+            const jsonInput = nativeHtmlDialog.querySelector("#json-input");
+            if (selectJsonBtn && fileInput && jsonInput) {
+                selectJsonBtn.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        jsonInput.value = ev.target?.result || '';
+                        fileInput.value = '';
+                    };
+                    reader.readAsText(file);
+                });
             }
             // Attach event listeners for template copy
             const copyTemplateBtn = nativeHtmlDialog.querySelector("#copy-template-btn");
@@ -3760,23 +3794,33 @@ const renderItemDirectoryHookId = HookManager.registerHook({
     const lootPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-items-loot.txt')).text();
     const consumablePrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-items-consumables.txt')).text();
 
-    // Build dialog content with dropdown and button
+    // Build dialog content with template, file select, and paste textbox
     const dialogContent = `
-      <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-        <select id="item-template-type" style="flex: 0 0 auto;">
-          <option value="loot">Loot</option>
-          <option value="consumable">Consumables</option>
-        </select>
-        <button id="copy-item-template-btn" type="button">Copy Template to Clipboard</button>
+      <div class="form-group">
+        <label><strong>Base Prompt Template</strong></label>
+        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+          <select id="item-template-type" style="flex: 0 0 auto;">
+            <option value="loot">Loot</option>
+            <option value="consumable">Consumables</option>
+          </select>
+          <button id="copy-item-template-btn" type="button" class="file-picker-button"><i class="fa-solid fa-clipboard"></i> Copy to Clipboard</button>
+        </div>
       </div>
-      <textarea id="item-json-input" style="width:100%;height:400px;"></textarea>
+      <div class="form-group">
+        <label><strong>Select or Paste JSON</strong></label>
+        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+          <input type="file" id="item-json-file-input" accept=".json,application/json" style="display:none">
+          <button id="select-item-json-btn" type="button" class="file-picker-button" style="background: #2d5c27; color: white;"><i class="fa-solid fa-folder-open"></i> Select JSON File</button>
+        </div>
+        <textarea id="item-json-input" style="width:100%;height:400px;" placeholder="Paste JSON here or select a file above..."></textarea>
+      </div>
     `;
 
     const button = document.createElement('button');
     button.innerHTML = '<i class="fa-solid fa-boxes-stacked"></i> Import';
     button.addEventListener('click', () => {
       new Dialog({
-        title: "Paste JSON for Items",
+        title: "Import Items from JSON",
         content: dialogContent,
         width: 800,
         height: 800,
@@ -3822,6 +3866,23 @@ const renderItemDirectoryHookId = HookManager.registerHook({
           let nativeHtmlDialog = htmlDialog;
           if (htmlDialog && (htmlDialog.jquery || typeof htmlDialog.find === 'function')) {
               nativeHtmlDialog = htmlDialog[0] || htmlDialog.get?.(0) || htmlDialog;
+          }
+          // Select JSON File button - trigger file input and load into textarea
+          const selectItemJsonBtn = nativeHtmlDialog.querySelector("#select-item-json-btn");
+          const itemFileInput = nativeHtmlDialog.querySelector("#item-json-file-input");
+          const itemJsonInput = nativeHtmlDialog.querySelector("#item-json-input");
+          if (selectItemJsonBtn && itemFileInput && itemJsonInput) {
+              selectItemJsonBtn.addEventListener('click', () => itemFileInput.click());
+              itemFileInput.addEventListener('change', (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                      itemJsonInput.value = ev.target?.result || '';
+                      itemFileInput.value = '';
+                  };
+                  reader.readAsText(file);
+              });
           }
           // Attach event listeners for template copy
           const copyItemTemplateBtn = nativeHtmlDialog.querySelector("#copy-item-template-btn");
@@ -3874,27 +3935,37 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
     const tableCompendiumItemPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-compendium-items.txt')).text();
     const tableCompendiumActorPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-compendium-actors.txt')).text();
 
-    // Build dialog content with dropdown and button
+    // Build dialog content with template, file select, and paste textbox
     const dialogContent = `
-      <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-        <select id="table-template-type" style="flex: 0 0 auto;">
-          <option value="text">Simple Text</option>
-          <option value="document-custom">Custom</option>
-          <option value="document-item">World Items</option>
-          <option value="document-actor">World Actors</option>
-          <option value="compendium-item">Compendium Items</option>
-          <option value="compendium-actor">Compendium Actors</option>
-        </select>
-        <button id="copy-table-template-btn" type="button">Copy Template</button>
+      <div class="form-group">
+        <label><strong>Base Prompt Template</strong></label>
+        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+          <select id="table-template-type" style="flex: 0 0 auto;">
+            <option value="text">Simple Text</option>
+            <option value="document-custom">Custom</option>
+            <option value="document-item">World Items</option>
+            <option value="document-actor">World Actors</option>
+            <option value="compendium-item">Compendium Items</option>
+            <option value="compendium-actor">Compendium Actors</option>
+          </select>
+          <button id="copy-table-template-btn" type="button" class="file-picker-button"><i class="fa-solid fa-clipboard"></i> Copy to Clipboard</button>
+        </div>
       </div>
-      <textarea id="table-json-input" style="width:100%;height:400px;"></textarea>
+      <div class="form-group">
+        <label><strong>Select or Paste JSON</strong></label>
+        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+          <input type="file" id="table-json-file-input" accept=".json,application/json" style="display:none">
+          <button id="select-table-json-btn" type="button" class="file-picker-button" style="background: #2d5c27; color: white;"><i class="fa-solid fa-folder-open"></i> Select JSON File</button>
+        </div>
+        <textarea id="table-json-input" style="width:100%;height:400px;" placeholder="Paste JSON here or select a file above..."></textarea>
+      </div>
     `;
 
     const button = document.createElement('button');
     button.innerHTML = '<i class="fa-solid fa-dice-d20"></i> Import';
     button.addEventListener('click', () => {
       new Dialog({
-        title: "Paste JSON for Tables",
+        title: "Import Roll Tables from JSON",
         content: dialogContent,
         width: 800,
         height: 800,
@@ -3939,6 +4010,23 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
           let nativeHtmlDialog = htmlDialog;
           if (htmlDialog && (htmlDialog.jquery || typeof htmlDialog.find === 'function')) {
               nativeHtmlDialog = htmlDialog[0] || htmlDialog.get?.(0) || htmlDialog;
+          }
+          // Select JSON File button - trigger file input and load into textarea
+          const selectTableJsonBtn = nativeHtmlDialog.querySelector("#select-table-json-btn");
+          const tableFileInput = nativeHtmlDialog.querySelector("#table-json-file-input");
+          const tableJsonInput = nativeHtmlDialog.querySelector("#table-json-input");
+          if (selectTableJsonBtn && tableFileInput && tableJsonInput) {
+              selectTableJsonBtn.addEventListener('click', () => tableFileInput.click());
+              tableFileInput.addEventListener('change', (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                      tableJsonInput.value = ev.target?.result || '';
+                      tableFileInput.value = '';
+                  };
+                  reader.readAsText(file);
+              });
           }
           // Attach event listeners for template copy
           const copyTableTemplateBtn = nativeHtmlDialog.querySelector("#copy-table-template-btn");
@@ -4014,22 +4102,32 @@ const renderActorDirectoryHookId = HookManager.registerHook({
     // Fetch the character prompt template at runtime
     const characterPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-characters.txt')).text();
 
-    // Build dialog content with dropdown and button
+    // Build dialog content with template, file select, and paste textbox
     const dialogContent = `
-      <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-        <select id="actor-template-type" style="flex: 0 0 auto;">
-          <option value="npc">NPC/Monster</option>
-        </select>
-        <button id="copy-actor-template-btn" type="button">Copy Template to Clipboard</button>
+      <div class="form-group">
+        <label><strong>Base Prompt Template</strong></label>
+        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+          <select id="actor-template-type" style="flex: 0 0 auto;">
+            <option value="npc">NPC/Monster</option>
+          </select>
+          <button id="copy-actor-template-btn" type="button" class="file-picker-button"><i class="fa-solid fa-clipboard"></i> Copy to Clipboard</button>
+        </div>
       </div>
-      <textarea id="actor-json-input" style="width:100%;height:400px;"></textarea>
+      <div class="form-group">
+        <label><strong>Select or Paste JSON</strong></label>
+        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+          <input type="file" id="actor-json-file-input" accept=".json,application/json" style="display:none">
+          <button id="select-actor-json-btn" type="button" class="file-picker-button" style="background: #2d5c27; color: white;"><i class="fa-solid fa-folder-open"></i> Select JSON File</button>
+        </div>
+        <textarea id="actor-json-input" style="width:100%;height:400px;" placeholder="Paste JSON here or select a file above..."></textarea>
+      </div>
     `;
 
     const button = document.createElement('button');
     button.innerHTML = '<i class="fa-solid fa-user-plus"></i> Import';
     button.addEventListener('click', () => {
       new Dialog({
-        title: "Paste JSON for Actors/NPCs",
+        title: "Import Actors/NPCs from JSON",
         content: dialogContent,
         width: 800,
         height: 800,
@@ -4084,6 +4182,23 @@ const renderActorDirectoryHookId = HookManager.registerHook({
           let nativeHtmlDialog = htmlDialog;
           if (htmlDialog && (htmlDialog.jquery || typeof htmlDialog.find === 'function')) {
               nativeHtmlDialog = htmlDialog[0] || htmlDialog.get?.(0) || htmlDialog;
+          }
+          // Select JSON File button - trigger file input and load into textarea
+          const selectActorJsonBtn = nativeHtmlDialog.querySelector("#select-actor-json-btn");
+          const actorFileInput = nativeHtmlDialog.querySelector("#actor-json-file-input");
+          const actorJsonInput = nativeHtmlDialog.querySelector("#actor-json-input");
+          if (selectActorJsonBtn && actorFileInput && actorJsonInput) {
+              selectActorJsonBtn.addEventListener('click', () => actorFileInput.click());
+              actorFileInput.addEventListener('change', (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                      actorJsonInput.value = ev.target?.result || '';
+                      actorFileInput.value = '';
+                  };
+                  reader.readAsText(file);
+              });
           }
           // Attach event listeners for template copy
           const copyActorTemplateBtn = nativeHtmlDialog.querySelector("#copy-actor-template-btn");
