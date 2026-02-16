@@ -1037,13 +1037,18 @@ export class TokenImageReplacementWindow extends Application {
                 }
             });
             const actor = this.selectedToken.actor ?? this.selectedToken;
-            if (actor?.prototypeToken != null) {
+            const isPortraitMode = this.mode === ImageCacheManager.MODES.PORTRAIT;
+            if (actor != null && (isPortraitMode || actor?.prototypeToken != null)) {
+                const prototypeLabel = isPortraitMode ? 'Update Prototype Portrait' : 'Update Prototype Token';
+                const prototypeDesc = isPortraitMode
+                    ? `Set this image as the actor's default portrait`
+                    : `Set this image as the actor's default token (affects new tokens)`;
                 coreItems.push({
-                    name: 'Update Prototype Token',
-                    icon: 'fa-solid fa-id-card',
-                    description: `Set this image as the actor's default token (affects new tokens)`,
+                    name: prototypeLabel,
+                    icon: isPortraitMode ? 'fa-solid fa-user-circle' : 'fa-solid fa-id-card',
+                    description: prototypeDesc,
                     callback: async () => {
-                        await this._updatePrototypeToken(imagePath, imageName, actor);
+                        await this._updatePrototype(imagePath, imageName, actor);
                     }
                 });
             }
@@ -1102,14 +1107,39 @@ export class TokenImageReplacementWindow extends Application {
     }
 
     /**
-     * Update the actor's prototype token with the given image
+     * Update the actor's prototype (portrait in portrait mode, token in token mode).
+     * Uses the world actor and the same update pattern as the Detach macro:
+     * - Portrait: actor.img
+     * - Token: prototypeToken.texture.src (dotted key)
+     * Re-renders the actor sheet if open so the Actor tab shows the new image.
      */
-    async _updatePrototypeToken(imagePath, imageName, actor) {
+    async _updatePrototype(imagePath, imageName, actor) {
         try {
-            await actor.update({ 'prototypeToken.texture.src': imagePath });
-            ui.notifications.info(`Prototype token updated to: ${imageName}`);
+            const worldActor = game.actors.get(actor?.id);
+            if (!worldActor) {
+                ui.notifications.error('Actor not found in world.');
+                return;
+            }
+
+            const isPortraitMode = this.mode === ImageCacheManager.MODES.PORTRAIT;
+
+            if (isPortraitMode) {
+                await worldActor.update({ img: imagePath });
+                ui.notifications.info(`Prototype portrait updated to: ${imageName}`);
+            } else {
+                await worldActor.update({ 'prototypeToken.texture.src': imagePath });
+                ui.notifications.info(`Prototype token updated to: ${imageName}`);
+            }
+
+            if (this.mode === ImageCacheManager.MODES.PORTRAIT) {
+                this.selectedToken = worldActor;
+            }
+            this._updateTokenInfo();
+
+            worldActor.sheet?.render(true);
         } catch (error) {
-            ui.notifications.error(`Failed to update prototype token: ${error.message}`);
+            const label = this.mode === ImageCacheManager.MODES.PORTRAIT ? 'portrait' : 'token';
+            ui.notifications.error(`Failed to update prototype ${label}: ${error.message}`);
         }
     }
 
