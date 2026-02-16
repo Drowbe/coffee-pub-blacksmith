@@ -1036,18 +1036,56 @@ export class TokenImageReplacementWindow extends Application {
                     await this._applyImageToToken(imagePath, imageName);
                 }
             });
+            const actor = this.selectedToken.actor ?? this.selectedToken;
+            if (actor?.prototypeToken != null) {
+                coreItems.push({
+                    name: 'Update Prototype Token',
+                    icon: 'fa-solid fa-id-card',
+                    description: `Set this image as the actor's default token (affects new tokens)`,
+                    callback: async () => {
+                        await this._updatePrototypeToken(imagePath, imageName, actor);
+                    }
+                });
+            }
         }
 
         coreItems.push({
-            name: 'Copy Image Path',
+            name: 'Copy',
             icon: 'fa-solid fa-copy',
-            callback: () => {
-                navigator.clipboard.writeText(imagePath).then(() => {
-                    ui.notifications.info('Image path copied to clipboard');
-                }).catch(() => {
-                    ui.notifications.error('Failed to copy path');
-                });
-            }
+            submenu: [
+                {
+                    name: 'Copy Image Path',
+                    icon: 'fa-solid fa-file',
+                    callback: () => this._copyToClipboard(imagePath, 'Image path copied to clipboard')
+                },
+                {
+                    name: 'Copy Filename',
+                    icon: 'fa-solid fa-file-image',
+                    callback: () => this._copyToClipboard(imageName || imagePath.split('/').pop(), 'Filename copied to clipboard')
+                },
+                {
+                    name: 'Copy as HTML img',
+                    icon: 'fa-solid fa-code',
+                    callback: () => this._copyToClipboard(`<img src="${imagePath}" alt="${imageName || ''}" />`, 'HTML img tag copied to clipboard')
+                },
+                {
+                    name: 'Copy as Markdown',
+                    icon: 'fa-solid fa-file-code',
+                    callback: () => this._copyToClipboard(`![${imageName || 'image'}](${imagePath})`, 'Markdown copied to clipboard')
+                }
+            ]
+        });
+
+        coreItems.push({
+            name: 'Open in New Tab',
+            icon: 'fa-solid fa-external-link-alt',
+            callback: () => window.open(imagePath, '_blank', 'noopener,noreferrer')
+        });
+
+        coreItems.push({
+            name: 'View Full Size',
+            icon: 'fa-solid fa-expand',
+            callback: () => this._showFullSizeImage(imagePath, imageName)
         });
 
         const totalItems = moduleItems.length + coreItems.length;
@@ -1061,6 +1099,90 @@ export class TokenImageReplacementWindow extends Application {
                 zones: { module: moduleItems, core: coreItems, gm: [] }
             });
         }
+    }
+
+    /**
+     * Update the actor's prototype token with the given image
+     */
+    async _updatePrototypeToken(imagePath, imageName, actor) {
+        try {
+            await actor.update({ 'prototypeToken.texture.src': imagePath });
+            ui.notifications.info(`Prototype token updated to: ${imageName}`);
+        } catch (error) {
+            ui.notifications.error(`Failed to update prototype token: ${error.message}`);
+        }
+    }
+
+    /**
+     * Copy text to clipboard with notification
+     */
+    _copyToClipboard(text, successMessage = 'Copied to clipboard') {
+        navigator.clipboard.writeText(text).then(() => {
+            ui.notifications.info(successMessage);
+        }).catch(() => {
+            ui.notifications.error('Failed to copy to clipboard');
+        });
+    }
+
+    /**
+     * Escape HTML entities for safe insertion
+     */
+    static _escapeHtml(str) {
+        if (str == null) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    /**
+     * Show image at full size in a dialog
+     */
+    _showFullSizeImage(imagePath, imageName) {
+        const doc = this.element?.[0]?.ownerDocument || document;
+        const esc = TokenImageReplacementWindow._escapeHtml;
+        const title = esc(imageName || imagePath.split('/').pop() || '');
+        const safePath = esc(imagePath);
+        const safeAlt = esc(imageName || '');
+        const dialog = doc.createElement('div');
+        dialog.className = 'blacksmith-image-fullsize-dialog';
+        dialog.innerHTML = `
+            <div class="blacksmith-image-fullsize-overlay"></div>
+            <div class="blacksmith-image-fullsize-content">
+                <div class="blacksmith-image-fullsize-header">
+                    <span class="blacksmith-image-fullsize-title">${title}</span>
+                    <button type="button" class="blacksmith-image-fullsize-close" aria-label="Close"><i class="fa-solid fa-times"></i></button>
+                </div>
+                <img src="${safePath}" alt="${safeAlt}" class="blacksmith-image-fullsize-img" />
+            </div>
+        `;
+
+        const overlay = dialog.querySelector('.blacksmith-image-fullsize-overlay');
+        const closeBtn = dialog.querySelector('.blacksmith-image-fullsize-close');
+        const close = () => {
+            dialog.remove();
+            doc.removeEventListener('keydown', onKey);
+        };
+
+        const onKey = (e) => {
+            if (e.key === 'Escape') close();
+        };
+
+        overlay.addEventListener('click', close);
+        closeBtn.addEventListener('click', close);
+        doc.addEventListener('keydown', onKey);
+
+        dialog.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;';
+        overlay.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.7);cursor:pointer;';
+        const content = dialog.querySelector('.blacksmith-image-fullsize-content');
+        content.style.cssText = 'position:relative;max-width:90vw;max-height:90vh;background:var(--color-background,#1e1e1e);border-radius:8px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+        dialog.querySelector('.blacksmith-image-fullsize-header').style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--color-header,#2c2c2c);';
+        dialog.querySelector('.blacksmith-image-fullsize-img').style.cssText = 'display:block;max-width:90vw;max-height:85vh;object-fit:contain;';
+
+        const root = this.element?.[0]?.closest('.app')?.ownerDocument?.body || doc.body;
+        root.appendChild(dialog);
     }
 
     /**
