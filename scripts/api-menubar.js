@@ -1209,31 +1209,6 @@ class MenuBar {
             buttonSelectedTint: null
         });
 
-        // XP DISTRIBUTION
-        this.registerMenubarTool('xp-distribution', {
-            icon: "fas fa-star",
-            name: "xp-distribution",
-            title: "Experience",
-            tooltip: "Open Experience Points Distribution Worksheet",
-            onClick: () => {
-                this.openXpDistribution();
-            },
-            zone: "middle",
-            group: "party",
-            groupOrder: this.GROUP_ORDER.PARTY,
-            order: 4,
-            moduleId: "blacksmith-core",
-            gmOnly: true,
-            leaderOnly: false,
-            visible: true,
-            toggleable: false,
-            active: false,
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
-
-
         // *** GROUP: UTILITY ***
 
 
@@ -1316,55 +1291,6 @@ class MenuBar {
             leaderOnly: false,
             visible: true,
             toggleable: true,
-            active: false,
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
-
-        
-        // PARTY STATISTICS
-        this.registerMenubarTool('party-stats', {
-            icon: "fas fa-chart-line",
-            name: "party-stats",
-            title: "Statistics",
-            tooltip: "Open combat statistics, history, and leaderboard",
-            onClick: () => {
-                this.openStatsWindow();
-            },
-            zone: "middle",
-            group: "party",
-            groupOrder: this.GROUP_ORDER.COMBAT,
-            order: 2,
-            moduleId: "blacksmith-core",
-            gmOnly: false,
-            leaderOnly: false,
-            visible: true,
-            toggleable: false,
-            active: false,
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
-
-        // VOTE
-        this.registerMenubarTool('vote', {
-            icon: "fa-solid fa-check-to-slot",
-            name: "vote",
-            title: "Vote",
-            tooltip: null,
-            onClick: () => {
-                new VoteConfig().render(true);
-            },
-            zone: "middle",
-            group: "party",
-            groupOrder: this.GROUP_ORDER.PARTY,
-            order: 3,
-            moduleId: "blacksmith-core",
-            gmOnly: false,
-            leaderOnly: true,
-            visible: true,
-            toggleable: false,
             active: false,
             iconColor: null,
             buttonNormalTint: null,
@@ -1574,6 +1500,42 @@ class MenuBar {
                 } catch (error) {
                     postConsoleAndNotification(MODULE.NAME, "Party Tools: Error in deployParty", error.message, false, false);
                 }
+            }
+        });
+
+        // Vote
+        this.registerSecondaryBarItem('party', 'vote', {
+            icon: 'fa-solid fa-check-to-slot',
+            label: 'Vote',
+            tooltip: 'Vote',
+            group: 'default',
+            order: 2,
+            onClick: () => {
+                new VoteConfig().render(true);
+            }
+        });
+
+        // Party Statistics
+        this.registerSecondaryBarItem('party', 'party-stats', {
+            icon: 'fas fa-chart-line',
+            label: 'Statistics',
+            tooltip: 'Open combat statistics, history, and leaderboard',
+            group: 'default',
+            order: 3,
+            onClick: () => {
+                this.openStatsWindow();
+            }
+        });
+
+        // Experience
+        this.registerSecondaryBarItem('party', 'xp-distribution', {
+            icon: 'fas fa-star',
+            label: 'Experience',
+            tooltip: 'Open Experience Points Distribution Worksheet',
+            group: 'default',
+            order: 4,
+            onClick: () => {
+                this.openXpDistribution();
             }
         });
         
