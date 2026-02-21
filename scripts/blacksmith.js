@@ -3622,6 +3622,15 @@ async function parseFlatItemToFoundry(flat) {
       });
     }
   }
+  // Merge any additional flags from flat (e.g. coffee-pub-artificer for Artificer items)
+  if (flat.flags && typeof flat.flags === "object") {
+    data.flags = data.flags || {};
+    for (const [namespace, flagData] of Object.entries(flat.flags)) {
+      if (namespace && flagData != null && typeof flagData === "object") {
+        data.flags[namespace] = foundry.utils.mergeObject(data.flags[namespace] || {}, flagData, { inplace: true });
+      }
+    }
+  }
   // Future: Add more item type mappings here
   return data;
 }
@@ -3802,6 +3811,7 @@ const renderItemDirectoryHookId = HookManager.registerHook({
     // Fetch the item prompt templates at runtime
     const lootPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-items-loot.txt')).text();
     const consumablePrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-items-consumables.txt')).text();
+    const artificerPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-artificer-item.txt')).text();
 
     // Build dialog content with template, file select, and paste textbox
     const dialogContent = `
@@ -3811,6 +3821,7 @@ const renderItemDirectoryHookId = HookManager.registerHook({
           <select id="item-template-type" style="flex: 0 0 auto;">
             <option value="loot">Loot</option>
             <option value="consumable">Consumables</option>
+            <option value="artificer">Artificer</option>
           </select>
           <button id="copy-item-template-btn" type="button" class="file-picker-button"><i class="fa-solid fa-clipboard"></i> Copy to Clipboard</button>
         </div>
@@ -3904,6 +3915,9 @@ const renderItemDirectoryHookId = HookManager.registerHook({
               copyToClipboard(promptWithDefaults);
             } else if (type === "consumable") {
               const promptWithDefaults = await getItemPromptWithDefaults(consumablePrompt);
+              copyToClipboard(promptWithDefaults);
+            } else if (type === "artificer") {
+              const promptWithDefaults = await getItemPromptWithDefaults(artificerPrompt);
               copyToClipboard(promptWithDefaults);
             }
               });

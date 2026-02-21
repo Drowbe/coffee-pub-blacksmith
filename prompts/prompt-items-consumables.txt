@@ -26,7 +26,7 @@ JSON FIELD RULES & EXPECTATIONS
 
 Replace the ALL-CAPS placeholders below using the rules that follow. All fields are mandatory.
 
-- ITEMSOURCE: (string) The sourcebook or hombrew source name. 
+- ITEMSOURCE: (string) The sourcebook or homebrew source name. 
 - ITEMLICENSE: (string) License or attribution for the item (e.g., "OGL", "CC BY 4.0", or a custom attribution string). Use empty string "" if not applicable.
 - ITEMTYPE: (string) The D&D5E item type. For consumable items, always set "type": "consumable" at the top level of the JSON.
 - ITEMNAME: (string) The full item name (max 50 characters)
@@ -39,19 +39,19 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 - ITEMDESCRIPTION: (string) An HTML-flavored narrative describing the item's look, purpose, and history. Use paragraph, bulleted lists, bold text, and heading tags as needed.
 - ITEMDESCRIPTIONUNIDENTIFIED: (string) An HTML-flavored narrative describing the item with vague details.
 - ITEMDESCRIPTIONCHAT: (string) A simple sentence describing the item that can be sent to the chat.
-- CONSUMABLETYPE: (string) One of the following consumable types: "ammunition", "food", "poison", "potion", "rod", "scroll", "trinket", or "wand"
-- CONSUMABLESUBTYPE: (string) Optional refinement of the consumable type. Use empty string "" when no subtype applies. When CONSUMABLETYPE is "poison", you MUST set one of: "contact", "ingested", "inhaled", or "injury" (by delivery method). For "ammunition": "arrow", "bolt", "bullet", or similar. For "potion": e.g. "healing", "buff", "transformation", "utility". For "scroll": spell school or level if relevant. For "food": "ration", "exotic", "magical", etc.
+- ITEMCONSUMABLETYPE: (string) One of the following consumable types: "ammunition", "food", "poison", "potion", "rod", "scroll", "trinket", or "wand"
+- ITEMCONSUMABLESUBTYPE: (string) Optional refinement of the consumable type. Use empty string "" when no subtype applies. When ITEMCONSUMABLETYPE is "poison", you MUST set one of: "contact", "ingested", "inhaled", or "injury" (by delivery method). For "ammunition": "arrow", "bolt", "bullet", or similar. For "potion": e.g. "healing", "buff", "transformation", "utility". For "scroll": spell school or level if relevant. For "food": "ration", "exotic", "magical", etc.
 - ITEMISMAGICAL: (boolean) Identifies if the item has magical properties. The value should be true or false (not a string).
 - LIMITEDUSES: (number) Number of uses before the item is consumed. Set to 1 for single-use items, or higher for multi-use items.
 - DESTROYONEMPTY: (boolean) Whether the item is destroyed when all uses are expended. The value should be true or false (not a string).
 - ITEMIMAGETERMS: (Array) This is an array of synonyms for the item image that might help auto-match the image with FoundryVTT's in-built images. These strings are separated by commas. e.g. for a potion you'd include the main term and related terms: "potion", "vial", "elixir", "phial"
 
-- CONSUMABLETYPE: (string) thi sis mandatory and must be set to one of the following: ammunition, food, poison, potion, rod, scroll, trinket, wand
+- ITEMCONSUMABLETYPE: (string) This is mandatory and must be set to one of the following: ammunition, food, poison, potion, rod, scroll, trinket, wand
 - CONSUMPTIONMAGICAL: (boolean) determines if the item is magical.
 - MAGICALATTUNEMENTREQUIRED: (string) If magical, set to one of the following: attunement not required,  attunement required,  attunement optional
 - LIMITEDUSESSPENT: (number) How many times the item has been used. Defaults to 0 unless the item was already used.
 - LIMITEDUSESMAX: (number) Determines how many times something can be used. Defaults to 1.
-- DESTROYONEMPTY: (boolean) Determines if the items is destroyed after use. When no more uses, the item is destroyed. e.g. an Apple would be destroyed afte use where as a trinket might be able to be reused.
+- DESTROYONEMPTY: (boolean) Determines if the item is destroyed after use. When no more uses, the item is destroyed. e.g. an Apple would be destroyed after use where a trinket might be able to be reused.
 - RECOVERYPERIOD: (string) Determines how often the item resets its uses. For instance the magic may recharge every short rest and the uses get reset to their defaults. Should be set to one of the following: none, Long Rest, Short Rest, Day, Dawn, Dusk, Initiative, Start of Turn, End of Turn, Each Turn, Recharge
 
 - ACTIVITIES: (array) An array of activity objects. Each activity object should have:
@@ -85,14 +85,14 @@ JSON TEMPLATE
   "itemDescription": "ITEMDESCRIPTION",
   "itemDescriptionUnidentified": "ITEMDESCRIPTIONUNIDENTIFIED",
   "itemDescriptionChat": "ITEMDESCRIPTIONCHAT",
-  "itemConsumableType": "CONSUMABLETYPE",
-  "itemConsumableSubtype": "CONSUMABLESUBTYPE",
-  "consumableSubtype": "CONSUMABLESUBTYPE",
+  "itemConsumableType": "ITEMCONSUMABLETYPE",
+  "itemConsumableSubtype": "ITEMCONSUMABLESUBTYPE",
+  "consumableType": "ITEMCONSUMABLETYPE",
+  "consumableSubtype": "ITEMCONSUMABLESUBTYPE",
   "itemIsMagical": ITEMISMAGICAL,
   "itemLimitedUses": LIMITEDUSES,
   "itemDestroyOnEmpty": DESTROYONEMPTY,
   "itemImageTerms": [ITEMIMAGETERMS],
-  "consumableType": "CONSUMABLETYPE",
   "consumptionMagical": CONSUMPTIONMAGICAL,
   "magicalAttunementRequired": "MAGICALATTUNEMENTREQUIRED",
   "limitedUsesSpent": LIMITEDUSESSPENT,
@@ -115,7 +115,7 @@ When I ask you to generate a consumable item, use the template and guidance abov
 - Enchanted food or trinkets
 - Poisonous substances
 
-When creating poisons, always set CONSUMABLESUBTYPE to the delivery method: "contact", "ingested", "inhaled", or "injury". For other consumable types, set CONSUMABLESUBTYPE when it adds useful categorization (e.g., potion subtype, ammunition type).
+When creating poisons, always set ITEMCONSUMABLESUBTYPE to the delivery method: "contact", "ingested", "inhaled", or "injury". For other consumable types, set ITEMCONSUMABLESUBTYPE when it adds useful categorization (e.g., potion subtype, ammunition type).
 
 Inject a bit of mystery, purpose, or potential payoff. Make the party ask: "What does this do?" 
 
