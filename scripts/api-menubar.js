@@ -73,6 +73,8 @@ class MenuBar {
     static _clickHandlerContainer = null;
     static _contextMenuHandler = null;
     static _contextMenuHandlerContainer = null;
+    static _middleZoneOverflowItems = [];  // Items moved to overflow menu when middle zone overflows
+    static _middleZoneResizeObserver = null;  // ResizeObserver for overflow detection
 
     static async initialize() {
         // Check if menubar is enabled
@@ -3978,6 +3980,9 @@ class MenuBar {
                 
                 // Add click handlers
                 this.addClickHandlers();
+                
+                // Setup middle zone overflow detection (run after layout)
+                requestAnimationFrame(() => this._setupMiddleZoneOverflow());
             }
             
         } catch (error) {
@@ -4161,6 +4166,29 @@ class MenuBar {
             const toolName = toolElement.getAttribute('data-tool');
             if (!toolName) return;
 
+            // Handle overflow "..." button: show overflow menu (tools + Notifications submenu)
+            if (toolName === 'menubar-overflow') {
+                event.preventDefault();
+                event.stopPropagation();
+                const items = [...this._middleZoneOverflowItems];
+                if (this.notifications.size > 0) {
+                    const notificationSubmenu = Array.from(this.notifications.values()).map((n) => ({
+                        name: (n.text || '').length > 40 ? (n.text.substring(0, 37) + '...') : (n.text || ''),
+                        icon: n.icon || 'fas fa-info-circle',
+                        onClick: () => { this.removeNotification(n.id); }
+                    }));
+                    items.push({
+                        name: 'Notifications',
+                        icon: 'fas fa-bell',
+                        submenu: notificationSubmenu
+                    });
+                }
+                if (items.length > 0) {
+                    this._showMenubarContextMenu(items, event.clientX, event.clientY);
+                }
+                return;
+            }
+
             // Find the tool in our registered tools
             let tool = null;
             let toolId = null;
@@ -4248,6 +4276,11 @@ class MenuBar {
      * Remove click handlers - called when menubar is destroyed or reset
      */
     static removeClickHandlers() {
+        if (this._middleZoneResizeObserver) {
+            this._middleZoneResizeObserver.disconnect();
+            this._middleZoneResizeObserver = null;
+        }
+        this._middleZoneOverflowItems = [];
         if (this._clickHandler && this._clickHandlerContainer) {
             this._clickHandlerContainer.removeEventListener('click', this._clickHandler);
             this._clickHandler = null;
@@ -4267,6 +4300,89 @@ class MenuBar {
      */
     static _closeMenubarContextMenu() {
         UIContextMenu.close('blacksmith-menubar-context-menu');
+    }
+
+    /**
+     * Setup middle zone overflow: detect when tools don't fit, hide excess, show "..." button.
+     * @private
+     */
+    static _setupMiddleZoneOverflow() {
+        const middle = document.querySelector('.blacksmith-menubar-middle');
+        const toolsContainer = document.querySelector('.blacksmith-menubar-middle-tools');
+        const overflowBtn = document.querySelector('.blacksmith-menubar-middle [data-tool="menubar-overflow"]');
+        if (!middle || !toolsContainer || !overflowBtn) return;
+
+        const recalc = () => {
+            this._middleZoneOverflowItems = [];
+            const toolButtons = Array.from(toolsContainer.querySelectorAll('.button[data-tool]:not([data-tool="menubar-overflow"])'));
+            const dividers = Array.from(toolsContainer.querySelectorAll('.menu-divider'));
+            overflowBtn.style.display = 'none';
+
+            // Show all tools and dividers initially
+            toolButtons.forEach(el => { el.style.display = ''; });
+            dividers.forEach(el => { el.style.display = ''; });
+
+            const overflowItems = [];
+
+            while (toolsContainer.scrollWidth > toolsContainer.clientWidth && toolButtons.length > 0) {
+                const el = toolButtons.pop();
+                const toolName = el.getAttribute('data-tool');
+                let toolData = null;
+                this.toolbarIcons.forEach((t) => { if (t.name === toolName) toolData = t; });
+                if (!toolData) continue;
+                overflowItems.unshift({
+                    name: typeof toolData.title === 'function' ? toolData.title() : toolData.title,
+                    icon: typeof toolData.icon === 'function' ? toolData.icon() : toolData.icon,
+                    onClick: (evt) => { if (typeof toolData.onClick === 'function') toolData.onClick(evt || {}); }
+                });
+                el.style.display = 'none';
+
+                // Hide dividers that become orphaned (both neighbors hidden)
+                dividers.forEach(div => {
+                    const prev = div.previousElementSibling;
+                    const next = div.nextElementSibling;
+                    const prevHidden = !prev || prev.style.display === 'none' || prev === overflowBtn;
+                    const nextHidden = !next || next.style.display === 'none' || next === overflowBtn;
+                    if (prevHidden && nextHidden) div.style.display = 'none';
+                });
+            }
+
+            this._middleZoneOverflowItems = overflowItems;
+            const hasNotifications = this.notifications.size > 0;
+            if (overflowItems.length > 0 || hasNotifications) {
+                overflowBtn.style.display = '';
+                // Reserve space for overflow button: if it causes overflow, hide one more tool
+                while (toolsContainer.scrollWidth > toolsContainer.clientWidth && toolButtons.length > 0) {
+                    const el = toolButtons.pop();
+                    const toolName = el.getAttribute('data-tool');
+                    let toolData = null;
+                    this.toolbarIcons.forEach((t) => { if (t.name === toolName) toolData = t; });
+                    if (!toolData) continue;
+                    overflowItems.unshift({
+                        name: typeof toolData.title === 'function' ? toolData.title() : toolData.title,
+                        icon: typeof toolData.icon === 'function' ? toolData.icon() : toolData.icon,
+                        onClick: (evt) => { if (typeof toolData.onClick === 'function') toolData.onClick(evt || {}); }
+                    });
+                    el.style.display = 'none';
+                    dividers.forEach(div => {
+                        const prev = div.previousElementSibling;
+                        const next = div.nextElementSibling;
+                        const prevHidden = !prev || prev.style.display === 'none' || prev === overflowBtn;
+                        const nextHidden = !next || next.style.display === 'none' || next === overflowBtn;
+                        if (prevHidden && nextHidden) div.style.display = 'none';
+                    });
+                }
+                this._middleZoneOverflowItems = overflowItems;
+            }
+        };
+
+        recalc();
+
+        if (this._middleZoneResizeObserver) {
+            this._middleZoneResizeObserver.disconnect();
+        }
+        this._middleZoneResizeObserver = new ResizeObserver(() => recalc());
+        this._middleZoneResizeObserver.observe(middle);
     }
 
     /**

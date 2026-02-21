@@ -125,7 +125,17 @@
     flex: 1 1 auto; /* << fill remaining width */
     min-width: 0; /* << allow children to shrink */
     overflow: hidden; /* clip overrun */
-  }
+}
+
+/* Middle zone tools container: holds tool buttons + overflow "..." button; grows to fill zone */
+.blacksmith-menubar-middle-tools {
+    display: flex;
+    align-items: center;
+    gap: var(--blacksmith-menubar-gap-middle, 8px);
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+}
 
 /* Dividers */
 .menu-divider {
@@ -243,6 +253,12 @@
 
 .blacksmith-menubar-middle .button-active.tool-active:hover {
     background-color: var(--blacksmith-menubar-middle-active-hover-buttoncolor);
+}
+
+/* Overflow "..." button: never shrinks, right-justified in the zone */
+.blacksmith-menubar-middle .menubar-overflow {
+    flex-shrink: 0;
+    margin-left: auto;
 }
 
 /* RIGHT BUTTONS */
