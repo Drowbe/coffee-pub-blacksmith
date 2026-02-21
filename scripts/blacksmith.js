@@ -3498,13 +3498,14 @@ async function parseFlatItemToFoundry(flat) {
         price: flat.itemPrice,
         type: { value: flat.itemLootType },
         properties: { magical: flat.itemIsMagical },
-        source: { custom: flat.itemSource },
+        source: { custom: flat.itemSource, license: flat.itemLicense || "" },
         quantity: flat.itemQuantity,
         identified: flat.itemIdentified
       },
       flags: {
         "coffee-pub": {
-          source: flat.itemSource
+          source: flat.itemSource,
+          license: flat.itemLicense || ""
         }
       }
     };
@@ -3522,12 +3523,18 @@ async function parseFlatItemToFoundry(flat) {
         rarity: flat.itemRarity,
         weight: flat.itemWeight,
         price: flat.itemPrice,
-        consumableType: { value: flat.consumableType || flat.itemConsumableType || "potion" },
-        type: { value: flat.consumableType || flat.itemConsumableType || "potion" },
+        consumableType: {
+          value: flat.consumableType || flat.itemConsumableType || "potion",
+          subtype: flat.consumableSubtype || flat.itemConsumableSubtype || ""
+        },
+        type: {
+          value: flat.consumableType || flat.itemConsumableType || "potion",
+          subtype: flat.consumableSubtype || flat.itemConsumableSubtype || ""
+        },
         properties: { 
           mgc: flat.consumptionMagical !== undefined ? flat.consumptionMagical : flat.itemIsMagical 
         },
-        source: { custom: flat.itemSource },
+        source: { custom: flat.itemSource, license: flat.itemLicense || "" },
         quantity: flat.itemQuantity,
         identified: flat.itemIdentified,
         uses: {
@@ -3551,7 +3558,9 @@ async function parseFlatItemToFoundry(flat) {
       },
       flags: {
         "coffee-pub": {
-          source: flat.itemSource
+          source: flat.itemSource,
+          license: flat.itemLicense || "",
+          consumableSubtype: flat.consumableSubtype || flat.itemConsumableSubtype || ""
         }
       }
     };

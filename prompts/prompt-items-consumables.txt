@@ -27,6 +27,7 @@ JSON FIELD RULES & EXPECTATIONS
 Replace the ALL-CAPS placeholders below using the rules that follow. All fields are mandatory.
 
 - ITEMSOURCE: (string) The sourcebook or hombrew source name. 
+- ITEMLICENSE: (string) License or attribution for the item (e.g., "OGL", "CC BY 4.0", or a custom attribution string). Use empty string "" if not applicable.
 - ITEMTYPE: (string) The D&D5E item type. For consumable items, always set "type": "consumable" at the top level of the JSON.
 - ITEMNAME: (string) The full item name (max 50 characters)
 - ITEMRARITY: (string) Always set to one of "common", "uncommon", "rare", "very rare", or "legendary". Never leave blank.
@@ -39,6 +40,7 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 - ITEMDESCRIPTIONUNIDENTIFIED: (string) An HTML-flavored narrative describing the item with vague details.
 - ITEMDESCRIPTIONCHAT: (string) A simple sentence describing the item that can be sent to the chat.
 - CONSUMABLETYPE: (string) One of the following consumable types: "ammunition", "food", "poison", "potion", "rod", "scroll", "trinket", or "wand"
+- CONSUMABLESUBTYPE: (string) Optional refinement of the consumable type. Use empty string "" when no subtype applies. When CONSUMABLETYPE is "poison", you MUST set one of: "contact", "ingested", "inhaled", or "injury" (by delivery method). For "ammunition": "arrow", "bolt", "bullet", or similar. For "potion": e.g. "healing", "buff", "transformation", "utility". For "scroll": spell school or level if relevant. For "food": "ration", "exotic", "magical", etc.
 - ITEMISMAGICAL: (boolean) Identifies if the item has magical properties. The value should be true or false (not a string).
 - LIMITEDUSES: (number) Number of uses before the item is consumed. Set to 1 for single-use items, or higher for multi-use items.
 - DESTROYONEMPTY: (boolean) Whether the item is destroyed when all uses are expended. The value should be true or false (not a string).
@@ -71,6 +73,7 @@ JSON TEMPLATE
 
 {
   "itemSource": "ITEMSOURCE",
+  "itemLicense": "ITEMLICENSE",
   "itemType": "ITEMTYPE",
   "itemName": "ITEMNAME",
   "itemRarity": "ITEMRARITY",
@@ -83,6 +86,8 @@ JSON TEMPLATE
   "itemDescriptionUnidentified": "ITEMDESCRIPTIONUNIDENTIFIED",
   "itemDescriptionChat": "ITEMDESCRIPTIONCHAT",
   "itemConsumableType": "CONSUMABLETYPE",
+  "itemConsumableSubtype": "CONSUMABLESUBTYPE",
+  "consumableSubtype": "CONSUMABLESUBTYPE",
   "itemIsMagical": ITEMISMAGICAL,
   "itemLimitedUses": LIMITEDUSES,
   "itemDestroyOnEmpty": DESTROYONEMPTY,
@@ -110,11 +115,14 @@ When I ask you to generate a consumable item, use the template and guidance abov
 - Enchanted food or trinkets
 - Poisonous substances
 
+When creating poisons, always set CONSUMABLESUBTYPE to the delivery method: "contact", "ingested", "inhaled", or "injury". For other consumable types, set CONSUMABLESUBTYPE when it adds useful categorization (e.g., potion subtype, ammunition type).
+
 Inject a bit of mystery, purpose, or potential payoff. Make the party ask: "What does this do?" 
 
 Additional settings and details:
 
 - ITEMSOURCE: set to "[ADD-ITEM-SOURCE-HERE]"
+- ITEMLICENSE: set to "[ADD-ITEM-LICENSE-HERE]" (e.g., "OGL", "CC BY 4.0", or attribution string)
 - The campaign is called "[ADD-CAMPAIGN-NAME-HERE]"
 - The campaign is leveraging these rulebooks: [ADD-RULEBOOKS-HERE]
 - Ask clarifying questions if something is ambiguous.

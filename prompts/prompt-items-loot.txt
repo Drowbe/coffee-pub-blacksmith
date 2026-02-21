@@ -27,6 +27,7 @@ JSON FIELD RULES & EXPECTATIONS
 Replace the ALL-CAPS placeholders below using the rules that follow. All fields are mandatory.
 
 - ITEMSOURCE: (string) The sourcebook or hombrew source name. 
+- ITEMLICENSE: (string) License or attribution for the item (e.g., "OGL", "CC BY 4.0", or a custom attribution string). Use empty string "" if not applicable.
 - ITEMTYPE: (string) The D&D5E item type. For loot items, always set "type": "loot" at the top level of the JSON.
 - ITEMNAME: (string) The full item name (max 50 characters)
 - ITEMRARITY: (string) Always set to one of "common", "uncommon", "rare", "very rare", or "legendary". Never leave blank.
@@ -48,6 +49,7 @@ JSON TEMPLATE
 
 {
   "itemSource": "ITEMSOURCE",
+  "itemLicense": "ITEMLICENSE",
   "itemType": "ITEMTYPE",
   "itemName": "ITEMNAME",
   "itemRarity": "ITEMRARITY",
@@ -82,6 +84,7 @@ Inject a bit of mystery, purpose, or potential payoff. Make the party ask: "Why 
 Additional settings and details:
 
 - ITEMSOURCE: set to "[ADD-ITEM-SOURCE-HERE]"
+- ITEMLICENSE: set to "[ADD-ITEM-LICENSE-HERE]" (e.g., "OGL", "CC BY 4.0", or attribution string)
 - The campaign is called "[ADD-CAMPAIGN-NAME-HERE]"
 - The campaign is leveraging these rulebooks: [ADD-RULEBOOKS-HERE]
 - Ask clarifying questions if something is ambiguous.
