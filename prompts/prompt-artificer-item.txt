@@ -183,7 +183,6 @@ JSON TEMPLATE
   "destroyOnEmpty": DESTROYONEMPTY,
   "recoveryPeriod": "RECOVERYPERIOD",
   "activities": [ACTIVITIES],
-
   "flags": {
     "coffee-pub-artificer": {
       "artificerType": "ARTIFICERTYPE",
@@ -194,7 +193,6 @@ JSON TEMPLATE
       "artificerBiomes": [ARTIFICERBIOMES]
     }
   }
-
 }
 
 
