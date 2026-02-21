@@ -136,7 +136,7 @@ ARTIFICERTYPE GUIDANCE:
 ARTIFICERFAMILY GUIDANCE (by ARTIFICERTYPE):
 - COMPONENT families: Plant (Herbs, fungi, flowers, etc.), Mineral (Ores, metals, stones, etc.), Gem (Crystals, gems, etc.), CreaturePart (Bone, venom, scales, etc), Environmental (Water, ash, ice, etc.), Essence (Life, Fire, Shadow, etc.)
 - CREATION families: Food, Material, Poison, Potion
-- TOOL families: Apparatus, Container
+- TOOL families: Apparatus (beakers, mortar and pestle, crucibles, mixing bowls, etc. — items used to process things with heat, grind, blend, etc.), Container (vials, herb bags, Ampoules, bottles, boxes, etc.  — items that hold or carry items)
 
 
 ARTIFICERTRAIT GUIDANCE (by ARTIFICERTYPE):
