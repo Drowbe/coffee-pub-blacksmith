@@ -35,11 +35,25 @@
                 <div class="menu-divider line"></div>
                 {{/unless}}
             {{/each}}
-            {{!-- Overflow "..." button: shown via JS when middle zone overflows or has notifications --}}
+            {{!-- Overflow "..." button: shown via JS when middle zone content overflows --}}
             <div class="button menubar-overflow button-active" data-tool="menubar-overflow" title="More tools" style="display: none;">
                 <i class="fa-solid fa-ellipsis"></i>
             </div>
         </div>
+
+        {{!-- NOTIFICATIONS --}}
+        {{#if notifications.length}}
+            <div class="menu-divider line"></div>
+            <div class="menu-notifications">
+                {{#each notifications}}
+                <div class="menu-notification-item" data-notification-id="{{id}}">
+                    <i class="{{icon}}"></i>
+                    <span class="notification-content" data-tooltip="{{text}}">{{text}}</span>
+                    <button class="notification-close" data-notification-id="{{id}}">&times;</button>
+                </div>
+                {{/each}}
+            </div>
+        {{/if}}
     </div>
 
     {{!-- RIGHT ZONE --}}

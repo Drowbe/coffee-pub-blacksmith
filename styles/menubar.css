@@ -259,6 +259,19 @@
 .blacksmith-menubar-middle .menubar-overflow {
     flex-shrink: 0;
     margin-left: auto;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+
+    display: flex;
+    align-items: center;      /* vertical center */
+    justify-content: center;  /* horizontal center */
+}
+.blacksmith-menubar-middle .menubar-overflow i {
+    margin: 0;
+    padding: 0;
+    font-size: 0.65em;
 }
 
 /* RIGHT BUTTONS */
@@ -312,10 +325,11 @@
 .menu-notifications {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
-  flex: 1 1 auto; /* << take remainder of middle */
+  flex: 0 0 auto; /* size to contents */
   min-width: 0; /* << critical for ellipsis */
-  flex-wrap: nowrap;                             
+  flex-wrap: nowrap;
   overflow: hidden; /* hide extra if too many */
 }
 

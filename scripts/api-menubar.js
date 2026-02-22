@@ -4166,25 +4166,12 @@ class MenuBar {
             const toolName = toolElement.getAttribute('data-tool');
             if (!toolName) return;
 
-            // Handle overflow "..." button: show overflow menu (tools + Notifications submenu)
+            // Handle overflow "..." button: show overflow menu (tools that don't fit)
             if (toolName === 'menubar-overflow') {
                 event.preventDefault();
                 event.stopPropagation();
-                const items = [...this._middleZoneOverflowItems];
-                if (this.notifications.size > 0) {
-                    const notificationSubmenu = Array.from(this.notifications.values()).map((n) => ({
-                        name: (n.text || '').length > 40 ? (n.text.substring(0, 37) + '...') : (n.text || ''),
-                        icon: n.icon || 'fas fa-info-circle',
-                        onClick: () => { this.removeNotification(n.id); }
-                    }));
-                    items.push({
-                        name: 'Notifications',
-                        icon: 'fas fa-bell',
-                        submenu: notificationSubmenu
-                    });
-                }
-                if (items.length > 0) {
-                    this._showMenubarContextMenu(items, event.clientX, event.clientY);
+                if (this._middleZoneOverflowItems.length > 0) {
+                    this._showMenubarContextMenu(this._middleZoneOverflowItems, event.clientX, event.clientY);
                 }
                 return;
             }
@@ -4348,8 +4335,7 @@ class MenuBar {
             }
 
             this._middleZoneOverflowItems = overflowItems;
-            const hasNotifications = this.notifications.size > 0;
-            if (overflowItems.length > 0 || hasNotifications) {
+            if (overflowItems.length > 0) {
                 overflowBtn.style.display = '';
                 // Reserve space for overflow button: if it causes overflow, hide one more tool
                 while (toolsContainer.scrollWidth > toolsContainer.clientWidth && toolButtons.length > 0) {
