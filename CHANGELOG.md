@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [13.2.10]
+
+### Added
+- **Menubar overflow button**: When the middle zone has more tools than fit, a right-justified ellipsis icon appears; clicking it opens a dropdown with the overflowed tools. Overflow detection uses ResizeObserver and updates on window resize.
+
+### Changed
+- **Menubar – Vote, Statistics, Experience moved to Party bar**: Vote, Party Statistics, and Experience are now in the party secondary menubar instead of the primary menubar. Open the party bar to access them.
+- **Menubar notifications**: Notifications are right-justified and the notification area now flexes to the size of its contents.
+
 ### Fixed
 - **Skill Check dialog – undefined hp crash**: When opening the Request a Roll (Skill Check) dialog, actors without `system.attributes.hp` (e.g. vehicles, some NPCs, or alternate data structures) caused "Cannot read properties of undefined (reading 'value')". `getData()` now uses optional chaining and fallbacks for `hp`, `level`, and `class` so the dialog renders safely for all actor types.
 
