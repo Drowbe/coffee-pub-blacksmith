@@ -957,15 +957,15 @@ export function postConsoleAndNotification(
         captionFontColor: "color: rgb(164, 199, 106)",
       },
       SCRIBE: {
-        titleColor: "color: #33cccc",
+        titleColor: "color:rgb(11, 167, 167)",
         captionBorder: "border: 1px dotted #2C9090",
         captionBackground: "background: #104545",
         captionFontColor: "color: rgb(164, 199, 106)",
       },
       SQUIRE: {
-        titleColor: "color:rgb(196, 21, 5)",
-        captionBorder: "border: 1px dotted rgb(175, 55, 25)",
-        captionBackground: "background: rgb(175, 55, 25)",
+        titleColor: "color:rgb(127, 21, 197)",
+        captionBorder: "border: 1px dotted rgb(95, 25, 175)",
+        captionBackground: "background: rgb(120, 25, 175)",
         captionFontColor: "color: rgb(164, 199, 106)",
       },
       CARTOGRAPHER: {

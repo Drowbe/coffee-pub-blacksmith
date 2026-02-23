@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Menubar overflow button**: When the middle zone has more tools than fit, a right-justified ellipsis icon appears; clicking it opens a dropdown with the overflowed tools. Overflow detection uses ResizeObserver and updates on window resize.
+- **Request a Roll API – silent mode**: `openRequestRollDialog({ silent: true, ... })` creates the roll request and posts it to chat without opening the dialog. Requires `initialValue` or `initialSkill`; actors come from `initialFilter` ('party' | 'selected') or from `options.actors`. Returns a Promise resolving to `{ message, messageId }`. If no actors are found, the API falls back to opening the dialog and resolves with `{ message: null, messageId: null, fallbackDialog }`. `options.actors` accepts Foundry Actor documents (resolved to canvas tokens by actor id) or token-centric objects `{ id: tokenId, actorId, name, group }`. Documentation: `documentation/api-requestroll.md` updated with silent mode, callback payload, and accepted actor shapes.
 
 ### Changed
 - **Menubar – Vote, Statistics, Experience moved to Party bar**: Vote, Party Statistics, and Experience are now in the party secondary menubar instead of the primary menubar. Open the party bar to access them.
@@ -17,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Skill Check dialog – undefined hp crash**: When opening the Request a Roll (Skill Check) dialog, actors without `system.attributes.hp` (e.g. vehicles, some NPCs, or alternate data structures) caused "Cannot read properties of undefined (reading 'value')". `getData()` now uses optional chaining and fallbacks for `hp`, `level`, and `class` so the dialog renders safely for all actor types.
+- **Request a Roll API – onRollComplete not invoked**: When another module opened the dialog with `onRollComplete`, the callback was never called after players rolled. Callbacks are now stored by message id when the roll request is created and invoked from `handleSkillRollUpdate` when results are delivered; payload is `{ message, messageData, tokenId, result, allComplete }`. Callback is removed when `allComplete` is true.
+- **Request a Roll – handleSkillRollUpdate type check**: The guard `if (!flags?.type === 'skillCheck')` was always false (wrong operator precedence). Replaced with `if (flags?.type !== 'skillCheck')` so non–skill-check messages are skipped correctly.
+- **Skill Check dialog – _getToolProficiencies and getData()**: In v13, `this.element` can be native DOM or unset during `getData()`. `_getToolProficiencies()` now normalizes element (jQuery vs native), guards with `if (!element || typeof element.querySelectorAll !== 'function') return []`, and uses `querySelectorAll`/`forEach` so the tool list populates correctly and no "Cannot read properties of undefined (reading 'querySelectorAll')" occurs. Canvas access in `getData()` and `activateListeners()` now uses `canvas?.tokens?.placeables ?? []` and `canvas?.tokens?.controlled` with optional chaining to avoid errors when no scene or canvas is ready.
+- **Request a Roll (silent) – options.actors with Actor documents**: Silent mode treated `options.actors` as token-centric only (`id` = token id, `actorId` required), so callers passing Actor documents (e.g. from `_getSelectedCanvasActors()`) were filtered out and "no actors found" was thrown. The API now accepts both token-centric objects and Actor documents (or `{ id: actorId, name }`); for actor-centric items it resolves each to canvas token(s) by actor id and builds the roll request from those tokens.
 
 
 ## [13.2.9]
