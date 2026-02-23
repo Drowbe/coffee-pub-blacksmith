@@ -1415,7 +1415,7 @@ class MenuBar {
     static getSecondaryBarHeight(typeId) {
         const heightVar = `--blacksmith-menubar-secondary-${typeId}-height`;
         const height = parseInt(getComputedStyle(document.documentElement).getPropertyValue(heightVar));
-        return height || parseInt(getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-menubar-secondary-default-height')) || 50;
+        return height || parseInt(getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-menubar-secondary-default-height')) || 30;
     }
 
     /**

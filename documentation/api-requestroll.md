@@ -62,7 +62,7 @@ Opens the Request a Roll (Skill Check) dialog. Optionally pass an options object
 | `options.initialFilter` | `string` | Which actor list is active: `'selected'` (only selected tokens) or `'party'` (party filter). When `'party'`, all visible party actors are also pre-selected as challengers. |
 | `options.groupRoll` | `boolean` | If `true`, the "Group roll" checkbox is checked initially (multiple challengers roll as a group); if `false` or omitted, it is unchecked. |
 | `options.callback` | `Function` | Callback used by the dialog (if applicable). |
-| `options.onRollComplete` | `Function` | Callback when the roll completes (if applicable). |
+| `options.onRollComplete` | `Function` | Callback invoked each time a roll result is delivered to the chat card (e.g. when a player rolls). Receives one argument: `(payload)` where `payload` is `{ message, messageData, tokenId, result, allComplete }`. `message` is the ChatMessage; `messageData` is the updated flags content (actors, results, etc.); `tokenId` and `result` are for the roll that just completed; `allComplete` is `true` when every requested actor has rolled. Called once per roll; unregistered when `allComplete` is true. |
 | `options.actors` | `Array` | Optional actor list (if the dialog supports it). |
 
 **Returns**
@@ -109,6 +109,28 @@ const dialog = await BlacksmithAPI.openRequestRollDialog({
     initialSkill: 'stealth',
     dc: 12,
     initialFilter: 'selected'
+});
+```
+
+**Receiving roll results in your module (onRollComplete)**
+
+Pass `onRollComplete` when opening the dialog to be notified each time a roll result is delivered to the chat card (when a player rolls). The callback is invoked with a single payload object:
+
+```javascript
+api.openRequestRollDialog({
+    title: 'Spot the trap',
+    initialType: 'skill',
+    initialValue: 'perception',
+    dc: 15,
+    initialFilter: 'party',
+    onRollComplete: (payload) => {
+        // payload: { message, messageData, tokenId, result, allComplete }
+        const { messageData, tokenId, result, allComplete } = payload;
+        console.log('Roll received:', tokenId, result?.total);
+        if (allComplete) {
+            console.log('All rolls complete:', messageData.actors);
+        }
+    }
 });
 ```
 

@@ -2814,7 +2814,7 @@ export async function handleSkillRollUpdate(data) {
     if (!message) return;
 
     const flags = message.flags['coffee-pub-blacksmith'] || {};
-    if (!flags?.type === 'skillCheck') return;
+    if (flags?.type !== 'skillCheck') return;
 
     // --- Always recalculate group roll summary on the GM side ---
     // 1. Update the correct actor's result with the new, plain result object
@@ -2892,13 +2892,24 @@ export async function handleSkillRollUpdate(data) {
     };
 
     const content = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/card-skill-check.hbs', updatedMessageData);
-    await message.update({ 
+    await message.update({
         content,
         flags: {
             'coffee-pub-blacksmith': updatedMessageData
         }
     });
-    
+
+    // Notify API callers that opened the dialog with onRollComplete
+    const allComplete = (updatedMessageData.actors || []).length > 0 &&
+        (updatedMessageData.actors || []).every(a => a.result);
+    SkillCheckDialog._invokeRollCompleteCallback(messageId, {
+        message,
+        messageData: updatedMessageData,
+        tokenId,
+        result,
+        allComplete
+    });
+
     // Scroll chat to bottom to show the updated group results (with delay to ensure DOM is updated)
     setTimeout(() => {
         _scrollChatToBottom();

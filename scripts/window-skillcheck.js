@@ -7,6 +7,9 @@ import { skillDescriptions, abilityDescriptions, saveDescriptions, toolDescripti
 
 
 export class SkillCheckDialog extends Application {
+    /** @type {Map<string, Function>} Pending onRollComplete callbacks by message ID (for API callers) */
+    static _pendingRollCallbacks = new Map();
+
     constructor(data = {}) {
         const options = {};
         if (data.title != null && data.title !== '') options.title = data.title;
@@ -50,8 +53,12 @@ export class SkillCheckDialog extends Application {
     }
 
     getData() {
+        // Guard: no canvas or scene can cause canvas.tokens to be undefined
+        const placeables = canvas?.tokens?.placeables ?? [];
+        const controlled = canvas?.tokens?.controlled ?? [];
+
         // Get all tokens from the canvas, including NPCs and monsters
-        const canvasTokens = canvas.tokens.placeables
+        const canvasTokens = placeables
             .filter(t => t.actor)
             .map(t => {
                 const hp = t.actor.system?.attributes?.hp;
@@ -73,7 +80,7 @@ export class SkillCheckDialog extends Application {
             });
 
         // Check if there are any selected tokens
-        const hasSelectedTokens = canvas.tokens.controlled.length > 0;
+        const hasSelectedTokens = controlled.length > 0;
         const initialFilter = this.initialFilter ?? (hasSelectedTokens ? 'selected' : 'party');
 
         // Get tools directly using _getToolProficiencies
@@ -132,16 +139,25 @@ export class SkillCheckDialog extends Application {
 
     _getToolProficiencies() {
         const toolProfs = new Map(); // Map of tool name to count and actor-specific IDs
-        const selectedActors = this.element?.find('.cpb-actor-item.selected') || [];
-        const selectedCount = selectedActors.length;
-        
+        // v13: this.element may be native DOM; normalize like _updateToolList. During getData() this.element may be unset or empty.
+        let element;
+        if (this.element && typeof this.element.jquery !== 'undefined') {
+            element = this.element[0] || this.element.get?.(0);
+        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
+            element = this.element;
+        } else {
+            return [];
+        }
+        if (!element || typeof element.querySelectorAll !== 'function') return [];
+        const selectedActorEls = element.querySelectorAll('.cpb-actor-item.selected');
+        const selectedCount = selectedActorEls.length;
         if (selectedCount === 0) return [];
 
         postConsoleAndNotification(MODULE.NAME, 'Selected actors count:', selectedCount, true, false);
-        
-        selectedActors.each((i, el) => {
-            const tokenId = el.dataset.tokenId; // Updated to use new data attribute name
-            const token = canvas.tokens.placeables.find(t => t.id === tokenId);
+
+        selectedActorEls.forEach((el) => {
+            const tokenId = el.dataset.tokenId;
+            const token = canvas.tokens?.placeables?.find(t => t.id === tokenId);
             const actor = token?.actor;
             if (!actor) return;
 
@@ -166,7 +182,7 @@ export class SkillCheckDialog extends Application {
                     toolData.count++;
                     toolData.actorTools.set(actor.id, toolIdentifier); // Use actor.id for tool mapping
                 }
-                
+
                 processedTools.add(tool.name);
             });
         });
@@ -212,7 +228,7 @@ export class SkillCheckDialog extends Application {
         postConsoleAndNotification(MODULE.NAME, "SKILLROLLL | LOCATION CHECK: We are in skill-check-dialogue.js and in activateListeners(html)...", "", true, false);
 
         // Apply initial filter (API can pass initialFilter; else selected tokens or party)
-        const hasSelectedTokens = canvas.tokens.controlled.length > 0;
+        const hasSelectedTokens = (canvas?.tokens?.controlled?.length ?? 0) > 0;
         const initialFilter = this.initialFilter ?? (hasSelectedTokens ? 'selected' : 'party');
 
         // Set initial active state on actor filter button (left column) (v13: native DOM)
@@ -272,7 +288,7 @@ export class SkillCheckDialog extends Application {
         });
 
         // If tokens are selected on the canvas, pre-select them in the dialog (v13: native DOM)
-        if (hasSelectedTokens) {
+        if (hasSelectedTokens && canvas?.tokens?.controlled) {
             canvas.tokens.controlled.forEach(token => {
                 const actorItem = htmlElement.querySelector(`.cpb-actor-item[data-token-id="${token.id}"]`);
                 if (actorItem) {
@@ -1085,6 +1101,11 @@ export class SkillCheckDialog extends Application {
                 rollMode: rollMode
             });
 
+            // Register API callback so the calling module receives roll results when players roll
+            if (typeof this.onRollComplete === 'function') {
+                SkillCheckDialog._pendingRollCallbacks.set(message.id, this.onRollComplete);
+            }
+
             // Play sound for roll request posted to chat
             playSound(COFFEEPUB.SOUNDNOTIFICATION02, COFFEEPUB.SOUNDVOLUMENORMAL);
             
@@ -1483,6 +1504,25 @@ export class SkillCheckDialog extends Application {
             ...messageData,
             actors
         };
+    }
+
+    /**
+     * Invoke a pending onRollComplete callback registered by openRequestRollDialog({ onRollComplete }).
+     * Called from handleSkillRollUpdate when a roll result is delivered to the chat card.
+     * @param {string} messageId - Chat message ID
+     * @param {object} payload - { message, messageData, tokenId, result, allComplete }
+     */
+    static _invokeRollCompleteCallback(messageId, payload) {
+        const callback = SkillCheckDialog._pendingRollCallbacks.get(messageId);
+        if (typeof callback !== 'function') return;
+        try {
+            callback(payload);
+        } catch (err) {
+            console.error('Blacksmith Request Roll API: onRollComplete callback error', err);
+        }
+        if (payload.allComplete) {
+            SkillCheckDialog._pendingRollCallbacks.delete(messageId);
+        }
     }
 
     /**
