@@ -8,6 +8,7 @@ The Request a Roll API lets external modules open Blacksmith’s **Request a Rol
 
 Use this API when your module needs to:
 - Open the Request a Roll dialog from a button, macro, or hook
+- **Create a roll request without opening the dialog** (silent mode) — post the request card to chat immediately
 - Pre-select a roll type (e.g. Perception, Stealth, Strength save)
 - Set a default DC or actor filter (selected tokens vs party)
 - Pre-check the "Group roll" option (e.g. for party group checks)
@@ -54,6 +55,7 @@ Opens the Request a Roll (Skill Check) dialog. Optionally pass an options object
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `options` | `Object` | Optional. All properties are optional. |
+| `options.silent` | `boolean` | If `true`, the dialog is not opened; the roll request is created immediately and posted to chat. Requires `initialValue` or `initialSkill`. Actors come from `initialFilter` ('party' \| 'selected') or from `options.actors`. Returns a Promise resolving to `{ message, messageId }` (module API returns that Promise; drop-in API resolves with it). **If no actors are found** (e.g. no tokens on the scene or none matching the filter), the API falls back to opening the dialog instead of throwing, and the Promise resolves with `{ message: null, messageId: null, fallbackDialog }` so callers can detect the fallback. |
 | `options.title` | `string` | Override the dialog window title (e.g. `"Spot the trap"`). |
 | `options.initialType` | `string` | Pre-select the roll type: `'skill'`, `'ability'`, or `'save'`. |
 | `options.initialValue` | `string` | Id or friendly name for that type. You can pass the system’s CONFIG id (e.g. `'prc'` for Perception in D&D 5e) or a friendly/localized name (e.g. `'perception'`); the dialog resolves it automatically. Skills: `'perception'`, `'stealth'`, `'insight'`, etc.; abilities: `'str'`, `'dex'`, `'con'`, `'int'`, `'wis'`, `'cha'`; saves: same as abilities plus `'death'`. |
@@ -63,12 +65,12 @@ Opens the Request a Roll (Skill Check) dialog. Optionally pass an options object
 | `options.groupRoll` | `boolean` | If `true`, the "Group roll" checkbox is checked initially (multiple challengers roll as a group); if `false` or omitted, it is unchecked. |
 | `options.callback` | `Function` | Callback used by the dialog (if applicable). |
 | `options.onRollComplete` | `Function` | Callback invoked each time a roll result is delivered to the chat card (e.g. when a player rolls). Receives one argument: `(payload)` where `payload` is `{ message, messageData, tokenId, result, allComplete }`. `message` is the ChatMessage; `messageData` is the updated flags content (actors, results, etc.); `tokenId` and `result` are for the roll that just completed; `allComplete` is `true` when every requested actor has rolled. Called once per roll; unregistered when `allComplete` is true. |
-| `options.actors` | `Array` | Optional actor list (if the dialog supports it). |
+| `options.actors` | `Array` | Optional actor list. When **silent** mode is used, this is the preferred way to supply actors. Accepted shapes: **(1)** Foundry **Actor documents** (or objects with `id` = actor id and optional `name`): the API resolves each to token(s) on the current canvas with that actor and uses those token ids for the roll request; **(2)** Token-centric objects `{ id: tokenId, actorId, name, group? }` (e.g. from `canvas.tokens.controlled` mapped to token id + actor id). When not silent, the dialog can use this to pre-fill if it supports it. |
 
 **Returns**
 
-- **Module API** (`game.modules.get('coffee-pub-blacksmith').api.openRequestRollDialog(options)`): `Application` – The opened Skill Check dialog instance (synchronous).
-- **Drop-in API** (`BlacksmithAPI.openRequestRollDialog(options)`): `Promise<Application>` – Resolves with the opened dialog after the API is ready.
+- **Module API** (`game.modules.get('coffee-pub-blacksmith').api.openRequestRollDialog(options)`): When `silent` is not used: `Application` (the opened dialog). When `options.silent === true`: `Promise<{ message: ChatMessage, messageId: string }>`.
+- **Drop-in API** (`BlacksmithAPI.openRequestRollDialog(options)`): `Promise<Application>` when not silent, or `Promise<{ message, messageId }>` when `options.silent === true`.
 
 **Examples**
 
@@ -111,6 +113,35 @@ const dialog = await BlacksmithAPI.openRequestRollDialog({
     initialFilter: 'selected'
 });
 ```
+
+### Silent mode: create roll request without opening the dialog
+
+Pass `silent: true` to create the roll request and post it to chat immediately, without showing the Request a Roll window. You must supply a roll type (e.g. `initialType` + `initialValue`, or `initialSkill`). Actors are resolved from `initialFilter` ('party' or 'selected') or from an explicit `actors` array. The return value is a Promise that resolves to `{ message, messageId }`.
+
+```javascript
+// Module API (returns a Promise when silent)
+const api = game.modules.get('coffee-pub-blacksmith')?.api;
+const { message, messageId } = await api.openRequestRollDialog({
+    silent: true,
+    title: 'Spot the trap',
+    initialType: 'skill',
+    initialValue: 'perception',
+    dc: 15,
+    initialFilter: 'party',
+    groupRoll: true,
+    onRollComplete: (payload) => console.log('Roll complete', payload)
+});
+
+// Drop-in API
+const { message, messageId } = await BlacksmithAPI.openRequestRollDialog({
+    silent: true,
+    initialSkill: 'stealth',
+    dc: 12,
+    initialFilter: 'selected'
+});
+```
+
+Silent mode supports the same options as the dialog (e.g. `dc`, `title`, `groupRoll`, `showDC`, `showRollExplanation`, `isCinematic`, `rollMode`, `onRollComplete`). It does not support contested rolls or tool proficiencies; use the full dialog for those.
 
 **Receiving roll results in your module (onRollComplete)**
 

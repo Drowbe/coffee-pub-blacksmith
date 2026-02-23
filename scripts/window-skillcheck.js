@@ -1535,6 +1535,217 @@ export class SkillCheckDialog extends Application {
     }
 
     /**
+     * Resolve API initialValue to CONFIG id (static version for createRequestRoll).
+     */
+    static _resolveRollTypeValueStatic(type, value) {
+        if (!value || typeof value !== 'string') return value;
+        const v = value.trim().toLowerCase();
+        if (type === 'skill' && CONFIG.DND5E?.skills) {
+            if (CONFIG.DND5E.skills[value]) return value;
+            const entry = Object.entries(CONFIG.DND5E.skills).find(([id, data]) =>
+                id.toLowerCase() === v || (data?.label && game.i18n.localize(data.label).toLowerCase() === v)
+            );
+            return entry ? entry[0] : value;
+        }
+        if (type === 'ability' && CONFIG.DND5E?.abilities) {
+            if (CONFIG.DND5E.abilities[value]) return value;
+            const entry = Object.entries(CONFIG.DND5E.abilities).find(([id, data]) =>
+                id.toLowerCase() === v || (data?.label && game.i18n.localize(data.label).toLowerCase() === v)
+            );
+            return entry ? entry[0] : value;
+        }
+        if (type === 'save' && CONFIG.DND5E?.abilities) {
+            if (value === 'death' || v === 'death') return 'death';
+            if (CONFIG.DND5E.abilities[value]) return value;
+            const entry = Object.entries(CONFIG.DND5E.abilities).find(([id, data]) =>
+                id.toLowerCase() === v || (data?.label && game.i18n.localize(data.label).toLowerCase() === v)
+            );
+            return entry ? entry[0] : value;
+        }
+        return value;
+    }
+
+    /**
+     * Get roll label for silent request roll (skill/ability/save only).
+     */
+    static _getRollLabelForType(rollType, rollValue, showExplanation = false) {
+        let name, desc, link;
+        switch (rollType) {
+            case 'skill':
+                const skillData = CONFIG.DND5E.skills?.[rollValue];
+                name = skillData ? game.i18n.localize(skillData.label) : rollValue;
+                desc = showExplanation && skillDescriptions?.[rollValue] ? skillDescriptions[rollValue] : null;
+                link = showExplanation && skillData?.reference ? `@UUID[${skillData.reference}]{${name}}` : null;
+                break;
+            case 'ability':
+                const abilityData = CONFIG.DND5E.abilities?.[rollValue];
+                const abilityName = abilityData ? game.i18n.localize(abilityData.label) : rollValue;
+                name = abilityName + ' Check';
+                desc = showExplanation && abilityDescriptions?.[rollValue] ? abilityDescriptions[rollValue] : null;
+                link = showExplanation && abilityData?.reference ? `@UUID[${abilityData.reference}]{${name}}` : null;
+                break;
+            case 'save':
+                if (rollValue === 'death') {
+                    name = 'Death Save';
+                    desc = showExplanation ? (saveDescriptions?.death ?? null) : null;
+                    link = null;
+                } else {
+                    const saveData = CONFIG.DND5E.abilities?.[rollValue];
+                    const saveName = saveData ? game.i18n.localize(saveData.label) : rollValue;
+                    name = saveName + ' Save';
+                    desc = showExplanation && saveDescriptions?.[rollValue] ? saveDescriptions[rollValue] : null;
+                    link = showExplanation && saveData?.reference ? `@UUID[${saveData.reference}]{${name}}` : null;
+                }
+                break;
+            default:
+                name = rollValue;
+                desc = null;
+                link = null;
+        }
+        return { name, desc, link };
+    }
+
+    /**
+     * Create a roll request chat card without opening the dialog (silent mode).
+     * @param {object} options - initialType, initialValue/initialSkill, initialFilter or actors, dc, title, groupRoll, showDC, showRollExplanation, isCinematic, rollMode, onRollComplete
+     * @returns {Promise<{ message: ChatMessage, messageId: string }>}
+     */
+    static async createRequestRoll(options = {}) {
+        const rollType = options.initialType ?? (options.initialSkill ? 'skill' : 'skill');
+        const rollValueRaw = options.initialValue ?? options.initialSkill ?? null;
+        if (!rollValueRaw) throw new Error('Request Roll (silent): initialValue or initialSkill is required');
+        const rollValue = SkillCheckDialog._resolveRollTypeValueStatic(rollType, rollValueRaw);
+
+        let processedActors;
+        if (options.actors && Array.isArray(options.actors) && options.actors.length > 0) {
+            const placeables = canvas?.tokens?.placeables ?? [];
+            processedActors = [];
+            for (const a of options.actors) {
+                const actorId = a.actorId ?? a.id;
+                const name = a.name ?? game.actors.get(actorId)?.name ?? 'Unknown';
+                const group = a.group ?? 1;
+                if (a.tokenId != null && a.actorId != null) {
+                    processedActors.push({
+                        id: a.tokenId ?? a.id,
+                        actorId: a.actorId ?? actorId,
+                        name: a.name ?? name,
+                        group
+                    });
+                } else {
+                    const tokensForActor = placeables.filter(t => t.actor?.id === actorId);
+                    for (const t of tokensForActor) {
+                        processedActors.push({
+                            id: t.id,
+                            actorId: t.actor.id,
+                            name: t.name,
+                            group
+                        });
+                    }
+                    if (tokensForActor.length === 0) {
+                        processedActors.push({
+                            id: actorId,
+                            actorId: actorId,
+                            name,
+                            group
+                        });
+                    }
+                }
+            }
+            processedActors = processedActors.filter(a => a.id && a.actorId);
+        } else {
+            const placeables = canvas?.tokens?.placeables ?? [];
+            const controlled = canvas?.tokens?.controlled ?? [];
+            const filter = options.initialFilter ?? (controlled.length > 0 ? 'selected' : 'party');
+            if (filter === 'selected') {
+                processedActors = controlled.map(t => ({
+                    id: t.id,
+                    actorId: t.actor?.id,
+                    name: t.name,
+                    group: 1
+                })).filter(a => a.actorId);
+            } else {
+                processedActors = placeables
+                    .filter(t => t.actor && t.actor.type === 'character' && t.actor.hasPlayerOwner)
+                    .map(t => ({ id: t.id, actorId: t.actor.id, name: t.name, group: 1 }));
+                if (processedActors.length === 0) {
+                    processedActors = placeables
+                        .filter(t => t.actor && t.actor.hasPlayerOwner)
+                        .map(t => ({ id: t.id, actorId: t.actor.id, name: t.name, group: 1 }));
+                }
+            }
+        }
+        if (!processedActors.length) {
+            throw new Error('Request Roll (silent): no actors found. Set initialFilter ("party"|"selected") or pass actors array.');
+        }
+
+        const dc = options.dc != null ? String(options.dc) : null;
+        const groupRoll = options.hasOwnProperty('groupRoll') ? !!options.groupRoll : (processedActors.length > 1);
+        const showDC = options.hasOwnProperty('showDC') ? !!options.showDC : true;
+        const showRollExplanation = options.hasOwnProperty('showRollExplanation') ? !!options.showRollExplanation : false;
+        const isCinematic = options.hasOwnProperty('isCinematic') ? !!options.isCinematic : false;
+        const rollMode = options.rollMode ?? 'roll';
+        const title = (options.title != null && options.title !== '') ? options.title : null;
+
+        const rollLabel = SkillCheckDialog._getRollLabelForType(rollType, rollValue, showRollExplanation);
+        const messageData = {
+            skillName: rollLabel.name,
+            rollTitle: title ?? rollLabel.name,
+            defenderSkillName: null,
+            skillAbbr: rollValue,
+            defenderSkillAbbr: null,
+            actors: processedActors,
+            requesterId: game.user.id,
+            currentUserId: game.user.id,
+            type: 'skillCheck',
+            dc: dc,
+            showDC: showDC,
+            isGroupRoll: groupRoll,
+            skillDescription: rollLabel.desc,
+            defenderSkillDescription: null,
+            skillLink: rollLabel.link,
+            defenderSkillLink: null,
+            rollMode,
+            rollType,
+            defenderRollType: null,
+            hasMultipleGroups: false,
+            showRollExplanation: showRollExplanation,
+            isCinematic: isCinematic,
+            isGM: game.user.isGM
+        };
+
+        const content = await SkillCheckDialog.formatChatMessage(messageData);
+        const message = await ChatMessage.create({
+            user: game.user.id,
+            speaker: ChatMessage.getSpeaker(),
+            content,
+            flags: { 'coffee-pub-blacksmith': messageData },
+            style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+            rollMode
+        });
+
+        if (typeof options.onRollComplete === 'function') {
+            SkillCheckDialog._pendingRollCallbacks.set(message.id, options.onRollComplete);
+        }
+
+        playSound(COFFEEPUB.SOUNDNOTIFICATION02, COFFEEPUB.SOUNDVOLUMENORMAL);
+        SkillCheckDialog._scrollChatToBottom();
+
+        if (isCinematic) {
+            SkillCheckDialog._showCinematicDisplay(messageData, message.id);
+            const socket = SocketManager.getSocket();
+            if (socket) {
+                await socket.executeForOthers("showCinematicOverlay", {
+                    type: "showCinematicOverlay",
+                    messageId: message.id,
+                    messageData: messageData
+                });
+            }
+        }
+
+        return { message, messageId: message.id };
+    }
+
+    /**
      * Shows a cinematic display for the skill check.
      * @param {object} messageData - The chat message data (flags) for the skill check.
      * @param {string} messageId - The ID of the chat message.

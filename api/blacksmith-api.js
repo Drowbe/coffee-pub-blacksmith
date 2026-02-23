@@ -283,6 +283,7 @@ export class BlacksmithAPI {
     /**
      * Open the Request a Roll (Skill Check) dialog with optional parameters.
      * @param {Object} [options] - Dialog options
+     * @param {boolean} [options.silent] - If true, create the roll request directly without opening the dialog; returns Promise<{ message, messageId }>
      * @param {string} [options.title] - Override dialog title
      * @param {string} [options.initialType] - Pre-select roll type: 'skill' | 'ability' | 'save'
      * @param {string} [options.initialValue] - Id for the roll (e.g. 'perception', 'str', 'dex', 'death')
@@ -292,7 +293,7 @@ export class BlacksmithAPI {
      * @param {boolean} [options.groupRoll] - Pre-check the "Group roll" checkbox (default false when omitted)
      * @param {Function} [options.callback] - Callback (if used by dialog)
      * @param {Function} [options.onRollComplete] - Callback when roll completes
-     * @returns {Promise<Application>} The opened SkillCheckDialog instance
+     * @returns {Promise<Application|{message: ChatMessage, messageId: string}>} The opened dialog, or (when silent) the created message and id
      */
     static openRequestRollDialog(options = {}) {
         return this.waitForReady().then(() => {

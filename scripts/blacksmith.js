@@ -1087,6 +1087,16 @@ Hooks.once('init', async function() {
 
         // ✅ Request a Roll (Skill Check) dialog – open with optional parameters
         openRequestRollDialog: (options = {}) => {
+            if (options.silent === true) {
+                return SkillCheckDialog.createRequestRoll(options).catch((err) => {
+                    if (err?.message?.includes('no actors found')) {
+                        const dialog = new SkillCheckDialog({ ...options, _api: true });
+                        dialog.render(true);
+                        return { message: null, messageId: null, fallbackDialog: dialog };
+                    }
+                    throw err;
+                });
+            }
             const dialog = new SkillCheckDialog({ ...options, _api: true });
             dialog.render(true);
             return dialog;
