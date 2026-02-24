@@ -3311,7 +3311,7 @@ async function guessIconPath(item) {
   const paths = await getIconPaths();
   const name = (item.itemName || '').toLowerCase();
   const description = (item.itemDescription || '').toLowerCase();
-  const lootType = (item.itemLootType || '').toLowerCase();
+  const lootType = (item.itemSubType || '').toLowerCase();
 
   // Check if enhanced image guessing is enabled
   const enhancedEnabled = game.settings.get(MODULE.ID, 'enableEnhancedImageGuessing');
@@ -3483,151 +3483,120 @@ async function testImageGuessing(itemName, itemDescription = '') {
   const testItem = {
     itemName: itemName,
     itemDescription: itemDescription,
-    itemLootType: 'treasure'
+    itemSubType: 'treasure'
   };
-  
   const result = await guessIconPath(testItem);
-  
   return result;
 }
 
 /**
- * Parse a flat item JSON (from prompt) into FoundryVTT D&D5E item data.
+ * Parse itemPrice string (e.g. "50 GP", "0 GP", "10 SP") into a normalized price string for D&D 5e system.
+ * @param {string} itemPrice - Raw price from prompt (e.g. "50 GP", "0 GP").
+ * @returns {string} Normalized price (e.g. "50 gp", "0 gp", "10 sp").
+ */
+function parseItemPrice(itemPrice) {
+  if (itemPrice == null || String(itemPrice).trim() === '') return '0 gp';
+  const s = String(itemPrice).trim();
+  const match = s.match(/^(\d+(?:\.\d+)?)\s*(gp|sp|cp|ep|pp)?$/i);
+  if (match) {
+    const num = match[1];
+    const denom = (match[2] || 'gp').toLowerCase();
+    return `${num} ${denom}`;
+  }
+  return s;
+}
+
+/**
+ * Build shared system fields for item import (description, rarity, weight, price, source).
+ * @param {object} flat - Flat item from prompt.
+ * @returns {object} system fragment.
+ */
+function _sharedItemSystem(flat) {
+  return {
+    description: {
+      value: flat.itemDescription || "",
+      unidentified: flat.itemDescriptionUnidentified || "",
+      chat: flat.itemDescriptionChat || ""
+    },
+    rarity: flat.itemRarity || "common",
+    weight: flat.itemWeight,
+    price: parseItemPrice(flat.itemPrice),
+    source: { custom: flat.itemSource || "Artificer", license: flat.itemLicense || "" },
+    quantity: flat.itemQuantity ?? 1,
+    identified: flat.itemIdentified !== false
+  };
+}
+
+/**
+ * Parse a flat item JSON (Artificer prompt template) into FoundryVTT D&D 5e item data.
+ * Uses only canonical keys: itemType, itemSubType, itemSubTypeNuance, itemName, itemPrice, itemIsMagical, destroyOnEmpty, etc.
  * @param {object} flat - The flat item JSON from the prompt.
- * @returns {object} - The FoundryVTT item data object.
+ * @returns {object} The FoundryVTT item data object.
  */
 async function parseFlatItemToFoundry(flat) {
-  let type = flat.itemType?.toLowerCase() || "loot";
-  if (type === "component") {
-    type = "consumable";
-  }
+  const type = (flat.itemType || "loot").toLowerCase();
   let img = flat.itemImagePath;
   if (!img) {
     img = await guessIconPath(flat);
   }
+  const shared = _sharedItemSystem(flat);
   let data = {};
+
   if (type === "loot") {
     data = {
       type: "loot",
       name: flat.itemName,
-      img: img,
+      img,
       system: {
-        description: {
-          value: flat.itemDescription || "",
-          unidentified: flat.itemDescriptionUnidentified || "",
-          chat: flat.itemDescriptionChat || ""
-        },
-        rarity: flat.itemRarity,
-        weight: flat.itemWeight,
-        price: flat.itemPrice,
-        type: { value: flat.itemLootType },
-        properties: { magical: flat.itemIsMagical },
-        source: { custom: flat.itemSource, license: flat.itemLicense || "" },
-        quantity: flat.itemQuantity,
-        identified: flat.itemIdentified
+        ...shared,
+        type: { value: flat.itemSubType || "trinket" },
+        properties: { magical: !!flat.itemIsMagical }
       },
-      flags: {
-        "coffee-pub": {
-          source: flat.itemSource,
-          license: flat.itemLicense || ""
-        }
-      }
+      flags: { "coffee-pub": { source: flat.itemSource, license: flat.itemLicense || "" } }
     };
   } else if (type === "consumable") {
+    const consumableValue = (flat.itemSubType || "potion").toLowerCase().replace(/\s+/g, "-");
+    const consumableSubtype = (flat.itemSubTypeNuance || "").trim();
     data = {
       type: "consumable",
       name: flat.itemName,
-      img: img,
+      img,
       system: {
-        description: {
-          value: flat.itemDescription || "",
-          unidentified: flat.itemDescriptionUnidentified || "",
-          chat: flat.itemDescriptionChat || ""
-        },
-        rarity: flat.itemRarity,
-        weight: flat.itemWeight,
-        price: flat.itemPrice,
-        consumableType: {
-          value: flat.consumableType || flat.itemConsumableType || "potion",
-          subtype: flat.consumableSubtype || flat.itemConsumableSubtype || ""
-        },
-        type: {
-          value: flat.consumableType || flat.itemConsumableType || "potion",
-          subtype: flat.consumableSubtype || flat.itemConsumableSubtype || ""
-        },
-        properties: { 
-          mgc: flat.consumptionMagical !== undefined ? flat.consumptionMagical : flat.itemIsMagical 
-        },
-        source: { custom: flat.itemSource, license: flat.itemLicense || "" },
-        quantity: flat.itemQuantity,
-        identified: flat.itemIdentified,
+        ...shared,
+        consumableType: { value: consumableValue, subtype: consumableSubtype },
+        type: { value: consumableValue, subtype: consumableSubtype },
+        properties: { mgc: !!flat.itemIsMagical },
         uses: {
-          spent: flat.limitedUsesSpent || 0,
-          max: flat.limitedUsesMax || flat.itemLimitedUses || 1,
-          recovery: flat.recoveryPeriod && flat.recoveryPeriod.toLowerCase() !== "none" ? [{ 
-            period: flat.recoveryPeriod.toLowerCase().replace(' ', '').replace('rest', ''), 
-            formula: String(flat.limitedUsesMax || flat.itemLimitedUses || 1)
-          }] : [],
-          autoDestroy: flat.destroyOnEmpty !== undefined ? flat.destroyOnEmpty : flat.itemDestroyOnEmpty
+          spent: flat.limitedUsesSpent ?? 0,
+          max: flat.limitedUsesMax ?? flat.itemLimitedUses ?? 1,
+          recovery: flat.recoveryPeriod && String(flat.recoveryPeriod).toLowerCase() !== "none"
+            ? [{ period: String(flat.recoveryPeriod).toLowerCase().replace(/\s+/g, '').replace('rest', ''), formula: String(flat.limitedUsesMax ?? flat.itemLimitedUses ?? 1) }]
+            : [],
+          autoDestroy: !!flat.destroyOnEmpty
         },
-        consume: {
-          type: flat.destroyOnEmpty !== undefined ? (flat.destroyOnEmpty ? "destroy" : "none") : (flat.itemDestroyOnEmpty ? "destroy" : "none"),
-          target: null,
-          amount: null
-        },
-        recharge: {
-          value: flat.recoveryPeriod || "none",
-          formula: flat.recoveryAmount || "recover all uses"
-        }
+        consume: { type: flat.destroyOnEmpty ? "destroy" : "none", target: null, amount: null },
+        recharge: { value: flat.recoveryPeriod || "none", formula: flat.recoveryAmount || "recover all uses" }
       },
-      flags: {
-        "coffee-pub": {
-          source: flat.itemSource,
-          license: flat.itemLicense || "",
-          consumableSubtype: flat.consumableSubtype || flat.itemConsumableSubtype || ""
-        }
-      }
+      flags: { "coffee-pub": { source: flat.itemSource, license: flat.itemLicense || "", consumableSubtype: consumableSubtype } }
     };
-    
-    // Add attunement if magical
-    if (flat.consumptionMagical && flat.magicalAttunementRequired) {
+    if (flat.itemIsMagical && flat.magicalAttunementRequired) {
       data.system.attunement = flat.magicalAttunementRequired;
     }
-    
-    // Add activities if present
     if (flat.activities && Array.isArray(flat.activities)) {
       data.system.activities = {};
       flat.activities.forEach((activity, index) => {
-        // Let FoundryVTT generate the ID automatically
         const activityId = `activity${index}`;
         data.system.activities[activityId] = {
           type: (activity.activityType || "util").toLowerCase(),
           name: activity.activityName || activity.activityType || "Use",
           img: activity.activityIcon || "",
-          activation: {
-            type: "action",
-            value: 1,
-            condition: ""
-          },
-          consumption: {
-            targets: [],
-            scaling: { allowed: false, max: "" }
-          },
-          description: {
-            chatFlavor: activity.activityFlavorText || ""
-          },
-          duration: {
-            value: "",
-            units: ""
-          },
+          activation: { type: "action", value: 1, condition: "" },
+          consumption: { targets: [], scaling: { allowed: false, max: "" } },
+          description: { chatFlavor: activity.activityFlavorText || "" },
+          duration: { value: "", units: "" },
           range: {},
           target: {},
-          uses: {
-            spent: 0,
-            max: "",
-            recovery: []
-          },
-          // Add effect configuration based on activity type
+          uses: { spent: 0, max: "", recovery: [] },
           ...(activity.activityType && activity.activityType.toLowerCase() === "heal" ? {
             healing: {
               number: activity.activityEffectValue || 0,
@@ -3645,27 +3614,73 @@ async function parseFlatItemToFoundry(flat) {
         };
       });
     }
+  } else if (type === "container") {
+    data = {
+      type: "container",
+      name: flat.itemName,
+      img,
+      system: {
+        ...shared,
+        type: { value: flat.itemSubType || "other" },
+        properties: { magical: !!flat.itemIsMagical }
+      },
+      flags: { "coffee-pub": { source: flat.itemSource, license: flat.itemLicense || "" } }
+    };
+  } else if (type === "equipment") {
+    data = {
+      type: "equipment",
+      name: flat.itemName,
+      img,
+      system: {
+        ...shared,
+        type: { value: (flat.itemSubType || "trinket").toLowerCase().replace(/\s+/g, "-") },
+        properties: { magical: !!flat.itemIsMagical }
+      },
+      flags: { "coffee-pub": { source: flat.itemSource, license: flat.itemLicense || "" } }
+    };
+    if (flat.itemIsMagical && flat.magicalAttunementRequired) {
+      data.system.attunement = flat.magicalAttunementRequired;
+    }
+  } else if (type === "tool") {
+    data = {
+      type: "tool",
+      name: flat.itemName,
+      img,
+      system: {
+        ...shared,
+        type: { value: (flat.itemSubType || "artisans-tools").toLowerCase().replace(/\s+/g, "-") },
+        ability: { value: "int", proficient: false }
+      },
+      flags: { "coffee-pub": { source: flat.itemSource, license: flat.itemLicense || "" } }
+    };
+  } else if (type === "weapon") {
+    data = {
+      type: "weapon",
+      name: flat.itemName,
+      img,
+      system: {
+        ...shared,
+        type: { value: (flat.itemSubType || "simpleM").toLowerCase().replace(/\s+/g, "-") },
+        properties: { magical: !!flat.itemIsMagical }
+      },
+      flags: { "coffee-pub": { source: flat.itemSource, license: flat.itemLicense || "" } }
+    };
   }
+
   if (!data.name || !data.type) {
     data = {
       type: "loot",
       name: flat.itemName || "Imported Item",
       img: data.img || img,
       system: {
-        description: { value: flat.itemDescription || "", unidentified: flat.itemDescriptionUnidentified || "", chat: flat.itemDescriptionChat || "" },
-        rarity: flat.itemRarity || "common",
-        weight: flat.itemWeight,
-        price: flat.itemPrice,
-        type: { value: flat.itemLootType || "trinket" },
-        properties: { magical: flat.itemIsMagical },
-        source: { custom: flat.itemSource, license: flat.itemLicense || "" },
-        quantity: flat.itemQuantity ?? 1,
-        identified: flat.itemIdentified !== false
+        ..._sharedItemSystem(flat),
+        type: { value: flat.itemSubType || "trinket" },
+        properties: { magical: !!flat.itemIsMagical }
       },
       flags: data.flags || {}
     };
   }
-  // Merge any additional flags from flat (e.g. coffee-pub-artificer for Artificer items)
+
   if (flat.flags && typeof flat.flags === "object") {
     data.flags = data.flags || {};
     for (const [namespace, flagData] of Object.entries(flat.flags)) {

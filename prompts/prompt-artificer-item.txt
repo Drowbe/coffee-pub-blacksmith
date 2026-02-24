@@ -94,9 +94,9 @@ ITEMTYPE: (STRING) (REQUIRED) Item type. The D&D 5e item document type only. One
 -"Weapon"
 
 ITEMSUBTYPE: (STRING) (REQUIRED)
-- Consumable: "Amunition", "Food", "Poison", "Potion", "Rod", "Scroll", "Trinket", "Wand", "Wonderous Item".
+- Consumable: "Ammunition", "Food", "Poison", "Potion", "Rod", "Scroll", "Trinket", "Wand", "Wondrous Item".
 - Container: null
-- Equipment: "Clothing", "Ring", "Rod", "Trinket", "Vehicle Equipment", "Wand", "Wonderous Item", "Light Armor", "Medium Armor", "Heavy Armor", "Natural Armor", "Shield"
+- Equipment: "Clothing", "Ring", "Rod", "Trinket", "Vehicle Equipment", "Wand", "Wondrous Item", "Light Armor", "Medium Armor", "Heavy Armor", "Natural Armor", "Shield"
 - Loot: "Art Object", "Adventuring Gear", "Gemstone", "Junk", "Material", "Resource", "Trade Good", "Treasure"
 - Tool: "Artisian's Tools", "Gaming Set", "Musical Instrument"
 - Weapon: "Simple Melee", "Simple Ranged", "Martial Melee", "Martial Ranged", "Natural", "Improvised", "Siege Weapon"
