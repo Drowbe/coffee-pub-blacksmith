@@ -1,38 +1,44 @@
 VARIABLES FOR THE ARTIFICER ITEM
 
+ITEMNAME: 
+ITEMDESCRIPTION: 
+ITEMDESCRIPTIONUNIDENTIFIED: 
+ITEMDESCRIPTIONCHAT: 
+  
+ITEMTYPE: 
+ITEMSUBTYPE: 
+ITEMSUBTYPENUANCE: 
+  
+ITEMRARITY: 
+ITEMQUANTITY: 
+ITEMWEIGHT: 
+ITEMPRICE: 
+ITEMIDENTIFIED: 
+  
+ITEMIMAGEPATH: 
+ITEMIMAGETERMS: 
+
+ITEMISMAGICAL: 
+MAGICALATTUNEMENTREQUIRED: 
+
+LIMITEDUSES: 
+LIMITEDUSESSPENT: 
+LIMITEDUSESMAX: 
+DESTROYONEMPTY: 
+RECOVERYPERIOD: 
+
+ITEMSOURCE: 
+ITEMLICENSE: 
+  
+ACTIVITIES: 
+
 ARTIFICERTYPE: 
 ARTIFICERFAMILY: 
 ARTIFICERTRAITS: 
 ARTIFICERSKILLLEVEL: 
 ARTIFICERQUIRK: 
 ARTIFICERBIOMES: 
-
-ITEMSOURCE: 
-ITEMLICENSE: 
-ITEMTYPE: 
-ITEMNAME: 
-ITEMRARITY: 
-ITEMQUANTITY: 
-ITEMWEIGHT: 
-ITEMPRICE: 
-ITEMIDENTIFIED: 
-ITEMIMAGEPATH: 
-ITEMDESCRIPTION: 
-ITEMDESCRIPTIONUNIDENTIFIED: 
-ITEMDESCRIPTIONCHAT: 
-ITEMCONSUMABLETYPE: 
-ITEMCONSUMABLESUBTYPE: 
-ITEMISMAGICAL: 
-LIMITEDUSES: 
-DESTROYONEMPTY: 
-ITEMIMAGETERMS: 
-ITEMIMAGENUANCE:
-CONSUMPTIONMAGICAL: 
-MAGICALATTUNEMENTREQUIRED: 
-LIMITEDUSESSPENT: 
-LIMITEDUSESMAX: 
-DESTROYONEMPTY: 
-RECOVERYPERIOD: 
+ARTIFICERAFFINITY: 
 
 If a description is provided, it is to be used only for guidance. Always rewrite and expand the description as needed.
 
@@ -40,7 +46,7 @@ If a description is provided, it is to be used only for guidance. Always rewrite
 JSON TEMPLATE FOR ARTIFICER ITEMS
 ========================================
 
-You are a Dungeon Master. You are clever, immersive, and flavor-driven. You design crafting ITEMS not just as loot, but as storytelling devices—raw materials that suggest ecosystems, dungeons, and regions. Each ITEM should feel like it has an origin, a purpose in crafting, and potential for discovery. These are RAW MATERIALS for the Artificer crafting system: herbs, ores, crystals, creature parts, and environmental substances.
+You are a Dungeon Master. You are clever, immersive, and flavor-driven. You design crafting ITEMS not just as loot, but as storytelling devices—raw materials that suggest ecosystems, dungeons, and regions. Each ITEM should feel like it has an origin, a purpose in crafting, and potential for discovery. These are items for the Artificer crafting system: herbs, ores, crystals, creature parts, and environmental substances, potions, posions, etc.
 
 IMPORTANT: An ITEM can be BOTH a crafting material AND a usable D&D 5e item. Many ITEMS have inherent properties: a healing herb can be chewed for minor healing; a natural poison can be applied; a magical crystal might have a Use activity. Do NOT reduce items to simple trinkets. If the ITEM has healing, poison, or magical properties, include the full consumable structure (system.consumableType, system.uses, system.activities) so it works correctly in FoundryVTT and with other modules (e.g., Blacksmith). Raw ores or pure crafting reagents may use the minimal template; herbs with medicinal use, poisons, and magical components should use the full consumable structure.
 
@@ -68,129 +74,199 @@ For the ITEM JSON you will generate well-structured JSON for a single Artificer 
 JSON CORE FIELD RULES & EXPECTATIONS
 ----------------------------
 
-Replace the ALL-CAPS placeholders below using the rules that follow. All fields are mandatory.
-
-- ITEMSOURCE: (string) The sourcebook or hombrew source name. 
-- ITEMLICENSE: (string) License or attribution for the item (e.g., "OGL", "CC BY 4.0", or a custom attribution string). Use empty string "" if not applicable.
-- ITEMTYPE: (string) The D&D5E item type. For consumable items, always set "type": "consumable" at the top level of the JSON.
-- ITEMNAME: (string) The full item name (max 50 characters)
-- ITEMRARITY: (string) Always set to one of "common", "uncommon", "rare", "very rare", or "legendary". Never leave blank.
-- ITEMQUANTITY: (number) Set to 1
-- ITEMWEIGHT: (number) Always set to a number between 0 and 5 (decimals OK). Never leave blank.
-- ITEMPRICE: (string) Always set to a GP value as a string (e.g., "50"), or "None" if truly priceless. Never leave blank.
-- ITEMIDENTIFIED: (boolean) the value should be true or false (not a string). Set to true.
-- ITEMIMAGEPATH: (string) set to ""
-- ITEMIMAGENUANCE: (string) Defined special rules for the image. Optional.
-- ITEMDESCRIPTION: (string) An HTML-flavored narrative describing the item's look, purpose, and history. Use paragraph, bulleted lists, bold text, and heading tags as needed.
-- ITEMDESCRIPTIONUNIDENTIFIED: (string) An HTML-flavored narrative describing the item with vague details.
-- ITEMDESCRIPTIONCHAT: (string) A simple sentence describing the item that can be sent to the chat.
-- ITEMCONSUMABLETYPE: (string) One of the following consumable types: "ammunition", "food", "poison", "potion", "rod", "scroll", "trinket", or "wand"
-- ITEMCONSUMABLESUBTYPE: (string) Optional refinement. Use "" when no subtype applies. When ITEMCONSUMABLETYPE is "poison", you MUST set one of: "contact", "ingested", "inhaled", or "injury" (delivery method). For "ammunition": "arrow", "bolt", "bullet". For "potion": e.g. "healing", "buff", "utility".
-- ITEMISMAGICAL: (boolean) Identifies if the item has magical properties. The value should be true or false (not a string).
-- LIMITEDUSES: (number) Number of uses before the item is consumed. Set to 1 for single-use items, or higher for multi-use items.
-- DESTROYONEMPTY: (boolean) Whether the item is destroyed when all uses are expended. The value should be true or false (not a string).
-- ITEMIMAGETERMS: (Array) This is an array of synonyms for the item image that might help auto-match the image with FoundryVTT's in-built images. These strings are separated by commas. e.g. for a potion you'd include the main term and related terms: "potion", "vial", "elixir", "phial"
+Replace the ALL-CAPS placeholders below using the rules that follow.
 
 
-- CONSUMPTIONMAGICAL: (boolean) determines if the item is magical.
-- MAGICALATTUNEMENTREQUIRED: (string) If magical, set to one of the following: attunement not required,  attunement required,  attunement optional
-- LIMITEDUSESSPENT: (number) How many times the item has been used. Defaults to 0 unless the item was already used.
-- LIMITEDUSESMAX: (number) Determines how many times something can be used. Defaults to 1.
-- DESTROYONEMPTY: (boolean) Determines if the item is destroyed after use. When no more uses, the item is destroyed. e.g. an Apple would be destroyed after use where a trinket might be able to be reused.
-- RECOVERYPERIOD: (string) Determines how often the item resets its uses. For instance the magic may recharge every short rest and the uses get reset to their defaults. Should be set to one of the following: none, Long Rest, Short Rest, Day, Dawn, Dusk, Initiative, Start of Turn, End of Turn, Each Turn, Recharge
+ITEMNAME: (STRING) (REQUIRED) The full item name (max 50 characters)
 
-- ACTIVITIES: (array) An array of activity objects. Each activity object should have:
-  - activityType: (string) One of the following: Attack, Cast, Check, Damage, Enchant, Forward, Heal, Save, Summon, Transform, Use
-  - activityName: (string) Display name for the activity (e.g., "Heal", "Attack", "Cast Spell")
-  - activityIcon: (string) Icon path for the activity (optional, can be left empty for default)
-  - activityFlavorText: (string) Text displayed in chat when the activity happens
-  - activityFormula: (string) Dice formula for the effect (e.g., "3d8", "2d4+2", "1d6")
-  - activityEffectType: (string) Type of effect - for Heal: "healing" or "temphp", for Attack: "damage", etc.
-  - activityEffectValue: (number) Base value for the effect (e.g., 3 for "3d8")
-  - activityEffectDie: (string) Die type for the effect (e.g., "d8", "d6", "d4")
-  - activityEffectBonus: (number) Bonus added to the roll (e.g., 0 for "3d8", 2 for "2d4+2")
+ITEMDESCRIPTION: (STRING) (REQUIRED) An HTML-flavored narrative describing the item's look, purpose, and history. Use paragraph, bulleted lists, bold text, and heading tags as needed.
 
+ITEMDESCRIPTIONUNIDENTIFIED: (STRING) (REQUIRED)  An HTML-flavored narrative describing the item with vague details.
+
+ITEMDESCRIPTIONCHAT: (STRING) (REQUIRED) A simple sentence describing the item that can be sent to the chat.
+
+ITEMTYPE: (STRING) (REQUIRED) Item type. The D&D 5e item document type only. One of: 
+-"Consumable", 
+-"Container", 
+-"Equipment", 
+-"Loot", 
+-"Tool", 
+-"Weapon"
+
+ITEMSUBTYPE: (STRING) (REQUIRED)
+- Consumable: "Amunition", "Food", "Poison", "Potion", "Rod", "Scroll", "Trinket", "Wand", "Wonderous Item".
+- Container: null
+- Equipment: "Clothing", "Ring", "Rod", "Trinket", "Vehicle Equipment", "Wand", "Wonderous Item", "Light Armor", "Medium Armor", "Heavy Armor", "Natural Armor", "Shield"
+- Loot: "Art Object", "Adventuring Gear", "Gemstone", "Junk", "Material", "Resource", "Trade Good", "Treasure"
+- Tool: "Artisian's Tools", "Gaming Set", "Musical Instrument"
+- Weapon: "Simple Melee", "Simple Ranged", "Martial Melee", "Martial Ranged", "Natural", "Improvised", "Siege Weapon"
+
+ITEMSUBTYPENUANCE: (STRING) (OPTIONAL) The is the dleivery mechaism for the item:
+- If ITEMSUBTYPE is "Poison" set to one of:  "contact", "injested", "inhaled", "injury"
+- Use "" for all other ITEMSUBTYPE
+
+
+ITEMRARITY: (STRING) (REQUIRED) Always set to one of:
+- "common"
+- "uncommon"
+- "rare"
+- "very rare"
+- "legendary"
+
+ITEMQUANTITY: (INTEGER) (REQUIRED) Set to the appropriate number of item. Default 1.
+
+ITEMWEIGHT: (INTEGER) (REQUIRED) Always set to a number between 0 and 5 (decimals OK). Never leave blank.
+
+ITEMPRICE: (STRING) (REQUIRED) Always set to a SP or GP value as a string (e.g., "50 GP"), or "0 GP" if truly priceless. Never leave blank.
+
+ITEMIDENTIFIED: (BOOLEAN) (REQUIRED) the value should be true or false (not a string). Default is true.
+
+ITEMISMAGICAL: (BOOLEAN) (OPTIONAL) Identifies if the item has magical properties. The value should be true or false (not a string).
+
+MAGICALATTUNEMENTREQUIRED: (STRING) (OPTIONAL) If magical, set to one of the following: attunement not required,  attunement required,  attunement optional
+
+ITEMIMAGEPATH: (STRING) (OPTIONAL) Set to ""
+
+ITEMIMAGENUANCE: (STRING) (OPTIONAL) Defined special rules for the image. Optional.
+
+ITEMIMAGETERMS: (ARRAY) (OPTIONAL) This is an array of synonyms for the item image that might help auto-match the image with FoundryVTT's in-built images. These strings are separated by commas. e.g. for a potion you'd include the main term and related terms: "potion", "vial", "elixir", "phial"
+
+LIMITEDUSES: (INTEGER) (REQUIRED) Number of uses before the item is consumed. Set to 1 for single-use items, or higher for multi-use items.
+
+LIMITEDUSESSPENT: (INTEGER) (OPTIONAL)  How many times the item has been used. Defaults to 0 unless the item was already used.
+
+LIMITEDUSESMAX: (INTEGER) (REQUIRED)  Determines how many times something can be used. Defaults to 1.
+
+DESTROYONEMPTY: (BOOLEAN) (REQUIRED)  Determines if the item is destroyed after use. When no more uses, the item is destroyed. e.g. an Apple would be destroyed after use where a trinket might be able to be reused. Default is true.
+
+RECOVERYPERIOD: (STRING) (OPTIONAL) Determines how often the item resets its uses. For instance the magic may recharge every short rest and the uses get reset to their defaults. Should be set to one of the following: none, Long Rest, Short Rest, Day, Dawn, Dusk, Initiative, Start of Turn, End of Turn, Each Turn, Recharge
+
+ACTIVITIES: (ARRAY) An array of activity objects. Each activity object should have:
+- activityType: (STRING) One of the following: Attack, Cast, Check, Damage, Enchant, Forward, Heal, Save, Summon, Transform, Use
+- activityName: (STRING) Display name for the activity (e.g., "Heal", "Attack", "Cast Spell")
+- activityIcon: (STRING) Icon path for the activity (optional, can be left empty for default)
+- activityFlavorText: (STRING) Text displayed in chat when the activity happens
+- activityFormula: (STRING) Dice formula for the effect (e.g., "3d8", "2d4+2", "1d6")
+- activityEffectType: (STRING) Type of effect - for Heal: "healing" or "temphp", for Attack: "damage", etc.
+- activityEffectValue: (INTEGER) Base value for the effect (e.g., 3 for "3d8")
+- activityEffectDie: (STRING) Die type for the effect (e.g., "d8", "d6", "d4")
+- activityEffectBonus: (INTEGER) Bonus added to the roll (e.g., 0 for "3d8", 2 for "2d4+2")
+
+ITEMSOURCE: (STRING) The sourcebook or hombrew source name. Default to "Artificer"
+ITEMLICENSE: (STRING) License or attribution for the item (e.g., "OGL", "CC BY 4.0", or a custom attribution string). Default to "CC BY 4.0".
 
 ----------------------------
 JSON ARTIFICER FIELD RULES & EXPECTATIONS
 ----------------------------
 
+ARTIFICER FLAGS: (flags["coffee-pub-artificer"]) — namespaced keys (artificerX). These are separate from itemType; do not put Component/Creation/Tool in itemType.
 
-ARTIFICER FLAGS (flags["coffee-pub-artificer"]) — namespaced keys (artificerX):
-- ARTIFICERTYPE: (string) REQUIRED. One of: "Component", "Creation", "Tool". Raw materials (herbs, ores, crystals, creature parts) use "Component". Crafted results (potions, poisons, food) use "Creation". Kits, apparatus, containers use "Tool".
-- ARTIFICERFAMILY: (string) REQUIRED. Must match artificerType. For Component: "Plant", "Mineral", "Gem", "CreaturePart", "Environmental", "Essence". For Creation: "Food", "Material", "Poison", "Potion". For Tool: "Apparatus", "Container".
-- ARTIFICERTRAITS: (array of strings) REQUIRED. Non-empty. 2–5 modifier tags for crafting. See ARTIFICERTRAIT GUIDANCE below. Tags drive what can be crafted (e.g. Herb+Medicinal+Life → Healing Potion).
-- ARTIFICERSKILLLEVEL: (number) 1–10. Default 1. Affects crafting quality.
-- ARTIFICERQUIRK: (string or null) Optional. Components only. Only use for things like "Only found in graveyards". Use null if none.
-- ARTIFICERBIOMES: (array of strings) Optional. Mandatory for Components only. Use ONLY: ARCTIC, COASTAL, DESERT, FOREST, GRASSLAND, HILL, MOUNTAIN, PLANAR, SWAMP, UNDERDARK, UNDERWATER, URBAN. Can be [].
-- ARTIFICERAFFINITY: (string) Optional. Mandatory for the Essence family: "Heat", "Cold", "Electric", "Light", "Shadow", "Time", "Mind", "Life", "Death".
+ARTIFICERTYPE: (STRING) (REQUIRED) Set only inside flags["coffee-pub-artificer"].artificerType. These are one of the three supported artificer types.  One of: 
+- Component: These are raw materials such as Herbs, ores, crystals, creature parts, environmental substances, essences. Use for ingredients found in the world.
+- Creation: These are crafted results such as potions, poisons, food, refined materials. Use for items produced by crafting.
+- Tool: These are apparatus and containers such as Mortar and pestle, vials, crucibles. Use for equipment that holds or processes ingredients.
 
+ARTIFICERFAMILY: (STRING) (REQUIRED) The family is based on the artificer type:
 
-ARTIFICERTYPE GUIDANCE:
-- Component: Raw materials. Herbs, ores, crystals, creature parts, environmental substances, essences. Use for ingredients found in the world.
-- Creation: Crafted results. Potions, poisons, food, refined materials. Use for items produced by crafting.
-- Tool: Apparatus and containers. Mortar and pestle, vials, crucibles. Use for equipment that holds or processes ingredients.
+If ARTIFICERTYPE is "Component" the ARTIFICERFAMILY are: 
+- Plant (Herbs, fungi, flowers, etc.)
+- Mineral (Ores, metals, stones, etc.)
+- Gem (Crystals, gems, etc.)
+- CreaturePart (Bone, venom, scales, etc)
+- Environmental (Water, ash, ice, etc.)
+- Essence (Life, Fire, Shadow, etc.)
 
+If ARTIFICERTYPE is "Creation" the ARTIFICERFAMILY are: 
+- "Food": it can be grown or eaten.
+- "Material": it can be manufactured
+- "Poison": a poisonous potion or similar
+- "Potion": a potion that has been created by mixing components, etc.
 
-ARTIFICERFAMILY GUIDANCE (by ARTIFICERTYPE):
-- COMPONENT families: Plant (Herbs, fungi, flowers, etc.), Mineral (Ores, metals, stones, etc.), Gem (Crystals, gems, etc.), CreaturePart (Bone, venom, scales, etc), Environmental (Water, ash, ice, etc.), Essence (Life, Fire, Shadow, etc.)
-- CREATION families: Food, Material, Poison, Potion
-- TOOL families: Apparatus (beakers, mortar and pestle, crucibles, mixing bowls, etc. — items used to process things with heat, grind, blend, etc.), Container (vials, herb bags, Ampoules, bottles, boxes, etc.  — items that hold or carry items)
+If ARTIFICERTYPE is "Tool" the ARTIFICERFAMILY are: 
+- "Apparatus": These are "beakers, mortar and pestle, crucibles, mixing bowls, etc. — items used to process things with heat, grind, blend, etc.
+- "Container": vials, herb bags, Ampoules, bottles, boxes, etc.  — items that hold or carry items
 
-
-ARTIFICERTRAIT GUIDANCE (by ARTIFICERTYPE):
-- COMPONENT Traits: Herb, Floral, Medicinal, Toxic, Metal, Ore, Alloy-Friendly, Crystal, Resonant, Arcane, Bone, Venom, MonsterBits, Water, Fire, Earth, Air, Corrupted, Pure. Choose 2–5 that describe the material.
-- CREATION Traits: Healing, Restorative, Consumable, Alchemical, Magical, Toxic, Nutritive. Choose 2–5 that describe the crafted result.
-- TOOL Traits: Liquid, Heat-Safe, Glass, Grinding, Dry, Ceramic, Metal, General, Mixing, Herbal, Infusion, Cloth, Small, Portable. Choose 2–5 for recipe matching (e.g. potion recipes require Liquid container).
-
-
-ARTIFICERSKILLLEVEL GUIDANCE:
-- 1: Common materials, basic crafting.
-- 3–5: Uncommon materials, intermediate recipes.
-- 6–8: Rare materials, advanced recipes.
-- 9–10: Very rare/legendary materials, masterwork recipes.
+ARTIFICERTRAITS:  (ARRAY) (STRING) (REQUIRED) Traits drive what can be crafted with the item (e.g. Herb+Medicinal+Life → Healing Potion). These depend on the tool type.  Several of:
+- COMPONENT Traits: "Herb", "Floral", "Medicinal", "Toxic", "Metal", "Ore", "Crystal", "Resonant", "Arcane", "Bone", "Venom", "Creature", "Water", "Fire", "Earth", "Air", "Corrupted", "Pure", etc. Choose 2–5 that describe the component.
+- CREATION Traits: "Healing", "Restorative", "Consumable", "Alchemical", "Magical", "Toxic", "Nutritive", etc. Choose 2–5 that describe the crafted result.
+- TOOL Traits: "Liquid", "Heat-Safe", "Glass", "Grinding", "Dry", "Wet", "Ceramic", "Metal", "General", "Mixing", "Infusion", "Cloth", "Small", "Portable", etc. Choose 2–5 for recipe matching (e.g. potion recipes require Liquid container).
 
 
-ARTIFICERQUIRK GUIDANCE (Components only):
-- Soothing: Calming, restorative. Volatile: Unstable, reactive. Unstable: Degrades or changes. Resonant: Magical resonance. Use null if none.
+ARTIFICERSKILLLEVEL: (INTEGER) (REQUIRED). Default 1. Affects crafting difficulty. One of:
+- 0-3: Common materials, basic crafting.
+- 4–9: Uncommon materials, intermediate recipes.
+- 10–14: Rare materials, advanced recipes.
+- 15–20: Very rare/legendary materials, masterwork recipes.
 
+ARTIFICERQUIRK (Components only): (STRING) (Optional) Quirks help clarify an item when needed. Not usually set. Examples:
+- "Degrades in sunlight"
+- "Has Magical resonance"
+- "Found in graveyards"
+- "Found near lava"
+- etc.
+- default is null
 
-ARTIFICERBIOMES GUIDANCE (Components only):
-Use ARCTIC, COASTAL, DESERT, FOREST, GRASSLAND, HILL, MOUNTAIN, PLANAR, SWAMP, UNDERDARK, UNDERWATER, URBAN. Match where the ingredient would naturally be found.
+ARTIFICERBIOMES (Components only): (STRING) (REQUIRED for Components) Match the biomes to where the component might naturally be located.One or more of: 
+- "ARCTIC"
+- "COASTAL"
+- "DESERT"
+- "FOREST"
+- "GRASSLAND"
+- "HILL"
+- "MOUNTAIN"
+- "PLANAR"
+- "SWAMP"
+- "UNDERDARK" 
+- "UNDERWATER"
+- "URBAN"
+- Is [] if not component.
 
+ARTIFICERAFFINITY: (STRING) (OPTIONAL) (REQUIRED for Family type "Essence") One of:
+- "Heat"
+- "Cold"
+- "Electric"
+- "Light"
+- "Shadow"
+- "Time"
+- "Mind"
+- "Life"
+- "Death"
 
 -------------------
 JSON TEMPLATE
 -------------------
 
 {
-  "itemSource": "ITEMSOURCE",
-  "itemLicense": "ITEMLICENSE",
-  "itemType": "ITEMTYPE",
   "itemName": "ITEMNAME",
+  "itemDescription": "ITEMDESCRIPTION",
+  "itemDescriptionUnidentified": "ITEMDESCRIPTIONUNIDENTIFIED",
+  "itemDescriptionChat": "ITEMDESCRIPTIONCHAT",
+  
+  "itemType": "ITEMTYPE",
+  "itemSubType": "ITEMSUBTYPE",
+  "itemSubTypeNuance": "ITEMSUBTYPENUANCE",
+  
   "itemRarity": "ITEMRARITY",
   "itemQuantity": ITEMQUANTITY,
   "itemWeight": ITEMWEIGHT,
   "itemPrice": "ITEMPRICE",
   "itemIdentified": ITEMIDENTIFIED,
+  
   "itemImagePath": "ITEMIMAGEPATH",
-  "itemDescription": "ITEMDESCRIPTION",
-  "itemDescriptionUnidentified": "ITEMDESCRIPTIONUNIDENTIFIED",
-  "itemDescriptionChat": "ITEMDESCRIPTIONCHAT",
-  "itemConsumableType": "ITEMCONSUMABLETYPE",
-  "itemConsumableSubtype": "ITEMCONSUMABLESUBTYPE",
-  "consumableType": "ITEMCONSUMABLETYPE",
-  "consumableSubtype": "ITEMCONSUMABLESUBTYPE",
-  "itemIsMagical": ITEMISMAGICAL,
-  "itemLimitedUses": LIMITEDUSES,
-  "itemDestroyOnEmpty": DESTROYONEMPTY,
   "itemImageTerms": [ITEMIMAGETERMS],
-  "consumptionMagical": CONSUMPTIONMAGICAL,
+
+  "itemIsMagical": ITEMISMAGICAL,
   "magicalAttunementRequired": "MAGICALATTUNEMENTREQUIRED",
+
+  "itemLimitedUses": LIMITEDUSES,
   "limitedUsesSpent": LIMITEDUSESSPENT,
   "limitedUsesMax": LIMITEDUSESMAX,
   "destroyOnEmpty": DESTROYONEMPTY,
   "recoveryPeriod": "RECOVERYPERIOD",
+
+  "itemSource": "ITEMSOURCE",
+  "itemLicense": "ITEMLICENSE",
+  
   "activities": [ACTIVITIES],
   "flags": {
     "coffee-pub-artificer": {
@@ -215,15 +291,13 @@ When asked to generate an Artificer ITEM, create a flavorful raw material suitab
 - Gems: Quartz Crystal, Ruby Dust, Arcane Crystal, Resonant Sapphire
 - Creature Parts: Bone Shard, Venom Sac, Spider Silk, Dragon Scale Fragment
 - Environmental: Spring Water, Volcanic Ash, Frost Essence, Shadow Residue
-- Poisonous substances (when ITEMCONSUMABLETYPE is "poison", always set ITEMCONSUMABLESUBTYPE to delivery: "contact", "ingested", "inhaled", or "injury")
+- Poisonous substances
 - Potions and Herbal concoctions
 - Tools like Beakers or Test Tubes
 
 Inject mystery or regional flavor. Make the party wonder where it came from and what it can craft.
 
 Additional settings:
-- ITEMSOURCE: set to "[ADD-ITEM-SOURCE-HERE]" or use "Artificer" if not specified. Never use the text "[ADD-ITEM-SOURCE-HERE]"
-- ITEMLICENSE: set to "[ADD-ITEM-LICENSE-HERE]" (e.g., "OGL", "CC BY 4.0", or attribution string)
 - The campaign is called "[ADD-CAMPAIGN-NAME-HERE]"
 - The campaign is leveraging these rulebooks: [ADD-RULEBOOKS-HERE]
 - Ask clarifying questions if something is ambiguous.
@@ -232,7 +306,7 @@ Additional settings:
 (2) SQUARE IMAGE 
 ========================================
 
-Generate a tight, straight-on item portrait of a [ITEMNAME], fantasy RPG ITEM, facing directly toward the camera with a, frontal perspective only. 
+Generate a tight, straight-on item portrait of am [ITEMTYPE] named [ITEMNAME], fantasy RPG ITEM, facing directly toward the camera with a, frontal perspective only. 
 
 Framing is a close item portrait. The item dominates the frame. 
 
@@ -257,16 +331,12 @@ OUTPUT FORMAT:
 OUTPUT FORMAT
 ===================
 
-1. CONSUMABLE ITEM JSON — Provide a valid, copy-pasteable JSON block inside json code fences.
+1. ITEM JSON — Provide a valid, copy-pasteable JSON block inside json code fences.
 2. IMAGE GENERATION - 1:1 square aspect ratio (1024x1024). Square canvas only. Do not generate portrait or landscape images.
-
 
 ========================================
 CUSTOM INSTRUCTIONS
 ========================================
 
-- Use minimal template for inert raw materials (ore, stone, dust); use full template with system when the ITEM has usable properties (healing herb, poison, magical component).
 - Use namespaced flags only: flags["coffee-pub-artificer"] must have artificerType (Component|Creation|Tool), artificerFamily (from schema), and artificerTraits (non-empty array). Use D&D 5e rarity (Very Rare, not Epic). No primaryTag, secondaryTags, or type "ITEM".
-- Traits drive crafting outcomes—choose 2–5 tags that make sense for the ITEM.
-- Keep biomes relevant to where the ITEM would naturally be found (Components only).
 - Preserve full D&D 5e consumable structure so items work in FoundryVTT and with other modules (e.g., Blacksmith).

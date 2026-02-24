@@ -3497,7 +3497,10 @@ async function testImageGuessing(itemName, itemDescription = '') {
  * @returns {object} - The FoundryVTT item data object.
  */
 async function parseFlatItemToFoundry(flat) {
-  const type = flat.itemType?.toLowerCase() || "loot";
+  let type = flat.itemType?.toLowerCase() || "loot";
+  if (type === "component") {
+    type = "consumable";
+  }
   let img = flat.itemImagePath;
   if (!img) {
     img = await guessIconPath(flat);
@@ -3643,6 +3646,25 @@ async function parseFlatItemToFoundry(flat) {
       });
     }
   }
+  if (!data.name || !data.type) {
+    data = {
+      type: "loot",
+      name: flat.itemName || "Imported Item",
+      img: data.img || img,
+      system: {
+        description: { value: flat.itemDescription || "", unidentified: flat.itemDescriptionUnidentified || "", chat: flat.itemDescriptionChat || "" },
+        rarity: flat.itemRarity || "common",
+        weight: flat.itemWeight,
+        price: flat.itemPrice,
+        type: { value: flat.itemLootType || "trinket" },
+        properties: { magical: flat.itemIsMagical },
+        source: { custom: flat.itemSource, license: flat.itemLicense || "" },
+        quantity: flat.itemQuantity ?? 1,
+        identified: flat.itemIdentified !== false
+      },
+      flags: data.flags || {}
+    };
+  }
   // Merge any additional flags from flat (e.g. coffee-pub-artificer for Artificer items)
   if (flat.flags && typeof flat.flags === "object") {
     data.flags = data.flags || {};
@@ -3652,7 +3674,6 @@ async function parseFlatItemToFoundry(flat) {
       }
     }
   }
-  // Future: Add more item type mappings here
   return data;
 }
 
