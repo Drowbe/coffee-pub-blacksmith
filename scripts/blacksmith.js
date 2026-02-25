@@ -1001,6 +1001,12 @@ Hooks.once('init', async function() {
     // =========================================================================
     // Expose our API on the module
     const module = game.modules.get(MODULE.ID);
+    // Merge AssetLookup-generated constants (sound paths, volume, theme, etc.) onto BLACKSMITH
+    // so BlacksmithConstants.SOUNDNOTIFICATION01 etc. work for external modules
+    const generatedConstants = assetLookup.getAllConstants();
+    if (generatedConstants && typeof generatedConstants === 'object') {
+        Object.assign(BLACKSMITH, generatedConstants);
+    }
     module.api = {
         ModuleManager,
         registerModule: ModuleManager.registerModule.bind(ModuleManager),
