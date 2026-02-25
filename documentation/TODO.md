@@ -25,6 +25,12 @@
 
 ## MEDIUM BUGS
 
+### Timed sound (duration) when broadcast does not stop for other players
+- **Issue**: When `playSound(sound, volume, loop, true, duration)` is called with broadcast and a duration, the sound is supposed to loop for N seconds then stop on all clients. Currently it does not stop for other players—only the initiating client stops after the duration.
+- **Status**: PENDING
+- **Location**: `scripts/api-core.js` (playSound, playSoundLocalWithDuration), `scripts/manager-sockets.js` (playSoundWithDuration handler)
+- **Need**: Ensure each client that receives the `playSoundWithDuration` socket event both plays the sound locally and stops it after `duration` seconds (e.g. verify handler is invoked on all clients, that each client gets the same payload, and that the returned Sound from `AudioHelper.play` is the one being stopped in the setTimeout). If SocketLib’s `executeForAll` does not run on the initiating client, consider having the initiator also call `playSoundLocalWithDuration` locally so all clients behave the same.
+
 ### Verify Loot Token Restoration
 - **Issue**: Ensure tokens converted to loot piles reliably restore their original images after revival
 - **Status**: PENDING - Needs validation pass

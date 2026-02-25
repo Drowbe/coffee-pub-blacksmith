@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.2.12]
+
+### Fixed
+- **Sound constants on BlacksmithConstants**: External modules calling `BlacksmithUtils.playSound(BlacksmithConstants.SOUNDNOTIFICATION01, 0.7)` received "playSound called with invalid sound: sound" because sound path constants (SOUNDNOTIFICATION01, SOUNDVOLUMENORMAL, etc.) lived only on `COFFEEPUB`, not on `api.BLACKSMITH` (exposed as `BlacksmithConstants`). When the API is built, `assetLookup.getAllConstants()` is now merged onto `BLACKSMITH` so `BlacksmithConstants.SOUNDNOTIFICATION01` and other generated constants exist and playSound works when used from other modules.
+
 ## [13.2.11]
 
 ### Added
