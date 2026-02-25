@@ -1142,6 +1142,10 @@ export function postConsoleAndNotification(
       MODULE.AUTHOR + " " + PIPE + " " + moduleKey + ": " + strMessage + (hasResult ? " | " : "") + (hasResult ? String(result) : "");
   
     // ----- DEBUG vs NORMAL flow -----
+    // If caller marked this as debug but user has debug off, do not log (and no notification for debug-only)
+    if (blnDebug === true && !COFFEEPUB?.blnDebugOn) {
+      return;
+    }
     if (blnDebug === true && COFFEEPUB?.blnDebugOn) {
       // === DEBUG MODE ===
       // Read console styling settings using our safe wrapper

@@ -776,7 +776,7 @@ export class EncounterToolbar {
                         const contextEnd = Math.min(htmlContent.length, uuidIndex + match.length + 100);
                         const context = htmlContent.substring(contextStart, contextEnd);
                         
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Context around UUID", context.substring(0, 100), false, false);
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Context around UUID", context.substring(0, 100), true, false);
 
                         // Look for quantity patterns
                         const quantityPatterns = [
