@@ -819,6 +819,16 @@ tor-item.selected {
     opacity: 0.6 !important;
 }
 
+/* Skill missing required kit - dim so player can see without clicking */
+.cpb-check-section[data-filter="skill"] .cpb-check-item.cpb-skill-no-kit {
+    opacity: 0.5;
+    filter: grayscale(60%);
+    color: rgba(255, 255, 255, 0.7);
+}
+.cpb-check-section[data-filter="skill"] .cpb-check-item.cpb-skill-no-kit i {
+    opacity: 0.8;
+}
+
 /* SKILLS */
 
 

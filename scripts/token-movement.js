@@ -117,9 +117,14 @@ function handleMovementSounds(tokenDocument, changes, userId) {
     // Get volume setting
     const volume = getSettingSafely(MODULE.ID, 'movementSoundVolume', 0.3);
     
-    // Play the sound once and broadcast to all players
-    if (soundConstant) {
-        playSound(soundConstant, volume, false, true); // sound, volume, loop=false, broadcast=true
+    // Resolve sound constant to path (setting stores key like SOUNDEFFECTGENERAL01)
+    const soundPath = (typeof window.COFFEEPUB !== 'undefined' && soundConstant && window.COFFEEPUB[soundConstant])
+        ? window.COFFEEPUB[soundConstant]
+        : soundConstant;
+    
+    // Play with 15s duration and broadcast so all clients hear it and it stops after 15 seconds (test for duration+broadcast)
+    if (soundPath) {
+        playSound(soundPath, volume, false, true, 15); // sound, volume, loop=false, broadcast=true, duration=15
     }
 }
 

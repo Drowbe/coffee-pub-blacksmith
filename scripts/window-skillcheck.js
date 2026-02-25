@@ -137,6 +137,72 @@ export class SkillCheckDialog extends Application {
         return templateData;
     }
 
+    /**
+     * Skill id -> tool name substrings (lowercase). If any selected actor has a tool whose name
+     * contains one of these strings, the skill is considered to have its kit.
+     * Based on D&D 5e: Sleight of Hand (slt) uses Thieves' Tools; Medicine (med) uses Healer's Kit.
+     */
+    static SKILL_REQUIRED_KITS = {
+        slt: ["thieves", "thief"],
+        med: ["healer"]
+    };
+
+    /**
+     * Get the set of lowercase tool names (and name substrings for matching) from all selected actors.
+     * @param {Element} element - Dialog DOM element
+     * @returns {Set<string>} Lowercase tool names
+     */
+    _getSelectedActorsToolNames(element) {
+        if (!element?.querySelectorAll) return new Set();
+        const selectedActorEls = element.querySelectorAll('.cpb-actor-item.selected');
+        const names = new Set();
+        selectedActorEls.forEach((el) => {
+            const tokenId = el.dataset.tokenId;
+            const token = canvas?.tokens?.placeables?.find(t => t.id === tokenId);
+            const actor = token?.actor;
+            if (!actor) return;
+            actor.items.filter(i => i.type === "tool").forEach(tool => {
+                if (tool.name) names.add(tool.name.toLowerCase().trim());
+            });
+        });
+        return names;
+    }
+
+    /**
+     * Update skill items: dim skills that require a kit when no selected actor has that kit.
+     * Call whenever actor selection or filter changes (same timing as _updateToolList).
+     * @param {Element} [el] - Optional dialog element (e.g. from activateListeners); if omitted, uses this.element.
+     */
+    _updateSkillKitState(el) {
+        const element = el || this._getElementForUpdate();
+        if (!element?.querySelectorAll) return;
+        const section = element.querySelector('.cpb-check-section[data-filter="skill"]');
+        if (!section) return;
+        const toolNames = this._getSelectedActorsToolNames(element);
+        const skillItems = section.querySelectorAll('.cpb-check-item[data-type="skill"]');
+        skillItems.forEach((item) => {
+            const skillId = item.dataset.value;
+            const required = SkillCheckDialog.SKILL_REQUIRED_KITS[skillId];
+            if (!required || required.length === 0) {
+                item.classList.remove('cpb-skill-no-kit');
+                return;
+            }
+            const hasKit = Array.from(toolNames).some(toolName =>
+                required.some(needle => toolName.includes(needle))
+            );
+            if (hasKit) item.classList.remove('cpb-skill-no-kit');
+            else item.classList.add('cpb-skill-no-kit');
+        });
+    }
+
+    _getElementForUpdate() {
+        if (!this.element) return null;
+        if (this.element.jquery || typeof this.element.find === 'function') {
+            return this.element[0] || this.element.get?.(0);
+        }
+        return this.element.querySelectorAll ? this.element : null;
+    }
+
     _getToolProficiencies() {
         const toolProfs = new Map(); // Map of tool name to count and actor-specific IDs
         // v13: this.element may be native DOM; normalize like _updateToolList. During getData() this.element may be unset or empty.
@@ -239,6 +305,10 @@ export class SkillCheckDialog extends Application {
         // Apply initial actor filter
         this._applyFilter(htmlElement, initialFilter);
         
+        // Refresh tool list and skill kit dim state for current selection (works for any filter)
+        this._updateToolList();
+        this._updateSkillKitState(htmlElement);
+        
         // When API passed initialFilter 'party', select all visible (party) actors as challengers
         if (initialFilter === 'party') {
             htmlElement.querySelectorAll('.cpb-actor-list .cpb-actor-item').forEach((actorItem) => {
@@ -250,6 +320,7 @@ export class SkillCheckDialog extends Application {
                 indicator.innerHTML = '<i class="fas fa-swords" title="Challengers"></i>';
             });
             this._updateToolList();
+            this._updateSkillKitState(htmlElement);
         }
         
         // Roll type filter (middle column): when API passed initialType/initialValue, show that tab first so selection is visible
@@ -314,6 +385,7 @@ export class SkillCheckDialog extends Application {
             });
             // Update the tool list based on the pre-selected actors
             this._updateToolList();
+            this._updateSkillKitState();
         }
 
         // Handle actor selection (v13: native DOM)
@@ -352,6 +424,7 @@ export class SkillCheckDialog extends Application {
 
                 // Update tool proficiencies when actor selection changes
                 this._updateToolList();
+                this._updateSkillKitState();
                 
                 // Check if all defenders were removed and clear defender roll selections (v13: native DOM)
                 const defenders = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-2');

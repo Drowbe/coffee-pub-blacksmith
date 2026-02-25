@@ -751,11 +751,21 @@ export async function playSoundLocalWithDuration(sound, volume = 0.7, duration) 
             loop: true
         }, false);
         const stopAfterMs = duration * 1000;
-        const toStop = Array.isArray(played) ? played : (played ? [played] : []);
+        // Normalize to array of objects with .stop(); API can return void, single Sound, or array
+        let toStop = [];
+        if (Array.isArray(played)) {
+            toStop = played.filter(s => s && typeof s.stop === 'function');
+        } else if (played && typeof played.stop === 'function') {
+            toStop = [played];
+        }
         setTimeout(() => {
-            toStop.forEach(s => {
-                if (s && typeof s.stop === 'function') s.stop();
-            });
+            toStop.forEach(s => s.stop());
+            // Fallback: if play() returned nothing, stop by src so the sound still stops after duration
+            if (toStop.length === 0 && game?.audio?.playing instanceof Map) {
+                for (const s of game.audio.playing.values()) {
+                    if (s?.src === sound && typeof s.stop === 'function') s.stop();
+                }
+            }
         }, stopAfterMs);
     } catch (error) {
         postConsoleAndNotification(MODULE.NAME, `playSoundLocalWithDuration failed: ${sound}`, error, false, false);
@@ -791,8 +801,15 @@ export async function playSound(sound = 'sound', volume = 0.7, loop = false, bro
                 const { SocketManager } = await import('./manager-sockets.js');
                 await SocketManager.waitForReady();
                 const s = SocketManager.getSocket();
+                if (s?.executeForOthers) {
+                    // Send only to other clients so the initiator doesn't play twice (which can trigger cache/load errors)
+                    await s.executeForOthers('playSoundWithDuration', { sound, volume, duration });
+                    await playSoundLocalWithDuration(sound, volume, duration);
+                    return;
+                }
                 if (s?.executeForAll) {
                     await s.executeForAll('playSoundWithDuration', { sound, volume, duration });
+                    await playSoundLocalWithDuration(sound, volume, duration);
                     return;
                 }
             } catch (e) {
