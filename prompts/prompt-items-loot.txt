@@ -17,6 +17,7 @@ For the Loot Item JSON you will generate well-structured JSON for a single loot 
 - Output valid JSON
 - Escape all HTML double quotes (")
 - Avoid trailing commas or duplicate keys
+- Use only straight ASCII apostrophes ('). Do not use curly or typographic apostrophes ('). Do not use smart quotes. Never output typographic or curved quotes.
 - Use "None" or " " for any empty field except for source, rarity, weight, and price, which must always be set
 - Include optional flags when they add narrative utility
 

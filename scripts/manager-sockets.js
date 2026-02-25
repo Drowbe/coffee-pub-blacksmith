@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, playSoundLocalWithDuration } from './api-core.js';
 import { CombatTimer } from './timer-combat.js';
 import { PlanningTimer } from './timer-planning.js';
 import { MenuBar } from './api-menubar.js';
@@ -305,6 +305,13 @@ class SocketManager {
         // Combat Timer
         this.socket.register("syncTimerState", CombatTimer.receiveTimerSync);
         this.socket.register("combatTimerAdjusted", CombatTimer.timerAdjusted);
+        
+        // Sound: play with duration on all clients (each stops after duration)
+        this.socket.register("playSoundWithDuration", (payload) => {
+            if (payload?.sound != null && typeof payload.duration === 'number' && payload.duration > 0) {
+                playSoundLocalWithDuration(payload.sound, payload.volume ?? 0.7, payload.duration);
+            }
+        });
         
         // Planning Timer
         this.socket.register("syncPlanningTimerState", PlanningTimer.receiveTimerSync);

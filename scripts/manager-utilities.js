@@ -87,9 +87,9 @@ export class UtilsManager {
     }
 
     // Sound Management
-    static async playSound(sound = 'sound', volume = 0.7, loop = false, broadcast = true) {
+    static async playSound(sound = 'sound', volume = 0.7, loop = false, broadcast = true, duration = 0) {
         this.checkInitialized();
-        return GlobalUtils.playSound(sound, volume, loop, broadcast);
+        return GlobalUtils.playSound(sound, volume, loop, broadcast, duration);
     }
 
     // Safe Settings Access

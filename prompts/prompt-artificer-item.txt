@@ -69,6 +69,7 @@ For the ITEM JSON you will generate well-structured JSON for a single Artificer 
 - Use null or empty string for optional empty fields
 - Set all mandatory fields
 - Include optional flags when they add narrative utility
+- Use only straight ASCII apostrophes ('). Do not use curly or typographic apostrophes (’). Do not use smart quotes. Never output typographic or curved quotes (" " " ").
 
 ----------------------------
 JSON CORE FIELD RULES & EXPECTATIONS
@@ -183,8 +184,8 @@ If ARTIFICERTYPE is "Creation" the ARTIFICERFAMILY are:
 - "Potion": a potion that has been created by mixing components, etc.
 
 If ARTIFICERTYPE is "Tool" the ARTIFICERFAMILY are: 
-- "Apparatus": These are "beakers, mortar and pestle, crucibles, mixing bowls, etc. — items used to process things with heat, grind, blend, etc.
-- "Container": vials, herb bags, Ampoules, bottles, boxes, etc.  — items that hold or carry items
+- "Apparatus": These are "beakers", "mortar and pestle", "crucible", "mixing bowl", etc. — items used to process things with heat, grind, blend, etc.
+- "Container": "vial", "herb bag", "ampoule", "bottle", "box", etc.  — items that hold or carry items
 
 ARTIFICERTRAITS:  (ARRAY) (STRING) (REQUIRED) Traits drive what can be crafted with the item (e.g. Herb+Medicinal+Life → Healing Potion). These depend on the tool type.  Several of:
 - COMPONENT Traits: "Herb", "Floral", "Medicinal", "Toxic", "Metal", "Ore", "Crystal", "Resonant", "Arcane", "Bone", "Venom", "Creature", "Water", "Fire", "Earth", "Air", "Corrupted", "Pure", etc. Choose 2–5 that describe the component.
@@ -340,3 +341,8 @@ CUSTOM INSTRUCTIONS
 
 - Use namespaced flags only: flags["coffee-pub-artificer"] must have artificerType (Component|Creation|Tool), artificerFamily (from schema), and artificerTraits (non-empty array). Use D&D 5e rarity (Very Rare, not Epic). No primaryTag, secondaryTags, or type "ITEM".
 - Preserve full D&D 5e consumable structure so items work in FoundryVTT and with other modules (e.g., Blacksmith).
+
+- Use only straight ASCII apostrophes (').
+- Do not use curly or typographic apostrophes (’).
+- Do not use smart quotes.
+- Never output typographic or curved quotes.

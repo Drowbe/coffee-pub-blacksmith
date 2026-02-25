@@ -3528,6 +3528,19 @@ function _sharedItemSystem(flat) {
 }
 
 /**
+ * Replace curly/typographic apostrophes and quotes with straight ASCII so JSON parsing and storage work.
+ * Call on pasted or loaded JSON string before JSON.parse.
+ * @param {string} str - Raw JSON or text string.
+ * @returns {string} String with only straight apostrophe (') and straight double quote (").
+ */
+function normalizeStraightQuotesForJson(str) {
+    if (typeof str !== 'string') return str;
+    return str
+        .replace(/\u2018|\u2019|\u201A|\u201B|\u2032/g, "'")   // curly/smart single quotes, prime -> straight '
+        .replace(/\u201C|\u201D|\u201E|\u201F/g, '"');          // curly/smart double quotes -> straight "
+}
+
+/**
  * Parse a flat item JSON (Artificer prompt template) into FoundryVTT D&D 5e item data.
  * Uses only canonical keys: itemType, itemSubType, itemSubTypeNuance, itemName, itemPrice, itemIsMagical, destroyOnEmpty, etc.
  * @param {object} flat - The flat item JSON from the prompt.
@@ -3916,7 +3929,8 @@ const renderItemDirectoryHookId = HookManager.registerHook({
                         nativeHtml = html[0] || html.get?.(0) || html;
                     }
                     const jsonInput = nativeHtml.querySelector("#item-json-input");
-                    const jsonData = jsonInput ? jsonInput.value : '';
+                    let jsonData = jsonInput ? jsonInput.value : '';
+                    jsonData = normalizeStraightQuotesForJson(jsonData);
                     let itemsToImport = [];
                     try {
                         let parsed = JSON.parse(jsonData);

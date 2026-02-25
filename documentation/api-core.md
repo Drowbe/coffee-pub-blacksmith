@@ -1093,7 +1093,7 @@ const sounds = assetLookup.findByTag('notification');
   | Function | Type | Description | Parameters |
   |----------|------|-------------|------------|
   | `postConsoleAndNotification` | Function | Console logging with debug support | `(moduleId, message, result, debug, notification)` |
-  | `playSound` | Async Function | Sound playback | `(sound, volume, loop, broadcast)` |
+  | `playSound` | Async Function | Sound playback (optional duration: loop then stop) | `(sound, volume, loop, broadcast, duration?)` |
   | `getSettingSafely` | Function | Safe settings access | `(moduleId, settingKey, defaultValue)` |
   | `markdownToHtml` | Function | Convert subset Markdown to HTML | `(text)` |
   | `htmlToMarkdown` | Function | Convert supported HTML subset to Markdown | `(html)` |
@@ -1114,6 +1114,20 @@ const sounds = assetLookup.findByTag('notification');
 | `rollCoffeePubDice` | Async Function | Roll dice with Coffee Pub system | `(roll)` |
 | `resetModuleSettings` | Function | Reset module settings | `(moduleId)` |
 | `isPlayerCharacter` | Function | Check if entity is player character | `(entity)` |
+
+### **Sound playback (`playSound`, `playSoundLocalWithDuration`)**
+
+**`playSound(sound, volume?, loop?, broadcast?, duration?)`**
+
+- **sound** (string): Path to the sound file (e.g. from `BlacksmithConstants.SOUNDNOTIFICATION01`) or `'none'` / `'sound-none'` to do nothing.
+- **volume** (number, default `0.7`): Volume 0–1.
+- **loop** (boolean, default `false`): Whether to loop indefinitely.
+- **broadcast** (boolean or object, default `true`): If true, play on all clients via Foundry’s `AudioHelper.play`; if false, local only.
+- **duration** (number, optional): If provided and &gt; 0, the sound loops for this many seconds then stops. When **broadcast** is true, all clients stop after the duration (via socket). When broadcast is false, only the local client stops. When duration is set, **loop** is effectively true until the duration ends.
+
+**`playSoundLocalWithDuration(sound, volume?, duration)`**
+
+- Plays the sound locally with loop, then stops after **duration** seconds. Useful when you only need local playback with a timed stop (e.g. from a socket handler). Same behavior as `playSound(sound, volume, false, false, duration)`.
 
 ### **Markdown Utilities (Subset)**
 
@@ -1160,6 +1174,9 @@ utils.postConsoleAndNotification(
 // ✅ MIGRATION COMPLETE: Use BlacksmithConstants for all constant access
 utils.playSound(BlacksmithConstants.SOUNDNOTIFICATION01, BlacksmithConstants.SOUNDVOLUMENORMAL); // Use constants
 utils.playSound('modules/coffee-pub-blacksmith/sounds/interface-notification-02.mp3', 0.5); // Or custom paths
+
+// Optional 5th parameter: duration (seconds). Sound loops for that long then stops on all clients when broadcast is true.
+utils.playSound(BlacksmithConstants.SOUNDNOTIFICATION01, 0.7, false, true, 20); // Loop for 20 seconds then stop (all clients)
 
 // ✅ Available sound constants include:
 // - Various notification sounds (SOUNDNOTIFICATION01-15)

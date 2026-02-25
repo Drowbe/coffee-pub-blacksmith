@@ -734,15 +734,47 @@ export function clamp(value, min, max) {
 }
 
 /**
+ * Play a sound locally with loop, then stop after a given duration.
+ * Used by playSound when duration is set and by the socket handler for broadcast.
+ * @param {string} sound - Path to the sound file.
+ * @param {number} volume - Volume 0–1.
+ * @param {number} duration - Seconds to play before stopping.
+ * @returns {Promise<void>}
+ */
+export async function playSoundLocalWithDuration(sound, volume = 0.7, duration) {
+    if (!sound || sound === 'none' || sound === 'sound-none' || typeof duration !== 'number' || duration <= 0) return;
+    try {
+        const played = await foundry.audio.AudioHelper.play({
+            src: sound,
+            volume: clamp(volume, 0, 1),
+            autoplay: true,
+            loop: true
+        }, false);
+        const stopAfterMs = duration * 1000;
+        const toStop = Array.isArray(played) ? played : (played ? [played] : []);
+        setTimeout(() => {
+            toStop.forEach(s => {
+                if (s && typeof s.stop === 'function') s.stop();
+            });
+        }, stopAfterMs);
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `playSoundLocalWithDuration failed: ${sound}`, error, false, false);
+    }
+}
+
+/**
  * Play a sound with specified path and volume.
  * @param {string} [sound='sound'] - The path to the sound file.
  * @param {number} [volume=0.7] - The volume of the sound (0 to 1).
  * @param {boolean} [loop=false] - Whether the sound should loop.
  * @param {boolean|object} [broadcast=true] - If true, plays for all clients. If false, plays only for the local client.
  *                                           Can also be an object to configure specific recipients.
+ * @param {number} [duration] - Optional. If provided (e.g. 20), the sound loops for this many seconds then stops.
+ *                              Ignored if <= 0. When used, loop is effectively true until the duration ends.
+ *                              If broadcast is true, all clients stop after duration via socket.
  * @returns {Promise<void>}
  */
-export async function playSound(sound = 'sound', volume = 0.7, loop = false, broadcast = true) {
+export async function playSound(sound = 'sound', volume = 0.7, loop = false, broadcast = true, duration = 0) {
     if (sound === 'none' || sound === 'sound-none') return;
     
     // Safety check for undefined constants
@@ -751,12 +783,33 @@ export async function playSound(sound = 'sound', volume = 0.7, loop = false, bro
         return;
     }
 
+    const useDuration = typeof duration === 'number' && duration > 0;
+
+    if (useDuration) {
+        if (broadcast) {
+            try {
+                const { SocketManager } = await import('./manager-sockets.js');
+                await SocketManager.waitForReady();
+                const s = SocketManager.getSocket();
+                if (s?.executeForAll) {
+                    await s.executeForAll('playSoundWithDuration', { sound, volume, duration });
+                    return;
+                }
+            } catch (e) {
+                postConsoleAndNotification(MODULE.NAME, 'playSound duration+broadcast: socket unavailable, playing locally only', e?.message, false, false);
+            }
+        }
+        await playSoundLocalWithDuration(sound, volume, duration);
+        return;
+    }
+
+    const shouldLoop = loop;
     try {
         await foundry.audio.AudioHelper.play({
             src: sound,
             volume: clamp(volume, 0, 1),
             autoplay: true,
-            loop: loop
+            loop: shouldLoop
         }, broadcast);
     } catch (error) {
         postConsoleAndNotification(MODULE.NAME, `Global.js | Failed to play sound: ${sound}`, error, false, false);

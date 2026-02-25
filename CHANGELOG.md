@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.2.11]
+
+### Added
+- **Sound API – duration option**: Optional 5th parameter `duration` (seconds) on `playSound(sound, volume, loop, broadcast, duration)`. When set, the sound loops for that many seconds then stops. When `broadcast` is true, all clients stop after the duration via socket (`playSoundWithDuration` handler). New `playSoundLocalWithDuration(sound, volume, duration)` for local timed playback. Socket handler registered in manager-sockets; manager-utilities wrapper and API doc (`api-core.md`) updated with Sound playback subsection and duration examples.
+- **Item import – straight-quote normalizer**: Prompts (Artificer, consumables, loot) now instruct to use only straight ASCII apostrophes (') and no curly/typographic apostrophes or smart quotes. New `normalizeStraightQuotesForJson(str)` in blacksmith.js replaces curly/smart single and double quotes (U+2018, U+2019, U+201A, U+201B, U+2032, U+201C–U+201F) with straight equivalents; applied to the item JSON string before `JSON.parse()` in the Item Directory import dialog so pasted or file-loaded JSON parses correctly even when the model outputs typographic quotes.
+
+
 ## [13.2.10]
 
 ### Added
