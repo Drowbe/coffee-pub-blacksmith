@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.2.13]
+
+### Fixed
+- **Global debug setting – debug messages no longer log when off**: `postConsoleAndNotification()` in api-core.js previously logged every call: the debug branch (with "DEBUG" in the title) ran only when both `blnDebug === true` and `COFFEEPUB.blnDebugOn` were true, but the "normal" branch ran for all other cases and always called `console.info`. So messages marked as debug still appeared when global debug was unchecked. An early return was added: when `blnDebug === true` and `!COFFEEPUB?.blnDebugOn`, the function returns without logging or notification. Debug-marked messages now only appear when the module’s global Debug Mode setting is on.
+- **Encounter Toolbar – "Context around UUID" respects debug**: The "Context around UUID" log in encounter-toolbar.js was called with `blnDebug: false`, so it always logged. It now passes `blnDebug: true` so it is suppressed when global debug is off.
+
 ## [13.2.12]
 
 ### Fixed
