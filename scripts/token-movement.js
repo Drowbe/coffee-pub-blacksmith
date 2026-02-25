@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, getSettingSafely } from './api-core.js';
+import { postConsoleAndNotification, playSound, playSoundLooping, stopSoundByPath, getSettingSafely } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { MenuBar } from "./api-menubar.js";
 import { HookManager } from './manager-hooks.js';
@@ -45,6 +45,12 @@ let previousMarchingOrder = null;
 
 // Track scheduled timeouts so they can be cancelled during cleanup
 const scheduledTimeouts = new Set();
+
+// Movement sound: loop until token stops (stopToken/moveToken + debounce fallback)
+let movementSoundTokenId = null;
+let movementSoundPath = null;
+const MOVEMENT_SOUND_STOP_DEBOUNCE_MS = 700;
+let movementSoundStopTimer = null;
 
 // Constants for status tracking
 const STATUS = {
@@ -122,10 +128,41 @@ function handleMovementSounds(tokenDocument, changes, userId) {
         ? window.COFFEEPUB[soundConstant]
         : soundConstant;
     
-    // Play with 15s duration and broadcast so all clients hear it and it stops after 15 seconds (test for duration+broadcast)
-    if (soundPath) {
-        playSound(soundPath, volume, false, true, 15); // sound, volume, loop=false, broadcast=true, duration=15
+    if (!soundPath) return;
+    
+    // If a different token was moving, stop its sound first
+    if (movementSoundTokenId != null && movementSoundTokenId !== token.id && movementSoundPath) {
+        stopSoundByPath(movementSoundPath, true);
+        movementSoundTokenId = null;
+        movementSoundPath = null;
+        if (movementSoundStopTimer != null) {
+            clearTimeout(movementSoundStopTimer);
+            scheduledTimeouts.delete(movementSoundStopTimer);
+            movementSoundStopTimer = null;
+        }
     }
+    
+    // Start looping for this token (or keep current if same token already playing)
+    if (movementSoundTokenId !== token.id) {
+        playSoundLooping(soundPath, volume, true);
+        movementSoundTokenId = token.id;
+        movementSoundPath = soundPath;
+    }
+    
+    // Debounce fallback: stop when no updateToken for this token for N ms (stopToken/moveToken often don't fire on drag-release)
+    if (movementSoundStopTimer != null) {
+        clearTimeout(movementSoundStopTimer);
+        scheduledTimeouts.delete(movementSoundStopTimer);
+    }
+    const pathToStop = movementSoundPath; // capture for timer so we always stop this path when timer fires
+    movementSoundStopTimer = scheduleTimeout(() => {
+        movementSoundStopTimer = null;
+        if (pathToStop) stopSoundByPath(pathToStop, true);
+        if (movementSoundPath === pathToStop) {
+            movementSoundTokenId = null;
+            movementSoundPath = null;
+        }
+    }, MOVEMENT_SOUND_STOP_DEBOUNCE_MS);
 }
 
 // Validate if token movement is allowed and return movement context
@@ -634,7 +671,7 @@ const updateTokenHookId = HookManager.registerHook({
         //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
     if (!changes.x && !changes.y) return;
     
-    // Handle movement sounds
+    // Handle movement sounds (start/continue looping while moving)
     handleMovementSounds(tokenDocument, changes, userId);
     
     // Only process for GMs or when the leader is moving to avoid duplicate processing
@@ -698,6 +735,38 @@ const updateTokenHookId = HookManager.registerHook({
 
 // Log hook registration
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateToken", "token-movement-updates", true, false);
+
+// Stop movement sound when token movement stops (stopToken = movement stopped; moveToken = move concluded)
+// Also cancel debounce timer so we don't double-stop.
+function stopMovementSoundIfMatch(tokenDocumentId) {
+    if (!game.user.isGM) return;
+    if (movementSoundTokenId == null || movementSoundPath == null) return;
+    if (tokenDocumentId !== movementSoundTokenId) return;
+    if (movementSoundStopTimer != null) {
+        clearTimeout(movementSoundStopTimer);
+        scheduledTimeouts.delete(movementSoundStopTimer);
+        movementSoundStopTimer = null;
+    }
+    stopSoundByPath(movementSoundPath, true);
+    movementSoundTokenId = null;
+    movementSoundPath = null;
+}
+
+HookManager.registerHook({
+    name: 'stopToken',
+    description: 'Token Movement: Stop movement sound when token stops moving',
+    context: 'token-movement-updates',
+    priority: 3,
+    callback: (document) => stopMovementSoundIfMatch(document.id)
+});
+
+HookManager.registerHook({
+    name: 'moveToken',
+    description: 'Token Movement: Stop movement sound when token move concludes (fallback)',
+    context: 'token-movement-updates',
+    priority: 3,
+    callback: (document) => stopMovementSoundIfMatch(document.id)
+});
 
 // Utility functions for grid conversion
 function worldToGrid(x, y) {

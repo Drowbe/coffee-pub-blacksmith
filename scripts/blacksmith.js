@@ -2343,11 +2343,16 @@ function cleanAndValidateJSON(str) {
         
         // If successful, clean up any HTML tags in the fields that shouldn't have them
         if (typeof parsed === 'object' && parsed !== null) {
-            // Fields that should be plain text only (no HTML at all)
+            // Fields that should be plain text only (no HTML at all) - scene level
             const plainTextFields = [
                 'journaltype', 'foldername', 'sceneparent', 'scenearea', 
                 'sceneenvironment', 'scenelocation', 'scenetitle', 'prepencounter',
-                'cardtitle', 'cardimagetitle', 'cardimage', 'contextintro',
+                'contextintro'
+            ];
+
+            // Per-card plain text fields (used when cleaning cards array or legacy flat card)
+            const cardPlainTextFields = [
+                'cardtitle', 'cardimagetitle', 'cardimage',
                 'carddescriptionprimary', 'carddescriptionsecondary'
             ];
 
@@ -2357,10 +2362,9 @@ function cleanAndValidateJSON(str) {
                 'contextadditionalnarration', 'contextatmosphere', 'contextgmnotes'
             ];
 
-            // Clean up plain text fields
+            // Clean up scene-level plain text fields (no longer include card* here)
             for (const field of plainTextFields) {
                 if (parsed[field]) {
-                    // Remove all HTML tags and trim
                     parsed[field] = parsed[field].replace(/<[^>]*>/g, '').trim();
                 }
             }
@@ -2368,46 +2372,53 @@ function cleanAndValidateJSON(str) {
             // Clean up list fields
             for (const field of listFields) {
                 if (parsed[field]) {
-                    // Keep only <ul>, <li>, and <b> tags
                     let content = parsed[field];
-                    
-                    // Remove any header tags
                     content = content.replace(/<h[1-6]>.*?<\/h[1-6]>/g, '');
-                    
-                    // Ensure content starts with <ul> and ends with </ul>
-                    if (!content.startsWith('<ul>')) {
-                        content = '<ul>' + content;
-                    }
-                    if (!content.endsWith('</ul>')) {
-                        content = content + '</ul>';
-                    }
-                    
+                    if (!content.startsWith('<ul>')) content = '<ul>' + content;
+                    if (!content.endsWith('</ul>')) content = content + '</ul>';
                     parsed[field] = content;
                 }
             }
 
-            // Special handling for cardimage
-            if (parsed.cardimage) {
-                // Extract src from img tag if present, otherwise use as-is
-                const match = parsed.cardimage.match(/src="([^"]*)"/);
-                parsed.cardimage = match ? match[1] : parsed.cardimage;
-                // If empty img tag or no content, set to empty string
-                if (parsed.cardimage === '<img src="" alt="">' || !parsed.cardimage) {
-                    parsed.cardimage = '';
+            // Helper: clean one card object
+            const cleanOneCard = (c) => {
+                if (!c || typeof c !== 'object') return c;
+                for (const field of cardPlainTextFields) {
+                    if (c[field]) {
+                        c[field] = c[field].replace(/<[^>]*>/g, '').trim();
+                    }
                 }
-            }
+                if (c.cardimage) {
+                    const match = c.cardimage.match(/src="([^"]*)"/);
+                    c.cardimage = match ? match[1] : c.cardimage;
+                    if (c.cardimage === '<img src="" alt="">' || !c.cardimage) c.cardimage = '';
+                }
+                if (c.carddialogue) {
+                    if (c.carddialogue === '<h4></h4>' || !c.carddialogue.trim()) {
+                        c.carddialogue = ' ';
+                    } else {
+                        c.carddialogue = c.carddialogue
+                            .replace(/<h[1-5]>.*?<\/h[1-5]>/g, '')
+                            .replace(/<(?!\/?(?:h6|b)(?:>|\s[^>]*>))\/?[a-zA-Z][^>]*>/g, '')
+                            .trim();
+                    }
+                }
+                return c;
+            };
 
-            // Special handling for carddialogue
-            if (parsed.carddialogue) {
-                if (parsed.carddialogue === '<h4></h4>' || !parsed.carddialogue.trim()) {
-                    parsed.carddialogue = ' ';
-                } else {
-                    // Keep only <h6> and <b> tags for dialogue
-                    parsed.carddialogue = parsed.carddialogue
-                        .replace(/<h[1-5]>.*?<\/h[1-5]>/g, '')
-                        .replace(/<(?!\/?(?:h6|b)(?:>|\s[^>]*>))\/?[a-zA-Z][^>]*>/g, '')
-                        .trim();
-                }
+            // Normalize and clean cards: use cards array if present, else build from flat fields
+            if (Array.isArray(parsed.cards) && parsed.cards.length > 0) {
+                parsed.cards = parsed.cards.map(cleanOneCard);
+            } else {
+                // Legacy: build cards from flat card fields and clean them
+                parsed.cards = [cleanOneCard({
+                    cardtitle: parsed.cardtitle,
+                    carddescriptionprimary: parsed.carddescriptionprimary,
+                    cardimagetitle: parsed.cardimagetitle,
+                    cardimage: parsed.cardimage,
+                    carddescriptionsecondary: parsed.carddescriptionsecondary,
+                    carddialogue: parsed.carddialogue
+                })];
             }
 
             return {

@@ -140,12 +140,25 @@ export async function createJournalEntry(journalData) {
     let strPrepEncounterDetails = journalData.prepencounterdetails;
     let strPrepRewards = await convertObjectToHtml(journalData.preprewards);
     let strPrepSetup = journalData.prepsetup;
-    let strCardTitle = toSentenceCase(journalData.cardtitle);
-    let strCardDescriptionPrimary = journalData.carddescriptionprimary;
-    let strCardImageTitle = toSentenceCase(journalData.cardimagetitle);
-    let strCardImage = journalData.cardimage;
-    let strCardDescriptionSecondary = journalData.carddescriptionsecondary;
-    let strCardDialogue = journalData.carddialogue;
+    // Normalize to cards array: use journalData.cards if present, else single card from flat fields
+    const rawCards = Array.isArray(journalData.cards) && journalData.cards.length > 0
+        ? journalData.cards
+        : [{
+            cardtitle: journalData.cardtitle,
+            carddescriptionprimary: journalData.carddescriptionprimary,
+            cardimagetitle: journalData.cardimagetitle,
+            cardimage: journalData.cardimage,
+            carddescriptionsecondary: journalData.carddescriptionsecondary,
+            carddialogue: journalData.carddialogue
+        }];
+    const cards = rawCards.map(c => ({
+        strCardTitle: toSentenceCase(c.cardtitle),
+        strCardDescriptionPrimary: c.carddescriptionprimary ?? '',
+        strCardImageTitle: toSentenceCase(c.cardimagetitle),
+        strCardImage: c.cardimage ?? '',
+        strCardDescriptionSecondary: c.carddescriptionsecondary ?? '',
+        strCardDialogue: c.carddialogue ?? ' '
+    }));
     let strContextAdditionalNarration = journalData.contextadditionalnarration;
     let strContextAtmosphere = journalData.contextatmosphere;
     let strContextGMNotes = journalData.contextgmnotes;
@@ -200,12 +213,7 @@ export async function createJournalEntry(journalData) {
         strPrepEncounterDetails: strPrepEncounterDetails,
         strPrepRewards: strPrepRewards,
         strPrepSetup: strPrepSetup,
-        strCardTitle: strCardTitle,
-        strCardDescriptionPrimary: strCardDescriptionPrimary,
-        strCardImageTitle: strCardImageTitle,
-        strCardImage: strCardImage,
-        strCardDescriptionSecondary: strCardDescriptionSecondary,
-        strCardDialogue: strCardDialogue,
+        cards: cards,
         strContextAdditionalNarration: strContextAdditionalNarration,
         strContextAtmosphere: strContextAtmosphere,
         strContextGMNotes: strContextGMNotes,

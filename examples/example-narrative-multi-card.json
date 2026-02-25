@@ -1,0 +1,35 @@
+{
+  "journaltype": "narrative",
+  "foldername": "New Narratives",
+  "sceneparent": "Mines of Tethyamar",
+  "scenearea": "Gatehouse",
+  "sceneenvironment": "Dungeon",
+  "scenelocation": "Phlan",
+  "scenetitle": "The Guard's Challenge",
+  "prepencounter": "Guard, Veteran",
+  "prepencounterdetails": "<ul><li><b>Difficulty</b>: Medium</li><li><b>Overall CR</b>: 2</li><li><b>Veteran (1) – CR 3</b>, <b>Guard (2) – CR 1/8</b></li><li><b>Tactics</b>: Guards hold the gate; veteran steps forward to parley. If combat starts, veteran focuses on the strongest-looking PC.</li></ul>",
+  "preprewards": "<ul><li>None (avoid combat) or standard guard gear</li></ul>",
+  "prepsetup": "<ul><li><b>Key Moment</b>: The veteran offers a chance to explain yourselves before blades are drawn.</li></ul>",
+  "contextintro": "The party reaches a manned gatehouse. The guards can be talked past or fought.",
+  "cards": [
+    {
+      "cardtitle": "Words Over Steel",
+      "carddescriptionprimary": "The veteran steps forward, hand resting on his sword hilt but not drawing. His gaze sweeps the party. \"State your business. The mines are closed to strangers.\" The two guards behind him keep their spears ready but do not advance. There is still a chance to talk your way through.",
+      "cardimagetitle": "The Parley",
+      "cardimage": "icons/svg/book.svg",
+      "carddescriptionsecondary": "A successful appeal to reason, bribery, or authority may see the party waved through without bloodshed. Failure may force the other path.",
+      "carddialogue": "<h6><b>Veteran</b> \\\"State your business. The mines are closed to strangers.\\\"</h6>"
+    },
+    {
+      "cardtitle": "Blood at the Gate",
+      "carddescriptionprimary": "Steel rings as weapons are drawn. The veteran barks an order and the guards form a loose line. The gatehouse becomes a killing ground—stone walls limit movement, and the guards know the ground. There is no turning back now.",
+      "cardimagetitle": "The Fight",
+      "cardimage": "icons/svg/book.svg",
+      "carddescriptionsecondary": "Victory here may secure passage but will leave the mine's masters aware that intruders have come. The bodies will be found.",
+      "carddialogue": " "
+    }
+  ],
+  "contextadditionalnarration": "<ul><li>Gatehouse has one main door and a side passage to the barracks.</li><li>If the party fled earlier encounters, the guards may be more alert.</li></ul>",
+  "contextatmosphere": "<ul><li><b>Sight</b>: Torchlight, stone arch, armed figures.</li><li><b>Sound</b>: Boots on stone, distant mine echoes.</li><li><b>Smell</b>: Smoke, sweat, damp stone.</li><li><b>Touch</b>: Cool, drafty air.</li><li><b>Geometry</b>: Single room, about 20 ft square; gate behind the guards.</li></ul>",
+  "contextgmnotes": "<ul><li><b>Difficulty</b>: Medium.</li><li><b>Tactics</b>: Veteran uses multiattack; guards try to flank. Consider surrender if the veteran drops.</li><li><b>Roleplay</b>: Veteran is loyal but not fanatical; he can be reasoned with if the party has a convincing story or papers.</li><li><b>Consequences</b>: Combat here may raise alarms deeper in the mine.</li></ul>"
+}

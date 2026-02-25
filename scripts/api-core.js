@@ -773,6 +773,109 @@ export async function playSoundLocalWithDuration(sound, volume = 0.7, duration) 
 }
 
 /**
+ * Play a sound locally with loop (no auto-stop). Used by playSoundLooping and socket handler.
+ * Stores the Sound instance so stopSoundByPathLocal can stop it directly.
+ * @param {string} sound - Path to the sound file.
+ * @param {number} volume - Volume 0–1.
+ * @returns {Promise<void>}
+ */
+const _loopingSoundsByPath = new Map(); // path -> Sound (local only)
+
+export async function playSoundLoopingLocal(sound, volume = 0.7) {
+    if (!sound || sound === 'none' || sound === 'sound-none') return;
+    try {
+        const pathNorm = (sound || '').replace(/\\/g, '/');
+        const existing = _loopingSoundsByPath.get(pathNorm);
+        if (existing && typeof existing.stop === 'function') existing.stop();
+        const s = await foundry.audio.AudioHelper.play({
+            src: sound,
+            volume: clamp(volume, 0, 1),
+            autoplay: true,
+            loop: true
+        }, false);
+        if (s && typeof s.stop === 'function') _loopingSoundsByPath.set(pathNorm, s);
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `playSoundLoopingLocal failed: ${sound}`, error, false, false);
+    }
+}
+
+/**
+ * Stop any currently playing sound with the given source path (local only).
+ * Uses stored Sound instance from playSoundLoopingLocal when available; otherwise matches
+ * by path in game.audio.playing (handles full URL vs relative path).
+ * @param {string} path - Same path passed to play (e.g. modules/.../steps-wood-01.mp3).
+ */
+export function stopSoundByPathLocal(path) {
+    if (!path) return;
+    const pathNorm = path.replace(/\\/g, '/');
+    const stored = _loopingSoundsByPath.get(pathNorm);
+    if (stored && typeof stored.stop === 'function') {
+        try { stored.stop(); } catch (_) {}
+        _loopingSoundsByPath.delete(pathNorm);
+        return;
+    }
+    if (!game?.audio?.playing || !(game.audio.playing instanceof Map)) return;
+    for (const s of game.audio.playing.values()) {
+        if (!s || typeof s.stop !== 'function') continue;
+        const src = (s.src || '').replace(/\\/g, '/');
+        const matches = src === pathNorm || src.endsWith(pathNorm) || (pathNorm.length > 0 && src.includes(pathNorm));
+        if (matches) {
+            try { s.stop(); } catch (_) {}
+            return;
+        }
+    }
+}
+
+/**
+ * Play a sound that loops until stopped. Broadcasts to all other clients so everyone hears it;
+ * call stopSoundByPath(path, true) to stop on all clients.
+ * @param {string} sound - Path to the sound file.
+ * @param {number} [volume=0.7] - Volume 0–1.
+ * @param {boolean} [broadcast=true] - If true, other clients also start the loop.
+ * @returns {Promise<void>}
+ */
+export async function playSoundLooping(sound, volume = 0.7, broadcast = true) {
+    if (!sound || sound === 'none' || sound === 'sound-none') return;
+    if (sound === 'sound' || sound === 'undefined') return;
+    try {
+        if (broadcast) {
+            const { SocketManager } = await import('./manager-sockets.js');
+            await SocketManager.waitForReady();
+            const s = SocketManager.getSocket();
+            if (s?.executeForOthers) {
+                await s.executeForOthers('playSoundLooping', { sound, volume });
+            }
+        }
+        await playSoundLoopingLocal(sound, volume);
+    } catch (e) {
+        postConsoleAndNotification(MODULE.NAME, 'playSoundLooping: broadcast failed, playing locally only', e?.message, false, false);
+        await playSoundLoopingLocal(sound, volume);
+    }
+}
+
+/**
+ * Stop any playing sound with the given path. Use the same path you passed to playSoundLooping.
+ * @param {string} path - Source path of the sound to stop.
+ * @param {boolean} [broadcast=true] - If true, other clients also stop this path.
+ */
+export async function stopSoundByPath(path, broadcast = true) {
+    if (!path) return;
+    try {
+        if (broadcast) {
+            const { SocketManager } = await import('./manager-sockets.js');
+            await SocketManager.waitForReady();
+            const s = SocketManager.getSocket();
+            if (s?.executeForOthers) {
+                await s.executeForOthers('stopSoundByPath', { path });
+            }
+        }
+        stopSoundByPathLocal(path);
+    } catch (e) {
+        stopSoundByPathLocal(path);
+    }
+}
+
+/**
  * Play a sound with specified path and volume.
  * @param {string} [sound='sound'] - The path to the sound file.
  * @param {number} [volume=0.7] - The volume of the sound (0 to 1).

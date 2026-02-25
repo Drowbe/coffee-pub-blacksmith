@@ -42,31 +42,33 @@
 {{strContextIntro}}
 {{/if}}
 
+{{#each cards}}
 {{#if (or 
-    (and strCardDescriptionPrimary (ne strCardDescriptionPrimary ""))
-    (and strCardImage (ne strCardImage "") (ne strCardImage "null")))}}
+    (and this.strCardDescriptionPrimary (ne this.strCardDescriptionPrimary ""))
+    (and this.strCardImage (ne this.strCardImage "") (ne this.strCardImage "null")))}}
     <blockquote>
-        {{#if (and strCardTitle (ne strCardTitle ""))}}
-        <h4>{{strCardTitle}}</h4>
+        {{#if (and this.strCardTitle (ne this.strCardTitle ""))}}
+        <h4>{{this.strCardTitle}}</h4>
         {{/if}}
-        {{#if (and strCardDescriptionPrimary (ne strCardDescriptionPrimary ""))}}
-        <p>{{strCardDescriptionPrimary}}</p>
+        {{#if (and this.strCardDescriptionPrimary (ne this.strCardDescriptionPrimary ""))}}
+        <p>{{this.strCardDescriptionPrimary}}</p>
         {{/if}}
-        {{#if (and strCardImage (ne strCardImage "") (ne strCardImage "null"))}}
-            {{#if (and strCardImageTitle (ne strCardImageTitle ""))}}
-            <h5>{{strCardImageTitle}}</h5>
+        {{#if (and this.strCardImage (ne this.strCardImage "") (ne this.strCardImage "null"))}}
+            {{#if (and this.strCardImageTitle (ne this.strCardImageTitle ""))}}
+            <h5>{{this.strCardImageTitle}}</h5>
             {{/if}}
-            <img src="{{{strCardImage}}}">
+            <img src="{{{this.strCardImage}}}">
             <hr>
         {{/if}}
-        {{#if (and strCardDescriptionSecondary (ne strCardDescriptionSecondary ""))}}
-        <p>{{strCardDescriptionSecondary}}</p>
+        {{#if (and this.strCardDescriptionSecondary (ne this.strCardDescriptionSecondary ""))}}
+        <p>{{this.strCardDescriptionSecondary}}</p>
         {{/if}}
-        {{#if (and strCardDialogue (ne strCardDialogue "") (ne strCardDialogue " "))}}
-            {{{strCardDialogue}}}
+        {{#if (and this.strCardDialogue (ne this.strCardDialogue "") (ne this.strCardDialogue " "))}}
+            {{{this.strCardDialogue}}}
         {{/if}}
     </blockquote>
 {{/if}}
+{{/each}}
 
 {{#if (and strContextAdditionalNarration (ne strContextAdditionalNarration ""))}}
     <h4>Extended Narrative</h4>

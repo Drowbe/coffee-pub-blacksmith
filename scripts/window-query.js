@@ -44,12 +44,16 @@ const BASE_PROMPT_TEMPLATE = {
     "preprewards": "",
     "prepsetup": "",
     "contextintro": "",
-    "cardtitle": "",
-    "carddescriptionprimary": "",
-    "cardimagetitle": "",
-    "cardimage": "",
-    "carddescriptionsecondary": "",
-    "carddialogue": "",
+    "cards": [
+        {
+            "cardtitle": "",
+            "carddescriptionprimary": "",
+            "cardimagetitle": "",
+            "cardimage": "",
+            "carddescriptionsecondary": "",
+            "carddialogue": ""
+        }
+    ],
     "contextadditionalnarration": "",
     "contextatmosphere": "",
     "contextgmnotes": ""
@@ -2035,12 +2039,16 @@ Key encounter requirements:`;
             \n"preprewards": "PREPREWARDS",
             \n"prepsetup": "PREPSETUP",
             \n"contextintro": "INTRO",
-            \n"cardtitle": "CARDTITLE",
-            \n"carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
-            \n"cardimagetitle": "CARDIMAGETITLE",
-            \n"cardimage": "CARDIMAGE",
-            \n"carddescriptionsecondary": "CARDDESCRIPTIONSECONDARY",
-            \n"carddialogue": "CARDDIALOGUE",
+            \n"cards": [
+            \n  {
+            \n    "cardtitle": "CARDTITLE",
+            \n    "carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
+            \n    "cardimagetitle": "CARDIMAGETITLE",
+            \n    "cardimage": "CARDIMAGE",
+            \n    "carddescriptionsecondary": "CARDDESCRIPTIONSECONDARY",
+            \n    "carddialogue": "CARDDIALOGUE"
+            \n  }
+            \n],
             \n"contextadditionalnarration": "CONTEXTADDITIONALNARRATION",
             \n"contextatmosphere": "CONTEXTATMOSPHERE",
             \n"contextgmnotes": "CONTEXTGMNOTES"`;
@@ -2244,12 +2252,16 @@ Key encounter requirements:`;
             "preprewards": "PREPREWARDS",
             "prepsetup": "PREPSETUP",
             "contextintro": "INTRO",
-            "cardtitle": "CARDTITLE",
-            "carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
-            "cardimagetitle": "CARDIMAGETITLE",
-            "cardimage": "${optionCardImage || inputCardImage || 'icons/svg/book.svg'}",
-            "carddescriptionsecondary": "CARDDESCRIPTIONSECONDARY",
-            "carddialogue": "CARDDIALOGUE",
+            "cards": [
+                {
+                    "cardtitle": "CARDTITLE",
+                    "carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
+                    "cardimagetitle": "CARDIMAGETITLE",
+                    "cardimage": "${optionCardImage || inputCardImage || 'icons/svg/book.svg'}",
+                    "carddescriptionsecondary": "CARDDESCRIPTIONSECONDARY",
+                    "carddialogue": "CARDDIALOGUE"
+                }
+            ],
             "contextadditionalnarration": "CONTEXTADDITIONALNARRATION",
             "contextatmosphere": "CONTEXTATMOSPHERE",
             "contextgmnotes": "CONTEXTGMNOTES",
