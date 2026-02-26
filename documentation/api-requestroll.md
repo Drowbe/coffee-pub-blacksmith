@@ -62,10 +62,12 @@ Opens the Request a Roll (Skill Check) dialog. Optionally pass an options object
 | `options.initialSkill` | `string` | **Legacy.** Same as `initialType: 'skill'` with `initialValue` set to this (e.g. `'perception'`). |
 | `options.dc` | `number` or `string` | Default DC value shown in the dialog’s DC field. |
 | `options.initialFilter` | `string` | Which actor list is active: `'selected'` (only selected tokens) or `'party'` (party filter). When `'party'`, all visible party actors are also pre-selected as challengers. |
-| `options.groupRoll` | `boolean` | If `true`, the "Group roll" checkbox is checked initially (multiple challengers roll as a group); if `false` or omitted, it is unchecked. |
+| `options.groupRoll` | `boolean` | If `true`, the "Group roll" checkbox is checked (multiple challengers roll as a group); if `false`, it is unchecked. **When omitted:** in **dialog** mode the checkbox is unchecked; in **silent** mode, if multiple actors are supplied (via `actors` or `initialFilter`), group roll defaults to `true` unless you pass `groupRoll: false`. |
+| `options.situationalBonus` | `number` | Optional. Pre-filled in the **Roll Configuration** window’s "Situational Bonus" field. When using `initialFilter` or the dialog, this value applies to **all** actors. When using `options.actors`, this is the **default** for any actor that does not specify its own `situationalBonus`. |
+| `options.customModifier` | `string` | Optional. Pre-filled in the **Roll Configuration** window’s "Custom Modifier" field (e.g. `"+2"`, `"-1"`). Same scope as `situationalBonus`: all actors when using filter/dialog, or default when using `options.actors`. |
 | `options.callback` | `Function` | Callback used by the dialog (if applicable). |
 | `options.onRollComplete` | `Function` | Callback invoked each time a roll result is delivered to the chat card (e.g. when a player rolls). Receives one argument: `(payload)` where `payload` is `{ message, messageData, tokenId, result, allComplete }`. `message` is the ChatMessage; `messageData` is the updated flags content (actors, results, etc.); `tokenId` and `result` are for the roll that just completed; `allComplete` is `true` when every requested actor has rolled. Called once per roll; unregistered when `allComplete` is true. |
-| `options.actors` | `Array` | Optional actor list. When **silent** mode is used, this is the preferred way to supply actors. Accepted shapes: **(1)** Foundry **Actor documents** (or objects with `id` = actor id and optional `name`): the API resolves each to token(s) on the current canvas with that actor and uses those token ids for the roll request; **(2)** Token-centric objects `{ id: tokenId, actorId, name, group? }` (e.g. from `canvas.tokens.controlled` mapped to token id + actor id). When not silent, the dialog can use this to pre-fill if it supports it. |
+| `options.actors` | `Array` | Optional actor list. When **silent** mode is used, this is the preferred way to supply actors. Each element may be **(1)** a Foundry **Actor document** (or `{ id: actorId, name? }`), or **(2)** a token-centric object `{ id: tokenId, actorId, name?, group?, situationalBonus?, customModifier? }`. **Per-actor modifiers:** when you pass an array of actor objects, each may include `situationalBonus` (number) and `customModifier` (string) for that actor only. If omitted for an actor, the global `options.situationalBonus` and `options.customModifier` are used. Use this when only some actors get a bonus (e.g. one of two players has +2 for harvest). When not silent, the dialog can use this to pre-fill if it supports it. |
 
 **Returns**
 
@@ -103,6 +105,30 @@ game.modules.get('coffee-pub-blacksmith').api.openRequestRollDialog({
     dc: 15,
     initialFilter: 'party',
     groupRoll: true
+});
+
+// Roll for harvest with +2 situational bonus (pre-filled in Roll Configuration window)
+game.modules.get('coffee-pub-blacksmith').api.openRequestRollDialog({
+    title: 'Forage for Components',
+    initialType: 'skill',
+    initialValue: 'survival',
+    dc: 12,
+    situationalBonus: 2,
+    customModifier: '+2'  // optional; e.g. tool or circumstance
+});
+
+// Two actors: only one gets a situational bonus (e.g. only Alice has the tool)
+const api = game.modules.get('coffee-pub-blacksmith')?.api;
+await api?.openRequestRollDialog({
+    silent: true,
+    title: 'Forage for Components',
+    initialType: 'skill',
+    initialValue: 'survival',
+    dc: 12,
+    actors: [
+        { actorId: aliceActor.id, tokenId: aliceToken.id, name: 'Alice', situationalBonus: 2, customModifier: '+2' },
+        { actorId: bobActor.id, tokenId: bobToken.id, name: 'Bob' }
+    ]
 });
 
 // Via BlacksmithAPI (async)

@@ -204,6 +204,8 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
         rollData.hasMultipleGroups = rollDetails.actors.length > 1 || (rollDetails.defenderRollType && rollDetails.defenderRollValue);
         rollData.skillName = rollData.rollSubtitle; // This will be the skill name from prepareRollData
         rollData.rollMode = rollDetails.rollMode || 'roll';
+        if (rollDetails.situationalBonus != null) rollData.situationalBonus = rollDetails.situationalBonus;
+        if (rollDetails.customModifier != null) rollData.customModifier = rollDetails.customModifier;
         
         // Get defender skill name properly formatted
         if (rollDetails.defenderRollType && rollDetails.defenderRollValue) {
@@ -1057,6 +1059,8 @@ async function showRollWindow(rollData) {
         if (rollData.rollTitle) {
             dialogRollData.rollTitle = rollData.rollTitle;
         }
+        if (rollData.situationalBonus != null) dialogRollData.situationalBonus = rollData.situationalBonus;
+        if (rollData.customModifier != null) dialogRollData.customModifier = rollData.customModifier;
         
         // Add actor portrait
         const actor = game.actors.get(rollData.actorId);
@@ -1133,8 +1137,8 @@ class RollWindow extends Application {
             id: 'roll-window',
             template: 'modules/coffee-pub-blacksmith/templates/window-roll-normal.hbs',
             title: 'Roll Configuration',
-            width: 500,
-            height: 450,
+            width: 600,
+            height: 500,
             resizable: true,
             classes: ['roll-window']
         });

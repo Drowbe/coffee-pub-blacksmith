@@ -140,24 +140,40 @@ export async function createJournalEntry(journalData) {
     let strPrepEncounterDetails = journalData.prepencounterdetails;
     let strPrepRewards = await convertObjectToHtml(journalData.preprewards);
     let strPrepSetup = journalData.prepsetup;
-    // Normalize to cards array: use journalData.cards if present, else single card from flat fields
-    const rawCards = Array.isArray(journalData.cards) && journalData.cards.length > 0
-        ? journalData.cards
-        : [{
-            cardtitle: journalData.cardtitle,
-            carddescriptionprimary: journalData.carddescriptionprimary,
-            cardimagetitle: journalData.cardimagetitle,
-            cardimage: journalData.cardimage,
-            carddescriptionsecondary: journalData.carddescriptionsecondary,
-            carddialogue: journalData.carddialogue
-        }];
-    const cards = rawCards.map(c => ({
-        strCardTitle: toSentenceCase(c.cardtitle),
-        strCardDescriptionPrimary: c.carddescriptionprimary ?? '',
-        strCardImageTitle: toSentenceCase(c.cardimagetitle),
-        strCardImage: c.cardimage ?? '',
-        strCardDescriptionSecondary: c.carddescriptionsecondary ?? '',
-        strCardDialogue: c.carddialogue ?? ' '
+    // Normalize to sections array: use journalData.sections if present, else one section from flat fields (sectiontitle, sectionintro, cards or legacy card fields)
+    const rawSections = Array.isArray(journalData.sections) && journalData.sections.length > 0
+        ? journalData.sections
+        : (() => {
+            const rawCards = Array.isArray(journalData.cards) && journalData.cards.length > 0
+                ? journalData.cards
+                : [{
+                    cardtitle: journalData.cardtitle,
+                    carddescriptionprimary: journalData.carddescriptionprimary,
+                    cardimagetitle: journalData.cardimagetitle,
+                    cardimage: journalData.cardimage,
+                    carddescriptionsecondary: journalData.carddescriptionsecondary,
+                    carddialogue: journalData.carddialogue
+                }];
+            return [{
+                sectiontitle: journalData.sectiontitle ?? '',
+                sectionintro: journalData.sectionintro ?? '',
+                cards: rawCards
+            }];
+        })();
+    const sections = rawSections.map(sec => ({
+        strSectionTitle: toSentenceCase(sec.sectiontitle ?? ''),
+        strSectionIntro: sec.sectionintro ?? '',
+        cards: (Array.isArray(sec.cards) ? sec.cards : []).map(c => {
+            const unescapeQuotes = (s) => typeof s === 'string' ? s.replace(/\\"/g, '"') : s;
+            return {
+                strCardTitle: toSentenceCase(c.cardtitle),
+                strCardDescriptionPrimary: unescapeQuotes(c.carddescriptionprimary ?? ''),
+                strCardImageTitle: toSentenceCase(c.cardimagetitle),
+                strCardImage: c.cardimage ?? '',
+                strCardDescriptionSecondary: unescapeQuotes(c.carddescriptionsecondary ?? ''),
+                strCardDialogue: unescapeQuotes(c.carddialogue ?? ' ')
+            };
+        })
     }));
     let strContextAdditionalNarration = journalData.contextadditionalnarration;
     let strContextAtmosphere = journalData.contextatmosphere;
@@ -213,7 +229,7 @@ export async function createJournalEntry(journalData) {
         strPrepEncounterDetails: strPrepEncounterDetails,
         strPrepRewards: strPrepRewards,
         strPrepSetup: strPrepSetup,
-        cards: cards,
+        sections: sections,
         strContextAdditionalNarration: strContextAdditionalNarration,
         strContextAtmosphere: strContextAtmosphere,
         strContextGMNotes: strContextGMNotes,

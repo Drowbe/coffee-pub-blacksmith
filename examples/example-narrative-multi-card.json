@@ -10,23 +10,43 @@
   "prepencounterdetails": "<ul><li><b>Difficulty</b>: Medium</li><li><b>Overall CR</b>: 2</li><li><b>Veteran (1) – CR 3</b>, <b>Guard (2) – CR 1/8</b></li><li><b>Tactics</b>: Guards hold the gate; veteran steps forward to parley. If combat starts, veteran focuses on the strongest-looking PC.</li></ul>",
   "preprewards": "<ul><li>None (avoid combat) or standard guard gear</li></ul>",
   "prepsetup": "<ul><li><b>Key Moment</b>: The veteran offers a chance to explain yourselves before blades are drawn.</li></ul>",
-  "contextintro": "The party reaches a manned gatehouse. The guards can be talked past or fought.",
-  "cards": [
+  "contextintro": "The party reaches a manned gatehouse, then may pass into the mine proper.",
+  "sections": [
     {
-      "cardtitle": "Words Over Steel",
-      "carddescriptionprimary": "The veteran steps forward, hand resting on his sword hilt but not drawing. His gaze sweeps the party. \"State your business. The mines are closed to strangers.\" The two guards behind him keep their spears ready but do not advance. There is still a chance to talk your way through.",
-      "cardimagetitle": "The Parley",
-      "cardimage": "icons/svg/book.svg",
-      "carddescriptionsecondary": "A successful appeal to reason, bribery, or authority may see the party waved through without bloodshed. Failure may force the other path.",
-      "carddialogue": "<h6><b>Veteran</b> \\\"State your business. The mines are closed to strangers.\\\"</h6>"
+      "sectiontitle": "At the Gate",
+      "sectionintro": "Use this section when the party first arrives. The veteran will parley; the party can talk or fight.",
+      "cards": [
+        {
+          "cardtitle": "Words Over Steel",
+          "carddescriptionprimary": "The veteran steps forward, hand resting on his sword hilt but not drawing. His gaze sweeps the party. \"State your business. The mines are closed to strangers.\" The two guards behind him keep their spears ready but do not advance. There is still a chance to talk your way through.",
+          "cardimagetitle": "The Parley",
+          "cardimage": "icons/svg/book.svg",
+          "carddescriptionsecondary": "A successful appeal to reason, bribery, or authority may see the party waved through without bloodshed. Failure may force the other path.",
+          "carddialogue": "<h6><b>Veteran</b> \\\"State your business. The mines are closed to strangers.\\\"</h6>"
+        },
+        {
+          "cardtitle": "Blood at the Gate",
+          "carddescriptionprimary": "Steel rings as weapons are drawn. The veteran barks an order and the guards form a loose line. The gatehouse becomes a killing ground—stone walls limit movement, and the guards know the ground. There is no turning back now.",
+          "cardimagetitle": "The Fight",
+          "cardimage": "icons/svg/book.svg",
+          "carddescriptionsecondary": "Victory here may secure passage but will leave the mine's masters aware that intruders have come. The bodies will be found.",
+          "carddialogue": " "
+        }
+      ]
     },
     {
-      "cardtitle": "Blood at the Gate",
-      "carddescriptionprimary": "Steel rings as weapons are drawn. The veteran barks an order and the guards form a loose line. The gatehouse becomes a killing ground—stone walls limit movement, and the guards know the ground. There is no turning back now.",
-      "cardimagetitle": "The Fight",
-      "cardimage": "icons/svg/book.svg",
-      "carddescriptionsecondary": "Victory here may secure passage but will leave the mine's masters aware that intruders have come. The bodies will be found.",
-      "carddialogue": " "
+      "sectiontitle": "Beyond the Gate",
+      "sectionintro": "Use this section once the party has passed the gate (by parley or combat). They see the mine entrance proper.",
+      "cards": [
+        {
+          "cardtitle": "Mine Entrance",
+          "carddescriptionprimary": "Beyond the gatehouse, a broad tunnel slopes down into the earth. Torch sconces line the walls, and the air carries the smell of worked stone and old smoke. Distant sounds of picks and carts echo from below. The path splits ahead: one branch descends toward the noise, the other runs level and darker.",
+          "cardimagetitle": "Into the Depths",
+          "cardimage": "icons/svg/book.svg",
+          "carddescriptionsecondary": "The party can follow the activity or explore the quieter passage.",
+          "carddialogue": " "
+        }
+      ]
     }
   ],
   "contextadditionalnarration": "<ul><li>Gatehouse has one main door and a side passage to the barracks.</li><li>If the party fled earlier encounters, the guards may be more alert.</li></ul>",

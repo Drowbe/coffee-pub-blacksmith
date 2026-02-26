@@ -2406,18 +2406,42 @@ function cleanAndValidateJSON(str) {
                 return c;
             };
 
-            // Normalize and clean cards: use cards array if present, else build from flat fields
-            if (Array.isArray(parsed.cards) && parsed.cards.length > 0) {
-                parsed.cards = parsed.cards.map(cleanOneCard);
+            // Per-section plain text fields
+            const sectionPlainTextFields = ['sectiontitle', 'sectionintro'];
+
+            // Helper: clean one section object (sectiontitle, sectionintro, and each card)
+            const cleanOneSection = (sec) => {
+                if (!sec || typeof sec !== 'object') return sec;
+                for (const field of sectionPlainTextFields) {
+                    if (sec[field]) {
+                        sec[field] = sec[field].replace(/<[^>]*>/g, '').trim();
+                    }
+                }
+                if (Array.isArray(sec.cards) && sec.cards.length > 0) {
+                    sec.cards = sec.cards.map(cleanOneCard);
+                }
+                return sec;
+            };
+
+            // Normalize and clean sections: use sections array if present, else build one section from flat fields
+            if (Array.isArray(parsed.sections) && parsed.sections.length > 0) {
+                parsed.sections = parsed.sections.map(cleanOneSection);
             } else {
-                // Legacy: build cards from flat card fields and clean them
-                parsed.cards = [cleanOneCard({
-                    cardtitle: parsed.cardtitle,
-                    carddescriptionprimary: parsed.carddescriptionprimary,
-                    cardimagetitle: parsed.cardimagetitle,
-                    cardimage: parsed.cardimage,
-                    carddescriptionsecondary: parsed.carddescriptionsecondary,
-                    carddialogue: parsed.carddialogue
+                // Legacy: build one section from flat sectiontitle, sectionintro, and cards (or legacy card fields)
+                const rawCards = Array.isArray(parsed.cards) && parsed.cards.length > 0
+                    ? parsed.cards
+                    : [{
+                        cardtitle: parsed.cardtitle,
+                        carddescriptionprimary: parsed.carddescriptionprimary,
+                        cardimagetitle: parsed.cardimagetitle,
+                        cardimage: parsed.cardimage,
+                        carddescriptionsecondary: parsed.carddescriptionsecondary,
+                        carddialogue: parsed.carddialogue
+                    }];
+                parsed.sections = [cleanOneSection({
+                    sectiontitle: parsed.sectiontitle ?? '',
+                    sectionintro: parsed.sectionintro ?? '',
+                    cards: rawCards.map(cleanOneCard)
                 })];
             }
 

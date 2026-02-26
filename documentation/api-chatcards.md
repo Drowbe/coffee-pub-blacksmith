@@ -348,13 +348,24 @@ const invalid = chatCardsAPI.getThemeClassName('invalid');
 
 **Use Case**: When rendering templates and you need the CSS class name.
 
+**Card HTML structure**: Use these classes inside `.blacksmith-card` for theme-aware layout. All are optional except the card wrapper and theme class.
+
+| Class | Purpose |
+|-------|---------|
+| `.card-header` | Main card title (top). Often includes an icon and title text. |
+| `.section-header` | Section heading inside the body (e.g. "Requested Rolls", "Challengers"). Optional icon. Uses theme variables for border and text color. |
+| `.section-content` | Main body content. Put section-headers and your content inside this. |
+
 ```javascript
 const themeId = game.settings.get('my-module', 'cardTheme') || 'default';
 const themeClassName = chatCardsAPI.getThemeClassName(themeId);
 
 const html = `<div class="blacksmith-card ${themeClassName}">
     <div class="card-header">My Card</div>
-    <div class="section-content">Content here</div>
+    <div class="section-content">
+        <div class="section-header"><i class="fas fa-dice-d20"></i> Requested Rolls</div>
+        <p>Content here</p>
+    </div>
 </div>`;
 ```
 
@@ -588,6 +599,7 @@ function showThemePreview(themeId) {
     const previewHtml = `<div class="blacksmith-card ${theme.className}">
         <div class="card-header">Preview</div>
         <div class="section-content">
+            <div class="section-header"><i class="fas fa-palette"></i> Theme sample</div>
             <p>This is how ${theme.name} theme looks.</p>
         </div>
     </div>`;
@@ -598,13 +610,14 @@ function showThemePreview(themeId) {
 
 ## Integration with Chat Card System
 
-The Chat Cards API works with the chat card HTML/CSS framework documented in `migration-chat-cards.md`. Use the API to:
+The Chat Cards API works with the chat card HTML/CSS framework documented in `guide-chat-card-migration.md`. Use the API to:
 
 1. **Get theme choices** for settings dropdowns (with IDs or CSS class names as keys)
 2. **Look up theme class names** when rendering templates
-3. **Filter themes by type** (card vs. announcement)
-4. **Validate theme IDs** before using them
-5. **Build dynamic UI** that adapts to available themes
+3. **Use the card structure**: `.card-header` (main title), `.section-header` (section headings like "Requested Rolls"), and `.section-content` (body) so themes style your card correctly
+4. **Filter themes by type** (card vs. announcement)
+5. **Validate theme IDs** before using them
+6. **Build dynamic UI** that adapts to available themes
 
 ### Recommended Approach: Use CSS Class Names Directly
 
@@ -618,6 +631,9 @@ For new code, we recommend using `getThemeChoicesWithClassNames()` to store CSS 
         <i class="fas fa-{{icon}}"></i> {{title}}
     </div>
     <div class="section-content">
+        {{#if sectionTitle}}
+        <div class="section-header"><i class="fas fa-dice-d20"></i> {{sectionTitle}}</div>
+        {{/if}}
         <p>{{{content}}}</p>
     </div>
 </div>
@@ -655,6 +671,9 @@ If you prefer to store theme IDs in settings and convert them when rendering:
         <i class="fas fa-{{icon}}"></i> {{title}}
     </div>
     <div class="section-content">
+        {{#if sectionTitle}}
+        <div class="section-header"><i class="fas fa-dice-d20"></i> {{sectionTitle}}</div>
+        {{/if}}
         <p>{{{content}}}</p>
     </div>
 </div>
@@ -674,10 +693,10 @@ const html = await renderTemplate('modules/my-module/templates/my-card.hbs', {
 
 ## Related Documentation
 
-- **`migration-chat-cards.md`** - Complete guide to using the chat card HTML/CSS framework
+- **`guide-chat-card-migration.md`** - Complete guide to using the chat card HTML/CSS framework
 - **`api-core.md`** - Core Blacksmith API documentation
 - **Chat Card Templates** - See `templates/cards-common.hbs`, `templates/cards-xp.hbs` for examples
 
 For planned full chat card API (create/update/delete), see **`architecture-chatcards.md`** and **`TODO.md`**.
 
-**Note**: This API provides access to themes only. For creating and rendering chat cards, use the template rendering approach documented in `migration-chat-cards.md`.
+**Note**: This API provides access to themes only. For creating and rendering chat cards, use the template rendering approach documented in `guide-chat-card-migration.md`.

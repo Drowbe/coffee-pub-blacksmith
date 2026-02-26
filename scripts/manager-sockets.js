@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSoundLocalWithDuration, playSoundLoopingLocal, stopSoundByPathLocal } from './api-core.js';
+import { postConsoleAndNotification, playSoundLocalWithDuration, playSoundLoopingLocal, stopSoundByPathLocal, stopSoundByKeyLocal } from './api-core.js';
 import { CombatTimer } from './timer-combat.js';
 import { PlanningTimer } from './timer-planning.js';
 import { MenuBar } from './api-menubar.js';
@@ -312,15 +312,20 @@ class SocketManager {
                 playSoundLocalWithDuration(payload.sound, payload.volume ?? 0.7, payload.duration);
             }
         });
-        // Sound: start looping (stop via stopSoundByPath)
+        // Sound: start looping (stop via stopSoundByPath or stopSoundByKey when key is used)
         this.socket.register("playSoundLooping", (payload) => {
             if (payload?.sound != null) {
-                playSoundLoopingLocal(payload.sound, payload.volume ?? 0.7);
+                playSoundLoopingLocal(payload.sound, payload.volume ?? 0.7, payload.key ?? null);
             }
         });
         this.socket.register("stopSoundByPath", (payload) => {
             if (payload?.path != null) {
                 stopSoundByPathLocal(payload.path);
+            }
+        });
+        this.socket.register("stopSoundByKey", (payload) => {
+            if (payload?.key != null) {
+                stopSoundByKeyLocal(payload.key);
             }
         });
         

@@ -44,14 +44,20 @@ const BASE_PROMPT_TEMPLATE = {
     "preprewards": "",
     "prepsetup": "",
     "contextintro": "",
-    "cards": [
+    "sections": [
         {
-            "cardtitle": "",
-            "carddescriptionprimary": "",
-            "cardimagetitle": "",
-            "cardimage": "",
-            "carddescriptionsecondary": "",
-            "carddialogue": ""
+            "sectiontitle": "",
+            "sectionintro": "",
+            "cards": [
+                {
+                    "cardtitle": "",
+                    "carddescriptionprimary": "",
+                    "cardimagetitle": "",
+                    "cardimage": "",
+                    "carddescriptionsecondary": "",
+                    "carddialogue": ""
+                }
+            ]
         }
     ],
     "contextadditionalnarration": "",
@@ -2039,14 +2045,20 @@ Key encounter requirements:`;
             \n"preprewards": "PREPREWARDS",
             \n"prepsetup": "PREPSETUP",
             \n"contextintro": "INTRO",
-            \n"cards": [
+            \n"sections": [
             \n  {
-            \n    "cardtitle": "CARDTITLE",
-            \n    "carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
-            \n    "cardimagetitle": "CARDIMAGETITLE",
-            \n    "cardimage": "CARDIMAGE",
-            \n    "carddescriptionsecondary": "CARDDESCRIPTIONSECONDARY",
-            \n    "carddialogue": "CARDDIALOGUE"
+            \n    "sectiontitle": "SECTIONTITLE",
+            \n    "sectionintro": "SECTIONINTRO",
+            \n    "cards": [
+            \n      {
+            \n        "cardtitle": "CARDTITLE",
+            \n        "carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
+            \n        "cardimagetitle": "CARDIMAGETITLE",
+            \n        "cardimage": "CARDIMAGE",
+            \n        "carddescriptionsecondary": "CARDDESCRIPTIONSECONDARY",
+            \n        "carddialogue": "CARDDIALOGUE"
+            \n      }
+            \n    ]
             \n  }
             \n],
             \n"contextadditionalnarration": "CONTEXTADDITIONALNARRATION",
@@ -2252,14 +2264,20 @@ Key encounter requirements:`;
             "preprewards": "PREPREWARDS",
             "prepsetup": "PREPSETUP",
             "contextintro": "INTRO",
-            "cards": [
+            "sections": [
                 {
-                    "cardtitle": "CARDTITLE",
-                    "carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
-                    "cardimagetitle": "CARDIMAGETITLE",
-                    "cardimage": "${optionCardImage || inputCardImage || 'icons/svg/book.svg'}",
-                    "carddescriptionsecondary": "CARDDESCRIPTIONSECONDARY",
-                    "carddialogue": "CARDDIALOGUE"
+                    "sectiontitle": "SECTIONTITLE",
+                    "sectionintro": "SECTIONINTRO",
+                    "cards": [
+                        {
+                            "cardtitle": "CARDTITLE",
+                            "carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
+                            "cardimagetitle": "CARDIMAGETITLE",
+                            "cardimage": "${optionCardImage || inputCardImage || 'icons/svg/book.svg'}",
+                            "carddescriptionsecondary": "CARDDESCRIPTIONSECONDARY",
+                            "carddialogue": "CARDDIALOGUE"
+                        }
+                    ]
                 }
             ],
             "contextadditionalnarration": "CONTEXTADDITIONALNARRATION",

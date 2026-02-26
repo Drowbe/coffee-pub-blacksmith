@@ -30,6 +30,9 @@ export class SkillCheckDialog extends Application {
         this.apiRollTitle = (data.title != null && data.title !== '') ? data.title : null; // Used as roll/card title when creating the request
         // API: when opened via API (_api), default groupRoll to false if not passed; when opened from UI, use saved preference (null)
         this.initialGroupRoll = data._api ? (data.hasOwnProperty('groupRoll') ? !!data.groupRoll : false) : null;
+        // API: optional pre-fill for Roll Configuration window (e.g. harvest +2)
+        this.initialSituationalBonus = data.situationalBonus != null ? data.situationalBonus : null;
+        this.initialCustomModifier = data.customModifier != null ? String(data.customModifier) : null;
 
         // Load user preferences
         this.userPreferences = game.settings.get('coffee-pub-blacksmith', 'skillCheckPreferences') || {
@@ -1159,6 +1162,12 @@ export class SkillCheckDialog extends Application {
                 isCinematic: htmlElement.querySelector('input[name="isCinematic"]')?.checked || false,
                 isGM: game.user.isGM
             };
+            if (this.initialSituationalBonus != null) messageData.situationalBonus = this.initialSituationalBonus;
+            if (this.initialCustomModifier != null) messageData.customModifier = this.initialCustomModifier;
+            messageData.actors.forEach(a => {
+                if (messageData.situationalBonus != null) a.situationalBonus = messageData.situationalBonus;
+                if (messageData.customModifier != null) a.customModifier = messageData.customModifier;
+            });
 
             postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Mode flag set to:', messageData.isCinematic, true, false);
 
@@ -1697,12 +1706,16 @@ export class SkillCheckDialog extends Application {
                 const actorId = a.actorId ?? a.id;
                 const name = a.name ?? game.actors.get(actorId)?.name ?? 'Unknown';
                 const group = a.group ?? 1;
+                const perActorBonus = a.situationalBonus ?? options.situationalBonus;
+                const perActorMod = a.customModifier ?? options.customModifier;
                 if (a.tokenId != null && a.actorId != null) {
                     processedActors.push({
                         id: a.tokenId ?? a.id,
                         actorId: a.actorId ?? actorId,
                         name: a.name ?? name,
-                        group
+                        group,
+                        ...(perActorBonus != null && { situationalBonus: perActorBonus }),
+                        ...(perActorMod != null && { customModifier: perActorMod })
                     });
                 } else {
                     const tokensForActor = placeables.filter(t => t.actor?.id === actorId);
@@ -1711,7 +1724,9 @@ export class SkillCheckDialog extends Application {
                             id: t.id,
                             actorId: t.actor.id,
                             name: t.name,
-                            group
+                            group,
+                            ...(perActorBonus != null && { situationalBonus: perActorBonus }),
+                            ...(perActorMod != null && { customModifier: perActorMod })
                         });
                     }
                     if (tokensForActor.length === 0) {
@@ -1719,7 +1734,9 @@ export class SkillCheckDialog extends Application {
                             id: actorId,
                             actorId: actorId,
                             name,
-                            group
+                            group,
+                            ...(perActorBonus != null && { situationalBonus: perActorBonus }),
+                            ...(perActorMod != null && { customModifier: perActorMod })
                         });
                     }
                 }
@@ -1745,6 +1762,12 @@ export class SkillCheckDialog extends Application {
                         .filter(t => t.actor && t.actor.hasPlayerOwner)
                         .map(t => ({ id: t.id, actorId: t.actor.id, name: t.name, group: 1 }));
                 }
+            }
+            if (options.situationalBonus != null || options.customModifier != null) {
+                processedActors.forEach(pa => {
+                    if (options.situationalBonus != null) pa.situationalBonus = options.situationalBonus;
+                    if (options.customModifier != null) pa.customModifier = options.customModifier;
+                });
             }
         }
         if (!processedActors.length) {
@@ -1785,6 +1808,8 @@ export class SkillCheckDialog extends Application {
             isCinematic: isCinematic,
             isGM: game.user.isGM
         };
+        if (options.situationalBonus != null) messageData.situationalBonus = options.situationalBonus;
+        if (options.customModifier != null) messageData.customModifier = options.customModifier;
 
         const content = await SkillCheckDialog.formatChatMessage(messageData);
         const message = await ChatMessage.create({
@@ -2043,6 +2068,10 @@ export class SkillCheckDialog extends Application {
                 fastForward: true,
                 rollMode: messageData.rollMode || 'roll'
             };
+            if (actorData.situationalBonus != null) options.situationalBonus = actorData.situationalBonus;
+            else if (messageData.situationalBonus != null) options.situationalBonus = messageData.situationalBonus;
+            if (actorData.customModifier != null) options.customModifier = actorData.customModifier;
+            else if (messageData.customModifier != null) options.customModifier = messageData.customModifier;
 
             // Determine which roll type to use (challenger or defender)
             const isDefender = actorData.group === 2 && messageData.hasMultipleGroups;
@@ -2195,6 +2224,8 @@ export class SkillCheckDialog extends Application {
                     showDC: flags.showDC || false,
                     groupRoll: flags.isGroupRoll || false,
                     rollMode: flags.rollMode || 'roll',
+                    situationalBonus: actorData.situationalBonus ?? flags.situationalBonus,
+                    customModifier: actorData.customModifier ?? flags.customModifier,
                     isCinematic: false, // This is window mode
                     showRollExplanation: false
                 }, message.id); // Pass existing messageId to prevent duplicate card creation

@@ -3,7 +3,7 @@ CONTEXT FOR THE NARRATIVE
 ========================================
 
 
-
+CONTEXTHERE
 
 
 ========================================
@@ -16,8 +16,8 @@ Each scene is a moment in the campaign—like a room, outdoor zone, or dungeon n
 
 You will generate two outputs based on the same item concept:
 
-1. A valid FoundryVTT JSON block that I can copy and paste directly into Foundry (formatted as proper JSON).
-2. An actual generated 16x9 Widescreen webp image of the same item using the image_gen.text2im tool. Do not describe the image—generate it.
+1. A valid FoundryVTT NARRATIVE JSON block that I can copy and paste directly into Foundry (formatted as proper JSON).
+2. An NARRATIVE IMAGE webp image of the scene, person, or object. Do not describe the image, generate it.
 
 IMPORTANT Always generate the JSON first. Do not generate the image until you ask me if I want you to generate the image.
 
@@ -65,15 +65,21 @@ Rewards & Setup:
 - prepsetup: HTML list of narrative beats or GM notes. Include key events and decisions. Start each with a bold label like <b>Key Moment</b>
 - contextintro: One or two GM-facing sentences summarizing what will happen in this scene
 
+
+Narrative Sections:
+A narrative can be broken into sections. Each section has a title, intro, and its own cards. Content in a section should be cohesive. Use multiple sections when the scene has distinct beats (e.g., arrival, discovery, confrontation).
+
+- sections: Array of one or more sections. Each section is an object with sectiontitle (max 5 words), sectionintro (GM context), and cards (array of player-facing cards). Repeat the section object as needed.
+
 Player-Facing Card:
 - cards: Array of one or more player-facing cards. Each element has:
 - cardtitle: Scene title shown on the player's card (max 5 words) Scene title shown on the player’s card (max 5 words)
-- carddescriptionprimary: 3–6 sentence player-facing narrative. No player actions or assumptions. Don’t say something “jumps out”
+- carddescriptionprimary: 2–5 sentence player-facing narrative. No player actions or assumptions. Don’t say something “jumps out”
 - cardimagetitle: Short poetic title for the card image, e.g. "The Mystery Unfolds"
 - cardimage: Relative path to image or "None"
 
 Player Card Extras:
-- carddescriptionsecondary: 3–5 sentence follow-up narrative for the card
+- carddescriptionsecondary: 1–3 sentence follow-up narrative for the card
 - carddialogue: If a creature speaks, format each line like this:
   <h6><b>Speaker</b> \\\"Their dialogue line.\\\"</h6>
   If there is no dialogue, use a single space: " "
@@ -123,14 +129,20 @@ These ALL-CAPS values act as replaceable tokens. When generating a scene, you ma
   "preprewards": "PREPREWARDS",
   "prepsetup": "PREPSETUP",
   "contextintro": "INTRO",
-  "cards": [
+  "sections": [
     {
-      "cardtitle": "CARDTITLE",
-      "carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
-      "cardimagetitle": "CARDIMAGETITLE",
-      "cardimage": "CARDIMAGE",
-      "carddescriptionsecondary": "CARDDESCRIPTIONSECONDARY",
-      "carddialogue": "CARDDIALOGUE"
+      "sectiontitle": "SECTIONTITLE",
+      "sectionintro": "SECTIONINTRO",
+      "cards": [
+        {
+          "cardtitle": "CARDTITLE",
+          "carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
+          "cardimagetitle": "CARDIMAGETITLE",
+          "cardimage": "CARDIMAGE",
+          "carddescriptionsecondary": "CARDDESCRIPTIONSECONDARY",
+          "carddialogue": "CARDDIALOGUE"
+        }
+      ]
     }
   ],
   "contextadditionalnarration": "CONTEXTADDITIONALNARRATION",
@@ -162,49 +174,93 @@ Please include these specific details in the narration. As much as possible keep
 
 
 ========================================
-(2) 16x9 IMAGE 
+(2) NARRATIVE IMAGE 
 ========================================
 
-Generate a tight, straight-on image of she scene, RPG Styling, the scene facing directly toward the camera with a frontal perspective only.
+Generate an image of the described subject for a tabletop RPG campaign.
 
-Framing is a close scene image. The scene dominates the frame.
+The subject may be:
+- A scene or environment
+- A single character
+- A single object or artifact
 
-Apply any nuance as subtle, controlled adjustments while preserving composition, framing, and camera angle.
-- Do not introduce new framing.
-- Do not introduce new camera angles or perspective changes.
-- Do not zoom out or pull back.
+The subject must dominate the frame and be the clear focal point of the composition.
 
-Painterly ink-and-wash illustration style with visible hand-drawn linework, sketch-like outlines, and textured brush strokes. Strong pen lines define edges and structural details. Subtle cross-hatching and loose ink strokes remain visible.
+--------------------------------------------------
+ASPECT RATIO RULES
+--------------------------------------------------
 
-Warm directional rim lighting with golden highlights along metal edges. Soft ambient fill. Cinematic contrast. Muted earthy palette with warm ochres, browns, and desaturated tones unless color is driven by potion or gem elements.
+If the subject is a SCENE or ENVIRONMENT:
+- Landscape aspect ratio (16x9)
+- Landscape canvas only
+- The environment must fill the entire frame
 
-Semi-realistic proportions with stylized exaggeration. No smooth airbrushing. No photorealism.
+If the subject is a CHARACTER:
+- Square aspect ratio (1:1)
+- Square canvas only
+- Single character only
 
-Fantasy concept art, tabletop RPG skill badge, dramatic mood, hand-illustrated look, high detail, sharp focus, square composition.
+If the subject is an OBJECT or ARTIFACT:
+- Use square (1:1) unless otherwise specified
+- Object must dominate the frame
 
-Camera and framing constraints are mandatory:
-- Frontal view
-- Eye-level
-- Straight-on portrait
-- Avoid pull-back composition
-- No multiple images
-- No grids, panels, sheets, or collages
+--------------------------------------------------
+FRAMING RULES
+--------------------------------------------------
 
-an.
+- Eye-level perspective
+- Naturalistic frontal or forward-facing composition appropriate to the subject
+- No extreme angles
+- No top-down or bird’s-eye views
+- No dramatic tilt
+- Avoid unnecessary zoom-out or distant pull-back
+- The image must feel intentional and composed
 
-OUTPUT FORMAT:
-- Lanscape aspect ratio (16x9)
-- Lanscape canvas only
-- Fill entire canvas with the scene
+Scene-specific composition:
+- Allow environmental depth
+- Avoid panoramic emptiness
+- Anchor composition around a strong central structural element
 
+Character-specific composition:
+- Mid-shot or three-quarter framing
+- Character faces generally toward camera
+- No extreme action poses
+- No dynamic perspective distortion
+
+Object-specific composition:
+- Tight framing
+- Object centered and clearly visible
+- Minimal background distraction
+
+--------------------------------------------------
+STYLE RULES (ALWAYS ENFORCED)
+--------------------------------------------------
+
+Painterly ink-and-wash illustration style.
+Visible hand-drawn linework.
+Sketch-like outlines and textured brush strokes.
+Strong pen lines define edges and structural details.
+Subtle cross-hatching and loose ink strokes remain visible.
+No smooth airbrushing.
+No photorealism.
+No hyper-polished cinematic realism.
+
+Lighting:
+Warm directional rim lighting with golden highlights along metal edges where appropriate.
+Soft ambient fill.
+Cinematic contrast but painterly execution.
+Muted earthy palette with warm ochres, browns, and desaturated tones unless color is narratively driven.
+
+Art direction:
+Fantasy concept art for a tabletop RPG campaign.
+Dramatic but grounded.
+Hand-illustrated look.
+High detail.
+Sharp focus.
+Single cohesive image.
+No grids, panels, sheets, or collages.
+
+If image generation fails, output exactly:
+Image generation failed
 If the model cannot generate the image for any reason, it should clearly say: “Image generation failed”, not describe it.
-
-===================
-OUTPUT FORMAT
-===================
-
-Unless instructed otherwise, your output must include both results in this exact order:
-
-1. LOOT ITEM JSON — Provide a valid, copy-pasteable JSON block inside json code fences.
-2. IMAGE GENERATION — Actually generate the 16x9 Widescreen webp image using image_gen.text2im. Do not output a text description. If the image cannot be rendered, clearly write “Image generation failed”.
 

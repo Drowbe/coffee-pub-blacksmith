@@ -774,28 +774,55 @@ export async function playSoundLocalWithDuration(sound, volume = 0.7, duration) 
 
 /**
  * Play a sound locally with loop (no auto-stop). Used by playSoundLooping and socket handler.
- * Stores the Sound instance so stopSoundByPathLocal can stop it directly.
+ * Stores the Sound instance so we can stop it by path or by key (e.g. tokenId for multiple tokens).
  * @param {string} sound - Path to the sound file.
  * @param {number} volume - Volume 0–1.
+ * @param {string} [key] - Optional key (e.g. tokenId) to allow multiple simultaneous loops; when set, store by key instead of path.
  * @returns {Promise<void>}
  */
-const _loopingSoundsByPath = new Map(); // path -> Sound (local only)
+const _loopingSoundsByPath = new Map(); // path -> Sound (single token / no key)
+const _loopingSoundsByKey = new Map();  // key (e.g. tokenId) -> Sound (multiple tokens)
 
-export async function playSoundLoopingLocal(sound, volume = 0.7) {
+export async function playSoundLoopingLocal(sound, volume = 0.7, key = null) {
     if (!sound || sound === 'none' || sound === 'sound-none') return;
     try {
         const pathNorm = (sound || '').replace(/\\/g, '/');
-        const existing = _loopingSoundsByPath.get(pathNorm);
-        if (existing && typeof existing.stop === 'function') existing.stop();
-        const s = await foundry.audio.AudioHelper.play({
-            src: sound,
-            volume: clamp(volume, 0, 1),
-            autoplay: true,
-            loop: true
-        }, false);
-        if (s && typeof s.stop === 'function') _loopingSoundsByPath.set(pathNorm, s);
+        if (key != null && key !== '') {
+            const existing = _loopingSoundsByKey.get(key);
+            if (existing && typeof existing.stop === 'function') existing.stop();
+            const s = await foundry.audio.AudioHelper.play({
+                src: sound,
+                volume: clamp(volume, 0, 1),
+                autoplay: true,
+                loop: true
+            }, false);
+            if (s && typeof s.stop === 'function') _loopingSoundsByKey.set(key, s);
+        } else {
+            const existing = _loopingSoundsByPath.get(pathNorm);
+            if (existing && typeof existing.stop === 'function') existing.stop();
+            const s = await foundry.audio.AudioHelper.play({
+                src: sound,
+                volume: clamp(volume, 0, 1),
+                autoplay: true,
+                loop: true
+            }, false);
+            if (s && typeof s.stop === 'function') _loopingSoundsByPath.set(pathNorm, s);
+        }
     } catch (error) {
         postConsoleAndNotification(MODULE.NAME, `playSoundLoopingLocal failed: ${sound}`, error, false, false);
+    }
+}
+
+/**
+ * Stop a looping sound by key (e.g. tokenId). Use when you started with playSoundLoopingLocal(..., key).
+ * @param {string} key - Same key passed to play (e.g. tokenId).
+ */
+export function stopSoundByKeyLocal(key) {
+    if (key == null || key === '') return;
+    const stored = _loopingSoundsByKey.get(key);
+    if (stored && typeof stored.stop === 'function') {
+        try { stored.stop(); } catch (_) {}
+        _loopingSoundsByKey.delete(key);
     }
 }
 
@@ -828,13 +855,14 @@ export function stopSoundByPathLocal(path) {
 
 /**
  * Play a sound that loops until stopped. Broadcasts to all other clients so everyone hears it;
- * call stopSoundByPath(path, true) to stop on all clients.
+ * call stopSoundByPath(path, true) or stopSoundByKey(key, true) to stop on all clients.
  * @param {string} sound - Path to the sound file.
  * @param {number} [volume=0.7] - Volume 0–1.
  * @param {boolean} [broadcast=true] - If true, other clients also start the loop.
+ * @param {string} [key] - Optional key (e.g. tokenId) so multiple tokens can play at once; stop with stopSoundByKey(key, true).
  * @returns {Promise<void>}
  */
-export async function playSoundLooping(sound, volume = 0.7, broadcast = true) {
+export async function playSoundLooping(sound, volume = 0.7, broadcast = true, key = null) {
     if (!sound || sound === 'none' || sound === 'sound-none') return;
     if (sound === 'sound' || sound === 'undefined') return;
     try {
@@ -843,13 +871,35 @@ export async function playSoundLooping(sound, volume = 0.7, broadcast = true) {
             await SocketManager.waitForReady();
             const s = SocketManager.getSocket();
             if (s?.executeForOthers) {
-                await s.executeForOthers('playSoundLooping', { sound, volume });
+                await s.executeForOthers('playSoundLooping', { sound, volume, key });
             }
         }
-        await playSoundLoopingLocal(sound, volume);
+        await playSoundLoopingLocal(sound, volume, key);
     } catch (e) {
         postConsoleAndNotification(MODULE.NAME, 'playSoundLooping: broadcast failed, playing locally only', e?.message, false, false);
-        await playSoundLoopingLocal(sound, volume);
+        await playSoundLoopingLocal(sound, volume, key);
+    }
+}
+
+/**
+ * Stop a looping sound by key on all clients. Use the same key you passed to playSoundLooping(..., key).
+ * @param {string} key - Key (e.g. tokenId) used when starting the loop.
+ * @param {boolean} [broadcast=true] - If true, other clients also stop this key.
+ */
+export async function stopSoundByKey(key, broadcast = true) {
+    if (key == null || key === '') return;
+    try {
+        if (broadcast) {
+            const { SocketManager } = await import('./manager-sockets.js');
+            await SocketManager.waitForReady();
+            const s = SocketManager.getSocket();
+            if (s?.executeForOthers) {
+                await s.executeForOthers('stopSoundByKey', { key });
+            }
+        }
+        stopSoundByKeyLocal(key);
+    } catch (e) {
+        stopSoundByKeyLocal(key);
     }
 }
 
