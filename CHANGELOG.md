@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.3.0] - 2025-02-27
+
+### Removed
+
+- **OpenAI API and AI code from Blacksmith**: Removed `scripts/api-openai.js` and all OpenAI integration from the core module. The `module.api.openai` surface no longer exists on Blacksmith. AI tools (Consult the Regent, worksheets: Lookup, Character, Assistant, Encounter, Narrative) are now provided only by the optional module **coffee-pub-regent**, which registers its toolbar tools via Blacksmith’s toolbar API and exposes the OpenAI API on its own `module.api.openai`.
+
+### Changed
+
+- **Documentation**: `documentation/architecture-blacksmith.md` — load order and bootstrap no longer reference `api-openai.js` or `OpenAIAPI`; API table no longer lists `openai`; added pointer to coffee-pub-regent for AI/Regent features and link to `coffee-pub-regent/documentation/api-openai.md`. `documentation/api-core.md` — AI/OpenAI API link now points to Coffee Pub Regent’s OpenAI API doc instead of a Blacksmith-local api-openai.md. Consumers of the OpenAI API should use `game.modules.get('coffee-pub-regent')?.api?.openai` when the Regent module is enabled.
 
 ## [13.2.13]
 

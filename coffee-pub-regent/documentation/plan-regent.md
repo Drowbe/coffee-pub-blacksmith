@@ -1,6 +1,7 @@
 # Plan: Extract Regent (AI Tools) to coffee-pub-regent
 
-**Status:** Plan only — no code changes yet.  
+**Status:** Largely implemented. Regent module exists; OpenAI API and toolbar tools live in Regent; Blacksmith no longer loads OpenAI code or exposes `module.api.openai`. Remaining items below.
+
 **Target:** Option B — full extraction into a separate Foundry module.
 
 ---
@@ -195,3 +196,12 @@ Create the new module as a **sibling** of the Blacksmith folder (same parent), n
 **Implementation note:** Regent is coded and configured like any other sibling module. All imports from Blacksmith use Foundry module paths (`/modules/coffee-pub-blacksmith/...`). No relative paths assume Regent lives inside Blacksmith. The module can be placed in `Data/modules/coffee-pub-regent/` (sibling to Blacksmith) or loaded via symlink; installation is documented in Regent's README.
 
 This plan is intended as the single source of truth for Option B; implementation can follow the sections above step by step.
+
+---
+
+## 7. Remaining (post–13.0.0)
+
+- **Blacksmith cleanup (finish):** Remove leftover Regent-only files from Blacksmith so Regent is the single owner. Delete or stop shipping: `scripts/window-query.js`, `scripts/window-query-registration.js`, `templates/window-query.hbs`, `templates/window-query-workspace-*.hbs`, `styles/window-query.css`, and any partials used only by the query window (see Regent’s `window-query-registration.js` for the list). Remove `WINDOW_QUERY*` entries from Blacksmith’s `scripts/const.js` if nothing else in Blacksmith uses them. (These scripts are not in Blacksmith’s `module.json` esmodules, so they are currently dead code; removing them avoids confusion and duplicate templates.)
+- **Settings migration (5.4):** One-time migration in Regent: on first load (e.g. in `ready`), if Regent’s OpenAI settings are empty and the world previously had Blacksmith’s OpenAI settings, copy values from `coffee-pub-blacksmith` into `coffee-pub-regent` and document in README/CHANGELOG. Note: Blacksmith no longer registers those settings, so migration may need to read from storage or a one-time re-register in Blacksmith; confirm Foundry behavior for unregistered keys.
+- **Documentation:** In `documentation/architecture-blacksmith.md`, remove `registerWindowQueryPartials()` from the ready-phase list and update or remove the line that says `BlacksmithWindowQuery` / `window-query.js` live in Blacksmith (they now live in Regent).
+- **Testing (5.7):** Manually verify: Blacksmith-only loads with no Regent tools; with Regent enabled, all six tools appear, worksheets open, queries run, settings under Regent; optional migration works for existing worlds that had OpenAI settings in Blacksmith.
