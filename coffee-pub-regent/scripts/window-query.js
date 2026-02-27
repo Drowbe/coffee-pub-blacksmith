@@ -4,14 +4,14 @@
 
 import { MODULE, REGENT } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
-import { playSound, trimString } from '../../scripts/api-core.js';
-import { SocketManager } from '../../scripts/manager-sockets.js';
-import { SkillCheckDialog } from '../../scripts/window-skillcheck.js';
+import { playSound, trimString } from '/modules/coffee-pub-blacksmith/scripts/api-core.js';
+import { SocketManager } from '/modules/coffee-pub-blacksmith/scripts/manager-sockets.js';
+import { SkillCheckDialog } from '/modules/coffee-pub-blacksmith/scripts/window-skillcheck.js';
 import { getCachedTemplate } from './regent.js';
 
 // -- COMMON Imports --
-import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from '../../scripts/common.js';
-import { TokenHandler } from '../../scripts/token-handler.js';
+import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from '/modules/coffee-pub-blacksmith/scripts/common.js';
+import { TokenHandler } from '/modules/coffee-pub-blacksmith/scripts/token-handler.js';
 
 // Base template for AI instructions
 const BASE_PROMPT_TEMPLATE = {
@@ -2740,7 +2740,7 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
 
         // Get the image display name
         const imageSettings = game.settings.settings.get(MODULE.ID + '.narrativeDefaultCardImage');
-        const strNarrativeDefaultCardImageName = imageSettings.choices[strNarrativeDefaultCardImage];
+        const strNarrativeDefaultCardImageName = imageSettings?.choices?.[strNarrativeDefaultCardImage];
 
         // Return all variables in the data object
         return {

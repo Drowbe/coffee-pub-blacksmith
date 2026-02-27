@@ -9,7 +9,7 @@ import { OpenAIAPI } from './api-openai.js';
 // Optional: use Blacksmith's playSound when available (same repo path)
 async function playSoundSafe(sound, volume = 0.5) {
     try {
-        const core = await import('../../scripts/api-core.js');
+        const core = await import('/modules/coffee-pub-blacksmith/scripts/api-core.js');
         if (core.playSound && (window.COFFEEPUB?.SOUNDPOP02 || sound)) {
             core.playSound(sound || window.COFFEEPUB?.SOUNDPOP02, volume ?? window.COFFEEPUB?.SOUNDVOLUMESOFT ?? 0.5);
         }

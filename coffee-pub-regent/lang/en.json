@@ -1,7 +1,7 @@
 {
   "coffee-pub-regent": {
-    "openAIMacro-Label": "Macro",
-    "openAIMacro-Hint": "Macro to open the Regent AI window.",
+    "openAIMacro-Label": "Macro (optional)",
+    "openAIMacro-Hint": "Optional: Macro to open the Regent AI window.",
     "openAIAPIKey-Label": "API Key",
     "openAIAPIKey-Hint": "OpenAI API key from https://platform.openai.com/account/api-keys",
     "openAIProjectId-Label": "OpenAI Project ID",
@@ -16,8 +16,6 @@
     "openAIContextLength-Hint": "Number of prior messages to send (0 = no history).",
     "openAITemperature-Label": "Temperature",
     "openAITemperature-Hint": "Response randomness (0-2).",
-    "openAIDebug-Label": "Debug Logging",
-    "openAIDebug-Hint": "Log Regent/AI debug messages to console.",
     "narrativeUseCookies-Label": "Narrative Use Cookies",
     "narrativeUseCookies-Hint": "Use cookies for narrative worksheet."
   }

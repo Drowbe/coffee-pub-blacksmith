@@ -79,6 +79,9 @@ Register these in the Regent module under its own module ID. Plan a one-time mig
 
 Regent depends on Blacksmith; Blacksmith does not depend on Regent.
 
+- **API-only access**  
+  Regent must use **only** the Blacksmith API for any Blacksmith functionality it needs. That is what the API is for; Blacksmith is a dependency. Regent must **never** access Blacksmith in any other way: no reading Blacksmith settings (`game.settings.get('coffee-pub-blacksmith', ...)`), no reading Blacksmith globals (e.g. `window.COFFEEPUB`, `BLACKSMITH.arrMacroChoices`), and no relying on internal state or undocumented behaviour. If Regent needs something (toolbar, sockets, macros list, game systems list, etc.), it uses the public API. If the API doesn’t expose it, Regent either builds what it needs locally (e.g. macro list from `game.macros`) or the capability is added to the API and then used by Regent.
+
 - **Toolbar**  
   Regent calls `BlacksmithAPI.get().registerToolbarTool(...)` (or equivalent) for each of the six tools, with `onClick` opening Regent’s own window. No Regent-specific code remains in `manager-toolbar.js`.
 
@@ -187,6 +190,8 @@ Create the new module as a **sibling** of the Blacksmith folder (same parent), n
 
 - **Goal:** Regent (AI tools) live entirely in the optional module `coffee-pub-regent`. Blacksmith stays lighter and remains a dependency for all other Coffee Pub modules; users who do not want AI can run a clean game by not installing Regent.
 - **Scope:** Move OpenAI API, query window, all Regent templates and assets, and Regent-specific settings into coffee-pub-regent; remove all of that from Blacksmith and have Regent register its tools via Blacksmith’s toolbar API.
-- **Contract:** Regent depends on Blacksmith and uses only its public API; Blacksmith has no dependency on Regent.
+- **Contract:** Regent depends on Blacksmith and **uses only the Blacksmith API**; Regent must never rely on accessing Blacksmith in any other way (no settings, no globals, no internal state). Blacksmith has no dependency on Regent.
+
+**Implementation note:** Regent is coded and configured like any other sibling module. All imports from Blacksmith use Foundry module paths (`/modules/coffee-pub-blacksmith/...`). No relative paths assume Regent lives inside Blacksmith. The module can be placed in `Data/modules/coffee-pub-regent/` (sibling to Blacksmith) or loaded via symlink; installation is documented in Regent's README.
 
 This plan is intended as the single source of truth for Option B; implementation can follow the sections above step by step.

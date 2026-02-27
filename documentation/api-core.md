@@ -1057,11 +1057,12 @@ BlacksmithHookManager.registerHook({
 ## **Utils - Utility Functions**
 **Purpose**: Access to Blacksmith's utility functions for common operations
 
-**Note**: For access to Blacksmith's global constants and choice arrays (themes, sounds, tables, etc.), use the global constants object:
+**Note**: For access to Blacksmith's global constants and choice arrays (themes, sounds, tables, **macros**, etc.), use the global constants object:
 ```javascript
 const themeChoices = BlacksmithConstants.arrThemeChoices;
 const soundChoices = BlacksmithConstants.arrSoundChoices;
 const tableChoices = BlacksmithConstants.arrTableChoices;
+const macroChoices = BlacksmithConstants.arrMacroChoices;  // Macro names for dropdowns (e.g. open Regent window)
 ```
 
 **💡 Explore All Utilities**: Use the console command `BlacksmithAPIUtils()` to see a complete list of all available utility functions and their current values.
@@ -1076,6 +1077,7 @@ const tableChoices = BlacksmithConstants.arrTableChoices;
 - **Theme Constants**: `BlacksmithConstants.THEMEDEFAULT`, `BlacksmithConstants.THEMEBLUE`, `BlacksmithConstants.THEMERED`, etc.
 - **Icon Constants**: `BlacksmithConstants.ICONNONE`, `BlacksmithConstants.ICONCHESSQUEEN`, `BlacksmithConstants.ICONSHIELD`, etc.
 - **Volume Constants**: `BlacksmithConstants.SOUNDVOLUMESOFT`, `BlacksmithConstants.SOUNDVOLUMENORMAL`, `BlacksmithConstants.SOUNDVOLUMELOUD`
+- **Choice arrays (for dropdowns)**: `BlacksmithConstants.arrThemeChoices`, `BlacksmithConstants.arrSoundChoices`, `BlacksmithConstants.arrTableChoices`, `BlacksmithConstants.arrMacroChoices` (object: value → label, e.g. for macro pickers)
 
 ### **Access Methods:**
 ```javascript

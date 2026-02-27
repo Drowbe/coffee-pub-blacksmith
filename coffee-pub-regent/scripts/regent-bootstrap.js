@@ -6,17 +6,19 @@ import { registerWindowQueryPartials } from './window-query-registration.js';
 import { OpenAIAPI } from './api-openai.js';
 import { buildButtonEventRegent } from './regent.js';
 import { registerRegentSettings } from './regent-settings.js';
-import { BlacksmithAPI } from '../../api/blacksmith-api.js';
-
-function onInit() {
-    registerRegentSettings();
-}
+import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
 
 async function onReady() {
+    // Get Blacksmith API first so we can use it for macro choices (API-only access)
+    const api = await BlacksmithAPI.get();
+    const macroChoices = api?.BLACKSMITH?.arrMacroChoices ?? null;
+
+    // Register Regent settings (macro dropdown uses API when available; game systems are Regent-owned)
+    registerRegentSettings(macroChoices);
+
     await registerWindowQueryPartials();
     OpenAIAPI.initializeMemory();
 
-    const api = await BlacksmithAPI.get();
     if (!api?.registerToolbarTool) return;
 
     const regent = () => buildButtonEventRegent('default');
@@ -54,5 +56,4 @@ async function onReady() {
     });
 }
 
-Hooks.once('init', onInit);
 Hooks.once('ready', onReady);

@@ -2,6 +2,8 @@
 // ===== REGENT MODULE CONSTANTS ====================================
 // ==================================================================
 
+const MODULE_ID = 'coffee-pub-regent';
+
 export async function getModuleJson(relative = "../module.json") {
     const url = new URL(relative, import.meta.url).href;
     const res = await fetch(url);
@@ -9,12 +11,23 @@ export async function getModuleJson(relative = "../module.json") {
     return await res.json();
 }
 
-const moduleData = await getModuleJson();
-
 function getModuleCodeName(moduleId) {
     if (!moduleId || typeof moduleId !== "string") return "";
     const parts = moduleId.split("-");
     return parts.at(-1)?.toUpperCase() ?? "";
+}
+
+let moduleData;
+try {
+    moduleData = await getModuleJson();
+} catch (_) {
+    moduleData = {
+        id: MODULE_ID,
+        title: "Coffee Pub Regent",
+        version: "1.0.0",
+        description: "Optional AI tools for Coffee Pub.",
+        authors: [{ name: "COFFEE PUB" }]
+    };
 }
 
 const strName = getModuleCodeName(moduleData.id);
