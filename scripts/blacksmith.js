@@ -949,7 +949,6 @@ Hooks.once('init', async function() {
         HookManager,  // ✅ NEW: Expose HookManager for other Coffee Pub modules
         ConstantsGenerator,  // ✅ NEW: Expose ConstantsGenerator for constants generation
         assetLookup,  // ✅ NEW: Expose AssetLookup for flexible asset access
-        openai: undefined,  // AI tools moved to coffee-pub-regent module
         uiContextMenu: UIContextMenu,  // ✅ NEW: Shared context menu with flyouts
         // ✅ NEW: Toolbar API for external modules
         registerToolbarTool: null,  // Will be set after toolbar manager loads

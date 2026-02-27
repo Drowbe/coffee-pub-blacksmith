@@ -9,6 +9,13 @@ import { registerRegentSettings } from './regent-settings.js';
 import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
 
 async function onReady() {
+    // Expose OpenAI API for other modules (e.g. dependents that want AI without implementing their own)
+    const regentModule = game.modules.get('coffee-pub-regent');
+    if (regentModule) {
+        regentModule.api = regentModule.api || {};
+        regentModule.api.openai = OpenAIAPI;
+    }
+
     // Get Blacksmith API first so we can use it for macro choices (API-only access)
     const api = await BlacksmithAPI.get();
     const macroChoices = api?.BLACKSMITH?.arrMacroChoices ?? null;

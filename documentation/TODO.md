@@ -77,6 +77,12 @@
 - **Location**: `documentation/architecture-toolbarmanager.md`, `scripts/manager-toolbar.js`
 - **Need**: Test tool registration/unregistration; verify compatibility with existing modules; test Foundry v12/v13; validate API stability.
 
+#### Embedded other-module variables (Squire / panel-notes)
+- **Issue**: Blacksmith code embeds constants that belong to other modules (e.g. Squire), creating tight coupling and fragility if those modules change IDs or naming.
+- **Status**: PENDING – Investigate
+- **Location**: `_Migration/panel-notes.js` (e.g. lines 40–45: `NOTE_PIN_ICON`, `NOTE_PIN_CURSOR_CLASS` / `squire-notes-pin-placement`, `NOTE_PIN_TYPE` / `coffee-pub-squire-sticky-notes`).
+- **Need**: Understand why these are hardcoded in Blacksmith; consider moving to Squire, consuming via a Squire/Blacksmith API, or documenting the coupling and any migration path.
+
 #### Pins: Full automated tests and Phase 4–5 (architecture-pins)
 - **Issue**: Pins API and rendering are in place; full automated tests and Phase 4–5 (documentation, validation) remain.
 - **Status**: PENDING

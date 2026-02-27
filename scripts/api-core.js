@@ -1198,6 +1198,12 @@ export function postConsoleAndNotification(
         captionBackground: "background: rgb(45, 117, 3)",
         captionFontColor: "color: rgb(164, 199, 106)",
       },
+      REGENT: {
+        titleColor: "color: #ff3377",
+        captionBorder: "border: 1px dotted #ED6B96",
+        captionBackground: "background: #550922",
+        captionFontColor: "color: rgb(164, 199, 106)",
+      },
       BUBO: {
         titleColor: "color: #ff3377",
         captionBorder: "border: 1px dotted #ED6B96",

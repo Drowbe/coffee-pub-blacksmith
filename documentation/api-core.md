@@ -2208,7 +2208,7 @@ When `position` is not provided, the user is prompted to click on the canvas to 
 ## **Related Documentation**
 
 - **[Hook Manager API Documentation](api-hookmanager.md)** - Hook registration, priority, performance, and debugging
-- **[OpenAI API Documentation](api-openai.md)** - AI-powered functionality and content generation
+- **OpenAI API:** AI-powered functionality is provided by the optional module **Coffee Pub Regent**. See **[Coffee Pub Regent — OpenAI API](../../coffee-pub-regent/documentation/api-openai.md)**.
 - **[Toolbar API Documentation](api-toolbar.md)** - Dynamic toolbar system for external modules
 - **[Menubar API Documentation](api-menubar.md)** - Global menubar and secondary bars for external modules
 - **[Socket API Documentation](api-sockets.md)** - Unified socket management with SocketLib integration

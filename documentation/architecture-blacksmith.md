@@ -31,7 +31,7 @@ This document describes the high-level architecture of the **Coffee Pub Blacksmi
 ### 2.1 Manifest and Load Order
 
 - **`module.json`**
-  - `esmodules` load order: `const.js` → `api-core.js` → `api-openai.js` → `settings.js` → `manager-compendiums.js` → **`blacksmith.js`** → `sidebar-combat.js` → **`api/blacksmith-api.js`**.
+  - `esmodules` load order: `const.js` → `api-core.js` → `settings.js` → `manager-compendiums.js` → **`blacksmith.js`** → `sidebar-combat.js` → **`api/blacksmith-api.js`**.
   - Single style entry: `styles/default.css` (which `@import`s all other CSS).
   - `socket: true`, `library: true`; compendium packs (user manual, treatments, tables, injuries).
 
@@ -66,7 +66,7 @@ This document describes the high-level architecture of the **Coffee Pub Blacksmi
 
 3. **`ready`**
    - Loading progress phase 5 (“Finalizing…”).
-   - **registerSettings()** first, then **HookManager.initialize()**, **OpenAIAPI.initializeMemory()**, **registerBlacksmithUpdatedHook()**, **registerWindowQueryPartials()**.
+   - **registerSettings()** first, then **HookManager.initialize()**, **registerBlacksmithUpdatedHook()**, **registerWindowQueryPartials()**.
    - After settings verification: **CombatStats**, **CPBPlayerStats**, **XpManager**, **WrapperManager**, **NavigationManager**, **LatencyChecker**, **CanvasTools**, **PinManager**, **ImageCacheManager** (GM only), **TokenImageUtilities**, **JournalTools**, **EncounterToolbar**, **SidebarPin**, **SidebarStyle**.
    - **BLACKSMITH.rolls.execute** set from **manager-rolls.js** (`executeRoll`).
    - **initializeSettingsDependentFeatures()**, **initializeSceneInteractions()**, then loading progress hidden.
@@ -88,7 +88,6 @@ This document describes the high-level architecture of the **Coffee Pub Blacksmi
 | **stats** | StatsAPI. |
 | **HookManager** | Central hook registration. |
 | **ConstantsGenerator**, **assetLookup** | Constants and asset lookup. |
-| **openai** | OpenAIAPI. |
 | **Toolbar API** | registerToolbarTool, unregisterToolbarTool, getRegisteredTools, etc. (set after manager-toolbar load). |
 | **Menubar API** | registerMenubarTool, notifications, secondary bar, combat bar, etc. (set after api-menubar load). |
 | **sockets** | SocketManager facade: waitForReady, register, emit (set after SocketManager init). |
@@ -140,7 +139,7 @@ The **BlacksmithAPI** class in `api/blacksmith-api.js` provides a timing-safe wa
 - **SidebarPin** (`sidebar-pin.js`), **SidebarStyle** (`sidebar-style.js`) — Sidebar behavior and styling.
 - **CompendiumManager** (`manager-compendiums.js`) — Compendium usage and ordering (e.g. for image replacement).
 - **ConstantsGenerator** (`constants-generator.js`), **AssetLookup** (`asset-lookup.js`) — Constants and asset taxonomy (sounds, images, etc.).
-- **OpenAIAPI** (`api-openai.js`) — OpenAI integration (e.g. memory). See **documentation/api-openai.md**.
+- **OpenAI/Regent:** AI tools (Consult the Regent, worksheets, OpenAI integration) are provided by the optional module **coffee-pub-regent**. See that module’s documentation (e.g. `coffee-pub-regent/documentation/api-openai.md`).
 - **Settings** (`settings.js`) — All module settings; **registerSettings()** called in ready; **getCachedSetting** and settings cache in blacksmith.js.
 
 ---

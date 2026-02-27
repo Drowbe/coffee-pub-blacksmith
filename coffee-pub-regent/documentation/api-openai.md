@@ -1,18 +1,20 @@
 # API: OpenAI Integration
 
-**Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
+**Audience:** Developers integrating with the Coffee Pub Regent module and leveraging its exposed OpenAI API.
 
-This document describes the OpenAI integration API provided by Coffee Pub Blacksmith for AI-powered functionality.
+This document describes the OpenAI integration API provided by **Coffee Pub Regent** for AI-powered functionality. Regent is an optional module that requires Coffee Pub Blacksmith; the OpenAI API is exposed on Regent’s `module.api` for other modules to use.
 
 ## **Accessing the OpenAI API**
 
 ```javascript
-// Get the Blacksmith module API
-const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+// Get the Regent module API (requires coffee-pub-regent to be enabled)
+const regent = game.modules.get('coffee-pub-regent')?.api;
 
-// Access the OpenAI API
-const openai = blacksmith.openai;
+// Access the OpenAI API (available after game is ready)
+const openai = regent?.openai;
 ```
+
+**Note:** `api.openai` is set when Regent’s `ready` hook runs. Ensure Regent is an active module and the game has reached the `ready` phase before calling these methods.
 
 ## **Available Functions**
 
@@ -87,7 +89,7 @@ const imageUrl = await openai.callGptApiImage("A medieval blacksmith's forge");
 
 ## **Configuration Requirements**
 
-The OpenAI API requires proper configuration in the module settings:
+The OpenAI API requires proper configuration in **Regent’s** module settings (Configure Settings → Module Settings → Coffee Pub Regent → Regent (AI)):
 
 - **API Key**: Valid OpenAI API key
 - **Model**: Supported model (e.g., gpt-5, gpt-4o, gpt-4o-mini, gpt-3.5-turbo, o1-preview)
@@ -172,31 +174,32 @@ The API includes comprehensive error handling:
 
 ### **Basic AI Query**
 ```javascript
-const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
-
-// Simple question
-const response = await blacksmith.openai.getOpenAIReplyAsHtml("What is a good adventure hook?");
-console.log(response.content);
+const regent = game.modules.get('coffee-pub-regent')?.api;
+const openai = regent?.openai;
+if (openai) {
+    const response = await openai.getOpenAIReplyAsHtml("What is a good adventure hook?");
+    console.log(response.content);
+}
 ```
 
 ### **Advanced Usage with Full Response**
 ```javascript
-const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
-
-// Get full response with usage data
-const response = await blacksmith.openai.callGptApiText("Create a dungeon room");
-console.log(`Tokens used: ${response.usage.total_tokens}`);
-console.log(`Cost: $${response.cost}`);
-console.log(`Content: ${response.content}`);
+const openai = game.modules.get('coffee-pub-regent')?.api?.openai;
+if (openai) {
+    const response = await openai.callGptApiText("Create a dungeon room");
+    console.log(`Tokens used: ${response.usage.total_tokens}`);
+    console.log(`Cost: $${response.cost}`);
+    console.log(`Content: ${response.content}`);
+}
 ```
 
 ### **Image Generation**
 ```javascript
-const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
-
-// Generate an image
-const imageUrl = await blacksmith.openai.callGptApiImage("A dragon's lair with treasure");
-// Use the image URL in your application
+const openai = game.modules.get('coffee-pub-regent')?.api?.openai;
+if (openai) {
+    const imageUrl = await openai.callGptApiImage("A dragon's lair with treasure");
+    // Use the image URL in your application
+}
 ```
 
 ## **Memory and Context Features**
@@ -302,11 +305,11 @@ console.log(`Optimized ${optimized} sessions`);
 
 ### **Common Issues**
 
-1. **"Invalid API key"** - Check your OpenAI API key in module settings
+1. **"Invalid API key"** - Check your OpenAI API key in **Regent** module settings (Coffee Pub Regent → Regent (AI))
 2. **"Invalid prompt"** - Ensure the system prompt is properly configured
 3. **"Rate limit exceeded"** - The API will automatically retry; wait a moment
 4. **"Request timed out"** - Try breaking your query into smaller parts
 
 ### **Debug Information**
 
-Enable debug logging in the module settings to see detailed request/response information for troubleshooting.
+Enable debug logging in **Blacksmith** (global Coffee Pub debug) to see detailed request/response information for troubleshooting.
