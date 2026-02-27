@@ -93,15 +93,54 @@ Regent depends on Blacksmith; Blacksmith does not depend on Regent.
 
 ---
 
-## 4. Implementation plan (Option B)
+## 4. Where to create the new module and workflow
 
-### 4.1 New module shell
+Foundry loads one module per folder: each folder under `Data/modules/` whose name matches a module id (e.g. `coffee-pub-regent`) is treated as a separate module. So the new Regent module must eventually live as its own root folder that Foundry can see — either as a sibling of Blacksmith or via a symlink.
+
+Two practical workflows:
+
+### Option A — Regent as a subfolder inside the Blacksmith repo **(recommended; use this first)**
+
+Create the new module **inside** the Blacksmith repo, then point Foundry at it. Once Regent is working, the folder can be moved out to a separate repo if desired.
+
+1. **Create the module folder**  
+   Inside the Blacksmith repo, create a full module tree, e.g.  
+   `coffee-pub-blacksmith/coffee-pub-regent/`  
+   with the usual structure: `module.json`, `scripts/`, `templates/`, `styles/`, `lang/`, etc.
+
+2. **Move (or copy) files there**  
+   Move the Regent-related files from Blacksmith into this subfolder (see scope in §2). You now have one repo containing both modules on disk; Regent lives at  
+   `.../coffee-pub-blacksmith/coffee-pub-regent/`.
+
+3. **Make Foundry load Regent**  
+   Foundry does not scan inside another module’s folder, so it will not see `coffee-pub-regent` inside `coffee-pub-blacksmith`. Do one of:
+   - **Symlink (good for development):** In `Data/modules/`, create a symlink named `coffee-pub-regent` that points to `coffee-pub-blacksmith/coffee-pub-regent`. Foundry then loads both modules; you edit files in one place.
+   - **Copy (or build step):** Copy `coffee-pub-blacksmith/coffee-pub-regent` to `Data/modules/coffee-pub-regent` when you want to test; or add a script that does this. Less convenient for day-to-day dev.
+
+4. **Later: move out (optional)**  
+   Once Regent is working, you can move the folder out: copy the contents of `coffee-pub-blacksmith/coffee-pub-regent/` into a new repo (e.g. `coffee-pub-regent`) and use it as a sibling of Blacksmith under `Data/modules/`. The symlink can then point to the new location, or you can remove it and rely on the sibling folder. Keeping both in one repo with the symlink is also fine long term.
+
+### Option B — Regent as a sibling folder from the start
+
+Create the new module as a **sibling** of the Blacksmith folder (same parent), not inside it.
+
+- Paths:  
+  `Data/modules/coffee-pub-blacksmith/`  
+  `Data/modules/coffee-pub-regent/`
+
+- Workflow: Create `coffee-pub-regent` (new folder or clone of a new repo), then copy or move the Regent files from Blacksmith into it. Foundry sees both modules with no symlink. Good if you want two repos from day one or already have a monorepo layout with multiple module roots.
+
+---
+
+## 5. Implementation plan (Option B)
+
+### 5.1 New module shell
 
 - Create `coffee-pub-regent` (new directory or repo).
 - Add `module.json`: unique id (e.g. `coffee-pub-regent`), `requires: ["coffee-pub-blacksmith"]`, correct Foundry version compatibility, esmodules list, styles, lang, etc.
 - Add `scripts/const.js` with Regent’s `MODULE` (id, name, title, version, etc.).
 
-### 4.2 Move and adapt code
+### 5.2 Move and adapt code
 
 - Copy `api-openai.js` into Regent; replace every `MODULE` reference with Regent’s const; ensure all settings use Regent’s module ID.
 - Copy `window-query.js` and `window-query-registration.js` into Regent; update every path from `modules/coffee-pub-blacksmith/...` to `modules/coffee-pub-regent/...`.
@@ -111,18 +150,18 @@ Regent depends on Blacksmith; Blacksmith does not depend on Regent.
   - Performs one-time init: e.g. register Handlebars partials, call `OpenAIAPI.initializeMemory()`, register the six toolbar tools with Blacksmith’s API.
 - Ensure `window-query.js` (and any new orchestrator) only import from: Regent’s const, Regent’s api-openai, Blacksmith’s public API (e.g. `BlacksmithAPI.get()` for toolbar, sockets, and any minimal helpers), and Foundry. Replace `getCachedTemplate` usage with either a local Regent cache or a single, documented Blacksmith API for that template if one is shared.
 
-### 4.3 Move assets and paths
+### 5.3 Move assets and paths
 
 - Move all Regent-related templates and `window-query.css` into the Regent module.
 - Update `window-query.js` and `window-query-registration.js` so every template fetch and reference uses `modules/coffee-pub-regent/...`.
 - Copy Regent-specific strings from Blacksmith’s `lang/en.json` into Regent’s `lang/en.json`.
 
-### 4.4 Settings migration
+### 5.4 Settings migration
 
 - In the Regent module, register all OpenAI-related settings under the Regent module ID.
 - Add a one-time migration (e.g. in Regent’s init or ready): if Regent settings are empty and Blacksmith’s OpenAI settings exist, copy values over and then use Regent-only settings thereafter. Document this in the Regent README/changelog.
 
-### 4.5 Blacksmith cleanup
+### 5.5 Blacksmith cleanup
 
 - Remove from `blacksmith.js`: `buildButtonEventRegent`, `buildQueryCard`, OpenAIAPI import and `OpenAIAPI.initializeMemory()`, openAI settings cache entries, `module.api.openai`, and Regent-specific partial registration.
 - Remove the six Regent tools from `manager-toolbar.js`’s default registration (or equivalent); Regent will register them via the toolbar API.
@@ -131,12 +170,12 @@ Regent depends on Blacksmith; Blacksmith does not depend on Regent.
 - Remove or relocate `window-query-registration.js` and Regent-only partials from Blacksmith.
 - Remove hooks that only served `BlacksmithWindowQuery` if nothing else in Blacksmith uses that class.
 
-### 4.6 Documentation
+### 5.6 Documentation
 
 - **Blacksmith:** Update `architecture-blacksmith.md` and any API docs to state that AI tools (Regent) are provided by the optional module `coffee-pub-regent`; link to that module’s docs. Remove or archive `api-openai.md` from Blacksmith (or replace with a short “use coffee-pub-regent” pointer).
 - **Regent:** Add a README and, if useful, a short API doc (installation, OpenAI configuration, toolbar tools, and any public API for other modules).
 
-### 4.7 Testing and release
+### 5.7 Testing and release
 
 - Verify: Blacksmith alone loads and runs with no Regent code and no OpenAI settings; no “Consult the Regent” (or equivalent) tools on the toolbar.
 - Verify: With coffee-pub-regent enabled, all six tools appear, each worksheet opens, queries run, and responses display; settings live under Regent; existing worlds that had OpenAI settings get migrated once.
@@ -144,7 +183,7 @@ Regent depends on Blacksmith; Blacksmith does not depend on Regent.
 
 ---
 
-## 5. Summary
+## 6. Summary
 
 - **Goal:** Regent (AI tools) live entirely in the optional module `coffee-pub-regent`. Blacksmith stays lighter and remains a dependency for all other Coffee Pub modules; users who do not want AI can run a clean game by not installing Regent.
 - **Scope:** Move OpenAI API, query window, all Regent templates and assets, and Regent-specific settings into coffee-pub-regent; remove all of that from Blacksmith and have Regent register its tools via Blacksmith’s toolbar API.
