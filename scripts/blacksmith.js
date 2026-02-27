@@ -4048,6 +4048,3 @@ const renderActorDirectoryHookId = HookManager.registerHook({
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderActorDirectory", "blacksmith-actor-directory", true, false);
 
 // Removed obsolete handleCacheManagementSettings function - cache management is now handled by the simplified system
-
-// ================================================================== 
-// ===== WINDOW-QUERY PARTIAL REGISTRATION ==========================
