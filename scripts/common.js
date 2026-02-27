@@ -134,7 +134,14 @@ export async function createJournalEntry(journalData) {
     let strSceneArea = journalData.scenearea;
     let strSceneEnvironment = journalData.sceneenvironment;
     let strSceneLocation = journalData.scenelocation;
-    let strSceneTitle = toSentenceCase(journalData.scenetitle);
+    // None or empty means omit from journal: normalize so template never shows "(None)"
+    const omitIfNone = (s) => (s == null || String(s).trim() === '' || String(s).trim().toLowerCase() === 'none') ? '' : String(s).trim();
+    strSceneParent = omitIfNone(strSceneParent);
+    strSceneArea = omitIfNone(strSceneArea);
+    strSceneEnvironment = omitIfNone(strSceneEnvironment);
+    strSceneLocation = omitIfNone(strSceneLocation);
+    const rawSceneTitle = journalData.scenetitle;
+    let strSceneTitle = omitIfNone(rawSceneTitle) ? toSentenceCase(String(rawSceneTitle).trim()) : '';
     let strContextIntro = journalData.contextintro;
     let strPrepEncounter = await formatMonsterList(journalData.prepencounter);
     let strPrepEncounterDetails = journalData.prepencounterdetails;
@@ -163,6 +170,9 @@ export async function createJournalEntry(journalData) {
     const sections = rawSections.map(sec => ({
         strSectionTitle: toSentenceCase(sec.sectiontitle ?? ''),
         strSectionIntro: sec.sectionintro ?? '',
+        strContextAdditionalNarration: sec.contextadditionalnarration ?? journalData.contextadditionalnarration ?? '',
+        strContextAtmosphere: sec.contextatmosphere ?? journalData.contextatmosphere ?? '',
+        strContextGMNotes: sec.contextgmnotes ?? journalData.contextgmnotes ?? '',
         cards: (Array.isArray(sec.cards) ? sec.cards : []).map(c => {
             const unescapeQuotes = (s) => typeof s === 'string' ? s.replace(/\\"/g, '"') : s;
             return {

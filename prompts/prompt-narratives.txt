@@ -6,6 +6,16 @@ CONTEXT FOR THE NARRATIVE
 CONTEXTHERE
 
 
+Set these specific values for this narration:
+
+- FOLDERNAME: Set to "[ADD-FOLDER-NAME-HERE]"
+- SCENEPARENT: Set to "[ADD-SCENE-PARENT-HERE]"
+- SCENEAREA: Set to "[ADD-SCENE-AREA-HERE]"
+- ENVIRONMENT: Set to "[ADD-SCENE-ENVIRONMENT-HERE]"
+- LOCATION: Set to "[ADD-SCENE-LOCATION-HERE]"
+- CARDIMAGE: Set to "[ADD-IMAGE-PATH-HERE]"
+
+
 ========================================
 RULES FOR THE NARRATIVE
 ========================================
@@ -46,10 +56,10 @@ Replace the ALL-CAPS placeholders with generated content:
 - "foldername" – Always "New Narratives"
 
 Scene Info:
-- sceneparent: The larger region that contains this scene (e.g., "Mines of Tethyamar"). If none, use "None"
-- scenearea: Localized zone where the scene occurs (e.g., "Mine Shaft" or "Summoning Circle"). If none, use "None"
-- sceneenvironment: The atmospheric setting, e.g. "Forest", "Dungeon", "Castle". If none, use "None"
-- scenelocation: Geographical region or major landmark (e.g., "Phlan" or "Moonsea"). If none, use "None"
+- sceneparent: The larger region that contains this scene (e.g., "Mines of Tethyamar"). If none or not applicable, use "None" or leave blank—the journal will omit this field entirely (never show "(None)").
+- scenearea: Localized zone where the scene occurs (e.g., "Mine Shaft" or "Summoning Circle"). If none, use "None" or leave blank—omit from output.
+- sceneenvironment: The atmospheric setting, e.g. "Forest", "Dungeon", "Castle". If none, use "None" or leave blank—omit from output.
+- scenelocation: Geographical region or major landmark (e.g., "Phlan" or "Moonsea"). If none, use "None" or leave blank—omit from output.
 
 Encounter Details:
 - prepencounter: Comma-delimited list of official monster names (use singular names from 2024 manuals only). If none, use "None"
@@ -67,9 +77,9 @@ Rewards & Setup:
 
 
 Narrative Sections:
-A narrative can be broken into sections. Each section has a title, intro, and its own cards. Content in a section should be cohesive. Use multiple sections when the scene has distinct beats (e.g., arrival, discovery, confrontation).
+A narrative can be broken into sections. Each section has a title, intro, optional GM context (additional narration, atmosphere, GM notes), and its own cards. Content in a section should be cohesive. Use multiple sections when the scene has distinct beats (e.g., arrival, discovery, confrontation).
 
-- sections: Array of one or more sections. Each section is an object with sectiontitle (max 5 words), sectionintro (GM context), and cards (array of player-facing cards). Repeat the section object as needed.
+- sections: Array of one or more sections. Each section is an object with sectiontitle (max 5 words), sectionintro (GM context), optional contextadditionalnarration, contextatmosphere, contextgmnotes (see GM-Only Context below), and cards (array of player-facing cards). Repeat the section object as needed.
 
 Player-Facing Card:
 - cards: Array of one or more player-facing cards. Each element has:
@@ -89,7 +99,8 @@ Note: carddialogue must use HTML with all internal quotes escaped using \\\".
 - Legacy: consumers also accept flat card fields (single card); when both exist, the cards array takes precedence.
 
 
-GM-Only Context:
+GM-Only Context (per section):
+These fields belong inside each section object. Each section may have its own:
 - contextadditionalnarration: HTML list of extra details GMs can read aloud or use to describe. Connect to other scenes if relevant
 - contextatmosphere: HTML list of immersive details:
   - Sight
@@ -102,7 +113,7 @@ GM-Only Context:
   - Tactics, behaviors, hidden clues
   - Roleplay notes or campaign tie-ins
   - Optional consequences or alternate paths
-Note: All HTML lists must be escaped and well-formed. Escape all quotes in attributes or dialogue using \\\".
+Note: All HTML lists must be escaped and well-formed. Escape all quotes in attributes or dialogue using \\\". Omit a field for a section if not applicable.
 
 Escaping & Validating:
 - Escape all HTML double quotes as \\\" within content
@@ -133,6 +144,9 @@ These ALL-CAPS values act as replaceable tokens. When generating a scene, you ma
     {
       "sectiontitle": "SECTIONTITLE",
       "sectionintro": "SECTIONINTRO",
+      "contextadditionalnarration": "CONTEXTADDITIONALNARRATION",
+      "contextatmosphere": "CONTEXTATMOSPHERE",
+      "contextgmnotes": "CONTEXTGMNOTES",
       "cards": [
         {
           "cardtitle": "CARDTITLE",
@@ -144,10 +158,7 @@ These ALL-CAPS values act as replaceable tokens. When generating a scene, you ma
         }
       ]
     }
-  ],
-  "contextadditionalnarration": "CONTEXTADDITIONALNARRATION",
-  "contextatmosphere": "CONTEXTATMOSPHERE",
-  "contextgmnotes": "CONTEXTGMNOTES"
+  ]
 }
 
 -----------------
@@ -160,15 +171,6 @@ When I ask you to generate narration for a scene and then give you context for t
 - The campaign is leveraging these rulebooks: [ADD-RULEBOOKS-HERE]
 - This narrative will be for [ADD-PARTY-SIZE-HERE] level [ADD-PARTY-LEVEL-HERE] characters.
 - Assume the party includes the following characters: [ADD-PARTY-MAKEUP-HERE].
-
-Set these specific values for this narration:
-
-- FOLDERNAME: Set to "[ADD-FOLDER-NAME-HERE]"
-- SCENEPARENT: Set to "[ADD-SCENE-PARENT-HERE]"
-- SCENEAREA: Set to "[ADD-SCENE-AREA-HERE]"
-- ENVIRONMENT: Set to "[ADD-SCENE-ENVIRONMENT-HERE]"
-- LOCATION: Set to "[ADD-SCENE-LOCATION-HERE]"
-- CARDIMAGE: Set to "[ADD-IMAGE-PATH-HERE]"
 
 Please include these specific details in the narration. As much as possible keep them cohesive with the larger campaign.
 

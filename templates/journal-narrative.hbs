@@ -39,7 +39,7 @@
 {{/if}}
 
 {{#if (and strContextIntro (ne strContextIntro ""))}}
-{{strContextIntro}}
+{{{strContextIntro}}}
 {{/if}}
 
 {{#each sections}}
@@ -49,7 +49,7 @@
   <h2>{{this.strSectionTitle}}</h2>
   {{/if}}
   {{#if (and this.strSectionIntro (ne this.strSectionIntro ""))}}
-  <p>{{this.strSectionIntro}}</p>
+  <div class="narrative-section-intro">{{{this.strSectionIntro}}}</div>
   {{/if}}
   {{#each this.cards}}
   {{#if (or 
@@ -78,18 +78,20 @@
     </blockquote>
   {{/if}}
   {{/each}}
+  {{#if (and this.strContextAdditionalNarration (ne this.strContextAdditionalNarration ""))}}
+    <h4>Extended Narrative</h4>
+    {{{this.strContextAdditionalNarration}}}
+  {{/if}}
+  {{#if (and this.strContextGMNotes (ne this.strContextGMNotes ""))}}
+    <h4>Notes and Strategies</h4>
+    {{{this.strContextGMNotes}}}
+  {{/if}}
+  {{#if (and this.strContextAtmosphere (ne this.strContextAtmosphere ""))}}
+    <h4>Atmosphere and Environments</h4>
+    {{{this.strContextAtmosphere}}}
+  {{/if}}
 </section>
 {{/each}}
-
-{{#if (and strContextAdditionalNarration (ne strContextAdditionalNarration ""))}}
-    <h4>Extended Narrative</h4>
-    {{{strContextAdditionalNarration}}}
-{{/if}}
-
-{{#if (and strContextGMNotes (ne strContextGMNotes ""))}}
-    <h4>Notes and Strategies</h4>
-    {{{strContextGMNotes}}}
-{{/if}}
 
 {{!-- Include the hidden linked encounters data --}}
 {{{linkedEncountersData}}}
@@ -112,7 +114,4 @@
 </div>
 {{/if}}
 
-{{#if (and strContextAtmosphere (ne strContextAtmosphere ""))}}
-    <h4>Atmosphere and Environments</h4>
-    {{{strContextAtmosphere}}}
-{{/if}}
+{{!-- Include the hidden linked encounters data --}}

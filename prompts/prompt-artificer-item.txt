@@ -197,7 +197,9 @@ ARTIFICERSKILLLEVEL: (INTEGER) (REQUIRED). Default 1. Affects crafting difficult
 - 0-3: Common materials, basic crafting.
 - 4–9: Uncommon materials, intermediate recipes.
 - 10–14: Rare materials, advanced recipes.
-- 15–20: Very rare/legendary materials, masterwork recipes.
+- 15–19: Very rare materials, masterwork recipes.
+- 20: Legendary materials, masterwork recipes.
+
 
 ARTIFICERQUIRK (Components only): (STRING) (Optional) Quirks help clarify an item when needed. Not usually set. Examples:
 - "Degrades in sunlight"
