@@ -14,7 +14,6 @@
 /* --- Dialogue Boxes / Windows --- */
 @import "window-common.css";
 @import "window-gmtools.css";
-@import "window-query.css";
 @import "window-skillcheck.css";
 @import "token-movement.css";
 @import "window-xp.css";

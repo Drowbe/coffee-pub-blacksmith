@@ -1,0 +1,713 @@
+/* ------------------------------------ */
+/* --- Regent Query Window (layout) --- */
+/* Namespace: regent. Same layout as Blacksmith query window, no layout changes. */
+/* ------------------------------------ */
+
+#coffee-pub-regent-wrapper {
+    --regent-element-radius: 4px;
+    --regent-container-opacity: 0.85;
+    --regent-base-width: 600px;
+    --regent-total-width: 1000px;
+    --regent-workspace-width: 400px;
+    --regent-container-padding: 10px;
+}
+
+/* Form / wrapper layout */
+#coffee-pub-regent-wrapper #coffee-pub-regent-query {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    width: 100%;
+    min-height: 350px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+#coffee-pub-regent-wrapper .window-content {
+    opacity: var(--regent-container-opacity);
+    padding: var(--regent-container-padding);
+    overflow: hidden;
+    background: #222222;
+    color: #ffffff;
+}
+
+#coffee-pub-regent-wrapper #coffee-pub-regent-container,
+#coffee-pub-regent-wrapper #regent-workspace-wrapper {
+    flex: 1;
+    overflow-y: auto;
+}
+
+#coffee-pub-regent-wrapper #coffee-pub-regent-container {
+    min-width: var(--regent-base-width);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+/* Output area */
+#coffee-pub-regent-wrapper #coffee-pub-regent-output,
+#coffee-pub-regent-wrapper .regent-output {
+    height: 200px;
+    flex-grow: 1;
+    overflow: auto;
+    overflow-y: visible;
+    border-radius: var(--regent-element-radius);
+    margin-bottom: 8px;
+    padding: 6px;
+}
+
+#coffee-pub-regent-wrapper #coffee-pub-regent-output {
+    background: #222222;
+    color: #000000;
+    background: url(/modules/coffee-pub-blacksmith/images/tiles/tile-parchment-white.webp) repeat;
+}
+
+/* Input area */
+#coffee-pub-regent-wrapper #coffee-pub-regent-input {
+    flex-shrink: 0;
+    padding: 0 1px;
+}
+
+/* Message options (above input) */
+#coffee-pub-regent-wrapper #regent-message-options,
+#coffee-pub-regent-wrapper #regent-workspace-footer-options {
+    margin-top: 4px;
+    margin-right: 0;
+    margin-left: 0;
+    margin-bottom: 0;
+    background-color: transparent;
+}
+
+#coffee-pub-regent-wrapper #regent-message-options .regent-checkbox,
+#coffee-pub-regent-wrapper #regent-workspace-footer-options .regent-checkbox {
+    margin-top: 0;
+    margin-right: 4px;
+    margin-bottom: 6px;
+    width: 1.0em;
+    position: relative;
+    vertical-align: middle;
+    align-items: center;
+    border: 1px solid #2b2b2b;
+    background-color: #f6f1ed;
+    color: #ffffff;
+}
+
+#coffee-pub-regent-wrapper #regent-message-options label,
+#coffee-pub-regent-wrapper #regent-workspace-footer-options label {
+    margin-top: 0;
+    margin-right: 4px;
+    margin-bottom: 6px;
+    font-size: 1.0em;
+    font-weight: 100;
+    position: relative;
+    vertical-align: middle;
+    align-items: center;
+    color: #ffffff;
+}
+
+/* Textarea */
+#coffee-pub-regent-wrapper .regent-textarea {
+    font-family: var(--font-primary, system-ui, sans-serif);
+    border: none;
+    padding: 12px;
+    font-size: 1.1em;
+    height: auto;
+    border-radius: var(--regent-element-radius);
+    word-break: break-word;
+    color: #000000;
+    background-color: #f6f1ed;
+    background: url(/modules/coffee-pub-blacksmith/images/tiles/tile-parchment-white.webp) repeat;
+}
+
+#coffee-pub-regent-wrapper #coffee-pub-regent-input button[type="submit"] {
+    flex: none;
+}
+
+/* Send buttons */
+#coffee-pub-regent-wrapper .regent-send-button-normal {
+    padding: 2px;
+    margin-top: 4px;
+    font-size: 0.9em;
+    border-radius: var(--regent-element-radius);
+    background-color: #0e0c0c;
+    color: #ffffff;
+    border: 1px solid #4b4b4b;
+}
+
+#coffee-pub-regent-wrapper .regent-send-button-normal:hover {
+    background-color: #000000;
+    color: #AEADAD;
+    border: 1px solid #767676;
+    box-shadow: none;
+}
+
+#coffee-pub-regent-wrapper .regent-button-main::after {
+    content: " Consult the Regent";
+    text-transform: uppercase;
+}
+
+#coffee-pub-regent-wrapper .regent-button-workspace::after {
+    content: " Channel Divinity";
+    text-transform: uppercase;
+}
+
+/* Workspace panel */
+#coffee-pub-regent-wrapper #regent-workspace-wrapper {
+    width: var(--regent-workspace-width);
+    flex: 0 0 var(--regent-workspace-width);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+    margin-left: var(--regent-container-padding);
+    transition: all 0.3s ease;
+    background: #222222;
+    color: #000000;
+}
+
+#coffee-pub-regent-wrapper #regent-workspace-wrapper.workspace-hidden {
+    width: 0;
+    flex: 0 0 0;
+    margin-left: 0;
+    padding: 0;
+    overflow: hidden;
+    opacity: 0;
+}
+
+#coffee-pub-regent-wrapper #regent-workspace-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-radius: var(--regent-element-radius);
+    width: var(--regent-workspace-width);
+    padding-top: 0;
+    padding-right: 6px;
+    padding-bottom: 0;
+    padding-left: 6px;
+    box-sizing: border-box;
+}
+
+#coffee-pub-regent-wrapper #regent-workspace-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+#coffee-pub-regent-wrapper #regent-workspace-content::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 10px 0;
+}
+
+#coffee-pub-regent-wrapper #regent-workspace-content::-webkit-scrollbar-thumb {
+    background: #444444;
+    border-radius: 3px;
+    border: 1px solid #222222;
+}
+
+#coffee-pub-regent-wrapper #regent-workspace-footer {
+    padding-top: 4px;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    box-sizing: border-box;
+}
+
+/* Workspace content visibility */
+#coffee-pub-regent-wrapper .workspace-content {
+    display: none;
+}
+
+#coffee-pub-regent-wrapper .workspace-content:not(.hidden) {
+    display: block;
+}
+
+#coffee-pub-regent-wrapper .hidden {
+    display: none;
+}
+
+/* Workspace section (D&D Lookup, etc.) */
+#coffee-pub-regent-wrapper #regent-query-workspace-lookup,
+#coffee-pub-regent-wrapper #regent-query-workspace-character,
+#coffee-pub-regent-wrapper #regent-query-workspace-narrative,
+#coffee-pub-regent-wrapper #regent-query-workspace-encounter,
+#coffee-pub-regent-wrapper #regent-query-workspace-assistant {
+    font-weight: 100;
+    font-size: 0.9em;
+    padding: 0;
+    background-color: transparent;
+    border-radius: var(--regent-element-radius);
+}
+
+#coffee-pub-regent-wrapper .workspace-section {
+    width: 100%;
+    font-weight: 100;
+    font-size: 1.0em;
+    margin-bottom: 10px;
+    padding: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: #000000;
+    color: #ffffff;
+    border: 1px solid #2b2b2b;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+#coffee-pub-regent-wrapper .workspace-content h3 {
+    width: 100%;
+    font-weight: 700;
+    font-size: 1.2em;
+    text-transform: uppercase;
+    margin: 0 0 10px 0;
+    padding: 5px 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: #000000;
+    color: #ffffff;
+    border: 1px solid #2b2b2b;
+    border-radius: var(--regent-element-radius);
+    box-sizing: border-box;
+}
+
+#coffee-pub-regent-wrapper .workspace-section textarea,
+#coffee-pub-regent-wrapper .workspace-section input[type="text"],
+#coffee-pub-regent-wrapper .workspace-section select {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+#coffee-pub-regent-wrapper .workspace-section-content {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    max-height: 1000px;
+    overflow: hidden;
+    opacity: 1;
+}
+
+#coffee-pub-regent-wrapper .workspace-section-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+}
+
+#coffee-pub-regent-wrapper .workspace-section h4 {
+    font-weight: 600;
+    font-size: 1.1em;
+    text-transform: uppercase;
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    margin-right: 0;
+    color: #ffffff;
+    padding-top: 2px;
+    padding-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+#coffee-pub-regent-wrapper .workspace-section h5 {
+    font-weight: 300;
+    font-size: 0.7em;
+    text-transform: uppercase;
+    padding-top: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
+    color: #ffffff;
+}
+
+#coffee-pub-regent-wrapper .workspace-section label {
+    display: block;
+}
+
+#coffee-pub-regent-wrapper .workspace-section .form-label {
+    font-weight: 500;
+    font-size: 1.0em;
+    margin-top: 20px;
+    margin-bottom: 5px;
+    padding-left: 4px;
+}
+
+#coffee-pub-regent-wrapper .workspace-section .form-label .helper {
+    font-weight: 300;
+    font-size: 1.0em;
+    padding-left: 4px;
+    color: #838080;
+}
+
+#coffee-pub-regent-wrapper .workspace-section textarea,
+#coffee-pub-regent-wrapper .workspace-section input {
+    padding: 10px !important;
+    margin-top: 5px !important;
+    border-radius: 4px !important;
+    border: 1px solid #2b2b2b !important;
+    background-color: #f6f1ed !important;
+}
+
+#coffee-pub-regent-wrapper .workspace-section select {
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 4px;
+    border: 1px solid #2b2b2b;
+    background-color: #f6f1ed;
+    max-width: calc(var(--regent-workspace-width) - 4 * var(--regent-container-padding));
+    white-space: normal;
+}
+
+#coffee-pub-regent-wrapper .workspace-section input[type="checkbox"] {
+    margin-top: 0 !important;
+    margin-right: 4px !important;
+    width: 1.0em !important;
+    position: relative !important;
+    vertical-align: middle !important;
+    border: 1px solid #2b2b2b !important;
+    background-color: #f6f1ed !important;
+    color: #f6f1ed !important;
+}
+
+#coffee-pub-regent-wrapper .message-box {
+    border: 2px solid #a07836;
+    text-align: center;
+    padding: 15px;
+    margin: 20px 0;
+    background-color: #d9d5d2;
+    color: #2b1213;
+    border-radius: 6px;
+    font-size: 1.1em;
+    font-weight: 400;
+}
+
+/* Toggle workspace / clear buttons */
+#coffee-pub-regent-wrapper #regent-clear-workspace,
+#coffee-pub-regent-wrapper #regent-toggle-workspace {
+    float: right;
+    background-color: #313030;
+    color: #ffffff;
+    border: 1px solid #4b4b4b;
+    padding-top: 5px;
+    padding-bottom: 3px;
+    padding-right: 2px;
+    padding-left: 5px;
+    font-size: 0.8em;
+    border-radius: var(--regent-element-radius);
+    margin-left: 4px;
+    transition: background-color 0.3s ease;
+    width: 30px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+#coffee-pub-regent-wrapper #regent-clear-workspace:hover,
+#coffee-pub-regent-wrapper #regent-toggle-workspace:hover {
+    background-color: #000000;
+    color: #ffffff;
+    border: 1px solid #767676;
+    box-shadow: none;
+}
+
+/* Message bubbles (output) */
+#coffee-pub-regent-wrapper #regent-message-wrapper-processing,
+#coffee-pub-regent-wrapper .regent-message-wrapper {
+    margin-bottom: 8px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border-radius: var(--regent-element-radius);
+}
+
+#coffee-pub-regent-wrapper #regent-message-header-processing {
+    font-weight: 800;
+    font-size: 1.0em;
+    text-transform: uppercase;
+    margin-bottom: 0;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    padding-left: 8px;
+    padding-right: 8px;
+    border-radius: var(--regent-element-radius);
+    border: 2px solid #A2D14F;
+    background-color: #4F760C;
+    animation: regent-message-processing 2s infinite;
+    box-shadow: rgba(99, 99, 99, 0.3) 0px 2px 2px 1px;
+}
+
+@keyframes regent-message-processing {
+    0% { border-color: #7FA33E; background-color: #2B4009; }
+    50% { border-color: #8DD218; background-color: #4D750B; }
+    100% { border-color: #7FA33E; background-color: #2B4009; }
+}
+
+#coffee-pub-regent-wrapper .regent-message-header {
+    font-weight: 800;
+    font-size: 1.1em;
+    text-transform: uppercase;
+    margin-bottom: 0;
+    padding-top: 4px;
+    padding-bottom: 3px;
+    padding-left: 8px;
+    padding-right: 8px;
+    border-radius: var(--regent-element-radius) var(--regent-element-radius) 0 0;
+}
+
+#coffee-pub-regent-wrapper .regent-message-header-question {
+    color: #494230;
+    background-color: #ddd3ce;
+}
+
+#coffee-pub-regent-wrapper .regent-message-header-answer {
+    color: #3d3b35;
+    background-color: #c4bcaa;
+}
+
+#coffee-pub-regent-wrapper .regent-message-speaker {
+    font-weight: 800;
+    font-size: 1.0em;
+    padding-right: 0;
+    padding-left: 3px;
+}
+
+#coffee-pub-regent-wrapper .regent-message-content {
+    font-weight: 100;
+    font-size: 1.0em;
+    margin-bottom: 0;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    padding-left: 8px;
+    padding-right: 8px;
+    border-radius: 0 0 var(--regent-element-radius) var(--regent-element-radius);
+    color: #13130f;
+    background-color: #f6f1ed;
+    border-top: 1px dotted #8d8061;
+    border-bottom: 1px solid #8d8061;
+    border-left: 1px solid #8d8061;
+    border-right: 1px solid #8d8061;
+    box-shadow: rgba(99, 99, 99, 0.4) 0px 2px 2px 0px;
+}
+
+#coffee-pub-regent-wrapper .regent-message-content h4 {
+    color: #746950;
+    border-bottom: 1px dotted #b6a57e;
+}
+
+#coffee-pub-regent-wrapper .regent-message-content h5 {
+    color: #636350;
+}
+
+#coffee-pub-regent-wrapper .regent-message-divider {
+    color: #a19476ce;
+    font-size: 0.8em;
+    text-transform: uppercase;
+    background-color: transparent;
+    border-top: 1px solid #a194764d;
+    border-bottom: 1px solid #a194764d;
+    border-left: 0;
+    border-right: 0;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+/* Message toolbar (per-message buttons) */
+#coffee-pub-regent-wrapper .regent-message-toolbar {
+    display: flex;
+    flex-direction: row;
+    font-weight: 100;
+    font-size: 1.0em;
+    margin-bottom: 10px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
+    border-radius: var(--regent-element-radius);
+    color: #bdbdae;
+    background-color: #ada39d;
+    border: 1px solid #8d8061;
+    box-shadow: rgba(99, 99, 99, 0.4) 0px 2px 2px 0px;
+}
+
+#coffee-pub-regent-wrapper #regent-workspace-toolbar {
+    display: flex;
+    flex-direction: row;
+    font-weight: 100;
+    font-size: 1.0em;
+    margin-top: 0;
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    padding-top: 5px;
+    padding-left: 2px;
+    padding-right: 2px;
+    background-color: transparent;
+    color: #ffffff;
+    border-top: 1px dotted #4b4b4b;
+    border-bottom: 1px dotted #4b4b4b;
+}
+
+#coffee-pub-regent-wrapper .toolbar-left {
+    justify-content: flex-start;
+}
+
+#coffee-pub-regent-wrapper .toolbar-right {
+    justify-content: flex-end;
+}
+
+#coffee-pub-regent-wrapper #regent-workspace-toolbar button,
+#coffee-pub-regent-wrapper .regent-message-toolbar button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    margin-left: 4px;
+    background-color: #313030;
+    color: #ffffff;
+    border: 1px solid #4b4b4b;
+    padding: 0;
+    padding-left: 4px;
+    font-size: 1em;
+    border-radius: var(--regent-element-radius);
+    transition: width 0.3s ease;
+}
+
+#coffee-pub-regent-wrapper #regent-workspace-toolbar button span,
+#coffee-pub-regent-wrapper .regent-message-toolbar button span {
+    display: none;
+}
+
+#coffee-pub-regent-wrapper .regent-message-toolbar button:hover {
+    background-color: #971416;
+    color: #ffffff;
+    border: 1px solid #767676;
+    box-shadow: none;
+}
+
+#coffee-pub-regent-wrapper #regent-workspace-toolbar button[data-label],
+#coffee-pub-regent-wrapper .regent-message-toolbar button[data-label] {
+    width: auto;
+    padding: 0 10px;
+}
+
+#coffee-pub-regent-wrapper #regent-workspace-toolbar button[data-label] span,
+#coffee-pub-regent-wrapper .regent-message-toolbar button[data-label] span {
+    font-size: 0.8em;
+    text-transform: uppercase;
+    display: inline;
+    margin-left: 4px;
+}
+
+#coffee-pub-regent-wrapper #regent-workspace-footer button.active,
+#coffee-pub-regent-wrapper .regent-message-toolbar button.active {
+    background-color: #550808;
+    color: #ffffff;
+    border: 1px solid #767676;
+}
+
+#coffee-pub-regent-wrapper .regent-chat-button-normal::after {
+    content: "";
+    text-transform: uppercase;
+}
+
+#coffee-pub-regent-wrapper .regent-workspace-toolbar-divider {
+    background-color: transparent;
+    border-top: 0 dotted #444444;
+    border-bottom: 0 solid #444444;
+    border-left: 1px dotted #444444;
+    border-right: 0;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    margin-left: 12px;
+    margin-right: 10px;
+    padding: 0;
+}
+
+/* Toggle section button (workspace section collapse) */
+#coffee-pub-regent-wrapper .toggle-button-section {
+    float: right;
+    background-color: #313030;
+    color: #ffffff;
+    border: 1px solid #4b4b4b;
+    padding: 3px 2px 2px 5px;
+    font-size: 0.8em;
+    margin: 0;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+    width: auto;
+    height: 1.4em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+#coffee-pub-regent-wrapper .toggle-button-section:hover {
+    background-color: #000000;
+    color: #ffffff;
+    border: 1px solid #767676;
+    box-shadow: none;
+}
+
+/* Has-workspace: expand min-width when workspace visible (class is on app root, not wrapper) */
+.has-workspace #coffee-pub-regent-wrapper {
+    min-width: var(--regent-total-width);
+    width: var(--regent-total-width);
+    max-width: var(--regent-total-width);
+}
+
+#coffee-pub-regent-wrapper {
+    min-width: var(--regent-base-width);
+    min-height: 506px;
+    transition: min-width 0.3s ease;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Workspace section images (moved from Blacksmith window-common) */
+#coffee-pub-regent-wrapper .workspace-section-image-container {
+    background-color: #ffffff;
+    box-shadow: 0px 0px 4px 1px rgba(0,0,0,0.1) !important;
+    border: 8px solid #ffffff !important;
+    border-radius: 6px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+#coffee-pub-regent-wrapper .workspace-section-image {
+    border-radius: 6px;
+    width: 100%;
+    border: 1px solid #a4a4a4;
+}
+
+#coffee-pub-regent-wrapper .workspace-section-image-caption {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+#coffee-pub-regent-wrapper .workspace-section-image-caption h6 {
+    font-weight: 600;
+    font-size: 0.9em;
+    color: #5f5f5f;
+    padding-top: 0;
+    padding-right: 5px;
+    padding-bottom: 0;
+    padding-left: 0;
+    margin-top: 5px;
+    margin-bottom: 2px;
+    margin-left: 0;
+    margin-right: 0;
+    text-align: center;
+    border-top: 0 dotted #a4a4a4;
+}

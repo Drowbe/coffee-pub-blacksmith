@@ -7,38 +7,38 @@
 
     {{!-- ----- CONTAINER  ----- --}}
     <div id="coffee-pub-regent-container">
-        <div id='coffee-pub-regent-output' class="blacksmith-output">
-            <div id="blacksmith-message-header" class="blacksmith-message-header-answer">
+        <div id='coffee-pub-regent-output' class="regent-output">
+            <div id="regent-message-header" class="regent-message-header-answer">
                 <i class="fas fa-crystal-ball"></i>
-                <span class="blacksmith-message-speaker">Regent</span>
+                <span class="regent-message-speaker">Regent</span>
             </div>
-            <div id="blacksmith-message-content">
+            <div id="regent-message-content">
                 <p>Greetings <b>{{user}}</b>! What brings you here today? Looking to craft a <b>devistating insult</b> to put <b>{{randomuser2}}</b> in their place? Need to fabricate a <b>rumor</b> about <b>{{randomuser1}}</b> to make your life seem better? I am here for all your needs.</p>
             </div>
-            <div id="blacksmith-message-divider">Let the chronicles of your valor unfold!</div>
+            <div id="regent-message-divider">Let the chronicles of your valor unfold!</div>
         </div>
         <div id="coffee-pub-regent-input">
             {{!-- Message input --}}
-            <textarea rows="3" id='blacksmith-input-message' name='blacksmith-input-message' class="blacksmith-textarea"></textarea>
+            <textarea rows="3" id='regent-input-message' name='regent-input-message' class="regent-textarea"></textarea>
             {{!-- toolbar --}}
-            <div id="blacksmith-message-options" class="toolbar-left">
+            <div id="regent-message-options" class="toolbar-left">
                 <label>
-                    <input type="checkbox" id="enterSubmits" data-persist="true" class="blacksmith-checkbox" checked> ENTER Sends
+                    <input type="checkbox" id="enterSubmits" data-persist="true" class="regent-checkbox" checked> ENTER Sends
                 </label>
-                <button type="button" id="blacksmith-toggle-workspace" class="toggle-button-workspace"><i class="fa-solid fa-chevrons-left"></i></button>
+                <button type="button" id="regent-toggle-workspace" class="toggle-button-workspace"><i class="fa-solid fa-chevrons-left"></i></button>
             </div>
             {{!-- button to submit the form --}}
-            <button type="submit" value="Submit" class="blacksmith-send-button-normal button-main">
+            <button type="submit" value="Submit" class="regent-send-button-normal regent-button-main">
                 <i class="fa-solid fa-wand-magic-sparkles"></i>
             </button>
         </div>
     </div>
 
     {{!-- ----- WORKSPACE WRAPPER ----- --}}
-    <div id="blacksmith-workspace-wrapper" class="workspace-hidden">
+    <div id="regent-workspace-wrapper" class="workspace-hidden">
     {{!-- BEGIN Workspace --}}
         {{!-- ----- WORKSPACE CONTENT ----- --}}
-        <div id="blacksmith-workspace-content">
+        <div id="regent-workspace-content">
         {{!-- BEGIN Content --}}
 
             {{!-- ----- ADD THE WORKSPACES HERE ----- --}}
@@ -61,60 +61,60 @@
         </div>
 
         {{!-- ----- WORKSPACE FOOTER ----- --}}
-        <div id="blacksmith-workspace-footer">
+        <div id="regent-workspace-footer">
             {{!-- BEGIN Footer --}}
 
             {{!-- WORKSPACE SELECTOR --}}
-            <div id="blacksmith-workspace-toolbar" class="toolbar-left">
+            <div id="regent-workspace-toolbar" class="toolbar-left">
 
                 {{!-- WORKSPACE: Lookup --}}
-                <button type="button" id="blacksmith-query-button-lookup" title="SRD Lookup">
+                <button type="button" id="regent-query-button-lookup" title="SRD Lookup">
                     <i class="fas fa-bolt"></i>
                 </button>
 
                 {{!-- WORKSPACE: Character Guidance --}}    
-                <button type="button" id="blacksmith-query-button-character" title="Character Guidance">
+                <button type="button" id="regent-query-button-character" title="Character Guidance">
                     <i class="fas fa-helmet-battle"></i>  
                 </button>
 
                 {{!-- GM Workspaces --}}
                 {{#if isGM}}
-                    <div class="blacksmith-workspace-toolbar-divider"></div>
+                    <div class="regent-workspace-toolbar-divider"></div>
                     {{!-- WORKSPACE: Assistant --}}
-                    <button type="button" id="blacksmith-query-button-assistant" title="Skill Check Assistant">
+                    <button type="button" id="regent-query-button-assistant" title="Skill Check Assistant">
                         <i class="fa-solid fa-hammer-brush"></i>
                     </button>
 
                     {{!-- WORKSPACE: Encounter --}}
-                    <button type="button" id="blacksmith-query-button-encounter" title="Quick Encounter">
+                    <button type="button" id="regent-query-button-encounter" title="Quick Encounter">
                         <i class="fa-solid fa-swords"></i>
                         </button>
 
                     {{!-- WORKSPACE: Narrative --}}
-                    <button type="button" id="blacksmith-query-button-narrative" title="Narrative Generator">
+                    <button type="button" id="regent-query-button-narrative" title="Narrative Generator">
                         <i class="fas fa-theater-masks"></i>
                 </button>
                 {{/if}}
             </div>
 
             {{!-- toolbar --}}
-            <div id="blacksmith-message-options" class="toolbar-left">
+            <div id="regent-workspace-footer-options" class="toolbar-left">
                 <label>
-                    <input type="checkbox" id="blnClearForm" data-persist="true" class="blacksmith-checkbox"> Clear
+                    <input type="checkbox" id="blnClearForm" data-persist="true" class="regent-checkbox"> Clear
                 </label>
                 {{#if isGM-TURNING-THESE-OFF-USE-GLOBAL-OPTIONS}}
                     <label>
-                        <input type="checkbox" id="blnGMDetails-{{id}}"  data-persist="true" class="blacksmith-checkbox" checked> GM Details
+                        <input type="checkbox" id="blnGMDetails-{{id}}"  data-persist="true" class="regent-checkbox" checked> GM Details
                     </label>
                     <label>
-                        <input type="checkbox" id="blnGMShowPrompt-{{id}}"  data-persist="true"  class="blacksmith-checkbox" > GM Prompt
+                        <input type="checkbox" id="blnGMShowPrompt-{{id}}"  data-persist="true"  class="regent-checkbox" > GM Prompt
                     </label>
                 {{/if}}
-                <button type="button" id="blacksmith-clear-workspace" class="clear-button"><i class="fa-solid fa-broom-wide"></i></button>
+                <button type="button" id="regent-clear-workspace" class="clear-button"><i class="fa-solid fa-broom-wide"></i></button>
             </div>
             {{!-- button to submit the form --}}
-            <div id="coffee-pub-regent-input">
-                <button type="submit" value="Submit" class="blacksmith-send-button-normal button-workspace">
+            <div id="regent-workspace-submit-wrap">
+                <button type="submit" value="Submit" class="regent-send-button-normal regent-button-workspace">
                     <i class="fa-solid fa-cloud-bolt"></i>
                 </button>
             </div>

@@ -28,7 +28,7 @@
     "scripts/window-query.js",
     "scripts/regent-bootstrap.js"
   ],
-  "styles": ["styles/window-query.css"],
+  "styles": ["styles/regent-window.css", "styles/regent-workspace-forms.css", "styles/window-query.css"],
   "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
   "authors": [
     { "name": "COFFEE PUB", "discord": "drowbe", "url": "https://github.com/Drowbe", "flags": { "isMaintainer": true } },

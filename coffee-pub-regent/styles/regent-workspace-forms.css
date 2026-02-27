@@ -1,0 +1,649 @@
+/* ------------------------------------ */
+/* Workspace/forms CSS moved from Blacksmith window-common.css */
+/* All rules scoped to #coffee-pub-regent-wrapper */
+/* ------------------------------------ */
+
+#coffee-pub-regent-wrapper .workspace-section-divider {
+    color: #a19476ce;
+    font-size: 0.8em;
+    text-transform: uppercase;
+    background-color: transparent;
+    border-top: 1px dotted #4c4c4c;
+    border-bottom: 0 solid #a19476ce;
+    border-left: 0 solid #a19476ce;
+    border-right: 0 solid #a19476ce;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+#coffee-pub-regent-wrapper .workspace-section-spacer {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+#coffee-pub-regent-wrapper .workspace-section-nodivider {
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+#coffee-pub-regent-wrapper .workspace-helper-text {
+    margin: auto;
+    font-size: 0.75em;
+    color: #786847;
+    text-transform: uppercase;
+    text-align: center;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+#coffee-pub-regent-wrapper .workspace-section .form-details {
+    font-weight: 500;
+    font-size: 0.8em;
+    margin-top: 10px;
+    margin-bottom: 0;
+    padding-left: 4px;
+}
+
+#coffee-pub-regent-wrapper .workspace-section .form-details .value {
+    font-weight: 300;
+    font-size: 1.0em;
+    padding-left: 4px;
+    color: #838080;
+}
+
+#coffee-pub-regent-wrapper .workspace-section textarea::placeholder,
+#coffee-pub-regent-wrapper .workspace-section input::placeholder {
+    color: #a5a3a3;
+    font-weight: 100;
+    font-size: 1.0em;
+    text-align: middle;
+}
+
+#coffee-pub-regent-wrapper .workspace-section option {
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 1px;
+    border: 1px solid #2b2b2b;
+    background-color: #f6f1ed;
+}
+
+#coffee-pub-regent-wrapper .workspace-section .tokens-container {
+    margin-top: 10px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-right: 0;
+    padding-left: 0;
+}
+
+#coffee-pub-regent-wrapper .tokens-container,
+#coffee-pub-regent-wrapper .monsters-container,
+#coffee-pub-regent-wrapper .npc-container,
+#coffee-pub-regent-wrapper .encounters-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+#coffee-pub-regent-wrapper .workspace-button-group {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 10px !important;
+}
+
+#coffee-pub-regent-wrapper .workspace-button-group button {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+}
+
+#coffee-pub-regent-wrapper .workspace-section .add-all-button,
+#coffee-pub-regent-wrapper .workspace-section .add-monsters-button,
+#coffee-pub-regent-wrapper .workspace-section .add-npcs-button,
+#coffee-pub-regent-wrapper .workspace-section .add-tokens-button {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    background-color: #313030;
+    color: #ffffff;
+    font-size: 2.0em;
+    transition: background-color 0.2s ease;
+    height: 36px;
+    border-radius: 5px;
+    border: 1px solid #6c6c6b;
+    padding: 0;
+    padding-top: 2px;
+    width: 100%;
+    margin: 0;
+}
+
+#coffee-pub-regent-wrapper .workspace-section .add-all-button i,
+#coffee-pub-regent-wrapper .workspace-section .add-monsters-button i,
+#coffee-pub-regent-wrapper .workspace-section .add-npcs-button i,
+#coffee-pub-regent-wrapper .workspace-section .add-tokens-button i {
+    font-size: 80%;
+    padding: 9px 14px;
+}
+
+#coffee-pub-regent-wrapper .workspace-section .add-all-button:hover,
+#coffee-pub-regent-wrapper .workspace-section .add-monsters-button:hover,
+#coffee-pub-regent-wrapper .workspace-section .add-npcs-button:hover,
+#coffee-pub-regent-wrapper .workspace-section .add-tokens-button:hover {
+    background-color: #550808;
+    border: 1px solid #b03d16;
+}
+
+#coffee-pub-regent-wrapper .player-card {
+    display: flex;
+    align-items: center;
+    border-radius: 5px;
+    border: 2px solid #a19476ce;
+    padding: 2px;
+    margin-top: 0;
+    width: calc(50% - 5px);
+    box-sizing: border-box;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
+#coffee-pub-regent-wrapper .player-card img {
+    width: 50px;
+    height: 50px;
+    border-radius: 5px;
+    object-fit: cover;
+}
+
+#coffee-pub-regent-wrapper .player-card-details {
+    display: flex;
+    flex-direction: column;
+    margin-left: 5px;
+}
+
+#coffee-pub-regent-wrapper .workspace-section .character-name {
+    font-size: 0.8em;
+    font-weight: 500;
+    text-transform: uppercase;
+    margin-top: 0;
+}
+
+#coffee-pub-regent-wrapper .workspace-section .character-details {
+    margin-top: 0;
+}
+
+#coffee-pub-regent-wrapper .workspace-section .character-rollup {
+    font-size: 0.7em;
+    font-weight: 400;
+    text-transform: uppercase;
+    color: #dcdcdc;
+}
+
+#coffee-pub-regent-wrapper .workspace-section .character-extra {
+    font-size: 0.7em;
+    font-weight: 400;
+    color: #dcdcdc;
+}
+
+#coffee-pub-regent-wrapper .toggle-button-workspace {
+    float: right;
+    background-color: #313030;
+    color: #ffffff;
+    border: 1px solid #4b4b4b;
+    padding: 5px 2px 3px 5px;
+    font-size: 0.8em;
+    border-radius: 4px;
+    margin-left: 4px;
+    transition: background-color 0.3s ease;
+    width: 30px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+#coffee-pub-regent-wrapper .toggle-button-workspace:hover {
+    background-color: #000000;
+    color: #ffffff;
+    border: 1px solid #767676;
+    box-shadow: none;
+}
+
+#coffee-pub-regent-wrapper .toggle-button {
+    float: right;
+    background-color: #313030;
+    color: #ffffff;
+    border: 1px solid #4b4b4b;
+    padding: 5px 2px 3px 5px;
+    font-size: 0.8em;
+    border-radius: 4px;
+    margin-left: 4px;
+    transition: background-color 0.3s ease;
+    width: 30px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+#coffee-pub-regent-wrapper .toggle-button:hover {
+    background-color: #000000;
+    color: #ffffff;
+    border: 1px solid #767676;
+    box-shadow: none;
+}
+
+#coffee-pub-regent-wrapper .form-options {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    align-items: left !important;
+}
+
+#coffee-pub-regent-wrapper .form-options label,
+#coffee-pub-regent-wrapper .form-options select,
+#coffee-pub-regent-wrapper .form-options input,
+#coffee-pub-regent-wrapper .form-options textarea {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    flex: 1 !important;
+}
+
+#coffee-pub-regent-wrapper .form-options .toggle-button-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 10px;
+}
+
+#coffee-pub-regent-wrapper .form-options .toggle-button {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    font-size: 1.0em;
+    background-color: #0e0c0c;
+    color: #ffffff;
+    border: 1px solid #4b4b4b;
+    padding: 12px 4px 12px 6px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#coffee-pub-regent-wrapper .form-options .level-button {
+    flex: 1 1 calc(34.33% - 10px);
+    max-width: calc(33.33% - 10px);
+}
+
+#coffee-pub-regent-wrapper .form-options .class-button {
+    flex: 1 1 calc(50% - 10px);
+    max-width: calc(50% - 10px);
+}
+
+#coffee-pub-regent-wrapper .form-options .toggle-button i {
+    margin-right: 8px;
+    padding-top: 3px;
+}
+
+#coffee-pub-regent-wrapper .form-options .toggle-button.active {
+    background-color: #114411;
+    color: #ffffff;
+}
+
+#coffee-pub-regent-wrapper .form-options .toggle-button.auto {
+    background-color: #063883;
+    color: #ffffff;
+}
+
+#coffee-pub-regent-wrapper .form-options .toggle-button:hover {
+    background-color: #239023;
+}
+
+#coffee-pub-regent-wrapper .player-card .clear-button,
+#coffee-pub-regent-wrapper .form-options .clear-button {
+    background-color: transparent;
+    color: #dddddd;
+    border: 0 solid #686868;
+    border-radius: 5px;
+    width: auto;
+    height: auto;
+    text-align: center;
+    line-height: 1.2em;
+    font-size: 1.0em;
+    font-weight: 900;
+    cursor: pointer;
+    padding: auto;
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-right: 0;
+    margin-left: auto;
+}
+
+#coffee-pub-regent-wrapper .form-options .clear-button {
+    display: none;
+}
+
+#coffee-pub-regent-wrapper .player-card .clear-button:hover,
+#coffee-pub-regent-wrapper .form-options .clear-button:hover {
+    background-color: #f52127;
+    color: #ffffff;
+    border: 0 solid #686868;
+}
+
+#coffee-pub-regent-wrapper .form-options .count {
+    display: none;
+    color: #c9afaf;
+    margin-left: 0;
+}
+
+#coffee-pub-regent-wrapper .form-options .count::before {
+    content: "•";
+    margin-right: 2px;
+    margin-left: 2px;
+    color: #c9afaf;
+}
+
+#coffee-pub-regent-wrapper .form-options .count::after {
+    content: "";
+    margin-left: 0;
+}
+
+#coffee-pub-regent-wrapper .form-options .character-types-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+#coffee-pub-regent-wrapper .form-options .character-types-grid label {
+    display: flex;
+    align-items: center;
+}
+
+#coffee-pub-regent-wrapper .encounter-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    width: 100%;
+    gap: 10px;
+}
+
+#coffee-pub-regent-wrapper .info-badge-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    flex-grow: 1;
+    margin: 0;
+    max-width: calc(25% - 7.5px);
+}
+
+#coffee-pub-regent-wrapper .info-badge-container label {
+    font-size: 0.75em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+#coffee-pub-regent-wrapper .info-badge {
+    padding: 5px 10px;
+    border-radius: 5px;
+    background-color: #59543F;
+    min-width: 40px;
+    border-right: 0 solid #a19476ce;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    padding-left: 6px;
+    padding-right: 6px;
+    width: 100%;
+}
+
+#coffee-pub-regent-wrapper .info-badge-total {
+    background-color: #248592;
+}
+
+#coffee-pub-regent-wrapper .info-badge-special {
+    background-color: #c35206;
+}
+
+#coffee-pub-regent-wrapper .big-number {
+    font-size: 1.5em;
+    font-weight: 300;
+}
+
+#coffee-pub-regent-wrapper .normal-badge {
+    font-weight: 200;
+}
+
+#coffee-pub-regent-wrapper .bold-badge {
+    font-weight: 900;
+}
+
+#coffee-pub-regent-wrapper .gap-lessthan {
+    background-color: #456904;
+}
+
+#coffee-pub-regent-wrapper .gap-greaterthan {
+    background-color: #6a2127;
+}
+
+#coffee-pub-regent-wrapper .gap-equalto {
+    background-color: #248592;
+}
+
+#coffee-pub-regent-wrapper .disposition-neutral {
+    border: 2px solid #12908E;
+}
+
+#coffee-pub-regent-wrapper .disposition-friendly {
+    border: 2px solid #196405;
+}
+
+#coffee-pub-regent-wrapper .disposition-secret {
+    border: 2px solid #329F9D;
+}
+
+#coffee-pub-regent-wrapper .disposition-hostile {
+    border: 2px solid #C63E10;
+}
+
+#coffee-pub-regent-wrapper .hp-dying {
+    border-style: dotted;
+}
+
+#coffee-pub-regent-wrapper .encounter-rating-badge {
+    width: 100%;
+    padding: 10px;
+    text-align: center;
+    border-radius: 6px;
+    font-size: 1.6em;
+    font-weight: 900;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.5s ease;
+}
+
+#coffee-pub-regent-wrapper .encounter-rating-badge i {
+    margin-right: 8px;
+}
+
+#coffee-pub-regent-wrapper .encounter-rating-none {
+    background-color: #6c757d;
+    color: #ffffff;
+}
+
+#coffee-pub-regent-wrapper .encounter-rating-trivial {
+    background-color: #155724;
+    color: #ffffff;
+}
+
+#coffee-pub-regent-wrapper .encounter-rating-easy {
+    background-color: #004085;
+    color: #ffffff;
+}
+
+#coffee-pub-regent-wrapper .encounter-rating-medium {
+    background-color: #856404;
+    color: #ffffff;
+}
+
+#coffee-pub-regent-wrapper .encounter-rating-hard {
+    background-color: #721c24;
+    color: #ffffff;
+}
+
+#coffee-pub-regent-wrapper .encounter-rating-deadly {
+    background-color: #841517;
+    color: #ffffff;
+}
+
+#coffee-pub-regent-wrapper .encounter-rating-deadly-slow {
+    animation: regent-pulseColorSlow 1.5s infinite;
+}
+
+#coffee-pub-regent-wrapper .encounter-rating-deadly-medium {
+    animation: regent-pulseColorMedium 1s infinite;
+}
+
+#coffee-pub-regent-wrapper .encounter-rating-deadly-fast {
+    animation: regent-pulseColorFast 0.5s infinite;
+}
+
+@keyframes regent-pulseColorSlow {
+    0% { background-color: #d02124; }
+    50% { background-color: #841517; }
+    100% { background-color: #d02124; }
+}
+
+@keyframes regent-pulseColorMedium {
+    0% { background-color: #d02124; }
+    50% { background-color: #841517; }
+    100% { background-color: #d02124; }
+}
+
+@keyframes regent-pulseColorFast {
+    0% { background-color: #d02124; }
+    50% { background-color: #841517; }
+    100% { background-color: #d02124; }
+}
+
+@keyframes regent-pulseColorImpossible {
+    0% { background-color: #831416; }
+    50% { background-color: #370809; }
+    100% { background-color: #831416; }
+}
+
+#coffee-pub-regent-wrapper .encounter-rating-impossible {
+    background-color: #3f0808;
+    color: #fffcfa;
+    animation: regent-pulseColorImpossible 0.25s infinite;
+}
+
+#coffee-pub-regent-wrapper .form-options .slider-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+#coffee-pub-regent-wrapper .form-options .slider-container i {
+    font-size: 1.5em;
+    height: auto;
+    margin: 0 5px;
+    padding-top: 6px;
+}
+
+#coffee-pub-regent-wrapper .form-options input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 22px;
+    opacity: 0.9;
+    transition: opacity 0.2s;
+    background: linear-gradient(to right, #550808 0%, #550808 50%, #550808 50%, #550808 100%);
+    color: #ffffff;
+    outline: 1px solid #4b4b4b;
+    padding: 0;
+    border-radius: 6px;
+    flex-grow: 1;
+    margin: 0;
+}
+
+#coffee-pub-regent-wrapper .form-options input[type="range"]:hover {
+    opacity: 1;
+}
+
+#coffee-pub-regent-wrapper .form-options input[type="range"]::-webkit-slider-runnable-track {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    background: transparent;
+    border: none;
+    border-radius: 2px;
+    box-shadow: 0 0 0 0 #ceccc9;
+}
+
+#coffee-pub-regent-wrapper .form-options input[type="range"]::-moz-range-track {
+    width: 100%;
+    height: 8px;
+    background: transparent;
+    border: none;
+    border-radius: 2px;
+}
+
+#coffee-pub-regent-wrapper .form-options input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    background-color: #aaaaaa;
+    color: #ffffff;
+    border: 1px solid #888888;
+    border-radius: 3px;
+    position: relative;
+    z-index: 1;
+}
+
+#coffee-pub-regent-wrapper .form-options input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    background-color: #550808;
+    color: #ffffff;
+    border: 1px solid #4b4b4b;
+    border-radius: 6px;
+    position: relative;
+    z-index: 1;
+}
+
+#coffee-pub-regent-wrapper .form-options input[type="range"]:hover::-webkit-slider-thumb {
+    background-color: #ffffff;
+    border-color: #888888;
+}
+
+#coffee-pub-regent-wrapper #regent-message-options label,
+#coffee-pub-regent-wrapper #regent-workspace-footer-options label {
+    margin-top: 0;
+    margin-right: 4px;
+    margin-bottom: 6px;
+    font-size: 1.0em;
+    font-weight: 100;
+    position: relative;
+    vertical-align: middle;
+    align-items: center;
+    color: #ffffff;
+}

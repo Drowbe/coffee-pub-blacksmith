@@ -11,7 +11,7 @@ import { getCachedTemplate } from './regent.js';
 
 // -- COMMON Imports --
 import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from '/modules/coffee-pub-blacksmith/scripts/common.js';
-import { TokenHandler } from '/modules/coffee-pub-blacksmith/scripts/token-handler.js';
+import { TokenHandler } from './token-handler.js';
 
 // Base template for AI instructions
 const BASE_PROMPT_TEMPLATE = {
@@ -158,7 +158,7 @@ function clearFormInputs(form, blnClearForm) {
         });
     } else {
         // Only clear the main input
-        const textareaMessage = document.getElementById('blacksmith-input-message');
+        const textareaMessage = document.getElementById('regent-input-message');
         if (textareaMessage) {
             textareaMessage.value = '';
         }
@@ -313,9 +313,9 @@ export class BlacksmithWindowQuery extends FormApplication {
             resizable: true,
             width: 600,
             height: intHeight,
-            classes: ['blacksmith-window'],
+            classes: ['regent-window'],
             minimizable: true,
-            scrollY: ['.blacksmith-output']
+            scrollY: ['.regent-output']
         });
     }
 
@@ -340,14 +340,14 @@ export class BlacksmithWindowQuery extends FormApplication {
         
         // Set initial workspace visibility
         if (!this.showWorkspace) {
-            const wrapper = document.getElementById('blacksmith-workspace-wrapper');
+            const wrapper = document.getElementById('regent-workspace-wrapper');
             if (wrapper) {
                 wrapper.classList.add('workspace-hidden');
                 if (windowElement) {
                     windowElement.classList.remove('has-workspace');
                 }
             }
-            const toggleButton = document.getElementById('blacksmith-toggle-workspace');
+            const toggleButton = document.getElementById('regent-toggle-workspace');
             if (toggleButton) {
                 const icon = toggleButton.querySelector('i');
                 if (icon) {
@@ -359,7 +359,7 @@ export class BlacksmithWindowQuery extends FormApplication {
             if (windowElement) {
                 windowElement.classList.add('has-workspace');
             }
-            this.switchWorkspace(html, `blacksmith-query-workspace-${this.workspaceId}`);
+            this.switchWorkspace(html, `regent-query-workspace-${this.workspaceId}`);
         }
 
         // Check if we're starting in encounter mode and have selected tokens
@@ -394,7 +394,7 @@ export class BlacksmithWindowQuery extends FormApplication {
 
         // don't let these buttons submit the main form
         htmlElement.addEventListener('click', (event) => {
-            const target = event.target.closest('.blacksmith-send-button-normal');
+            const target = event.target.closest('.regent-send-button-normal');
             if (target) {
                 event.preventDefault();
                 const form = htmlElement.querySelector('form');
@@ -406,19 +406,19 @@ export class BlacksmithWindowQuery extends FormApplication {
 
         // Bind the copy and chat buttons
         htmlElement.addEventListener('click', (event) => {
-            const target = event.target.closest('#blacksmith-chat-button-json');
+            const target = event.target.closest('.regent-chat-button-json');
             if (target) {
                 this._onSendToJson.call(this, event, target);
             }
         });
         htmlElement.addEventListener('click', (event) => {
-            const target = event.target.closest('#blacksmith-chat-button-chat');
+            const target = event.target.closest('.regent-chat-button-chat');
             if (target) {
                 this._onSendToChat.call(this, event, target);
             }
         });
         htmlElement.addEventListener('click', (event) => {
-            const target = event.target.closest('#blacksmith-chat-button-copy');
+            const target = event.target.closest('.regent-chat-button-copy');
             if (target) {
                 this._onCopyToClipboard.call(this, event, target);
             }
@@ -429,7 +429,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         }
 
         // Bind the clear button workspace 
-        const clearWorkspaceButton = htmlElement.querySelector('#blacksmith-clear-workspace');
+        const clearWorkspaceButton = htmlElement.querySelector('#regent-clear-workspace');
         if (clearWorkspaceButton) {
             clearWorkspaceButton.addEventListener('click', (event) => {
                 event.preventDefault();
@@ -437,7 +437,7 @@ export class BlacksmithWindowQuery extends FormApplication {
                 if (!form) return;
                 
                 // Only clear inputs within the active workspace
-                const workspaceSelector = `#blacksmith-query-workspace-${this.workspaceId}`;
+                const workspaceSelector = `#regent-query-workspace-${this.workspaceId}`;
                 const workspaceInputs = form.querySelector(workspaceSelector);
                 
                 if (workspaceInputs) {
@@ -462,7 +462,7 @@ export class BlacksmithWindowQuery extends FormApplication {
 
         // Handle the Enter key press based on the checkbox state
         const enterSubmitsCheckbox = htmlElement.querySelector('#enterSubmits');
-        const inputMessage = htmlElement.querySelector('textarea[name="blacksmith-input-message"]');
+        const inputMessage = htmlElement.querySelector('textarea[name="regent-input-message"]');
 
         if (inputMessage) {
             inputMessage.addEventListener('keypress', (event) => {
@@ -485,10 +485,10 @@ export class BlacksmithWindowQuery extends FormApplication {
         }
         
         // Ensure the correct workspace button is active based on the initial mode
-        this.switchWorkspace(htmlElement, `blacksmith-query-workspace-${this.workspaceId}`);
+        this.switchWorkspace(htmlElement, `regent-query-workspace-${this.workspaceId}`);
 
         // Attach the event listener for the toggle button
-        const toggleWorkspaceButton = htmlElement.querySelector('#blacksmith-toggle-workspace');
+        const toggleWorkspaceButton = htmlElement.querySelector('#regent-toggle-workspace');
         if (toggleWorkspaceButton) {
             toggleWorkspaceButton.addEventListener('click', (event) => {
                 event.preventDefault();
@@ -498,7 +498,7 @@ export class BlacksmithWindowQuery extends FormApplication {
 
         // Attach the event listener for workspace buttons
         htmlElement.addEventListener('click', (event) => {
-            const clickedButton = event.target.closest('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
+            const clickedButton = event.target.closest('#regent-query-button-lookup, #regent-query-button-narrative, #regent-query-button-encounter, #regent-query-button-assistant, #regent-query-button-character');
             if (clickedButton) {
                 event.preventDefault();
                 const workspaceId = clickedButton.getAttribute('id').replace('button', 'workspace');
@@ -1017,7 +1017,7 @@ export class BlacksmithWindowQuery extends FormApplication {
     
         // Update workspaceId and store as last active
         const oldWorkspaceId = this.workspaceId;
-        this.workspaceId = workspaceId.replace('blacksmith-query-workspace-', '');
+        this.workspaceId = workspaceId.replace('regent-query-workspace-', '');
         this.lastActiveWorkspace = this.workspaceId;
 
 
@@ -1031,9 +1031,9 @@ export class BlacksmithWindowQuery extends FormApplication {
     
         if (html) {
             // v13: html should be native DOM (from our code or Foundry)
-            const workspaceButtons = html.querySelectorAll('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
+            const workspaceButtons = html.querySelectorAll('#regent-query-button-lookup, #regent-query-button-narrative, #regent-query-button-encounter, #regent-query-button-assistant, #regent-query-button-character');
             workspaceButtons.forEach(button => button.classList.remove('active'));
-            const activeButton = html.querySelector(`#blacksmith-query-button-${this.workspaceId}`);
+            const activeButton = html.querySelector(`#regent-query-button-${this.workspaceId}`);
             if (activeButton) activeButton.classList.add('active');
             
             const workspaceContents = html.querySelectorAll('.workspace-content');
@@ -1042,9 +1042,9 @@ export class BlacksmithWindowQuery extends FormApplication {
             if (activeWorkspace) activeWorkspace.classList.remove('hidden');
         } else {
             // Direct DOM manipulation path
-            const workspaceButtons = document.querySelectorAll('#blacksmith-query-button-lookup, #blacksmith-query-button-narrative, #blacksmith-query-button-encounter, #blacksmith-query-button-assistant, #blacksmith-query-button-character');
+            const workspaceButtons = document.querySelectorAll('#regent-query-button-lookup, #regent-query-button-narrative, #regent-query-button-encounter, #regent-query-button-assistant, #regent-query-button-character');
             workspaceButtons.forEach(button => button.classList.remove('active'));
-            const activeButton = document.getElementById(`blacksmith-query-button-${this.workspaceId}`);
+            const activeButton = document.getElementById(`regent-query-button-${this.workspaceId}`);
             if (activeButton) activeButton.classList.add('active');
             
             const workspaceContents = document.querySelectorAll('.workspace-content');
@@ -1060,8 +1060,8 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     toggleWorkspaceVisibility(html, logToggle = true) {
         const windowElement = document.getElementById(MODULE.ID);
-        const workspace = document.getElementById('blacksmith-workspace-wrapper');
-        const toggleButton = document.getElementById('blacksmith-toggle-workspace');
+        const workspace = document.getElementById('regent-workspace-wrapper');
+        const toggleButton = document.getElementById('regent-toggle-workspace');
         
         if (!workspace || !windowElement) {
             postConsoleAndNotification(MODULE.NAME, 'Could not find workspace or window elements', "", false, false);
@@ -1444,10 +1444,10 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     async _onSendToJson(event, buttonOverride) {
         event.preventDefault();
-        const button = buttonOverride || event.target.closest('#blacksmith-chat-button-json');
+        const button = buttonOverride || event.target.closest('.regent-chat-button-json');
         if (!button) return;
         const messageId = button.getAttribute('data-message-id');
-        const contentElement = document.querySelector(`#blacksmith-message-wrapper[data-message-id="${messageId}"]`);
+        const contentElement = document.querySelector(`.regent-message-wrapper[data-message-id="${messageId}"]`);
         let content = contentElement ? contentElement.innerHTML : null;
         
         try {
@@ -1490,10 +1490,10 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     async _onSendToChat(event, buttonOverride) {
         event.preventDefault();
-        const button = buttonOverride || event.target.closest('#blacksmith-chat-button-chat');
+        const button = buttonOverride || event.target.closest('.regent-chat-button-chat');
         if (!button) return;
         const messageId = button.getAttribute('data-message-id');
-        const contentElement = document.querySelector(`#blacksmith-message-wrapper[data-message-id="${messageId}"]`);
+        const contentElement = document.querySelector(`.regent-message-wrapper[data-message-id="${messageId}"]`);
         const content = contentElement ? contentElement.innerHTML : null;
         postConsoleAndNotification(MODULE.NAME, "Content Element:", contentElement, true, false);
         postConsoleAndNotification(MODULE.NAME, "Content:", content, true, false);
@@ -1516,10 +1516,10 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     async _onCopyToClipboard(event, buttonOverride) {
         event.preventDefault();
-        const button = buttonOverride || event.target.closest('#blacksmith-chat-button-copy');
+        const button = buttonOverride || event.target.closest('.regent-chat-button-copy');
         if (!button) return;
         const messageId = button.getAttribute('data-message-id');
-        const contentElement = document.querySelector(`#blacksmith-message-content[data-message-id="${messageId}"]`);
+        const contentElement = document.querySelector(`.regent-message-content[data-message-id="${messageId}"]`);
         let content = contentElement ? contentElement.innerHTML : null;
         postConsoleAndNotification(MODULE.NAME, "Content Element:", contentElement, false, false);
         postConsoleAndNotification(MODULE.NAME, "Content:", content, false, false);
@@ -1530,7 +1530,7 @@ export class BlacksmithWindowQuery extends FormApplication {
             // Compress the HTML content by removing line breaks and spaces between tags
             content = content.replace(/>\s+</g, '><');
             // wrap it in a nice package.
-            //content = `<div id="blacksmith-message-header" class="blacksmith-message-header-answer"><i class="fa-solid fa-copy"></i><span class="blacksmith-message-speaker">Clipboard</span></div><div id="blacksmith-message-content">${content}</div>`;
+            //content = `<div id="regent-message-header" class="regent-message-header-answer"><i class="fa-solid fa-copy"></i><span class="regent-message-speaker">Clipboard</span></div><div id="regent-message-content">${content}</div>`;
             try {
                 await navigator.clipboard.writeText(content);
                 ui.notifications.info("Content copied to clipboard.");
@@ -1573,7 +1573,7 @@ export class BlacksmithWindowQuery extends FormApplication {
         // ==============================================================
 
         // INPUT MESSAGE - NORMAL QUESTION
-        const inputMessage = form.querySelector('textarea[name="blacksmith-input-message"]').value.trim();
+        const inputMessage = form.querySelector('textarea[name="regent-input-message"]').value.trim();
         postConsoleAndNotification(MODULE.NAME, 'Form submitted with message:', inputMessage, true, false);
 
 
@@ -2600,7 +2600,7 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
             
 
             // Set focus back to the input box
-            form.querySelector('textarea[name="blacksmith-input-message"]').focus();
+                form.querySelector('textarea[name="regent-input-message"]').focus();
 
             if (this.onFormSubmit) {
 
@@ -2609,8 +2609,8 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
                 postConsoleAndNotification(MODULE.NAME, "Submitting to ChatGPT: strFinalPrompt", strFinalPrompt, true, false);
                 await this.onFormSubmit(strFinalPrompt, strFinalContext);
 
-                // Hide the divs with the class "blacksmith-processing"
-                let processingDivs = document.querySelectorAll('.blacksmith-processing');
+                // Hide the divs with the class "regent-processing"
+                let processingDivs = document.querySelectorAll('.regent-processing');
                 processingDivs.forEach(function(element) {
                     element.style.display = 'none';
                 });
@@ -2623,13 +2623,13 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
                     const gmUsers = game.users.filter(user => user.isGM);
                     for (const gmUser of gmUsers) {
                         await ChatMessage.create({
-                            content: `<div id="blacksmith-message-header" class="blacksmith-message-header-answer">
+                            content: `<div id="regent-message-header" class="regent-message-header-answer">
                                         <i class="fas fa-crystal-ball"></i>
-                                        <span class="blacksmith-message-speaker">
+                                        <span class="regent-message-speaker">
                                             Regent Report
                                         </span>
                                     </div>
-                                    <div id="blacksmith-message-content" data-message-id="">
+                                    <div id="regent-message-content" data-message-id="">
                                         <h4>Player Using Regent</h4>
                                         <p><b>${game.user.name}</b><br></p>
                                         <h4>Input Message</h4>
@@ -3164,7 +3164,7 @@ async function addEncounterToNarrative(id, journalEntry, page) {
 }
 
 function updateEncountersData(id, newEncounterData) {
-    const form = document.querySelector(`#blacksmith-query-workspace-narrative`);
+    const form = document.querySelector(`#regent-query-workspace-narrative`);
     if (!form) return;
 
     // Get or create the hidden input for encounters data

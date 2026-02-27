@@ -45,13 +45,7 @@ export const MODULE = {
 };
 
 export const BLACKSMITH = {
-    BOT_NAME: "Regent",
     FANCY_DATE_TIME: "",
-    WINDOW_QUERY_TITLE: "Consult the Regent",
-    WINDOW_QUERY_FORMTITLE: "Title",
-    WINDOW_QUERY: `modules/${MODULE.ID}/templates/window-query.hbs`,
-    WINDOW_QUERY_MESSAGE: `modules/${MODULE.ID}/templates/partial-message.hbs`,
-
     JOURNAL_NARRATIVE_TEMPLATE: `modules/${MODULE.ID}/templates/journal-narrative.hbs`,
     JOURNAL_ENCOUNTER_TEMPLATE: `modules/${MODULE.ID}/templates/journal-encounter.hbs`,
     JOURNAL_INJURY_TEMPLATE: `modules/${MODULE.ID}/templates/journal-injury.hbs`,

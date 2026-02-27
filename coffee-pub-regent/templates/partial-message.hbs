@@ -1,8 +1,8 @@
 {{#if blnProcessing}}
-    <div id="blacksmith-message-wrapper-processing" class="blacksmith-processing">
-        <div id="blacksmith-message-header-processing">
+    <div id="regent-message-wrapper-processing" class="regent-processing">
+        <div id="regent-message-header-processing">
             <i class="fas {{strSpeakerIcon}}"></i>
-            <span class="blacksmith-message-speaker">
+            <span class="regent-message-speaker">
                 {{strSpeakerName}}
             </span>
             {{strMessageIntro}}
@@ -10,40 +10,39 @@
     </div>
 {{/if}}
 {{#unless blnProcessing}}
-    <div id="blacksmith-message-wrapper" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
+    <div class="regent-message-wrapper" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
         
-        <div id="blacksmith-message-header" class="{{strHeaderStlye}}">
+        <div class="regent-message-header {{strHeaderStlye}}">
             <i class="fas {{strSpeakerIcon}}"></i>
-            <span class="blacksmith-message-speaker">
+            <span class="regent-message-speaker">
                 {{strSpeakerName}}
             </span>
             {{strMessageIntro}}
         </div>
 
-        <div id="blacksmith-message-content" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
+        <div class="regent-message-content" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
             {{{strMessageContent}}}
         </div>
 
     </div>
 
     {{#if blnToolbar}}
-        <div id="blacksmith-message-toolbar" class="toolbar-right">
+        <div class="regent-message-toolbar toolbar-right">
                 {{#if blnIsJSON}}
-                <button id="blacksmith-chat-button-json" class="blacksmith-chat-button-normal" data-label="true" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
+                <button type="button" class="regent-chat-button-json regent-chat-button-normal" data-label="true" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
                     <i class="fa-solid fa-message-arrow-down"></i>
                 </button>
                 {{/if}}
 
-            <button id="blacksmith-chat-button-copy" class="blacksmith-chat-button-normal" data-label="true" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
+            <button type="button" class="regent-chat-button-copy regent-chat-button-normal" data-label="true" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
                 <i class="fa-solid fa-copy"></i>
             </button>
-            <button id="blacksmith-chat-button-chat" class="blacksmith-chat-button-normal" data-label="true" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
+            <button type="button" class="regent-chat-button-chat regent-chat-button-normal" data-label="true" {{#if messageId}}data-message-id="{{messageId}}"{{/if}}>
                 <i class="fas fa-comment"></i> 
                 <span>Send to Chat</span>
             </button>
         </div>
-        <div id="blacksmith-message-divider">{{strDateStamp}}{{#if tokenInfo}} | {{tokenInfo}} | ${{cost}}{{/if}} — Hear ye! The Regent has spoken, it is so!</div>
+        <div class="regent-message-divider">{{strDateStamp}}{{#if tokenInfo}} | {{tokenInfo}} | ${{cost}}{{/if}} — Hear ye! The Regent has spoken, it is so!</div>
     {{/if}}
 
 {{/unless}}
-

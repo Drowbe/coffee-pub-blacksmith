@@ -130,7 +130,7 @@ export async function buildQueryCard(question, queryWindow, queryContext = '') {
 
     let CARDDATA = {
         strDateStamp, blnProcessing: false, blnToolbar: false,
-        strSpeakerIcon: "fa-helmet-battle", strHeaderStlye: "blacksmith-message-header-question",
+        strSpeakerIcon: "fa-helmet-battle", strHeaderStlye: "regent-message-header-question",
         strSpeakerName: game.user.name, strMessageIntro: "", strMessageContent: strDisplayQuestion
     };
     queryWindow.displayMessage(template(CARDDATA));
@@ -153,7 +153,7 @@ export async function buildQueryCard(question, queryWindow, queryContext = '') {
     const messageId = Date.now();
     CARDDATA = {
         strDateStamp, blnProcessing: false, blnToolbar: true,
-        strSpeakerIcon: "fa-crystal-ball", strHeaderStlye: "blacksmith-message-header-answer",
+        strSpeakerIcon: "fa-crystal-ball", strHeaderStlye: "regent-message-header-answer",
         strSpeakerName: "Regent", strMessageIntro: "", strMessageContent: strAnswer,
         messageId, blnIsJSON: jsonCheck.isValid,
         tokenInfo: openAIResponse.usage ? `${openAIResponse.usage.total_tokens} Tokens` : null,
