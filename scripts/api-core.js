@@ -708,11 +708,6 @@ export function registerBlacksmithUpdatedHook() {
 			COFFEEPUB.arrICONCHOICES = newBlacksmith.arrIconChoices;
 			// Get the Sound list
 			COFFEEPUB.arrSOUNDCHOICES = newBlacksmith.arrSoundChoices;
-			// Get the OpenAI Variables
-			COFFEEPUB.strOpenAIAPIKey = newBlacksmith.strOpenAIAPIKey;
-			COFFEEPUB.strOpenAIModel = newBlacksmith.strOpenAIModel;
-			COFFEEPUB.strOpenAIGameSystems = newBlacksmith.strOpenAIGameSystems;
-			COFFEEPUB.strOpenAIPrompt = newBlacksmith.strOpenAITemperature;
 			// --- END - HOOKMANAGER CALLBACK ---
 		}
 	});

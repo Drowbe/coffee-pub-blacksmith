@@ -1263,47 +1263,6 @@
 				"encounterToolbarDeploymentHidden-Hint": "Deploy the tokens to the canvas in the hidden state.",
 			
 
-	"SEPARATOR-ARTIFICIAL-INTELLIGENCE": "-------------------------------------------------------",
-
-
-	"headingH1ArtificialIntelligence-Label": "Artifical Intelligence",
-	"headingH1ArtificialIntelligence-Hint": "If you want to leverage Blacksmith tools like Ask the Regent, you'll need to set up an OpenAI account and API key.",
-
-
-		"headingH3headingH2OpenAICore-Label": "Open AI Configuration",
-		"headingH3headingH2OpenAICore-Hint": "",
-
-			"openAIMacro-Label": "Macro",
-			"openAIMacro-Hint": "The name of the macro that should trigger the AI window if you want one in addition to the Ask the Regent button in the toolbar.",
-
-
-			"openAIAPIKey-Label": "API Key",
-			"openAIAPIKey-Hint": "API key from OpenAI. Get yours at https://platform.openai.com/account/api-keys .",
-
-			"openAIProjectId-Label": "OpenAI Project ID",
-			"openAIProjectId-Hint": "Optional: OpenAI Project ID for better cost tracking and team management. Get yours at https://platform.openai.com/projects",
-
-			"openAIModel-Label": "Model",
-			"openAIModel-Hint": "Version of the OpenAI model to use. GPT-4 Turbo is recommended for D&D content but costs more. Free accounts can use GPT-3.5 Turbo.",
-
-		"headingH3headingH2OpenAIContext-Label": "Context",
-		"headingH3headingH2OpenAIContext-Hint": "",
-
-
-			"openAIGameSystems-Label": "Game System",
-			"openAIGameSystems-Hint": "Optimize logic for the game system. Includes a default prompt that can be overridden below.",
-
-			"openAIPrompt-Label": "Custom Prompt",
-			"openAIPrompt-Hint": "Overrides prompt for the game system above. Edit the prompt to customize or refine OpenAI behavior.",
-
-
-			"openAIContextLength-Label": "Context Length",
-			"openAIContextLength-Hint": "Number of messages, including replies, OpenAI has access to. Increases API usage cost. Context is not shared among users and resets on page reload.",
-
-			"openAITemperature-Label": "Temperature",
-			"openAITemperature-Hint": "Controls randomness in responses (0-2). Higher values make output more creative but less focused. Default: 1",
-
-
 	"SEPARATOR-DEVELOPER-TOOLS": "-------------------------------------------------------",
 
 

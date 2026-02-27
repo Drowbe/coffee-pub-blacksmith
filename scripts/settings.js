@@ -18,16 +18,6 @@ import { dataNameplate, dataSounds, dataIcons, dataBackgroundImages, dataTheme }
 // ===== CONSTANTS ====================================================
 // ================================================================== 
 
-const gameSystemChoices = {
-    generic: 'Generic tabletop RPG',
-    dnd5e: 'Dungeons & Dragons 5th Edition',
-    pf2e: 'Pathfinder Second Edition',
-    foundryIronsworn: 'Ironsworn'
-}
-const genericPrompt = "I would like you to help me with running the game by coming up with ideas, answering questions, and improvising. Keep responses as short as possible. Stick to the rules as much as possible.";
-const formatPrompt = "Always format each answer as HTML code without CSS. Leverage lists and simple tables. Never use Markdown. Never use the pre html tag.";
-
-
 
 // ================================================================== 
 // ===== WORKFLOW GROUPS ============================================
@@ -40,7 +30,6 @@ const WORKFLOW_GROUPS = {
     MANAGE_CONTENT: 'manage-content',
     ROLLING_AND_PROGRESSION: 'rolling-and-progression',
     AUTOMATION: 'automation',
-	ARTIFICIAL_INTELLIGENCE: 'artificial-intelligence',
 	DEVELOPER_TOOLS: 'developer-tools'
 };
 
@@ -5634,140 +5623,6 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
-
-
-
-
-	// ==================================================================================================================== 
-	// ==================================================================================================================== 
-	// == Artifical Intelligence
-	// ==================================================================================================================== 
-	// ==================================================================================================================== 
-	registerHeader('ArtificialIntelligence', 'headingH1ArtificialIntelligence-Label', 'headingH1ArtificialIntelligence-Hint', 'H1', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE, 'world');
-
-	// --------------------------------------
-	// -- H3: Open AI Core
-	// --------------------------------------
-	registerHeader('OpenAICore', 'headingH3headingH2OpenAICore-Label', 'headingH3headingH2OpenAICore-Hint', 'H3', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE, 'world');
-
-	// -- OPENAI MACRO --
-	game.settings.register(MODULE.ID,'openAIMacro', {
-		name: MODULE.ID + '.openAIMacro-Label',
-		hint: MODULE.ID + '.openAIMacro-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: true,
-		default: '-- Choose a Macro --',
-		choices: BLACKSMITH.arrMacroChoices,
-		group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
-	});
-
-	// -- API KEY --
-	game.settings.register(MODULE.ID, 'openAIAPIKey', {
-		name: MODULE.ID + '.openAIAPIKey-Label',
-		hint: MODULE.ID + '.openAIAPIKey-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: '',
-		group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
-	});
-
-	// -- PROJECT ID --
-	game.settings.register(MODULE.ID, 'openAIProjectId', {
-		name: MODULE.ID + '.openAIProjectId-Label',
-		hint: MODULE.ID + '.openAIProjectId-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: '',
-		group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
-	});
-
-
-	// -- MODEL --
-	game.settings.register(MODULE.ID, 'openAIModel', {
-		name: MODULE.ID + '.openAIModel-Label',
-		hint: MODULE.ID + '.openAIModel-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'gpt-4-turbo-preview',
-		choices: {
-			'gpt-4-turbo-preview': 'GPT-4 Turbo (Latest: Best for D&D, 128K tokens)',
-			'gpt-4': 'GPT-4 (8,192 tokens)',
-			'gpt-3.5-turbo': 'GPT-3.5 Turbo (16K tokens)',
-		},
-		group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
-	});
-
-
-	// --------------------------------------
-	// -- H3: Open AI Context
-	// --------------------------------------
-	registerHeader('OpenAIContext', 'headingH3headingH2OpenAIContext-Label', 'headingH3headingH2OpenAIContext-Hint', 'H3', WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE, 'world');
-
-	// -- GAME SYSTEMS -- IS THIS USED??
-	game.settings.register(MODULE.ID, 'openAIGameSystems', {
-		name: MODULE.ID + '.openAIGameSystems-Label',
-		hint: MODULE.ID + '.openAIGameSystems-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'dnd5e',
-		choices: gameSystemChoices,
-		group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
-	});
-
-	// -- PROMPT --
-	game.settings.register(MODULE.ID, 'openAIPrompt', {
-		name: MODULE.ID + '.openAIPrompt-Label',
-		hint: MODULE.ID + '.openAIPrompt-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: genericPrompt + " " + formatPrompt,
-		group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE 
-	});
-
-	// -- CONTEXT LENGTH --
-	game.settings.register(MODULE.ID,'openAIContextLength', {
-		name: MODULE.ID + '.openAIContextLength-Label',
-		hint: MODULE.ID + '.openAIContextLength-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: true,
-		type: Number,
-		range: {
-			min: 0,
-			max: 100,
-			step: 5,
-		},
-		default: 10,
-		group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
-	});
-
-	// -- TEMPERATURE --
-	game.settings.register(MODULE.ID,'openAITemperature', {
-		name: MODULE.ID + '.openAITemperature-Label',
-		hint: MODULE.ID + '.openAITemperature-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: true,
-		type: Number,
-		range: {
-			min: 0,
-			max: 2,
-			step: .1,
-		},
-		default: 1,
-		group: WORKFLOW_GROUPS.ARTIFICIAL_INTELLIGENCE
-	});
 
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
