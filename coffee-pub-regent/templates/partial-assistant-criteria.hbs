@@ -1,0 +1,40 @@
+<div class="workspace-section" id="workspace-section-criteria-{{id}}">
+    <h4>Criteria <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-criteria-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-criteria-content-{{id}}" class="workspace-section-content">
+
+        {{!-- DROP ZONE --}}
+        <div class="form-label">Drop Zone <span class="helper">(Feed me goodies!)</span></div>
+        <div id="criteria-dropzone-{{id}}" class="criteria-dropzone">
+            <div class="dropzone-content">
+                <i class="fas fa-download"></i>
+                <span>Drop items and tokens here</span>
+            </div>
+        </div>
+
+        {{!-- TYPE --}}
+        <div class="form-label">Check Type <span class="helper">(Monster, Item, Location, etc)</span></div>
+        <div class="form-options">
+            <select id="optionType-{{id}}" name="optionType-{{id}}">
+                <option value="monster" selected>Monster or Creature</option>
+                <option value="character">NPC or Character</option>
+                <option value="item">Item or Object</option>
+                <option value="location">Location or Area</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+
+        {{!-- Name --}}
+        <div class="form-label">Name <span class="helper">(Goblin, Great Axe, Moonsea, etc)</span></div>
+        <input type="text" id="inputContextName-{{id}}" placeholder="">
+
+        {{!-- Description --}}
+        <div class="form-label">Details <span class="helper">(Name, description, etc)</span></div>
+        <textarea id="inputContextDetails-{{id}}" rows="10" placeholder=""></textarea>
+
+        {{!-- Biography --}}
+        <div class="form-label">Origin Story <span class="helper">(History, backstory, etc.)</span></div>
+        <textarea id="inputContextBiography-{{id}}" rows="10" placeholder=""></textarea>
+
+    </div>
+</div>
+

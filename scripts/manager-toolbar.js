@@ -227,101 +227,13 @@ function registerTool(toolId, toolData) {
  * Register default tools
  */
 async function registerDefaultTools() {
-    // Import required modules
-    const { buildButtonEventRegent } = await import('./blacksmith.js');
+    // Import required modules (Regent tools are registered by coffee-pub-regent when enabled)
     const { CSSEditor } = await import('./window-gmtools.js');
     const { JournalToolsWindow } = await import('./journal-tools.js');
     const { SkillCheckDialog } = await import('./window-skillcheck.js');
     const { VoteConfig } = await import('./vote-config.js');
     
-    // Register all the default tools
-    registerTool('regent', {
-                icon: "fa-solid fa-crystal-ball",
-                name: "regent",
-                title: "Consult the Regent",
-                button: true,
-                visible: true,
-        onCoffeePub: true,
-        onFoundry: false,
-        onClick: buildButtonEventRegent,
-        moduleId: 'blacksmith-core',
-        zone: 'utilities',
-        order: 10
-    });
-    
-    registerTool('lookup', {
-                icon: "fa-solid fa-bolt-lightning",
-                name: "lookup",
-                title: "Open Lookup Worksheet",
-                button: true,
-                visible: true,
-        onCoffeePub: true,
-        onFoundry: false,
-        onClick: () => buildButtonEventRegent('lookup'),
-        moduleId: 'blacksmith-core',
-        zone: 'utilities',
-        order: 20
-    });
-    
-    registerTool('character', {
-                icon: "fa-solid fa-helmet-battle",
-                name: "character",
-                title: "Open Character Worksheet",
-                button: true,
-                visible: true,
-        onCoffeePub: true,
-        onFoundry: false,
-        onClick: () => buildButtonEventRegent('character'),
-        moduleId: 'blacksmith-core',
-        zone: 'utilities',
-        order: 30
-    });
-    
-    registerTool('assistant', {
-                icon: "fa-solid fa-hammer-brush",
-                name: "assistant",
-                title: "Open Assistant Worksheet",
-                button: true,
-        visible: true,
-        gmOnly: true,
-        onCoffeePub: true,
-        onFoundry: false,
-        onClick: () => buildButtonEventRegent('assistant'),
-        moduleId: 'blacksmith-core',
-        zone: 'utilities',
-        order: 10
-    });
-    
-    registerTool('encounter', {
-        icon: "fa-solid fa-sword",
-                name: "encounter",
-                title: "Open Encounter Worksheet",
-                button: true,
-        visible: true,
-        gmOnly: true,
-        onCoffeePub: true,
-        onFoundry: false,
-        onClick: () => buildButtonEventRegent('encounter'),
-        moduleId: 'blacksmith-core',
-        zone: 'utilities',
-        order: 20
-    });
-    
-    registerTool('narrative', {
-        icon: "fa-solid fa-book-open-reader",
-                name: "narrative",
-                title: "Open Narrative Worksheet",
-                button: true,
-        visible: true,
-        gmOnly: true,
-        onCoffeePub: true,
-        onFoundry: false,
-        onClick: () => buildButtonEventRegent('narrative'),
-        moduleId: 'blacksmith-core',
-        zone: 'utilities',
-        order: 30
-    });
-    
+    // Register all the default tools (Regent/lookup/character/assistant/encounter/narrative are in coffee-pub-regent)
     registerTool('css', {
         icon: "fa-solid fa-palette",
                 name: "css",

@@ -1,0 +1,17 @@
+<div class="workspace-section" id="workspace-section-rewards-{{id}}">
+    <h4>Rewards and Treasure <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-rewards-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-rewards-content-{{id}}" class="workspace-section-content">
+    
+        <!-- ADD REWARDS -->
+        <br>
+        <label>
+            <input type="checkbox" id="blnAddRewards-{{id}}" {{#if blnNarrativeDefaultIncludeTreasure}}checked{{/if}}> Include Treasure and Rewards
+        </label>
+        {{!-- Experience --}}
+        <div class="form-label">XP <span class="helper">(e.g. Chasmfall Castle, Old House, Goblin Cave, etc)</span></div>
+        <input type="text" id="input-XP-{{id}}" value="{{strNarrativeDefaultXP}}" placeholder="e.g. None or 3600 XP">
+        {{!-- Treasure Details --}}
+        <div class="form-label">Treasure Details <span class="helper">(Details and rules for treasure)</span></div>
+        <textarea id="inputNarrativeRewardDetails-{{id}}" rows="6" placeholder="e.g. There is a hatch with an amulet inside">{{strNarrativeDefaultTreasureDetails}}</textarea>
+    </div>
+</div>

@@ -1,0 +1,75 @@
+{{#if (or (eq id "lookup") (eq id "assistant") (eq id "character"))}}
+    <div class="workspace-section" id="workspace-section-options-{{id}}">
+        <h4>Response Options <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-options-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+        <div id="workspace-section-options-content-{{id}}" class="workspace-section-content">
+            
+            <!-- NARRATIVE -->
+            {{#if (or (eq id "assistant") (eq id "character"))}}
+                <div class="form-label">Narratives <span class="helper">(Suggested)</span></div>
+                <label>
+                    <input type="checkbox" id="blnGenerateDescription-{{id}}"> Generate a Description
+                </label>
+                <label>
+                    <input type="checkbox" id="blnGenerateDetails-{{id}}"> Generate Details
+                </label>
+            {{/if}}
+
+            <!-- STAT BLOCK -->
+            {{#if (or (eq id "assistant") (eq id "character"))}}
+                <label>
+                    <input type="checkbox" id="blnGenerateStats-{{id}}"> Generate Stat Block
+                </label>
+            {{/if}}
+
+            <!-- BACKSTORY -->
+            {{#if (or (eq id "assistant") (eq id "character"))}}
+                <label>
+                    <input type="checkbox" id="blnGenerateBackstory-{{id}}"> Generate a Backstory
+                </label>
+            {{/if}}
+
+            <!-- GM DETAILS -->
+            {{#if isGM}}
+                {{#if (or (eq id "assistant") (eq id "character") )}}
+                    <div class="form-label">GM Context <span class="helper">(GM Only, Ignores rolls)</span></div>
+                    <label>
+                        <input type="checkbox" id="blnGMDetails-{{id}}"  data-persist="true"> Generate GM Details
+                    </label>
+                {{/if}}
+            {{/if}}
+
+            <!-- MECHANICS -->
+            {{#if (or (eq id "lookup") (eq id "assistant") (eq id "character"))}}
+                <div class="form-label">Mechanics <span class="helper">(Help understanding the rules)</span></div>
+                <label>
+                    <input type="checkbox" id="blnMechanicsExplain-{{id}}"> Explain the Rules
+                </label>
+                <label>
+                    <input type="checkbox" id="blnMechanicsHowTo-{{id}}"> Foundry Tutorial
+                </label>
+            {{/if}}
+
+        </div>
+    </div>
+{{/if}}
+
+{{!-- GM OPTIONS --}}
+{{#if isGM}}
+    <div class="workspace-section" id="workspace-section-gmoptions-{{id}}">
+        <h4>General Options <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-gmoptions-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+        <div id="workspace-section-gmoptions-content-{{id}}" class="workspace-section-content">
+            <div class="form-label">Prompts <span class="helper">(GM Only)</span></div>
+            <label></label>
+                <input type="checkbox" id="blnShowTable-{{id}}"  data-persist="true"> Display Query Table
+            </label>
+            <label>
+                <input type="checkbox" id="blnShowPrompt-{{id}}"  data-persist="true"> Display AI Prompt
+            </label>
+        </div>
+    </div>
+{{/if}}
+
+{{!-- GLOBAL FUND --}}
+{{#if (or (eq id "lookup") (eq id "character"))}}
+    {{> partial-global-fund id=id}}
+{{/if}}

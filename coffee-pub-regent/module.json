@@ -1,0 +1,40 @@
+{
+  "id": "coffee-pub-regent",
+  "title": "Coffee Pub Regent",
+  "description": "Optional AI tools for Coffee Pub: Consult the Regent, worksheets (Lookup, Character, Assistant, Encounter, Narrative). Requires Blacksmith.",
+  "version": "1.0.0",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13",
+    "maximum": "13"
+  },
+  "relationships": {
+    "requires": [
+      {
+        "id": "coffee-pub-blacksmith",
+        "type": "module",
+        "manifest": "https://github.com/Drowbe/coffee-pub-blacksmith/releases/latest/download/module.json",
+        "compatibility": { "minimum": "13" }
+      }
+    ]
+  },
+  "esmodules": [
+    "scripts/const.js",
+    "scripts/api-core.js",
+    "scripts/api-openai.js",
+    "scripts/regent-settings.js",
+    "scripts/regent.js",
+    "scripts/window-query-registration.js",
+    "scripts/window-query.js",
+    "scripts/regent-bootstrap.js"
+  ],
+  "styles": ["styles/window-query.css"],
+  "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
+  "authors": [
+    { "name": "COFFEE PUB", "discord": "drowbe", "url": "https://github.com/Drowbe", "flags": { "isMaintainer": true } },
+    { "name": "Drowbe", "discord": "drowbe", "url": "https://willhavebeen.com", "flags": { "isMaintainer": true } }
+  ],
+  "url": "https://github.com/Drowbe/coffee-pub-blacksmith",
+  "license": "LICENSE",
+  "readme": "README.md"
+}

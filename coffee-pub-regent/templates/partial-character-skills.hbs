@@ -1,0 +1,17 @@
+{{!-- SKILLS --}}
+<div class="workspace-section" id="workspace-section-character-skills-{{id}}">
+    <h4>Skills <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-skills-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-character-skills-content-{{id}}" class="workspace-section-content">
+        <div class="workspace-section-nodivider">
+            <div class="form-details workspace-grid-2col">
+                {{#each tokenData.skills}}
+                <div class="form-label">
+                    {{#if this.isProficient}}<i class="fas fa-circle"></i>{{else}}<i class="far fa-circle"></i>{{/if}}
+                    <span>{{this.ability}} {{this.label}}</span>
+                    <span class="value">{{this.total}} <span class="base-value">{{this.baseValue}}</span></span>
+                </div>
+                {{/each}}
+            </div>
+        </div>
+    </div>
+</div> 

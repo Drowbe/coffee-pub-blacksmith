@@ -1,0 +1,40 @@
+{{!-- SPELLS --}}
+<div class="workspace-section" id="workspace-section-character-spells-{{id}}">
+    <h4>Spells <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-spells-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-character-spells-content-{{id}}" class="workspace-section-content">
+        <div class="workspace-section-nodivider">
+            {{#if tokenData.spells}}
+                {{#each tokenData.spells as |spellList level|}}
+                    <div class="form-details">
+                        <div class="form-label">
+                            {{#if (eq level "0")}}
+                                Cantrips
+                            {{else}}
+                                Level {{level}} Spells 
+                                {{#with (lookup ../tokenData.spellSlots (concat "spell" level)) as |spellLevel|}}
+                                    {{#if spellLevel.max}} ({{spellLevel.value}}/{{spellLevel.max}}){{/if}}
+                                {{/with}}
+                            {{/if}}
+                        </div>
+                        <div class="spell-list-container">
+                            {{#each spellList}}
+                                <div class="workspace-item-container">
+                                    <img class="workspace-item-icon" src="{{this.img}}" title="{{this.name}}">
+                                    <span class="workspace-item-name">
+                                        {{this.name}}
+                                        {{#if this.ritual}}<i class="fas fa-book" title="Ritual"></i>{{/if}}
+                                        {{#if this.concentration}}<i class="fas fa-circle-dot" title="Concentration"></i>{{/if}}
+                                    </span>
+                                </div>
+                            {{/each}}
+                        </div>
+                    </div>
+                {{/each}}
+            {{else}}
+                <div class="form-details">
+                    <div class="form-label">No spells prepared</div>
+                </div>
+            {{/if}}
+        </div>
+    </div>
+</div> 

@@ -1,0 +1,16 @@
+{{!-- FEATURES --}}
+<div class="workspace-section" id="workspace-section-character-features-{{id}}">
+    <h4>Features <button type="button" class="toggle-button-section" onclick="toggleSection('workspace-section-character-features-content-{{id}}', this)"><i class="fas fa-chevron-up"></i></button></h4>
+    <div id="workspace-section-character-features-content-{{id}}" class="workspace-section-content">
+        <div class="workspace-section-nodivider">
+            <div class="form-details workspace-grid-2col">
+                {{#each tokenData.features}}
+                <div class="workspace-item-container">
+                    <img class="workspace-item-icon" src="{{this.img}}" title="{{this.name}}" />
+                    <span class="workspace-item-name">{{this.name}}</span>
+                </div>
+                {{/each}}
+            </div>
+        </div>
+    </div>
+</div> 

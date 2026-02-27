@@ -1,0 +1,86 @@
+{{!-- Unified Header Partial - Uses EXACT existing CSS classes --}}
+<div class="cpb-dialog-header-sticky">
+    <div class="cpb-dialog-header">
+
+        <div class="cpb-dialog-header-content">
+
+                {{#if actorName}}
+                    <div class="cpb-actor-info">
+                        {{#if actorPortrait}}
+                            <img src="{{actorPortrait}}" alt="{{actorName}}" class="cpb-actor-portrait">
+                        {{/if}}
+                        <span class="cpb-actor-name">{{actorName}}</span>
+                    </div>
+                {{/if}}
+
+
+
+        </div>
+
+        <div class="cpb-dialog-header-content">
+
+            <!-- HEADER ICON -->
+            <div class="cpb-dialog-dice-icon">
+                <i class="{{diceIcon}}"></i>
+            </div>
+            <!-- HEADER TITLE -->
+            <div class="cpb-dialog-title-section">
+
+                <div class="cpb-dialog-main-title">{{mainTitle}}</div>
+                <div class="cpb-dialog-subtitle">{{subtitle}}</div>
+            </div>
+            <!-- HEADER CONTROLS -->
+            <div class="cpb-dialog-controls">
+                <!-- Additional Toggles (only for skill check dialog) -->
+                {{#if showToggles}}
+                    <!-- Cinematic Toggle -->
+                    <div class="cpb-toggle-container">
+                        <span class="cpb-toggle-label">Cinematic</span>
+                        <div class="cpb-toggle">
+                            <input type="checkbox" name="isCinematic" id="isCinematic" {{#if isCinematic}}checked{{/if}}>
+                            <label for="isCinematic" class="cpb-toggle-slider"></label>
+                        </div>
+                    </div>
+                    <!-- Show DC Toggle -->
+                    <div class="cpb-toggle-container">
+                        <span class="cpb-toggle-label">Show DC</span>
+                        <div class="cpb-toggle">
+                            <input type="checkbox" name="showDC" id="showDC" {{#if showDC}}checked{{/if}}>
+                            <label for="showDC" class="cpb-toggle-slider"></label>
+                        </div>
+                    </div>
+                    <!-- Group DC Toggle -->
+                    <div class="cpb-toggle-container">
+                        <span class="cpb-toggle-label">Group DC</span>
+                        <div class="cpb-toggle">
+                            <input type="checkbox" name="groupRoll" id="groupRoll" {{#if groupRoll}}checked{{/if}}>
+                            <label for="groupRoll" class="cpb-toggle-slider"></label>
+                        </div>
+                    </div>
+                {{/if}}
+                <!-- Roll Mode Selector -->
+                <div class="cpb-form-group">
+                    <div class="cpb-form-fields">
+                        <select name="rollMode" class="cpb-select">
+                            <option value="roll" {{#if (eq rollMode "roll")}}selected{{/if}}>Public Roll</option>
+                            <option value="gmroll" {{#if (eq rollMode "gmroll")}}selected{{/if}}>Private GM Roll</option>
+                            <option value="blindroll" {{#if (eq rollMode "blindroll")}}selected{{/if}}>Blind GM Roll</option>
+                            <option value="selfroll" {{#if (eq rollMode "selfroll")}}selected{{/if}}>Self Roll</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- DC Box -->
+                <div class="cpb-dc-display">
+                    <div class="cpb-dc-box">
+                        <div class="cpb-dc-label">DC</div>
+                        {{#if isReadOnly}}
+                            <div class="cpb-dc-readonly">{{dcValue}}</div>
+                        {{else}}
+                            <input type="number" name="dc" class="cpb-dc-input" value="{{dcValue}}" placeholder="" min="1" max="30">
+                        {{/if}}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

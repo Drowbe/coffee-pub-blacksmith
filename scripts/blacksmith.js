@@ -13,7 +13,6 @@ import {
     registerBlacksmithUpdatedHook, 
     resetModuleSettings
 } from './api-core.js';
-import { OpenAIAPI } from './api-openai.js';
 // -- Global utilities --
 import { 
     postConsoleAndNotification, 
@@ -40,7 +39,6 @@ import {
 } from './common.js';
 // -- Import special page variables --
 import { registerSettings, buildSelectedCompendiumArrays, getTokenImageReplacementCacheStats, reorderCompendiumsForType, extractTypeFromCompendiumSetting } from './settings.js';
-import { BlacksmithWindowQuery } from './window-query.js';
 import { BlacksmithLayer } from './canvas-layer.js';
 import { addToolbarButton } from './manager-toolbar.js';
 import { CombatTimer } from './timer-combat.js';
@@ -70,7 +68,6 @@ import { HookManager } from './manager-hooks.js';
 import { ConstantsGenerator } from './constants-generator.js';
 import { assetLookup } from './asset-lookup.js';
 import { UIContextMenu } from './ui-context-menu.js';
-import { registerWindowQueryPartials } from './window-query-registration.js';
 import { SidebarPin } from './sidebar-pin.js';
 import { SidebarStyle } from './sidebar-style.js';
 import { LoadingProgressManager } from './manager-loading-progress.js';
@@ -95,9 +92,6 @@ const NOTE_CONFIG_CACHE_EXPIRATION = 10 * 60 * 1000; // 10 minutes
 // Cache for compiled Handlebars templates to avoid repeated compilation
 let templateCache = new Map();
 const TEMPLATE_CACHE_EXPIRATION = 30 * 60 * 1000; // 30 minutes
-
-// Window registry for efficient BlacksmithWindowQuery lookups
-let blacksmithWindowRegistry = new Set();
 
 // Settings cache for frequently accessed settings
 let settingsCache = new Map();
@@ -226,21 +220,6 @@ export async function getCachedTemplate(templatePath) {
     }
 }
 
-// Helper functions for window registry management
-function registerBlacksmithWindow(window) {
-    if (window instanceof BlacksmithWindowQuery) {
-        blacksmithWindowRegistry.add(window);
-    }
-}
-
-function unregisterBlacksmithWindow(window) {
-    blacksmithWindowRegistry.delete(window);
-}
-
-function getBlacksmithWindows() {
-    return Array.from(blacksmithWindowRegistry);
-}
-
 // Helper function to get cached setting value
 export function getCachedSetting(settingKey, defaultValue = null) {
     const now = Date.now();
@@ -323,17 +302,9 @@ Hooks.once('ready', async () => {
         LoadingProgressManager.logActivity("Initializing hook system...");
         HookManager.initialize();
         
-        // Initialize OpenAI Memory System
-        LoadingProgressManager.logActivity("Initializing AI memory...");
-        OpenAIAPI.initializeMemory();
-        
         // Register the Blacksmith hook (after HookManager is initialized)
         LoadingProgressManager.logActivity("Registering hooks...");
         registerBlacksmithUpdatedHook();
-        
-        // Register window-query partials early to prevent template errors
-        LoadingProgressManager.logActivity("Loading templates...");
-        await registerWindowQueryPartials();
         
         // Wait a bit to ensure settings are fully processed
         LoadingProgressManager.logActivity("Verifying settings...");
@@ -425,10 +396,6 @@ Hooks.once('ready', async () => {
         LoadingProgressManager.logActivity("Configuring features...");
         initializeSettingsDependentFeatures();
 
-        // Initialize scene interactions
-        LoadingProgressManager.logActivity("Setting up scene interactions...");
-        initializeSceneInteractions();
-        
         // Initialize the unified roll system API
         LoadingProgressManager.logActivity("Loading roll system...");
         const { executeRoll } = await import('./manager-rolls.js');
@@ -479,26 +446,7 @@ function initializeSettingsDependentFeatures() {
     // DEBUG STYLE
             // Console styling now handled internally in postConsoleAndNotification    
     
-    // OPENAI SETTINGS
-    // Macro
-    const strOpenAIMacro = getCachedSetting('openAIMacro');
-    BLACKSMITH.updateValue('strOpenAIMacro', strOpenAIMacro);
-    
-    // API Key
-    const strOpenAIAPIKey = getCachedSetting('openAIAPIKey');
-    BLACKSMITH.updateValue('strOpenAIAPIKey', strOpenAIAPIKey);
-    // Model 
-    const strOpenAIModel = getCachedSetting('openAIModel');
-    BLACKSMITH.updateValue('strOpenAIModel', strOpenAIModel);
-    // Game Systems
-    const strOpenAIGameSystems = getCachedSetting('openAIGameSystems');
-    BLACKSMITH.updateValue('strOpenAIGameSystems', strOpenAIGameSystems);
-    // Prompt 
-    const strOpenAIPrompt = getCachedSetting('openAIPrompt');
-    BLACKSMITH.updateValue('strOpenAIPrompt', strOpenAIPrompt);
-    // Temperature 
-    const strOpenAITemperature = getCachedSetting('openAITemperature');
-    BLACKSMITH.updateValue('strOpenAITemperature', strOpenAITemperature);
+    // OPENAI / REGENT: AI settings and macro are in coffee-pub-regent when that module is enabled.
 
     // Update the Chat Spacing per settings
     updateChatStyles();
@@ -514,22 +462,6 @@ function initializeSettingsDependentFeatures() {
     // Set default card theme
     let strDefaultCardTheme = getSettingSafely(MODULE.ID, 'defaultCardTheme', 'default');
     BLACKSMITH.updateValue('strDefaultCardTheme', strDefaultCardTheme);
-
-    // *** CHECK FOR MACRO BUTTONS ***
-    // OPEN AI WINDOW
-    if(strOpenAIMacro) {
-        let OpenAIMacro = game.macros.getName(strOpenAIMacro);
-        if(OpenAIMacro) {
-            OpenAIMacro.execute = async () => {
-                buildButtonEventRegent();
-            };
-        } else {
-            postConsoleAndNotification(MODULE.NAME, "OpenAI Macro specified is not a valid macro name. Make sure there is a macro matching the name you entered in the Blacksmith settings.", strOpenAIMacro, true, true);
-        }
-            } else {
-            postConsoleAndNotification(MODULE.NAME, "Macro for OpenAI not set.", "", true, true);
-        }
-    }
 
     // Function to initialize scene interactions
     function initializeSceneInteractions() {
@@ -722,6 +654,12 @@ function initializeSettingsDependentFeatures() {
         }
     }
 
+    // Run scene interactions setup (hooks, canvas, etc.)
+    LoadingProgressManager.logActivity("Setting up scene interactions...");
+    initializeSceneInteractions();
+
+}
+
     // Function to inject BlacksmithLayer into the canvas layers list
     const hookCanvas = () => {
     // Inject BlacksmithLayer into the canvas layers list
@@ -808,10 +746,8 @@ Hooks.once('init', async function() {
         description: 'Blacksmith: Register blacksmith windows on render',
         context: 'blacksmith-window-registration',
         priority: 3, // Normal priority - window management
-        callback: (app, html, data) => {
-            if (app instanceof BlacksmithWindowQuery) {
-                registerBlacksmithWindow(app);
-            }
+        callback: (_app, _html, _data) => {
+            // Window registry removed; Regent (coffee-pub-regent) manages its own windows
         }
     });
     
@@ -824,14 +760,8 @@ Hooks.once('init', async function() {
         description: 'Blacksmith: Unregister blacksmith windows on close',
         context: 'blacksmith-window-cleanup',
         priority: 3, // Normal priority - window management
-        callback: (app) => {
-            //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-            
-            if (app instanceof BlacksmithWindowQuery) {
-                unregisterBlacksmithWindow(app);
-            }
-            
-            //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+        callback: (_app) => {
+            // Window registry removed; Regent (coffee-pub-regent) manages its own windows
         }
     });
 
@@ -1019,7 +949,7 @@ Hooks.once('init', async function() {
         HookManager,  // ✅ NEW: Expose HookManager for other Coffee Pub modules
         ConstantsGenerator,  // ✅ NEW: Expose ConstantsGenerator for constants generation
         assetLookup,  // ✅ NEW: Expose AssetLookup for flexible asset access
-        openai: OpenAIAPI,  // ✅ NEW: Expose OpenAI API for AI functionality
+        openai: undefined,  // AI tools moved to coffee-pub-regent module
         uiContextMenu: UIContextMenu,  // ✅ NEW: Shared context menu with flyouts
         // ✅ NEW: Toolbar API for external modules
         registerToolbarTool: null,  // Will be set after toolbar manager loads
@@ -1346,38 +1276,6 @@ const preCreateNoteHookId = HookManager.registerHook({
 
 // Log hook registration
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | preCreateNote", "blacksmith-note-creation", true, false);
-
-
-
-export function buildButtonEventRegent(worksheet = 'default') {
-
-    // Logic to open the regent with the specified worksheet
-    if (worksheet === 'encounter') {
-        // Add your logic to open the encounter worksheet here
-    } else if (worksheet === 'assistant') {
-        // Add your logic to open the assistant worksheet here
-    } else if (worksheet === 'lookup') {
-        // Add your logic to open the assistant worksheet here
-    } else if (worksheet === 'narrative') {
-        // Add your logic to open the assistant worksheet here
-    } else if (worksheet === 'character') {
-        // Add your logic to open the assistant worksheet here
-    } else {
-        // Add your logic to open the default worksheet here
-    }
-
-
-    var queryWindow = new BlacksmithWindowQuery({}, worksheet); // Pass the worksheet as a parameter
-    queryWindow.onFormSubmit = async (inputMessage, queryContext = '') => {
-
-        await buildQueryCard(inputMessage, queryWindow, queryContext);
-    };
-    queryWindow.formTitle = 'Regent';
-
-    playSound(COFFEEPUB.SOUNDNOTIFICATION01, COFFEEPUB.SOUNDVOLUMENORMAL);
-    queryWindow.render(true);
-    queryWindow.initialize(); // Call initialize directly after render
-}
 
 // ***************************************************
 // ** UTILITY Double-click Edit Journal
@@ -2333,218 +2231,6 @@ async function buildInjuryJournalEntry(journalData) {
         });
     }
     return;
-}
-
-// Function to check if a string is valid JSON and clean it if needed
-function cleanAndValidateJSON(str) {
-    try {
-        // First try to parse as-is
-        const parsed = JSON.parse(str);
-        
-        // If successful, clean up any HTML tags in the fields that shouldn't have them
-        if (typeof parsed === 'object' && parsed !== null) {
-            // Fields that should be plain text only (no HTML at all) - scene level
-            const plainTextFields = [
-                'journaltype', 'foldername', 'sceneparent', 'scenearea', 
-                'sceneenvironment', 'scenelocation', 'scenetitle', 'prepencounter',
-                'contextintro'
-            ];
-
-            // Per-card plain text fields (used when cleaning cards array or legacy flat card)
-            const cardPlainTextFields = [
-                'cardtitle', 'cardimagetitle', 'cardimage',
-                'carddescriptionprimary', 'carddescriptionsecondary'
-            ];
-
-            // Fields that should only contain lists with bold tags
-            const listFields = [
-                'prepencounterdetails', 'preprewards', 'prepsetup',
-                'contextadditionalnarration', 'contextatmosphere', 'contextgmnotes'
-            ];
-
-            // Clean up scene-level plain text fields (no longer include card* here)
-            for (const field of plainTextFields) {
-                if (parsed[field]) {
-                    parsed[field] = parsed[field].replace(/<[^>]*>/g, '').trim();
-                }
-            }
-
-            // Clean up list fields
-            for (const field of listFields) {
-                if (parsed[field]) {
-                    let content = parsed[field];
-                    content = content.replace(/<h[1-6]>.*?<\/h[1-6]>/g, '');
-                    if (!content.startsWith('<ul>')) content = '<ul>' + content;
-                    if (!content.endsWith('</ul>')) content = content + '</ul>';
-                    parsed[field] = content;
-                }
-            }
-
-            // Helper: clean one card object
-            const cleanOneCard = (c) => {
-                if (!c || typeof c !== 'object') return c;
-                for (const field of cardPlainTextFields) {
-                    if (c[field]) {
-                        c[field] = c[field].replace(/<[^>]*>/g, '').trim();
-                    }
-                }
-                if (c.cardimage) {
-                    const match = c.cardimage.match(/src="([^"]*)"/);
-                    c.cardimage = match ? match[1] : c.cardimage;
-                    if (c.cardimage === '<img src="" alt="">' || !c.cardimage) c.cardimage = '';
-                }
-                if (c.carddialogue) {
-                    if (c.carddialogue === '<h4></h4>' || !c.carddialogue.trim()) {
-                        c.carddialogue = ' ';
-                    } else {
-                        c.carddialogue = c.carddialogue
-                            .replace(/<h[1-5]>.*?<\/h[1-5]>/g, '')
-                            .replace(/<(?!\/?(?:h6|b)(?:>|\s[^>]*>))\/?[a-zA-Z][^>]*>/g, '')
-                            .trim();
-                    }
-                }
-                return c;
-            };
-
-            // Per-section plain text fields
-            const sectionPlainTextFields = ['sectiontitle', 'sectionintro'];
-
-            // Helper: clean one section object (sectiontitle, sectionintro, and each card)
-            const cleanOneSection = (sec) => {
-                if (!sec || typeof sec !== 'object') return sec;
-                for (const field of sectionPlainTextFields) {
-                    if (sec[field]) {
-                        sec[field] = sec[field].replace(/<[^>]*>/g, '').trim();
-                    }
-                }
-                if (Array.isArray(sec.cards) && sec.cards.length > 0) {
-                    sec.cards = sec.cards.map(cleanOneCard);
-                }
-                return sec;
-            };
-
-            // Normalize and clean sections: use sections array if present, else build one section from flat fields
-            if (Array.isArray(parsed.sections) && parsed.sections.length > 0) {
-                parsed.sections = parsed.sections.map(cleanOneSection);
-            } else {
-                // Legacy: build one section from flat sectiontitle, sectionintro, and cards (or legacy card fields)
-                const rawCards = Array.isArray(parsed.cards) && parsed.cards.length > 0
-                    ? parsed.cards
-                    : [{
-                        cardtitle: parsed.cardtitle,
-                        carddescriptionprimary: parsed.carddescriptionprimary,
-                        cardimagetitle: parsed.cardimagetitle,
-                        cardimage: parsed.cardimage,
-                        carddescriptionsecondary: parsed.carddescriptionsecondary,
-                        carddialogue: parsed.carddialogue
-                    }];
-                parsed.sections = [cleanOneSection({
-                    sectiontitle: parsed.sectiontitle ?? '',
-                    sectionintro: parsed.sectionintro ?? '',
-                    cards: rawCards.map(cleanOneCard)
-                })];
-            }
-
-            return {
-                isValid: true,
-                cleaned: JSON.stringify(parsed, null, 2),
-                parsed: parsed
-            };
-        }
-        return { isValid: false };
-    } catch (e) {
-        return { isValid: false };
-    }
-}
-
-// ***************************************************
-// ** UTILITY Build Query Card
-// ***************************************************
-
-async function buildQueryCard(question, queryWindow, queryContext = '') {
-    var strQuestion = question;
-    var strDisplayQuestion = question; // New variable to store what's shown to the user
-    var strAnswer = "";
-    var compiledHtml = "";
-    var strQueryContext = queryContext;
-    var strDateStamp = generateFormattedDate();
-    // Set the template type
-    const templatePath = BLACKSMITH.WINDOW_QUERY_MESSAGE;
-    const template = await getCachedTemplate(templatePath);
-
-    if (strQueryContext) {
-        strDisplayQuestion = strQueryContext; // Only change what's displayed, not what's sent to API
-    }
-    // Display user's question
-    var CARDDATA = {
-        strDateStamp: strDateStamp,
-        blnProcessing: false,
-        blnToolbar: false,
-        strSpeakerIcon: "fa-helmet-battle",
-        strHeaderStlye: "blacksmith-message-header-question",
-        strSpeakerName: game.user.name,
-        strMessageIntro: "",
-        strMessageContent: strDisplayQuestion // Use the display version here
-    };
-    compiledHtml = template(CARDDATA);
-    queryWindow.displayMessage(compiledHtml);
-    scrollToBottom();
-    playSound(COFFEEPUB.SOUNDPOP02,COFFEEPUB.SOUNDVOLUMESOFT);
-
-    // Display processing message
-    var CARDDATA = {
-        strDateStamp: strDateStamp,
-        blnProcessing: true,
-        blnToolbar: false,
-        strSpeakerIcon: "fa-crystal-ball",
-        strSpeakerName: "Regent",
-        strMessageIntro: "Thinking...",
-        strMessageContent: "",
-    };
-    compiledHtml = template(CARDDATA);
-    queryWindow.displayMessage(compiledHtml);
-    scrollToBottom();
-    playSound(COFFEEPUB.SOUNDPOP01,COFFEEPUB.SOUNDVOLUMESOFT);
-
-    // Get the answer - using the original full question
-    const openAIResponse = await OpenAIAPI.getOpenAIReplyAsHtml(strQuestion);
-
-    // Process OpenAI response
-
-    // Check if it's JSON and clean it if needed
-    const jsonCheck = cleanAndValidateJSON(openAIResponse.content || openAIResponse);
-    if (jsonCheck.isValid) {
-        strAnswer = jsonCheck.cleaned;
-    } else {
-        strAnswer = openAIResponse.content || openAIResponse;
-    }
-
-    // Display the answer
-    const messageId = Date.now();
-    var CARDDATA = {
-        strDateStamp: strDateStamp,
-        blnProcessing: false,
-        blnToolbar: true,
-        strSpeakerIcon: "fa-crystal-ball",
-        strHeaderStlye: "blacksmith-message-header-answer",
-        strSpeakerName: "Regent",
-        strMessageIntro: "",
-        strMessageContent: strAnswer,
-        messageId: messageId,
-        blnIsJSON: jsonCheck.isValid,
-        tokenInfo: openAIResponse.usage ? `${openAIResponse.usage.total_tokens} Tokens` : null,
-        cost: openAIResponse.cost ? openAIResponse.cost.toFixed(4) : null
-    };
-    compiledHtml = template(CARDDATA);
-    queryWindow.displayMessage(compiledHtml);
-    scrollToBottom();
-    playSound(COFFEEPUB.SOUNDNOTIFICATION05,COFFEEPUB.SOUNDVOLUMESOFT);
-}
-
-// Keep the window scrolled to the bottom ala text messages
-function scrollToBottom() {
-    var element = document.querySelector('#coffee-pub-blacksmith-output');
-    element.scrollTop = element.scrollHeight;
 }
 
 /**
