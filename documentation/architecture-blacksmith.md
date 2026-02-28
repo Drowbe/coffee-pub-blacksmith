@@ -89,6 +89,7 @@ This document describes the high-level architecture of the **Coffee Pub Blacksmi
 | **HookManager** | Central hook registration. |
 | **ConstantsGenerator**, **assetLookup** | Constants and asset lookup. |
 | **Toolbar API** | registerToolbarTool, unregisterToolbarTool, getRegisteredTools, etc. (set after manager-toolbar load). |
+| **Window API** | registerWindow, unregisterWindow, openWindow (planned; set when window registry is implemented). See **documentation/api-window.md**. |
 | **Menubar API** | registerMenubarTool, notifications, secondary bar, combat bar, etc. (set after api-menubar load). |
 | **sockets** | SocketManager facade: waitForReady, register, emit (set after SocketManager init). |
 | **CanvasLayer**, **getCanvasLayer** | Set on canvasReady. |
@@ -146,14 +147,15 @@ The **BlacksmithAPI** class in `api/blacksmith-api.js` provides a timing-safe wa
 
 ## 5. Windows and Applications
 
-- **BlacksmithWindowQuery** (`window-query.js`) — Generic query/assistant window; partials registered via **window-query-registration.js**.
+- **Application V2 window system** — Zone contract (title bar, option bar, header, body, action bar), window registry (`registerWindow` / `openWindow`), and optional base class for consistent windows. See **documentation/architecture-window.md** and **documentation/api-window.md**. Implementation guidance and examples: **documentation/applicationv2-window/guidance-applicationv2.md**, **documentation/applicationv2-window/README.md**.
+- **BlacksmithWindowQuery** (`window-query.js`) — Generic query/assistant window; partials registered via **window-query-registration.js**. (Lives in **coffee-pub-regent**; Regent owns the window.)
 - **PinConfigWindow** (`window-pin-config.js`) — Pin configuration (Application).
 - **SkillCheckDialog** (`window-skillcheck.js`) — Skill check dialog; uses manager-rolls for orchestration and delivery.
 - **CSSEditor** (`window-gmtools.js`) — GM custom CSS.
 - **StatsWindow** (`window-stats-party.js`), **PlayerStatsWindow** (`window-stats-player.js`).
 - **TokenImageReplacementWindow** (`token-image-replacement.js`), **MovementConfig** (`token-movement.js`), **VoteConfig** (`vote-config.js`).
 
-All use Application V2 patterns per project rules.
+All new windows should use Application V2 patterns per project rules; existing windows are being migrated (see architecture-window.md).
 
 ---
 

@@ -1,0 +1,49 @@
+{{!-- Minimal Application V2 window - all zones (option bar, header, body, action bar). Omit zones you don't need. See blacksmith-windows-zones.webp and window-samples.png. --}}
+<div class="example-window-root" id="{{appId}}">
+    {{!-- Optional: option bar (filters, toggles, e.g. REFRESH CACHE, TOKENS/PORTRAITS) --}}
+    <div class="example-window-option-bar">
+        {{!-- Add filters, toggles, or global options --}}
+    </div>
+
+    {{!-- Optional: header (icon, title, subtitle, header-right) --}}
+    <header class="example-window-header">
+        <div class="example-window-header-content">
+            <div class="example-window-header-icon">
+                <i class="fa-solid fa-window-maximize"></i>
+            </div>
+            <div class="example-window-header-title-block">
+                <div class="example-window-header-title">{{windowTitle}}</div>
+                <div class="example-window-header-subtitle">{{subtitle}}</div>
+            </div>
+            <div class="example-window-header-right">
+                {{!-- Add toggles, values, settings --}}
+            </div>
+        </div>
+    </header>
+
+    <div class="example-window-body">
+        {{!-- Body: inject your content and layout here (forms, lists, grids, etc.) --}}
+        <div class="example-window-main">
+            <p class="example-window-placeholder">Content goes here.</p>
+        </div>
+        <aside class="example-window-details">
+            <section class="example-window-details-section">
+                <h3 class="example-window-details-title">Details</h3>
+                <div class="example-window-details-content">
+                    <p class="example-window-placeholder">Details go here.</p>
+                </div>
+            </section>
+        </aside>
+    </div>
+
+    {{!-- Optional: action bar (secondary left, primary right) --}}
+    <section class="example-window-buttons">
+        <div class="example-window-action-bar">
+            <div class="example-window-action-left"></div>
+            <div class="example-window-action-right">
+                <button type="button" class="example-window-btn-secondary" data-action="reset">Reset</button>
+                <button type="button" class="example-window-btn-primary" data-action="apply">Apply</button>
+            </div>
+        </div>
+    </section>
+</div>
