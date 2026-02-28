@@ -36,31 +36,14 @@ async function onReady() {
         button: true, visible: true, onCoffeePub: true, onFoundry: false,
         onClick: regent, moduleId: 'coffee-pub-regent', zone: 'utilities', order: 10
     });
-    api.registerToolbarTool('lookup', {
-        icon: 'fa-solid fa-bolt-lightning', name: 'lookup', title: 'Open Lookup Worksheet',
-        button: true, visible: true, onCoffeePub: true, onFoundry: false,
-        onClick: () => buildButtonEventRegent('lookup'), moduleId: 'coffee-pub-regent', zone: 'utilities', order: 20
-    });
-    api.registerToolbarTool('character', {
-        icon: 'fa-solid fa-helmet-battle', name: 'character', title: 'Open Character Worksheet',
-        button: true, visible: true, onCoffeePub: true, onFoundry: false,
-        onClick: () => buildButtonEventRegent('character'), moduleId: 'coffee-pub-regent', zone: 'utilities', order: 30
-    });
-    api.registerToolbarTool('assistant', {
-        icon: 'fa-solid fa-hammer-brush', name: 'assistant', title: 'Open Assistant Worksheet',
-        button: true, visible: true, gmOnly: true, onCoffeePub: true, onFoundry: false,
-        onClick: () => buildButtonEventRegent('assistant'), moduleId: 'coffee-pub-regent', zone: 'utilities', order: 10
-    });
-    api.registerToolbarTool('encounter', {
-        icon: 'fa-solid fa-sword', name: 'encounter', title: 'Open Encounter Worksheet',
-        button: true, visible: true, gmOnly: true, onCoffeePub: true, onFoundry: false,
-        onClick: () => buildButtonEventRegent('encounter'), moduleId: 'coffee-pub-regent', zone: 'utilities', order: 20
-    });
-    api.registerToolbarTool('narrative', {
-        icon: 'fa-solid fa-book-open-reader', name: 'narrative', title: 'Open Narrative Worksheet',
-        button: true, visible: true, gmOnly: true, onCoffeePub: true, onFoundry: false,
-        onClick: () => buildButtonEventRegent('narrative'), moduleId: 'coffee-pub-regent', zone: 'utilities', order: 30
-    });
 }
 
 Hooks.once('ready', onReady);
+
+Hooks.once('disableModule', (moduleId) => {
+    if (moduleId === 'coffee-pub-regent') {
+        const api = game.modules.get('coffee-pub-blacksmith')?.api;
+        api?.unregisterWindow?.('consult-regent');
+        api?.unregisterToolbarTool?.('regent');
+    }
+});
