@@ -1,5 +1,5 @@
 /* ================================================================== */
-/* Blacksmith core window template — 4-zone layout (option bar, header, body, action bar) */
+/* Blacksmith core window template — 5-zone layout (option bar, header, tools, body, action bar) */
 /* Variables at top; scope to template root.                         */
 /* ================================================================== */
 
@@ -35,6 +35,7 @@
 /* ----- Option bar ----- */
 .blacksmith-window-template-option-bar {
     flex-shrink: 0;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -59,9 +60,20 @@
     flex-shrink: 0;
 }
 
+/* ----- Tools (single content area: search, filters, progress bars, etc.) ----- */
+.blacksmith-window-template-tools {
+    flex-shrink: 0;
+    overflow: hidden;
+    padding: 6px 12px;
+    min-height: 36px;
+    background: rgba(0, 0, 0, 0.35);
+    border-bottom: 1px solid var(--blacksmith-window-border-color);
+}
+
 /* ----- Header ----- */
 .blacksmith-window-template-header {
     flex-shrink: 0;
+    overflow: hidden;
     background: var(--blacksmith-window-header-bg);
     background-image: var(--blacksmith-window-banner-image-title);
     background-blend-mode: multiply;
@@ -132,17 +144,17 @@
     color: rgba(255, 255, 255, 0.75);
 }
 
-/* ----- Body ----- */
+/* ----- Body (only scrollable section) ----- */
 .blacksmith-window-template-body {
     flex: 1;
     min-height: 0;
     overflow: auto;
-    
 }
 
 /* ----- Action bar ----- */
 .blacksmith-window-template-buttons {
     flex-shrink: 0;
+    overflow: hidden;
     border-top: 1px solid var(--blacksmith-window-border-color);
     background: var(--blacksmith-window-header-bg);
     padding: 10px 12px;

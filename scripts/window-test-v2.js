@@ -45,6 +45,7 @@ export class BlacksmithTestWindowV2 extends BlacksmithWindowBaseV2 {
             headerRight: '<span class="blacksmith-window-template-cache-status">Header right</span>',
             optionBarLeft: '<span class="blacksmith-window-template-cache-status">Option bar left</span>',
             optionBarRight: '<span class="blacksmith-window-template-cache-status">Option bar right</span>',
+            toolsContent: '<span class="blacksmith-window-template-cache-status">Tools — search, filters, progress bars, etc.</span>',
             bodyContent: '<p>Body content — set <code>bodyContent</code> from getData() (HTML string).</p>',
             actionBarLeft: '<button type="button" class="blacksmith-window-template-btn-secondary" data-action="reset"><i class="fa-solid fa-database"></i> Reset</button><span class="blacksmith-window-template-cache-status">Status message</span>',
             actionBarRight: '<button type="button" class="blacksmith-window-template-btn-secondary" data-action="apply"><i class="fa-solid fa-eraser"></i> Apply</button><button type="button" class="blacksmith-window-template-btn-primary" data-action="apply"><i class="fa-solid fa-wand-magic-sparkles"></i> Primary</button>'

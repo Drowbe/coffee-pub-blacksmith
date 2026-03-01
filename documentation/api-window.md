@@ -34,6 +34,7 @@ Windows that follow the Blacksmith contract use up to **five zones**. Only **Bod
 | **Title bar** | Yes (Foundry) | Foundry chrome; not in your template. |
 | **Option bar** | Optional | Filters, toggles, global options (e.g. REFRESH CACHE, TOKENS/PORTRAITS). |
 | **Header** | Optional | Icon, title, subtitle, header-right. Omit for minimal windows. |
+| **Tools** | Optional | Bar below header: single content area for search, filters, progress bars, etc. |
 | **Body** | Yes | Scrollable area; **you inject your content here** (forms, lists, grids, etc.). |
 | **Action bar** | Optional | Bottom bar: secondary left, primary right. |
 
@@ -50,6 +51,7 @@ When you use Blacksmith’s core template (`templates/window-template.hbs`) and 
 | **appId** | string | **Required.** Application instance id (e.g. `this.id`). Used as the root element `id`. |
 | **showOptionBar** | boolean | Show the option bar. Default `true` if omitted. |
 | **showHeader** | boolean | Show the header. Default `true` if omitted. |
+| **showTools** | boolean | Show the tools bar (below header). Default `true` if omitted. |
 | **showActionBar** | boolean | Show the action bar. Default `true` if omitted. |
 | **optionBarLeft** | string (HTML) | Option bar left zone (filters, toggles). |
 | **optionBarRight** | string (HTML) | Option bar right zone. |
@@ -57,11 +59,12 @@ When you use Blacksmith’s core template (`templates/window-template.hbs`) and 
 | **windowTitle** | string | Main title in the header. |
 | **subtitle** | string | Subtitle line below the title. |
 | **headerRight** | string (HTML) | Header right zone (buttons, dropdowns, labels). |
+| **toolsContent** | string (HTML) | Tools bar content (search, filters, progress bars, etc.). Single area; module controls layout. |
 | **bodyContent** | string (HTML) | Main scrollable body content. |
 | **actionBarLeft** | string (HTML) | Action bar left (secondary buttons, status text). Use class `blacksmith-window-template-btn-secondary` and `data-action="name"` for buttons that trigger `ACTION_HANDLERS`. |
 | **actionBarRight** | string (HTML) | Action bar right (primary buttons). Use `blacksmith-window-template-btn-primary` for primary style. |
 
-The base class sets `showOptionBar`, `showHeader`, and `showActionBar` to `true` when not provided, so all zones are visible by default. Return `showOptionBar: false` (or `showHeader` / `showActionBar`) to hide a zone.
+The base class sets `showOptionBar`, `showHeader`, `showTools`, and `showActionBar` to `true` when not provided, so all zones are visible by default. Return `showOptionBar: false` (or `showHeader` / `showTools` / `showActionBar`) to hide a zone.
 
 ---
 

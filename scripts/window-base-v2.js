@@ -37,6 +37,7 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
         // Default zone visibility to true so template shows option bar, header, action bar when not specified
         if (merged.showOptionBar === undefined) merged.showOptionBar = true;
         if (merged.showHeader === undefined) merged.showHeader = true;
+        if (merged.showTools === undefined) merged.showTools = true;
         if (merged.showActionBar === undefined) merged.showActionBar = true;
         return merged;
     }

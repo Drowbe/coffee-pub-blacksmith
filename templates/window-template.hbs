@@ -1,9 +1,10 @@
 {{!--
   Core Application V2 window template — maintained reference for the zone contract.
-  Zones: option bar (optional), header (optional), body, action bar (optional).
+  Zones: option bar, header, tools (optional), body, action bar.
   Class names: blacksmith-window-template-* (see window-template.css).
-  Data from getData(): appId, showOptionBar, showHeader, showActionBar, optionBarLeft, optionBarRight,
-  headerIcon, windowTitle, subtitle, headerRight, bodyContent, actionBarLeft, actionBarRight.
+  Data from getData(): appId, showOptionBar, showHeader, showTools, showActionBar,
+  optionBarLeft/Right, headerIcon, windowTitle, subtitle, headerRight,
+  toolsContent, bodyContent, actionBarLeft, actionBarRight.
 --}}
 
 <div class="blacksmith-window-template-root" id="{{appId}}">
@@ -36,6 +37,13 @@
             </div>
         </div>
     </header>
+    {{/if}}
+
+    {{!-- TOOLS (optional): single content area — search, filters, progress bars, etc. --}}
+    {{#if showTools}}
+    <div class="blacksmith-window-template-tools">
+        {{#if toolsContent}}{{{toolsContent}}}{{/if}}
+    </div>
     {{/if}}
 
     {{!-- BODY --}}
