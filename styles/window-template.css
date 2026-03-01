@@ -145,6 +145,20 @@
 }
 
 /* ----- Body (only scrollable section) ----- */
+/* When body contains Regent wrapper: body does NOT scroll; inner content manages left/right pane scroll */
+.blacksmith-window-template-body:has(#coffee-pub-regent-wrapper) {
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+}
+
+.blacksmith-window-template-body:has(#coffee-pub-regent-wrapper) > * {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
 .blacksmith-window-template-body {
     flex: 1;
     min-height: 0;

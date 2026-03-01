@@ -8,6 +8,7 @@ import { playSound, trimString } from '/modules/coffee-pub-blacksmith/scripts/ap
 import { SocketManager } from '/modules/coffee-pub-blacksmith/scripts/manager-sockets.js';
 import { SkillCheckDialog } from '/modules/coffee-pub-blacksmith/scripts/window-skillcheck.js';
 import { getCachedTemplate } from './regent.js';
+import { BlacksmithWindowBaseV2 } from '/modules/coffee-pub-blacksmith/scripts/window-base-v2.js';
 
 // -- COMMON Imports --
 import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from '/modules/coffee-pub-blacksmith/scripts/common.js';
@@ -245,8 +246,26 @@ function clearWorksheetTokens(id) {
 // ===== CLASSES ====================================================
 // ================================================================== 
 
-export class BlacksmithWindowQuery extends FormApplication {
-    
+export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
+
+    static PARTS = {
+        body: { template: 'modules/coffee-pub-blacksmith/templates/window-template.hbs' }
+    };
+
+    /** Blacksmith API: data-action buttons in action bar call these. Base class routes via _attachDelegationOnce. */
+    static ACTION_HANDLERS = {
+        regentSubmit: (e, btn) => {
+            const w = BlacksmithWindowQuery._ref;
+            if (!w) return;
+            e?.preventDefault?.();
+            const form = w._getRoot()?.querySelector?.('form');
+            if (form) w._onSubmit(e, form);
+        }
+    };
+
+    /** One-time document delegation for workspace tab buttons (so they work regardless of which part activateListeners receives). */
+    static _workspaceDelegationAttached = false;
+
     // ************************************
     // ** OPTIONS Set Defaults
     // ************************************
@@ -301,22 +320,41 @@ export class BlacksmithWindowQuery extends FormApplication {
     }
 
     // ************************************
-    // ** OPTIONS defaultOptions
+    // ** OPTIONS defaultOptions / DEFAULT_OPTIONS
     // ************************************
 
     static get defaultOptions() {
-        const intHeight = game.user.isGM ? 950 : 600;
-        return foundry.utils.mergeObject(super.defaultOptions, {
-            id: MODULE.ID,
-            template: REGENT.WINDOW_QUERY,
-            title: 'Blacksmith Query',
-            resizable: true,
-            width: 600,
-            height: intHeight,
-            classes: ['regent-window'],
-            minimizable: true,
-            scrollY: ['.regent-output']
-        });
+        return foundry.utils.mergeObject({}, BlacksmithWindowQuery.DEFAULT_OPTIONS ?? {});
+    }
+
+    static get DEFAULT_OPTIONS() {
+        const intHeight = game?.user?.isGM ? 950 : 600;
+        const baseWidth = 600;
+        const workspaceWidth = 400;
+        const padding = 40;
+        const width = baseWidth + workspaceWidth + padding;
+        return foundry.utils.mergeObject(
+            foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+            {
+                id: MODULE.ID,
+                classes: ['regent-window'],
+                position: {
+                    width,
+                    height: intHeight
+                },
+                window: {
+                    title: REGENT.WINDOW_QUERY_TITLE,
+                    resizable: true,
+                    minimizable: true
+                },
+                windowSizeConstraints: {
+                    minWidth: 500,
+                    minHeight: 400,
+                    maxWidth: 1600,
+                    maxHeight: 1200
+                }
+            }
+        );
     }
 
     // ************************************
@@ -335,32 +373,26 @@ export class BlacksmithWindowQuery extends FormApplication {
 
     async initialize(html) {
         // v13: Foundry passes native DOM to initialize
-        // Get the window element
-        const windowElement = html ? html.closest('.window-app') : document.querySelector(`#${MODULE.ID}`);
-        
-        // Set initial workspace visibility
-        if (!this.showWorkspace) {
-            const wrapper = document.getElementById('regent-workspace-wrapper');
-            if (wrapper) {
-                wrapper.classList.add('workspace-hidden');
-                if (windowElement) {
-                    windowElement.classList.remove('has-workspace');
-                }
-            }
-            const toggleButton = document.getElementById('regent-toggle-workspace');
-            if (toggleButton) {
-                const icon = toggleButton.querySelector('i');
-                if (icon) {
-                    icon.classList.remove('fa-chevrons-right');
-                    icon.classList.add('fa-chevrons-left');
-                }
-            }
-        } else {
-            if (windowElement) {
-                windowElement.classList.add('has-workspace');
-            }
-            this.switchWorkspace(html, `regent-query-workspace-${this.workspaceId}`);
+        const windowElement = this.element?.closest?.('.window') ?? document.querySelector(`#${this.id}`);
+
+        // Workspaces always expanded to the right of chat (no collapse/expand)
+        const wrapper = document.getElementById('regent-workspace-wrapper');
+        if (wrapper) {
+            wrapper.classList.remove('workspace-hidden');
         }
+        if (windowElement) {
+            windowElement.classList.add('has-workspace');
+        }
+        const baseWidth = 600;
+        const workspaceWidth = 400;
+        const padding = 40;
+        const expandedWidth = baseWidth + workspaceWidth + padding;
+        this.position.width = expandedWidth;
+        if (windowElement) {
+            windowElement.style.width = `${expandedWidth}px`;
+        }
+
+        this.switchWorkspace(html, `regent-query-workspace-${this.workspaceId}`);
 
         // Check if we're starting in encounter mode and have selected tokens
         if (this.workspaceId === 'encounter' && canvas.tokens.controlled.length > 0) {
@@ -381,14 +413,15 @@ export class BlacksmithWindowQuery extends FormApplication {
     activateListeners(html) {
         super.activateListeners(html);
 
-        // v13: Application/FormApplication.activateListeners may still receive jQuery
-        // Convert to native DOM if needed
+        // v13 / Application V2: html may be part content; resolve to root that contains the Regent form
         let htmlElement = html;
         if (html && (html.jquery || typeof html.find === 'function')) {
             htmlElement = html[0] || html.get?.(0) || html;
         } else if (html && typeof html.querySelectorAll !== 'function') {
-            // Not a valid DOM element
-            return;
+            htmlElement = null;
+        }
+        if (!htmlElement || !htmlElement.querySelector?.('form')) {
+            htmlElement = this._getRoot() ?? this.element;
         }
         if (!htmlElement) return;
 
@@ -480,30 +513,37 @@ export class BlacksmithWindowQuery extends FormApplication {
         // -- WATCH FOR WORKSPACE CHANGES --
 
         // Call toggleWorkspaceVisibility based on initial mode
-        if (this.showWorkspace) {
-            this.toggleWorkspaceVisibility(htmlElement, false);
-        }
-        
-        // Ensure the correct workspace button is active based on the initial mode
+        // Workspaces always expanded; ensure correct tab is active
         this.switchWorkspace(htmlElement, `regent-query-workspace-${this.workspaceId}`);
 
-        // Attach the event listener for the toggle button
-        const toggleWorkspaceButton = htmlElement.querySelector('#regent-toggle-workspace');
-        if (toggleWorkspaceButton) {
-            toggleWorkspaceButton.addEventListener('click', (event) => {
-                event.preventDefault();
-                this.toggleWorkspaceVisibility(htmlElement, true);
-            });
+        // (Workspace toggle button removed: workspaces always expanded.)
+
+        // Keep ref current so document listener and direct listener use this instance
+        BlacksmithWindowQuery._ref = this;
+
+        // Document-level delegation for workspace tab buttons (works even when activateListeners receives only a part)
+        if (!BlacksmithWindowQuery._workspaceDelegationAttached) {
+            BlacksmithWindowQuery._workspaceDelegationAttached = true;
+            document.addEventListener('click', (e) => {
+                const w = BlacksmithWindowQuery._ref;
+                if (!w) return;
+                const root = w._getRoot();
+                if (!root?.contains?.(e.target)) return;
+                const clickedButton = e.target.closest?.('[id^="regent-query-button-"]');
+                if (!clickedButton?.id) return;
+                e.preventDefault();
+                const workspaceId = clickedButton.id.replace('regent-query-button-', 'regent-query-workspace-');
+                w.switchWorkspace(root, workspaceId);
+            }, true);
         }
 
-        // Attach the event listener for workspace buttons
-        htmlElement.addEventListener('click', (event) => {
-            const clickedButton = event.target.closest('#regent-query-button-lookup, #regent-query-button-narrative, #regent-query-button-encounter, #regent-query-button-assistant, #regent-query-button-character');
-            if (clickedButton) {
-                event.preventDefault();
-                const workspaceId = clickedButton.getAttribute('id').replace('button', 'workspace');
-                this.switchWorkspace(htmlElement, workspaceId);
-            }
+        // Direct listener on root so workspace tab clicks are always handled (fallback if document delegation misses)
+        htmlElement.addEventListener('click', (e) => {
+            const clickedButton = e.target.closest?.('[id^="regent-query-button-"]');
+            if (!clickedButton?.id) return;
+            e.preventDefault();
+            const workspaceId = clickedButton.id.replace('regent-query-button-', 'regent-query-workspace-');
+            this.switchWorkspace(htmlElement, workspaceId);
         });
 
         // -- ADD TOKENS BUTTONS --
@@ -1059,39 +1099,14 @@ export class BlacksmithWindowQuery extends FormApplication {
     // ************************************
 
     toggleWorkspaceVisibility(html, logToggle = true) {
-        const windowElement = document.getElementById(MODULE.ID);
+        // No-op: workspaces are always expanded to the right of chat. Ensure visible in case something called this.
         const workspace = document.getElementById('regent-workspace-wrapper');
-        const toggleButton = document.getElementById('regent-toggle-workspace');
-        
-        if (!workspace || !windowElement) {
-            postConsoleAndNotification(MODULE.NAME, 'Could not find workspace or window elements', "", false, false);
-            return;
+        if (workspace) {
+            workspace.classList.remove('workspace-hidden');
         }
-
-        const isHidden = workspace.classList.contains('workspace-hidden');
-        const baseWidth = 600;
-        const workspaceWidth = 400;  // Changed from 350 to 400
-        const padding = 40;
-
-        // First update the classes
-        workspace.classList.toggle('workspace-hidden');
-        windowElement.classList.toggle('has-workspace');
-
-        // Update window size
-        const newWidth = isHidden ? (baseWidth + workspaceWidth + padding) : baseWidth;
-        this.position.width = newWidth;
-        windowElement.style.width = `${newWidth}px`;
-
-        // Update toggle button icon
-        if (toggleButton) {
-            const icon = toggleButton.querySelector('i');
-            if (icon) {
-                icon.className = isHidden ? 'fa-solid fa-chevrons-right' : 'fa-solid fa-chevrons-left';
-            }
-        }
-
-        if (logToggle) {
-    
+        const windowElement = document.getElementById(this.id) ?? this.element?.closest?.('.window');
+        if (windowElement) {
+            windowElement.classList.add('has-workspace');
         }
     }
 
@@ -2668,8 +2683,8 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
         }
     }
 
-    // Pass Data to the template
-    getData(options) {
+    // Pass Data to the template (Regent inner template data for workspace partials)
+    _getRegentTemplateData(options) {
         // Set data
         const users = game.users.contents;
         const randomuser1 = users[Math.floor(Math.random() * users.length)].name;
@@ -2767,6 +2782,27 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
         }
     }
 
+    /** Blacksmith template contract: chrome + bodyContent + action bar (api-window.md). */
+    async getData(options = {}) {
+        const regentData = this._getRegentTemplateData(options);
+        const tpl = await getCachedTemplate(REGENT.WINDOW_QUERY);
+        const bodyContent = tpl(regentData);
+        const submitLabel = 'Consult the Regent';
+        const actionBarRight = `<button type="button" class="blacksmith-window-template-btn-primary" data-action="regentSubmit"><i class="fa-solid fa-paper-plane"></i> ${submitLabel}</button>`;
+        const actionBarLeft = `<label class="blacksmith-window-template-action-label"><input type="checkbox" id="enterSubmits" data-persist="true" class="regent-checkbox" checked> ENTER Sends</label>`;
+        return {
+            appId: this.id,
+            windowTitle: REGENT.WINDOW_QUERY_TITLE,
+            subtitle: this.formTitle || '',
+            headerIcon: 'fa-solid fa-crystal-ball',
+            showOptionBar: false,
+            showTools: false,
+            showActionBar: true,
+            actionBarLeft,
+            actionBarRight,
+            bodyContent
+        };
+    }
 
     _applyTokenDataToButtons(playerTokens) {
         const levelCounts = {};

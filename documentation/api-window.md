@@ -68,6 +68,32 @@ The base class sets `showOptionBar`, `showHeader`, `showTools`, and `showActionB
 
 ---
 
+## Window options (resizable, min/max size)
+
+When extending `BlacksmithWindowBaseV2`, set **`DEFAULT_OPTIONS`** (or pass options at construction) so the window frame behaves as needed:
+
+- **`window.resizable`** (boolean) — Whether the window can be resized by the user. Default is up to the module (e.g. `true` for Regent).
+- **`window.minimizable`** (boolean) — Whether the window can be minimized.
+- **`position.width`** / **`position.height`** — Initial size (numbers or `"auto"` per Foundry). Do **not** add `minWidth`/`maxWidth`/`minHeight`/`maxHeight` to `position` — Foundry's position object is not extensible.
+- **`windowSizeConstraints`** (object, optional) — Min/max size applied by the base class to the window element after render: `{ minWidth, minHeight, maxWidth, maxHeight }` (numbers in pixels). Omit to leave unconstrained.
+
+Example (in your window class):
+
+```javascript
+static get DEFAULT_OPTIONS() {
+  return foundry.utils.mergeObject(
+    foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+    {
+      position: { width: 800, height: 600 },
+      window: { title: 'My Window', resizable: true, minimizable: true },
+      windowSizeConstraints: { minWidth: 500, maxWidth: 1400 }
+    }
+  );
+}
+```
+
+---
+
 ## Getting Started
 
 ### 1. Build Your Window (Application V2)

@@ -8,34 +8,27 @@
     {{!-- ----- CONTAINER  ----- --}}
     <div id="coffee-pub-regent-container">
         <div id='coffee-pub-regent-output' class="regent-output">
-            <div id="regent-message-header" class="regent-message-header-answer">
-                <i class="fas fa-crystal-ball"></i>
-                <span class="regent-message-speaker">Regent</span>
+            {{!-- Initial welcome as a proper card (same structure as appended messages) --}}
+            <div class="regent-message-wrapper">
+                <div class="regent-message-header regent-message-header-answer">
+                    <i class="fas fa-crystal-ball"></i>
+                    <span class="regent-message-speaker">Regent</span>
+                </div>
+                <div class="regent-message-content">
+                    <p>Greetings <b>{{user}}</b>! What brings you here today? Looking to craft a <b>devistating insult</b> to put <b>{{randomuser2}}</b> in their place? Need to fabricate a <b>rumor</b> about <b>{{randomuser1}}</b> to make your life seem better? I am here for all your needs.</p>
+                </div>
+                <div class="regent-message-divider">Let the chronicles of your valor unfold!</div>
             </div>
-            <div id="regent-message-content">
-                <p>Greetings <b>{{user}}</b>! What brings you here today? Looking to craft a <b>devistating insult</b> to put <b>{{randomuser2}}</b> in their place? Need to fabricate a <b>rumor</b> about <b>{{randomuser1}}</b> to make your life seem better? I am here for all your needs.</p>
-            </div>
-            <div id="regent-message-divider">Let the chronicles of your valor unfold!</div>
         </div>
         <div id="coffee-pub-regent-input">
-            {{!-- Message input --}}
+            {{!-- Message input: full width --}}
             <textarea rows="3" id='regent-input-message' name='regent-input-message' class="regent-textarea"></textarea>
-            {{!-- toolbar --}}
-            <div id="regent-message-options" class="toolbar-left">
-                <label>
-                    <input type="checkbox" id="enterSubmits" data-persist="true" class="regent-checkbox" checked> ENTER Sends
-                </label>
-                <button type="button" id="regent-toggle-workspace" class="toggle-button-workspace"><i class="fa-solid fa-chevrons-left"></i></button>
-            </div>
-            {{!-- button to submit the form --}}
-            <button type="submit" value="Submit" class="regent-send-button-normal regent-button-main">
-                <i class="fa-solid fa-wand-magic-sparkles"></i>
-            </button>
+            <div id="regent-message-options" class="toolbar-left"></div>
         </div>
     </div>
 
-    {{!-- ----- WORKSPACE WRAPPER ----- --}}
-    <div id="regent-workspace-wrapper" class="workspace-hidden">
+    {{!-- ----- WORKSPACE WRAPPER (always expanded to the right of chat) ----- --}}
+    <div id="regent-workspace-wrapper">
     {{!-- BEGIN Workspace --}}
         {{!-- ----- WORKSPACE CONTENT ----- --}}
         <div id="regent-workspace-content">
@@ -112,12 +105,7 @@
                 {{/if}}
                 <button type="button" id="regent-clear-workspace" class="clear-button"><i class="fa-solid fa-broom-wide"></i></button>
             </div>
-            {{!-- button to submit the form --}}
-            <div id="regent-workspace-submit-wrap">
-                <button type="submit" value="Submit" class="regent-send-button-normal regent-button-workspace">
-                    <i class="fa-solid fa-cloud-bolt"></i>
-                </button>
-            </div>
+            {{!-- Submit via Blacksmith action bar only --}}
             {{!-- END Footer --}}
         </div>            
 

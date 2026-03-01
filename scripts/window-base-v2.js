@@ -64,8 +64,30 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
     async render(force = false) {
         const scrolls = this._saveScrollPositions();
         const result = await super.render(force);
-        requestAnimationFrame(() => this._restoreScrollPositions(scrolls));
+        requestAnimationFrame(() => {
+            this._restoreScrollPositions(scrolls);
+            this._applyWindowSizeConstraints();
+        });
         return result;
+    }
+
+    /**
+     * Apply optional min/max size from options.windowSizeConstraints to the window element.
+     * Subclasses can pass windowSizeConstraints: { minWidth, minHeight, maxWidth, maxHeight } in DEFAULT_OPTIONS or constructor options.
+     * (Do not put min/max on position — Foundry's position object is not extensible.)
+     */
+    _applyWindowSizeConstraints() {
+        const constraints = this.options?.windowSizeConstraints ?? {};
+        const win = this.element?.closest?.('.window') ?? document.getElementById(this.id)?.closest?.('.window');
+        if (!win || typeof win.style === 'undefined') return;
+        const apply = (key, styleKey) => {
+            const v = constraints[key];
+            if (v != null && v !== '') win.style[styleKey] = typeof v === 'number' ? `${v}px` : v;
+        };
+        apply('minWidth', 'minWidth');
+        apply('minHeight', 'minHeight');
+        apply('maxWidth', 'maxWidth');
+        apply('maxHeight', 'maxHeight');
     }
 
     _attachDelegationOnce() {

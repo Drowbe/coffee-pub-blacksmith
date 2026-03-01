@@ -16,12 +16,21 @@
 #coffee-pub-regent-wrapper #coffee-pub-regent-query {
     display: flex;
     flex-direction: row;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     width: 100%;
-    min-height: 350px;
     overflow: hidden;
     transition: all 0.3s ease;
     box-sizing: border-box;
+}
+
+/* When inside Blacksmith template body (Regent window): wrapper fills and does not scroll */
+.blacksmith-window-template-body #coffee-pub-regent-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 #coffee-pub-regent-wrapper .window-content {
@@ -35,7 +44,8 @@
 #coffee-pub-regent-wrapper #coffee-pub-regent-container,
 #coffee-pub-regent-wrapper #regent-workspace-wrapper {
     flex: 1;
-    overflow-y: auto;
+    min-height: 0;
+    overflow: hidden;
 }
 
 #coffee-pub-regent-wrapper #coffee-pub-regent-container {
@@ -47,13 +57,14 @@
     transition: all 0.3s ease;
 }
 
-/* Output area */
+/* Left pane: chat content scrolls when there's enough messages; input stays fixed at bottom */
 #coffee-pub-regent-wrapper #coffee-pub-regent-output,
 #coffee-pub-regent-wrapper .regent-output {
-    height: 200px;
-    flex-grow: 1;
+    flex: 1;
+    min-height: 0;
     overflow: auto;
-    overflow-y: visible;
+    overflow-x: hidden;
+    display: block;
     border-radius: var(--regent-element-radius);
     margin-bottom: 8px;
     padding: 6px;
@@ -65,10 +76,20 @@
     background: url(/modules/coffee-pub-blacksmith/images/tiles/tile-parchment-white.webp) repeat;
 }
 
-/* Input area */
+/* Input area: locked to bottom of left pane; input full width */
 #coffee-pub-regent-wrapper #coffee-pub-regent-input {
     flex-shrink: 0;
     padding: 0 1px;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+}
+
+#coffee-pub-regent-wrapper #coffee-pub-regent-input .regent-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
 }
 
 /* Message options (above input) */
@@ -115,6 +136,8 @@
     padding: 12px;
     font-size: 1.1em;
     height: auto;
+    width: 100%;
+    box-sizing: border-box;
     border-radius: var(--regent-element-radius);
     word-break: break-word;
     color: #000000;
@@ -710,4 +733,18 @@
     margin-right: 0;
     text-align: center;
     border-top: 0 dotted #a4a4a4;
+}
+
+/* ENTER Sends checkbox in Blacksmith action bar left zone */
+.regent-window .blacksmith-window-template-action-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 0.95em;
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+}
+.regent-window .blacksmith-window-template-action-label .regent-checkbox {
+    margin: 0;
 }
