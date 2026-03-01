@@ -38,7 +38,7 @@ Implementation details (template structure, CSS, delegation, scroll save/restore
 
 ### 3.1 Window Registry
 
-- **Location (planned):** e.g. `scripts/manager-windows.js` or a dedicated window-registry module used by `blacksmith.js`.
+- **Location (planned):** e.g. `scripts/api-windows.js` or a dedicated window-registry module used by `blacksmith.js`.
 - **Role:** Store registered window descriptors keyed by `windowId`. Expose `registerWindow(windowId, descriptor)`, `unregisterWindow(windowId)`, and `openWindow(windowId, options)` on `module.api`.
 - **Descriptor:** At minimum, a way to open the window (e.g. `open: (options) => ApplicationInstance`, or a WindowClass so Blacksmith can `new WindowClass(options)`). Optional: default `title`, `position`, `moduleId` for debugging.
 - **Lifecycle:** Registration typically happens in a consumer’s `ready` or `init` hook; unregister on `disableModule` for cleanup.

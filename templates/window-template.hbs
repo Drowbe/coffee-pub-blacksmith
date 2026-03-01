@@ -1,9 +1,21 @@
 {{!--
   Core Application V2 window template — maintained reference for the zone contract.
-  Zones: header, body, action bar. Class names: blacksmith-window-template-* (see window-template.css).
+  Zones: option bar, header, body, action bar. Class names: blacksmith-window-template-* (see window-template.css).
 --}}
 
 <div class="blacksmith-window-template-root" id="{{appId}}">
+
+    {{!-- OPTION BAR: [ LEFT ] ------------------------- [ RIGHT ] --}}
+    <div class="blacksmith-window-template-option-bar">
+        <div class="blacksmith-window-template-option-bar-left">
+            {{#if optionBarLeft}}{{{optionBarLeft}}}{{/if}}
+            left content    
+        </div>
+        <div class="blacksmith-window-template-option-bar-right">
+            {{#if optionBarRight}}{{{optionBarRight}}}{{/if}}
+            right content
+        </div>
+    </div>
 
     {{!-- HEADER --}}
     <header class="blacksmith-window-template-header">

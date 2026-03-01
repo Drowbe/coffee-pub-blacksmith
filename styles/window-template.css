@@ -1,5 +1,5 @@
 /* ================================================================== */
-/* Blacksmith core window template — 3-zone layout (header, body, action bar) */
+/* Blacksmith core window template — 4-zone layout (option bar, header, body, action bar) */
 /* Variables at top; scope to template root.                         */
 /* ================================================================== */
 
@@ -31,6 +31,33 @@
     height: 100%;
     padding: 0 !important;
     overflow: hidden !important;
+}
+
+/* ----- Option bar ----- */
+.blacksmith-window-template-option-bar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 12px;
+    min-height: 36px;
+    background: rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid var(--blacksmith-window-border-color);
+}
+
+.blacksmith-window-template-option-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.blacksmith-window-template-option-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
 /* ----- Header ----- */
@@ -111,7 +138,7 @@
     flex: 1;
     min-height: 0;
     overflow: auto;
-    border-bottom: 1px solid var(--blacksmith-window-border-color);
+    
 }
 
 /* ----- Action bar ----- */
@@ -127,6 +154,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    border-top: 1px solid var(--blacksmith-window-border-color);
 }
 
 .blacksmith-window-template-action-left {

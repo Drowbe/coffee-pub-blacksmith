@@ -864,7 +864,7 @@ Hooks.once('init', async function() {
     });
 
     // Import and expose Window API (Application V2 window registry)
-    import('./manager-windows.js').then(({
+    import('./api-windows.js').then(({
         registerWindow,
         unregisterWindow,
         openWindow,
