@@ -1,60 +1,59 @@
 {{!--
   Core Application V2 window template — maintained reference for the zone contract.
-  Zones: option bar, header, body, action bar. Class names: blacksmith-window-template-* (see window-template.css).
+  Zones: option bar (optional), header (optional), body, action bar (optional).
+  Class names: blacksmith-window-template-* (see window-template.css).
+  Data from getData(): appId, showOptionBar, showHeader, showActionBar, optionBarLeft, optionBarRight,
+  headerIcon, windowTitle, subtitle, headerRight, bodyContent, actionBarLeft, actionBarRight.
 --}}
 
 <div class="blacksmith-window-template-root" id="{{appId}}">
 
-    {{!-- OPTION BAR: [ LEFT ] ------------------------- [ RIGHT ] --}}
+    {{!-- OPTION BAR (optional) --}}
+    {{#if showOptionBar}}
     <div class="blacksmith-window-template-option-bar">
         <div class="blacksmith-window-template-option-bar-left">
-            {{#if optionBarLeft}}{{{optionBarLeft}}}{{/if}}   
+            {{#if optionBarLeft}}{{{optionBarLeft}}}{{/if}}
         </div>
         <div class="blacksmith-window-template-option-bar-right">
             {{#if optionBarRight}}{{{optionBarRight}}}{{/if}}
         </div>
     </div>
+    {{/if}}
 
-    {{!-- HEADER --}}
+    {{!-- HEADER (optional) --}}
+    {{#if showHeader}}
     <header class="blacksmith-window-template-header">
         <div class="blacksmith-window-template-header-content">
             <div class="blacksmith-window-template-header-icon">
-                <i class="fa-solid fa-hammer"></i>
+                {{#if headerIcon}}<i class="{{headerIcon}}"></i>{{else}}<i class="fa-solid fa-hammer"></i>{{/if}}
             </div>
             <div class="blacksmith-window-template-header-title-block">
                 <div class="blacksmith-window-template-header-title">{{windowTitle}}</div>
                 <div class="blacksmith-window-template-header-subtitle">{{subtitle}}</div>
             </div>
             <div class="blacksmith-window-template-header-right">
-                HEADER RIGHT CONTENT
+                {{#if headerRight}}{{{headerRight}}}{{/if}}
             </div>
         </div>
     </header>
+    {{/if}}
 
-    {{!-- CONTENT --}}
+    {{!-- BODY --}}
     <div class="blacksmith-window-template-body">
-        CONTENT GOES HERE
+        {{#if bodyContent}}{{{bodyContent}}}{{/if}}
     </div>
 
-    {{!-- ACTION BAR: [ LEFT BUTTONS ] -------- [ RIGHT BUTTON ] [ RIGHT BUTTON ] --}}
+    {{!-- ACTION BAR (optional) --}}
+    {{#if showActionBar}}
     <section class="blacksmith-window-template-buttons">
         <div class="blacksmith-window-template-action-bar">
             <div class="blacksmith-window-template-action-left">
-                <button type="button" class="blacksmith-window-template-btn-secondary">
-                    <i class="fa-solid fa-database"></i> Refresh
-                </button>
-                <span class="blacksmith-window-template-cache-status">
-                    Some Message Here
-                </span>
+                {{#if actionBarLeft}}{{{actionBarLeft}}}{{/if}}
             </div>
             <div class="blacksmith-window-template-action-right">
-                <button type="button" class="blacksmith-window-template-btn-secondary">
-                    <i class="fa-solid fa-eraser"></i> Secondary
-                </button>
-                <button type="button" class="blacksmith-window-template-btn-primary">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> Primary
-                </button>
+                {{#if actionBarRight}}{{{actionBarRight}}}{{/if}}
             </div>
         </div>
     </section>
+    {{/if}}
 </div>

@@ -4,7 +4,7 @@
 
 This document describes the **Window API**: how to register a window type with Blacksmith and how to open a window by id. It follows the same registration pattern as the Toolbar API: you register a **window type** (id + descriptor); Blacksmith routes “open this window” to your opener. **You keep full control** of header and body content; Blacksmith provides the zone contract and optional base behavior.
 
-**Status:** This API is **planned** as part of the Application V2 window system. When implemented, it will be exposed on `game.modules.get('coffee-pub-blacksmith').api` and optionally via the BlacksmithAPI bridge. Use this document as the contract for integration.
+**Status:** The Window API is exposed on `game.modules.get('coffee-pub-blacksmith').api`. Use this document as the contract for integration.
 
 **Related docs:**
 - **documentation/architecture-window.md** — Internal architecture (zone contract, registry, base class).
@@ -38,6 +38,30 @@ Windows that follow the Blacksmith contract use up to **five zones**. Only **Bod
 | **Action bar** | Optional | Bottom bar: secondary left, primary right. |
 
 See **documentation/applicationv2-window/blacksmith-windows-zones.webp** for the layout diagram and **window-samples.png** for real-window variability.
+
+---
+
+## Template data contract (core template)
+
+When you use Blacksmith’s core template (`templates/window-template.hbs`) and extend `BlacksmithWindowBaseV2`, your `getData()` return value can include the following. All are optional unless noted. HTML slots are rendered as HTML (use triple-brace in Handlebars if you author your own template).
+
+| Key | Type | Description |
+|-----|------|-------------|
+| **appId** | string | **Required.** Application instance id (e.g. `this.id`). Used as the root element `id`. |
+| **showOptionBar** | boolean | Show the option bar. Default `true` if omitted. |
+| **showHeader** | boolean | Show the header. Default `true` if omitted. |
+| **showActionBar** | boolean | Show the action bar. Default `true` if omitted. |
+| **optionBarLeft** | string (HTML) | Option bar left zone (filters, toggles). |
+| **optionBarRight** | string (HTML) | Option bar right zone. |
+| **headerIcon** | string | Font Awesome class for the header icon (e.g. `'fa-solid fa-hammer'`). If omitted, default hammer icon is used. |
+| **windowTitle** | string | Main title in the header. |
+| **subtitle** | string | Subtitle line below the title. |
+| **headerRight** | string (HTML) | Header right zone (buttons, dropdowns, labels). |
+| **bodyContent** | string (HTML) | Main scrollable body content. |
+| **actionBarLeft** | string (HTML) | Action bar left (secondary buttons, status text). Use class `blacksmith-window-template-btn-secondary` and `data-action="name"` for buttons that trigger `ACTION_HANDLERS`. |
+| **actionBarRight** | string (HTML) | Action bar right (primary buttons). Use `blacksmith-window-template-btn-primary` for primary style. |
+
+The base class sets `showOptionBar`, `showHeader`, and `showActionBar` to `true` when not provided, so all zones are visible by default. Return `showOptionBar: false` (or `showHeader` / `showActionBar`) to hide a zone.
 
 ---
 
@@ -177,10 +201,10 @@ blacksmith.api.registerToolbarTool('regent', {
 
 The following may be exposed for debugging and cleanup:
 
-- **`getRegisteredWindows()`** — Returns a `Map` or list of registered window ids (and optionally descriptors).
+- **`getRegisteredWindows()`** — Returns a `Map` of registered window ids to descriptors.
 - **`isWindowRegistered(windowId)`** — Returns `boolean`.
 
-Exact signatures to be defined when the registry is implemented.
+Both are exposed on `module.api`.
 
 ---
 
@@ -204,7 +228,7 @@ Exact signatures to be defined when the registry is implemented.
 
 ## Troubleshooting
 
-- **`registerWindow` / `openWindow` undefined** — Window API not yet implemented or not loaded. Wait for `ready` and check `game.modules.get('coffee-pub-blacksmith')?.api?.registerWindow`.
+- **`registerWindow` / `openWindow` undefined** — Window API not loaded yet. Wait for `ready` and check `game.modules.get('coffee-pub-blacksmith')?.api?.registerWindow`.
 - **Window doesn’t open** — Ensure the window type is registered before calling `openWindow`. Check that `descriptor.open` returns or resolves to the Application instance if you need a reference.
 - **Layout or behavior issues** — Follow **documentation/applicationv2-window/guidance-applicationv2.md** (delegation, scroll save/restore, `_getRoot()`, safe merge of `DEFAULT_OPTIONS`).
 
@@ -212,7 +236,7 @@ Exact signatures to be defined when the registry is implemented.
 
 ## Version History
 
-- **Planned** — Window API and Application V2 window system documented; implementation in progress. See **architecture-window.md** and **documentation/applicationv2-window/** for the full design and examples.
+- **Implemented** — Window API (`api-windows.js`), core template (`window-template.hbs`), base class (`window-base-v2.js`). Template data contract documented above.
 
 ---
 

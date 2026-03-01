@@ -11,8 +11,8 @@
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(ApplicationV2) {
-    /** Override in subclass: CSS class on the template root (e.g. 'blacksmith-window-v2-root') */
-    static ROOT_CLASS = 'blacksmith-window-v2-root';
+    /** Override in subclass: CSS class on the template root. Default matches window-template.hbs. */
+    static ROOT_CLASS = 'blacksmith-window-template-root';
 
     /** Subclass sets: { actionName: staticMethod }. Used by _attachDelegationOnce for data-action routing */
     static ACTION_HANDLERS = null;
@@ -32,13 +32,19 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
 
     async _prepareContext(options = {}) {
         const base = await super._prepareContext?.(options) ?? {};
-        return foundry.utils.mergeObject(base, await this.getData(options));
+        const data = await this.getData(options);
+        const merged = foundry.utils.mergeObject(base, data);
+        // Default zone visibility to true so template shows option bar, header, action bar when not specified
+        if (merged.showOptionBar === undefined) merged.showOptionBar = true;
+        if (merged.showHeader === undefined) merged.showHeader = true;
+        if (merged.showActionBar === undefined) merged.showActionBar = true;
+        return merged;
     }
 
     _saveScrollPositions() {
         const root = this._getRoot();
-        const body = root?.querySelector?.('.blacksmith-window-v2-body');
-        const details = root?.querySelector?.('.blacksmith-window-v2-details-content');
+        const body = root?.querySelector?.('.blacksmith-window-template-body');
+        const details = root?.querySelector?.('.blacksmith-window-template-details-content');
         return {
             body: body ? body.scrollTop : 0,
             details: details ? details.scrollTop : 0
@@ -48,8 +54,8 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
     _restoreScrollPositions(saved) {
         if (!saved) return;
         const root = this._getRoot();
-        const body = root?.querySelector?.('.blacksmith-window-v2-body');
-        const details = root?.querySelector?.('.blacksmith-window-v2-details-content');
+        const body = root?.querySelector?.('.blacksmith-window-template-body');
+        const details = root?.querySelector?.('.blacksmith-window-template-details-content');
         if (body != null && saved.body != null) body.scrollTop = saved.body;
         if (details != null && saved.details != null) details.scrollTop = saved.details;
     }
@@ -72,7 +78,9 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
             const w = Ctor._ref;
             if (!w) return;
             const root = w._getRoot();
-            if (!root?.contains?.(e.target)) return;
+            const inRoot = root?.contains?.(e.target);
+            const inApp = w.element?.contains?.(e.target);
+            if (!inRoot && !inApp) return;
             const btn = e.target.closest?.('[data-action]');
             if (!btn) return;
             const action = btn.dataset.action;
@@ -81,7 +89,7 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
                 e.preventDefault?.();
                 fn(e, btn);
             }
-        });
+        }, true);
     }
 
     async _onFirstRender(_context, options) {

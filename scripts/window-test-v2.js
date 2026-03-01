@@ -9,8 +9,6 @@ import { BlacksmithWindowBaseV2 } from './window-base-v2.js';
 const TEST_APP_ID = 'blacksmith-test-window';
 
 export class BlacksmithTestWindowV2 extends BlacksmithWindowBaseV2 {
-    static ROOT_CLASS = 'blacksmith-window-v2-root';
-
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
         foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
         {
@@ -42,7 +40,14 @@ export class BlacksmithTestWindowV2 extends BlacksmithWindowBaseV2 {
         return {
             appId: this.id,
             windowTitle: 'Test V2 Window',
-            subtitle: 'Application V2 zone contract — tweak template and CSS here'
+            subtitle: 'Application V2 zone contract — use getData() to fill option bar, header, body, action bar.',
+            headerIcon: 'fa-solid fa-flask',
+            headerRight: '<span class="blacksmith-window-template-cache-status">Header right</span>',
+            optionBarLeft: '<span class="blacksmith-window-template-cache-status">Option bar left</span>',
+            optionBarRight: '<span class="blacksmith-window-template-cache-status">Option bar right</span>',
+            bodyContent: '<p>Body content — set <code>bodyContent</code> from getData() (HTML string).</p>',
+            actionBarLeft: '<button type="button" class="blacksmith-window-template-btn-secondary" data-action="reset"><i class="fa-solid fa-database"></i> Reset</button><span class="blacksmith-window-template-cache-status">Status message</span>',
+            actionBarRight: '<button type="button" class="blacksmith-window-template-btn-secondary" data-action="apply"><i class="fa-solid fa-eraser"></i> Apply</button><button type="button" class="blacksmith-window-template-btn-primary" data-action="apply"><i class="fa-solid fa-wand-magic-sparkles"></i> Primary</button>'
         };
     }
 
