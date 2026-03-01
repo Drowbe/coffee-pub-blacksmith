@@ -12,13 +12,13 @@
 
 /* Variables: scope to template root */
 .blacksmith-window-template-root {
-    --craft-border-color: #444;
-    --craft-accent-color: #ac9f81;
-    --craft-background: #232323;
-    --craft-header-bg: rgba(0, 0, 0, 0.7);
-    --craft-banner-image-title: url('../images/backgrounds/background-skull-red.webp');
-    background: var(--craft-background);
-    border: 0 solid var(--craft-border-color);
+    --blacksmith-window-border-color: #444;
+    --blacksmith-window-accent-color: #ac9f81;
+    --blacksmith-window-background: #232323;
+    --blacksmith-window-header-bg: rgba(0, 0, 0, 0.7);
+    --blacksmith-window-banner-image-title: url('../images/backgrounds/background-skull-red.webp');
+    background: var(--blacksmith-window-background);
+    border: 0 solid var(--blacksmith-window-border-color);
     color: rgba(224, 224, 224, 0.9);
     font-family: "Signika", sans-serif;
 }
@@ -36,13 +36,13 @@
 /* ----- Header ----- */
 .blacksmith-window-template-header {
     flex-shrink: 0;
-    background: var(--craft-header-bg);
-    background-image: var(--craft-banner-image-title);
+    background: var(--blacksmith-window-header-bg);
+    background-image: var(--blacksmith-window-banner-image-title);
     background-blend-mode: multiply;
     background-position: top center;
     background-repeat: no-repeat;
     background-size: cover;
-    border-bottom: 1px solid var(--craft-border-color);
+    border-bottom: 1px solid var(--blacksmith-window-border-color);
     padding: 8px 12px;
     min-height: 50px;
 }
@@ -97,7 +97,7 @@
     font-size: 1.2em;
     font-weight: bold;
     text-transform: uppercase;
-    color: var(--craft-accent-color);
+    color: var(--blacksmith-window-accent-color);
     letter-spacing: 0.02em;
 }
 
@@ -111,14 +111,14 @@
     flex: 1;
     min-height: 0;
     overflow: auto;
-    border-bottom: 1px solid var(--craft-border-color);
+    border-bottom: 1px solid var(--blacksmith-window-border-color);
 }
 
 /* ----- Action bar ----- */
 .blacksmith-window-template-buttons {
     flex-shrink: 0;
-    border-top: 1px solid var(--craft-border-color);
-    background: var(--craft-header-bg);
+    border-top: 1px solid var(--blacksmith-window-border-color);
+    background: var(--blacksmith-window-header-bg);
     padding: 10px 12px;
 }
 
@@ -157,7 +157,7 @@
     align-items: center;
     gap: 6px;
     padding: 8px 12px;
-    border: 1px solid var(--craft-border-color);
+    border: 1px solid var(--blacksmith-window-border-color);
     border-radius: 4px;
     cursor: pointer;
     font-family: inherit;
