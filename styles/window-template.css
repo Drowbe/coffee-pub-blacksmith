@@ -1,0 +1,190 @@
+/* ================================================================== */
+/* Blacksmith core window template — 3-zone layout (header, body, action bar) */
+/* Variables at top; scope to template root.                         */
+/* ================================================================== */
+
+/* Remove Foundry default padding from the window content wrapper when it contains our template (edge-to-edge layout). Universal: any app that uses window-template.hbs gets this. */
+.window-content:has(.blacksmith-window-template-root) {
+    padding: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Variables: scope to template root */
+.blacksmith-window-template-root {
+    --craft-border-color: #444;
+    --craft-accent-color: #ac9f81;
+    --craft-background: #232323;
+    --craft-header-bg: rgba(0, 0, 0, 0.7);
+    --craft-banner-image-title: url('../images/backgrounds/background-skull-red.webp');
+    background: var(--craft-background);
+    border: 0 solid var(--craft-border-color);
+    color: rgba(224, 224, 224, 0.9);
+    font-family: "Signika", sans-serif;
+}
+
+/* ----- Root structure ----- */
+.blacksmith-window-template-root {
+    display: flex;
+    flex-direction: column;
+    min-height: 400px !important;
+    height: 100%;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+/* ----- Header ----- */
+.blacksmith-window-template-header {
+    flex-shrink: 0;
+    background: var(--craft-header-bg);
+    background-image: var(--craft-banner-image-title);
+    background-blend-mode: multiply;
+    background-position: top center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    border-bottom: 1px solid var(--craft-border-color);
+    padding: 8px 12px;
+    min-height: 50px;
+}
+
+.blacksmith-window-template-header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.blacksmith-window-template-header-title-block {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.blacksmith-window-template-header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid rgba(172, 159, 129, 0.9);
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.blacksmith-window-template-header-icon i {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.4em;
+}
+
+.blacksmith-window-template-header-icon .blacksmith-window-template-header-portrait {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.blacksmith-window-template-header-right {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.blacksmith-window-template-header-title {
+    font-size: 1.2em;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: var(--craft-accent-color);
+    letter-spacing: 0.02em;
+}
+
+.blacksmith-window-template-header-subtitle {
+    font-size: 0.85em;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+/* ----- Body ----- */
+.blacksmith-window-template-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    border-bottom: 1px solid var(--craft-border-color);
+}
+
+/* ----- Action bar ----- */
+.blacksmith-window-template-buttons {
+    flex-shrink: 0;
+    border-top: 1px solid var(--craft-border-color);
+    background: var(--craft-header-bg);
+    padding: 10px 12px;
+}
+
+.blacksmith-window-template-action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.blacksmith-window-template-action-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.blacksmith-window-template-action-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.blacksmith-window-template-cache-status {
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.blacksmith-window-template-cache-status .fa-spinner {
+    margin-right: 4px;
+}
+
+/* Button styles */
+.blacksmith-window-template-btn-primary,
+.blacksmith-window-template-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 1px solid var(--craft-border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1.0em;
+    text-transform: uppercase;
+}
+
+.blacksmith-window-template-btn-primary {
+    background: rgba(41, 94, 47, 0.9);
+    color: rgba(255, 255, 255, 0.9);
+    width: 300px;
+}
+
+.blacksmith-window-template-btn-secondary {
+    background: rgba(33, 40, 46, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(224, 224, 224, 0.9);
+}
+
+.blacksmith-window-template-btn-primary:hover:not(:disabled),
+.blacksmith-window-template-btn-secondary:hover:not(:disabled) {
+    background: rgba(255, 100, 0, 0.6);
+    border-color: rgba(255, 100, 0, 0.6);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.blacksmith-window-template-btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

@@ -1,0 +1,50 @@
+{{!--
+  Core Application V2 window template — maintained reference for the zone contract.
+  Zones: header, body, action bar. Class names: blacksmith-window-template-* (see window-template.css).
+--}}
+
+<div class="blacksmith-window-template-root" id="{{appId}}">
+
+    {{!-- HEADER --}}
+    <header class="blacksmith-window-template-header">
+        <div class="blacksmith-window-template-header-content">
+            <div class="blacksmith-window-template-header-icon">
+                <i class="fa-solid fa-hammer"></i>
+            </div>
+            <div class="blacksmith-window-template-header-title-block">
+                <div class="blacksmith-window-template-header-title">{{windowTitle}}</div>
+                <div class="blacksmith-window-template-header-subtitle">{{subtitle}}</div>
+            </div>
+            <div class="blacksmith-window-template-header-right">
+                HEADER RIGHT CONTENT
+            </div>
+        </div>
+    </header>
+
+    {{!-- CONTENT --}}
+    <div class="blacksmith-window-template-body">
+        CONTENT GOES HERE
+    </div>
+
+    {{!-- ACTION BAR: [ LEFT BUTTONS ] -------- [ RIGHT BUTTON ] [ RIGHT BUTTON ] --}}
+    <section class="blacksmith-window-template-buttons">
+        <div class="blacksmith-window-template-action-bar">
+            <div class="blacksmith-window-template-action-left">
+                <button type="button" class="blacksmith-window-template-btn-secondary">
+                    <i class="fa-solid fa-database"></i> Refresh
+                </button>
+                <span class="blacksmith-window-template-cache-status">
+                    Some Message Here
+                </span>
+            </div>
+            <div class="blacksmith-window-template-action-right">
+                <button type="button" class="blacksmith-window-template-btn-secondary">
+                    <i class="fa-solid fa-eraser"></i> Secondary
+                </button>
+                <button type="button" class="blacksmith-window-template-btn-primary">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Primary
+                </button>
+            </div>
+        </div>
+    </section>
+</div>

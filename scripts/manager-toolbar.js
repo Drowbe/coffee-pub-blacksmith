@@ -308,13 +308,41 @@ async function registerDefaultTools() {
         onCoffeePub: true,
         onFoundry: false,
                 onClick: () => {
-                    window.location.reload();
+        window.location.reload();
         },
         moduleId: 'blacksmith-core',
         zone: 'gmtools',
         order: 30
     });
-    
+
+    registerTool('test-v2-window', {
+        icon: "fa-solid fa-flask",
+        name: "test-v2-window",
+        title: "Test V2 Window",
+        button: true,
+        visible: true,
+        gmOnly: true,
+        onCoffeePub: true,
+        onFoundry: false,
+        onClick: () => {
+            const api = game.modules.get('coffee-pub-blacksmith')?.api;
+            if (!api?.openWindow) {
+                ui.notifications?.warn?.('Blacksmith Window API not ready.');
+                return;
+            }
+            const result = api.openWindow('blacksmith-test-window');
+            if (result?.then) {
+                result.catch((err) => {
+                    console.error('Blacksmith Test V2 Window:', err);
+                    ui.notifications?.error?.(err?.message ?? 'Failed to open Test V2 Window.');
+                });
+            }
+        },
+        moduleId: 'blacksmith-core',
+        zone: 'gmtools',
+        order: 35
+    });
+
     registerTool('request-roll', {
         icon: "fa-solid fa-dice",
         name: "request-roll",

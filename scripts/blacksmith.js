@@ -863,6 +863,36 @@ Hooks.once('init', async function() {
         postConsoleAndNotification(MODULE.NAME, "Failed to load toolbar API", error, false, false);
     });
 
+    // Import and expose Window API (Application V2 window registry)
+    import('./manager-windows.js').then(({
+        registerWindow,
+        unregisterWindow,
+        openWindow,
+        getRegisteredWindows,
+        isWindowRegistered
+    }) => {
+        module.api.registerWindow = registerWindow;
+        module.api.unregisterWindow = unregisterWindow;
+        module.api.openWindow = openWindow;
+        module.api.getRegisteredWindows = getRegisteredWindows;
+        module.api.isWindowRegistered = isWindowRegistered;
+        postConsoleAndNotification(MODULE.NAME, "Window API: Exposed for external modules", "", false, false);
+        return import('./window-test-v2.js');
+    }).then((mod) => {
+        if (mod?.BlacksmithTestWindowV2 && module.api?.registerWindow) {
+            module.api.registerWindow('blacksmith-test-window', {
+                open: (options = {}) => {
+                    const w = new mod.BlacksmithTestWindowV2(options);
+                    return w.render(true);
+                },
+                title: 'Test V2 Window',
+                moduleId: MODULE.ID
+            });
+        }
+    }).catch(error => {
+        postConsoleAndNotification(MODULE.NAME, "Failed to load Window API", error, false, false);
+    });
+
     // Import and expose menubar API functions
     import('./api-menubar.js').then(({ MenuBar }) => {
         module.api.registerMenubarTool = MenuBar.registerMenubarTool.bind(MenuBar);
@@ -958,6 +988,12 @@ Hooks.once('init', async function() {
         isToolRegistered: null,
         getToolbarSettings: null,
         setToolbarSettings: null,
+        // ✅ Window API (Application V2) for external modules
+        registerWindow: null,
+        unregisterWindow: null,
+        openWindow: null,
+        getRegisteredWindows: null,
+        isWindowRegistered: null,
         // ✅ NEW: Menubar API for external modules
         registerMenubarTool: null,  // Will be set after menubar loads
         unregisterMenubarTool: null,

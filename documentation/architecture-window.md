@@ -82,6 +82,7 @@ Implementation details (template structure, CSS, delegation, scroll save/restore
 | **documentation/applicationv2-window/window-samples.png** | Real windows showing optional zones and body layout variety. |
 | **documentation/applicationv2-window/example-window.hbs** | Example template with all five zones (consumer omits what they don’t need). |
 | **documentation/applicationv2-window/example-window.js** | Example Application V2 class (delegation, scroll save/restore, static actions). |
+| **templates/window-template.hbs** | **Canonical core template** — maintained reference for the Application V2 zone contract. Uses blacksmith-window-v2-* classes; used by BlacksmithTestWindowV2. New windows copy from here or the doc example. |
 | **documentation/applicationv2-window/README.md** | Quick start for the example. |
 | **documentation/architecture-window.md** | This document — internal architecture. |
 | **documentation/api-window.md** | Public API for registering and opening windows. |
