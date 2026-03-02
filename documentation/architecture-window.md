@@ -34,6 +34,16 @@ Implementation details (template structure, CSS, delegation, scroll save/restore
 
 ---
 
+## 2a. Application V2 behavior: body injection and scripts
+
+These points affect how consumers implement interactive body content (e.g. worksheets, buttons, drop zones).
+
+- **Injected body HTML does not run `<script>`.** When the body part is rendered from Handlebars, Foundry injects the resulting HTML into the DOM. Injected `<script>` tags are **not** executed. Therefore any logic defined in a `<script>` block inside a Handlebars partial (e.g. worksheet helpers, `toggleSection`, `incrementLevelCount`) will never run. Buttons that use inline `onclick="someFunction()"` will fail unless `someFunction` is already on `window` (e.g. from a module script that runs at load).
+- **Use document-level delegation for body controls.** Do not rely on `activateListeners(html)` receiving the part’s root or on attaching listeners to body children in a single pass. Application V2 may call `activateListeners` with a wrapper that does not contain the body part, or the body may be injected asynchronously. Attach **one** document-level (or stable-wrapper) listener that checks `event.target` is inside your app (e.g. via `_getRoot().contains(event.target)` or a known wrapper id) and routes by `data-action` or `event.target.closest(selector)`. That way body buttons, drop zones, and other controls work regardless of when the part is injected.
+- **Two patterns for legacy inline onclick:** (1) **Migrate** to `data-action` and document-level delegation (recommended). (2) **Keep inline onclick** by moving the handler implementations into a module script loaded in `esmodules`, assigning them to `window` at load (e.g. `window.toggleSection = ...`), and optionally exposing app methods on `window` via a ref (e.g. `window.addTokensToContainer = () => MyWindow._ref?.addTokensToContainer(...)`). Regent’s encounter worksheet uses pattern 2 (`regent-encounter-worksheet.js` + ref in `window-query.js`).
+
+---
+
 ## 3. Components (Planned)
 
 ### 3.1 Window Registry

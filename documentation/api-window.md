@@ -253,6 +253,12 @@ Both are exposed on `module.api`.
 4. **Own your content** — Your template and `getData` define header and body; Blacksmith does not inject content into your window.
 5. **Application V2 only** — Build your window with `HandlebarsApplicationMixin(ApplicationV2)` and the patterns in the guidance doc (delegation, scroll save/restore, unique instance id).
 
+### Application V2: Body injection and scripts
+
+- **Scripts in body/partials do not run.** When Application V2 injects the body part (e.g. from Handlebars), it does **not** execute `<script>` tags inside the injected HTML. Any logic you put in a `<script>` block in a partial will never run. Do not rely on inline `onclick="someFunction()"` unless that function is already defined on `window` by a **module script that runs at load** (e.g. a separate `.js` file in your module’s `esmodules` that assigns `window.someFunction = ...`). Prefer **document-level delegation** and `data-action` so handlers are attached in JS and work regardless of when the body is injected.
+- **Body controls (buttons, drop zones)** — If your body contains buttons, drop zones, or other interactive elements, attach their behavior via **document-level** (or stable-wrapper) delegation (e.g. in `_attachDelegationOnce()`), not by querying the body in `activateListeners(html)`. Application V2 may call `activateListeners` with a wrapper element that does not contain the body part, or the body may be injected later; delegation on `document` (with a check that the event target is inside your app root or a known wrapper) ensures clicks are handled regardless.
+- **Legacy inline onclick** — If you have many existing inline `onclick` handlers (e.g. a complex worksheet), you can either: (1) **Migrate** to `data-action` and document-level delegation (recommended long term), or (2) **Keep inline onclick** by moving the handler implementations into a module script that runs at load and assigns them to `window`, so the same attribute strings resolve when the body is injected. Option 2 is used by the Regent encounter worksheet (`regent-encounter-worksheet.js` registers globals on `window`; `window.addTokensToContainer` delegates to the app instance via a ref).
+
 ---
 
 ## Troubleshooting
@@ -260,6 +266,7 @@ Both are exposed on `module.api`.
 - **`registerWindow` / `openWindow` undefined** — Window API not loaded yet. Wait for `ready` and check `game.modules.get('coffee-pub-blacksmith')?.api?.registerWindow`.
 - **Window doesn’t open** — Ensure the window type is registered before calling `openWindow`. Check that `descriptor.open` returns or resolves to the Application instance if you need a reference.
 - **Layout or behavior issues** — Follow **documentation/applicationv2-window/guidance-applicationv2.md** (delegation, scroll save/restore, `_getRoot()`, safe merge of `DEFAULT_OPTIONS`).
+- **Buttons or controls in the body do nothing** — Application V2 may not run `<script>` inside injected body HTML, and `activateListeners(html)` may not receive the body part. Use document-level delegation for body controls (see “Application V2: Body injection and scripts” under Best Practices) or ensure handlers are on `window` from a module that loads before the window opens.
 
 ---
 

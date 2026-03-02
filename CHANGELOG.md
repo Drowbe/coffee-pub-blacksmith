@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Documentation**: `documentation/architecture-blacksmith.md` — load order and bootstrap no longer reference `api-openai.js` or `OpenAIAPI`; API table no longer lists `openai`; added pointer to coffee-pub-regent for AI/Regent features and link to `coffee-pub-regent/documentation/api-openai.md`. `documentation/api-core.md` — AI/OpenAI API link now points to Coffee Pub Regent’s OpenAI API doc instead of a Blacksmith-local api-openai.md. Consumers of the OpenAI API should use `game.modules.get('coffee-pub-regent')?.api?.openai` when the Regent module is enabled.
+- **Window API and Application V2 guidance**: `documentation/api-window.md` — added “Application V2: Body injection and scripts” (scripts in injected body/partials do not run; use document-level delegation for body controls; options for legacy inline `onclick`). Troubleshooting now includes “Buttons or controls in the body do nothing” with pointer to that section. `documentation/architecture-window.md` — new §2a “Application V2 behavior: body injection and scripts” (injected `<script>` not executed; use delegation for body controls; two patterns for legacy inline handlers). `documentation/applicationv2-window/guidance-applicationv2.md` — new §3.6 “Inline onclick or script in a partial never runs” and §4 bullet that scripts in injected body/partials do not run (use delegation or register handlers on `window` from a load-time module).
 
 ## [13.2.13]
 

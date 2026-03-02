@@ -290,11 +290,16 @@ You merged into `super.DEFAULT_OPTIONS` and mutated the shared base. **Fix:** Al
 
 Static methods don’t have `this` bound to the instance. Use a module-level reference set when the window is open (e.g. `_currentWindowRef = this` in `_attachDelegationOnce`) and read it in the static action.
 
+### 3.6 “Inline onclick or script in a partial never runs”
+
+Application V2 injects the body part’s HTML without executing `<script>` tags inside it. If your Handlebars partial contains a `<script>` block that defines functions used by inline `onclick="myFunc()"`, those functions are never defined and clicks throw (e.g. “myFunc is not a function”). **Fix:** (1) Prefer document-level delegation and `data-action` so you never depend on script-in-partial. (2) Or move the function definitions into a module script that loads with your module and assign them to `window` (e.g. `window.myFunc = function() { ... }`) so inline handlers resolve when the body is injected.
+
 ---
 
 ## 4. What We’ve Learned
 
 - **Delegation is mandatory** for reliable click handling with Application V2 PARTS; don’t rely on `activateListeners(html)` receiving the part root.
+- **Scripts in injected body/partials do not run** — `<script>` tags inside Handlebars-rendered body HTML are not executed when the part is injected; use delegation or register handlers on `window` from a module that loads at startup.
 - **One root element with a stable class (and ideally unique id)** makes it possible to find the window’s DOM consistently across renders and across different Foundry versions.
 - **Scroll save/restore** is necessary for any window with scrollable content that re-renders on interaction.
 - **Unique instance IDs** prevent collisions when the same window class is opened more than once (or when the same template is used by different modules).
