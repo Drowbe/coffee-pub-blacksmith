@@ -3,6 +3,49 @@
 /* Namespace: regent. Same layout as Blacksmith query window, no layout changes. */
 /* ------------------------------------ */
 
+/* ========== FORM ELEMENTS (single place for entire window: body + action bar) ========== */
+.regent-window input,
+.regent-window select,
+.regent-window textarea {
+    box-sizing: border-box;
+}
+
+.regent-window input[type="checkbox"],
+.regent-window .regent-checkbox {
+    margin: 0;
+    margin-right: 4px;
+    width: 1em;
+    min-width: 1em;
+    height: 1em;
+    position: relative;
+    vertical-align: middle;
+    border: 1px solid #2b2b2b;
+    background-color: #f6f1ed;
+    color: #f6f1ed;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.regent-window input:not([type="checkbox"]):not([type="radio"]),
+.regent-window select,
+.regent-window textarea {
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #2b2b2b;
+    background-color: #f6f1ed;
+}
+
+.regent-window label:has(.regent-checkbox),
+.regent-window label:has(input[type="checkbox"]) {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    cursor: pointer;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+/* ========== Wrapper / layout ========== */
 #coffee-pub-regent-wrapper {
     --regent-element-radius: 4px;
     --regent-container-opacity: 0.85;
@@ -104,28 +147,15 @@
 
 #coffee-pub-regent-wrapper #regent-message-options .regent-checkbox,
 #coffee-pub-regent-wrapper #regent-workspace-footer-options .regent-checkbox {
-    margin-top: 0;
-    margin-right: 4px;
     margin-bottom: 6px;
-    width: 1.0em;
-    position: relative;
-    vertical-align: middle;
-    align-items: center;
-    border: 1px solid #2b2b2b;
-    background-color: #f6f1ed;
-    color: #ffffff;
 }
 
 #coffee-pub-regent-wrapper #regent-message-options label,
 #coffee-pub-regent-wrapper #regent-workspace-footer-options label {
-    margin-top: 0;
     margin-right: 4px;
     margin-bottom: 6px;
     font-size: 1.0em;
     font-weight: 100;
-    position: relative;
-    vertical-align: middle;
-    align-items: center;
     color: #ffffff;
 }
 
@@ -298,8 +328,7 @@
 #coffee-pub-regent-wrapper .workspace-section select {
     width: 100%;
     max-width: 100%;
-    box-sizing: border-box;
-    margin: 0;
+    margin-top: 5px;
 }
 
 #coffee-pub-regent-wrapper .workspace-section-content {
@@ -362,34 +391,9 @@
     color: #838080;
 }
 
-#coffee-pub-regent-wrapper .workspace-section textarea,
-#coffee-pub-regent-wrapper .workspace-section input {
-    padding: 10px !important;
-    margin-top: 5px !important;
-    border-radius: 4px !important;
-    border: 1px solid #2b2b2b !important;
-    background-color: #f6f1ed !important;
-}
-
 #coffee-pub-regent-wrapper .workspace-section select {
-    padding: 10px;
-    margin-top: 5px;
-    border-radius: 4px;
-    border: 1px solid #2b2b2b;
-    background-color: #f6f1ed;
     max-width: calc(var(--regent-workspace-width) - 4 * var(--regent-container-padding));
     white-space: normal;
-}
-
-#coffee-pub-regent-wrapper .workspace-section input[type="checkbox"] {
-    margin-top: 0 !important;
-    margin-right: 4px !important;
-    width: 1.0em !important;
-    position: relative !important;
-    vertical-align: middle !important;
-    border: 1px solid #2b2b2b !important;
-    background-color: #f6f1ed !important;
-    color: #f6f1ed !important;
 }
 
 #coffee-pub-regent-wrapper .message-box {
@@ -478,6 +482,8 @@
     padding-left: 8px;
     padding-right: 8px;
     border-radius: var(--regent-element-radius) var(--regent-element-radius) 0 0;
+    border: 1px solid #8d8061;
+    border-bottom: none;
 }
 
 #coffee-pub-regent-wrapper .regent-message-header-question {
@@ -744,7 +750,4 @@
     font-size: 0.95em;
     color: rgba(255, 255, 255, 0.9);
     cursor: pointer;
-}
-.regent-window .blacksmith-window-template-action-label .regent-checkbox {
-    margin: 0;
 }

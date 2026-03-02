@@ -265,6 +265,8 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
 
     /** One-time document delegation for workspace tab buttons (so they work regardless of which part activateListeners receives). */
     static _workspaceDelegationAttached = false;
+    static _cardButtonDelegationAttached = false;
+    static _enterKeyDelegationAttached = false;
 
     // ************************************
     // ** OPTIONS Set Defaults
@@ -410,7 +412,96 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
     // ** ACTIVATE Listeners
     // ************************************
 
+    /**
+     * Attach document-level delegation for workspace tabs and card buttons once.
+     * Called from _onFirstRender (so it runs even if activateListeners is never called with body HTML)
+     * and from activateListeners (to keep _ref current).
+     */
+    _attachRegentDelegationOnce() {
+        BlacksmithWindowQuery._ref = this;
+        if (!BlacksmithWindowQuery._cardButtonDelegationAttached) {
+            BlacksmithWindowQuery._cardButtonDelegationAttached = true;
+            document.addEventListener('click', (e) => {
+                const wrapper = e.target?.closest?.('#coffee-pub-regent-wrapper');
+                if (!wrapper) return;
+                const w = BlacksmithWindowQuery._ref;
+                if (!w) return;
+                console.log('[Regent] click inside wrapper (card check)');
+                postConsoleAndNotification(MODULE.NAME, 'Regent: click inside wrapper (card check)', '', true, false);
+                const jsonBtn = e.target.closest('.regent-chat-button-json');
+                if (jsonBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    postConsoleAndNotification(MODULE.NAME, 'Regent: card button (JSON) document', '', true, false);
+                    w._onSendToJson.call(w, e, jsonBtn);
+                    return;
+                }
+                const chatBtn = e.target.closest('.regent-chat-button-chat');
+                if (chatBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    postConsoleAndNotification(MODULE.NAME, 'Regent: card button (Send to Chat) document', '', true, false);
+                    w._onSendToChat.call(w, e, chatBtn);
+                    return;
+                }
+                const copyBtn = e.target.closest('.regent-chat-button-copy');
+                if (copyBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    postConsoleAndNotification(MODULE.NAME, 'Regent: card button (Copy) document', '', true, false);
+                    w._onCopyToClipboard.call(w, e, copyBtn);
+                }
+            }, true);
+        }
+        if (!BlacksmithWindowQuery._workspaceDelegationAttached) {
+            BlacksmithWindowQuery._workspaceDelegationAttached = true;
+            document.addEventListener('click', (e) => {
+                const wrapper = e.target?.closest?.('#coffee-pub-regent-wrapper');
+                if (!wrapper) return;
+                const w = BlacksmithWindowQuery._ref;
+                if (!w) return;
+                console.log('[Regent] click inside wrapper (document)');
+                postConsoleAndNotification(MODULE.NAME, 'Regent: click inside wrapper (document)', '', true, false);
+                const clickedButton = e.target.closest?.('[id^="regent-query-button-"]');
+                if (!clickedButton?.id) return;
+                e.preventDefault();
+                e.stopPropagation();
+                postConsoleAndNotification(MODULE.NAME, `Regent: workspace tab clicked (document) id=${clickedButton.id}`, '', true, false);
+                const workspaceId = clickedButton.id.replace('regent-query-button-', 'regent-query-workspace-');
+                w.switchWorkspace(wrapper, workspaceId);
+            }, true);
+        }
+        if (!BlacksmithWindowQuery._enterKeyDelegationAttached) {
+            BlacksmithWindowQuery._enterKeyDelegationAttached = true;
+            document.addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter') return;
+                const wrapper = e.target?.closest?.('#coffee-pub-regent-wrapper');
+                if (!wrapper) return;
+                if (!e.target?.matches?.('textarea[name="regent-input-message"]')) return;
+                const enterSubmitsCheckbox = document.getElementById('enterSubmits');
+                if (!enterSubmitsCheckbox?.checked) return;
+                const w = BlacksmithWindowQuery._ref;
+                if (!w) return;
+                e.preventDefault();
+                const form = e.target.closest('form') ?? wrapper.querySelector('form') ?? document.querySelector(`#${w.id} form`);
+                if (form) {
+                    postConsoleAndNotification(MODULE.NAME, 'Regent: Enter key sent message (ENTER Sends checked)', '', true, false);
+                    w._onSubmit(e, form);
+                }
+            }, true);
+        }
+    }
+
+    async _onFirstRender(_context, options) {
+        await super._onFirstRender?.(_context, options);
+        this._attachRegentDelegationOnce();
+        console.log('[Regent] _onFirstRender finished, document listeners attached');
+        postConsoleAndNotification(MODULE.NAME, 'Regent: _onFirstRender finished, document listeners attached', '', true, false);
+    }
+
     activateListeners(html) {
+        console.log('[Regent] activateListeners called', html?.nodeName ?? html?.constructor?.name ?? 'unknown');
+        postConsoleAndNotification(MODULE.NAME, 'Regent: activateListeners called', (html?.nodeName ?? html?.constructor?.name ?? 'unknown').toString(), true, false);
         super.activateListeners(html);
 
         // v13 / Application V2: html may be part content; resolve to root that contains the Regent form
@@ -423,7 +514,10 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
         if (!htmlElement || !htmlElement.querySelector?.('form')) {
             htmlElement = this._getRoot() ?? this.element;
         }
-        if (!htmlElement) return;
+        if (!htmlElement) {
+            this._attachRegentDelegationOnce();
+            return;
+        }
 
         // don't let these buttons submit the main form
         htmlElement.addEventListener('click', (event) => {
@@ -437,22 +531,28 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
             }
         });
 
-        // Bind the copy and chat buttons
+        // Card buttons: document-level already attached in _attachRegentDelegationOnce (from _onFirstRender or above)
+        this._attachRegentDelegationOnce();
+
+        // Legacy: also on root
         htmlElement.addEventListener('click', (event) => {
             const target = event.target.closest('.regent-chat-button-json');
             if (target) {
+                postConsoleAndNotification(MODULE.NAME, 'Regent: card button (JSON) via root', '', true, false);
                 this._onSendToJson.call(this, event, target);
             }
         });
         htmlElement.addEventListener('click', (event) => {
             const target = event.target.closest('.regent-chat-button-chat');
             if (target) {
+                postConsoleAndNotification(MODULE.NAME, 'Regent: card button (Send to Chat) via root', '', true, false);
                 this._onSendToChat.call(this, event, target);
             }
         });
         htmlElement.addEventListener('click', (event) => {
             const target = event.target.closest('.regent-chat-button-copy');
             if (target) {
+                postConsoleAndNotification(MODULE.NAME, 'Regent: card button (Copy) via root', '', true, false);
                 this._onCopyToClipboard.call(this, event, target);
             }
         });
@@ -493,18 +593,19 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
             });
         }
 
-        // Handle the Enter key press based on the checkbox state
-        const enterSubmitsCheckbox = htmlElement.querySelector('#enterSubmits');
-        const inputMessage = htmlElement.querySelector('textarea[name="regent-input-message"]');
+        // Handle the Enter key: checkbox is in action bar, so resolve from document
+        const inputMessage = htmlElement.querySelector('textarea[name="regent-input-message"]') ?? document.querySelector(`#${this.id} textarea[name="regent-input-message"]`);
 
         if (inputMessage) {
             inputMessage.addEventListener('keypress', (event) => {
-                if (event.key === 'Enter' && enterSubmitsCheckbox && enterSubmitsCheckbox.checked) {
-                    event.preventDefault();
-                    const form = htmlElement.querySelector('form');
-                    if (form) {
-                        this._onSubmit(event, form); // Pass the form element
-                    }
+                if (event.key !== 'Enter') return;
+                const enterSubmitsCheckbox = document.getElementById('enterSubmits');
+                if (!enterSubmitsCheckbox?.checked) return;
+                event.preventDefault();
+                const form = htmlElement.querySelector('form') ?? document.querySelector(`#${this.id} form`);
+                if (form) {
+                    postConsoleAndNotification(MODULE.NAME, 'Regent: Enter key sent message (ENTER Sends checked)', '', true, false);
+                    this._onSubmit(event, form);
                 }
             });
         }
@@ -518,30 +619,52 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
 
         // (Workspace toggle button removed: workspaces always expanded.)
 
-        // Keep ref current so document listener and direct listener use this instance
-        BlacksmithWindowQuery._ref = this;
+        this._attachRegentDelegationOnce();
 
-        // Document-level delegation for workspace tab buttons (works even when activateListeners receives only a part)
-        if (!BlacksmithWindowQuery._workspaceDelegationAttached) {
-            BlacksmithWindowQuery._workspaceDelegationAttached = true;
-            document.addEventListener('click', (e) => {
-                const w = BlacksmithWindowQuery._ref;
-                if (!w) return;
-                const root = w._getRoot();
-                if (!root?.contains?.(e.target)) return;
+        // Direct listener on wrapper so workspace tab clicks are handled even if document doesn't bubble
+        const wrapperEl = htmlElement.querySelector('#coffee-pub-regent-wrapper') ?? document.querySelector(`#${this.id} #coffee-pub-regent-wrapper`);
+        if (!wrapperEl) postConsoleAndNotification(MODULE.NAME, 'Regent: wrapper not found in activateListeners', '', true, false);
+        if (wrapperEl) {
+            wrapperEl.addEventListener('click', (e) => {
                 const clickedButton = e.target.closest?.('[id^="regent-query-button-"]');
                 if (!clickedButton?.id) return;
                 e.preventDefault();
+                e.stopPropagation();
+                postConsoleAndNotification(MODULE.NAME, `Regent: workspace tab clicked (wrapper) id=${clickedButton.id}`, '', true, false);
                 const workspaceId = clickedButton.id.replace('regent-query-button-', 'regent-query-workspace-');
-                w.switchWorkspace(root, workspaceId);
-            }, true);
+                this.switchWorkspace(wrapperEl, workspaceId);
+            });
+            // Card buttons on wrapper too (fallback if document capture doesn't receive events)
+            wrapperEl.addEventListener('click', (e) => {
+                const jsonBtn = e.target.closest('.regent-chat-button-json');
+                if (jsonBtn) {
+                    e.preventDefault();
+                    postConsoleAndNotification(MODULE.NAME, 'Regent: card button (JSON) wrapper', '', true, false);
+                    this._onSendToJson.call(this, e, jsonBtn);
+                    return;
+                }
+                const chatBtn = e.target.closest('.regent-chat-button-chat');
+                if (chatBtn) {
+                    e.preventDefault();
+                    postConsoleAndNotification(MODULE.NAME, 'Regent: card button (Send to Chat) wrapper', '', true, false);
+                    this._onSendToChat.call(this, e, chatBtn);
+                    return;
+                }
+                const copyBtn = e.target.closest('.regent-chat-button-copy');
+                if (copyBtn) {
+                    e.preventDefault();
+                    postConsoleAndNotification(MODULE.NAME, 'Regent: card button (Copy) wrapper', '', true, false);
+                    this._onCopyToClipboard.call(this, e, copyBtn);
+                }
+            });
         }
 
-        // Direct listener on root so workspace tab clicks are always handled (fallback if document delegation misses)
+        // Fallback: root listener (in case wrapper isn't found from htmlElement)
         htmlElement.addEventListener('click', (e) => {
             const clickedButton = e.target.closest?.('[id^="regent-query-button-"]');
             if (!clickedButton?.id) return;
             e.preventDefault();
+            postConsoleAndNotification(MODULE.NAME, `Regent: workspace tab clicked (root) id=${clickedButton.id}`, '', true, false);
             const workspaceId = clickedButton.id.replace('regent-query-button-', 'regent-query-workspace-');
             this.switchWorkspace(htmlElement, workspaceId);
         });
