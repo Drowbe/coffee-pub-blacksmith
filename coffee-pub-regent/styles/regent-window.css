@@ -4,52 +4,34 @@
 /* ------------------------------------ */
 
 /* ========== FORM ELEMENTS (single place for entire window: body + action bar) ========== */
-.regent-window input,
-.regent-window select,
-.regent-window textarea {
+
+#coffee-pub-regent-wrapper .workspace-section textarea,
+#coffee-pub-regent-wrapper .workspace-section input[type="text"],
+#coffee-pub-regent-wrapper .workspace-section select {
+    width: 100%;
+    max-width: 100%;
+
+}
+
+/* Textarea */
+#coffee-pub-regent-wrapper .regent-textarea {
+    font-family: var(--font-primary, system-ui, sans-serif);
+    border: none;
+    padding: 8px;
+    font-size: 1.1em;
+    height: auto;
+    width: 100%;
     box-sizing: border-box;
+    border-radius: var(--regent-element-radius);
+    word-break: break-word;
 }
 
-.regent-window input[type="checkbox"],
-.regent-window .regent-checkbox {
-    margin: 0;
-    margin-right: 4px;
-    width: 1em;
-    min-width: 1em;
-    height: 1em;
-    position: relative;
-    vertical-align: middle;
-    border: 1px solid #2b2b2b;
-    background-color: #f6f1ed;
-    color: #f6f1ed;
-    cursor: pointer;
-    flex-shrink: 0;
-}
-
-.regent-window input:not([type="checkbox"]):not([type="radio"]),
-.regent-window select,
-.regent-window textarea {
-    padding: 10px;
-    border-radius: 4px;
-    border: 1px solid #2b2b2b;
-    background-color: #f6f1ed;
-}
-
-.regent-window label:has(.regent-checkbox),
-.regent-window label:has(input[type="checkbox"]) {
-    display: inline-flex;
-    align-items: center;
-    margin: 0;
-    cursor: pointer;
-    font-size: inherit;
-    font-weight: inherit;
-}
 
 /* ========== Wrapper / layout ========== */
 #coffee-pub-regent-wrapper {
     --regent-element-radius: 4px;
     --regent-container-opacity: 0.85;
-    --regent-base-width: 600px;
+    --regent-base-width:100px;
     --regent-total-width: 1000px;
     --regent-workspace-width: 400px;
     --regent-container-padding: 10px;
@@ -84,39 +66,33 @@
     color: #ffffff;
 }
 
-#coffee-pub-regent-wrapper #coffee-pub-regent-container,
-#coffee-pub-regent-wrapper #regent-workspace-wrapper {
+
+
+
+/* ===== Content Area ===== */
+
+#coffee-pub-regent-wrapper #coffee-pub-regent-container {
     flex: 1;
     min-height: 0;
     overflow: hidden;
-}
-
-#coffee-pub-regent-wrapper #coffee-pub-regent-container {
     min-width: var(--regent-base-width);
     height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     transition: all 0.3s ease;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 8px 8px 8px 8px;
 }
 
 /* Left pane: chat content scrolls when there's enough messages; input stays fixed at bottom */
-#coffee-pub-regent-wrapper #coffee-pub-regent-output,
-#coffee-pub-regent-wrapper .regent-output {
+#coffee-pub-regent-wrapper #coffee-pub-regent-output {
     flex: 1;
     min-height: 0;
     overflow: auto;
     overflow-x: hidden;
     display: block;
-    border-radius: var(--regent-element-radius);
     margin-bottom: 8px;
-    padding: 6px;
-}
-
-#coffee-pub-regent-wrapper #coffee-pub-regent-output {
-    background: #222222;
-    color: #000000;
-    background: url(/modules/coffee-pub-blacksmith/images/tiles/tile-parchment-white.webp) repeat;
 }
 
 /* Input area: locked to bottom of left pane; input full width */
@@ -129,29 +105,25 @@
     min-width: 0;
 }
 
-#coffee-pub-regent-wrapper #coffee-pub-regent-input .regent-textarea {
-    width: 100%;
-    box-sizing: border-box;
-    min-width: 0;
-}
 
-/* Message options (above input) */
-#coffee-pub-regent-wrapper #regent-message-options,
-#coffee-pub-regent-wrapper #regent-workspace-footer-options {
-    margin-top: 4px;
-    margin-right: 0;
-    margin-left: 0;
-    margin-bottom: 0;
-    background-color: transparent;
-}
 
-#coffee-pub-regent-wrapper #regent-message-options .regent-checkbox,
-#coffee-pub-regent-wrapper #regent-workspace-footer-options .regent-checkbox {
-    margin-bottom: 6px;
-}
 
-#coffee-pub-regent-wrapper #regent-message-options label,
-#coffee-pub-regent-wrapper #regent-workspace-footer-options label {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#coffee-pub-regent-wrapper #regent-message-options label {
     margin-right: 4px;
     margin-bottom: 6px;
     font-size: 1.0em;
@@ -159,21 +131,7 @@
     color: #ffffff;
 }
 
-/* Textarea */
-#coffee-pub-regent-wrapper .regent-textarea {
-    font-family: var(--font-primary, system-ui, sans-serif);
-    border: none;
-    padding: 12px;
-    font-size: 1.1em;
-    height: auto;
-    width: 100%;
-    box-sizing: border-box;
-    border-radius: var(--regent-element-radius);
-    word-break: break-word;
-    color: #000000;
-    background-color: #f6f1ed;
-    background: url(/modules/coffee-pub-blacksmith/images/tiles/tile-parchment-white.webp) repeat;
-}
+
 
 #coffee-pub-regent-wrapper #coffee-pub-regent-input button[type="submit"] {
     flex: none;
@@ -207,6 +165,10 @@
     text-transform: uppercase;
 }
 
+
+
+
+
 /* Workspace panel */
 #coffee-pub-regent-wrapper #regent-workspace-wrapper {
     width: var(--regent-workspace-width);
@@ -217,10 +179,11 @@
     box-sizing: border-box;
     overflow: hidden;
     position: relative;
-    margin-left: var(--regent-container-padding);
+    margin-left: 0;
+    padding: 8px 0px 2px 0px;
     transition: all 0.3s ease;
-    background: #222222;
-    color: #000000;
+    background: rgba(0, 0, 0, 0.9);
+    color: rgba(255, 255, 255, 0.9);
 }
 
 #coffee-pub-regent-wrapper #regent-workspace-wrapper.workspace-hidden {
@@ -231,6 +194,13 @@
     overflow: hidden;
     opacity: 0;
 }
+
+
+
+
+
+
+
 
 #coffee-pub-regent-wrapper #regent-workspace-content {
     flex: 1;
@@ -260,8 +230,9 @@
     border: 1px solid #222222;
 }
 
+
 #coffee-pub-regent-wrapper #regent-workspace-footer {
-    padding-top: 4px;
+    padding-top: 0;
     padding-right: 0;
     padding-bottom: 0;
     padding-left: 0;
@@ -323,13 +294,6 @@
     box-sizing: border-box;
 }
 
-#coffee-pub-regent-wrapper .workspace-section textarea,
-#coffee-pub-regent-wrapper .workspace-section input[type="text"],
-#coffee-pub-regent-wrapper .workspace-section select {
-    width: 100%;
-    max-width: 100%;
-    margin-top: 5px;
-}
 
 #coffee-pub-regent-wrapper .workspace-section-content {
     width: 100%;
@@ -565,21 +529,21 @@
     box-shadow: rgba(99, 99, 99, 0.4) 0px 2px 2px 0px;
 }
 
+
+
 #coffee-pub-regent-wrapper #regent-workspace-toolbar {
     display: flex;
     flex-direction: row;
     font-weight: 100;
     font-size: 1.0em;
-    margin-top: 0;
-    margin-bottom: 8px;
-    padding-bottom: 5px;
-    padding-top: 5px;
-    padding-left: 2px;
-    padding-right: 2px;
-    background-color: transparent;
+
+    margin: 6px 6px 6px 0px;
+    padding: 6px 4px 6px 4px;
+    background-color: rgba(255, 255, 255, 0.1);
     color: #ffffff;
-    border-top: 1px dotted #4b4b4b;
-    border-bottom: 1px dotted #4b4b4b;
+    border-top: 0px dotted #4b4b4b;
+    border-bottom: 0px dotted #4b4b4b;
+    border-radius: 4px;
 }
 
 #coffee-pub-regent-wrapper .toolbar-left {

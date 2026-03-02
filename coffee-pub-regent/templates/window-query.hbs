@@ -90,22 +90,6 @@
                 {{/if}}
             </div>
 
-            {{!-- toolbar --}}
-            <div id="regent-workspace-footer-options" class="toolbar-left">
-                <label>
-                    <input type="checkbox" id="blnClearForm" data-persist="true" class="regent-checkbox"> Clear
-                </label>
-                {{#if isGM-TURNING-THESE-OFF-USE-GLOBAL-OPTIONS}}
-                    <label>
-                        <input type="checkbox" id="blnGMDetails-{{id}}"  data-persist="true" class="regent-checkbox" checked> GM Details
-                    </label>
-                    <label>
-                        <input type="checkbox" id="blnGMShowPrompt-{{id}}"  data-persist="true"  class="regent-checkbox" > GM Prompt
-                    </label>
-                {{/if}}
-                <button type="button" id="regent-clear-workspace" class="clear-button"><i class="fa-solid fa-broom-wide"></i></button>
-            </div>
-            {{!-- Submit via Blacksmith action bar only --}}
             {{!-- END Footer --}}
         </div>            
 

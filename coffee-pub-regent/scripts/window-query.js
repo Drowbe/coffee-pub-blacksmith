@@ -260,6 +260,12 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
             e?.preventDefault?.();
             const form = w._getRoot()?.querySelector?.('form');
             if (form) w._onSubmit(e, form);
+        },
+        regentClear: (e, btn) => {
+            const w = BlacksmithWindowQuery._ref;
+            if (!w) return;
+            e?.preventDefault?.();
+            w._onClearWorkspace(e);
         }
     };
 
@@ -559,38 +565,6 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
         const form = htmlElement.querySelector('form');
         if (form) {
             form.addEventListener('submit', this._onSubmit.bind(this));
-        }
-
-        // Bind the clear button workspace 
-        const clearWorkspaceButton = htmlElement.querySelector('#regent-clear-workspace');
-        if (clearWorkspaceButton) {
-            clearWorkspaceButton.addEventListener('click', (event) => {
-                event.preventDefault();
-                const form = htmlElement.querySelector('form');
-                if (!form) return;
-                
-                // Only clear inputs within the active workspace
-                const workspaceSelector = `#regent-query-workspace-${this.workspaceId}`;
-                const workspaceInputs = form.querySelector(workspaceSelector);
-                
-                if (workspaceInputs) {
-                    const formInputs = workspaceInputs.querySelectorAll('input:not([data-persist]), textarea:not([data-persist]), select:not([data-persist])');
-                    formInputs.forEach(input => {
-                        if (input.type === 'checkbox' || input.type === 'radio') {
-                            input.checked = false;
-                        } else {
-                            input.value = '';
-                        }
-                    });
-
-                    // Only clear worksheets for the active workspace if it's encounter or narrative
-                    if (this.workspaceId === 'encounter') {
-                        clearWorksheetTokens("encounter");
-                    } else if (this.workspaceId === 'narrative') {
-                        clearWorksheetTokens("narrative");
-                    }
-                }
-            });
         }
 
         // Handle the Enter key: checkbox is in action bar, so resolve from document
@@ -1686,6 +1660,29 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
     // ************************************
     // ** EVENT onSubmit
     // ************************************
+
+    _onClearWorkspace(_event) {
+        const root = this._getRoot();
+        const form = root?.querySelector?.('form');
+        if (!form) return;
+        const workspaceSelector = `#regent-query-workspace-${this.workspaceId}`;
+        const workspaceInputs = form.querySelector(workspaceSelector);
+        if (workspaceInputs) {
+            const formInputs = workspaceInputs.querySelectorAll('input, textarea, select');
+            formInputs.forEach(input => {
+                if (input.type === 'checkbox' || input.type === 'radio') {
+                    input.checked = false;
+                } else {
+                    input.value = '';
+                }
+            });
+            if (this.workspaceId === 'encounter') {
+                clearWorksheetTokens('encounter');
+            } else if (this.workspaceId === 'narrative') {
+                clearWorksheetTokens('narrative');
+            }
+        }
+    }
 
     async _onSubmit(event, form) {
         
@@ -2911,7 +2908,7 @@ Break the output into a minimum of these sections using h4 headings: Guidance Ov
         const tpl = await getCachedTemplate(REGENT.WINDOW_QUERY);
         const bodyContent = tpl(regentData);
         const submitLabel = 'Consult the Regent';
-        const actionBarRight = `<button type="button" class="blacksmith-window-template-btn-primary" data-action="regentSubmit"><i class="fa-solid fa-paper-plane"></i> ${submitLabel}</button>`;
+        const actionBarRight = `<button type="button" class="blacksmith-window-template-btn-secondary" data-action="regentClear" title="Clear form"><i class="fa-solid fa-broom-wide"></i> Clear</button><button type="button" class="blacksmith-window-template-btn-primary" data-action="regentSubmit"><i class="fa-solid fa-paper-plane"></i> ${submitLabel}</button>`;
         const actionBarLeft = `<label class="blacksmith-window-template-action-label"><input type="checkbox" id="enterSubmits" data-persist="true" class="regent-checkbox" checked> ENTER Sends</label>`;
         return {
             appId: this.id,

@@ -635,8 +635,7 @@
     border-color: #888888;
 }
 
-#coffee-pub-regent-wrapper #regent-message-options label,
-#coffee-pub-regent-wrapper #regent-workspace-footer-options label {
+#coffee-pub-regent-wrapper #regent-message-options label {
     margin-top: 0;
     margin-right: 4px;
     margin-bottom: 6px;
