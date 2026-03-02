@@ -25,6 +25,7 @@
     "scripts/regent-settings.js",
     "scripts/regent.js",
     "scripts/window-query-registration.js",
+    "scripts/regent-encounter-worksheet.js",
     "scripts/window-query.js",
     "scripts/regent-bootstrap.js"
   ],

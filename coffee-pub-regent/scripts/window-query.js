@@ -9,6 +9,7 @@ import { SocketManager } from '/modules/coffee-pub-blacksmith/scripts/manager-so
 import { SkillCheckDialog } from '/modules/coffee-pub-blacksmith/scripts/window-skillcheck.js';
 import { getCachedTemplate } from './regent.js';
 import { BlacksmithWindowBaseV2 } from '/modules/coffee-pub-blacksmith/scripts/window-base-v2.js';
+import { registerEncounterWorksheetGlobals } from './regent-encounter-worksheet.js';
 
 // -- COMMON Imports --
 import { createJournalEntry, createHTMLList, buildCompendiumLinkActor } from '/modules/coffee-pub-blacksmith/scripts/common.js';
@@ -456,6 +457,65 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
                     e.stopPropagation();
                     postConsoleAndNotification(MODULE.NAME, 'Regent: card button (Copy) document', '', true, false);
                     w._onCopyToClipboard.call(w, e, copyBtn);
+                    return;
+                }
+                // Add-token buttons (canvas -> worksheet): use delegation so they work when body is injected (Application V2)
+                const addTokensBtn = e.target.closest('.add-tokens-button');
+                if (addTokensBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const zoneId = (addTokensBtn.id || '').split('-').pop();
+                    if (zoneId) {
+                        w.addTokensToContainer(zoneId, 'player').then(() => {
+                            if (typeof window.updateAllCounts === 'function') window.updateAllCounts(zoneId);
+                            const section = document.getElementById(`workspace-section-tokens-content-${zoneId}`);
+                            if (section?.classList.contains('collapsed') && typeof window.toggleSection === 'function') window.toggleSection(`workspace-section-tokens-content-${zoneId}`, addTokensBtn);
+                        });
+                    }
+                    return;
+                }
+                const addMonstersBtn = e.target.closest('.add-monsters-button');
+                if (addMonstersBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const zoneId = (addMonstersBtn.id || '').split('-').pop();
+                    if (zoneId) {
+                        w.addTokensToContainer(zoneId, 'monster').then(() => {
+                            const section = document.getElementById(`workspace-section-monsters-content-${zoneId}`);
+                            if (section?.classList.contains('collapsed') && typeof window.toggleSection === 'function') window.toggleSection(`workspace-section-monsters-content-${zoneId}`, addMonstersBtn);
+                        });
+                    }
+                    return;
+                }
+                const addNpcsBtn = e.target.closest('.add-npcs-button');
+                if (addNpcsBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const zoneId = (addNpcsBtn.id || '').split('-').pop();
+                    if (zoneId) {
+                        w.addTokensToContainer(zoneId, 'npc').then(() => {
+                            if (typeof window.updateAllCounts === 'function') window.updateAllCounts(zoneId);
+                            const section = document.getElementById(`workspace-section-npcs-content-${zoneId}`);
+                            if (section?.classList.contains('collapsed') && typeof window.toggleSection === 'function') window.toggleSection(`workspace-section-npcs-content-${zoneId}`, addNpcsBtn);
+                        });
+                    }
+                    return;
+                }
+                const addAllBtn = e.target.closest('.add-all-button');
+                if (addAllBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const zoneId = (addAllBtn.id || '').split('-').pop();
+                    if (zoneId) {
+                        w.addAllTokensToContainer(zoneId).then(() => {
+                            if (typeof window.updateAllCounts === 'function') window.updateAllCounts(zoneId);
+                            for (const sel of [`workspace-section-tokens-content-${zoneId}`, `workspace-section-monsters-content-${zoneId}`, `workspace-section-npcs-content-${zoneId}`, `workspace-section-encounter-content-${zoneId}`]) {
+                                const section = document.getElementById(sel);
+                                if (section?.classList.contains('collapsed') && typeof window.toggleSection === 'function') window.toggleSection(sel, addAllBtn);
+                            }
+                        });
+                    }
+                    return;
                 }
             }, true);
         }
@@ -643,130 +703,68 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
             this.switchWorkspace(htmlElement, workspaceId);
         });
 
-        // -- ADD TOKENS BUTTONS --
+        // Worksheet/drop zone/button listeners: attach to wrapper from document after paint so they work when activateListeners doesn't receive body (Application V2 PARTS)
+        requestAnimationFrame(() => this._attachWorksheetListenersToWrapper());
+    }
 
-        // Add event listener for "add-tokens-button"
-        htmlElement.querySelectorAll('.add-tokens-button').forEach((button) => {
-            button.addEventListener('click', async (event) => {
-                event.preventDefault(); // Prevent form submission
-                const id = event.target.id.split('-').pop();
-                // add the tokens to the container
-                await this.addTokensToContainer(id, 'player');
-                // update the counts
-                await updateAllCounts(id);
-                
-                const section = document.getElementById(`workspace-section-tokens-content-${id}`);
-                if (section && section.classList.contains('collapsed')) {
-                    toggleSection(`workspace-section-tokens-content-${id}`, button);
-                }
-            });
-        });
+    /**
+     * Attach worksheet click handlers and drop zone handlers to #coffee-pub-regent-wrapper from document.
+     * Called deferred (requestAnimationFrame) so the wrapper exists in DOM even when activateListeners got a fragment.
+     */
+    _attachWorksheetListenersToWrapper() {
+        const wrapper = document.querySelector(`#${this.id} #coffee-pub-regent-wrapper`);
+        if (!wrapper) return;
+        if (wrapper.dataset.regentWorksheetAttached === '1') return;
+        wrapper.dataset.regentWorksheetAttached = '1';
 
-        // Add event listener for "add-monsters-button"
-        htmlElement.querySelectorAll('.add-monsters-button').forEach((button) => {
-            button.addEventListener('click', async (event) => {
-                event.preventDefault(); // Prevent form submission
-                const id = event.target.id.split('-').pop();
-                // add the monsters to the container
-                await this.addTokensToContainer(id, 'monster');
-                // update the counts
-                await updateAllCounts(id);
-                const section = document.getElementById(`workspace-section-monsters-content-${id}`);
-                if (section && section.classList.contains('collapsed')) {
-                    toggleSection(`workspace-section-monsters-content-${id}`, button);
-                }
-            });
-        });
+        if (typeof addNPCDropZoneHandlers === 'function') {
+            addNPCDropZoneHandlers('encounter');
+        }
 
-        // Add event listener for "add-npcs-button"
-        htmlElement.querySelectorAll('.add-npcs-button').forEach((button) => {
-            button.addEventListener('click', async (event) => {
-                event.preventDefault(); // Prevent form submission
-                const id = event.target.id.split('-').pop();
-                // add the monsters to the container
-                await this.addTokensToContainer(id, 'npc');
-                // update the counts
-                await updateAllCounts(id);
-                const section = document.getElementById(`workspace-section-npcs-content-${id}`);
-                if (section && section.classList.contains('collapsed')) {
-                    toggleSection(`workspace-section-npcs-content-${id}`, button);
-                }
-            });
-        });
-
-        // Initialize drop zones
-        const id = this.id;
-        addNPCDropZoneHandlers(id);
-
-        // Add drag and drop event listeners for panel drop zones
-        htmlElement.querySelectorAll('.panel-drop-zone').forEach((dropZone) => {
+        wrapper.querySelectorAll('.panel-drop-zone').forEach((dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
                 event.preventDefault();
                 dropZone.classList.add('dragover');
             });
-
             dropZone.addEventListener('dragleave', () => {
                 dropZone.classList.remove('dragover');
             });
-
             dropZone.addEventListener('drop', async (event) => {
                 event.preventDefault();
                 dropZone.classList.remove('dragover');
-
                 try {
                     const rawData = event.dataTransfer.getData('text/plain');
-                    
                     const data = JSON.parse(rawData);
-                    const id = dropZone.id.split('-').pop();
-
-                    // Handle different drop types based on the zone
+                    const zoneId = dropZone.id.split('-').pop();
                     if (dropZone.id.includes('encounters-drop-zone')) {
-
-                        
-                        // Handle both JournalEntry and JournalEntryPage drops
                         if (data.type === 'JournalEntry' || data.type === 'JournalEntryPage') {
                             let journal, page;
-                            
                             if (data.type === 'JournalEntryPage') {
-
                                 page = await fromUuid(data.uuid);
                                 if (!page) {
                                     postConsoleAndNotification(MODULE.NAME, 'Regent: Page not found for UUID:', data.uuid, true, false);
                                     return;
                                 }
                                 journal = page.parent;
-                                await addEncounterToNarrative(id, journal, page);
+                                await addEncounterToNarrative(zoneId, journal, page);
                             } else {
-
                                 journal = await fromUuid(data.uuid);
                                 if (!journal) {
                                     postConsoleAndNotification(MODULE.NAME, 'Regent: Journal not found for UUID:', data.uuid, true, false);
                                     return;
                                 }
-
-                                // If a specific page was dropped
                                 if (data.pageId) {
-
                                     page = journal.pages.get(data.pageId);
-                                    if (page) {
-                                        await addEncounterToNarrative(id, journal, page);
-                                    }
+                                    if (page) await addEncounterToNarrative(zoneId, journal, page);
                                 } else {
-                                    // If the whole journal was dropped, show a dialog to select a page
                                     const pages = journal.pages.contents;
-
-                                    
                                     if (pages.length === 0) {
                                         ui.notifications.warn("This journal has no pages.");
                                         return;
                                     }
-                                    
                                     if (pages.length === 1) {
-
-                                        await addEncounterToNarrative(id, journal, pages[0]);
+                                        await addEncounterToNarrative(zoneId, journal, pages[0]);
                                     } else {
-
-                                        // Create dialog for page selection
                                         const dialog = new Dialog({
                                             title: "Select Encounter Page",
                                             content: `<div><select id="page-select" style="width: 100%;">
@@ -776,25 +774,19 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
                                                 select: {
                                                     label: "Select",
                                                     callback: async (html) => {
-                                                        // v13: Detect and convert jQuery to native DOM if needed
                                                         let nativeDialogHtml = html;
                                                         if (html && (html.jquery || typeof html.find === 'function')) {
                                                             nativeDialogHtml = html[0] || html.get?.(0) || html;
                                                         }
-                                                        const pageSelect = nativeDialogHtml.querySelector('#page-select');
+                                                        const pageSelect = nativeDialogHtml?.querySelector?.('#page-select');
                                                         const pageId = pageSelect ? pageSelect.value : null;
-
                                                         if (pageId) {
                                                             const page = journal.pages.get(pageId);
-                                                            if (page) {
-                                                                await addEncounterToNarrative(id, journal, page);
-                                                            }
+                                                            if (page) await addEncounterToNarrative(zoneId, journal, page);
                                                         }
                                                     }
                                                 },
-                                                cancel: {
-                                                    label: "Cancel"
-                                                }
+                                                cancel: { label: "Cancel" }
                                             },
                                             default: "select"
                                         });
@@ -802,97 +794,51 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
                                     }
                                 }
                             }
-                        } else {
-
                         }
                     } else if (dropZone.id.includes('monster-drop-zone')) {
-                        // Handle actor drops for monsters
                         if (data.type === 'Actor') {
                             const actor = await fromUuid(data.uuid);
                             if (actor) {
-                                // Create a temporary token-like structure
                                 const tokenData = {
-                                    actor: actor,
-                                    name: actor.name,
-                                    document: {
-                                        disposition: -1, // Hostile by default for monsters
-                                        texture: { src: actor.img },
-                                        effects: [],
-                                        uuid: data.uuid
-                                    }
+                                    actor, name: actor.name,
+                                    document: { disposition: -1, texture: { src: actor.img }, effects: [], uuid: data.uuid }
                                 };
-
-                                // Pass a single token in an array
-                                await this.addTokensToContainer(id, 'monster', [tokenData]);
-
-                                // Update the monster CR calculations
-                                const monstersContainer = document.querySelector(`#workspace-section-monsters-content-${id} .monsters-container`);
+                                await this.addTokensToContainer(zoneId, 'monster', [tokenData]);
+                                const monstersContainer = document.querySelector(`#workspace-section-monsters-content-${zoneId} .monsters-container`);
                                 if (monstersContainer) {
                                     const monsterCards = Array.from(monstersContainer.querySelectorAll('.player-card'));
-                                    const tokens = monsterCards.map(card => {
-                                        return {
-                                            actor: {
-                                                system: {
-                                                    details: {
-                                                        cr: card.dataset.cr
-                                                    }
-                                                }
-                                            }
-                                        };
-                                    });
-                                    updateTotalMonsterCR(id, tokens);
+                                    const tokens = monsterCards.map(card => ({ actor: { system: { details: { cr: card.dataset.cr } } } }));
+                                    updateTotalMonsterCR(zoneId, tokens);
                                 }
                             }
                         }
                     } else if (dropZone.id.includes('party-drop-zone')) {
-                        // Handle actor drops for party members
                         if (data.type === 'Actor') {
                             const actor = await fromUuid(data.uuid);
                             if (actor && actor.type === 'character') {
-                                // Create a temporary token-like structure
                                 const tokenData = {
-                                    actor: actor,
-                                    name: actor.name,
-                                    document: {
-                                        disposition: 1, // Friendly by default for party
-                                        texture: { src: actor.img },
-                                        effects: [],
-                                        uuid: data.uuid
-                                    }
+                                    actor, name: actor.name,
+                                    document: { disposition: 1, texture: { src: actor.img }, effects: [], uuid: data.uuid }
                                 };
-
-                                // Pass a single token in an array
-                                await this.addTokensToContainer(id, 'player', [tokenData]);
-
-                                // Update party calculations
+                                await this.addTokensToContainer(zoneId, 'player', [tokenData]);
                                 this._applyTokenDataToButtons([tokenData]);
-                                updateTotalPlayerCounts(id);
-                                updateEncounterDetails(id);
+                                updateTotalPlayerCounts(zoneId);
+                                updateEncounterDetails(zoneId);
                             } else {
                                 ui.notifications.warn("Only player characters can be added to the party.");
                             }
                         }
                     } else if (dropZone.id.includes('npcs-drop-zone')) {
-                        // Handle actor drops for NPCs
                         if (data.type === 'Actor') {
                             const actor = await fromUuid(data.uuid);
                             if (actor && actor.type === 'npc' && actor.prototypeToken.disposition >= 0) {
-                                // Create a temporary token-like structure
                                 const tokenData = {
-                                    actor: actor,
-                                    name: actor.name,
-                                    document: {
-                                        disposition: 1, // Friendly for NPCs
-                                        texture: { src: actor.img },
-                                        effects: [],
-                                        uuid: data.uuid
-                                    }
+                                    actor, name: actor.name,
+                                    document: { disposition: 1, texture: { src: actor.img }, effects: [], uuid: data.uuid }
                                 };
-
-                                // Pass a single token in an array
-                                await this.addTokensToContainer(id, 'npc', [tokenData]);
-                                updateTotalNPCCR(id);
-                                updateAllCounts(id);
+                                await this.addTokensToContainer(zoneId, 'npc', [tokenData]);
+                                updateTotalNPCCR(zoneId);
+                                updateAllCounts(zoneId);
                             } else {
                                 ui.notifications.warn("Only non-hostile NPCs can be added to the NPC worksheet.");
                             }
@@ -900,116 +846,90 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
                     }
                 } catch (error) {
                     postConsoleAndNotification(MODULE.NAME, 'Error processing dropped item:', error, false, false);
-                    postConsoleAndNotification(MODULE.NAME, 'Error stack:', error.stack, false, false);
                 }
             });
         });
 
-
-        // Add event listener for "add-all-button"
-        htmlElement.querySelectorAll('.add-all-button').forEach((button) => {
+        wrapper.querySelectorAll('.add-tokens-button').forEach((button) => {
             button.addEventListener('click', async (event) => {
-                event.preventDefault(); // Prevent form submission
-                const id = event.target.id.split('-').pop();
-                await this.addAllTokensToContainer(id);
+                event.preventDefault();
+                const zoneId = (event.target.id || button.id || '').split('-').pop();
+                if (!zoneId) return;
+                await this.addTokensToContainer(zoneId, 'player');
+                await updateAllCounts(zoneId);
+                const section = document.getElementById(`workspace-section-tokens-content-${zoneId}`);
+                if (section?.classList.contains('collapsed')) toggleSection(`workspace-section-tokens-content-${zoneId}`, button);
+            });
+        });
+        wrapper.querySelectorAll('.add-monsters-button').forEach((button) => {
+            button.addEventListener('click', async (event) => {
+                event.preventDefault();
+                const zoneId = (event.target.id || button.id || '').split('-').pop();
+                if (!zoneId) return;
+                await this.addTokensToContainer(zoneId, 'monster');
+                const section = document.getElementById(`workspace-section-monsters-content-${zoneId}`);
+                if (section?.classList.contains('collapsed')) toggleSection(`workspace-section-monsters-content-${zoneId}`, button);
+            });
+        });
+        wrapper.querySelectorAll('.add-npcs-button').forEach((button) => {
+            button.addEventListener('click', async (event) => {
+                event.preventDefault();
+                const zoneId = (event.target.id || button.id || '').split('-').pop();
+                if (!zoneId) return;
+                await this.addTokensToContainer(zoneId, 'npc');
+                await updateAllCounts(zoneId);
+                const section = document.getElementById(`workspace-section-npcs-content-${zoneId}`);
+                if (section?.classList.contains('collapsed')) toggleSection(`workspace-section-npcs-content-${zoneId}`, button);
+            });
+        });
 
-                // Open the sections
-                const section = document.getElementById(`workspace-section-tokens-content-${id}`);
-                if (section && section.classList.contains('collapsed')) {
-                    toggleSection(`workspace-section-tokens-content-${id}`, button);
-                }
-                const sectionMonsters = document.getElementById(`workspace-section-monsters-content-${id}`);
-                if (sectionMonsters && sectionMonsters.classList.contains('collapsed')) {
-                    toggleSection(`workspace-section-monsters-content-${id}`, button);
-                }
-                const sectionNpcs = document.getElementById(`workspace-section-npcs-content-${id}`);
-                if (sectionNpcs && sectionNpcs.classList.contains('collapsed')) {
-                    toggleSection(`workspace-section-npcs-content-${id}`, button);
-                }
-                const sectionEncounter = document.getElementById(`workspace-section-encounter-content-${id}`);
-                if (sectionEncounter && sectionEncounter.classList.contains('collapsed')) {
-                    toggleSection(`workspace-section-encounter-content-${id}`, button);
+        wrapper.querySelectorAll('.add-all-button').forEach((button) => {
+            button.addEventListener('click', async (event) => {
+                event.preventDefault();
+                const zoneId = (event.target.id || button.id || '').split('-').pop();
+                if (!zoneId) return;
+                await this.addAllTokensToContainer(zoneId);
+                for (const sel of [`workspace-section-tokens-content-${zoneId}`, `workspace-section-monsters-content-${zoneId}`, `workspace-section-npcs-content-${zoneId}`, `workspace-section-encounter-content-${zoneId}`]) {
+                    const section = document.getElementById(sel);
+                    if (section?.classList.contains('collapsed')) toggleSection(sel, button);
                 }
             });
         });
 
-        
-        // Load cookies when the form is first opened
         loadNarrativeCookies(this.workspaceId);
-
-        // Add listeners for form changes to save cookies
-        const formElements = htmlElement.querySelectorAll('input, select, textarea');
-        formElements.forEach((element) => {
-            element.addEventListener('change', () => {
-                saveNarrativeCookies(this.workspaceId);
-            });
+        wrapper.querySelectorAll('input, select, textarea').forEach((element) => {
+            element.addEventListener('change', () => saveNarrativeCookies(this.workspaceId));
         });
 
-        // Add event listener for criteria drop zone (assistant workspace)
-        htmlElement.querySelectorAll('.criteria-dropzone').forEach((dropZone) => {
+        wrapper.querySelectorAll('.criteria-dropzone').forEach((dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
                 event.preventDefault();
                 dropZone.classList.add('dragover');
             });
-
-            dropZone.addEventListener('dragleave', () => {
-                dropZone.classList.remove('dragover');
-            });
-
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
             dropZone.addEventListener('drop', async (event) => {
                 event.preventDefault();
                 event.stopPropagation();
                 dropZone.classList.remove('dragover');
-
                 try {
                     const rawData = event.dataTransfer.getData('text/plain');
                     if (!rawData) return;
-                    
                     const data = JSON.parse(rawData);
-                    const id = dropZone.id.split('-').pop();
-
-                    // Handle token drops (from canvas)
+                    const zoneId = dropZone.id.split('-').pop();
                     if (data.type === 'Token') {
                         const tokenDoc = await fromUuid(data.uuid);
-                        if (!tokenDoc) {
-                            postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Token not found', data.uuid, true, false);
-                            return;
-                        }
-                        // Get the token from canvas if it exists, otherwise create a token-like structure
-                        const token = canvas.tokens.get(tokenDoc.id) || {
-                            actor: tokenDoc.actor,
-                            document: tokenDoc,
-                            name: tokenDoc.name
-                        };
-                        await TokenHandler.updateSkillCheckFromToken(id, token);
-                    }
-                    // Handle actor drops (from sidebar)
-                    else if (data.type === 'Actor') {
+                        if (!tokenDoc) return;
+                        const token = canvas.tokens.get(tokenDoc.id) || { actor: tokenDoc.actor, document: tokenDoc, name: tokenDoc.name };
+                        await TokenHandler.updateSkillCheckFromToken(zoneId, token);
+                    } else if (data.type === 'Actor') {
                         const actor = await fromUuid(data.uuid);
-                        if (!actor) {
-                            postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Actor not found', data.uuid, true, false);
-                            return;
-                        }
-                        // Create a token-like structure for the actor
-                        const token = {
-                            actor: actor,
-                            document: {
-                                disposition: actor.type === 'npc' ? -1 : 1,
-                                texture: { src: actor.img },
-                                effects: []
-                            },
-                            name: actor.name
-                        };
-                        await TokenHandler.updateSkillCheckFromToken(id, token);
-                    }
-                    // Handle item drops
-                    else if (data.type === 'Item') {
+                        if (!actor) return;
+                        const token = { actor, document: { disposition: actor.type === 'npc' ? -1 : 1, texture: { src: actor.img }, effects: [] }, name: actor.name };
+                        await TokenHandler.updateSkillCheckFromToken(zoneId, token);
+                    } else if (data.type === 'Item') {
                         const item = await fromUuid(data.uuid);
-                        if (!item) {
-                            postConsoleAndNotification(MODULE.NAME, 'Criteria Drop Zone: Item not found', data.uuid, true, false);
-                            return;
-                        }
-                        await TokenHandler.updateSkillCheckFromToken(id, null, item);
+                        if (!item) return;
+                        await TokenHandler.updateSkillCheckFromToken(zoneId, null, item);
                     }
                 } catch (error) {
                     postConsoleAndNotification(MODULE.NAME, 'Error processing criteria drop:', error, false, false);
@@ -1017,45 +937,32 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
             });
         });
 
-        // Add event listener for encounter journal drops
-        htmlElement.querySelectorAll('.encounters-drop-zone').forEach((dropZone) => {
+        wrapper.querySelectorAll('.encounters-drop-zone').forEach((dropZone) => {
             dropZone.addEventListener('dragover', (event) => {
                 event.preventDefault();
                 dropZone.classList.add('dragover');
             });
-
-            dropZone.addEventListener('dragleave', () => {
-                dropZone.classList.remove('dragover');
-            });
-
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
             dropZone.addEventListener('drop', async (event) => {
                 event.preventDefault();
                 dropZone.classList.remove('dragover');
-
                 try {
                     const data = JSON.parse(event.dataTransfer.getData('text/plain'));
                     if (data.type === 'JournalEntry' && data.uuid) {
-                        const id = dropZone.id.split('-').pop();
+                        const zoneId = dropZone.id.split('-').pop();
                         const journal = await fromUuid(data.uuid);
-                        
-                        // If a specific page was dropped
                         if (data.pageId) {
                             const page = journal.pages.get(data.pageId);
-                            if (page) {
-                                await addEncounterToNarrative(id, journal, page);
-                            }
+                            if (page) await addEncounterToNarrative(zoneId, journal, page);
                         } else {
-                            // If the whole journal was dropped, show a dialog to select a page
                             const pages = journal.pages.contents;
                             if (pages.length === 0) {
                                 ui.notifications.warn("This journal has no pages.");
                                 return;
                             }
-                            
                             if (pages.length === 1) {
-                                await addEncounterToNarrative(id, journal, pages[0]);
+                                await addEncounterToNarrative(zoneId, journal, pages[0]);
                             } else {
-                                // Create dialog for page selection
                                 const dialog = new Dialog({
                                     title: "Select Encounter Page",
                                     content: `<div><select id="page-select" style="width: 100%;">
@@ -1065,24 +972,19 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
                                         select: {
                                             label: "Select",
                                             callback: async (html) => {
-                                                // v13: Detect and convert jQuery to native DOM if needed
                                                 let nativeDialogHtml = html;
                                                 if (html && (html.jquery || typeof html.find === 'function')) {
                                                     nativeDialogHtml = html[0] || html.get?.(0) || html;
                                                 }
-                                                const pageSelect = nativeDialogHtml.querySelector('#page-select');
+                                                const pageSelect = nativeDialogHtml?.querySelector?.('#page-select');
                                                 const pageId = pageSelect ? pageSelect.value : null;
                                                 if (pageId) {
                                                     const page = journal.pages.get(pageId);
-                                                    if (page) {
-                                                        await addEncounterToNarrative(id, journal, page);
-                                                    }
+                                                    if (page) await addEncounterToNarrative(zoneId, journal, page);
                                                 }
                                             }
                                         },
-                                        cancel: {
-                                            label: "Cancel"
-                                        }
+                                        cancel: { label: "Cancel" }
                                     },
                                     default: "select"
                                 });
@@ -1096,13 +998,12 @@ export class BlacksmithWindowQuery extends BlacksmithWindowBaseV2 {
             });
         });
 
-        // Add roll dice button handler
-        htmlElement.addEventListener('click', (event) => {
+        wrapper.addEventListener('click', (event) => {
             const target = event.target.closest('.roll-dice-button');
             if (target) {
                 event.preventDefault();
-                const id = target.id.split('-').pop();
-                this._handleRollDiceClick(id);
+                const zoneId = (target.id || '').split('-').pop();
+                if (zoneId) this._handleRollDiceClick(zoneId);
             }
         });
     }
@@ -3435,4 +3336,18 @@ function formatCharacterData(tokenData) {
     return characterText;
 }
 
+// Encounter worksheet: expose addTokensToContainer/addAllTokensToContainer on window so
+// regent-encounter-worksheet.js (and inline onclick in templates) can call them.
+// Application V2 does not run <script> in injected body, so we register encounter globals at load.
+(function () {
+    window.addTokensToContainer = async function (id, type, providedTokens) {
+        const w = BlacksmithWindowQuery._ref;
+        if (w) return w.addTokensToContainer(id, type, providedTokens);
+    };
+    window.addAllTokensToContainer = async function (id) {
+        const w = BlacksmithWindowQuery._ref;
+        if (w) return w.addAllTokensToContainer(id);
+    };
+    registerEncounterWorksheetGlobals();
+})();
 
