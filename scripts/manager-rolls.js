@@ -1268,12 +1268,13 @@ class RollWindow extends Application {
             });
             
             // Close the dialog after the roll is complete
-                postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Roll successful, closing dialog`, null, true, false);
-                this.close();
-            
+            postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Roll successful, closing dialog`, null, true, false);
+            this.close();
+
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll error:`, error, true, false);
-            // Keep dialog open on error so user can see what went wrong
+            // Close the window on error too so the user isn't left with a stuck dialog
+            this.close();
         }
     }
     

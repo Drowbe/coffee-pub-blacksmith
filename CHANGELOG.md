@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.3.0] - 2025-02-27
 
+### Fixed
+
+- **Roll Configuration window – closes after roll from chat card**: When a player clicked the roll button on a request-roll chat card and then rolled from the Roll Configuration window (advantage, normal, or disadvantage), the window sometimes stayed open. The window now always closes after a roll attempt: the success path closes the dialog once results are delivered, and the catch path now closes the dialog on error so the user is not left with a stuck window. Fix in `RollWindow._executeRoll()` (manager-rolls.js).
+
 ### Removed
 
 - **OpenAI API and AI code from Blacksmith**: Removed `scripts/api-openai.js` and all OpenAI integration from the core module. The `module.api.openai` surface no longer exists on Blacksmith. AI tools (Consult the Regent, worksheets: Lookup, Character, Assistant, Encounter, Narrative) are now provided only by the optional module **coffee-pub-regent**, which registers its toolbar tools via Blacksmith’s toolbar API and exposes the OpenAI API on its own `module.api.openai`.
