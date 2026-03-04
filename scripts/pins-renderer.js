@@ -583,6 +583,9 @@ class PinDOMElement {
             }
             
             PinManager._invokeHandlers('hoverIn', freshPinData, sceneId, userId, modifiers, e);
+            if (freshPinData.eventAnimations?.hover?.animation) {
+                PinRenderer.ping(freshPinData.id, { animation: freshPinData.eventAnimations.hover.animation, sound: freshPinData.eventAnimations.hover.sound ?? null, loops: 1 });
+            }
         });
         
         pinElement.addEventListener('mouseleave', async (e) => {
@@ -637,6 +640,9 @@ class PinDOMElement {
                     clickState.timeout = setTimeout(() => {
                         if (clickState.count === 1) {
                             PinManager._invokeHandlers('click', currentPinData, sceneId, userId, modifiers, e);
+                            if (currentPinData.eventAnimations?.click?.animation) {
+                                PinRenderer.ping(currentPinData.id, { animation: currentPinData.eventAnimations.click.animation, sound: currentPinData.eventAnimations.click.sound ?? null, loops: 1 });
+                            }
                         }
                         clickState.count = 0;
                         clickState.timeout = null;
@@ -648,6 +654,9 @@ class PinDOMElement {
                         clickState.count = 0;
                         clickState.timeout = null;
                         PinManager._invokeHandlers('doubleClick', currentPinData, sceneId, userId, modifiers, e);
+                        if (currentPinData.eventAnimations?.doubleClick?.animation) {
+                            PinRenderer.ping(currentPinData.id, { animation: currentPinData.eventAnimations.doubleClick.animation, sound: currentPinData.eventAnimations.doubleClick.sound ?? null, loops: 1 });
+                        }
                     }
                 }
             } else if (button === 2) {
@@ -874,6 +883,9 @@ class PinDOMElement {
                         const sceneId = canvas?.scene?.id || '';
                         const userId = game.user?.id || '';
                         PinManager._invokeHandlers('click', pinData, sceneId, userId, modifiers, e);
+                        if (pinData.eventAnimations?.click?.animation) {
+                            PinRenderer.ping(pinData.id, { animation: pinData.eventAnimations.click.animation, sound: pinData.eventAnimations.click.sound ?? null, loops: 1 });
+                        }
                     }
                     clickState.count = 0;
                     clickState.timeout = null;
@@ -890,6 +902,9 @@ class PinDOMElement {
                     const sceneId = canvas?.scene?.id || '';
                     const userId = game.user?.id || '';
                     PinManager._invokeHandlers('doubleClick', pinData, sceneId, userId, modifiers, e);
+                    if (pinData.eventAnimations?.doubleClick?.animation) {
+                        PinRenderer.ping(pinData.id, { animation: pinData.eventAnimations.doubleClick.animation, sound: pinData.eventAnimations.doubleClick.sound ?? null, loops: 1 });
+                    }
                 }
             }
             
@@ -1996,6 +2011,42 @@ export class PinRenderer {
                 await this._applyVisibilityForPin(pinData);
             }
         }
+    }
+
+    /**
+     * Play delete animation (fade, dissolve, or scale-small) then resolve. Does not remove the pin; caller should call removePin after.
+     * @param {string} pinId
+     * @param {{ animation: string | null; sound?: string | null }} options - animation: 'fade' | 'dissolve' | 'scale-small', sound: optional
+     * @returns {Promise<void>}
+     */
+    static async playDeleteAnimation(pinId, options = {}) {
+        const { animation, sound } = options;
+        const validDelete = ['fade', 'dissolve', 'scale-small'];
+        if (!animation || !validDelete.includes(animation)) return;
+        const pinElement = PinDOMElement._pins.get(pinId);
+        if (!pinElement) return;
+        if (sound) {
+            try {
+                const soundPath = this._resolveSoundPath(sound);
+                if (soundPath) await AudioHelper.play({ src: soundPath, volume: 0.8, loop: false }, false);
+            } catch (err) {
+                console.warn('BLACKSMITH | PINS Delete sound failed:', err);
+            }
+        }
+        pinElement.classList.add(`blacksmith-pin-delete-${animation}`);
+        await new Promise((resolve) => {
+            let done = false;
+            const finish = () => {
+                if (done) return;
+                done = true;
+                pinElement.removeEventListener('animationend', onEnd);
+                resolve();
+            };
+            const onEnd = () => finish();
+            pinElement.addEventListener('animationend', onEnd);
+            const duration = animation === 'scale-small' ? 400 : 350;
+            setTimeout(finish, duration);
+        });
     }
 
     /**

@@ -4,7 +4,7 @@
 
 > **Current state:** Unplaced pins are the normal, primary use case. **Remaining work** (tests, Phase 4–5) is tracked in `architecture-pins.md` and `TODO.md`.
 >
-> **Unplaced pins:** most pins are created and configured without being on the canvas (notes, quests, etc. have pin data; only some are placed). Unplaced pin support is implemented: create without `sceneId`/x/y → unplaced; `place(pinId, { sceneId, x, y })` to put on a scene; `unplace(pinId)` to remove from canvas but keep data; `list({ unplacedOnly: true })`; hooks `blacksmith.pins.created`, `blacksmith.pins.placed`, `blacksmith.pins.unplaced`. Pins render using pure DOM approach (no PIXI), support Font Awesome icons, image URLs, and text (iconText), support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Automatic visibility filtering based on ownership permissions and per-user visibility filters (`pins.setGlobalVisibility`, `pins.setModuleVisibility`). Text display system with multiple layouts (under, over, above, right, left, arc-above, arc-below), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Icon/image type changes (icon ↔ image swaps) are automatically detected and handled during `update()`. Pin type system with default 'default' type for categorization and filtering. GM bulk delete controls (`deleteAll()`, `deleteAllByType()`) available via API and context menu with `moduleId` filtering. GM proxy methods (`createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`) for permission escalation. Ownership resolver hook (`blacksmith.pins.resolveOwnership`) for custom ownership mapping. Reconciliation helper (`reconcile()`) for repairing module-tracked pin links. Helper methods: `exists()`, `panTo()`, `findScene()`, `refreshPin()`, `place()`, `unplace()`.
+> **Unplaced pins:** most pins are created and configured without being on the canvas (notes, quests, etc. have pin data; only some are placed). Unplaced pin support is implemented: create without `sceneId`/x/y → unplaced; `place(pinId, { sceneId, x, y })` to put on a scene; `unplace(pinId)` to remove from canvas but keep data; `list({ unplacedOnly: true })`; hooks `blacksmith.pins.created`, `blacksmith.pins.placed`, `blacksmith.pins.unplaced`. Pins render using pure DOM approach (no PIXI), support Font Awesome icons, image URLs, and text (iconText), support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Event animations: optional per-pin animations and sounds on hover, click, double-click, and delete (configurable in Configure Pin). Automatic visibility filtering based on ownership permissions and per-user visibility filters (`pins.setGlobalVisibility`, `pins.setModuleVisibility`). Text display system with multiple layouts (under, over, above, right, left, arc-above, arc-below), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Icon/image type changes (icon ↔ image swaps) are automatically detected and handled during `update()`. Pin type system with default 'default' type for categorization and filtering. GM bulk delete controls (`deleteAll()`, `deleteAllByType()`) available via API and context menu with `moduleId` filtering. GM proxy methods (`createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`) for permission escalation. Ownership resolver hook (`blacksmith.pins.resolveOwnership`) for custom ownership mapping. Reconciliation helper (`reconcile()`) for repairing module-tracked pin links. Helper methods: `exists()`, `panTo()`, `findScene()`, `refreshPin()`, `place()`, `unplace()`.
 
 ## Overview
 
@@ -201,6 +201,12 @@ interface PinData {
   config?: Record<string, unknown>;
   moduleId: string; // consumer module id
   ownership?: { default: number; users?: Record<string, number> };
+  eventAnimations?: {
+    hover?: { animation?: string | null; sound?: string | null };
+    click?: { animation?: string | null; sound?: string | null };
+    doubleClick?: { animation?: string | null; sound?: string | null };
+    delete?: { animation?: string | null; sound?: string | null };
+  }; // Optional: play animation (and optional sound) on hover enter, click, double-click, or before delete. See Event animations.
   version?: number; // schema version
 }
 ```
@@ -217,6 +223,16 @@ interface PinEvent {
   originalEvent: MouseEvent; // DOM MouseEvent (pure DOM approach)
 }
 ```
+
+### Event animations
+
+Pins can be configured to play an **animation** and optional **sound** when the user hovers (enter), clicks, double-clicks, or when the pin is deleted. Right-click is reserved for the context menu and does not trigger an event animation.
+
+- **Storage**: Optional `eventAnimations` on pin data with keys `hover`, `click`, `doubleClick`, `delete`. Each value is `{ animation: string | null, sound: string | null }`. Omit or set to `null` for no animation/sound (default).
+- **Interaction animations** (hover, click, double-click): Same set as `pins.ping()` — `ping`, `pulse`, `ripple`, `flash`, `glow`, `bounce`, `scale-small`, `scale-medium`, `scale-large`, `rotate`, `shake`. On hover enter the animation runs once (ease-out when pointer leaves). On click or double-click the animation runs once after the handler.
+- **Delete animation**: Only `fade`, `dissolve`, or `scale-small`. When the pin is deleted (via context menu or API), if the pin is on the current scene and has a delete animation set, that animation runs (with optional sound), then the pin is removed from the canvas and data.
+- **Sound**: Optional. Use a Blacksmith sound name (e.g. `interface-ping-01`) or a full path. Default is none. Applied per event (each of hover, click, double-click, delete can have its own sound or none).
+- **Configuration**: The Configure Pin window includes an **Event Animations** section where users choose animation and sound for each of Hover, Click, Double-click, and Delete. Updates are applied via `pins.update(pinId, { eventAnimations: { ... } })`.
 
 ## API Reference
 
@@ -1062,7 +1078,7 @@ await pinsAPI.configure(pinId, {
 **Behavior**:
 - Opens an Application V2 window with a form for editing pin properties.
 - Only users who can **edit** the pin (ownership-based) can open the window.
-- The window includes: **Appearance** (shape, size, fill, stroke, stroke width, icon color, opacity, drop shadow); **Icon/Image** (Font Awesome library + image URL with built-in FilePicker “Browse”); **Text** (layout, display mode, color, size, max characters, chars per line, scale-with-pin). Pin **type** is not currently editable in the window; **ownership** is not changed by the save.
+- The window includes: **Appearance** (shape, size, fill, stroke, stroke width, icon color, opacity, drop shadow); **Icon/Image** (Font Awesome library + image URL with built-in FilePicker “Browse”); **Text** (layout, display mode, color, size, max characters, chars per line, scale-with-pin); **Event Animations** (hover, click, double-click, delete — each with optional animation and sound). Pin **type** is not currently editable in the window; **ownership** is not changed by the save.
 - On submit, the pin is updated via `pins.update()` (ownership is preserved). If “Use as Default” is checked, the [default storage schema](#3-default-storage-schema-useasdefault) is written to `game.settings.set(moduleId, defaultSettingKey, …)`. If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
 - The window is also available from the pin’s right-click context menu (“Configure Pin”).
 

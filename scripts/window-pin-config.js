@@ -220,21 +220,56 @@ export class PinConfigWindow extends Application {
         this.pinImageZoom = zoomNum;
         const pinImageZoomPercent = Math.round(zoomNum * 100);
 
-        // Permissions (GM only): use Foundry ownership levels
+        // Event animations (hover, click, double-click, delete) with optional sound
+        const ev = pin.eventAnimations && typeof pin.eventAnimations === 'object' ? pin.eventAnimations : {};
+        const eventAnimations = {
+            hover: { animation: ev.hover?.animation ?? '', sound: ev.hover?.sound ?? '' },
+            click: { animation: ev.click?.animation ?? '', sound: ev.click?.sound ?? '' },
+            doubleClick: { animation: ev.doubleClick?.animation ?? '', sound: ev.doubleClick?.sound ?? '' },
+            delete: { animation: ev.delete?.animation ?? '', sound: ev.delete?.sound ?? '' }
+        };
+        const interactionAnimList = [
+            { value: '', label: 'None' },
+            { value: 'ping', label: 'Ping' },
+            { value: 'pulse', label: 'Pulse' },
+            { value: 'ripple', label: 'Ripple' },
+            { value: 'flash', label: 'Flash' },
+            { value: 'glow', label: 'Glow' },
+            { value: 'bounce', label: 'Bounce' },
+            { value: 'scale-small', label: 'Scale small' },
+            { value: 'scale-medium', label: 'Scale medium' },
+            { value: 'scale-large', label: 'Scale large' },
+            { value: 'rotate', label: 'Rotate' },
+            { value: 'shake', label: 'Shake' }
+        ];
+        const animationOptions = interactionAnimList.map((opt) => ({
+            ...opt,
+            hoverSelected: eventAnimations.hover.animation === opt.value,
+            clickSelected: eventAnimations.click.animation === opt.value,
+            doubleClickSelected: eventAnimations.doubleClick.animation === opt.value
+        }));
+        const deleteAnimationOptions = [
+            { value: '', label: 'None', selected: eventAnimations.delete.animation === '' },
+            { value: 'fade', label: 'Fade', selected: eventAnimations.delete.animation === 'fade' },
+            { value: 'dissolve', label: 'Dissolve', selected: eventAnimations.delete.animation === 'dissolve' },
+            { value: 'scale-small', label: 'Scale small', selected: eventAnimations.delete.animation === 'scale-small' }
+        ];
+
+        // Permissions (GM only): three clear options mapped to Foundry ownership levels
         const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
-        const LIMITED = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED : 1;
         const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
         const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
         const isGM = !!game.user?.isGM;
-        const ownershipDefault = typeof pin.ownership?.default === 'number' ? pin.ownership.default : NONE;
+        const rawDefault = typeof pin.ownership?.default === 'number' ? pin.ownership.default : NONE;
+        // Map LIMITED (1) to OBSERVER (2) for display so legacy pins show "View"
+        const ownershipDefault = rawDefault === 1 ? OBSERVER : rawDefault;
         this._pinOwnership = pin.ownership && typeof pin.ownership === 'object' && !Array.isArray(pin.ownership)
             ? { ...pin.ownership }
             : { default: NONE };
         const ownershipOptions = [
-            { value: NONE, label: 'GM only', selected: ownershipDefault === NONE },
-            { value: LIMITED, label: 'Limited (view)', selected: ownershipDefault === LIMITED },
-            { value: OBSERVER, label: 'Observer (view)', selected: ownershipDefault === OBSERVER },
-            { value: OWNER, label: 'Owner (view & edit)', selected: ownershipDefault === OWNER }
+            { value: NONE, label: 'Hidden: GM Only', selected: ownershipDefault === NONE },
+            { value: OBSERVER, label: 'Visible: View & Click', selected: ownershipDefault === OBSERVER },
+            { value: OWNER, label: 'Editable: Full Edit & Configure Control', selected: ownershipDefault === OWNER }
         ];
 
         // Load icon categories
@@ -285,7 +320,10 @@ export class PinConfigWindow extends Application {
             pinImageFit: this.pinImageFit,
             pinImageZoom: this.pinImageZoom,
             pinImageZoomPercent,
-            showImageZoomSlider: this.pinImageFit === 'zoom'
+            showImageZoomSlider: this.pinImageFit === 'zoom',
+            animationOptions,
+            deleteAnimationOptions,
+            eventAnimations
         };
     }
 
@@ -581,9 +619,10 @@ export class PinConfigWindow extends Application {
                 }
             }
         });
-        strokeWidthInput?.addEventListener('input', () => {
+        strokeWidthInput?.addEventListener('change', () => {
             const width = clampStrokeWidth(strokeWidthInput.value, this.pinStyle.strokeWidth);
             this.pinStyle.strokeWidth = width;
+            if (strokeWidthInput) strokeWidthInput.value = String(width);
         });
         shadowInput?.addEventListener('change', () => {
             this.dropShadow = !!shadowInput.checked;
@@ -697,7 +736,11 @@ export class PinConfigWindow extends Application {
                 icon: finalSelection,
                 pinSize: { w: this.pinSize.w, h: this.pinSize.h },
                 pinShape: this.pinShape,
-                pinStyle: { ...this.pinStyle },
+                pinStyle: (() => {
+                    const style = { ...this.pinStyle };
+                    if (strokeWidthInput) style.strokeWidth = clampStrokeWidth(strokeWidthInput.value, style.strokeWidth);
+                    return style;
+                })(),
                 pinDropShadow: this.dropShadow,
                 pinTextConfig: {
                     textLayout: savedTextLayout,
@@ -747,6 +790,22 @@ export class PinConfigWindow extends Application {
                     }
                 }
             }
+
+            // Event animations (hover, click, double-click, delete) with optional sound
+            const hoverAnim = nativeHtml.querySelector('.blacksmith-pin-config-event-hover-animation')?.value ?? '';
+            const clickAnim = nativeHtml.querySelector('.blacksmith-pin-config-event-click-animation')?.value ?? '';
+            const doubleClickAnim = nativeHtml.querySelector('.blacksmith-pin-config-event-doubleclick-animation')?.value ?? '';
+            const deleteAnim = nativeHtml.querySelector('.blacksmith-pin-config-event-delete-animation')?.value ?? '';
+            const hoverSound = (nativeHtml.querySelector('.blacksmith-pin-config-event-hover-sound')?.value ?? '').trim();
+            const clickSound = (nativeHtml.querySelector('.blacksmith-pin-config-event-click-sound')?.value ?? '').trim();
+            const doubleClickSound = (nativeHtml.querySelector('.blacksmith-pin-config-event-doubleclick-sound')?.value ?? '').trim();
+            const deleteSound = (nativeHtml.querySelector('.blacksmith-pin-config-event-delete-sound')?.value ?? '').trim();
+            pinUpdateData.eventAnimations = {
+                hover: { animation: hoverAnim || null, sound: hoverSound || null },
+                click: { animation: clickAnim || null, sound: clickSound || null },
+                doubleClick: { animation: doubleClickAnim || null, sound: doubleClickSound || null },
+                delete: { animation: deleteAnim || null, sound: deleteSound || null }
+            };
 
             try {
                 // Always update pin via API

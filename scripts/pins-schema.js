@@ -33,6 +33,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {number} [textMaxWidth] - Max characters per line before wrap (default: 0 = single line); break at word boundary
  * @property {boolean} [textScaleWithPin] - Whether text scales with pin size based on zoom (default: true). If false, text stays fixed size.
  * @property {string} [type] - Pin type/category (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified. Used for filtering and organization.
+ * @property {{ hover?: { animation?: string | null; sound?: string | null }; click?: { animation?: string | null; sound?: string | null }; doubleClick?: { animation?: string | null; sound?: string | null }; delete?: { animation?: string | null; sound?: string | null } }} [eventAnimations] - Optional animations and sounds for hover, click, double-click, and delete. Default: all none.
  * @property {Record<string, unknown>} config
  * @property {string} moduleId
  * @property {{ default: number; users?: Record<string, number> }} ownership
@@ -301,6 +302,22 @@ export function applyDefaults(partial) {
         }
     }
     if (typeof partial.version === 'number') base.version = partial.version;
+    if (partial.eventAnimations != null && typeof partial.eventAnimations === 'object' && !Array.isArray(partial.eventAnimations)) {
+        const ev = /** @type {Record<string, { animation?: string | null; sound?: string | null }>} */ (partial.eventAnimations);
+        const eventKeys = ['hover', 'click', 'doubleClick', 'delete'];
+        const interactionAnimations = ['ping', 'pulse', 'ripple', 'flash', 'glow', 'bounce', 'scale-small', 'scale-medium', 'scale-large', 'rotate', 'shake'];
+        const deleteAnimations = ['fade', 'dissolve', 'scale-small'];
+        base.eventAnimations = {};
+        for (const key of eventKeys) {
+            const entry = ev[key];
+            const anim = entry?.animation != null && entry.animation !== '' ? String(entry.animation) : null;
+            const snd = entry?.sound != null && entry.sound !== '' ? String(entry.sound).trim() : null;
+            const validAnim = key === 'delete'
+                ? (anim && deleteAnimations.includes(anim) ? anim : null)
+                : (anim && interactionAnimations.includes(anim) ? anim : null);
+            base.eventAnimations[key] = { animation: validAnim, sound: snd || null };
+        }
+    }
     return base;
 }
 

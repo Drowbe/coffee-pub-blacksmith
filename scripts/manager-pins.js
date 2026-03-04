@@ -944,6 +944,23 @@ export class PinManager {
         if (patch.config != null && typeof patch.config === 'object' && !Array.isArray(patch.config)) {
             merged.config = { ...merged.config, ...patch.config };
         }
+        if (patch.eventAnimations != null && typeof patch.eventAnimations === 'object' && !Array.isArray(patch.eventAnimations)) {
+            const ev = patch.eventAnimations;
+            const keys = ['hover', 'click', 'doubleClick', 'delete'];
+            const interactionAnimations = ['ping', 'pulse', 'ripple', 'flash', 'glow', 'bounce', 'scale-small', 'scale-medium', 'scale-large', 'rotate', 'shake'];
+            const deleteAnimations = ['fade', 'dissolve', 'scale-small'];
+            merged.eventAnimations = merged.eventAnimations && typeof merged.eventAnimations === 'object' ? { ...merged.eventAnimations } : {};
+            for (const key of keys) {
+                const entry = ev[key];
+                if (entry == null || typeof entry !== 'object') continue;
+                const anim = entry.animation != null && entry.animation !== '' ? String(entry.animation) : null;
+                const snd = entry.sound != null && entry.sound !== '' ? String(entry.sound).trim() : null;
+                const validAnim = key === 'delete'
+                    ? (anim && deleteAnimations.includes(anim) ? anim : null)
+                    : (anim && interactionAnimations.includes(anim) ? anim : null);
+                merged.eventAnimations[key] = { animation: validAnim, sound: snd || null };
+            }
+        }
         if (patch.ownership != null && typeof patch.ownership === 'object') {
             merged.ownership = { ...merged.ownership, ...patch.ownership };
         }
@@ -1067,6 +1084,14 @@ export class PinManager {
         const userId = game.user?.id ?? '';
         if (!this._canEdit(existing, userId)) {
             throw new Error('Permission denied: you cannot delete this pin.');
+        }
+        if (loc.location === 'scene' && loc.scene.id === canvas?.scene?.id && existing.eventAnimations?.delete?.animation) {
+            try {
+                const { PinRenderer } = await import('./pins-renderer.js');
+                await PinRenderer.playDeleteAnimation(pinId, existing.eventAnimations.delete);
+            } catch (err) {
+                console.warn('BLACKSMITH | PINS Delete animation failed:', err);
+            }
         }
         // Deleting writes scene flags (placed) or world setting (unplaced); only GMs can write. Non-GM users use requestGM so the GM client performs the write.
         if (!game.user?.isGM) {

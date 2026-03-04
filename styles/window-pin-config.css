@@ -395,6 +395,33 @@ div#blacksmith-pin-config .window-content {
     margin-top: 4px;
 }
 
+/* Event Animations section */
+.blacksmith-pin-config-animation-section .blacksmith-pin-config-help {
+    margin-bottom: 8px;
+}
+
+.blacksmith-pin-config-event-animations {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.blacksmith-pin-config-event-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 1fr;
+    align-items: center;
+    gap: 10px;
+}
+
+.blacksmith-pin-config-event-label {
+    font-size: 0.9em;
+    color: rgba(230, 223, 204, 0.9);
+}
+
+.blacksmith-pin-config-event-row .blacksmith-input {
+    min-width: 0;
+}
+
 /* Toggle container for "Use as Default" */
 .blacksmith-pin-config-toggle-container {
     display: flex;

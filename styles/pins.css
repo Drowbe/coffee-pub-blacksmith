@@ -539,6 +539,36 @@
     animation: blacksmith-pin-ripple 1s ease-out;
 }
 
+/* Delete animations (used before pin is removed) */
+@keyframes blacksmith-pin-delete-fade {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+@keyframes blacksmith-pin-delete-dissolve {
+    from { opacity: 1; filter: blur(0); }
+    to   { opacity: 0; filter: blur(10px); }
+}
+
+@keyframes blacksmith-pin-delete-scale-small {
+    from { transform: scale(1); opacity: 1; }
+    to   { transform: scale(0); opacity: 0; }
+}
+
+.blacksmith-pin-delete-fade {
+    animation: blacksmith-pin-delete-fade 0.35s ease-out forwards;
+    pointer-events: none;
+}
+
+.blacksmith-pin-delete-dissolve {
+    animation: blacksmith-pin-delete-dissolve 0.35s ease-out forwards;
+    pointer-events: none;
+}
+
+.blacksmith-pin-delete-scale-small {
+    animation: blacksmith-pin-delete-scale-small 0.4s ease-in forwards;
+    pointer-events: none;
+}
 
 
 

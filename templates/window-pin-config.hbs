@@ -23,7 +23,7 @@
             <div class="blacksmith-pin-config-section-body">
                 <div class="blacksmith-pin-config-design-row">
                     <label class="blacksmith-pin-config-design-field blacksmith-pin-config-permissions-default">
-                        <span>Who can see this pin?</span>
+                        <span>Who can access this pin?</span>
                         <select class="blacksmith-input blacksmith-pin-config-ownership-default">
                             {{#each ownershipOptions}}
                             <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
@@ -32,11 +32,55 @@
                     </label>
                 </div>
                 <div class="blacksmith-pin-config-help">
-                    Default applies to all users who don’t have a specific override. GM only = hidden from players. Owner = can view and edit (configure/delete) this pin.
+                    GM only (hidden): Only GMs see the pin. View: Players can see and click it (e.g. open journal). Edit: Players can also configure, move, or delete the pin.
                 </div>
             </div>
         </div>
         {{/if}}
+        <div class="blacksmith-pin-config-section blacksmith-pin-config-animation-section">
+            <div class="blacksmith-pin-config-section-header"><i class="fa-solid fa-wand-sparkles"></i> Event Animations</div>
+            <div class="blacksmith-pin-config-section-body">
+                <div class="blacksmith-pin-config-help">Play an animation and optional sound when the pin is hovered, clicked, double-clicked, or deleted. Right-click is reserved for the context menu.</div>
+                <div class="blacksmith-pin-config-event-animations">
+                    <div class="blacksmith-pin-config-event-row">
+                        <span class="blacksmith-pin-config-event-label">Hover</span>
+                        <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-hover-animation">
+                            {{#each animationOptions}}
+                            <option value="{{this.value}}" {{#if this.hoverSelected}}selected{{/if}}>{{this.label}}</option>
+                            {{/each}}
+                        </select>
+                        <input type="text" class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-hover-sound" value="{{eventAnimations.hover.sound}}" placeholder="None or sound name">
+                    </div>
+                    <div class="blacksmith-pin-config-event-row">
+                        <span class="blacksmith-pin-config-event-label">Click</span>
+                        <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-click-animation">
+                            {{#each animationOptions}}
+                            <option value="{{this.value}}" {{#if this.clickSelected}}selected{{/if}}>{{this.label}}</option>
+                            {{/each}}
+                        </select>
+                        <input type="text" class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-click-sound" value="{{eventAnimations.click.sound}}" placeholder="None or sound name">
+                    </div>
+                    <div class="blacksmith-pin-config-event-row">
+                        <span class="blacksmith-pin-config-event-label">Double-click</span>
+                        <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-doubleclick-animation">
+                            {{#each animationOptions}}
+                            <option value="{{this.value}}" {{#if this.doubleClickSelected}}selected{{/if}}>{{this.label}}</option>
+                            {{/each}}
+                        </select>
+                        <input type="text" class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-doubleclick-sound" value="{{eventAnimations.doubleClick.sound}}" placeholder="None or sound name">
+                    </div>
+                    <div class="blacksmith-pin-config-event-row">
+                        <span class="blacksmith-pin-config-event-label">Delete</span>
+                        <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-delete-animation">
+                            {{#each deleteAnimationOptions}}
+                            <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                            {{/each}}
+                        </select>
+                        <input type="text" class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-delete-sound" value="{{eventAnimations.delete.sound}}" placeholder="None or sound name">
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="blacksmith-pin-config-section blacksmith-pin-config-design-section">
             <div class="blacksmith-pin-config-section-header"><i class="fa-solid fa-ruler-combined"></i> Pin Design</div>
             <div class="blacksmith-pin-config-section-body">
