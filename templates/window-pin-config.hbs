@@ -6,6 +6,13 @@
             </div>
             <div class="window-note-header-controls">
                 <div class="blacksmith-pin-config-toggle-container">
+                    <span class="blacksmith-pin-config-toggle-label">Allow Duplicate Pins</span>
+                    <div class="blacksmith-pin-config-toggle">
+                        <input type="checkbox" id="blacksmith-pin-config-allow-duplicate" class="blacksmith-pin-config-allow-duplicate" {{#if pinAllowDuplicatePins}}checked{{/if}}>
+                        <label for="blacksmith-pin-config-allow-duplicate" class="blacksmith-pin-config-toggle-slider"></label>
+                    </div>
+                </div>
+                <div class="blacksmith-pin-config-toggle-container">
                     <span class="blacksmith-pin-config-toggle-label">Use as Default</span>
                     <div class="blacksmith-pin-config-toggle">
                         <input type="checkbox" id="blacksmith-pin-config-default-toggle" class="blacksmith-pin-config-default">

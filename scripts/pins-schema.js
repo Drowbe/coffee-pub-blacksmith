@@ -33,6 +33,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {number} [textMaxWidth] - Max characters per line before wrap (default: 0 = single line); break at word boundary
  * @property {boolean} [textScaleWithPin] - Whether text scales with pin size based on zoom (default: true). If false, text stays fixed size.
  * @property {string} [type] - Pin type/category (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified. Used for filtering and organization.
+ * @property {boolean} [allowDuplicatePins] - If true, the same source (e.g. one journal page) may have multiple pins on the map; if false (default), one pin per source (creating replaces existing).
  * @property {{ hover?: { animation?: string | null; sound?: string | null }; click?: { animation?: string | null; sound?: string | null }; doubleClick?: { animation?: string | null; sound?: string | null }; delete?: { animation?: string | null; sound?: string | null } }} [eventAnimations] - Optional animations and sounds for hover, click, double-click, and delete. Default: all none.
  * @property {Record<string, unknown>} config
  * @property {string} moduleId
@@ -132,6 +133,7 @@ export const PIN_DEFAULTS = Object.freeze({
     textMaxWidth: 0, // 0 = single line; >0 = max chars per line, break at word
     textScaleWithPin: true, // If true, text scales with zoom; if false, text stays fixed size
     type: 'default', // Pin type/category - defaults to 'default' if not specified
+    allowDuplicatePins: false, // If true, same source (e.g. journal page) can have multiple pins on the map
     version: PIN_SCHEMA_VERSION,
     ownership: { default: 0 },
     imageFit: 'cover', // 'fill' | 'contain' | 'cover' | 'none' | 'scale-down' | 'zoom'
@@ -209,9 +211,11 @@ export function applyDefaults(partial) {
         textSize: PIN_DEFAULTS.textSize,
         textMaxLength: PIN_DEFAULTS.textMaxLength,
         textMaxWidth: PIN_DEFAULTS.textMaxWidth,
+        textMaxWidth: PIN_DEFAULTS.textMaxWidth,
         textScaleWithPin: PIN_DEFAULTS.textScaleWithPin,
         imageFit: PIN_DEFAULTS.imageFit,
-        imageZoom: PIN_DEFAULTS.imageZoom
+        imageZoom: PIN_DEFAULTS.imageZoom,
+        allowDuplicatePins: PIN_DEFAULTS.allowDuplicatePins
     };
     if (partial.imageFit != null && ['fill', 'contain', 'cover', 'none', 'scale-down', 'zoom'].includes(String(partial.imageFit).toLowerCase())) {
         base.imageFit = String(partial.imageFit).toLowerCase();
@@ -290,6 +294,7 @@ export function applyDefaults(partial) {
     } else {
         base.type = PIN_DEFAULTS.type; // Always set default type
     }
+    if (typeof partial.allowDuplicatePins === 'boolean') base.allowDuplicatePins = partial.allowDuplicatePins;
     if (partial.config != null && typeof partial.config === 'object' && !Array.isArray(partial.config)) {
         base.config = foundry.utils.deepClone(partial.config);
     }

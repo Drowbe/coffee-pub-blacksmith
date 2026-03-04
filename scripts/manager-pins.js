@@ -941,6 +941,7 @@ export class PinManager {
             const type = String(patch.type).trim();
             merged.type = type || 'default';
         }
+        if (typeof patch.allowDuplicatePins === 'boolean') merged.allowDuplicatePins = patch.allowDuplicatePins;
         if (patch.config != null && typeof patch.config === 'object' && !Array.isArray(patch.config)) {
             merged.config = { ...merged.config, ...patch.config };
         }

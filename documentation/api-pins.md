@@ -198,6 +198,7 @@ interface PinData {
   textMaxWidth?: number; // Max characters per line before wrap (default: 0 = single line); break at word boundary. For arc layouts, used as a character-based or pixel-based line budget that scales with arc radius (outer arcs fit more text).
   textScaleWithPin?: boolean; // Whether text scales with pin size based on zoom (default: true). If false, text stays fixed size.
   type?: string; // Pin type/category (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified. Used for filtering and organization.
+  allowDuplicatePins?: boolean; // If true, the same source (e.g. one journal page) may have multiple pins on the map; if false (default), one pin per source (creating replaces existing). Configurable in Configure Pin header.
   config?: Record<string, unknown>;
   moduleId: string; // consumer module id
   ownership?: { default: number; users?: Record<string, number> };
@@ -988,7 +989,7 @@ The **“Use as Default”** toggle saves the current design (size, shape, style
 
 - **Where it’s stored**: Blacksmith’s client setting `clientPinDefaultDesigns`, keyed by **`moduleId|type`** (e.g. `coffee-pub-blacksmith|journal-page`, `coffee-pub-blacksmith|encounter`). So one module can have different defaults for “Journal Page”, “Encounter”, “Map Annotation”, etc. Each player has their own (client scope). If the pin has no type, `default` is used (e.g. `my-module|default`).
 - **When it applies**: When a module creates a new pin, it calls **`pins.getDefaultPinDesign(moduleId, type)`**. If that returns a saved default for that (module, type) pair, the module merges it into the new pin’s data. So journal-page pins use the default for `moduleId|journal-page`, encounter pins use `moduleId|encounter`, and so on.
-- **What’s saved**: Only the design portion (size, shape, style, dropShadow, text layout/display/color/size, etc.). Ownership and event animations are **not** part of the saved default; they come from the module’s own defaults or the pin data when creating.
+- **What’s saved**: Only the design portion (size, shape, style, dropShadow, text layout/display/color/size, **allowDuplicatePins**, etc.). Ownership and event animations are **not** part of the saved default; they come from the module’s own defaults or the pin data when creating.
 
 When “Use as Default” is checked, the window uses the pin’s **moduleId** and **type** (from the pin being edited) and writes the design object to `clientPinDefaultDesigns` under the key **`moduleId|type`** (or `moduleId|default` if type is missing):
 
@@ -1006,6 +1007,7 @@ When “Use as Default” is checked, the window uses the pin’s **moduleId** a
   textMaxLength:  number;
   textMaxWidth:   number;
   textScaleWithPin: boolean;
+  allowDuplicatePins?: boolean; // When true, same source (e.g. journal page) can have multiple pins on the map
 }
 ```
 
@@ -1095,7 +1097,7 @@ await pinsAPI.configure(pinId, {
 - Opens an Application V2 window with a form for editing pin properties.
 - Only users who can **edit** the pin (ownership-based) can open the window.
 - The window includes: **Appearance** (shape, size, fill, stroke, stroke width, icon color, opacity, drop shadow); **Icon/Image** (Font Awesome library + image URL with built-in FilePicker “Browse”); **Text** (layout, display mode, color, size, max characters, chars per line, scale-with-pin); **Event Animations** (hover, click, double-click, delete — each with optional animation and sound). Pin **type** is not currently editable in the window; **ownership** is not changed by the save.
-- The window header shows **“Configure Pin”** and, when the pin has a registered type, **“ — &lt;type label&gt;”** (e.g. “Configure Pin — Journal Page”). The type label comes from `pins.getPinTypeLabel(pin.moduleId, pin.type)`.
+- The window header shows **“Configure Pin”** and, when the pin has a registered type, **“ — &lt;type label&gt;”** (e.g. “Configure Pin — Journal Page”). The type label comes from `pins.getPinTypeLabel(pin.moduleId, pin.type)`. The header also includes an **"Allow Duplicate Pins"** toggle (default off): when on, the same source (e.g. one journal page) can have multiple pins on the map; when off, one pin per source (creating a pin for that source replaces any existing one).
 - On submit, the pin is updated via `pins.update()` (ownership is preserved). If “Use as Default” is checked, the [default storage schema](#3-default-storage-schema-use-as-default) is written to Blacksmith’s `clientPinDefaultDesigns` under the key **`moduleId|type`** (from the pin being edited). If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
 - The window is also available from the pin’s right-click context menu (“Configure Pin”).
 
@@ -1104,7 +1106,7 @@ await pinsAPI.configure(pinId, {
 ### `pins.getDefaultPinDesign(moduleId, type?)`
 Get the current user’s default pin design for a **module and pin type** (saved via Configure Pin “Use as Default”). Stored in client scope so each player can have their own default. The key is **`moduleId|type`**, so the same module can have different defaults per type (e.g. Journal Page vs Encounter vs Map Annotation).
 
-**Returns**: `Object | null` — Default design object (size, shape, style, dropShadow, textLayout, textDisplay, textColor, textSize, textMaxLength, textMaxWidth, textScaleWithPin, lockProportions) or `null` if none saved for that (moduleId, type).
+**Returns**: `Object | null` — Default design object (size, shape, style, dropShadow, textLayout, textDisplay, textColor, textSize, textMaxLength, textMaxWidth, textScaleWithPin, lockProportions, **allowDuplicatePins**) or `null` if none saved for that (moduleId, type).
 
 **Parameters**:
 - `moduleId` (string): Module ID (e.g. `'coffee-pub-blacksmith'`).

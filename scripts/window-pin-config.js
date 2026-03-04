@@ -42,6 +42,7 @@ export class PinConfigWindow extends Application {
         this.pinTextMaxWidth = 0;
         this.pinTextScaleWithPin = true;
         this._pinRatio = 1;
+        this.allowDuplicatePins = false;
     }
 
     static get defaultOptions() {
@@ -247,6 +248,8 @@ export class PinConfigWindow extends Application {
         this.pinImageZoom = zoomNum;
         const pinImageZoomPercent = Math.round(zoomNum * 100);
 
+        this.allowDuplicatePins = pin.allowDuplicatePins === true;
+
         // Event animations (hover, click, double-click, delete) with optional sound
         const ev = pin.eventAnimations && typeof pin.eventAnimations === 'object' ? pin.eventAnimations : {};
         const eventAnimations = {
@@ -362,6 +365,7 @@ export class PinConfigWindow extends Application {
             pinTextScaleWithPin: this.pinTextScaleWithPin,
             iconMode: this.iconMode,
             showUseAsDefault: true, // Always show toggle - modules can handle saving defaults themselves
+            pinAllowDuplicatePins: this.allowDuplicatePins,
             pinImageFit: this.pinImageFit,
             pinImageZoom: this.pinImageZoom,
             pinImageZoomPercent,
@@ -412,6 +416,7 @@ export class PinConfigWindow extends Application {
         const textMaxWidthInput = nativeHtml.querySelector('.blacksmith-pin-config-text-max-width');
         const textScaleInput = nativeHtml.querySelector('.blacksmith-pin-config-text-scale');
         const defaultInput = nativeHtml.querySelector('.blacksmith-pin-config-default');
+        const allowDuplicateInput = nativeHtml.querySelector('.blacksmith-pin-config-allow-duplicate');
         const sourceToggle = nativeHtml.querySelector('.blacksmith-pin-config-source-toggle-input');
         const shapeNoneNote = nativeHtml.querySelector('.blacksmith-pin-config-shape-none-note');
         const iconModeNote = nativeHtml.querySelector('.blacksmith-pin-config-icon-mode-note');
@@ -820,7 +825,8 @@ export class PinConfigWindow extends Application {
                 textMaxWidth: configData.pinTextConfig.textMaxWidth,
                 textScaleWithPin: configData.pinTextConfig.textScaleWithPin,
                 imageFit: imageFitSelect ? imageFitSelect.value : this.pinImageFit,
-                imageZoom: (imageFitSelect?.value === 'zoom' && imageZoomInput) ? Number(imageZoomInput.value) / 100 : this.pinImageZoom
+                imageZoom: (imageFitSelect?.value === 'zoom' && imageZoomInput) ? Number(imageZoomInput.value) / 100 : this.pinImageZoom,
+                allowDuplicatePins: !!allowDuplicateInput?.checked
             };
 
             // GM-only: include ownership default from Permissions section
@@ -872,7 +878,8 @@ export class PinConfigWindow extends Application {
                             shape: configData.pinShape,
                             style: configData.pinStyle,
                             dropShadow: configData.pinDropShadow,
-                            ...configData.pinTextConfig
+                            ...configData.pinTextConfig,
+                            allowDuplicatePins: !!allowDuplicateInput?.checked
                         };
                         const typeKey = this.pinType || 'default';
                         const compoundKey = `${this.moduleId}|${typeKey}`;

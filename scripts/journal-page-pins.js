@@ -430,6 +430,46 @@ export class JournalPagePins {
             pin = null;
             pinId = null;
         }
+
+        const clientDefault = pins.getDefaultPinDesign?.(MODULE.ID, this.PIN_TYPE) ?? null;
+        const allowDuplicates = pin?.allowDuplicatePins === true
+            || (clientDefault && clientDefault.allowDuplicatePins === true);
+
+        if (pin && allowDuplicates) {
+            // Allow duplicate pins: create a new pin for this placement instead of reusing
+            const label = page.parent?.name || page.name || 'Journal Page';
+            const base = {
+                id: crypto.randomUUID(),
+                moduleId: MODULE.ID,
+                type: this.PIN_TYPE,
+                text: label,
+                config: {
+                    journalPageUuid: page.uuid,
+                    journalId: page.parent?.id ?? '',
+                    pageId: page.id ?? ''
+                },
+                allowDuplicatePins: true,
+                ...JOURNAL_PIN_DEFAULTS
+            };
+            const pinData = (clientDefault && typeof clientDefault === 'object')
+                ? {
+                    ...base,
+                    ...clientDefault,
+                    id: base.id,
+                    moduleId: base.moduleId,
+                    type: base.type,
+                    text: base.text,
+                    config: base.config,
+                    allowDuplicatePins: true
+                }
+                : base;
+            pin = await pins.create(pinData);
+            pinId = pin.id;
+            // Do not set page flag — page keeps pointing to first pin; this is a second instance
+            const sceneId = typeof pins.findScene === 'function' ? pins.findScene(pinId) : null;
+            return { pinId, pin, sceneId };
+        }
+
         if (!pin) {
             const label = page.parent?.name || page.name || 'Journal Page';
             const base = {
@@ -444,7 +484,6 @@ export class JournalPagePins {
                 },
                 ...JOURNAL_PIN_DEFAULTS
             };
-            const clientDefault = pins.getDefaultPinDesign?.(MODULE.ID, this.PIN_TYPE) ?? null;
             const pinData = (clientDefault && typeof clientDefault === 'object')
                 ? {
                     ...base,
