@@ -855,6 +855,37 @@ class MenuBar {
         MenuBar._isRegisteringTools = true; 
 
         // **************** LEFT ZONE ****************
+
+        // START MENU (left-click opens context menu with core utility actions)
+        this.registerMenubarTool('left-start-menu', {
+            icon: "fa-solid fa-bars",
+            name: "left-start-menu",
+            title: "",
+            tooltip: "Open menu",
+            onClick: (event) => {
+                const items = this._getLeftStartMenuItems();
+                if (!Array.isArray(items) || items.length === 0) return;
+
+                const trigger = event?.target?.closest?.('[data-tool]');
+                const rect = trigger?.getBoundingClientRect?.();
+                const x = Number.isFinite(event?.clientX) ? event.clientX : Math.round((rect?.left ?? 0) + ((rect?.width ?? 0) / 2));
+                const y = Number.isFinite(event?.clientY) ? event.clientY : Math.round(rect?.bottom ?? 0);
+                this._showMenubarContextMenu(items, x, y);
+            },
+            zone: "left",
+            group: "general",
+            groupOrder: this.GROUP_ORDER.GENERAL,
+            order: 1,
+            moduleId: "blacksmith-core",
+            gmOnly: false,
+            leaderOnly: false,
+            visible: true,
+            toggleable: false,
+            active: false,
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
+        });
         
         // SETTINGS
         this.registerMenubarTool('settings', {
@@ -872,9 +903,7 @@ class MenuBar {
             moduleId: "blacksmith-core",
             gmOnly: false,
             leaderOnly: false,
-            visible: () => {
-                return game.settings.get(MODULE.ID, 'menubarShowSettings');
-            },
+            visible: false,
             toggleable: false,
             active: false,
             iconColor: null,
@@ -898,9 +927,7 @@ class MenuBar {
             moduleId: "blacksmith-core",
             gmOnly: false,
             leaderOnly: false,
-            visible: () => {
-                return game.settings.get(MODULE.ID, 'menubarShowRefresh');
-            },
+            visible: false,
             toggleable: false,
             active: false,
             iconColor: null,
@@ -1072,9 +1099,7 @@ class MenuBar {
             moduleId: "blacksmith-core",
             gmOnly: false,
             leaderOnly: false,
-            visible: () => {
-                return game.settings.get(MODULE.ID, 'menubarShowPerformance');
-            },
+            visible: false,
             toggleable: false,
             active: false,
             iconColor: null,
@@ -4387,6 +4412,7 @@ class MenuBar {
             name: item.name,
             icon: item.icon,
             description: item.description,
+            disabled: !!item.disabled,
             callback: async () => {
                 if (typeof item.onClick === 'function') {
                     try {
@@ -4401,6 +4427,7 @@ class MenuBar {
                     name: sub.name,
                     description: sub.description,
                     icon: sub.icon,
+                    disabled: !!sub.disabled,
                     callback: sub.onClick
                 }))
                 : null
@@ -4413,6 +4440,120 @@ class MenuBar {
             zones: mapped,
             zoneClass: 'core'
         });
+    }
+
+    /**
+     * Build left start-menu items.
+     * @returns {Array<{name: string, icon: string, description?: string, disabled?: boolean, onClick?: Function, submenu?: Array}>}
+     * @private
+     */
+    static _getLeftStartMenuItems() {
+        const items = [];
+
+        items.push({
+            name: "Refresh",
+            icon: "fa-solid fa-rotate",
+            onClick: () => {
+                window.location.reload();
+            }
+        });
+
+        items.push({
+            name: "Settings",
+            icon: "fa-solid fa-gear",
+            onClick: () => {
+                game.settings.sheet.render(true);
+            }
+        });
+
+        items.push({
+            name: "Performance Check",
+            icon: "fa-solid fa-chart-simple",
+            onClick: () => {
+                PerformanceUtility.showPerformanceCheck();
+            }
+        });
+
+        const canClearPins = !!game.user?.isGM && !!canvas?.scene;
+        const sceneId = canvas?.scene?.id;
+        const scenePins = sceneId ? (PinManager.list({ sceneId }) || []) : [];
+        const pinTypeMap = new Map(); // key: moduleId|type => { moduleId, type, label, count }
+        for (const pin of scenePins) {
+            const moduleId = pin?.moduleId || '';
+            const type = (pin?.type != null && pin.type !== '') ? String(pin.type) : 'default';
+            const key = `${moduleId}|${type}`;
+            const existing = pinTypeMap.get(key);
+            if (existing) {
+                existing.count += 1;
+                continue;
+            }
+            const friendlyName = moduleId ? PinManager.getPinTypeLabel(moduleId, type) : '';
+            const moduleTitle = moduleId ? (game.modules.get(moduleId)?.title ?? moduleId) : 'Unknown Module';
+            const label = friendlyName || `${moduleTitle} - ${type}`;
+            pinTypeMap.set(key, { moduleId, type, label, count: 1 });
+        }
+        const pinTypeEntries = Array.from(pinTypeMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+
+        const pinsSubmenu = [];
+        pinsSubmenu.push({
+            name: "All Pins",
+            icon: "fa-solid fa-trash",
+            disabled: !canClearPins,
+            description: !game.user?.isGM ? "GM only" : (!canvas?.scene ? "No active scene" : `Delete all pins on ${canvas.scene.name}`),
+            onClick: async () => {
+                if (!canClearPins) return;
+                try {
+                    const confirmed = await Dialog.confirm({
+                        title: 'Clear Pins',
+                        content: '<p>Are you sure you want to delete <strong>ALL</strong> pins on this scene?</p><p>This action cannot be undone.</p>',
+                        yes: () => true,
+                        no: () => false,
+                        defaultYes: false
+                    });
+                    if (!confirmed) return;
+                    const count = await PinManager.deleteAll({ sceneId });
+                    ui.notifications.info(`Deleted ${count} pin${count !== 1 ? 's' : ''}.`);
+                } catch (err) {
+                    postConsoleAndNotification(MODULE.NAME, 'Menubar | Error clearing pins', err?.message || err, false, true);
+                }
+            }
+        });
+
+        for (const entry of pinTypeEntries) {
+            pinsSubmenu.push({
+                name: entry.label,
+                icon: "fa-solid fa-trash-can",
+                disabled: !canClearPins,
+                description: `Delete ${entry.count} pin${entry.count !== 1 ? 's' : ''}`,
+                onClick: async () => {
+                    if (!canClearPins) return;
+                    try {
+                        const confirmed = await Dialog.confirm({
+                            title: 'Clear Pins by Type',
+                            content: `<p>Are you sure you want to delete <strong>${entry.count}</strong> pin${entry.count !== 1 ? 's' : ''} of type "<strong>${entry.label}</strong>" on this scene?</p><p>This action cannot be undone.</p>`,
+                            yes: () => true,
+                            no: () => false,
+                            defaultYes: false
+                        });
+                        if (!confirmed) return;
+                        const count = await PinManager.deleteAllByType(entry.type, { sceneId, moduleId: entry.moduleId });
+                        ui.notifications.info(`Deleted ${count} pin${count !== 1 ? 's' : ''} of type "${entry.label}".`);
+                    } catch (err) {
+                        postConsoleAndNotification(MODULE.NAME, 'Menubar | Error clearing pins by type', err?.message || err, false, true);
+                    }
+                }
+            });
+        }
+
+        items.push({
+            name: "Pins",
+            icon: "fa-solid fa-map-pin",
+            disabled: !canClearPins,
+            description: !game.user?.isGM ? "GM only" : (!canvas?.scene ? "No active scene" : "Clear pins..."),
+            submenu: pinsSubmenu
+        });
+
+        return items;
     }
 
     /**
