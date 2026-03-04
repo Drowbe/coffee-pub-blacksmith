@@ -444,7 +444,7 @@ export class JournalPagePins {
                 },
                 ...JOURNAL_PIN_DEFAULTS
             };
-            const clientDefault = game.settings.get(MODULE.ID, 'clientPinDefaultDesigns')?.[MODULE.ID];
+            const clientDefault = pins.getDefaultPinDesign?.(MODULE.ID, this.PIN_TYPE) ?? null;
             const pinData = (clientDefault && typeof clientDefault === 'object')
                 ? {
                     ...base,

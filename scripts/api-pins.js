@@ -240,15 +240,20 @@ export class PinsAPI {
     }
 
     /**
-     * Get the current user's default pin design for a module (saved via Configure Pin "Use as Default").
-     * Stored in client scope so each player can have their own default. Use when creating new pins.
-     * @param {string} moduleId - Module ID (e.g. 'coffee-pub-squire') that opened Configure Pin with useAsDefault
+     * Get the current user's default pin design for a module and pin type (saved via Configure Pin "Use as Default").
+     * Stored in client scope so each player can have their own default. Key is moduleId + pin type (e.g. "coffee-pub-blacksmith|journal-page").
+     * Use when creating new pins so the same module can have different defaults per type (e.g. Journal Page vs Encounter).
+     * @param {string} moduleId - Module ID (e.g. 'coffee-pub-blacksmith')
+     * @param {string} [type='default'] - Pin type (e.g. 'journal-page', 'encounter'). Omit or pass 'default' for generic default.
      * @returns {Object | null} Default design object (size, shape, style, dropShadow, textLayout, etc.) or null
      */
-    static getDefaultPinDesign(moduleId) {
+    static getDefaultPinDesign(moduleId, type = 'default') {
         if (!moduleId || typeof game?.settings?.get !== 'function') return null;
         const store = game.settings.get(MODULE_ID, 'clientPinDefaultDesigns');
-        const design = store?.[moduleId] ?? null;
+        if (!store || typeof store !== 'object') return null;
+        const compoundKey = `${moduleId}|${type || 'default'}`;
+        let design = store[compoundKey] ?? null;
+        if (!design && type && type !== 'default') design = store[moduleId] ?? null;
         return design ? { ...design } : null;
     }
 

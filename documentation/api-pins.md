@@ -984,13 +984,13 @@ Recommendation: store **FA as class string** and **images as URL string** so all
 
 #### 3. Default storage schema (“Use as Default”)
 
-The **“Use as Default”** toggle saves the current design (size, shape, style, text options, etc.) so that **new pins created by that module** use it when nothing else is set. Storage is **per module**, not per pin type:
+The **“Use as Default”** toggle saves the current design (size, shape, style, text options, etc.) so that **new pins of that module and pin type** use it when nothing else is set. Storage is **per module + pin type**:
 
-- **Where it’s stored**: Blacksmith’s client setting `clientPinDefaultDesigns`, keyed by **module ID**. So `game.settings.get(MODULE.ID, 'clientPinDefaultDesigns')[moduleId]` is the saved design for that module. Each player has their own (client scope).
-- **When it applies**: When a **module** creates a new pin (e.g. via `pins.create()`), it can pass `pins.getDefaultPinDesign(moduleId)`. If that returns a saved default, the module merges it into the new pin’s data. If the module has only one pin type (e.g. “Journal Page”), that default is effectively the default for that type; if a module had multiple types, they would share the same saved default unless the module keyed defaults itself.
+- **Where it’s stored**: Blacksmith’s client setting `clientPinDefaultDesigns`, keyed by **`moduleId|type`** (e.g. `coffee-pub-blacksmith|journal-page`, `coffee-pub-blacksmith|encounter`). So one module can have different defaults for “Journal Page”, “Encounter”, “Map Annotation”, etc. Each player has their own (client scope). If the pin has no type, `default` is used (e.g. `my-module|default`).
+- **When it applies**: When a module creates a new pin, it calls **`pins.getDefaultPinDesign(moduleId, type)`**. If that returns a saved default for that (module, type) pair, the module merges it into the new pin’s data. So journal-page pins use the default for `moduleId|journal-page`, encounter pins use `moduleId|encounter`, and so on.
 - **What’s saved**: Only the design portion (size, shape, style, dropShadow, text layout/display/color/size, etc.). Ownership and event animations are **not** part of the saved default; they come from the module’s own defaults or the pin data when creating.
 
-When “Use as Default” is checked and `moduleId` is provided, the window writes the design object to that module’s entry under `clientPinDefaultDesigns`:
+When “Use as Default” is checked, the window uses the pin’s **moduleId** and **type** (from the pin being edited) and writes the design object to `clientPinDefaultDesigns` under the key **`moduleId|type`** (or `moduleId|default` if type is missing):
 
 ```ts
 {
@@ -1009,7 +1009,7 @@ When “Use as Default” is checked and `moduleId` is provided, the window writ
 }
 ```
 
-When creating new pins, call **`pins.getDefaultPinDesign(moduleId)`** to get the current user’s saved default (or `null`). Merge that with any other defaults and pass the result into `pins.create()` (using the same property names as in [PinData](#pin-data-schema)).
+When creating new pins, call **`pins.getDefaultPinDesign(moduleId, type)`** to get the current user’s saved default for that (module, type) (or `null`). Merge that with any other defaults and pass the result into `pins.create()` (using the same property names as in [PinData](#pin-data-schema)). Pass the **pin type** (e.g. `'journal-page'`, `'encounter'`) so each type has its own default.
 
 #### 4. Pin type handling
 
@@ -1096,25 +1096,31 @@ await pinsAPI.configure(pinId, {
 - Only users who can **edit** the pin (ownership-based) can open the window.
 - The window includes: **Appearance** (shape, size, fill, stroke, stroke width, icon color, opacity, drop shadow); **Icon/Image** (Font Awesome library + image URL with built-in FilePicker “Browse”); **Text** (layout, display mode, color, size, max characters, chars per line, scale-with-pin); **Event Animations** (hover, click, double-click, delete — each with optional animation and sound). Pin **type** is not currently editable in the window; **ownership** is not changed by the save.
 - The window header shows **“Configure Pin”** and, when the pin has a registered type, **“ — &lt;type label&gt;”** (e.g. “Configure Pin — Journal Page”). The type label comes from `pins.getPinTypeLabel(pin.moduleId, pin.type)`.
-- On submit, the pin is updated via `pins.update()` (ownership is preserved). If “Use as Default” is checked, the [default storage schema](#3-default-storage-schema-use-as-default) is written to Blacksmith’s `clientPinDefaultDesigns` under the pin’s `moduleId`. If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
+- On submit, the pin is updated via `pins.update()` (ownership is preserved). If “Use as Default” is checked, the [default storage schema](#3-default-storage-schema-use-as-default) is written to Blacksmith’s `clientPinDefaultDesigns` under the key **`moduleId|type`** (from the pin being edited). If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
 - The window is also available from the pin’s right-click context menu (“Configure Pin”).
 
 **Styling**: Use the [stable selectors](#8-styling-hooks-stable-selectors) `div#blacksmith-pin-config`, `.blacksmith-pin-config`, and `div#blacksmith-pin-config .window-content` for theming.
 
-### `pins.getDefaultPinDesign(moduleId)`
-Get the current user's default pin design for a module (saved via Configure Pin "Use as Default"). Stored in client scope so each player can have their own default.
+### `pins.getDefaultPinDesign(moduleId, type?)`
+Get the current user’s default pin design for a **module and pin type** (saved via Configure Pin “Use as Default”). Stored in client scope so each player can have their own default. The key is **`moduleId|type`**, so the same module can have different defaults per type (e.g. Journal Page vs Encounter vs Map Annotation).
 
-**Returns**: `Object | null` - Default design object (size, shape, style including fill/stroke/iconColor/alpha, dropShadow, textLayout, textDisplay, textColor, textSize, textMaxLength, textMaxWidth, textScaleWithPin, lockProportions) or `null` if none saved.
+**Returns**: `Object | null` — Default design object (size, shape, style, dropShadow, textLayout, textDisplay, textColor, textSize, textMaxLength, textMaxWidth, textScaleWithPin, lockProportions) or `null` if none saved for that (moduleId, type).
+
+**Parameters**:
+- `moduleId` (string): Module ID (e.g. `'coffee-pub-blacksmith'`).
+- `type` (string, optional): Pin type (e.g. `'journal-page'`, `'encounter'`, `'default'`). Omit or pass `'default'` for a generic default for that module. If a design was previously saved under the legacy key (moduleId only), it is still returned when no design exists for `moduleId|type`.
 
 ```javascript
-// When creating a new pin, apply the user's saved default if any
-const defaultDesign = pinsAPI.getDefaultPinDesign('coffee-pub-squire');
-await pinsAPI.create({
-  id: crypto.randomUUID(),
-  moduleId: 'coffee-pub-squire',
-  ...defaultDesign,
-  text: 'New note'
-});
+// Journal page pins: default for this module + type
+const defaultDesign = pinsAPI.getDefaultPinDesign('coffee-pub-blacksmith', 'journal-page');
+await pinsAPI.create({ id: crypto.randomUUID(), moduleId: 'coffee-pub-blacksmith', type: 'journal-page', ...defaultDesign, text: label, config: { ... } });
+
+// Encounter pins: separate default for same module
+const encounterDefault = pinsAPI.getDefaultPinDesign('coffee-pub-blacksmith', 'encounter');
+
+// Generic default (type omitted or 'default')
+const defaultDesign = pinsAPI.getDefaultPinDesign('my-module');
+await pinsAPI.create({ id: crypto.randomUUID(), moduleId: 'my-module', ...defaultDesign, text: 'New pin' });
 ```
 
 ### `pins.findScene(pinId)`

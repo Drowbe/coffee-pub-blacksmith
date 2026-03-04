@@ -23,6 +23,7 @@ export class PinConfigWindow extends Application {
         this.useAsDefault = options.useAsDefault || false;
         this.defaultSettingKey = options.defaultSettingKey || null;
         this.moduleId = options.moduleId || null;
+        this.pinType = null; // Set from pin in getData (pin.type || 'default')
         
         // Will be populated from pin data
         this.selected = null; // { type: 'fa'|'img', value: string } or null
@@ -329,6 +330,9 @@ export class PinConfigWindow extends Application {
         const imageValue = this.selected?.type === 'img' ? this.selected.value : '';
 
         const pinTypeLabel = PinManager.getPinTypeLabel(pin.moduleId, pin.type) || '';
+
+        this.pinType = pin.type || 'default';
+        if (!this.moduleId) this.moduleId = pin.moduleId || null;
 
         return {
             isGM,
@@ -870,8 +874,10 @@ export class PinConfigWindow extends Application {
                             dropShadow: configData.pinDropShadow,
                             ...configData.pinTextConfig
                         };
+                        const typeKey = this.pinType || 'default';
+                        const compoundKey = `${this.moduleId}|${typeKey}`;
                         const cur = game.settings.get(MODULE.ID, 'clientPinDefaultDesigns') || {};
-                        await game.settings.set(MODULE.ID, 'clientPinDefaultDesigns', { ...cur, [this.moduleId]: design });
+                        await game.settings.set(MODULE.ID, 'clientPinDefaultDesigns', { ...cur, [compoundKey]: design });
                     } catch (defaultErr) {
                         postConsoleAndNotification(MODULE.NAME, 'Use as Default not saved', defaultErr?.message || defaultErr, false, false);
                     }
