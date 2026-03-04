@@ -69,50 +69,77 @@ export class JournalPagePins {
         // Register with PinManager directly so we don't depend on module.api.pins being set
         PinManager.registerHandler('doubleClick', async (evt) => {
             try {
+                // Only handle our journal-page pin type; ignore gather-spot and other types (avoids opening journals when another module's pin shares moduleId)
+                if ((evt?.pin?.type ?? '') !== this.PIN_TYPE) return;
                 const pageUuid = evt?.pin?.config?.journalPageUuid;
                 if (!pageUuid) return;
                 const page = await fromUuid(pageUuid);
                 if (!page) return;
-                this._viewJournalPage(page.parent, page.id);
+                const journal = page.parent;
+                // Don't open if user cannot view the journal (avoids triggering Foundry's internal update that can require OWNER)
+                if (journal && typeof journal.testUserPermission === 'function' && !journal.testUserPermission(game.user, 'LIMITED')) {
+                    postConsoleAndNotification(MODULE.NAME, 'Journal page pin: You do not have permission to view that journal.', null, false, false);
+                    return;
+                }
+                await this._viewJournalPage(journal, page.id);
             } catch (err) {
-                postConsoleAndNotification(MODULE.NAME, 'Journal page pin: error on doubleClick', err?.message || err, false, true);
+                const msg = err?.message ?? String(err);
+                if (msg.includes('lacks permission') && msg.includes('JournalEntryPage')) {
+                    postConsoleAndNotification(MODULE.NAME, 'Journal page pin: You do not have permission to open that journal page.', null, false, false);
+                } else {
+                    postConsoleAndNotification(MODULE.NAME, 'Journal page pin: error on doubleClick', msg, false, true);
+                }
             }
         }, { moduleId: MODULE.ID });
     }
 
     /**
      * Open the journal and show the given page (not just the journal).
+     * Catches permission errors so viewing a journal the user cannot update does not break other handlers (e.g. gather-spot).
      */
     static _viewJournalPage(journal, pageId) {
-        if (!journal || !pageId) return;
+        if (!journal || !pageId) return Promise.resolve();
         const sheet = journal.sheet;
-        // Open journal in default (tabbed) mode, then switch to the page (avoid single-page/PDF mode)
-        if (typeof journal.show === 'function') {
-            try {
-                journal.show({ force: true });
-                if (sheet && typeof sheet.viewPage === 'function') {
-                    if (sheet.rendered) {
-                        sheet.viewPage(pageId);
-                    } else {
-                        setTimeout(() => sheet.viewPage?.(pageId), 100);
+        const openAndView = () => {
+            if (typeof journal.show === 'function') {
+                try {
+                    journal.show({ force: true });
+                    if (sheet && typeof sheet.viewPage === 'function') {
+                        if (sheet.rendered) {
+                            sheet.viewPage(pageId);
+                        } else {
+                            setTimeout(() => sheet.viewPage?.(pageId), 100);
+                        }
                     }
-                }
+                    return;
+                } catch (e) { /* fall through */ }
+            }
+            if (sheet && typeof sheet.viewPage === 'function') {
+                try {
+                    if (!sheet.rendered) sheet.render(true);
+                    sheet.viewPage(pageId);
+                    return;
+                } catch (e) { /* fall through */ }
+            }
+            const page = journal.pages?.get(pageId);
+            if (page?.sheet) {
+                page.sheet.render(true);
                 return;
-            } catch (e) { /* fall through */ }
+            }
+            if (sheet?.render) sheet.render(true);
+        };
+        try {
+            openAndView();
+            return Promise.resolve();
+        } catch (e) {
+            const msg = e?.message ?? String(e);
+            if (msg.includes('lacks permission') && msg.includes('JournalEntryPage')) {
+                postConsoleAndNotification(MODULE.NAME, 'Journal page pin: You do not have permission to open that journal page.', null, false, false);
+            } else {
+                postConsoleAndNotification(MODULE.NAME, 'Journal page pin: error opening page', msg, false, true);
+            }
+            return Promise.resolve();
         }
-        if (sheet && typeof sheet.viewPage === 'function') {
-            try {
-                if (!sheet.rendered) sheet.render(true);
-                sheet.viewPage(pageId);
-                return;
-            } catch (e) { /* fall through */ }
-        }
-        const page = journal.pages?.get(pageId);
-        if (page?.sheet) {
-            page.sheet.render(true);
-            return;
-        }
-        if (sheet?.render) sheet.render(true);
     }
 
     static _afterReady() {
