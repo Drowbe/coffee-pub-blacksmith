@@ -214,6 +214,12 @@ export class PinConfigWindow extends Application {
         this.pinTextScaleWithPin = pin.textScaleWithPin !== false;
         this._pinRatio = this.pinSize.h ? this.pinSize.w / this.pinSize.h : 1;
 
+        const validImageFit = ['fill', 'contain', 'cover', 'none', 'scale-down', 'zoom'];
+        this.pinImageFit = (pin.imageFit && validImageFit.includes(pin.imageFit)) ? pin.imageFit : 'cover';
+        const zoomNum = typeof pin.imageZoom === 'number' && Number.isFinite(pin.imageZoom) ? Math.max(1, Math.min(2, pin.imageZoom)) : 1;
+        this.pinImageZoom = zoomNum;
+        const pinImageZoomPercent = Math.round(zoomNum * 100);
+
         // Permissions (GM only): use Foundry ownership levels
         const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
         const LIMITED = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED : 1;
@@ -275,7 +281,11 @@ export class PinConfigWindow extends Application {
             pinTextMaxWidthDisplay: (this.pinTextMaxWidth === 0 || this.pinTextMaxWidth == null) ? '' : this.pinTextMaxWidth,
             pinTextScaleWithPin: this.pinTextScaleWithPin,
             iconMode: this.iconMode,
-            showUseAsDefault: true // Always show toggle - modules can handle saving defaults themselves
+            showUseAsDefault: true, // Always show toggle - modules can handle saving defaults themselves
+            pinImageFit: this.pinImageFit,
+            pinImageZoom: this.pinImageZoom,
+            pinImageZoomPercent,
+            showImageZoomSlider: this.pinImageFit === 'zoom'
         };
     }
 
@@ -290,6 +300,10 @@ export class PinConfigWindow extends Application {
         const preview = nativeHtml.querySelector('.window-note-header-icon') || null;
         const imageInput = nativeHtml.querySelector('.blacksmith-pin-config-image-input');
         const imageRow = nativeHtml.querySelector('.blacksmith-pin-config-image-row');
+        const imageFitSelect = nativeHtml.querySelector('.blacksmith-pin-config-image-fit');
+        const imageZoomRow = nativeHtml.querySelector('.blacksmith-pin-config-image-zoom-row');
+        const imageZoomInput = nativeHtml.querySelector('.blacksmith-pin-config-image-zoom');
+        const imageZoomValueEl = nativeHtml.querySelector('.blacksmith-pin-config-zoom-value');
         const imagePreview = nativeHtml.querySelector('.blacksmith-pin-config-image-preview');
         const iconSearchInput = nativeHtml.querySelector('.blacksmith-pin-config-icon-search');
         const iconCategoryFilter = nativeHtml.querySelector('.blacksmith-pin-config-icon-category-filter');
@@ -474,6 +488,24 @@ export class PinConfigWindow extends Application {
                 this.selected = { type: 'img', value };
                 nativeHtml.querySelectorAll('.blacksmith-pin-config-icon-option').forEach(btn => btn.classList.remove('selected'));
                 updateMode('image');
+            }
+        });
+
+        imageFitSelect?.addEventListener('change', () => {
+            const fit = imageFitSelect.value;
+            if (['fill', 'contain', 'cover', 'none', 'scale-down', 'zoom'].includes(fit)) {
+                this.pinImageFit = fit;
+            }
+            if (imageZoomRow) {
+                imageZoomRow.classList.toggle('is-hidden', fit !== 'zoom');
+            }
+        });
+
+        imageZoomInput?.addEventListener('input', () => {
+            const pct = Number(imageZoomInput.value);
+            if (Number.isFinite(pct)) {
+                this.pinImageZoom = pct / 100;
+                if (imageZoomValueEl) imageZoomValueEl.textContent = `${Math.round(pct)}%`;
             }
         });
 
@@ -697,7 +729,9 @@ export class PinConfigWindow extends Application {
                 textSize: configData.pinTextConfig.textSize,
                 textMaxLength: configData.pinTextConfig.textMaxLength,
                 textMaxWidth: configData.pinTextConfig.textMaxWidth,
-                textScaleWithPin: configData.pinTextConfig.textScaleWithPin
+                textScaleWithPin: configData.pinTextConfig.textScaleWithPin,
+                imageFit: imageFitSelect ? imageFitSelect.value : this.pinImageFit,
+                imageZoom: (imageFitSelect?.value === 'zoom' && imageZoomInput) ? Number(imageZoomInput.value) / 100 : this.pinImageZoom
             };
 
             // GM-only: include ownership default from Permissions section

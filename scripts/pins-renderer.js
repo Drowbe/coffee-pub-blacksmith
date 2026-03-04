@@ -308,6 +308,7 @@ class PinDOMElement {
         iconElement.style.height = '';
         iconElement.style.fontSize = '';
         iconElement.innerHTML = '';
+        delete iconElement.dataset.imageFit;
         
         // Apply new icon/image/text based on type
         if (newIconType === 'text' && iconText) {
@@ -343,8 +344,18 @@ class PinDOMElement {
             if (imageUrl) {
                 iconElement.innerHTML = '';
                 iconElement.style.backgroundImage = `url(${imageUrl})`;
-                // Image styles (background-size, cover, center) handled by CSS
-                // Border radius not needed - image is clipped to pin shape by parent container
+                const imageFit = pinData.imageFit && ['fill', 'contain', 'cover', 'none', 'scale-down', 'zoom'].includes(pinData.imageFit)
+                    ? pinData.imageFit
+                    : 'cover';
+                iconElement.dataset.imageFit = imageFit;
+                if (imageFit === 'zoom') {
+                    const zoom = typeof pinData.imageZoom === 'number' && Number.isFinite(pinData.imageZoom)
+                        ? Math.max(1, Math.min(2, pinData.imageZoom))
+                        : 1;
+                    iconElement.style.setProperty('--image-zoom', String(zoom));
+                } else {
+                    iconElement.style.removeProperty('--image-zoom');
+                }
                 iconElement.style.color = '';
                 iconElement.style.borderRadius = '';
                 iconElement.style.overflow = '';

@@ -133,6 +133,8 @@ export const PIN_DEFAULTS = Object.freeze({
     type: 'default', // Pin type/category - defaults to 'default' if not specified
     version: PIN_SCHEMA_VERSION,
     ownership: { default: 0 },
+    imageFit: 'cover', // 'fill' | 'contain' | 'cover' | 'none' | 'scale-down' | 'zoom'
+    imageZoom: 1, // When imageFit is 'zoom': 1 = same as cover, 1.5 = 50% zoom in (clamped 1–2)
     config: {}
 });
 
@@ -206,8 +208,18 @@ export function applyDefaults(partial) {
         textSize: PIN_DEFAULTS.textSize,
         textMaxLength: PIN_DEFAULTS.textMaxLength,
         textMaxWidth: PIN_DEFAULTS.textMaxWidth,
-        textScaleWithPin: PIN_DEFAULTS.textScaleWithPin
+        textScaleWithPin: PIN_DEFAULTS.textScaleWithPin,
+        imageFit: PIN_DEFAULTS.imageFit,
+        imageZoom: PIN_DEFAULTS.imageZoom
     };
+    if (partial.imageFit != null && ['fill', 'contain', 'cover', 'none', 'scale-down', 'zoom'].includes(String(partial.imageFit).toLowerCase())) {
+        base.imageFit = String(partial.imageFit).toLowerCase();
+    }
+    if (typeof partial.imageZoom === 'number' && Number.isFinite(partial.imageZoom)) {
+        base.imageZoom = Math.max(1, Math.min(2, partial.imageZoom));
+    } else if (base.imageZoom === undefined) {
+        base.imageZoom = PIN_DEFAULTS.imageZoom;
+    }
     if (partial.id != null) base.id = String(partial.id).trim();
     if (typeof partial.x === 'number' && Number.isFinite(partial.x)) base.x = partial.x;
     if (typeof partial.y === 'number' && Number.isFinite(partial.y)) base.y = partial.y;

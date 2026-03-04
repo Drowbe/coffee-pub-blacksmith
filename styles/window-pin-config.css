@@ -297,6 +297,30 @@ div#blacksmith-pin-config .window-content {
     display: none;
 }
 
+/* Image Fit Zoom row: visible when Zoom is selected */
+.blacksmith-pin-config-image-zoom-row.is-hidden {
+    display: none !important;
+}
+.blacksmith-pin-config-image-zoom-row {
+    display: flex;
+    align-items: flex-end;
+}
+.blacksmith-pin-config-zoom-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.blacksmith-pin-config-zoom-control input[type="range"] {
+    flex: 1;
+    min-width: 80px;
+    max-width: 140px;
+}
+.blacksmith-pin-config-zoom-value {
+    font-size: 0.9em;
+    color: rgba(230, 223, 204, 0.9);
+    min-width: 2.5em;
+}
+
 .blacksmith-pin-config .form-actions {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding-top: 12px;

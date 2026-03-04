@@ -928,6 +928,12 @@ export class PinManager {
             const stored = normalizePinImageForStorage(patch.image);
             merged.image = stored || undefined;
         }
+        if (patch.imageFit != null && ['fill', 'contain', 'cover', 'none', 'scale-down', 'zoom'].includes(String(patch.imageFit).toLowerCase())) {
+            merged.imageFit = String(patch.imageFit).toLowerCase();
+        }
+        if (typeof patch.imageZoom === 'number' && Number.isFinite(patch.imageZoom)) {
+            merged.imageZoom = Math.max(1, Math.min(2, patch.imageZoom));
+        }
         if (patch.iconText !== undefined) {
             merged.iconText = patch.iconText ? String(patch.iconText).trim() : undefined;
         }

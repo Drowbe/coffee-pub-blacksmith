@@ -46,32 +46,19 @@
 
 
 
-/* GM ONLY INDICATOR - scales with pin (uses --pin-size-px set by renderer on each pin) */
+/* GM ONLY INDICATOR - small dot when pin is hidden from players (scales with pin) */
 .blacksmith-pin[data-gm-hidden="true"]::after {
-    content: "GM";
-    font-weight: 900;
+    content: "";
     position: absolute;
-    --gm-badge-size: calc(var(--pin-size-px, 53px) * 0.38);
+    --gm-badge-size: calc(var(--pin-size-px, 53px) * 0.14);
     top: calc(var(--gm-badge-size) * -0.5);
     right: calc(var(--gm-badge-size) * -0.5);
     width: var(--gm-badge-size);
     height: var(--gm-badge-size);
-    /* min-width: 14px;
-    min-height: 14px;
-    max-width: 28px;
-    max-height: 28px; */
-    display: grid;
-    place-items: center;
-    font-size: calc(var(--gm-badge-size) * 0.48);
-    line-height: 1;
-    letter-spacing: -0.02em;
-    color: #f4d06f;
-    background: rgba(20, 16, 10, 0.9);
-    border-width: 1px;
-    border-style: solid;
-    border-color: rgba(244, 208, 111, 0.8);
+    background: #f4d06f;
+    border: 1px solid rgba(244, 208, 111, 0.8);
     border-radius: 50%;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     pointer-events: none;
     z-index: 5;
 }
@@ -99,8 +86,6 @@
     background: rgba(0, 0, 0, 0.2);
     color: var(--color-text-light-primary, #fff);
 }
-
-/* Hide GM crown badge for Blacksmith journal-page pins (not needed for players) */
 
 /* Pin without drop shadow */
 .blacksmith-pin[data-no-shadow="true"] {
@@ -169,16 +154,34 @@
     flex-shrink: 0;
 }
 
-/* Image (photo/art) - fills pin with cover; own styling, distinct from icons */
+/* Image (photo/art) - fills pin; background-size from data-image-fit */
 .blacksmith-pin-icon[data-icon-type="image"] {
     display: block;
     width: 100%;
     height: 100%;
-    background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
     flex-shrink: 0;
-    /* No inner content; background-image set in JS */
+    /* background-size set per data-image-fit below */
+}
+.blacksmith-pin-icon[data-icon-type="image"][data-image-fit="cover"],
+.blacksmith-pin-icon[data-icon-type="image"]:not([data-image-fit]) {
+    background-size: cover;
+}
+.blacksmith-pin-icon[data-icon-type="image"][data-image-fit="contain"] {
+    background-size: contain;
+}
+.blacksmith-pin-icon[data-icon-type="image"][data-image-fit="fill"] {
+    background-size: 100% 100%;
+}
+.blacksmith-pin-icon[data-icon-type="image"][data-image-fit="none"] {
+    background-size: auto;
+}
+.blacksmith-pin-icon[data-icon-type="image"][data-image-fit="scale-down"] {
+    background-size: contain;
+}
+.blacksmith-pin-icon[data-icon-type="image"][data-image-fit="zoom"] {
+    background-size: calc(100% * var(--image-zoom, 1));
 }
 
 /* Pin text element */
