@@ -214,6 +214,23 @@ export class PinConfigWindow extends Application {
         this.pinTextScaleWithPin = pin.textScaleWithPin !== false;
         this._pinRatio = this.pinSize.h ? this.pinSize.w / this.pinSize.h : 1;
 
+        // Permissions (GM only): use Foundry ownership levels
+        const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
+        const LIMITED = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED : 1;
+        const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
+        const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
+        const isGM = !!game.user?.isGM;
+        const ownershipDefault = typeof pin.ownership?.default === 'number' ? pin.ownership.default : NONE;
+        this._pinOwnership = pin.ownership && typeof pin.ownership === 'object' && !Array.isArray(pin.ownership)
+            ? { ...pin.ownership }
+            : { default: NONE };
+        const ownershipOptions = [
+            { value: NONE, label: 'GM only', selected: ownershipDefault === NONE },
+            { value: LIMITED, label: 'Limited (view)', selected: ownershipDefault === LIMITED },
+            { value: OBSERVER, label: 'Observer (view)', selected: ownershipDefault === OBSERVER },
+            { value: OWNER, label: 'Owner (view & edit)', selected: ownershipDefault === OWNER }
+        ];
+
         // Load icon categories
         const categories = await PinConfigWindow.loadIconCategories();
         const iconCategories = (categories || []).map(category => {
@@ -233,6 +250,8 @@ export class PinConfigWindow extends Application {
         const imageValue = this.selected?.type === 'img' ? this.selected.value : '';
 
         return {
+            isGM,
+            ownershipOptions,
             previewHtml: PinConfigWindow.buildIconHtml(this.selected, 'window-note-header-image'),
             imageValue,
             iconCategories,
@@ -680,6 +699,20 @@ export class PinConfigWindow extends Application {
                 textMaxWidth: configData.pinTextConfig.textMaxWidth,
                 textScaleWithPin: configData.pinTextConfig.textScaleWithPin
             };
+
+            // GM-only: include ownership default from Permissions section
+            if (game.user?.isGM) {
+                const ownershipSelect = nativeHtml.querySelector('.blacksmith-pin-config-ownership-default');
+                if (ownershipSelect) {
+                    const defaultLevel = Number(ownershipSelect.value);
+                    if (Number.isInteger(defaultLevel)) {
+                        pinUpdateData.ownership = {
+                            ...this._pinOwnership,
+                            default: defaultLevel
+                        };
+                    }
+                }
+            }
 
             try {
                 // Always update pin via API

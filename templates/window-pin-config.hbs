@@ -17,6 +17,26 @@
     </div>
 
     <div class="window-note-body">
+        {{#if isGM}}
+        <div class="blacksmith-pin-config-section blacksmith-pin-config-permissions-section">
+            <div class="blacksmith-pin-config-section-header"><i class="fa-solid fa-shield-halved"></i> Permissions</div>
+            <div class="blacksmith-pin-config-section-body">
+                <div class="blacksmith-pin-config-design-row">
+                    <label class="blacksmith-pin-config-design-field blacksmith-pin-config-permissions-default">
+                        <span>Who can see this pin?</span>
+                        <select class="blacksmith-input blacksmith-pin-config-ownership-default">
+                            {{#each ownershipOptions}}
+                            <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                            {{/each}}
+                        </select>
+                    </label>
+                </div>
+                <div class="blacksmith-pin-config-help">
+                    Default applies to all users who don’t have a specific override. GM only = hidden from players. Owner = can view and edit (configure/delete) this pin.
+                </div>
+            </div>
+        </div>
+        {{/if}}
         <div class="blacksmith-pin-config-section blacksmith-pin-config-design-section">
             <div class="blacksmith-pin-config-section-header"><i class="fa-solid fa-ruler-combined"></i> Pin Design</div>
             <div class="blacksmith-pin-config-section-body">

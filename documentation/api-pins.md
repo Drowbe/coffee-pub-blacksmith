@@ -1369,6 +1369,13 @@ await controller.promise; // optional: wait until animation has fully stopped
 ```
 
 ```javascript
+// Multi-step sequence (like built-in 'ping'): run several animations in order
+await pins.ping(pinId, { animation: ['scale-large', 'ripple'], loops: 1 });
+// Custom combo: rotate, then pulse, then ripple (run sequence twice)
+await pins.ping(pinId, { animation: ['rotate', 'pulse', 'ripple'], loops: 2 });
+```
+
+```javascript
 // Ripple animation with sound (blacksmith sound name)
 await pins.ping(pinId, { 
     animation: 'ripple', 
@@ -1395,8 +1402,8 @@ await pins.ping(pinId, {
 ```
 
 **Options** (all required except as noted):
-- `animation` (string, **required**): Animation type
-  - `'ping'`: **Combo animation** - scale-large with sound + ripple (recommended for navigation and attention)
+- `animation` (string | string[], **required**): Animation type, or **array of types** to run in sequence (each step runs once per loop). Single string is equivalent to a one-item array.
+  - `'ping'`: **Combo** - scale-large then ripple (same as `['scale-large', 'ripple']`; default sound applied when used alone)
   - `'pulse'`: Pulsing border
   - `'ripple'`: Expanding circle emanating from pin
   - `'flash'`: Opacity flash
@@ -1407,7 +1414,7 @@ await pins.ping(pinId, {
   - `'scale-large'`: Dramatic grow/shrink (1x → 1.6x → 1x)
   - `'rotate'`: 360-degree rotation
   - `'shake'`: Horizontal jiggle
-- `loops` (number, optional): Number of times to loop animation (default: 1). Ignored when `untilStopped` is true.
+- `loops` (number, optional): Number of times to loop the animation or sequence (default: 1). Ignored when `untilStopped` is true.
 - `untilStopped` (boolean, optional): If `true`, the animation loops until the caller calls `stop()` on the returned controller. Returns a Promise that resolves with `{ stop: () => void, promise: Promise<void> }`. Sound plays once at start. `broadcast` is not used.
 - `broadcast` (boolean, optional): If `true`, show animation to all users who can see the pin (default: `false`). Uses Blacksmith socket system. Only users with view permissions for the pin will see the animation. Not used when `untilStopped` is true.
 - `sound` (string, optional): Sound to play once. When `untilStopped` is true, plays once at start. Can be:
@@ -1416,6 +1423,7 @@ await pins.ping(pinId, {
   - URL: `'https://example.com/sound.mp3'`
 
 **Notes**:
+- **Sequence**: Pass an array (e.g. `['rotate', 'pulse', 'ripple']`) to run multiple animations in order; `loops` repeats the whole sequence.
 - The `'ping'` animation automatically includes the default sound (`'interface-ping-01'`) unless a custom `sound` is provided
 - Sounds play once regardless of loops (or once at start when `untilStopped` is true)
 - With `untilStopped: true`, call `controller.stop()` when the calling module wants the animation to end; optionally `await controller.promise` to wait until the animation has fully stopped and the pin is back to its normal state

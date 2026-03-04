@@ -362,6 +362,15 @@ div#blacksmith-pin-config .window-content {
     gap: 12px;
 }
 
+/* Permissions section (GM only) */
+.blacksmith-pin-config-permissions-section .blacksmith-pin-config-permissions-default {
+    max-width: 280px;
+}
+
+.blacksmith-pin-config-permissions-section .blacksmith-pin-config-help {
+    margin-top: 4px;
+}
+
 /* Toggle container for "Use as Default" */
 .blacksmith-pin-config-toggle-container {
     display: flex;

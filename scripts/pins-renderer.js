@@ -1714,6 +1714,24 @@ class PinDOMElement {
     }
 
     /**
+     * Run a single animation step once (expands 'ping' to scale-large + ripple).
+     * @param {HTMLElement} pinElement
+     * @param {string} anim - Animation name (e.g. 'pulse', 'ping', 'ripple')
+     * @param {AbortSignal} [signal]
+     * @private
+     */
+    static async _runOneAnimationStep(pinElement, anim, signal) {
+        if (anim === 'ping') {
+            await PinDOMElement._pingStandard(pinElement, 'scale-large', 1, signal);
+            await PinDOMElement._pingRipple(pinElement, 1, signal);
+        } else if (anim === 'ripple') {
+            await PinDOMElement._pingRipple(pinElement, 1, signal);
+        } else {
+            await PinDOMElement._pingStandard(pinElement, anim, 1, signal);
+        }
+    }
+
+    /**
      * Cleanup on module unload
      */
     static cleanup() {
@@ -2049,7 +2067,7 @@ export class PinRenderer {
      * Ping (animate) a pin to draw attention
      * @param {string} pinId
      * @param {Object} options
-     * @param {string} options.animation - Animation type (pulse, ripple, flash, glow, bounce, scale-small, scale-medium, scale-large, rotate, shake, or 'ping' combo)
+     * @param {string | string[]} options.animation - Animation type, or array of types to run in sequence (e.g. ['scale-large', 'ripple'] like built-in 'ping')
      * @param {number} [options.loops=1] - Number of times to loop animation (ignored when untilStopped is true)
      * @param {boolean} [options.broadcast=false] - If true, show to all users
      * @param {boolean} [options.untilStopped=false] - If true, run animation until controller.stop() is called; returns { stop, promise } instead of resolving when done
@@ -2065,10 +2083,14 @@ export class PinRenderer {
             'rotate', 'shake'
         ];
         
-        if (!animation || !validAnimations.includes(animation)) {
-            console.warn(`BLACKSMITH | PINS Invalid animation type: ${animation}. Valid types: ${validAnimations.join(', ')}`);
+        const animations = Array.isArray(animation) ? animation : [animation];
+        if (animations.length === 0 || !animations.every((a) => validAnimations.includes(a))) {
+            const invalid = animations.find((a) => !validAnimations.includes(a));
+            console.warn(`BLACKSMITH | PINS Invalid animation type: ${invalid ?? animation}. Valid types: ${validAnimations.join(', ')}`);
             return untilStopped ? Promise.resolve({ stop: () => {}, promise: Promise.resolve() }) : undefined;
         }
+        
+        const effectiveSound = sound ?? (animations.length === 1 && animations[0] === 'ping' ? 'interface-ping-01' : null);
         
         const pinElement = PinDOMElement._pins.get(pinId);
         if (!pinElement) {
@@ -2081,28 +2103,23 @@ export class PinRenderer {
             const signal = controller.signal;
             const runLoop = async () => {
                 try {
-                    if (animation === 'ping') {
-                        while (!signal.aborted) {
-                            await PinDOMElement._pingStandard(pinElement, 'scale-large', 1, signal);
+                    while (!signal.aborted) {
+                        for (const anim of animations) {
                             if (signal.aborted) break;
-                            await PinDOMElement._pingRipple(pinElement, 1, signal);
+                            await PinDOMElement._runOneAnimationStep(pinElement, anim, signal);
                         }
-                    } else if (animation === 'ripple') {
-                        await PinDOMElement._pingRipple(pinElement, 0, signal);
-                    } else {
-                        await PinDOMElement._pingStandard(pinElement, animation, 0, signal);
                     }
                 } catch (e) {
                     if (e?.name !== 'AbortError') console.warn('BLACKSMITH | PINS Ping untilStopped error:', e);
                 }
             };
             const promise = runLoop();
-            if (sound && !signal.aborted) {
+            if (effectiveSound && !signal.aborted) {
                 try {
-                    const soundPath = PinRenderer._resolveSoundPath(sound);
+                    const soundPath = PinRenderer._resolveSoundPath(effectiveSound);
                     await AudioHelper.play({ src: soundPath, volume: 0.8, loop: false }, false);
                 } catch (err) {
-                    console.warn(`BLACKSMITH | PINS Failed to play sound: ${sound}`, err);
+                    console.warn(`BLACKSMITH | PINS Failed to play sound: ${effectiveSound}`, err);
                 }
             }
             return Promise.resolve({
@@ -2111,22 +2128,7 @@ export class PinRenderer {
             });
         }
         
-        // One-shot or fixed loops
-        if (animation === 'ping') {
-            await this.ping(pinId, { 
-                animation: 'scale-large', 
-                loops: 1,
-                sound: sound || 'interface-ping-01',
-                broadcast
-            });
-            await this.ping(pinId, { 
-                animation: 'ripple', 
-                loops: 1,
-                broadcast
-            });
-            return;
-        }
-        
+        // One-shot or fixed loops: run sequence loops times
         if (broadcast) {
             const { PinManager } = await import('./manager-pins.js');
             const userId = game.user?.id || '';
@@ -2140,9 +2142,9 @@ export class PinRenderer {
                 if (socket) {
                     socket.executeForOthers('pingPin', {
                         pinId,
-                        animation,
+                        animation: animations,
                         loops,
-                        sound: sound || null
+                        sound: effectiveSound || null
                     });
                 } else {
                     console.warn('BLACKSMITH | PINS Socket not ready, broadcast ping not sent');
@@ -2150,19 +2152,19 @@ export class PinRenderer {
             }
         }
         
-        if (sound) {
+        if (effectiveSound) {
             try {
-                const soundPath = PinRenderer._resolveSoundPath(sound);
+                const soundPath = PinRenderer._resolveSoundPath(effectiveSound);
                 await AudioHelper.play({ src: soundPath, volume: 0.8, loop: false }, false);
             } catch (err) {
-                console.warn(`BLACKSMITH | PINS Failed to play sound: ${sound}`, err);
+                console.warn(`BLACKSMITH | PINS Failed to play sound: ${effectiveSound}`, err);
             }
         }
         
-        if (animation === 'ripple') {
-            await PinDOMElement._pingRipple(pinElement, loops);
-        } else {
-            await PinDOMElement._pingStandard(pinElement, animation, loops);
+        for (let L = 0; L < loops; L++) {
+            for (const anim of animations) {
+                await PinDOMElement._runOneAnimationStep(pinElement, anim, null);
+            }
         }
     }
 
