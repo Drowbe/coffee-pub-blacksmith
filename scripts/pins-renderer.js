@@ -1646,6 +1646,7 @@ class PinDOMElement {
         pinElement.classList.remove(className);
         
         const runOneLoop = async () => {
+            void pinElement.offsetHeight; // force reflow so re-adding the class restarts the animation
             pinElement.classList.add(className);
             await this._wait(durationMs, signal);
             pinElement.classList.remove(className);
