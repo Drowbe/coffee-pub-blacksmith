@@ -1352,7 +1352,7 @@ await pins.panTo(pinId, {
 ### `pins.ping(pinId, options)`
 Ping (animate) a pin to draw attention to it. Useful for highlighting pins, showing navigation targets, or responding to game events.
 
-**Returns**: `Promise<void>`
+**Returns**: When `untilStopped` is `true`, a Promise that resolves with `{ stop: () => void, promise: Promise<void> }`. Otherwise `Promise<void>` (resolves when the animation completes).
 
 ```javascript
 // Ping animation (recommended for navigation - combo with sound)
@@ -1361,6 +1361,14 @@ await pins.ping(pinId, { animation: 'ping', loops: 1 });
 // Pulse animation (2 loops)
 await pins.ping(pinId, { animation: 'pulse', loops: 2 });
 
+// Play animation until you call stop (e.g. while a quest is active)
+const controller = await pins.ping(pinId, { animation: 'pulse', untilStopped: true });
+// ... later when quest completes or user dismisses:
+controller.stop();
+await controller.promise; // optional: wait until animation has fully stopped
+```
+
+```javascript
 // Ripple animation with sound (blacksmith sound name)
 await pins.ping(pinId, { 
     animation: 'ripple', 
@@ -1399,16 +1407,18 @@ await pins.ping(pinId, {
   - `'scale-large'`: Dramatic grow/shrink (1x → 1.6x → 1x)
   - `'rotate'`: 360-degree rotation
   - `'shake'`: Horizontal jiggle
-- `loops` (number, optional): Number of times to loop animation (default: 1)
-- `broadcast` (boolean, optional): If `true`, show animation to all users who can see the pin (default: `false`). Uses Blacksmith socket system. Only users with view permissions for the pin will see the animation.
-- `sound` (string, optional): Sound to play once. Can be:
+- `loops` (number, optional): Number of times to loop animation (default: 1). Ignored when `untilStopped` is true.
+- `untilStopped` (boolean, optional): If `true`, the animation loops until the caller calls `stop()` on the returned controller. Returns a Promise that resolves with `{ stop: () => void, promise: Promise<void> }`. Sound plays once at start. `broadcast` is not used.
+- `broadcast` (boolean, optional): If `true`, show animation to all users who can see the pin (default: `false`). Uses Blacksmith socket system. Only users with view permissions for the pin will see the animation. Not used when `untilStopped` is true.
+- `sound` (string, optional): Sound to play once. When `untilStopped` is true, plays once at start. Can be:
   - Blacksmith sound name: `'interface-ping-01'` (auto-resolves to `modules/coffee-pub-blacksmith/sounds/interface-ping-01.mp3`)
   - Full path: `'modules/my-module/sounds/ping.mp3'`
   - URL: `'https://example.com/sound.mp3'`
 
 **Notes**:
 - The `'ping'` animation automatically includes the default sound (`'interface-ping-01'`) unless a custom `sound` is provided
-- Sounds play once regardless of loops
+- Sounds play once regardless of loops (or once at start when `untilStopped` is true)
+- With `untilStopped: true`, call `controller.stop()` when the calling module wants the animation to end; optionally `await controller.promise` to wait until the animation has fully stopped and the pin is back to its normal state
 - Broadcast respects pin visibility: only users who can view the pin (based on `ownership` property) will see the animation
 - Broadcasting requires the Blacksmith socket system to be initialized
 - The sender of a broadcast also sees the animation locally

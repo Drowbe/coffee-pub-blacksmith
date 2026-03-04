@@ -430,10 +430,11 @@ export class PinsAPI {
      * @param {string} pinId - Pin ID to ping
      * @param {Object} options - Ping options
      * @param {string} options.animation - Animation type: 'ping', 'pulse', 'ripple', 'flash', 'glow', 'bounce', 'scale-small', 'scale-medium', 'scale-large', 'rotate', 'shake'
-     * @param {number} [options.loops=1] - Number of times to loop animation (default: 1)
-     * @param {boolean} [options.broadcast=false] - If true, show animation to all users who can see the pin (via socket)
-     * @param {string} [options.sound] - Sound to play. Can be blacksmith sound name ('interface-ping-01') or full path ('modules/my-module/sounds/ping.mp3')
-     * @returns {Promise<void>}
+     * @param {number} [options.loops=1] - Number of times to loop animation (default: 1). Ignored when untilStopped is true.
+     * @param {boolean} [options.untilStopped=false] - If true, animation loops until the caller calls stop() on the returned controller. Returns a Promise that resolves with { stop: () => void, promise: Promise<void> }.
+     * @param {boolean} [options.broadcast=false] - If true, show animation to all users who can see the pin (via socket). Not used when untilStopped is true.
+     * @param {string} [options.sound] - Sound to play. Can be blacksmith sound name ('interface-ping-01') or full path ('modules/my-module/sounds/ping.mp3'). When untilStopped, plays once at start.
+     * @returns {Promise<{ stop: () => void, promise: Promise<void> } | void>} When untilStopped is true, resolves with a controller object; otherwise resolves when the animation completes.
      */
     static async ping(pinId, options) {
         const { PinRenderer } = await import('./pins-renderer.js');
