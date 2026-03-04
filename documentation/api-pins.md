@@ -232,7 +232,7 @@ Pins can be configured to play an **animation** and optional **sound** when the 
 - **Interaction animations** (hover, click, double-click): Same set as `pins.ping()` — `ping`, `pulse`, `ripple`, `flash`, `glow`, `bounce`, `scale-small`, `scale-medium`, `scale-large`, `rotate`, `shake`. On hover enter the animation runs once (ease-out when pointer leaves). On click or double-click the animation runs once after the handler.
 - **Delete animation**: Only `fade`, `dissolve`, or `scale-small`. When the pin is deleted (via context menu or API), if the pin is on the current scene and has a delete animation set, that animation runs (with optional sound), then the pin is removed from the canvas and data.
 - **Sound**: Optional. Use a Blacksmith sound name (e.g. `interface-ping-01`) or a full path. Default is none. Applied per event (each of hover, click, double-click, delete can have its own sound or none).
-- **Configuration**: The Configure Pin window includes an **Event Animations** section where users choose animation and sound for each of Hover, Click, Double-click, and Delete. Updates are applied via `pins.update(pinId, { eventAnimations: { ... } })`.
+- **Configuration**: The Configure Pin window includes an **Event Animations** section where users choose animation and sound for each of Hover, Click, Double-click, and Delete. Updates are applied via `pins.update(pinId, { eventAnimations: { ... } })`. Sound options are dropdowns populated from `pins.getSoundOptions()` (Blacksmith’s sound list).
 
 ## API Reference
 
@@ -267,6 +267,16 @@ if (canvas?.scene) {
   await pins.place(pin.id, { sceneId: canvas.scene.id, x: 1000, y: 800 });
   await pins.reload();
 }
+```
+
+### `pins.getSoundOptions()`
+Returns the list of sounds for use in dropdowns (e.g. pin event animation sounds). Uses Blacksmith's sound asset list: "None" plus all sounds sorted by name.
+
+**Returns**: `{ value: string, label: string }[]` — Array of options; `value: ''` is None, otherwise full path (e.g. `modules/coffee-pub-blacksmith/sounds/interface-ping-01.mp3`). Use in Configure Pin or custom UI when you need a sound selector.
+
+```javascript
+const options = game.modules.get('coffee-pub-blacksmith')?.api?.pins?.getSoundOptions() ?? [];
+// options === [{ value: '', label: 'None' }, { value: 'modules/.../arrow.mp3', label: 'General: Arrow' }, ...]
 ```
 
 ### `pins.exists(pinId, options?)`
@@ -972,9 +982,15 @@ The window uses an internal `{ type, value }` format. For storage or passing int
 
 Recommendation: store **FA as class string** and **images as URL string** so all modules and the API stay consistent.
 
-#### 3. Default storage schema (`useAsDefault`)
+#### 3. Default storage schema (“Use as Default”)
 
-When “Use as Default” is checked and `defaultSettingKey` + `moduleId` are provided, the window writes this **exact** object to `game.settings.set(moduleId, defaultSettingKey, value)`:
+The **“Use as Default”** toggle saves the current design (size, shape, style, text options, etc.) so that **new pins created by that module** use it when nothing else is set. Storage is **per module**, not per pin type:
+
+- **Where it’s stored**: Blacksmith’s client setting `clientPinDefaultDesigns`, keyed by **module ID**. So `game.settings.get(MODULE.ID, 'clientPinDefaultDesigns')[moduleId]` is the saved design for that module. Each player has their own (client scope).
+- **When it applies**: When a **module** creates a new pin (e.g. via `pins.create()`), it can pass `pins.getDefaultPinDesign(moduleId)`. If that returns a saved default, the module merges it into the new pin’s data. If the module has only one pin type (e.g. “Journal Page”), that default is effectively the default for that type; if a module had multiple types, they would share the same saved default unless the module keyed defaults itself.
+- **What’s saved**: Only the design portion (size, shape, style, dropShadow, text layout/display/color/size, etc.). Ownership and event animations are **not** part of the saved default; they come from the module’s own defaults or the pin data when creating.
+
+When “Use as Default” is checked and `moduleId` is provided, the window writes the design object to that module’s entry under `clientPinDefaultDesigns`:
 
 ```ts
 {
@@ -993,7 +1009,7 @@ When “Use as Default” is checked and `defaultSettingKey` + `moduleId` are pr
 }
 ```
 
-No extra or omitted keys. When creating new pins, call **`pins.getDefaultPinDesign(moduleId)`** to get the current user's saved default (or `null`). Merge that with any other defaults and pass the result into `pins.create()` / `pins.update()` (using the same property names as in [PinData](#pin-data-schema)).
+When creating new pins, call **`pins.getDefaultPinDesign(moduleId)`** to get the current user’s saved default (or `null`). Merge that with any other defaults and pass the result into `pins.create()` (using the same property names as in [PinData](#pin-data-schema)).
 
 #### 4. Pin type handling
 
@@ -1079,7 +1095,8 @@ await pinsAPI.configure(pinId, {
 - Opens an Application V2 window with a form for editing pin properties.
 - Only users who can **edit** the pin (ownership-based) can open the window.
 - The window includes: **Appearance** (shape, size, fill, stroke, stroke width, icon color, opacity, drop shadow); **Icon/Image** (Font Awesome library + image URL with built-in FilePicker “Browse”); **Text** (layout, display mode, color, size, max characters, chars per line, scale-with-pin); **Event Animations** (hover, click, double-click, delete — each with optional animation and sound). Pin **type** is not currently editable in the window; **ownership** is not changed by the save.
-- On submit, the pin is updated via `pins.update()` (ownership is preserved). If “Use as Default” is checked, the [default storage schema](#3-default-storage-schema-useasdefault) is written to `game.settings.set(moduleId, defaultSettingKey, …)`. If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
+- The window header shows **“Configure Pin”** and, when the pin has a registered type, **“ — &lt;type label&gt;”** (e.g. “Configure Pin — Journal Page”). The type label comes from `pins.getPinTypeLabel(pin.moduleId, pin.type)`.
+- On submit, the pin is updated via `pins.update()` (ownership is preserved). If “Use as Default” is checked, the [default storage schema](#3-default-storage-schema-use-as-default) is written to Blacksmith’s `clientPinDefaultDesigns` under the pin’s `moduleId`. If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
 - The window is also available from the pin’s right-click context menu (“Configure Pin”).
 
 **Styling**: Use the [stable selectors](#8-styling-hooks-stable-selectors) `div#blacksmith-pin-config`, `.blacksmith-pin-config`, and `div#blacksmith-pin-config .window-content` for theming.

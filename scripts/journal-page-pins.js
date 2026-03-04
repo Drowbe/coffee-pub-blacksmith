@@ -4,6 +4,35 @@ import { postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { PinManager } from './manager-pins.js';
 
+/** Foundry ownership level for "View & Click" (observer). */
+const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
+
+/**
+ * Default pin design and event animations for new journal page pins when no client default is set.
+ * Matches the recommended Configure Pin defaults (size 100, right text, hover animations, etc.).
+ */
+const JOURNAL_PIN_DEFAULTS = Object.freeze({
+    image: '<i class="fa-solid fa-book-open"></i>',
+    size: { w: 100, h: 100 },
+    shape: 'circle',
+    style: { fill: '#000000', stroke: '#ffffff', strokeWidth: 6, iconColor: '#ffffff' },
+    dropShadow: true,
+    textLayout: 'right',
+    textDisplay: 'hover',
+    textColor: '#ffffff',
+    textSize: 18,
+    textMaxLength: 0,
+    textMaxWidth: 50,
+    textScaleWithPin: true,
+    ownership: { default: OBSERVER },
+    eventAnimations: {
+        hover: { animation: 'ripple', sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-01.mp3' },
+        click: { animation: 'glow', sound: null },
+        doubleClick: { animation: 'bounce', sound: 'modules/coffee-pub-blacksmith/sounds/book-open-02.mp3' },
+        delete: { animation: 'scale-small', sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-03.mp3' }
+    }
+});
+
 export class JournalPagePins {
     static PIN_TYPE = 'journal-page';
     static BUTTON_CLASS = 'journal-page-pin-button';
@@ -403,25 +432,30 @@ export class JournalPagePins {
         }
         if (!pin) {
             const label = page.parent?.name || page.name || 'Journal Page';
-            const pinData = {
+            const base = {
                 id: pinId ?? crypto.randomUUID(),
                 moduleId: MODULE.ID,
                 type: this.PIN_TYPE,
                 text: label,
-                image: '<i class="fa-solid fa-book-open"></i>',
-                size: { w: 46, h: 46 },
-                style: { fill: '#1f3a4d', stroke: '#5fb3ff', strokeWidth: 2, iconColor: '#ffffff' },
-                dropShadow: true,
-                textLayout: 'right',
-                textDisplay: 'hover',
-                textColor: '#ffffff',
-                textSize: 12,
                 config: {
                     journalPageUuid: page.uuid,
                     journalId: page.parent?.id ?? '',
                     pageId: page.id ?? ''
-                }
+                },
+                ...JOURNAL_PIN_DEFAULTS
             };
+            const clientDefault = game.settings.get(MODULE.ID, 'clientPinDefaultDesigns')?.[MODULE.ID];
+            const pinData = (clientDefault && typeof clientDefault === 'object')
+                ? {
+                    ...base,
+                    ...clientDefault,
+                    id: base.id,
+                    moduleId: base.moduleId,
+                    type: base.type,
+                    text: base.text,
+                    config: base.config
+                }
+                : base;
             pin = await pins.create(pinData);
             pinId = pin.id;
             await page.setFlag(MODULE.ID, 'pinId', pinId);

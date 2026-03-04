@@ -44,15 +44,41 @@ export class PinConfigWindow extends Application {
     }
 
     static get defaultOptions() {
+        let saved = {};
+        try {
+            if (game.settings?.get) {
+                saved = game.settings.get(MODULE.ID, 'pinConfigWindowBounds') || {};
+            }
+        } catch {
+            saved = {};
+        }
+        const width = saved.width ?? 700;
+        const height = saved.height ?? 600;
+        const top = typeof saved.top === 'number' ? saved.top : undefined;
+        const left = typeof saved.left === 'number' ? saved.left : undefined;
         return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'blacksmith-pin-config',
             title: 'Configure Pin',
             template: `modules/${MODULE.ID}/templates/window-pin-config.hbs`,
-            width: 700,
-            height: 600,
+            width,
+            height,
+            ...(top != null && { top }),
+            ...(left != null && { left }),
             resizable: true,
             classes: ['blacksmith-window', 'blacksmith-pin-config-window']
         });
+    }
+
+    /**
+     * Save window position and size to client setting when moved or resized.
+     */
+    setPosition(options = {}) {
+        const pos = super.setPosition(options);
+        if (this.rendered && game.settings?.set) {
+            const { top, left, width, height } = this.position;
+            game.settings.set(MODULE.ID, 'pinConfigWindowBounds', { top, left, width, height });
+        }
+        return pos;
     }
 
     static iconCategories = null;
@@ -255,6 +281,18 @@ export class PinConfigWindow extends Application {
             { value: 'scale-small', label: 'Scale small', selected: eventAnimations.delete.animation === 'scale-small' }
         ];
 
+        // Sound dropdown options from pins API (Blacksmith sound list)
+        const { PinsAPI } = await import('./api-pins.js');
+        const rawSoundOptions = PinsAPI.getSoundOptions();
+        const soundOptions = rawSoundOptions.map((opt) => ({
+            value: opt.value,
+            label: opt.label,
+            hoverSelected: eventAnimations.hover.sound === opt.value,
+            clickSelected: eventAnimations.click.sound === opt.value,
+            doubleClickSelected: eventAnimations.doubleClick.sound === opt.value,
+            deleteSelected: eventAnimations.delete.sound === opt.value
+        }));
+
         // Permissions (GM only): three clear options mapped to Foundry ownership levels
         const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
         const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
@@ -290,8 +328,11 @@ export class PinConfigWindow extends Application {
 
         const imageValue = this.selected?.type === 'img' ? this.selected.value : '';
 
+        const pinTypeLabel = PinManager.getPinTypeLabel(pin.moduleId, pin.type) || '';
+
         return {
             isGM,
+            pinTypeLabel,
             ownershipOptions,
             previewHtml: PinConfigWindow.buildIconHtml(this.selected, 'window-note-header-image'),
             imageValue,
@@ -323,6 +364,7 @@ export class PinConfigWindow extends Application {
             showImageZoomSlider: this.pinImageFit === 'zoom',
             animationOptions,
             deleteAnimationOptions,
+            soundOptions,
             eventAnimations
         };
     }

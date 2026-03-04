@@ -3401,6 +3401,14 @@ export const registerSettings = () => {
 		default: {}
 	});
 
+	// Configure Pin window size and position (client scope so each player/device remembers their own).
+	game.settings.register(MODULE.ID, 'pinConfigWindowBounds', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
 	// Per-user pin visibility: global hide/show
 	game.settings.register(MODULE.ID, 'pinsHideAll', {
 		scope: 'client',

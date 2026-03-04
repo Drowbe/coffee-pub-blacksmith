@@ -6,6 +6,7 @@
 // ==================================================================
 
 import { PinManager } from './manager-pins.js';
+import { dataSounds } from '../resources/assets.js';
 
 /** Module ID for availability checks. */
 const MODULE_ID = 'coffee-pub-blacksmith';
@@ -50,6 +51,23 @@ export class PinsAPI {
                 resolve();
             });
         });
+    }
+
+    /**
+     * Return a list of sound options for dropdowns (e.g. pin event animation sounds).
+     * Uses Blacksmith's sound asset list: "None" plus all sounds sorted by name.
+     * @returns {{ value: string, label: string }[]} - Array of { value, label }; value '' is None, otherwise full path or sound id
+     */
+    static getSoundOptions() {
+        const list = [{ value: '', label: 'None' }];
+        const sounds = dataSounds?.sounds;
+        if (!Array.isArray(sounds)) return list;
+        const seen = new Set();
+        const rest = sounds
+            .filter((s) => s.id !== 'sound-none' && s.value && !seen.has(s.value) && (seen.add(s.value), true))
+            .map((s) => ({ value: s.value, label: s.name || s.value }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+        return list.concat(rest);
     }
 
     /**
