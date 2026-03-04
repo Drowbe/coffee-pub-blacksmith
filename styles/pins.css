@@ -82,6 +82,24 @@
     z-index: 9999;
 }
 
+/* Journal page pins bar: sits below .journal-header (same area as encounter toolbar) */
+.journal-page-pins-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    min-height: 2rem;
+}
+.journal-page-pins-bar .journal-page-pin-button {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    color: var(--color-text-light-heading, #f0f0e0);
+}
+.journal-page-pins-bar .journal-page-pin-button:hover {
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--color-text-light-primary, #fff);
+}
+
 /* Hide GM crown badge for Blacksmith journal-page pins (not needed for players) */
 
 /* Pin without drop shadow */

@@ -153,22 +153,124 @@ export class JournalPagePins {
     }
 
     static _onRenderSheet(app, html) {
-        postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: render hook fired', app?.constructor?.name, true, false);
         const root = this._normalizeHtml(html, app);
-        if (!root) {
-            postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: no root element', app?.constructor?.name, true, false);
-            return;
-        }
+        if (!root) return;
         if (this._isEditMode(root)) return;
 
-        const page = this._resolvePage(app, root);
-        if (!page) {
-            postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: no page resolved', app?.constructor?.name, true, false);
-            return;
+        // If hook passed just the page article (v13 renderJournalPageSheet), find parent journal sheet
+        let sheetRoot = root;
+        if (root.tagName === 'ARTICLE' || root.classList?.contains('journal-entry-page')) {
+            sheetRoot = root.closest('.journal-sheet, .journal-entry') ?? root;
         }
 
-        this._injectButton(root, page);
-        setTimeout(() => this._injectButton(root, page), 200);
+        const journal = this._resolveJournalFromSheet(sheetRoot, app);
+        if (!journal) return;
+
+        this._injectPinBar(sheetRoot, journal);
+        setTimeout(() => this._injectPinBar(sheetRoot, journal), 200);
+    }
+
+    /**
+     * Resolve the JournalEntry document from the sheet DOM or app (not the page).
+     * Uses same cues as encounter toolbar; when app/data-document-id/ui.windows fail, find journal by matching sheet element.
+     */
+    static _resolveJournalFromSheet(root, app) {
+        if (app?.document?.documentName === 'JournalEntry') return app.document;
+        if (app?.object?.documentName === 'JournalEntry') return app.object;
+        const docId = root?.dataset?.documentId ?? root?.getAttribute?.('data-document-id')
+            ?? root?.dataset?.entryId ?? root?.dataset?.id ?? null;
+        if (docId) return game.journal?.get(docId) ?? null;
+        if (typeof ui?.windows !== 'undefined') {
+            const win = Object.values(ui.windows).find((w) => {
+                const el = w?.element?.jquery ? w.element[0] : w?.element;
+                return el === root || el?.contains?.(root) || root?.contains?.(el);
+            });
+            if (win?.document?.documentName === 'JournalEntry') return win.document;
+        }
+        // Fallback: find journal whose sheet element is this root (v13 / dnd5e2 often don't set data-document-id or use ui.windows)
+        if (game.journal?.contents) {
+            for (const journal of game.journal.contents) {
+                let el = journal.sheet?.element;
+                if (el?.jquery || (typeof el?.get === 'function')) el = el[0] ?? el?.get?.(0);
+                if (el === root || el?.contains?.(root) || root?.contains?.(el)) return journal;
+            }
+            // Fallback 2: resolve by active page id (which journal has a page with this id?)
+            const activeArticle = root?.querySelector?.('article.journal-entry-page.active, article.journal-entry-page:not([style*="display: none"])');
+            const pageId = activeArticle?.getAttribute?.('data-page-id') ?? activeArticle?.dataset?.pageId ?? null;
+            if (pageId) {
+                for (const journal of game.journal.contents) {
+                    if (journal.pages?.get(pageId)) return journal;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get the currently visible JOURNAL PAGE (JournalEntryPage) from the sheet DOM.
+     * Uses the exact same selector and order as the encounter toolbar so we get the same pageId.
+     */
+    static _getActivePageFromSheet(sheetRoot) {
+        if (!sheetRoot) return null;
+        const journal = this._resolveJournalFromSheet(sheetRoot, null);
+        if (!journal) return null;
+        const pageId = this._getActivePageIdFromSheet(sheetRoot);
+        if (!pageId) return null;
+        return journal.pages?.get(pageId) ?? null;
+    }
+
+    /**
+     * Get the active page ID from the sheet DOM using the same selector as the encounter toolbar.
+     * Encounter toolbar: journalPage = nativeHtml.querySelector('article.journal-entry-page.active, article.journal-entry-page:not([style*="display: none"])'); pageId = journalPage.getAttribute('data-page-id')
+     */
+    static _getActivePageIdFromSheet(sheetRoot) {
+        if (!sheetRoot) return null;
+        const journalPage = sheetRoot.querySelector('article.journal-entry-page.active, article.journal-entry-page:not([style*="display: none"])');
+        return journalPage ? journalPage.getAttribute('data-page-id') : null;
+    }
+
+    /**
+     * Inject the "Pin this page" bar after .journal-header (same area as encounter toolbar).
+     * Uses same pageId resolution as encounter toolbar; click handler uses the bar's stored data-page-id so we pin the correct page.
+     */
+    static _injectPinBar(root, journal) {
+        const journalHeader = root.querySelector('.journal-header');
+        const journalEntryPages = root.querySelector('.journal-entry-pages');
+        if (!journalHeader || !journalEntryPages) return;
+
+        let bar = root.querySelector('.journal-page-pins-bar');
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.className = 'journal-page-pins-bar';
+            journalHeader.insertAdjacentElement('afterend', bar);
+        }
+
+        const pageId = this._getActivePageIdFromSheet(root);
+        const activePage = (pageId && journal?.pages) ? journal.pages.get(pageId) : null;
+        bar.setAttribute('data-page-id', pageId ?? '');
+        bar.hidden = !activePage;
+
+        if (!bar.querySelector(`.${this.BUTTON_CLASS}`)) {
+            const button = document.createElement('a');
+            button.className = `header-control icon ${this.BUTTON_CLASS}`;
+            button.title = 'Pin this journal page to the current scene';
+            button.innerHTML = '<i class="fa-solid fa-map-pin"></i>';
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const barEl = event.target.closest?.('.journal-page-pins-bar');
+                const sheet = (event.target.closest?.('.journal-sheet') || event.target.closest?.('.journal-entry')) ?? root;
+                const pinnedPageId = barEl?.getAttribute?.('data-page-id');
+                const j = pinnedPageId ? this._resolveJournalFromSheet(sheet, null) : null;
+                const page = j?.pages?.get(pinnedPageId) ?? null;
+                if (!page) {
+                    ui.notifications.warn('Could not determine which page to pin. Switch to the page you want and try again.');
+                    return;
+                }
+                this._beginPlacement(page);
+            });
+            bar.appendChild(button);
+        }
     }
 
     static _processOpenSheets() {
@@ -200,43 +302,39 @@ export class JournalPagePins {
                 for (const node of m.addedNodes) {
                     this._processNode(node);
                 }
+                if (m.type === 'attributes' && m.target) {
+                    const target = m.target;
+                    if (target.tagName === 'ARTICLE' && target.classList?.contains('journal-entry-page')) {
+                        const sheet = target.closest('.journal-sheet, .journal-entry');
+                        if (sheet) {
+                            if (sheet._journalPagePinsDebounce) clearTimeout(sheet._journalPagePinsDebounce);
+                            sheet._journalPagePinsDebounce = setTimeout(() => {
+                                const journal = this._resolveJournalFromSheet(sheet, null);
+                                if (journal) this._injectPinBar(sheet, journal);
+                            }, 300);
+                        }
+                    }
+                }
             }
         });
-        this._domObserver.observe(document.body, { childList: true, subtree: true });
+        this._domObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'data-page-id'] });
     }
 
     static _processNode(node) {
         if (!(node instanceof HTMLElement)) return;
-        const headers = node.matches('.window-header')
-            ? [node]
-            : Array.from(node.querySelectorAll('.window-header'));
-        headers.forEach((header) => {
-            const page = this._resolvePageFromDom(header);
-            if (page) {
-                this._injectButton(header.closest('.journal-sheet, .journal-entry') || header.parentElement || header, page);
-            }
-        });
-    }
-
-    static _resolvePageFromDom(header) {
-        const form = header.closest('.journal-sheet, .journal-entry, form');
-        const docId = form?.dataset?.entryId || form?.dataset?.documentId || form?.dataset?.id || null;
-        let pageId = form?.dataset?.pageId || form?.dataset?.pageid || header?.dataset?.pageId || null;
-        if (!pageId) {
-            const pageNode = (form || header.closest('.journal-page'))?.querySelector('[data-page-id], [data-pageid]');
-            pageId = pageNode?.dataset?.pageId || pageNode?.dataset?.pageid || null;
+        const sheet = node.closest?.('.journal-sheet, .journal-entry')
+            ?? (node.classList?.contains('journal-sheet') || node.classList?.contains('journal-entry') ? node : null)
+            ?? node.querySelector?.('.journal-sheet, .journal-entry');
+        if (!sheet) return;
+        const run = () => {
+            const journal = this._resolveJournalFromSheet(sheet, null);
+            if (journal) this._injectPinBar(sheet, journal);
+        };
+        if (sheet.querySelector?.('.journal-header') && sheet.querySelector?.('.journal-entry-pages')) {
+            run();
+        } else {
+            setTimeout(run, 200);
         }
-        if (!docId && !pageId) return null;
-
-        let journal = docId ? game.journal?.get(docId) : null;
-        if (pageId) {
-            if (journal?.pages?.get(pageId)) return journal.pages.get(pageId);
-            for (const j of game.journal.contents) {
-                const p = j.pages?.get(pageId);
-                if (p) return p;
-            }
-        }
-        return null;
     }
 
     static _normalizeHtml(html, app) {
@@ -257,52 +355,6 @@ export class JournalPagePins {
 
     static _isEditMode(root) {
         return !!root.querySelector('.editor-container, .editor-edit');
-    }
-
-    static _resolvePage(app, root) {
-        let page = app?.object ?? app?.document ?? app?.page ?? null;
-        if (page?.documentName === 'JournalEntryPage') return page;
-
-        const pages = app?.pages ?? app?.document?.pages ?? app?.object?.pages ?? null;
-        const activeId = pages?.active ?? pages?.current ?? root?.dataset?.pageId ?? root?.getAttribute?.('data-page-id');
-        if (pages && typeof pages.get === 'function') {
-            const candidate = pages.get(activeId);
-            if (candidate?.documentName === 'JournalEntryPage') return candidate;
-        }
-        if (app?.document?.pages && typeof app.document.pages.get === 'function') {
-            const fallback = app.document.pages.get(activeId);
-            if (fallback?.documentName === 'JournalEntryPage') return fallback;
-        }
-        return null;
-    }
-
-    static _injectButton(root, page) {
-        const header = root.querySelector('.window-header, header.window-header, .app-header, .journal-header, .sheet-header, .titlebar') || root.querySelector('header');
-        if (!header) {
-            postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: header not found on render', null, true, false);
-            return;
-        }
-        if (header.querySelector(`.${this.BUTTON_CLASS}`)) return;
-
-        const button = document.createElement('a');
-        button.className = `header-control icon ${this.BUTTON_CLASS}`;
-        button.title = 'Pin this journal page to the current scene';
-        button.innerHTML = '<i class="fa-solid fa-map-pin"></i>';
-        button.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            this._beginPlacement(page);
-        });
-
-        const closeButton = header.querySelector('[data-action="close"], .header-button.close, .header-control.close, button.close, a.close, i.fa-xmark');
-        if (closeButton?.parentElement === header) {
-            closeButton.insertAdjacentElement('beforebegin', button);
-        } else if (closeButton) {
-            closeButton.closest('button, a')?.insertAdjacentElement('beforebegin', button);
-        } else {
-            header.appendChild(button);
-        }
-        postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: button injected', { page: page.id, headerClass: header.className }, true, false);
     }
 
     static async _beginPlacement(page) {
