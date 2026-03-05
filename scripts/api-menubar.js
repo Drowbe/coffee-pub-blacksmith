@@ -1201,9 +1201,7 @@ class MenuBar {
             icon: "fas fa-swords",
             name: "combat-tracker",
             title: () => {
-                // Dynamic title based on combat bar state
-                const isCombatBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'combat';
-                return isCombatBarOpen ? "Bar" : "Bar";
+                return "Combat Bar";
             },
             tooltip: () => {
                 // Dynamic tooltip based on combat bar state
@@ -4506,6 +4504,7 @@ class MenuBar {
                 callback: async () => {
                     if (!canvasToken) return;
                     try {
+                        await this.panToCombatant(combatantId, { selectToken: true });
                         canvasToken.control({ releaseOthers: true });
                     } catch (_error) {
                         // no-op; window can still open

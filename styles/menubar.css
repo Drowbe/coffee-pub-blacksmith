@@ -49,6 +49,7 @@
     /* Default toolbar */
     --blacksmith-menubar-secondary-default-height: 0px;
     --blacksmith-menubar-secondary-top-paddding-offset: 4px;
+    --blacksmith-menubar-secondary-edge-offset: 10px;
     --blacksmith-menubar-secondary-fontcolor: rgba(240, 240, 224, 0.8);
     --blacksmith-menubar-secondary-buttoncolor: rgba(0, 0, 0, 0.8);
     --blacksmith-menubar-secondary-bordercolor: rgba(255, 255, 255, 0.1);
@@ -583,8 +584,8 @@
 .blacksmith-menubar-secondary {
     position: fixed;
     top: var(--blacksmith-menubar-primary-height);
-    left: 4px;
-    right: 4px;
+    left: var(--blacksmith-menubar-secondary-edge-offset, 4px);
+    right: var(--blacksmith-menubar-secondary-edge-offset, 4px);
     z-index: 99;
     background-color: var(--blacksmith-menubar-secondary-backgroundcolor);
     height: var(--blacksmith-menubar-secondary-height);
