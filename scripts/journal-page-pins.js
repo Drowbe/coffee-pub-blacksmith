@@ -123,30 +123,22 @@ export class JournalPagePins {
     }
 
     /**
-     * Open the journal and show the given page (not just the journal).
+     * Open the journal and show the given page for the current user only (no broadcast to players).
      * Catches permission errors so viewing a journal the user cannot update does not break other handlers (e.g. gather-spot).
      */
     static _viewJournalPage(journal, pageId) {
         if (!journal || !pageId) return Promise.resolve();
         const sheet = journal.sheet;
         const openAndView = () => {
-            if (typeof journal.show === 'function') {
-                try {
-                    journal.show({ force: true });
-                    if (sheet && typeof sheet.viewPage === 'function') {
-                        if (sheet.rendered) {
-                            sheet.viewPage(pageId);
-                        } else {
-                            setTimeout(() => sheet.viewPage?.(pageId), 100);
-                        }
-                    }
-                    return;
-                } catch (e) { /* fall through */ }
-            }
+            // Open the sheet for the current user only; do not use journal.show() as that broadcasts "shown to all players"
             if (sheet && typeof sheet.viewPage === 'function') {
                 try {
-                    if (!sheet.rendered) sheet.render(true);
-                    sheet.viewPage(pageId);
+                    if (sheet.rendered) {
+                        sheet.viewPage(pageId);
+                    } else {
+                        sheet.render(true);
+                        setTimeout(() => sheet.viewPage?.(pageId), 100);
+                    }
                     return;
                 } catch (e) { /* fall through */ }
             }
