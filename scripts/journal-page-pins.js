@@ -600,7 +600,6 @@ export class JournalPagePins {
                 await page.setFlag(MODULE.ID, 'pinId', pinId);
                 await page.setFlag(MODULE.ID, 'sceneId', targetSceneId);
                 await pins.reload({ sceneId: targetSceneId });
-                if (placed) ui.notifications.info('Journal page pinned to the scene.');
             } catch (error) {
                 ui.notifications.error(`Could not place pin: ${error?.message || error}`);
             }
