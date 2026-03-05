@@ -1,6 +1,7 @@
 // Journal Page Pins – add a "pin this page" control and placement flow
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
+import { getCachedTemplate } from './blacksmith.js';
 import { HookManager } from './manager-hooks.js';
 import { PinManager } from './manager-pins.js';
 
@@ -196,7 +197,6 @@ export class JournalPagePins {
         if (!journal) return;
 
         this._injectPinBar(sheetRoot, journal);
-        setTimeout(() => this._injectPinBar(sheetRoot, journal), 200);
     }
 
     /**
@@ -262,44 +262,59 @@ export class JournalPagePins {
      * Inject the "Pin this page" bar after .journal-header (same area as encounter toolbar).
      * Uses same pageId resolution as encounter toolbar; click handler uses the bar's stored data-page-id so we pin the correct page.
      */
-    static _injectPinBar(root, journal) {
+    static async _injectPinBar(root, journal) {
         const journalHeader = root.querySelector('.journal-header');
         const journalEntryPages = root.querySelector('.journal-entry-pages');
         if (!journalHeader || !journalEntryPages) return;
 
-        let bar = root.querySelector('.journal-page-pins-bar');
-        if (!bar) {
-            bar = document.createElement('div');
-            bar.className = 'journal-page-pins-bar';
-            journalHeader.insertAdjacentElement('afterend', bar);
-        }
-
         const pageId = this._getActivePageIdFromSheet(root);
         const activePage = (pageId && journal?.pages) ? journal.pages.get(pageId) : null;
-        bar.setAttribute('data-page-id', pageId ?? '');
-        bar.hidden = !activePage;
 
-        if (!bar.querySelector(`.${this.BUTTON_CLASS}`)) {
-            const button = document.createElement('a');
-            button.className = `header-control icon ${this.BUTTON_CLASS}`;
-            button.title = 'Pin this journal page to the current scene';
-            button.innerHTML = '<i class="fa-solid fa-map-pin"></i>';
-            button.addEventListener('click', (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                const barEl = event.target.closest?.('.journal-page-pins-bar');
-                const sheet = (event.target.closest?.('.journal-sheet') || event.target.closest?.('.journal-entry')) ?? root;
-                const pinnedPageId = barEl?.getAttribute?.('data-page-id');
-                const j = pinnedPageId ? this._resolveJournalFromSheet(sheet, null) : null;
-                const page = j?.pages?.get(pinnedPageId) ?? null;
-                if (!page) {
-                    ui.notifications.warn('Could not determine which page to pin. Switch to the page you want and try again.');
+        let bar = root.querySelector('.journal-page-pins-bar');
+        if (!bar) {
+            try {
+                const templatePath = `modules/${MODULE.ID}/templates/toolbar-pins.hbs`;
+                const template = await getCachedTemplate(templatePath);
+                bar = root.querySelector('.journal-page-pins-bar');
+                if (bar) {
+                    bar.setAttribute('data-page-id', pageId ?? '');
+                    bar.hidden = !activePage;
                     return;
                 }
-                this._beginPlacement(page);
-            });
-            bar.appendChild(button);
+                root.querySelectorAll('.journal-page-pins-bar').forEach((existing) => existing.remove());
+                const html = template({ pageId: pageId ?? '' });
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = html;
+                bar = wrapper.firstElementChild;
+                if (!bar || !bar.classList.contains('journal-page-pins-bar')) {
+                    postConsoleAndNotification(MODULE.NAME, 'Journal page pins: toolbar template did not return expected element', null, false, true);
+                    return;
+                }
+                journalHeader.insertAdjacentElement('afterend', bar);
+                bar.addEventListener('click', (event) => {
+                    const target = event.target.closest?.('.journal-page-pin-button');
+                    if (!target) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const barEl = event.currentTarget;
+                    const sheet = (event.target.closest?.('.journal-sheet') || event.target.closest?.('.journal-entry')) ?? root;
+                    const pinnedPageId = barEl?.getAttribute?.('data-page-id');
+                    const j = pinnedPageId ? this._resolveJournalFromSheet(sheet, null) : null;
+                    const page = j?.pages?.get(pinnedPageId) ?? null;
+                    if (!page) {
+                        ui.notifications.warn('Could not determine which page to pin. Switch to the page you want and try again.');
+                        return;
+                    }
+                    this._beginPlacement(page);
+                });
+            } catch (err) {
+                postConsoleAndNotification(MODULE.NAME, 'Journal page pins: failed to render toolbar', err?.message ?? err, false, true);
+                return;
+            }
         }
+
+        bar.setAttribute('data-page-id', pageId ?? '');
+        bar.hidden = !activePage;
     }
 
     static _processOpenSheets() {
@@ -516,11 +531,11 @@ export class JournalPagePins {
         document.body.classList.add(this.PLACEMENT_CLASS);
 
         const overlay = document.getElementById('blacksmith-pins-overlay');
-        const preview = overlay ? this._createPlacementPreview(pin) : null;
-        if (preview && overlay) {
-            overlay.appendChild(preview);
+        const preview = this._createPlacementPreview(pin);
+        if (preview) {
             preview.style.pointerEvents = 'none';
             preview.classList.add('blacksmith-pin-placement-preview');
+            document.body.appendChild(preview);
         }
         const cancelPlacement = () => {
             cleanup();
@@ -599,7 +614,7 @@ export class JournalPagePins {
         const el = document.createElement('div');
         el.className = 'blacksmith-pin';
         el.dataset.shape = shape;
-        el.style.position = 'absolute';
+        el.style.position = 'fixed';
         el.style.width = `${size}px`;
         el.style.height = `${size}px`;
         el.style.backgroundColor = fillColor;

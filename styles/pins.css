@@ -63,29 +63,19 @@
     z-index: 5;
 }
 
-/* Placement preview: follows cursor during pin place, drawn on top */
+/* Placement preview: follows cursor during pin place, drawn on top of all UI (body child) */
 .blacksmith-pin-placement-preview {
     pointer-events: none;
-    z-index: 9999;
+    position: fixed;
+    z-index: 100000;
 }
 
-/* Journal page pins bar: sits below .journal-header (same area as encounter toolbar) */
-.journal-page-pins-bar {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
-    min-height: 2rem;
-}
-.journal-page-pins-bar .journal-page-pin-button {
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    color: var(--color-text-light-heading, #f0f0e0);
-}
-.journal-page-pins-bar .journal-page-pin-button:hover {
-    background: rgba(0, 0, 0, 0.2);
-    color: var(--color-text-light-primary, #fff);
-}
+
+
+
+
+
+
 
 /* Pin without drop shadow */
 .blacksmith-pin[data-no-shadow="true"] {

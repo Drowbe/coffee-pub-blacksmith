@@ -32,6 +32,7 @@
 @import "toolbar-zones.css";
 @import "toolbar-encounter.css";
 @import "journal-tools.css";
+@import "journal-pins.css";
 
 /* --- Cards ---------------------- */
 @import "cards-common-layout.css"; /* master Layout */

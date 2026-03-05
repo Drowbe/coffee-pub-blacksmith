@@ -980,9 +980,7 @@ class MenuBar {
             moduleId: "blacksmith-core",
             gmOnly: false,
             leaderOnly: false,
-            visible: () => {
-                return game.settings.get(MODULE.ID, 'menubarShowPins');
-            },
+            visible: false,
             toggleable: true,
             active: () => {
                 return PinManager.isGlobalHidden();
@@ -990,62 +988,8 @@ class MenuBar {
             iconColor: null,
             buttonNormalTint: null,
             buttonSelectedTint: null,
-            contextMenuItems: (toolId, tool) => {
-                const globalHidden = PinManager.isGlobalHidden();
-                const sceneId = canvas?.scene?.id;
-                const scenePins = sceneId ? PinManager.list({ sceneId }) : [];
-                const unplacedPins = PinManager.list({ unplacedOnly: true }) || [];
-                const allPins = [...scenePins, ...unplacedPins];
-                const pairKey = (p) => `${p.moduleId || ''}|${(p.type != null && p.type !== '') ? p.type : 'default'}`;
-                const pairs = [...new Map(allPins.filter((p) => p.moduleId).map((p) => {
-                    const type = (p.type != null && p.type !== '') ? p.type : 'default';
-                    return [pairKey(p), { moduleId: p.moduleId, type }];
-                })).values()];
-                pairs.sort((a, b) => (a.moduleId + a.type).localeCompare(b.moduleId + b.type));
-
-                // Show all: turn on all pins (global + every module-type). Hide all: turn off all.
-                const items = [
-                    {
-                        name: "Hide all pins",
-                        icon: "fa-solid fa-map-pin",
-                        onClick: async () => {
-                            await PinManager.setGlobalHidden(true);
-                            for (const { moduleId, type } of pairs) await PinManager.setModuleTypeHidden(moduleId, type, true);
-                            MenuBar.renderMenubar(true);
-                        }
-                    },
-                    {
-                        name: "Show all pins",
-                        icon: "fa-solid fa-map-pin",
-                        onClick: async () => {
-                            await PinManager.setGlobalHidden(false);
-                            for (const { moduleId, type } of pairs) await PinManager.setModuleTypeHidden(moduleId, type, false);
-                            MenuBar.renderMenubar(true);
-                        }
-                    }
-                ];
-
-                // Per-type: only that type. (If global is on and we "Show", clear global so this type can show.)
-                for (const { moduleId, type } of pairs) {
-                    const typeHidden = PinManager.isModuleTypeHidden(moduleId, type);
-                    const showLabel = globalHidden || typeHidden;
-                    const friendlyName = PinManager.getPinTypeLabel(moduleId, type);
-                    const label = friendlyName || `${game.modules.get(moduleId)?.title ?? moduleId} ${type}`;
-                    items.push({
-                        name: showLabel ? `Show ${label}` : `Hide ${label}`,
-                        icon: "fa-solid fa-map-pin",
-                        onClick: async () => {
-                            if (showLabel) {
-                                await PinManager.setGlobalHidden(false);
-                                await PinManager.setModuleTypeHidden(moduleId, type, false);
-                            } else {
-                                await PinManager.setModuleTypeHidden(moduleId, type, true);
-                            }
-                            MenuBar.renderMenubar(true);
-                        }
-                    });
-                }
-                return items;
+            contextMenuItems: () => {
+                return this._getPinsVisibilityMenuItems();
             }
         });
 
@@ -4409,6 +4353,7 @@ class MenuBar {
         this._closeMenubarContextMenu();
 
         const mapped = (items || []).map((item) => ({
+            separator: !!item.separator,
             name: item.name,
             icon: item.icon,
             description: item.description,
@@ -4424,6 +4369,7 @@ class MenuBar {
             },
             submenu: Array.isArray(item.submenu)
                 ? item.submenu.map((sub) => ({
+                    separator: !!sub.separator,
                     name: sub.name,
                     description: sub.description,
                     icon: sub.icon,
@@ -4474,9 +4420,97 @@ class MenuBar {
             }
         });
 
+        const visibilityItems = this._getPinsVisibilityMenuItems();
+        const clearItems = this._getPinsClearMenuItems();
+        const pinsSubmenu = [...visibilityItems];
+        if (visibilityItems.length > 0 && clearItems.length > 0) {
+            pinsSubmenu.push({ separator: true });
+        }
+        pinsSubmenu.push(...clearItems);
+
+        items.push({
+            name: "Pins",
+            icon: "fa-solid fa-map-pin",
+            description: "Visibility and clear options",
+            submenu: pinsSubmenu
+        });
+
+        return items;
+    }
+
+    /**
+     * Build visibility menu items for pins (used by pin tool right-click and start menu flyout).
+     * @returns {Array<{name: string, icon: string, onClick: Function}>}
+     * @private
+     */
+    static _getPinsVisibilityMenuItems() {
+        const globalHidden = PinManager.isGlobalHidden();
+        const sceneId = canvas?.scene?.id;
+        const scenePins = sceneId ? PinManager.list({ sceneId }) : [];
+        const unplacedPins = PinManager.list({ unplacedOnly: true }) || [];
+        const allPins = [...scenePins, ...unplacedPins];
+        const pairKey = (p) => `${p.moduleId || ''}|${(p.type != null && p.type !== '') ? p.type : 'default'}`;
+        const pairs = [...new Map(allPins.filter((p) => p.moduleId).map((p) => {
+            const type = (p.type != null && p.type !== '') ? p.type : 'default';
+            return [pairKey(p), { moduleId: p.moduleId, type }];
+        })).values()];
+        pairs.sort((a, b) => (a.moduleId + a.type).localeCompare(b.moduleId + b.type));
+
+        const items = [
+            {
+                name: "Hide all pins",
+                icon: "fa-solid fa-map-pin",
+                onClick: async () => {
+                    await PinManager.setGlobalHidden(true);
+                    for (const { moduleId, type } of pairs) await PinManager.setModuleTypeHidden(moduleId, type, true);
+                    MenuBar.renderMenubar(true);
+                }
+            },
+            {
+                name: "Show all pins",
+                icon: "fa-solid fa-map-pin",
+                onClick: async () => {
+                    await PinManager.setGlobalHidden(false);
+                    for (const { moduleId, type } of pairs) await PinManager.setModuleTypeHidden(moduleId, type, false);
+                    MenuBar.renderMenubar(true);
+                }
+            }
+        ];
+
+        for (const { moduleId, type } of pairs) {
+            const typeHidden = PinManager.isModuleTypeHidden(moduleId, type);
+            const showLabel = globalHidden || typeHidden;
+            const friendlyName = PinManager.getPinTypeLabel(moduleId, type);
+            const label = friendlyName || `${game.modules.get(moduleId)?.title ?? moduleId} ${type}`;
+            items.push({
+                name: showLabel ? `Show ${label}` : `Hide ${label}`,
+                icon: "fa-solid fa-map-pin",
+                onClick: async () => {
+                    if (showLabel) {
+                        await PinManager.setGlobalHidden(false);
+                        await PinManager.setModuleTypeHidden(moduleId, type, false);
+                    } else {
+                        await PinManager.setModuleTypeHidden(moduleId, type, true);
+                    }
+                    MenuBar.renderMenubar(true);
+                }
+            });
+        }
+
+        return items;
+    }
+
+    /**
+     * Build clear menu items for pins by scene pin type (GM-only actions).
+     * @returns {Array<{name: string, icon: string, description?: string, disabled?: boolean, onClick?: Function}>}
+     * @private
+     */
+    static _getPinsClearMenuItems() {
         const canClearPins = !!game.user?.isGM && !!canvas?.scene;
         const sceneId = canvas?.scene?.id;
+        const sceneName = canvas?.scene?.name || 'this scene';
         const scenePins = sceneId ? (PinManager.list({ sceneId }) || []) : [];
+
         const pinTypeMap = new Map(); // key: moduleId|type => { moduleId, type, label, count }
         for (const pin of scenePins) {
             const moduleId = pin?.moduleId || '';
@@ -4494,12 +4528,12 @@ class MenuBar {
         }
         const pinTypeEntries = Array.from(pinTypeMap.values()).sort((a, b) => a.label.localeCompare(b.label));
 
-        const pinsSubmenu = [];
-        pinsSubmenu.push({
-            name: "All Pins",
+        const items = [];
+        items.push({
+            name: "Clear All Pins",
             icon: "fa-solid fa-trash",
             disabled: !canClearPins,
-            description: !game.user?.isGM ? "GM only" : (!canvas?.scene ? "No active scene" : `Delete all pins on ${canvas.scene.name}`),
+            description: !game.user?.isGM ? "GM only" : (!canvas?.scene ? "No active scene" : `Delete all pins on ${sceneName}`),
             onClick: async () => {
                 if (!canClearPins) return;
                 try {
@@ -4520,8 +4554,8 @@ class MenuBar {
         });
 
         for (const entry of pinTypeEntries) {
-            pinsSubmenu.push({
-                name: entry.label,
+            items.push({
+                name: `Clear ${entry.label}`,
                 icon: "fa-solid fa-trash-can",
                 disabled: !canClearPins,
                 description: `Delete ${entry.count} pin${entry.count !== 1 ? 's' : ''}`,
@@ -4544,14 +4578,6 @@ class MenuBar {
                 }
             });
         }
-
-        items.push({
-            name: "Pins",
-            icon: "fa-solid fa-map-pin",
-            disabled: !canClearPins,
-            description: !game.user?.isGM ? "GM only" : (!canvas?.scene ? "No active scene" : "Clear pins..."),
-            submenu: pinsSubmenu
-        });
 
         return items;
     }

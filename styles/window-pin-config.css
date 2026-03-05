@@ -450,6 +450,13 @@ div#blacksmith-pin-config .window-content {
     position: absolute;
 }
 
+.blacksmith-pin-config-allow-duplicate {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
 .blacksmith-pin-config-toggle-slider {
     position: absolute;
     inset: 0;
@@ -472,6 +479,7 @@ div#blacksmith-pin-config .window-content {
     transition: transform 0.2s ease;
 }
 
-.blacksmith-pin-config-default:checked + .blacksmith-pin-config-toggle-slider::before {
+.blacksmith-pin-config-default:checked + .blacksmith-pin-config-toggle-slider::before,
+.blacksmith-pin-config-allow-duplicate:checked + .blacksmith-pin-config-toggle-slider::before {
     transform: translateX(22px);
 }
