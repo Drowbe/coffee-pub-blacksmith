@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Request a Roll completion hook**: Added global hook `blacksmith.requestRollComplete` for cross-client integrations. Payload includes `messageId`, `message`, `messageData`, `tokenId`, `result`, `allComplete`, `requesterId`, and `rollerUserId`. Existing `onRollComplete` callback behavior remains supported for backward compatibility.
 - **Request a Roll docs**: Updated `documentation/api-requestroll.md` to document local `onRollComplete` behavior vs. cross-client hook usage and the full completion payload contract.
+- **Movement sound – play once per move**: Token movement (walking) sound no longer uses start/stop looping; the sound never stopped when movement ended. It now plays once per movement update when the token moves beyond the distance threshold. A TODO was added in `documentation/TODO.md` to fix the movement sound start/stop behavior (loop while moving, stop when idle) in a future release.
+- **Party secondary bar – player visibility**: In the party menubar (player secondary bar), players now see only **Vote** (when they are the session leader) and **Statistics**. Deployment pattern, Deploy Party, and Experience are visible only to the GM. Vote is visible to the GM or the current session leader. Implemented via `visible` on party secondary bar items in `api-menubar.js` (`_registerPartyTools`).
 
 
 ## [13.3.0] - 2025-02-27
