@@ -8,6 +8,16 @@
     
     {{!-- Combat Controls and Portraits Group --}}
     <div class="combat-portraits-group">
+        <div class="combatbar-button-control-container action-button tracker-button">
+            <a class="combatbar-button action-type-end"
+               aria-label="Tracker"
+               role="button"
+               data-tooltip="Show/Hide Combat Tracker"
+               data-control="toggleTracker">
+                <i class="fas fa-list"></i>
+                <span class="combatbar-button-label">Tracker</span>
+            </a>
+        </div>
 
         {{#if isGM}}
         {{#if isActive}}

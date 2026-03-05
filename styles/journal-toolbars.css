@@ -1,0 +1,52 @@
+/* ────────────────────────────────────────────────
+  Journal Page Pins Toolbar
+──────────────────────────────────────────────── */
+
+.blacksmith-journal-toolbar-wrapper {
+    display: flex;
+    align-items: center;
+    min-height: 1.5rem;
+    padding: 0 16px 8px 14px;
+    font-size: 1.0em;
+    
+}
+
+.blacksmith-journal-toolbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 6px;
+    padding: 2px 0px;
+    background: var(--dnd5e-journal-header-background);
+    border-radius: 3px;
+    font-family: var(--font-primary);
+}
+
+.blacksmith-journal-toolbar-left,
+.blacksmith-journal-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 2px 6px 2px 6px;
+}
+
+.blacksmith-journal-toolbar-row .blacksmith-journal-button-pin {
+    padding: 0.25rem 0.5rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    color: var(--color-text-light-heading);
+    text-transform: uppercase;
+    text-decoration: none;
+}
+
+/* PINS SPECIFIC STYLES */
+
+/* ICON */
+.blacksmith-journal-toolbar-row .blacksmith-journal-button-pin i {
+    margin-right: 3px;
+}
+.blacksmith-journal-toolbar-row .blacksmith-journal-button-pin:hover {
+    background: rgba(185, 84, 61, 1.0);
+    color: var(--color-text-light-primary);
+}

@@ -77,6 +77,7 @@ class MenuBar {
     static _middleZoneOverflowItems = [];  // Items moved to overflow menu when middle zone overflows
     static _middleZoneResizeObserver = null;  // ResizeObserver for overflow detection
     static _combatBarHoverMoveHandler = null;
+    static _combatBarContextMenuHandler = null;
     static _combatHoverCardEl = null;
     static _combatHoverCardCombatantId = null;
 
@@ -562,7 +563,7 @@ class MenuBar {
                     if (combatantId) {
                         event.preventDefault();
                         event.stopPropagation();
-                        this.panToCombatant(combatantId);
+                        this.panToCombatant(combatantId, { selectToken: game.user.isGM });
                         return;
                     }
                 }
@@ -815,6 +816,17 @@ class MenuBar {
             }
         };
         document.addEventListener('mousemove', this._combatBarHoverMoveHandler);
+        this._combatBarContextMenuHandler = (event) => {
+            const portrait = event.target?.closest?.('.blacksmith-menubar-secondary .combat-portrait-container[data-combatant-id]');
+            if (!portrait || !this._isCombatBarActive()) return;
+            const combatantId = portrait.getAttribute('data-combatant-id');
+            if (!combatantId) return;
+            event.preventDefault();
+            event.stopPropagation();
+            this._hideCombatantHoverCard();
+            this._showCombatantPortraitContextMenu(combatantId, event.clientX, event.clientY);
+        };
+        document.addEventListener('contextmenu', this._combatBarContextMenuHandler);
         
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers registered", "", true, false);
     }
@@ -837,7 +849,12 @@ class MenuBar {
             document.removeEventListener('mousemove', this._combatBarHoverMoveHandler);
             this._combatBarHoverMoveHandler = null;
         }
+        if (this._combatBarContextMenuHandler) {
+            document.removeEventListener('contextmenu', this._combatBarContextMenuHandler);
+            this._combatBarContextMenuHandler = null;
+        }
         this._hideCombatantHoverCard();
+        UIContextMenu.close('blacksmith-combat-portrait-context-menu');
         
         // Clean up menubar click handlers
         this.removeClickHandlers();
@@ -4254,8 +4271,9 @@ class MenuBar {
      * Pan to a specific combatant's token
      * @param {string} combatantId - The combatant ID to pan to
      */
-    static panToCombatant(combatantId) {
+    static panToCombatant(combatantId, options = {}) {
         try {
+            const { selectToken = false } = options;
             const combat = game.combat;
             if (!combat) return;
 
@@ -4295,6 +4313,14 @@ class MenuBar {
 
             // Pan to the token using canvasToken coordinates
             canvas.animatePan({ x: canvasToken.x, y: canvasToken.y });
+
+            if (selectToken && game.user.isGM) {
+                try {
+                    canvasToken.control({ releaseOthers: true });
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, 'Menubar: Failed to select token after pan', error?.message || error, true, false);
+                }
+            }
             
             // Optionally highlight the token briefly if it's visible
             if (canvasToken.visible && typeof canvasToken.setHighlight === 'function') {
@@ -4317,6 +4343,187 @@ class MenuBar {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error panning to combatant", error, false, false);
         }
+    }
+
+    static _getCombatantContext(combatantId) {
+        const combat = game.combat;
+        if (!combat) return null;
+        const combatant = combat.combatants.get(combatantId);
+        if (!combatant) return null;
+        const tokenDoc = combatant.token || null;
+        const canvasToken = tokenDoc ? canvas.tokens.get(tokenDoc.id) : null;
+        const actor = combatant.actor || null;
+        return { combat, combatant, tokenDoc, canvasToken, actor };
+    }
+
+    static _canOpenCombatantSheet(actor) {
+        if (!actor) return false;
+        if (game.user?.isGM) return true;
+        try {
+            return actor.testUserPermission(game.user, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER);
+        } catch (_error) {
+            return !!actor.isOwner;
+        }
+    }
+
+    static async pingCombatant(combatantId) {
+        try {
+            const context = this._getCombatantContext(combatantId);
+            if (!context?.canvasToken) return;
+            const token = context.canvasToken;
+            const center = token.center || { x: token.x + (token.w / 2), y: token.y + (token.h / 2) };
+
+            if (typeof canvas?.ping === 'function') {
+                try {
+                    await canvas.ping(center, { broadcast: true, style: 'alert' });
+                    return;
+                } catch (_e1) { /* continue fallback */ }
+                try {
+                    await canvas.ping(center, { broadcast: true });
+                    return;
+                } catch (_e2) { /* continue fallback */ }
+                try {
+                    await canvas.ping(center);
+                    return;
+                } catch (_e3) { /* continue fallback */ }
+            }
+
+            if (typeof game.user?.broadcastActivity === 'function') {
+                game.user.broadcastActivity({ ping: center });
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Error pinging combatant token', error?.message || error, false, false);
+        }
+    }
+
+    static async sendHurryUp(combatantId) {
+        try {
+            const context = this._getCombatantContext(combatantId);
+            if (!context?.combatant) return;
+            const targetName = context.combatant.name || 'Unknown';
+            const hurryMessages = [
+                "If you don't make a move soon, {name}, I'm rolling to adopt your turn as my new pet. I'll call it Procrastination Jr.",
+                "{name}, your character isn't actually frozen in time, just your decision-making skills.",
+                "By the time you pick, {name}, our torches will burn out, and we'll have to roleplay in the dark. No pressure.",
+                "Hurry up, {name}, or I'm rolling a persuasion check to convince the DM to skip you!",
+                "We're waiting, {name}, not writing a novel. Unless you are, in which case, finish Chapter 1 already!",
+                "{name}, we're all aging in real-time here. Even the elf is starting to grow gray hairs.",
+                "If you don't decide soon, {name}, I'm calling a bard to write a song about how long this turn took.",
+                "{name}, at this rate, the dice are going to roll themselves out of sheer boredom.",
+                "C'mon, {name}! Even a gelatinous cube moves faster than this.",
+                "{name}, if this turn were a quest, we'd already have failed the time limit."
+            ];
+            const message = hurryMessages[Math.floor(Math.random() * hurryMessages.length)].replace(/{name}/g, targetName);
+
+            await ChatMessage.create({
+                content: message,
+                speaker: ChatMessage.getSpeaker()
+            });
+
+            const hurryUpSound = game.settings.get(MODULE.ID, 'hurryUpSound');
+            if (hurryUpSound !== 'none') {
+                const volume = game.settings.get(MODULE.ID, 'timerSoundVolume');
+                playSound(hurryUpSound, volume);
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Error sending Hurry Up message', error?.message || error, false, false);
+        }
+    }
+
+    static _showCombatantPortraitContextMenu(combatantId, x, y) {
+        const context = this._getCombatantContext(combatantId);
+        if (!context?.combatant) return;
+
+        const { combat, combatant, canvasToken, actor } = context;
+        const canViewSheet = this._canOpenCombatantSheet(actor);
+        const items = [];
+
+        items.push({
+            name: 'Pan to Token',
+            icon: 'fa-solid fa-location-crosshairs',
+            disabled: !canvasToken,
+            callback: async () => {
+                this.panToCombatant(combatantId, { selectToken: game.user.isGM });
+            }
+        });
+
+        items.push({
+            name: 'Ping Token',
+            icon: 'fa-solid fa-signal-stream',
+            disabled: !canvasToken,
+            callback: async () => {
+                await this.pingCombatant(combatantId);
+            }
+        });
+
+        items.push({
+            name: 'Hurry Up',
+            icon: 'fa-solid fa-rabbit-running',
+            callback: async () => {
+                await this.sendHurryUp(combatantId);
+            }
+        });
+
+        if (game.user.isGM) {
+            items.push({
+                name: 'Set As Current Combatant',
+                icon: 'fa-solid fa-crosshairs',
+                callback: async () => {
+                    await this.setCurrentCombatant(combatantId);
+                }
+            });
+        }
+
+        items.push({
+            name: 'View Character Sheet',
+            icon: 'fa-solid fa-user',
+            disabled: !canViewSheet,
+            callback: async () => {
+                if (!canViewSheet || !actor?.sheet) return;
+                actor.sheet.render(true);
+            }
+        });
+
+        if (game.user.isGM) {
+            items.push({
+                name: 'Remove from Combat',
+                icon: 'fa-solid fa-trash',
+                callback: async () => {
+                    await combat.deleteEmbeddedDocuments('Combatant', [combatantId]);
+                }
+            });
+
+            items.push({
+                name: combatant.hidden ? 'Show in Combat' : 'Hide in Combat',
+                icon: combatant.hidden ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
+                callback: async () => {
+                    await combatant.update({ hidden: !combatant.hidden });
+                }
+            });
+
+            items.push({
+                name: 'Replace Image',
+                icon: 'fa-solid fa-image',
+                disabled: !canvasToken,
+                callback: async () => {
+                    if (!canvasToken) return;
+                    try {
+                        canvasToken.control({ releaseOthers: true });
+                    } catch (_error) {
+                        // no-op; window can still open
+                    }
+                    await TokenImageReplacementWindow.openWindow();
+                }
+            });
+        }
+
+        UIContextMenu.show({
+            id: 'blacksmith-combat-portrait-context-menu',
+            x,
+            y,
+            zones: items,
+            zoneClass: 'core'
+        });
     }
 
     /**
