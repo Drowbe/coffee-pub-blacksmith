@@ -17,6 +17,7 @@ import { RoundTimer } from './timer-round.js';
 import { deployParty } from './utility-party.js';
 import { getDeploymentPatternName } from './api-tokens.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
+import { EncounterManager } from './manager-encounter.js';
 import { BroadcastManager } from './manager-broadcast.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { PinManager } from './manager-pins.js';
@@ -75,6 +76,9 @@ class MenuBar {
     static _contextMenuHandlerContainer = null;
     static _middleZoneOverflowItems = [];  // Items moved to overflow menu when middle zone overflows
     static _middleZoneResizeObserver = null;  // ResizeObserver for overflow detection
+    static _combatBarHoverMoveHandler = null;
+    static _combatHoverCardEl = null;
+    static _combatHoverCardCombatantId = null;
 
     static async initialize() {
         // Check if menubar is enabled
@@ -790,6 +794,24 @@ class MenuBar {
         // Add event listeners
         document.addEventListener('click', this._combatBarClickHandler);
         document.addEventListener('dblclick', this._combatBarDblClickHandler);
+        this._combatBarHoverMoveHandler = (event) => {
+            const portrait = event.target?.closest?.('.blacksmith-menubar-secondary .combat-portrait-container[data-combatant-id]');
+            if (!portrait || !this._isCombatBarActive()) {
+                this._hideCombatantHoverCard();
+                return;
+            }
+            const combatantId = portrait.getAttribute('data-combatant-id');
+            if (!combatantId) {
+                this._hideCombatantHoverCard();
+                return;
+            }
+            if (this._combatHoverCardCombatantId !== combatantId || !this._combatHoverCardEl) {
+                this._showCombatantHoverCard(combatantId, event);
+            } else {
+                this._positionCombatantHoverCard(event);
+            }
+        };
+        document.addEventListener('mousemove', this._combatBarHoverMoveHandler);
         
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers registered", "", true, false);
     }
@@ -808,6 +830,11 @@ class MenuBar {
             document.removeEventListener('dblclick', this._combatBarDblClickHandler);
             this._combatBarDblClickHandler = null;
         }
+        if (this._combatBarHoverMoveHandler) {
+            document.removeEventListener('mousemove', this._combatBarHoverMoveHandler);
+            this._combatBarHoverMoveHandler = null;
+        }
+        this._hideCombatantHoverCard();
         
         // Clean up menubar click handlers
         this.removeClickHandlers();
@@ -1057,6 +1084,33 @@ class MenuBar {
         // *** GROUP: COMBAT ***
 
 
+        // ENCOUNTER – secondary bar (Party CR, Monster CR, Difficulty, Reveal)
+        this.registerMenubarTool('encounter', {
+            icon: "fas fa-swords",
+            name: "encounter",
+            title: "Encounter",
+            tooltip: () => {
+                const isEncounterBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'encounter';
+                return isEncounterBarOpen ? "Hide encounter bar" : "Show encounter bar (CR, Reveal)";
+            },
+            onClick: () => {
+                this.toggleSecondaryBar('encounter');
+            },
+            zone: "middle",
+            group: "combat",
+            groupOrder: this.GROUP_ORDER.COMBAT,
+            order: 0,
+            moduleId: "blacksmith-core",
+            gmOnly: true,
+            leaderOnly: false,
+            visible: true,
+            toggleable: true,
+            active: false,
+            iconColor: " rgba(255, 255, 255, 0.6)",
+            buttonNormalTint: "rgba(88, 15, 4, 0.9)",
+            buttonSelectedTint: null
+        });
+
         // CREATE COMBAT
         this.registerMenubarTool('create-combat', {
             icon: "fas fa-swords",
@@ -1282,6 +1336,7 @@ class MenuBar {
 
         // Map secondary bars to their toggle tools for button state syncing
         this.secondaryBarToolMapping.set('combat', 'combat-tracker');
+        this.secondaryBarToolMapping.set('encounter', 'encounter');
         this.secondaryBarToolMapping.set('party', 'party');
         this.secondaryBarToolMapping.set('broadcast', 'broadcast-toggle');
 
@@ -1399,6 +1454,13 @@ class MenuBar {
             persistence: 'manual',
             autoCloseDelay: 10000,
             templatePath: 'modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs'
+        });
+
+        // Register encounter secondary bar (Party CR, Monster CR, Difficulty, Reveal)
+        await this.registerSecondaryBarType('encounter', {
+            height: this.getSecondaryBarHeight('encounter') || 50,
+            persistence: 'manual',
+            templatePath: 'modules/coffee-pub-blacksmith/templates/partials/menubar-encounter.hbs'
         });
 
         // Register party secondary bar (default tool system)
@@ -3018,6 +3080,18 @@ class MenuBar {
                 }
             }
 
+            // For encounter bar, set CR/difficulty and isGM
+            if (typeId === 'encounter') {
+                const assessment = EncounterManager.getCombatAssessment({});
+                this.secondaryBar.data = {
+                    partyCRDisplay: assessment.partyCRDisplay,
+                    monsterCRDisplay: assessment.monsterCRDisplay,
+                    difficulty: assessment.difficulty,
+                    difficultyClass: assessment.difficultyClass,
+                    isGM: game.user.isGM
+                };
+            }
+
             // Set the CSS variables for secondary bar height and total height
             document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', `${this.secondaryBar.height}px`);
             document.documentElement.style.setProperty('--blacksmith-menubar-total-height', `calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height))`);
@@ -3235,6 +3309,7 @@ class MenuBar {
             if (this._isUserExcluded(game.user)) return true;
             if (this.secondaryBar.isOpen && this.secondaryBar.type === 'combat') {
                 this.secondaryBar.userClosed = false;
+                this._hideCombatantHoverCard();
                 
                 // closeSecondaryBar handles button state syncing automatically
                 return this.closeSecondaryBar();
@@ -3296,6 +3371,7 @@ class MenuBar {
             }
 
             const data = combatData || this.getCombatData(combat);
+            this._hideCombatantHoverCard();
             return this.updateSecondaryBar(data);
 
         } catch (error) {
@@ -3589,6 +3665,157 @@ class MenuBar {
         }
     }
 
+    static _showCombatantHoverCard(combatantId, event) {
+        const combat = game.combats?.active;
+        const combatant = combat?.combatants?.get(combatantId);
+        if (!combatant) {
+            this._hideCombatantHoverCard();
+            return;
+        }
+
+        const hoverData = this._getCombatantHoverData(combatant);
+        if (!hoverData) {
+            this._hideCombatantHoverCard();
+            return;
+        }
+
+        if (!this._combatHoverCardEl) {
+            const card = document.createElement('div');
+            card.id = 'blacksmith-combat-hover-card';
+            card.className = 'blacksmith-combat-hover-card';
+            document.body.appendChild(card);
+            this._combatHoverCardEl = card;
+        }
+
+        this._combatHoverCardEl.innerHTML = this._buildCombatantHoverCardHtml(hoverData);
+        this._combatHoverCardEl.classList.add('is-visible');
+        this._combatHoverCardCombatantId = combatantId;
+        this._positionCombatantHoverCard(event);
+    }
+
+    static _positionCombatantHoverCard(event) {
+        if (!this._combatHoverCardEl || !event) return;
+        const card = this._combatHoverCardEl;
+        const offset = 16;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const rect = card.getBoundingClientRect();
+
+        let x = event.clientX + offset;
+        let y = event.clientY + offset;
+
+        if (x + rect.width + 8 > vw) x = event.clientX - rect.width - offset;
+        if (y + rect.height + 8 > vh) y = vh - rect.height - 8;
+        if (x < 8) x = 8;
+        if (y < 8) y = 8;
+
+        card.style.left = `${x}px`;
+        card.style.top = `${y}px`;
+    }
+
+    static _hideCombatantHoverCard() {
+        if (this._combatHoverCardEl) {
+            this._combatHoverCardEl.remove();
+            this._combatHoverCardEl = null;
+        }
+        this._combatHoverCardCombatantId = null;
+    }
+
+    static _getCombatantHoverData(combatant) {
+        const token = combatant?.token;
+        const actor = combatant?.actor;
+        if (!actor && !token) return null;
+
+        let currentHP = 0;
+        let maxHP = 0;
+        if (actor?.system?.attributes?.hp) {
+            currentHP = Number(actor.system.attributes.hp.value ?? 0);
+            maxHP = Number(actor.system.attributes.hp.max ?? 0);
+        } else if (actor?.system?.hitPoints) {
+            currentHP = Number(actor.system.hitPoints.value ?? 0);
+            maxHP = Number(actor.system.hitPoints.max ?? 0);
+        }
+        const hpPercent = maxHP > 0 ? Math.max(0, Math.min(100, (currentHP / maxHP) * 100)) : 0;
+
+        const owners = (game.users?.contents || [])
+            .filter((u) => actor?.testUserPermission?.(u, CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER))
+            .map((u) => u.name)
+            .slice(0, 2);
+
+        return {
+            name: token?.name || actor?.name || combatant?.name || 'Unknown',
+            portrait: actor?.img || token?.img || 'modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp',
+            subtitle: owners.length ? owners.join(', ') : (actor?.type ? String(actor.type).toUpperCase() : 'COMBATANT'),
+            initiative: combatant?.initiative,
+            currentHP,
+            maxHP,
+            hpPercent,
+            stats: this._getCombatantPrimaryStats(actor)
+        };
+    }
+
+    static _getCombatantPrimaryStats(actor) {
+        const stats = [];
+        const pushStat = (label, rawValue) => {
+            if (label == null || rawValue == null) return;
+            const n = Number(rawValue);
+            if (!Number.isFinite(n)) return;
+            stats.push({ label: String(label).slice(0, 3).toUpperCase(), value: Math.round(n) });
+        };
+
+        const abilities = actor?.system?.abilities;
+        if (abilities && typeof abilities === 'object') {
+            Object.entries(abilities).forEach(([key, data]) => {
+                const v = data?.value ?? data?.total ?? data?.score ?? data?.mod;
+                pushStat(key, v);
+            });
+        }
+
+        if (stats.length === 0) {
+            const systemStats = actor?.system?.stats;
+            if (systemStats && typeof systemStats === 'object') {
+                Object.entries(systemStats).forEach(([key, data]) => {
+                    const v = data?.value ?? data?.total ?? data?.score ?? data?.mod ?? data;
+                    pushStat(key, v);
+                });
+            }
+        }
+
+        return stats.slice(0, 6);
+    }
+
+    static _buildCombatantHoverCardHtml(data) {
+        const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+        const statsHtml = (data.stats || []).length
+            ? data.stats.map((s) => `
+                <div class="combat-hover-stat">
+                    <span class="combat-hover-stat-label">${esc(s.label)}</span>
+                    <span class="combat-hover-stat-value">${esc(s.value)}</span>
+                </div>`).join('')
+            : `<div class="combat-hover-stat-empty">No ability scores</div>`;
+
+        const hpLabel = data.maxHP > 0 ? `${data.currentHP}/${data.maxHP}` : 'HP N/A';
+        const initiativeLabel = Number.isFinite(data.initiative) ? String(data.initiative) : '-';
+
+        return `
+            <div class="combat-hover-header">
+                <span class="combat-hover-name">${esc(data.name)}</span>
+            </div>
+            <div class="combat-hover-image-wrap">
+                <img class="combat-hover-image" src="${esc(data.portrait)}" alt="${esc(data.name)}">
+            </div>
+            <div class="combat-hover-hp-wrap">
+                <div class="combat-hover-hp-bar"><span class="combat-hover-hp-fill" style="width:${data.hpPercent}%"></span></div>
+                <div class="combat-hover-row">
+                    <span class="combat-hover-subtitle">${esc(data.subtitle)}</span>
+                    <span class="combat-hover-initiative">Init ${esc(initiativeLabel)}</span>
+                </div>
+                <div class="combat-hover-hp-text">${esc(hpLabel)}</div>
+            </div>
+            <div class="combat-hover-stats">${statsHtml}</div>
+        `;
+    }
+
     /**
      * Test function to verify secondary bar system
      */
@@ -3698,9 +3925,7 @@ class MenuBar {
         // If custom template, use existing data preparation (combat bar)
         if (barType.hasCustomTemplate) {
             // For combat bar, data is already prepared in updateCombatBar or openSecondaryBar
-            // Ensure data.data exists (combat data) - this is what gets passed to the template
             if (!data.data && data.type === 'combat') {
-                // Fallback: try to get combat data if it's missing
                 const combat = game.combat;
                 if (combat) {
                     data.data = this.getCombatData(combat);
@@ -3715,6 +3940,16 @@ class MenuBar {
                         actionButton: null
                     };
                 }
+            } else if (data.type === 'encounter') {
+                // Always refresh encounter bar with current CR/difficulty when re-rendering
+                const assessment = EncounterManager.getCombatAssessment({});
+                data.data = {
+                    partyCRDisplay: assessment.partyCRDisplay,
+                    monsterCRDisplay: assessment.monsterCRDisplay,
+                    difficulty: assessment.difficulty,
+                    difficultyClass: assessment.difficultyClass,
+                    isGM: game.user.isGM
+                };
             } else if (!data.data) {
                 data.data = {};
             }
@@ -4084,6 +4319,26 @@ class MenuBar {
                 }
             }
             
+            // Check if this is an encounter bar Reveal button
+            const encounterRevealBtn = event.target.closest('.encounter-bar-reveal, [data-control="encounterReveal"]');
+            if (encounterRevealBtn) {
+                event.preventDefault();
+                event.stopPropagation();
+                EncounterManager.revealHiddenTokens();
+                if (this.secondaryBar.isOpen && this.secondaryBar.type === 'encounter') {
+                    const assessment = EncounterManager.getCombatAssessment({});
+                    this.secondaryBar.data = {
+                        partyCRDisplay: assessment.partyCRDisplay,
+                        monsterCRDisplay: assessment.monsterCRDisplay,
+                        difficulty: assessment.difficulty,
+                        difficultyClass: assessment.difficultyClass,
+                        isGM: game.user.isGM
+                    };
+                    this.renderMenubar(true);
+                }
+                return;
+            }
+
             // Check if this is a secondary bar item click (default template)
             const secondaryBarItem = event.target.closest('.secondary-bar-item[data-item-id]');
             if (secondaryBarItem) {

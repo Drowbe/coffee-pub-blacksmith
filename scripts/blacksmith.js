@@ -58,6 +58,7 @@ import { CanvasTools } from './manager-canvas.js';
 import { CombatTracker } from './combat-tracker.js';
 import { LatencyChecker } from './latency-checker.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
+import { EncounterManager } from './manager-encounter.js';
 import { JournalTools } from './journal-tools.js';
 import { JournalPagePins } from './journal-page-pins.js';
 import { CSSEditor } from './window-gmtools.js';
@@ -1045,13 +1046,13 @@ Hooks.once('init', async function() {
         // ✅ NEW: Chat Cards API for external modules
         chatCards: ChatCardsAPI,
 
-        // ✅ Combat assessment API (party CR, monster CR, encounter difficulty) from encounter toolbar
-        getPartyCR: EncounterToolbar.getPartyCR.bind(EncounterToolbar),
-        getMonsterCR: EncounterToolbar.getMonsterCR.bind(EncounterToolbar),
-        calculateEncounterDifficulty: EncounterToolbar.calculateEncounterDifficulty.bind(EncounterToolbar),
-        getCombatAssessment: EncounterToolbar.getCombatAssessment.bind(EncounterToolbar),
-        parseCR: EncounterToolbar.parseCR.bind(EncounterToolbar),
-        formatCR: EncounterToolbar.formatCR.bind(EncounterToolbar),
+        // ✅ Combat assessment API (party CR, monster CR, encounter difficulty) from EncounterManager
+        getPartyCR: EncounterManager.getPartyCR.bind(EncounterManager),
+        getMonsterCR: EncounterManager.getMonsterCR.bind(EncounterManager),
+        calculateEncounterDifficulty: EncounterManager.calculateEncounterDifficulty.bind(EncounterManager),
+        getCombatAssessment: EncounterManager.getCombatAssessment.bind(EncounterManager),
+        parseCR: EncounterManager.parseCR.bind(EncounterManager),
+        formatCR: EncounterManager.formatCR.bind(EncounterManager),
 
         // ✅ Monster deployment API (same as journal encounter toolbar)
         deployMonsters: EncounterToolbar.deployMonsters.bind(EncounterToolbar),

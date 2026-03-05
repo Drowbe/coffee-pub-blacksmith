@@ -43,6 +43,7 @@
     
     
     --blacksmith-menubar-secondary-combat-height: 60px;
+    --blacksmith-menubar-secondary-encounter-height: 50px;
     --blacksmith-menubar-secondary-broadcast-height: 60px;
     
     /* Default toolbar */
@@ -815,6 +816,73 @@ Combat Tracker Tunables
     background-color: var(--blacksmith-menubar-secondary-backgroundcolor);
 }
 
+/* Encounter bar (CR, Difficulty, Reveal) */
+.blacksmith-menubar-secondary[data-bar-type="encounter"] {
+    background-color: var(--blacksmith-menubar-secondary-backgroundcolor);
+}
+
+.blacksmith-menubar-secondary .encounter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    height: 100%;
+    padding: 0 12px;
+}
+
+.blacksmith-menubar-secondary .encounter-bar-cr {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.blacksmith-menubar-secondary .encounter-bar-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+}
+
+.blacksmith-menubar-secondary .encounter-bar-badge i {
+    opacity: 0.9;
+}
+
+.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-trivial { border-left: 3px solid #6b8e6b; }
+.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-easy { border-left: 3px solid #7cba7c; }
+.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-medium { border-left: 3px solid #c9a227; }
+.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-hard { border-left: 3px solid #c95827; }
+.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-deadly { border-left: 3px solid #a02020; }
+.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-impossible { border-left: 3px solid #4a0a0a; }
+
+.blacksmith-menubar-secondary .encounter-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.blacksmith-menubar-secondary .encounter-bar-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(88, 15, 4, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9em;
+    cursor: pointer;
+}
+
+.blacksmith-menubar-secondary .encounter-bar-button:hover {
+    background: rgba(120, 30, 10, 0.95);
+    color: #fff;
+}
+
 .blacksmith-menubar-secondary .combat-tracker-bar {
     display: flex;
     align-items: center;
@@ -1190,4 +1258,138 @@ Dead Overlay
     transition: all 0.01s ease;
     text-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.2);
     
+}
+
+/* =========================
+Combat Hover Card
+========================= */
+
+.blacksmith-combat-hover-card {
+    position: fixed;
+    z-index: 120;
+    width: 300px;
+    border: 2px solid rgba(233, 198, 142, 0.85);
+    border-radius: 8px;
+    padding: 8px;
+    background:
+        linear-gradient(180deg, rgba(247, 236, 216, 0.98), rgba(228, 215, 193, 0.98));
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.55);
+    color: #2f241a;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 80ms ease, transform 80ms ease;
+}
+
+.blacksmith-combat-hover-card.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.blacksmith-combat-hover-card .combat-hover-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(112, 85, 49, 0.25);
+    padding-bottom: 4px;
+}
+
+.blacksmith-combat-hover-card .combat-hover-name {
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    font-size: 20px;
+    line-height: 1.1;
+}
+
+.blacksmith-combat-hover-card .combat-hover-image-wrap {
+    border: 1px solid rgba(112, 85, 49, 0.55);
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(77, 53, 28, 0.15);
+}
+
+.blacksmith-combat-hover-card .combat-hover-image {
+    width: 100%;
+    height: 260px;
+    object-fit: cover;
+    display: block;
+}
+
+.blacksmith-combat-hover-card .combat-hover-hp-wrap {
+    margin-top: 8px;
+}
+
+.blacksmith-combat-hover-card .combat-hover-hp-bar {
+    width: 100%;
+    height: 10px;
+    background: rgba(96, 79, 62, 0.18);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.blacksmith-combat-hover-card .combat-hover-hp-fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #7f2f1e, #bd4a2d);
+}
+
+.blacksmith-combat-hover-card .combat-hover-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    gap: 8px;
+}
+
+.blacksmith-combat-hover-card .combat-hover-subtitle,
+.blacksmith-combat-hover-card .combat-hover-initiative,
+.blacksmith-combat-hover-card .combat-hover-hp-text {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: rgba(56, 41, 26, 0.85);
+    text-transform: uppercase;
+}
+
+.blacksmith-combat-hover-card .combat-hover-hp-text {
+    margin-top: 2px;
+}
+
+.blacksmith-combat-hover-card .combat-hover-stats {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 4px;
+}
+
+.blacksmith-combat-hover-card .combat-hover-stat {
+    border-radius: 4px;
+    background: rgba(102, 84, 62, 0.14);
+    border: 1px solid rgba(102, 84, 62, 0.24);
+    padding: 4px 2px;
+    text-align: center;
+}
+
+.blacksmith-combat-hover-card .combat-hover-stat-label {
+    display: block;
+    font-size: 10px;
+    line-height: 1;
+    opacity: 0.75;
+    margin-bottom: 2px;
+}
+
+.blacksmith-combat-hover-card .combat-hover-stat-value {
+    display: block;
+    font-size: 20px;
+    line-height: 1;
+    font-weight: 800;
+}
+
+.blacksmith-combat-hover-card .combat-hover-stat-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-size: 12px;
+    color: rgba(56, 41, 26, 0.75);
+    padding: 4px;
 }

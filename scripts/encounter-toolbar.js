@@ -6,6 +6,7 @@ import { MODULE } from './const.js';
 import { getCachedTemplate } from './blacksmith.js';
 import { postConsoleAndNotification, resolveWildcardPath } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { EncounterManager } from './manager-encounter.js';
 import { deployTokens, deployTokensSequential, getDefaultTokenData, validateActorUUID, getTargetPosition, calculateCirclePosition, calculateScatterPosition, calculateSquarePosition, getDeploymentPatternName } from './api-tokens.js';
 
 export class EncounterToolbar {
@@ -179,9 +180,8 @@ export class EncounterToolbar {
                 const pageId = toolbarElement.getAttribute('data-page-id');
                 
                 if (pageId) {
-                    // Recalculate CR values
-                    const partyCR = this.getPartyCR();
-                    const monsterCR = this.getMonsterCR({ monsters: [] }); // Empty metadata for canvas-only calculation
+                    const partyCR = EncounterManager.getPartyCR();
+                    const monsterCR = EncounterManager.getMonsterCR({ monsters: [] }); // Empty metadata for canvas-only calculation
                     
                     // Update the CR badges with icons intact
                     const partyCrElement = toolbarElement.querySelector('.encounter-party-cr');
@@ -202,7 +202,9 @@ export class EncounterToolbar {
                     if (deployVisibilityElement) deployVisibilityElement.innerHTML = `<i class="fas fa-eye"></i>${visibilityName}`;
                     
                     // Update the difficulty badge based on current CR values
-                    const difficultyData = this._calculateEncounterDifficulty(partyCR, monsterCR);
+                    const partyCRNum = EncounterManager.parseCR(partyCR);
+                    const monsterCRNum = EncounterManager.parseCR(monsterCR);
+                    const difficultyData = EncounterManager.calculateEncounterDifficulty(partyCRNum, monsterCRNum);
                     const difficultyBadge = toolbarElement.querySelector('.difficulty-badge');
                     if (difficultyBadge) {
                         difficultyBadge.innerHTML = `<i class="fa-solid fa-swords"></i>${difficultyData.difficulty}`;
@@ -958,11 +960,13 @@ export class EncounterToolbar {
                 }
                 
                 // Calculate CR values
-                const partyCR = this.getPartyCR();
-                const monsterCR = this.getMonsterCR(encounterData);
+                const partyCR = EncounterManager.getPartyCR();
+                const monsterCR = EncounterManager.getMonsterCR(encounterData);
                 
                 // Calculate difficulty based on canvas tokens using the same formula as encounter configuration
-                const difficultyData = this._calculateEncounterDifficulty(partyCR, monsterCR);
+                const partyCRNum = EncounterManager.parseCR(partyCR);
+                const monsterCRNum = EncounterManager.parseCR(monsterCR);
+                const difficultyData = EncounterManager.calculateEncounterDifficulty(partyCRNum, monsterCRNum);
 
                 // Get the template
                 const templatePath = `modules/${MODULE.ID}/templates/encounter-toolbar.hbs`;
@@ -1027,34 +1031,6 @@ export class EncounterToolbar {
             });
         }
         
-        // Create combat button - scope to this toolbar only
-        const createCombatButton = toolbar.querySelector('.create-combat');
-        if (createCombatButton) {
-            createCombatButton.addEventListener('click', async (event) => {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Create combat button clicked!", "", true, false);
-                event.preventDefault();
-                event.stopPropagation();
-                
-                // Deploy monsters first, then create combat
-                const deployedTokens = await EncounterToolbar._deployMonsters(metadata);
-                if (deployedTokens && deployedTokens.length > 0) {
-                    await EncounterToolbar._createCombatWithTokens(deployedTokens, metadata);
-                }
-            });
-        }
-
-        // Toggle visibility button - scope to this toolbar only
-        const toggleVisibilityButton = toolbar.querySelector('.toggle-visibility');
-        if (toggleVisibilityButton) {
-            toggleVisibilityButton.addEventListener('click', async (event) => {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Toggle visibility button clicked!", "", true, false);
-                event.preventDefault();
-                event.stopPropagation();
-                
-                await EncounterToolbar._toggleTokenVisibility();
-            });
-        }
-
         // Deployment type badge - cycle through deployment patterns
         const deployTypeBadge = toolbar.querySelector('.deploy-type');
         if (deployTypeBadge) {
@@ -1503,54 +1479,6 @@ export class EncounterToolbar {
         return deployedTokens;
     }
 
-    // Make hidden monster tokens visible
-    static async _toggleTokenVisibility() {
-        // Check if user has permission to modify tokens
-        if (!game.user.isGM) {
-            return;
-        }
-
-        try {
-            // Get all tokens on the current scene
-            const allTokens = canvas.tokens.placeables;
-            
-            if (allTokens.length === 0) {
-                postConsoleAndNotification(MODULE.NAME, "No tokens found on the canvas.", "", false, false);
-                return;
-            }
-
-            // Filter for hidden monster tokens only (hostile NPCs)
-            const hiddenMonsterTokens = allTokens.filter(token => {
-                const type = token.actor?.type;
-                // Must be an NPC
-                if (type !== "npc") return false;
-                
-                // Must be hidden
-                if (!token.document.hidden) return false;
-                
-                // Must be hostile (not friendly/neutral)
-                const disposition = token.document.disposition;
-                return disposition <= -1; // Hostile tokens have disposition -1 or lower
-            });
-            
-            if (hiddenMonsterTokens.length === 0) {
-                postConsoleAndNotification(MODULE.NAME, "No hidden tokens found on the canvas.", "", false, false);
-                return;
-            }
-
-            // Update each token to make it visible
-            for (const token of hiddenMonsterTokens) {
-                await token.document.update({ hidden: false });
-            }
-            
-            // Show notification with results
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Made monster tokens visible", `${hiddenMonsterTokens.length} tokens`, true, false);
-            
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error making monster tokens visible", error, true, false);
-        }
-    }
-
     /**
      * Calculate circle position
      * @deprecated Use calculateCirclePosition from api-tokens.js instead
@@ -1599,71 +1527,6 @@ export class EncounterToolbar {
 
     static _getDeploymentVisibilityName(isHidden) {
         return isHidden ? "Hidden" : "Visible";
-    }
-
-    static _calculateEncounterDifficulty(partyCR, monsterCR) {
-        // Calculate difficulty based on the ratio of monster CR to party CR
-        // Using the same formula as the encounter configuration system
-
-        if (partyCR <= 0 || monsterCR <= 0) {
-            return { difficulty: "None", difficultyClass: "none" };
-        }
-
-        const ratio = monsterCR / partyCR;
-
-        if (ratio <= 0) {
-            return { difficulty: "None", difficultyClass: "none" };
-        } else if (ratio < 0.25) {
-            return { difficulty: "Trivial", difficultyClass: "trivial" };
-        } else if (ratio < 0.5) {
-            return { difficulty: "Easy", difficultyClass: "easy" };
-        } else if (ratio < 1.0) {
-            return { difficulty: "Moderate", difficultyClass: "medium" };
-        } else if (ratio < 1.5) {
-            return { difficulty: "Hard", difficultyClass: "hard" };
-        } else if (ratio < 1.75) {
-            return { difficulty: "Deadly", difficultyClass: "deadly" };
-        } else if (ratio < 2.0) {
-            return { difficulty: "Deadly", difficultyClass: "deadly" };
-        } else if (ratio < 2.25) {
-            return { difficulty: "Deadly", difficultyClass: "deadly" };
-        } else {
-            return { difficulty: "Impossible", difficultyClass: "impossible" };
-        }
-    }
-
-    /**
-     * Public API: Calculate encounter difficulty from party CR and monster CR (numeric or parseable).
-     * @param {number|string} partyCR - Party challenge rating (number or string e.g. "39", "1/2")
-     * @param {number|string} monsterCR - Monster challenge rating (number or string)
-     * @returns {{ difficulty: string, difficultyClass: string }}
-     */
-    static calculateEncounterDifficulty(partyCR, monsterCR) {
-        const p = typeof partyCR === 'number' ? partyCR : this.parseCR(String(partyCR ?? '0'));
-        const m = typeof monsterCR === 'number' ? monsterCR : this.parseCR(String(monsterCR ?? '0'));
-        return this._calculateEncounterDifficulty(p, m);
-    }
-
-    /**
-     * Public API: Get full combat assessment (party CR, monster CR, difficulty) for the current canvas.
-     * Uses tokens on the current scene: player-owned character tokens for party CR, NPC tokens for monster CR.
-     * @param {Object} [metadata] - Optional encounter metadata; if provided with monsters/npcs, getMonsterCR may use it (toolbar uses {} for canvas-only).
-     * @returns {{ partyCR: number, monsterCR: number, partyCRDisplay: string, monsterCRDisplay: string, difficulty: string, difficultyClass: string }}
-     */
-    static getCombatAssessment(metadata = {}) {
-        const partyCRDisplay = this.getPartyCR();
-        const monsterCRDisplay = this.getMonsterCR(metadata);
-        const partyCR = this.parseCR(partyCRDisplay);
-        const monsterCR = this.parseCR(monsterCRDisplay);
-        const { difficulty, difficultyClass } = this.calculateEncounterDifficulty(partyCR, monsterCR);
-        return {
-            partyCR,
-            monsterCR,
-            partyCRDisplay,
-            monsterCRDisplay,
-            difficulty,
-            difficultyClass
-        };
     }
 
     static async _cycleDeploymentPattern() {
@@ -1745,302 +1608,5 @@ export class EncounterToolbar {
     static async _getTargetPosition(allowMultiple = false) {
         return await getTargetPosition(allowMultiple);
     }
-
-
-
-
-
-    static async _createCombatWithTokens(deployedTokens, metadata) {
-        // Check if user has permission to create combat
-        if (!game.user.isGM) {
-            return;
-        }
-        
-        if (!deployedTokens || deployedTokens.length === 0) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No tokens were deployed.", "", true, false);
-            return;
-        }
-
-        try {
-            // Check if there's already an active combat encounter
-            let combat = game.combats.active;
-            
-            if (!combat) {
-                // Create a new combat encounter if none exists
-                combat = await Combat.create({
-                    scene: canvas.scene.id,
-                    name: metadata.title || "Encounter",
-                    active: true
-                });
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created new combat encounter", "", true, false);
-            } else {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Adding to existing combat encounter", "", true, false);
-            }
-
-            // Add deployed tokens to combat using their actual IDs
-            for (const token of deployedTokens) {
-                try {
-                    await combat.createEmbeddedDocuments("Combatant", [{
-                        tokenId: token.id,
-                        actorId: token.actor.id,
-                        sceneId: canvas.scene.id
-                    }]);
-                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Added ${token.name} to combat`, "", true, false);
-                } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Failed to add ${token.name} to combat:`, error, true, false);
-                }
-            }
-
-            const action = combat === game.combats.active ? "added to existing" : "created new";
-            
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error creating combat", error, true, false);
-        }
-    }
-
-    static async _createCombat(metadata) {
-        // Check if user has permission to create combat
-        if (!game.user.isGM) {
-            return;
-        }
-        
-        if (!metadata.monsters || metadata.monsters.length === 0) {
-            return;
-        }
-
-        try {
-            // First deploy the monsters to get tokens on the canvas
-            const deployedTokens = await this._deployMonsters(metadata);
-            
-            if (!deployedTokens || deployedTokens.length === 0) {
-                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: No tokens were deployed, cancelling combat creation.`, "", true, false);
-                
-                return;
-            }
-            
-            // Check if this was a partial deployment (user cancelled mid-deployment)
-            const totalExpectedTokens = (metadata.monsters || []).length + (metadata.npcs || []).length;
-            if (deployedTokens.length < totalExpectedTokens) {
-                const createCombatWithPartial = await new Promise((resolve) => {
-                    new Dialog({
-                        title: "Partial Deployment",
-                        content: `<p>Only ${deployedTokens.length} out of ${totalExpectedTokens} tokens were deployed. Do you want to create combat with the deployed tokens?</p>`,
-                        buttons: {
-                            yes: {
-                                icon: '<i class="fas fa-check"></i>',
-                                label: "Yes, Create Combat",
-                                callback: () => resolve(true)
-                            },
-                            no: {
-                                icon: '<i class="fas fa-times"></i>',
-                                label: "No, Cancel",
-                                callback: () => resolve(false)
-                            }
-                        },
-                        default: "no"
-                    }).render(true);
-                });
-                
-                if (!createCombatWithPartial) {
-                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Combat creation cancelled by user.`, "", true, false);
-                    return;
-                }
-            }
-            
-            // Create a new combat encounter
-            const combat = await Combat.create({
-                scene: canvas.scene.id,
-                name: metadata.title || "Encounter",
-                active: true
-            });
-
-            // Add deployed tokens to combat using their actual IDs
-            for (const token of deployedTokens) {
-                try {
-                    await combat.createEmbeddedDocuments("Combatant", [{
-                        tokenId: token.id,
-                        actorId: token.actor.id,
-                        sceneId: canvas.scene.id
-                    }]);
-                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Added ${token.name} to combat`, "", true, false);
-                } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Failed to add ${token.name} to combat:`, error, true, false);
-                }
-            }
-
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error creating combat", error, true, false);
-        }
-    }
-
-    // CR Calculation Functions
-    static getPartyCR() {
-        try {
-            // Get all player tokens on the current scene
-            const playerTokens = canvas.tokens.placeables.filter(token => 
-                token.actor && token.actor.type === 'character' && token.actor.hasPlayerOwner
-            );
-
-            if (playerTokens.length === 0) {
-                return "0";
-            }
-
-            // Calculate weighted party level using tiered formula
-            let totalLevel1to4 = 0;
-            let totalLevel5to10 = 0;
-            let totalLevel11to16 = 0;
-            let totalLevel17to20 = 0;
-
-            for (const token of playerTokens) {
-                const level = token.actor.system.details.level || 1;
-                
-                // Categorize by level brackets
-                if (level >= 1 && level <= 4) {
-                    totalLevel1to4 += level;
-                } else if (level >= 5 && level <= 10) {
-                    totalLevel5to10 += level;
-                } else if (level >= 11 && level <= 16) {
-                    totalLevel11to16 += level;
-                } else if (level >= 17 && level <= 20) {
-                    totalLevel17to20 += level;
-                }
-            }
-
-            // Apply weighted formula
-            const partyLevel = 
-                (totalLevel1to4 / 4) +
-                (totalLevel5to10 / 2) +
-                (totalLevel11to16 * 0.75) +
-                totalLevel17to20;
-
-            // Convert party level to approximate CR (party level is already weighted)
-            const partyCR = Math.max(1, Math.floor(partyLevel));
-            
-            return this.formatCR(partyCR);
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error calculating party CR", error, true, false);
-            return "0";
-        }
-    }
-
-    static getMonsterCR(metadata) {
-        try {
-            // Get all monster tokens on the current scene (not player tokens)
-            const monsterTokens = canvas.tokens.placeables.filter(token => 
-                token.actor && token.actor.type === 'npc' && !token.actor.hasPlayerOwner
-            );
-
-            if (monsterTokens.length === 0) {
-                return "0";
-            }
-
-            let totalCR = 0;
-            let monsterCount = 0;
-
-            for (const token of monsterTokens) {
-                try {
-                    const actor = token.actor;
-                    if (actor && actor.system) {
-                        // Get the actual CR from the monster's data
-                        const crValue = parseFloat(actor.system.details.cr);
-                        if (!isNaN(crValue)) {
-                            totalCR += crValue;
-                            monsterCount++;
-                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Monster CR", `${actor.name}: ${crValue}`, true, false);
-                        } else {
-                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Warning", `No CR found for ${actor.name}`, true, false);
-                        }
-                    }
-                } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error", `Error calculating CR for monster ${token.name}: ${error}`, true, false);
-                }
-            }
-
-            if (monsterCount === 0) {
-                return "0";
-            }
-
-            // Return total CR for multiple monsters (not average)
-            return this.formatCR(totalCR);
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error", `Error calculating monster CR: ${error}`, true, false);
-            return "0";
-        }
-    }
-
-    static calculateNPCCR(actor) {
-        // Get actor data
-        const actorData = actor.system;
-        
-        // Calculate Defensive CR
-        const hp = foundry.utils.getProperty(actorData, "attributes.hp.value") || 0;
-        const ac = foundry.utils.getProperty(actorData, "attributes.ac.value") || 10;
-        let defensiveCR = this.calculateDefensiveCR(hp, ac);
-        
-        // Calculate Offensive CR
-        const spellDC = foundry.utils.getProperty(actorData, "attributes.spell.dc") || foundry.utils.getProperty(actorData, "attributes.spelldc") || 0;
-        const spells = foundry.utils.getProperty(actorData, "spells") || {};
-        const spellLevel = Math.max(...Object.values(spells).map(s => parseInt(foundry.utils.getProperty(s, "value") || 0)));
-        let offensiveCR = this.calculateOffensiveCR(spellDC, spellLevel);
-        
-        // Calculate final CR
-        const finalCR = (defensiveCR + offensiveCR) / 2;
-        
-        // Format CR
-        return this.formatCR(finalCR);
-    }
-
-    static calculateDefensiveCR(hp, ac) {
-        // Simplified CR calculation based on HP and AC
-        let cr = 0;
-        
-        // HP-based CR (very simplified)
-        if (hp <= 35) cr = 1/8;
-        else if (hp <= 49) cr = 1/4;
-        else if (hp <= 70) cr = 1/2;
-        else if (hp <= 85) cr = 1;
-        else if (hp <= 100) cr = 2;
-        
-        // Adjust for AC
-        if (ac >= 15) cr += 1;
-        
-        return cr;
-    }
-
-    static calculateOffensiveCR(spellDC, spellLevel) {
-        // Simplified CR calculation based on spell DC and level
-        let cr = 0;
-        
-        // Base CR on spell level
-        cr = spellLevel;
-        
-        // Adjust for spell DC
-        if (spellDC >= 15) cr += 1;
-        
-        return cr;
-    }
-
-    static parseCR(crString) {
-        // Parse CR string to numeric value
-        if (crString === "0") return 0;
-        if (crString === "1/8") return 0.125;
-        if (crString === "1/4") return 0.25;
-        if (crString === "1/2") return 0.5;
-        return parseFloat(crString) || 0;
-    }
-
-    static formatCR(cr) {
-        // Handle special cases
-        if (cr === 0) return "0";
-        if (cr > 0 && cr < 0.125) return "1/8";  // Round up very low CRs
-        
-        // Format standard CR values
-        const crValues = {
-            0.125: "1/8",
-            0.25: "1/4",
-            0.5: "1/2"
-        };
-        
-        return crValues[cr] || Math.round(cr).toString();
-    }
 }
+

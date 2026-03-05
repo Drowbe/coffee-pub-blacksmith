@@ -94,9 +94,11 @@
      data-bar-type="{{secondaryBar.type}}"
      style="height: {{secondaryBar.height}}px;">
     {{#if secondaryBar.hasCustomTemplate}}
-        {{!-- Custom template (e.g., combat bar) --}}
-    {{#if (eq secondaryBar.type "combat")}}
+        {{!-- Custom template (e.g., combat bar, encounter bar) --}}
+        {{#if (eq secondaryBar.type "combat")}}
         {{> "menubar-combat" secondaryBar.data}}
+        {{else if (eq secondaryBar.type "encounter")}}
+        {{> "menubar-encounter" secondaryBar.data}}
         {{else}}
             {{!-- Dynamic custom template --}}
             {{> (lookup . (concat "menubar-" secondaryBar.type)) secondaryBar.data}}

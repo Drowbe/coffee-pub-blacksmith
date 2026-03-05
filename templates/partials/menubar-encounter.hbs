@@ -1,0 +1,21 @@
+{{!-- Encounter Secondary Bar – Party CR, Monster CR, Difficulty, Reveal --}}
+<div class="encounter-bar" data-bar-type="encounter">
+    <div class="encounter-bar-cr">
+        <span class="encounter-bar-badge" data-tooltip="Party CR">
+            <i class="fas fa-helmet-battle"></i>{{partyCRDisplay}}
+        </span>
+        <span class="encounter-bar-badge" data-tooltip="Monster CR">
+            <i class="fas fa-dragon"></i>{{monsterCRDisplay}}
+        </span>
+        <span class="encounter-bar-badge difficulty-{{difficultyClass}}" data-tooltip="Difficulty: {{difficulty}}">
+            <i class="fa-solid fa-swords"></i>{{difficulty}}
+        </span>
+    </div>
+    {{#if isGM}}
+    <div class="encounter-bar-actions">
+        <button type="button" class="encounter-bar-button encounter-bar-reveal" data-control="encounterReveal" data-tooltip="Reveal hidden hostile tokens">
+            <i class="fas fa-eye"></i> Reveal
+        </button>
+    </div>
+    {{/if}}
+</div>
