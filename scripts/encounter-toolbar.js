@@ -37,9 +37,6 @@ export class EncounterToolbar {
             callback: this._onRenderJournalSheet.bind(this)
         });
         
-        // Log hook registration
-        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalSheet", "encounter-toolbar-journal", true, false);
-        
         // Also try renderJournalPageSheet hook (page-level, may fire in v13 ApplicationV2)
         const renderJournalPageSheetHookId = HookManager.registerHook({
             name: 'renderJournalPageSheet',
@@ -48,9 +45,6 @@ export class EncounterToolbar {
             priority: 3, // Normal priority - UI enhancement
             callback: this._onRenderJournalPageSheet.bind(this)
         });
-        
-        // Log hook registration
-        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalPageSheet", "encounter-toolbar-journal-page", true, false);
         
         // Global MutationObserver fallback (when hooks don't fire in v13)
         // Note: This is NOT a hook - it's a DOM observer, so it doesn't go through HookManager
@@ -119,15 +113,12 @@ export class EncounterToolbar {
         if (moduleId === MODULE.ID) {
             if (key === 'enableJournalEncounterToolbarRealTimeUpdates') {
                 this._setupTokenChangeHooks();
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Real-time updates", value ? "enabled" : "disabled", true, false);
             } else if (key === 'encounterToolbarDeploymentPattern') {
                 // Update all open journal toolbars when deployment pattern changes
                 this._updateAllToolbarCRs();
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment pattern setting changed", value, true, false);
             } else if (key === 'encounterToolbarDeploymentHidden') {
                 // Update all open journal toolbars when deployment visibility changes
                 this._updateAllToolbarCRs();
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment visibility setting changed", value, true, false);
             }
         }
     }
@@ -163,7 +154,7 @@ export class EncounterToolbar {
             // Notify menubar to refresh encounter bar if open (same token hooks drive both)
             Hooks.callAll('blacksmithEncounterBarRefresh');
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error updating CR values", error, true, false);
+            // CR update failed; toolbar may still work
         }
     }
 
@@ -213,12 +204,10 @@ export class EncounterToolbar {
                         difficultyBadge.innerHTML = `<i class="fa-solid fa-swords"></i>${difficultyData.difficulty}`;
                         difficultyBadge.className = `difficulty-badge ${difficultyData.difficultyClass}`;
                     }
-                    
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Updated CR values", { pageId, partyCR, monsterCR }, true, false);
                 }
             });
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error updating toolbar CRs", error, true, false);
+            // Toolbar CR update failed
         }
     }
 
@@ -230,83 +219,47 @@ export class EncounterToolbar {
 
     // Hook for journal page sheet rendering (v13 ApplicationV2 - page-level)
     static async _onRenderJournalPageSheet(app, html, data) {
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: renderJournalPageSheet hook fired", 
-            `App: ${app?.constructor?.name}, HTML type: ${html?.constructor?.name}, Tag: ${html?.tagName}`, true, false);
-        
         // In v13 ApplicationV2, html is the page element, not the sheet element
-        // We need to get the parent journal sheet element to process it correctly
         let sheetElement = html;
         if (html && (html.jquery || typeof html.find === 'function')) {
             sheetElement = html[0] || html.get?.(0) || html;
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Converted jQuery to native DOM", 
-                `Sheet element: ${sheetElement?.tagName}.${sheetElement?.className}`, true, false);
         }
-        
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Initial sheetElement", 
-            `Tag: ${sheetElement?.tagName}, Classes: ${sheetElement?.className}`, true, false);
         
         // If html is just the page (article), find the parent journal sheet
         if (sheetElement && (sheetElement.tagName === 'ARTICLE' || sheetElement.classList?.contains('journal-entry-page'))) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Detected page element (article), finding parent sheet", "", true, false);
-            
-            // Try to get the sheet element from the app
             if (app && app.element) {
                 let appElement = app.element;
                 if (appElement && (appElement.jquery || typeof appElement.find === 'function')) {
                     appElement = appElement[0] || appElement.get?.(0) || appElement;
                 }
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: App.element", 
-                    `Tag: ${appElement?.tagName}, Classes: ${appElement?.className}`, true, false);
-                
                 if (appElement && (appElement.classList?.contains('journal-sheet') || appElement.classList?.contains('journal-entry'))) {
                     sheetElement = appElement;
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Using app.element for journal sheet", 
-                        `Sheet element: ${sheetElement.tagName}.${sheetElement.className}`, true, false);
                 } else {
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: app.element is not journal sheet, trying DOM traversal", "", true, false);
-                    // Try traversing up the DOM tree
                     let parent = sheetElement.parentElement;
                     let depth = 0;
                     while (parent && !parent.classList?.contains('journal-sheet') && !parent.classList?.contains('journal-entry') && depth < 10) {
                         parent = parent.parentElement;
                         depth++;
                     }
-                    if (parent) {
-                        sheetElement = parent;
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found journal sheet via DOM traversal", 
-                            `Sheet element: ${sheetElement.tagName}.${sheetElement.className}, Depth: ${depth}`, true, false);
-                    } else {
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Could not find journal sheet via DOM traversal", 
-                            `Stopped at depth ${depth}`, false, true);
+                    if (parent) sheetElement = parent;
+                    else {
+                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Could not find journal sheet via DOM traversal", `Stopped at depth ${depth}`, false, true);
                     }
                 }
             } else {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No app.element available, trying DOM traversal", "", true, false);
-                // Try traversing up the DOM tree
                 let parent = sheetElement.parentElement;
                 let depth = 0;
                 while (parent && !parent.classList?.contains('journal-sheet') && !parent.classList?.contains('journal-entry') && depth < 10) {
                     parent = parent.parentElement;
                     depth++;
                 }
-                if (parent) {
-                    sheetElement = parent;
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found journal sheet via DOM traversal", 
-                        `Sheet element: ${sheetElement.tagName}.${sheetElement.className}, Depth: ${depth}`, true, false);
-                } else {
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Could not find journal sheet via DOM traversal", 
-                        `Stopped at depth ${depth}`, false, true);
+                if (parent) sheetElement = parent;
+                else {
+                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Could not find journal sheet via DOM traversal", `Stopped at depth ${depth}`, false, true);
                 }
             }
-        } else {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: SheetElement is NOT an article/page element", 
-                `Tag: ${sheetElement?.tagName}, Classes: ${sheetElement?.className}`, true, false);
         }
         
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Final sheetElement before processing", 
-            `Tag: ${sheetElement?.tagName}, Classes: ${sheetElement?.className}, Has journal-header: ${sheetElement?.querySelector?.('.journal-header') ? 'yes' : 'no'}`, true, false);
-        
-        // Use unified method with immediate retry
         this._processJournalSheet(sheetElement, true);
     }
 
@@ -335,8 +288,6 @@ export class EncounterToolbar {
             
             for (const sheet of journalSheets) {
                 if (sheet.element && !sheet.element._encounterToolbarProcessed) {
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found existing journal sheet via observer", 
-                        `Sheet: ${sheet.constructor.name}`, true, false);
                     sheet.element._encounterToolbarProcessed = true;
                     this._processJournalSheet(sheet.element, true);
                 }
@@ -388,14 +339,9 @@ export class EncounterToolbar {
                             });
                             
                             if (sheet && !journalSheet._encounterToolbarProcessed) {
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: New journal sheet detected via observer", 
-                                    `Sheet: ${sheet.constructor.name}, Element: ${journalSheet.tagName}.${journalSheet.className}`, true, false);
                                 journalSheet._encounterToolbarProcessed = true;
                                 this._processJournalSheet(journalSheet, true);
                             } else if (journalSheet && !journalSheet._encounterToolbarProcessed) {
-                                // Sheet element found but no app - try processing anyway
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Journal sheet element found but no app", 
-                                    `Element: ${journalSheet.tagName}.${journalSheet.className}`, true, false);
                                 journalSheet._encounterToolbarProcessed = true;
                                 this._processJournalSheet(journalSheet, true);
                             }
@@ -410,38 +356,12 @@ export class EncounterToolbar {
                     
                     // Filter: Only check journal-related elements
                     if (target.tagName === 'ARTICLE' && target.classList?.contains('journal-entry-page')) {
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Journal page article attribute change detected", 
-                            `Page ID: ${target.getAttribute('data-page-id')}, Attribute: ${mutation.attributeName}`, true, false);
-                        
-                        // Check if this is within a journal sheet
                         const journalSheet = target.closest('.journal-sheet, .journal-entry');
                         if (journalSheet) {
-                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found parent journal sheet", 
-                                `Sheet: ${journalSheet.tagName}.${journalSheet.className}`, true, false);
-        
-                            // Find the corresponding app (optional - we can process without it)
-                            const sheet = Object.values(ui.windows).find(w => {
-                                if (!w || !w.element) return false;
-                                const wElement = w.element.jquery ? w.element[0] : w.element;
-                                return wElement === journalSheet || wElement?.contains?.(journalSheet);
-                            });
-                            
-                            if (sheet) {
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found corresponding app window", 
-                                    `App: ${sheet.constructor.name}`, true, false);
-                            } else {
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No corresponding app window found, processing anyway", "", true, false);
-                            }
-                            
-                            // Process the journal sheet regardless of whether we found the app
-                            // (The app lookup is optional - _processJournalSheet works with just the DOM element)
-                            // Use longer delay to ensure active page class has settled
                             if (journalSheet._pageChangeTimer) {
                                 clearTimeout(journalSheet._pageChangeTimer);
                             }
                             journalSheet._pageChangeTimer = setTimeout(() => {
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Page navigation detected via observer", 
-                                    `Page ID: ${target.getAttribute('data-page-id')}`, true, false);
                                 this._processJournalSheet(journalSheet, true);
                             }, 300);
                         }
@@ -453,15 +373,8 @@ export class EncounterToolbar {
                 // Note: This catches when new pages are added, but attribute changes catch when pages become active
                 for (const node of mutation.addedNodes) {
                     if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'ARTICLE' && node.classList?.contains('journal-entry-page')) {
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: New journal page article added", 
-                            `Page ID: ${node.getAttribute('data-page-id')}`, true, false);
-                        
                         const journalSheet = node.closest('.journal-sheet, .journal-entry');
                         if (journalSheet) {
-                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Processing new page in existing journal sheet", 
-                                `Page ID: ${node.getAttribute('data-page-id')}`, true, false);
-                            
-                            // Debounce rapid page changes - use longer delay to let active page class settle
                             if (journalSheet._pageChangeTimer) {
                                 clearTimeout(journalSheet._pageChangeTimer);
                             }
@@ -481,8 +394,6 @@ export class EncounterToolbar {
             attributes: true,
             attributeFilter: ['class', 'data-page-id'] // Watch for class changes (active page) and page ID changes
         });
-        
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Global MutationObserver setup complete", "", true, false);
         
         // Also set up a periodic check for active page changes (since hooks don't fire)
         // This is a fallback when renderJournalPageSheet doesn't fire
@@ -516,9 +427,6 @@ export class EncounterToolbar {
                     const lastKnownPage = this._activePageTracker.get(sheetKey);
                     
                     if (pageId && pageId !== lastKnownPage) {
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Active page changed detected", 
-                            `Sheet: ${sheetKey}, Old Page: ${lastKnownPage}, New Page: ${pageId}`, true, false);
-                        
                         this._activePageTracker.set(sheetKey, pageId);
                         this._processJournalSheet(sheetElement, true);
                     }
@@ -534,16 +442,9 @@ export class EncounterToolbar {
             const target = event.target.closest('a[data-page-id], .journal-page-nav a, .journal-entry-page-header a');
             if (target && target.getAttribute('data-page-id')) {
                 const pageId = target.getAttribute('data-page-id');
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Journal page navigation clicked", 
-                    `Page ID: ${pageId}`, true, false);
-                
-                // Find the journal sheet containing this navigation
                 const journalSheet = target.closest('.journal-sheet, .journal-entry');
                 if (journalSheet) {
-                    // Small delay to let the page render
                     setTimeout(() => {
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Processing after page navigation click", 
-                            `Page ID: ${pageId}`, true, false);
                         this._processJournalSheet(journalSheet, true);
                     }, 200);
                 }
@@ -556,20 +457,13 @@ export class EncounterToolbar {
         // Only create toolbar in normal view, not edit view
         if (!this._isEditMode(html)) {
             // Try immediately first
-            this._updateToolbarContent(html).catch(error => {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error in initial update", error, true, false);
-            });
+            this._updateToolbarContent(html).catch(() => {});
             
-            // Retry after delay if requested (for renderJournalSheet)
             if (shouldRetry) {
-                // Multiple retries with increasing delays
                 const retryDelays = [500, 1000, 2000];
-                retryDelays.forEach((delay, index) => {
+                retryDelays.forEach((delay) => {
                     setTimeout(() => {
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Retrying metadata search after delay", `Attempt ${index + 2}`, true, false);
-                        this._updateToolbarContent(html).catch(error => {
-                                                          postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Error in retry ${index + 2}`, error, true, false);
-                        });
+                        this._updateToolbarContent(html).catch(() => {});
                     }, delay);
                 });
             }
@@ -608,22 +502,17 @@ export class EncounterToolbar {
                 
                 // Check if it's from a monster compendium
                 if (actor.pack && actor.pack.includes('monster')) {
-                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Actor ${actor.name} classified as monster (monster compendium)`, "", true, false);
                     return true;
                 }
                 
                 // Check disposition (hostile = monster, friendly/neutral = NPC)
                 if (actor.prototypeToken && actor.prototypeToken.disposition !== undefined) {
                     const isMonster = actor.prototypeToken.disposition <= -1; // Hostile
-                    postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Actor ${actor.name} classified as ${isMonster ? 'monster' : 'npc'} (disposition: ${actor.prototypeToken.disposition})`, "", true, false);
                     return isMonster;
                 }
                 
-                // Default: assume it's a monster if we can't determine
-                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Actor ${actor.name} classified as monster (default)`, "", true, false);
                 return true;
             }
-            postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Actor ${uuid} classified as monster (no actor found)`, "", true, false);
             return true; // Default to monster if we can't determine
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Error checking actor type for ${uuid}`, error, false, false);
@@ -664,10 +553,9 @@ export class EncounterToolbar {
                     }
                     
                     monsterDetails.push({ uuid, name, cr, portrait });
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Monster details", { name, cr, portrait }, true, false);
                 }
             } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Error getting details for ${uuid}`, error, false, false);
+                // Keep console-only for debugging deployment issues
             }
         }
         
@@ -676,7 +564,6 @@ export class EncounterToolbar {
 
     // Enhanced method to scan journal content for encounter data
     static async _scanJournalContent(html, pageId) {
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Starting content scan for page", pageId, true, false);
         
         // v13: Detect and convert jQuery to native DOM if needed
         let nativeHtml = html;
@@ -711,13 +598,11 @@ export class EncounterToolbar {
         }
         
         if (!pageContent) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No page content found", "", true, false);
             return null;
         }
 
         // Check if content scanning is enabled
         if (!game.settings.get(MODULE.ID, 'enableEncounterContentScanning')) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Content scanning disabled", "", true, false);
             return null;
         }
 
@@ -725,24 +610,19 @@ export class EncounterToolbar {
         const textContent = pageContent.textContent || '';
         const htmlContent = pageContent.innerHTML || '';
         
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Text content length", textContent.length, true, false);
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: HTML content length", htmlContent.length, true, false);
 
         // Try JSON format first (for structured data)
         let encounterData = this._parseJSONEncounter(htmlContent);
         if (encounterData) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found JSON encounter data", "", true, false);
             return encounterData;
         }
 
         // Use the new pattern-based detection
         encounterData = await this._parsePatternBasedEncounter(textContent, htmlContent);
         if (encounterData) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found pattern-based encounter data", "", true, false);
             return encounterData;
         }
 
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No encounter data found", "", true, false);
         return null;
     }
 
@@ -754,23 +634,17 @@ export class EncounterToolbar {
             difficulty: null
         };
 
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Scanning text content for patterns", { textLength: textContent.length, htmlLength: htmlContent.length }, true, false);
-
         // 1. Find all data-uuid attributes in the content (Foundry renders links as <a> tags)
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Looking for data-uuid attributes in HTML content", "", true, false);
         const uuidMatches = htmlContent.match(/data-uuid="([^"]+)"/g);
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found UUID matches", uuidMatches?.length || 0, true, false);
 
         if (uuidMatches) {
             for (const match of uuidMatches) {
                 const uuidMatch = match.match(/data-uuid="([^"]+)"/);
                 if (uuidMatch) {
                     const uuid = uuidMatch[1];
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Processing UUID", uuid, true, false);
                     
                     // 2. Check if this UUID contains "Actor" (case-insensitive)
                     if (uuid.toLowerCase().includes('actor')) {
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found Actor UUID", uuid, true, false);
                         
                         // 3. Look for quantity indicators near this UUID
                         let quantity = 1;
@@ -781,7 +655,6 @@ export class EncounterToolbar {
                         const contextEnd = Math.min(htmlContent.length, uuidIndex + match.length + 100);
                         const context = htmlContent.substring(contextStart, contextEnd);
                         
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Context around UUID", context.substring(0, 100), true, false);
 
                         // Look for quantity patterns
                         const quantityPatterns = [
@@ -795,7 +668,6 @@ export class EncounterToolbar {
                             const quantityMatch = context.match(pattern);
                             if (quantityMatch) {
                                 quantity = parseInt(quantityMatch[1]);
-                                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found quantity", quantity, true, false);
                                 break;
                             }
                         }
@@ -809,15 +681,12 @@ export class EncounterToolbar {
                                 encounterData.npcs.push(uuid);
                             }
                         }
-                    } else {
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: UUID is not an Actor type", uuid, true, false);
                     }
                 }
             }
         }
 
         // 4. Look for difficulty patterns (case-insensitive)
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Looking for difficulty patterns", "", true, false);
         const difficultyPatterns = [
             /difficulty\s*:\s*(easy|medium|hard|deadly)/i,
             /difficulty\s*=\s*(easy|medium|hard|deadly)/i,
@@ -828,12 +697,10 @@ export class EncounterToolbar {
             const difficultyMatch = textContent.match(pattern);
             if (difficultyMatch) {
                 encounterData.difficulty = difficultyMatch[1].toLowerCase();
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found difficulty", encounterData.difficulty, true, false);
                 break;
             }
         }
 
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Final encounter data", encounterData, true, false);
         return (encounterData.monsters.length > 0 || encounterData.npcs.length > 0 || encounterData.difficulty) ? encounterData : null;
     }
 
@@ -895,7 +762,6 @@ export class EncounterToolbar {
         const pageId = journalPage ? journalPage.getAttribute('data-page-id') : null;
         
         if (!pageId) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No active page ID found", "", true, false);
             return; // Can't create toolbar without page ID
         }
         
@@ -905,7 +771,6 @@ export class EncounterToolbar {
             const oldPageId = oldToolbar.getAttribute('data-page-id');
             if (oldPageId && oldPageId !== pageId) {
                 oldToolbar.remove();
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Removed old toolbar", `Old Page ID: ${oldPageId}`, true, false);
             }
         }
         
@@ -924,7 +789,6 @@ export class EncounterToolbar {
                 toolbarContainer.setAttribute('data-page-id', pageId);
                 journalHeader.insertAdjacentElement('afterend', toolbarContainer);
                 toolbar = toolbarContainer;
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created toolbar container", `Page ID: ${pageId}`, true, false);
             } else {
                 return; // Can't create toolbar
             }
@@ -932,18 +796,15 @@ export class EncounterToolbar {
 
         // Try content scanning for encounter data (check all journals, not just encounter type)
         let encounterData = await this._scanJournalContent(html, pageId);
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Content scan result", encounterData, true, false);
         
         const hasCombatants = this._hasEncounterCombatants(encounterData);
         if (!hasCombatants) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: No combatants detected, removing toolbar", { pageId, encounterData }, true, false);
             toolbar?.remove();
             return;
         }
         
         if (encounterData) {
             // We have encounter data - use the full toolbar
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Found encounter data, updating toolbar", "", true, false);
             
             try {
                 // Check if we have monsters and NPCs
@@ -1004,14 +865,11 @@ export class EncounterToolbar {
                     
                     // Add event listeners to the buttons
                     this._addEventListeners(toolbar, encounterData);
-                    
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Updated with encounter data", "", true, false);
                 });
                 
                 return; // Exit early since we're handling this asynchronously
                 
             } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error processing encounter data", error, true, false);
                 toolbar?.remove();
                 return;
             }
@@ -1019,15 +877,11 @@ export class EncounterToolbar {
     }
 
     static _addEventListeners(toolbar, metadata) {
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Setting up event listeners with metadata", metadata, true, false);
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Metadata monsters array", metadata.monsters || [], true, false);
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Metadata npcs array", metadata.npcs || [], true, false);
         
         // Deploy monsters button - scope to this toolbar only
         const deployMonstersButton = toolbar.querySelector('.deploy-monsters');
         if (deployMonstersButton) {
             deployMonstersButton.addEventListener('click', async (event) => {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deploy monsters button clicked!", "", true, false);
                 event.preventDefault();
                 event.stopPropagation();
                 EncounterToolbar._deployMonsters(metadata);
@@ -1038,7 +892,6 @@ export class EncounterToolbar {
         const deployTypeBadge = toolbar.querySelector('.deploy-type');
         if (deployTypeBadge) {
             deployTypeBadge.addEventListener('click', async (event) => {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment type badge clicked!", "", true, false);
                 event.preventDefault();
                 event.stopPropagation();
                 
@@ -1055,7 +908,6 @@ export class EncounterToolbar {
         const deployVisibilityBadge = toolbar.querySelector('.deploy-visibility');
         if (deployVisibilityBadge) {
             deployVisibilityBadge.addEventListener('click', async (event) => {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment visibility badge clicked!", "", true, false);
                 event.preventDefault();
                 event.stopPropagation();
                 
@@ -1078,7 +930,6 @@ export class EncounterToolbar {
                 
                 if (monsterUUID) {
                     const isCtrlHeld = event.ctrlKey;
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Monster icon clicked!", `UUID: ${monsterUUID}, CTRL: ${isCtrlHeld}`, true, false);
                     
                     // Create metadata for just this one monster
                     const singleMonsterMetadata = {
@@ -1107,7 +958,6 @@ export class EncounterToolbar {
                 
                 if (npcUUID) {
                     const isCtrlHeld = event.ctrlKey;
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: NPC icon clicked!", `UUID: ${npcUUID}, CTRL: ${isCtrlHeld}`, true, false);
                     
                     // Create metadata for just this one NPC
                     const singleNpcMetadata = {
@@ -1146,17 +996,12 @@ export class EncounterToolbar {
         // Combine monsters and NPCs for deployment
         const allTokens = [...(metadata.monsters || []), ...(metadata.npcs || [])];
 
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment - monsters array", metadata.monsters || [], true, false);
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment - npcs array", metadata.npcs || [], true, false);
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment - combined allTokens", allTokens, true, false);
-
         if (allTokens.length === 0) {
             return [];
         }
 
         // Deployment pattern and visibility: overrides or module settings
         const deploymentPattern = overrides.deploymentPattern ?? game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Deployment pattern", deploymentPattern, true, false);
 
         // Handle sequential deployment (now uses shared API)
         if (deploymentPattern === "sequential") {
@@ -1164,7 +1009,6 @@ export class EncounterToolbar {
             const onActorPrepared = async (actor, worldActor) => {
                 // First, create a world copy of the actor if it's from a compendium
                 if (actor.pack) {
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating world copy of compendium actor", "", true, false);
                     const actorData = actor.toObject();
                     
                     // Get or create the encounter folder
@@ -1176,20 +1020,17 @@ export class EncounterToolbar {
                         encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
                         
                         if (!encounterFolder) {
-                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating encounter folder", folderName, true, false);
                             encounterFolder = await Folder.create({
                                 name: folderName,
                                 type: 'Actor',
                                 color: '#ff0000'
                             });
-                            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Encounter folder created", encounterFolder.id, true, false);
                         }
                     }
                     
                     // Create the world actor
                     const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
                     worldActor = await Actor.create(actorData, createOptions);
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: World actor created", worldActor.id, true, false);
                     
                     // Ensure folder is assigned
                     if (encounterFolder && !worldActor.folder) {
@@ -1250,7 +1091,6 @@ export class EncounterToolbar {
         const onActorPrepared = async (actor, worldActor) => {
             // First, create a world copy of the actor if it's from a compendium
             if (actor.pack) {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating world copy of compendium actor", "", true, false);
                 const actorData = actor.toObject();
                 
                 // Get or create the encounter folder
@@ -1262,24 +1102,20 @@ export class EncounterToolbar {
                     encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
                     
                     if (!encounterFolder) {
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating encounter folder", folderName, true, false);
                         encounterFolder = await Folder.create({
                             name: folderName,
                             type: 'Actor',
                             color: '#ff0000'
                         });
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Encounter folder created", encounterFolder.id, true, false);
                     }
                 }
                 
                 // Create the world actor
                 const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
                 worldActor = await Actor.create(actorData, createOptions);
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: World actor created", worldActor.id, true, false);
                 
                 // Ensure folder is assigned (sometimes it doesn't get set during creation)
                 if (encounterFolder && !worldActor.folder) {
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Folder not assigned during creation, updating actor...", "", true, false);
                     await worldActor.update({ folder: encounterFolder.id });
                 }
                 
@@ -1333,7 +1169,6 @@ export class EncounterToolbar {
             // Validate the UUID
             const validatedId = await this._validateUUID(tokenUUID);
             if (!validatedId) {
-                postConsoleAndNotification(MODULE.NAME, `Encounter Toolbar: Could not validate UUID`, tokenUUID, true, false);
                 return [];
             }
             
@@ -1369,7 +1204,6 @@ export class EncounterToolbar {
             // First, create a world copy of the actor if it's from a compendium
             let worldActor = actor;
             if (actor.pack) {
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating world copy of compendium actor", "", true, false);
                 const actorData = actor.toObject();
                 
                 // Get or create the encounter folder
@@ -1380,20 +1214,17 @@ export class EncounterToolbar {
                     encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
                     
                     if (!encounterFolder) {
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Creating encounter folder", folderName, true, false);
                         encounterFolder = await Folder.create({
                             name: folderName,
                             type: 'Actor',
                             color: '#ff0000'
                         });
-                        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Encounter folder created", encounterFolder.id, true, false);
                     }
                 }
                 
                 // Create the world actor
                 const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
                 worldActor = await Actor.create(actorData, createOptions);
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: World actor created", worldActor.id, true, false);
                 
                 // Ensure folder is assigned
                 if (encounterFolder && !worldActor.folder) {
@@ -1451,13 +1282,11 @@ export class EncounterToolbar {
                 
                 // Create the token on the canvas
                 const createdTokens = await canvas.scene.createEmbeddedDocuments("Token", [tokenData]);
-                postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Single monster token creation result", createdTokens, true, false);
                 
                 // Verify the token was created
                 if (createdTokens && createdTokens.length > 0) {
                     const token = createdTokens[0];
                     deployedTokens.push(token);
-                    postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Created single monster token", token, true, false);
                     
                     // Update tooltip to show success and continue instruction
                     tooltip.innerHTML = `
@@ -1468,7 +1297,7 @@ export class EncounterToolbar {
             }
             
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error deploying single monster multiple times", error, true, false);
+            // Single-monster multiple deployment failed
         } finally {
             // Clean up tooltip and handlers
             if (tooltip && tooltip.parentNode) {
@@ -1562,7 +1391,7 @@ export class EncounterToolbar {
             this._updateAllToolbarCRs();
             
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error cycling deployment pattern", error, true, false);
+            // Cycle deployment pattern failed
         }
     }
 
@@ -1589,7 +1418,7 @@ export class EncounterToolbar {
             this._updateAllToolbarCRs();
             
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error toggling deployment visibility", error, true, false);
+            // Toggle deployment visibility failed
         }
     }
 
@@ -1600,7 +1429,6 @@ export class EncounterToolbar {
     static async _deploySequential(metadata, initialPosition) {
         // This method is deprecated - sequential deployment is now handled by the shared API
         // Keeping this stub to prevent breaking any external references
-        postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: _deploySequential is deprecated, use deployTokensSequential from api-tokens.js", "", true, false);
         return [];
     }
 

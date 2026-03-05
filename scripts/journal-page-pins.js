@@ -66,7 +66,6 @@ export class JournalPagePins {
     }
 
     static _registerHooks() {
-        postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: registering hooks', null, true, false);
         // Fallback direct registration in case HookManager is bypassed
         Hooks.on('renderJournalSheet', (app, html, data) => this._onRenderSheet(app, html, data));
         Hooks.on('renderJournalPageSheet', (app, html, data) => this._onRenderSheet(app, html, data));
@@ -179,7 +178,6 @@ export class JournalPagePins {
             this._intervalId = setInterval(() => this._scanUiWindows(), 2000);
         }
         this._scanUiWindows();
-        postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: ready tasks completed', null, true, false);
     }
 
     static _onRenderSheet(app, html) {
@@ -345,7 +343,6 @@ export class JournalPagePins {
             if (name.includes('Journal')) {
                 const el = win.element?.length ? win.element[0] : win.element;
                 if (el) {
-                    postConsoleAndNotification(MODULE.NAME, 'JournalPagePins: scanning window', name, true, false);
                     this._onRenderSheet(win, el, {});
                 }
             }
