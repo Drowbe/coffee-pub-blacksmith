@@ -250,13 +250,14 @@ export class PinConfigWindow extends Application {
 
         this.allowDuplicatePins = pin.allowDuplicatePins === true;
 
-        // Event animations (hover, click, double-click, delete) with optional sound
+        // Event animations (hover, click, double-click, delete, add) with optional sound
         const ev = pin.eventAnimations && typeof pin.eventAnimations === 'object' ? pin.eventAnimations : {};
         const eventAnimations = {
             hover: { animation: ev.hover?.animation ?? '', sound: ev.hover?.sound ?? '' },
             click: { animation: ev.click?.animation ?? '', sound: ev.click?.sound ?? '' },
             doubleClick: { animation: ev.doubleClick?.animation ?? '', sound: ev.doubleClick?.sound ?? '' },
-            delete: { animation: ev.delete?.animation ?? '', sound: ev.delete?.sound ?? '' }
+            delete: { animation: ev.delete?.animation ?? '', sound: ev.delete?.sound ?? '' },
+            add: { animation: ev.add?.animation ?? '', sound: ev.add?.sound ?? '' }
         };
         const interactionAnimList = [
             { value: '', label: 'None' },
@@ -276,7 +277,8 @@ export class PinConfigWindow extends Application {
             ...opt,
             hoverSelected: eventAnimations.hover.animation === opt.value,
             clickSelected: eventAnimations.click.animation === opt.value,
-            doubleClickSelected: eventAnimations.doubleClick.animation === opt.value
+            doubleClickSelected: eventAnimations.doubleClick.animation === opt.value,
+            addSelected: eventAnimations.add.animation === opt.value
         }));
         const deleteAnimationOptions = [
             { value: '', label: 'None', selected: eventAnimations.delete.animation === '' },
@@ -294,7 +296,8 @@ export class PinConfigWindow extends Application {
             hoverSelected: eventAnimations.hover.sound === opt.value,
             clickSelected: eventAnimations.click.sound === opt.value,
             doubleClickSelected: eventAnimations.doubleClick.sound === opt.value,
-            deleteSelected: eventAnimations.delete.sound === opt.value
+            deleteSelected: eventAnimations.delete.sound === opt.value,
+            addSelected: eventAnimations.add.sound === opt.value
         }));
 
         // Permissions (GM only): three clear options mapped to Foundry ownership levels
@@ -843,20 +846,23 @@ export class PinConfigWindow extends Application {
                 }
             }
 
-            // Event animations (hover, click, double-click, delete) with optional sound
+            // Event animations (hover, click, double-click, delete, add) with optional sound
             const hoverAnim = nativeHtml.querySelector('.blacksmith-pin-config-event-hover-animation')?.value ?? '';
             const clickAnim = nativeHtml.querySelector('.blacksmith-pin-config-event-click-animation')?.value ?? '';
             const doubleClickAnim = nativeHtml.querySelector('.blacksmith-pin-config-event-doubleclick-animation')?.value ?? '';
             const deleteAnim = nativeHtml.querySelector('.blacksmith-pin-config-event-delete-animation')?.value ?? '';
+            const addAnim = nativeHtml.querySelector('.blacksmith-pin-config-event-add-animation')?.value ?? '';
             const hoverSound = (nativeHtml.querySelector('.blacksmith-pin-config-event-hover-sound')?.value ?? '').trim();
             const clickSound = (nativeHtml.querySelector('.blacksmith-pin-config-event-click-sound')?.value ?? '').trim();
             const doubleClickSound = (nativeHtml.querySelector('.blacksmith-pin-config-event-doubleclick-sound')?.value ?? '').trim();
             const deleteSound = (nativeHtml.querySelector('.blacksmith-pin-config-event-delete-sound')?.value ?? '').trim();
+            const addSound = (nativeHtml.querySelector('.blacksmith-pin-config-event-add-sound')?.value ?? '').trim();
             pinUpdateData.eventAnimations = {
                 hover: { animation: hoverAnim || null, sound: hoverSound || null },
                 click: { animation: clickAnim || null, sound: clickSound || null },
                 doubleClick: { animation: doubleClickAnim || null, sound: doubleClickSound || null },
-                delete: { animation: deleteAnim || null, sound: deleteSound || null }
+                delete: { animation: deleteAnim || null, sound: deleteSound || null },
+                add: { animation: addAnim || null, sound: addSound || null }
             };
 
             try {

@@ -749,6 +749,9 @@ export class PinManager {
             import('./pins-renderer.js').then(async ({ PinRenderer }) => {
                 if (!PinRenderer.getContainer()) return;
                 await PinRenderer.updatePin(pin);
+                if (pin.eventAnimations?.add?.animation) {
+                    await PinRenderer.playAddAnimation(pin.id, pin.eventAnimations.add);
+                }
             }).catch(err => {
                 console.error('BLACKSMITH | PINS Error updating renderer after create:', err);
             });
@@ -802,6 +805,9 @@ export class PinManager {
                     import('./pins-renderer.js').then(async ({ PinRenderer }) => {
                         if (!PinRenderer.getContainer()) return;
                         await PinRenderer.updatePin(placed);
+                        if (placed.eventAnimations?.add?.animation) {
+                            await PinRenderer.playAddAnimation(placed.id, placed.eventAnimations.add);
+                        }
                     }).catch(() => {});
                 }
                 return foundry.utils.deepClone(placed);
@@ -837,6 +843,9 @@ export class PinManager {
                 import('./pins-renderer.js').then(async ({ PinRenderer }) => {
                     if (!PinRenderer.getContainer()) return;
                     await PinRenderer.updatePin(result);
+                    if (result.eventAnimations?.add?.animation) {
+                        await PinRenderer.playAddAnimation(result.id, result.eventAnimations.add);
+                    }
                 }).catch(err => {
                     console.error('BLACKSMITH | PINS Error updating renderer after requestGM update:', err);
                 });
@@ -947,7 +956,7 @@ export class PinManager {
         }
         if (patch.eventAnimations != null && typeof patch.eventAnimations === 'object' && !Array.isArray(patch.eventAnimations)) {
             const ev = patch.eventAnimations;
-            const keys = ['hover', 'click', 'doubleClick', 'delete'];
+            const keys = ['hover', 'click', 'doubleClick', 'delete', 'add'];
             const interactionAnimations = ['ping', 'pulse', 'ripple', 'flash', 'glow', 'bounce', 'scale-small', 'scale-medium', 'scale-large', 'rotate', 'shake'];
             const deleteAnimations = ['fade', 'dissolve', 'scale-small'];
             merged.eventAnimations = merged.eventAnimations && typeof merged.eventAnimations === 'object' ? { ...merged.eventAnimations } : {};
@@ -990,6 +999,9 @@ export class PinManager {
                 import('./pins-renderer.js').then(async ({ PinRenderer }) => {
                     if (!PinRenderer.getContainer()) return;
                     await PinRenderer.updatePin(result);
+                    if (result.eventAnimations?.add?.animation) {
+                        await PinRenderer.playAddAnimation(result.id, result.eventAnimations.add);
+                    }
                 }).catch(err => {
                     console.error('BLACKSMITH | PINS Error updating renderer after requestGM place:', err);
                 });
@@ -1015,6 +1027,9 @@ export class PinManager {
             import('./pins-renderer.js').then(async ({ PinRenderer }) => {
                 if (!PinRenderer.getContainer()) return;
                 await PinRenderer.updatePin(placed);
+                if (placed.eventAnimations?.add?.animation) {
+                    await PinRenderer.playAddAnimation(placed.id, placed.eventAnimations.add);
+                }
             }).catch(err => {
                 console.error('BLACKSMITH | PINS Error updating renderer after place:', err);
             });

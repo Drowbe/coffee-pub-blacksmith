@@ -34,7 +34,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {boolean} [textScaleWithPin] - Whether text scales with pin size based on zoom (default: true). If false, text stays fixed size.
  * @property {string} [type] - Pin type/category (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified. Used for filtering and organization.
  * @property {boolean} [allowDuplicatePins] - If true, the same source (e.g. one journal page) may have multiple pins on the map; if false (default), one pin per source (creating replaces existing).
- * @property {{ hover?: { animation?: string | null; sound?: string | null }; click?: { animation?: string | null; sound?: string | null }; doubleClick?: { animation?: string | null; sound?: string | null }; delete?: { animation?: string | null; sound?: string | null } }} [eventAnimations] - Optional animations and sounds for hover, click, double-click, and delete. Default: all none.
+ * @property {{ hover?: { animation?: string | null; sound?: string | null }; click?: { animation?: string | null; sound?: string | null }; doubleClick?: { animation?: string | null; sound?: string | null }; delete?: { animation?: string | null; sound?: string | null }; add?: { animation?: string | null; sound?: string | null } }} [eventAnimations] - Optional animations and sounds for hover, click, double-click, delete, and add (when pin is placed on canvas). Default: all none.
  * @property {Record<string, unknown>} config
  * @property {string} moduleId
  * @property {{ default: number; users?: Record<string, number> }} ownership
@@ -309,7 +309,7 @@ export function applyDefaults(partial) {
     if (typeof partial.version === 'number') base.version = partial.version;
     if (partial.eventAnimations != null && typeof partial.eventAnimations === 'object' && !Array.isArray(partial.eventAnimations)) {
         const ev = /** @type {Record<string, { animation?: string | null; sound?: string | null }>} */ (partial.eventAnimations);
-        const eventKeys = ['hover', 'click', 'doubleClick', 'delete'];
+        const eventKeys = ['hover', 'click', 'doubleClick', 'delete', 'add'];
         const interactionAnimations = ['ping', 'pulse', 'ripple', 'flash', 'glow', 'bounce', 'scale-small', 'scale-medium', 'scale-large', 'rotate', 'shake'];
         const deleteAnimations = ['fade', 'dissolve', 'scale-small'];
         base.eventAnimations = {};

@@ -30,6 +30,7 @@ const JOURNAL_PIN_DEFAULTS = Object.freeze({
         hover: { animation: 'ripple', sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-01.mp3' },
         click: { animation: 'glow', sound: null },
         doubleClick: { animation: 'bounce', sound: 'modules/coffee-pub-blacksmith/sounds/book-open-02.mp3' },
+        add: { animation: 'bounce', sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-03.mp3' },
         delete: { animation: 'scale-small', sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-03.mp3' }
     }
 });

@@ -2014,6 +2014,20 @@ export class PinRenderer {
     }
 
     /**
+     * Play add-to-canvas animation (same as ping: bounce, pulse, etc.) and optional sound. Call after the pin is rendered (e.g. after place() or create() with placement).
+     * @param {string} pinId
+     * @param {{ animation?: string | null; sound?: string | null }} options
+     * @returns {Promise<void>}
+     */
+    static async playAddAnimation(pinId, options = {}) {
+        const { animation, sound } = options;
+        if (!animation) return;
+        const pinElement = PinDOMElement._pins.get(pinId);
+        if (!pinElement) return;
+        await this.ping(pinId, { animation, sound: sound ?? null, loops: 1 });
+    }
+
+    /**
      * Play delete animation (fade, dissolve, or scale-small) then resolve. Does not remove the pin; caller should call removePin after.
      * @param {string} pinId
      * @param {{ animation: string | null; sound?: string | null }} options - animation: 'fade' | 'dissolve' | 'scale-small', sound: optional

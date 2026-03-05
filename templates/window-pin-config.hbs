@@ -172,7 +172,7 @@
         <div class="blacksmith-pin-config-section blacksmith-pin-config-animation-section">
             <div class="blacksmith-pin-config-section-header"><i class="fa-solid fa-wand-sparkles"></i> Event Animations</div>
             <div class="blacksmith-pin-config-section-body">
-                <div class="blacksmith-pin-config-help">Play an animation and optional sound when the pin is hovered, clicked, double-clicked, or deleted. Right-click is reserved for the context menu.</div>
+                <div class="blacksmith-pin-config-help">Play an animation and optional sound when the pin is hovered, clicked, double-clicked, added to the canvas, or deleted. Right-click is reserved for the context menu.</div>
                 <div class="blacksmith-pin-config-event-animations">
                     <div class="blacksmith-pin-config-event-row">
                         <span class="blacksmith-pin-config-event-label">Hover</span>
@@ -210,6 +210,19 @@
                         <select class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-doubleclick-sound">
                             {{#each soundOptions}}
                             <option value="{{this.value}}" {{#if this.doubleClickSelected}}selected{{/if}}>{{this.label}}</option>
+                            {{/each}}
+                        </select>
+                    </div>
+                    <div class="blacksmith-pin-config-event-row">
+                        <span class="blacksmith-pin-config-event-label">Add (to canvas)</span>
+                        <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-add-animation">
+                            {{#each animationOptions}}
+                            <option value="{{this.value}}" {{#if this.addSelected}}selected{{/if}}>{{this.label}}</option>
+                            {{/each}}
+                        </select>
+                        <select class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-add-sound">
+                            {{#each soundOptions}}
+                            <option value="{{this.value}}" {{#if this.addSelected}}selected{{/if}}>{{this.label}}</option>
                             {{/each}}
                         </select>
                     </div>
