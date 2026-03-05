@@ -31,6 +31,12 @@
 - **Location**: `scripts/api-core.js` (playSound, playSoundLocalWithDuration), `scripts/manager-sockets.js` (playSoundWithDuration handler)
 - **Need**: Ensure each client that receives the `playSoundWithDuration` socket event both plays the sound locally and stops it after `duration` seconds (e.g. verify handler is invoked on all clients, that each client gets the same payload, and that the returned Sound from `AudioHelper.play` is the one being stopped in the setTimeout). If SocketLib’s `executeForAll` does not run on the initiating client, consider having the initiator also call `playSoundLocalWithDuration` locally so all clients behave the same.
 
+### Movement sound start/stop (loop and stop when token stops)
+- **Issue**: Walking/movement sound was implemented to start when a token moves and stop when movement ends (loop while moving, stop when idle). The start/stop events are broken and the sound never stops. Workaround in place: movement sound now plays once per movement update (no loop, no watcher).
+- **Status**: PENDING – Workaround: play once per move in `handleMovementSounds`; proper fix not yet done.
+- **Location**: `scripts/token-movement.js` – `handleMovementSounds`, `ensureMovementSoundWatcher`, `clearMovementSoundWatcher`, `stopMovementSoundForToken`, `movementSoundByTokenId`, `movementSoundStopTimers`
+- **Need**: Fix the logic so that (1) sound starts/loops when token moves, (2) sound stops when token has not moved for the configured interval. Ensure stop timers and watcher correctly stop the sound on all clients; investigate why the current implementation never stops (e.g. watcher not firing, stop not broadcast, key mismatch).
+
 ### Verify Loot Token Restoration
 - **Issue**: Ensure tokens converted to loot piles reliably restore their original images after revival
 - **Status**: PENDING - Needs validation pass

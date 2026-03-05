@@ -1332,7 +1332,7 @@ class MenuBar {
             groupOrder: this.GROUP_ORDER.PARTY,
             order: 1,
             moduleId: "blacksmith-core",
-            gmOnly: true,
+            gmOnly: false,
             leaderOnly: false,
             visible: true,
             toggleable: true,
@@ -1514,6 +1514,7 @@ class MenuBar {
             tooltip: `Click to cycle deployment pattern (Current: ${getCurrentPatternName()})`,
             group: 'default',
             order: 0,
+            visible: () => game.user.isGM,
             onClick: async () => {
                 postConsoleAndNotification(MODULE.NAME, "Party Tools: Cycling deployment pattern", "", true, false);
                 try {
@@ -1546,6 +1547,7 @@ class MenuBar {
             tooltip: 'Deploy all party members to the canvas',
             group: 'default',
             order: 1,
+            visible: () => game.user.isGM,
             onClick: async () => {
                 postConsoleAndNotification(MODULE.NAME, "Party Tools: Deploy Party button clicked", "", true, false);
                 try {
@@ -1556,13 +1558,14 @@ class MenuBar {
             }
         });
 
-        // Vote
+        // Vote (visible to GM or current session leader only)
         this.registerSecondaryBarItem('party', 'vote', {
             icon: 'fa-solid fa-check-to-slot',
             label: 'Vote',
             tooltip: 'Vote',
             group: 'default',
             order: 2,
+            visible: () => game.user.isGM || game.settings.get(MODULE.ID, 'partyLeader')?.userId === game.user.id,
             onClick: () => {
                 new VoteConfig().render(true);
             }
@@ -1580,13 +1583,14 @@ class MenuBar {
             }
         });
 
-        // Experience
+        // Experience (GM only)
         this.registerSecondaryBarItem('party', 'xp-distribution', {
             icon: 'fas fa-star',
             label: 'Experience',
             tooltip: 'Open Experience Points Distribution Worksheet',
             group: 'default',
             order: 4,
+            visible: () => game.user.isGM,
             onClick: () => {
                 this.openXpDistribution();
             }

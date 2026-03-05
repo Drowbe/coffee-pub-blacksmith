@@ -152,71 +152,56 @@ function ensureMovementSoundWatcher(tokenId) {
 }
 
 // Handle movement sounds for token movement
+// TEMPORARY: Play once per movement update; start/stop looping is broken and never stops (see TODO.md).
 function handleMovementSounds(tokenDocument, changes, userId, options = {}) {
     try {
     // Only run on GM client to avoid permission issues
     if (!game.user.isGM) return;
-    
+
     // Check if movement sounds are enabled
     if (!getSettingSafely(MODULE.ID, 'movementSoundsEnabled', false)) return;
-    
+
     // Skip if this is automated movement (conga line, etc.)
     const token = canvas.tokens.get(tokenDocument.id);
     if (!token) return;
-    
+
     if (isAutomatedMovement(token, changes)) return;
-    
+
     // Previous position (before this update). _source may be undefined in some contexts.
     const startX = tokenDocument._source?.x ?? tokenDocument.x;
     const startY = tokenDocument._source?.y ?? tokenDocument.y;
     const endX = tokenDocument.x;
     const endY = tokenDocument.y;
-    
+
     // Calculate distance in pixels, then convert to feet
     const distancePixels = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
     const distanceFeet = distancePixels; // In Foundry, pixels = feet (1:1 ratio)
     const minMovementDistanceFeet = getSettingSafely(MODULE.ID, 'movementSoundDistanceThreshold', 5);
-    
+
     if (distanceFeet < minMovementDistanceFeet) return;
-    
+
     // Determine token type and appropriate sound
     let soundConstant = null;
     const isPlayerToken = token.actor?.hasPlayerOwner;
-    
+
     if (isPlayerToken) {
         soundConstant = getSettingSafely(MODULE.ID, 'movementSoundPlayer', 'SOUNDEFFECTGENERAL01');
     } else {
         soundConstant = getSettingSafely(MODULE.ID, 'movementSoundMonster', 'SOUNDEFFECTGENERAL06');
     }
-    
+
     // Get volume setting
     const volume = getSettingSafely(MODULE.ID, 'movementSoundVolume', 0.3);
-    
+
     // Resolve sound constant to path (setting stores key like SOUNDEFFECTGENERAL01)
     const soundPath = (typeof window.COFFEEPUB !== 'undefined' && soundConstant && window.COFFEEPUB[soundConstant])
         ? window.COFFEEPUB[soundConstant]
         : soundConstant;
-    
+
     if (!soundPath) return;
-    
-    // Cancel existing stop timer for this token (same pattern as marching order: reset on every update)
-    const existingTimer = movementSoundStopTimers.get(token.id);
-    if (existingTimer != null) {
-        clearTimeout(existingTimer);
-        scheduledTimeouts.delete(existingTimer);
-        movementSoundStopTimers.delete(token.id);
-    }
-    
-    // Start looping only if this token isn't already playing (multiple tokens can play at once)
-    if (!movementSoundByTokenId.has(token.id)) {
-        playSoundLooping(soundPath, volume, true, token.id);
-        movementSoundByTokenId.set(token.id, soundPath);
-        postConsoleAndNotification(MODULE.NAME, 'Movement sound: started', { tokenId: token.id }, false, false);
-    }
-    
-    // Track latest movement update and keep watcher alive while token is visually moving.
-    movementSoundLastUpdateAt.set(token.id, Date.now());
-    ensureMovementSoundWatcher(token.id);
+
+    // Play once (no loop). Start/stop looping is broken — see TODO.md.
+    playSound(soundPath, volume, false, true);
     } catch (err) {
         postConsoleAndNotification(MODULE.NAME, 'Movement sound: error', err?.message ?? err, false, false);
     }
