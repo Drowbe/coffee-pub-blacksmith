@@ -549,6 +549,13 @@ class MenuBar {
     static _registerCombatBarEvents() {
         // Store handlers for cleanup
         this._combatBarClickHandler = async (event) => {
+            if (event.target.closest('.combatbar-button[data-control="toggleTracker"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                this.toggleCombatTracker();
+                return;
+            }
+
             // Check if this is a combat portrait click (pan to combatant)
             // But exclude initiative dice and other interactive elements
             const combatPortrait = event.target.closest('[data-combatant-id]');
@@ -1147,7 +1154,7 @@ class MenuBar {
             moduleId: "blacksmith-core",
             gmOnly: true,
             leaderOnly: false,
-            visible: true,
+            visible: false,
             toggleable: false,
             active: false,
             iconColor: " rgba(255, 255, 255, 0.6)",
@@ -1242,11 +1249,7 @@ class MenuBar {
             moduleId: "blacksmith-core",
             gmOnly: false,
             leaderOnly: false,
-            visible: () => {
-                // Show if there's an active combat with combatants
-                const activeCombat = game.combats.active;
-                return activeCombat !== null && activeCombat !== undefined && activeCombat.combatants.size > 0;
-            },
+            visible: false,
             toggleable: false,
             active: false,
             iconColor: null,
@@ -3103,12 +3106,14 @@ class MenuBar {
             // For encounter bar, set CR/difficulty and isGM
             if (typeId === 'encounter') {
                 const assessment = EncounterManager.getCombatAssessment({});
+                const hasQuickEncounterTool = !!this._getQuickEncounterToolbarTool();
                 this.secondaryBar.data = {
                     partyCRDisplay: assessment.partyCRDisplay,
                     monsterCRDisplay: assessment.monsterCRDisplay,
                     difficulty: assessment.difficulty,
                     difficultyClass: assessment.difficultyClass,
-                    isGM: game.user.isGM
+                    isGM: game.user.isGM,
+                    hasQuickEncounterTool
                 };
             }
 
@@ -4016,12 +4021,14 @@ class MenuBar {
             } else if (data.type === 'encounter') {
                 // Always refresh encounter bar with current CR/difficulty when re-rendering
                 const assessment = EncounterManager.getCombatAssessment({});
+                const hasQuickEncounterTool = !!this._getQuickEncounterToolbarTool();
                 data.data = {
                     partyCRDisplay: assessment.partyCRDisplay,
                     monsterCRDisplay: assessment.monsterCRDisplay,
                     difficulty: assessment.difficulty,
                     difficultyClass: assessment.difficultyClass,
-                    isGM: game.user.isGM
+                    isGM: game.user.isGM,
+                    hasQuickEncounterTool
                 };
             } else if (!data.data) {
                 data.data = {};
@@ -4436,9 +4443,10 @@ class MenuBar {
 
         const { combat, combatant, canvasToken, actor } = context;
         const canViewSheet = this._canOpenCombatantSheet(actor);
-        const items = [];
+        const coreItems = [];
+        const gmItems = [];
 
-        items.push({
+        coreItems.push({
             name: 'Pan to Token',
             icon: 'fa-solid fa-location-crosshairs',
             disabled: !canvasToken,
@@ -4447,7 +4455,7 @@ class MenuBar {
             }
         });
 
-        items.push({
+        coreItems.push({
             name: 'Ping Token',
             icon: 'fa-solid fa-signal-stream',
             disabled: !canvasToken,
@@ -4456,7 +4464,7 @@ class MenuBar {
             }
         });
 
-        items.push({
+        coreItems.push({
             name: 'Hurry Up',
             icon: 'fa-solid fa-rabbit-running',
             callback: async () => {
@@ -4464,17 +4472,7 @@ class MenuBar {
             }
         });
 
-        if (game.user.isGM) {
-            items.push({
-                name: 'Set As Current Combatant',
-                icon: 'fa-solid fa-crosshairs',
-                callback: async () => {
-                    await this.setCurrentCombatant(combatantId);
-                }
-            });
-        }
-
-        items.push({
+        coreItems.push({
             name: 'View Character Sheet',
             icon: 'fa-solid fa-user',
             disabled: !canViewSheet,
@@ -4485,23 +4483,23 @@ class MenuBar {
         });
 
         if (game.user.isGM) {
-            items.push({
-                name: 'Remove from Combat',
-                icon: 'fa-solid fa-trash',
+            gmItems.push({
+                name: 'Set As Current Combatant',
+                icon: 'fa-solid fa-crosshairs',
                 callback: async () => {
-                    await combat.deleteEmbeddedDocuments('Combatant', [combatantId]);
+                    await this.setCurrentCombatant(combatantId);
                 }
             });
 
-            items.push({
-                name: combatant.hidden ? 'Show in Combat' : 'Hide in Combat',
+            gmItems.push({
+                name: 'Toggle Visibility',
                 icon: combatant.hidden ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
                 callback: async () => {
                     await combatant.update({ hidden: !combatant.hidden });
                 }
             });
 
-            items.push({
+            gmItems.push({
                 name: 'Replace Image',
                 icon: 'fa-solid fa-image',
                 disabled: !canvasToken,
@@ -4515,14 +4513,25 @@ class MenuBar {
                     await TokenImageReplacementWindow.openWindow();
                 }
             });
+
+            // Keep destructive action last to reduce accidental clicks.
+            gmItems.push({
+                name: 'Remove from Combat',
+                icon: 'fa-solid fa-trash',
+                callback: async () => {
+                    await combat.deleteEmbeddedDocuments('Combatant', [combatantId]);
+                }
+            });
         }
 
         UIContextMenu.show({
             id: 'blacksmith-combat-portrait-context-menu',
             x,
             y,
-            zones: items,
-            zoneClass: 'core'
+            zones: {
+                core: coreItems,
+                gm: gmItems
+            }
         });
     }
 
@@ -4583,6 +4592,22 @@ class MenuBar {
             }
             
             // Check if this is an encounter bar Reveal button
+            const encounterCreateBtn = event.target.closest('.encounter-bar-create-combat, [data-control="encounterCreateCombat"]');
+            if (encounterCreateBtn) {
+                event.preventDefault();
+                event.stopPropagation();
+                this.createCombat();
+                return;
+            }
+
+            const encounterQuickBtn = event.target.closest('.encounter-bar-quick-encounter, [data-control="encounterQuickEncounter"]');
+            if (encounterQuickBtn) {
+                event.preventDefault();
+                event.stopPropagation();
+                this.openQuickEncounterWindow();
+                return;
+            }
+
             const encounterRevealBtn = event.target.closest('.encounter-bar-reveal, [data-control="encounterReveal"]');
             if (encounterRevealBtn) {
                 event.preventDefault();
@@ -4590,12 +4615,14 @@ class MenuBar {
                 EncounterManager.revealHiddenTokens();
                 if (this.secondaryBar.isOpen && this.secondaryBar.type === 'encounter') {
                     const assessment = EncounterManager.getCombatAssessment({});
+                    const hasQuickEncounterTool = !!this._getQuickEncounterToolbarTool();
                     this.secondaryBar.data = {
                         partyCRDisplay: assessment.partyCRDisplay,
                         monsterCRDisplay: assessment.monsterCRDisplay,
                         difficulty: assessment.difficulty,
                         difficultyClass: assessment.difficultyClass,
-                        isGM: game.user.isGM
+                        isGM: game.user.isGM,
+                        hasQuickEncounterTool
                     };
                     this.renderMenubar(true);
                 }
@@ -5261,6 +5288,49 @@ class MenuBar {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error creating combat:", error, false, false);
             ui.notifications.error("Failed to create combat encounter.");
+        }
+    }
+
+    static _getQuickEncounterToolbarTool() {
+        try {
+            const api = game.modules.get(MODULE.ID)?.api;
+            const registry = api?.getRegisteredTools?.();
+            if (!registry || typeof registry.forEach !== 'function') return null;
+
+            let selected = null;
+            registry.forEach((tool, toolId) => {
+                if (selected || !tool || typeof tool.onClick !== 'function') return;
+                const haystack = [
+                    toolId,
+                    tool.name,
+                    tool.title,
+                    tool.tooltip,
+                    tool.moduleId
+                ].filter(Boolean).join(' ').toLowerCase();
+                if (haystack.includes('quick') && haystack.includes('encounter')) {
+                    selected = { toolId, tool };
+                }
+            });
+
+            return selected;
+        } catch (_error) {
+            return null;
+        }
+    }
+
+    static async openQuickEncounterWindow() {
+        try {
+            const quickTool = this._getQuickEncounterToolbarTool();
+            if (quickTool?.tool?.onClick) {
+                const result = quickTool.tool.onClick({});
+                if (result?.then) await result;
+                return;
+            }
+
+            ui.notifications?.warn?.('Quick Encounter tool is not registered.');
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Failed to open Quick Encounter', error?.message || error, false, true);
+            ui.notifications?.error?.('Failed to open Quick Encounter.');
         }
     }
 

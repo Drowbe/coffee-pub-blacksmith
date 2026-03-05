@@ -13,6 +13,14 @@
     </div>
     {{#if isGM}}
     <div class="encounter-bar-actions">
+        <button type="button" class="encounter-bar-button encounter-bar-create-combat" data-control="encounterCreateCombat" data-tooltip="Create combat encounter with selected or all tokens on canvas">
+            <i class="fas fa-swords"></i> Create Combat
+        </button>
+        {{#if hasQuickEncounterTool}}
+        <button type="button" class="encounter-bar-button encounter-bar-quick-encounter" data-control="encounterQuickEncounter" data-tooltip="Open Quick Encounter">
+            <i class="fa-solid fa-dice"></i> Quick Encounter
+        </button>
+        {{/if}}
         <button type="button" class="encounter-bar-button encounter-bar-reveal" data-control="encounterReveal" data-tooltip="Reveal hidden hostile tokens">
             <i class="fas fa-eye"></i> Reveal
         </button>
