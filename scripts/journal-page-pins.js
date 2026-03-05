@@ -124,6 +124,7 @@ export class JournalPagePins {
 
     /**
      * Open the journal and show the given page for the current user only (no broadcast to players).
+     * Ensures the page opens in view mode, not edit mode (clicks the sheet's toggle if it opened in edit).
      * Catches permission errors so viewing a journal the user cannot update does not break other handlers (e.g. gather-spot).
      */
     static _viewJournalPage(journal, pageId) {
@@ -131,14 +132,17 @@ export class JournalPagePins {
         const sheet = journal.sheet;
         const openAndView = () => {
             // Open the sheet for the current user only; do not use journal.show() as that broadcasts "shown to all players"
-            if (sheet && typeof sheet.viewPage === 'function') {
+            if (sheet && (typeof sheet.viewPage === 'function' || typeof sheet.goToPage === 'function')) {
                 try {
+                    const goToPage = typeof sheet.goToPage === 'function' ? sheet.goToPage.bind(sheet) : sheet.viewPage?.bind(sheet);
                     if (sheet.rendered) {
-                        sheet.viewPage(pageId);
+                        goToPage(pageId);
                     } else {
                         sheet.render(true);
-                        setTimeout(() => sheet.viewPage?.(pageId), 100);
+                        setTimeout(() => goToPage(pageId), 100);
                     }
+                    // If the sheet opened in edit mode (e.g. default for GM), switch to view mode
+                    setTimeout(() => this._ensureJournalSheetViewMode(sheet), 200);
                     return;
                 } catch (e) { /* fall through */ }
             }
@@ -161,6 +165,22 @@ export class JournalPagePins {
             }
             return Promise.resolve();
         }
+    }
+
+    /**
+     * If the journal sheet is in edit mode, click the toggle/close button so it opens in view mode.
+     * @param {Application} sheet - The journal entry sheet (JournalEntrySheet).
+     */
+    static _ensureJournalSheetViewMode(sheet) {
+        if (!sheet?.element) return;
+        const root = sheet.element?.querySelector?.('.journal-sheet, .journal-entry') ?? sheet.element;
+        if (!root || !root.querySelector) return;
+        if (root.querySelector('.editor-container, .editor-edit') === null) return; // Already in view mode
+        // Try main sheet toggle (view/edit) or page-level close-view button
+        const toggleBtn = root.querySelector(
+            'button[data-action="toggleMode"], [data-action="toggleMode"], [data-action="closeView"], button[data-action="closeView"]'
+        );
+        if (toggleBtn) toggleBtn.click();
     }
 
     static _afterReady() {
