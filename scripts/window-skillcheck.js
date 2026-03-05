@@ -1590,7 +1590,7 @@ export class SkillCheckDialog extends Application {
 
     /**
      * Invoke a pending onRollComplete callback registered by openRequestRollDialog({ onRollComplete }).
-     * Called from handleSkillRollUpdate when a roll result is delivered to the chat card.
+     * Called by _notifyRequestRollComplete when a roll result is delivered.
      * @param {string} messageId - Chat message ID
      * @param {object} payload - { message, messageData, tokenId, result, allComplete }
      */
@@ -1605,6 +1605,26 @@ export class SkillCheckDialog extends Application {
         if (payload.allComplete) {
             SkillCheckDialog._pendingRollCallbacks.delete(messageId);
         }
+    }
+
+    /**
+     * Notify local API callbacks and all hook subscribers about a request-roll completion.
+     * @param {object} payload - { messageId, message, messageData, tokenId, result, allComplete, requesterId, rollerUserId }
+     */
+    static _notifyRequestRollComplete(payload) {
+        if (!payload?.messageId) return;
+        const normalizedPayload = {
+            messageId: payload.messageId,
+            message: payload.message ?? game.messages.get(payload.messageId) ?? null,
+            messageData: payload.messageData ?? null,
+            tokenId: payload.tokenId ?? null,
+            result: payload.result ?? null,
+            allComplete: !!payload.allComplete,
+            requesterId: payload.requesterId ?? payload.messageData?.requesterId ?? null,
+            rollerUserId: payload.rollerUserId ?? null
+        };
+        SkillCheckDialog._invokeRollCompleteCallback(payload.messageId, normalizedPayload);
+        Hooks.callAll('blacksmith.requestRollComplete', normalizedPayload);
     }
 
     /**
@@ -1690,6 +1710,7 @@ export class SkillCheckDialog extends Application {
     /**
      * Create a roll request chat card without opening the dialog (silent mode).
      * @param {object} options - initialType, initialValue/initialSkill, initialFilter or actors, dc, title, groupRoll, showDC, showRollExplanation, isCinematic, rollMode, onRollComplete
+     * Also emits Hooks event 'blacksmith.requestRollComplete' with { messageId, tokenId, result, allComplete, messageData, requesterId, rollerUserId }.
      * @returns {Promise<{ message: ChatMessage, messageId: string }>}
      */
     static async createRequestRoll(options = {}) {

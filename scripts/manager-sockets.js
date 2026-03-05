@@ -416,9 +416,21 @@ class SocketManager {
 
         this.socket.register('skillRollFinalized', (data) => {
             postConsoleAndNotification(MODULE.NAME, "SocketManager: Received skillRollFinalized", data, false, false);
-            const { messageId, flags, rollData } = data;
-            // Check if cinematic display is active for this message
-            // Cinema overlay updates are now handled by the new system in deliverRollResults()
+            const payload = data.data || data;
+            const completionPayload = payload.completionPayload || {
+                messageId: payload.messageId,
+                messageData: payload.flags,
+                tokenId: payload.rollData?.tokenId ?? null,
+                result: payload.rollData?.result ?? null,
+                allComplete: (payload.flags?.actors || []).length > 0 && (payload.flags?.actors || []).every(a => a.result),
+                requesterId: payload.flags?.requesterId ?? null,
+                rollerUserId: payload.rollData?.rollerUserId ?? null
+            };
+            import('./window-skillcheck.js').then(({ SkillCheckDialog }) => {
+                SkillCheckDialog._notifyRequestRollComplete(completionPayload);
+            }).catch(error => {
+                postConsoleAndNotification(MODULE.NAME, "SocketManager: Error importing SkillCheckDialog for skillRollFinalized", error, true, false);
+            });
         });
 
         // Cinema Overlay Update Handler

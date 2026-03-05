@@ -2672,30 +2672,36 @@ export async function handleSkillRollUpdate(data) {
         }
     });
 
-    // Notify API callers that opened the dialog with onRollComplete
     const allComplete = (updatedMessageData.actors || []).length > 0 &&
         (updatedMessageData.actors || []).every(a => a.result);
-    SkillCheckDialog._invokeRollCompleteCallback(messageId, {
+    const completionPayload = {
+        messageId: message.id,
         message,
         messageData: updatedMessageData,
         tokenId,
         result,
-        allComplete
-    });
+        allComplete,
+        requesterId: updatedMessageData.requesterId ?? null,
+        rollerUserId: data.rollerUserId ?? null
+    };
+
+    // Notify the local GM immediately (supports GM-authoritative workflows)
+    SkillCheckDialog._notifyRequestRollComplete(completionPayload);
 
     // Scroll chat to bottom to show the updated group results (with delay to ensure DOM is updated)
     setTimeout(() => {
         _scrollChatToBottom();
     }, 100);
 
-    // Broadcast the final result to all clients for UI updates (like cinematic mode)
+    // Broadcast the final result to other clients for synchronized callbacks/hooks and UI updates
     const socket = SocketManager.getSocket();
     if (socket) {
-        await socket.executeForEveryone("skillRollFinalized", {
+        await socket.executeForOthers("skillRollFinalized", {
             type: "skillRollFinalized",  // Add type property
             messageId: message.id,
             flags: updatedMessageData,
-            rollData: data // Pass along the specific roll data (tokenId, result)
+            rollData: data, // Pass along the specific roll data (tokenId, result)
+            completionPayload
         });
     }
 

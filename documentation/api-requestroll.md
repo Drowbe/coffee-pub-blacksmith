@@ -66,7 +66,7 @@ Opens the Request a Roll (Skill Check) dialog. Optionally pass an options object
 | `options.situationalBonus` | `number` | Optional. Pre-filled in the **Roll Configuration** window’s "Situational Bonus" field. When using `initialFilter` or the dialog, this value applies to **all** actors. When using `options.actors`, this is the **default** for any actor that does not specify its own `situationalBonus`. |
 | `options.customModifier` | `string` | Optional. Pre-filled in the **Roll Configuration** window’s "Custom Modifier" field (e.g. `"+2"`, `"-1"`). Same scope as `situationalBonus`: all actors when using filter/dialog, or default when using `options.actors`. |
 | `options.callback` | `Function` | Callback used by the dialog (if applicable). |
-| `options.onRollComplete` | `Function` | Callback invoked each time a roll result is delivered to the chat card (e.g. when a player rolls). Receives one argument: `(payload)` where `payload` is `{ message, messageData, tokenId, result, allComplete }`. `message` is the ChatMessage; `messageData` is the updated flags content (actors, results, etc.); `tokenId` and `result` are for the roll that just completed; `allComplete` is `true` when every requested actor has rolled. Called once per roll; unregistered when `allComplete` is true. |
+| `options.onRollComplete` | `Function` | Callback invoked each time a roll result is delivered to the chat card on the local client that registered it. Receives one argument: `(payload)` where `payload` is `{ messageId, message, messageData, tokenId, result, allComplete, requesterId, rollerUserId }`. Called once per roll; unregistered when `allComplete` is true. For cross-client/GM-authoritative handling, use the global hook `Hooks.on('blacksmith.requestRollComplete', ...)`. |
 | `options.actors` | `Array` | Optional actor list. When **silent** mode is used, this is the preferred way to supply actors. Each element may be **(1)** a Foundry **Actor document** (or `{ id: actorId, name? }`), or **(2)** a token-centric object `{ id: tokenId, actorId, name?, group?, situationalBonus?, customModifier? }`. **Per-actor modifiers:** when you pass an array of actor objects, each may include `situationalBonus` (number) and `customModifier` (string) for that actor only. If omitted for an actor, the global `options.situationalBonus` and `options.customModifier` are used. Use this when only some actors get a bonus (e.g. one of two players has +2 for harvest). When not silent, the dialog can use this to pre-fill if it supports it. |
 
 **Returns**
@@ -181,12 +181,30 @@ api.openRequestRollDialog({
     dc: 15,
     initialFilter: 'party',
     onRollComplete: (payload) => {
-        // payload: { message, messageData, tokenId, result, allComplete }
+        // payload: { messageId, message, messageData, tokenId, result, allComplete, requesterId, rollerUserId }
         const { messageData, tokenId, result, allComplete } = payload;
         console.log('Roll received:', tokenId, result?.total);
         if (allComplete) {
             console.log('All rolls complete:', messageData.actors);
         }
+    }
+});
+```
+
+**Receiving roll results across clients (recommended for GM-authoritative workflows)**
+
+Use the global hook below when the request may be initiated by players but your module resolves state on the GM:
+
+```javascript
+Hooks.on('blacksmith.requestRollComplete', (payload) => {
+    // payload: { messageId, message, messageData, tokenId, result, allComplete, requesterId, rollerUserId }
+    if (!game.user.isGM) return;
+
+    const { messageId, tokenId, result, allComplete, messageData, requesterId, rollerUserId } = payload;
+    console.log('Request roll update', { messageId, tokenId, total: result?.total, allComplete, requesterId, rollerUserId });
+
+    if (allComplete) {
+        // Run final GM-authoritative resolution here
     }
 });
 ```

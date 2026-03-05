@@ -340,7 +340,8 @@ export async function deliverRollResults(rollResults, context) {
         const rollDataForSocket = {
             messageId,
             tokenId,
-            result: resultForSocket
+            result: resultForSocket,
+            rollerUserId: game.user.id
         };
 
         // Emit the update to the GM
@@ -1818,7 +1819,6 @@ function createPostRollVerboseFormula(roll, rollData) {
 // ==================================================================
 // ===== PUBLIC API ==================================================
 // ==================================================================
-
 
 
 
