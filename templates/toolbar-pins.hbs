@@ -1,8 +1,25 @@
-{{! Journal page pins toolbar: "Pin this page" bar below .journal-header (same area as encounter toolbar) }}
-<div class="journal-page-pins-bar" data-page-id="{{pageId}}">
+{{! Journal page pins toolbar: icon options + "Pin this page" bar below .journal-header }}
+<div class="journal-page-pins-bar" data-page-id="{{pageId}}" data-placement-icon="fa-solid fa-book-open">
     <div class="journal-page-pins-bar-row">
         <div class="journal-page-pins-bar-left toolbar-left">
-            <a class="header-control icon journal-page-pin-button" href="#" title="Pin this journal page to the current scene">
+            <div class="journal-page-pins-icon-options">
+                <button type="button" class="journal-page-pin-icon-option selected" data-placement-icon="fa-solid fa-book-open" title="Book (default)"><i class="fa-solid fa-book-open"></i></button>
+                <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-skull" title="Skull"><i class="fa-solid fa-skull"></i></button>
+                <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-bookmark" title="Bookmark"><i class="fa-solid fa-bookmark"></i></button>
+                <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-droplet" title="Droplet"><i class="fa-solid fa-droplet"></i></button>
+                <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-fire" title="Fire"><i class="fa-solid fa-fire"></i></button>
+                <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-flag" title="Flag"><i class="fa-solid fa-flag"></i></button>
+                <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-flask" title="Flask"><i class="fa-solid fa-flask"></i></button>
+                <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-house" title="House"><i class="fa-solid fa-house"></i></button>
+                <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-seedling" title="Seedling"><i class="fa-solid fa-seedling"></i></button>
+                <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-beer-mug-empty" title="Beer"><i class="fa-solid fa-beer-mug-empty"></i></button>
+                <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-sharp fa-solid fa-swords" title="Swords"><i class="fa-sharp fa-solid fa-swords"></i></button>
+                <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-treasure-chest" title="Treasure chest"><i class="fa-solid fa-treasure-chest"></i></button>
+                <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-paw-claws" title="Paw claws"><i class="fa-solid fa-paw-claws"></i></button>
+                <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-mushroom" title="Mushroom"><i class="fa-solid fa-mushroom"></i></button>
+                <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-sharp fa-solid fa-helmet-battle" title="Helmet"><i class="fa-sharp fa-solid fa-helmet-battle"></i></button>
+            </div>
+            <a class="header-control icon journal-page-pin-button" href="#" title="Pin this journal page to the current scene (uses selected icon)">
                 <i class="fa-solid fa-map-pin"></i> Pin Page
             </a>
         </div>

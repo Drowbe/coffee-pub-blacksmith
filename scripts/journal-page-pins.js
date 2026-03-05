@@ -292,6 +292,18 @@ export class JournalPagePins {
                 }
                 journalHeader.insertAdjacentElement('afterend', bar);
                 bar.addEventListener('click', (event) => {
+                    const iconOption = event.target.closest?.('.journal-page-pin-icon-option');
+                    if (iconOption) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const icon = iconOption.getAttribute('data-placement-icon');
+                        if (icon) {
+                            bar.setAttribute('data-placement-icon', icon);
+                            bar.querySelectorAll('.journal-page-pin-icon-option').forEach((el) => el.classList.remove('selected'));
+                            iconOption.classList.add('selected');
+                        }
+                        return;
+                    }
                     const target = event.target.closest?.('.journal-page-pin-button');
                     if (!target) return;
                     event.preventDefault();
@@ -299,13 +311,14 @@ export class JournalPagePins {
                     const barEl = event.currentTarget;
                     const sheet = (event.target.closest?.('.journal-sheet') || event.target.closest?.('.journal-entry')) ?? root;
                     const pinnedPageId = barEl?.getAttribute?.('data-page-id');
+                    const placementIcon = barEl?.getAttribute?.('data-placement-icon') || null;
                     const j = pinnedPageId ? this._resolveJournalFromSheet(sheet, null) : null;
                     const page = j?.pages?.get(pinnedPageId) ?? null;
                     if (!page) {
                         ui.notifications.warn('Could not determine which page to pin. Switch to the page you want and try again.');
                         return;
                     }
-                    this._beginPlacement(page);
+                    this._beginPlacement(page, { placementIcon });
                 });
             } catch (err) {
                 postConsoleAndNotification(MODULE.NAME, 'Journal page pins: failed to render toolbar', err?.message ?? err, false, true);
@@ -401,7 +414,7 @@ export class JournalPagePins {
         return !!root.querySelector('.editor-container, .editor-edit');
     }
 
-    static async _beginPlacement(page) {
+    static async _beginPlacement(page, opts = {}) {
         try {
             if (!page?.isOwner) {
                 ui.notifications.warn('You need owner permission on this page to place a pin.');
@@ -422,7 +435,7 @@ export class JournalPagePins {
                 ui.notifications.warn('Open a scene before placing a pin.');
                 return;
             }
-            const { pinId, pin, sceneId } = await this._ensurePin(page, pins);
+            const { pinId, pin, sceneId } = await this._ensurePin(page, pins, opts);
             if (!pinId || !pin) {
                 ui.notifications.error('Could not create a pin for this page.');
                 return;
@@ -434,7 +447,7 @@ export class JournalPagePins {
         }
     }
 
-    static async _ensurePin(page, pins) {
+    static async _ensurePin(page, pins, opts = {}) {
         let pinId = page.getFlag(MODULE.ID, 'pinId') || null;
         let pin = pinId ? pins.get(pinId) : null;
         const isTargetPin = pin
@@ -449,6 +462,8 @@ export class JournalPagePins {
         const clientDefault = pins.getDefaultPinDesign?.(MODULE.ID, this.PIN_TYPE) ?? null;
         const allowDuplicates = pin?.allowDuplicatePins === true
             || (clientDefault && clientDefault.allowDuplicatePins === true);
+
+        const placementIcon = opts?.placementIcon || null;
 
         if (pin && allowDuplicates) {
             // Allow duplicate pins: create a new pin for this placement instead of reusing
@@ -466,6 +481,7 @@ export class JournalPagePins {
                 allowDuplicatePins: true,
                 ...JOURNAL_PIN_DEFAULTS
             };
+            if (placementIcon) base.image = placementIcon;
             const pinData = (clientDefault && typeof clientDefault === 'object')
                 ? {
                     ...base,
@@ -478,6 +494,7 @@ export class JournalPagePins {
                     allowDuplicatePins: true
                 }
                 : base;
+            if (placementIcon) pinData.image = placementIcon;
             pin = await pins.create(pinData);
             pinId = pin.id;
             // Do not set page flag — page keeps pointing to first pin; this is a second instance
@@ -499,6 +516,7 @@ export class JournalPagePins {
                 },
                 ...JOURNAL_PIN_DEFAULTS
             };
+            if (placementIcon) base.image = placementIcon;
             const pinData = (clientDefault && typeof clientDefault === 'object')
                 ? {
                     ...base,
@@ -510,6 +528,7 @@ export class JournalPagePins {
                     config: base.config
                 }
                 : base;
+            if (placementIcon) pinData.image = placementIcon;
             pin = await pins.create(pinData);
             pinId = pin.id;
             await page.setFlag(MODULE.ID, 'pinId', pinId);
@@ -631,7 +650,11 @@ export class JournalPagePins {
             icon.style.color = iconColor;
         } else {
             const img = pin.image ?? '<i class="fa-solid fa-book-open"></i>';
-            icon.innerHTML = typeof img === 'string' && img.includes('<i ') ? img : `<i class="fa-solid fa-map-pin"></i>`;
+            icon.innerHTML = typeof img === 'string' && img.includes('<i ')
+                ? img
+                : (typeof img === 'string' && img.includes('fa-')
+                    ? `<i class="${img.trim()}"></i>`
+                    : '<i class="fa-solid fa-map-pin"></i>');
             const i = icon.querySelector('i');
             if (i) i.style.color = iconColor;
         }
