@@ -1047,7 +1047,7 @@ class MenuBar {
             }
         });
 
-        // QUICKVIEW
+        // QUICKVIEW — in start menu context menu only (label: "Quick View On" / "Quick View Off")
         this.registerMenubarTool('quickview', {
             icon: () => {
                 return QuickViewUtility.getIcon();
@@ -1059,7 +1059,6 @@ class MenuBar {
             tooltip: "Toggle Clarity Mode: Increase brightness, reveal fog, show all tokens",
             onClick: async () => {
                 await QuickViewUtility.toggle();
-                // Refresh menubar to update icon and active state
                 MenuBar.renderMenubar();
             },
             zone: "left",
@@ -1069,7 +1068,7 @@ class MenuBar {
             moduleId: "blacksmith-core",
             gmOnly: true,
             leaderOnly: false,
-            visible: true,
+            visible: false,
             toggleable: true,
             active: () => {
                 return QuickViewUtility.isActive();
@@ -4963,6 +4962,18 @@ class MenuBar {
                 PerformanceUtility.showPerformanceCheck();
             }
         });
+
+        if (game.user.isGM) {
+            items.push({
+                name: QuickViewUtility.isActive() ? "Quick View Off" : "Quick View On",
+                icon: QuickViewUtility.getIcon(),
+                description: "Clarity mode: increase brightness, reveal fog, show all tokens",
+                onClick: async () => {
+                    await QuickViewUtility.toggle();
+                    MenuBar.renderMenubar();
+                }
+            });
+        }
 
         const visibilityItems = this._getPinsVisibilityMenuItems();
         const clearItems = this._getPinsClearMenuItems();

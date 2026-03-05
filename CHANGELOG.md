@@ -6,7 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [13.3.1]
+## [13.3.1] - 2026-03-05
+
+### Fixed
+
+- **Request a Roll API – GM-authoritative completion signaling**: `openRequestRollDialog({ onRollComplete })` integrations now work reliably when requests are initiated by players. Roll completion is now propagated across clients through a shared completion signal path, so GM-side consumers can resolve game state (scene flags, actor updates, etc.) without depending on callback ownership on the originating client.
+
+### Changed
+
+- **Request a Roll completion hook**: Added global hook `blacksmith.requestRollComplete` for cross-client integrations. Payload includes `messageId`, `message`, `messageData`, `tokenId`, `result`, `allComplete`, `requesterId`, and `rollerUserId`. Existing `onRollComplete` callback behavior remains supported for backward compatibility.
+- **Request a Roll docs**: Updated `documentation/api-requestroll.md` to document local `onRollComplete` behavior vs. cross-client hook usage and the full completion payload contract.
 
 
 ## [13.3.0] - 2025-02-27
