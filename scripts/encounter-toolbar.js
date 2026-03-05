@@ -159,6 +159,9 @@ export class EncounterToolbar {
                     this._updateToolbarCRs(sheetElement);
                 }
             }
+
+            // Notify menubar to refresh encounter bar if open (same token hooks drive both)
+            Hooks.callAll('blacksmithEncounterBarRefresh');
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Encounter Toolbar: Error updating CR values", error, true, false);
         }

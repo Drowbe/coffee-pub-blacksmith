@@ -169,6 +169,9 @@ class MenuBar {
         // Register combat bar event handlers
         this._registerCombatBarEvents();
         
+        // When journal encounter toolbar refreshes CRs (token create/update/delete), refresh menubar encounter bar if open
+        Hooks.on('blacksmithEncounterBarRefresh', this._refreshEncounterBarIfOpen.bind(this));
+        
         // Register cleanup hook for module unload
         Hooks.once('ready', () => {
             HookManager.registerHook({
@@ -3172,6 +3175,24 @@ class MenuBar {
     }
 
     /**
+     * Refresh the encounter secondary bar with current CR/difficulty when token changes fire (same hooks as journal).
+     * Called from Hooks 'blacksmithEncounterBarRefresh' (fired by encounter-toolbar _updateAllToolbarCRs).
+     * @private
+     */
+    static _refreshEncounterBarIfOpen() {
+        if (!this.secondaryBar.isOpen || this.secondaryBar.type !== 'encounter') return;
+        const assessment = EncounterManager.getCombatAssessment({});
+        this.secondaryBar.data = {
+            partyCRDisplay: assessment.partyCRDisplay,
+            monsterCRDisplay: assessment.monsterCRDisplay,
+            difficulty: assessment.difficulty,
+            difficultyClass: assessment.difficultyClass,
+            isGM: game.user.isGM
+        };
+        this.renderMenubar(true);
+    }
+
+    /**
      * Clean up any existing secondary bars from DOM
      * @private
      */
@@ -3736,21 +3757,35 @@ class MenuBar {
             maxHP = Number(actor.system.hitPoints.max ?? 0);
         }
         const hpPercent = maxHP > 0 ? Math.max(0, Math.min(100, (currentHP / maxHP) * 100)) : 0;
+        const damagePercent = maxHP > 0 ? Math.max(0, Math.min(100, 100 - hpPercent)) : 0;
+        const bloodStep = Math.round(damagePercent / 5) * 5;
+        const bloodValue = currentHP <= 0 ? 101 : Math.max(0, Math.min(100, bloodStep));
+        const bloodOverlay = `modules/coffee-pub-blacksmith/images/portraits/blood/blood-${bloodValue}.webp`;
 
-        const owners = (game.users?.contents || [])
-            .filter((u) => actor?.testUserPermission?.(u, CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER))
+        const ownerUsers = (game.users?.contents || [])
+            .filter((u) => actor?.testUserPermission?.(u, CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER));
+        const nonGmOwners = ownerUsers
+            .filter((u) => !u?.isGM)
             .map((u) => u.name)
             .slice(0, 2);
+        const hasGmOwner = ownerUsers.some((u) => !!u?.isGM);
+        const ownerLabel = nonGmOwners.length
+            ? nonGmOwners.join(', ')
+            : (hasGmOwner ? 'NPC' : (actor?.type ? String(actor.type).toUpperCase() : 'COMBATANT'));
+        const isNpc = !!actor && !actor.hasPlayerOwner;
+        const limitedForPlayer = !game.user?.isGM && isNpc;
 
         return {
             name: token?.name || actor?.name || combatant?.name || 'Unknown',
             portrait: actor?.img || token?.img || 'modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp',
-            subtitle: owners.length ? owners.join(', ') : (actor?.type ? String(actor.type).toUpperCase() : 'COMBATANT'),
+            subtitle: ownerLabel,
             initiative: combatant?.initiative,
             currentHP,
             maxHP,
             hpPercent,
-            stats: this._getCombatantPrimaryStats(actor)
+            stats: this._getCombatantPrimaryStats(actor),
+            bloodOverlay,
+            limitedForPlayer
         };
     }
 
@@ -3796,6 +3831,26 @@ class MenuBar {
 
         const hpLabel = data.maxHP > 0 ? `${data.currentHP}/${data.maxHP}` : 'HP N/A';
         const initiativeLabel = Number.isFinite(data.initiative) ? String(data.initiative) : '-';
+        const bloodOverlayHtml = data.bloodOverlay
+            ? `<img class="combat-hover-blood" src="${esc(data.bloodOverlay)}" alt="" aria-hidden="true">`
+            : '';
+
+        if (data.limitedForPlayer) {
+            return `
+                <div class="combat-hover-header">
+                    <span class="combat-hover-name">${esc(data.name)}</span>
+                </div>
+                <div class="combat-hover-image-wrap">
+                    <img class="combat-hover-image" src="${esc(data.portrait)}" alt="${esc(data.name)}">
+                    ${bloodOverlayHtml}
+                </div>
+                <div class="combat-hover-hp-wrap">
+                    <div class="combat-hover-row">
+                        <span class="combat-hover-initiative">Init ${esc(initiativeLabel)}</span>
+                    </div>
+                </div>
+            `;
+        }
 
         return `
             <div class="combat-hover-header">
@@ -3803,6 +3858,7 @@ class MenuBar {
             </div>
             <div class="combat-hover-image-wrap">
                 <img class="combat-hover-image" src="${esc(data.portrait)}" alt="${esc(data.name)}">
+                ${bloodOverlayHtml}
             </div>
             <div class="combat-hover-hp-wrap">
                 <div class="combat-hover-hp-bar"><span class="combat-hover-hp-fill" style="width:${data.hpPercent}%"></span></div>

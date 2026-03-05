@@ -1303,6 +1303,7 @@ Combat Hover Card
 }
 
 .blacksmith-combat-hover-card .combat-hover-image-wrap {
+    position: relative;
     border: 1px solid rgba(112, 85, 49, 0.55);
     border-radius: 6px;
     overflow: hidden;
@@ -1314,6 +1315,17 @@ Combat Hover Card
     height: 260px;
     object-fit: cover;
     display: block;
+}
+
+.blacksmith-combat-hover-card .combat-hover-blood {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    opacity: 0.95;
 }
 
 .blacksmith-combat-hover-card .combat-hover-hp-wrap {
