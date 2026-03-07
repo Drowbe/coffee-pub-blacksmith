@@ -32,12 +32,9 @@ Herald will rely only on existing (or minor additive) Blacksmith APIs.
 
 Access to the API is via `game.modules.get('coffee-pub-blacksmith')?.api` or the timing-safe **BlacksmithAPI** bridge (`api/blacksmith-api.js`).
 
-### 2.2 Optional API Addition: Menubar Refresh
+### 2.2 Menubar Refresh (Implemented)
 
-Currently, Broadcast calls **`MenuBar.renderMenubar()`** (and sometimes `MenuBar.renderMenubar(true)`) when settings or users change, so the broadcast toggle and view-mode button visibility stay correct. **`renderMenubar` is not exposed on `module.api`.**
-
-- **Recommendation:** Add a menubar refresh to the public API, e.g. **`module.api.renderMenubar`** (or `refreshMenubar`) so Herald (and other modules) can request a re-render without depending on internal MenuBar imports.
-- **If not added:** Herald would have no official way to refresh the menubar; visibility updates might be delayed until the next natural re-render (e.g. scene change, another module triggering it). Documenting this as an optional addition keeps the migration possible either way.
+**`module.api.renderMenubar(immediate)`** is now exposed. Herald (and other modules) can call it to request a re-render when settings or users change. See **documentation/api-menubar.md** § Menubar Control API.
 
 ### 2.3 Optional API Addition: Menubar Visibility Override
 

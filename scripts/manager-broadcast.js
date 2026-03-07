@@ -44,6 +44,15 @@ export class BroadcastManager {
 
         postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Initializing", "", true, false);
 
+        // Register menubar visibility override (hide menubar for broadcast user)
+        MenuBar.registerMenubarVisibilityOverride(MODULE.ID, (user) => {
+            const isBroadcastEnabled = getSettingSafely(MODULE.ID, 'enableBroadcast', false);
+            if (!isBroadcastEnabled) return { hide: false };
+            const broadcastUserId = getSettingSafely(MODULE.ID, 'broadcastUserId', '') || '';
+            if (!matchUserBySetting(user, broadcastUserId)) return { hide: false };
+            return { hide: true };
+        });
+
         // Register hooks for UI hiding (don't check settings here - they may not be registered yet)
         this._registerHooks();
 
@@ -3342,6 +3351,9 @@ export class BroadcastManager {
         HookManager.disposeByContext('broadcast-mode-buttons');
         HookManager.disposeByContext('broadcast-playerview-sync');
         HookManager.disposeByContext('broadcast-player-buttons');
+
+        // Unregister menubar visibility override
+        MenuBar.unregisterMenubarVisibilityOverride(MODULE.ID);
 
         // Unregister socket handlers
         // Note: Socket handlers are stored in SocketManager._externalEventHandlers which isn't directly accessible

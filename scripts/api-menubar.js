@@ -81,6 +81,9 @@ class MenuBar {
     static _combatHoverCardEl = null;
     static _combatHoverCardCombatantId = null;
 
+    /** @type {Map<string, (user: User) => { hide?: boolean }>} - Module visibility overrides (moduleId -> callback) */
+    static _menubarVisibilityOverrides = new Map();
+
     static async initialize() {
         // Check if menubar is enabled
         if (!getSettingSafely(MODULE.ID, 'enableMenubar', true)) {
@@ -4152,6 +4155,26 @@ class MenuBar {
         return data;
     }
 
+    /**
+     * Register a visibility override for the menubar.
+     * External modules (e.g. Herald) can use this to hide the menubar for specific users (e.g. broadcast/cameraman).
+     * @param {string} moduleId - Module identifier (e.g. 'coffee-pub-herald')
+     * @param {(user: User) => { hide?: boolean }} callback - Called with game.user; return { hide: true } to hide menubar
+     */
+    static registerMenubarVisibilityOverride(moduleId, callback) {
+        if (!moduleId || typeof callback !== 'function') return;
+        this._menubarVisibilityOverrides.set(moduleId, callback);
+    }
+
+    /**
+     * Unregister a visibility override (e.g. on module unload).
+     * @param {string} moduleId - Module identifier used when registering
+     */
+    static unregisterMenubarVisibilityOverride(moduleId) {
+        if (!moduleId) return;
+        this._menubarVisibilityOverrides.delete(moduleId);
+    }
+
     static async renderMenubar(immediate = false) {
         try {
 
@@ -4172,14 +4195,16 @@ class MenuBar {
                 return;
             }
 
-            // Check if user is broadcast user (hide menubar for broadcast user)
-            // Use the same pattern as excluded users - check setting directly
-            const isBroadcastEnabled = getSettingSafely(MODULE.ID, 'enableBroadcast', false);
-            if (isBroadcastEnabled) {
-                const broadcastUserId = getSettingSafely(MODULE.ID, 'broadcastUserId', '') || '';
-                if (matchUserBySetting(game.user, broadcastUserId)) {
-                    this._removeMenubarDom();
-                    return;
+            // Check registered visibility overrides (e.g. broadcast user from BroadcastManager or Herald)
+            for (const callback of this._menubarVisibilityOverrides.values()) {
+                try {
+                    const result = callback(game.user);
+                    if (result?.hide) {
+                        this._removeMenubarDom();
+                        return;
+                    }
+                } catch (e) {
+                    postConsoleAndNotification(MODULE.NAME, 'Menubar visibility override error', e?.message || e, false, false);
                 }
             }
 

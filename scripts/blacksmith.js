@@ -942,7 +942,10 @@ Hooks.once('init', async function() {
         module.api.updateCombatBar = MenuBar.updateCombatBar.bind(MenuBar);
         module.api.testNotificationSystem = MenuBar.testNotificationSystem.bind(MenuBar);
         module.api.testSecondaryBarSystem = MenuBar.testSecondaryBarSystem.bind(MenuBar);
-        
+        module.api.renderMenubar = MenuBar.renderMenubar.bind(MenuBar);
+        module.api.registerMenubarVisibilityOverride = MenuBar.registerMenubarVisibilityOverride.bind(MenuBar);
+        module.api.unregisterMenubarVisibilityOverride = MenuBar.unregisterMenubarVisibilityOverride.bind(MenuBar);
+
         postConsoleAndNotification(MODULE.NAME, "Menubar API: Exposed for external modules", "", true, false);
     }).catch(error => {
         postConsoleAndNotification(MODULE.NAME, "Failed to load menubar API", error, false, false);

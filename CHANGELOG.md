@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.3.2]
 
+### Added
+
+- **Menubar Control API**: Exposed `renderMenubar(immediate)` so external modules can request a menubar re-render when settings or state change. Added `registerMenubarVisibilityOverride(moduleId, callback)` and `unregisterMenubarVisibilityOverride(moduleId)` so modules (e.g. future Herald) can hide the menubar for specific users (e.g. broadcast/cameraman). Documented in `documentation/api-menubar.md` § Menubar Control API.
+
+### Changed
+
+- **Broadcast – menubar visibility**: Broadcast now registers a menubar visibility override via the new API instead of a hardcoded check in `api-menubar.js`. BroadcastManager registers in `initialize()` and unregisters in `cleanup()`. Prepares for migration of Broadcast to the Herald module (`coffee-pub-herald`).
+
 ### Fixed
 
 - **Roll Configuration and Request a Roll – missing partial-unified-header**: When Regent was split into its own module, the unified header partial moved with Regent. Blacksmith's Roll Configuration window (`window-roll-normal.hbs`) and Request a Roll dialog (`window-skillcheck.hbs`) still reference `{{> "partial-unified-header" }}`, causing "partial partial-unified-header could not be found" on the published server. The partial (`unified-header.hbs`) is now copied back into Blacksmith at `templates/partials/unified-header.hbs` and registered at init as `partial-unified-header` via `_registerUnifiedHeaderPartial()` in `blacksmith.js`, before the roll system loads.

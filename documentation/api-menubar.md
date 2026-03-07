@@ -330,6 +330,56 @@ Gets all tools organized by their zones, groups, and modules.
 
 **Note:** Only visible tools are included in the returned structure. Tools filtered by `gmOnly`, `leaderOnly`, or `visible` are excluded.
 
+## Menubar Control API
+
+### `renderMenubar(immediate)`
+
+Request a re-render of the menubar. Use this when your module's settings or state change and the menubar should reflect those changes (e.g. tool visibility, secondary bar state).
+
+**Parameters:**
+- `immediate` (boolean, optional): If `true`, re-render immediately. If `false` (default), debounces the render by ~50ms to batch rapid changes.
+
+**Returns:** `Promise<void>`
+
+**Example:**
+```javascript
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+if (blacksmith?.renderMenubar) {
+    blacksmith.renderMenubar(); // Debounced
+    // or
+    blacksmith.renderMenubar(true); // Immediate
+}
+```
+
+### `registerMenubarVisibilityOverride(moduleId, callback)`
+
+Register a callback that can hide the menubar for specific users. Used by modules (e.g. Herald) that designate a "broadcast/cameraman" user who should see a clean, UI-free view.
+
+**Parameters:**
+- `moduleId` (string): Your module identifier (e.g. `'coffee-pub-herald'`)
+- `callback` (function): Called with `(user)` and returns `{ hide: true }` to hide the menubar for that user, or `{ hide: false }` (or omit `hide`) to allow the menubar
+
+**Example:**
+```javascript
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+blacksmith?.registerMenubarVisibilityOverride('my-module', (user) => {
+    const shouldHide = /* your logic */;
+    return { hide: shouldHide };
+});
+```
+
+### `unregisterMenubarVisibilityOverride(moduleId)`
+
+Unregister a visibility override (e.g. on module unload).
+
+**Parameters:**
+- `moduleId` (string): The same module ID used when registering
+
+**Example:**
+```javascript
+blacksmith?.unregisterMenubarVisibilityOverride('my-module');
+```
+
 ## Menubar Zones
 
 The menubar system organizes tools into three predefined zones:
