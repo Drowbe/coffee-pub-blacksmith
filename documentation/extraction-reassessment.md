@@ -75,20 +75,28 @@ Today the combat bar is a custom secondary bar implemented inside MenuBar: Comba
 
 ---
 
-## 3. Image replacement + dead tokens (single module)
+## 3. Image replacement + dead tokens (single module) — **Illuminator** (`coffee-pub-illuminator`)
 
 **Scope to move:**  
-manager-image-cache.js, manager-image-matching.js, token-image-replacement.js, token-image-utilities.js (including dead-token/loot conversion if it lives there), window-token-replacement (templates/styles), image replacement settings and lang, toolbar/menubar registration for “image replacement” and any dead-token tools. Optionally move `imageReplacement` API surface to the new module if other modules need to register context menu items on image tiles; otherwise the new module just owns the logic and uses Blacksmith’s toolbar/menubar APIs to add its buttons.
+manager-image-cache.js, manager-image-matching.js, token-image-replacement.js, token-image-utilities.js (including dead-token/loot conversion if it lives there), window-token-replacement (templates/styles), image replacement settings and lang, toolbar/menubar registration for “image replacement” and any dead-token tools. Illuminator owns all of this and registers its own menubar/toolbar tools via Blacksmith’s API (no nested registration in Blacksmith).
 
 **What stays in Blacksmith:**  
-api-core, HookManager, settings helpers used by other features. Blacksmith **removes** ImageCacheManager init, TokenImageUtilities init, and any menubar/toolbar registration for image replacement; the new module does that in its `ready` hook via `registerMenubarTool` / `registerToolbarTool`. Path helpers (`getTokenImagePaths`, `getPortraitImagePaths`) either move with the module or stay in Blacksmith as a small shared helper used by the new module (e.g. if other systems ever need them).
+api-core, HookManager, settings helpers used by other features. Blacksmith **removes** ImageCacheManager init, TokenImageUtilities init, `module.api.imageReplacement`, and any menubar/toolbar registration for image replacement. Path helpers (`getTokenImagePaths`, `getPortraitImagePaths`) either move with Illuminator or stay in Blacksmith as a small shared helper if other systems need them.
+
+**Image Replacement API (Illuminator exposes; Blacksmith consumes)**  
+There is a “Replace Image” context menu item in the **menubar/combat area** that opens the image replacement window. Blacksmith builds that context menu, so it must not hardcode Illuminator—it must **pull from an API** and **know if the module is installed**:
+
+- **Illuminator** exposes an API on `game.modules.get('coffee-pub-illuminator')?.api` (e.g. `getImageReplacementContextMenuItems()` or similar) that returns the menu items to inject (e.g. `{ name: 'Replace Image', icon: '...', onClick: () => { ... } }`). Illuminator can also expose `registerImageTileContextMenuItem` / `unregisterImageTileContextMenuItem` for other modules that want to add items to the image-tile context menu inside the replacement window.
+- **Blacksmith**, when building the menubar/combat context menu: check `game.modules.get('coffee-pub-illuminator')?.active` and, if the API is present, get the context menu items from the API and add them to the menu. If Illuminator is not installed or the API is missing, **skip** the Replace Image entry—no error, no placeholder.
+
+So we need an **image replacement API** that exposes these things; Illuminator implements it, Blacksmith (and any other consumer) uses it only when the module is installed.
 
 **Pattern:**  
-New module: get API at `ready`, run ImageCacheManager.initialize() (and related init), register its tools with menubar/toolbar, register any hooks/sockets it needs. No circular dependency; image replacement does not need to be called from Blacksmith core.
+Illuminator: get Blacksmith API at `ready`, run ImageCacheManager.initialize() (and related init), register its own menubar and toolbar tools via `registerMenubarTool` / `registerToolbarTool`. Expose its API for context menu items so Blacksmith can add “Replace Image” to the relevant menu when Illuminator is present.
 
 **Level of effort: High (straightforward)**  
 - Many settings and files, but boundary is clear.  
-- Combat-tools or other Blacksmith UI that currently open “token image replacement” would either call into the new module’s API (e.g. “open image replacement window”) or that button moves to the new module’s toolbar/menubar registration.
+- Blacksmith menubar/combat context menu: refactor to pull “Replace Image” (and any related items) from Illuminator’s API when available; otherwise skip.
 
 **Recommendation: Recommended**  
 - Clean separation; no tight coupling to other optional features.  
@@ -106,7 +114,7 @@ New module: get API at `ready`, run ImageCacheManager.initialize() (and related 
 
 **Removed from core (moved to optional modules):**  
 - Timers + Stats → Timers+Stats module.  
-- Image replacement + dead tokens → Image/tokens module.  
+- Image replacement + dead tokens → **Illuminator** (`coffee-pub-illuminator`).  
 - Encounter (XP, rolls, combat tracker/combat bar) → Encounter module **or** kept in core by choice.
 
 **API surface:**  
@@ -121,12 +129,12 @@ New module: get API at `ready`, run ImageCacheManager.initialize() (and related 
 |------------|--------|----------------|-------|
 | **Timers + Stats** | High (tractable) | **Recommended** | Same pattern as Herald; move init + tool registration to new module; resolve message/midi resolution ownership. |
 | **Encounter** (XP, rolls, combat bar) | Very high | **Feasible; optional to keep in core** | Biggest lift is moving combat bar + CombatTracker out of api-menubar; keeping Encounter in core is reasonable. |
-| **Image replacement + dead tokens** | High (straightforward) | **Recommended** | Clear boundary; no circular deps; good second extraction. |
+| **Image replacement + dead tokens** → **Illuminator** | High (straightforward) | **Recommended** | Clear boundary; Illuminator exposes API for context menu items; Blacksmith pulls from API when module installed, skips otherwise. |
 | **Blacksmith core** | — | **Keep APIs + chosen QoL** | Becomes engine; optional modules consume APIs and own their registration. |
 
 **Suggested order:**  
 1) **Timers + Stats** (proves pattern, high value).  
-2) **Image/tokens** (clear win, similar pattern).  
+2) **Illuminator** (image/tokens; clear win; Illuminator exposes API for menubar/combat context menu; Blacksmith consumes when installed).  
 3) **Encounter** (only if you want it out of core; otherwise leave in Blacksmith).
 
 No code was changed; this is an assessment only.
