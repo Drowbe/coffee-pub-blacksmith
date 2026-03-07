@@ -4,12 +4,6 @@
 
 ## CRITICAL BUGS
 
-### [CRITICAL – REVISIT] Secondary bar height CSS variable for Herald broadcast bar
-- **Issue**: Blacksmith defines `--blacksmith-menubar-secondary-broadcast-height: 60px` in `styles/menubar.css` (line 47). This is used by `getSecondaryBarHeight('broadcast')` when Herald’s broadcast bar is open, so it’s part of API support for Herald’s bar type.
-- **Status**: REVISIT – Decide whether this variable should live in Blacksmith (current) or be owned/configurable by Herald (e.g. Herald sets it, or Blacksmith reads from a Herald-provided value). No code change until decided.
-- **Location**: `styles/menubar.css` ~line 47
-- **Priority**: CRITICAL – Revisit before treating broadcast/herald cleanup as complete
-
 ### Chat Card API
 - **Issue**: Chat card system exists internally but is not exposed via API for external modules
 - **Status**: PENDING - Critical need for external module integration

@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.4.1] - 2025-03-03
+
+### Changed
+
+- **Herald/Broadcast cleanup – CSS and TODO**: Removed `--blacksmith-menubar-secondary-broadcast-height` from `styles/menubar.css` (broadcast bar height is now provided by Herald when it registers its secondary bar type). Removed the CRITICAL REVISIT TODO for this variable from `documentation/TODO.md`. Deleted `documentation/cleanup-broadcast-herald-legacy.md` (cleanup complete).
+
 ## [13.4.0] - 2025-03-03
 
 ### Added
