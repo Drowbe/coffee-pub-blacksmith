@@ -399,6 +399,7 @@ Hooks.once('ready', async () => {
 
         // Initialize the unified roll system API
         LoadingProgressManager.logActivity("Loading roll system...");
+        await _registerUnifiedHeaderPartial();
         const { executeRoll } = await import('./manager-rolls.js');
         BLACKSMITH.rolls.execute = executeRoll;
 
@@ -684,6 +685,23 @@ function initializeSettingsDependentFeatures() {
 // ** INIT
 // ***************************************************
 
+/**
+ * Register the unified-header Handlebars partial as "partial-unified-header" for RollWindow and SkillCheckDialog.
+ * File lives at templates/partials/unified-header.hbs; templates reference {{> "partial-unified-header" }}.
+ * @private
+ */
+async function _registerUnifiedHeaderPartial() {
+    try {
+        const path = `modules/${MODULE.ID}/templates/partials/unified-header.hbs`;
+        const template = await fetch(path).then(r => r.text());
+        if (template) {
+            Handlebars.registerPartial('partial-unified-header', template);
+        }
+    } catch (e) {
+        console.error(`${MODULE.NAME}: Failed to register partial-unified-header`, e);
+    }
+}
+
 // Call the hookCanvas function during the initialization phase
 Hooks.once('init', async function() {
     // Show loading progress indicator as early as possible
@@ -878,18 +896,6 @@ Hooks.once('init', async function() {
         module.api.getRegisteredWindows = getRegisteredWindows;
         module.api.isWindowRegistered = isWindowRegistered;
         postConsoleAndNotification(MODULE.NAME, "Window API: Exposed for external modules", "", false, false);
-        return import('./window-test-v2.js');
-    }).then((mod) => {
-        if (mod?.BlacksmithTestWindowV2 && module.api?.registerWindow) {
-            module.api.registerWindow('blacksmith-test-window', {
-                open: (options = {}) => {
-                    const w = new mod.BlacksmithTestWindowV2(options);
-                    return w.render(true);
-                },
-                title: 'Test V2 Window',
-                moduleId: MODULE.ID
-            });
-        }
     }).catch(error => {
         postConsoleAndNotification(MODULE.NAME, "Failed to load Window API", error, false, false);
     });

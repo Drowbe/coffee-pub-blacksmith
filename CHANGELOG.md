@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.3.2]
+
+### Fixed
+
+- **Roll Configuration and Request a Roll – missing partial-unified-header**: When Regent was split into its own module, the unified header partial moved with Regent. Blacksmith's Roll Configuration window (`window-roll-normal.hbs`) and Request a Roll dialog (`window-skillcheck.hbs`) still reference `{{> "partial-unified-header" }}`, causing "partial partial-unified-header could not be found" on the published server. The partial (`unified-header.hbs`) is now copied back into Blacksmith at `templates/partials/unified-header.hbs` and registered at init as `partial-unified-header` via `_registerUnifiedHeaderPartial()` in `blacksmith.js`, before the roll system loads.
+- **Pin "Use as Default" – event animations and sounds not saved**: When "Use as Default" was checked in Configure Pin, the saved design only included size, shape, style, text options, and allowDuplicatePins. Event animations and sounds (hover, click, double-click, add, delete) were omitted. The design object now includes `eventAnimations` so new pins of that module and type inherit the animations and sounds. Fix in `window-pin-config.js`.
+
+
 ## [13.3.1] - 2026-03-05
 
 ### Fixed

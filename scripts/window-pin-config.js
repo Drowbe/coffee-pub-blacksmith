@@ -885,7 +885,8 @@ export class PinConfigWindow extends Application {
                             style: configData.pinStyle,
                             dropShadow: configData.pinDropShadow,
                             ...configData.pinTextConfig,
-                            allowDuplicatePins: !!allowDuplicateInput?.checked
+                            allowDuplicatePins: !!allowDuplicateInput?.checked,
+                            eventAnimations: pinUpdateData.eventAnimations
                         };
                         const typeKey = this.pinType || 'default';
                         const compoundKey = `${this.moduleId}|${typeKey}`;
