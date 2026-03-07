@@ -209,7 +209,7 @@ export function registerSettings() {
         config: true,
         requiresReload: false,
         type: Number,
-        default: 15,
+        default: 35,
         range: { min: 1, max: 100, step: 1 },
         group: WORKFLOW_GROUP
     });
