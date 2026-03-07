@@ -1,25 +1,40 @@
-// ================================================================== 
+// ==================================================================
 // ===== IMPORTS ====================================================
-// ================================================================== 
+// ==================================================================
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, matchUserBySetting, getSettingSafely } from './api-core.js';
-import { HookManager } from './manager-hooks.js';
-import { MenuBar } from './api-menubar.js';
 
-// ================================================================== 
-// ===== BROADCAST MANAGER ==========================================
-// ================================================================== 
+function getSettingSafely(moduleId, key, def) {
+    try {
+        const s = game.settings.settings.get(`${moduleId}.${key}`);
+        if (!s) return def;
+        return game.settings.get(moduleId, key) ?? def;
+    } catch (_) { return def; }
+}
 
-/**
- * BroadcastManager - Manages broadcast/streaming functionality
- * 
- * Provides a user-based approach to streaming FoundryVTT sessions.
- * A designated "cameraman" user receives a clean, UI-free view with
- * automatic token following capabilities.
- */
-export class BroadcastManager {
+function matchUserBySetting(user, settingValue) {
+    if (!user || !settingValue) return false;
+    const tokens = String(settingValue).split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+    if (!tokens.length) return false;
+    return tokens.includes(user.id?.toLowerCase()) || (user.name ? tokens.includes(user.name.toLowerCase()) : false);
+}
+
+function postConsoleAndNotification(strModuleID, message, result, blnDebug, blnNotification) {
+    if (typeof BlacksmithUtils !== 'undefined' && BlacksmithUtils.postConsoleAndNotification) {
+        BlacksmithUtils.postConsoleAndNotification(strModuleID, message, result, blnDebug, blnNotification);
+    } else if (blnDebug) {
+        console.debug(strModuleID, message, result ?? '');
+    }
+}
+
+// ==================================================================
+// ===== HERALD MANAGER =============================================
+// ==================================================================
+
+/** HeraldManager - Broadcast/streaming; uses Blacksmith API only. */
+export class HeraldManager {
     static isInitialized = false;
+    static _blacksmith = null;
     static _lastPanPosition = { x: null, y: null };
     static _lastPanTime = 0;
     static _lastModeEmit = { mode: null, at: 0 };
@@ -34,18 +49,23 @@ export class BroadcastManager {
     static _socketHandlerNames = new Set(); // Socket handler event names
 
     /**
-     * Initialize the BroadcastManager
+     * Initialize the HeraldManager (called with Blacksmith API from herald.js).
      */
-    static initialize() {
+    static initialize(blacksmith) {
         if (this.isInitialized) {
-            postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Already initialized", "", true, false);
+            postConsoleAndNotification(MODULE.NAME, "HeraldManager: Already initialized", "", true, false);
             return;
         }
+        if (!blacksmith?.HookManager || !blacksmith.registerMenubarVisibilityOverride) {
+            postConsoleAndNotification(MODULE.NAME, "HeraldManager: Blacksmith API not ready", "", false, false);
+            return;
+        }
+        this._blacksmith = blacksmith;
+        const api = this._blacksmith;
 
-        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Initializing", "", true, false);
+        postConsoleAndNotification(MODULE.NAME, "HeraldManager: Initializing", "", true, false);
 
-        // Register menubar visibility override (hide menubar for broadcast user)
-        MenuBar.registerMenubarVisibilityOverride(MODULE.ID, (user) => {
+        api.registerMenubarVisibilityOverride(MODULE.ID, (user) => {
             const isBroadcastEnabled = getSettingSafely(MODULE.ID, 'enableBroadcast', false);
             if (!isBroadcastEnabled) return { hide: false };
             const broadcastUserId = getSettingSafely(MODULE.ID, 'broadcastUserId', '') || '';
@@ -53,29 +73,19 @@ export class BroadcastManager {
             return { hide: true };
         });
 
-        // Register hooks for UI hiding (don't check settings here - they may not be registered yet)
         this._registerHooks();
-
-        // Register cleanup hook for module unload
-        HookManager.registerHook({
+        api.HookManager.registerHook({
             name: 'unloadModule',
-            description: 'BroadcastManager: Cleanup on module unload',
+            description: 'HeraldManager: Cleanup on module unload',
             context: 'broadcast-cleanup',
             priority: 3,
             callback: (moduleId) => {
-                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-                if (moduleId === MODULE.ID) {
-                    this.cleanup();
-                }
-                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+                if (moduleId === MODULE.ID) this.cleanup();
             }
         });
 
-        // Don't apply broadcast mode here - wait for ready hook when settings are guaranteed to be loaded
-        // The ready hook will call _updateBroadcastMode() which checks settings at that time
-
         this.isInitialized = true;
-        postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Initialized", "", true, false);
+        postConsoleAndNotification(MODULE.NAME, "HeraldManager: Initialized", "", true, false);
     }
 
     /**
@@ -83,7 +93,7 @@ export class BroadcastManager {
      */
     static _registerHooks() {
         // Hook into setting changes to update broadcast mode
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'settingChange',
             description: 'BroadcastManager: Update broadcast mode when settings change',
             context: 'broadcast-settings',
@@ -101,7 +111,7 @@ export class BroadcastManager {
                 )) {
                     this._updateBroadcastMode();
                     // Re-render menubar to update view mode button visibility
-                    MenuBar.renderMenubar();
+                    this._blacksmith.renderMenubar();
                 }
                 
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
@@ -109,7 +119,7 @@ export class BroadcastManager {
         });
 
         // Hook into user connection/disconnection to update view mode button visibility
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'userConnected',
             description: 'BroadcastManager: Update menubar when users connect',
             context: 'broadcast-settings',
@@ -117,12 +127,12 @@ export class BroadcastManager {
             callback: () => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                 // Re-render menubar to update view mode button visibility
-                MenuBar.renderMenubar();
+                this._blacksmith.renderMenubar();
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
 
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'userDisconnected',
             description: 'BroadcastManager: Update menubar when users disconnect',
             context: 'broadcast-settings',
@@ -130,7 +140,7 @@ export class BroadcastManager {
             callback: () => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
                 // Re-render menubar to update view mode button visibility
-                MenuBar.renderMenubar();
+                this._blacksmith.renderMenubar();
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
@@ -192,7 +202,7 @@ export class BroadcastManager {
         };
         
         // Hook for canvas ready - initialize camera position when canvas is ready
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'canvasReady',
             description: 'BroadcastManager: Initialize camera position when canvas is ready',
             context: 'broadcast-camera-init',
@@ -205,7 +215,7 @@ export class BroadcastManager {
         });
         
         // Also hook into canvasInit as a fallback
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'canvasInit',
             description: 'BroadcastManager: Initialize camera position when canvas initializes',
             context: 'broadcast-camera-init',
@@ -227,7 +237,7 @@ export class BroadcastManager {
         }, 1000);
         
         // Hook for token position updates (spectator/follow/combat modes)
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'updateToken',
             description: 'BroadcastManager: Follow tokens on movement (spectator/follow/combat modes)',
             context: 'broadcast-camera',
@@ -298,7 +308,7 @@ export class BroadcastManager {
         });
 
         // Hook for token creation (when token is dropped on canvas)
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'createToken',
             description: 'BroadcastManager: Adapt viewport when party token is created',
             context: 'broadcast-camera',
@@ -361,7 +371,7 @@ export class BroadcastManager {
         });
 
         // Hook for combat turn changes (combat mode)
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'updateCombat',
             description: 'BroadcastManager: Follow current combatant on turn change (combat mode)',
             context: 'broadcast-camera',
@@ -402,7 +412,7 @@ export class BroadcastManager {
             //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
         };
 
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'createCombatant',
             description: 'BroadcastManager: Reframe combatants when combatant is created (combatant mode)',
             context: 'broadcast-camera',
@@ -410,7 +420,7 @@ export class BroadcastManager {
             callback: combatantUpdateHandler
         });
 
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'updateCombatant',
             description: 'BroadcastManager: Reframe combatants when combatant updates (combatant mode)',
             context: 'broadcast-camera',
@@ -418,7 +428,7 @@ export class BroadcastManager {
             callback: combatantUpdateHandler
         });
 
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'deleteCombatant',
             description: 'BroadcastManager: Reframe combatants when combatant is deleted (combatant mode)',
             context: 'broadcast-camera',
@@ -427,7 +437,7 @@ export class BroadcastManager {
         });
 
         // Hook for target changes (combat mode)
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'targetToken',
             description: 'BroadcastManager: Sync combat targets for viewport framing',
             context: 'broadcast-camera',
@@ -684,7 +694,7 @@ export class BroadcastManager {
         })();
 
         // Hook into setting changes to start/stop GM viewport monitoring
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'settingChange',
             description: 'BroadcastManager: Start/stop GM viewport monitoring when mode changes',
             context: 'broadcast-gmview-sync',
@@ -1676,7 +1686,7 @@ export class BroadcastManager {
         this._broadcastWindowHooksRegistered = true;
         console.log(`[${MODULE.NAME}] BroadcastManager: Registering broadcast window hooks`);
 
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'renderImagePopout',
             description: 'BroadcastManager: Auto-close images after share',
             context: 'broadcast-windows',
@@ -1689,7 +1699,7 @@ export class BroadcastManager {
             }
         });
 
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'renderJournalSheet',
             description: 'BroadcastManager: Auto-close journals after share',
             context: 'broadcast-windows',
@@ -1702,7 +1712,7 @@ export class BroadcastManager {
             }
         });
 
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'renderJournalPageSheet',
             description: 'BroadcastManager: Auto-close journals after share (page view)',
             context: 'broadcast-windows',
@@ -1715,7 +1725,7 @@ export class BroadcastManager {
             }
         });
 
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'renderJournalEntrySheet',
             description: 'BroadcastManager: Auto-close journals after share (entry sheet)',
             context: 'broadcast-windows',
@@ -2212,8 +2222,8 @@ export class BroadcastManager {
      * @private
      */
     static async _registerBroadcastBarType() {
-        await MenuBar.registerSecondaryBarType('broadcast', {
-            height: MenuBar.getSecondaryBarHeight('broadcast'),
+        await this._blacksmith.registerSecondaryBarType('broadcast', {
+            height: 60,
             persistence: 'manual',
             groupBannerEnabled: true,
             groupBannerColor: 'rgba(62, 92, 13, 0.9)',
@@ -2249,11 +2259,32 @@ export class BroadcastManager {
      * @private
      */
     static _registerBroadcastTools() {
-        
-        
-        
+        const api = this._blacksmith;
+        // Register the broadcast bar toggle button in the menubar (Herald owns this when running as separate module)
+        api.registerMenubarTool('broadcast-toggle', {
+            icon: 'fa-solid fa-video',
+            name: 'broadcast-toggle',
+            title: () => 'Broadcast',
+            tooltip: () => 'Show broadcast controls',
+            onClick: () => api.toggleSecondaryBar('broadcast'),
+            zone: 'middle',
+            group: 'combat',
+            groupOrder: 1,
+            order: 4,
+            moduleId: MODULE.ID,
+            gmOnly: true,
+            leaderOnly: false,
+            visible: () => getSettingSafely(MODULE.ID, 'enableBroadcast', false) === true,
+            toggleable: true,
+            active: false,
+            iconColor: null,
+            buttonNormalTint: null,
+            buttonSelectedTint: null
+        });
+        api.registerSecondaryBarTool('broadcast', 'broadcast-toggle');
+
         // Register Manual mode button
-        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-manual', {
+this._blacksmith.registerSecondaryBarItem('broadcast', 'broadcast-mode-manual', {
             icon: 'fa-solid fa-hand',
             label: null,
             tooltip: 'Manual - No automatic following (manual camera control)',
@@ -2279,7 +2310,7 @@ export class BroadcastManager {
         
         
         // Register GM View mode button
-        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-gmview', {
+this._blacksmith.registerSecondaryBarItem('broadcast', 'broadcast-mode-gmview', {
             icon: 'fa-solid fa-chess-king',
             label: null,
             tooltip: 'GM View - Mirror GM\'s viewport (center and zoom)',
@@ -2305,7 +2336,7 @@ export class BroadcastManager {
 
 
         // Register Combat mode button
-        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-combat', {
+this._blacksmith.registerSecondaryBarItem('broadcast', 'broadcast-mode-combat', {
             icon: 'fa-solid fa-swords',
             label: null,
             tooltip: 'Combat - Follow current combatant automatically',
@@ -2331,7 +2362,7 @@ export class BroadcastManager {
 
         
         // Register Combatant mode button
-        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-combatant', {
+this._blacksmith.registerSecondaryBarItem('broadcast', 'broadcast-mode-combatant', {
             icon: 'fa-solid fa-people-group',
             label: null,
             tooltip: 'Combatant - Frame all visible combatants automatically',
@@ -2357,7 +2388,7 @@ export class BroadcastManager {
 
 
         // Register Spectator mode button
-        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-spectator', {
+this._blacksmith.registerSecondaryBarItem('broadcast', 'broadcast-mode-spectator', {
             icon: 'fa-solid fa-users',
             label: null,
             tooltip: 'Spectator - Follow party tokens automatically',
@@ -2383,7 +2414,7 @@ export class BroadcastManager {
 
 
         // Register Map View mode button (fit scene to viewport)
-        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-mode-mapview', {
+this._blacksmith.registerSecondaryBarItem('broadcast', 'broadcast-mode-mapview', {
             icon: 'fa-solid fa-map',
             label: null,
             tooltip: 'Map View - Fit scene to viewport (camera mode)',
@@ -2405,7 +2436,7 @@ export class BroadcastManager {
         });
 
         // Register broadcast tools (GM-only)
-        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-tool-close-images', {
+this._blacksmith.registerSecondaryBarItem('broadcast', 'broadcast-tool-close-images', {
             icon: 'fa-solid fa-image',
             label: null,
             tooltip: 'Close broadcast images',
@@ -2419,7 +2450,7 @@ export class BroadcastManager {
             }
         });
 
-        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-tool-close-journals', {
+this._blacksmith.registerSecondaryBarItem('broadcast', 'broadcast-tool-close-journals', {
             icon: 'fa-solid fa-book-open',
             label: null,
             tooltip: 'Close broadcast journals',
@@ -2433,7 +2464,7 @@ export class BroadcastManager {
             }
         });
 
-        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-tool-close-windows', {
+this._blacksmith.registerSecondaryBarItem('broadcast', 'broadcast-tool-close-windows', {
             icon: 'fa-solid fa-circle-xmark',
             label: null,
             tooltip: 'Close all windows',
@@ -2447,7 +2478,7 @@ export class BroadcastManager {
             }
         });
 
-        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-tool-refresh', {
+this._blacksmith.registerSecondaryBarItem('broadcast', 'broadcast-tool-refresh', {
             icon: 'fa-solid fa-rotate',
             label: null,
             tooltip: 'Refresh broadcast client',
@@ -2461,7 +2492,7 @@ export class BroadcastManager {
             }
         });
 
-        MenuBar.registerSecondaryBarItem('broadcast', 'broadcast-tool-settings', {
+this._blacksmith.registerSecondaryBarItem('broadcast', 'broadcast-tool-settings', {
             icon: 'fa-solid fa-gear',
             label: null,
             tooltip: 'Open broadcast settings',
@@ -2503,14 +2534,14 @@ export class BroadcastManager {
             const userId = currentMode.replace('playerview-', '');
             // Activate the selected player's portrait button in mirror group
             const activeItemId = `broadcast-mode-player-${userId}`;
-            MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+            this._blacksmith.updateSecondaryBarItemActive('broadcast', activeItemId, true);
         } else {
             const activeItemId = modeItemMap[currentMode] || 'broadcast-mode-spectator';
-            MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+            this._blacksmith.updateSecondaryBarItemActive('broadcast', activeItemId, true);
         }
 
         // Listen for broadcast mode setting changes to sync button active state and adjust camera
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'settingChange',
             description: 'BroadcastManager: Sync broadcast mode button active state when mode changes',
             context: 'broadcast-mode-buttons',
@@ -2534,16 +2565,16 @@ export class BroadcastManager {
                         const userId = value.replace('playerview-', '');
                         // Activate the selected player's portrait button in mirror group
                         const activeItemId = `broadcast-mode-player-${userId}`;
-                        MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+                        this._blacksmith.updateSecondaryBarItemActive('broadcast', activeItemId, true);
                         // Clear follow selection for mirror view
                         const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
                         if (followTokenId) {
-                            MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${followTokenId}`, false);
+                            this._blacksmith.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${followTokenId}`, false);
                         }
                     } else if (value === 'playerview-follow') {
                         const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
                         if (followTokenId) {
-                            MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${followTokenId}`, true);
+                            this._blacksmith.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${followTokenId}`, true);
                         }
                     } else {
                         const modeItemMap = {
@@ -2555,12 +2586,12 @@ export class BroadcastManager {
                             'mapview': 'broadcast-mode-mapview'
                         };
                         const activeItemId = modeItemMap[value] || 'broadcast-mode-spectator';
-                        MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+                        this._blacksmith.updateSecondaryBarItemActive('broadcast', activeItemId, true);
                     }
 
                     // Re-render menubar to update the right section button title/tooltip
                     // Use immediate=true to ensure it renders right away, not debounced
-                    MenuBar.renderMenubar(true);
+                    this._blacksmith.renderMenubar(true);
 
                     // If GM changes mode, broadcast to other clients immediately
                     if (game.user.isGM && this._shouldEmitModeChange(value)) {
@@ -2645,7 +2676,7 @@ export class BroadcastManager {
             return modeIcons[mode] || 'fa-solid fa-hand';
         };
 
-        const success = MenuBar.registerMenubarTool('broadcast-view-mode', {
+this._blacksmith.registerMenubarTool('broadcast-view-mode', {
             icon: 'fa-solid fa-video',
             name: 'broadcast-view-mode',
             title: () => {
@@ -2682,18 +2713,18 @@ export class BroadcastManager {
             onClick: () => {
                 // Left-click: toggle the broadcast bar (Option B)
                 if (!this.isEnabled()) return;
-                MenuBar.toggleSecondaryBar('broadcast');
+this._blacksmith.toggleSecondaryBar('broadcast');
             },
             contextMenuItems: (toolId, tool) => {
                 if (!game.user.isGM || !this.isEnabled()) return [];
 
                 const items = [
-                    { name: 'Manual', icon: 'fa-solid fa-hand', onClick: async () => { await this._setBroadcastMode('manual'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-manual', true); MenuBar.renderMenubar(); } },
-                    { name: 'GM View', icon: 'fa-solid fa-chess-king', onClick: async () => { await this._setBroadcastMode('gmview'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-gmview', true); MenuBar.renderMenubar(); } },
-                    { name: 'Combat', icon: 'fa-solid fa-swords', onClick: async () => { await this._setBroadcastMode('combat'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-combat', true); MenuBar.renderMenubar(); } },
-                    { name: 'Combatant', icon: 'fa-solid fa-people-group', onClick: async () => { await this._setBroadcastMode('combatant'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-combatant', true); MenuBar.renderMenubar(); } },
-                    { name: 'Spectator', icon: 'fa-solid fa-users', onClick: async () => { await this._setBroadcastMode('spectator'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-spectator', true); MenuBar.renderMenubar(); } },
-                    { name: 'Map View', icon: 'fa-solid fa-map', onClick: async () => { await this._setBroadcastMode('mapview'); MenuBar.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-mapview', true); MenuBar.renderMenubar(); } }
+                    { name: 'Manual', icon: 'fa-solid fa-hand', onClick: async () => { await this._setBroadcastMode('manual'); this._blacksmith.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-manual', true); this._blacksmith.renderMenubar(); } },
+                    { name: 'GM View', icon: 'fa-solid fa-chess-king', onClick: async () => { await this._setBroadcastMode('gmview'); this._blacksmith.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-gmview', true); this._blacksmith.renderMenubar(); } },
+                    { name: 'Combat', icon: 'fa-solid fa-swords', onClick: async () => { await this._setBroadcastMode('combat'); this._blacksmith.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-combat', true); this._blacksmith.renderMenubar(); } },
+                    { name: 'Combatant', icon: 'fa-solid fa-people-group', onClick: async () => { await this._setBroadcastMode('combatant'); this._blacksmith.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-combatant', true); this._blacksmith.renderMenubar(); } },
+                    { name: 'Spectator', icon: 'fa-solid fa-users', onClick: async () => { await this._setBroadcastMode('spectator'); this._blacksmith.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-spectator', true); this._blacksmith.renderMenubar(); } },
+                    { name: 'Map View', icon: 'fa-solid fa-map', onClick: async () => { await this._setBroadcastMode('mapview'); this._blacksmith.updateSecondaryBarItemActive('broadcast', 'broadcast-mode-mapview', true); this._blacksmith.renderMenubar(); } }
                 ];
 
                 const mirrorUsers = this._getPartyTokensWithUsers().map(entry => entry.user).filter(Boolean);
@@ -2704,8 +2735,8 @@ export class BroadcastManager {
                         icon: 'fa-solid fa-helmet-battle',
                         onClick: async () => {
                             await this._setBroadcastMode(`playerview-${userId}`);
-                            MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-mode-player-${userId}`, true);
-                            MenuBar.renderMenubar();
+                            this._blacksmith.updateSecondaryBarItemActive('broadcast', `broadcast-mode-player-${userId}`, true);
+                            this._blacksmith.renderMenubar();
                         }
                     });
                 }
@@ -2720,8 +2751,8 @@ export class BroadcastManager {
                         onClick: async () => {
                             await game.settings.set(MODULE.ID, 'broadcastFollowTokenId', tokenId);
                             await this._setBroadcastMode('playerview-follow');
-                            MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${tokenId}`, true);
-                            MenuBar.renderMenubar();
+                            this._blacksmith.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${tokenId}`, true);
+                            this._blacksmith.renderMenubar();
                         }
                     });
                 }
@@ -2733,7 +2764,7 @@ export class BroadcastManager {
         if (success) {
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: View mode menubar button registered", "", true, false);
             // Force menubar render to show the new button
-            MenuBar.renderMenubar();
+            this._blacksmith.renderMenubar();
         } else {
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to register view mode menubar button", "", false, false);
         }
@@ -2747,12 +2778,11 @@ export class BroadcastManager {
         const partyData = this._getPartyTokensWithUsers();
 
         // Remove old buttons (any button starting with broadcast-mode-player-)
-        const existingItems = MenuBar.secondaryBarItems?.get('broadcast');
-        if (existingItems) {
-            for (const itemId of existingItems.keys()) {
-                if (itemId.startsWith('broadcast-mode-player-')) {
-                    MenuBar.unregisterSecondaryBarItem('broadcast', itemId);
-                }
+        const existingItems = this._blacksmith.getSecondaryBarItems('broadcast');
+        const itemIds = Array.isArray(existingItems) ? existingItems.map(it => it?.id ?? it?.name).filter(Boolean) : (existingItems && typeof existingItems.keys === 'function' ? [...existingItems.keys()] : []);
+        for (const itemId of itemIds) {
+            if (itemId.startsWith('broadcast-mode-player-')) {
+                this._blacksmith.unregisterSecondaryBarItem('broadcast', itemId);
             }
         }
         
@@ -2765,7 +2795,7 @@ export class BroadcastManager {
             // Get token portrait image (actor.img is the portrait, not token texture which is the token image)
             const portraitImg = token?.document?.texture?.src || actor?.img || actor?.prototypeToken?.texture?.src || user?.avatar || '';
             
-            MenuBar.registerSecondaryBarItem('broadcast', itemId, {
+    this._blacksmith.registerSecondaryBarItem('broadcast', itemId, {
                 icon: 'fas fa-user', // Fallback icon if image is not available
                 image: portraitImg || null, // Use portrait image if available
                 label: null,
@@ -2797,7 +2827,7 @@ export class BroadcastManager {
         if (typeof currentMode === 'string' && currentMode.startsWith('playerview-') && currentMode !== 'playerview-follow') {
             const userId = currentMode.replace('playerview-', '');
             const activeItemId = `broadcast-mode-player-${userId}`;
-            MenuBar.updateSecondaryBarItemActive('broadcast', activeItemId, true);
+            this._blacksmith.updateSecondaryBarItemActive('broadcast', activeItemId, true);
         }
     }
 
@@ -2808,12 +2838,11 @@ export class BroadcastManager {
         const tokens = this._getPartyTokensOnCanvas();
         
         // Remove old buttons (any button starting with broadcast-follow-token-)
-        const existingItems = MenuBar.secondaryBarItems?.get('broadcast');
-        if (existingItems) {
-            for (const itemId of existingItems.keys()) {
-                if (itemId.startsWith('broadcast-follow-token-')) {
-                    MenuBar.unregisterSecondaryBarItem('broadcast', itemId);
-                }
+        const existingItems = this._blacksmith.getSecondaryBarItems('broadcast');
+        const itemIds = Array.isArray(existingItems) ? existingItems.map(it => it?.id ?? it?.name).filter(Boolean) : (existingItems && typeof existingItems.keys === 'function' ? [...existingItems.keys()] : []);
+        for (const itemId of itemIds) {
+            if (itemId.startsWith('broadcast-follow-token-')) {
+                this._blacksmith.unregisterSecondaryBarItem('broadcast', itemId);
             }
         }
         
@@ -2824,7 +2853,7 @@ export class BroadcastManager {
             const label = actor?.name || token.name || 'Token';
             const image = actor?.img || token.document?.texture?.src || '';
             
-            MenuBar.registerSecondaryBarItem('broadcast', itemId, {
+    this._blacksmith.registerSecondaryBarItem('broadcast', itemId, {
                 icon: 'fas fa-location-crosshairs',
                 image: image || null,
                 label: null,
@@ -2852,7 +2881,7 @@ export class BroadcastManager {
         if (currentMode === 'playerview-follow') {
             const followTokenId = getSettingSafely(MODULE.ID, 'broadcastFollowTokenId', '');
             if (followTokenId) {
-                MenuBar.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${followTokenId}`, true);
+                this._blacksmith.updateSecondaryBarItemActive('broadcast', `broadcast-follow-token-${followTokenId}`, true);
             }
         }
     }
@@ -2863,7 +2892,7 @@ export class BroadcastManager {
     static _registerPlayerPortraitSyncHooks() {
         if (!game.user.isGM) return;
 
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'updateUser',
             description: 'BroadcastManager: Sync player portrait buttons when users connect/disconnect',
             context: 'broadcast-player-buttons',
@@ -2878,7 +2907,7 @@ export class BroadcastManager {
             }
         });
 
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'userConnected',
             description: 'BroadcastManager: Sync player portrait buttons when user connects',
             context: 'broadcast-player-buttons',
@@ -2892,7 +2921,7 @@ export class BroadcastManager {
             }
         });
 
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'userDisconnected',
             description: 'BroadcastManager: Sync player portrait buttons when user disconnects',
             context: 'broadcast-player-buttons',
@@ -2906,7 +2935,7 @@ export class BroadcastManager {
             }
         });
 
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'createToken',
             description: 'BroadcastManager: Sync player portrait buttons when party tokens are created',
             context: 'broadcast-player-buttons',
@@ -2920,7 +2949,7 @@ export class BroadcastManager {
             }
         });
 
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'deleteToken',
             description: 'BroadcastManager: Sync player portrait buttons when party tokens are removed',
             context: 'broadcast-player-buttons',
@@ -2934,7 +2963,7 @@ export class BroadcastManager {
             }
         });
 
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'canvasReady',
             description: 'BroadcastManager: Sync player portrait buttons when scenes change',
             context: 'broadcast-player-buttons',
@@ -3065,7 +3094,7 @@ export class BroadcastManager {
             if (this.isEnabled() && canvas?.ready) {
                 await this._adjustViewportForMode(mode);
             }
-            MenuBar.renderMenubar(true);
+            this._blacksmith.renderMenubar(true);
             return true;
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "BroadcastManager: Failed to set broadcast mode", error, true, false);
@@ -3216,7 +3245,7 @@ export class BroadcastManager {
         })();
 
         // Hook into setting changes to start/stop player viewport monitoring
-        HookManager.registerHook({
+this._blacksmith.HookManager.registerHook({
             name: 'settingChange',
             description: 'BroadcastManager: Start/stop player viewport monitoring when mode changes',
             context: 'broadcast-playerview-sync',
@@ -3344,16 +3373,16 @@ export class BroadcastManager {
         this._playerDebounces.clear();
 
         // Unregister all HookManager hooks by context
-        HookManager.disposeByContext('broadcast-settings');
-        HookManager.disposeByContext('broadcast-camera-init');
-        HookManager.disposeByContext('broadcast-camera');
-        HookManager.disposeByContext('broadcast-gmview-sync');
-        HookManager.disposeByContext('broadcast-mode-buttons');
-        HookManager.disposeByContext('broadcast-playerview-sync');
-        HookManager.disposeByContext('broadcast-player-buttons');
+        this._blacksmith?.HookManager?.disposeByContext('broadcast-settings');
+        this._blacksmith?.HookManager?.disposeByContext('broadcast-camera-init');
+        this._blacksmith?.HookManager?.disposeByContext('broadcast-camera');
+        this._blacksmith?.HookManager?.disposeByContext('broadcast-gmview-sync');
+        this._blacksmith?.HookManager?.disposeByContext('broadcast-mode-buttons');
+        this._blacksmith?.HookManager?.disposeByContext('broadcast-playerview-sync');
+        this._blacksmith?.HookManager?.disposeByContext('broadcast-player-buttons');
 
         // Unregister menubar visibility override
-        MenuBar.unregisterMenubarVisibilityOverride(MODULE.ID);
+        this._blacksmith?.unregisterMenubarVisibilityOverride(MODULE.ID);
 
         // Unregister socket handlers
         // Note: Socket handlers are stored in SocketManager._externalEventHandlers which isn't directly accessible

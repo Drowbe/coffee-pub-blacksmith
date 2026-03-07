@@ -1,0 +1,49 @@
+{
+  "id": "coffee-pub-herald",
+  "title": "Coffee Pub Herald",
+  "description": "Streaming and broadcast view for FoundryVTT. Designate a cameraman user for a clean, UI-free view with automatic token following.",
+  "version": "1.0.0",
+
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13",
+    "maximum": "13"
+  },
+  "socket": false,
+
+  "authors": [
+    {
+      "name": "COFFEE PUB",
+      "discord": "drowbe",
+      "url": "https://github.com/Drowbe",
+      "flags": {}
+    }
+  ],
+
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json",
+      "flags": {}
+    }
+  ],
+  "styles": [
+    "styles/broadcast.css"
+  ],
+  "esmodules": [
+    "scripts/const.js",
+    "scripts/settings.js",
+    "scripts/manager-herald.js",
+    "scripts/herald.js"
+  ],
+
+  "relationships": {
+    "requires": [
+      {
+        "id": "coffee-pub-blacksmith",
+        "type": "module"
+      }
+    ]
+  }
+}

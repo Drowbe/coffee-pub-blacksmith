@@ -18,7 +18,6 @@ import { deployParty } from './utility-party.js';
 import { getDeploymentPatternName } from './api-tokens.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
 import { EncounterManager } from './manager-encounter.js';
-import { BroadcastManager } from './manager-broadcast.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { PinManager } from './manager-pins.js';
 
@@ -1164,40 +1163,6 @@ class MenuBar {
             buttonSelectedTint: null
         });
 
-        // BROADCAST BAR
-        this.registerMenubarTool('broadcast-toggle', {
-            icon: "fa-solid fa-video",
-            name: "broadcast-toggle",
-            title: () => {
-                return "Broadcast";
-            },
-            tooltip: () => {
-                // Dynamic tooltip based on broadcast bar state
-                const isBroadcastBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'broadcast';
-                return isBroadcastBarOpen ? "Hide broadcast controls" : "Show broadcast controls";
-            },
-            onClick: () => {
-                // Toggle the broadcast bar - active state is synced in openSecondaryBar/closeSecondaryBar
-                this.toggleSecondaryBar('broadcast');
-            },
-            zone: "middle",
-            group: "combat",
-            groupOrder: this.GROUP_ORDER.COMBAT,
-            order: 4,
-            moduleId: "blacksmith-core",
-            gmOnly: true,
-            leaderOnly: false,
-            visible: () => {
-                // Only show if broadcast is enabled
-                return getSettingSafely(MODULE.ID, 'enableBroadcast', false) === true;
-            },
-            toggleable: true,
-            active: false,
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
-
         // COMBAT BAR
         this.registerMenubarTool('combat-tracker', {
             icon: "fas fa-swords",
@@ -1361,7 +1326,6 @@ class MenuBar {
         this.secondaryBarToolMapping.set('combat', 'combat-tracker');
         this.secondaryBarToolMapping.set('encounter', 'encounter');
         this.secondaryBarToolMapping.set('party', 'party');
-        this.secondaryBarToolMapping.set('broadcast', 'broadcast-toggle');
 
         // **************** RIGHT ZONE ****************
         
