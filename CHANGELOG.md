@@ -6,15 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [13.3.2]
+## [13.4.0] - 2025-03-03
 
 ### Added
 
-- **Menubar Control API**: Exposed `renderMenubar(immediate)` so external modules can request a menubar re-render when settings or state change. Added `registerMenubarVisibilityOverride(moduleId, callback)` and `unregisterMenubarVisibilityOverride(moduleId)` so modules (e.g. future Herald) can hide the menubar for specific users (e.g. broadcast/cameraman). Documented in `documentation/api-menubar.md` § Menubar Control API.
+- **Menubar Control API**: Exposed `renderMenubar(immediate)` so external modules can request a menubar re-render when settings or state change. Added `registerMenubarVisibilityOverride(moduleId, callback)` and `unregisterMenubarVisibilityOverride(moduleId)` so modules (e.g. Herald) can hide the menubar for specific users (e.g. broadcast/cameraman). Documented in `documentation/api-menubar.md` § Menubar Control API.
+- **Secondary bar API**: Implemented `registerSecondaryBarTool(barTypeId, toolId)` in MenuBar (`api-menubar.js`). This method was already exposed on `module.api` but was missing from MenuBar; it registers which menubar tool toggles a given secondary bar so the menubar can sync the tool’s active state when the bar opens/closes. Documented in `documentation/api-menubar.md` § Registering Secondary Bar Toggle Tool.
 
 ### Changed
 
-- **Broadcast – menubar visibility**: Broadcast now registers a menubar visibility override via the new API instead of a hardcoded check in `api-menubar.js`. BroadcastManager registers in `initialize()` and unregisters in `cleanup()`. Prepares for migration of Broadcast to the Herald module (`coffee-pub-herald`).
+- **Broadcast – migrated to Coffee Pub Herald**: Broadcast (streaming/cameraman view, view modes, menubar visibility override) is now provided by the **Coffee Pub Herald** module (`coffee-pub-herald`). Blacksmith no longer initializes BroadcastManager; it only exposes the menubar visibility override API and secondary bar API that Herald uses. See Herald’s documentation and `documentation/registering-with-blacksmith.md` for integration.
+- **Documentation – architecture and cleanup**: `documentation/architecture-blacksmith.md` — removed BroadcastManager from init list; Broadcast subsection now points to Coffee Pub Herald; removed broadcast from CSS import list and from god-module responsibilities; references table row "Broadcast mode" now points to Herald. `scripts/api-menubar.js` — comment updated from "BroadcastManager or Herald" to "Herald". `documentation/TODO.md` — "Tune Default Zoom Levels for Broadcast Modes" and "Broadcast: Combat Spectator Mode" removed (moved to Herald); added critical revisit for `--blacksmith-menubar-secondary-broadcast-height` in `styles/menubar.css` (decide whether Blacksmith or Herald should own it). `documentation/cleanup-broadcast-herald-legacy.md` — checklist marked complete.
 
 ### Fixed
 
@@ -23,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **Broadcast feature**: Removed BroadcastManager, `scripts/manager-broadcast.js`, broadcast settings and language keys, broadcast CSS import, and all Broadcast-specific menubar registration from Blacksmith. Streaming and broadcast view are now provided by **Coffee Pub Herald** (`coffee-pub-herald`). Install and enable Herald for cameraman view, view modes, and broadcast bar.
 - **Test V2 Window**: Removed dev-only test window (`scripts/window-test-v2.js`), its Window API registration (`blacksmith-test-window`), and the "Test V2 Window" toolbar button from the GM tools zone. The Application V2 template (`window-template.hbs`) and base class remain for real windows.
 
 

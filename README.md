@@ -6,10 +6,8 @@
 ![Latest Release](https://img.shields.io/github/v/release/Drowbe/coffee-pub-blacksmith)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Drowbe/coffee-pub-blacksmith/release.yml?event=push)
 ![GitHub all releases](https://img.shields.io/github/downloads/Drowbe/coffee-pub-blacksmith/total)
-![Foundry v13](https://img.shields.io/badge/foundry-v13-yellow)
 ![Foundry v13](https://img.shields.io/badge/foundry-v13-green)
 ![MIT License](https://img.shields.io/badge/license-MIT-blue)
-
 
 
 ## IMPORTANT NOTICE
@@ -115,12 +113,15 @@ The Blacksmith Module serves as the foundational framework for the entire Coffee
 ### Recommended Coffee Pub Modules
 Each module in the Coffee Pub collection enhances different aspects of your game:
 
+- [Coffee Pub Artificer](https://github.com/Drowbe/coffee-pub-artificer): Item and content creation tools
 - [Coffee Pub Bibliosoph](https://github.com/Drowbe/coffee-pub-bibliosoph): Library and reference management
+- [Coffee Pub Cartographer](https://github.com/Drowbe/coffee-pub-cartographer): Drawing and map tools
 - [Coffee Pub Crier](https://github.com/Drowbe/coffee-pub-crier): Enhanced announcements and notifications
+- [Coffee Pub Herald](https://github.com/Drowbe/coffee-pub-herald): Streaming and broadcast view (cameraman user, view modes, clean UI-free display)
+- [Coffee Pub Monarch](https://github.com/Drowbe/coffee-pub-monarch): Module collection management
+- [Coffee Pub Regent](https://github.com/Drowbe/coffee-pub-regent): AI assistant and rules lookup (Consult the Regent, worksheets, OpenAI integration)
 - [Coffee Pub Scribe](https://github.com/Drowbe/coffee-pub-scribe): Advanced journaling and note-taking
 - [Coffee Pub Squire](https://github.com/Drowbe/coffee-pub-squire): Character sheet as a sidebar tray
-- [Coffee Pub Monarch](https://github.com/Drowbe/coffee-pub-monarch): Module collection management
-- Other modules coming soon!
 
 The Blacksmith module serves as the foundation for all Coffee Pub modules, providing shared services and functionality that other modules build upon.
 

@@ -78,18 +78,16 @@ function checkInstalledModules() {
 	let coffeePubActive = [];
 	let coffeePubMissing = [];
 	let arrModuleIDs = [
-		'coffee-pub-blacksmith',
-		'coffee-pub-monarch',
-		'coffee-pub-scribe',
-		'coffee-pub-squire',
-		'coffee-pub-crier',
-		'coffee-pub-bibliosoph',
 		'coffee-pub-artificer',
-		'coffee-pub-cartaographer',
-		'coffee-pub-regent',
+		'coffee-pub-bibliosoph',
+		'coffee-pub-blacksmith',
+		'coffee-pub-cartographer',
+		'coffee-pub-crier',
 		'coffee-pub-herald',
-		'coffee-pub-bubo',
-		'coffee-pub-lib'
+		'coffee-pub-monarch',
+		'coffee-pub-regent',
+		'coffee-pub-scribe',
+		'coffee-pub-squire'
 	];
 
 	for(let strModuleID of arrModuleIDs) {
