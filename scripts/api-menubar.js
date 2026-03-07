@@ -4168,7 +4168,7 @@ class MenuBar {
                 return;
             }
 
-            // Check registered visibility overrides (e.g. broadcast user from BroadcastManager or Herald)
+            // Check registered visibility overrides (e.g. broadcast user from Herald)
             for (const callback of this._menubarVisibilityOverrides.values()) {
                 try {
                     const result = callback(game.user);

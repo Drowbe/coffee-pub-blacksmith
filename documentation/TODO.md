@@ -4,6 +4,12 @@
 
 ## CRITICAL BUGS
 
+### [CRITICAL – REVISIT] Secondary bar height CSS variable for Herald broadcast bar
+- **Issue**: Blacksmith defines `--blacksmith-menubar-secondary-broadcast-height: 60px` in `styles/menubar.css` (line 47). This is used by `getSecondaryBarHeight('broadcast')` when Herald’s broadcast bar is open, so it’s part of API support for Herald’s bar type.
+- **Status**: REVISIT – Decide whether this variable should live in Blacksmith (current) or be owned/configurable by Herald (e.g. Herald sets it, or Blacksmith reads from a Herald-provided value). No code change until decided.
+- **Location**: `styles/menubar.css` ~line 47
+- **Priority**: CRITICAL – Revisit before treating broadcast/herald cleanup as complete
+
 ### Chat Card API
 - **Issue**: Chat card system exists internally but is not exposed via API for external modules
 - **Status**: PENDING - Critical need for external module integration
@@ -185,22 +191,6 @@
 - **Status**: PENDING - Needs investigation and planning
 - **Location**: `scripts/stats-combat.js`, potentially `scripts/stats-player.js`
 - **Need**: Review implementation, identify unused code/duplicates, check performance, review UI/UX
-
-#### Tune Default Zoom Levels for Broadcast Modes
-- **Issue**: Default zoom levels for broadcast modes (follow, combat, spectator) may need tuning for optimal viewing
-- **Status**: PENDING - Needs investigation and tuning
-- **Location**: `scripts/manager-broadcast.js`
-- **Need**: Review and adjust default zoom levels for each broadcast mode to ensure optimal framing and visibility
-
-#### Broadcast: Combat Spectator Mode
-- **Issue**: Add a "Combat Spectator" broadcast mode that follows all tokens in the combat tracker (not just the party)
-- **Status**: PENDING - Needs implementation
-- **Location**: `scripts/manager-broadcast.js`, `scripts/settings.js`
-- **Need**: 
-  - New broadcast mode similar to Spectator, but frame/follow all combatant tokens (party + NPCs/enemies) instead of only party tokens
-  - Use same view-fill/zoom behavior as Spectator (e.g. center on combatant token positions, zoom to fit)
-  - Add mode option to broadcast mode selector and settings; optional dedicated view-fill setting (or reuse spectator/combat setting)
-- **Related**: Spectator mode (party only); Combat mode (current turn + targets). Combat Spectator = "show whole fight" framing.
 
 #### Clarity / Quickview (GM-only vision aid)
 - **Issue**: GM-only local brightness filter and token vision override feature needs verification and finalization

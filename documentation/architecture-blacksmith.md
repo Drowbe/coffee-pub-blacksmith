@@ -10,7 +10,7 @@ This document describes the high-level architecture of the **Coffee Pub Blacksmi
 
 ## 1. Overview
 
-**Blacksmith** is a FoundryVTT module that provides quality-of-life and aesthetic improvements for D&D 5e (5.5+) on **FoundryVTT v13+**. It acts as a central hub for the Coffee Pub module ecosystem: shared infrastructure (hooks, sockets, module registration), UI (menubar, toolbars, windows, pins, chat cards), and feature systems (combat timers, stats, rolls, broadcast, image replacement, etc.).
+**Blacksmith** is a FoundryVTT module that provides quality-of-life and aesthetic improvements for D&D 5e (5.5+) on **FoundryVTT v13+**. It acts as a central hub for the Coffee Pub module ecosystem: shared infrastructure (hooks, sockets, module registration), UI (menubar, toolbars, windows, pins, chat cards), and feature systems (combat timers, stats, rolls, image replacement, etc.). Streaming/broadcast view is provided by **Coffee Pub Herald**.
 
 **Platform constraints:**
 
@@ -58,7 +58,7 @@ This document describes the high-level architecture of the **Coffee Pub Blacksmi
    - Loading progress phase 1 (“Loading modules…”).
    - **ModuleManager**, **UtilsManager** initialized first.
    - **HookManager** used to register hooks (e.g. `renderChatMessageHTML`, `renderApplication`, `closeApplication`, `settingChange`).
-   - **MenuBar**, **CombatTimer**, **PlanningTimer**, **RoundTimer**, **CombatTracker**, **VoteManager**, **BroadcastManager** initialized.
+   - **MenuBar**, **CombatTimer**, **PlanningTimer**, **RoundTimer**, **CombatTracker**, **VoteManager** initialized.
    - **QuickViewUtility** (dynamic import), **addToolbarButton()**, then dynamic imports to expose **toolbar API** and **menubar API** onto `module.api`.
    - **hookCanvas()** registered (canvasInit, canvasReady, updateScene, dropCanvasData for layer and pins).
    - **SocketManager** initialized via dynamic import (deferred to avoid SocketLib timing issues).
@@ -120,7 +120,7 @@ The **BlacksmithAPI** class in `api/blacksmith-api.js` provides a timing-safe wa
 
 ### 4.3 Feature Domains
 
-- **Broadcast** — **BroadcastManager** (`manager-broadcast.js`): view sync and broadcast modes (e.g. map view). See **documentation/architecture-broadcast.md**.
+- **Broadcast** — Now provided by **Coffee Pub Herald** (`coffee-pub-herald`). See Herald module documentation.
 - **Rolls** — **manager-rolls.js**: 4-function roll system; `executeRoll` exposed as `BLACKSMITH.rolls.execute`; used by skill check dialog and socket handlers. See **documentation/architecture-rolls.md**.
 - **Stats** — **CombatStats** (`stats-combat.js`), **CPBPlayerStats** (`stats-player.js`), **StatsAPI** (`api-stats.js`). See **documentation/architecture-stats.md**, **documentation/api-stats.md**.
 - **Timers** — **CombatTimer** (`timer-combat.js`), **PlanningTimer** (`timer-planning.js`), **RoundTimer** (`timer-round.js`).
@@ -179,7 +179,7 @@ All new windows should use Application V2 patterns per project rules; existing w
 - Toolbars: toolbars, toolbar-zones, toolbar-encounter, journal-tools.
 - Cards: cards-layout-legacy, cards-themes-legacy, cards-layout, cards-themes, cards-xp, cards-stats, cards-skill-check.
 - Menubar, context menus, pins, links-themes.
-- Timers, vote, latency, combat-tools, panel-assistant, utility-quickview, sidebar-*, broadcast.
+- Timers, vote, latency, combat-tools, panel-assistant, utility-quickview, sidebar-*.
 
 Theming is CSS-variable based; chat card theming is documented in **documentation/architecture-chatcards.md**.
 
@@ -219,7 +219,7 @@ Debug helpers on `window` (e.g. **BlacksmithAPIDetails**, **BlacksmithAPIHooks**
 | Roll system (4-function, execute, cinema) | **architecture-rolls.md** |
 | Stats (combat, player, API) | **architecture-stats.md** |
 | Toolbar manager | **architecture-toolbarmanager.md** |
-| Broadcast mode | **architecture-broadcast.md** |
+| Broadcast / streaming | **Coffee Pub Herald** (separate module) |
 | XP system | **architecture-xp.md** |
 | HookManager | **architecture-hookmanager.md** |
 | Core utilities | **architecture-core.md** |
@@ -236,7 +236,7 @@ This section captures the planned evolution of Blacksmith from its current "god 
 **blacksmith.js** today acts as a central bootstrap with many responsibilities:
 
 - **Size and imports**: Large file (1800+ lines), 30+ imports from managers, APIs, windows, timers, sidebars.
-- **Responsibilities**: Module/Utils/Hook initialization; system init (timers, combat, vote, broadcast); canvas (hookCanvas, toolbar); SocketManager; `module.api` exposure; caches (templates, settings, DOM).
+- **Responsibilities**: Module/Utils/Hook initialization; system init (timers, combat, vote); canvas (hookCanvas, toolbar); SocketManager; `module.api` exposure; caches (templates, settings, DOM).
 - **Mixed concerns**: Infrastructure, business logic, UI wiring, and caching in one place.
 
 The **current** bootstrap flow, API surface, and subsystems are documented in sections 2–4 and 8 above. Manager files (`manager-*.js`), hook patterns (HookManager), and module dependencies are in place; the migration plan aims to reduce the weight of blacksmith.js and clarify what stays in "core" vs. extractable services.
