@@ -10,10 +10,22 @@ Hooks.once('init', () => {
     registerSettings();
 });
 
-Hooks.once('ready', () => {
-    const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+Hooks.once('ready', function () {
+    let blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
     if (!blacksmith) {
-        console.error(`${MODULE.TITLE}: Blacksmith API not available. Herald requires Coffee Pub Blacksmith.`);
+        console.warn(`${MODULE.TITLE} | Blacksmith not found; skipping API registration.`);
+        return;
+    }
+    // Blacksmith attaches menubar API via dynamic import; if not ready yet, try once after a short delay (same pattern as other modules).
+    if (typeof blacksmith.registerMenubarTool !== 'function') {
+        setTimeout(function () {
+            blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+            if (blacksmith && typeof blacksmith.registerMenubarTool === 'function') {
+                HeraldManager.initialize(blacksmith);
+            } else {
+                console.warn(`${MODULE.TITLE} | Blacksmith menubar API not available; broadcast tools will not appear.`);
+            }
+        }, 150);
         return;
     }
     HeraldManager.initialize(blacksmith);

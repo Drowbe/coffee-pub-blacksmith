@@ -50,14 +50,15 @@ export class HeraldManager {
 
     /**
      * Initialize the HeraldManager (called with Blacksmith API from herald.js).
+     * Follows registering-with-blacksmith.md: guard on blacksmith and required methods; use sub-APIs when present.
      */
     static initialize(blacksmith) {
         if (this.isInitialized) {
             postConsoleAndNotification(MODULE.NAME, "HeraldManager: Already initialized", "", true, false);
             return;
         }
-        if (!blacksmith?.HookManager || !blacksmith.registerMenubarVisibilityOverride) {
-            postConsoleAndNotification(MODULE.NAME, "HeraldManager: Blacksmith API not ready", "", false, false);
+        if (!blacksmith || typeof blacksmith.registerMenubarTool !== 'function') {
+            postConsoleAndNotification(MODULE.NAME, "HeraldManager: Blacksmith API or registerMenubarTool not available", "", false, false);
             return;
         }
         this._blacksmith = blacksmith;
@@ -65,24 +66,28 @@ export class HeraldManager {
 
         postConsoleAndNotification(MODULE.NAME, "HeraldManager: Initializing", "", true, false);
 
-        api.registerMenubarVisibilityOverride(MODULE.ID, (user) => {
-            const isBroadcastEnabled = getSettingSafely(MODULE.ID, 'enableBroadcast', false);
-            if (!isBroadcastEnabled) return { hide: false };
-            const broadcastUserId = getSettingSafely(MODULE.ID, 'broadcastUserId', '') || '';
-            if (!matchUserBySetting(user, broadcastUserId)) return { hide: false };
-            return { hide: true };
-        });
+        if (typeof api.registerMenubarVisibilityOverride === 'function') {
+            api.registerMenubarVisibilityOverride(MODULE.ID, (user) => {
+                const isBroadcastEnabled = getSettingSafely(MODULE.ID, 'enableBroadcast', false);
+                if (!isBroadcastEnabled) return { hide: false };
+                const broadcastUserId = getSettingSafely(MODULE.ID, 'broadcastUserId', '') || '';
+                if (!matchUserBySetting(user, broadcastUserId)) return { hide: false };
+                return { hide: true };
+            });
+        }
 
         this._registerHooks();
-        api.HookManager.registerHook({
-            name: 'unloadModule',
-            description: 'HeraldManager: Cleanup on module unload',
-            context: 'broadcast-cleanup',
-            priority: 3,
-            callback: (moduleId) => {
-                if (moduleId === MODULE.ID) this.cleanup();
-            }
-        });
+        if (api.HookManager && typeof api.HookManager.registerHook === 'function') {
+            api.HookManager.registerHook({
+                name: 'unloadModule',
+                description: 'HeraldManager: Cleanup on module unload',
+                context: 'broadcast-cleanup',
+                priority: 3,
+                callback: (moduleId) => {
+                    if (moduleId === MODULE.ID) this.cleanup();
+                }
+            });
+        }
 
         this.isInitialized = true;
         postConsoleAndNotification(MODULE.NAME, "HeraldManager: Initialized", "", true, false);
@@ -92,6 +97,10 @@ export class HeraldManager {
      * Register hooks for broadcast mode management
      */
     static _registerHooks() {
+        const api = this._blacksmith;
+        if (!api?.HookManager || typeof api.HookManager.registerHook !== 'function') {
+            return;
+        }
         // Hook into setting changes to update broadcast mode
 this._blacksmith.HookManager.registerHook({
             name: 'settingChange',
@@ -145,20 +154,14 @@ this._blacksmith.HookManager.registerHook({
             }
         });
 
-        // Hook into ready to ensure broadcast mode is applied after page load
-        // Note: ready is a one-time hook, so use Hooks.once directly
-        // Use setTimeout to ensure document.body is ready
-        Hooks.once('ready', () => {
-            setTimeout(async () => {
-                this._updateBroadcastMode();
-                // Register camera hooks after settings are loaded
-                this._registerCameraHooks();
-                // Register broadcast bar type before registering tools
-                await this._registerBroadcastBarType();
-                // Register broadcast tools after bar type is registered
-                this._registerBroadcastTools();
-            }, 100);
-        });
+        // We are already in ready (called from herald.js ready). Register bar and tools immediately with short delay.
+        setTimeout(async () => {
+            this._updateBroadcastMode();
+            this._registerCameraHooks();
+            await this._registerBroadcastBarType();
+            this._registerBroadcastTools();
+            this._blacksmith.renderMenubar();
+        }, 100);
     }
 
     /**
@@ -2676,7 +2679,7 @@ this._blacksmith.HookManager.registerHook({
             return modeIcons[mode] || 'fa-solid fa-hand';
         };
 
-this._blacksmith.registerMenubarTool('broadcast-view-mode', {
+const success = this._blacksmith.registerMenubarTool('broadcast-view-mode', {
             icon: 'fa-solid fa-video',
             name: 'broadcast-view-mode',
             title: () => {
@@ -3381,8 +3384,10 @@ this._blacksmith.HookManager.registerHook({
         this._blacksmith?.HookManager?.disposeByContext('broadcast-playerview-sync');
         this._blacksmith?.HookManager?.disposeByContext('broadcast-player-buttons');
 
-        // Unregister menubar visibility override
-        this._blacksmith?.unregisterMenubarVisibilityOverride(MODULE.ID);
+        // Unregister menubar visibility override (if API provides it)
+        if (typeof this._blacksmith?.unregisterMenubarVisibilityOverride === 'function') {
+            this._blacksmith.unregisterMenubarVisibilityOverride(MODULE.ID);
+        }
 
         // Unregister socket handlers
         // Note: Socket handlers are stored in SocketManager._externalEventHandlers which isn't directly accessible

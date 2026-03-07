@@ -2912,6 +2912,15 @@ class MenuBar {
     }
 
     /**
+     * Register which menubar tool ID toggles a given secondary bar type (so open/close syncs the tool's active state).
+     * @param {string} barTypeId - The secondary bar type (e.g. 'broadcast', 'combat')
+     * @param {string} toolId - The menubar tool id registered with registerMenubarTool (e.g. 'broadcast-toggle')
+     */
+    static registerSecondaryBarTool(barTypeId, toolId) {
+        this.secondaryBarToolMapping.set(barTypeId, toolId);
+    }
+
+    /**
      * Unregister an item from a secondary bar
      * @param {string} barTypeId - The bar type to unregister the item from
      * @param {string} itemId - Unique identifier for the item

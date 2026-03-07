@@ -1204,12 +1204,18 @@ export function postConsoleAndNotification(
         captionBackground: "background: #550922",
         captionFontColor: "color: rgb(164, 199, 106)",
       },
+      HERALD: {
+        titleColor: "color:rgb(197, 153, 9)",
+        captionBorder: "border: 1px dottedrgb(240, 205, 90)",
+        captionBackground: "background:rgb(100, 71, 17)",
+        captionFontColor: "color: rgb(179, 168, 20)",
+      },
       BUBO: {
         titleColor: "color: #ff3377",
         captionBorder: "border: 1px dotted #ED6B96",
         captionBackground: "background: #550922",
         captionFontColor: "color: rgb(164, 199, 106)",
-      },
+      }
     };
   
     // Normalize module key lookup

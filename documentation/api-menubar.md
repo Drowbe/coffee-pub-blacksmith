@@ -1085,6 +1085,19 @@ For issues or questions about the Blacksmith Menubar API:
 
 The menubar supports **secondary bars** - additional toolbars that appear below the main menubar, similar to tabs. Only one secondary bar can be open at a time. When you open a new secondary bar, the existing one automatically closes.
 
+**Secondary bar methods at a glance:**
+
+| Method | Purpose |
+|--------|---------|
+| `registerSecondaryBarType(typeId, config)` | Define a bar type (height, persistence, groups). Call this first. |
+| `registerSecondaryBarItem(barTypeId, itemId, itemData)` | Add a button/control to a bar (icon, onClick, group, order). |
+| `registerSecondaryBarTool(barTypeId, toolId)` | Optional. Link a menubar tool to this bar so the menubar syncs the tool's active state when the bar opens/closes. |
+| `unregisterSecondaryBarItem(barTypeId, itemId)` | Remove an item from a bar. |
+| `openSecondaryBar(typeId, options)` / `closeSecondaryBar()` / `toggleSecondaryBar(typeId, options)` | Show, hide, or toggle a secondary bar (e.g. from a menubar tool's onClick). |
+| `updateSecondaryBarItemActive(barTypeId, itemId, active)` | Set which item is active on the bar (e.g. for radio-style mode buttons). |
+| `getSecondaryBarItems(barTypeId)` | Get the list of items for a bar. |
+| `updateSecondaryBar(data)` | Update data for an already-open bar (e.g. custom template content). |
+
 **Important:** **Always use the default tool system** unless your use case absolutely requires a custom template. The default tool system is simpler, faster to implement, timing-safe, and sufficient for most toolbars. Only use custom templates for complex UIs that cannot be achieved with simple button-based tools.
 
 **Common Use Cases:**
@@ -1522,7 +1535,7 @@ blacksmith.registerSecondaryBarTool('cartographer', 'cartographer-toggle');
 - `barTypeId` (string, required): The secondary bar type ID
 - `toolId` (string, required): The menubar tool ID that toggles this bar
 
-**Returns:** `boolean` - Success status
+**Returns:** No return value.
 
 **Note:** 
 - The tool must be registered with `toggleable: true` for the active state to work
