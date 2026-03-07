@@ -124,26 +124,6 @@
   "relationships": {
     "recommends": [
       {
-        "id": "coffee-pub-bibliosoph",
-        "type": "module",
-        "manifest": "https://github.com/Drowbe/coffee-pub-bibliosoph/releases/latest/download/module.json"
-      },
-      {
-        "id": "coffee-pub-crier",
-        "type": "module",
-        "manifest": "https://github.com/Drowbe/coffee-pub-crier/releases/latest/download/module.json"
-      },
-      {
-        "id": "coffee-pub-monarch",
-        "type": "module",
-        "manifest": "https://github.com/Drowbe/coffee-pub-monarch/releases/latest/download/module.json"
-      },
-      {
-        "id": "coffee-pub-scribe",
-        "type": "module",
-        "manifest": "https://github.com/Drowbe/coffee-pub-scribe/releases/latest/download/module.json"
-      },
-      {
         "id": "coffee-pub-squire",
         "type": "module",
         "manifest": "https://github.com/Drowbe/coffee-pub-squire/releases/latest/download/module.json"
