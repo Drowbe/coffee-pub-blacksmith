@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Herald/Broadcast cleanup – CSS and TODO**: Removed `--blacksmith-menubar-secondary-broadcast-height` from `styles/menubar.css` (broadcast bar height is now provided by Herald when it registers its secondary bar type). Removed the CRITICAL REVISIT TODO for this variable from `documentation/TODO.md`. Deleted `documentation/cleanup-broadcast-herald-legacy.md` (cleanup complete).
+- **Herald/Broadcast cleanup – CSS and TODO**: Removed `--blacksmith-menubar-secondary-broadcast-height` from `styles/menubar.css` (broadcast bar height is now provided by Herald when it registers its secondary bar type). Removed the CRITICAL REVISIT TODO for this variable from `documentation/TODO.md`. Deleted `documentation/cleanup-broadcast-herald-legacy.md` (cleanup complete). Blacksmith no longer owns any broadcast bar configuration.
 
 ## [13.4.0] - 2025-03-03
 
