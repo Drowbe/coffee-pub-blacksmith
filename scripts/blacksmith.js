@@ -38,7 +38,7 @@ import {
     copyToClipboard 
 } from './common.js';
 // -- Import special page variables --
-import { registerSettings, buildSelectedCompendiumArrays, getTokenImageReplacementCacheStats, reorderCompendiumsForType, extractTypeFromCompendiumSetting } from './settings.js';
+import { registerSettings, buildSelectedCompendiumArrays, reorderCompendiumsForType, extractTypeFromCompendiumSetting } from './settings.js';
 import { BlacksmithLayer } from './canvas-layer.js';
 import { addToolbarButton } from './manager-toolbar.js';
 import { CombatTimer } from './timer-combat.js';
@@ -74,7 +74,6 @@ import { LoadingProgressManager } from './manager-loading-progress.js';
 import { PinManager } from './manager-pins.js';
 import { PinsAPI } from './api-pins.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
-import { ImageCacheManager } from './manager-image-cache.js';
 import './sidebar-combat.js';
 import './combat-tools.js'; 
 // ================================================================== 
@@ -366,27 +365,7 @@ Hooks.once('ready', async () => {
         // Initialize PinManager (canvas pins API)
         PinManager.initialize();
         
-        // No longer needed - cache management is now handled by the new simplified system
-
-        // Initialize ImageCacheManager (GM only)
-        if (game.user.isGM) {
-            LoadingProgressManager.logActivity("Initializing image cache...");
-            try {
-                const { ImageCacheManager } = await import('./manager-image-cache.js');
-                await ImageCacheManager.initialize();
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, "Error importing ImageCacheManager", error, true, false);
-            }
-        }
-
-        // Initialize Token Image Utilities (turn indicators, etc.)
-        LoadingProgressManager.logActivity("Loading token utilities...");
-        try {
-            const { TokenImageUtilities } = await import('./token-image-utilities.js');
-            TokenImageUtilities.initializeTurnIndicator();
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Error importing TokenImageUtilities", error, true, false);
-        }
+        // Image replacement / dead tokens – provided by Coffee Pub Illuminator when installed
 
         // Update nameplates
         LoadingProgressManager.logActivity("Updating nameplates...");
@@ -818,14 +797,6 @@ Hooks.once('init', async function() {
                     }
                     buildSelectedCompendiumArrays();
                 }
-                
-                // Update cache stats heading when display cache status changes
-                if (settingKey === 'tokenImageReplacementDisplayCacheStatus') {
-                    const statsSetting = game.settings.settings.get(`${MODULE.ID}.headingH4tokenImageReplacementCacheStats`);
-                    if (statsSetting) {
-                        statsSetting.hint = getTokenImageReplacementCacheStats() + ". (Updated on client load and cache operations)";
-                    }
-                }
             }
             
             //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
@@ -1043,12 +1014,6 @@ Hooks.once('init', async function() {
         // ✅ NEW: Canvas Pins API for external modules
         pins: PinsAPI,
 
-        // ✅ NEW: Image Replacement context menu API for external modules
-        imageReplacement: {
-            registerContextMenuItem: ImageCacheManager.registerImageTileContextMenuItem.bind(ImageCacheManager),
-            unregisterContextMenuItem: ImageCacheManager.unregisterImageTileContextMenuItem.bind(ImageCacheManager)
-        },
-        
         // ✅ NEW: Chat Cards API for external modules
         chatCards: ChatCardsAPI,
 
@@ -1062,6 +1027,9 @@ Hooks.once('init', async function() {
 
         // ✅ Monster deployment API (same as journal encounter toolbar)
         deployMonsters: EncounterToolbar.deployMonsters.bind(EncounterToolbar),
+
+        // ✅ Add loot to actor (roll tables, coins, epic) – for Illuminator convert-dead-to-loot
+        addLootToActor: CanvasTools.addLootToActor.bind(CanvasTools),
 
         // ✅ Request a Roll (Skill Check) dialog – open with optional parameters
         openRequestRollDialog: (options = {}) => {

@@ -610,6 +610,40 @@ export class CanvasTools {
     }
 
     /**
+     * Add loot to an actor (roll configured tables, add coins, epic roll).
+     * Used by Illuminator when converting dead token to loot pile. Reads Blacksmith settings.
+     * @param {Actor} actor - The actor to add loot to
+     */
+    static async addLootToActor(actor) {
+        if (!actor || !game.user.isGM) return;
+        const tables = [
+            { setting: 'tokenLootTableTreasure', amount: 'tokenLootTableTreasureAmount', quantity: 'tokenLootTableTreasureQuantity' },
+            { setting: 'tokenLootTableGear', amount: 'tokenLootTableGearAmount', quantity: 'tokenLootTableGearQuantity' },
+            { setting: 'tokenLootTableGeneral', amount: 'tokenLootTableGeneralAmount', quantity: 'tokenLootTableGeneralQuantity' }
+        ];
+        for (const table of tables) {
+            const tableName = game.settings.get(MODULE.ID, table.setting);
+            if (tableName && tableName !== 'none' && !tableName.startsWith('--')) {
+                const amount = game.settings.get(MODULE.ID, table.amount);
+                const quantityMax = game.settings.get(MODULE.ID, table.quantity);
+                if (amount > 0) {
+                    await CanvasTools._rollLootTable(tableName, amount, actor, quantityMax);
+                }
+            }
+        }
+        const addCoins = getSettingSafely(MODULE.ID, 'tokenLootAddCoins', true);
+        if (addCoins) await CanvasTools._addRandomCoins(actor);
+        const epicTableName = getSettingSafely(MODULE.ID, 'tokenLootTableEpic', '');
+        const epicOddsSetting = Number(getSettingSafely(MODULE.ID, 'tokenLootTableEpicOdds', 0)) || 0;
+        if (epicTableName && epicTableName !== 'none' && !epicTableName.startsWith('--') && epicOddsSetting > 0) {
+            const epicRoll = Math.floor(Math.random() * 1000) + 1;
+            if (epicRoll <= Math.min(epicOddsSetting, 1000)) {
+                await CanvasTools._rollLootTable(epicTableName, 1, actor, 1);
+            }
+        }
+    }
+
+    /**
      * Clean up all hooks and resources
      */
     static cleanup() {

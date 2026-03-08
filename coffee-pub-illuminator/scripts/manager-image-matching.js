@@ -2,8 +2,8 @@
 // ===== IMAGE MATCHING LOGIC =======================================
 // ================================================================== 
 
-import { MODULE, BLACKSMITH } from './const.js';
-import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
+import { MODULE } from './const.js';
+import { postConsoleAndNotification, getSettingSafely } from './api-helpers.js';
 
 /**
  * Image Matching Logic

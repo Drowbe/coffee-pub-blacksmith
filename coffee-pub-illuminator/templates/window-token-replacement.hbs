@@ -1,8 +1,7 @@
 <div class="token-replacement-window">
     {{!-- Global Controls (apply to both Token and Portrait modes) --}}
     <div class="tir-global-controls">
-        {{#if portraitEnabled}}
-        <!-- Mode Toggle (Token/Portrait) -->
+        <!-- Mode Toggle (Token/Portrait) - always visible so user can switch mode in window -->
         <div class="tir-toggle-container tir-mode-toggle">
             <span class="tir-toggle-label-left">Tokens</span>
             <div class="tir-toggle">
@@ -11,7 +10,6 @@
             </div>
             <span class="tir-toggle-label-right">Portraits</span>
         </div>
-        {{/if}}
         <div class="tir-global-controls-right">
             {{#if itemPilesInstalled}}
             <!-- Loot Piles Toggle -->

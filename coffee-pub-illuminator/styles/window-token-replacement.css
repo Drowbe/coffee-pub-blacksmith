@@ -1,6 +1,7 @@
-/* Token Image Replacement Window Styles - Independent Design */
+/* Token Image Replacement Window Styles - Illuminator (from Blacksmith) */
+/* Banner image from Blacksmith when both modules present (relative to styles/) */
 :root {
-    --tir-banner-image: url('../images/backgrounds/background-skull-red.webp');
+    --tir-banner-image: url('../../coffee-pub-blacksmith/images/backgrounds/background-skull-red.webp');
 }
 
 /* DEFINE THE WINDOW AND CONTAINER */
@@ -1248,7 +1249,7 @@
   .tir-thumbnail-tag {
     display: inline-flex;
     align-items: center;
-    max-width: 100%;  /* don’t exceed column */
+    max-width: 100%;  /* don't exceed column */
     padding: var(--tag-pad-y) var(--tag-pad-x);
     font-size: var(--tag-fs);
     line-height: 1;

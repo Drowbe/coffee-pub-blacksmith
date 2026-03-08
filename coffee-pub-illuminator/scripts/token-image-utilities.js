@@ -3,10 +3,9 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, getSettingSafely, playSound } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely, playSound } from './api-helpers.js';
 import { ImageCacheManager } from './manager-image-cache.js';
 import { HookManager } from './manager-hooks.js';
-import { CanvasTools } from './manager-canvas.js';
 
 /**
  * Token Image Utilities
@@ -587,43 +586,10 @@ export class TokenImageUtilities {
             const lootAlreadyAdded = token.document.getFlag(MODULE.ID, 'blnLootAdded');
             
             if (!lootAlreadyAdded) {
-                // Add loot from tables if configured
-                const tables = [
-                    {
-                        setting: 'tokenLootTableTreasure',
-                        amount: 'tokenLootTableTreasureAmount',
-                        quantity: 'tokenLootTableTreasureQuantity'
-                    },
-                    {
-                        setting: 'tokenLootTableGear',
-                        amount: 'tokenLootTableGearAmount',
-                        quantity: 'tokenLootTableGearQuantity'
-                    },
-                    {
-                        setting: 'tokenLootTableGeneral',
-                        amount: 'tokenLootTableGeneralAmount',
-                        quantity: 'tokenLootTableGeneralQuantity'
-                    }
-                ];
-                
-                // Roll loot from each configured table
-                for (const table of tables) {
-                    const tableName = game.settings.get(MODULE.ID, table.setting);
-                    if (tableName && tableName !== "none" && !tableName.startsWith('--')) {
-                        const amount = game.settings.get(MODULE.ID, table.amount);
-                        const quantityMax = game.settings.get(MODULE.ID, table.quantity);
-                        if (amount > 0) {
-                            await CanvasTools._rollLootTable(tableName, amount, token.actor, quantityMax);
-                        }
-                    }
+                const blacksmithApi = game.modules.get('coffee-pub-blacksmith')?.api;
+                if (blacksmithApi?.addLootToActor) {
+                    await blacksmithApi.addLootToActor(token.actor);
                 }
-                
-                // Add random coins
-                const addCoins = getSettingSafely(MODULE.ID, 'tokenLootAddCoins', true);
-                if (addCoins) {
-                    await CanvasTools._addRandomCoins(token.actor);
-                }
-                
                 // Mark that loot has been added
                 await token.document.setFlag(MODULE.ID, 'blnLootAdded', true);
                 postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Added loot to ${token.name}`, "", true, false);
@@ -631,18 +597,7 @@ export class TokenImageUtilities {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Loot already added to ${token.name}, skipping loot generation`, "", true, false);
             }
 
-            // Roll epic loot based on configured odds
-            const epicTableName = getSettingSafely(MODULE.ID, 'tokenLootTableEpic', '');
-            const epicOddsSetting = Number(getSettingSafely(MODULE.ID, 'tokenLootTableEpicOdds', 0)) || 0;
-            if (epicTableName && epicTableName !== 'none' && !epicTableName.startsWith('--') && epicOddsSetting > 0) {
-                const epicRoll = Math.floor(Math.random() * 1000) + 1;
-                if (epicRoll <= Math.min(epicOddsSetting, 1000)) {
-                    await CanvasTools._rollLootTable(epicTableName, 1, token.actor, 1);
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Epic loot awarded to ${token.name} (roll ${epicRoll}/${epicOddsSetting})`, "", true, false);
-                } else {
-                    postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Epic loot roll failed (${epicRoll}/${epicOddsSetting})`, "", false, false);
-                }
-            }
+            // Epic loot roll is handled by Blacksmith addLootToActor when called above (first time); no second call here.
 
             // Set up proper permissions before converting to item pile
             const updates = {
@@ -1241,6 +1196,14 @@ export class TokenImageUtilities {
     // ================================================================== 
     // ===== TURN INDICATOR FUNCTIONALITY ===============================
     // ================================================================== 
+
+    /**
+     * Initialize token image utilities. No-op for Illuminator; turn indicator
+     * and related features use Blacksmith settings and are not initialized here.
+     */
+    static initialize() {
+        // Dead token and image replacement hooks are registered by ImageCacheManager.initialize()
+    }
 
     /**
      * Initialize turn indicator system

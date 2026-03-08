@@ -3,7 +3,6 @@ import { postConsoleAndNotification, getSettingSafely, setSettingSafely, playSou
 import { SocketManager } from './manager-sockets.js';
 import { ModuleManager } from './manager-modules.js';
 import { HookManager } from './manager-hooks.js';
-import { TokenImageReplacementWindow } from './token-image-replacement.js';
 import { MovementConfig } from './token-movement.js';
 import { PerformanceUtility } from './utility-performance.js';
 import { QuickViewUtility } from './utility-quickview.js';
@@ -1251,30 +1250,7 @@ class MenuBar {
             buttonSelectedTint: null
         });
 
-        // REPLACE IMAGE
-        this.registerMenubarTool('imagereplace', {
-            icon: "fa-solid fa-images",
-            name: "imagereplace",
-            title: "Replace Image",
-            tooltip: null,
-            onClick: () => {
-                TokenImageReplacementWindow.openWindow();
-            },
-            zone: "middle",
-            group: "utility",
-            groupOrder: this.GROUP_ORDER.UTILITY,
-            order: 2,
-            moduleId: "blacksmith-core",
-            gmOnly: true,
-            leaderOnly: false,
-            visible: true,
-            toggleable: false,
-            active: false,
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
-
+        // REPLACE IMAGE – registered by Coffee Pub Illuminator when present
 
         // *** GROUP: PARTY ***
 
@@ -4498,21 +4474,16 @@ class MenuBar {
                 }
             });
 
-            gmItems.push({
-                name: 'Replace Image',
-                icon: 'fa-solid fa-image',
-                disabled: !canvasToken,
-                callback: async () => {
-                    if (!canvasToken) return;
-                    try {
-                        await this.panToCombatant(combatantId, { selectToken: true });
-                        canvasToken.control({ releaseOthers: true });
-                    } catch (_error) {
-                        // no-op; window can still open
+            const illuminatorApi = game.modules.get('coffee-pub-illuminator')?.api;
+            if (illuminatorApi?.getCombatContextMenuItems) {
+                const context = { combat, combatantId, canvasToken, x, y };
+                const items = illuminatorApi.getCombatContextMenuItems(context);
+                if (Array.isArray(items)) {
+                    for (const item of items) {
+                        gmItems.push(item);
                     }
-                    await TokenImageReplacementWindow.openWindow();
                 }
-            });
+            }
 
             // Keep destructive action last to reduce accidental clicks.
             gmItems.push({

@@ -252,32 +252,7 @@ async function registerDefaultTools() {
         order: 10
     });
     
-    registerTool('token-replacement', {
-        icon: "fa-solid fa-images",
-                name: "token-replacement",
-        title: "Token Image Replacement",
-                button: true,
-        visible: () => getSettingSafely(MODULE.ID, 'tokenImageReplacementShowInCoffeePubToolbar', true),
-        gmOnly: true,
-        onCoffeePub: true,
-        onFoundry: () => {
-            // Use getSettingSafely to handle timing issues - returns default (false) if setting not ready yet
-            // Toolbar will refresh once settings are available via retry logic in getSceneControlButtons hook
-            return getSettingSafely(MODULE.ID, 'tokenImageReplacementShowInFoundryToolbar', false);
-        },
-                onClick: async () => {
-            try {
-                const { TokenImageReplacementWindow } = await import('./token-image-replacement.js');
-                TokenImageReplacementWindow.openWindow();
-            } catch (error) {
-                ui.notifications.error('Failed to open Token Image Replacement window');
-                postConsoleAndNotification(MODULE.NAME, 'Failed to open Token Image Replacement window', error, false, true);
-            }
-        },
-        moduleId: 'blacksmith-core',
-        zone: 'gmtools',
-        order: 20
-    });
+    // Token Image Replacement – registered by Coffee Pub Illuminator when present
     
     registerTool('journal-tools', {
                 icon: "fa-solid fa-book-open",

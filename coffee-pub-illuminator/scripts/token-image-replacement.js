@@ -2,8 +2,8 @@
 // ===== TOKEN IMAGE REPLACEMENT CACHING SYSTEM =====================
 // ================================================================== 
 
-import { MODULE, BLACKSMITH } from './const.js';
-import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
+import { MODULE } from './const.js';
+import { postConsoleAndNotification, getSettingSafely } from './api-helpers.js';
 import { HookManager } from './manager-hooks.js';
 import { ImageCacheManager } from './manager-image-cache.js';
 import { ImageMatching } from './manager-image-matching.js';
@@ -108,7 +108,7 @@ export class TokenImageReplacementWindow extends Application {
         return foundry.utils.mergeObject(super.defaultOptions, {
             id: "token-image-replacement",
             title: "Image Replacements",
-            template: "modules/coffee-pub-blacksmith/templates/window-token-replacement.hbs",
+            template: "modules/coffee-pub-illuminator/templates/window-token-replacement.hbs",
             width,
             height,
             top,

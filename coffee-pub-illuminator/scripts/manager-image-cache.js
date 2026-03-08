@@ -2,8 +2,8 @@
 // ===== IMAGE CACHE MANAGEMENT SYSTEM ==============================
 // ================================================================== 
 
-import { MODULE, BLACKSMITH } from './const.js';
-import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
+import { MODULE } from './const.js';
+import { postConsoleAndNotification, getSettingSafely } from './api-helpers.js';
 import { HookManager } from './manager-hooks.js';
 import { TokenImageReplacementWindow } from './token-image-replacement.js';
 import { TokenImageUtilities } from './token-image-utilities.js';
@@ -425,7 +425,7 @@ export class ImageCacheManager {
             postConsoleAndNotification(MODULE.NAME, "Token Image Replacement: Loading monster mapping data...", "", true, false);
             
             // Load monster mapping from resources
-            const response = await fetch('modules/coffee-pub-blacksmith/resources/monster-mapping.json');
+            const response = await fetch('modules/coffee-pub-illuminator/resources/monster-mapping.json');
             if (response.ok) {
                 const monsterData = await response.json();
                 await game.settings.set(MODULE.ID, newSettingKey, monsterData);
@@ -3486,7 +3486,7 @@ export class ImageCacheManager {
                 const statusSettingKey = mode === this.MODES.PORTRAIT 
                     ? 'portraitImageReplacementDisplayCacheStatus' 
                     : 'tokenImageReplacementDisplayCacheStatus';
-                game.settings.set('coffee-pub-blacksmith', statusSettingKey, status.message);
+                game.settings.set(MODULE.ID, statusSettingKey, status.message);
                 const modeLabel = mode === this.MODES.PORTRAIT ? 'Portrait' : 'Token';
                 postConsoleAndNotification(MODULE.NAME, `${modeLabel} Image Replacement: Cache status updated: ${status.message}`, "", false, false);
             }

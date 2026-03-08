@@ -10,7 +10,7 @@ This document describes the high-level architecture of the **Coffee Pub Blacksmi
 
 ## 1. Overview
 
-**Blacksmith** is a FoundryVTT module that provides quality-of-life and aesthetic improvements for D&D 5e (5.5+) on **FoundryVTT v13+**. It acts as a central hub for the Coffee Pub module ecosystem: shared infrastructure (hooks, sockets, module registration), UI (menubar, toolbars, windows, pins, chat cards), and feature systems (combat timers, stats, rolls, image replacement, etc.). Streaming/broadcast view is provided by **Coffee Pub Herald**.
+**Blacksmith** is a FoundryVTT module that provides quality-of-life and aesthetic improvements for D&D 5e (5.5+) on **FoundryVTT v13+**. It acts as a central hub for the Coffee Pub module ecosystem: shared infrastructure (hooks, sockets, module registration), UI (menubar, toolbars, windows, pins, chat cards), and feature systems (combat timers, stats, rolls, etc.). Token and portrait image replacement is provided by **Coffee Pub Illuminator** when that module is installed. Streaming/broadcast view is provided by **Coffee Pub Herald**.
 
 **Platform constraints:**
 
@@ -67,7 +67,7 @@ This document describes the high-level architecture of the **Coffee Pub Blacksmi
 3. **`ready`**
    - Loading progress phase 5 (“Finalizing…”).
    - **registerSettings()** first, then **HookManager.initialize()**, **registerBlacksmithUpdatedHook()**, **registerWindowQueryPartials()**.
-   - After settings verification: **CombatStats**, **CPBPlayerStats**, **XpManager**, **WrapperManager**, **NavigationManager**, **LatencyChecker**, **CanvasTools**, **PinManager**, **ImageCacheManager** (GM only), **TokenImageUtilities**, **JournalTools**, **EncounterToolbar**, **SidebarPin**, **SidebarStyle**.
+   - After settings verification: **CombatStats**, **CPBPlayerStats**, **XpManager**, **WrapperManager**, **NavigationManager**, **LatencyChecker**, **CanvasTools**, **PinManager**, **JournalTools**, **EncounterToolbar**, **SidebarPin**, **SidebarStyle**.
    - **BLACKSMITH.rolls.execute** set from **manager-rolls.js** (`executeRoll`).
    - **initializeSettingsDependentFeatures()**, **initializeSceneInteractions()**, then loading progress hidden.
 
@@ -125,7 +125,7 @@ The **BlacksmithAPI** class in `api/blacksmith-api.js` provides a timing-safe wa
 - **Stats** — **CombatStats** (`stats-combat.js`), **CPBPlayerStats** (`stats-player.js`), **StatsAPI** (`api-stats.js`). See **documentation/architecture-stats.md**, **documentation/api-stats.md**.
 - **Timers** — **CombatTimer** (`timer-combat.js`), **PlanningTimer** (`timer-planning.js`), **RoundTimer** (`timer-round.js`).
 - **Chat cards** — **ChatCardsAPI** (`api-chat-cards.js`): themes and rendering contract. See **documentation/architecture-chatcards.md**, **documentation/api-chatcards.md**.
-- **Token/portrait image replacement** — **ImageCacheManager** (`manager-image-cache.js`), **TokenImageUtilities**, **TokenImageReplacementWindow**, etc. See **documentation/architecture-imagereplacement.md**.
+- **Token/portrait image replacement** — Provided by the optional module **Coffee Pub Illuminator** when installed. Illuminator registers menubar/toolbar tools and combat context menu items via Blacksmith’s API; architecture is documented in **documentation/architecture-imagereplacement.md** (Illuminator-focused).
 - **XP** — **XpManager** (`xp-manager.js`). See **documentation/architecture-xp.md**.
 - **Voting** — **VoteManager** (`vote-manager.js`), **VoteConfig**.
 - **Combat** — **CombatTracker** (`combat-tracker.js`), **sidebar-combat.js**, **combat-tools.js**.
@@ -138,7 +138,7 @@ The **BlacksmithAPI** class in `api/blacksmith-api.js` provides a timing-safe wa
 - **NavigationManager** (`manager-navigation.js`) — Scene navigation and scene icon updates.
 - **LatencyChecker** (`latency-checker.js`) — Latency display.
 - **SidebarPin** (`sidebar-pin.js`), **SidebarStyle** (`sidebar-style.js`) — Sidebar behavior and styling.
-- **CompendiumManager** (`manager-compendiums.js`) — Compendium usage and ordering (e.g. for image replacement).
+- **CompendiumManager** (`manager-compendiums.js`) — Compendium usage and ordering.
 - **ConstantsGenerator** (`constants-generator.js`), **AssetLookup** (`asset-lookup.js`) — Constants and asset taxonomy (sounds, images, etc.).
 - **OpenAI/Regent:** AI tools (Consult the Regent, worksheets, OpenAI integration) are provided by the optional module **coffee-pub-regent**. See that module’s documentation (e.g. `coffee-pub-regent/documentation/api-openai.md`).
 - **Settings** (`settings.js`) — All module settings; **registerSettings()** called in ready; **getCachedSetting** and settings cache in blacksmith.js.
@@ -153,7 +153,7 @@ The **BlacksmithAPI** class in `api/blacksmith-api.js` provides a timing-safe wa
 - **SkillCheckDialog** (`window-skillcheck.js`) — Skill check dialog; uses manager-rolls for orchestration and delivery.
 - **CSSEditor** (`window-gmtools.js`) — GM custom CSS.
 - **StatsWindow** (`window-stats-party.js`), **PlayerStatsWindow** (`window-stats-player.js`).
-- **TokenImageReplacementWindow** (`token-image-replacement.js`), **MovementConfig** (`token-movement.js`), **VoteConfig** (`vote-config.js`).
+- **TokenImageReplacementWindow** removed; see **Coffee Pub Illuminator**. **MovementConfig** (`token-movement.js`), **VoteConfig** (`vote-config.js`).
 
 All new windows should use Application V2 patterns per project rules; existing windows are being migrated (see architecture-window.md).
 
@@ -174,7 +174,7 @@ All new windows should use Application V2 patterns per project rules; existing w
 
 - Shared: common, settings, loading-progress.
 - Overrides: overrides-foundry, overrides-modules.
-- Windows: window-common, window-gmtools, window-query, window-skillcheck, token-movement, window-xp, window-stats, window-roll-*, window-token-replacement, window-pin-config.
+- Windows: window-common, window-gmtools, window-query, window-skillcheck, token-movement, window-xp, window-stats, window-roll-*, window-pin-config.
 - Tabs: tabs-scenes.
 - Toolbars: toolbars, toolbar-zones, toolbar-encounter, journal-tools.
 - Cards: cards-layout-legacy, cards-themes-legacy, cards-layout, cards-themes, cards-xp, cards-stats, cards-skill-check.
@@ -213,7 +213,7 @@ Debug helpers on `window` (e.g. **BlacksmithAPIDetails**, **BlacksmithAPIHooks**
 | Topic | Document |
 |-------|----------|
 | Pins (storage, renderer, schema, API) | **architecture-pins.md** |
-| Token/portrait image replacement | **architecture-imagereplacement.md** |
+| Token/portrait image replacement | **Coffee Pub Illuminator** (optional); **architecture-imagereplacement.md** |
 | SocketManager (SocketLib, API, migration) | **architecture-socketmanager.md** |
 | Chat cards (themes, layout, migration) | **architecture-chatcards.md** |
 | Roll system (4-function, execute, cinema) | **architecture-rolls.md** |
