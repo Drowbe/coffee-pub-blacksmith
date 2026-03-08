@@ -93,13 +93,6 @@
     );
 }
 
-
-
-
-.blacksmith-menubar-secondary {
-    
-}
-
 /* Push main interface down to account for fixed menubar */
 #interface {
     margin-top: var(--blacksmith-menubar-interface-offset);
