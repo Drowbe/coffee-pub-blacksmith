@@ -1250,7 +1250,7 @@ class MenuBar {
             buttonSelectedTint: null
         });
 
-        // REPLACE IMAGE – registered by Coffee Pub Illuminator when present
+        // REPLACE IMAGE – registered by Coffee Pub Curator when present
 
         // *** GROUP: PARTY ***
 
@@ -4474,10 +4474,10 @@ class MenuBar {
                 }
             });
 
-            const illuminatorApi = game.modules.get('coffee-pub-illuminator')?.api;
-            if (illuminatorApi?.getCombatContextMenuItems) {
+            const curatorApi = game.modules.get('coffee-pub-curator')?.api;
+            if (curatorApi?.getCombatContextMenuItems) {
                 const context = { combat, combatantId, canvasToken, x, y };
-                const items = illuminatorApi.getCombatContextMenuItems(context);
+                const items = curatorApi.getCombatContextMenuItems(context);
                 if (Array.isArray(items)) {
                     for (const item of items) {
                         gmItems.push(item);

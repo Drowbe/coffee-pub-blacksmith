@@ -1,27 +1,27 @@
 # Extraction Reassessment: Core Engine + Optional Modules
 
-**Context:** Blacksmith becomes a core engine (APIs + focused QoL). Optional features move to separate modules that **consume** Blacksmith’s existing APIs (menubar, toolbar, secondary bar, sockets, chatCards themes, hooks, utils). Registration and init move into the new modules (same pattern as Herald). No code changed in this doc—assessment only.
+**Context:** Blacksmith becomes a core engine (APIs + focused QoL). Optional features move to separate modules that **consume** Blacksmithâ€™s existing APIs (menubar, toolbar, secondary bar, sockets, chatCards themes, hooks, utils). Registration and init move into the new modules (same pattern as Herald). No code changed in this docâ€”assessment only.
 
 **Planned splits:**
-- **Timers + Stats** → one module (together).
-- **Encounter** → XP, rolls, combat tracker / combat bar tools (single module); optionally keep in core.
-- **Image / tokens** → Image replacement, dead tokens, etc. (single module).
-- **Blacksmith** → Keeps all core reusable APIs + a curated set of QoL enhancements.
+- **Timers + Stats** â†’ one module (together).
+- **Encounter** â†’ XP, rolls, combat tracker / combat bar tools (single module); optionally keep in core.
+- **Image / tokens** â†’ Image replacement, dead tokens, etc. (single module).
+- **Blacksmith** â†’ Keeps all core reusable APIs + a curated set of QoL enhancements.
 
 ---
 
 ## API docs: fit for external ownership
 
-Existing docs already support “feature lives in another module, registers via API”:
+Existing docs already support â€œfeature lives in another module, registers via APIâ€:
 
-- **registering-with-blacksmith.md** – Get API at `ready`, register menubar tools, secondary bar, pins, sockets; cleanup on unload. Herald and Squire follow this.
-- **api-menubar.md** – `registerMenubarTool`, secondary bar (`registerSecondaryBarType`, `registerSecondaryBarItem`, `registerSecondaryBarTool`, `openSecondaryBar`, etc.), visibility override. No requirement that tools be implemented inside Blacksmith.
-- **api-toolbar.md** – `registerToolbarTool`, zones, visibility. Same idea.
-- **api-chatcards.md** – Theme-only today (getThemes, getThemeClassName, etc.). Cards are “consumer renders template + ChatMessage.create” using the shared HTML/CSS contract and theme classes. A new module can own its card templates and still use `blacksmith.api.chatCards` for theme lookup; no need for a full create/update/delete API for extraction.
-- **api-sockets.md** – `sockets.register()`, `sockets.emit()`. New modules register their own handlers.
-- **api-core.md** – utils, playSound, etc. Consumed by any module.
+- **registering-with-blacksmith.md** â€“ Get API at `ready`, register menubar tools, secondary bar, pins, sockets; cleanup on unload. Herald and Squire follow this.
+- **api-menubar.md** â€“ `registerMenubarTool`, secondary bar (`registerSecondaryBarType`, `registerSecondaryBarItem`, `registerSecondaryBarTool`, `openSecondaryBar`, etc.), visibility override. No requirement that tools be implemented inside Blacksmith.
+- **api-toolbar.md** â€“ `registerToolbarTool`, zones, visibility. Same idea.
+- **api-chatcards.md** â€“ Theme-only today (getThemes, getThemeClassName, etc.). Cards are â€œconsumer renders template + ChatMessage.createâ€ using the shared HTML/CSS contract and theme classes. A new module can own its card templates and still use `blacksmith.api.chatCards` for theme lookup; no need for a full create/update/delete API for extraction.
+- **api-sockets.md** â€“ `sockets.register()`, `sockets.emit()`. New modules register their own handlers.
+- **api-core.md** â€“ utils, playSound, etc. Consumed by any module.
 
-So “it’s woven into core” is not a blocker: the new module gets the API in `Hooks.once('ready', ...)` and does its own init and registration. Blacksmith simply **stops** initializing that feature and **stops** registering those tools; the new module does both.
+So â€œitâ€™s woven into coreâ€ is not a blocker: the new module gets the API in `Hooks.once('ready', ...)` and does its own init and registration. Blacksmith simply **stops** initializing that feature and **stops** registering those tools; the new module does both.
 
 ---
 
@@ -37,7 +37,7 @@ HookManager, SocketManager, api-menubar (generic secondary bar and menubar), api
 New module entry (e.g. `ready`): `blacksmith = game.modules.get('coffee-pub-blacksmith')?.api`; then `CombatStats.initialize()`, `CombatTimer.initialize()`, `PlanningTimer.initialize()`, `RoundTimer.initialize()`; register timer/stats menubar tools and party-bar items via `blacksmith.registerMenubarTool`, `blacksmith.registerSecondaryBarItem`, etc.; register socket handlers via `blacksmith.sockets.register()`. Same as Herald.
 
 **Dependencies to resolve:**  
-- Timers/stats use `utility-message-resolution.js` and `utility-midi-resolution.js` (attack/damage resolution for stats). Either move those into the Timers+Stats module or expose a small “attack/damage event” API from Blacksmith used by the module. Latter keeps resolution in core if other systems need it.
+- Timers/stats use `utility-message-resolution.js` and `utility-midi-resolution.js` (attack/damage resolution for stats). Either move those into the Timers+Stats module or expose a small â€œattack/damage eventâ€ API from Blacksmith used by the module. Latter keeps resolution in core if other systems need it.
 - Chat cards: stats cards use the shared `.blacksmith-card` contract and theme classes. New module keeps its own card templates and uses `blacksmith.api.chatCards.getThemeClassName()` (and shared layout/themes in Blacksmith). Optionally move `cards-stats.css` into the module and load it there so stats-specific styling lives with the feature.
 
 **Level of effort: High (tractable)**  
@@ -45,7 +45,7 @@ New module entry (e.g. `ready`): `blacksmith = game.modules.get('coffee-pub-blac
 - Main risk: ensuring all hook/socket usage is correctly moved and no leftover references in Blacksmith.
 
 **Recommendation: Recommended**  
-- Fits the “core engine + optional module” goal.  
+- Fits the â€œcore engine + optional moduleâ€ goal.  
 - Timers and stats stay together; coupling is internal to the new module.  
 - Pattern is proven (Herald). Effort is high but bounded.
 
@@ -62,8 +62,8 @@ Menubar and secondary bar as **generic** infrastructure. No combat bar type, no 
 **Main difficulty: combat bar is inside api-menubar.js**  
 Today the combat bar is a custom secondary bar implemented inside MenuBar: CombatTracker import, `openCombatBar` / `closeCombatBar` / `updateCombatBar`, combatant list template, initiative roll and other event handlers, and the menubar tools `combat-tracker`, `combat-window`, `create-combat`. To extract Encounter:
 
-- **Option A:** Encounter module owns CombatTracker and all combat-bar logic. It registers the combat bar via `blacksmith.registerSecondaryBarType('combat', { templatePath: 'modules/coffee-pub-encounter/...' })` and uses `blacksmith.openSecondaryBar('combat', { data })` / `updateSecondaryBar(data)` with data it prepares. Event handling (e.g. roll initiative) must move into Encounter (e.g. handlers attached when the bar is opened, or Encounter-provided callbacks). So a large block of api-menubar.js (combat bar + CombatTracker) moves to Encounter; api-menubar becomes “generic” secondary bar only.
-- **Option B:** Keep combat bar and combat tracker in Blacksmith so Encounter only owns XP, rolls, and request-roll dialog; combat bar stays “in core.” That reduces Encounter scope and avoids the big api-menubar refactor but keeps encounter-related UI in core.
+- **Option A:** Encounter module owns CombatTracker and all combat-bar logic. It registers the combat bar via `blacksmith.registerSecondaryBarType('combat', { templatePath: 'modules/coffee-pub-encounter/...' })` and uses `blacksmith.openSecondaryBar('combat', { data })` / `updateSecondaryBar(data)` with data it prepares. Event handling (e.g. roll initiative) must move into Encounter (e.g. handlers attached when the bar is opened, or Encounter-provided callbacks). So a large block of api-menubar.js (combat bar + CombatTracker) moves to Encounter; api-menubar becomes â€œgenericâ€ secondary bar only.
+- **Option B:** Keep combat bar and combat tracker in Blacksmith so Encounter only owns XP, rolls, and request-roll dialog; combat bar stays â€œin core.â€ That reduces Encounter scope and avoids the big api-menubar refactor but keeps encounter-related UI in core.
 
 **Level of effort: Very high**  
 - Moving rolls, skill-check dialog, XP, and related sockets/hooks is already substantial.  
@@ -71,36 +71,36 @@ Today the combat bar is a custom secondary bar implemented inside MenuBar: Comba
 
 **Recommendation: Feasible, but highest effort; optional to keep in core**  
 - If the goal is a minimal core, Encounter extraction is doable with Option A and a clear boundary: Encounter owns combat bar content and behavior; Blacksmith only provides the bar chrome and API.  
-- If you “toy with keeping this in core,” keeping **Encounter (XP + rolls + combat tracker/combat bar) in Blacksmith** is a reasonable choice: it avoids the largest refactor and keeps “encounter flow” in one place. You can still extract Timers+Stats and Image/tokens to shrink core and prove the pattern; Encounter can be a later phase.
+- If you â€œtoy with keeping this in core,â€ keeping **Encounter (XP + rolls + combat tracker/combat bar) in Blacksmith** is a reasonable choice: it avoids the largest refactor and keeps â€œencounter flowâ€ in one place. You can still extract Timers+Stats and Image/tokens to shrink core and prove the pattern; Encounter can be a later phase.
 
 ---
 
-## 3. Image replacement + dead tokens (single module) — **Illuminator** (`coffee-pub-illuminator`)
+## 3. Image replacement + dead tokens (single module) â€” **Curator** (`coffee-pub-curator`)
 
 **Scope to move:**  
-manager-image-cache.js, manager-image-matching.js, token-image-replacement.js, token-image-utilities.js (including dead-token/loot conversion if it lives there), window-token-replacement (templates/styles), image replacement settings and lang, toolbar/menubar registration for “image replacement” and any dead-token tools. Illuminator owns all of this and registers its own menubar/toolbar tools via Blacksmith’s API (no nested registration in Blacksmith).
+manager-image-cache.js, manager-image-matching.js, token-image-replacement.js, token-image-utilities.js (including dead-token/loot conversion if it lives there), window-token-replacement (templates/styles), image replacement settings and lang, toolbar/menubar registration for â€œimage replacementâ€ and any dead-token tools. Curator owns all of this and registers its own menubar/toolbar tools via Blacksmithâ€™s API (no nested registration in Blacksmith).
 
 **What stays in Blacksmith:**  
-api-core, HookManager, settings helpers used by other features. Blacksmith **removes** ImageCacheManager init, TokenImageUtilities init, `module.api.imageReplacement`, and any menubar/toolbar registration for image replacement. Path helpers (`getTokenImagePaths`, `getPortraitImagePaths`) either move with Illuminator or stay in Blacksmith as a small shared helper if other systems need them.
+api-core, HookManager, settings helpers used by other features. Blacksmith **removes** ImageCacheManager init, TokenImageUtilities init, `module.api.imageReplacement`, and any menubar/toolbar registration for image replacement. Path helpers (`getTokenImagePaths`, `getPortraitImagePaths`) either move with Curator or stay in Blacksmith as a small shared helper if other systems need them.
 
-**Image Replacement API (Illuminator exposes; Blacksmith consumes)**  
-There is a “Replace Image” context menu item in the **menubar/combat area** that opens the image replacement window. Blacksmith builds that context menu, so it must not hardcode Illuminator—it must **pull from an API** and **know if the module is installed**:
+**Image Replacement API (Curator exposes; Blacksmith consumes)**  
+There is a â€œReplace Imageâ€ context menu item in the **menubar/combat area** that opens the image replacement window. Blacksmith builds that context menu, so it must not hardcode Curatorâ€”it must **pull from an API** and **know if the module is installed**:
 
-- **Illuminator** exposes an API on `game.modules.get('coffee-pub-illuminator')?.api` (e.g. `getImageReplacementContextMenuItems()` or similar) that returns the menu items to inject (e.g. `{ name: 'Replace Image', icon: '...', onClick: () => { ... } }`). Illuminator can also expose `registerImageTileContextMenuItem` / `unregisterImageTileContextMenuItem` for other modules that want to add items to the image-tile context menu inside the replacement window.
-- **Blacksmith**, when building the menubar/combat context menu: check `game.modules.get('coffee-pub-illuminator')?.active` and, if the API is present, get the context menu items from the API and add them to the menu. If Illuminator is not installed or the API is missing, **skip** the Replace Image entry—no error, no placeholder.
+- **Curator** exposes an API on `game.modules.get('coffee-pub-curator')?.api` (e.g. `getImageReplacementContextMenuItems()` or similar) that returns the menu items to inject (e.g. `{ name: 'Replace Image', icon: '...', onClick: () => { ... } }`). Curator can also expose `registerImageTileContextMenuItem` / `unregisterImageTileContextMenuItem` for other modules that want to add items to the image-tile context menu inside the replacement window.
+- **Blacksmith**, when building the menubar/combat context menu: check `game.modules.get('coffee-pub-curator')?.active` and, if the API is present, get the context menu items from the API and add them to the menu. If Curator is not installed or the API is missing, **skip** the Replace Image entryâ€”no error, no placeholder.
 
-So we need an **image replacement API** that exposes these things; Illuminator implements it, Blacksmith (and any other consumer) uses it only when the module is installed.
+So we need an **image replacement API** that exposes these things; Curator implements it, Blacksmith (and any other consumer) uses it only when the module is installed.
 
 **Pattern:**  
-Illuminator: get Blacksmith API at `ready`, run ImageCacheManager.initialize() (and related init), register its own menubar and toolbar tools via `registerMenubarTool` / `registerToolbarTool`. Expose its API for context menu items so Blacksmith can add “Replace Image” to the relevant menu when Illuminator is present.
+Curator: get Blacksmith API at `ready`, run ImageCacheManager.initialize() (and related init), register its own menubar and toolbar tools via `registerMenubarTool` / `registerToolbarTool`. Expose its API for context menu items so Blacksmith can add â€œReplace Imageâ€ to the relevant menu when Curator is present.
 
 **Level of effort: High (straightforward)**  
 - Many settings and files, but boundary is clear.  
-- Blacksmith menubar/combat context menu: refactor to pull “Replace Image” (and any related items) from Illuminator’s API when available; otherwise skip.
+- Blacksmith menubar/combat context menu: refactor to pull â€œReplace Imageâ€ (and any related items) from Curatorâ€™s API when available; otherwise skip.
 
 **Recommendation: Recommended**  
 - Clean separation; no tight coupling to other optional features.  
-- Good candidate to do alongside or right after Timers+Stats to prove the “slim core + optional module” approach.
+- Good candidate to do alongside or right after Timers+Stats to prove the â€œslim core + optional moduleâ€ approach.
 
 ---
 
@@ -110,16 +110,16 @@ Illuminator: get Blacksmith API at `ready`, run ImageCacheManager.initialize() (
 - All public APIs: menubar, toolbar, pins, sockets, chatCards (themes + HTML/CSS contract), hooks, utils, window API, canvas layer, etc.  
 - Bootstrap, module registration, loading progress, settings that are global (e.g. debug).  
 - Shared infra: HookManager, SocketManager, api-core, const, compendium helpers.  
-- QoL set you choose to keep: e.g. voting, latency checker, sidebar pin/style, navigation, journal tools, clarity/quickview, or similar—no need to list every one here; the principle is “reusable APIs + a focused set of enhancements that don’t belong in a feature module.”
+- QoL set you choose to keep: e.g. voting, latency checker, sidebar pin/style, navigation, journal tools, clarity/quickview, or similarâ€”no need to list every one here; the principle is â€œreusable APIs + a focused set of enhancements that donâ€™t belong in a feature module.â€
 
 **Removed from core (moved to optional modules):**  
-- Timers + Stats → Timers+Stats module.  
-- Image replacement + dead tokens → **Illuminator** (`coffee-pub-illuminator`).  
-- Encounter (XP, rolls, combat tracker/combat bar) → Encounter module **or** kept in core by choice.
+- Timers + Stats â†’ Timers+Stats module.  
+- Image replacement + dead tokens â†’ **Curator** (`coffee-pub-curator`).  
+- Encounter (XP, rolls, combat tracker/combat bar) â†’ Encounter module **or** kept in core by choice.
 
 **API surface:**  
 - No need to remove APIs that optional modules use (e.g. secondary bar, registerMenubarTool). Those stay and are consumed by Encounter, Timers+Stats, Herald, etc.  
-- Optionally, `openRequestRollDialog` and `BLACKSMITH.rolls.execute` could become a thin passthrough to the Encounter module when present (e.g. `game.modules.get('coffee-pub-encounter')?.api?.openRequestRollDialog`), so core doesn’t depend on rolls code; that’s a design choice once Encounter exists.
+- Optionally, `openRequestRollDialog` and `BLACKSMITH.rolls.execute` could become a thin passthrough to the Encounter module when present (e.g. `game.modules.get('coffee-pub-encounter')?.api?.openRequestRollDialog`), so core doesnâ€™t depend on rolls code; thatâ€™s a design choice once Encounter exists.
 
 ---
 
@@ -129,12 +129,12 @@ Illuminator: get Blacksmith API at `ready`, run ImageCacheManager.initialize() (
 |------------|--------|----------------|-------|
 | **Timers + Stats** | High (tractable) | **Recommended** | Same pattern as Herald; move init + tool registration to new module; resolve message/midi resolution ownership. |
 | **Encounter** (XP, rolls, combat bar) | Very high | **Feasible; optional to keep in core** | Biggest lift is moving combat bar + CombatTracker out of api-menubar; keeping Encounter in core is reasonable. |
-| **Image replacement + dead tokens** → **Illuminator** | High (straightforward) | **Recommended** | Clear boundary; Illuminator exposes API for context menu items; Blacksmith pulls from API when module installed, skips otherwise. |
-| **Blacksmith core** | — | **Keep APIs + chosen QoL** | Becomes engine; optional modules consume APIs and own their registration. |
+| **Image replacement + dead tokens** â†’ **Curator** | High (straightforward) | **Recommended** | Clear boundary; Curator exposes API for context menu items; Blacksmith pulls from API when module installed, skips otherwise. |
+| **Blacksmith core** | â€” | **Keep APIs + chosen QoL** | Becomes engine; optional modules consume APIs and own their registration. |
 
 **Suggested order:**  
 1) **Timers + Stats** (proves pattern, high value).  
-2) **Illuminator** (image/tokens; clear win; Illuminator exposes API for menubar/combat context menu; Blacksmith consumes when installed).  
+2) **Curator** (image/tokens; clear win; Curator exposes API for menubar/combat context menu; Blacksmith consumes when installed).  
 3) **Encounter** (only if you want it out of core; otherwise leave in Blacksmith).
 
 No code was changed; this is an assessment only.

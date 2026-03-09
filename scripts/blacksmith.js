@@ -365,7 +365,7 @@ Hooks.once('ready', async () => {
         // Initialize PinManager (canvas pins API)
         PinManager.initialize();
         
-        // Image replacement / dead tokens – provided by Coffee Pub Illuminator when installed
+        // Image replacement / dead tokens – provided by Coffee Pub Curator when installed
 
         // Update nameplates
         LoadingProgressManager.logActivity("Updating nameplates...");

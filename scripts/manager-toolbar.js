@@ -252,7 +252,7 @@ async function registerDefaultTools() {
         order: 10
     });
     
-    // Token Image Replacement – registered by Coffee Pub Illuminator when present
+    // Token Image Replacement – registered by Coffee Pub Curator when present
     
     registerTool('journal-tools', {
                 icon: "fa-solid fa-book-open",
