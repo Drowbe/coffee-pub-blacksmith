@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+
+## [13.5.0] - 2026-03-08 - CURATOR MIGRATION
+
+### Changed
+
+- **Curator Migration**: Extracted Token Image Replacement, Portrait Image Replacement, Dead Token conversion, and Loot generation functionality into the new **Coffee Pub Curator** module. Blacksmith now exposes these features via integration when Curator is installed.
+- **API Menubar Updates**: `api-menubar.js` now dynamically checks for the `coffee-pub-curator` module to populate token replacement and dead token context menu items.
+- **Documentation Updates**: Updated `architecture-blacksmith.md` and `extraction-reassessment.md` to reflect the new Curator module. Renamed and updated `migration-curator.md` with the finalized migration plans.
+
+### Removed
+
+- **Loot Generation Code**: Removed `manager-image-cache.js`, `token-image-replacement.js`, `token-image-utilities.js`, `loot-utilities.js`, `ui-context-menu.js`, and all associated CSS/HBS files. These are now fully handled by Curator.
+- **Settings and Localization Cleanup**: Removed all settings related to token image replacement, data weights, loot generation, dead tokens, and epic loot odds from Blacksmith's `settings.js` and `lang/en.json`.
+- **Legacy Regent Cleanup**: Removed the unused `styles/panel-assistant.css` leftover from the Regent migration, including its import in `styles/default.css` and mentions in the architecture documentation.
+- **Dead Migration Files**: Removed the old `_Migration` folder containing outdated backup files (`pin-icons.json`, `pin-transition.md`, `panel-notes.js`, etc.).
+
+
+
+
+
 ## [13.4.1] - 2025-03-03
 
 ### Changed
