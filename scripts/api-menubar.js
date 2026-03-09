@@ -99,9 +99,21 @@ class MenuBar {
             'modules/coffee-pub-blacksmith/templates/vote-window.hbs',
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs'
         ]);
+
+        // Register ready callback before any await so it runs in the same ready cycle
+        Hooks.once('ready', async () => {
+            await this._registerPartials();
+            await this.loadLeader();
+            await this.loadTimer();
+            this.isLoading = false;
+            setTimeout(() => this.startTimerUpdates(), 1000);
+            MenuBar.registerDefaultTools();
+            await this.registerSecondaryBarTypes();
+            this.renderMenubar();
+            this._checkActiveCombatOnLoad();
+        });
         
-        // Register Handlebars partials
-        await this._registerPartials();
+        // Register Handlebars partials (deferred to ready callback above)
 
         // Register Handlebars helpers
         Handlebars.registerHelper('or', function() {
@@ -134,30 +146,6 @@ class MenuBar {
         // Wait for socket to be ready
         Hooks.once('blacksmith.socketReady', () => {
     
-        });
-
-        // Load the leader and timer after Foundry is ready
-        Hooks.once('ready', async () => {
-            await this.loadLeader();
-            await this.loadTimer();
-            this.isLoading = false;
-            
-            // Wait a brief moment to ensure settings are fully registered
-            setTimeout(() => {
-                this.startTimerUpdates();
-            }, 1000);
-
-            // Register default tools using our API
-            MenuBar.registerDefaultTools();
-
-            // Register secondary bar types
-            await this.registerSecondaryBarTypes();
-
-            // Render the menubar
-            this.renderMenubar();
-            
-            // Check for active combat on load
-            this._checkActiveCombatOnLoad();
         });
 
         // Register for module features
@@ -911,80 +899,7 @@ class MenuBar {
         MenuBar._isRegisteringTools = true; 
 
         // **************** LEFT ZONE ****************
-
-        // START MENU (context menu: Refresh, Settings, Manage UI, Pins, etc.)
-        this.registerMenubarTool('left-start-menu', {
-            icon: "fa-solid fa-bars",
-            name: "left-start-menu",
-            title: "",
-            tooltip: "Open menu",
-            onClick: (event) => {
-                const items = CoreUIUtility.getLeftStartMenuItems();
-                if (!Array.isArray(items) || items.length === 0) return;
-                const trigger = event?.target?.closest?.('[data-tool]');
-                const rect = trigger?.getBoundingClientRect?.();
-                const x = Number.isFinite(event?.clientX) ? event.clientX : Math.round((rect?.left ?? 0) + ((rect?.width ?? 0) / 2));
-                const y = Number.isFinite(event?.clientY) ? event.clientY : Math.round(rect?.bottom ?? 0);
-                this._showMenubarContextMenu(items, x, y);
-            },
-            zone: "left",
-            group: "general",
-            groupOrder: 100,
-            order: 1,
-            moduleId: "blacksmith-core",
-            gmOnly: false,
-            leaderOnly: false,
-            visible: true,
-            toggleable: false,
-            active: false,
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
-
-        // SETTINGS
-        this.registerMenubarTool('settings', {
-            icon: "fa-solid fa-gear",
-            name: "settings",
-            title: "Open Foundry Settings",
-            tooltip: null,
-            onClick: () => game.settings.sheet.render(true),
-            zone: "left",
-            group: "general",
-            groupOrder: 100,
-            order: 1,
-            moduleId: "blacksmith-core",
-            gmOnly: false,
-            leaderOnly: false,
-            visible: false,
-            toggleable: false,
-            active: false,
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
-
-        // REFRESH
-        this.registerMenubarTool('refresh', {
-            icon: "fa-solid fa-rotate",
-            name: "refresh",
-            title: "Refresh Foundry",
-            tooltip: null,
-            onClick: () => window.location.reload(),
-            zone: "left",
-            group: "general",
-            groupOrder: 100,
-            order: 2,
-            moduleId: "blacksmith-core",
-            gmOnly: false,
-            leaderOnly: false,
-            visible: false,
-            toggleable: false,
-            active: false,
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
+        // (Start menu, settings, refresh registered via API from utility-core.js)
 
         // **************** MIDDLE ZONE ****************
 

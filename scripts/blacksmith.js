@@ -288,6 +288,57 @@ Hooks.once('canvasReady', () => {
 Hooks.once('ready', async () => {
     postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: Ready hook started", "", false, false);
     
+    // Bind menubar API synchronously so it is available to all ready callbacks (internal and external)
+    const mod = game.modules.get(MODULE.ID);
+    if (mod && MenuBar) {
+        if (!mod.api) mod.api = {};
+        Object.assign(mod.api, {
+            registerMenubarTool: MenuBar.registerMenubarTool.bind(MenuBar),
+            unregisterMenubarTool: MenuBar.unregisterMenubarTool.bind(MenuBar),
+            getRegisteredMenubarTools: MenuBar.getRegisteredMenubarTools.bind(MenuBar),
+            getMenubarToolsByModule: MenuBar.getMenubarToolsByModule.bind(MenuBar),
+            isMenubarToolRegistered: MenuBar.isMenubarToolRegistered.bind(MenuBar),
+            getMenubarToolsByZone: MenuBar.getMenubarToolsByZone.bind(MenuBar),
+            testMenubarAPI: MenuBar.testMenubarAPI.bind(MenuBar),
+            testRefactoredMenubar: MenuBar.testRefactoredMenubar.bind(MenuBar),
+            testInterfaceTool: MenuBar.testInterfaceTool.bind(MenuBar),
+            testSettingsTool: MenuBar.testSettingsTool.bind(MenuBar),
+            testMovementTool: MenuBar.testMovementTool.bind(MenuBar),
+            addNotification: MenuBar.addNotification.bind(MenuBar),
+            updateNotification: MenuBar.updateNotification.bind(MenuBar),
+            removeNotification: MenuBar.removeNotification.bind(MenuBar),
+            clearNotificationsByModule: MenuBar.clearNotificationsByModule.bind(MenuBar),
+            getActiveNotifications: MenuBar.getActiveNotifications.bind(MenuBar),
+            clearAllNotifications: MenuBar.clearAllNotifications.bind(MenuBar),
+            getNotificationIdsByModule: MenuBar.getNotificationIdsByModule.bind(MenuBar),
+            registerSecondaryBarType: MenuBar.registerSecondaryBarType.bind(MenuBar),
+            registerSecondaryBarItem: MenuBar.registerSecondaryBarItem.bind(MenuBar),
+            unregisterSecondaryBarItem: MenuBar.unregisterSecondaryBarItem.bind(MenuBar),
+            updateSecondaryBarItemActive: MenuBar.updateSecondaryBarItemActive.bind(MenuBar),
+            getSecondaryBarItems: MenuBar.getSecondaryBarItems.bind(MenuBar),
+            openSecondaryBar: MenuBar.openSecondaryBar.bind(MenuBar),
+            updateMenubarToolActive: MenuBar.updateMenubarToolActive.bind(MenuBar),
+            closeSecondaryBar: MenuBar.closeSecondaryBar.bind(MenuBar),
+            toggleSecondaryBar: MenuBar.toggleSecondaryBar.bind(MenuBar),
+            updateSecondaryBar: MenuBar.updateSecondaryBar.bind(MenuBar),
+            registerSecondaryBarTool: MenuBar.registerSecondaryBarTool.bind(MenuBar),
+            openCombatBar: MenuBar.openCombatBar.bind(MenuBar),
+            closeCombatBar: MenuBar.closeCombatBar.bind(MenuBar),
+            updateCombatBar: MenuBar.updateCombatBar.bind(MenuBar),
+            testNotificationSystem: MenuBar.testNotificationSystem.bind(MenuBar),
+            testSecondaryBarSystem: MenuBar.testSecondaryBarSystem.bind(MenuBar),
+            renderMenubar: MenuBar.renderMenubar.bind(MenuBar),
+            registerMenubarVisibilityOverride: MenuBar.registerMenubarVisibilityOverride.bind(MenuBar),
+            unregisterMenubarVisibilityOverride: MenuBar.unregisterMenubarVisibilityOverride.bind(MenuBar)
+        });
+    }
+
+    // Register settings before first await so other ready callbacks (e.g. utility-core) can read them
+    registerSettings();
+
+    // Register MenuBar's ready callback and templates before first await so it runs in same ready cycle
+    MenuBar.initialize();
+
     // Update progress to final phase
     LoadingProgressManager.setPhase(5, "Finalizing...");
     LoadingProgressManager.logActivity("Initializing modules...");
@@ -295,6 +346,7 @@ Hooks.once('ready', async () => {
     try {
         // Register settings FIRST during the ready phase
         LoadingProgressManager.logActivity("Registering settings...");
+        // (already called at start of ready; no-op if called again)
         registerSettings();
         
         // Initialize HookManager (infrastructure layer)
@@ -807,7 +859,7 @@ Hooks.once('init', async function() {
     postConsoleAndNotification(MODULE.NAME, "Hook Manager | settingChange", "blacksmith-settings-cache", true, false);
     
     // Initialize other systems
-    await MenuBar.initialize();
+    // MenuBar.initialize() already called at start of ready (registers its ready callback)
     // COMBAT TIMER
     CombatTimer.initialize();
     // PLANNING TIMER
@@ -945,7 +997,9 @@ Hooks.once('init', async function() {
     if (generatedConstants && typeof generatedConstants === 'object') {
         Object.assign(BLACKSMITH, generatedConstants);
     }
-    module.api = {
+    // Merge into existing api (menubar already bound at start of ready); do not replace so external callbacks see API immediately
+    if (!module.api) module.api = {};
+    Object.assign(module.api, {
         ModuleManager,
         registerModule: ModuleManager.registerModule.bind(ModuleManager),
         isModuleActive: ModuleManager.isModuleActive.bind(ModuleManager),
@@ -1047,7 +1101,43 @@ Hooks.once('init', async function() {
 
         // ✅ NEW: Socket API for external modules (set after SocketManager initializes)
         sockets: null
-    };
+    });
+
+    // Re-apply menubar API so it is not overwritten by nulls in the merge above
+    if (MenuBar) {
+        Object.assign(module.api, {
+            registerMenubarTool: MenuBar.registerMenubarTool.bind(MenuBar),
+            unregisterMenubarTool: MenuBar.unregisterMenubarTool.bind(MenuBar),
+            getRegisteredMenubarTools: MenuBar.getRegisteredMenubarTools.bind(MenuBar),
+            getMenubarToolsByModule: MenuBar.getMenubarToolsByModule.bind(MenuBar),
+            isMenubarToolRegistered: MenuBar.isMenubarToolRegistered.bind(MenuBar),
+            getMenubarToolsByZone: MenuBar.getMenubarToolsByZone.bind(MenuBar),
+            renderMenubar: MenuBar.renderMenubar.bind(MenuBar),
+            addNotification: MenuBar.addNotification.bind(MenuBar),
+            updateNotification: MenuBar.updateNotification.bind(MenuBar),
+            removeNotification: MenuBar.removeNotification.bind(MenuBar),
+            clearNotificationsByModule: MenuBar.clearNotificationsByModule.bind(MenuBar),
+            getActiveNotifications: MenuBar.getActiveNotifications.bind(MenuBar),
+            clearAllNotifications: MenuBar.clearAllNotifications.bind(MenuBar),
+            getNotificationIdsByModule: MenuBar.getNotificationIdsByModule.bind(MenuBar),
+            registerSecondaryBarType: MenuBar.registerSecondaryBarType.bind(MenuBar),
+            registerSecondaryBarItem: MenuBar.registerSecondaryBarItem.bind(MenuBar),
+            unregisterSecondaryBarItem: MenuBar.unregisterSecondaryBarItem.bind(MenuBar),
+            updateSecondaryBarItemActive: MenuBar.updateSecondaryBarItemActive.bind(MenuBar),
+            getSecondaryBarItems: MenuBar.getSecondaryBarItems.bind(MenuBar),
+            openSecondaryBar: MenuBar.openSecondaryBar.bind(MenuBar),
+            updateMenubarToolActive: MenuBar.updateMenubarToolActive.bind(MenuBar),
+            closeSecondaryBar: MenuBar.closeSecondaryBar.bind(MenuBar),
+            toggleSecondaryBar: MenuBar.toggleSecondaryBar.bind(MenuBar),
+            updateSecondaryBar: MenuBar.updateSecondaryBar.bind(MenuBar),
+            registerSecondaryBarTool: MenuBar.registerSecondaryBarTool.bind(MenuBar),
+            openCombatBar: MenuBar.openCombatBar.bind(MenuBar),
+            closeCombatBar: MenuBar.closeCombatBar.bind(MenuBar),
+            updateCombatBar: MenuBar.updateCombatBar.bind(MenuBar),
+            registerMenubarVisibilityOverride: MenuBar.registerMenubarVisibilityOverride.bind(MenuBar),
+            unregisterMenubarVisibilityOverride: MenuBar.unregisterMenubarVisibilityOverride.bind(MenuBar)
+        });
+    }
     
     // Set up Socket API after module.api is defined
     // Use the same dynamic import that initializes SocketManager

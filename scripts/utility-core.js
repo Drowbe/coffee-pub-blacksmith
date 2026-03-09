@@ -165,11 +165,90 @@ export class CoreUIUtility {
     }
 }
 
-// Register Apply-on-Load behavior only (start menu / settings / refresh are registered in api-menubar registerDefaultTools)
+// Register core UI menubar tools via the public API (same pattern as external modules)
 Hooks.once('ready', () => {
-    if (game.settings.get(MODULE.ID, 'canvasToolsHideUIOnLoad')) {
+    // Apply on Load: hide UI if configured (only if setting is already registered)
+    const settingKey = `${MODULE.ID}.canvasToolsHideUIOnLoad`;
+    if (game.settings.settings.has(settingKey) && game.settings.get(MODULE.ID, 'canvasToolsHideUIOnLoad')) {
         if (!CoreUIUtility.isInterfaceHidden()) {
             CoreUIUtility.toggleInterface();
         }
     }
+
+    const api = game.modules.get(MODULE.ID)?.api;
+    if (!api?.registerMenubarTool) return;
+
+    // START MENU
+    api.registerMenubarTool('left-start-menu', {
+        icon: "fa-solid fa-bars",
+        name: "left-start-menu",
+        title: "",
+        tooltip: "Open menu",
+        onClick: (event) => {
+            const items = CoreUIUtility.getLeftStartMenuItems();
+            if (!Array.isArray(items) || items.length === 0) return;
+            const trigger = event?.target?.closest?.('[data-tool]');
+            const rect = trigger?.getBoundingClientRect?.();
+            const x = Number.isFinite(event?.clientX) ? event.clientX : Math.round((rect?.left ?? 0) + ((rect?.width ?? 0) / 2));
+            const y = Number.isFinite(event?.clientY) ? event.clientY : Math.round(rect?.bottom ?? 0);
+            MenuBar._showMenubarContextMenu(items, x, y);
+        },
+        zone: "left",
+        group: "general",
+        groupOrder: 100,
+        order: 1,
+        moduleId: "blacksmith-core",
+        gmOnly: false,
+        leaderOnly: false,
+        visible: true,
+        toggleable: false,
+        active: false,
+        iconColor: null,
+        buttonNormalTint: null,
+        buttonSelectedTint: null
+    });
+
+    // SETTINGS
+    api.registerMenubarTool('settings', {
+        icon: "fa-solid fa-gear",
+        name: "settings",
+        title: "Open Foundry Settings",
+        tooltip: null,
+        onClick: () => game.settings.sheet.render(true),
+        zone: "left",
+        group: "general",
+        groupOrder: 100,
+        order: 1,
+        moduleId: "blacksmith-core",
+        gmOnly: false,
+        leaderOnly: false,
+        visible: false,
+        toggleable: false,
+        active: false,
+        iconColor: null,
+        buttonNormalTint: null,
+        buttonSelectedTint: null
+    });
+
+    // REFRESH
+    api.registerMenubarTool('refresh', {
+        icon: "fa-solid fa-rotate",
+        name: "refresh",
+        title: "Refresh Foundry",
+        tooltip: null,
+        onClick: () => window.location.reload(),
+        zone: "left",
+        group: "general",
+        groupOrder: 100,
+        order: 2,
+        moduleId: "blacksmith-core",
+        gmOnly: false,
+        leaderOnly: false,
+        visible: false,
+        toggleable: false,
+        active: false,
+        iconColor: null,
+        buttonNormalTint: null,
+        buttonSelectedTint: null
+    });
 });
