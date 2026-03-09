@@ -16,7 +16,10 @@
                      data-item-id="{{itemId}}"
                      data-group-id="{{../id}}"
                      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
-                     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+                     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
+                     {{#if (or buttonColor borderColor)}}
+                     style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
+                     {{/if}}>
                     {{#if icon}}<i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>{{/if}}
                     {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
                     {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
@@ -65,7 +68,10 @@
                      data-item-id="{{itemId}}"
                      data-group-id="{{../id}}"
                      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
-                     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+                     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
+                     {{#if (or buttonColor borderColor)}}
+                     style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
+                     {{/if}}>
                     {{#if icon}}<i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>{{/if}}
                     {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
                     {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
@@ -114,7 +120,10 @@
                      data-item-id="{{itemId}}"
                      data-group-id="{{../id}}"
                      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
-                     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+                     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
+                     {{#if (or buttonColor borderColor)}}
+                     style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
+                     {{/if}}>
                     {{#if icon}}<i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>{{/if}}
                     {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
                     {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}

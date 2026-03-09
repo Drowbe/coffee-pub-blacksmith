@@ -1436,7 +1436,7 @@ blacksmith.registerSecondaryBarItem('cartographer', 'medium-line', {
 - `itemData` (Object, required): Item configuration
   - `kind` (string, optional): `'button'` (default) or `'info'`. Buttons are clickable; info items are display-only and can be updated with `updateSecondaryBarItemInfo`.
   - `zone` (string, optional): `'left'`, `'middle'`, or `'right'`. Default: `'middle'`. Only applies to the default tool system.
-  - `icon` (string, required for buttons): FontAwesome icon class (e.g., `'fa-solid fa-pencil'`, `'fas fa-eraser'`)
+  - `icon` (string, required for buttons, optional for info): FontAwesome icon class (e.g., `'fa-solid fa-pencil'`, `'fas fa-eraser'`). Info items can use icon for consistent styling with buttons.
   - `label` (string, optional): Text label. For buttons, shown next to the icon. For info items, use with or without `value`.
   - `value` (string, optional): For info items only. Display value (e.g. "2", "Medium"). Can be updated later with `updateSecondaryBarItemInfo`.
   - `tooltip` (string, optional): Tooltip text on hover. If omitted, uses `label` as tooltip.
@@ -1444,9 +1444,9 @@ blacksmith.registerSecondaryBarItem('cartographer', 'medium-line', {
   - `toggleable` (boolean, optional): Whether item can be toggled on/off (buttons only; only applies to `'default'` mode groups). In `'switch'` mode groups, items are automatically managed.
   - `active` (boolean, optional): Whether button is active/selected. Adds `active` CSS class when `true`. For `'switch'` mode groups, the first button is automatically made active if none is active.
   - `order` (number, optional): Sort order for displaying items within the group (lower numbers appear first). Items without `order` appear after items with `order`, sorted alphabetically by `itemId`.
-  - `iconColor` (string, optional): Icon color. Can be any valid CSS color (e.g., `'#ff0000'`, `'rgba(255, 0, 0, 0.8)'`, `'red'`). If omitted, uses default icon color.
-  - `buttonColor` (string, optional): Background color for the button. Can be any valid CSS color. If omitted, uses the default from `--blacksmith-menubar-secondary-buttoncolor`. (Buttons only.)
-  - `borderColor` (string, optional): Border color for the button. (Buttons only.)
+  - `iconColor` (string, optional): Icon color. Can be any valid CSS color (e.g., `'#ff0000'`, `'rgba(255, 0, 0, 0.8)'`, `'red'`). If omitted, uses default icon color. Applies to both buttons and info items.
+  - `buttonColor` (string, optional): Background color for the item. Can be any valid CSS color. If omitted, uses the default from `--blacksmith-menubar-secondary-buttoncolor`. Applies to both buttons and info items.
+  - `borderColor` (string, optional): Border color. Applies to both buttons and info items.
   - `onClick` (Function, required for buttons): Click handler function `(event) => {}`. Receives the click event as parameter. Omit for info items.
   - Additional properties: Any other properties are preserved and passed through, but not used by the default template.
 
