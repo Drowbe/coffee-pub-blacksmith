@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [13.5.1] - 2026-03-03 - MENUBAR REFACTOR & MANAGE UI
+
+### Added
+
+- **Manage UI flyout**: Start menu now includes a "Manage UI" submenu with "Show/Hide Interface" and "Enable/Disable Apply on Load". When Apply on Load is enabled, the core Foundry UI is automatically hidden when the client loads. New setting `canvasToolsHideUIOnLoad` (Themes & Experience group) and lang keys `canvasToolsHideUIOnLoad-Label` / `canvasToolsHideUIOnLoad-Hint`.
+
+### Changed
+
+- **Menubar architecture**: Core left-zone tools (start menu, Settings, Refresh) are no longer registered inside `api-menubar.js`. They are now registered from `utility-core.js` via the public menubar API (`game.modules.get(...).api.registerMenubarTool`), matching the pattern used by external modules.
+- **Ready-cycle timing**: Menubar API is bound synchronously at the start of Blacksmith's `ready` handler (before any `await`) so all ready callbacks can use it. `registerSettings()` is called before the first `await` so settings exist when utility-core and other callbacks run. `MenuBar.initialize()` is invoked at the start of ready (without await) and registers its own `Hooks.once('ready')` before any await so the menubar renders in the same ready cycle. Menubar API is re-applied after the main API merge so it is not overwritten by nulls.
+
+### Fixed
+
+- **Start menu / menubar not showing**: MenuBar's ready callback was registered after `await this._registerPartials()`, so when Blacksmith's ready yielded, the callback was never registered in time. The ready hook is now registered at the top of `MenuBar.initialize()` and async work (partials, loadLeader, registerDefaultTools, renderMenubar) runs inside that callback so the menubar renders correctly.
+- **Apply on Load setting not registered**: utility-core's ready could run before `registerSettings()`, causing "canvasToolsHideUIOnLoad is not a registered game setting". Settings are now registered before the first await, and utility-core checks `game.settings.settings.has()` before reading the setting.
+
+
 ## [13.5.0] - 2026-03-08 - CURATOR MIGRATION
 
 ### Changed

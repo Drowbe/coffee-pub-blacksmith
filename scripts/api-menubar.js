@@ -100,21 +100,8 @@ class MenuBar {
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs'
         ]);
 
-        // Register ready callback before any await so it runs in the same ready cycle
-        Hooks.once('ready', async () => {
-            await this._registerPartials();
-            await this.loadLeader();
-            await this.loadTimer();
-            this.isLoading = false;
-            setTimeout(() => this.startTimerUpdates(), 1000);
-            MenuBar.registerDefaultTools();
-            await this.registerSecondaryBarTypes();
-            this.renderMenubar();
-            this._checkActiveCombatOnLoad();
-        });
+        // (Menubar ready logic is registered at module load — see bottom of this file — so it runs when Foundry emits ready.)
         
-        // Register Handlebars partials (deferred to ready callback above)
-
         // Register Handlebars helpers
         Handlebars.registerHelper('or', function() {
             return Array.prototype.slice.call(arguments, 0, -1).some(Boolean);
@@ -6173,5 +6160,19 @@ class MenuBar {
         return data;
     }
 }
+
+// Register menubar ready logic at module load so it runs when Foundry emits 'ready' (not during another ready callback).
+Hooks.once('ready', async () => {
+    if (!getSettingSafely(MODULE.ID, 'enableMenubar', true)) return;
+    await MenuBar._registerPartials();
+    await MenuBar.loadLeader();
+    await MenuBar.loadTimer();
+    MenuBar.isLoading = false;
+    setTimeout(() => MenuBar.startTimerUpdates(), 1000);
+    MenuBar.registerDefaultTools();
+    await MenuBar.registerSecondaryBarTypes();
+    MenuBar.renderMenubar();
+    MenuBar._checkActiveCombatOnLoad();
+});
 
 export { MenuBar }; 
