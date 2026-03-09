@@ -84,6 +84,7 @@ function checkInstalledModules() {
 		'coffee-pub-cartographer',
 		'coffee-pub-crier',
 		'coffee-pub-herald',
+		'coffee-pub-curator',
 		'coffee-pub-monarch',
 		'coffee-pub-regent',
 		'coffee-pub-scribe',

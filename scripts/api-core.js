@@ -1206,9 +1206,15 @@ export function postConsoleAndNotification(
       },
       HERALD: {
         titleColor: "color:rgb(197, 153, 9)",
-        captionBorder: "border: 1px dottedrgb(240, 205, 90)",
+        captionBorder: "border: 1px dotted rgb(221, 176, 29)",
         captionBackground: "background:rgb(100, 71, 17)",
         captionFontColor: "color: rgb(179, 168, 20)",
+      },
+      CURATOR: {
+        titleColor: "color:rgb(36, 158, 5)",
+        captionBorder: "border: 1px dotted rgb(39, 136, 15)",
+        captionBackground: "background:rgb(51, 194, 115)",
+        captionFontColor: "color: rgb(28, 87, 5)",
       },
       BUBO: {
         titleColor: "color: #ff3377",
