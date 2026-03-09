@@ -102,6 +102,37 @@ export class CoreUIUtility {
         }
 
         const api = game.modules.get(MODULE.ID)?.api;
+        const applyOnLoad = game.settings.get(MODULE.ID, 'canvasToolsHideUIOnLoad');
+        const isHidden = CoreUIUtility.isInterfaceHidden();
+        
+        const uiSubmenu = [
+            {
+                name: isHidden ? "Show Interface" : "Hide Interface",
+                icon: "fa-solid fa-sidebar",
+                description: "Toggle visibility of core Foundry interface",
+                onClick: () => {
+                    CoreUIUtility.toggleInterface();
+                    MenuBar.renderMenubar();
+                }
+            },
+            {
+                name: applyOnLoad ? "Disable Apply on Load" : "Enable Apply on Load",
+                icon: applyOnLoad ? "fa-solid fa-square-check" : "fa-regular fa-square",
+                description: "Automatically hide UI when client loads",
+                onClick: async () => {
+                    await game.settings.set(MODULE.ID, 'canvasToolsHideUIOnLoad', !applyOnLoad);
+                    ui.notifications.info(`Apply on Load is now ${!applyOnLoad ? 'Enabled' : 'Disabled'}.`);
+                }
+            }
+        ];
+
+        items.push({
+            name: "Manage UI",
+            icon: "fa-solid fa-desktop",
+            description: "Interface visibility settings",
+            submenu: uiSubmenu
+        });
+
         if (api) {
             let visibilityItems = [];
             let clearItems = [];
@@ -134,114 +165,11 @@ export class CoreUIUtility {
     }
 }
 
-// Register tools on ready
+// Register Apply-on-Load behavior only (start menu / settings / refresh are registered in api-menubar registerDefaultTools)
 Hooks.once('ready', () => {
-    const api = game.modules.get(MODULE.ID)?.api;
-    if (!api) return;
-
-    // START MENU
-    api.registerMenubarTool('left-start-menu', {
-        icon: "fa-solid fa-bars",
-        name: "left-start-menu",
-        title: "",
-        tooltip: "Open menu",
-        onClick: (event) => {
-            const items = CoreUIUtility.getLeftStartMenuItems();
-            if (!Array.isArray(items) || items.length === 0) return;
-
-            const trigger = event?.target?.closest?.('[data-tool]');
-            const rect = trigger?.getBoundingClientRect?.();
-            const x = Number.isFinite(event?.clientX) ? event.clientX : Math.round((rect?.left ?? 0) + ((rect?.width ?? 0) / 2));
-            const y = Number.isFinite(event?.clientY) ? event.clientY : Math.round(rect?.bottom ?? 0);
-            
-            MenuBar._showMenubarContextMenu(items, x, y);
-        },
-        zone: "left",
-        group: "general",
-        groupOrder: 100, // GENERAL
-        order: 1,
-        moduleId: "blacksmith-core",
-        gmOnly: false,
-        leaderOnly: false,
-        visible: true,
-        toggleable: false,
-        active: false,
-        iconColor: null,
-        buttonNormalTint: null,
-        buttonSelectedTint: null
-    });
-
-    // SETTINGS
-    api.registerMenubarTool('settings', {
-        icon: "fa-solid fa-gear",
-        name: "settings",
-        title: "Open Foundry Settings",
-        tooltip: null,
-        onClick: () => {
-            game.settings.sheet.render(true);
-        },
-        zone: "left",
-        group: "general",
-        groupOrder: 100,
-        order: 1,
-        moduleId: "blacksmith-core",
-        gmOnly: false,
-        leaderOnly: false,
-        visible: false,
-        toggleable: false,
-        active: false,
-        iconColor: null,
-        buttonNormalTint: null,
-        buttonSelectedTint: null
-    });
-
-    // REFRESH
-    api.registerMenubarTool('refresh', {
-        icon: "fa-solid fa-rotate",
-        name: "refresh", 
-        title: "Refresh Foundry",
-        tooltip: null,
-        onClick: () => {
-            window.location.reload();
-        },
-        zone: "left",
-        group: "general",
-        groupOrder: 100,
-        order: 2,
-        moduleId: "blacksmith-core",
-        gmOnly: false,
-        leaderOnly: false,
-        visible: false,
-        toggleable: false,
-        active: false,
-        iconColor: null,
-        buttonNormalTint: null,
-        buttonSelectedTint: null
-    });
-
-    // TOGGLE UI
-    api.registerMenubarTool('interface', {
-        icon: "fa-solid fa-sidebar",
-        name: "interface",
-        title: () => {
-            return CoreUIUtility.isInterfaceHidden() ? "" : "";
-        },
-        tooltip: "Hide/Show Core Foundry Interface including toolbars, party window, and macros",
-        onClick: () => {
+    if (game.settings.get(MODULE.ID, 'canvasToolsHideUIOnLoad')) {
+        if (!CoreUIUtility.isInterfaceHidden()) {
             CoreUIUtility.toggleInterface();
-        },
-        zone: "left",
-        group: "general",
-        groupOrder: 100,
-        order: 3,
-        moduleId: "blacksmith-core",
-        gmOnly: false,
-        leaderOnly: false,
-        visible: true,
-        toggleable: false,
-        active: false,
-        iconColor: null,
-        buttonNormalTint: null,
-        buttonSelectedTint: null
-    });
+        }
+    }
 });

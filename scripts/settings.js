@@ -1116,6 +1116,18 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
+	// -- Hide UI On Load --
+	game.settings.register(MODULE.ID, 'canvasToolsHideUIOnLoad', {
+		name: MODULE.ID + '.canvasToolsHideUIOnLoad-Label',
+		hint: MODULE.ID + '.canvasToolsHideUIOnLoad-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'user',
+		default: false,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
 
 
 	// --------------------------------------

@@ -3,6 +3,7 @@
 // ==================================================================
 
 import { MODULE } from './const.js';
+import { MenuBar } from './api-menubar.js';
 import { postConsoleAndNotification } from './api-core.js';
 
 /**
@@ -554,10 +555,7 @@ export class QuickViewUtility {
 
 // Register Menubar Tool for Quick View
 Hooks.once('ready', () => {
-    const api = game.modules.get(MODULE.ID)?.api;
-    if (!api) return;
-
-    api.registerMenubarTool('quickview', {
+    MenuBar.registerMenubarTool('quickview', {
         icon: () => {
             return QuickViewUtility.getIcon();
         },
@@ -569,9 +567,7 @@ Hooks.once('ready', () => {
         onClick: async () => {
             await QuickViewUtility.toggle();
             // Trigger menubar re-render
-            if (typeof api.renderMenubar === 'function') {
-                api.renderMenubar();
-            }
+            MenuBar.renderMenubar();
         },
         zone: "left",
         group: "general",

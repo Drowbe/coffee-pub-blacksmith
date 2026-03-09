@@ -3,6 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
+import { MenuBar } from './api-menubar.js';
 import { postConsoleAndNotification } from './api-core.js';
 
 /**
@@ -325,10 +326,7 @@ export class PerformanceUtility {
 
 // Register Menubar Tool for Performance Monitor
 Hooks.once('ready', () => {
-    const api = game.modules.get(MODULE.ID)?.api;
-    if (!api) return;
-
-    api.registerMenubarTool('memory-monitor', {
+    MenuBar.registerMenubarTool('memory-monitor', {
         icon: "fa-solid fa-chart-simple",
         name: "memory-monitor",
         title: () => {

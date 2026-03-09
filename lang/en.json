@@ -95,6 +95,9 @@
 				"canvasToolsHideBottomUI-Label": "Hide Bottom UI",
 				"canvasToolsHideBottomUI-Hint": "When enabled, the bottom of the interface, including the macrobar, will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
 
+				"canvasToolsHideUIOnLoad-Label": "Apply on Load",
+				"canvasToolsHideUIOnLoad-Hint": "When enabled, the interface will automatically hide on load if you have the toggle set to hide.",
+
 			"headingH3Sidebars-Label": "Sidebars",
 			"headingH3Sidebars-Hint": "",
 

@@ -7,6 +7,7 @@
 // ==================================================================
 
 import { MODULE } from './const.js';
+import { MenuBar } from './api-menubar.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import {
     PIN_SCHEMA_VERSION,
@@ -1617,19 +1618,14 @@ if (typeof Hooks !== 'undefined') {
 
 // Register Menubar Tool for Pins Visibility
 Hooks.once('ready', () => {
-    const api = game.modules.get(MODULE.ID)?.api;
-    if (!api) return;
-
-    api.registerMenubarTool('pins-visibility', {
+    MenuBar.registerMenubarTool('pins-visibility', {
         icon: "fa-solid fa-map-pin",
         name: "pins-visibility",
         title: '',
         tooltip: "Hide/Show all pins",
         onClick: async () => {
             await PinManager.setGlobalHidden(!PinManager.isGlobalHidden());
-            if (typeof api.renderMenubar === 'function') {
-                api.renderMenubar(true);
-            }
+            MenuBar.renderMenubar(true);
         },
         zone: "left",
         group: "general",
