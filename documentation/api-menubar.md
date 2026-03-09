@@ -1090,11 +1090,12 @@ The menubar supports **secondary bars** - additional toolbars that appear below 
 | Method | Purpose |
 |--------|---------|
 | `registerSecondaryBarType(typeId, config)` | Define a bar type (height, persistence, groups). Call this first. |
-| `registerSecondaryBarItem(barTypeId, itemId, itemData)` | Add a button/control to a bar (icon, onClick, group, order). |
+| `registerSecondaryBarItem(barTypeId, itemId, itemData)` | Add a button or info item to a bar (zone, group, icon/onClick or label/value). |
 | `registerSecondaryBarTool(barTypeId, toolId)` | Optional. Link a menubar tool to this bar so the menubar syncs the tool's active state when the bar opens/closes. |
 | `unregisterSecondaryBarItem(barTypeId, itemId)` | Remove an item from a bar. |
 | `openSecondaryBar(typeId, options)` / `closeSecondaryBar()` / `toggleSecondaryBar(typeId, options)` | Show, hide, or toggle a secondary bar (e.g. from a menubar tool's onClick). |
-| `updateSecondaryBarItemActive(barTypeId, itemId, active)` | Set which item is active on the bar (e.g. for radio-style mode buttons). |
+| `updateSecondaryBarItemActive(barTypeId, itemId, active)` | Set which button is active on the bar (e.g. radio-style mode buttons). |
+| `updateSecondaryBarItemInfo(barTypeId, itemId, updates)` | Update the value/label of an info item (for dynamic display without re-registering). |
 | `getSecondaryBarItems(barTypeId)` | Get the list of items for a bar. |
 | `updateSecondaryBar(data)` | Update data for an already-open bar (e.g. custom template content). |
 
@@ -1112,12 +1113,23 @@ The menubar supports **secondary bars** - additional toolbars that appear below 
 - **Persistence modes**: `'manual'` (user closes) or `'auto'` (auto-closes after delay)
 - **Height customization**: Each bar type can have its own height
 
+### Default Bar Zones and Item Kinds
+
+The **default tool system** (no custom template) supports:
+
+- **Zones**: Each item can specify a zone: `'left'`, `'middle'`, or `'right'`. Items without a zone default to `'middle'`. The bar renders three regions: left-aligned, center, and right-aligned. This matches the main menubar’s left/middle/right layout so you can build encounter-style bars (info on the sides, actions in the center) without a custom template.
+- **Item kinds**:
+  - **Button** (default): Clickable item with `icon` or `image` and `onClick`. Same as before.
+  - **Info**: Display-only item with `label` and/or `value`. No `onClick`. Use `updateSecondaryBarItemInfo(barTypeId, itemId, { value, label })` to update the displayed text so the bar can show dynamic content (e.g. Party CR, Difficulty) without re-registering.
+
 ### Registering a Secondary Bar Type
 
 Before you can open a secondary bar, you must register its type. The system supports two approaches:
 
 1. **Default Tool System** (recommended - use this unless custom template is absolutely necessary) - Register individual tools/items
 2. **Custom Template** (only when default system cannot meet your needs) - Provide a custom Handlebars template
+
+**Bar type modes are mutually exclusive:** Each bar type is either fully default (zones + buttons/info) or fully custom (your template replaces the entire bar). You cannot use a custom template for only some zones; it is all-or-nothing per bar type.
 
 **Choose the default tool system unless you need:**
 - Complex nested HTML structures
@@ -1422,18 +1434,35 @@ blacksmith.registerSecondaryBarItem('cartographer', 'medium-line', {
 - `barTypeId` (string, required): The bar type ID to register the item to
 - `itemId` (string, required): Unique identifier for the item
 - `itemData` (Object, required): Item configuration
-  - `icon` (string, required): FontAwesome icon class (e.g., `'fa-solid fa-pencil'`, `'fas fa-eraser'`)
-  - `label` (string, optional): Text label displayed next to the icon. If omitted, only the icon is shown.
+  - `kind` (string, optional): `'button'` (default) or `'info'`. Buttons are clickable; info items are display-only and can be updated with `updateSecondaryBarItemInfo`.
+  - `zone` (string, optional): `'left'`, `'middle'`, or `'right'`. Default: `'middle'`. Only applies to the default tool system.
+  - `icon` (string, required for buttons): FontAwesome icon class (e.g., `'fa-solid fa-pencil'`, `'fas fa-eraser'`)
+  - `label` (string, optional): Text label. For buttons, shown next to the icon. For info items, use with or without `value`.
+  - `value` (string, optional): For info items only. Display value (e.g. "2", "Medium"). Can be updated later with `updateSecondaryBarItemInfo`.
   - `tooltip` (string, optional): Tooltip text on hover. If omitted, uses `label` as tooltip.
   - `group` (string, optional): Group ID to place the item in. If not specified, uses `'default'` group. Groups with different IDs will have dividers between them.
-  - `toggleable` (boolean, optional): Whether item can be toggled on/off (only applies to `'default'` mode groups). In `'switch'` mode groups, items are automatically managed.
-  - `active` (boolean, optional): Whether item is active/selected. Adds `active` CSS class when `true`. For `'switch'` mode groups, the first item is automatically made active if none is active.
+  - `toggleable` (boolean, optional): Whether item can be toggled on/off (buttons only; only applies to `'default'` mode groups). In `'switch'` mode groups, items are automatically managed.
+  - `active` (boolean, optional): Whether button is active/selected. Adds `active` CSS class when `true`. For `'switch'` mode groups, the first button is automatically made active if none is active.
   - `order` (number, optional): Sort order for displaying items within the group (lower numbers appear first). Items without `order` appear after items with `order`, sorted alphabetically by `itemId`.
   - `iconColor` (string, optional): Icon color. Can be any valid CSS color (e.g., `'#ff0000'`, `'rgba(255, 0, 0, 0.8)'`, `'red'`). If omitted, uses default icon color.
-  - `buttonColor` (string, optional): Background color for the button. Can be any valid CSS color (e.g., `'rgba(100, 150, 200, 0.3)'`, `'#64aaff'`, `'blue'`). If omitted, uses the default from `--blacksmith-menubar-secondary-buttoncolor`.
-  - `borderColor` (string, optional): Border color for the button. Can be any valid CSS color. If omitted, uses the default from `--blacksmith-menubar-secondary-bordercolor`.
-  - `onClick` (Function, required): Click handler function `(event) => {}`. Receives the click event as parameter.
+  - `buttonColor` (string, optional): Background color for the button. Can be any valid CSS color. If omitted, uses the default from `--blacksmith-menubar-secondary-buttoncolor`. (Buttons only.)
+  - `borderColor` (string, optional): Border color for the button. (Buttons only.)
+  - `onClick` (Function, required for buttons): Click handler function `(event) => {}`. Receives the click event as parameter. Omit for info items.
   - Additional properties: Any other properties are preserved and passed through, but not used by the default template.
+
+**Info item example (display-only, e.g. encounter-style CR/difficulty):**
+```javascript
+blacksmith.registerSecondaryBarItem('my-encounter', 'party-cr', {
+    kind: 'info',
+    zone: 'left',
+    icon: 'fas fa-helmet-battle',
+    label: 'Party CR',
+    value: '2',
+    group: 'cr',
+    order: 0
+});
+blacksmith.updateSecondaryBarItemInfo('my-encounter', 'party-cr', { value: '3' });  // update when assessment changes
+```
 
 **Returns:** `boolean` - Success status
 
@@ -1491,6 +1520,26 @@ blacksmith.updateSecondaryBarItemActive('cartographer', 'pencil-tool', true);
 blacksmith.updateSecondaryBarItemActive('cartographer', 'medium-line', true);
 // This automatically deactivates 'small-line' and 'large-line' in the same group
 ```
+
+### Updating Secondary Bar Info Items
+
+Use this to update the displayed value and/or label of an **info** item without re-registering it. Typical for encounter-style bars where Party CR, Monster CR, or Difficulty change over time.
+
+```javascript
+blacksmith.updateSecondaryBarItemInfo('my-encounter', 'party-cr', { value: '4' });
+blacksmith.updateSecondaryBarItemInfo('my-encounter', 'difficulty', { value: 'Hard', label: 'Difficulty' });
+```
+
+**Parameters:**
+- `barTypeId` (string, required): The bar type ID
+- `itemId` (string, required): The info item ID to update
+- `updates` (Object, required): At least one of:
+  - `value` (string, optional): New display value
+  - `label` (string, optional): New display label
+
+**Returns:** `boolean` - Success status
+
+If the bar is currently open, it re-renders so the new value/label is visible immediately.
 
 ### Registering Secondary Bar Toggle Tool
 

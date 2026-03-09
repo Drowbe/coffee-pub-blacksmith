@@ -62,6 +62,8 @@ class MenuBar {
     static secondaryBarActiveStates = new Map(); // Map<typeId, Map<groupId, itemId>> - tracks active items per group (for switch mode)
     static pendingSecondaryBarItems = new Map(); // Map<typeId, Map<itemId, itemData>> - items registered before bar type exists
     static secondaryBarToolMapping = new Map(); // Map<typeId, toolId> - maps secondary bar types to their toggle tool IDs
+    /** @type {Map<string, Map<string, { value?: string, label?: string }>>} - Live updates for info items: barTypeId -> itemId -> { value, label } */
+    static secondaryBarInfoUpdates = new Map();
     static renderTimeout = null;
     
     // Timer interval tracking for cleanup
@@ -2343,9 +2345,9 @@ class MenuBar {
                             groups.set(groupId, { mode: 'default', order: 999 });
                         }
                         
-                        // Initialize active state for switch groups
+                        // Initialize active state for switch groups (buttons only)
                         const groupConfig = groups.get(groupId);
-                        if (groupConfig.mode === 'switch' && activeStates) {
+                        if (groupConfig.mode === 'switch' && activeStates && itemData.kind !== 'info') {
                             if (!activeStates.has(groupId)) {
                                 // First item in switch group, make it active
                                 activeStates.set(groupId, itemId);
@@ -2369,18 +2371,33 @@ class MenuBar {
 
     /**
      * Register an item to a secondary bar (for default tool system)
+     * Items can be buttons (clickable) or info (display-only). Supports zones: left, middle, right.
      * @param {string} barTypeId - The bar type to register the item to
      * @param {string} itemId - Unique identifier for the item
      * @param {Object} itemData - Item configuration
+     * @param {string} [itemData.kind] - 'button' (default) or 'info'
+     * @param {string} [itemData.zone] - 'left' | 'middle' | 'right' (default: 'middle')
      * @returns {boolean} Success status
      */
     static registerSecondaryBarItem(barTypeId, itemId, itemData) {
         try {
-            // Validate item data - must have either icon or image, and onClick
-            if (!itemId || !itemData || (!itemData.icon && !itemData.image) || typeof itemData.onClick !== 'function') {
-                postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Invalid item data", 
-                    { barTypeId, itemId, hasIcon: !!itemData?.icon, hasImage: !!itemData?.image, hasOnClick: typeof itemData?.onClick === 'function' }, false, false);
-                return false;
+            const kind = itemData.kind || 'button';
+            const zone = (itemData.zone === 'left' || itemData.zone === 'middle' || itemData.zone === 'right') ? itemData.zone : 'middle';
+
+            if (kind === 'info') {
+                // Info item: display-only, must have label or value (or both)
+                if (!itemId || !itemData || (itemData.label === undefined && itemData.value === undefined)) {
+                    postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Info item requires label or value",
+                        { barTypeId, itemId }, false, false);
+                    return false;
+                }
+            } else {
+                // Button: must have icon or image, and onClick
+                if (!itemId || !itemData || (!itemData.icon && !itemData.image) || typeof itemData.onClick !== 'function') {
+                    postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Invalid item data",
+                        { barTypeId, itemId, hasIcon: !!itemData?.icon, hasImage: !!itemData?.image, hasOnClick: typeof itemData?.onClick === 'function' }, false, false);
+                    return false;
+                }
             }
 
             // Check if bar type exists
@@ -2396,19 +2413,21 @@ class MenuBar {
                     ...itemData,
                     itemId: itemId,
                     barTypeId: barTypeId,
+                    kind: kind,
+                    zone: zone,
                     group: groupId,
-                    toggleable: itemData.toggleable || false,
+                    toggleable: kind === 'button' ? (itemData.toggleable || false) : false,
                     iconColor: itemData.iconColor || null,
                     image: itemData.image || null
                 });
-                postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Item queued (bar type not registered yet)", 
+                postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Item queued (bar type not registered yet)",
                     { barTypeId, itemId }, true, false);
                 return true;
             }
 
             // Bar type exists - check if it supports items (not custom template)
             if (barType.hasCustomTemplate) {
-                postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Cannot register items to custom template bar", 
+                postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Cannot register items to custom template bar",
                     { barTypeId, itemId }, false, false);
                 return false;
             }
@@ -2416,18 +2435,20 @@ class MenuBar {
             // Store item
             const items = this.secondaryBarItems.get(barTypeId);
             const groupId = itemData.group || 'default';
-            const toggleable = itemData.toggleable || false;
-            
+            const toggleable = kind === 'button' ? (itemData.toggleable || false) : false;
+
             items.set(itemId, {
                 ...itemData,
                 itemId: itemId,
                 barTypeId: barTypeId,
+                kind: kind,
+                zone: zone,
                 group: groupId,
                 toggleable: toggleable,
                 iconColor: itemData.iconColor || null,
                 image: itemData.image || null
             });
-            
+
             // Ensure group exists (in case item registered before group config)
             if (!this.secondaryBarGroups.has(barTypeId)) {
                 this.secondaryBarGroups.set(barTypeId, new Map());
@@ -2436,22 +2457,24 @@ class MenuBar {
             if (!groups.has(groupId)) {
                 groups.set(groupId, { mode: 'default', order: 999 });
             }
-            
-            // Initialize active state for switch groups
-            const groupConfig = groups.get(groupId);
-            if (groupConfig.mode === 'switch') {
-                if (!this.secondaryBarActiveStates.has(barTypeId)) {
-                    this.secondaryBarActiveStates.set(barTypeId, new Map());
-                }
-                const activeStates = this.secondaryBarActiveStates.get(barTypeId);
-                
-                // If no active item in this switch group, make this the first one (if it's the first item)
-                if (!activeStates.has(groupId)) {
-                    const groupItems = Array.from(items.values()).filter(item => item.group === groupId);
-                    if (groupItems.length === 1) {
-                        // First item in switch group, make it active
-                        activeStates.set(groupId, itemId);
-                        items.get(itemId).active = true;
+
+            // Initialize active state for switch groups (buttons only)
+            if (kind === 'button') {
+                const groupConfig = groups.get(groupId);
+                if (groupConfig.mode === 'switch') {
+                    if (!this.secondaryBarActiveStates.has(barTypeId)) {
+                        this.secondaryBarActiveStates.set(barTypeId, new Map());
+                    }
+                    const activeStates = this.secondaryBarActiveStates.get(barTypeId);
+
+                    // If no active item in this switch group, make this the first one (if it's the first item)
+                    if (!activeStates.has(groupId)) {
+                        const groupItems = Array.from(items.values()).filter(item => item.group === groupId && item.kind !== 'info');
+                        if (groupItems.length === 1) {
+                            // First item in switch group, make it active
+                            activeStates.set(groupId, itemId);
+                            items.get(itemId).active = true;
+                        }
                     }
                 }
             }
@@ -2461,11 +2484,11 @@ class MenuBar {
                 this.renderMenubar(true);
             }
 
-            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Item registered", 
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Item registered",
                 { barTypeId, itemId }, true, false);
             return true;
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error registering item", 
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error registering item",
                 { barTypeId, itemId, error }, false, false);
             return false;
         }
@@ -2536,6 +2559,39 @@ class MenuBar {
     }
 
     /**
+     * Update the display value and/or label of an info item on a secondary bar.
+     * Use this to push dynamic content (e.g. "Party CR: 2", "Difficulty: Medium") without re-registering the item.
+     * @param {string} barTypeId - The bar type ID
+     * @param {string} itemId - The info item ID to update
+     * @param {{ value?: string, label?: string }} updates - New value and/or label (omit keys to leave unchanged)
+     * @returns {boolean} Success status
+     */
+    static updateSecondaryBarItemInfo(barTypeId, itemId, updates) {
+        try {
+            if (!updates || (updates.value === undefined && updates.label === undefined)) {
+                return false;
+            }
+            if (!this.secondaryBarInfoUpdates.has(barTypeId)) {
+                this.secondaryBarInfoUpdates.set(barTypeId, new Map());
+            }
+            const map = this.secondaryBarInfoUpdates.get(barTypeId);
+            const existing = map.get(itemId) || {};
+            if (updates.value !== undefined) existing.value = updates.value;
+            if (updates.label !== undefined) existing.label = updates.label;
+            map.set(itemId, existing);
+
+            if (this.secondaryBar.isOpen && this.secondaryBar.type === barTypeId) {
+                this.renderMenubar(true);
+            }
+            return true;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error updating info item", 
+                { barTypeId, itemId, error }, false, false);
+            return false;
+        }
+    }
+
+    /**
      * Register which menubar tool ID toggles a given secondary bar type (so open/close syncs the tool's active state).
      * @param {string} barTypeId - The secondary bar type (e.g. 'broadcast', 'combat')
      * @param {string} toolId - The menubar tool id registered with registerMenubarTool (e.g. 'broadcast-toggle')
@@ -2577,10 +2633,10 @@ class MenuBar {
                         const groupId = item.group || 'default';
                         const currentActive = activeStates.get(groupId);
                         
-                        // If the removed item was active, activate the first remaining item in the group
+                        // If the removed item was active, activate the first remaining item in the group (buttons only)
                         if (currentActive === itemId && items) {
                             const groupItems = Array.from(items.values())
-                                .filter(i => i.group === groupId)
+                                .filter(i => i.group === groupId && i.kind !== 'info')
                                 .sort((a, b) => {
                                     const aOrder = a.order !== undefined ? a.order : Infinity;
                                     const bOrder = b.order !== undefined ? b.order : Infinity;
@@ -3637,14 +3693,15 @@ class MenuBar {
             return data;
         }
 
-        // For default template, prepare items organized by groups
+        // For default template, prepare items organized by zones (left, middle, right) then by groups
         const allItems = this.getSecondaryBarItems(data.type);
         const groups = this.secondaryBarGroups.get(data.type) || new Map();
         const activeStates = this.secondaryBarActiveStates.get(data.type) || new Map();
         const masterActiveGroup = new Map();
-        
-        // Organize items by group (filter by visible property)
-        const itemsByGroup = new Map();
+        const infoUpdates = this.secondaryBarInfoUpdates.get(data.type);
+
+        // Organize items by zone, then by group (filter by visible property)
+        const itemsByZone = { left: new Map(), middle: new Map(), right: new Map() };
         for (const item of allItems) {
             // Check visible property (can be function or boolean)
             let isVisible = true;
@@ -3653,25 +3710,42 @@ class MenuBar {
             } else if (item.visible !== undefined) {
                 isVisible = !!item.visible;
             }
-            
+
             if (!isVisible) continue; // Skip invisible items
-            
+
+            const zone = (item.zone === 'left' || item.zone === 'right') ? item.zone : 'middle';
             const groupId = item.group || 'default';
-            if (!itemsByGroup.has(groupId)) {
-                itemsByGroup.set(groupId, []);
+            if (!itemsByZone[zone].has(groupId)) {
+                itemsByZone[zone].set(groupId, []);
             }
-            itemsByGroup.get(groupId).push(item);
+            // Merge live info updates for info items
+            if (item.kind === 'info' && infoUpdates?.has(item.itemId)) {
+                const u = infoUpdates.get(item.itemId);
+                item.displayValue = u.value !== undefined ? u.value : item.value;
+                item.displayLabel = u.label !== undefined ? u.label : item.label;
+            } else if (item.kind === 'info') {
+                item.displayValue = item.value;
+                item.displayLabel = item.label;
+            }
+            itemsByZone[zone].get(groupId).push(item);
         }
-        
+
+        // Build combined itemsByGroup (across all zones) for active-state normalization
+        const itemsByGroupAll = new Map();
+        for (const zone of ['left', 'middle', 'right']) {
+            for (const [groupId, groupItems] of itemsByZone[zone].entries()) {
+                if (!itemsByGroupAll.has(groupId)) itemsByGroupAll.set(groupId, []);
+                itemsByGroupAll.get(groupId).push(...groupItems);
+            }
+        }
         // Normalize active states against visible items and prime master switch groups
         for (const [groupId, activeItemId] of activeStates.entries()) {
             if (!activeItemId) {
                 activeStates.delete(groupId);
                 continue;
             }
-            const groupItems = itemsByGroup.get(groupId);
-            if (!groupItems || !groupItems.some(item => item.itemId === activeItemId)) {
-                // Active item is missing or hidden; clear stale state
+            const groupItems = itemsByGroupAll.get(groupId);
+            if (!groupItems || !groupItems.some(item => item.itemId === activeItemId && item.kind !== 'info')) {
                 activeStates.delete(groupId);
                 continue;
             }
@@ -3682,72 +3756,78 @@ class MenuBar {
             }
         }
 
-        // Process each group: set active states and ensure switch groups have active
-        const processedGroups = [];
-        for (const [groupId, groupItems] of itemsByGroup.entries()) {
-            const groupConfig = groups.get(groupId) || { mode: 'default', order: 999 };
-            
-            // Sort items within group
-            groupItems.sort((a, b) => {
-                const aOrder = a.order !== undefined ? a.order : Infinity;
-                const bOrder = b.order !== undefined ? b.order : Infinity;
-                if (aOrder !== bOrder) return aOrder - bOrder;
-                return (a.itemId || '').localeCompare(b.itemId || '');
-            });
-            
-            // Handle switch groups: ensure one is active, respecting master switch groups
-            if (groupConfig.mode === 'switch') {
-                const masterKey = groupConfig.masterSwitchGroup || null;
-                const masterOwnerGroup = masterKey ? masterActiveGroup.get(masterKey) : null;
-                const masterHasActive = !!masterOwnerGroup;
-                const currentActive = activeStates.get(groupId);
-                const hasActive = groupItems.some(item => item.itemId === currentActive);
-                
-                if ((!masterHasActive || masterOwnerGroup === groupId) && !hasActive && groupItems.length > 0) {
-                    // No active item, activate the first one
-                    const firstItem = groupItems[0];
-                    activeStates.set(groupId, firstItem.itemId);
-                    firstItem.active = true;
-                }
-                
-                // Set active state for all items in switch group
-                for (const item of groupItems) {
-                    item.active = (item.itemId === activeStates.get(groupId));
-                }
-                
-                // Track master switch selection; if another group already claimed it, clear this group
-                if (masterKey) {
-                    if (masterHasActive && masterOwnerGroup !== groupId) {
-                        activeStates.delete(groupId);
-                        for (const item of groupItems) {
-                            item.active = false;
+        /** @param {Map<string, import('foundry').applications.api.ApplicationV2.Item[]>} zoneGroupMap */
+        const processZoneGroups = (zoneGroupMap) => {
+            const processedGroups = [];
+            for (const [groupId, groupItems] of zoneGroupMap.entries()) {
+                const groupConfig = groups.get(groupId) || { mode: 'default', order: 999 };
+
+                // Sort items within group
+                groupItems.sort((a, b) => {
+                    const aOrder = a.order !== undefined ? a.order : Infinity;
+                    const bOrder = b.order !== undefined ? b.order : Infinity;
+                    if (aOrder !== bOrder) return aOrder - bOrder;
+                    return (a.itemId || '').localeCompare(b.itemId || '');
+                });
+
+                const buttonItems = groupItems.filter(i => i.kind !== 'info');
+
+                // Handle switch groups: ensure one is active, respecting master switch groups (buttons only)
+                if (groupConfig.mode === 'switch') {
+                    const masterKey = groupConfig.masterSwitchGroup || null;
+                    const masterOwnerGroup = masterKey ? masterActiveGroup.get(masterKey) : null;
+                    const masterHasActive = !!masterOwnerGroup;
+                    const currentActive = activeStates.get(groupId);
+                    const hasActive = buttonItems.some(item => item.itemId === currentActive);
+
+                    if ((!masterHasActive || masterOwnerGroup === groupId) && !hasActive && buttonItems.length > 0) {
+                        const firstButton = buttonItems[0];
+                        activeStates.set(groupId, firstButton.itemId);
+                        firstButton.active = true;
+                    }
+
+                    for (const item of groupItems) {
+                        item.active = item.kind === 'button' && (item.itemId === activeStates.get(groupId));
+                    }
+
+                    if (masterKey) {
+                        if (masterHasActive && masterOwnerGroup !== groupId) {
+                            activeStates.delete(groupId);
+                            for (const item of groupItems) {
+                                item.active = false;
+                            }
+                        } else if (activeStates.has(groupId)) {
+                            masterActiveGroup.set(masterKey, groupId);
                         }
-                    } else if (activeStates.has(groupId)) {
-                        masterActiveGroup.set(masterKey, groupId);
+                    }
+                } else {
+                    for (const item of groupItems) {
+                        if (item.kind === 'info') item.active = false;
                     }
                 }
-            } else {
-                // Default mode: use item's active property as-is (from toggleable or manual setting)
-                // Items maintain their own active state
+
+                processedGroups.push({
+                    id: groupId,
+                    config: groupConfig,
+                    items: groupItems,
+                    bannerColor: groupConfig.bannerColor || data.groupBannerColor
+                });
             }
-            
-            processedGroups.push({
-                id: groupId,
-                config: groupConfig,
-                items: groupItems,
-                bannerColor: groupConfig.bannerColor || data.groupBannerColor
+
+            processedGroups.sort((a, b) => {
+                const aOrder = a.config.order !== undefined ? a.config.order : Infinity;
+                const bOrder = b.config.order !== undefined ? b.config.order : Infinity;
+                if (aOrder !== bOrder) return aOrder - bOrder;
+                return (a.id || '').localeCompare(b.id || '');
             });
-        }
-        
-        // Sort groups by order
-        processedGroups.sort((a, b) => {
-            const aOrder = a.config.order !== undefined ? a.config.order : Infinity;
-            const bOrder = b.config.order !== undefined ? b.config.order : Infinity;
-            if (aOrder !== bOrder) return aOrder - bOrder;
-            return (a.id || '').localeCompare(b.id || '');
-        });
-        
-        data.groups = processedGroups;
+            return processedGroups;
+        };
+
+        data.zones = {
+            left: processZoneGroups(itemsByZone.left),
+            middle: processZoneGroups(itemsByZone.middle),
+            right: processZoneGroups(itemsByZone.right)
+        };
 
         return data;
     }

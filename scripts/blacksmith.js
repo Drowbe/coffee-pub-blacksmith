@@ -315,6 +315,7 @@ Hooks.once('ready', async () => {
             registerSecondaryBarItem: MenuBar.registerSecondaryBarItem.bind(MenuBar),
             unregisterSecondaryBarItem: MenuBar.unregisterSecondaryBarItem.bind(MenuBar),
             updateSecondaryBarItemActive: MenuBar.updateSecondaryBarItemActive.bind(MenuBar),
+            updateSecondaryBarItemInfo: MenuBar.updateSecondaryBarItemInfo.bind(MenuBar),
             getSecondaryBarItems: MenuBar.getSecondaryBarItems.bind(MenuBar),
             openSecondaryBar: MenuBar.openSecondaryBar.bind(MenuBar),
             updateMenubarToolActive: MenuBar.updateMenubarToolActive.bind(MenuBar),
@@ -950,6 +951,7 @@ Hooks.once('init', async function() {
         module.api.registerSecondaryBarItem = MenuBar.registerSecondaryBarItem.bind(MenuBar);
         module.api.unregisterSecondaryBarItem = MenuBar.unregisterSecondaryBarItem.bind(MenuBar);
         module.api.updateSecondaryBarItemActive = MenuBar.updateSecondaryBarItemActive.bind(MenuBar);
+        module.api.updateSecondaryBarItemInfo = MenuBar.updateSecondaryBarItemInfo.bind(MenuBar);
         module.api.getSecondaryBarItems = MenuBar.getSecondaryBarItems.bind(MenuBar);
         module.api.openSecondaryBar = MenuBar.openSecondaryBar.bind(MenuBar);
         module.api.updateMenubarToolActive = MenuBar.updateMenubarToolActive.bind(MenuBar);
@@ -1126,6 +1128,7 @@ Hooks.once('init', async function() {
             registerSecondaryBarItem: MenuBar.registerSecondaryBarItem.bind(MenuBar),
             unregisterSecondaryBarItem: MenuBar.unregisterSecondaryBarItem.bind(MenuBar),
             updateSecondaryBarItemActive: MenuBar.updateSecondaryBarItemActive.bind(MenuBar),
+            updateSecondaryBarItemInfo: MenuBar.updateSecondaryBarItemInfo.bind(MenuBar),
             getSecondaryBarItems: MenuBar.getSecondaryBarItems.bind(MenuBar),
             openSecondaryBar: MenuBar.openSecondaryBar.bind(MenuBar),
             updateMenubarToolActive: MenuBar.updateMenubarToolActive.bind(MenuBar),

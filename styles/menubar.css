@@ -601,11 +601,32 @@
 .blacksmith-menubar-secondary .secondary-bar-toolbar {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     gap: 8px;
     width: 100%;
     height: 100%;
     padding: var(--blacksmith-menubar-secondary-top-paddding-offset) 8px 4px 8px;
+}
+
+/* Left / Middle / Right zones */
+.blacksmith-menubar-secondary .secondary-bar-zone {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.blacksmith-menubar-secondary .secondary-bar-zone-left {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+}
+.blacksmith-menubar-secondary .secondary-bar-zone-middle {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+}
+.blacksmith-menubar-secondary .secondary-bar-zone-right {
+    flex: 0 0 auto;
+    justify-content: flex-end;
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item {
@@ -669,6 +690,22 @@
     white-space: nowrap;
     user-select: none;
     font-size: var(--secondary-bar-item-font-size); /* Use variable directly to ensure proper sizing */
+}
+
+/* Info items (display-only, no click) */
+.blacksmith-menubar-secondary .secondary-bar-item-info {
+    cursor: default;
+    background-color: rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+.blacksmith-menubar-secondary .secondary-bar-item-info:hover {
+    transform: none;
+    background-color: rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+.blacksmith-menubar-secondary .secondary-bar-item-info .secondary-bar-item-value {
+    font-weight: 600;
+    margin-left: 2px;
 }
 
 
@@ -821,8 +858,13 @@ Combat Tracker Tunables
     gap: 12px;
     width: 100%;
     height: 100%;
-    padding: 0 12px;
+    padding: 0px 8px ;
 }
+
+
+
+
+
 
 .blacksmith-menubar-secondary .encounter-bar-cr {
     display: flex;
@@ -839,18 +881,43 @@ Combat Tracker Tunables
     border-radius: 4px;
     font-size: 0.9em;
     color: var(--blacksmith-menubar-secondary-fontcolor);
+    text-transform: uppercase;
 }
 
 .blacksmith-menubar-secondary .encounter-bar-badge i {
     opacity: 0.9;
+    font-size: 0.9em;
 }
 
-.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-trivial { border-left: 3px solid #6b8e6b; }
-.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-easy { border-left: 3px solid #7cba7c; }
-.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-medium { border-left: 3px solid #c9a227; }
-.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-hard { border-left: 3px solid #c95827; }
-.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-deadly { border-left: 3px solid #a02020; }
-.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-impossible { border-left: 3px solid #4a0a0a; }
+.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-trivial { 
+    border: 1px solid rgba(0, 0, 0, 0.2); 
+    background: rgba(3, 87, 0, 0.9); 
+    }
+.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-easy { 
+    border: 1px solid rgba(0, 0, 0, 0.2); 
+    background: rgba(32, 112, 0, 0.6); 
+    }
+.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-medium { 
+    border: 1px solid rgba(0, 0, 0, 0.2); 
+    background: rgba(145, 99, 0, 0.6); 
+    }
+.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-hard { 
+    border: 1px solid rgba(0, 0, 0, 0.2); 
+    background: rgba(156, 36, 0, 0.6); 
+    }
+.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-deadly { 
+    border: 1px solid rgba(0, 0, 0, 0.2); 
+    background: rgba(155, 0, 0, 0.6); 
+    }
+.blacksmith-menubar-secondary .encounter-bar-badge.difficulty-impossible { 
+    border: 1px solid rgba(0, 0, 0, 0.2); 
+    background: rgba(68, 0, 0, 0.6); 
+    }
+
+
+
+
+
 
 .blacksmith-menubar-secondary .encounter-bar-actions {
     display: flex;

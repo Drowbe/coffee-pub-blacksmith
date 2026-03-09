@@ -1,37 +1,149 @@
-{{!-- Default Secondary Bar Template - Tool-based system --}}
+{{!-- Default Secondary Bar Template - Left / Middle / Right zones, buttons and info items --}}
 <div class="secondary-bar-toolbar">
-    {{#each groups}}
-    <div class="secondary-bar-group-container">
-        {{#if ../groupBannerEnabled}}
-        <div class="secondary-bar-group-banner" style="background-color: {{#if bannerColor}}{{bannerColor}}{{else}}{{../groupBannerColor}}{{/if}};">
-            <span class="secondary-bar-group-banner-text">{{id}}</span>
-        </div>
-        {{/if}}
-        <div class="secondary-bar-group-items">
-            {{#each items}}
-            <div class="secondary-bar-item {{#if active}}active{{/if}}" 
-                 data-item-id="{{itemId}}"
-                 data-group-id="{{../id}}"
-                 data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
-                 title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
-                 {{#if (or buttonColor borderColor)}}
-                 style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
-                 {{/if}}>
-                {{#if image}}
-                <img src="{{image}}" class="secondary-bar-item-image" alt="{{#if label}}{{label}}{{else}}{{tooltip}}{{/if}}">
-                {{else}}
-                <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
-                {{/if}}
-                {{#if label}}
-                <span class="secondary-bar-item-label">{{label}}</span>
-                {{/if}}
+    {{!-- LEFT ZONE --}}
+    <div class="secondary-bar-zone secondary-bar-zone-left">
+        {{#each zones.left}}
+        <div class="secondary-bar-group-container">
+            {{#if ../groupBannerEnabled}}
+            <div class="secondary-bar-group-banner" style="background-color: {{#if bannerColor}}{{bannerColor}}{{else}}{{../groupBannerColor}}{{/if}};">
+                <span class="secondary-bar-group-banner-text">{{id}}</span>
             </div>
-            {{/each}}
+            {{/if}}
+            <div class="secondary-bar-group-items">
+                {{#each items}}
+                {{#if (eq kind "info")}}
+                <div class="secondary-bar-item secondary-bar-item-info"
+                     data-item-id="{{itemId}}"
+                     data-group-id="{{../id}}"
+                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
+                     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+                    {{#if icon}}<i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>{{/if}}
+                    {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
+                    {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
+                </div>
+                {{else}}
+                <div class="secondary-bar-item {{#if active}}active{{/if}}"
+                     data-item-id="{{itemId}}"
+                     data-group-id="{{../id}}"
+                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
+                     title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
+                     {{#if (or buttonColor borderColor)}}
+                     style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
+                     {{/if}}>
+                    {{#if image}}
+                    <img src="{{image}}" class="secondary-bar-item-image" alt="{{#if label}}{{label}}{{else}}{{tooltip}}{{/if}}">
+                    {{else}}
+                    <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
+                    {{/if}}
+                    {{#if label}}
+                    <span class="secondary-bar-item-label">{{label}}</span>
+                    {{/if}}
+                </div>
+                {{/if}}
+                {{/each}}
+            </div>
         </div>
+        {{#unless @last}}
+        <div class="secondary-bar-group-divider"></div>
+        {{/unless}}
+        {{/each}}
     </div>
-    {{#unless @last}}
-    <div class="secondary-bar-group-divider"></div>
-    {{/unless}}
-    {{/each}}
-</div>
 
+    {{!-- MIDDLE ZONE --}}
+    <div class="secondary-bar-zone secondary-bar-zone-middle">
+        {{#each zones.middle}}
+        <div class="secondary-bar-group-container">
+            {{#if ../groupBannerEnabled}}
+            <div class="secondary-bar-group-banner" style="background-color: {{#if bannerColor}}{{bannerColor}}{{else}}{{../groupBannerColor}}{{/if}};">
+                <span class="secondary-bar-group-banner-text">{{id}}</span>
+            </div>
+            {{/if}}
+            <div class="secondary-bar-group-items">
+                {{#each items}}
+                {{#if (eq kind "info")}}
+                <div class="secondary-bar-item secondary-bar-item-info"
+                     data-item-id="{{itemId}}"
+                     data-group-id="{{../id}}"
+                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
+                     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+                    {{#if icon}}<i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>{{/if}}
+                    {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
+                    {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
+                </div>
+                {{else}}
+                <div class="secondary-bar-item {{#if active}}active{{/if}}"
+                     data-item-id="{{itemId}}"
+                     data-group-id="{{../id}}"
+                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
+                     title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
+                     {{#if (or buttonColor borderColor)}}
+                     style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
+                     {{/if}}>
+                    {{#if image}}
+                    <img src="{{image}}" class="secondary-bar-item-image" alt="{{#if label}}{{label}}{{else}}{{tooltip}}{{/if}}">
+                    {{else}}
+                    <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
+                    {{/if}}
+                    {{#if label}}
+                    <span class="secondary-bar-item-label">{{label}}</span>
+                    {{/if}}
+                </div>
+                {{/if}}
+                {{/each}}
+            </div>
+        </div>
+        {{#unless @last}}
+        <div class="secondary-bar-group-divider"></div>
+        {{/unless}}
+        {{/each}}
+    </div>
+
+    {{!-- RIGHT ZONE --}}
+    <div class="secondary-bar-zone secondary-bar-zone-right">
+        {{#each zones.right}}
+        <div class="secondary-bar-group-container">
+            {{#if ../groupBannerEnabled}}
+            <div class="secondary-bar-group-banner" style="background-color: {{#if bannerColor}}{{bannerColor}}{{else}}{{../groupBannerColor}}{{/if}};">
+                <span class="secondary-bar-group-banner-text">{{id}}</span>
+            </div>
+            {{/if}}
+            <div class="secondary-bar-group-items">
+                {{#each items}}
+                {{#if (eq kind "info")}}
+                <div class="secondary-bar-item secondary-bar-item-info"
+                     data-item-id="{{itemId}}"
+                     data-group-id="{{../id}}"
+                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
+                     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+                    {{#if icon}}<i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>{{/if}}
+                    {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
+                    {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
+                </div>
+                {{else}}
+                <div class="secondary-bar-item {{#if active}}active{{/if}}"
+                     data-item-id="{{itemId}}"
+                     data-group-id="{{../id}}"
+                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
+                     title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
+                     {{#if (or buttonColor borderColor)}}
+                     style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
+                     {{/if}}>
+                    {{#if image}}
+                    <img src="{{image}}" class="secondary-bar-item-image" alt="{{#if label}}{{label}}{{else}}{{tooltip}}{{/if}}">
+                    {{else}}
+                    <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
+                    {{/if}}
+                    {{#if label}}
+                    <span class="secondary-bar-item-label">{{label}}</span>
+                    {{/if}}
+                </div>
+                {{/if}}
+                {{/each}}
+            </div>
+        </div>
+        {{#unless @last}}
+        <div class="secondary-bar-group-divider"></div>
+        {{/unless}}
+        {{/each}}
+    </div>
+</div>

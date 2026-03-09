@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Manage UI flyout**: Start menu now includes a "Manage UI" submenu with "Show/Hide Interface" and "Enable/Disable Apply on Load". When Apply on Load is enabled, the core Foundry UI is automatically hidden when the client loads. New setting `canvasToolsHideUIOnLoad` (Themes & Experience group) and lang keys `canvasToolsHideUIOnLoad-Label` / `canvasToolsHideUIOnLoad-Hint`.
+- **Secondary bar zones and info items**: The default secondary bar (tool-based system) now has **left**, **middle**, and **right** zones. Items can specify `zone: 'left' | 'middle' | 'right'` (default `'middle'`). Existing items without a zone default to middle for backward compatibility. **Info items** (`kind: 'info'`) are display-only: register with `label` and/or `value`, and update at any time with `updateSecondaryBarItemInfo(barTypeId, itemId, { value, label })`. This allows encounter-style bars (info on the sides, actions in the center) without custom templates. New API: `updateSecondaryBarItemInfo`. See `documentation/api-menubar.md` (§ Default Bar Zones and Item Kinds, § Updating Secondary Bar Info Items).
 
 ### Changed
 
