@@ -1028,9 +1028,6 @@ Hooks.once('init', async function() {
         // ✅ Monster deployment API (same as journal encounter toolbar)
         deployMonsters: EncounterToolbar.deployMonsters.bind(EncounterToolbar),
 
-        // ✅ Add loot to actor (roll tables, coins, epic) – for Illuminator convert-dead-to-loot
-        addLootToActor: CanvasTools.addLootToActor.bind(CanvasTools),
-
         // ✅ Request a Roll (Skill Check) dialog – open with optional parameters
         openRequestRollDialog: (options = {}) => {
             if (options.silent === true) {

@@ -90,6 +90,7 @@ export function getTokenImageReplacementCacheStats() {
  */
 export function registerSettings(blacksmithApi) {
     const soundChoices = (blacksmithApi?.BLACKSMITH?.arrSoundChoices) || { none: 'None' };
+    const tableChoices = (blacksmithApi?.BLACKSMITH?.arrTableChoices) || { '-- Choose a General Loot Table --': '-- Choose a General Loot Table --' };
 
     // ----- Dead Tokens -----
     registerHeader('DeadTokens', 'headingH2DeadTokens-Label', 'headingH2DeadTokens-Hint', 'H2', GROUP, 'world');
@@ -175,6 +176,269 @@ export function registerSettings(blacksmithApi) {
         type: String,
         choices: soundChoices,
         default: 'none',
+        group: GROUP
+    });
+
+    // ----- Loot Tokens -----
+    registerHeader('LootTokens', 'headingH2LootTokens-Label', 'headingH2LootTokens-Hint', 'H2', GROUP, 'world');
+    registerHeader('LootConfiguration', 'headingH3LootConfiguration-Label', 'headingH3LootConfiguration-Hint', 'H3', GROUP, 'world');
+
+    game.settings.register(MODULE.ID, 'tokenConvertDeadToLoot', {
+        name: MODULE.ID + '.tokenConvertDeadToLoot-Label',
+        hint: MODULE.ID + '.tokenConvertDeadToLoot-Hint',
+        type: Boolean,
+        config: true,
+        requiresReload: false,
+        scope: 'world',
+        default: false,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenConvertDelay', {
+        name: MODULE.ID + '.tokenConvertDelay-Label',
+        hint: MODULE.ID + '.tokenConvertDelay-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        type: Number,
+        range: { min: 5, max: 60, step: 1 },
+        default: 10,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootPileImage', {
+        name: MODULE.ID + '.tokenLootPileImage-Label',
+        hint: MODULE.ID + '.tokenLootPileImage-Hint',
+        scope: 'world',
+        config: true,
+        type: String,
+        requiresReload: false,
+        default: 'modules/coffee-pub-blacksmith/images/tokens/death/splat-round-loot-sack.webp',
+        filePicker: true,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootSound', {
+        name: MODULE.ID + '.tokenLootSound-Label',
+        hint: MODULE.ID + '.tokenLootSound-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        type: String,
+        choices: soundChoices,
+        default: 'modules/coffee-pub-blacksmith/sounds/clatter.mp3',
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootChatMessage', {
+        name: MODULE.ID + '.tokenLootChatMessage-Label',
+        hint: MODULE.ID + '.tokenLootChatMessage-Hint',
+        type: Boolean,
+        config: true,
+        requiresReload: false,
+        scope: 'world',
+        default: false,
+        group: GROUP
+    });
+
+    registerHeader('LootTreasure', 'headingH3LootTreasure-Label', 'headingH3LootTreasure-Hint', 'H3', GROUP, 'world');
+
+    game.settings.register(MODULE.ID, 'tokenLootAddCoins', {
+        name: MODULE.ID + '.tokenLootAddCoins-Label',
+        hint: MODULE.ID + '.tokenLootAddCoins-Hint',
+        type: Boolean,
+        config: true,
+        requiresReload: false,
+        scope: 'world',
+        default: true,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootMaxPlatinumAmount', {
+        name: MODULE.ID + '.tokenLootMaxPlatinumAmount-Label',
+        hint: MODULE.ID + '.tokenLootMaxPlatinumAmount-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        type: Number,
+        range: { min: 0, max: 100, step: 1 },
+        default: 0,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootMaxGoldAmount', {
+        name: MODULE.ID + '.tokenLootMaxGoldAmount-Label',
+        hint: MODULE.ID + '.tokenLootMaxGoldAmount-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        type: Number,
+        range: { min: 0, max: 100, step: 1 },
+        default: 5,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootMaxSilverAmount', {
+        name: MODULE.ID + '.tokenLootMaxSilverAmount-Label',
+        hint: MODULE.ID + '.tokenLootMaxSilverAmount-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        type: Number,
+        range: { min: 0, max: 100, step: 1 },
+        default: 5,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootMaxElectrumAmount', {
+        name: MODULE.ID + '.tokenLootMaxElectrumAmount-Label',
+        hint: MODULE.ID + '.tokenLootMaxElectrumAmount-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        type: Number,
+        range: { min: 0, max: 100, step: 1 },
+        default: 0,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootMaxCopperAmount', {
+        name: MODULE.ID + '.tokenLootMaxCopperAmount-Label',
+        hint: MODULE.ID + '.tokenLootMaxCopperAmount-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        type: Number,
+        range: { min: 0, max: 100, step: 1 },
+        default: 5,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootTableGeneral', {
+        name: MODULE.ID + '.tokenLootTableGeneral-Label',
+        hint: MODULE.ID + '.tokenLootTableGeneral-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        default: '-- Choose a General Loot Table --',
+        choices: tableChoices,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootTableGeneralAmount', {
+        name: MODULE.ID + '.tokenLootTableGeneralAmount-Label',
+        hint: MODULE.ID + '.tokenLootTableGeneralAmount-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: true,
+        type: Number,
+        range: { min: 0, max: 30, step: 1 },
+        default: 3,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootTableGeneralQuantity', {
+        name: MODULE.ID + '.tokenLootTableGeneralQuantity-Label',
+        hint: MODULE.ID + '.tokenLootTableGeneralQuantity-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        type: Number,
+        range: { min: 0, max: 30, step: 1 },
+        default: 1,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootTableGear', {
+        name: MODULE.ID + '.tokenLootTableGear-Label',
+        hint: MODULE.ID + '.tokenLootTableGear-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        default: '-- Choose a Gear Loot Table --',
+        choices: tableChoices,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootTableGearAmount', {
+        name: MODULE.ID + '.tokenLootTableGearAmount-Label',
+        hint: MODULE.ID + '.tokenLootTableGearAmount-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        type: Number,
+        range: { min: 0, max: 10, step: 1 },
+        default: 2,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootTableGearQuantity', {
+        name: MODULE.ID + '.tokenLootTableGearQuantity-Label',
+        hint: MODULE.ID + '.tokenLootTableGearQuantity-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        type: Number,
+        range: { min: 0, max: 30, step: 1 },
+        default: 1,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootTableTreasure', {
+        name: MODULE.ID + '.tokenLootTableTreasure-Label',
+        hint: MODULE.ID + '.tokenLootTableTreasure-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        default: '-- Choose a Treasure Table --',
+        choices: tableChoices,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootTableTreasureAmount', {
+        name: MODULE.ID + '.tokenLootTableTreasureAmount-Label',
+        hint: MODULE.ID + '.tokenLootTableTreasureAmount-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        type: Number,
+        range: { min: 0, max: 10, step: 1 },
+        default: 1,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootTableTreasureQuantity', {
+        name: MODULE.ID + '.tokenLootTableTreasureQuantity-Label',
+        hint: MODULE.ID + '.tokenLootTableTreasureQuantity-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        type: Number,
+        range: { min: 0, max: 30, step: 1 },
+        default: 1,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootTableEpic', {
+        name: MODULE.ID + '.tokenLootTableEpic-Label',
+        hint: MODULE.ID + '.tokenLootTableEpic-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        default: '-- Choose an Epic Loot Table --',
+        choices: tableChoices,
+        group: GROUP
+    });
+
+    game.settings.register(MODULE.ID, 'tokenLootTableEpicOdds', {
+        name: MODULE.ID + '.tokenLootTableEpicOdds-Label',
+        hint: MODULE.ID + '.tokenLootTableEpicOdds-Hint',
+        scope: 'world',
+        config: true,
+        requiresReload: false,
+        type: Number,
+        range: { min: 0, max: 1000, step: 1 },
+        default: 0,
         group: GROUP
     });
 

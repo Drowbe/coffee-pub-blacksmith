@@ -6,6 +6,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely, playSound } from './api-helpers.js';
 import { ImageCacheManager } from './manager-image-cache.js';
 import { HookManager } from './manager-hooks.js';
+import { LootUtilities } from './loot-utilities.js';
 
 /**
  * Token Image Utilities
@@ -586,10 +587,7 @@ export class TokenImageUtilities {
             const lootAlreadyAdded = token.document.getFlag(MODULE.ID, 'blnLootAdded');
             
             if (!lootAlreadyAdded) {
-                const blacksmithApi = game.modules.get('coffee-pub-blacksmith')?.api;
-                if (blacksmithApi?.addLootToActor) {
-                    await blacksmithApi.addLootToActor(token.actor);
-                }
+                await LootUtilities.addLootToActor(token.actor);
                 // Mark that loot has been added
                 await token.document.setFlag(MODULE.ID, 'blnLootAdded', true);
                 postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Added loot to ${token.name}`, "", true, false);
@@ -597,7 +595,7 @@ export class TokenImageUtilities {
                 postConsoleAndNotification(MODULE.NAME, `Token Image Utilities: Loot already added to ${token.name}, skipping loot generation`, "", true, false);
             }
 
-            // Epic loot roll is handled by Blacksmith addLootToActor when called above (first time); no second call here.
+            // Epic loot roll is handled by addLootToActor when called above (first time); no second call here.
 
             // Set up proper permissions before converting to item pile
             const updates = {

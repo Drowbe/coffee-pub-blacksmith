@@ -50,6 +50,7 @@
     "scripts/api-helpers.js",
     "scripts/settings.js",
     "scripts/manager-hooks.js",
+    "scripts/loot-utilities.js",
     "scripts/manager-image-cache.js",
     "scripts/manager-image-matching.js",
     "scripts/token-image-utilities.js",
