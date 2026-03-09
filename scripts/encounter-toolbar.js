@@ -1441,3 +1441,28 @@ export class EncounterToolbar {
     }
 }
 
+// Register menubar tool via API (same pattern as external modules)
+Hooks.once('ready', () => {
+    const api = game.modules.get(MODULE.ID)?.api;
+    if (!api?.registerMenubarTool) return;
+    api.registerMenubarTool('encounter', {
+        icon: "fas fa-swords",
+        name: "encounter",
+        title: "Encounter",
+        tooltip: "Show encounter bar (CR, Reveal)",
+        onClick: () => api.toggleSecondaryBar('encounter'),
+        zone: "middle",
+        group: "combat",
+        groupOrder: 1,
+        order: 0,
+        moduleId: "blacksmith-core",
+        gmOnly: true,
+        leaderOnly: false,
+        visible: true,
+        toggleable: true,
+        active: false,
+        iconColor: " rgba(255, 255, 255, 0.6)",
+        buttonNormalTint: "rgba(88, 15, 4, 0.9)",
+        buttonSelectedTint: null
+    });
+});

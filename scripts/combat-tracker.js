@@ -991,4 +991,73 @@ class CombatTracker {
     }
 }
 
+// Register menubar tools via API (same pattern as external modules)
+Hooks.once('ready', () => {
+    const api = game.modules.get(MODULE.ID)?.api;
+    if (!api?.registerMenubarTool) return;
+    api.registerMenubarTool('create-combat', {
+        icon: "fas fa-swords",
+        name: "create-combat",
+        title: "Create",
+        tooltip: "Create combat encounter with selected or all tokens on canvas",
+        onClick: () => api.createCombat?.(),
+        zone: "middle",
+        group: "combat",
+        groupOrder: 1,
+        order: 1,
+        moduleId: "blacksmith-core",
+        gmOnly: true,
+        leaderOnly: false,
+        visible: false,
+        toggleable: false,
+        active: false,
+        iconColor: " rgba(255, 255, 255, 0.6)",
+        buttonNormalTint: "rgba(88, 15, 4, 0.9)",
+        buttonSelectedTint: null
+    });
+    api.registerMenubarTool('combat-tracker', {
+        icon: "fas fa-swords",
+        name: "combat-tracker",
+        title: () => "Combat Bar",
+        tooltip: "Show combat tracker secondary bar",
+        onClick: () => api.toggleSecondaryBar('combat'),
+        zone: "middle",
+        group: "combat",
+        groupOrder: 1,
+        order: 2,
+        moduleId: "blacksmith-core",
+        gmOnly: false,
+        leaderOnly: false,
+        visible: () => {
+            const activeCombat = game.combats?.active;
+            return activeCombat != null && activeCombat.combatants?.size > 0;
+        },
+        toggleable: true,
+        active: false,
+        iconColor: null,
+        buttonNormalTint: null,
+        buttonSelectedTint: null
+    });
+    api.registerMenubarTool('combat-window', {
+        icon: "fas fa-swords",
+        name: "combat-window",
+        title: "Tracker",
+        tooltip: "Show the FoundryVTT Combat Tracker window",
+        onClick: () => api.toggleCombatTracker?.(),
+        zone: "middle",
+        group: "combat",
+        groupOrder: 1,
+        order: 3,
+        moduleId: "blacksmith-core",
+        gmOnly: false,
+        leaderOnly: false,
+        visible: false,
+        toggleable: false,
+        active: false,
+        iconColor: null,
+        buttonNormalTint: null,
+        buttonSelectedTint: null
+    });
+});
+
 export { CombatTracker }; 

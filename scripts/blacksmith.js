@@ -325,6 +325,8 @@ Hooks.once('ready', async () => {
             openCombatBar: MenuBar.openCombatBar.bind(MenuBar),
             closeCombatBar: MenuBar.closeCombatBar.bind(MenuBar),
             updateCombatBar: MenuBar.updateCombatBar.bind(MenuBar),
+            createCombat: MenuBar.createCombat?.bind(MenuBar),
+            toggleCombatTracker: MenuBar.toggleCombatTracker?.bind(MenuBar),
             testNotificationSystem: MenuBar.testNotificationSystem.bind(MenuBar),
             testSecondaryBarSystem: MenuBar.testSecondaryBarSystem.bind(MenuBar),
             renderMenubar: MenuBar.renderMenubar.bind(MenuBar),
@@ -1134,6 +1136,8 @@ Hooks.once('init', async function() {
             openCombatBar: MenuBar.openCombatBar.bind(MenuBar),
             closeCombatBar: MenuBar.closeCombatBar.bind(MenuBar),
             updateCombatBar: MenuBar.updateCombatBar.bind(MenuBar),
+            createCombat: MenuBar.createCombat?.bind(MenuBar),
+            toggleCombatTracker: MenuBar.toggleCombatTracker?.bind(MenuBar),
             registerMenubarVisibilityOverride: MenuBar.registerMenubarVisibilityOverride.bind(MenuBar),
             unregisterMenubarVisibilityOverride: MenuBar.unregisterMenubarVisibilityOverride.bind(MenuBar)
         });

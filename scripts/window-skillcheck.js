@@ -1,6 +1,6 @@
 // Import required modules
 import { MODULE } from './const.js';
-import { playSound, rollCoffeePubDice, postConsoleAndNotification } from './api-core.js';
+import { playSound, rollCoffeePubDice, postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 import { SocketManager } from './manager-sockets.js';
 import { skillDescriptions, abilityDescriptions, saveDescriptions, toolDescriptions } from '../resources/dictionary.js';
@@ -2271,3 +2271,30 @@ export class SkillCheckDialog extends Application {
 
 
 }
+
+// Register menubar tool via API (same pattern as external modules)
+Hooks.once('ready', () => {
+    const api = game.modules.get(MODULE.ID)?.api;
+    if (!api?.registerMenubarTool) return;
+    api.registerMenubarTool('skillcheck', {
+        icon: "fa-solid fa-dice",
+        name: "skillcheck",
+        title: "Request Roll",
+        tooltip: null,
+        onClick: () => new SkillCheckDialog().render(true),
+        zone: "middle",
+        group: "utility",
+        groupOrder: 2,
+        order: 1,
+        moduleId: "blacksmith-core",
+        gmOnly: true,
+        leaderOnly: false,
+        visible: () => getSettingSafely(MODULE.ID, 'requestRollShowInMenubar', true),
+        toggleable: false,
+        active: false,
+        iconColor: null,
+        buttonNormalTint: null,
+        buttonSelectedTint: null
+    });
+});
+
