@@ -4033,13 +4033,6 @@ export const registerSettings = () => {
 
 
 	// --------------------------------------
-	// -- H3: Image Replacement Data Weights
-	// --------------------------------------
-	registerHeader('TokenImageReplacementDataWeights', 'headingH3TokenImageReplacementDataWeights-Label', 'headingH3TokenImageReplacementDataWeights-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
-
-
-
-	// --------------------------------------
 	// -- H2: Encounters
 	// --------------------------------------
 	registerHeader('AutomatedEncounters', 'headingH2AutomatedEncounters-Label', 'headingH2AutomatedEncounters-Hint', 'H2', WORKFLOW_GROUPS.AUTOMATION, 'world');
