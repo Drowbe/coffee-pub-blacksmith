@@ -322,3 +322,34 @@ export class PerformanceUtility {
         postConsoleAndNotification(MODULE.NAME, "Performance Utility: Initialized", "", true, false);
     }
 }
+
+// Register Menubar Tool for Performance Monitor
+Hooks.once('ready', () => {
+    const api = game.modules.get(MODULE.ID)?.api;
+    if (!api) return;
+
+    api.registerMenubarTool('memory-monitor', {
+        icon: "fa-solid fa-chart-simple",
+        name: "memory-monitor",
+        title: () => {
+            return PerformanceUtility.getMemoryDisplayString();
+        },
+        tooltip: null,
+        onClick: () => {
+            PerformanceUtility.showPerformanceCheck();
+        },
+        zone: "left",
+        group: "general",
+        groupOrder: 100, // GENERAL group
+        order: 5,
+        moduleId: "blacksmith-core",
+        gmOnly: false,
+        leaderOnly: false,
+        visible: false, // Settings-driven
+        toggleable: false,
+        active: false,
+        iconColor: null,
+        buttonNormalTint: null,
+        buttonSelectedTint: null
+    });
+});

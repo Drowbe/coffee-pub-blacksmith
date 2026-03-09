@@ -6,6 +6,7 @@ import { HookManager } from './manager-hooks.js';
 import { MovementConfig } from './token-movement.js';
 import { PerformanceUtility } from './utility-performance.js';
 import { QuickViewUtility } from './utility-quickview.js';
+import { CoreUIUtility } from './utility-core.js';
 import { VoteConfig } from './vote-config.js';
 import { XpManager } from './xp-manager.js';
 import { CSSEditor } from './window-gmtools.js';
@@ -911,199 +912,6 @@ class MenuBar {
 
         // **************** LEFT ZONE ****************
 
-        // START MENU (left-click opens context menu with core utility actions)
-        this.registerMenubarTool('left-start-menu', {
-            icon: "fa-solid fa-bars",
-            name: "left-start-menu",
-            title: "",
-            tooltip: "Open menu",
-            onClick: (event) => {
-                const items = this._getLeftStartMenuItems();
-                if (!Array.isArray(items) || items.length === 0) return;
-
-                const trigger = event?.target?.closest?.('[data-tool]');
-                const rect = trigger?.getBoundingClientRect?.();
-                const x = Number.isFinite(event?.clientX) ? event.clientX : Math.round((rect?.left ?? 0) + ((rect?.width ?? 0) / 2));
-                const y = Number.isFinite(event?.clientY) ? event.clientY : Math.round(rect?.bottom ?? 0);
-                this._showMenubarContextMenu(items, x, y);
-            },
-            zone: "left",
-            group: "general",
-            groupOrder: this.GROUP_ORDER.GENERAL,
-            order: 1,
-            moduleId: "blacksmith-core",
-            gmOnly: false,
-            leaderOnly: false,
-            visible: true,
-            toggleable: false,
-            active: false,
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
-        
-        // SETTINGS
-        this.registerMenubarTool('settings', {
-            icon: "fa-solid fa-gear",
-            name: "settings",
-            title: "Open Foundry Settings",
-            tooltip: null,
-            onClick: () => {
-                game.settings.sheet.render(true);
-            },
-            zone: "left",
-            group: "general",
-            groupOrder: this.GROUP_ORDER.GENERAL,
-            order: 1,
-            moduleId: "blacksmith-core",
-            gmOnly: false,
-            leaderOnly: false,
-            visible: false,
-            toggleable: false,
-            active: false,
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
-
-        // REFRESH
-        this.registerMenubarTool('refresh', {
-            icon: "fa-solid fa-rotate",
-            name: "refresh", 
-            title: "Refresh Foundry",
-            tooltip: null,
-            onClick: () => {
-                window.location.reload();
-            },
-            zone: "left",
-            group: "general",
-            groupOrder: this.GROUP_ORDER.GENERAL,
-            order: 2,
-            moduleId: "blacksmith-core",
-            gmOnly: false,
-            leaderOnly: false,
-            visible: false,
-            toggleable: false,
-            active: false,
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
-
-        // TOGGLE UI
-        this.registerMenubarTool('interface', {
-            icon: "fa-solid fa-sidebar",
-            name: "interface",
-            title: () => {
-                // Dynamic title based on current UI state
-                const isHidden = this.isInterfaceHidden();
-                return isHidden ? "" : "";
-            },
-            tooltip: "Hide/Show Core Foundry Interface including toolbars, party window, and macros",
-            onClick: () => {
-                this.toggleInterface();
-            },
-            zone: "left",
-            group: "general",
-            groupOrder: this.GROUP_ORDER.GENERAL,
-            order: 3,
-            moduleId: "blacksmith-core",
-            gmOnly: false,
-            leaderOnly: false,
-            visible: true,
-            toggleable: false,
-            active: false,
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
-
-        // TOGGLE PINS — left click: hide/show all; right click: context menu (all + per module+type with registered friendly name)
-        this.registerMenubarTool('pins-visibility', {
-            icon: "fa-solid fa-map-pin",
-            name: "pins-visibility",
-            title: '',
-            tooltip: "Hide/Show all pins",
-            onClick: async () => {
-                await PinManager.setGlobalHidden(!PinManager.isGlobalHidden());
-                MenuBar.renderMenubar(true);
-            },
-            zone: "left",
-            group: "general",
-            groupOrder: this.GROUP_ORDER.GENERAL,
-            order: 4,
-            moduleId: "blacksmith-core",
-            gmOnly: false,
-            leaderOnly: false,
-            visible: false,
-            toggleable: true,
-            active: () => {
-                return PinManager.isGlobalHidden();
-            },
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null,
-            contextMenuItems: () => {
-                return this._getPinsVisibilityMenuItems();
-            }
-        });
-
-        // QUICKVIEW — in start menu context menu only (label: "Quick View On" / "Quick View Off")
-        this.registerMenubarTool('quickview', {
-            icon: () => {
-                return QuickViewUtility.getIcon();
-            },
-            name: "quickview",
-            title: () => {
-                return QuickViewUtility.getTitle();
-            },
-            tooltip: "Toggle Clarity Mode: Increase brightness, reveal fog, show all tokens",
-            onClick: async () => {
-                await QuickViewUtility.toggle();
-                MenuBar.renderMenubar();
-            },
-            zone: "left",
-            group: "general",
-            groupOrder: this.GROUP_ORDER.GENERAL,
-            order: 5,
-            moduleId: "blacksmith-core",
-            gmOnly: true,
-            leaderOnly: false,
-            visible: false,
-            toggleable: true,
-            active: () => {
-                return QuickViewUtility.isActive();
-            },
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
-
-        // MEMORY MONITOR
-        this.registerMenubarTool('memory-monitor', {
-            icon: "fa-solid fa-chart-simple",
-            name: "memory-monitor",
-            title: () => {
-                return PerformanceUtility.getMemoryDisplayString();
-            },
-            tooltip: null,
-            onClick: () => {
-                PerformanceUtility.showPerformanceCheck();
-            },
-            zone: "left",
-            group: "general",
-            groupOrder: this.GROUP_ORDER.GENERAL,
-            order: 5,
-            moduleId: "blacksmith-core",
-            gmOnly: false,
-            leaderOnly: false,
-            visible: false,
-            toggleable: false,
-            active: false,
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
 
         // **************** MIDDLE ZONE ****************
 
@@ -4219,7 +4027,7 @@ class MenuBar {
                 toolsByZone: toolsByZone,
                 notifications: Array.from(this.notifications.values()),
                 secondaryBar: secondaryBarData,
-                isInterfaceHidden: this.isInterfaceHidden()
+                isInterfaceHidden: CoreUIUtility.isInterfaceHidden()
             };
 
             // Render the template
@@ -4904,67 +4712,6 @@ class MenuBar {
         });
     }
 
-    /**
-     * Build left start-menu items.
-     * @returns {Array<{name: string, icon: string, description?: string, disabled?: boolean, onClick?: Function, submenu?: Array}>}
-     * @private
-     */
-    static _getLeftStartMenuItems() {
-        const items = [];
-
-        items.push({
-            name: "Refresh",
-            icon: "fa-solid fa-rotate",
-            onClick: () => {
-                window.location.reload();
-            }
-        });
-
-        items.push({
-            name: "Settings",
-            icon: "fa-solid fa-gear",
-            onClick: () => {
-                game.settings.sheet.render(true);
-            }
-        });
-
-        items.push({
-            name: "Performance Check",
-            icon: "fa-solid fa-chart-simple",
-            onClick: () => {
-                PerformanceUtility.showPerformanceCheck();
-            }
-        });
-
-        if (game.user.isGM) {
-            items.push({
-                name: QuickViewUtility.isActive() ? "Quick View Off" : "Quick View On",
-                icon: QuickViewUtility.getIcon(),
-                description: "Clarity mode: increase brightness, reveal fog, show all tokens",
-                onClick: async () => {
-                    await QuickViewUtility.toggle();
-                    MenuBar.renderMenubar();
-                }
-            });
-        }
-
-        const visibilityItems = this._getPinsVisibilityMenuItems();
-        const clearItems = this._getPinsClearMenuItems();
-        const pinsSubmenu = [...visibilityItems];
-        if (visibilityItems.length > 0 && clearItems.length > 0) {
-            pinsSubmenu.push({ separator: true });
-        }
-        pinsSubmenu.push(...clearItems);
-
-        items.push({
-            name: "Pins",
-            icon: "fa-solid fa-map-pin",
-            description: "Visibility and clear options",
-            submenu: pinsSubmenu
-        });
-
-        return items;
-    }
 
     /**
      * Build visibility menu items for pins (used by pin tool right-click and start menu flyout).
@@ -5110,75 +4857,6 @@ class MenuBar {
         return items;
     }
 
-    /**
-     * Check the current state of UI elements to determine if interface is hidden
-     * @returns {boolean} True if any UI elements are hidden
-     */
-    static isInterfaceHidden() {
-        const uiLeft = document.getElementById('ui-left');
-        const uiBottom = document.getElementById('ui-bottom');
-        const uiTop = document.getElementById('ui-top');
-
-        const isLeftHidden = uiLeft && uiLeft.style.display === 'none';
-        const isBottomHidden = uiBottom && uiBottom.style.display === 'none';
-        const isTopHidden = uiTop && uiTop.style.display === 'none';
-
-        return isLeftHidden || isBottomHidden || isTopHidden;
-    }
-
-    /**
-     * Toggle the FoundryVTT Combat Tracker window
-     */
-    static toggleCombatTracker() {
-        try {
-            const wasOpen = CombatTracker.isCombatTrackerOpen();
-            
-            if (wasOpen) {
-                CombatTracker.closeCombatTracker();
-                ui.notifications.info("Combat Tracker hidden");
-            } else {
-                CombatTracker.openCombatTracker();
-                ui.notifications.info("Combat Tracker shown");
-            }
-            
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Error toggling combat tracker", error, false, false);
-        }
-    }
-
-    /**
-     * Toggle the FoundryVTT interface visibility
-     */
-    static toggleInterface() {
-        const uiLeft = document.getElementById('ui-left');
-        const uiBottom = document.getElementById('ui-bottom');
-        const uiTop = document.getElementById('ui-top');
-        const label = document.querySelector('.interface-label');
-
-        // Check if any UI element that can be hidden is currently hidden
-        const isLeftHidden = uiLeft && uiLeft.style.display === 'none';
-        const isBottomHidden = uiBottom && uiBottom.style.display === 'none';
-        const isTopHidden = uiTop && uiTop.style.display === 'none';
-        const isAnyHidden = isLeftHidden || isBottomHidden || isTopHidden;
-
-        // Get the settings
-        const hideLeftUI = game.settings.get(MODULE.ID, 'canvasToolsHideLeftUI');
-        const hideBottomUI = game.settings.get(MODULE.ID, 'canvasToolsHideBottomUI');
-
-        if (isAnyHidden) {
-            ui.notifications.info("Showing the Interface...");
-            if (hideLeftUI && isLeftHidden) uiLeft.style.display = 'inherit';
-            if (hideBottomUI && isBottomHidden) uiBottom.style.display = 'inherit';
-            if (isTopHidden) uiTop.style.display = 'inherit';
-            if (label) label.textContent = '';
-        } else {
-            ui.notifications.info("Hiding the Interface...");
-            if (hideLeftUI) uiLeft.style.display = 'none';
-            if (hideBottomUI) uiBottom.style.display = 'none';
-            if (uiTop) uiTop.style.display = 'none';
-            if (label) label.textContent = '';
-        }
-    }
 
     /**
      * Open the XP Distribution window

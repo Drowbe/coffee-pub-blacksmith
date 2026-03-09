@@ -551,3 +551,42 @@ export class QuickViewUtility {
     return { sx, sy };
   }
 }
+
+// Register Menubar Tool for Quick View
+Hooks.once('ready', () => {
+    const api = game.modules.get(MODULE.ID)?.api;
+    if (!api) return;
+
+    api.registerMenubarTool('quickview', {
+        icon: () => {
+            return QuickViewUtility.getIcon();
+        },
+        name: "quickview",
+        title: () => {
+            return QuickViewUtility.getTitle();
+        },
+        tooltip: "Toggle Clarity Mode: Increase brightness, reveal fog, show all tokens",
+        onClick: async () => {
+            await QuickViewUtility.toggle();
+            // Trigger menubar re-render
+            if (typeof api.renderMenubar === 'function') {
+                api.renderMenubar();
+            }
+        },
+        zone: "left",
+        group: "general",
+        groupOrder: 100, // GENERAL group
+        order: 5,
+        moduleId: "blacksmith-core",
+        gmOnly: true,
+        leaderOnly: false,
+        visible: false, // Settings-driven visibility handled elsewhere/dynamically if needed
+        toggleable: true,
+        active: () => {
+            return QuickViewUtility.isActive();
+        },
+        iconColor: null,
+        buttonNormalTint: null,
+        buttonSelectedTint: null
+    });
+});
