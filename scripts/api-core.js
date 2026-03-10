@@ -32,7 +32,8 @@ export function getSettingSafely(moduleId, settingKey, defaultValue = null) {
 
 /**
  * Safely set a setting value, only if the setting is registered.
- * Non-GM users cannot update world-scoped settings; the call is skipped and returns true to avoid permission errors.
+ * Non-GM users cannot update world-scoped settings; the call is skipped to avoid permission errors.
+ * If the server rejects with a permission error, we swallow it and return true so callers don't break.
  * @param {string} moduleId - The module ID
  * @param {string} settingKey - The setting key
  * @param {*} value - The value to set
@@ -43,14 +44,16 @@ export async function setSettingSafely(moduleId, settingKey, value) {
     if (!game?.settings?.settings?.has(key)) {
         return false;
     }
-    const setting = game.settings.settings.get(key);
-    if (setting?.scope === 'world' && !game.user?.isGM) {
-        return true;
+    if (!game.user?.isGM) {
+        const setting = game.settings.settings.get(key);
+        const isWorldScope = setting?.scope === 'world' || setting?.config?.scope === 'world';
+        if (isWorldScope) return true;
     }
     try {
         await game.settings.set(moduleId, settingKey, value);
         return true;
     } catch (error) {
+        if (!game.user?.isGM) return true;
         return false;
     }
 }

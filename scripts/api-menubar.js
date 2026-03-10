@@ -5202,9 +5202,9 @@ class MenuBar {
                             // Send messages when selecting from dialog
                             await MenuBar.setNewLeader({ userId, actorId }, true);
                         } else {
-                    
+
                             // Handle clearing the leader if none selected
-                            await game.settings.set(MODULE.ID, 'partyLeader', { userId: '', actorId: '' });
+                            await setSettingSafely(MODULE.ID, 'partyLeader', { userId: '', actorId: '' });
                             this.currentLeader = null;
                             await this.updateLeader(null);
                         }

@@ -107,7 +107,7 @@ export class VoteManager {
                         nativeHtml = html[0] || html.get?.(0) || html;
                     }
                     
-                    // Vote button click handler
+                    // Vote button click handler (use VoteManager explicitly — hook callback "this" is not VoteManager)
                     nativeHtml.querySelectorAll('.vote-button').forEach(button => {
                         button.addEventListener('click', async (event) => {
                             event.preventDefault();
@@ -117,7 +117,7 @@ export class VoteManager {
                                 return;
                             }
                             const optionId = event.currentTarget.dataset.optionId;
-                            await this.castVote(game.user.id, optionId);
+                            await VoteManager.castVote(game.user.id, optionId);
                         });
                     });
 
@@ -131,15 +131,15 @@ export class VoteManager {
                             if (closeVoteButton) {
                                 closeVoteButton.addEventListener('click', async (event) => {
                                     event.preventDefault();
-                                    await this.closeVote();
+                                    await VoteManager.closeVote();
                                 });
                             }
                         }
                     }
 
                     // Add visual indicators for votes and GM status
-                    if (this.activeVote?.votes) {
-                        const userVote = this.activeVote.votes[game.user.id];
+                    if (VoteManager.activeVote?.votes) {
+                        const userVote = VoteManager.activeVote.votes[game.user.id];
                         nativeHtml.querySelectorAll('.vote-button').forEach((button) => {
                             const optionId = button.dataset.optionId;
                             
@@ -524,8 +524,9 @@ export class VoteManager {
             this.activeVote.votes = {};
         }
 
-        // Record the vote
+        // Record the vote (capture reference before any await—closeVote() may set activeVote to null)
         this.activeVote.votes[voterId] = choiceId;
+        const votesToSync = this.activeVote.votes;
 
         // Play button sound when vote is cast
         playSound(window.COFFEEPUB?.SOUNDBUTTON07, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
@@ -537,17 +538,16 @@ export class VoteManager {
 
         if ((isGM || isLeader) && isInitiator) {
             await this._updateVoteMessage();
-            
             // Check if everyone has voted and close automatically if they have
             if (this._haveAllPlayersVoted()) {
                 await this.closeVote();
             }
         }
 
-        // Notify other clients
+        // Notify other clients (use captured reference—activeVote may be null if vote just closed)
         const socket = SocketManager.getSocket();
         await socket.executeForOthers("receiveVoteUpdate", {
-            votes: this.activeVote.votes
+            votes: votesToSync
         });
     }
 
