@@ -8,6 +8,7 @@ import { postConsoleAndNotification, resolveWildcardPath } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { EncounterManager } from './manager-encounter.js';
 import { deployTokens, deployTokensSequential, getDefaultTokenData, validateActorUUID, getTargetPosition, calculateCirclePosition, calculateScatterPosition, calculateSquarePosition, getDeploymentPatternName } from './api-tokens.js';
+import { clearPartyFromCanvas } from './utility-party.js';
 
 export class EncounterToolbar {
     
@@ -1532,6 +1533,54 @@ Hooks.once('ready', async () => {
         order: 2,
         visible: () => game.user.isGM,
         onClick: () => EncounterManager.revealHiddenTokens()
+    });
+    api.registerSecondaryBarItem('encounter', 'clear-party', {
+        zone: 'middle',
+        icon: 'fas fa-users-slash',
+        label: 'Clear Party',
+        tooltip: 'Remove all party member tokens from the canvas',
+        group: 'actions',
+        order: 3,
+        visible: () => game.user.isGM,
+        onClick: async () => {
+            try {
+                await clearPartyFromCanvas();
+            } catch (e) {
+                console.error('Encounter bar: Clear Party', e);
+            }
+        }
+    });
+    api.registerSecondaryBarItem('encounter', 'clear-monsters', {
+        zone: 'middle',
+        icon: 'fas fa-dragon',
+        label: 'Clear Monsters',
+        tooltip: 'Remove all monster (non-humanoid) NPC tokens. Humanoid NPCs (e.g. merchants) are left.',
+        group: 'actions',
+        order: 4,
+        visible: () => game.user.isGM,
+        onClick: async () => {
+            try {
+                await EncounterManager.clearMonstersFromCanvas();
+            } catch (e) {
+                console.error('Encounter bar: Clear Monsters', e);
+            }
+        }
+    });
+    api.registerSecondaryBarItem('encounter', 'clear-npcs', {
+        zone: 'middle',
+        icon: 'fas fa-people-line',
+        label: 'Clear NPCs',
+        tooltip: 'Remove humanoid NPC tokens (e.g. merchants, guards). Party and monsters are not removed.',
+        group: 'actions',
+        order: 5,
+        visible: () => game.user.isGM,
+        onClick: async () => {
+            try {
+                await EncounterManager.clearNpcsFromCanvas();
+            } catch (e) {
+                console.error('Encounter bar: Clear NPCs', e);
+            }
+        }
     });
 
     api.registerSecondaryBarTool?.('encounter', 'encounter');

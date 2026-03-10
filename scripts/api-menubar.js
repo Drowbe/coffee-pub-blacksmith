@@ -14,7 +14,7 @@ import { SkillCheckDialog } from './window-skillcheck.js';
 import { CombatTracker } from './combat-tracker.js';
 import { StatsWindow } from './window-stats-party.js';
 import { RoundTimer } from './timer-round.js';
-import { deployParty } from './utility-party.js';
+import { deployParty, clearPartyFromCanvas } from './utility-party.js';
 import { getDeploymentPatternName } from './api-tokens.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
 import { PartyManager } from './manager-party.js';
@@ -1206,6 +1206,24 @@ class MenuBar {
             visible: () => game.user.isGM,
             onClick: () => {
                 this.openXpDistribution();
+            }
+        });
+
+        // Clear Party (GM only) — middle zone
+        this.registerSecondaryBarItem('party', 'clear-party', {
+            zone: 'middle',
+            icon: 'fas fa-users-slash',
+            label: 'Clear Party',
+            tooltip: 'Remove all party member tokens from the canvas',
+            group: 'default',
+            order: 5,
+            visible: () => game.user.isGM,
+            onClick: async () => {
+                try {
+                    await clearPartyFromCanvas();
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Party Tools: Error clearing party", error.message, false, false);
+                }
             }
         });
 
@@ -5031,7 +5049,7 @@ class MenuBar {
                 actor.hasPlayerOwner
             )
             .map(actor => {
-                const ownerEntry = Object.entries(actor.ownership)
+                const ownerEntries = Object.entries(actor.ownership)
                     .filter(([userId, level]) =>
                         level === 3 &&
                         !this._isUserExcluded(game.users.get(userId))
@@ -5041,7 +5059,10 @@ class MenuBar {
                         user: game.users.get(userId),
                         level
                     }))
-                    .find(entry => entry.user && entry.user.active);
+                    .filter(entry => entry.user && entry.user.active);
+
+                // Prefer non-GM owner for display (so player name shows when they're logged in, not "Game Master")
+                const ownerEntry = ownerEntries.find(e => !e.user.isGM) ?? ownerEntries[0] ?? null;
 
                 if (ownerEntry) {
                     return {

@@ -187,4 +187,73 @@ export class EncounterManager {
             postConsoleAndNotification(MODULE.NAME, 'EncounterManager: Error revealing tokens', error?.message ?? error, false, true);
         }
     }
+
+    /**
+     * Remove from the current scene all NPC tokens that are "monsters" (non-humanoid).
+     * Humanoid NPCs (e.g. merchants, guards) are left on the canvas. GM only.
+     * D&D 5e: creature type is actor.system.details.type.value (or details.creatureType).
+     * If creature type is missing, the token is not removed (safe default).
+     * @returns {Promise<number>} Number of tokens removed
+     */
+    static async clearMonstersFromCanvas() {
+        if (!game.user?.isGM) {
+            postConsoleAndNotification(MODULE.NAME, 'Clear Monsters: Only GMs can clear monster tokens', '', false, false);
+            return 0;
+        }
+        const scene = canvas?.scene;
+        if (!scene) {
+            ui.notifications.warn('No active scene.');
+            return 0;
+        }
+        const humanoidType = 'humanoid';
+        const toRemove = scene.tokens.filter((token) => {
+            const actor = token.actor;
+            if (!actor || actor.type !== 'npc') return false;
+            const creatureType = actor.system?.details?.type?.value ?? actor.system?.details?.creatureType ?? '';
+            if (creatureType === '') return false; // unknown type: do not remove
+            return creatureType.toLowerCase() !== humanoidType;
+        }).map(t => t.id);
+        if (toRemove.length === 0) {
+            ui.notifications.info('No monster tokens on the canvas.');
+            return 0;
+        }
+        await scene.deleteEmbeddedDocuments('Token', toRemove);
+        postConsoleAndNotification(MODULE.NAME, 'Clear Monsters: Cleared non-humanoid NPCs from canvas', `${toRemove.length} token(s) removed`, false, false);
+        ui.notifications.info(`Removed ${toRemove.length} monster token(s) from the canvas.`);
+        return toRemove.length;
+    }
+
+    /**
+     * Remove from the current scene all NPC tokens that are humanoid (e.g. merchants, guards).
+     * Does not remove party tokens or monster (non-humanoid) NPCs. GM only.
+     * D&D 5e: creature type is actor.system.details.type.value (or details.creatureType).
+     * Only tokens with creature type exactly "humanoid" are removed; missing type = not removed.
+     * @returns {Promise<number>} Number of tokens removed
+     */
+    static async clearNpcsFromCanvas() {
+        if (!game.user?.isGM) {
+            postConsoleAndNotification(MODULE.NAME, 'Clear NPCs: Only GMs can clear NPC tokens', '', false, false);
+            return 0;
+        }
+        const scene = canvas?.scene;
+        if (!scene) {
+            ui.notifications.warn('No active scene.');
+            return 0;
+        }
+        const humanoidType = 'humanoid';
+        const toRemove = scene.tokens.filter((token) => {
+            const actor = token.actor;
+            if (!actor || actor.type !== 'npc') return false;
+            const creatureType = actor.system?.details?.type?.value ?? actor.system?.details?.creatureType ?? '';
+            return creatureType.toLowerCase() === humanoidType;
+        }).map(t => t.id);
+        if (toRemove.length === 0) {
+            ui.notifications.info('No humanoid NPC tokens on the canvas.');
+            return 0;
+        }
+        await scene.deleteEmbeddedDocuments('Token', toRemove);
+        postConsoleAndNotification(MODULE.NAME, 'Clear NPCs: Cleared humanoid NPCs from canvas', `${toRemove.length} token(s) removed`, false, false);
+        ui.notifications.info(`Removed ${toRemove.length} NPC token(s) from the canvas.`);
+        return toRemove.length;
+    }
 }

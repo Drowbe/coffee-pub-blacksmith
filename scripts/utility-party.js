@@ -104,3 +104,31 @@ export async function deployParty() {
     return deployedTokens;
 }
 
+/**
+ * Remove all party member tokens from the current scene.
+ * GM only. Party members = player-owned characters (same as getPartyMembers).
+ * @returns {Promise<number>} Number of tokens removed
+ */
+export async function clearPartyFromCanvas() {
+    if (!game.user.isGM) {
+        postConsoleAndNotification(MODULE.NAME, "Party Tools: Only GMs can clear party tokens", "", false, false);
+        return 0;
+    }
+    const scene = canvas?.scene;
+    if (!scene) {
+        ui.notifications.warn("No active scene.");
+        return 0;
+    }
+    const partyMembers = getPartyMembers();
+    const partyActorIds = new Set(partyMembers.map(a => a.id));
+    const toRemove = scene.tokens.filter(t => t.actorId && partyActorIds.has(t.actorId)).map(t => t.id);
+    if (toRemove.length === 0) {
+        ui.notifications.info("No party tokens on the canvas.");
+        return 0;
+    }
+    await scene.deleteEmbeddedDocuments('Token', toRemove);
+    postConsoleAndNotification(MODULE.NAME, "Party Tools: Cleared party from canvas", `${toRemove.length} token(s) removed`, false, false);
+    ui.notifications.info(`Removed ${toRemove.length} party token(s) from the canvas.`);
+    return toRemove.length;
+}
+
