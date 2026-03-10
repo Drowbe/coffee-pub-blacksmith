@@ -1095,10 +1095,17 @@ Combat Tracker Tunables
     cursor: not-allowed;
    }
   
+
+
+
+
+
+
+
   /* =========================
      Portrait Container
      ========================= */
-    .blacksmith-menubar-secondary .combat-portrait-container {
+     .blacksmith-menubar-secondary .combat-portrait-container {
         position: relative;
         width: var(--portrait-container-width);
         height: var(--portrait-container-height);
@@ -1107,7 +1114,7 @@ Combat Tracker Tunables
         transition: transform .10s ease, box-shadow .15s ease, border-color .10s ease;
         border: 2px solid rgba(0, 0, 0, 0.0);
         background: rgba(0, 0, 0, 0.3);
-        border-radius: 3px;
+        border-radius: 4px;
     }
 
     .blacksmith-menubar-secondary .combat-portrait-container.combat-token-hidden {
@@ -1141,7 +1148,7 @@ Combat Tracker Tunables
         border: none;
         width: var(--portrait-size);
         height: var(--portrait-size);
-        background: rgba(0, 0, 0, 0.75);
+        background: rgba(0, 0, 0, 0.9);
     }
   
     .blacksmith-menubar-secondary .combat-portrait-image img {
@@ -1162,12 +1169,19 @@ Combat Tracker Tunables
     .blacksmith-menubar-secondary .combat-portrait-container:hover {
         transform: scale(1.0);
         border-color: rgba(223, 98, 20, 0.9);
-        background: rgba(223, 98, 20, 0.2);
+        background: rgba(223, 98, 20, 0.1);
     }
+    
+      
+    .blacksmith-menubar-secondary .combat-portrait-image img:hover {
+        transform: scale(1.4);
+    }
+    
+    
         
     .blacksmith-menubar-secondary .combat-portrait-container.current {
-        border-color: rgba(223, 98, 24, 0.1);
-        background: rgba(153, 106, 38, 0.7);
+        border-color: rgba(255, 136, 0, 0.0);
+        background: rgba(255, 136, 0, 0.4);
     }
         
 
@@ -1181,7 +1195,15 @@ Combat Tracker Tunables
     opacity: .9;
     background: rgba(53, 28, 32, 0.7);
     }
-  
+
+
+
+
+
+
+
+
+
   /* =========================
      Health Ring
      ========================= */
@@ -1235,6 +1257,14 @@ Combat Tracker Tunables
     }
 
  
+
+
+
+
+
+
+
+
 /* =========================
 Control Buttons
 ========================= */
@@ -1271,7 +1301,7 @@ Control Buttons
     transition: background 0.15s ease, color 0.15s ease;
     font-size: var(--combatbar-button-font-size);
     border: none;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(58, 138, 67, 0.9);
     color: var(--blacksmith-menubar-secondary-fontcolor);
 }
 .blacksmith-menubar-secondary .combatbar-button {
@@ -1289,12 +1319,18 @@ Control Buttons
     padding: 0 0 0 8px;
 }
 
+
+.blacksmith-menubar-secondary .action-button .action-type-general {
+    background: rgba(44, 74, 90, 0.6);
+    color: rgba(255, 255, 255, 1);
+}
+
 .blacksmith-menubar-secondary .action-button .action-type-begin {
-    background: rgba(27, 63, 31, 0.85);
+    background: rgba(58, 138, 67, 0.9);
     color: rgba(255, 255, 255, 1);
 }
 .blacksmith-menubar-secondary .action-button .action-type-end{
-    background: rgba(30, 23, 29, 0.85);
+    background: rgba(164, 28, 7, 0.9);
     color: rgba(255, 255, 255, 1);
 }
 .blacksmith-menubar-secondary .action-button .action-type-roll{
@@ -1303,13 +1339,16 @@ Control Buttons
 }
 
 .blacksmith-menubar-secondary .combatbar-button:hover:not(.combatbar-button-disabled) {
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(184, 83, 60, 0.9);
     color: var(--blacksmith-menubar-secondary-fontcolor);
 }
 
 .blacksmith-menubar-secondary .combatbar-button:active:not(.combatbar-button-disabled) {
     background: rgba(0, 0, 0, 0.5);
 }
+
+
+
 
  
 /* =========================
