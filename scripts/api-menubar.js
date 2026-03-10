@@ -17,6 +17,7 @@ import { RoundTimer } from './timer-round.js';
 import { deployParty } from './utility-party.js';
 import { getDeploymentPatternName } from './api-tokens.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
+import { PartyManager } from './manager-party.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { PinManager } from './manager-pins.js';
 
@@ -400,6 +401,10 @@ class MenuBar {
                 // Check if actor is in combat
                 if (MenuBar._isCombatBarActive()) {
                     MenuBar._handleActorHpChange(actor, updateData);
+                }
+                // Refresh party health progressbar when party bar is open (party members are actors)
+                if (MenuBar.secondaryBar.isOpen && MenuBar.secondaryBar.type === 'party') {
+                    MenuBar._refreshPartyBarInfo();
                 }
             }
         });
@@ -1084,7 +1089,23 @@ class MenuBar {
 
 
     /**
-     * Register party tools in the party secondary bar
+     * Refresh party bar info items (e.g. party health progressbar). Called on register, when party bar opens, and on updateActor.
+     * @private
+     */
+    static _refreshPartyBarInfo() {
+        const api = game.modules.get(MODULE.ID)?.api;
+        if (!api?.updateSecondaryBarItemInfo) return;
+        const health = PartyManager.getPartyHealthSummary();
+        api.updateSecondaryBarItemInfo('party', 'party-health', {
+            percentProgress: health.percent,
+            leftLabel: health.currentDisplay,
+            rightLabel: health.maxDisplay
+        });
+    }
+
+    /**
+     * Register party tools in the party secondary bar.
+     * Layout: middle zone = action buttons (Deployment, Deploy Party, Vote, Statistics, Experience); right zone = party health progressbar.
      * @private
      */
     static _registerPartyTools() {
@@ -1094,8 +1115,9 @@ class MenuBar {
             return getDeploymentPatternName(currentPattern);
         };
         
-        // Register Deployment Pattern button (cycles through patterns)
+        // Register Deployment Pattern button (cycles through patterns) — middle zone
         this.registerSecondaryBarItem('party', 'deployment-pattern', {
+            zone: 'middle',
             icon: 'fas fa-grid-2-plus',
             label: getCurrentPatternName(),
             tooltip: `Click to cycle deployment pattern (Current: ${getCurrentPatternName()})`,
@@ -1127,8 +1149,9 @@ class MenuBar {
             }
         });
         
-        // Register Deploy Party tool
+        // Register Deploy Party tool — middle zone
         this.registerSecondaryBarItem('party', 'deploy-party', {
+            zone: 'middle',
             icon: 'fas fa-map-marker-alt',
             label: 'Deploy Party',
             tooltip: 'Deploy all party members to the canvas',
@@ -1145,8 +1168,9 @@ class MenuBar {
             }
         });
 
-        // Vote (visible to GM or current session leader only)
+        // Vote (visible to GM or current session leader only) — middle zone
         this.registerSecondaryBarItem('party', 'vote', {
+            zone: 'middle',
             icon: 'fa-solid fa-check-to-slot',
             label: 'Vote',
             tooltip: 'Vote',
@@ -1158,8 +1182,9 @@ class MenuBar {
             }
         });
 
-        // Party Statistics
+        // Party Statistics — middle zone
         this.registerSecondaryBarItem('party', 'party-stats', {
+            zone: 'middle',
             icon: 'fas fa-chart-line',
             label: 'Statistics',
             tooltip: 'Open combat statistics, history, and leaderboard',
@@ -1170,8 +1195,9 @@ class MenuBar {
             }
         });
 
-        // Experience (GM only)
+        // Experience (GM only) — middle zone
         this.registerSecondaryBarItem('party', 'xp-distribution', {
+            zone: 'middle',
             icon: 'fas fa-star',
             label: 'Experience',
             tooltip: 'Open Experience Points Distribution Worksheet',
@@ -1182,7 +1208,28 @@ class MenuBar {
                 this.openXpDistribution();
             }
         });
-        
+
+        // Party health progressbar — right zone (sum of party HP current/max, 100% = total max)
+        const initialHealth = PartyManager.getPartyHealthSummary();
+        this.registerSecondaryBarItem('party', 'party-health', {
+            kind: 'progressbar',
+            zone: 'right',
+            width: 220,
+            height: 14,
+            borderColor: 'rgba(0,0,0,0.5)',
+            barColor: '#2d5016',
+            progressColor: '#4a7c23',
+            percentProgress: initialHealth.percent,
+            leftLabel: initialHealth.currentDisplay,
+            rightLabel: initialHealth.maxDisplay,
+            group: 'health',
+            order: 0,
+            tooltip: 'Party total HP'
+        });
+
+        // Initial refresh of party health progressbar
+        this._refreshPartyBarInfo();
+
         // Listen for deployment pattern setting changes to update the button label
         HookManager.registerHook({
             name: 'settingChange',
@@ -2779,6 +2826,11 @@ class MenuBar {
                         actionButton: null
                     };
                 }
+            }
+
+            // For party bar, refresh party health progressbar so it shows current HP
+            if (typeId === 'party') {
+                this._refreshPartyBarInfo();
             }
 
             // Set the CSS variables for secondary bar height and total height
