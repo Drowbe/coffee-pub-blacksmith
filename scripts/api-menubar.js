@@ -624,6 +624,27 @@ class MenuBar {
                 return;
             }
             
+            // Scroll combatants strip left/right (no scrollbar)
+            const scrollLeftBtn = event.target.closest('.combat-scroll-arrow[data-control="scrollCombatantsLeft"]');
+            const scrollRightBtn = event.target.closest('.combat-scroll-arrow[data-control="scrollCombatantsRight"]');
+            if (scrollLeftBtn || scrollRightBtn) {
+                event.preventDefault();
+                event.stopPropagation();
+                const bar = event.target.closest('.combat-tracker-bar');
+                const portraits = bar?.querySelector('.combat-portraits');
+                if (portraits) {
+                    // Scroll by ~one portrait width so motion is smooth (small step + scroll-behavior: smooth)
+                    const first = portraits.querySelector('.combat-portrait-container');
+                    const step = first ? first.offsetWidth + (parseInt(getComputedStyle(portraits).gap, 10) || 2) : Math.floor(portraits.clientWidth * 0.4);
+                    portraits.scrollBy({
+                        left: scrollLeftBtn ? -step : step,
+                        behavior: 'smooth'
+                    });
+                    setTimeout(() => MenuBar._updateCombatPortraitScrollArrows(), 400);
+                }
+                return;
+            }
+            
             // Check if this is an action button
             if (event.target.closest('.combatbar-button[data-control="beginCombat"]')) {
                 event.preventDefault();
@@ -818,6 +839,43 @@ class MenuBar {
         document.addEventListener('contextmenu', this._combatBarContextMenuHandler);
         
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers registered", "", true, false);
+    }
+
+    /**
+     * Update combat portrait scroll: show arrows only when overflowing; update disabled state at start/end.
+     * @private
+     */
+    static _updateCombatPortraitScrollArrows() {
+        const wrapper = document.querySelector('.combat-portraits-scroll-wrapper');
+        if (!wrapper) return;
+        const portraits = wrapper.querySelector('.combat-portraits');
+        const leftBtn = wrapper.querySelector('.combat-scroll-arrow[data-control="scrollCombatantsLeft"]');
+        const rightBtn = wrapper.querySelector('.combat-scroll-arrow[data-control="scrollCombatantsRight"]');
+        if (!portraits || !leftBtn || !rightBtn) return;
+        const overflowing = portraits.scrollWidth > portraits.clientWidth + 1;
+        wrapper.classList.toggle('combat-portraits-overflowing', overflowing);
+        if (overflowing) {
+            const atStart = portraits.scrollLeft <= 1;
+            const atEnd = portraits.scrollLeft + portraits.clientWidth >= portraits.scrollWidth - 1;
+            leftBtn.disabled = atStart;
+            rightBtn.disabled = atEnd;
+        }
+    }
+
+    /**
+     * Attach scroll and resize listeners so arrow visibility/state updates when strip is scrolled or bar resized.
+     * @private
+     */
+    static _attachCombatPortraitScrollListener() {
+        const wrapper = document.querySelector('.combat-portraits-scroll-wrapper');
+        const portraits = wrapper?.querySelector('.combat-portraits');
+        if (!portraits || portraits.dataset.scrollListenerAttached === 'true') return;
+        portraits.dataset.scrollListenerAttached = 'true';
+        portraits.addEventListener('scroll', () => MenuBar._updateCombatPortraitScrollArrows(), { passive: true });
+        if (wrapper) {
+            const ro = new ResizeObserver(() => MenuBar._updateCombatPortraitScrollArrows());
+            ro.observe(wrapper);
+        }
     }
 
     /**
@@ -4041,6 +4099,14 @@ class MenuBar {
                 
                 // Add click handlers
                 this.addClickHandlers();
+                
+                // Combat bar: update scroll arrow state and attach scroll listener
+                if (this.secondaryBar.isOpen && this.secondaryBar.type === 'combat') {
+                    requestAnimationFrame(() => {
+                        this._updateCombatPortraitScrollArrows();
+                        this._attachCombatPortraitScrollListener();
+                    });
+                }
                 
                 // Setup middle zone overflow detection (run after layout)
                 requestAnimationFrame(() => this._setupMiddleZoneOverflow());

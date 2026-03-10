@@ -1006,15 +1006,85 @@ Combat Tracker Tunables
     flex: 1;
     justify-content: center;
     align-items: center;
+    min-width: 0;
    }
    
+   /* Wrapper: centers portrait strip when it only takes the space it needs; arrows only when overflowing */
+   .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+   }
+   
+   /* Combatants only take the space they need; centered when not overflowing */
    .blacksmith-menubar-secondary .combat-portraits {
     display: flex;
     gap: var(--gap);
-    justify-content: center;   /* center the row in the bar */
+    justify-content: center;
     align-items: center;
     overflow-x: auto;
+    overflow-y: hidden;
     padding: 0;
+    flex: 0 1 auto;
+    max-width: 100%;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
+   }
+   
+   /* When overflowing: portraits fill space between arrows */
+   .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper.combat-portraits-overflowing .combat-portraits {
+    flex: 1;
+    min-width: 0;
+   }
+   
+   .blacksmith-menubar-secondary .combat-portraits::-webkit-scrollbar {
+    display: none;
+   }
+   
+
+
+
+
+
+  /* =========================
+     Scroll Arrows
+     ========================= */
+
+   /* Arrows hidden by default; shown only when strip overflows */
+   .blacksmith-menubar-secondary .combat-scroll-arrow {
+    flex-shrink: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 100%;
+    min-height: var(--portrait-container-height);
+    padding: 0;
+    border: none;
+    background: rgba(255, 0, 0, 0.4);
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.15s ease, color 0.15s ease;
+   }
+   
+   .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper.combat-portraits-overflowing .combat-scroll-arrow {
+    display: flex;
+   }
+   
+   .blacksmith-menubar-secondary .combat-scroll-arrow:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.6);
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+   }
+   
+   .blacksmith-menubar-secondary .combat-scroll-arrow:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
    }
   
   /* =========================

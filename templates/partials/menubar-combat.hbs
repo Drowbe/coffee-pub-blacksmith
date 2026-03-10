@@ -55,6 +55,11 @@
         {{/if}}
         {{/if}}
         
+        {{!-- Scrollable combatants with left/right arrows (no scrollbar) --}}
+        <div class="combat-portraits-scroll-wrapper">
+            <button type="button" class="combat-scroll-arrow combat-scroll-left" aria-label="Scroll combatants left" data-tooltip="Scroll combatants left" data-control="scrollCombatantsLeft">
+                <i class="fas fa-chevron-left"></i>
+            </button>
         {{!-- Combat Portraits --}}
         <div class="combat-portraits">
         {{#each combatants}}
@@ -124,6 +129,10 @@
                    {{/if}}
                </div>
         {{/each}}
+        </div>
+            <button type="button" class="combat-scroll-arrow combat-scroll-right" aria-label="Scroll combatants right" data-tooltip="Scroll combatants right" data-control="scrollCombatantsRight">
+                <i class="fas fa-chevron-right"></i>
+            </button>
         </div>
         
         
