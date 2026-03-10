@@ -15,10 +15,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Party bar layout and Party Health progressbar**: Party secondary bar **middle zone** = action buttons (Deployment Pattern, Deploy Party, Vote, Statistics, Experience). **Right zone** = Party Health progressbar: heart icon, "Party Health" label to the left of the bar, current/max HP overlaid on the bar (e.g. 616 | 767). Progressbar refreshes on register, when party bar opens, and on `updateActor` when party bar is open; data from `PartyManager.getPartyHealthSummary()`.
 - **Clear Party (party bar and encounter bar)**: New `clearPartyFromCanvas()` in `utility-party.js` removes all party (player-owned character) tokens from the current scene; GM-only. **Party bar** has a "Clear Party" button in the middle zone (GM-only). **Encounter bar** has three new middle-zone buttons (GM-only): **Clear Party** (same behavior), **Clear Monsters**, and **Clear NPCs**.
 - **Encounter bar – Clear Monsters and Clear NPCs**: `EncounterManager.clearMonstersFromCanvas()` in `manager-encounter.js` removes only non-humanoid NPC tokens from the canvas (humanoid NPCs e.g. merchants remain). `EncounterManager.clearNpcsFromCanvas()` removes only humanoid NPC tokens (e.g. merchants, guards); party and monster tokens are not removed. Both use D&D 5e creature type (`actor.system.details.type.value` or `details.creatureType`). Tokens with missing creature type are left unchanged.
+- **Party leader / Vote helpers**: New `isCurrentUserPartyLeader(moduleId)` in `api-core.js`: returns true if the current user is the stored party leader (`partyLeader.userId`) or owns the leader's character (handles legacy data where userId was GM). Used for Vote button visibility, vote-config, vote-manager, and manager-toolbar leader checks.
 
 ### Changed
 
 - **Party bar zones**: All party action buttons now explicitly use `zone: 'middle'`. Party health progressbar uses `zone: 'right'`.
+- **Party leader dropdown**: `_getLeaderEntries()` in `api-menubar.js` now prefers a non-GM active owner for display, so the dropdown shows the logged-in player's name (e.g. "Favia Gita (Favia)") instead of "(Game Master)" when the player has ownership.
+- **Vote visibility**: Vote button (party bar and vote icon state) and "can start vote" logic now use `isCurrentUserPartyLeader()`, so the party leader sees Vote and can start votes even when stored `partyLeader.userId` was set incorrectly (e.g. from an older dropdown).
+- **World-setting writes by non-GMs**: `setNewLeader()` only calls `setSettingSafely('partyLeader', ...)` when `game.user.isGM`. `receiveLeaderUpdate()` no longer writes the setting on receiving clients (display-only; setting syncs from GM). `setSettingSafely()` in `api-core.js`: skips the set when the setting is world-scoped and the user is not a GM (checks `setting.scope` and `setting.config?.scope`); on any thrown error from `game.settings.set` when the user is not a GM, returns `true` so permission errors do not propagate. Leader dialog "None" path now uses `setSettingSafely` instead of direct `game.settings.set`.
+
+### Fixed
+
+- **Vote start error**: `VoteManager.startVote` debug log no longer references undefined `leaderData`; uses `getSettingSafely(MODULE.ID, 'partyLeader', null)` for the log payload.
+- **Vote button on chat card**: `renderChatMessageHTML` hook callback is an arrow function so `this` was not `VoteManager`. Vote and Close handlers now call `VoteManager.castVote`, `VoteManager.closeVote`, and `VoteManager.activeVote` explicitly. Prevents "Cannot read properties of null (reading 'votes')" when clicking vote options in the chat card.
+- **castVote after auto-close**: When the initiator's vote triggers "everyone voted" and `closeVote()` runs, `this.activeVote` is set to null before the code sent the vote update over the socket. `castVote()` now captures `votesToSync` (reference to `this.activeVote.votes`) before any `await` and uses it for `receiveVoteUpdate`, so the socket send no longer dereferences null.
 
 
 ## [13.5.1] - 2026-03-03 - MENUBAR REFACTOR & MANAGE UI
