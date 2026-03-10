@@ -20,7 +20,7 @@
 - **Issue**: Browser tab memory grows to 9.5 GB in ~3 hours while heap stays ~950 MB, leading to crashes.
 - **Status**: IN PROGRESS — see `documentation/performance.md` for full investigation notes, findings, and next steps.
 - **Progress**: 5 of 7 critical/high-priority items completed.
-- **Next Step**: Optimize menubar rerenders (item 6) - introduce state diffing/throttling to reduce frequent rebuilds during combat/timer events. Then address image cache footprint (item 7) if needed.
+- **Next Step**: Validate menubar rerender impact before investing. Profile during combat (memory, FPS); if menubar re-renders are not a hotspot, defer. If needed: low-effort throttle (100–150ms or RAF) for combat hooks first; fragment updates only if profiling justifies the 2–3 day effort. See `documentation/performance.md` §6 for LOE and approach options.
 - **Location**: See `documentation/performance.md`
 
 ## MEDIUM BUGS

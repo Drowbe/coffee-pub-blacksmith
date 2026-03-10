@@ -52,11 +52,18 @@ Centralized notes for long-running performance and memory investigations. Use th
    - **Fix**: Introduced `_teardownWindowResources()` to clear delegated events, cancel tracked timeouts, wipe `this._activeImageElements`, remove the window root, and reset caches. `_updateResults()` now tracks `<img>` nodes so the next render can null their `src`. `close()` unregisters the `controlToken` hook via `HookManager.unregisterHook` and calls the teardown, ensuring each open/close cycle releases DOM/texture memory.
 
 6. **Menubar re-renders too frequently**
-   - **Status**: 🔄 Active (Medium Priority)
+   - **Status**: 🔄 Active (Medium Priority) – validate impact before investing
    - **Files**: `scripts/api-menubar.js`.
-   - **Evidence**: Hook registrations for `updateCombat`, `createCombatant`, `updateCombatant`, `deleteCombatant`, `renderApplication`, `closeApplication`, `updateActor`, `updateToken`, etc., most of which call `MenuBar.renderMenubar(true)` directly.
-   - **Impact**: Any combat/timer/tokenevent rebuilds the entire menubar template, tears down event handlers, and recreates DOM nodes; detached nodes accumulate if cleanup fails. Adds CPU spikes during combat and increases GC pressure.
-   - **Actionable Notes**: Introduce state diffing or throttling (e.g., `requestAnimationFrame` debouncing) and update only the relevant DOM fragments (timer text, leader badge, etc.).
+   - **Evidence**: Hooks (`updateCombat`, `createCombatant`, `updateCombatant`, `deleteCombatant`, `renderApplication`, `closeApplication`, `updateActor`, `updateToken`) → `updateCombatBar` → `updateSecondaryBar` → `renderMenubar(true)`. Combat bar updates trigger full menubar re-render (entire template, DOM teardown, handler reattach).
+   - **Impact**: Full rebuild on each combat/HP/token event; detached nodes if cleanup fails; CPU spikes and GC pressure during combat.
+   - **Mitigating factors**: 50ms debounce already in place; combat events typically a few per round, not continuous.
+   - **Insight**: Benefit may not justify effort without evidence. Five other critical/high items are done; if memory/FPS are stable and no combat lag reported, this is lower priority.
+   - **Approach options** (choose after validation):
+     - **A) Stricter throttling** (~0.5–1 day): Increase debounce or use RAF for combat hooks. Low risk.
+     - **B) Combat bar fragment update** (~2–3 days): `_renderCombatBarOnly(data)` that updates only the combat partial; stop calling `renderMenubar` from `updateSecondaryBar` when combat bar is open. Higher impact, more testing.
+     - **C) Full fragment updates** (~3–4 days): Extend B to all secondary bars; `updateSecondaryBarItemInfo` triggers partial re-render for encounter bar.
+     - **D) State diffing** (~1–2 weeks): Minimal DOM patching. Major refactor.
+   - **Recommendation**: Profile during combat first. If menubar re-renders are not a hotspot → defer. If needed → start with A; only pursue B if profiling shows combat path as significant cost.
 
 7. **Image cache retains entire asset library in memory**
    - **Status**: 🔄 Active (Medium Priority)
