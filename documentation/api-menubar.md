@@ -1536,6 +1536,8 @@ blacksmith.updateSecondaryBarItemInfo('my-encounter', 'difficulty', { value: 'Ha
 - `updates` (Object, required): At least one of:
   - `value` (string, optional): New display value
   - `label` (string, optional): New display label
+  - `borderColor` (string, optional): New border color (e.g. for difficulty badges)
+  - `buttonColor` (string, optional): New background color
 
 **Returns:** `boolean` - Success status
 

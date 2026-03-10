@@ -17,7 +17,6 @@ import { RoundTimer } from './timer-round.js';
 import { deployParty } from './utility-party.js';
 import { getDeploymentPatternName } from './api-tokens.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
-import { EncounterManager } from './manager-encounter.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { PinManager } from './manager-pins.js';
 
@@ -149,8 +148,7 @@ class MenuBar {
         // Register combat bar event handlers
         this._registerCombatBarEvents();
         
-        // When journal encounter toolbar refreshes CRs (token create/update/delete), refresh menubar encounter bar if open
-        Hooks.on('blacksmithEncounterBarRefresh', this._refreshEncounterBarIfOpen.bind(this));
+        // Encounter bar refresh: encounter-toolbar.js calls api.updateSecondaryBarItemInfo directly when tokens change
         
         // Register cleanup hook for module unload
         Hooks.once('ready', () => {
@@ -1069,12 +1067,8 @@ class MenuBar {
             templatePath: 'modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs'
         });
 
-        // Register encounter secondary bar (Party CR, Monster CR, Difficulty, Reveal)
-        await this.registerSecondaryBarType('encounter', {
-            height: this.getSecondaryBarHeight('encounter') || 50,
-            persistence: 'manual',
-            templatePath: 'modules/coffee-pub-blacksmith/templates/partials/menubar-encounter.hbs'
-        });
+        // Register encounter secondary bar (default tool system – items registered from encounter-toolbar.js)
+        // Encounter bar type is registered by encounter-toolbar.js with info items + buttons
 
         // Register party secondary bar (default tool system)
         await this.registerSecondaryBarType('party', {
@@ -2563,12 +2557,12 @@ class MenuBar {
      * Use this to push dynamic content (e.g. "Party CR: 2", "Difficulty: Medium") without re-registering the item.
      * @param {string} barTypeId - The bar type ID
      * @param {string} itemId - The info item ID to update
-     * @param {{ value?: string, label?: string }} updates - New value and/or label (omit keys to leave unchanged)
+     * @param {{ value?: string, label?: string, borderColor?: string, buttonColor?: string }} updates - New value, label, and/or style overrides (omit keys to leave unchanged)
      * @returns {boolean} Success status
      */
     static updateSecondaryBarItemInfo(barTypeId, itemId, updates) {
         try {
-            if (!updates || (updates.value === undefined && updates.label === undefined)) {
+            if (!updates || (updates.value === undefined && updates.label === undefined && updates.borderColor === undefined && updates.buttonColor === undefined)) {
                 return false;
             }
             if (!this.secondaryBarInfoUpdates.has(barTypeId)) {
@@ -2578,6 +2572,8 @@ class MenuBar {
             const existing = map.get(itemId) || {};
             if (updates.value !== undefined) existing.value = updates.value;
             if (updates.label !== undefined) existing.label = updates.label;
+            if (updates.borderColor !== undefined) existing.borderColor = updates.borderColor;
+            if (updates.buttonColor !== undefined) existing.buttonColor = updates.buttonColor;
             map.set(itemId, existing);
 
             if (this.secondaryBar.isOpen && this.secondaryBar.type === barTypeId) {
@@ -2585,7 +2581,7 @@ class MenuBar {
             }
             return true;
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error updating info item", 
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error updating info item",
                 { barTypeId, itemId, error }, false, false);
             return false;
         }
@@ -2760,20 +2756,6 @@ class MenuBar {
                 }
             }
 
-            // For encounter bar, set CR/difficulty and isGM
-            if (typeId === 'encounter') {
-                const assessment = EncounterManager.getCombatAssessment({});
-                const hasQuickEncounterTool = !!this._getQuickEncounterToolbarTool();
-                this.secondaryBar.data = {
-                    partyCRDisplay: assessment.partyCRDisplay,
-                    monsterCRDisplay: assessment.monsterCRDisplay,
-                    difficulty: assessment.difficulty,
-                    difficultyClass: assessment.difficultyClass,
-                    isGM: game.user.isGM,
-                    hasQuickEncounterTool
-                };
-            }
-
             // Set the CSS variables for secondary bar height and total height
             document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', `${this.secondaryBar.height}px`);
             document.documentElement.style.setProperty('--blacksmith-menubar-total-height', `calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height))`);
@@ -2851,24 +2833,6 @@ class MenuBar {
             postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error closing bar", { error }, false, false);
             return false;
         }
-    }
-
-    /**
-     * Refresh the encounter secondary bar with current CR/difficulty when token changes fire (same hooks as journal).
-     * Called from Hooks 'blacksmithEncounterBarRefresh' (fired by encounter-toolbar _updateAllToolbarCRs).
-     * @private
-     */
-    static _refreshEncounterBarIfOpen() {
-        if (!this.secondaryBar.isOpen || this.secondaryBar.type !== 'encounter') return;
-        const assessment = EncounterManager.getCombatAssessment({});
-        this.secondaryBar.data = {
-            partyCRDisplay: assessment.partyCRDisplay,
-            monsterCRDisplay: assessment.monsterCRDisplay,
-            difficulty: assessment.difficulty,
-            difficultyClass: assessment.difficultyClass,
-            isGM: game.user.isGM
-        };
-        this.renderMenubar(true);
     }
 
     /**
@@ -3675,18 +3639,6 @@ class MenuBar {
                         actionButton: null
                     };
                 }
-            } else if (data.type === 'encounter') {
-                // Always refresh encounter bar with current CR/difficulty when re-rendering
-                const assessment = EncounterManager.getCombatAssessment({});
-                const hasQuickEncounterTool = !!this._getQuickEncounterToolbarTool();
-                data.data = {
-                    partyCRDisplay: assessment.partyCRDisplay,
-                    monsterCRDisplay: assessment.monsterCRDisplay,
-                    difficulty: assessment.difficulty,
-                    difficultyClass: assessment.difficultyClass,
-                    isGM: game.user.isGM,
-                    hasQuickEncounterTool
-                };
             } else if (!data.data) {
                 data.data = {};
             }
@@ -3723,6 +3675,8 @@ class MenuBar {
                 const u = infoUpdates.get(item.itemId);
                 item.displayValue = u.value !== undefined ? u.value : item.value;
                 item.displayLabel = u.label !== undefined ? u.label : item.label;
+                if (u.borderColor !== undefined) item.borderColor = u.borderColor;
+                if (u.buttonColor !== undefined) item.buttonColor = u.buttonColor;
             } else if (item.kind === 'info') {
                 item.displayValue = item.value;
                 item.displayLabel = item.label;
@@ -4290,44 +4244,6 @@ class MenuBar {
                 }
             }
             
-            // Check if this is an encounter bar Reveal button
-            const encounterCreateBtn = event.target.closest('.encounter-bar-create-combat, [data-control="encounterCreateCombat"]');
-            if (encounterCreateBtn) {
-                event.preventDefault();
-                event.stopPropagation();
-                this.createCombat();
-                return;
-            }
-
-            const encounterQuickBtn = event.target.closest('.encounter-bar-quick-encounter, [data-control="encounterQuickEncounter"]');
-            if (encounterQuickBtn) {
-                event.preventDefault();
-                event.stopPropagation();
-                this.openQuickEncounterWindow();
-                return;
-            }
-
-            const encounterRevealBtn = event.target.closest('.encounter-bar-reveal, [data-control="encounterReveal"]');
-            if (encounterRevealBtn) {
-                event.preventDefault();
-                event.stopPropagation();
-                EncounterManager.revealHiddenTokens();
-                if (this.secondaryBar.isOpen && this.secondaryBar.type === 'encounter') {
-                    const assessment = EncounterManager.getCombatAssessment({});
-                    const hasQuickEncounterTool = !!this._getQuickEncounterToolbarTool();
-                    this.secondaryBar.data = {
-                        partyCRDisplay: assessment.partyCRDisplay,
-                        monsterCRDisplay: assessment.monsterCRDisplay,
-                        difficulty: assessment.difficulty,
-                        difficultyClass: assessment.difficultyClass,
-                        isGM: game.user.isGM,
-                        hasQuickEncounterTool
-                    };
-                    this.renderMenubar(true);
-                }
-                return;
-            }
-
             // Check if this is a secondary bar item click (default template)
             const secondaryBarItem = event.target.closest('.secondary-bar-item[data-item-id]');
             if (secondaryBarItem) {
@@ -4897,6 +4813,10 @@ class MenuBar {
         } catch (_error) {
             return null;
         }
+    }
+
+    static hasQuickEncounterTool() {
+        return !!this._getQuickEncounterToolbarTool();
     }
 
     static async openQuickEncounterWindow() {

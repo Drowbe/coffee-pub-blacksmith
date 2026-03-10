@@ -151,8 +151,8 @@ export class EncounterToolbar {
                 }
             }
 
-            // Notify menubar to refresh encounter bar if open (same token hooks drive both)
-            Hooks.callAll('blacksmithEncounterBarRefresh');
+            // Refresh menubar encounter bar if registered (updates info items with current CR/difficulty)
+            this._refreshEncounterBarInfo();
         } catch (error) {
             // CR update failed; toolbar may still work
         }
@@ -209,6 +209,22 @@ export class EncounterToolbar {
         } catch (error) {
             // Toolbar CR update failed
         }
+    }
+
+    /**
+     * Refresh menubar encounter bar info items with current CR/difficulty.
+     * Called from _updateAllToolbarCRs and on initial bar registration.
+     */
+    static _refreshEncounterBarInfo() {
+        const api = game.modules.get(MODULE.ID)?.api;
+        if (!api?.updateSecondaryBarItemInfo) return;
+        const assessment = EncounterManager.getCombatAssessment({});
+        api.updateSecondaryBarItemInfo('encounter', 'party-cr', { value: assessment.partyCRDisplay });
+        api.updateSecondaryBarItemInfo('encounter', 'monster-cr', { value: assessment.monsterCRDisplay });
+        api.updateSecondaryBarItemInfo('encounter', 'difficulty', {
+            value: assessment.difficulty,
+            borderColor: EncounterManager.getDifficultyBorderColor(assessment.difficultyClass)
+        });
     }
 
     // Hook for journal sheet rendering (normal view only)
@@ -1441,10 +1457,86 @@ export class EncounterToolbar {
     }
 }
 
-// Register menubar tool via API (same pattern as external modules)
-Hooks.once('ready', () => {
+// Register encounter bar and menubar tool via API (owns encounter secondary bar)
+Hooks.once('ready', async () => {
     const api = game.modules.get(MODULE.ID)?.api;
     if (!api?.registerMenubarTool) return;
+
+    // Register encounter secondary bar type (default tool system – no custom template)
+    await api.registerSecondaryBarType('encounter', {
+        height: 50,
+        persistence: 'manual'
+    });
+
+    // Right zone: info items (Party CR, Monster CR, Difficulty)
+    api.registerSecondaryBarItem('encounter', 'party-cr', {
+        kind: 'info',
+        zone: 'right',
+        icon: 'fas fa-helmet-battle',
+        label: 'Party CR',
+        value: '0',
+        group: 'cr',
+        order: 0,
+        tooltip: 'Party CR'
+    });
+    api.registerSecondaryBarItem('encounter', 'monster-cr', {
+        kind: 'info',
+        zone: 'right',
+        icon: 'fas fa-dragon',
+        label: 'Monster CR',
+        value: '0',
+        group: 'cr',
+        order: 1,
+        tooltip: 'Monster CR'
+    });
+    api.registerSecondaryBarItem('encounter', 'difficulty', {
+        kind: 'info',
+        zone: 'right',
+        icon: 'fa-solid fa-swords',
+        label: 'Difficulty',
+        value: 'None',
+        group: 'cr',
+        order: 2,
+        tooltip: 'Difficulty'
+    });
+
+    // Middle zone: action buttons (GM only)
+    api.registerSecondaryBarItem('encounter', 'create-combat', {
+        zone: 'middle',
+        icon: 'fas fa-swords',
+        label: 'Create Combat',
+        tooltip: 'Create combat encounter with selected or all tokens on canvas',
+        group: 'actions',
+        order: 0,
+        visible: () => game.user.isGM,
+        onClick: () => api.createCombat?.()
+    });
+    api.registerSecondaryBarItem('encounter', 'quick-encounter', {
+        zone: 'middle',
+        icon: 'fa-solid fa-dice',
+        label: 'Quick Encounter',
+        tooltip: 'Open Quick Encounter',
+        group: 'actions',
+        order: 1,
+        visible: () => game.user.isGM && !!api.hasQuickEncounterTool?.(),
+        onClick: () => api.openQuickEncounterWindow?.()
+    });
+    api.registerSecondaryBarItem('encounter', 'reveal', {
+        zone: 'middle',
+        icon: 'fas fa-eye',
+        label: 'Reveal',
+        tooltip: 'Reveal hidden hostile tokens',
+        group: 'actions',
+        order: 2,
+        visible: () => game.user.isGM,
+        onClick: () => EncounterManager.revealHiddenTokens()
+    });
+
+    api.registerSecondaryBarTool?.('encounter', 'encounter');
+
+    // Initial refresh of info items
+    EncounterToolbar._refreshEncounterBarInfo();
+
     api.registerMenubarTool('encounter', {
         icon: "fas fa-swords",
         name: "encounter",

@@ -124,6 +124,24 @@ export class EncounterManager {
         };
     }
 
+    /**
+     * Border color for difficulty badge styling (matches menubar CSS).
+     * @param {string} difficultyClass - 'trivial' | 'easy' | 'medium' | 'hard' | 'deadly' | 'impossible' | 'none'
+     * @returns {string} CSS color
+     */
+    static getDifficultyBorderColor(difficultyClass) {
+        const colors = {
+            trivial: '#6b8e6b',
+            easy: '#7cba7c',
+            medium: '#c9a227',
+            hard: '#c95827',
+            deadly: '#a02020',
+            impossible: '#4a0a0a',
+            none: 'rgba(255, 255, 255, 0.2)'
+        };
+        return colors[difficultyClass] ?? colors.none;
+    }
+
     static parseCR(crString) {
         if (crString === '0') return 0;
         if (crString === '1/8') return 0.125;

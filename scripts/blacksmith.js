@@ -328,6 +328,8 @@ Hooks.once('ready', async () => {
             updateCombatBar: MenuBar.updateCombatBar.bind(MenuBar),
             createCombat: MenuBar.createCombat?.bind(MenuBar),
             toggleCombatTracker: MenuBar.toggleCombatTracker?.bind(MenuBar),
+            hasQuickEncounterTool: MenuBar.hasQuickEncounterTool?.bind(MenuBar),
+            openQuickEncounterWindow: MenuBar.openQuickEncounterWindow?.bind(MenuBar),
             testNotificationSystem: MenuBar.testNotificationSystem.bind(MenuBar),
             testSecondaryBarSystem: MenuBar.testSecondaryBarSystem.bind(MenuBar),
             renderMenubar: MenuBar.renderMenubar.bind(MenuBar),
@@ -1141,6 +1143,8 @@ Hooks.once('init', async function() {
             updateCombatBar: MenuBar.updateCombatBar.bind(MenuBar),
             createCombat: MenuBar.createCombat?.bind(MenuBar),
             toggleCombatTracker: MenuBar.toggleCombatTracker?.bind(MenuBar),
+            hasQuickEncounterTool: MenuBar.hasQuickEncounterTool?.bind(MenuBar),
+            openQuickEncounterWindow: MenuBar.openQuickEncounterWindow?.bind(MenuBar),
             registerMenubarVisibilityOverride: MenuBar.registerMenubarVisibilityOverride.bind(MenuBar),
             unregisterMenubarVisibilityOverride: MenuBar.unregisterMenubarVisibilityOverride.bind(MenuBar)
         });
