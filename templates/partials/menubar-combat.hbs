@@ -8,20 +8,21 @@
     
     {{!-- Combat Controls and Portraits Group --}}
     <div class="combat-portraits-group">
-        <div class="combatbar-button-control-container action-button tracker-button">
-            <a class="combatbar-button action-type-end"
+        {{!-- All controls in one row: Tracker | prev | left arrow | portraits | right arrow | next | Action --}}
+        <div class="combat-portraits-scroll-wrapper">
+        <div class="combatbar-button-control-container action-button tracker-button combat-bar-edge-button">
+            <a class="combatbar-button action-type-general"
                aria-label="Tracker"
                role="button"
                data-tooltip="Show/Hide Combat Tracker"
                data-control="toggleTracker">
                 <i class="fas fa-list"></i>
-                <span class="combatbar-button-label">Tracker</span>
             </a>
         </div>
 
         {{#if isGM}}
         {{#if isActive}}
-            <div class="combatbar-button-control-container">
+            <div class="combatbar-button-control-container combat-bar-prev-buttons">
             {{!-- Previous Round Button (GM Only, After Combat Started, Not Round 1) --}}
             {{#if (gt currentRound 1)}}
                 <a class="combatbar-button" 
@@ -54,9 +55,6 @@
             </div>
         {{/if}}
         {{/if}}
-        
-        {{!-- Scrollable combatants with left/right arrows (no scrollbar) --}}
-        <div class="combat-portraits-scroll-wrapper">
             <button type="button" class="combat-scroll-arrow combat-scroll-left" aria-label="Scroll combatants left" data-tooltip="Scroll combatants left" data-control="scrollCombatantsLeft">
                 <i class="fas fa-chevron-left"></i>
             </button>
@@ -130,15 +128,10 @@
                </div>
         {{/each}}
         </div>
-            <button type="button" class="combat-scroll-arrow combat-scroll-right" aria-label="Scroll combatants right" data-tooltip="Scroll combatants right" data-control="scrollCombatantsRight">
-                <i class="fas fa-chevron-right"></i>
-            </button>
-        </div>
-        
-        
+
         {{#if isGM}}
         {{#if isActive}}
-        <div class="combatbar-button-control-container next-turn">
+        <div class="combatbar-button-control-container combat-bar-next-buttons">
             {{!-- Next Turn Button (GM Only, After Combat Started) --}}
             <a class="combatbar-button" 
                aria-label="Next Turn" 
@@ -158,20 +151,20 @@
         </div>
         {{/if}}
         {{/if}}
-        
-        {{!-- Action Button --}}
+
+        {{!-- Action Button (End Combat, Begin Combat, etc.) - inside scroll wrapper --}}
         {{#if actionButton}}
-            <div class="combatbar-button-control-container action-button">
+            <div class="combatbar-button-control-container action-button combat-bar-edge-button">
                 <a class="combatbar-button  action-type-{{actionButton.type}}" 
                 aria-label="{{actionButton.label}}" 
                 role="button" 
                 data-tooltip="{{actionButton.tooltip}}" 
                 data-control="{{actionButton.control}}">
                     <i class="fas {{actionButton.icon}}"></i>
-                    <span class="combatbar-button-label">{{actionButton.text}}</span>
                 </a>
             </div>
         {{/if}}
+        </div>
 
     </div>
 

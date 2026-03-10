@@ -852,11 +852,14 @@ class MenuBar {
         const leftBtn = wrapper.querySelector('.combat-scroll-arrow[data-control="scrollCombatantsLeft"]');
         const rightBtn = wrapper.querySelector('.combat-scroll-arrow[data-control="scrollCombatantsRight"]');
         if (!portraits || !leftBtn || !rightBtn) return;
-        const overflowing = portraits.scrollWidth > portraits.clientWidth + 1;
+        // Show arrows when content overflows visible area, or when bar is very narrow (layout may not have settled yet)
+        const contentWidth = portraits.scrollWidth;
+        const visibleWidth = portraits.clientWidth;
+        const overflowing = contentWidth > visibleWidth + 1 || (visibleWidth < 80 && contentWidth > 0);
         wrapper.classList.toggle('combat-portraits-overflowing', overflowing);
         if (overflowing) {
             const atStart = portraits.scrollLeft <= 1;
-            const atEnd = portraits.scrollLeft + portraits.clientWidth >= portraits.scrollWidth - 1;
+            const atEnd = portraits.scrollLeft + visibleWidth >= contentWidth - 1;
             leftBtn.disabled = atStart;
             rightBtn.disabled = atEnd;
         }
@@ -873,7 +876,9 @@ class MenuBar {
         portraits.dataset.scrollListenerAttached = 'true';
         portraits.addEventListener('scroll', () => MenuBar._updateCombatPortraitScrollArrows(), { passive: true });
         if (wrapper) {
-            const ro = new ResizeObserver(() => MenuBar._updateCombatPortraitScrollArrows());
+            const ro = new ResizeObserver(() => {
+                requestAnimationFrame(() => MenuBar._updateCombatPortraitScrollArrows());
+            });
             ro.observe(wrapper);
         }
     }
@@ -955,7 +960,7 @@ class MenuBar {
 
 
         // *** GROUP: COMBAT ***
-        // (encounter, create-combat, combat-tracker, combat-window registered via API from encounter-toolbar.js and combat-tracker.js)
+        // (encounter, create-combat, combat-bar, combat-window registered via API from encounter-toolbar.js and combat-tracker.js)
 
         // REPLACE IMAGE – registered by Coffee Pub Curator when present
 
@@ -1010,7 +1015,7 @@ class MenuBar {
 
 
         // Map secondary bars to their toggle tools for button state syncing
-        this.secondaryBarToolMapping.set('combat', 'combat-tracker');
+        this.secondaryBarToolMapping.set('combat', 'combat-bar');
         this.secondaryBarToolMapping.set('encounter', 'encounter');
         this.secondaryBarToolMapping.set('party', 'party');
 
@@ -3141,6 +3146,22 @@ class MenuBar {
     }
 
     /**
+     * Toggle the FoundryVTT Combat Tracker window (show/hide).
+     * Used by the Tracker button in the combat bar.
+     */
+    static async toggleCombatTracker() {
+        try {
+            if (CombatTracker.isCombatTrackerOpen()) {
+                await CombatTracker.closeCombatTracker();
+            } else {
+                CombatTracker.openCombatTracker();
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error toggling combat tracker", error, false, false);
+        }
+    }
+
+    /**
      * Sync button active states when secondary bars change
      * @private
      * @param {string|null} previousType - The previously open bar type (or null if none)
@@ -4105,6 +4126,7 @@ class MenuBar {
                     requestAnimationFrame(() => {
                         this._updateCombatPortraitScrollArrows();
                         this._attachCombatPortraitScrollListener();
+                        setTimeout(() => this._updateCombatPortraitScrollArrows(), 100);
                     });
                 }
                 

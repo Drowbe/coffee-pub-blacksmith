@@ -1015,9 +1015,9 @@ Hooks.once('ready', () => {
         buttonNormalTint: "rgba(88, 15, 4, 0.9)",
         buttonSelectedTint: null
     });
-    api.registerMenubarTool('combat-tracker', {
+    api.registerMenubarTool('combat-bar', {
         icon: "fas fa-swords",
-        name: "combat-tracker",
+        name: "combat-bar",
         title: () => "Combat Bar",
         tooltip: "Show combat tracker secondary bar",
         onClick: () => api.toggleSecondaryBar('combat'),
@@ -1035,8 +1035,8 @@ Hooks.once('ready', () => {
         toggleable: true,
         active: false,
         iconColor: null,
-        buttonNormalTint: null,
-        buttonSelectedTint: null
+        buttonNormalTint: "rgba(88, 15, 4, 0.5)",
+        buttonSelectedTint: "rgba(88, 15, 4, 0.9)"
     });
     api.registerMenubarTool('combat-window', {
         icon: "fas fa-swords",

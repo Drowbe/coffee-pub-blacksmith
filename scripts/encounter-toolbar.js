@@ -1604,8 +1604,8 @@ Hooks.once('ready', async () => {
         visible: true,
         toggleable: true,
         active: false,
-        iconColor: " rgba(255, 255, 255, 0.6)",
-        buttonNormalTint: "rgba(88, 15, 4, 0.9)",
+        iconColor: null,
+        buttonNormalTint: null,
         buttonSelectedTint: null
     });
 });

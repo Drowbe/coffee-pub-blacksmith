@@ -1020,6 +1020,13 @@ Combat Tracker Tunables
     overflow: hidden;
    }
    
+   /* Prev/next turn/round and edge buttons (Tracker, Action) sit next to scroll arrows; do not shrink */
+   .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper .combat-bar-prev-buttons,
+   .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper .combat-bar-next-buttons,
+   .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper .combat-bar-edge-button {
+    flex-shrink: 0;
+   }
+   
    /* Combatants only take the space they need; centered when not overflowing */
    .blacksmith-menubar-secondary .combat-portraits {
     display: flex;
@@ -1036,10 +1043,11 @@ Combat Tracker Tunables
     scroll-behavior: smooth;
    }
    
-   /* When overflowing: portraits fill space between arrows */
+   /* When overflowing: portraits take at most ~70% so Next/Action stay next to the strip, not at the bar edge */
    .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper.combat-portraits-overflowing .combat-portraits {
     flex: 1;
     min-width: 0;
+    max-width: 70%;
    }
    
    .blacksmith-menubar-secondary .combat-portraits::-webkit-scrollbar {
@@ -1066,7 +1074,7 @@ Combat Tracker Tunables
     min-height: var(--portrait-container-height);
     padding: 0;
     border: none;
-    background: rgba(255, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.4);
     color: var(--blacksmith-menubar-secondary-fontcolor);
     cursor: pointer;
     border-radius: 4px;
@@ -1235,13 +1243,14 @@ Control Buttons
 
     display: flex;
     flex-direction: row;
-    justify-content: center; /* centers items vertically */
-    align-items: flex-start;
+    justify-content: center;
+    align-items: center;
     gap: 4px;
     height: 100%;
+    min-height: var(--portrait-container-height);
     font-size: var(--combatbar-text-font-size);
-    color: var(--blacksmith-menubar-fontcolor);
-    padding: 0 calc(var(--blacksmith-menubar-secondary-height) * 0.09);
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+    padding: 0 4px;
     border-right: 0px solid rgba(17, 17, 17, 0.3);
 
 }
@@ -1253,60 +1262,53 @@ Control Buttons
     justify-content: center;
     width: auto;
     min-width: var(--combatbar-button-ends-width);
-    height: var(--combatbar-button-ends-height);
-    border-radius: 6px;
-    padding: 0px 8px 0px 8px;
+    height: 100%;
+    min-height: var(--portrait-container-height);
+    border-radius: 4px;
+    padding: 0 8px;
     text-decoration: none;
     text-transform: uppercase;
-    transition: all 0.2s ease;
+    transition: background 0.15s ease, color 0.15s ease;
     font-size: var(--combatbar-button-font-size);
+    border: none;
+    background: rgba(0, 0, 0, 0.4);
+    color: var(--blacksmith-menubar-secondary-fontcolor);
 }
 .blacksmith-menubar-secondary .combatbar-button {
-    background: rgba(30, 23, 29, 0.6);
-    border: 1px solid rgba(231, 209, 177, 0.6);
-    color: rgba(255, 255, 255, 1.0);
     cursor: pointer;
 }
 .blacksmith-menubar-secondary .combatbar-button-disabled {
-    background: rgba(30, 23, 29, 0.9);
-    border: 1px solid rgba(231, 209, 177, 0.6);
-    color: rgba(255, 255, 255, 0.8);
-    cursor: arrow;
-    opacity: 60%;
+    opacity: 0.5;
+    cursor: default;
 }
 .blacksmith-menubar-secondary .combatbar-button-disabled i,
 .blacksmith-menubar-secondary .combatbar-button i {
-    padding: 0px 0px 0px 0px;
+    padding: 0;
 }
 .blacksmith-menubar-secondary .combatbar-button .combatbar-button-label {
-    padding: 0px 0px 0px 8px;
+    padding: 0 0 0 8px;
 }
 
 .blacksmith-menubar-secondary .action-button .action-type-begin {
-    background: rgba(27, 63, 31, 0.9);
-    border: 1px solid rgba(231, 209, 177, 0.6);
-    color: rgba(255, 255, 255, 1.0);
+    background: rgba(27, 63, 31, 0.85);
+    color: rgba(255, 255, 255, 1);
 }
 .blacksmith-menubar-secondary .action-button .action-type-end{
-    background: rgba(30, 23, 29, 0.9);
-    border: 1px solid rgba(231, 209, 177, 0.6);
-    color: rgba(255, 255, 255, 1.0);
+    background: rgba(30, 23, 29, 0.85);
+    color: rgba(255, 255, 255, 1);
 }
 .blacksmith-menubar-secondary .action-button .action-type-roll{
-    background: rgba(43, 69, 110, 0.9);
-    border: 1px solid rgba(89, 161, 246, 0.6);
-    color: rgba(255, 255, 255, 1.0);
+    background: rgba(43, 69, 110, 0.85);
+    color: rgba(255, 255, 255, 1);
 }
 
-.blacksmith-menubar-secondary .combatbar-button:hover {
-    background: rgba(201, 89, 63, 0.8);
-    border-color: rgba(244, 236, 223, 0.8);
-    color: rgba(255, 255, 255, 1.0);
-    transform: scale(1.05);
+.blacksmith-menubar-secondary .combatbar-button:hover:not(.combatbar-button-disabled) {
+    background: rgba(0, 0, 0, 0.6);
+    color: var(--blacksmith-menubar-secondary-fontcolor);
 }
 
-.blacksmith-menubar-secondary .combatbar-button:active {
-    transform: scale(0.95);
+.blacksmith-menubar-secondary .combatbar-button:active:not(.combatbar-button-disabled) {
+    background: rgba(0, 0, 0, 0.5);
 }
 
  
