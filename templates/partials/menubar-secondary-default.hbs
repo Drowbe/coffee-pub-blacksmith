@@ -24,6 +24,25 @@
                     {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
                     {{#if displayValue}}<span class="secondary-bar-item-value" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}>{{displayValue}}</span>{{/if}}
                 </div>
+                {{else if (eq kind "progressbar")}}
+                <div class="secondary-bar-item secondary-bar-item-progressbar"
+                     data-item-id="{{itemId}}"
+                     data-group-id="{{../id}}"
+                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+                     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+                     style="width: {{progressbarWidth}};">
+                    {{#if title}}<span class="secondary-bar-item-progressbar-title">{{title}}</span>{{/if}}
+                    {{#if icon}}<i class="{{icon}} secondary-bar-item-progressbar-icon"></i>{{/if}}
+                    <div class="secondary-bar-item-progressbar-bar" style="height: {{progressbarHeight}}; border-color: {{borderColor}}; background-color: {{barColor}};">
+                        {{#if leftIcon}}<i class="{{leftIcon}} secondary-bar-item-progressbar-left-icon"></i>{{/if}}
+                        {{#if leftLabel}}<span class="secondary-bar-item-progressbar-left-label">{{leftLabel}}</span>{{/if}}
+                        <div class="secondary-bar-item-progressbar-track">
+                            <div class="secondary-bar-item-progressbar-fill" style="width: {{percentProgress}}%; background-color: {{progressColor}};"></div>
+                        </div>
+                        {{#if rightLabel}}<span class="secondary-bar-item-progressbar-right-label">{{rightLabel}}</span>{{/if}}
+                        {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-progressbar-right-icon"></i>{{/if}}
+                    </div>
+                </div>
                 {{else}}
                 <div class="secondary-bar-item {{#if active}}active{{/if}}"
                      data-item-id="{{itemId}}"
@@ -76,6 +95,25 @@
                     {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
                     {{#if displayValue}}<span class="secondary-bar-item-value" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}>{{displayValue}}</span>{{/if}}
                 </div>
+                {{else if (eq kind "progressbar")}}
+                <div class="secondary-bar-item secondary-bar-item-progressbar"
+                     data-item-id="{{itemId}}"
+                     data-group-id="{{../id}}"
+                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+                     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+                     style="width: {{progressbarWidth}};">
+                    {{#if title}}<span class="secondary-bar-item-progressbar-title">{{title}}</span>{{/if}}
+                    {{#if icon}}<i class="{{icon}} secondary-bar-item-progressbar-icon"></i>{{/if}}
+                    <div class="secondary-bar-item-progressbar-bar" style="height: {{progressbarHeight}}; border-color: {{borderColor}}; background-color: {{barColor}};">
+                        {{#if leftIcon}}<i class="{{leftIcon}} secondary-bar-item-progressbar-left-icon"></i>{{/if}}
+                        {{#if leftLabel}}<span class="secondary-bar-item-progressbar-left-label">{{leftLabel}}</span>{{/if}}
+                        <div class="secondary-bar-item-progressbar-track">
+                            <div class="secondary-bar-item-progressbar-fill" style="width: {{percentProgress}}%; background-color: {{progressColor}};"></div>
+                        </div>
+                        {{#if rightLabel}}<span class="secondary-bar-item-progressbar-right-label">{{rightLabel}}</span>{{/if}}
+                        {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-progressbar-right-icon"></i>{{/if}}
+                    </div>
+                </div>
                 {{else}}
                 <div class="secondary-bar-item {{#if active}}active{{/if}}"
                      data-item-id="{{itemId}}"
@@ -127,6 +165,25 @@
                     {{#if icon}}<i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>{{/if}}
                     {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
                     {{#if displayValue}}<span class="secondary-bar-item-value" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}>{{displayValue}}</span>{{/if}}
+                </div>
+                {{else if (eq kind "progressbar")}}
+                <div class="secondary-bar-item secondary-bar-item-progressbar"
+                     data-item-id="{{itemId}}"
+                     data-group-id="{{../id}}"
+                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+                     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+                     style="width: {{progressbarWidth}};">
+                    {{#if title}}<span class="secondary-bar-item-progressbar-title">{{title}}</span>{{/if}}
+                    {{#if icon}}<i class="{{icon}} secondary-bar-item-progressbar-icon"></i>{{/if}}
+                    <div class="secondary-bar-item-progressbar-bar" style="height: {{progressbarHeight}}; border-color: {{borderColor}}; background-color: {{barColor}};">
+                        {{#if leftIcon}}<i class="{{leftIcon}} secondary-bar-item-progressbar-left-icon"></i>{{/if}}
+                        {{#if leftLabel}}<span class="secondary-bar-item-progressbar-left-label">{{leftLabel}}</span>{{/if}}
+                        <div class="secondary-bar-item-progressbar-track">
+                            <div class="secondary-bar-item-progressbar-fill" style="width: {{percentProgress}}%; background-color: {{progressColor}};"></div>
+                        </div>
+                        {{#if rightLabel}}<span class="secondary-bar-item-progressbar-right-label">{{rightLabel}}</span>{{/if}}
+                        {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-progressbar-right-icon"></i>{{/if}}
+                    </div>
                 </div>
                 {{else}}
                 <div class="secondary-bar-item {{#if active}}active{{/if}}"

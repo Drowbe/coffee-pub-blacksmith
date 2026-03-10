@@ -1434,7 +1434,7 @@ blacksmith.registerSecondaryBarItem('cartographer', 'medium-line', {
 - `barTypeId` (string, required): The bar type ID to register the item to
 - `itemId` (string, required): Unique identifier for the item
 - `itemData` (Object, required): Item configuration
-  - `kind` (string, optional): `'button'` (default) or `'info'`. Buttons are clickable; info items are display-only and can be updated with `updateSecondaryBarItemInfo`.
+  - `kind` (string, optional): `'button'` (default), `'info'`, or `'progressbar'`. Buttons are clickable; info and progressbar items are display-only and can be updated with `updateSecondaryBarItemInfo`.
   - `zone` (string, optional): `'left'`, `'middle'`, or `'right'`. Default: `'middle'`. Only applies to the default tool system.
   - `icon` (string, required for buttons, optional for info): FontAwesome icon class (e.g., `'fa-solid fa-pencil'`, `'fas fa-eraser'`). Info items can use icon for consistent styling with buttons.
   - `label` (string, optional): Text label. For buttons, shown next to the icon. For info items, use with or without `value`.
@@ -1462,6 +1462,26 @@ blacksmith.registerSecondaryBarItem('my-encounter', 'party-cr', {
     order: 0
 });
 blacksmith.updateSecondaryBarItemInfo('my-encounter', 'party-cr', { value: '3' });  // update when assessment changes
+```
+
+**Progressbar item** (`kind: 'progressbar'`): A horizontal progress bar (0–100%). Required: `width`, `borderColor`, `barColor`, `progressColor`, `percentProgress`. Optional: `title`, `icon`, `leftLabel`, `leftIcon`, `rightLabel`, `rightIcon`, `height`. Height defaults to 40% of secondary bar height if omitted. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { percentProgress, leftLabel, rightLabel, ... })`.
+
+```javascript
+blacksmith.registerSecondaryBarItem('my-bar', 'hp-bar', {
+    kind: 'progressbar',
+    zone: 'middle',
+    width: 200,
+    height: 14,
+    borderColor: 'rgba(0,0,0,0.5)',
+    barColor: '#2d5016',
+    progressColor: '#4a7c23',
+    percentProgress: 100,
+    leftLabel: '130',
+    rightLabel: '130',
+    group: 'stats',
+    order: 0
+});
+blacksmith.updateSecondaryBarItemInfo('my-bar', 'hp-bar', { percentProgress: 65, leftLabel: '85', rightLabel: '130' });
 ```
 
 **Returns:** `boolean` - Success status
@@ -1523,7 +1543,7 @@ blacksmith.updateSecondaryBarItemActive('cartographer', 'medium-line', true);
 
 ### Updating Secondary Bar Info Items
 
-Use this to update the displayed value and/or label of an **info** item without re-registering it. Typical for encounter-style bars where Party CR, Monster CR, or Difficulty change over time.
+Use this to update the displayed value and/or label of an **info** item, or the progress and labels of a **progressbar** item, without re-registering it. Typical for encounter-style bars (Party CR, Monster CR, Difficulty) or HP/resource bars.
 
 ```javascript
 blacksmith.updateSecondaryBarItemInfo('my-encounter', 'party-cr', { value: '4' });
@@ -1534,11 +1554,8 @@ blacksmith.updateSecondaryBarItemInfo('my-encounter', 'difficulty', { value: 'De
 - `barTypeId` (string, required): The bar type ID
 - `itemId` (string, required): The info item ID to update
 - `updates` (Object, required): At least one of:
-  - `value` (string, optional): New display value
-  - `label` (string, optional): New display label
-  - `borderColor` (string | null, optional): New border color; pass `null` to remove
-  - `buttonColor` (string | null, optional): New background color; pass `null` to remove
-  - `iconColor` (string | null, optional): Icon color (e.g. hex for difficulty rating); pass `null` to remove
+  - **Info items**: `value`, `label`, `borderColor`, `buttonColor`, `iconColor`
+  - **Progressbar items**: `percentProgress` (number 0–100), `leftLabel`, `rightLabel`, `leftIcon`, `rightIcon`, `title`, `icon`, `barColor`, `progressColor`, `borderColor`
 
 **Returns:** `boolean` - Success status
 

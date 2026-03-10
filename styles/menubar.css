@@ -707,7 +707,66 @@
     margin-left: 2px;
 }
 
-
+/* Progressbar items (display-only, no click) */
+.blacksmith-menubar-secondary .secondary-bar-item-progressbar {
+    cursor: default;
+    background-color: transparent;
+    border: none;
+    min-width: unset;
+    min-height: unset;
+    padding: 0 4px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-progressbar:hover {
+    transform: none;
+    background-color: transparent;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-progressbar-title {
+    font-size: calc(var(--secondary-bar-item-font-size) * 0.85);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+    white-space: nowrap;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-progressbar-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid;
+    border-radius: 4px;
+    overflow: hidden;
+    min-height: 10px;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-progressbar-track {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-progressbar-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    min-width: 0;
+    transition: width 0.2s ease;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-progressbar-left-label,
+.blacksmith-menubar-secondary .secondary-bar-item-progressbar-right-label {
+    font-size: var(--secondary-bar-item-font-size);
+    font-weight: 600;
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+    white-space: nowrap;
+    padding: 0 4px;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-progressbar-left-icon,
+.blacksmith-menubar-secondary .secondary-bar-item-progressbar-right-icon {
+    font-size: var(--secondary-bar-item-icon-size);
+    padding: 0 2px;
+}
 
 
 
