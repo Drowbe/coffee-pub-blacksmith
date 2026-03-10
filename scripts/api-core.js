@@ -31,15 +31,21 @@ export function getSettingSafely(moduleId, settingKey, defaultValue = null) {
 }
 
 /**
- * Safely set a setting value, only if the setting is registered
+ * Safely set a setting value, only if the setting is registered.
+ * Non-GM users cannot update world-scoped settings; the call is skipped and returns true to avoid permission errors.
  * @param {string} moduleId - The module ID
  * @param {string} settingKey - The setting key
  * @param {*} value - The value to set
- * @returns {Promise<boolean>} True if successful, false if setting not ready
+ * @returns {Promise<boolean>} True if successful or skipped (non-GM + world), false if setting not ready
  */
 export async function setSettingSafely(moduleId, settingKey, value) {
-    if (!game?.settings?.settings?.has(`${moduleId}.${settingKey}`)) {
+    const key = `${moduleId}.${settingKey}`;
+    if (!game?.settings?.settings?.has(key)) {
         return false;
+    }
+    const setting = game.settings.settings.get(key);
+    if (setting?.scope === 'world' && !game.user?.isGM) {
+        return true;
     }
     try {
         await game.settings.set(moduleId, settingKey, value);
@@ -47,6 +53,21 @@ export async function setSettingSafely(moduleId, settingKey, value) {
     } catch (error) {
         return false;
     }
+}
+
+/**
+ * Whether the current user is the party leader (for permissions like starting votes).
+ * True if: stored partyLeader.userId === game.user.id, or current user owns the leader's character
+ * (handles legacy data where userId was set to GM from the dropdown).
+ * @param {string} [moduleId] - Module ID for partyLeader setting (defaults to MODULE.ID)
+ * @returns {boolean}
+ */
+export function isCurrentUserPartyLeader(moduleId = MODULE.ID) {
+    const leader = getSettingSafely(moduleId, 'partyLeader', null);
+    if (!leader?.actorId) return false;
+    if (leader.userId === game.user.id) return true;
+    const actor = game.actors.get(leader.actorId);
+    return !!actor?.isOwner;
 }
 
 // GLOBAL VARS

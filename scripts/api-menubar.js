@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, getSettingSafely, setSettingSafely, playSound, formatTime, matchUserBySetting } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely, setSettingSafely, playSound, formatTime, matchUserBySetting, isCurrentUserPartyLeader } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { ModuleManager } from './manager-modules.js';
 import { HookManager } from './manager-hooks.js';
@@ -1176,7 +1176,7 @@ class MenuBar {
             tooltip: 'Vote',
             group: 'default',
             order: 2,
-            visible: () => game.user.isGM || game.settings.get(MODULE.ID, 'partyLeader')?.userId === game.user.id,
+            visible: () => game.user.isGM || isCurrentUserPartyLeader(),
             onClick: () => {
                 new VoteConfig().render(true);
             }
@@ -4989,16 +4989,7 @@ class MenuBar {
         const voteIcon = document.querySelector('.vote-icon');
         if (!voteIcon) return;
 
-        const isGM = game.user.isGM;
-        let isLeader = false;
-        try {
-            const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
-            isLeader = game.user.id === leaderData.userId;
-        } catch (error) {
-            isLeader = false;
-        }
-        const canVote = isGM || isLeader;
-
+        let canVote = game.user.isGM || isCurrentUserPartyLeader();
         if (canVote) {
             voteIcon.style.cursor = 'pointer';
             voteIcon.style.opacity = '1';
@@ -5948,28 +5939,14 @@ class MenuBar {
     static async receiveLeaderUpdate(data) {
 
         if (!game?.user) return;
-        
+
         MenuBar.currentLeader = data.leader;
 
-        // Update local leader data if provided
+        // Only update local display. Do not set world setting here—non-GM clients lack permission.
+        // The GM already persisted the setting; it will sync to all clients via Foundry.
         if (data.leaderData !== undefined) {
-            postConsoleAndNotification(MODULE.NAME, "Menubar | Socket setting update", {
-                socketData: data,
-                currentUserId: game.user.id,
-                isGM: game.user.isGM,
-                settingValue: data.leaderData
-            }, true, false);
-            
-            const success = await setSettingSafely(MODULE.ID, 'partyLeader', data.leaderData);
-            if (success) {
-                postConsoleAndNotification(MODULE.NAME, "Menubar | Setting updated successfully", "Should trigger settingChange hook", true, false);
-                MenuBar.updateLeaderDisplay();
-                
-                // Manually trigger toolbar refresh since settingChange hook doesn't fire on other clients
-                Hooks.callAll('blacksmith.leaderChanged', data.leaderData);
-            } else {
-                postConsoleAndNotification(MODULE.NAME, 'Menubar | Warning', 'Settings not yet registered, skipping leader update', false, false);
-            }
+            MenuBar.updateLeaderDisplay();
+            Hooks.callAll('blacksmith.leaderChanged', data.leaderData);
         } else {
             MenuBar.updateLeaderDisplay();
         }
@@ -6051,17 +6028,16 @@ class MenuBar {
                 return false;
             }
 
-
-
-            // Store in settings
-            const success = await setSettingSafely(MODULE.ID, 'partyLeader', leaderData);
-            if (!success) {
-                postConsoleAndNotification(MODULE.NAME, 'Menubar | Error', 'Settings not yet registered, cannot set leader', true, false);
-                return false;
+            // World-scoped setting: only GM can persist. Other clients skip set and rely on sync.
+            if (game.user.isGM) {
+                const success = await setSettingSafely(MODULE.ID, 'partyLeader', leaderData);
+                if (!success) {
+                    postConsoleAndNotification(MODULE.NAME, 'Menubar | Error', 'Settings not yet registered, cannot set leader', true, false);
+                    return false;
+                }
             }
 
-
-            // Update the static currentLeader and display
+            // Update the static currentLeader and display (all clients)
             MenuBar.currentLeader = actor.name;
             await MenuBar.updateLeader(actor.name);
 

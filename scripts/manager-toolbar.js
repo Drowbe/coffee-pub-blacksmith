@@ -1,6 +1,6 @@
 import { MODULE } from './const.js';
 // COFFEEPUB now available globally via window.COFFEEPUB
-import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely, isCurrentUserPartyLeader } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { SocketManager } from './manager-sockets.js';
 // Tool management will be handled directly in this file
@@ -19,15 +19,8 @@ const registeredTools = new Map();
  */
 function isLeader() {
     try {
-        // Check if the setting is registered first
-        if (!game.settings.settings.has(`${MODULE.ID}.partyLeader`)) {
-            return false;
-        }
-        
-        const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
-        return !!(leaderData && leaderData.userId && game.user.id === leaderData.userId);
+        return isCurrentUserPartyLeader();
     } catch (error) {
-        // If setting doesn't exist yet, return false (not an error)
         if (error.message && error.message.includes('not a registered game setting')) {
             return false;
         }

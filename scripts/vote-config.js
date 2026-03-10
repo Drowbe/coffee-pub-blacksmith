@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, isCurrentUserPartyLeader } from './api-core.js';
 import { VoteManager } from "./vote-manager.js";
 import { MenuBar } from "./api-menubar.js";
 
@@ -22,8 +22,7 @@ export class VoteConfig extends Application {
     getData() {
         // Check if user is GM or current leader
         const isGM = game.user.isGM;
-        const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
-        const isLeader = leaderData && leaderData.userId && game.user.id === leaderData.userId;
+        const isLeader = isCurrentUserPartyLeader();
         const canStartVote = isGM || isLeader;
 
         if (!canStartVote) {

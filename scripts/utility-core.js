@@ -93,7 +93,7 @@ export class CoreUIUtility {
             items.push({
                 name: QuickViewUtility.isActive() ? "Quick View Off" : "Quick View On",
                 icon: QuickViewUtility.getIcon(),
-                description: "Clarity mode: increase brightness, reveal fog, show all tokens",
+                description: "Enhanced larity for the GM",
                 onClick: async () => {
                     await QuickViewUtility.toggle();
                     MenuBar.renderMenubar();
@@ -109,7 +109,7 @@ export class CoreUIUtility {
             {
                 name: isHidden ? "Show Interface" : "Hide Interface",
                 icon: "fa-solid fa-sidebar",
-                description: "Toggle visibility of core Foundry interface",
+                description: "Toggle core Foundry UI visibility",
                 onClick: () => {
                     CoreUIUtility.toggleInterface();
                     MenuBar.renderMenubar();

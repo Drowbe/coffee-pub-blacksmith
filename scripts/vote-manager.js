@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, getSettingSafely } from './api-core.js';
+import { postConsoleAndNotification, playSound, getSettingSafely, isCurrentUserPartyLeader } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { MenuBar } from './api-menubar.js';
 import { HookManager } from './manager-hooks.js';
@@ -185,8 +185,7 @@ export class VoteManager {
     static async startVote(type, customData = null) {
         // Check if user is GM or current leader
         const isGM = game.user.isGM;
-        const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
-        const isLeader = !!(leaderData && leaderData.userId && game.user.id === leaderData.userId);
+        const isLeader = isCurrentUserPartyLeader();
         const canStartVote = isGM || isLeader;
 
         postConsoleAndNotification(MODULE.NAME, 'Vote Manager | Starting Vote:', {
@@ -534,8 +533,7 @@ export class VoteManager {
         // Allow both GM and leader who initiated the vote to update the message
         const isInitiator = game.user.id === this.activeVote.initiator;
         const isGM = game.user.isGM;
-        const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
-        const isLeader = leaderData && leaderData.userId && game.user.id === leaderData.userId;
+        const isLeader = isCurrentUserPartyLeader();
 
         if ((isGM || isLeader) && isInitiator) {
             await this._updateVoteMessage();
@@ -837,8 +835,7 @@ export class VoteManager {
         // Allow both GM and leader who initiated the vote to update the message
         const isInitiator = game.user.id === this.activeVote.initiator;
         const isGM = game.user.isGM;
-        const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
-        const isLeader = leaderData && leaderData.userId && game.user.id === leaderData.userId;
+        const isLeader = isCurrentUserPartyLeader();
         
         if ((isGM || isLeader) && isInitiator) {
             await this._updateVoteMessage();
@@ -864,8 +861,7 @@ export class VoteManager {
         // Allow both GM and leader who initiated the vote to update the message
         const isInitiator = game.user.id === this.activeVote.initiator;
         const isGM = game.user.isGM;
-        const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
-        const isLeader = leaderData && leaderData.userId && game.user.id === leaderData.userId;
+        const isLeader = isCurrentUserPartyLeader();
 
         if ((isGM || isLeader) && isInitiator) {
             await this._updateVoteMessage();
