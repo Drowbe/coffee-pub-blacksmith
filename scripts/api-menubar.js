@@ -1214,6 +1214,8 @@ class MenuBar {
         this.registerSecondaryBarItem('party', 'party-health', {
             kind: 'progressbar',
             zone: 'right',
+            icon: 'fas fa-heart',
+            title: 'Party Health',
             width: 220,
             height: 14,
             borderColor: 'rgba(0,0,0,0.5)',
