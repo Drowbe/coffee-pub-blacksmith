@@ -897,14 +897,3 @@
 
 
 
-
-/* ---------------------------------------------------- */
-/* --- SECONDARY MENUBAR ------------------------------ */
-/* ---------------------------------------------------- */
-/* Combat bar styles live in menubar-combatbar.css      */
-
-/* Encounter bar (default tool system) */
-.blacksmith-menubar-secondary[data-bar-type="encounter"] {
-    background-color: var(--blacksmith-menubar-secondary-backgroundcolor);
-}
-
