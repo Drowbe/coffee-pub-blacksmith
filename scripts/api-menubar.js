@@ -2557,12 +2557,12 @@ class MenuBar {
      * Use this to push dynamic content (e.g. "Party CR: 2", "Difficulty: Medium") without re-registering the item.
      * @param {string} barTypeId - The bar type ID
      * @param {string} itemId - The info item ID to update
-     * @param {{ value?: string, label?: string, borderColor?: string, buttonColor?: string }} updates - New value, label, and/or style overrides (omit keys to leave unchanged)
+     * @param {{ value?: string, label?: string, borderColor?: string|null, buttonColor?: string|null, iconColor?: string|null }} updates - New value, label, and/or style overrides (omit keys to leave unchanged; pass null to clear)
      * @returns {boolean} Success status
      */
     static updateSecondaryBarItemInfo(barTypeId, itemId, updates) {
         try {
-            if (!updates || (updates.value === undefined && updates.label === undefined && updates.borderColor === undefined && updates.buttonColor === undefined)) {
+            if (!updates || (updates.value === undefined && updates.label === undefined && updates.borderColor === undefined && updates.buttonColor === undefined && updates.iconColor === undefined)) {
                 return false;
             }
             if (!this.secondaryBarInfoUpdates.has(barTypeId)) {
@@ -2574,6 +2574,7 @@ class MenuBar {
             if (updates.label !== undefined) existing.label = updates.label;
             if (updates.borderColor !== undefined) existing.borderColor = updates.borderColor;
             if (updates.buttonColor !== undefined) existing.buttonColor = updates.buttonColor;
+            if (updates.iconColor !== undefined) existing.iconColor = updates.iconColor;
             map.set(itemId, existing);
 
             if (this.secondaryBar.isOpen && this.secondaryBar.type === barTypeId) {
@@ -3677,6 +3678,7 @@ class MenuBar {
                 item.displayLabel = u.label !== undefined ? u.label : item.label;
                 if (u.borderColor !== undefined) item.borderColor = u.borderColor;
                 if (u.buttonColor !== undefined) item.buttonColor = u.buttonColor;
+                if (u.iconColor !== undefined) item.iconColor = u.iconColor;
             } else if (item.kind === 'info') {
                 item.displayValue = item.value;
                 item.displayLabel = item.label;

@@ -223,7 +223,9 @@ export class EncounterToolbar {
         api.updateSecondaryBarItemInfo('encounter', 'monster-cr', { value: assessment.monsterCRDisplay });
         api.updateSecondaryBarItemInfo('encounter', 'difficulty', {
             value: assessment.difficulty,
-            borderColor: EncounterManager.getDifficultyBorderColor(assessment.difficultyClass)
+            label: '',
+            iconColor: EncounterManager.getDifficultyBorderColor(assessment.difficultyClass),
+            borderColor: null
         });
     }
 
@@ -1464,7 +1466,7 @@ Hooks.once('ready', async () => {
 
     // Register encounter secondary bar type (default tool system – no custom template)
     await api.registerSecondaryBarType('encounter', {
-        height: 50,
+        height: 40,
         persistence: 'manual'
     });
 
@@ -1493,7 +1495,7 @@ Hooks.once('ready', async () => {
         kind: 'info',
         zone: 'right',
         icon: 'fa-solid fa-swords',
-        label: 'Difficulty',
+        label: '',
         value: 'None',
         group: 'cr',
         order: 2,

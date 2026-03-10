@@ -1527,7 +1527,7 @@ Use this to update the displayed value and/or label of an **info** item without 
 
 ```javascript
 blacksmith.updateSecondaryBarItemInfo('my-encounter', 'party-cr', { value: '4' });
-blacksmith.updateSecondaryBarItemInfo('my-encounter', 'difficulty', { value: 'Hard', label: 'Difficulty' });
+blacksmith.updateSecondaryBarItemInfo('my-encounter', 'difficulty', { value: 'Deadly', label: '', iconColor: '#a02020', borderColor: null });
 ```
 
 **Parameters:**
@@ -1536,8 +1536,9 @@ blacksmith.updateSecondaryBarItemInfo('my-encounter', 'difficulty', { value: 'Ha
 - `updates` (Object, required): At least one of:
   - `value` (string, optional): New display value
   - `label` (string, optional): New display label
-  - `borderColor` (string, optional): New border color (e.g. for difficulty badges)
-  - `buttonColor` (string, optional): New background color
+  - `borderColor` (string | null, optional): New border color; pass `null` to remove
+  - `buttonColor` (string | null, optional): New background color; pass `null` to remove
+  - `iconColor` (string | null, optional): Icon color (e.g. hex for difficulty rating); pass `null` to remove
 
 **Returns:** `boolean` - Success status
 
