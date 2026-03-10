@@ -1,0 +1,584 @@
+/* ------------------------------------ */
+/* --- COMBAT BAR (Secondary Menubar) - */
+/* ------------------------------------ */
+/* Separation of concerns: all combat bar UI lives here. */
+
+/* =========================
+   Combat Bar Tunables
+   ========================= */
+.blacksmith-menubar-secondary {
+    /* Scale everything based on bar height */
+    --portrait-container-height: calc(var(--blacksmith-menubar-secondary-height) - 4px);
+    --portrait-container-width: calc(var(--blacksmith-menubar-secondary-height) + 4px);
+    --healthbar-size: calc(var(--portrait-container-height) - 8px);
+    --portrait-size: calc(var(--healthbar-size) - 10px);
+    --action-icon-size: calc(var(--healthbar-size) - 10px);
+    --action-icon-font-size: calc(var(--healthbar-size) * 0.4);
+    
+    --combatbar-button-ends-height: calc(var(--blacksmith-menubar-secondary-height) * 0.6);
+    --combatbar-button-ends-width: calc(var(--blacksmith-menubar-secondary-height) * 0.6);  
+    
+    --combatbar-endcaps-minwidth: 5%;
+    
+    /* Thickness of the SVG stroke */
+    --ring-thickness: 3px;
+    --gap: 2px;
+    --combatbar-button-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.20);
+    --combatbar-text-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.22);
+    --combatbar-subtext-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.13);
+}
+
+/* Combat bar background */
+.blacksmith-menubar-secondary[data-bar-type="combat"] {
+    background-color: var(--blacksmith-menubar-secondary-backgroundcolor);
+}
+
+.blacksmith-menubar-secondary .combat-tracker-bar {
+    display: flex;
+    align-items: center;
+    gap: 0px;
+    width: 100%;
+    height: 100%;
+}
+
+/* ENDCAPS */
+
+.blacksmith-menubar-secondary .combat-endcap-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    height: 100%;
+    padding: 0px 8px;
+    background-color: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.7);
+    border-radius: 0px 2px 2px 0px;
+  }
+  .blacksmith-menubar-secondary .combat-endcap-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 2px;
+    height: 100%;
+    padding: 0px 8px;
+    background-color: rgba(0, 0, 0, 0.0);
+    border-left: 0px solid rgba(17, 17, 17, 0.1);
+  }
+  
+  .blacksmith-menubar-secondary .combat-endcap-right .combat-endcap-top,
+  .blacksmith-menubar-secondary .combat-endcap-left .combat-endcap-top {
+      opacity: 0.6;
+      font-size: var(--combatbar-subtext-font-size);
+      color: var(--blacksmith-menubar-secondary-fontcolor);
+  }
+  
+  .blacksmith-menubar-secondary .combat-endcap-right .combat-endcap-bottom,
+  .blacksmith-menubar-secondary .combat-endcap-left .combat-endcap-bottom  {
+      font-weight: 900;
+      text-transform: uppercase;
+      font-size: var(--combatbar-text-font-size);
+      color: var(--blacksmith-menubar-secondary-fontcolor);
+      margin: 0px 0px .2em 0px;
+  }
+
+/* COMBAT PORTRAITS - Container */
+
+   .blacksmith-menubar-secondary .combat-portraits-group {
+    display: flex;
+    gap: var(--gap);
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+    min-width: 0;
+   }
+   
+   .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+   }
+   
+   .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper .combat-bar-prev-buttons,
+   .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper .combat-bar-next-buttons,
+   .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper .combat-bar-edge-button {
+    flex-shrink: 0;
+   }
+   
+   .blacksmith-menubar-secondary .combat-portraits {
+    display: flex;
+    gap: var(--gap);
+    justify-content: center;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0;
+    flex: 0 1 auto;
+    max-width: 100%;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
+   }
+   
+   .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper.combat-portraits-overflowing .combat-portraits {
+    flex: 1;
+    min-width: 0;
+    max-width: 70%;
+   }
+   
+   .blacksmith-menubar-secondary .combat-portraits::-webkit-scrollbar {
+    display: none;
+   }
+
+/* Scroll Arrows */
+
+   .blacksmith-menubar-secondary .combat-scroll-arrow {
+    flex-shrink: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 100%;
+    min-height: var(--portrait-container-height);
+    padding: 0;
+    border: none;
+    background: rgba(0, 0, 0, 0.4);
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.15s ease, color 0.15s ease;
+   }
+   
+   .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper.combat-portraits-overflowing .combat-scroll-arrow {
+    display: flex;
+   }
+   
+   .blacksmith-menubar-secondary .combat-scroll-arrow:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.6);
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+   }
+   
+   .blacksmith-menubar-secondary .combat-scroll-arrow:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+   }
+
+/* Portrait Container */
+
+     .blacksmith-menubar-secondary .combat-portrait-container {
+        position: relative;
+        width: var(--portrait-container-width);
+        height: var(--portrait-container-height);
+        flex-shrink: 0;
+        cursor: pointer;
+        transition: transform .10s ease, box-shadow .15s ease, border-color .10s ease;
+        border: 2px solid rgba(0, 0, 0, 0.0);
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 4px;
+    }
+
+    .blacksmith-menubar-secondary .combat-portrait-container.combat-token-hidden {
+        opacity: 0.8;
+        border: 1px dotted rgba(14, 11, 11, 0.4);
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Portrait Image */
+    .blacksmith-menubar-secondary .combat-portrait-image,
+    .blacksmith-menubar-secondary .combat-portrait-healthring {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+    }
+    .blacksmith-menubar-secondary .combat-portrait-healthring {
+        width: var(--healthbar-size);
+        height: var(--healthbar-size);
+    }
+  
+    .blacksmith-menubar-secondary .combat-portrait-image {
+        overflow: hidden;
+        z-index: 1;
+        border: none;
+        width: var(--portrait-size);
+        height: var(--portrait-size);
+        background: rgba(0, 0, 0, 0.9);
+    }
+  
+    .blacksmith-menubar-secondary .combat-portrait-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        border-radius: 50%;
+        -webkit-user-drag: none;
+        user-select: none;
+        border: 0px solid rgba(0, 0, 0, 0.05);
+    }
+
+    /* Portrait States */
+    .blacksmith-menubar-secondary .combat-portrait-container:hover {
+        transform: scale(1.0);
+        border-color: rgba(223, 98, 20, 0.9);
+        background: rgba(223, 98, 20, 0.1);
+    }
+    
+    .blacksmith-menubar-secondary .combat-portrait-image img:hover {
+        transform: scale(1.4);
+    }
+    
+    .blacksmith-menubar-secondary .combat-portrait-container.current {
+        border-color: rgba(255, 136, 0, 0.0);
+        background: rgba(255, 136, 0, 0.4);
+    }
+
+    .blacksmith-menubar-secondary .combat-portrait-container.current.combat-token-hidden  {
+        opacity: 0.8;
+        border: 1px dotted rgba(255, 255, 255, 0.7);
+        background: rgba(153, 106, 38, 0.6);
+    }
+
+    .blacksmith-menubar-secondary .combat-portrait-container.defeated {
+    opacity: .9;
+    background: rgba(53, 28, 32, 0.7);
+    }
+
+/* Health Ring */
+
+  .blacksmith-menubar-secondary .combat-portrait-healthring {
+    pointer-events: none;
+    z-index: 2;
+  }
+  
+  .blacksmith-menubar-secondary .combat-portrait-healthring svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  
+  .blacksmith-menubar-secondary .combat-portrait-healthring circle {
+    fill: none;
+    stroke-linecap: round;
+    stroke-width: var(--ring-thickness);
+    filter: drop-shadow(0 0 1px rgba(0,0,0,.6));
+    shape-rendering: geometricPrecision;
+  }
+  
+    .blacksmith-menubar-secondary .combat-portrait-ring-healthy   circle { 
+        stroke:  rgba(68, 180, 40, 0.9);
+    }
+    .blacksmith-menubar-secondary .combat-portrait-ring-injured   circle { 
+        stroke:  rgba(192, 158, 22, 0.9);
+    }
+    .blacksmith-menubar-secondary .combat-portrait-ring-bloodied  circle { 
+        stroke:  rgba(192, 99, 18, 0.9);
+    }
+    .blacksmith-menubar-secondary .combat-portrait-ring-critical  circle { 
+        stroke:  rgba(161, 28, 27, 0.9);
+    }
+    .blacksmith-menubar-secondary .combat-portrait-ring-hidden circle {
+        stroke:  rgba(247, 243, 232, 0.3);
+    }
+  
+    @keyframes blacksmith-pulse-dead {
+        0%   { stroke: #a11c1b; filter: drop-shadow(0 0 1px #a11c1b); }
+        50%  { stroke: #d81010; filter: drop-shadow(0 0 2px #d81010); }
+        100% { stroke: #a11c1b; filter: drop-shadow(0 0 1px #a11c1b); }
+    }
+    .blacksmith-menubar-secondary .combat-portrait-ring-dead circle {
+        animation: blacksmith-pulse-dead 2s ease-in-out infinite;
+    }
+
+/* Control Buttons */
+
+.blacksmith-menubar-secondary .combatbar-button-control-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+    min-height: var(--portrait-container-height);
+    font-size: var(--combatbar-text-font-size);
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+    padding: 0 4px;
+    border-right: 0px solid rgba(17, 17, 17, 0.3);
+}
+
+.blacksmith-menubar-secondary .combatbar-button-disabled,
+.blacksmith-menubar-secondary .combatbar-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: var(--combatbar-button-ends-width);
+    height: 100%;
+    min-height: var(--portrait-container-height);
+    border-radius: 4px;
+    padding: 0 8px;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: background 0.15s ease, color 0.15s ease;
+    font-size: var(--combatbar-button-font-size);
+    border: none;
+    background: rgba(58, 138, 67, 0.9);
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+}
+.blacksmith-menubar-secondary .combatbar-button {
+    cursor: pointer;
+}
+.blacksmith-menubar-secondary .combatbar-button-disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+.blacksmith-menubar-secondary .combatbar-button-disabled i,
+.blacksmith-menubar-secondary .combatbar-button i {
+    padding: 0;
+}
+.blacksmith-menubar-secondary .combatbar-button .combatbar-button-label {
+    padding: 0 0 0 8px;
+}
+
+.blacksmith-menubar-secondary .action-button .action-type-general {
+    background: rgba(44, 74, 90, 0.6);
+    color: rgba(255, 255, 255, 1);
+}
+
+.blacksmith-menubar-secondary .action-button .action-type-begin {
+    background: rgba(58, 138, 67, 0.9);
+    color: rgba(255, 255, 255, 1);
+}
+.blacksmith-menubar-secondary .action-button .action-type-end{
+    background: rgba(164, 28, 7, 0.9);
+    color: rgba(255, 255, 255, 1);
+}
+.blacksmith-menubar-secondary .action-button .action-type-roll{
+    background: rgba(43, 69, 110, 0.85);
+    color: rgba(255, 255, 255, 1);
+}
+
+.blacksmith-menubar-secondary .combatbar-button:hover:not(.combatbar-button-disabled) {
+    background: rgba(184, 83, 60, 0.9);
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+}
+
+.blacksmith-menubar-secondary .combatbar-button:active:not(.combatbar-button-disabled) {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* Initiative Dice Overlay */
+
+    .blacksmith-menubar-secondary .combat-portrait-initiative-dice {
+    width: var(--action-icon-size);
+    height: var(--action-icon-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    pointer-events: auto;
+    font-size: var(--action-icon-font-size);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+    
+.blacksmith-menubar-secondary .combat-portrait-initiative-dice .waiting-initiative,
+.blacksmith-menubar-secondary .combat-portrait-initiative-dice a {
+    color: rgba(255, 255, 255, 1.0);
+    text-decoration: none;
+    transition: all 0.01s ease;
+    text-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.2);
+}
+    
+.blacksmith-menubar-secondary .combat-portrait-initiative-dice a:hover {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.2);
+    color: rgba(223, 98, 20, 0.9);
+    text-shadow: none;
+    cursor: pointer;
+}
+        
+    .blacksmith-menubar-secondary .combat-portrait-initiative-dice.waiting {
+        pointer-events: none;
+}
+
+/* Dead Overlay */
+
+.blacksmith-menubar-secondary .combat-portrait-dead-overlay {
+    width: var(--action-icon-size);
+    height: var(--action-icon-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    pointer-events: auto;
+    font-size: var(--action-icon-font-size);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+    
+.blacksmith-menubar-secondary .combat-portrait-dead-overlay {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.01s ease;
+    text-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Combat Hover Card */
+
+.blacksmith-combat-hover-card {
+    position: fixed;
+    z-index: 120;
+    width: 300px;
+    border: 2px solid rgba(233, 198, 142, 0.85);
+    border-radius: 8px;
+    padding: 8px;
+    background:
+        linear-gradient(180deg, rgba(247, 236, 216, 0.98), rgba(228, 215, 193, 0.98));
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.55);
+    color: #2f241a;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 80ms ease, transform 80ms ease;
+}
+
+.blacksmith-combat-hover-card.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.blacksmith-combat-hover-card .combat-hover-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(112, 85, 49, 0.25);
+    padding-bottom: 4px;
+}
+
+.blacksmith-combat-hover-card .combat-hover-name {
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    font-size: 20px;
+    line-height: 1.1;
+}
+
+.blacksmith-combat-hover-card .combat-hover-image-wrap {
+    position: relative;
+    border: 1px solid rgba(112, 85, 49, 0.55);
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(77, 53, 28, 0.15);
+}
+
+.blacksmith-combat-hover-card .combat-hover-image {
+    width: 100%;
+    height: 260px;
+    object-fit: cover;
+    display: block;
+}
+
+.blacksmith-combat-hover-card .combat-hover-blood {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    opacity: 0.95;
+}
+
+.blacksmith-combat-hover-card .combat-hover-hp-wrap {
+    margin-top: 8px;
+}
+
+.blacksmith-combat-hover-card .combat-hover-hp-bar {
+    width: 100%;
+    height: 10px;
+    background: rgba(96, 79, 62, 0.18);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.blacksmith-combat-hover-card .combat-hover-hp-fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #7f2f1e, #bd4a2d);
+}
+
+.blacksmith-combat-hover-card .combat-hover-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    gap: 8px;
+}
+
+.blacksmith-combat-hover-card .combat-hover-subtitle,
+.blacksmith-combat-hover-card .combat-hover-initiative,
+.blacksmith-combat-hover-card .combat-hover-hp-text {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: rgba(56, 41, 26, 0.85);
+    text-transform: uppercase;
+}
+
+.blacksmith-combat-hover-card .combat-hover-hp-text {
+    margin-top: 2px;
+}
+
+.blacksmith-combat-hover-card .combat-hover-stats {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 4px;
+}
+
+.blacksmith-combat-hover-card .combat-hover-stat {
+    border-radius: 4px;
+    background: rgba(102, 84, 62, 0.14);
+    border: 1px solid rgba(102, 84, 62, 0.24);
+    padding: 4px 2px;
+    text-align: center;
+}
+
+.blacksmith-combat-hover-card .combat-hover-stat-label {
+    display: block;
+    font-size: 10px;
+    line-height: 1;
+    opacity: 0.75;
+    margin-bottom: 2px;
+}
+
+.blacksmith-combat-hover-card .combat-hover-stat-value {
+    display: block;
+    font-size: 20px;
+    line-height: 1;
+    font-weight: 800;
+}
+
+.blacksmith-combat-hover-card .combat-hover-stat-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-size: 12px;
+    color: rgba(56, 41, 26, 0.75);
+    padding: 4px;
+}

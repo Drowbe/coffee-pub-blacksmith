@@ -42,6 +42,7 @@
 
 /* --- Menubar ---------------------- */
 @import "menubar.css";
+@import "menubar-combatbar.css";
 
 /* --- Context Menus (global) ------ */
 @import "menu-context-global.css";
