@@ -192,7 +192,7 @@ export class VoteManager {
             type,
             userId: game.user.id,
             isGM,
-            leaderData,
+            leaderData: getSettingSafely(MODULE.ID, 'partyLeader', null),
             isLeader,
             canStartVote,
             activeVote: this.activeVote
