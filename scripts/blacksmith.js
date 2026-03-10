@@ -58,6 +58,7 @@ import { CombatTracker } from './combat-tracker.js';
 import { LatencyChecker } from './latency-checker.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
 import { EncounterManager } from './manager-encounter.js';
+import { PartyManager } from './manager-party.js';
 import { JournalTools } from './journal-tools.js';
 import { JournalPagePins } from './journal-page-pins.js';
 import { CSSEditor } from './window-gmtools.js';
@@ -1084,6 +1085,10 @@ Hooks.once('init', async function() {
         getCombatAssessment: EncounterManager.getCombatAssessment.bind(EncounterManager),
         parseCR: EncounterManager.parseCR.bind(EncounterManager),
         formatCR: EncounterManager.formatCR.bind(EncounterManager),
+
+        // ✅ Party API (party health summary for progressbars, etc.)
+        getPartyHealthSummary: PartyManager.getPartyHealthSummary.bind(PartyManager),
+        getPartyActorHp: PartyManager.getActorHp.bind(PartyManager),
 
         // ✅ Monster deployment API (same as journal encounter toolbar)
         deployMonsters: EncounterToolbar.deployMonsters.bind(EncounterToolbar),
