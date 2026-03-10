@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.5.2] - 2026-03-03 - PARTY BAR & PROGRESSBAR
+
+### Added
+
+- **Manager-party.js**: New `PartyManager` (`scripts/manager-party.js`) with `getActorHp(actor)` and `getPartyHealthSummary()` (sum of current/max HP across player-owned characters for progressbar). Exposed on `module.api` as `getPartyHealthSummary` and `getPartyActorHp`.
+- **Progressbar secondary bar item**: New item kind `'progressbar'` for default secondary bars. Required: `width`, `borderColor`, `barColor`, `progressColor`, `percentProgress`. Optional: `title`, `icon`, `leftLabel`, `rightLabel`, `leftIcon`, `rightIcon`, `height`. Full bar = 100%; left/right labels are overlaid on the bar (do not shift or shrink it). Update via `updateSecondaryBarItemInfo(barTypeId, itemId, { percentProgress, leftLabel, rightLabel, ... })`. Documented in `documentation/api-menubar.md`.
+- **Party bar layout and Party Health progressbar**: Party secondary bar **middle zone** = action buttons (Deployment Pattern, Deploy Party, Vote, Statistics, Experience). **Right zone** = Party Health progressbar: heart icon, "Party Health" label to the left of the bar, current/max HP overlaid on the bar (e.g. 616 | 767). Progressbar refreshes on register, when party bar opens, and on `updateActor` when party bar is open; data from `PartyManager.getPartyHealthSummary()`.
+
+### Changed
+
+- **Party bar zones**: All party action buttons now explicitly use `zone: 'middle'`. Party health progressbar uses `zone: 'right'`.
+
 
 ## [13.5.1] - 2026-03-03 - MENUBAR REFACTOR & MANAGE UI
 
