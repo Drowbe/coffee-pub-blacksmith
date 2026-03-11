@@ -1015,29 +1015,6 @@ Hooks.once('ready', () => {
         buttonNormalTint: "rgba(88, 15, 4, 0.9)",
         buttonSelectedTint: null
     });
-    api.registerMenubarTool('combat-bar', {
-        icon: "fas fa-swords",
-        name: "combat-bar",
-        title: () => "Combat Bar",
-        tooltip: "Show combat tracker secondary bar",
-        onClick: () => api.toggleSecondaryBar('combat'),
-        zone: "middle",
-        group: "combat",
-        groupOrder: 1,
-        order: 2,
-        moduleId: "blacksmith-core",
-        gmOnly: false,
-        leaderOnly: false,
-        visible: () => {
-            const activeCombat = game.combats?.active;
-            return activeCombat != null && activeCombat.combatants?.size > 0;
-        },
-        toggleable: true,
-        active: false,
-        iconColor: null,
-        buttonNormalTint: "rgba(88, 15, 4, 0.5)",
-        buttonSelectedTint: "rgba(88, 15, 4, 0.9)"
-    });
     api.registerMenubarTool('combat-window', {
         icon: "fas fa-swords",
         name: "combat-window",

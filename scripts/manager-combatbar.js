@@ -21,11 +21,10 @@ export class CombatBarManager {
         this.registerCombatPartial().catch((error) => {
             postConsoleAndNotification(MODULE.NAME, "Menubar: Error registering combat partial", error?.message || error, true, false);
         });
+        this.registerCombatMenubarTool();
         const ensureCombatType = async () => {
             try {
-                if (!menuBar.secondaryBarTypes?.has?.('combat')) {
-                    await CombatBarManager.registerCombatBarType(menuBar);
-                }
+                await CombatBarManager.registerCombatBarType(menuBar);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, "Menubar: Error registering combat secondary bar type", error?.message || error, true, false);
             }
@@ -133,11 +132,43 @@ export class CombatBarManager {
     }
 
     static async registerCombatBarType(menuBar) {
-        await menuBar.registerSecondaryBarType('combat', {
+        const api = game.modules.get(MODULE.ID)?.api;
+        if (!api?.registerSecondaryBarType) return;
+        await api.registerSecondaryBarType('combat', {
             height: menuBar.getSecondaryBarHeight('combat'),
             persistence: 'manual',
             autoCloseDelay: 10000,
             templatePath: 'modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs'
+        });
+        api.registerSecondaryBarTool?.('combat', 'combat-bar');
+    }
+
+    static registerCombatMenubarTool() {
+        const api = game.modules.get(MODULE.ID)?.api;
+        if (!api?.registerMenubarTool) return;
+        if (api.isMenubarToolRegistered?.('combat-bar')) return;
+        api.registerMenubarTool('combat-bar', {
+            icon: "fas fa-swords",
+            name: "combat-bar",
+            title: () => "Combat Bar",
+            tooltip: "Show combat tracker secondary bar",
+            onClick: () => api.toggleSecondaryBar('combat'),
+            zone: "middle",
+            group: "combat",
+            groupOrder: 1,
+            order: 2,
+            moduleId: "blacksmith-core",
+            gmOnly: false,
+            leaderOnly: false,
+            visible: () => {
+                const activeCombat = game.combats?.active;
+                return activeCombat != null && activeCombat.combatants?.size > 0;
+            },
+            toggleable: true,
+            active: false,
+            iconColor: null,
+            buttonNormalTint: "rgba(88, 15, 4, 0.5)",
+            buttonSelectedTint: "rgba(88, 15, 4, 0.9)"
         });
     }
 
