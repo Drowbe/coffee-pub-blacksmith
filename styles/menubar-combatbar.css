@@ -137,10 +137,9 @@
    }
 
 /* Scroll Arrows */
-   /* DEBUG: arrows always visible; normally only show when .combat-portraits-overflowing */
    .blacksmith-menubar-secondary .combat-scroll-arrow {
     flex-shrink: 0;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     width: 24px;
@@ -155,7 +154,7 @@
     transition: background 0.15s ease, color 0.15s ease;
    }
    
-   /* when overflow detected, same display (kept for when we revert debug) */
+   /* show both arrows only when overflow exists */
    .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper.combat-portraits-overflowing .combat-scroll-arrow {
     display: flex;
    }

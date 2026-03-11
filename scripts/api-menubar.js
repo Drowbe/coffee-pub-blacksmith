@@ -842,8 +842,7 @@ class MenuBar {
     }
 
     /**
-     * Update combat portrait scroll: show arrows only when overflowing; update disabled state at start/end.
-     * Uses getBoundingClientRect so we don't rely on scrollLeft (which can be wrong in some layouts).
+     * Update combat portrait scroll: show/hide both arrows together based on overflow.
      * @private
      */
     static _updateCombatPortraitScrollArrows() {
@@ -857,23 +856,8 @@ class MenuBar {
         const visibleWidth = portraits.clientWidth;
         const overflowing = contentWidth > visibleWidth + 1 || (visibleWidth < 80 && contentWidth > 0);
         wrapper.classList.toggle('combat-portraits-overflowing', overflowing);
-        if (overflowing) {
-            const containers = portraits.querySelectorAll('.combat-portrait-container');
-            const tolerance = 2;
-            let atStart = true;
-            let atEnd = true;
-            if (containers.length > 0) {
-                const portRect = portraits.getBoundingClientRect();
-                const firstRect = containers[0].getBoundingClientRect();
-                const lastRect = containers[containers.length - 1].getBoundingClientRect();
-                /* At start = first portrait fully visible at/inside viewport left edge */
-                atStart = firstRect.left >= portRect.left - tolerance;
-                /* At end = last portrait fully visible at/inside viewport right edge */
-                atEnd = lastRect.right <= portRect.right + tolerance;
-            }
-            leftBtn.disabled = atStart;
-            rightBtn.disabled = atEnd;
-        }
+        leftBtn.disabled = false;
+        rightBtn.disabled = false;
     }
 
     /**
