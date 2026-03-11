@@ -535,19 +535,43 @@ class MenuBar {
         this.registerSecondaryBarItem('party', 'party-health', {
             kind: 'progressbar',
             zone: 'right',
-            icon: 'fas fa-heart',
-            title: 'Party Health',
+            icon: '',
+            title: '',
             width: 300,
             height: 20,
             borderColor: 'rgba(0,0,0,0.5)',
             barColor: '#2d5016',
             progressColor: '#4a7c23',
+            leftIcon: 'fa-solid fa-skull',
+            rightIcon: 'fa-solid fa-heart',
             percentProgress: initialHealth.percent,
             leftLabel: initialHealth.currentDisplay,
             rightLabel: initialHealth.maxDisplay,
             group: 'health',
             order: 0,
             tooltip: 'Party total HP'
+        });
+
+        // Reputation balancebar — left zone (placeholder; will be data-driven later)
+        this.registerSecondaryBarItem('party', 'reputation', {
+            kind: 'balancebar',
+            zone: 'left',
+            title: '',
+            icon: '',
+            width: 300,
+            height: 20,
+            borderColor: 'rgba(0,0,0,0.5)',
+            barColorLeft: 'rgba(143, 46, 46, 0.69)',
+            barColorRight: 'rgba(30, 139, 49, 0.69)',
+            progressColor: 'rgba(230, 150, 3, 0.3)',
+            percentProgress: 27,
+            leftIcon: 'fa-solid fa-face-angry-horns',
+            rightIcon: 'fa-solid fa-face-smile-halo',
+            leftLabel: '',
+            rightLabel: '',
+            group: 'health',
+            order: 1,
+            tooltip: 'Party reputation'
         });
 
         // Initial refresh of party health progressbar

@@ -783,19 +783,12 @@
 .blacksmith-menubar-secondary .secondary-bar-item-progressbar-right-label {
     right: 6px;
 }
-.blacksmith-menubar-secondary .secondary-bar-item-progressbar-left-icon,
-.blacksmith-menubar-secondary .secondary-bar-item-progressbar-right-icon {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
+/* Icons outside the bar (left/right of the bar) */
+.blacksmith-menubar-secondary .secondary-bar-item-progressbar-icon-outside-left,
+.blacksmith-menubar-secondary .secondary-bar-item-progressbar-icon-outside-right {
     font-size: var(--secondary-bar-item-icon-size);
-    pointer-events: none;
-}
-.blacksmith-menubar-secondary .secondary-bar-item-progressbar-left-icon {
-    left: 4px;
-}
-.blacksmith-menubar-secondary .secondary-bar-item-progressbar-right-icon {
-    right: 4px;
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+    flex-shrink: 0;
 }
 
 /* Balancebar items (-100..+100 from center) */

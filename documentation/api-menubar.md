@@ -1484,7 +1484,7 @@ blacksmith.registerSecondaryBarItem('my-bar', 'hp-bar', {
 blacksmith.updateSecondaryBarItemInfo('my-bar', 'hp-bar', { percentProgress: 65, leftLabel: '85', rightLabel: '130' });
 ```
 
-**Balancebar item** (`kind: 'balancebar'`): A horizontal bar with origin at 0 in the middle; range -100 to +100. Negative values fill to the left from center, positive values fill to the right. Required: `width`, `borderColor`, `barColorLeft`, `barColorRight`, `progressColor`. Optional: `percentProgress` (default 0), `title`, `icon`, `leftLabel`, `rightLabel` (inside the bar), `leftIcon` (outside the bar on the right), `rightIcon` (outside the bar on the left), `height`. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { percentProgress, leftLabel, rightLabel, leftIcon, rightIcon, title, icon, barColorLeft, barColorRight, progressColor, borderColor })`.
+**Balancebar item** (`kind: 'balancebar'`): A horizontal bar with origin at 0 in the middle; range -100 to +100. Negative values fill to the left from center, positive values fill to the right. Required: `width`, `borderColor`, `barColorLeft`, `barColorRight`, `progressColor`. Optional: `percentProgress` (default 0), `title`, `icon`, `leftLabel`, `rightLabel` (inside the bar), `leftIcon` (outside the bar on the left), `rightIcon` (outside the bar on the right), `height`. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { percentProgress, leftLabel, rightLabel, leftIcon, rightIcon, title, icon, barColorLeft, barColorRight, progressColor, borderColor })`.
 
 ```javascript
 blacksmith.registerSecondaryBarItem('my-bar', 'approval', {
