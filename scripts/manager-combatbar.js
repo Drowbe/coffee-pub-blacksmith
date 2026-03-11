@@ -4,8 +4,172 @@ import { RoundTimer } from './timer-round.js';
 import { CombatTracker } from './combat-tracker.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { easeHorizontalScroll } from './combat-bar-scroll.js';
+import { HookManager } from './manager-hooks.js';
 
 export class CombatBarManager {
+    static async registerCombatPartial() {
+        const combatBarTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs')
+            .then(response => response.text());
+        Handlebars.registerPartial('menubar-combat', combatBarTemplate);
+    }
+
+    static async registerCombatBarType(menuBar) {
+        await menuBar.registerSecondaryBarType('combat', {
+            height: menuBar.getSecondaryBarHeight('combat'),
+            persistence: 'manual',
+            autoCloseDelay: 10000,
+            templatePath: 'modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs'
+        });
+    }
+
+    static registerCombatHooks(menuBar) {
+        const combatUpdateHookId = HookManager.registerHook({
+            name: 'updateCombat',
+            description: 'MenuBar: Update combat bar on combat changes',
+            context: 'menubar-combat-update',
+            priority: 3,
+            callback: (_combat, updateData) => {
+                const shouldUpdate = updateData.turn !== undefined ||
+                    updateData.round !== undefined ||
+                    updateData.combatants !== undefined;
+                if (shouldUpdate) menuBar.updateCombatBar();
+            }
+        });
+
+        const combatCreateHookId = HookManager.registerHook({
+            name: 'createCombat',
+            description: 'MenuBar: Open combat bar when combat is created',
+            context: 'menubar-combat-create',
+            priority: 3,
+            callback: () => {
+                const shouldShowCombatBar = game.settings.get(MODULE.ID, 'menubarCombatShow');
+                if (shouldShowCombatBar) menuBar.openCombatBar();
+            }
+        });
+
+        const combatantCreateHookId = HookManager.registerHook({
+            name: 'createCombatant',
+            description: 'MenuBar: Open combat bar when combatants are added',
+            context: 'menubar-combatant-create',
+            priority: 3,
+            callback: (combatant) => {
+                if (combatant.combat.combatants.size === 1) {
+                    const shouldShowCombatBar = game.settings.get(MODULE.ID, 'menubarCombatShow');
+                    if (shouldShowCombatBar) menuBar.openCombatBar();
+                } else if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
+                    menuBar.updateCombatBar();
+                }
+            }
+        });
+
+        const combatantUpdateHookId = HookManager.registerHook({
+            name: 'updateCombatant',
+            description: 'MenuBar: Update combat bar when combatants are updated',
+            context: 'menubar-combatant-update',
+            priority: 3,
+            callback: (_combatant, updateData) => {
+                const initiativeUpdated = updateData.initiative !== undefined;
+                if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
+                    menuBar.updateCombatBar();
+                    if (initiativeUpdated) menuBar.renderMenubar();
+                }
+            }
+        });
+
+        const combatantDeleteHookId = HookManager.registerHook({
+            name: 'deleteCombatant',
+            description: 'MenuBar: Update combat bar when combatants are removed',
+            context: 'menubar-combatant-delete',
+            priority: 3,
+            callback: () => {
+                if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
+                    menuBar.updateCombatBar();
+                }
+            }
+        });
+
+        const combatDeleteHookId = HookManager.registerHook({
+            name: 'deleteCombat',
+            description: 'MenuBar: Close combat bar when combat is deleted',
+            context: 'menubar-combat-delete',
+            priority: 3,
+            callback: () => {
+                menuBar.closeCombatBar();
+            }
+        });
+
+        const combatTrackerRenderHookId = HookManager.registerHook({
+            name: 'renderApplication',
+            description: 'MenuBar: Update combat tracker button when combat tracker window opens',
+            context: 'menubar-combat-tracker-render',
+            priority: 3,
+            callback: (app) => {
+                if (app && app.appId === 'combat') menuBar.renderMenubar(true);
+            }
+        });
+
+        const combatTrackerCloseHookId = HookManager.registerHook({
+            name: 'closeApplication',
+            description: 'MenuBar: Update combat tracker button when combat tracker window closes',
+            context: 'menubar-combat-tracker-close',
+            priority: 3,
+            callback: (app) => {
+                if (app && app.appId === 'combat') menuBar.renderMenubar(true);
+            }
+        });
+
+        const updateActorHookId = HookManager.registerHook({
+            name: 'updateActor',
+            description: 'MenuBar: Update combat bar when actor HP changes',
+            context: 'menubar-actor-update',
+            priority: 3,
+            callback: (actor, updateData) => {
+                if (menuBar._isCombatBarActive()) menuBar._handleActorHpChange(actor, updateData);
+                if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'party') {
+                    menuBar._refreshPartyBarInfo();
+                }
+            }
+        });
+
+        const updateTokenHookId = HookManager.registerHook({
+            name: 'updateToken',
+            description: 'MenuBar: Update combat bar when token HP changes',
+            context: 'menubar-token-update',
+            priority: 3,
+            callback: (token, updateData) => {
+                if (menuBar._isCombatBarActive()) menuBar._handleTokenHpChange(token, updateData);
+            }
+        });
+
+        menuBar._registeredHooks = {
+            combatUpdateHookId,
+            combatCreateHookId,
+            combatantCreateHookId,
+            combatantUpdateHookId,
+            combatantDeleteHookId,
+            combatDeleteHookId,
+            combatTrackerRenderHookId,
+            combatTrackerCloseHookId,
+            updateActorHookId,
+            updateTokenHookId
+        };
+
+        postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat hooks registered", "", true, false);
+    }
+
+    static registerCombatCleanupHook(menuBar) {
+        Hooks.once('ready', () => {
+            HookManager.registerHook({
+                name: 'unloadModule',
+                description: 'MenuBar: Cleanup on module unload',
+                context: 'menubar-cleanup',
+                priority: 3,
+                callback: (moduleId) => {
+                    if (moduleId === MODULE.ID) menuBar._cleanupCombatBarEvents();
+                }
+            });
+        });
+    }
     static updateCombatPortraitScrollArrows(_menuBar) {
         const wrapper = document.querySelector('.combat-portraits-scroll-wrapper');
         if (!wrapper) return;

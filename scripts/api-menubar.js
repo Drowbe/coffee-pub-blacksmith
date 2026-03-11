@@ -151,26 +151,13 @@ class MenuBar {
         // Encounter bar refresh: encounter-toolbar.js calls api.updateSecondaryBarItemInfo directly when tokens change
         
         // Register cleanup hook for module unload
-        Hooks.once('ready', () => {
-            HookManager.registerHook({
-                name: 'unloadModule',
-                description: 'MenuBar: Cleanup on module unload',
-                context: 'menubar-cleanup',
-                priority: 3,
-                callback: (moduleId) => {
-                    if (moduleId === MODULE.ID) {
-                        this._cleanupCombatBarEvents();
-                    }
-                }
-            });
-        });
+        CombatBarManager.registerCombatCleanupHook(this);
     }
 
     static async _registerPartials() {
         try {
-            // Load and register the combat bar partial
-            const combatBarTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs').then(response => response.text());
-            Handlebars.registerPartial('menubar-combat', combatBarTemplate);
+            // Register combat partial via combat bar manager.
+            await CombatBarManager.registerCombatPartial();
             
             // Load and register the default secondary bar template
             const defaultBarTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partials/menubar-secondary-default.hbs').then(response => response.text());
@@ -240,203 +227,7 @@ class MenuBar {
     }
 
     static _registerCombatHooks() {
-        // Hook for combat updates (turn changes, etc.)
-        const combatUpdateHookId = HookManager.registerHook({
-            name: 'updateCombat',
-            description: 'MenuBar: Update combat bar on combat changes',
-            context: 'menubar-combat-update',
-            priority: 3,
-            callback: (combat, updateData) => {
-                // --- BEGIN - HOOKMANAGER CALLBACK ---
-                // Update on turn/round changes OR when combatants are updated
-                const shouldUpdate = updateData.turn !== undefined || 
-                                   updateData.round !== undefined ||
-                                   updateData.combatants !== undefined;
-                
-                if (shouldUpdate) {
-                    
-                    MenuBar.updateCombatBar();
-                }
-            }
-        });
-
-        // Hook for combat creation
-        const combatCreateHookId = HookManager.registerHook({
-            name: 'createCombat',
-            description: 'MenuBar: Open combat bar when combat is created',
-            context: 'menubar-combat-create',
-            priority: 3,
-            callback: (combat) => {
-                // --- BEGIN - HOOKMANAGER CALLBACK ---
-                
-                // Auto-open combat bar when combat is created (if setting enabled)
-                const shouldShowCombatBar = game.settings.get(MODULE.ID, 'menubarCombatShow');
-                if (shouldShowCombatBar) {
-                    MenuBar.openCombatBar();
-                }
-            }
-        });
-
-        // Hook for combatant creation (when combatants are added to combat)
-        const combatantCreateHookId = HookManager.registerHook({
-            name: 'createCombatant',
-            description: 'MenuBar: Open combat bar when combatants are added',
-            context: 'menubar-combatant-create',
-            priority: 3,
-            callback: (combatant, options, userId) => {
-                // --- BEGIN - HOOKMANAGER CALLBACK ---
-                
-                // Auto-open combat bar when first combatant is added (if setting enabled)
-                if (combatant.combat.combatants.size === 1) {
-                    const shouldShowCombatBar = game.settings.get(MODULE.ID, 'menubarCombatShow');
-                    if (shouldShowCombatBar) {
-                        MenuBar.openCombatBar();
-                    }
-                } else if (MenuBar.secondaryBar.isOpen && MenuBar.secondaryBar.type === 'combat') {
-                    // Update existing combat bar
-                    MenuBar.updateCombatBar();
-                }
-            }
-        });
-
-        // Hook for combatant updates (initiative rolls, status changes, etc.)
-        const combatantUpdateHookId = HookManager.registerHook({
-            name: 'updateCombatant',
-            description: 'MenuBar: Update combat bar when combatants are updated',
-            context: 'menubar-combatant-update',
-            priority: 3,
-            callback: (combatant, updateData, options, userId) => {
-                // --- BEGIN - HOOKMANAGER CALLBACK ---
-                // Check if initiative was updated
-                const initiativeUpdated = updateData.initiative !== undefined;
-                // Check if hidden status was updated (GM visibility toggle)
-                const hiddenUpdated = 'hidden' in updateData;
-                
-                // Update combat bar when combatant data changes (especially initiative or hidden status)
-                // Hidden status changes need immediate update so tokens appear/disappear for players
-                if (MenuBar.secondaryBar.isOpen && MenuBar.secondaryBar.type === 'combat') {
-                    MenuBar.updateCombatBar();
-                    
-                    // If initiative was updated, also update the menubar to refresh button states
-                    if (initiativeUpdated) {
-                        MenuBar.renderMenubar();
-                    }
-                }
-            }
-        });
-
-        // Hook for combatant deletion
-        const combatantDeleteHookId = HookManager.registerHook({
-            name: 'deleteCombatant',
-            description: 'MenuBar: Update combat bar when combatants are removed',
-            context: 'menubar-combatant-delete',
-            priority: 3,
-            callback: (combatant, options, userId) => {
-                // --- BEGIN - HOOKMANAGER CALLBACK ---
-                
-                // Update combat bar when combatant is removed
-                if (MenuBar.secondaryBar.isOpen && MenuBar.secondaryBar.type === 'combat') {
-                    MenuBar.updateCombatBar();
-                }
-            }
-        });
-
-        // Hook for combat deletion
-        const combatDeleteHookId = HookManager.registerHook({
-            name: 'deleteCombat',
-            description: 'MenuBar: Close combat bar when combat is deleted',
-            context: 'menubar-combat-delete',
-            priority: 3,
-            callback: (combat) => {
-                // --- BEGIN - HOOKMANAGER CALLBACK ---
-                
-                // Close combat bar when combat is deleted
-                MenuBar.closeCombatBar();
-            }
-        });
-
-        // Hook for combat tracker window rendering to update menubar button state
-        const combatTrackerRenderHookId = HookManager.registerHook({
-            name: 'renderApplication',
-            description: 'MenuBar: Update combat tracker button when combat tracker window opens',
-            context: 'menubar-combat-tracker-render',
-            priority: 3,
-            callback: (app, html, data) => {
-                // --- BEGIN - HOOKMANAGER CALLBACK ---
-                // Check if this is the combat tracker application
-                if (app && app.appId === 'combat') {
-                    
-                    // Re-render menubar to update combat tracker button state
-                    MenuBar.renderMenubar(true);
-                }
-            }
-        });
-
-        // Hook for combat tracker window closing to update menubar button state
-        const combatTrackerCloseHookId = HookManager.registerHook({
-            name: 'closeApplication',
-            description: 'MenuBar: Update combat tracker button when combat tracker window closes',
-            context: 'menubar-combat-tracker-close',
-            priority: 3,
-            callback: (app, options) => {
-                // --- BEGIN - HOOKMANAGER CALLBACK ---
-                // Check if this is the combat tracker application
-                if (app && app.appId === 'combat') {
-                   
-                    // Re-render menubar to update combat tracker button state
-                    MenuBar.renderMenubar(true);
-                }
-            }
-        });
-
-        // Hook for actor HP change
-        const updateActorHookId = HookManager.registerHook({
-            name: 'updateActor',
-            description: 'MenuBar: Update combat bar when actor HP changes',
-            context: 'menubar-actor-update',
-            priority: 3,
-            callback: (actor, updateData) => {
-                // --- BEGIN - HOOKMANAGER CALLBACK ---
-                // Check if actor is in combat
-                if (MenuBar._isCombatBarActive()) {
-                    MenuBar._handleActorHpChange(actor, updateData);
-                }
-                // Refresh party health progressbar when party bar is open (party members are actors)
-                if (MenuBar.secondaryBar.isOpen && MenuBar.secondaryBar.type === 'party') {
-                    MenuBar._refreshPartyBarInfo();
-                }
-            }
-        });
-
-        // Hook for token HP change
-        const updateTokenHookId = HookManager.registerHook({
-            name: 'updateToken',
-            description: 'MenuBar: Update combat bar when token HP changes',
-            context: 'menubar-token-update',
-            priority: 3,
-            callback: (token, updateData) => {
-                // --- BEGIN - HOOKMANAGER CALLBACK ---
-                // Check if token is in combat
-                if (MenuBar._isCombatBarActive()) {
-                    MenuBar._handleTokenHpChange(token, updateData);
-                }
-            }
-        });
-
-        this._registeredHooks = {
-            combatUpdateHookId,
-            combatCreateHookId,
-            combatantCreateHookId,
-            combatantUpdateHookId,
-            combatantDeleteHookId,
-            combatDeleteHookId,
-            combatTrackerRenderHookId,
-            combatTrackerCloseHookId,
-            updateActorHookId,
-            updateTokenHookId
-        };
-
-        postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat hooks registered", "", true, false);
+        return CombatBarManager.registerCombatHooks(this);
     }
 
     /**
@@ -674,15 +465,8 @@ class MenuBar {
      * Register secondary bar types
      */
     static async registerSecondaryBarTypes() {
-        // Register combat tracker secondary bar (custom template)
-        // Note: The combat template is already registered as a partial in _registerPartials(),
-        // but we still need to mark it as a custom template for the rendering logic
-        await this.registerSecondaryBarType('combat', {
-            height: this.getSecondaryBarHeight('combat'),
-            persistence: 'manual',
-            autoCloseDelay: 10000,
-            templatePath: 'modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs'
-        });
+        // Register combat tracker secondary bar (custom template) via combat bar manager.
+        await CombatBarManager.registerCombatBarType(this);
 
         // Register encounter secondary bar (default tool system – items registered from encounter-toolbar.js)
         // Encounter bar type is registered by encounter-toolbar.js with info items + buttons
