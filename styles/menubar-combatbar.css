@@ -61,6 +61,9 @@
     justify-content: center;
     align-items: flex-end;
     gap: 2px;
+    width: 175px;
+    min-width: 175px;
+    flex: 0 0 175px;
     height: 100%;
     padding: 0px 8px;
     background-color: rgba(0, 0, 0, 0.0);
@@ -81,6 +84,15 @@
       font-size: var(--combatbar-text-font-size);
       color: var(--blacksmith-menubar-secondary-fontcolor);
       margin: 0px 0px .2em 0px;
+  }
+
+  .blacksmith-menubar-secondary .combat-endcap-right .combat-endcap-bottom {
+      display: block;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: right;
   }
 
 /* COMBAT PORTRAITS - Container */
