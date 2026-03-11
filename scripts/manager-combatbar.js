@@ -3,10 +3,49 @@ import { getSettingSafely, postConsoleAndNotification, formatTime, playSound } f
 import { RoundTimer } from './timer-round.js';
 import { CombatTracker } from './combat-tracker.js';
 import { UIContextMenu } from './ui-context-menu.js';
-import { easeHorizontalScroll } from './combat-bar-scroll.js';
 import { HookManager } from './manager-hooks.js';
 
 export class CombatBarManager {
+    /**
+     * Smooth horizontal scroll with easing for predictable per-click movement.
+     * @param {HTMLElement} element
+     * @param {number} deltaX
+     * @param {number} durationMs
+     * @param {() => void} [onUpdate]
+     */
+    static easeHorizontalScroll(element, deltaX, durationMs = 220, onUpdate) {
+        if (!element || !Number.isFinite(deltaX) || deltaX === 0) return;
+        const start = element.scrollLeft || 0;
+        const max = Math.max(0, element.scrollWidth - element.clientWidth);
+        const target = Math.min(max, Math.max(0, start + deltaX));
+        if (Math.abs(target - start) < 0.5) return;
+
+        if (element._blacksmithScrollRafId) {
+            cancelAnimationFrame(element._blacksmithScrollRafId);
+            element._blacksmithScrollRafId = null;
+        }
+
+        const t0 = performance.now();
+        const easeInOutCubic = (t) => (t < 0.5)
+            ? 4 * t * t * t
+            : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+        const tick = (now) => {
+            const elapsed = now - t0;
+            const progress = Math.min(1, elapsed / durationMs);
+            const eased = easeInOutCubic(progress);
+            element.scrollLeft = start + ((target - start) * eased);
+            if (typeof onUpdate === 'function') onUpdate();
+            if (progress < 1) {
+                element._blacksmithScrollRafId = requestAnimationFrame(tick);
+            } else {
+                element._blacksmithScrollRafId = null;
+            }
+        };
+
+        element._blacksmithScrollRafId = requestAnimationFrame(tick);
+    }
+
     static initialize(menuBar) {
         if (menuBar.__combatBarManagerInitialized) return;
         menuBar.__combatBarManagerInitialized = true;
@@ -809,7 +848,7 @@ export class CombatBarManager {
                     const first = portraits.querySelector('.combat-portrait-container');
                     const step = first ? first.offsetWidth + (parseInt(getComputedStyle(portraits).gap, 10) || 2) : Math.floor(portraits.clientWidth * 0.4);
                     const delta = scrollLeftBtn ? -step : step;
-                    easeHorizontalScroll(portraits, delta, 220, () => CombatBarManager.updateCombatPortraitScrollArrows(menuBar));
+                    CombatBarManager.easeHorizontalScroll(portraits, delta, 220, () => CombatBarManager.updateCombatPortraitScrollArrows(menuBar));
                     setTimeout(() => CombatBarManager.updateCombatPortraitScrollArrows(menuBar), 400);
                 }
                 return;
