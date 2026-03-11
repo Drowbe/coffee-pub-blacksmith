@@ -20,6 +20,7 @@ import { EncounterToolbar } from './encounter-toolbar.js';
 import { PartyManager } from './manager-party.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { PinManager } from './manager-pins.js';
+import { easeHorizontalScroll } from './combat-bar-scroll.js';
 
 class MenuBar {
     static ID = 'menubar';
@@ -633,13 +634,11 @@ class MenuBar {
                 const bar = event.target.closest('.combat-tracker-bar');
                 const portraits = bar?.querySelector('.combat-portraits');
                 if (portraits) {
-                    // Scroll by ~one portrait width so motion is smooth (small step + scroll-behavior: smooth)
+                    // Scroll by ~one portrait width with eased animation for smoother per-click motion.
                     const first = portraits.querySelector('.combat-portrait-container');
                     const step = first ? first.offsetWidth + (parseInt(getComputedStyle(portraits).gap, 10) || 2) : Math.floor(portraits.clientWidth * 0.4);
-                    portraits.scrollBy({
-                        left: scrollLeftBtn ? -step : step,
-                        behavior: 'smooth'
-                    });
+                    const delta = scrollLeftBtn ? -step : step;
+                    easeHorizontalScroll(portraits, delta, 220, () => MenuBar._updateCombatPortraitScrollArrows());
                     setTimeout(() => MenuBar._updateCombatPortraitScrollArrows(), 400);
                 }
                 return;
