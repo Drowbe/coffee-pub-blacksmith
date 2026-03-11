@@ -798,6 +798,99 @@
     right: 4px;
 }
 
+/* Balancebar items (-100..+100 from center) */
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar {
+    cursor: default;
+    background-color: transparent;
+    border: none;
+    min-width: unset;
+    min-height: unset;
+    padding: 0 4px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar:hover {
+    transform: none;
+    background-color: transparent;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-caption {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-caption .secondary-bar-item-balancebar-icon {
+    font-size: var(--secondary-bar-item-icon-size);
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+}
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-title {
+    font-size: var(--secondary-bar-item-font-size);
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+    white-space: nowrap;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-icon-outside-left,
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-icon-outside-right {
+    font-size: var(--secondary-bar-item-icon-size);
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+    flex-shrink: 0;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-bar {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    border: 1px solid;
+    border-radius: 4px;
+    overflow: hidden;
+    min-height: 10px;
+    position: relative;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-left,
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-right {
+    width: 50%;
+    position: relative;
+    overflow: hidden;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-left {
+    border-radius: 4px 0 0 4px;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-right {
+    border-radius: 0 4px 4px 0;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-fill-left {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    min-width: 0;
+    transition: width 0.2s ease;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-fill-right {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    min-width: 0;
+    transition: width 0.2s ease;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-left-label,
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-right-label {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: var(--secondary-bar-item-font-size);
+    font-weight: 600;
+    color: var(--blacksmith-menubar-secondary-fontcolor);
+    white-space: nowrap;
+    pointer-events: none;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-left-label {
+    left: 6px;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-right-label {
+    right: 6px;
+}
+
 
 
 

@@ -45,6 +45,30 @@
                         {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-progressbar-right-icon"></i>{{/if}}
                     </div>
                 </div>
+                {{else if (eq kind "balancebar")}}
+                <div class="secondary-bar-item secondary-bar-item-balancebar"
+                     data-item-id="{{itemId}}"
+                     data-group-id="{{../id}}"
+                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+                     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+                     style="width: {{balancebarWidth}};">
+                    <div class="secondary-bar-item-balancebar-caption">
+                        {{#if icon}}<i class="{{icon}} secondary-bar-item-balancebar-icon"></i>{{/if}}
+                        {{#if title}}<span class="secondary-bar-item-balancebar-title">{{title}}</span>{{/if}}
+                    </div>
+                    {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-balancebar-icon-outside-left"></i>{{/if}}
+                    <div class="secondary-bar-item-balancebar-bar" style="height: {{balancebarHeight}}; border-color: {{borderColor}};">
+                        <div class="secondary-bar-item-balancebar-left" style="background-color: {{barColorLeft}};">
+                            <div class="secondary-bar-item-balancebar-fill-left" style="width: {{balancebarFillLeftPercent}}%; background-color: {{progressColor}};"></div>
+                        </div>
+                        <div class="secondary-bar-item-balancebar-right" style="background-color: {{barColorRight}};">
+                            <div class="secondary-bar-item-balancebar-fill-right" style="width: {{balancebarFillRightPercent}}%; background-color: {{progressColor}};"></div>
+                        </div>
+                        {{#if leftLabel}}<span class="secondary-bar-item-balancebar-left-label">{{leftLabel}}</span>{{/if}}
+                        {{#if rightLabel}}<span class="secondary-bar-item-balancebar-right-label">{{rightLabel}}</span>{{/if}}
+                    </div>
+                    {{#if leftIcon}}<i class="{{leftIcon}} secondary-bar-item-balancebar-icon-outside-right"></i>{{/if}}
+                </div>
                 {{else}}
                 <div class="secondary-bar-item {{#if active}}active{{/if}}"
                      data-item-id="{{itemId}}"
@@ -118,6 +142,30 @@
                         {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-progressbar-right-icon"></i>{{/if}}
                     </div>
                 </div>
+                {{else if (eq kind "balancebar")}}
+                <div class="secondary-bar-item secondary-bar-item-balancebar"
+                     data-item-id="{{itemId}}"
+                     data-group-id="{{../id}}"
+                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+                     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+                     style="width: {{balancebarWidth}};">
+                    <div class="secondary-bar-item-balancebar-caption">
+                        {{#if icon}}<i class="{{icon}} secondary-bar-item-balancebar-icon"></i>{{/if}}
+                        {{#if title}}<span class="secondary-bar-item-balancebar-title">{{title}}</span>{{/if}}
+                    </div>
+                    {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-balancebar-icon-outside-left"></i>{{/if}}
+                    <div class="secondary-bar-item-balancebar-bar" style="height: {{balancebarHeight}}; border-color: {{borderColor}};">
+                        <div class="secondary-bar-item-balancebar-left" style="background-color: {{barColorLeft}};">
+                            <div class="secondary-bar-item-balancebar-fill-left" style="width: {{balancebarFillLeftPercent}}%; background-color: {{progressColor}};"></div>
+                        </div>
+                        <div class="secondary-bar-item-balancebar-right" style="background-color: {{barColorRight}};">
+                            <div class="secondary-bar-item-balancebar-fill-right" style="width: {{balancebarFillRightPercent}}%; background-color: {{progressColor}};"></div>
+                        </div>
+                        {{#if leftLabel}}<span class="secondary-bar-item-balancebar-left-label">{{leftLabel}}</span>{{/if}}
+                        {{#if rightLabel}}<span class="secondary-bar-item-balancebar-right-label">{{rightLabel}}</span>{{/if}}
+                    </div>
+                    {{#if leftIcon}}<i class="{{leftIcon}} secondary-bar-item-balancebar-icon-outside-right"></i>{{/if}}
+                </div>
                 {{else}}
                 <div class="secondary-bar-item {{#if active}}active{{/if}}"
                      data-item-id="{{itemId}}"
@@ -190,6 +238,30 @@
                         {{#if rightLabel}}<span class="secondary-bar-item-progressbar-right-label">{{rightLabel}}</span>{{/if}}
                         {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-progressbar-right-icon"></i>{{/if}}
                     </div>
+                </div>
+                {{else if (eq kind "balancebar")}}
+                <div class="secondary-bar-item secondary-bar-item-balancebar"
+                     data-item-id="{{itemId}}"
+                     data-group-id="{{../id}}"
+                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+                     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+                     style="width: {{balancebarWidth}};">
+                    <div class="secondary-bar-item-balancebar-caption">
+                        {{#if icon}}<i class="{{icon}} secondary-bar-item-balancebar-icon"></i>{{/if}}
+                        {{#if title}}<span class="secondary-bar-item-balancebar-title">{{title}}</span>{{/if}}
+                    </div>
+                    {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-balancebar-icon-outside-left"></i>{{/if}}
+                    <div class="secondary-bar-item-balancebar-bar" style="height: {{balancebarHeight}}; border-color: {{borderColor}};">
+                        <div class="secondary-bar-item-balancebar-left" style="background-color: {{barColorLeft}};">
+                            <div class="secondary-bar-item-balancebar-fill-left" style="width: {{balancebarFillLeftPercent}}%; background-color: {{progressColor}};"></div>
+                        </div>
+                        <div class="secondary-bar-item-balancebar-right" style="background-color: {{barColorRight}};">
+                            <div class="secondary-bar-item-balancebar-fill-right" style="width: {{balancebarFillRightPercent}}%; background-color: {{progressColor}};"></div>
+                        </div>
+                        {{#if leftLabel}}<span class="secondary-bar-item-balancebar-left-label">{{leftLabel}}</span>{{/if}}
+                        {{#if rightLabel}}<span class="secondary-bar-item-balancebar-right-label">{{rightLabel}}</span>{{/if}}
+                    </div>
+                    {{#if leftIcon}}<i class="{{leftIcon}} secondary-bar-item-balancebar-icon-outside-right"></i>{{/if}}
                 </div>
                 {{else}}
                 <div class="secondary-bar-item {{#if active}}active{{/if}}"

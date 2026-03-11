@@ -1434,7 +1434,7 @@ blacksmith.registerSecondaryBarItem('cartographer', 'medium-line', {
 - `barTypeId` (string, required): The bar type ID to register the item to
 - `itemId` (string, required): Unique identifier for the item
 - `itemData` (Object, required): Item configuration
-  - `kind` (string, optional): `'button'` (default), `'info'`, or `'progressbar'`. Buttons are clickable; info and progressbar items are display-only and can be updated with `updateSecondaryBarItemInfo`.
+  - `kind` (string, optional): `'button'` (default), `'info'`, `'progressbar'`, or `'balancebar'`. Buttons are clickable; info, progressbar, and balancebar items are display-only and can be updated with `updateSecondaryBarItemInfo`.
   - `zone` (string, optional): `'left'`, `'middle'`, or `'right'`. Default: `'middle'`. Only applies to the default tool system.
   - `icon` (string, required for buttons, optional for info): FontAwesome icon class (e.g., `'fa-solid fa-pencil'`, `'fas fa-eraser'`). Info items can use icon for consistent styling with buttons.
   - `label` (string, optional): Text label. For buttons, shown next to the icon. For info items, use with or without `value`.
@@ -1482,6 +1482,27 @@ blacksmith.registerSecondaryBarItem('my-bar', 'hp-bar', {
     order: 0
 });
 blacksmith.updateSecondaryBarItemInfo('my-bar', 'hp-bar', { percentProgress: 65, leftLabel: '85', rightLabel: '130' });
+```
+
+**Balancebar item** (`kind: 'balancebar'`): A horizontal bar with origin at 0 in the middle; range -100 to +100. Negative values fill to the left from center, positive values fill to the right. Required: `width`, `borderColor`, `barColorLeft`, `barColorRight`, `progressColor`. Optional: `percentProgress` (default 0), `title`, `icon`, `leftLabel`, `rightLabel` (inside the bar), `leftIcon` (outside the bar on the right), `rightIcon` (outside the bar on the left), `height`. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { percentProgress, leftLabel, rightLabel, leftIcon, rightIcon, title, icon, barColorLeft, barColorRight, progressColor, borderColor })`.
+
+```javascript
+blacksmith.registerSecondaryBarItem('my-bar', 'approval', {
+    kind: 'balancebar',
+    zone: 'middle',
+    width: 240,
+    height: 14,
+    borderColor: 'rgba(0,0,0,0.5)',
+    barColorLeft: '#4a1c1c',
+    barColorRight: '#1c4a1c',
+    progressColor: '#7c2323',
+    percentProgress: -25,
+    leftLabel: 'Disapprove',
+    rightLabel: 'Approve',
+    group: 'stats',
+    order: 0
+});
+blacksmith.updateSecondaryBarItemInfo('my-bar', 'approval', { percentProgress: 50, leftLabel: 'Disapprove', rightLabel: 'Approve' });
 ```
 
 **Returns:** `boolean` - Success status
@@ -1543,7 +1564,7 @@ blacksmith.updateSecondaryBarItemActive('cartographer', 'medium-line', true);
 
 ### Updating Secondary Bar Info Items
 
-Use this to update the displayed value and/or label of an **info** item, or the progress and labels of a **progressbar** item, without re-registering it. Typical for encounter-style bars (Party CR, Monster CR, Difficulty) or HP/resource bars.
+Use this to update the displayed value and/or label of an **info** item, the progress and labels of a **progressbar** item, or the balance and labels of a **balancebar** item, without re-registering it. Typical for encounter-style bars (Party CR, Monster CR, Difficulty), HP/resource bars, or approval/balance bars.
 
 ```javascript
 blacksmith.updateSecondaryBarItemInfo('my-encounter', 'party-cr', { value: '4' });
@@ -1556,6 +1577,7 @@ blacksmith.updateSecondaryBarItemInfo('my-encounter', 'difficulty', { value: 'De
 - `updates` (Object, required): At least one of:
   - **Info items**: `value`, `label`, `borderColor`, `buttonColor`, `iconColor`
   - **Progressbar items**: `percentProgress` (number 0–100), `leftLabel`, `rightLabel`, `leftIcon`, `rightIcon`, `title`, `icon`, `barColor`, `progressColor`, `borderColor`
+  - **Balancebar items**: `percentProgress` (number -100 to +100), `leftLabel`, `rightLabel`, `leftIcon`, `rightIcon`, `title`, `icon`, `barColorLeft`, `barColorRight`, `progressColor`, `borderColor`
 
 **Returns:** `boolean` - Success status
 

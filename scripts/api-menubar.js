@@ -1711,7 +1711,7 @@ class MenuBar {
                         
                         // Initialize active state for switch groups (buttons only)
                         const groupConfig = groups.get(groupId);
-                        if (groupConfig.mode === 'switch' && activeStates && itemData.kind !== 'info' && itemData.kind !== 'progressbar') {
+                        if (groupConfig.mode === 'switch' && activeStates && itemData.kind !== 'info' && itemData.kind !== 'progressbar' && itemData.kind !== 'balancebar') {
                             if (!activeStates.has(groupId)) {
                                 // First item in switch group, make it active
                                 activeStates.set(groupId, itemId);
@@ -1739,7 +1739,7 @@ class MenuBar {
      * @param {string} barTypeId - The bar type to register the item to
      * @param {string} itemId - Unique identifier for the item
      * @param {Object} itemData - Item configuration
-     * @param {string} [itemData.kind] - 'button' (default), 'info', or 'progressbar'
+     * @param {string} [itemData.kind] - 'button' (default), 'info', 'progressbar', or 'balancebar'
      * @param {string} [itemData.zone] - 'left' | 'middle' | 'right' (default: 'middle')
      * @returns {boolean} Success status
      */
@@ -1760,6 +1760,14 @@ class MenuBar {
                 if (!itemId || !itemData || itemData.width === undefined || itemData.borderColor === undefined ||
                     itemData.barColor === undefined || itemData.progressColor === undefined || itemData.percentProgress === undefined) {
                     postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Progressbar item requires width, borderColor, barColor, progressColor, percentProgress",
+                        { barTypeId, itemId }, false, false);
+                    return false;
+                }
+            } else if (kind === 'balancebar') {
+                // Balancebar: display-only, -100..+100 from center. Requires width, borderColor, barColorLeft, barColorRight, progressColor; percentProgress defaults to 0
+                if (!itemId || !itemData || itemData.width === undefined || itemData.borderColor === undefined ||
+                    itemData.barColorLeft === undefined || itemData.barColorRight === undefined || itemData.progressColor === undefined) {
+                    postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Balancebar item requires width, borderColor, barColorLeft, barColorRight, progressColor",
                         { barTypeId, itemId }, false, false);
                     return false;
                 }
@@ -1791,7 +1799,8 @@ class MenuBar {
                     toggleable: kind === 'button' ? (itemData.toggleable || false) : false,
                     iconColor: itemData.iconColor || null,
                     image: itemData.image || null,
-                    ...(kind === 'progressbar' && { height: itemData.height })
+                    ...(kind === 'progressbar' && { height: itemData.height }),
+                    ...(kind === 'balancebar' && { height: itemData.height, percentProgress: itemData.percentProgress != null ? itemData.percentProgress : 0 })
                 });
                 postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Item queued (bar type not registered yet)",
                     { barTypeId, itemId }, true, false);
@@ -1820,7 +1829,8 @@ class MenuBar {
                 toggleable: toggleable,
                 iconColor: itemData.iconColor || null,
                 image: itemData.image || null,
-                ...(kind === 'progressbar' && { height: itemData.height })
+                ...(kind === 'progressbar' && { height: itemData.height }),
+                ...(kind === 'balancebar' && { height: itemData.height, percentProgress: itemData.percentProgress != null ? itemData.percentProgress : 0 })
             });
 
             // Ensure group exists (in case item registered before group config)
@@ -1843,7 +1853,7 @@ class MenuBar {
 
                     // If no active item in this switch group, make this the first one (if it's the first item)
                     if (!activeStates.has(groupId)) {
-                        const groupItems = Array.from(items.values()).filter(item => item.group === groupId && item.kind !== 'info' && item.kind !== 'progressbar');
+                        const groupItems = Array.from(items.values()).filter(item => item.group === groupId && item.kind !== 'info' && item.kind !== 'progressbar' && item.kind !== 'balancebar');
                         if (groupItems.length === 1) {
                             // First item in switch group, make it active
                             activeStates.set(groupId, itemId);
@@ -1933,11 +1943,11 @@ class MenuBar {
     }
 
     /**
-     * Update the display value and/or label of an info item, or progress of a progressbar item, on a secondary bar.
+     * Update the display value and/or label of an info item, or progress of a progressbar/balancebar item, on a secondary bar.
      * Use this to push dynamic content without re-registering the item.
      * @param {string} barTypeId - The bar type ID
-     * @param {string} itemId - The item ID to update (info or progressbar)
-     * @param {Object} updates - New values (omit keys to leave unchanged; pass null to clear). Info: value, label, borderColor, buttonColor, iconColor. Progressbar: percentProgress, leftLabel, rightLabel, leftIcon, rightIcon, title, icon, barColor, progressColor, borderColor.
+     * @param {string} itemId - The item ID to update (info, progressbar, or balancebar)
+     * @param {Object} updates - New values (omit keys to leave unchanged; pass null to clear). Info: value, label, borderColor, buttonColor, iconColor. Progressbar: percentProgress, leftLabel, rightLabel, leftIcon, rightIcon, title, icon, barColor, progressColor, borderColor. Balancebar: percentProgress (-100..+100), leftLabel, rightLabel, leftIcon, rightIcon, title, icon, barColorLeft, barColorRight, progressColor, borderColor.
      * @returns {boolean} Success status
      */
     static updateSecondaryBarItemInfo(barTypeId, itemId, updates) {
@@ -1947,7 +1957,10 @@ class MenuBar {
             const hasProgressbarUpdate = updates && (updates.percentProgress !== undefined || updates.leftLabel !== undefined || updates.rightLabel !== undefined ||
                 updates.leftIcon !== undefined || updates.rightIcon !== undefined || updates.title !== undefined || updates.icon !== undefined ||
                 updates.barColor !== undefined || updates.progressColor !== undefined);
-            if (!updates || (!hasInfoUpdate && !hasProgressbarUpdate)) {
+            const hasBalancebarUpdate = updates && (updates.percentProgress !== undefined || updates.leftLabel !== undefined || updates.rightLabel !== undefined ||
+                updates.leftIcon !== undefined || updates.rightIcon !== undefined || updates.title !== undefined || updates.icon !== undefined ||
+                updates.barColorLeft !== undefined || updates.barColorRight !== undefined || updates.progressColor !== undefined || updates.borderColor !== undefined);
+            if (!updates || (!hasInfoUpdate && !hasProgressbarUpdate && !hasBalancebarUpdate)) {
                 return false;
             }
             if (!this.secondaryBarInfoUpdates.has(barTypeId)) {
@@ -1969,6 +1982,8 @@ class MenuBar {
             if (updates.icon !== undefined) existing.icon = updates.icon;
             if (updates.barColor !== undefined) existing.barColor = updates.barColor;
             if (updates.progressColor !== undefined) existing.progressColor = updates.progressColor;
+            if (updates.barColorLeft !== undefined) existing.barColorLeft = updates.barColorLeft;
+            if (updates.barColorRight !== undefined) existing.barColorRight = updates.barColorRight;
             map.set(itemId, existing);
 
             if (this.secondaryBar.isOpen && this.secondaryBar.type === barTypeId) {
@@ -2027,7 +2042,7 @@ class MenuBar {
                         // If the removed item was active, activate the first remaining item in the group (buttons only)
                         if (currentActive === itemId && items) {
                             const groupItems = Array.from(items.values())
-                                .filter(i => i.group === groupId && i.kind !== 'info' && i.kind !== 'progressbar')
+                                .filter(i => i.group === groupId && i.kind !== 'info' && i.kind !== 'progressbar' && i.kind !== 'balancebar')
                                 .sort((a, b) => {
                                     const aOrder = a.order !== undefined ? a.order : Infinity;
                                     const bOrder = b.order !== undefined ? b.order : Infinity;
@@ -2495,6 +2510,21 @@ class MenuBar {
                 if (u.progressColor !== undefined) item.progressColor = u.progressColor;
                 if (u.borderColor !== undefined) item.borderColor = u.borderColor;
             }
+            // Merge live updates for balancebar items
+            if (item.kind === 'balancebar' && infoUpdates?.has(item.itemId)) {
+                const u = infoUpdates.get(item.itemId);
+                if (u.percentProgress !== undefined) item.percentProgress = u.percentProgress;
+                if (u.leftLabel !== undefined) item.leftLabel = u.leftLabel;
+                if (u.rightLabel !== undefined) item.rightLabel = u.rightLabel;
+                if (u.leftIcon !== undefined) item.leftIcon = u.leftIcon;
+                if (u.rightIcon !== undefined) item.rightIcon = u.rightIcon;
+                if (u.title !== undefined) item.title = u.title;
+                if (u.icon !== undefined) item.icon = u.icon;
+                if (u.barColorLeft !== undefined) item.barColorLeft = u.barColorLeft;
+                if (u.barColorRight !== undefined) item.barColorRight = u.barColorRight;
+                if (u.progressColor !== undefined) item.progressColor = u.progressColor;
+                if (u.borderColor !== undefined) item.borderColor = u.borderColor;
+            }
             if (item.kind === 'progressbar') {
                 // Resolve width: number→px, string as-is
                 item.progressbarWidth = typeof item.width === 'number' ? `${item.width}px` : item.width;
@@ -2502,6 +2532,15 @@ class MenuBar {
                 item.progressbarHeight = item.height !== undefined
                     ? (typeof item.height === 'number' ? `${item.height}px` : item.height)
                     : 'calc(var(--blacksmith-menubar-secondary-height) * 0.4)';
+            }
+            if (item.kind === 'balancebar') {
+                item.balancebarWidth = typeof item.width === 'number' ? `${item.width}px` : item.width;
+                item.balancebarHeight = item.height !== undefined
+                    ? (typeof item.height === 'number' ? `${item.height}px` : item.height)
+                    : 'calc(var(--blacksmith-menubar-secondary-height) * 0.4)';
+                const p = Math.max(-100, Math.min(100, Number(item.percentProgress) || 0));
+                item.balancebarFillLeftPercent = p < 0 ? Math.abs(p) : 0;
+                item.balancebarFillRightPercent = p > 0 ? p : 0;
             }
             itemsByZone[zone].get(groupId).push(item);
         }
@@ -2521,7 +2560,7 @@ class MenuBar {
                 continue;
             }
             const groupItems = itemsByGroupAll.get(groupId);
-            if (!groupItems || !groupItems.some(item => item.itemId === activeItemId && item.kind !== 'info' && item.kind !== 'progressbar')) {
+            if (!groupItems || !groupItems.some(item => item.itemId === activeItemId && item.kind !== 'info' && item.kind !== 'progressbar' && item.kind !== 'balancebar')) {
                 activeStates.delete(groupId);
                 continue;
             }
@@ -2546,7 +2585,7 @@ class MenuBar {
                     return (a.itemId || '').localeCompare(b.itemId || '');
                 });
 
-                const buttonItems = groupItems.filter(i => i.kind !== 'info' && i.kind !== 'progressbar');
+                const buttonItems = groupItems.filter(i => i.kind !== 'info' && i.kind !== 'progressbar' && i.kind !== 'balancebar');
 
                 // Handle switch groups: ensure one is active, respecting master switch groups (buttons only)
                 if (groupConfig.mode === 'switch') {
@@ -2578,7 +2617,7 @@ class MenuBar {
                     }
                 } else {
                     for (const item of groupItems) {
-                        if (item.kind === 'info' || item.kind === 'progressbar') item.active = false;
+                        if (item.kind === 'info' || item.kind === 'progressbar' || item.kind === 'balancebar') item.active = false;
                     }
                 }
 
