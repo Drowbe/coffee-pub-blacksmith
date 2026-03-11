@@ -405,9 +405,13 @@ export class CombatBarManager {
             const combat = game.combats.active;
             if (combat && combat.combatants.size > 0) {
                 postConsoleAndNotification(MODULE.NAME, "Combat Bar: Combat with combatants found on load", "", true, false);
-                setTimeout(() => {
+                setTimeout(async () => {
                     const shouldShowCombatBar = getSettingSafely(MODULE.ID, 'menubarCombatShow', false);
-                    if (shouldShowCombatBar) CombatBarManager.openCombatBar(menuBar);
+                    if (!shouldShowCombatBar) return;
+                    if (!menuBar.secondaryBarTypes?.has?.('combat')) {
+                        await CombatBarManager.registerCombatBarType(menuBar);
+                    }
+                    CombatBarManager.openCombatBar(menuBar);
                 }, 500);
             }
         } catch (error) {
@@ -714,7 +718,7 @@ export class CombatBarManager {
             if (event.target.closest('.combatbar-button[data-control="toggleTracker"]')) {
                 event.preventDefault();
                 event.stopPropagation();
-                await menuBar.toggleCombatTracker();
+                await CombatBarManager.toggleCombatTracker();
                 return;
             }
 
