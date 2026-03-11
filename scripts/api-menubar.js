@@ -866,10 +866,10 @@ class MenuBar {
                 const portRect = portraits.getBoundingClientRect();
                 const firstRect = containers[0].getBoundingClientRect();
                 const lastRect = containers[containers.length - 1].getBoundingClientRect();
-                /* At start = no portrait is off-screen to the left (first portrait at least touches viewport left) */
-                atStart = firstRect.right >= portRect.left - tolerance;
-                /* At end = no portrait is off-screen to the right (last portrait at least touches viewport right) */
-                atEnd = lastRect.left <= portRect.right + tolerance;
+                /* At start = first portrait fully visible at/inside viewport left edge */
+                atStart = firstRect.left >= portRect.left - tolerance;
+                /* At end = last portrait fully visible at/inside viewport right edge */
+                atEnd = lastRect.right <= portRect.right + tolerance;
             }
             leftBtn.disabled = atStart;
             rightBtn.disabled = atEnd;
