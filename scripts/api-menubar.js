@@ -2771,6 +2771,14 @@ class MenuBar {
         }
         this._closeMenubarContextMenu();
 
+        const playMenubarButtonSound = () => {
+            try {
+                playSound(window.COFFEEPUB?.SOUNDBUTTON04, window.COFFEEPUB?.SOUNDVOLUMESOFT, false, false);
+            } catch (_error) {
+                // Non-blocking UI feedback only.
+            }
+        };
+
         // Create the click handler function
         const clickHandler = (event) => {
             // Check if this is a notification close button click
@@ -2785,7 +2793,7 @@ class MenuBar {
             
             // Check if this is a secondary bar item click (default template)
             const secondaryBarItem = event.target.closest('.secondary-bar-item[data-item-id]');
-            if (secondaryBarItem) {
+            if (secondaryBarItem && this.secondaryBar && !this.secondaryBar.hasCustomTemplate) {
                 const itemId = secondaryBarItem.getAttribute('data-item-id');
                 const groupId = secondaryBarItem.getAttribute('data-group-id') || 'default';
                 const barType = this.secondaryBar.type;
@@ -2800,6 +2808,7 @@ class MenuBar {
                         if (item && typeof item.onClick === 'function') {
                             event.preventDefault();
                             event.stopPropagation();
+                            playMenubarButtonSound();
                             
                             const groupConfig = groups.get(groupId) || { mode: 'default' };
                             
@@ -2838,6 +2847,7 @@ class MenuBar {
             if (toolName === 'menubar-overflow') {
                 event.preventDefault();
                 event.stopPropagation();
+                playMenubarButtonSound();
                 if (this._middleZoneOverflowItems.length > 0) {
                     this._showMenubarContextMenu(this._middleZoneOverflowItems, event.clientX, event.clientY);
                 }
@@ -2859,6 +2869,7 @@ class MenuBar {
             // Prevent default and stop propagation
             event.preventDefault();
             event.stopPropagation();
+            playMenubarButtonSound();
 
             // Handle toggleable tools
             if (tool.toggleable) {
