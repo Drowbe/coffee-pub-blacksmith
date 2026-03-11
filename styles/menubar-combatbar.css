@@ -166,7 +166,7 @@
    
    .blacksmith-menubar-secondary .combat-scroll-arrow:disabled {
     opacity: 0.4;
-    cursor: not-allowed;
+    cursor: default;
    }
 /* Portrait Container */
 
