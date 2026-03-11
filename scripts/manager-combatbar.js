@@ -1,0 +1,618 @@
+import { MODULE } from './const.js';
+import { getSettingSafely, postConsoleAndNotification, formatTime } from './api-core.js';
+import { RoundTimer } from './timer-round.js';
+import { CombatTracker } from './combat-tracker.js';
+import { UIContextMenu } from './ui-context-menu.js';
+import { easeHorizontalScroll } from './combat-bar-scroll.js';
+
+export class CombatBarManager {
+    static updateCombatPortraitScrollArrows(_menuBar) {
+        const wrapper = document.querySelector('.combat-portraits-scroll-wrapper');
+        if (!wrapper) return;
+        const portraits = wrapper.querySelector('.combat-portraits');
+        const leftBtn = wrapper.querySelector('.combat-scroll-arrow[data-control="scrollCombatantsLeft"]');
+        const rightBtn = wrapper.querySelector('.combat-scroll-arrow[data-control="scrollCombatantsRight"]');
+        if (!portraits || !leftBtn || !rightBtn) return;
+
+        const contentWidth = portraits.scrollWidth;
+        const visibleWidth = portraits.clientWidth;
+        const overflowing = contentWidth > visibleWidth + 1 || (visibleWidth < 80 && contentWidth > 0);
+        wrapper.classList.toggle('combat-portraits-overflowing', overflowing);
+
+        if (!overflowing) {
+            leftBtn.disabled = false;
+            rightBtn.disabled = false;
+            return;
+        }
+
+        const tolerance = 2;
+        const maxScrollLeft = Math.max(0, contentWidth - visibleWidth);
+        const currentScrollLeft = portraits.scrollLeft || 0;
+        leftBtn.disabled = currentScrollLeft <= tolerance;
+        rightBtn.disabled = currentScrollLeft >= (maxScrollLeft - tolerance);
+    }
+
+    static attachCombatPortraitScrollListener(menuBar) {
+        const wrapper = document.querySelector('.combat-portraits-scroll-wrapper');
+        const portraits = wrapper?.querySelector('.combat-portraits');
+        if (!portraits || portraits.dataset.scrollListenerAttached === 'true') return;
+        portraits.dataset.scrollListenerAttached = 'true';
+        portraits.addEventListener('scroll', () => CombatBarManager.updateCombatPortraitScrollArrows(menuBar), { passive: true });
+        if (wrapper) {
+            const ro = new ResizeObserver(() => {
+                requestAnimationFrame(() => CombatBarManager.updateCombatPortraitScrollArrows(menuBar));
+            });
+            ro.observe(wrapper);
+        }
+    }
+
+    static cleanupCombatBarEvents(menuBar) {
+        if (menuBar._combatBarClickHandler) {
+            document.removeEventListener('click', menuBar._combatBarClickHandler);
+            menuBar._combatBarClickHandler = null;
+        }
+        if (menuBar._combatBarDblClickHandler) {
+            document.removeEventListener('dblclick', menuBar._combatBarDblClickHandler);
+            menuBar._combatBarDblClickHandler = null;
+        }
+        if (menuBar._combatBarHoverMoveHandler) {
+            document.removeEventListener('mousemove', menuBar._combatBarHoverMoveHandler);
+            menuBar._combatBarHoverMoveHandler = null;
+        }
+        if (menuBar._combatBarContextMenuHandler) {
+            document.removeEventListener('contextmenu', menuBar._combatBarContextMenuHandler);
+            menuBar._combatBarContextMenuHandler = null;
+        }
+
+        menuBar._hideCombatantHoverCard();
+        UIContextMenu.close('blacksmith-combat-portrait-context-menu');
+        menuBar.removeClickHandlers();
+        menuBar._stopTimerUpdates();
+        postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers and timer intervals cleaned up", "", true, false);
+    }
+
+    static checkActiveCombatOnLoad(menuBar) {
+        try {
+            const combat = game.combats.active;
+            if (combat && combat.combatants.size > 0) {
+                postConsoleAndNotification(MODULE.NAME, "Combat Bar: Combat with combatants found on load", "", true, false);
+                setTimeout(() => {
+                    const shouldShowCombatBar = getSettingSafely(MODULE.ID, 'menubarCombatShow', false);
+                    if (shouldShowCombatBar) menuBar.openCombatBar();
+                }, 500);
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error checking active combat on load", { error }, false, false);
+        }
+    }
+
+    static updateCombatBar(menuBar, combatData = null) {
+        try {
+            if (menuBar._isUserExcluded(game.user)) return false;
+            if (!menuBar.secondaryBar.isOpen || menuBar.secondaryBar.type !== 'combat') return false;
+
+            const combat = game.combats.active;
+            if (!combat) return menuBar.closeCombatBar();
+
+            const data = combatData || CombatBarManager.getCombatData(combat);
+            menuBar._hideCombatantHoverCard();
+            return menuBar.updateSecondaryBar(data);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error updating combat bar", { error }, false, false);
+            return false;
+        }
+    }
+
+    static getCombatData(combat) {
+        try {
+            if (!combat) return {};
+
+            const hideNpcHealthSetting = game.settings.get(MODULE.ID, 'menubarCombatHideHealthBars');
+            const hideNpcHealth = hideNpcHealthSetting && !game.user.isGM;
+            const isGM = game.user.isGM;
+
+            const combatants = combat.combatants.map(combatant => {
+                const token = combatant.token;
+                const actor = combatant.actor;
+                const isHidden = combatant.hidden || token?.hidden;
+                if (!isGM && isHidden) return null;
+
+                let currentHP = 0;
+                let maxHP = 0;
+                let healthPercentage = 100;
+                let healthCircumference = 0;
+                let healthDashOffset = 0;
+                let healthClass = 'combat-portrait-ring-healthy';
+                let healthRingHidden = false;
+
+                const secondaryHeightStr = getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-menubar-secondary-combat-height');
+                const secondaryHeight = parseInt(secondaryHeightStr, 10) || 50;
+                const size = Math.floor(secondaryHeight * 0.8);
+                const strokeWidth = Math.max(2, Math.floor(size * 0.05));
+                const radius = (size / 2) - (strokeWidth / 2);
+
+                if (actor) {
+                    const isNpc = !actor.hasPlayerOwner;
+                    if (hideNpcHealth && isNpc) healthRingHidden = true;
+                    if (actor.system?.attributes?.hp) {
+                        currentHP = actor.system.attributes.hp.value || 0;
+                        maxHP = actor.system.attributes.hp.max || 1;
+                    } else if (actor.system?.hitPoints) {
+                        currentHP = actor.system.hitPoints.value || 0;
+                        maxHP = actor.system.hitPoints.max || 1;
+                    }
+                    if (maxHP > 0) healthPercentage = Math.max(0, Math.min(100, (currentHP / maxHP) * 100));
+                    const circumference = 2 * Math.PI * radius;
+                    const dashOffset = currentHP <= 0 ? 0 : circumference - (healthPercentage / 100) * circumference;
+                    healthCircumference = circumference;
+                    healthDashOffset = dashOffset;
+                    if (currentHP <= 0) healthClass = 'combat-portrait-ring-dead';
+                    else if (healthPercentage >= 75) healthClass = 'combat-portrait-ring-healthy';
+                    else if (healthPercentage >= 50) healthClass = 'combat-portrait-ring-injured';
+                    else if (healthPercentage >= 25) healthClass = 'combat-portrait-ring-bloodied';
+                    else healthClass = 'combat-portrait-ring-critical';
+                }
+
+                let isActuallyDead = false;
+                if (actor) {
+                    if (actor.type === "character") isActuallyDead = combatant.isDefeated || false;
+                    else isActuallyDead = (actor.system?.attributes?.hp?.value || 0) <= 0;
+                }
+
+                return {
+                    id: combatant.id,
+                    name: token?.name || actor?.name || 'Unknown',
+                    portrait: actor?.img || token?.img || 'modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp',
+                    initiative: combatant.initiative || 0,
+                    isCurrent: combatant.id === combat.current.combatantId,
+                    isDefeated: isActuallyDead,
+                    needsInitiative: combatant.initiative === null,
+                    canRollInitiative: combatant.initiative === null && combatant.isOwner && !isActuallyDead,
+                    currentHP,
+                    maxHP,
+                    healthPercentage,
+                    healthCircumference,
+                    healthDashOffset: healthRingHidden ? 0 : healthDashOffset,
+                    healthClass: healthRingHidden ? 'combat-portrait-ring-hidden' : healthClass,
+                    healthRingHidden,
+                    svgSize: size,
+                    svgCenter: size / 2,
+                    svgRadius: radius,
+                    svgStrokeWidth: strokeWidth,
+                    isHidden
+                };
+            }).filter(combatant => combatant !== null);
+
+            combatants.sort((a, b) => b.initiative - a.initiative);
+
+            let actionButton = null;
+            if (game.user.isGM) {
+                actionButton = !combat.started
+                    ? { control: 'beginCombat', label: 'Begin Combat', tooltip: 'Begin Combat', icon: 'fa-play', text: 'Begin Combat', type: 'begin' }
+                    : { control: 'endCombat', label: 'End Combat', tooltip: 'End Combat', icon: 'fa-stop', text: 'End Combat', type: 'end' };
+            } else {
+                const currentCombatant = combat.combatants.get(combat.current.combatantId);
+                const isPlayerTurn = currentCombatant && currentCombatant.isOwner;
+                if (combat.started && isPlayerTurn) {
+                    actionButton = { control: 'endTurn', label: 'End Turn', tooltip: 'End Turn', icon: 'fa-flag-checkered', text: 'End Turn', type: 'turn' };
+                }
+            }
+
+            const currentRound = combat.round || 0;
+            const totalTurns = Array.isArray(combat.turns) ? combat.turns.length : combat.combatants.size;
+            const currentTurnIndex = typeof combat.turn === 'number' ? combat.turn : 0;
+            const currentTurn = Math.min(currentTurnIndex + 1, Math.max(totalTurns, 1));
+            const currentCombatantName = combat.combatant?.name || 'No Active Turn';
+            const totalCombatDurationBase = combat.getFlag(MODULE.ID, 'totalCombatDuration') || 0;
+            const stats = combat.getFlag(MODULE.ID, 'stats') || {};
+            const accumulated = stats.accumulatedTime || 0;
+            const roundStart = stats.roundStartTimestamp || 0;
+            const isActive = RoundTimer?.isActive ?? true;
+            const runningRound = (roundStart && isActive) ? Math.max(0, Date.now() - roundStart) : 0;
+            const currentRoundDurationMs = accumulated + runningRound;
+            const totalCombatDurationMs = totalCombatDurationBase + currentRoundDurationMs;
+
+            return {
+                combatants,
+                actionButton,
+                currentRound,
+                currentTurn,
+                totalTurns,
+                currentCombatant: currentCombatantName,
+                totalCombatDuration: formatTime(totalCombatDurationMs || 0, 'hh:mm:ss'),
+                currentRoundDuration: formatTime(currentRoundDurationMs || 0, 'hh:mm:ss'),
+                isGM: game.user.isGM,
+                isActive: combat.started || false
+            };
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error gathering combat data", { error }, false, false);
+            return {};
+        }
+    }
+
+    static isCombatBarActive(menuBar) {
+        return menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat';
+    }
+
+    static didHpChange(updateData) {
+        if (!updateData) return false;
+        const targets = [
+            'system.attributes.hp.value',
+            'system.attributes.hp.temp',
+            'system.attributes.hp.max',
+            'system.attributes.hp.base',
+            'system.attributes.hp.bonus',
+            'system.vitals.hp.value',
+            'system.vitals.hp.temp',
+            'system.vitals.hp.max',
+            'system.hitPoints.value',
+            'system.hitPoints.max',
+            'system.hp.value',
+            'system.hp.max',
+            'actorData.system.attributes.hp.value',
+            'actorData.system.attributes.hp.temp',
+            'actorData.system.attributes.hp.max',
+            'actorData.system.hitPoints.value',
+            'actorData.system.hitPoints.max',
+            'actorData.system.hp.value',
+            'actorData.system.hp.max'
+        ];
+        const flat = foundry.utils.flattenObject(updateData || {});
+        const changed = targets.some(path => flat[path] !== undefined);
+        if (changed) {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: HP change detected in update data', { paths: targets.filter(path => flat[path] !== undefined), values: flat }, true, false);
+        }
+        return changed;
+    }
+
+    static handleActorHpChange(menuBar, actor, updateData) {
+        try {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: updateActor received', { actorId: actor?.id, updateData }, true, false);
+            if (!CombatBarManager.isCombatBarActive(menuBar)) return;
+            if (!CombatBarManager.didHpChange(updateData)) return;
+            const combat = game.combats?.active;
+            if (!combat) return;
+            const isCombatant = combat.combatants.some(combatant => combatant.actor?.id === actor?.id);
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Actor HP change evaluated', { isCombatant }, true, false);
+            if (!isCombatant) return;
+            menuBar.updateCombatBar();
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Failed to process actor HP change', { actorId: actor?.id, error }, true, false);
+        }
+    }
+
+    static handleTokenHpChange(menuBar, token, updateData) {
+        try {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: updateToken received', { tokenId: token?.id, updateData }, true, false);
+            if (!CombatBarManager.isCombatBarActive(menuBar)) return;
+            const hpChanged = CombatBarManager.didHpChange(updateData);
+            const hiddenChanged = 'hidden' in updateData;
+            if (!hpChanged && !hiddenChanged) return;
+            const combat = game.combats?.active;
+            if (!combat) return;
+            const tokenId = token?.id;
+            const actorId = token?.actor?.id;
+            const isCombatant = combat.combatants.some(combatant => combatant.token?.id === tokenId || combatant.actor?.id === actorId);
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Token change evaluated', { isCombatant, hpChanged, hiddenChanged }, true, false);
+            if (!isCombatant) return;
+            menuBar.updateCombatBar();
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Failed to process token change', { tokenId: token?.id, error }, true, false);
+        }
+    }
+
+    static openCombatBar(menuBar, combatData = null) {
+        try {
+            if (menuBar._isUserExcluded(game.user)) return false;
+            const combatHeight = game.settings.get(MODULE.ID, 'menubarCombatSize');
+            document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${combatHeight}px`);
+            const combat = game.combats.active;
+            if (!combat) return false;
+            menuBar.secondaryBar.userClosed = false;
+            const data = combatData || CombatBarManager.getCombatData(combat);
+            return menuBar.openSecondaryBar('combat', { data, persistence: 'manual' });
+        } catch (_error) {
+            return false;
+        }
+    }
+
+    static async toggleCombatTracker() {
+        try {
+            if (CombatTracker.isCombatTrackerOpen()) {
+                await CombatTracker.closeCombatTracker();
+            } else {
+                CombatTracker.openCombatTracker();
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error toggling combat tracker", error, false, false);
+        }
+    }
+
+    static async rollInitiativeForCombatant(_menuBar, combatant, _event = null) {
+        try {
+            if (!combatant?.actor) return;
+
+            if (!combatant.isOwner && !game.user.isGM) {
+                ui.notifications.warn(`You don't have permission to roll initiative for ${combatant.name}`);
+                return;
+            }
+
+            postConsoleAndNotification(MODULE.NAME, `Combat Bar: Rolling initiative for ${combatant.name}`, "", true, false);
+
+            if (ui.combat) {
+                try {
+                    const el = ui.combat.element.querySelector(`[data-combatant-id="${combatant.id}"] .combatant-control[data-control="rollInitiative"]`);
+                    if (el) {
+                        el.click();
+                        return;
+                    }
+                } catch (_trackerError) { /* fallback below */ }
+            }
+
+            if (game.dnd5e && combatant.actor.rollInitiative) {
+                const rollMethod = combatant.actor.rollInitiative.toString();
+                if (rollMethod.includes('dialog') || rollMethod.includes('Dialog')) {
+                    await combatant.actor.rollInitiative();
+                } else {
+                    await combatant.actor.rollInitiative({});
+                }
+            } else {
+                await combatant.rollInitiative();
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Combat Bar: Error rolling initiative for ${combatant?.name || 'combatant'}`, error, true, false);
+        }
+    }
+
+    static registerCombatBarEvents(menuBar) {
+        if (menuBar._combatBarClickHandler) return;
+
+        menuBar._combatBarClickHandler = async (event) => {
+            if (event.target.closest('.combatbar-button[data-control="toggleTracker"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                await menuBar.toggleCombatTracker();
+                return;
+            }
+
+            const combatPortrait = event.target.closest('[data-combatant-id]');
+            if (combatPortrait) {
+                const isInitiativeDice = event.target.closest('.combat-portrait-initiative-dice');
+                const isDeadOverlay = event.target.closest('.combat-portrait-dead-overlay');
+                const isInteractiveElement = event.target.closest('a, button, .combatant-control');
+                if (!isInitiativeDice && !isDeadOverlay && !isInteractiveElement) {
+                    const combatantId = combatPortrait.getAttribute('data-combatant-id');
+                    if (combatantId) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        menuBar.panToCombatant(combatantId, { selectToken: game.user.isGM });
+                        return;
+                    }
+                }
+            }
+
+            if (event.target.closest('.combatbar-button[data-control="previousRound"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                try {
+                    const combat = game.combat;
+                    if (combat) {
+                        await combat.previousRound();
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Previous round", "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error going to previous round", error, true, false);
+                }
+                return;
+            }
+
+            if (event.target.closest('.combatbar-button[data-control="nextRound"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                try {
+                    const combat = game.combat;
+                    if (combat) {
+                        await combat.nextRound();
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Next round", "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error going to next round", error, true, false);
+                }
+                return;
+            }
+
+            if (event.target.closest('.combatbar-button[data-control="previousTurn"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                try {
+                    const combat = game.combat;
+                    if (combat) {
+                        await combat.previousTurn();
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Previous turn", "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error going to previous-turn turn", error, true, false);
+                }
+                return;
+            }
+
+            if (event.target.closest('.combatbar-button[data-control="nextTurn"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                try {
+                    const combat = game.combat;
+                    if (combat) {
+                        await combat.nextTurn();
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Next turn", "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error going to next turn", error, true, false);
+                }
+                return;
+            }
+
+            const scrollLeftBtn = event.target.closest('.combat-scroll-arrow[data-control="scrollCombatantsLeft"]');
+            const scrollRightBtn = event.target.closest('.combat-scroll-arrow[data-control="scrollCombatantsRight"]');
+            if (scrollLeftBtn || scrollRightBtn) {
+                event.preventDefault();
+                event.stopPropagation();
+                const bar = event.target.closest('.combat-tracker-bar');
+                const portraits = bar?.querySelector('.combat-portraits');
+                if (portraits) {
+                    const first = portraits.querySelector('.combat-portrait-container');
+                    const step = first ? first.offsetWidth + (parseInt(getComputedStyle(portraits).gap, 10) || 2) : Math.floor(portraits.clientWidth * 0.4);
+                    const delta = scrollLeftBtn ? -step : step;
+                    easeHorizontalScroll(portraits, delta, 220, () => CombatBarManager.updateCombatPortraitScrollArrows(menuBar));
+                    setTimeout(() => CombatBarManager.updateCombatPortraitScrollArrows(menuBar), 400);
+                }
+                return;
+            }
+
+            if (event.target.closest('.combatbar-button[data-control="beginCombat"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                try {
+                    const combat = game.combat;
+                    if (combat) {
+                        await combat.startCombat();
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Combat started", "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error starting combat", error, true, false);
+                }
+                return;
+            }
+
+            if (event.target.closest('.combatbar-button[data-control="endCombat"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                try {
+                    const combat = game.combat;
+                    if (combat) {
+                        await combat.endCombat();
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Combat ended", "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error ending combat", error, true, false);
+                }
+                return;
+            }
+
+            if (event.target.closest('.combatbar-button[data-control="endTurn"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                try {
+                    const combat = game.combat;
+                    if (combat) {
+                        await combat.nextTurn();
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Turn ended", "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error ending turn", error, true, false);
+                }
+                return;
+            }
+
+            if (event.target.closest('.combatbar-button[data-control="rollInitiative"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                try {
+                    const combat = game.combat;
+                    if (!combat) {
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: No active combat found", "", true, false);
+                        return;
+                    }
+                    const autoRollEnabled = game.settings.get(MODULE.ID, 'combatTrackerRollInitiativePlayer');
+                    const ownedPCsNeedingInitiative = combat.combatants.filter(c =>
+                        c?.actor && c.actor.type === "character" && c.isOwner && c.initiative === null
+                    );
+                    if (ownedPCsNeedingInitiative.length === 0) {
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: No owned characters need initiative", "", true, false);
+                        return;
+                    }
+                    if (autoRollEnabled) {
+                        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Using core auto-roll functionality", "", true, false);
+                        const CT = await import('./combat-tracker.js');
+                        await CT.CombatTracker._rollInitiativeForPlayerCharacters(combat);
+                    } else {
+                        const nextCombatant = ownedPCsNeedingInitiative[0];
+                        await menuBar._rollInitiativeForCombatant(nextCombatant, event);
+                        postConsoleAndNotification(MODULE.NAME, `Combat Bar: Rolled initiative for ${nextCombatant.name}`, "", true, false);
+                    }
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error rolling initiative", error, true, false);
+                }
+                return;
+            }
+
+            if (event.target.closest('.combat-portrait-initiative-dice a[data-control="rollInitiative"]')) {
+                event.preventDefault();
+                event.stopPropagation();
+                const button = event.target.closest('a');
+                const combatantId = button?.dataset?.combatantId;
+                if (!combatantId) return;
+                try {
+                    const combat = game.combat;
+                    if (!combat) return;
+                    const combatant = combat.combatants.get(combatantId);
+                    if (!combatant) return;
+                    await menuBar._rollInitiativeForCombatant(combatant, event);
+                    menuBar.updateCombatBar();
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, `Combat Bar: Error rolling initiative for combatant ${combatantId}`, error, true, false);
+                }
+            }
+        };
+
+        menuBar._combatBarDblClickHandler = async (event) => {
+            if (!game.user.isGM) return;
+            const portrait = event.target.closest('[data-combatant-id]');
+            if (!portrait) return;
+            const isInitiativeDice = event.target.closest('.combat-portrait-initiative-dice');
+            const isDeadOverlay = event.target.closest('.combat-portrait-dead-overlay');
+            const isInteractiveElement = event.target.closest('a, button, .combatant-control');
+            if (isInitiativeDice || isDeadOverlay || isInteractiveElement) return;
+            const combatantId = portrait.getAttribute('data-combatant-id');
+            if (!combatantId) return;
+            event.preventDefault();
+            event.stopPropagation();
+            await menuBar.setCurrentCombatant(combatantId);
+        };
+
+        document.addEventListener('click', menuBar._combatBarClickHandler);
+        document.addEventListener('dblclick', menuBar._combatBarDblClickHandler);
+
+        menuBar._combatBarHoverMoveHandler = (event) => {
+            const portrait = event.target?.closest?.('.blacksmith-menubar-secondary .combat-portrait-container[data-combatant-id]');
+            if (!portrait || !menuBar._isCombatBarActive()) {
+                menuBar._hideCombatantHoverCard();
+                return;
+            }
+            const combatantId = portrait.getAttribute('data-combatant-id');
+            if (!combatantId) {
+                menuBar._hideCombatantHoverCard();
+                return;
+            }
+            if (menuBar._combatHoverCardCombatantId !== combatantId || !menuBar._combatHoverCardEl) {
+                menuBar._showCombatantHoverCard(combatantId, event);
+            } else {
+                menuBar._positionCombatantHoverCard(event);
+            }
+        };
+        document.addEventListener('mousemove', menuBar._combatBarHoverMoveHandler);
+
+        menuBar._combatBarContextMenuHandler = (event) => {
+            const portrait = event.target?.closest?.('.blacksmith-menubar-secondary .combat-portrait-container[data-combatant-id]');
+            if (!portrait || !menuBar._isCombatBarActive()) return;
+            const combatantId = portrait.getAttribute('data-combatant-id');
+            if (!combatantId) return;
+            event.preventDefault();
+            event.stopPropagation();
+            menuBar._hideCombatantHoverCard();
+            menuBar._showCombatantPortraitContextMenu(combatantId, event.clientX, event.clientY);
+        };
+        document.addEventListener('contextmenu', menuBar._combatBarContextMenuHandler);
+
+        postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers registered", "", true, false);
+    }
+}
