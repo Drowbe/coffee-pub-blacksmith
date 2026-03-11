@@ -6,24 +6,24 @@
 /* =========================
    Combat Bar Tunables
    ========================= */
-.blacksmith-menubar-secondary {
+   .blacksmith-menubar-secondary {
     /* Scale everything based on bar height */
     --portrait-container-height: calc(var(--blacksmith-menubar-secondary-height) - 4px);
     --portrait-container-width: calc(var(--blacksmith-menubar-secondary-height) + 4px);
     --healthbar-size: calc(var(--portrait-container-height) - 8px);
     --portrait-size: calc(var(--healthbar-size) - 10px);
     --action-icon-size: calc(var(--healthbar-size) - 10px);
-    --action-icon-font-size: calc(var(--healthbar-size) * 0.4);
+    --action-icon-font-size: calc(var(--healthbar-size) * 0.6);
     
     --combatbar-button-ends-height: calc(var(--blacksmith-menubar-secondary-height) * 0.6);
-    --combatbar-button-ends-width: calc(var(--blacksmith-menubar-secondary-height) * 0.6);  
+    --combatbar-button-ends-width: calc(var(--blacksmith-menubar-secondary-height) * 0.4);  
     
     --combatbar-endcaps-minwidth: 5%;
     
     /* Thickness of the SVG stroke */
     --ring-thickness: 3px;
     --gap: 2px;
-    --combatbar-button-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.20);
+    --combatbar-button-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.25);
     --combatbar-text-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.22);
     --combatbar-subtext-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.13);
 }
@@ -323,6 +323,9 @@
     border-right: 0px solid rgba(17, 17, 17, 0.3);
 }
 
+
+
+
 .blacksmith-menubar-secondary .combatbar-button-disabled,
 .blacksmith-menubar-secondary .combatbar-button {
     display: flex;
@@ -339,9 +342,12 @@
     transition: background 0.15s ease, color 0.15s ease;
     font-size: var(--combatbar-button-font-size);
     border: none;
-    background: rgba(58, 138, 67, 0.9);
+    background: rgba(51, 59, 2, 0.9);
     color: var(--blacksmith-menubar-secondary-fontcolor);
 }
+
+
+
 .blacksmith-menubar-secondary .combatbar-button {
     cursor: pointer;
 }
@@ -366,8 +372,8 @@
     background: rgba(58, 138, 67, 0.9);
     color: rgba(255, 255, 255, 1);
 }
-.blacksmith-menubar-secondary .action-button .action-type-end{
-    background: rgba(164, 28, 7, 0.9);
+.blacksmith-menubar-secondary .action-button .action-type-end {
+    background: rgba(94, 15, 3, 0.9);
     color: rgba(255, 255, 255, 1);
 }
 .blacksmith-menubar-secondary .action-button .action-type-roll{
