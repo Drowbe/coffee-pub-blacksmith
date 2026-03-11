@@ -856,8 +856,19 @@ class MenuBar {
         const visibleWidth = portraits.clientWidth;
         const overflowing = contentWidth > visibleWidth + 1 || (visibleWidth < 80 && contentWidth > 0);
         wrapper.classList.toggle('combat-portraits-overflowing', overflowing);
-        leftBtn.disabled = false;
-        rightBtn.disabled = false;
+        if (!overflowing) {
+            leftBtn.disabled = false;
+            rightBtn.disabled = false;
+            return;
+        }
+
+        const tolerance = 2;
+        const maxScrollLeft = Math.max(0, contentWidth - visibleWidth);
+        const currentScrollLeft = portraits.scrollLeft || 0;
+        const atStart = currentScrollLeft <= tolerance;
+        const atEnd = currentScrollLeft >= (maxScrollLeft - tolerance);
+        leftBtn.disabled = atStart;
+        rightBtn.disabled = atEnd;
     }
 
     /**
