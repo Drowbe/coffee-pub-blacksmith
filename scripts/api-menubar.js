@@ -18,7 +18,6 @@ import { EncounterToolbar } from './encounter-toolbar.js';
 import { PartyManager } from './manager-party.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { PinManager } from './manager-pins.js';
-import { CombatBarManager } from './manager-combatbar.js';
 
 class MenuBar {
     static ID = 'menubar';
@@ -52,8 +51,7 @@ class MenuBar {
         persistence: 'manual', // 'manual' or 'auto'
         autoCloseTimeout: null,
         autoCloseDelay: 10000, // 10 seconds default
-        data: {},
-        userClosed: false // Track if user manually closed the combat bar
+        data: {}
     };
     static secondaryBarTypes = new Map();
     static secondaryBarItems = new Map(); // Map<typeId, Map<itemId, itemData>> - stores items for default tool system
@@ -76,10 +74,6 @@ class MenuBar {
     static _contextMenuHandlerContainer = null;
     static _middleZoneOverflowItems = [];  // Items moved to overflow menu when middle zone overflows
     static _middleZoneResizeObserver = null;  // ResizeObserver for overflow detection
-    static _combatBarHoverMoveHandler = null;
-    static _combatBarContextMenuHandler = null;
-    static _combatHoverCardEl = null;
-    static _combatHoverCardCombatantId = null;
 
     /** @type {Map<string, (user: User) => { hide?: boolean }>} - Module visibility overrides (moduleId -> callback) */
     static _menubarVisibilityOverrides = new Map();
@@ -142,23 +136,11 @@ class MenuBar {
         // Register setting change hook to refresh menubar when party leader changes
         this._registerLeaderChangeHook();
         
-        // Register combat hooks
-        this._registerCombatHooks();
-        
-        // Register combat bar event handlers
-        this._registerCombatBarEvents();
-        
         // Encounter bar refresh: encounter-toolbar.js calls api.updateSecondaryBarItemInfo directly when tokens change
-        
-        // Register cleanup hook for module unload
-        CombatBarManager.registerCombatCleanupHook(this);
     }
 
     static async _registerPartials() {
         try {
-            // Register combat partial via combat bar manager.
-            await CombatBarManager.registerCombatPartial();
-            
             // Load and register the default secondary bar template
             const defaultBarTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partials/menubar-secondary-default.hbs').then(response => response.text());
             Handlebars.registerPartial('menubar-secondary-default', defaultBarTemplate);
@@ -182,29 +164,12 @@ class MenuBar {
         // Register setting change hook to refresh menubar when party leader changes
         const settingChangeHookId = HookManager.registerHook({
             name: 'settingChange',
-            description: 'MenuBar: Refresh menubar when party leader or combat size changes',
+            description: 'MenuBar: Refresh menubar when party leader changes',
             context: 'menubar-settings-change',
             priority: 3,
             callback: (module, key, value) => {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
-                if (module === MODULE.ID && key === 'menubarCombatSize') {
-                    postConsoleAndNotification(MODULE.NAME, "Menubar Combat Size | Setting change hook fired", {
-                        module: module,
-                        key: key,
-                        value: value,
-                        currentUserId: game.user.id,
-                        isGM: game.user.isGM
-                    }, true, false);
-                    
-                    // Update the CSS variable for combat menubar height
-                    document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${value}px`);
-                    
-                    // Refresh the menubar to apply the new height
-                    if (game.combat) {
-                        MenuBar.updateCombatBar();
-                    }
-                }
-                else if (module === MODULE.ID && key === 'partyLeader') {
+                if (module === MODULE.ID && key === 'partyLeader') {
                     
                     // Update the current leader display
                     if (value && value.userId) {
@@ -224,60 +189,6 @@ class MenuBar {
         });
         
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Leader change hook registered", "", true, false);
-    }
-
-    static _registerCombatHooks() {
-        return CombatBarManager.registerCombatHooks(this);
-    }
-
-    /**
-     * Roll initiative for a specific combatant with dialog support
-     * @param {Object} combatant - The combatant to roll initiative for
-     * @param {Event} event - The click event (optional)
-     * @private
-     */
-    static async _rollInitiativeForCombatant(combatant, event = null) {
-        return CombatBarManager.rollInitiativeForCombatant(this, combatant, event);
-    }
-
-    /**
-     * Register event handlers for combat bar interactions
-     * @private
-     */
-    static _registerCombatBarEvents() {
-        return CombatBarManager.registerCombatBarEvents(this);
-    }
-
-    /**
-     * Update combat portrait scroll: show/hide both arrows together based on overflow.
-     * @private
-     */
-    static _updateCombatPortraitScrollArrows() {
-        return CombatBarManager.updateCombatPortraitScrollArrows(this);
-    }
-
-    /**
-     * Attach scroll and resize listeners so arrow visibility/state updates when strip is scrolled or bar resized.
-     * @private
-     */
-    static _attachCombatPortraitScrollListener() {
-        return CombatBarManager.attachCombatPortraitScrollListener(this);
-    }
-
-    /**
-     * Clean up combat bar event handlers and timer intervals
-     * @private
-     */
-    static _cleanupCombatBarEvents() {
-        return CombatBarManager.cleanupCombatBarEvents(this);
-    }
-
-    /**
-     * Check for active combat when the client loads
-     * @private
-     */
-    static _checkActiveCombatOnLoad() {
-        return CombatBarManager.checkActiveCombatOnLoad(this);
     }
 
     /**
@@ -300,7 +211,7 @@ class MenuBar {
 
 
         // *** GROUP: COMBAT ***
-        // (encounter, create-combat, combat-bar, combat-window registered via API from encounter-toolbar.js and combat-tracker.js)
+        // (encounter and related tools are registered via their own modules)
 
         // REPLACE IMAGE – registered by Coffee Pub Curator when present
 
@@ -355,7 +266,6 @@ class MenuBar {
 
 
         // Map secondary bars to their toggle tools for button state syncing
-        this.secondaryBarToolMapping.set('combat', 'combat-bar');
         this.secondaryBarToolMapping.set('encounter', 'encounter');
         this.secondaryBarToolMapping.set('party', 'party');
 
@@ -465,9 +375,6 @@ class MenuBar {
      * Register secondary bar types
      */
     static async registerSecondaryBarTypes() {
-        // Register combat tracker secondary bar (custom template) via combat bar manager.
-        await CombatBarManager.registerCombatBarType(this);
-
         // Register encounter secondary bar (default tool system – items registered from encounter-toolbar.js)
         // Encounter bar type is registered by encounter-toolbar.js with info items + buttons
 
@@ -2189,12 +2096,6 @@ class MenuBar {
      */
     static openSecondaryBar(typeId, options = {}) {
         try {
-            // For combat bars, check if user manually closed it
-            if (typeId === 'combat' && this.secondaryBar.userClosed) {
-                postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Combat bar was manually closed by user", "", true, false);
-                return false;
-            }
-
             // If the same type is already open, just update it
             if (this.secondaryBar.isOpen && this.secondaryBar.type === typeId) {
                 if (options.data) {
@@ -2224,25 +2125,6 @@ class MenuBar {
             this.secondaryBar.height = options.height || barType.height || this.getSecondaryBarHeight(typeId);
             this.secondaryBar.persistence = options.persistence || barType.persistence;
             this.secondaryBar.data = options.data || {};
-
-            // For combat bars, always refresh the data to show current state
-            if (typeId === 'combat') {
-                const combat = game.combat;
-                if (combat) {
-                    this.secondaryBar.data = this.getCombatData(combat);
-                } else {
-                    // Initialize empty data structure if no combat
-                    this.secondaryBar.data = {
-                        combatants: [],
-                        currentRound: 0,
-                        currentTurn: 0,
-                        currentCombatant: '',
-                        isGM: game.user.isGM,
-                        isActive: false,
-                        actionButton: null
-                    };
-                }
-            }
 
             // For party bar, refresh party health progressbar so it shows current HP
             if (typeId === 'party') {
@@ -2282,11 +2164,6 @@ class MenuBar {
         try {
             if (!this.secondaryBar.isOpen) {
                 return true; // Already closed
-            }
-
-            // Track if user manually closed the combat bar
-            if (userInitiated && this.secondaryBar.type === 'combat') {
-                this.secondaryBar.userClosed = true;
             }
 
             // Clear auto-close timeout if it exists
@@ -2357,9 +2234,6 @@ class MenuBar {
             if (this.secondaryBar.isOpen && this.secondaryBar.type === typeId) {
                 return this.closeSecondaryBar(true);
             } else {
-                if (typeId === 'combat') {
-                    this.secondaryBar.userClosed = false;
-                }
                 return this.openSecondaryBar(typeId, options);
             }
         } catch (error) {
@@ -2380,14 +2254,7 @@ class MenuBar {
                 postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Cannot update closed bar", "", false, false);
                 return false;
             }
-
-            // For combat bars, completely replace the data (don't merge)
-            // For other bars, merge the data
-            if (this.secondaryBar.type === 'combat') {
-                this.secondaryBar.data = data;
-            } else {
             this.secondaryBar.data = { ...this.secondaryBar.data, ...data };
-            }
 
             this.renderMenubar(true);
 
@@ -2426,42 +2293,6 @@ class MenuBar {
         }
     }
 
-    // COMBAT INTEGRATION 
-
-    /**
-     * Open combat tracker secondary bar
-     * @param {Object} combatData - Combat data for the bar
-     * @returns {boolean} Success status
-     */
-    static openCombatBar(combatData = null) {
-        return CombatBarManager.openCombatBar(this, combatData);
-    }
-
-    static closeCombatBar() {
-        try {
-            if (this._isUserExcluded(game.user)) return true;
-            if (this.secondaryBar.isOpen && this.secondaryBar.type === 'combat') {
-                this.secondaryBar.userClosed = false;
-                this._hideCombatantHoverCard();
-                
-                // closeSecondaryBar handles button state syncing automatically
-                return this.closeSecondaryBar();
-            }
-            return true;
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error closing combat bar", { error }, false, false);
-            return false;
-        }
-    }
-
-    /**
-     * Toggle the FoundryVTT Combat Tracker window (show/hide).
-     * Used by the Tracker button in the combat bar.
-     */
-    static async toggleCombatTracker() {
-        return CombatBarManager.toggleCombatTracker();
-    }
-
     /**
      * Sync button active states when secondary bars change
      * @private
@@ -2497,59 +2328,6 @@ class MenuBar {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error syncing button states", { previousType, newType, error }, false, false);
         }
-    }
-
-    static updateCombatBar(combatData = null) {
-        return CombatBarManager.updateCombatBar(this, combatData);
-    }
-
-    /**
-     * Get combat data for the secondary bar
-     * @param {Combat} combat - Combat instance
-     * @returns {Object} Combat data for template
-     */
-    static getCombatData(combat) {
-        return CombatBarManager.getCombatData(combat);
-    }
-
-    static _isCombatBarActive() {
-        return CombatBarManager.isCombatBarActive(this);
-    }
-
-    static _didHpChange(updateData) {
-        return CombatBarManager.didHpChange(updateData);
-    }
-
-    static _handleActorHpChange(actor, updateData) {
-        return CombatBarManager.handleActorHpChange(this, actor, updateData);
-    }
-
-    static _handleTokenHpChange(token, updateData) {
-        return CombatBarManager.handleTokenHpChange(this, token, updateData);
-    }
-
-    static _showCombatantHoverCard(combatantId, event) {
-        return CombatBarManager.showCombatantHoverCard(this, combatantId, event);
-    }
-
-    static _positionCombatantHoverCard(event) {
-        return CombatBarManager.positionCombatantHoverCard(this, event);
-    }
-
-    static _hideCombatantHoverCard() {
-        return CombatBarManager.hideCombatantHoverCard(this);
-    }
-
-    static _getCombatantHoverData(combatant) {
-        return CombatBarManager.getCombatantHoverData(combatant);
-    }
-
-    static _getCombatantPrimaryStats(actor) {
-        return CombatBarManager.getCombatantPrimaryStats(actor);
-    }
-
-    static _buildCombatantHoverCardHtml(data) {
-        return CombatBarManager.buildCombatantHoverCardHtml(data);
     }
 
     /**
@@ -2658,25 +2436,9 @@ class MenuBar {
         data.groupBannerEnabled = barType.groupBannerEnabled || false;
         data.groupBannerColor = barType.groupBannerColor || 'rgba(62, 62, 163, 0.9)';
 
-        // If custom template, use existing data preparation (combat bar)
+        // If custom template, pass through existing custom data payload.
         if (barType.hasCustomTemplate) {
-            // For combat bar, data is already prepared in updateCombatBar or openSecondaryBar
-            if (!data.data && data.type === 'combat') {
-                const combat = game.combat;
-                if (combat) {
-                    data.data = this.getCombatData(combat);
-                } else {
-                    data.data = {
-                        combatants: [],
-                        currentRound: 0,
-                        currentTurn: 0,
-                        currentCombatant: '',
-                        isGM: game.user.isGM,
-                        isActive: false,
-                        actionButton: null
-                    };
-                }
-            } else if (!data.data) {
+            if (!data.data) {
                 data.data = {};
             }
             return data;
@@ -2982,15 +2744,6 @@ class MenuBar {
                 // Add click handlers
                 this.addClickHandlers();
                 
-                // Combat bar: update scroll arrow state and attach scroll listener
-                if (this.secondaryBar.isOpen && this.secondaryBar.type === 'combat') {
-                    requestAnimationFrame(() => {
-                        this._updateCombatPortraitScrollArrows();
-                        this._attachCombatPortraitScrollListener();
-                        setTimeout(() => this._updateCombatPortraitScrollArrows(), 100);
-                    });
-                }
-                
                 // Setup middle zone overflow detection (run after layout)
                 requestAnimationFrame(() => this._setupMiddleZoneOverflow());
             }
@@ -2998,42 +2751,6 @@ class MenuBar {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Menubar: Error rendering menubar:", error, false, false);
         }
-    }
-
-    /**
-     * Pan to a specific combatant's token
-     * @param {string} combatantId - The combatant ID to pan to
-     */
-    static panToCombatant(combatantId, options = {}) {
-        return CombatBarManager.panToCombatant(this, combatantId, options);
-    }
-
-    static _getCombatantContext(combatantId) {
-        return CombatBarManager.getCombatantContext(combatantId);
-    }
-
-    static _canOpenCombatantSheet(actor) {
-        return CombatBarManager.canOpenCombatantSheet(actor);
-    }
-
-    static async pingCombatant(combatantId) {
-        return CombatBarManager.pingCombatant(this, combatantId);
-    }
-
-    static async sendHurryUp(combatantId) {
-        return CombatBarManager.sendHurryUp(this, combatantId);
-    }
-
-    static _showCombatantPortraitContextMenu(combatantId, x, y) {
-        return CombatBarManager.showCombatantPortraitContextMenu(this, combatantId, x, y);
-    }
-
-    /**
-     * Set a combatant as the current turn (GM only)
-     * @param {string} combatantId - The combatant ID to set as current
-     */
-    static async setCurrentCombatant(combatantId) {
-        return CombatBarManager.setCurrentCombatant(this, combatantId);
     }
 
     static addClickHandlers() {
@@ -4838,7 +4555,6 @@ Hooks.once('ready', async () => {
     MenuBar.registerDefaultTools();
     await MenuBar.registerSecondaryBarTypes();
     MenuBar.renderMenubar();
-    MenuBar._checkActiveCombatOnLoad();
 });
 
 export { MenuBar }; 

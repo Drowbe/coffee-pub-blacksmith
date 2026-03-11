@@ -47,6 +47,7 @@ import { RoundTimer } from './timer-round.js';
 import { CombatStats } from './stats-combat.js';
 import { CPBPlayerStats } from './stats-player.js';
 import { MenuBar } from './api-menubar.js';
+import { CombatBarManager } from './manager-combatbar.js';
 import { VoteManager } from './vote-manager.js';
 import { WrapperManager } from './manager-libwrapper.js';
 import { NavigationManager } from './manager-navigation.js';
@@ -324,11 +325,11 @@ Hooks.once('ready', async () => {
             toggleSecondaryBar: MenuBar.toggleSecondaryBar.bind(MenuBar),
             updateSecondaryBar: MenuBar.updateSecondaryBar.bind(MenuBar),
             registerSecondaryBarTool: MenuBar.registerSecondaryBarTool.bind(MenuBar),
-            openCombatBar: MenuBar.openCombatBar.bind(MenuBar),
-            closeCombatBar: MenuBar.closeCombatBar.bind(MenuBar),
-            updateCombatBar: MenuBar.updateCombatBar.bind(MenuBar),
+            openCombatBar: (combatData = null) => CombatBarManager.openCombatBar(MenuBar, combatData),
+            closeCombatBar: () => CombatBarManager.closeCombatBar(MenuBar),
+            updateCombatBar: (combatData = null) => CombatBarManager.updateCombatBar(MenuBar, combatData),
             createCombat: MenuBar.createCombat?.bind(MenuBar),
-            toggleCombatTracker: MenuBar.toggleCombatTracker?.bind(MenuBar),
+            toggleCombatTracker: () => CombatBarManager.toggleCombatTracker(),
             hasQuickEncounterTool: MenuBar.hasQuickEncounterTool?.bind(MenuBar),
             openQuickEncounterWindow: MenuBar.openQuickEncounterWindow?.bind(MenuBar),
             testNotificationSystem: MenuBar.testNotificationSystem.bind(MenuBar),
@@ -344,6 +345,7 @@ Hooks.once('ready', async () => {
 
     // Register MenuBar's ready callback and templates before first await so it runs in same ready cycle
     MenuBar.initialize();
+    CombatBarManager.initialize(MenuBar);
 
     // Update progress to final phase
     LoadingProgressManager.setPhase(5, "Finalizing...");
@@ -964,9 +966,9 @@ Hooks.once('init', async function() {
         module.api.registerSecondaryBarTool = MenuBar.registerSecondaryBarTool.bind(MenuBar);
         
         // Combat Bar API
-        module.api.openCombatBar = MenuBar.openCombatBar.bind(MenuBar);
-        module.api.closeCombatBar = MenuBar.closeCombatBar.bind(MenuBar);
-        module.api.updateCombatBar = MenuBar.updateCombatBar.bind(MenuBar);
+        module.api.openCombatBar = (combatData = null) => CombatBarManager.openCombatBar(MenuBar, combatData);
+        module.api.closeCombatBar = () => CombatBarManager.closeCombatBar(MenuBar);
+        module.api.updateCombatBar = (combatData = null) => CombatBarManager.updateCombatBar(MenuBar, combatData);
         module.api.testNotificationSystem = MenuBar.testNotificationSystem.bind(MenuBar);
         module.api.testSecondaryBarSystem = MenuBar.testSecondaryBarSystem.bind(MenuBar);
         module.api.renderMenubar = MenuBar.renderMenubar.bind(MenuBar);
@@ -1143,11 +1145,11 @@ Hooks.once('init', async function() {
             toggleSecondaryBar: MenuBar.toggleSecondaryBar.bind(MenuBar),
             updateSecondaryBar: MenuBar.updateSecondaryBar.bind(MenuBar),
             registerSecondaryBarTool: MenuBar.registerSecondaryBarTool.bind(MenuBar),
-            openCombatBar: MenuBar.openCombatBar.bind(MenuBar),
-            closeCombatBar: MenuBar.closeCombatBar.bind(MenuBar),
-            updateCombatBar: MenuBar.updateCombatBar.bind(MenuBar),
+            openCombatBar: (combatData = null) => CombatBarManager.openCombatBar(MenuBar, combatData),
+            closeCombatBar: () => CombatBarManager.closeCombatBar(MenuBar),
+            updateCombatBar: (combatData = null) => CombatBarManager.updateCombatBar(MenuBar, combatData),
             createCombat: MenuBar.createCombat?.bind(MenuBar),
-            toggleCombatTracker: MenuBar.toggleCombatTracker?.bind(MenuBar),
+            toggleCombatTracker: () => CombatBarManager.toggleCombatTracker(),
             hasQuickEncounterTool: MenuBar.hasQuickEncounterTool?.bind(MenuBar),
             openQuickEncounterWindow: MenuBar.openQuickEncounterWindow?.bind(MenuBar),
             registerMenubarVisibilityOverride: MenuBar.registerMenubarVisibilityOverride.bind(MenuBar),

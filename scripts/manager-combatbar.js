@@ -7,6 +7,125 @@ import { easeHorizontalScroll } from './combat-bar-scroll.js';
 import { HookManager } from './manager-hooks.js';
 
 export class CombatBarManager {
+    static initialize(menuBar) {
+        if (menuBar.__combatBarManagerInitialized) return;
+        menuBar.__combatBarManagerInitialized = true;
+        menuBar.__combatBarUserClosed = false;
+
+        this._installMenuBarPatches(menuBar);
+        menuBar.secondaryBarToolMapping.set('combat', 'combat-bar');
+        this.registerCombatHooks(menuBar);
+        this.registerCombatBarEvents(menuBar);
+        this.registerCombatCleanupHook(menuBar);
+        this.checkActiveCombatOnLoad(menuBar);
+        this.registerCombatPartial().catch((error) => {
+            postConsoleAndNotification(MODULE.NAME, "Menubar: Error registering combat partial", error?.message || error, true, false);
+        });
+        const ensureCombatType = async () => {
+            try {
+                if (!menuBar.secondaryBarTypes?.has?.('combat')) {
+                    await CombatBarManager.registerCombatBarType(menuBar);
+                }
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, "Menubar: Error registering combat secondary bar type", error?.message || error, true, false);
+            }
+        };
+        if (game.ready) {
+            ensureCombatType();
+        } else {
+            Hooks.once('ready', ensureCombatType);
+        }
+    }
+
+    static _installMenuBarPatches(menuBar) {
+        if (menuBar.__combatBarPatchesInstalled) return;
+        menuBar.__combatBarPatchesInstalled = true;
+
+        const originalRegisterSecondaryBarTypes = menuBar.registerSecondaryBarTypes.bind(menuBar);
+        menuBar.registerSecondaryBarTypes = async function (...args) {
+            await originalRegisterSecondaryBarTypes(...args);
+            if (!menuBar.secondaryBarTypes?.has?.('combat')) {
+                await CombatBarManager.registerCombatBarType(menuBar);
+            }
+        };
+
+        const originalOpenSecondaryBar = menuBar.openSecondaryBar.bind(menuBar);
+        menuBar.openSecondaryBar = function (typeId, options = {}) {
+            if (typeId === 'combat') {
+                if (menuBar.__combatBarUserClosed) return false;
+                const combat = game.combat;
+                const data = combat ? CombatBarManager.getCombatData(combat) : {
+                    combatants: [],
+                    currentRound: 0,
+                    currentTurn: 0,
+                    currentCombatant: '',
+                    isGM: game.user.isGM,
+                    isActive: false,
+                    actionButton: null
+                };
+                return originalOpenSecondaryBar(typeId, { ...options, data });
+            }
+            return originalOpenSecondaryBar(typeId, options);
+        };
+
+        const originalCloseSecondaryBar = menuBar.closeSecondaryBar.bind(menuBar);
+        menuBar.closeSecondaryBar = function (userInitiated = false, syncButtons = true) {
+            if (userInitiated && menuBar.secondaryBar.type === 'combat') {
+                menuBar.__combatBarUserClosed = true;
+            }
+            CombatBarManager.hideCombatantHoverCard(menuBar);
+            return originalCloseSecondaryBar(userInitiated, syncButtons);
+        };
+
+        const originalToggleSecondaryBar = menuBar.toggleSecondaryBar.bind(menuBar);
+        menuBar.toggleSecondaryBar = function (typeId, options = {}) {
+            if (typeId === 'combat' && (!menuBar.secondaryBar.isOpen || menuBar.secondaryBar.type !== 'combat')) {
+                menuBar.__combatBarUserClosed = false;
+            }
+            return originalToggleSecondaryBar(typeId, options);
+        };
+
+        const originalUpdateSecondaryBar = menuBar.updateSecondaryBar.bind(menuBar);
+        menuBar.updateSecondaryBar = function (data) {
+            if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
+                menuBar.secondaryBar.data = data;
+                menuBar.renderMenubar(true);
+                return true;
+            }
+            return originalUpdateSecondaryBar(data);
+        };
+
+        const originalPrepareSecondaryBarData = menuBar._prepareSecondaryBarData.bind(menuBar);
+        menuBar._prepareSecondaryBarData = function () {
+            const data = originalPrepareSecondaryBarData();
+            if (data?.isOpen && data.type === 'combat' && !data.data) {
+                const combat = game.combat;
+                data.data = combat ? CombatBarManager.getCombatData(combat) : {
+                    combatants: [],
+                    currentRound: 0,
+                    currentTurn: 0,
+                    currentCombatant: '',
+                    isGM: game.user.isGM,
+                    isActive: false,
+                    actionButton: null
+                };
+            }
+            return data;
+        };
+
+        const originalRenderMenubar = menuBar.renderMenubar.bind(menuBar);
+        menuBar.renderMenubar = async function (...args) {
+            const result = await originalRenderMenubar(...args);
+            if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
+                requestAnimationFrame(() => {
+                    CombatBarManager.updateCombatPortraitScrollArrows(menuBar);
+                    CombatBarManager.attachCombatPortraitScrollListener(menuBar);
+                    setTimeout(() => CombatBarManager.updateCombatPortraitScrollArrows(menuBar), 100);
+                });
+            }
+            return result;
+        };
+    }
     static async registerCombatPartial() {
         const combatBarTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs')
             .then(response => response.text());
@@ -32,7 +151,7 @@ export class CombatBarManager {
                 const shouldUpdate = updateData.turn !== undefined ||
                     updateData.round !== undefined ||
                     updateData.combatants !== undefined;
-                if (shouldUpdate) menuBar.updateCombatBar();
+                if (shouldUpdate) CombatBarManager.updateCombatBar(menuBar);
             }
         });
 
@@ -43,7 +162,7 @@ export class CombatBarManager {
             priority: 3,
             callback: () => {
                 const shouldShowCombatBar = game.settings.get(MODULE.ID, 'menubarCombatShow');
-                if (shouldShowCombatBar) menuBar.openCombatBar();
+                if (shouldShowCombatBar) CombatBarManager.openCombatBar(menuBar);
             }
         });
 
@@ -55,9 +174,9 @@ export class CombatBarManager {
             callback: (combatant) => {
                 if (combatant.combat.combatants.size === 1) {
                     const shouldShowCombatBar = game.settings.get(MODULE.ID, 'menubarCombatShow');
-                    if (shouldShowCombatBar) menuBar.openCombatBar();
+                    if (shouldShowCombatBar) CombatBarManager.openCombatBar(menuBar);
                 } else if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
-                    menuBar.updateCombatBar();
+                    CombatBarManager.updateCombatBar(menuBar);
                 }
             }
         });
@@ -70,7 +189,7 @@ export class CombatBarManager {
             callback: (_combatant, updateData) => {
                 const initiativeUpdated = updateData.initiative !== undefined;
                 if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
-                    menuBar.updateCombatBar();
+                    CombatBarManager.updateCombatBar(menuBar);
                     if (initiativeUpdated) menuBar.renderMenubar();
                 }
             }
@@ -83,7 +202,7 @@ export class CombatBarManager {
             priority: 3,
             callback: () => {
                 if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
-                    menuBar.updateCombatBar();
+                    CombatBarManager.updateCombatBar(menuBar);
                 }
             }
         });
@@ -94,7 +213,7 @@ export class CombatBarManager {
             context: 'menubar-combat-delete',
             priority: 3,
             callback: () => {
-                menuBar.closeCombatBar();
+                CombatBarManager.closeCombatBar(menuBar);
             }
         });
 
@@ -124,7 +243,7 @@ export class CombatBarManager {
             context: 'menubar-actor-update',
             priority: 3,
             callback: (actor, updateData) => {
-                if (menuBar._isCombatBarActive()) menuBar._handleActorHpChange(actor, updateData);
+                if (CombatBarManager.isCombatBarActive(menuBar)) CombatBarManager.handleActorHpChange(menuBar, actor, updateData);
                 if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'party') {
                     menuBar._refreshPartyBarInfo();
                 }
@@ -137,7 +256,21 @@ export class CombatBarManager {
             context: 'menubar-token-update',
             priority: 3,
             callback: (token, updateData) => {
-                if (menuBar._isCombatBarActive()) menuBar._handleTokenHpChange(token, updateData);
+                if (CombatBarManager.isCombatBarActive(menuBar)) CombatBarManager.handleTokenHpChange(menuBar, token, updateData);
+            }
+        });
+
+        const combatSizeSettingHookId = HookManager.registerHook({
+            name: 'settingChange',
+            description: 'MenuBar: Refresh combat bar when combat size changes',
+            context: 'menubar-combat-size-change',
+            priority: 3,
+            callback: (module, key, value) => {
+                if (module !== MODULE.ID || key !== 'menubarCombatSize') return;
+                document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${value}px`);
+                if (game.combat && menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
+                    CombatBarManager.updateCombatBar(menuBar);
+                }
             }
         });
 
@@ -151,7 +284,8 @@ export class CombatBarManager {
             combatTrackerRenderHookId,
             combatTrackerCloseHookId,
             updateActorHookId,
-            updateTokenHookId
+            updateTokenHookId,
+            combatSizeSettingHookId
         };
 
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat hooks registered", "", true, false);
@@ -228,7 +362,7 @@ export class CombatBarManager {
             menuBar._combatBarContextMenuHandler = null;
         }
 
-        menuBar._hideCombatantHoverCard();
+        CombatBarManager.hideCombatantHoverCard(menuBar);
         UIContextMenu.close('blacksmith-combat-portrait-context-menu');
         menuBar.removeClickHandlers();
         menuBar._stopTimerUpdates();
@@ -242,7 +376,7 @@ export class CombatBarManager {
                 postConsoleAndNotification(MODULE.NAME, "Combat Bar: Combat with combatants found on load", "", true, false);
                 setTimeout(() => {
                     const shouldShowCombatBar = getSettingSafely(MODULE.ID, 'menubarCombatShow', false);
-                    if (shouldShowCombatBar) menuBar.openCombatBar();
+                    if (shouldShowCombatBar) CombatBarManager.openCombatBar(menuBar);
                 }, 500);
             }
         } catch (error) {
@@ -256,10 +390,10 @@ export class CombatBarManager {
             if (!menuBar.secondaryBar.isOpen || menuBar.secondaryBar.type !== 'combat') return false;
 
             const combat = game.combats.active;
-            if (!combat) return menuBar.closeCombatBar();
+            if (!combat) return CombatBarManager.closeCombatBar(menuBar);
 
             const data = combatData || CombatBarManager.getCombatData(combat);
-            menuBar._hideCombatantHoverCard();
+            CombatBarManager.hideCombatantHoverCard(menuBar);
             return menuBar.updateSecondaryBar(data);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error updating combat bar", { error }, false, false);
@@ -439,7 +573,7 @@ export class CombatBarManager {
             const isCombatant = combat.combatants.some(combatant => combatant.actor?.id === actor?.id);
             postConsoleAndNotification(MODULE.NAME, 'Menubar: Actor HP change evaluated', { isCombatant }, true, false);
             if (!isCombatant) return;
-            menuBar.updateCombatBar();
+            CombatBarManager.updateCombatBar(menuBar);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Menubar: Failed to process actor HP change', { actorId: actor?.id, error }, true, false);
         }
@@ -459,7 +593,7 @@ export class CombatBarManager {
             const isCombatant = combat.combatants.some(combatant => combatant.token?.id === tokenId || combatant.actor?.id === actorId);
             postConsoleAndNotification(MODULE.NAME, 'Menubar: Token change evaluated', { isCombatant, hpChanged, hiddenChanged }, true, false);
             if (!isCombatant) return;
-            menuBar.updateCombatBar();
+            CombatBarManager.updateCombatBar(menuBar);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Menubar: Failed to process token change', { tokenId: token?.id, error }, true, false);
         }
@@ -472,10 +606,24 @@ export class CombatBarManager {
             document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${combatHeight}px`);
             const combat = game.combats.active;
             if (!combat) return false;
-            menuBar.secondaryBar.userClosed = false;
             const data = combatData || CombatBarManager.getCombatData(combat);
             return menuBar.openSecondaryBar('combat', { data, persistence: 'manual' });
         } catch (_error) {
+            return false;
+        }
+    }
+
+    static closeCombatBar(menuBar) {
+        try {
+            if (menuBar._isUserExcluded(game.user)) return true;
+            if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
+                menuBar.__combatBarUserClosed = false;
+                CombatBarManager.hideCombatantHoverCard(menuBar);
+                return menuBar.closeSecondaryBar();
+            }
+            return true;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error closing combat bar", { error }, false, false);
             return false;
         }
     }
@@ -549,7 +697,7 @@ export class CombatBarManager {
                     if (combatantId) {
                         event.preventDefault();
                         event.stopPropagation();
-                        menuBar.panToCombatant(combatantId, { selectToken: game.user.isGM });
+                        CombatBarManager.panToCombatant(menuBar, combatantId, { selectToken: game.user.isGM });
                         return;
                     }
                 }
@@ -700,7 +848,7 @@ export class CombatBarManager {
                         await CT.CombatTracker._rollInitiativeForPlayerCharacters(combat);
                     } else {
                         const nextCombatant = ownedPCsNeedingInitiative[0];
-                        await menuBar._rollInitiativeForCombatant(nextCombatant, event);
+                        await CombatBarManager.rollInitiativeForCombatant(menuBar, nextCombatant, event);
                         postConsoleAndNotification(MODULE.NAME, `Combat Bar: Rolled initiative for ${nextCombatant.name}`, "", true, false);
                     }
                 } catch (error) {
@@ -720,8 +868,8 @@ export class CombatBarManager {
                     if (!combat) return;
                     const combatant = combat.combatants.get(combatantId);
                     if (!combatant) return;
-                    await menuBar._rollInitiativeForCombatant(combatant, event);
-                    menuBar.updateCombatBar();
+                    await CombatBarManager.rollInitiativeForCombatant(menuBar, combatant, event);
+                    CombatBarManager.updateCombatBar(menuBar);
                 } catch (error) {
                     postConsoleAndNotification(MODULE.NAME, `Combat Bar: Error rolling initiative for combatant ${combatantId}`, error, true, false);
                 }
@@ -740,7 +888,7 @@ export class CombatBarManager {
             if (!combatantId) return;
             event.preventDefault();
             event.stopPropagation();
-            await menuBar.setCurrentCombatant(combatantId);
+            await CombatBarManager.setCurrentCombatant(menuBar, combatantId);
         };
 
         document.addEventListener('click', menuBar._combatBarClickHandler);
@@ -748,32 +896,32 @@ export class CombatBarManager {
 
         menuBar._combatBarHoverMoveHandler = (event) => {
             const portrait = event.target?.closest?.('.blacksmith-menubar-secondary .combat-portrait-container[data-combatant-id]');
-            if (!portrait || !menuBar._isCombatBarActive()) {
-                menuBar._hideCombatantHoverCard();
+            if (!portrait || !CombatBarManager.isCombatBarActive(menuBar)) {
+                CombatBarManager.hideCombatantHoverCard(menuBar);
                 return;
             }
             const combatantId = portrait.getAttribute('data-combatant-id');
             if (!combatantId) {
-                menuBar._hideCombatantHoverCard();
+                CombatBarManager.hideCombatantHoverCard(menuBar);
                 return;
             }
             if (menuBar._combatHoverCardCombatantId !== combatantId || !menuBar._combatHoverCardEl) {
-                menuBar._showCombatantHoverCard(combatantId, event);
+                CombatBarManager.showCombatantHoverCard(menuBar, combatantId, event);
             } else {
-                menuBar._positionCombatantHoverCard(event);
+                CombatBarManager.positionCombatantHoverCard(menuBar, event);
             }
         };
         document.addEventListener('mousemove', menuBar._combatBarHoverMoveHandler);
 
         menuBar._combatBarContextMenuHandler = (event) => {
             const portrait = event.target?.closest?.('.blacksmith-menubar-secondary .combat-portrait-container[data-combatant-id]');
-            if (!portrait || !menuBar._isCombatBarActive()) return;
+            if (!portrait || !CombatBarManager.isCombatBarActive(menuBar)) return;
             const combatantId = portrait.getAttribute('data-combatant-id');
             if (!combatantId) return;
             event.preventDefault();
             event.stopPropagation();
-            menuBar._hideCombatantHoverCard();
-            menuBar._showCombatantPortraitContextMenu(combatantId, event.clientX, event.clientY);
+            CombatBarManager.hideCombatantHoverCard(menuBar);
+            CombatBarManager.showCombatantPortraitContextMenu(menuBar, combatantId, event.clientX, event.clientY);
         };
         document.addEventListener('contextmenu', menuBar._combatBarContextMenuHandler);
 
