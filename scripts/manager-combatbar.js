@@ -6,6 +6,15 @@ import { UIContextMenu } from './ui-context-menu.js';
 import { HookManager } from './manager-hooks.js';
 
 export class CombatBarManager {
+    static playUiSound(soundPath, volume = window.COFFEEPUB?.SOUNDVOLUMENORMAL ?? 0.7) {
+        try {
+            if (!soundPath) return;
+            playSound(soundPath, volume, false, false);
+        } catch (_error) {
+            // Non-blocking UI feedback only.
+        }
+    }
+
     /**
      * Smooth horizontal scroll with easing for predictable per-click movement.
      * @param {HTMLElement} element
@@ -411,13 +420,13 @@ export class CombatBarManager {
 
         const portRect = portraits.getBoundingClientRect();
         const currentRect = currentPortrait.getBoundingClientRect();
-        const tolerance = 4;
         let delta = 0;
 
-        if (currentRect.left < (portRect.left + tolerance)) {
-            delta = currentRect.left - portRect.left - 8;
-        } else if (currentRect.right > (portRect.right - tolerance)) {
-            delta = currentRect.right - portRect.right + 8;
+        // Only scroll when the current combatant is actually clipped off-screen.
+        if (currentRect.left < portRect.left) {
+            delta = currentRect.left - portRect.left;
+        } else if (currentRect.right > portRect.right) {
+            delta = currentRect.right - portRect.right;
         }
 
         if (Math.abs(delta) > 1) {
@@ -787,6 +796,7 @@ export class CombatBarManager {
             if (event.target.closest('.combatbar-button[data-control="toggleTracker"]')) {
                 event.preventDefault();
                 event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 await CombatBarManager.toggleCombatTracker();
                 return;
             }
@@ -810,6 +820,7 @@ export class CombatBarManager {
             if (event.target.closest('.combatbar-button[data-control="previousRound"]')) {
                 event.preventDefault();
                 event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 try {
                     const combat = game.combat;
                     if (combat) {
@@ -825,6 +836,7 @@ export class CombatBarManager {
             if (event.target.closest('.combatbar-button[data-control="nextRound"]')) {
                 event.preventDefault();
                 event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 try {
                     const combat = game.combat;
                     if (combat) {
@@ -840,6 +852,7 @@ export class CombatBarManager {
             if (event.target.closest('.combatbar-button[data-control="previousTurn"]')) {
                 event.preventDefault();
                 event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 try {
                     const combat = game.combat;
                     if (combat) {
@@ -855,6 +868,7 @@ export class CombatBarManager {
             if (event.target.closest('.combatbar-button[data-control="nextTurn"]')) {
                 event.preventDefault();
                 event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 try {
                     const combat = game.combat;
                     if (combat) {
@@ -872,6 +886,7 @@ export class CombatBarManager {
             if (scrollLeftBtn || scrollRightBtn) {
                 event.preventDefault();
                 event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDBUTTON09, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 const bar = event.target.closest('.combat-tracker-bar');
                 const portraits = bar?.querySelector('.combat-portraits');
                 if (portraits) {
@@ -887,6 +902,7 @@ export class CombatBarManager {
             if (event.target.closest('.combatbar-button[data-control="beginCombat"]')) {
                 event.preventDefault();
                 event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 try {
                     const combat = game.combat;
                     if (combat) {
@@ -902,6 +918,7 @@ export class CombatBarManager {
             if (event.target.closest('.combatbar-button[data-control="endCombat"]')) {
                 event.preventDefault();
                 event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 try {
                     const combat = game.combat;
                     if (combat) {
@@ -917,6 +934,7 @@ export class CombatBarManager {
             if (event.target.closest('.combatbar-button[data-control="endTurn"]')) {
                 event.preventDefault();
                 event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 try {
                     const combat = game.combat;
                     if (combat) {
