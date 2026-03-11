@@ -158,6 +158,7 @@ export class CombatBarManager {
                 requestAnimationFrame(() => {
                     CombatBarManager.updateCombatPortraitScrollArrows(menuBar);
                     CombatBarManager.attachCombatPortraitScrollListener(menuBar);
+                    CombatBarManager.ensureCurrentCombatantVisible(menuBar);
                     setTimeout(() => CombatBarManager.updateCombatPortraitScrollArrows(menuBar), 100);
                 });
             }
@@ -398,6 +399,35 @@ export class CombatBarManager {
         const currentScrollLeft = portraits.scrollLeft || 0;
         leftBtn.disabled = currentScrollLeft <= tolerance;
         rightBtn.disabled = currentScrollLeft >= (maxScrollLeft - tolerance);
+    }
+
+    static ensureCurrentCombatantVisible(menuBar) {
+        const wrapper = document.querySelector('.combat-portraits-scroll-wrapper');
+        const portraits = wrapper?.querySelector('.combat-portraits');
+        if (!portraits) return;
+
+        const currentPortrait = portraits.querySelector('.combat-portrait-container.current');
+        if (!currentPortrait) return;
+
+        const portRect = portraits.getBoundingClientRect();
+        const currentRect = currentPortrait.getBoundingClientRect();
+        const tolerance = 4;
+        let delta = 0;
+
+        if (currentRect.left < (portRect.left + tolerance)) {
+            delta = currentRect.left - portRect.left - 8;
+        } else if (currentRect.right > (portRect.right - tolerance)) {
+            delta = currentRect.right - portRect.right + 8;
+        }
+
+        if (Math.abs(delta) > 1) {
+            CombatBarManager.easeHorizontalScroll(
+                portraits,
+                delta,
+                220,
+                () => CombatBarManager.updateCombatPortraitScrollArrows(menuBar)
+            );
+        }
     }
 
     static attachCombatPortraitScrollListener(menuBar) {
