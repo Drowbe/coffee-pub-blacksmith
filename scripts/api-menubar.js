@@ -843,6 +843,7 @@ class MenuBar {
 
     /**
      * Update combat portrait scroll: show arrows only when overflowing; update disabled state at start/end.
+     * Uses getBoundingClientRect so we don't rely on scrollLeft (which can be wrong in some layouts).
      * @private
      */
     static _updateCombatPortraitScrollArrows() {
@@ -852,14 +853,24 @@ class MenuBar {
         const leftBtn = wrapper.querySelector('.combat-scroll-arrow[data-control="scrollCombatantsLeft"]');
         const rightBtn = wrapper.querySelector('.combat-scroll-arrow[data-control="scrollCombatantsRight"]');
         if (!portraits || !leftBtn || !rightBtn) return;
-        // Show arrows when content overflows visible area, or when bar is very narrow (layout may not have settled yet)
         const contentWidth = portraits.scrollWidth;
         const visibleWidth = portraits.clientWidth;
         const overflowing = contentWidth > visibleWidth + 1 || (visibleWidth < 80 && contentWidth > 0);
         wrapper.classList.toggle('combat-portraits-overflowing', overflowing);
         if (overflowing) {
-            const atStart = portraits.scrollLeft <= 1;
-            const atEnd = portraits.scrollLeft + visibleWidth >= contentWidth - 1;
+            const containers = portraits.querySelectorAll('.combat-portrait-container');
+            const tolerance = 2;
+            let atStart = true;
+            let atEnd = true;
+            if (containers.length > 0) {
+                const portRect = portraits.getBoundingClientRect();
+                const firstRect = containers[0].getBoundingClientRect();
+                const lastRect = containers[containers.length - 1].getBoundingClientRect();
+                /* At start = no portrait is off-screen to the left (first portrait at least touches viewport left) */
+                atStart = firstRect.right >= portRect.left - tolerance;
+                /* At end = no portrait is off-screen to the right (last portrait at least touches viewport right) */
+                atEnd = lastRect.left <= portRect.right + tolerance;
+            }
             leftBtn.disabled = atStart;
             rightBtn.disabled = atEnd;
         }

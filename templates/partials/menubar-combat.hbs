@@ -56,7 +56,7 @@
         {{/if}}
         {{/if}}
             <button type="button" class="combat-scroll-arrow combat-scroll-left" aria-label="Scroll combatants left" data-tooltip="Scroll combatants left" data-control="scrollCombatantsLeft">
-                <i class="fas fa-chevron-left"></i>
+                <i class="fa-solid fa-arrow-left-from-arc"></i>
             </button>
         {{!-- Combat Portraits --}}
         <div class="combat-portraits">
@@ -128,6 +128,10 @@
                </div>
         {{/each}}
         </div>
+
+            <button type="button" class="combat-scroll-arrow combat-scroll-right" aria-label="Scroll combatants right" data-tooltip="Scroll combatants right" data-control="scrollCombatantsRight">
+                <i class="fa-solid fa-arrow-right-from-arc"></i>
+            </button>
 
         {{#if isGM}}
         {{#if isActive}}

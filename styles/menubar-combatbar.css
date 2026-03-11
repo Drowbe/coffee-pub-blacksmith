@@ -136,10 +136,10 @@
    }
 
 /* Scroll Arrows */
-
+   /* DEBUG: arrows always visible; normally only show when .combat-portraits-overflowing */
    .blacksmith-menubar-secondary .combat-scroll-arrow {
     flex-shrink: 0;
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     width: 24px;
@@ -147,19 +147,20 @@
     min-height: var(--portrait-container-height);
     padding: 0;
     border: none;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(88, 15, 4, 0.9);
     color: var(--blacksmith-menubar-secondary-fontcolor);
     cursor: pointer;
     border-radius: 4px;
     transition: background 0.15s ease, color 0.15s ease;
    }
    
+   /* when overflow detected, same display (kept for when we revert debug) */
    .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper.combat-portraits-overflowing .combat-scroll-arrow {
     display: flex;
    }
    
    .blacksmith-menubar-secondary .combat-scroll-arrow:hover:not(:disabled) {
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(184, 83, 60, 0.9);
     color: var(--blacksmith-menubar-secondary-fontcolor);
    }
    
@@ -167,7 +168,6 @@
     opacity: 0.4;
     cursor: not-allowed;
    }
-
 /* Portrait Container */
 
      .blacksmith-menubar-secondary .combat-portrait-container {
