@@ -16,19 +16,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Template: `templates/journal-location.hbs`
   - Prompt: `prompts/prompt-location.txt`
   - Routing and rendering: `scripts/blacksmith.js`, `scripts/common.js`, `scripts/const.js`
+- **Location journal card section**: Added a simple location card block after `Introduction` in `journal-location.hbs` (title = location name, image title field, same image as main location image, primary text above image, facts below image).
 
 ### Changed
 
 - **Pin context menu order**: `Visibility` now appears in the core pin menu directly above `Animate`.
 - **Journal page pin label source**: Journal-page pins now use the **page title** (`page.name`) for pin text instead of the parent journal name. Existing reused linked pins are also updated to the current page title when re-pinning.
 - **Journal page pin toolbar layout**: Toolbar icon controls now wrap on smaller journal windows instead of overflowing.
+- **Journal page pin toolbar option order**: The `Image` option is now last in the icon list.
 - **Configure Pin – Use as Default**: Saved pin defaults now include `ownership` (who can access the pin) when "Use as Default" is enabled, so access settings persist in defaults.
 - **Prompt filename correction**: Location prompt file path updated to `prompt-location.txt` (from `.xt` typo) in importer fetch logic.
+- **Location prompt/schema updates**: `prompt-location.txt` now requires JSON output inside a fenced ```json code block, includes `journalname` in the schema, and documents importer defaults for omitted values (`foldername` -> `Libraries`, `journalname` -> `Locations`).
+- **Location import mapping updates**: Location import now uses `journalname` for Journal Entry name while `title` remains the page title; if omitted, defaults are applied (`Libraries` folder, `Locations` journal). Location card fields are also mapped in importer logic (`cardimagetitle`, `carddescriptionprimary`, `carddescriptionsecondary`, with fallbacks).
 
 ### Fixed
 
 - **GM pin opacity for Not Visible state**: Pins marked `Not Visible` now remain consistently at 50% opacity for GM (instead of briefly dimming then returning to full opacity) across render/update paths.
 - **Pin config border thickness focus jump**: In Configure Pin, entering Border thickness no longer shifts focus to the border color text input (border wrapper changed from `<label>` to `<div>` in `templates/window-pin-config.hbs`).
+- **Location card facts formatting**: When location card facts are provided as plain text, importer now normalizes them to an HTML list (`<ul><li>...</li></ul>`) for consistent rendering below the card image.
+- **Image pin clipping at rounded border radius**: Fixed image pin clipping artifacts by matching image clip radius to the inner border radius (accounting for scaled border thickness), preventing top-edge clipping on rounded pins.
 
 
 ## [13.5.3] - 2026-03-03 - BALANCEBAR, REPUTATION & CHAT CARDS
