@@ -49,6 +49,7 @@ export const BLACKSMITH = {
     JOURNAL_NARRATIVE_TEMPLATE: `modules/${MODULE.ID}/templates/journal-narrative.hbs`,
     JOURNAL_ENCOUNTER_TEMPLATE: `modules/${MODULE.ID}/templates/journal-encounter.hbs`,
     JOURNAL_INJURY_TEMPLATE: `modules/${MODULE.ID}/templates/journal-injury.hbs`,
+    JOURNAL_LOCATION_TEMPLATE: `modules/${MODULE.ID}/templates/journal-location.hbs`,
     JOURNAL_TOOLS_ENTITY_REPLACEMENT_PARTIAL: `modules/${MODULE.ID}/templates/partials/entity-replacement.hbs`,
     JOURNAL_TOOLS_SEARCH_REPLACE_PARTIAL: `modules/${MODULE.ID}/templates/partials/search-replace.hbs`,
     // These get overriden as soon as the settings and everything else loads.

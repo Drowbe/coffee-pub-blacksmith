@@ -1,0 +1,43 @@
+{{#if (and strLocationImage (ne strLocationImage "") (ne strLocationImage "none") (ne strLocationImage "None") (ne strLocationImage "null"))}}
+<img src="{{{strLocationImage}}}">
+{{/if}}
+
+{{#if (and strIntroduction (ne strIntroduction ""))}}
+<h2>Introduction</h2>
+{{{strIntroduction}}}
+{{/if}}
+
+{{#if (and strGeography (ne strGeography ""))}}
+<h2>Geography</h2>
+{{{strGeography}}}
+{{/if}}
+
+{{#if (and strGovernment (ne strGovernment ""))}}
+<h2>Government</h2>
+{{{strGovernment}}}
+{{/if}}
+
+{{#if (and strTrade (ne strTrade ""))}}
+<h2>Trade</h2>
+{{{strTrade}}}
+{{/if}}
+
+{{#if (and strCulture (ne strCulture ""))}}
+<h2>Culture</h2>
+{{{strCulture}}}
+{{/if}}
+
+{{#if (and strReligion (ne strReligion ""))}}
+<h2>Religion</h2>
+{{{strReligion}}}
+{{/if}}
+
+{{#if (and strHistory (ne strHistory ""))}}
+<h2>History</h2>
+{{{strHistory}}}
+{{/if}}
+
+{{#if (and strNotableLocations (ne strNotableLocations ""))}}
+<h2>Notable Locations</h2>
+{{{strNotableLocations}}}
+{{/if}}

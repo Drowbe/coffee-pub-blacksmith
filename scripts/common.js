@@ -42,6 +42,7 @@ export async function createJournalEntry(journalData) {
     var strFolderName = toSentenceCase(journalData.foldername);
     var compiledHtml = "";
     let folder;
+    const journalType = String(journalData?.journaltype ?? '').trim().toUpperCase();
 
             postConsoleAndNotification(MODULE.NAME, "createJournalEntry journalData", journalData, true, false);
 
@@ -57,6 +58,10 @@ export async function createJournalEntry(journalData) {
                 parent: null,
             });
         }
+    }
+
+    if (journalType === "LOCATION") {
+        return await createLocationJournalEntry(journalData, folder);
     }
 
     // Build the encounter data as appropriate.
@@ -405,6 +410,65 @@ export async function createJournalEntry(journalData) {
             folder: folder ? folder.id : undefined,
         });
     }
+}
+
+async function createLocationJournalEntry(journalData, folder) {
+    const normalize = (value) => {
+        if (value == null) return '';
+        const out = String(value).trim();
+        if (!out) return '';
+        if (out.toLowerCase() === 'none') return '';
+        return out;
+    };
+
+    const strTitle = toSentenceCase(
+        normalize(journalData.title)
+        || normalize(journalData.scenetitle)
+        || normalize(journalData.scenelocation)
+        || 'Unnamed Location'
+    );
+
+    const template = await getCachedTemplate(BLACKSMITH.JOURNAL_LOCATION_TEMPLATE);
+    const CARDDATA = {
+        strTitle,
+        strLocationImage: normalize(journalData.locationimage) || normalize(journalData.image),
+        strIntroduction: normalize(journalData.introduction),
+        strGeography: normalize(journalData.geography),
+        strGovernment: normalize(journalData.government),
+        strTrade: normalize(journalData.trade),
+        strCulture: normalize(journalData.culture),
+        strReligion: normalize(journalData.religion),
+        strHistory: normalize(journalData.history),
+        strNotableLocations: normalize(journalData.notablelocations)
+    };
+
+    playSound(window.COFFEEPUB?.SOUNDEFFECTBOOK02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+    const compiledHtml = template(CARDDATA);
+    const pageData = {
+        name: strTitle,
+        type: "text",
+        text: {
+            content: compiledHtml,
+            format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
+        }
+    };
+
+    const existingEntry = game.journal.find((entry) => entry.name === strTitle && entry.folder?.id === folder?.id);
+    if (existingEntry) {
+        const existingPage = existingEntry.pages.find((page) => page.name === strTitle);
+        if (existingPage) {
+            await existingPage.update(pageData);
+        } else {
+            await existingEntry.createEmbeddedDocuments("JournalEntryPage", [pageData]);
+        }
+        return;
+    }
+
+    await JournalEntry.create({
+        name: strTitle,
+        pages: [pageData],
+        folder: folder ? folder.id : undefined
+    });
 }
 
 

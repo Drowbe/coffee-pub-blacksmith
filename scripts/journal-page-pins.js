@@ -39,6 +39,7 @@ export class JournalPagePins {
     static PIN_TYPE = 'journal-page';
     static BUTTON_CLASS = 'journal-page-pin-button';
     static PLACEMENT_CLASS = 'journal-page-pin-placement-mode';
+    static PAGE_IMAGE_OPTION = '__journal-page-image__';
     static _cleanupPlacement = null;
 
     static init() {
@@ -126,6 +127,17 @@ export class JournalPagePins {
     static _getPagePinLabel(page) {
         const label = String(page?.name ?? '').trim();
         return label || 'Journal Page';
+    }
+
+    static _getFirstImageFromPage(page) {
+        if (!page) return '';
+        if (page.type === 'image' && typeof page.src === 'string' && page.src.trim()) {
+            return page.src.trim();
+        }
+        const html = page?.text?.content;
+        if (typeof html !== 'string' || !html.trim()) return '';
+        const match = html.match(/<img[^>]*src=["']([^"']+)["']/i);
+        return (match?.[1] || '').trim();
     }
 
     /**
@@ -334,6 +346,13 @@ export class JournalPagePins {
                         ui.notifications.warn('Could not determine which page to pin. Switch to the page you want and try again.');
                         return;
                     }
+                    if (placementIcon === this.PAGE_IMAGE_OPTION) {
+                        const pageImage = this._getFirstImageFromPage(page);
+                        if (!pageImage) {
+                            ui.notifications.warn('No image found on this page. Add an image or choose an icon.');
+                            return;
+                        }
+                    }
                     this._beginPlacement(page, { placementIcon });
                 });
             } catch (err) {
@@ -479,6 +498,9 @@ export class JournalPagePins {
             || (clientDefault && clientDefault.allowDuplicatePins === true);
 
         const placementIcon = opts?.placementIcon || null;
+        const resolvedPlacementImage = placementIcon === this.PAGE_IMAGE_OPTION
+            ? this._getFirstImageFromPage(page)
+            : placementIcon;
 
         if (pin && allowDuplicates) {
             // Allow duplicate pins: create a new pin for this placement instead of reusing
@@ -496,7 +518,7 @@ export class JournalPagePins {
                 allowDuplicatePins: true,
                 ...JOURNAL_PIN_DEFAULTS
             };
-            if (placementIcon) base.image = placementIcon;
+            if (resolvedPlacementImage) base.image = resolvedPlacementImage;
             const pinData = (clientDefault && typeof clientDefault === 'object')
                 ? {
                     ...base,
@@ -509,7 +531,7 @@ export class JournalPagePins {
                     allowDuplicatePins: true
                 }
                 : base;
-            if (placementIcon) pinData.image = placementIcon;
+            if (resolvedPlacementImage) pinData.image = resolvedPlacementImage;
             pin = await pins.create(pinData);
             pinId = pin.id;
             // Do not set page flag — page keeps pointing to first pin; this is a second instance
@@ -531,7 +553,7 @@ export class JournalPagePins {
                 },
                 ...JOURNAL_PIN_DEFAULTS
             };
-            if (placementIcon) base.image = placementIcon;
+            if (resolvedPlacementImage) base.image = resolvedPlacementImage;
             const pinData = (clientDefault && typeof clientDefault === 'object')
                 ? {
                     ...base,
@@ -543,15 +565,22 @@ export class JournalPagePins {
                     config: base.config
                 }
                 : base;
-            if (placementIcon) pinData.image = placementIcon;
+            if (resolvedPlacementImage) pinData.image = resolvedPlacementImage;
             pin = await pins.create(pinData);
             pinId = pin.id;
             await page.setFlag(MODULE.ID, 'pinId', pinId);
         } else {
             // Keep existing linked pins aligned with the current page title.
             const label = this._getPagePinLabel(page);
+            const patch = {};
             if (pin.text !== label) {
-                pin = await pins.update(pin.id, { text: label }) || pin;
+                patch.text = label;
+            }
+            if (resolvedPlacementImage && pin.image !== resolvedPlacementImage) {
+                patch.image = resolvedPlacementImage;
+            }
+            if (Object.keys(patch).length > 0) {
+                pin = await pins.update(pin.id, patch) || pin;
             }
         }
         const sceneId = typeof pins.findScene === 'function' ? pins.findScene(pinId) : null;

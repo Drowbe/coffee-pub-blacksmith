@@ -2133,6 +2133,7 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
         const narrativeTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-narratives.txt')).text();
         const injuryTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-injuries.txt')).text();
         const encounterTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-encounter.txt')).text();
+        const locationTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-location.txt')).text();
 
         // Build dialog content with template, file select, and paste textbox
         const dialogContent = `
@@ -2143,6 +2144,7 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
                     <option value="narrative">Narrative</option>
                     <option value="encounter">Encounter</option>
                     <option value="injury">Injury</option>
+                    <option value="location">Location</option>
                 </select>
                 <button id="copy-template-btn" type="button" class="file-picker-button"><i class="fa-solid fa-clipboard"></i> Copy to Clipboard</button>
             </div>
@@ -2195,6 +2197,7 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
                             // works for either NARRATION or ENCOUNTER
                             case "NARRATIVE":
                             case "ENCOUNTER":
+                            case "LOCATION":
                                     await createJournalEntry(journalData);
                                 break;
                             case "INJURY":
@@ -2245,6 +2248,8 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
                 } else if (type === "encounter") {
                 const templateWithDefaults = await getEncounterTemplateWithDefaults(encounterTemplate);
                 copyToClipboard(templateWithDefaults);
+                } else if (type === "location") {
+                copyToClipboard(locationTemplate);
                 } else {
                 const templateWithDefaults = await getNarrativeTemplateWithDefaults(narrativeTemplate);
                 copyToClipboard(templateWithDefaults);

@@ -886,7 +886,8 @@ export class PinConfigWindow extends Application {
                             dropShadow: configData.pinDropShadow,
                             ...configData.pinTextConfig,
                             allowDuplicatePins: !!allowDuplicateInput?.checked,
-                            eventAnimations: pinUpdateData.eventAnimations
+                            eventAnimations: pinUpdateData.eventAnimations,
+                            ...(pinUpdateData.ownership ? { ownership: foundry.utils.deepClone(pinUpdateData.ownership) } : {})
                         };
                         const typeKey = this.pinType || 'default';
                         const compoundKey = `${this.moduleId}|${typeKey}`;

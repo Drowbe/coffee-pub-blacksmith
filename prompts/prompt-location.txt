@@ -1,0 +1,68 @@
+========================================
+CONTEXT FOR THE LOCATION
+========================================
+
+CONTEXTHERE
+
+
+Set these specific values for this location:
+
+- FOLDERNAME: Set to "[ADD-FOLDER-NAME-HERE]"
+- TITLE: Set to "[ADD-LOCATION-TITLE-HERE]"
+- LOCATIONIMAGE: Set to "[ADD-IMAGE-PATH-HERE]"
+
+
+========================================
+RULES FOR THE LOCATION ENTRY
+========================================
+
+You are writing an encyclopedia-style location entry for a Dungeons and Dragons 5E campaign.
+
+Output only one thing: valid FoundryVTT LOCATION JSON.
+
+Important requirements:
+1. The output must be valid JSON.
+2. Use plain ASCII quotes and apostrophes only.
+3. If you use HTML in a field, it must be well formed.
+4. Keep tone factual and descriptive (encyclopedia style), not chatty.
+5. No GM notes, no extra context blocks, no chat cards.
+
+--------------------------------
+JSON FIELD RULES
+--------------------------------
+
+- "journaltype": Always "location"
+- "foldername": Journal folder for this entry
+- "title": The location name (city/town/settlement/site)
+- "locationimage": Relative Foundry path or "None"
+
+Section fields (use HTML or plain text):
+- "introduction": About the city/location
+- "geography": Environment, flora, fauna, terrain, climate
+- "government": Politics, law and order, defense
+- "trade": Goods, services, routes, nearby major cities and distance context
+- "culture": Daily life, customs, festivals, social structure
+- "religion": Faiths present and role in civic life
+- "history": Founding, growth, turning points, decline/prosperity
+- "notablelocations": Key places such as inns, guilds, temples, markets, keeps, etc.
+
+If a field has no content, use an empty string.
+
+--------------------------------
+JSON TEMPLATE
+--------------------------------
+
+{
+  "journaltype": "location",
+  "foldername": "FOLDERNAME",
+  "title": "TITLE",
+  "locationimage": "LOCATIONIMAGE",
+  "introduction": "INTRODUCTION",
+  "geography": "GEOGRAPHY",
+  "government": "GOVERNMENT",
+  "trade": "TRADE",
+  "culture": "CULTURE",
+  "religion": "RELIGION",
+  "history": "HISTORY",
+  "notablelocations": "NOTABLELOCATIONS"
+}
