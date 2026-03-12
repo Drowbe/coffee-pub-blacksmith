@@ -441,6 +441,10 @@ class PinDOMElement {
         try {
             // Use unified calculation function
             const { left, top, width, height, iconSizeScreen, screen, scale } = this._calculatePinPosition(pinElement, pinData);
+            const shape = pinData.shape || 'circle';
+            const baseStrokeWidth = typeof pinData.style?.strokeWidth === 'number' ? pinData.style.strokeWidth : 2;
+            const scaledStrokeWidth = baseStrokeWidth * scale;
+            const strokeColor = pinData.style?.stroke || '#ffffff';
             
             // Check if screen coordinates are valid
             if (screen.x === 0 && screen.y === 0 && (pinData.x !== 0 || pinData.y !== 0)) {
@@ -478,17 +482,26 @@ class PinDOMElement {
                     // Image URL - fills 100% of pin container, clipped by pin's border-radius
                     // CSS handles width/height (100%) and background-size: cover
                     iconElement.style.fontSize = '';
-                    // Don't set width/height here - CSS handles it (100% fill)
-                    iconElement.style.borderRadius = ''; // No border radius - pin shape handles clipping
-                    iconElement.style.overflow = ''; // Not needed - parent clips
+                    // Prevent clipping artifacts: image radius should match inner border radius.
+                    if (shape === 'circle') {
+                        iconElement.style.borderRadius = '50%';
+                    } else if (shape === 'square') {
+                        const squareRadiusPercentRaw = typeof document !== 'undefined'
+                            ? getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-pin-square-border-radius').trim()
+                            : '';
+                        const squareRadiusPercent = Number.parseFloat(squareRadiusPercentRaw);
+                        const pct = Number.isFinite(squareRadiusPercent) ? squareRadiusPercent / 100 : 0.15;
+                        const outerRadiusPx = Math.min(width, height) * pct;
+                        const innerRadiusPx = Math.max(0, outerRadiusPx - scaledStrokeWidth);
+                        iconElement.style.borderRadius = `${innerRadiusPx}px`;
+                    } else {
+                        iconElement.style.borderRadius = '0';
+                    }
+                    iconElement.style.overflow = 'hidden';
                 }
             }
             
             // Update border width to scale with zoom
-            const baseStrokeWidth = typeof pinData.style?.strokeWidth === 'number' ? pinData.style.strokeWidth : 2;
-            const scaledStrokeWidth = baseStrokeWidth * scale;
-            const strokeColor = pinData.style?.stroke || '#ffffff';
-            const shape = pinData.shape || 'circle';
             if (shape !== 'none') {
                 pinElement.style.border = `${scaledStrokeWidth}px solid ${strokeColor}`;
             }
