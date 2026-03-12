@@ -136,7 +136,21 @@ class MenuBar {
         
         // Register setting change hook to refresh menubar when party leader changes
         this._registerLeaderChangeHook();
-        
+
+        // When the canvas becomes ready (including after scene switch), refresh party bar so reputation reflects the new scene
+        HookManager.registerHook({
+            name: 'canvasReady',
+            description: 'MenuBar: Refresh party bar when scene changes so reputation bar updates',
+            context: 'menubar-party-bar-scene-change',
+            priority: 3,
+            callback: () => {
+                if (this.secondaryBar?.isOpen && this.secondaryBar?.type === 'party') {
+                    this._refreshPartyBarInfo();
+                    this.renderMenubar(true);
+                }
+            }
+        });
+
         // Encounter bar refresh: encounter-toolbar.js calls api.updateSecondaryBarItemInfo directly when tokens change
     }
 

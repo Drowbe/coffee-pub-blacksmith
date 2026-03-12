@@ -212,7 +212,7 @@
 }
 
 .blacksmith-card .section-description {
-    font-style: italic;
+    font-style: normal;
     color: var(--color-text-dark-secondary);
     margin: 4px 0;
     padding: 4px 8px;

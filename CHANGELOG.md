@@ -6,7 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [13.5.3]
+## [13.5.3] - 2026-03-03 - BALANCEBAR, REPUTATION & CHAT CARDS
+
+### Added
+
+- **Balancebar secondary bar item (API)**: New item kind `'balancebar'` for default secondary bars. Range -100 to +100 with origin at center; a **marker** (circle) indicates the value. Required: `width`, `borderColor`, `barColorLeft`, `barColorRight`, `markerColor`. Optional: `percentProgress` (default 0), `title`, `icon`, `leftLabel`, `rightLabel` (inside bar), `leftIcon`, `rightIcon` (outside bar), `height`, `onClick`, `contextMenuItems`. Update via `updateSecondaryBarItemInfo(barTypeId, itemId, { percentProgress, leftLabel, rightLabel, ... })`. Documented in `documentation/api-menubar.md`.
+- **Display-only bar callbacks**: Progressbar and balancebar (and info) items support optional `onClick` for left-click and `contextMenuItems` (array or function) for right-click context menu. Secondary bar context menu handler extended so items with `contextMenuItems` show the menu; click handler invokes `onClick` for any item that has it (switch/toggle state only for buttons).
+- **Manager-reputation.js**: Scene-flag party reputation (`getPartyReputation(scene)`, `setPartyReputation(value, scene)`), load of `resources/reputation.json` for scale (label, description per band), `getScaleEntry(value)`, `registerPartyBarItem(api)`, `refreshPartyBarReputation(api)`. **Current Reputation** and **New Reputation** chat cards posted via chat card API (templates `cards-reputation-current.hbs`, `cards-reputation-new.hbs`) with scene name and scale data from JSON. Party bar Reputation balancebar registered from manager; right-click menu: Send Current Reputation, Increase by 5/1, Reset to 0, Decrease by 1/5 (each change posts New Reputation card).
+- **Reputation API**: On `module.api`: `getPartyReputation`, `setPartyReputation`, `getReputationScaleEntry`, `postCurrentReputationCard`, `postNewReputationCard`. Documented in `documentation/api-menubar.md` (§ Reputation API).
+
+### Changed
+
+- **Progressbar icons**: Left/right icons (`leftIcon`, `rightIcon`) are now rendered **outside** the bar (siblings of the bar div), matching balancebar; CSS added for `.secondary-bar-item-progressbar-icon-outside-left` / `-outside-right`.
+- **Balancebar icons**: Corrected placement so `leftIcon` appears on the left and `rightIcon` on the right (outside the bar).
 
 
 ## [13.5.2] - 2026-03-03 - PARTY BAR & PROGRESSBAR
