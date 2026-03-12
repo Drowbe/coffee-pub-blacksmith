@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Progressbar icons**: Left/right icons (`leftIcon`, `rightIcon`) are now rendered **outside** the bar (siblings of the bar div), matching balancebar; CSS added for `.secondary-bar-item-progressbar-icon-outside-left` / `-outside-right`.
 - **Balancebar icons**: Corrected placement so `leftIcon` appears on the left and `rightIcon` on the right (outside the bar).
+- **Reputation context menu**: Party (non-GM) users only see **Send Current Reputation** in the reputation balancebar right-click menu; GMs see all options (send plus increase/decrease/reset). Tooltip updated to "Right-click for options."
+- **Menubar on scene change (canvasReady)**: When the canvas becomes ready (including after the GM loads a scene), the menubar is always re-rendered so tool visibility reflects the current scene (e.g. combat bar button shows when the scene has active combat). If the party bar is open, party bar info (reputation, health) is refreshed. If the combat secondary bar is open but the new scene has no active combat, the combat bar is closed automatically.
 
 
 ## [13.5.2] - 2026-03-03 - PARTY BAR & PROGRESSBAR

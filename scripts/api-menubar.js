@@ -19,6 +19,7 @@ import { PartyManager } from './manager-party.js';
 import { ReputationManager } from './manager-reputation.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { PinManager } from './manager-pins.js';
+import { CombatBarManager } from './manager-combatbar.js';
 
 class MenuBar {
     static ID = 'menubar';
@@ -137,17 +138,24 @@ class MenuBar {
         // Register setting change hook to refresh menubar when party leader changes
         this._registerLeaderChangeHook();
 
-        // When the canvas becomes ready (including after scene switch), refresh party bar so reputation reflects the new scene
+        // When the canvas becomes ready (including after scene switch), refresh menubar so tool visibility
+        // (e.g. combat bar when combat is active) and party bar data (reputation, health) reflect the new scene.
+        // If the combat bar is open but the new scene has no active combat, close the combat bar.
         HookManager.registerHook({
             name: 'canvasReady',
-            description: 'MenuBar: Refresh party bar when scene changes so reputation bar updates',
+            description: 'MenuBar: Refresh menubar when scene changes so combat bar and party bar update',
             context: 'menubar-party-bar-scene-change',
             priority: 3,
             callback: () => {
+                if (this.secondaryBar?.isOpen && this.secondaryBar?.type === 'combat') {
+                    const activeCombat = game.combats?.active;
+                    const hasCombat = activeCombat != null && activeCombat.combatants?.size > 0;
+                    if (!hasCombat) CombatBarManager.closeCombatBar(this);
+                }
                 if (this.secondaryBar?.isOpen && this.secondaryBar?.type === 'party') {
                     this._refreshPartyBarInfo();
-                    this.renderMenubar(true);
                 }
+                this.renderMenubar(true);
             }
         });
 
