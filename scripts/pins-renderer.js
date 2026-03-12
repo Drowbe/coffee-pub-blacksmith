@@ -936,6 +936,7 @@ class PinDOMElement {
         const userId = game.user?.id || '';
         const canEdit = PinManager._canEdit(pinData, userId);
         const canDelete = canEdit;
+        const isHiddenByVisibilityToggle = PinRenderer._isHiddenFromPlayersByVisibility(pinData);
         
         const moduleItems = [];
         const coreItems = [];
@@ -950,6 +951,45 @@ class PinDOMElement {
                 description: item.description,
                 callback: item.callback,
                 submenu: item.submenu || null
+            });
+        }
+
+        if (game.user?.isGM) {
+            coreItems.push({
+                name: 'Visibility',
+                icon: '<i class="fa-solid fa-eye"></i>',
+                submenu: [
+                    {
+                        name: 'Visible',
+                        icon: '<i class="fa-solid fa-eye"></i>',
+                        callback: async () => {
+                            try {
+                                const nextConfig = {
+                                    ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
+                                    blacksmithVisibility: 'visible'
+                                };
+                                await PinManager.update(pinData.id, { config: nextConfig });
+                            } catch (err) {
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin visibility (visible)', err?.message || err, false, true);
+                            }
+                        }
+                    },
+                    {
+                        name: 'Not Visible',
+                        icon: '<i class="fa-solid fa-eye-slash"></i>',
+                        callback: async () => {
+                            try {
+                                const nextConfig = {
+                                    ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
+                                    blacksmithVisibility: 'hidden'
+                                };
+                                await PinManager.update(pinData.id, { config: nextConfig });
+                            } catch (err) {
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin visibility (hidden)', err?.message || err, false, true);
+                            }
+                        }
+                    }
+                ]
             });
         }
         
@@ -1841,7 +1881,7 @@ export class PinRenderer {
                 const userId = game.user?.id || '';
                 const pinData = PinManager.get(pinId);
                 
-                if (!pinData || !PinManager._canView(pinData, userId)) {
+                if (!pinData || !this._canUserSeePin(pinData, userId, PinManager)) {
                     // User cannot see this pin, ignore the broadcast
                     return;
                 }
@@ -1865,7 +1905,7 @@ export class PinRenderer {
                     const userId = game.user?.id || '';
                     const pinData = PinManager.get(pinId);
                     
-                    if (!pinData || !PinManager._canView(pinData, userId)) {
+                    if (!pinData || !this._canUserSeePin(pinData, userId, PinManager)) {
                         // User cannot see this pin, ignore the broadcast
                         return;
                     }
@@ -1925,7 +1965,7 @@ export class PinRenderer {
             // Filter pins based on visibility permissions
             const { PinManager } = await import('./manager-pins.js');
             const userId = game.user?.id || '';
-            const visiblePins = pins.filter(pin => PinManager._canView(pin, userId));
+            const visiblePins = pins.filter(pin => this._canUserSeePin(pin, userId, PinManager));
 
             for (const pinData of visiblePins) {
                 await this._addPin(pinData);
@@ -1967,7 +2007,7 @@ export class PinRenderer {
         const { PinManager } = await import('./manager-pins.js');
         const userId = game.user?.id || '';
         
-        if (PinManager._canView(pinData, userId)) {
+        if (this._canUserSeePin(pinData, userId, PinManager)) {
             // User can see the pin - create or update it
             PinDOMElement.createOrUpdatePin(pinData.id, pinData);
             await this._applyVisibilityForPin(pinData);
@@ -1984,18 +2024,42 @@ export class PinRenderer {
         if (!pinElement) return;
         const { PinManager } = await import('./manager-pins.js');
         const hiddenByFilter = PinManager._isHiddenByFilter(pinData);
+        const hiddenByVisibilityToggle = this._isHiddenFromPlayersByVisibility(pinData);
         if (hiddenByFilter) {
             pinElement.dataset.hiddenByFilter = 'true';
             pinElement.style.display = 'none';
         } else {
             delete pinElement.dataset.hiddenByFilter;
-            pinElement.style.display = '';
+            if (!game.user?.isGM && hiddenByVisibilityToggle) {
+                pinElement.style.display = 'none';
+            } else {
+                pinElement.style.display = '';
+            }
         }
-        if (game.user?.isGM && PinManager._isHiddenFromPlayers(pinData)) {
+
+        const baseAlpha = typeof pinData?.style?.alpha === 'number' ? pinData.style.alpha : 1;
+        if (game.user?.isGM && hiddenByVisibilityToggle) {
             pinElement.dataset.gmHidden = 'true';
+            pinElement.style.opacity = String(Math.max(0, Math.min(1, baseAlpha * 0.5)));
         } else {
             delete pinElement.dataset.gmHidden;
+            pinElement.style.opacity = String(baseAlpha);
         }
+    }
+
+    static _getVisibilityState(pinData) {
+        const raw = String(pinData?.config?.blacksmithVisibility || '').trim().toLowerCase();
+        return raw === 'hidden' ? 'hidden' : 'visible';
+    }
+
+    static _isHiddenFromPlayersByVisibility(pinData) {
+        return this._getVisibilityState(pinData) === 'hidden';
+    }
+
+    static _canUserSeePin(pinData, userId, PinManager) {
+        if (!pinData || !PinManager?._canView(pinData, userId)) return false;
+        if (game.user?.isGM) return true;
+        return !this._isHiddenFromPlayersByVisibility(pinData);
     }
 
     static async applyVisibilityFilters() {
@@ -2210,7 +2274,7 @@ export class PinRenderer {
             const userId = game.user?.id || '';
             const pinData = PinManager.get(pinId);
             
-            if (!pinData || !PinManager._canView(pinData, userId)) {
+            if (!pinData || !this._canUserSeePin(pinData, userId, PinManager)) {
                 console.warn(`BLACKSMITH | PINS Cannot broadcast ping for pin ${pinId}: user cannot view pin`);
             } else {
                 const { SocketManager } = await import('./manager-sockets.js');
