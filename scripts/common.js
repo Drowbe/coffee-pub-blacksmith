@@ -427,12 +427,60 @@ async function createLocationJournalEntry(journalData, folder) {
         || normalize(journalData.scenelocation)
         || 'Unnamed Location'
     );
+    const strJournalName = toSentenceCase(
+        normalize(journalData.journalname)
+        || 'Locations'
+    );
+    let targetFolder = folder;
+    if (!targetFolder) {
+        const defaultFolderName = 'Libraries';
+        targetFolder = game.folders.find((x) => x.name === defaultFolderName && x.type === "JournalEntry");
+        if (!targetFolder) {
+            targetFolder = await Folder.create({
+                name: defaultFolderName,
+                type: "JournalEntry",
+                parent: null
+            });
+        }
+    }
+    const strLocationImage = normalize(journalData.locationimage) || normalize(journalData.image);
+    const formatFactsAsList = (value) => {
+        const out = normalize(value);
+        if (!out) return '';
+        if (/<\s*(ul|ol)\b/i.test(out)) return out;
+        if (/<\s*li\b/i.test(out)) return `<ul>${out}</ul>`;
+
+        const escapeHtml = (s) => String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        let items = out
+            .split(/\r?\n+/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+        if (items.length <= 1) {
+            items = out
+                .split(/\s*;\s*/)
+                .map((s) => s.trim())
+                .filter(Boolean);
+        }
+        if (items.length <= 1) {
+            items = [out];
+        }
+        return `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+    };
 
     const template = await getCachedTemplate(BLACKSMITH.JOURNAL_LOCATION_TEMPLATE);
     const CARDDATA = {
         strTitle,
-        strLocationImage: normalize(journalData.locationimage) || normalize(journalData.image),
+        strLocationImage,
         strIntroduction: normalize(journalData.introduction),
+        strCardTitle: strTitle,
+        strCardImageTitle: normalize(journalData.cardimagetitle) || normalize(journalData.imagetitle),
+        strCardImage: strLocationImage,
+        strCardDescriptionPrimary: normalize(journalData.carddescriptionprimary) || normalize(journalData.cardintro),
+        strCardDescriptionSecondary: formatFactsAsList(normalize(journalData.carddescriptionsecondary) || normalize(journalData.cardfacts)),
         strGeography: normalize(journalData.geography),
         strGovernment: normalize(journalData.government),
         strTrade: normalize(journalData.trade),
@@ -453,7 +501,7 @@ async function createLocationJournalEntry(journalData, folder) {
         }
     };
 
-    const existingEntry = game.journal.find((entry) => entry.name === strTitle && entry.folder?.id === folder?.id);
+    const existingEntry = game.journal.find((entry) => entry.name === strJournalName && entry.folder?.id === targetFolder?.id);
     if (existingEntry) {
         const existingPage = existingEntry.pages.find((page) => page.name === strTitle);
         if (existingPage) {
@@ -465,9 +513,9 @@ async function createLocationJournalEntry(journalData, folder) {
     }
 
     await JournalEntry.create({
-        name: strTitle,
+        name: strJournalName,
         pages: [pageData],
-        folder: folder ? folder.id : undefined
+        folder: targetFolder ? targetFolder.id : undefined
     });
 }
 

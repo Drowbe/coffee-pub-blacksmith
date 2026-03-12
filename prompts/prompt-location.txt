@@ -7,10 +7,10 @@ CONTEXTHERE
 
 Set these specific values for this location:
 
-- FOLDERNAME: Set to "[ADD-FOLDER-NAME-HERE]"
-- TITLE: Set to "[ADD-LOCATION-TITLE-HERE]"
-- LOCATIONIMAGE: Set to "[ADD-IMAGE-PATH-HERE]"
-- The campaign is called "[ADD-CAMPAIGN-NAME-HERE]"
+FOLDERNAME: 
+JOURNALNAME: 
+TITLE: 
+LOCATIONIMAGE: 
 
 ========================================
 RULES FOR THE LOCATION ENTRY
@@ -21,16 +21,23 @@ You are writing an encyclopedia-style location entry for a Dungeons and Dragons 
 Important requirements:
 1. The output must be valid JSON.
 2. Use plain ASCII quotes and apostrophes only.
-3. If you use HTML in a field, it must be well formed.
+3. If you use HTML in a field, it must be well-formed.
 4. Keep tone factual and descriptive (encyclopedia style), not chatty.
-5. No GM notes, no extra context blocks, no chat cards.
+5. No GM notes and no extra context blocks.
+6. Output the JSON inside a fenced code block using the language tag `json`.
 
 You will generate two outputs based on the same item concept:
 
 1. A valid FoundryVTT LOCCATION JSON block that I can copy and paste directly into Foundry (formatted as proper JSON).
-2. A LOCATION IMAGE webp image of the scene, person, or object. Do not describe the image, generate it.
+2. A LOCATION IMAGE webp image represetnative of the location. Do not describe the image, generate it.
 
 IMPORTANT Always generate the JSON first. Do not generate the image until you ask me if I want you to generate the image.
+
+When outputting the JSON, use this exact wrapper format:
+
+```json
+{ ... }
+```
 
 ========================================
 (1) NARRATIVE JSON
@@ -42,8 +49,18 @@ JSON FIELD RULES
 
 - "journaltype": Always "location"
 - "foldername": Journal folder for this entry
+- "journalname": Journal entry name (container)
 - "title": The location name (city/town/settlement/site)
 - "locationimage": Relative Foundry path or "None"
+
+Location card fields:
+- "cardimagetitle": A specific title for the image (e.g., "Daggerfall Docks")
+- "carddescriptionprimary": 2-3 sentences about the location; this appears above the image
+- "carddescriptionsecondary": 3-5 facts about the location; use an HTML list (`<ul><li>...</li></ul>`) and place it below the image
+
+Card behavior rules:
+- Card title is always the same as "title" (location name)
+- Card image is always the same as "locationimage"
 
 Section fields (use HTML or plain text):
 - "introduction": About the city/location
@@ -56,6 +73,10 @@ Section fields (use HTML or plain text):
 - "notablelocations": Key places such as inns, guilds, temples, markets, keeps, etc.
 
 If a field has no content, use an empty string.
+Defaults used by importer when omitted:
+- foldername -> "Libraries"
+- journalname -> "Locations"
+- locationimage -> "modules/burden-of-knowledge/assets/images/illustrations/common-general/common-landscape-forest.webp"
 
 --------------------------------
 JSON TEMPLATE
@@ -64,8 +85,12 @@ JSON TEMPLATE
 {
   "journaltype": "location",
   "foldername": "FOLDERNAME",
+  "journalname": "JOURNALNAME",
   "title": "TITLE",
   "locationimage": "LOCATIONIMAGE",
+  "cardimagetitle": "CARDIMAGETITLE",
+  "carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
+  "carddescriptionsecondary": "CARDDESCRIPTIONSECONDARY",
   "introduction": "INTRODUCTION",
   "geography": "GEOGRAPHY",
   "government": "GOVERNMENT",

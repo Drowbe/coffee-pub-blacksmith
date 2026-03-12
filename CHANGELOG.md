@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.5.4] - 2026-03-12 - PIN VISIBILITY, JOURNAL PINS & LOCATION IMPORT
+
+### Added
+
+- **Pin context menu – GM visibility toggle (independent of ownership)**: Added a GM-only `Visibility` submenu on pin right-click with `Visible` and `Not Visible`. This uses `pin.config.blacksmithVisibility` (not ownership) to control player visibility.
+- **Journal page pin toolbar – image option**: Added a new `Image` icon option that uses the first image found on the selected journal page as the pin image (supports image pages and first `<img>` in text pages). File: `templates/toolbar-pins.hbs`, `scripts/journal-page-pins.js`.
+- **Location journal import type**: Added a new import type `location` to the Journal Import flow, with full prompt/template support:
+  - Template: `templates/journal-location.hbs`
+  - Prompt: `prompts/prompt-location.txt`
+  - Routing and rendering: `scripts/blacksmith.js`, `scripts/common.js`, `scripts/const.js`
+
+### Changed
+
+- **Pin context menu order**: `Visibility` now appears in the core pin menu directly above `Animate`.
+- **Journal page pin label source**: Journal-page pins now use the **page title** (`page.name`) for pin text instead of the parent journal name. Existing reused linked pins are also updated to the current page title when re-pinning.
+- **Journal page pin toolbar layout**: Toolbar icon controls now wrap on smaller journal windows instead of overflowing.
+- **Configure Pin – Use as Default**: Saved pin defaults now include `ownership` (who can access the pin) when "Use as Default" is enabled, so access settings persist in defaults.
+- **Prompt filename correction**: Location prompt file path updated to `prompt-location.txt` (from `.xt` typo) in importer fetch logic.
+
+### Fixed
+
+- **GM pin opacity for Not Visible state**: Pins marked `Not Visible` now remain consistently at 50% opacity for GM (instead of briefly dimming then returning to full opacity) across render/update paths.
+- **Pin config border thickness focus jump**: In Configure Pin, entering Border thickness no longer shifts focus to the border color text input (border wrapper changed from `<label>` to `<div>` in `templates/window-pin-config.hbs`).
+
+
 ## [13.5.3] - 2026-03-03 - BALANCEBAR, REPUTATION & CHAT CARDS
 
 ### Added

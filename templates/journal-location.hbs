@@ -7,6 +7,29 @@
 {{{strIntroduction}}}
 {{/if}}
 
+{{#if (or
+    (and strCardDescriptionPrimary (ne strCardDescriptionPrimary ""))
+    (and strCardImage (ne strCardImage "") (ne strCardImage "null")))}}
+<blockquote>
+    {{#if (and strCardTitle (ne strCardTitle ""))}}
+    <h4>{{strCardTitle}}</h4>
+    {{/if}}
+    {{#if (and strCardDescriptionPrimary (ne strCardDescriptionPrimary ""))}}
+    <p>{{strCardDescriptionPrimary}}</p>
+    {{/if}}
+    {{#if (and strCardImage (ne strCardImage "") (ne strCardImage "null"))}}
+        {{#if (and strCardImageTitle (ne strCardImageTitle ""))}}
+        <h5>{{strCardImageTitle}}</h5>
+        {{/if}}
+        <img src="{{{strCardImage}}}">
+        <hr>
+    {{/if}}
+    {{#if (and strCardDescriptionSecondary (ne strCardDescriptionSecondary ""))}}
+    {{{strCardDescriptionSecondary}}}
+    {{/if}}
+</blockquote>
+{{/if}}
+
 {{#if (and strGeography (ne strGeography ""))}}
 <h2>Geography</h2>
 {{{strGeography}}}
