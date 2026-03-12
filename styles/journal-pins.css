@@ -8,6 +8,8 @@
 }
 
 .journal-page-pins-bar-row {
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     width: 100%;
@@ -22,6 +24,7 @@
 .journal-page-pins-bar-right.toolbar-right {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.5rem;
     padding: 2px 6px 2px 6px;
 }
@@ -29,6 +32,8 @@
 .journal-page-pins-icon-options {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    max-width: 100%;
     gap: 2px;
 }
 
@@ -62,6 +67,10 @@
 }
 
 .journal-page-pins-bar .journal-page-pin-button {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    margin-left: auto;
     padding: 0.25rem 0.5rem;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 4px;
@@ -75,4 +84,13 @@
 .journal-page-pins-bar .journal-page-pin-button:hover {
     background: rgba(185, 84, 61, 1.0);
     color: var(--color-text-light-primary);
+}
+
+@media (max-width: 900px) {
+    .journal-page-pins-bar-left.toolbar-left {
+        width: 100%;
+    }
+    .journal-page-pins-bar .journal-page-pin-button {
+        margin-left: 0;
+    }
 }
