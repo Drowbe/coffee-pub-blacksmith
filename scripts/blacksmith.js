@@ -60,6 +60,7 @@ import { LatencyChecker } from './latency-checker.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
 import { EncounterManager } from './manager-encounter.js';
 import { PartyManager } from './manager-party.js';
+import { ReputationManager } from './manager-reputation.js';
 import { JournalTools } from './journal-tools.js';
 import { JournalPagePins } from './journal-page-pins.js';
 import { CSSEditor } from './window-gmtools.js';
@@ -1091,6 +1092,13 @@ Hooks.once('init', async function() {
         // ✅ Party API (party health summary for progressbars, etc.)
         getPartyHealthSummary: PartyManager.getPartyHealthSummary.bind(PartyManager),
         getPartyActorHp: PartyManager.getActorHp.bind(PartyManager),
+
+        // ✅ Reputation API (scene-scoped party reputation; balancebar in party bar; chat cards)
+        getPartyReputation: ReputationManager.getPartyReputation.bind(ReputationManager),
+        setPartyReputation: ReputationManager.setPartyReputation.bind(ReputationManager),
+        getReputationScaleEntry: ReputationManager.getScaleEntry.bind(ReputationManager),
+        postCurrentReputationCard: ReputationManager.postCurrentReputationCard.bind(ReputationManager),
+        postNewReputationCard: ReputationManager.postNewReputationCard.bind(ReputationManager),
 
         // ✅ Monster deployment API (same as journal encounter toolbar)
         deployMonsters: EncounterToolbar.deployMonsters.bind(EncounterToolbar),

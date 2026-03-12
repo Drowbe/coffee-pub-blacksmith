@@ -1484,7 +1484,7 @@ blacksmith.registerSecondaryBarItem('my-bar', 'hp-bar', {
 blacksmith.updateSecondaryBarItemInfo('my-bar', 'hp-bar', { percentProgress: 65, leftLabel: '85', rightLabel: '130' });
 ```
 
-**Balancebar item** (`kind: 'balancebar'`): A horizontal bar with origin at 0 in the middle; range -100 to +100. Negative values fill to the left from center, positive values fill to the right. Required: `width`, `borderColor`, `barColorLeft`, `barColorRight`, `progressColor`. Optional: `percentProgress` (default 0), `title`, `icon`, `leftLabel`, `rightLabel` (inside the bar), `leftIcon` (outside the bar on the left), `rightIcon` (outside the bar on the right), `height`. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { percentProgress, leftLabel, rightLabel, leftIcon, rightIcon, title, icon, barColorLeft, barColorRight, progressColor, borderColor })`.
+**Balancebar item** (`kind: 'balancebar'`): A horizontal bar with origin at 0 in the middle; range -100 to +100. A **marker** (circle) is positioned at the current value: left of center for negative, right for positive. Required: `width`, `borderColor`, `barColorLeft`, `barColorRight`, `markerColor`. Optional: `percentProgress` (default 0), `title`, `icon`, `leftLabel`, `rightLabel` (inside the bar), `leftIcon` (outside the bar on the left), `rightIcon` (outside the bar on the right), `height`. Optional callbacks: `onClick(event)` for left-click; `contextMenuItems` (array or `(itemId, item) => array` of `{ name, icon, onClick }`) for right-click context menu. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { percentProgress, leftLabel, rightLabel, leftIcon, rightIcon, title, icon, barColorLeft, barColorRight, markerColor, borderColor })`.
 
 ```javascript
 blacksmith.registerSecondaryBarItem('my-bar', 'approval', {
@@ -1495,12 +1495,16 @@ blacksmith.registerSecondaryBarItem('my-bar', 'approval', {
     borderColor: 'rgba(0,0,0,0.5)',
     barColorLeft: '#4a1c1c',
     barColorRight: '#1c4a1c',
-    progressColor: '#7c2323',
+    markerColor: '#7c2323',
     percentProgress: -25,
     leftLabel: 'Disapprove',
     rightLabel: 'Approve',
     group: 'stats',
-    order: 0
+    order: 0,
+    contextMenuItems: [
+        { name: 'Set to 0', icon: 'fas fa-minus', onClick: async () => { await blacksmith.setPartyReputation(0); } },
+        { name: 'Set to 50', icon: 'fas fa-equals', onClick: async () => { await blacksmith.setPartyReputation(50); } }
+    ]
 });
 blacksmith.updateSecondaryBarItemInfo('my-bar', 'approval', { percentProgress: 50, leftLabel: 'Disapprove', rightLabel: 'Approve' });
 ```
@@ -1577,11 +1581,44 @@ blacksmith.updateSecondaryBarItemInfo('my-encounter', 'difficulty', { value: 'De
 - `updates` (Object, required): At least one of:
   - **Info items**: `value`, `label`, `borderColor`, `buttonColor`, `iconColor`
   - **Progressbar items**: `percentProgress` (number 0–100), `leftLabel`, `rightLabel`, `leftIcon`, `rightIcon`, `title`, `icon`, `barColor`, `progressColor`, `borderColor`
-  - **Balancebar items**: `percentProgress` (number -100 to +100), `leftLabel`, `rightLabel`, `leftIcon`, `rightIcon`, `title`, `icon`, `barColorLeft`, `barColorRight`, `progressColor`, `borderColor`
+  - **Balancebar items**: `percentProgress` (number -100 to +100), `leftLabel`, `rightLabel`, `leftIcon`, `rightIcon`, `title`, `icon`, `barColorLeft`, `barColorRight`, `markerColor`, `borderColor`
 
 **Returns:** `boolean` - Success status
 
 If the bar is currently open, it re-renders so the new value/label is visible immediately.
+
+### Reputation API (party bar)
+
+Party reputation is stored per scene and shown in the party bar’s **Reputation** balancebar (left zone). Right-click the bar to set the current scene’s value, send a current-reputation card, or change reputation by ±1 or ±5 (each change posts a **New Reputation** card). Scale labels and descriptions come from `resources/reputation.json`. The following are exposed on `game.modules.get('coffee-pub-blacksmith').api`:
+
+**getPartyReputation(scene?)**
+- Returns the party reputation for a scene (-100 to +100). Omit `scene` to use the current canvas scene.
+- **Returns:** `number` (0 if no scene or no flag set).
+
+**setPartyReputation(value, scene?)**
+- Sets the party reputation for a scene. GM only. Value is clamped to -100..+100.
+- **Returns:** `Promise<boolean>` — `true` if set, `false` if not GM or no scene.
+
+**getReputationScaleEntry(value)**
+- Returns the scale entry from `reputation.json` for a given value (label, description, effects). Useful for custom UI or macros.
+- **Returns:** `Promise<{ key, label, min, max, description, effects? } | null>`.
+
+**postCurrentReputationCard(api?)**
+- Posts a **Current Reputation** chat card: scene name, current value, and scale label/description from the JSON. Uses the chat card theme API (default theme).
+- **Returns:** `Promise<void>`.
+
+**postNewReputationCard(change, previousValue, newValue, api?)**
+- Posts a **New Reputation** chat card: scene name, change (e.g. +5, -1), previous → new value, and scale label/description. Call after updating reputation (e.g. from the context menu).
+- **Returns:** `Promise<void>`.
+
+```javascript
+const api = game.modules.get('coffee-pub-blacksmith')?.api;
+const current = api.getPartyReputation();
+await api.setPartyReputation(50);
+api.updateSecondaryBarItemInfo('party', 'reputation', { percentProgress: 50 });
+await api.postCurrentReputationCard();
+const scale = await api.getReputationScaleEntry(50);
+```
 
 ### Registering Secondary Bar Toggle Tool
 

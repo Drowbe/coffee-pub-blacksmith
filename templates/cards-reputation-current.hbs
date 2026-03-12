@@ -1,0 +1,15 @@
+<span style="visibility: hidden">coffeepub-hide-header</span>
+<div class="blacksmith-card {{themeClassName}}">
+    <div class="card-header">
+        <i class="fa-solid fa-face-smile"></i> Current Reputation
+    </div>
+    <div class="section-content">
+        <div class="section-header"><i class="fas fa-map"></i> Scene</div>
+        <p><strong>{{sceneName}}</strong></p>
+        <div class="section-header"><i class="fas fa-gauge-high"></i> Reputation</div>
+        <p><strong>{{value}}</strong> — {{scaleLabel}}</p>
+        {{#if scaleDescription}}
+        <p class="section-description">{{scaleDescription}}</p>
+        {{/if}}
+    </div>
+</div>

@@ -850,21 +850,15 @@
 .blacksmith-menubar-secondary .secondary-bar-item-balancebar-right {
     border-radius: 0 4px 4px 0;
 }
-.blacksmith-menubar-secondary .secondary-bar-item-balancebar-fill-left {
+.blacksmith-menubar-secondary .secondary-bar-item-balancebar-marker {
     position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    min-width: 0;
-    transition: width 0.2s ease;
-}
-.blacksmith-menubar-secondary .secondary-bar-item-balancebar-fill-right {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    min-width: 0;
-    transition: width 0.2s ease;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    pointer-events: none;
+    transition: left 0.2s ease;
 }
 .blacksmith-menubar-secondary .secondary-bar-item-balancebar-left-label,
 .blacksmith-menubar-secondary .secondary-bar-item-balancebar-right-label {

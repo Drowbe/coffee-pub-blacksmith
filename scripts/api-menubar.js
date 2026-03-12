@@ -16,6 +16,7 @@ import { deployParty, clearPartyFromCanvas } from './utility-party.js';
 import { getDeploymentPatternName } from './api-tokens.js';
 import { EncounterToolbar } from './encounter-toolbar.js';
 import { PartyManager } from './manager-party.js';
+import { ReputationManager } from './manager-reputation.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { PinManager } from './manager-pins.js';
 
@@ -404,6 +405,7 @@ class MenuBar {
             leftLabel: health.currentDisplay,
             rightLabel: health.maxDisplay
         });
+        ReputationManager.refreshPartyBarReputation(api);
     }
 
     /**
@@ -552,27 +554,7 @@ class MenuBar {
             tooltip: 'Party total HP'
         });
 
-        // Reputation balancebar — left zone (placeholder; will be data-driven later)
-        this.registerSecondaryBarItem('party', 'reputation', {
-            kind: 'balancebar',
-            zone: 'left',
-            title: '',
-            icon: '',
-            width: 300,
-            height: 20,
-            borderColor: 'rgba(0,0,0,0.5)',
-            barColorLeft: 'rgba(143, 46, 46, 0.69)',
-            barColorRight: 'rgba(30, 139, 49, 0.69)',
-            progressColor: 'rgba(230, 150, 3, 0.3)',
-            percentProgress: 27,
-            leftIcon: 'fa-solid fa-face-angry-horns',
-            rightIcon: 'fa-solid fa-face-smile-halo',
-            leftLabel: '',
-            rightLabel: '',
-            group: 'health',
-            order: 1,
-            tooltip: 'Party reputation'
-        });
+        ReputationManager.registerPartyBarItem(game.modules.get(MODULE.ID)?.api);
 
         // Initial refresh of party health progressbar
         this._refreshPartyBarInfo();
@@ -1788,10 +1770,10 @@ class MenuBar {
                     return false;
                 }
             } else if (kind === 'balancebar') {
-                // Balancebar: display-only, -100..+100 from center. Requires width, borderColor, barColorLeft, barColorRight, progressColor; percentProgress defaults to 0
+                // Balancebar: display-only, -100..+100 from center. Requires width, borderColor, barColorLeft, barColorRight, markerColor; percentProgress defaults to 0
                 if (!itemId || !itemData || itemData.width === undefined || itemData.borderColor === undefined ||
-                    itemData.barColorLeft === undefined || itemData.barColorRight === undefined || itemData.progressColor === undefined) {
-                    postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Balancebar item requires width, borderColor, barColorLeft, barColorRight, progressColor",
+                    itemData.barColorLeft === undefined || itemData.barColorRight === undefined || itemData.markerColor === undefined) {
+                    postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Balancebar item requires width, borderColor, barColorLeft, barColorRight, markerColor",
                         { barTypeId, itemId }, false, false);
                     return false;
                 }
@@ -1971,7 +1953,7 @@ class MenuBar {
      * Use this to push dynamic content without re-registering the item.
      * @param {string} barTypeId - The bar type ID
      * @param {string} itemId - The item ID to update (info, progressbar, or balancebar)
-     * @param {Object} updates - New values (omit keys to leave unchanged; pass null to clear). Info: value, label, borderColor, buttonColor, iconColor. Progressbar: percentProgress, leftLabel, rightLabel, leftIcon, rightIcon, title, icon, barColor, progressColor, borderColor. Balancebar: percentProgress (-100..+100), leftLabel, rightLabel, leftIcon, rightIcon, title, icon, barColorLeft, barColorRight, progressColor, borderColor.
+     * @param {Object} updates - New values (omit keys to leave unchanged; pass null to clear). Info: value, label, borderColor, buttonColor, iconColor. Progressbar: percentProgress, leftLabel, rightLabel, leftIcon, rightIcon, title, icon, barColor, progressColor, borderColor. Balancebar: percentProgress (-100..+100), leftLabel, rightLabel, leftIcon, rightIcon, title, icon, barColorLeft, barColorRight, markerColor, borderColor.
      * @returns {boolean} Success status
      */
     static updateSecondaryBarItemInfo(barTypeId, itemId, updates) {
@@ -1983,7 +1965,7 @@ class MenuBar {
                 updates.barColor !== undefined || updates.progressColor !== undefined);
             const hasBalancebarUpdate = updates && (updates.percentProgress !== undefined || updates.leftLabel !== undefined || updates.rightLabel !== undefined ||
                 updates.leftIcon !== undefined || updates.rightIcon !== undefined || updates.title !== undefined || updates.icon !== undefined ||
-                updates.barColorLeft !== undefined || updates.barColorRight !== undefined || updates.progressColor !== undefined || updates.borderColor !== undefined);
+                updates.barColorLeft !== undefined || updates.barColorRight !== undefined || updates.markerColor !== undefined || updates.borderColor !== undefined);
             if (!updates || (!hasInfoUpdate && !hasProgressbarUpdate && !hasBalancebarUpdate)) {
                 return false;
             }
@@ -2008,6 +1990,7 @@ class MenuBar {
             if (updates.progressColor !== undefined) existing.progressColor = updates.progressColor;
             if (updates.barColorLeft !== undefined) existing.barColorLeft = updates.barColorLeft;
             if (updates.barColorRight !== undefined) existing.barColorRight = updates.barColorRight;
+            if (updates.markerColor !== undefined) existing.markerColor = updates.markerColor;
             map.set(itemId, existing);
 
             if (this.secondaryBar.isOpen && this.secondaryBar.type === barTypeId) {
@@ -2546,7 +2529,7 @@ class MenuBar {
                 if (u.icon !== undefined) item.icon = u.icon;
                 if (u.barColorLeft !== undefined) item.barColorLeft = u.barColorLeft;
                 if (u.barColorRight !== undefined) item.barColorRight = u.barColorRight;
-                if (u.progressColor !== undefined) item.progressColor = u.progressColor;
+                if (u.markerColor !== undefined) item.markerColor = u.markerColor;
                 if (u.borderColor !== undefined) item.borderColor = u.borderColor;
             }
             if (item.kind === 'progressbar') {
@@ -2563,8 +2546,7 @@ class MenuBar {
                     ? (typeof item.height === 'number' ? `${item.height}px` : item.height)
                     : 'calc(var(--blacksmith-menubar-secondary-height) * 0.4)';
                 const p = Math.max(-100, Math.min(100, Number(item.percentProgress) || 0));
-                item.balancebarFillLeftPercent = p < 0 ? Math.abs(p) : 0;
-                item.balancebarFillRightPercent = p > 0 ? p : 0;
+                item.balancebarMarkerLeftPercent = 50 + (p / 2);
             }
             itemsByZone[zone].get(groupId).push(item);
         }
@@ -2875,20 +2857,17 @@ class MenuBar {
                             
                             const groupConfig = groups.get(groupId) || { mode: 'default' };
                             
-                            // Handle switch groups: update active state immediately for visual feedback
-                            if (groupConfig.mode === 'switch') {
-                                this.updateSecondaryBarItemActive(barType, itemId, true);
-                            } else if (groupConfig.mode === 'default' && item.toggleable) {
-                                // Toggleable item in default group - handle active state immediately
-                                item.active = !item.active;
-                                // Re-render to update active state
-                                this.renderMenubar(true);
+                            // Handle switch/toggle state only for buttons
+                            if (item.kind === 'button') {
+                                if (groupConfig.mode === 'switch') {
+                                    this.updateSecondaryBarItemActive(barType, itemId, true);
+                                } else if (groupConfig.mode === 'default' && item.toggleable) {
+                                    item.active = !item.active;
+                                    this.renderMenubar(true);
+                                }
                             }
                             
                             try {
-                                // Call onClick - for switch groups, this will update the setting, which triggers settingChange hook
-                                // The settingChange hook will call updateSecondaryBarItemActive() to sync/verify the active state
-                                // But we've already updated it above for immediate visual feedback
                                 item.onClick(event);
                             } catch (error) {
                                 postConsoleAndNotification(MODULE.NAME, `Error executing secondary bar item ${itemId}:`, error, false, false);
@@ -2958,8 +2937,29 @@ class MenuBar {
         // Add the event listener to both menubar and secondary bar
         menubarContainer.addEventListener('click', clickHandler);
 
-        // Right-click (contextmenu) for tools that provide contextMenuItems
+        // Right-click (contextmenu) for tools that provide contextMenuItems, and for secondary bar items
         const contextMenuHandler = (event) => {
+            // Secondary bar item context menu (default template: info, progressbar, balancebar, or button with contextMenuItems)
+            const secondaryBarItemEl = event.target.closest('.secondary-bar-item[data-item-id]');
+            if (secondaryBarItemEl && this.secondaryBar && !this.secondaryBar.hasCustomTemplate) {
+                const itemId = secondaryBarItemEl.getAttribute('data-item-id');
+                const barType = this.secondaryBar.type;
+                if (itemId && barType) {
+                    const items = this.secondaryBarItems.get(barType);
+                    const item = items?.get(itemId);
+                    if (item?.contextMenuItems) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const raw = item.contextMenuItems;
+                        const menuItems = typeof raw === 'function' ? raw(itemId, item) : raw;
+                        if (Array.isArray(menuItems) && menuItems.length > 0) {
+                            this._showMenubarContextMenu(menuItems, event.clientX, event.clientY);
+                        }
+                        return;
+                    }
+                }
+            }
+
             const toolElement = event.target.closest('[data-tool]');
             if (!toolElement) return;
 
@@ -2991,10 +2991,11 @@ class MenuBar {
         this._contextMenuHandlerContainer = menubarContainer;
         menubarContainer.addEventListener('contextmenu', contextMenuHandler);
         
-        // Also attach to secondary bar if it exists
+        // Also attach click and contextmenu to secondary bar when it exists
         const secondaryBar = document.querySelector('.blacksmith-menubar-secondary');
         if (secondaryBar) {
             secondaryBar.addEventListener('click', clickHandler);
+            secondaryBar.addEventListener('contextmenu', contextMenuHandler);
         }
 
         // Note: Right zone tools (leader-section, movement, timer-section) are now handled
