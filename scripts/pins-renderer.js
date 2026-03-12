@@ -10,6 +10,23 @@ import { UIContextMenu } from './ui-context-menu.js';
 
 /** @typedef {import('./manager-pins.js').PinData} PinData */
 
+function _getPinBaseAlpha(pinData) {
+    return typeof pinData?.style?.alpha === 'number' ? pinData.style.alpha : 1;
+}
+
+function _isPinHiddenFromPlayersByVisibility(pinData) {
+    const raw = String(pinData?.config?.blacksmithVisibility || '').trim().toLowerCase();
+    return raw === 'hidden';
+}
+
+function _getPinDisplayOpacity(pinData) {
+    const baseAlpha = _getPinBaseAlpha(pinData);
+    if (game.user?.isGM && _isPinHiddenFromPlayersByVisibility(pinData)) {
+        return Math.max(0, Math.min(1, baseAlpha * 0.5));
+    }
+    return baseAlpha;
+}
+
 /**
  * PinDOMElement - Manages complete pin DOM elements (circle + icon)
  * Pure DOM approach: Single div contains both circle (CSS) and icon (Font Awesome or image)
@@ -208,7 +225,7 @@ class PinDOMElement {
             pinElement.className = 'blacksmith-pin';
             pinElement.dataset.pinId = pinId;
             // Start with correct opacity (will be positioned immediately)
-            pinElement.style.opacity = String(pinData.style?.alpha ?? 1);
+            pinElement.style.opacity = String(_getPinDisplayOpacity(pinData));
             
             // Set up event listeners
             this._setupEventListeners(pinElement, pinData);
@@ -260,7 +277,7 @@ class PinDOMElement {
         // Apply opacity - if color already has alpha (RGBA/HSLA), this multiplies with it
         // Example: rgba(255, 0, 0, 0.5) + opacity: 0.9 = final alpha of 0.45
         // To use RGBA alpha only, set style.alpha to 1.0
-        pinElement.style.opacity = String(alpha);
+        pinElement.style.opacity = String(_getPinDisplayOpacity(pinData));
         
         // Update icon content (base styles in pins.css)
         // Get existing icon element and check current type
@@ -516,8 +533,8 @@ class PinDOMElement {
                 }
             }
             
-            // Update opacity to match style
-            pinElement.style.opacity = String(pinData.style?.alpha ?? 1);
+            // Keep opacity synced with visibility state + style alpha.
+            pinElement.style.opacity = String(_getPinDisplayOpacity(pinData));
         } catch (err) {
             postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | PINS Error updating pin position for ${pinId}`, err?.message || String(err), false, false);
         }
@@ -834,7 +851,7 @@ class PinDOMElement {
             const wasActualDrag = totalDistance > DRAG_THRESHOLD;
             
             if (wasActualDrag) {
-                pinElement.style.opacity = String(pinData.style?.alpha ?? 1);
+                pinElement.style.opacity = String(_getPinDisplayOpacity(pinData));
                 
                 // Use the last dragged position if available, otherwise calculate from mouse event
                 let finalScene;
@@ -867,7 +884,7 @@ class PinDOMElement {
                 // No significant drag occurred - this was a click
                 // Reset opacity if visual drag started
                 if (dragStarted) {
-                    pinElement.style.opacity = String(pinData.style?.alpha ?? 1);
+                    pinElement.style.opacity = String(_getPinDisplayOpacity(pinData));
                 }
                 
                 // Handle click/double-click for editable pins (we're in the drag system)
@@ -954,6 +971,42 @@ class PinDOMElement {
             });
         }
 
+        // Core zone: Ping Pin, Bring Players Here, Animate, Configure Pin, Delete Pin
+        coreItems.push({
+            name: 'Ping Pin',
+            icon: '<i class="fa-solid fa-signal-stream"></i>',
+            callback: async () => {
+                try {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) {
+                        await pinsAPI.ping(pinData.id, { animation: 'ping', loops: 1, broadcast: true });
+                    } else {
+                        console.warn('BLACKSMITH | PINS API not available');
+                    }
+                } catch (err) {
+                    postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error pinging pin', err?.message || err, false, true);
+                }
+            }
+        });
+
+        coreItems.push({
+            name: 'Bring Players Here',
+            icon: '<i class="fa-solid fa-location-crosshairs"></i>',
+            callback: async () => {
+                try {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) {
+                        await pinsAPI.panTo(pinData.id, { broadcast: true, ping: { animation: 'ping', loops: 1 } });
+                    } else {
+                        console.warn('BLACKSMITH | PINS API not available');
+                    }
+                } catch (err) {
+                    console.error('BLACKSMITH | PINS Error bringing players to pin', err);
+                    postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error bringing players to pin', err?.message || err, false, true);
+                }
+            }
+        });
+
         if (game.user?.isGM) {
             coreItems.push({
                 name: 'Visibility',
@@ -992,42 +1045,6 @@ class PinDOMElement {
                 ]
             });
         }
-        
-        // Core zone: Ping Pin, Bring Players Here, Animate, Configure Pin, Delete Pin
-        coreItems.push({
-            name: 'Ping Pin',
-            icon: '<i class="fa-solid fa-signal-stream"></i>',
-            callback: async () => {
-                try {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) {
-                        await pinsAPI.ping(pinData.id, { animation: 'ping', loops: 1, broadcast: true });
-                    } else {
-                        console.warn('BLACKSMITH | PINS API not available');
-                    }
-                } catch (err) {
-                    postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error pinging pin', err?.message || err, false, true);
-                }
-            }
-        });
-
-        coreItems.push({
-            name: 'Bring Players Here',
-            icon: '<i class="fa-solid fa-location-crosshairs"></i>',
-            callback: async () => {
-                try {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) {
-                        await pinsAPI.panTo(pinData.id, { broadcast: true, ping: { animation: 'ping', loops: 1 } });
-                    } else {
-                        console.warn('BLACKSMITH | PINS API not available');
-                    }
-                } catch (err) {
-                    console.error('BLACKSMITH | PINS Error bringing players to pin', err);
-                    postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error bringing players to pin', err?.message || err, false, true);
-                }
-            }
-        });
 
         coreItems.push({
             name: 'Animate',
@@ -2037,14 +2054,12 @@ export class PinRenderer {
             }
         }
 
-        const baseAlpha = typeof pinData?.style?.alpha === 'number' ? pinData.style.alpha : 1;
         if (game.user?.isGM && hiddenByVisibilityToggle) {
             pinElement.dataset.gmHidden = 'true';
-            pinElement.style.opacity = String(Math.max(0, Math.min(1, baseAlpha * 0.5)));
         } else {
             delete pinElement.dataset.gmHidden;
-            pinElement.style.opacity = String(baseAlpha);
         }
+        pinElement.style.opacity = String(_getPinDisplayOpacity(pinData));
     }
 
     static _getVisibilityState(pinData) {
@@ -2053,7 +2068,7 @@ export class PinRenderer {
     }
 
     static _isHiddenFromPlayersByVisibility(pinData) {
-        return this._getVisibilityState(pinData) === 'hidden';
+        return _isPinHiddenFromPlayersByVisibility(pinData);
     }
 
     static _canUserSeePin(pinData, userId, PinManager) {
