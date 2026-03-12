@@ -1589,14 +1589,14 @@ If the bar is currently open, it re-renders so the new value/label is visible im
 
 ### Reputation API (party bar)
 
-Party reputation is stored per scene and shown in the party bar’s **Reputation** balancebar (left zone). Right-click the bar to set the current scene’s value, send a current-reputation card, or change reputation by ±1 or ±5 (each change posts a **New Reputation** card). Scale labels and descriptions come from `resources/reputation.json`. The following are exposed on `game.modules.get('coffee-pub-blacksmith').api`:
+Party reputation is stored in the **world setting** `blacksmithPartyData`, keyed by scene id. Each scene’s data lives under `blacksmithPartyData.scenes[sceneId]` and includes `reputation` (and optionally `uuid`, `title` for display); reputation is a subset of this structure so other party data can be added later. Party reputation is shown in the party bar’s **Reputation** balancebar (left zone). Right-click the bar to set the current scene’s value, send a current-reputation card, or change reputation by ±1 or ±5 (each change posts a **New Reputation** card). Scale labels and descriptions come from `resources/reputation.json`. The following are exposed on `game.modules.get('coffee-pub-blacksmith').api`:
 
 **getPartyReputation(scene?)**
-- Returns the party reputation for a scene (-100 to +100). Omit `scene` to use the current canvas scene.
-- **Returns:** `number` (0 if no scene or no flag set).
+- Returns the party reputation for a scene (-100 to +100). Omit `scene` to use the current canvas scene. Value is read from `game.settings.get(MODULE.ID, 'blacksmithPartyData').scenes[sceneId].reputation`.
+- **Returns:** `number` (0 if no scene or no value stored).
 
 **setPartyReputation(value, scene?)**
-- Sets the party reputation for a scene. GM only. Value is clamped to -100..+100.
+- Sets the party reputation for a scene. GM only. Value is clamped to -100..+100. Updates `blacksmithPartyData.scenes[sceneId]` (reputation, and optionally uuid/title for the scene).
 - **Returns:** `Promise<boolean>` — `true` if set, `false` if not GM or no scene.
 
 **getReputationScaleEntry(value)**

@@ -1,10 +1,10 @@
 // ==================================================================
 // ===== MANAGER-REPUTATION – scene/campaign and party/player reputation
 // ==================================================================
-// Party reputation is stored per scene (scene flag). The party bar
-// balancebar shows the current scene's reputation. Uses resources/reputation.json
-// for scale labels and descriptions. Future: campaign reputation (aggregate of
-// scenes), player-level reputation (party as aggregate of players).
+// Party reputation is stored in world setting blacksmithPartyData, per scene
+// (blacksmithPartyData.scenes[sceneId].reputation). The party bar balancebar
+// shows the current scene's reputation. Uses resources/reputation.json for
+// scale labels and descriptions. Future: campaign reputation, player-level reputation.
 // ==================================================================
 
 import { MODULE } from './const.js';
@@ -12,7 +12,7 @@ import { postConsoleAndNotification } from './api-core.js';
 
 const REPUTATION_MIN = -100;
 const REPUTATION_MAX = 100;
-const FLAG_PARTY_REPUTATION = 'partyReputation';
+const SETTING_PARTY_DATA = 'blacksmithPartyData';
 const REPUTATION_JSON_PATH = `modules/${MODULE.ID}/resources/reputation.json`;
 
 /** @type {{ reputationScale: Array<{ key: string, label: string, min: number, max: number, description: string, effects?: object }> } | null } */
@@ -51,15 +51,18 @@ export class ReputationManager {
     }
 
     /**
-     * Get party reputation for a scene (-100 to +100). Stored on the scene flag.
+     * Get party reputation for a scene (-100 to +100). Stored in world setting blacksmithPartyData.
      * @param {Scene|null} [scene] - Scene to read from; defaults to current canvas scene.
-     * @returns {number} Clamped value, or 0 if no scene / no flag.
+     * @returns {number} Clamped value, or 0 if no scene or no value stored.
      */
     static getPartyReputation(scene = null) {
         const s = scene ?? canvas?.scene;
         if (!s?.id) return 0;
         try {
-            const value = s.getFlag(MODULE.ID, FLAG_PARTY_REPUTATION);
+            const data = game.settings.get(MODULE.ID, SETTING_PARTY_DATA) ?? {};
+            const scenes = data.scenes ?? {};
+            const entry = scenes[s.id];
+            const value = entry?.reputation;
             if (value == null || value === '') return 0;
             const n = Number(value);
             if (Number.isNaN(n)) return 0;
@@ -72,6 +75,7 @@ export class ReputationManager {
 
     /**
      * Set party reputation for a scene. GM only. Clamps to -100..+100.
+     * Stored in world setting blacksmithPartyData (reputation is a subset of per-scene data).
      * @param {number} value - Reputation value.
      * @param {Scene|null} [scene] - Scene to write to; defaults to current canvas scene.
      * @returns {Promise<boolean>} True if set, false if skipped (e.g. not GM or no scene).
@@ -82,7 +86,14 @@ export class ReputationManager {
         if (!s?.id) return false;
         const clamped = Math.max(REPUTATION_MIN, Math.min(REPUTATION_MAX, Math.round(Number(value) || 0)));
         try {
-            await s.setFlag(MODULE.ID, FLAG_PARTY_REPUTATION, clamped);
+            const data = foundry.utils.deepClone(game.settings.get(MODULE.ID, SETTING_PARTY_DATA) ?? { scenes: {} });
+            if (!data.scenes) data.scenes = {};
+            data.scenes[s.id] = {
+                uuid: s.uuid ?? data.scenes[s.id]?.uuid,
+                title: s.name ?? data.scenes[s.id]?.title,
+                reputation: clamped
+            };
+            await game.settings.set(MODULE.ID, SETTING_PARTY_DATA, data);
             return true;
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'ReputationManager: Error setting party reputation', error?.message ?? error, false, true);
@@ -173,8 +184,8 @@ export class ReputationManager {
             width: 300,
             height: 20,
             borderColor: 'rgba(0,0,0,0.5)',
-            barColorLeft: 'rgba(167, 76, 54, 0.8)',
-            barColorRight: 'rgba(26, 62, 30, 0.8)',
+            barColorLeft: 'rgba(110, 25, 3, 0.8)',
+            barColorRight: 'rgba(4, 77, 12, 0.8)',
             markerColor: 'rgba(255, 255, 255, 0.6)',
             percentProgress: this.getPartyReputation(),
             leftIcon: 'fa-solid fa-face-angry-horns',

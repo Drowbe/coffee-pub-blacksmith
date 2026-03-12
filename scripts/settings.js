@@ -928,6 +928,16 @@ export const registerSettings = () => {
 		default: { userId: '', actorId: '' }
 	});
 
+	// -- Party data (reputation and future per-scene/campaign data) - HIDDEN SETTING --
+	game.settings.register(MODULE.ID, 'blacksmithPartyData', {
+		name: 'Blacksmith Party Data',
+		hint: 'Internal storage for party reputation and other party data per scene',
+		scope: 'world',
+		config: false,
+		type: Object,
+		default: { scenes: {} }
+	});
+
 	// --------------------------------------
 	// -- H2: CAMPAIGN SETTINGS
 	// --------------------------------------
