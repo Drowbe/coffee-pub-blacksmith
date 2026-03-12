@@ -123,6 +123,11 @@ export class JournalPagePins {
         }, { moduleId: MODULE.ID });
     }
 
+    static _getPagePinLabel(page) {
+        const label = String(page?.name ?? '').trim();
+        return label || 'Journal Page';
+    }
+
     /**
      * Open the journal and show the given page for the current user only (no broadcast to players).
      * Ensures the page opens in view mode, not edit mode (clicks the sheet's toggle if it opened in edit).
@@ -477,7 +482,7 @@ export class JournalPagePins {
 
         if (pin && allowDuplicates) {
             // Allow duplicate pins: create a new pin for this placement instead of reusing
-            const label = page.parent?.name || page.name || 'Journal Page';
+            const label = this._getPagePinLabel(page);
             const base = {
                 id: crypto.randomUUID(),
                 moduleId: MODULE.ID,
@@ -513,7 +518,7 @@ export class JournalPagePins {
         }
 
         if (!pin) {
-            const label = page.parent?.name || page.name || 'Journal Page';
+            const label = this._getPagePinLabel(page);
             const base = {
                 id: pinId ?? crypto.randomUUID(),
                 moduleId: MODULE.ID,
@@ -542,6 +547,12 @@ export class JournalPagePins {
             pin = await pins.create(pinData);
             pinId = pin.id;
             await page.setFlag(MODULE.ID, 'pinId', pinId);
+        } else {
+            // Keep existing linked pins aligned with the current page title.
+            const label = this._getPagePinLabel(page);
+            if (pin.text !== label) {
+                pin = await pins.update(pin.id, { text: label }) || pin;
+            }
         }
         const sceneId = typeof pins.findScene === 'function' ? pins.findScene(pinId) : null;
         return { pinId, pin, sceneId };
