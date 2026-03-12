@@ -4,12 +4,8 @@
         <i class="fa-solid fa-arrow-trend-up"></i> Reputation Change
     </div>
     <div class="section-content">
-        <div class="section-header"><i class="fas fa-map"></i> {{sceneName}}</div>
-        <p><strong></strong></p>
-        <div class="section-header"><i class="fas fa-arrows-left-right"></i> Change</div>
-        <p><strong>{{change}}</strong> ({{previousValue}} → {{newValue}})</p>
-        <div class="section-header"><i class="fas fa-gauge-high"></i> Standing</div>
-        <p><strong>{{newValue}}</strong> — {{scaleLabel}}</p>
+        <div class="section-header">{{sceneName}}</div>
+        <p>The party has had a <strong>{{change}}</strong> change in their reputation. Their reputation has gone from <strong>{{previousValue}}</strong> to <strong>{{newValue}}</strong> points, making them <strong>{{scaleLabel}}</strong> in this area.</p>
         {{#if scaleDescription}}
         <p class="section-description">{{scaleDescription}}</p>
         {{/if}}

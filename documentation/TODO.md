@@ -77,6 +77,13 @@
 - **Need**: Expose a first-class rolls surface (e.g. `module.api.rolls = { execute: ... }` or small namespace); add `BlacksmithAPI.getRolls()` in `api/blacksmith-api.js` if desired; document in `api-rolls.md` for developers leveraging the roll system.
 - **Priority**: Medium – Improves discoverability and consistency with pins/chatCards/stats APIs
 
+#### Menubar API: Move party tool code out of api-menubar.js
+- **Issue**: Party bar registration, party tools (Deployment Pattern, Deploy Party, Vote, Statistics, Experience, Clear Party), party health progressbar, and party-bar refresh logic live in `api-menubar.js`, making that file a mix of API and experience code.
+- **Status**: PENDING
+- **Location**: `scripts/api-menubar.js` (party tool registration, `_registerPartyTools`, `_refreshPartyBarInfo`, canvasReady hook for party bar), move to a dedicated module (e.g. `scripts/manager-party-bar.js` or similar).
+- **Need**: Move all party-specific registration and refresh logic into a manager that uses the public menubar API (`registerMenubarTool`, `registerSecondaryBarItem`, `updateSecondaryBarItemInfo`, etc.). Keep `api-menubar.js` pure API only (registration surface, render, click/context handlers, no built-in party/encounter/combat content). Invoke the party-bar manager from `blacksmith.js` or a central init path after MenuBar is ready.
+- **Priority**: Medium – Keeps api-menubar.js pure and aligns with reputation/combat bar pattern (managers own experience, API owns surface).
+
 #### Toolbar Phase 4: Testing & Validation (architecture-toolbarmanager)
 - **Issue**: Toolbar Phases 1–3 are done; Phase 4 (testing and validation) remains.
 - **Status**: PENDING
