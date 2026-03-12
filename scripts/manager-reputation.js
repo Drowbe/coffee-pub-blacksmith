@@ -194,7 +194,7 @@ export class ReputationManager {
             rightLabel: '',
             group: 'health',
             order: 1,
-            tooltip: 'Party reputation (scene). Right-click to set.',
+            tooltip: 'Party reputation (scene). Right-click for options.',
             contextMenuItems: this._getReputationContextMenuItems(api)
         };
         api.registerSecondaryBarItem('party', 'reputation', itemConfig);
@@ -202,18 +202,22 @@ export class ReputationManager {
 
     /**
      * Context menu items for the reputation balancebar (right-click).
+     * Party (non-GM) can only send current reputation to chat; GM can also set values.
      * @param {Object} api - Blacksmith module API.
      * @returns {Array<{ name: string, icon: string, onClick: Function }>}
      * @private
      */
     static _getReputationContextMenuItems(api) {
         if (!api?.setPartyReputation || !api?.updateSecondaryBarItemInfo) return [];
-        return [
+        const items = [
             {
                 name: 'Send Current Reputation',
                 icon: 'fas fa-message',
                 onClick: async () => { await this.postCurrentReputationCard(api); }
-            },
+            }
+        ];
+        if (!game.user?.isGM) return items;
+        items.push(
             {
                 name: 'Increase Reputation by 5',
                 icon: 'fas fa-arrow-up',
@@ -268,7 +272,8 @@ export class ReputationManager {
                     await this.postNewReputationCard(-5, prev, next, api);
                 }
             }
-        ];
+        );
+        return items;
     }
 
     /**
