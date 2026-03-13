@@ -1367,9 +1367,14 @@ export class CombatBarManager {
                 "{name}, if this turn were a quest, we'd already have failed the time limit."
             ];
             const message = hurryMessages[Math.floor(Math.random() * hurryMessages.length)].replace(/{name}/g, targetName);
+            const html = await foundry.applications.handlebars.renderTemplate(
+                `modules/${MODULE.ID}/templates/card-hurry-up.hbs`,
+                { message }
+            );
             await ChatMessage.create({
-                content: message,
-                speaker: ChatMessage.getSpeaker()
+                content: html,
+                speaker: ChatMessage.getSpeaker({ alias: game.user?.name }),
+                type: CONST.CHAT_MESSAGE_TYPES.OTHER
             });
 
             const hurryUpSound = game.settings.get(MODULE.ID, 'hurryUpSound');

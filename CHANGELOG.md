@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Blacksmith token indicator manager**: Added `scripts/manager-token-indicators.js` to own current-turn and targeted token indicators inside Blacksmith. The manager handles indicator rendering, animation, target clearing on turn change, native target-marker hiding, token movement updates, visibility refreshes, and live refresh when indicator settings change.
 - **Blacksmith token rotation hook**: Restored token facing rotation as a Blacksmith-owned feature in `scripts/manager-canvas.js`, driven by the existing Blacksmith settings `enableTokenRotation`, `tokenRotationMode`, and `tokenRotationMinDistance`.
 - **Coffee Pub chat card padding toggle**: Added `Remove Chat Card Padding`, a Coffee Pub-only chat setting that removes Foundry's wrapper inset around Coffee Pub chat cards without affecting standard Foundry messages.
+- **Amber chat card theme**: Added a new `Amber` theme to the live chat-card theme catalog with warm gold and brown narration-friendly accents that still match the existing Blacksmith card family.
 - **Project TODO tracking**: Added `todo.md` with a follow-up item to decide how Curator should handle asset defaults that currently point to Blacksmith paths.
 
 ### Changed
@@ -22,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Indicator ownership restored to Blacksmith**: Current-turn and targeted indicator initialization now runs from Blacksmith instead of Curator, so the feature works without depending on Curator.
 - **Combat bar refresh behavior**: Combat menubar now refreshes immediately when the new dead-token visibility setting is toggled.
 - **Coffee Pub chat card wrapper handling**: Coffee Pub chat messages are now identified at chat-message creation/render time so wrapper-level styling can be applied only to Coffee Pub cards.
+- **Theme settings rebuilt around live chat-card themes**: Removed the legacy theme-toggle model, rebuilt theme choices from the current `CHAT_CARD_THEMES` catalog, and moved the default Coffee Pub theme selector into `Chat Cards`.
+- **Chat settings organization**: Renamed `Chat Adjustments` to `Chat Cards` and kept the card-presentation controls together in a single settings section.
+- **Neutral theme naming**: Renamed the live neutral card theme display name from `Default` to `Tan` so the setting no longer reads like “default default.”
+- **Chat gap bounds**: Tightened the `Chat Gap` slider range from `-20..60` to `0..20`.
 - **Nameplate ownership cleanup**: Token nameplate handling now lives only in `manager-canvas.js`, which is the correct owner alongside other Blacksmith token behavior features.
 
 ### Removed
@@ -36,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Coffee Pub chat card inset spacing**: Fixed the visible gap between Coffee Pub cards and the Foundry chat message wrapper by replacing the dead per-side card sliders with a Coffee Pub-only wrapper padding toggle.
+- **Chat card padding persistence**: Coffee Pub cards now store their padding-removal choice in message flags at creation time, so new cards retain the wrapper behavior they were created with across refreshes.
+- **Padding toggle startup fallback**: Fixed the render-time fallback for `Remove Chat Card Padding` so startup/refresh now defaults to keeping padding unless the opt-in setting is explicitly enabled.
 - **Current turn and targeted indicators not showing**: Fixed a regression where indicator rendering stopped after the Curator split by moving ownership and initialization back into Blacksmith.
 - **Blacksmith token rotation settings had no live implementation**: Fixed the structural gap where rotation settings remained in Blacksmith after the Curator cleanup but no runtime code still honored them.
 

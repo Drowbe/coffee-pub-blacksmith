@@ -345,7 +345,7 @@
 		"headingH2TokenEnhancements-Label": "Token Enhancements",
 		"headingH2TokenEnhancements-Hint": "Automation of token actions. This include token changes for when a character dies, is targeted, has the current turn in combat, etc.",
 
-			"headingH3GeneralIndicatorSettings-Label": "General Indicator Congifuration",
+			"headingH3GeneralIndicatorSettings-Label": "Shared Style Settings",
 			"headingH3GeneralIndicatorSettings-Hint": "",
 
 				"generalIndicatorsEnabled-Label": "Enable Turn Indicator",
@@ -458,7 +458,7 @@
 			"sessionTimerExpiredSound-Label": "Session Over Sound",
 			"sessionTimerExpiredSound-Hint": "",
 
-			"sessionTimerExpiredMessage-Label": "Session OVer Message",
+			"sessionTimerExpiredMessage-Label": "Session Over Message",
 			"sessionTimerExpiredMessage-Hint": "",
 
 		"headingH3PlanningTimer-Label": "Planning Timer",
@@ -567,12 +567,12 @@
 	"headingH1ManageContent-Hint": "Tools for managing tokens, images, and content.",
 
 		"headingH2Pins-Label": "Canvas Pins",
-		"headingH2Pins-Hint": "Settings for the canvas pins API used by modules such as Coffee Pub Squire.",
+		"headingH2Pins-Hint": "",
 		"pinsAllowPlayerWrites-Label": "Allow player writes",
 		"pinsAllowPlayerWrites-Hint": "If enabled, players with ownership of a pin can create, update, and delete pins. When disabled, only GMs can modify pins.",
 
 		"headingH2ContentImports-Label": "Content Imports",
-		"headingH2ContentImports-Hint": "Configurations for importing content into the game.",
+		"headingH2ContentImports-Hint": "",
 
 			"enableEnhancedImageGuessing-Label": "Enhanced Image Guessing",
 			"enableEnhancedImageGuessing-Hint": "Uses comprehensive synonym mapping to automatically select appropriate images for imported items based on their names and descriptions.",
@@ -596,7 +596,7 @@
 				"narrativeDefaultCardImage-Hint": "",
 
 				"narrativeDefaultImagePath-Label": "Custom Image",
-				"narrativeDefaultImagePath-Hint": "Full path to a custom image for narrative cards. Used if 'custom' is selected above. (optional)",
+				"narrativeDefaultImagePath-Hint": "Used if 'custom' is selected above. (optional)",
 
 			"headingH3NarrativeOptions-Label": "Narrative Options",
 			"headingH3NarrativeOptions-Hint": "",
@@ -617,16 +617,16 @@
 				"narrativeDefaultEncounterDetails-Hint": "",
 
 		"headingH2EncounterGenerator-Label": "Encounter Defaults",
-		"headingH2EncounterGenerator-Hint": "These settings control default values for encounter templates.",
+		"headingH2EncounterGenerator-Hint": "",
 
 				"encounterFolder-Label": "Encounter Folder",
-				"encounterFolder-Hint": "Folder in which to add actors when deloying from the journal. Leave blank to put them in the root of the actor tab.",
+				"encounterFolder-Hint": "",
 
 				"encounterDefaultCardImage-Label": "Default Encounter Card Image",
-				"encounterDefaultCardImage-Hint": "Select the default image option for new encounter cards. (optional)",
+				"encounterDefaultCardImage-Hint": "",
 
 				"encounterDefaultImagePath-Label": "Custom Image",
-				"encounterDefaultImagePath-Hint": "Full path to a custom image for encounter cards. Used if 'custom' is selected above. (optional)",
+				"encounterDefaultImagePath-Hint": "Used if 'custom' is selected above. (optional)",
 
 
 		"headingH2CompendiumMapping-Label": "Compendium Mapping",
