@@ -354,6 +354,19 @@ export class CombatBarManager {
             }
         });
 
+        const combatHideDeadSettingHookId = HookManager.registerHook({
+            name: 'settingChange',
+            description: 'MenuBar: Refresh combat bar when dead combatant visibility changes',
+            context: 'menubar-combat-hide-dead-change',
+            priority: 3,
+            callback: (module, key) => {
+                if (module !== MODULE.ID || key !== 'menubarCombatHideDead') return;
+                if (game.combat && menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
+                    CombatBarManager.updateCombatBar(menuBar);
+                }
+            }
+        });
+
         menuBar._registeredHooks = {
             combatUpdateHookId,
             combatCreateHookId,
@@ -365,7 +378,8 @@ export class CombatBarManager {
             combatTrackerCloseHookId,
             updateActorHookId,
             updateTokenHookId,
-            combatSizeSettingHookId
+            combatSizeSettingHookId,
+            combatHideDeadSettingHookId
         };
 
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat hooks registered", "", true, false);
@@ -519,6 +533,7 @@ export class CombatBarManager {
             if (!combat) return {};
 
             const hideNpcHealthSetting = game.settings.get(MODULE.ID, 'menubarCombatHideHealthBars');
+            const hideDeadCombatants = game.settings.get(MODULE.ID, 'menubarCombatHideDead');
             const hideNpcHealth = hideNpcHealthSetting && !game.user.isGM;
             const isGM = game.user.isGM;
 
@@ -569,6 +584,8 @@ export class CombatBarManager {
                     if (actor.type === "character") isActuallyDead = combatant.isDefeated || false;
                     else isActuallyDead = (actor.system?.attributes?.hp?.value || 0) <= 0;
                 }
+
+                if (hideDeadCombatants && isActuallyDead) return null;
 
                 return {
                     id: combatant.id,

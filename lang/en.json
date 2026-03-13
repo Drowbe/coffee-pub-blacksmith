@@ -290,6 +290,8 @@
 
 				"menubarCombatHideHealthBars-Label": "Hide Enemy Health Bars",
 				"menubarCombatHideHealthBars-Hint": "When enabled, the health bars of enemy combatants will be hidden from players in the combat menubar.",
+				"menubarCombatHideDead-Label": "Hide the Dead",
+				"menubarCombatHideDead-Hint": "When enabled, defeated or dead combatants remain in the combat tracker but are hidden from the combat menubar.",
 
 
 		"headingH2Statistics-Label": "Statistics",

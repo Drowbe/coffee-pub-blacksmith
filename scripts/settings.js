@@ -1866,6 +1866,17 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Hide Dead Combatants in Combat Menubar --
+	game.settings.register(MODULE.ID, 'menubarCombatHideDead', {
+		name: MODULE.ID + '.menubarCombatHideDead-Label',
+		hint: MODULE.ID + '.menubarCombatHideDead-Hint',
+		scope: 'user',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// --------------------------------------
 	// -- H2: Combat Statistics
 	// --------------------------------------
