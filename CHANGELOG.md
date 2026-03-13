@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+
+## [13.5.5] - 2026-03-13 - TOKEN OWNERSHIP CLEANUP, COMBAT BAR FILTERING & CURATOR CLEANUP
+
+### Added
+
+- **Combat bar dead-token visibility option**: Added `Hide the Dead` for the combat menubar so defeated combatants remain in the combat tracker but are hidden from the combat portrait bar when enabled.
+- **Blacksmith token indicator manager**: Added `scripts/manager-token-indicators.js` to own current-turn and targeted token indicators inside Blacksmith. The manager handles indicator rendering, animation, target clearing on turn change, native target-marker hiding, token movement updates, visibility refreshes, and live refresh when indicator settings change.
+- **Blacksmith token rotation hook**: Restored token facing rotation as a Blacksmith-owned feature in `scripts/manager-canvas.js`, driven by the existing Blacksmith settings `enableTokenRotation`, `tokenRotationMode`, and `tokenRotationMinDistance`.
+- **Project TODO tracking**: Added `todo.md` with a follow-up item to decide how Curator should handle asset defaults that currently point to Blacksmith paths.
+
+### Changed
+
+- **Indicator ownership restored to Blacksmith**: Current-turn and targeted indicator initialization now runs from Blacksmith instead of Curator, so the feature works without depending on Curator.
+- **Combat bar refresh behavior**: Combat menubar now refreshes immediately when the new dead-token visibility setting is toggled.
+- **Nameplate ownership cleanup**: Token nameplate handling now lives only in `manager-canvas.js`, which is the correct owner alongside other Blacksmith token behavior features.
+
+### Removed
+
+- **Curator orphaned indicator code**: Removed the old turn-indicator, targeted-indicator, and related token-visibility/movement helper code from Curator’s `token-image-utilities.js`.
+- **Duplicate Blacksmith nameplate path**: Removed the legacy nameplate hook and helper functions from `scripts/blacksmith.js`; `CanvasTools` is now the single active nameplate path.
+- **Curator migration fallback to old indicator key**: Removed the stale monster-mapping fallback in Curator that referenced the old `targetedIndicatorEnabled` key.
+
+### Fixed
+
+- **Current turn and targeted indicators not showing**: Fixed a regression where indicator rendering stopped after the Curator split by moving ownership and initialization back into Blacksmith.
+- **Blacksmith token rotation settings had no live implementation**: Fixed the structural gap where rotation settings remained in Blacksmith after the Curator cleanup but no runtime code still honored them.
+
+
 ## [13.5.4] - 2026-03-12 - PIN VISIBILITY, JOURNAL PINS & LOCATION IMPORT
 
 ### Added

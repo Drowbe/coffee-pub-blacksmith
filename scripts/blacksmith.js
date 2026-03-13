@@ -430,10 +430,6 @@ Hooks.once('ready', async () => {
         
         // Image replacement / dead tokens – provided by Coffee Pub Curator when installed
 
-        // Update nameplates
-        LoadingProgressManager.logActivity("Updating nameplates...");
-        updateNameplates();
-
         // Initialize other settings-dependent features
         LoadingProgressManager.logActivity("Configuring features...");
         initializeSettingsDependentFeatures();
@@ -1284,24 +1280,6 @@ Hooks.once('init', async function() {
 
 
 });
-
-
-
-// ***************************************************
-// ** Customize the Token Nameplates
-// ***************************************************
-
-// Nameplates are now updated only when tokens are created (dropped on canvas)
-const createTokenHookId = HookManager.registerHook({
-    name: 'createToken',
-    description: 'Blacksmith: Update token nameplates on creation',
-    context: 'blacksmith-nameplates',
-    priority: 3, // Normal priority - UI enhancement
-    callback: updateNameplates
-});
-
-// Log hook registration
-postConsoleAndNotification(MODULE.NAME, "Hook Manager | createToken", "blacksmith-nameplates", true, false);
 
 
 
@@ -2377,47 +2355,6 @@ function _scrollChatToBottom() {
         postConsoleAndNotification(MODULE.NAME, `_scrollChatToBottom error:`, error, true, false);
     }
 }
-
-// ***************************************************
-// ** UTILITY Update Token Nameplates
-// ***************************************************
-
-  function updateNameplates(tokenDocument, options, userId) {
-    // Only process if we have a specific token (from createToken hook)
-    if (!tokenDocument) {
-        // Fallback: process all tokens (for ready hook)
-        let tokens = canvas.tokens.placeables;
-        for (let token of tokens) {
-            updateSingleTokenNameplate(token);
-        }
-        return;
-    }
-
-    // Process only the newly created token
-    const token = canvas.tokens.get(tokenDocument.id);
-    if (token) {
-        updateSingleTokenNameplate(token);
-    }
-  }
-
-  function updateSingleTokenNameplate(token) {
-    let strNameplateFontsize = getCachedSetting('nameplateFontSize') + "px";
-    let strNameplateColor = getCachedSetting('nameplateColor');
-    let strNameplateOutlineSize = getCachedSetting('nameplateOutlineSize');
-    let strNameplateOutlineColor = getCachedSetting('nameplateOutlineColor');
-    let strNameplateFontFamily = getCachedSetting('nameplateFontFamily');
-    let color = parseInt((strNameplateColor.charAt(0) === '#' ? strNameplateColor.slice(1) : strNameplateColor), 16);
-    let outlineColor = parseInt((strNameplateOutlineColor.charAt(0) === '#' ? strNameplateOutlineColor.slice(1) : strNameplateOutlineColor), 16);
-
-    let nameplate = token.nameplate;
-    if(nameplate) {  
-        nameplate.style.fontSize = strNameplateFontsize;
-        nameplate.style.fontFamily = strNameplateFontFamily; 
-        nameplate.tint = color; 
-        nameplate.stroke = outlineColor;
-        nameplate.strokeThickness = parseInt(strNameplateOutlineSize);
-    }
-  }
 
 // ***************************************************
 // ** UTILITY Update Link Styles
