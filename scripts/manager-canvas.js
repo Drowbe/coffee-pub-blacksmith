@@ -23,6 +23,7 @@ export class CanvasTools {
     static _preUpdateTokenHookId = null;
     static _createTokenHookId = null;
     static _tokenAddedToSceneHookId = null;
+    static _updateTokenRotationHookId = null;
 
     static initialize() {
         // Initialize token nameplate functionality
@@ -132,12 +133,20 @@ export class CanvasTools {
 		});
 		
 		// Hook for when tokens are added to the scene (runs after token creation but before rendering)
-		CanvasTools._tokenAddedToSceneHookId = HookManager.registerHook({
+        CanvasTools._tokenAddedToSceneHookId = HookManager.registerHook({
 			name: 'createToken',
 			description: 'Canvas Tools: Handle tokens added to scene for behavior overrides',
 			context: 'manager-canvas-scene-add',
 			priority: 3,
 			callback: this._onTokenAddedToScene.bind(this)
+		});
+
+        CanvasTools._updateTokenRotationHookId = HookManager.registerHook({
+			name: 'updateToken',
+			description: 'Canvas Tools: Apply token facing rotation after movement',
+			context: 'manager-canvas-token-rotation',
+			priority: 3,
+			callback: this._onUpdateTokenRotation.bind(this)
 		});
     }
 
@@ -469,6 +478,77 @@ export class CanvasTools {
         }
     }
 
+    static async _onUpdateTokenRotation(tokenDocument, changes, options, userId) {
+        if (!game.settings.get(MODULE.ID, 'enableTokenRotation')) {
+            return;
+        }
+
+        if (changes.x === undefined && changes.y === undefined) {
+            return;
+        }
+
+        const token = canvas.tokens.get(tokenDocument.id);
+        if (!token) {
+            return;
+        }
+
+        if (!game.user.isGM) {
+            const hasOwner = token.actor?.hasPlayerOwner;
+            const canControl = token.actor?.testUserPermission(game.user, 'OWNER');
+            if (!hasOwner || !canControl) {
+                return;
+            }
+        }
+
+        if (tokenDocument.lockRotation) {
+            return;
+        }
+
+        const facingMode = game.settings.get(MODULE.ID, 'tokenRotationMode');
+        if (!this._shouldApplyTokenRotation(token, facingMode)) {
+            return;
+        }
+
+        const oldX = token.x;
+        const oldY = token.y;
+        const newX = changes.x !== undefined ? changes.x : oldX;
+        const newY = changes.y !== undefined ? changes.y : oldY;
+        const deltaX = newX - oldX;
+        const deltaY = newY - oldY;
+        const distance = Math.hypot(deltaX, deltaY);
+
+        const minDistance = game.settings.get(MODULE.ID, 'tokenRotationMinDistance');
+        const minDistancePixels = minDistance * canvas.grid.size;
+        if (distance < minDistancePixels) {
+            return;
+        }
+
+        const angleRadians = Math.atan2(deltaY, deltaX);
+        const angleDegrees = (angleRadians * 180 / Math.PI) - 90;
+        const normalizedAngle = ((angleDegrees % 360) + 360) % 360;
+
+        try {
+            await tokenDocument.update({ rotation: normalizedAngle });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Token rotation failed for ${token.name}`, error, false, false);
+        }
+    }
+
+    static _shouldApplyTokenRotation(token, facingMode) {
+        switch (facingMode) {
+            case 'all':
+                return true;
+            case 'playerOnly':
+                return token.actor?.hasPlayerOwner || false;
+            case 'npcOnly':
+                return token.actor?.type === 'npc';
+            case 'combatOnly':
+                return game.combat?.getCombatantByToken(token.id) !== undefined;
+            default:
+                return true;
+        }
+    }
+
     // *** TOKEN CONVERSION ***
     static _initializeTokenConversion() {
         // Check if Item Piles is installed
@@ -522,6 +602,14 @@ export class CanvasTools {
                 callbackId: CanvasTools._tokenAddedToSceneHookId
             });
             CanvasTools._tokenAddedToSceneHookId = null;
+        }
+
+        if (CanvasTools._updateTokenRotationHookId) {
+            HookManager.unregisterHook({
+                name: 'updateToken',
+                callbackId: CanvasTools._updateTokenRotationHookId
+            });
+            CanvasTools._updateTokenRotationHookId = null;
         }
         
         postConsoleAndNotification(MODULE.NAME, "CanvasTools: All hooks unregistered and cleaned up", "", true, false);
