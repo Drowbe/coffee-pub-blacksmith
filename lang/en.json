@@ -63,15 +63,12 @@
 	"headingH1LayoutAndExperience-Hint": "Customize the layout and experience of the Coffee Pub suite of modules.",
 
 		"headingH2Themes-Label": "Themes",
-		"headingH2Themes-Hint": "Enable or disable the themes you'd like made available in the Coffee Pub suite of modules.",
+		"headingH2Themes-Hint": "Choose the default chat card theme used across the Coffee Pub suite unless a module overrides it.",
 	
-			"headingH3ThemeSelections-Label": "Theme Selections",
-			"headingH3ThemeSelections-Hint": "",
-
 			"headingH3ThemeDefault-Label": "Theme Defaults",
 			"headingH3ThemeDefault-Hint": "",
 
-				"defaultCardTheme-Label": "Deault Coffee Pub Theme",
+				"defaultCardTheme-Label": "Default Coffee Pub Theme",
 				"defaultCardTheme-Hint": "This theme will be used as the default theme unless you override it in the other coffee pub modules.",
 			
 		"headingH2FoundryEnhancements-Label": "Foundry Enhancements",

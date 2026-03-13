@@ -14,22 +14,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Combat bar dead-token visibility option**: Added `Hide the Dead` for the combat menubar so defeated combatants remain in the combat tracker but are hidden from the combat portrait bar when enabled.
 - **Blacksmith token indicator manager**: Added `scripts/manager-token-indicators.js` to own current-turn and targeted token indicators inside Blacksmith. The manager handles indicator rendering, animation, target clearing on turn change, native target-marker hiding, token movement updates, visibility refreshes, and live refresh when indicator settings change.
 - **Blacksmith token rotation hook**: Restored token facing rotation as a Blacksmith-owned feature in `scripts/manager-canvas.js`, driven by the existing Blacksmith settings `enableTokenRotation`, `tokenRotationMode`, and `tokenRotationMinDistance`.
+- **Coffee Pub chat card padding toggle**: Added `Remove Chat Card Padding`, a Coffee Pub-only chat setting that removes Foundry's wrapper inset around Coffee Pub chat cards without affecting standard Foundry messages.
 - **Project TODO tracking**: Added `todo.md` with a follow-up item to decide how Curator should handle asset defaults that currently point to Blacksmith paths.
 
 ### Changed
 
 - **Indicator ownership restored to Blacksmith**: Current-turn and targeted indicator initialization now runs from Blacksmith instead of Curator, so the feature works without depending on Curator.
 - **Combat bar refresh behavior**: Combat menubar now refreshes immediately when the new dead-token visibility setting is toggled.
+- **Coffee Pub chat card wrapper handling**: Coffee Pub chat messages are now identified at chat-message creation/render time so wrapper-level styling can be applied only to Coffee Pub cards.
 - **Nameplate ownership cleanup**: Token nameplate handling now lives only in `manager-canvas.js`, which is the correct owner alongside other Blacksmith token behavior features.
 
 ### Removed
 
+- **Obsolete chat card spacing sliders**: Removed the dead `Top/Bottom/Left/Right Padding` chat settings and the legacy `chatboxLoot` CSS path they depended on.
+- **Obsolete chat top-offset setting**: Removed `Top Offset` and its unused runtime/CSS path from Chat Adjustments.
 - **Curator orphaned indicator code**: Removed the old turn-indicator, targeted-indicator, and related token-visibility/movement helper code from Curator’s `token-image-utilities.js`.
 - **Duplicate Blacksmith nameplate path**: Removed the legacy nameplate hook and helper functions from `scripts/blacksmith.js`; `CanvasTools` is now the single active nameplate path.
 - **Curator migration fallback to old indicator key**: Removed the stale monster-mapping fallback in Curator that referenced the old `targetedIndicatorEnabled` key.
+- **Obsolete window titlebar controls**: Removed the `Windows` titlebar size/spacing settings and their unused runtime/style path, since current Foundry window headers no longer need or honor those adjustments.
 
 ### Fixed
 
+- **Coffee Pub chat card inset spacing**: Fixed the visible gap between Coffee Pub cards and the Foundry chat message wrapper by replacing the dead per-side card sliders with a Coffee Pub-only wrapper padding toggle.
 - **Current turn and targeted indicators not showing**: Fixed a regression where indicator rendering stopped after the Curator split by moving ownership and initialization back into Blacksmith.
 - **Blacksmith token rotation settings had no live implementation**: Fixed the structural gap where rotation settings remained in Blacksmith after the Curator cleanup but no runtime code still honored them.
 

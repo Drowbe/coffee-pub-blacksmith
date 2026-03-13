@@ -2053,6 +2053,33 @@ const coffeePubChatCardPaddingHookId = HookManager.registerHook({
 
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "blacksmith-chat-card-padding", true, false);
 
+const coffeePubDefaultThemeHookId = HookManager.registerHook({
+    name: 'renderChatMessageHTML',
+    description: 'Blacksmith: Apply configured default theme to Coffee Pub chat cards',
+    context: 'blacksmith-default-card-theme',
+    priority: 3,
+    callback: (_message, html) => {
+        const htmlElement = getChatMessageElement(html);
+        if (!htmlElement) {
+            return;
+        }
+
+        const selectedTheme = getSettingSafely(MODULE.ID, 'defaultCardTheme', 'default');
+        const themeClassName = ChatCardsAPI.getThemeClassName(selectedTheme);
+        if (!themeClassName || themeClassName === 'theme-default') {
+            return;
+        }
+
+        const defaultCards = htmlElement.querySelectorAll('.blacksmith-card.theme-default');
+        for (const card of defaultCards) {
+            card.classList.remove('theme-default');
+            card.classList.add(themeClassName);
+        }
+    }
+});
+
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "blacksmith-default-card-theme", true, false);
+
 // ***************************************************
 // ** RENDER Import Journal Entries
 // ***************************************************

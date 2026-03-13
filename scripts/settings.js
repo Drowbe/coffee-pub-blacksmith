@@ -8,9 +8,10 @@ import { MODULE, BLACKSMITH } from './const.js';
 // COFFEEPUB now available globally via window.COFFEEPUB
 // -- Load the shared GLOBAL functions --
 import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, resetModuleSettings, getSettingSafely, setSettingSafely } from './api-core.js';
+import { CHAT_CARD_THEMES } from './api-chat-cards.js';
 // -- Import special page variables --
 // Load the data sets for the settings dropdowns
-import { dataNameplate, dataSounds, dataIcons, dataBackgroundImages, dataTheme } from '../resources/assets.js';
+import { dataNameplate, dataSounds, dataIcons, dataBackgroundImages } from '../resources/assets.js';
 
 
 
@@ -652,52 +653,23 @@ function getNameplateChoices() {
 }
 
 // -- THEME CHOICES  --
-// Build the shared theme array to be use by other modules.
 function getThemeChoices() {
 	postConsoleAndNotification(MODULE.NAME, "Building Theme List...", "", false, false);
-	let choices = {};
-    // Initialize arrThemeChoicesEnabled array
-    BLACKSMITH.arrThemeChoicesEnabled = []; 
-    // Sort themes alphabetically and move 'cardsdefault' to the front
-    let sortedThemes = dataTheme.themes.sort((a, b) => {
-        if(a.value === 'cardsdefault') return -1;
-        if(b.value === 'cardsdefault') return 1;
-        return a.name.localeCompare(b.name);
-      }); 
+	const choices = {};
+    const cardThemes = CHAT_CARD_THEMES
+        .filter(theme => theme.type === 'card')
+        .sort((a, b) => {
+            if (a.id === 'default') return -1;
+            if (b.id === 'default') return 1;
+            return a.name.localeCompare(b.name);
+        });
 
-    for(let theme of sortedThemes) { 
-      // Check if the theme is enabled - use safe settings function
-      if(getSettingSafely(MODULE.ID, theme.id, true)) {
-        choices[theme.value] = theme.name;
-        // Add the enabled theme to arrThemeChoicesEnabled array
-        BLACKSMITH.arrThemeChoicesEnabled.push(theme.name);
-      }
+    for (const theme of cardThemes) {
+        choices[theme.id] = theme.name;
     }
-    // BLACKSMITH UPDATER - Make the Themes Array available to ALL Coffee Pub modules
+
     BLACKSMITH.updateValue('arrThemeChoices', choices);
-    // Return it to this modules settings.
-    return choices; 
-}
-
-// Build out setting for each of the themes so they can be enabled/disabled.
-function registerThemes() {
-    // Move 'cardsdefault' to front and sort the remaining thematically
-    let sortedThemes = dataTheme.themes.sort((a, b) => {
-        if(a.value === 'cardsdefault') return -1;
-        if(b.value === 'cardsdefault') return 1;
-        return a.name.localeCompare(b.name);
-    });
-    for(let theme of sortedThemes) {
-        game.settings.register(MODULE.ID, theme.id, {
-            name: theme.name,
-            hint: theme.description,
-            type: Boolean,
-            config: true,
-            scope: 'world',
-            default: true,
-            requiresReload: true
-        });   
-    }
+    return choices;
 }
 
 // -- BACKGROUND IMAGE CHOICES --
@@ -1025,14 +997,7 @@ export const registerSettings = () => {
 	registerHeader('Themes', 'headingH2Themes-Label', 'headingH2Themes-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'world');
 	
 
-	// --------------------------------------
-	// -- H3: THEME SELECTIONS
-	// --------------------------------------
-	registerHeader('ThemeSelections', 'headingH3ThemeSelections-Label', 'headingH3ThemeSelections-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'world');
-
-	// Build out the themes based on the js file.
-	registerThemes();
-	// Make them available to other settings.
+	// Make live card themes available to other settings and modules.
 	getThemeChoices();
 
 	// --------------------------------------
@@ -1047,7 +1012,7 @@ export const registerSettings = () => {
 		config: true,
 		requiresReload: true,
 		type: String,
-		default: 'cardsdefault',
+		default: 'default',
 		choices: BLACKSMITH.arrThemeChoices,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});

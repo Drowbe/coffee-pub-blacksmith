@@ -77,7 +77,7 @@ export function isCurrentUserPartyLeader(moduleId = MODULE.ID) {
 export const COFFEEPUB = {
     // SHARED MODULE VARIABLES
     blnDebugOn: false, // Display debug messages
-    strDEFAULTCARDTHEME: "cardsdefault", // Default Card Theme
+    strDEFAULTCARDTHEME: "default", // Default Card Theme
 }
 
 // ================================================================== 
