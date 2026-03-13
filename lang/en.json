@@ -62,12 +62,6 @@
 	"headingH1LayoutAndExperience-Label": "User Experience",
 	"headingH1LayoutAndExperience-Hint": "Customize the layout and experience of the Coffee Pub suite of modules.",
 
-		"headingH2Themes-Label": "Themes",
-		"headingH2Themes-Hint": "Choose the default chat card theme used across the Coffee Pub suite unless a module overrides it.",
-	
-			"headingH3ThemeDefault-Label": "Theme Defaults",
-			"headingH3ThemeDefault-Hint": "",
-
 				"defaultCardTheme-Label": "Default Coffee Pub Theme",
 				"defaultCardTheme-Hint": "This theme will be used as the default theme unless you override it in the other coffee pub modules.",
 			
@@ -150,8 +144,8 @@
 				"scenePanelHeight-Label": "Panel Height",
 				"scenePanelHeight-Hint": "",
 	
-			"headingH3CardAdjustments-Label": "Chat Adjustments",
-			"headingH3CardAdjustments-Hint": "",
+			"headingH3CardAdjustments-Label": "Chat Cards",
+			"headingH3CardAdjustments-Hint": "Controls for Coffee Pub chat card presentation and spacing.",
 
 				"hideRollTableIcon-Label": "Hide Roll Table Icon",
 				"hideRollTableIcon-Hint": "Hide the roll table icon in the interface",

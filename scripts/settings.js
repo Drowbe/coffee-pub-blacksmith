@@ -991,31 +991,8 @@ export const registerSettings = () => {
 	// ==================================================================================================================== 
 	registerHeader('LayoutAndExperience', 'headingH1LayoutAndExperience-Label', 'headingH1LayoutAndExperience-Hint', 'H1', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'user');
 
-	// --------------------------------------
-	// -- H2: THEMES
-	// --------------------------------------
-	registerHeader('Themes', 'headingH2Themes-Label', 'headingH2Themes-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'world');
-	
-
 	// Make live card themes available to other settings and modules.
 	getThemeChoices();
-
-	// --------------------------------------
-	// -- H3: THEME DEFAULT
-	// --------------------------------------
-	registerHeader('ThemeDefault', 'headingH3ThemeDefault-Label', 'headingH3ThemeDefault-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'world');
-
-	game.settings.register(MODULE.ID, 'defaultCardTheme', {
-		name: MODULE.ID + '.defaultCardTheme-Label',
-		hint: MODULE.ID + '.defaultCardTheme-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: true,
-		type: String,
-		default: 'default',
-		choices: BLACKSMITH.arrThemeChoices,
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
 
 	// --------------------------------------
 	// -- H2: FOUNDRY ENHANCEMENTS
@@ -1318,9 +1295,21 @@ export const registerSettings = () => {
 	});
 
 	// --------------------------------------
-	// -- H3: CHAT ADJUSTMENTS
+	// -- H3: CHAT CARDS
 	// --------------------------------------
 	registerHeader('CardAdjustments', 'headingH3CardAdjustments-Label', 'headingH3CardAdjustments-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'world');
+
+	game.settings.register(MODULE.ID, 'defaultCardTheme', {
+		name: MODULE.ID + '.defaultCardTheme-Label',
+		hint: MODULE.ID + '.defaultCardTheme-Hint',
+		scope: 'world',
+		config: true,
+		requiresReload: true,
+		type: String,
+		default: 'default',
+		choices: BLACKSMITH.arrThemeChoices,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
 
 	game.settings.register(MODULE.ID, 'hideRollTableIcon', {
 		name: MODULE.ID + '.hideRollTableIcon-Label',
