@@ -96,6 +96,7 @@ export class WrapperManager {
                 messageData.flags ??= {};
                 messageData.flags[MODULE.ID] ??= {};
                 messageData.flags[MODULE.ID].isCoffeePubCard = true;
+                messageData.flags[MODULE.ID].removeChatCardPadding = game.settings.get(MODULE.ID, 'removeChatCardPadding');
             }
             
             // Pre-process message

@@ -2046,7 +2046,8 @@ const coffeePubChatCardPaddingHookId = HookManager.registerHook({
 
         chatMessageElement.classList.add('cpb-chat-message');
 
-        const removePadding = getSettingSafely(MODULE.ID, 'removeChatCardPadding', false);
+        const removePadding = message.flags?.[MODULE.ID]?.removeChatCardPadding
+            ?? getSettingSafely(MODULE.ID, 'removeChatCardPadding', false);
         chatMessageElement.classList.toggle('cpb-chat-message-no-padding', removePadding);
     }
 });
