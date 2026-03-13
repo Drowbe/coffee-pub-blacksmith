@@ -1331,8 +1331,8 @@ export const registerSettings = () => {
 		config: true,
 		type: Number,
 		range: {
-			min: -20,
-			max: 60,
+			min: 0,
+			max: 20,
 			step: 1,
 		},
 		default: 3,

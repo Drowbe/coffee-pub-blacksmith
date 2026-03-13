@@ -25,6 +25,24 @@
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
 }
 
+/* Amber Theme */
+.blacksmith-card.theme-amber {
+    --blacksmith-card-bg: rgba(191, 142, 63, 0.12);
+    --blacksmith-card-border: rgba(122, 83, 31, 0.18);
+    --blacksmith-card-text: #5b4630;
+    --blacksmith-card-header-text: #6e4d1f;
+    --blacksmith-card-section-header-text: #5d3d16;
+    --blacksmith-card-section-header-border: rgba(122, 83, 31, 0.24);
+    --blacksmith-card-section-subheader-text: #5d3d16;
+    --blacksmith-card-section-subheader-bg: rgba(143, 104, 42, 0.12);
+    --blacksmith-card-section-content-text: #5b4630;
+    --blacksmith-card-hover-color: rgba(168, 112, 28, 0.9);
+    --blacksmith-card-button-text: #5b4630;
+    --blacksmith-card-button-border: rgba(122, 83, 31, 0.45);
+    --blacksmith-card-button-hover-bg: rgba(143, 104, 42, 0.12);
+    --blacksmith-card-button-container-bg: rgba(122, 83, 31, 0.06);
+}
+
 
 /* Announcement Green Theme */
 .blacksmith-card.theme-announcement-green {

@@ -18,10 +18,17 @@
 export const CHAT_CARD_THEMES = Object.freeze([
     {
         id: 'default',
-        name: 'Default',
+        name: 'Tan',
         className: 'theme-default',
         type: 'card',
-        description: 'Light background, subtle borders'
+        description: 'Tan parchment theme with subtle borders'
+    },
+    {
+        id: 'amber',
+        name: 'Amber',
+        className: 'theme-amber',
+        type: 'card',
+        description: 'Warm amber and brown narration theme'
     },
     {
         id: 'blue',
