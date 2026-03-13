@@ -85,6 +85,10 @@ export class CanvasTools {
     }
 
     static _updateSingleTokenNameplate(token) {
+        if (!game.settings.get(MODULE.ID, 'nameplateStyleEnabled')) {
+            return;
+        }
+
         let strNameplateFontsize = game.settings.get(MODULE.ID, 'nameplateFontSize') + "px";
         let strNameplateColor = game.settings.get(MODULE.ID, 'nameplateColor');
         let strNameplateOutlineSize = game.settings.get(MODULE.ID, 'nameplateOutlineSize');
@@ -174,36 +178,30 @@ export class CanvasTools {
         }
         
         // Apply token scale setting
+        const tokenScaleEnabled = game.settings.get(MODULE.ID, 'setTokenScaleEnabled');
         const tokenScale = game.settings.get(MODULE.ID, 'setTokenScale');
-        postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: Setting value = ${tokenScale}, Type = ${typeof tokenScale}`, "", true, false);
-        postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: Original tokenData.scale = ${tokenData.scale}`, "", true, false);
-        if (tokenScale !== null && tokenScale !== undefined) {
+        if (tokenScaleEnabled && tokenScale !== null && tokenScale !== undefined) {
             // Use FoundryVTT v12+ texture scaling
             if (tokenData.texture) {
                 tokenData.texture.scaleX = tokenScale;
                 tokenData.texture.scaleY = tokenScale;
-                postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: Applied texture scale ${tokenScale} to token (v12+ style)`, "", true, false);
             } else {
                 // Fallback for older versions
                 tokenData.scale = tokenScale;
-                postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: Applied legacy scale ${tokenScale} to token (v11 style)`, "", true, false);
             }
             changesMade.push(`set scale to ${tokenScale}`);
-        } else {
-            postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: Skipped scale application (value: ${tokenScale})`, "", true, false);
         }
         
         // Apply token image fit mode setting
         const tokenFitMode = game.settings.get(MODULE.ID, 'setTokenImageFitMode');
-        if (tokenFitMode && tokenFitMode !== 'contain') {
+        const tokenFitModeEnabled = game.settings.get(MODULE.ID, 'setTokenImageFitModeEnabled');
+        if (tokenFitModeEnabled && tokenFitMode) {
             // Use FoundryVTT v12+ texture fit mode
             if (tokenData.texture) {
                 tokenData.texture.fit = tokenFitMode;
-                postConsoleAndNotification(MODULE.NAME, `Token Fit Mode Debug: Applied texture fit mode ${tokenFitMode} to token (v12+ style)`, "", true, false);
             } else {
                 // Fallback for older versions
                 tokenData.fit = tokenFitMode;
-                postConsoleAndNotification(MODULE.NAME, `Token Fit Mode Debug: Applied legacy fit mode ${tokenFitMode} to token (v11 style)`, "", true, false);
             }
             changesMade.push(`set fit mode to ${tokenFitMode}`);
         }
@@ -239,8 +237,9 @@ export class CanvasTools {
         }
         
         // Apply token scale setting on updates
+        const tokenScaleEnabled = game.settings.get(MODULE.ID, 'setTokenScaleEnabled');
         const tokenScale = game.settings.get(MODULE.ID, 'setTokenScale');
-        if (tokenScale !== null && tokenScale !== undefined) {
+        if (tokenScaleEnabled && tokenScale !== null && tokenScale !== undefined) {
             // Use FoundryVTT v12+ texture scaling
             if (tokenDocument.texture) {
                 changes["texture.scaleX"] = tokenScale;
@@ -253,8 +252,9 @@ export class CanvasTools {
         }
         
         // Apply token image fit mode setting on updates
+        const tokenFitModeEnabled = game.settings.get(MODULE.ID, 'setTokenImageFitModeEnabled');
         const tokenFitMode = game.settings.get(MODULE.ID, 'setTokenImageFitMode');
-        if (tokenFitMode && tokenFitMode !== 'contain') {
+        if (tokenFitModeEnabled && tokenFitMode) {
             // Use FoundryVTT v12+ texture fit mode
             if (tokenDocument.texture) {
                 changes["texture.fit"] = tokenFitMode;
@@ -298,33 +298,30 @@ export class CanvasTools {
         }
         
         // Apply token scale setting
+        const tokenScaleEnabled = game.settings.get(MODULE.ID, 'setTokenScaleEnabled');
         const tokenScale = game.settings.get(MODULE.ID, 'setTokenScale');
-        postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: _onTokenAddedToScene - Current token scale = ${tokenDocument.scale}, Setting scale = ${tokenScale}`, "", true, false);
-        if (tokenScale !== null && tokenScale !== undefined) {
+        if (tokenScaleEnabled && tokenScale !== null && tokenScale !== undefined) {
             // Use FoundryVTT v12+ texture scaling
             if (tokenDocument.texture) {
                 updates["texture.scaleX"] = tokenScale;
                 updates["texture.scaleY"] = tokenScale;
-                postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: _onTokenAddedToScene - Will update texture scale to ${tokenScale} (v12+ style)`, "", true, false);
             } else {
                 // Fallback for older versions
                 updates.scale = tokenScale;
-                postConsoleAndNotification(MODULE.NAME, `Token Scale Debug: _onTokenAddedToScene - Will update legacy scale to ${tokenScale} (v11 style)`, "", true, false);
             }
             changesMade.push(`set scale to ${tokenScale}`);
         }
         
         // Apply token image fit mode setting
+        const tokenFitModeEnabled = game.settings.get(MODULE.ID, 'setTokenImageFitModeEnabled');
         const tokenFitMode = game.settings.get(MODULE.ID, 'setTokenImageFitMode');
-        if (tokenFitMode && tokenFitMode !== 'contain') {
+        if (tokenFitModeEnabled && tokenFitMode) {
             // Use FoundryVTT v12+ texture fit mode
             if (tokenDocument.texture) {
                 updates["texture.fit"] = tokenFitMode;
-                postConsoleAndNotification(MODULE.NAME, `Token Fit Mode Debug: _onTokenAddedToScene - Will update texture fit mode to ${tokenFitMode} (v12+ style)`, "", true, false);
             } else {
                 // Fallback for older versions
                 updates.fit = tokenFitMode;
-                postConsoleAndNotification(MODULE.NAME, `Token Fit Mode Debug: _onTokenAddedToScene - Will update legacy fit mode to ${tokenFitMode} (v11 style)`, "", true, false);
             }
             changesMade.push(`set fit mode to ${tokenFitMode}`);
         }

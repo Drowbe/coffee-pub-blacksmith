@@ -111,9 +111,6 @@
 			"headingH3menubar-Label": "Blacksmith Menubar",
 			"headingH3menubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
 	
-				"enableMenubar-Label": "Enable Menubar",
-				"enableMenubar-Hint": "Show the slim Blacksmith Menubar at the top of the foundry interface. Required for many of the tools and features of blacksmit including combat enhancements.",
-			
 				"excludedUsersMenubar-Label": "Excluded Menubar Users",
 				"excludedUsersMenubar-Hint": "List of userIDs that should not see the menubar. (comma-separated)",
 
@@ -816,8 +813,14 @@
 				"disableTokenRing-Label": "Disable Token Ring",
 				"disableTokenRing-Hint": "Override Foundry's default 'enable ring' setting for all new tokens. This will disable the dynamic token ring display. Note: This setting only affects Foundry's ring system and will not remove rings that are part of the token image itself.",
 
+				"setTokenScaleEnabled-Label": "Enable Token Scale",
+				"setTokenScaleEnabled-Hint": "If checked, Blacksmith will apply the token scale setting to dropped tokens.",
+
 				"setTokenScale-Label": "Set Token Scale",
 				"setTokenScale-Hint": "Set the default scale size for dropped tokens.",
+
+				"setTokenImageFitModeEnabled-Label": "Enable Image Fit Mode",
+				"setTokenImageFitModeEnabled-Hint": "If checked, Blacksmith will apply the image fit mode setting to dropped tokens.",
 
 				"setTokenImageFitMode-Label": "Image Fit Mode",
 				"setTokenImageFitMode-Hint": "Set the image fit mode for dropped tokens. (default is Contain)",
@@ -839,6 +842,9 @@
 
 			"headingH3TokenNameplateStyle-Label": "Token Nameplate Style",
 			"headingH3TokenNameplateStyle-Hint": "",
+
+				"nameplateStyleEnabled-Label": "Enable Nameplate Style",
+				"nameplateStyleEnabled-Hint": "If checked, Blacksmith will apply the font and outline settings below to token nameplates.",
 
 				"nameplateFontSize-Label": "Font Size",
 				"nameplateFontSize-Hint": "Sets the fontsize for nameplates under tokens. Range: 5px to 70px. Default: 24px.",

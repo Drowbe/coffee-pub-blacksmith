@@ -81,14 +81,6 @@ class MenuBar {
     static _menubarVisibilityOverrides = new Map();
 
     static async initialize() {
-        // Check if menubar is enabled
-        if (!getSettingSafely(MODULE.ID, 'enableMenubar', true)) {
-            postConsoleAndNotification(MODULE.NAME, "Menubar: Disabled in settings, skipping initialization", "", true, false);
-            // Ensure no space is reserved for menubar when disabled
-            this._removeMenubarDom();
-            return;
-        }
-
         // Load the templates
         foundry.applications.handlebars.loadTemplates([
             'modules/coffee-pub-blacksmith/templates/menubar.hbs',
@@ -2727,13 +2719,6 @@ class MenuBar {
                     postConsoleAndNotification(MODULE.NAME, 'Menubar visibility override error', e?.message || e, false, false);
                 }
             }
-
-            // Check if menubar is enabled
-            if (!getSettingSafely(MODULE.ID, 'enableMenubar', true)) {
-                this._removeMenubarDom();
-                return;
-            }
-
             // Check if movement type setting exists first
             let currentMovement = 'normal-movement';
             let currentMovementData = { icon: 'fa-person-running', name: 'Free' };
@@ -4643,7 +4628,6 @@ class MenuBar {
 
 // Register menubar ready logic at module load so it runs when Foundry emits 'ready' (not during another ready callback).
 Hooks.once('ready', async () => {
-    if (!getSettingSafely(MODULE.ID, 'enableMenubar', true)) return;
     await MenuBar._registerPartials();
     await MenuBar.loadLeader();
     await MenuBar.loadTimer();

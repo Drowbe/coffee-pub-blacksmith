@@ -1154,17 +1154,6 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('Menubar', 'headingH3menubar-Label', 'headingH3menubar-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
-	game.settings.register(MODULE.ID, 'enableMenubar', {
-		name: MODULE.ID + '.enableMenubar-Label',
-		hint: MODULE.ID + '.enableMenubar-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: true,
-		scope: 'world',
-		default: true,
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
-
 	game.settings.register(MODULE.ID, 'excludedUsersMenubar', {
 		name: MODULE.ID + '.excludedUsersMenubar-Label',
 		hint: MODULE.ID + '.excludedUsersMenubar-Hint',
@@ -3719,6 +3708,17 @@ export const registerSettings = () => {
 	});
 
 	// -- Set Token Scale --
+	game.settings.register(MODULE.ID,'setTokenScaleEnabled', {
+		name: MODULE.ID + '.setTokenScaleEnabled-Label',
+		hint: MODULE.ID + '.setTokenScaleEnabled-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
 	game.settings.register(MODULE.ID,'setTokenScale', {
 		name: MODULE.ID + '.setTokenScale-Label',
 		hint: MODULE.ID + '.setTokenScale-Hint',
@@ -3736,6 +3736,17 @@ export const registerSettings = () => {
 	});
 
 	// -- Fit Mode --
+	game.settings.register(MODULE.ID, 'setTokenImageFitModeEnabled', {
+		name: MODULE.ID + '.setTokenImageFitModeEnabled-Label',
+		hint: MODULE.ID + '.setTokenImageFitModeEnabled-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
+
 	game.settings.register(MODULE.ID, 'setTokenImageFitMode', {
 		name: MODULE.ID + '.setTokenImageFitMode-Label',
 		hint: MODULE.ID + '.setTokenImageFitMode-Hint',
@@ -3814,6 +3825,17 @@ export const registerSettings = () => {
 	// -- H3: Nameplate Style
 	// --------------------------------------
 	registerHeader('TokenNameplateStyle', 'headingH3TokenNameplateStyle-Label', 'headingH3TokenNameplateStyle-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
+
+	game.settings.register(MODULE.ID, 'nameplateStyleEnabled', {
+		name: MODULE.ID + '.nameplateStyleEnabled-Label',
+		hint: MODULE.ID + '.nameplateStyleEnabled-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: true,
+		scope: 'world',
+		default: false,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
 
 	// -- Font Family --
 	game.settings.register(MODULE.ID,'nameplateFontFamily', {
