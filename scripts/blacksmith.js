@@ -493,8 +493,6 @@ function initializeSettingsDependentFeatures() {
     updateSceneStyles();
     // Update any link style overrides
     updateObjectLinkStyles();
-    // Update any link style overrides
-    updateWindowStyles();
     // Update the Margin per settings
     updateMargins();
     
@@ -2463,28 +2461,6 @@ function updateObjectLinkStyles() {
 }
 
 // ***************************************************
-// ** UTILITY Update Window Styles
-// ***************************************************
-
-function updateWindowStyles() {
-    //Windows titlebar
-    const root = getRootElement();
-    const strTitlebarTextSize = getCachedSetting('titlebarTextSize') + "px";
-    const strTitlebarIconSize = getCachedSetting('titlebarIconSize') + "px";
-    const strTitlebarSpacing = getCachedSetting('titlebarSpacing') + "px";
-    if (strTitlebarTextSize) {
-        root.style.setProperty('--blacksmith-window-header-a-font-size', strTitlebarTextSize);
-    }
-    if (strTitlebarIconSize) {
-        root.style.setProperty('--blacksmith-window-header-a-i-font-size', strTitlebarIconSize);
-    }
-    if (strTitlebarSpacing) {
-        root.style.setProperty('--blacksmith-window-header-a-i-margin-left', strTitlebarSpacing);
-    }
-
-}
-
-// ***************************************************
 // ** UTILITY Update Chat Styles
 // ***************************************************
 
@@ -2546,14 +2522,11 @@ function updateMargins() {
 	const cardBottomMargin = getCachedSetting('cardBottomMargin');
 	const cardLeftMargin = getCachedSetting('cardLeftMargin');
 	const cardRightMargin = getCachedSetting('cardRightMargin');
-    const cardTopOffset = getCachedSetting('cardTopOffset');
-
 	const root = getRootElement();
     root.style.setProperty('--intCardMarginTop', cardTopMargin +'px');
 	root.style.setProperty('--intCardMarginBottom', cardBottomMargin +'px');
 	root.style.setProperty('--intCardMarginLeft', cardLeftMargin +'px');
 	root.style.setProperty('--intCardMarginRight', cardRightMargin +'px');
-    root.style.setProperty('--intOffsetMarginTop', cardTopOffset +'px');
 
 }
 

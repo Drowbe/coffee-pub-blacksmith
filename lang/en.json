@@ -162,9 +162,6 @@
 				"chatSpacing-Label": "Chat Gap",
 				"chatSpacing-Hint": "Gap between chat messages. Applies globally to all chat messages.",
 
-				"cardTopOffset-Label": "Top Offset",
-				"cardTopOffset-Hint": "Adds additional top margin for some cards. (Only applies to Coffee Pub modules.)",
-			
 				"cardTopMargin-Label": "Top Padding",
 				"cardTopMargin-Hint": "Padding above chat content. (Only applies to Coffee Pub modules.)",
 
@@ -176,18 +173,6 @@
 
 				"cardRightMargin-Label": "Right Padding",
 				"cardRightMargin-Hint": "Padding right of chat content. (Only applies to Coffee Pub modules.) ",
-
-			"headingH3Windows-Label": "Windows",
-			"headingH3Windows-Hint": "",
-
-				"titlebarTextSize-Label": "Titlebar Text Size",
-				"titlebarTextSize-Hint": "",
-
-				"titlebarIconSize-Label": "Titlebar Icon Size",
-				"titlebarIconSize-Hint": "",
-				
-				"titlebarSpacing-Label": "TitlebarSpacing",
-				"titlebarSpacing-Hint": "Changes the spacing between the elements in the titlebar of windows. This change applies to all foundry module windows with titlebar icons. If other modules are changing titlebars, this could result in odd titlebar behaviors.",
 
 			"headingH3JournalTools-Label": "Journals",
 			"headingH3JournalTools-Hint": "Tools for upgrading actor and item links to compendium references.",

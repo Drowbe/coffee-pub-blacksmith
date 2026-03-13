@@ -9,7 +9,7 @@
 /* --- LAYOUT --- */
 .message-content blockquote.chatboxLoot {
     font-size: 1.5em;
-	margin-top: calc(var(--intCardMarginTop) + var(--intOffsetMarginTop));
+	margin-top: var(--intCardMarginTop);
     margin-bottom: var(--intCardMarginBottom);
     margin-left: var(--intCardMarginLeft);
     margin-right: var(--intCardMarginRight);

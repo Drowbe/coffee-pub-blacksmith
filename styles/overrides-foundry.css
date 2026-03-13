@@ -3,42 +3,6 @@
 /* --- Link Blocks ------------------ */
 /* ------------------------------------ */
 
-:root {
-    --blacksmith-window-header-a-font-size: initial;
-    --blacksmith-window-header-a-i-font-size: initial;
-    --blacksmith-window-header-a-i-margin-left: initial;
-    --blacksmith-window-header-a-span-font-size: 14px;
-    --blacksmith-dnd5e2-window-header-header-button-font-size: 14px;
- }
-
-
-
-
-/* --- Window Titlebars --- */ 
-/* header-button control configure-sheet */
-/* Text */ 
-.window-header a {
-	/* font-size: var(--blacksmith-window-header-a-font-size);
-	vertical-align: middle; */
-}
-/* Icon */ 
-.window-header a i {
-  	/* font-size: var(--blacksmith-window-header-a-i-font-size);
-	margin-left: var(--blacksmith-window-header-a-i-margin-left);
-    vertical-align: middle; */
-}
-/* Not Sure What this Does */ 
-.window-header a span {
-	/* font-size: var(--blacksmith-window-header-a-span-font-size); */
-}
-/* --- New Fancy Headers --- */
-.dnd5e2 .window-header .header-button {
-	/* font-size: var(--blacksmith-dnd5e2-window-header-header-button-font-size); */
-}
-
-
-
-
 /* ------------------------------------ */
 /* --- Journal Improvements ----------- */
 /* ------------------------------------ */

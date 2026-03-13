@@ -1385,23 +1385,6 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
-	// -- Top Offset --
-	game.settings.register(MODULE.ID,'cardTopOffset', {
-		name: MODULE.ID + '.cardTopOffset-Label',
-		hint: MODULE.ID + '.cardTopOffset-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: true,
-		type: Number,
-		range: {
-		min: -80,
-		max: 80,
-		step: 1,
-		},
-		default: 50,
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
-
 	// -- Top Margin --
 	game.settings.register(MODULE.ID,'cardTopMargin', {
 		name: MODULE.ID + '.cardTopMargin-Label',
@@ -1464,62 +1447,6 @@ export const registerSettings = () => {
 		step: 1,
 		},
 		default: -5,
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
-
-	// --------------------------------------
-	// -- H3: WINDOWS
-	// --------------------------------------
-	registerHeader('Windows', 'headingH3Windows-Label', 'headingH3Windows-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'user');
-
-	// -- Titlebar Text Size --
-	game.settings.register(MODULE.ID, 'titlebarTextSize', {
-		name: MODULE.ID + '.titlebarTextSize-Label',
-		hint: MODULE.ID + '.titlebarTextSize-Hint',
-		scope: "user",
-		config: true,
-		requiresReload: true,
-		type: Number,
-		range: {
-		min: 0,
-		max: 25,
-		step: 1,
-		},
-		default: 14,
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
-
-	// -- Titlebar Icon Size --
-	game.settings.register(MODULE.ID, 'titlebarIconSize', {
-		name: MODULE.ID + '.titlebarIconSize-Label',
-		hint: MODULE.ID + '.titlebarIconSize-Hint',
-		scope: "user",
-		config: true,
-		requiresReload: true,
-		type: Number,
-		range: {
-		min: 0,
-		max: 25,
-		step: 1,
-		},
-		default: 14,
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
-
-	// -- Titlebar Spacing --
-	game.settings.register(MODULE.ID,"titlebarSpacing", {
-		name: MODULE.ID + '.titlebarSpacing-Label',
-		hint: MODULE.ID + '.titlebarSpacing-Hint',
-		scope: "user",
-		config: true,
-		requiresReload: true,
-		type: Number,
-		range: {
-		min: 0,
-		max: 25,
-		step: 1,
-		},
-		default: 0,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
