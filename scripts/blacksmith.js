@@ -77,6 +77,7 @@ import { LoadingProgressManager } from './manager-loading-progress.js';
 import { PinManager } from './manager-pins.js';
 import { PinsAPI } from './api-pins.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
+import { TokenIndicatorManager } from './manager-token-indicators.js';
 import './sidebar-combat.js';
 import './combat-tools.js'; 
 // ================================================================== 
@@ -422,6 +423,7 @@ Hooks.once('ready', async () => {
         // Initialize CanvasTools
         LoadingProgressManager.logActivity("Initializing canvas tools...");
         CanvasTools.initialize();
+        TokenIndicatorManager.initialize();
 
         // Initialize PinManager (canvas pins API)
         PinManager.initialize();
