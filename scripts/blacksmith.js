@@ -493,9 +493,6 @@ function initializeSettingsDependentFeatures() {
     updateSceneStyles();
     // Update any link style overrides
     updateObjectLinkStyles();
-    // Update the Margin per settings
-    updateMargins();
-    
     // Set default card theme
     let strDefaultCardTheme = getSettingSafely(MODULE.ID, 'defaultCardTheme', 'default');
     BLACKSMITH.updateValue('strDefaultCardTheme', strDefaultCardTheme);
@@ -2025,6 +2022,37 @@ const hideHeaderChatHookId = HookManager.registerHook({
 // Log hook registration
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "blacksmith-hide-header", true, false);
 
+const coffeePubChatCardPaddingHookId = HookManager.registerHook({
+    name: 'renderChatMessageHTML',
+    description: 'Blacksmith: Mark Coffee Pub chat cards for wrapper padding removal',
+    context: 'blacksmith-chat-card-padding',
+    priority: 3,
+    callback: (message, html) => {
+        const htmlElement = getChatMessageElement(html);
+        if (!htmlElement) {
+            return;
+        }
+
+        const chatMessageElement = htmlElement.closest?.('.chat-message') || htmlElement;
+        if (!chatMessageElement?.classList) {
+            return;
+        }
+
+        const isCoffeePubCard = message.flags?.[MODULE.ID]?.isCoffeePubCard === true
+            || htmlElement.querySelector('.blacksmith-card, .cpb-chat-card, .vote-card') !== null;
+        if (!isCoffeePubCard) {
+            return;
+        }
+
+        chatMessageElement.classList.add('cpb-chat-message');
+
+        const removePadding = getSettingSafely(MODULE.ID, 'removeChatCardPadding', true);
+        chatMessageElement.classList.toggle('cpb-chat-message-no-padding', removePadding);
+    }
+});
+
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "blacksmith-chat-card-padding", true, false);
+
 // ***************************************************
 // ** RENDER Import Journal Entries
 // ***************************************************
@@ -2509,24 +2537,6 @@ function updateSceneStyles() {
     root.style.setProperty('--strScenePaddingLeft', sceneTitlePaddingLeft);
     root.style.setProperty('--strScenePaddingRight', sceneTitlePaddingRight);
     root.style.setProperty('--intScenePanelHeight', scenePanelHeight);
-
-}
-
-// ***************************************************
-// ** UTILITY Update Margins
-// ***************************************************
-
-function updateMargins() {
-	
-    const cardTopMargin = getCachedSetting('cardTopMargin');
-	const cardBottomMargin = getCachedSetting('cardBottomMargin');
-	const cardLeftMargin = getCachedSetting('cardLeftMargin');
-	const cardRightMargin = getCachedSetting('cardRightMargin');
-	const root = getRootElement();
-    root.style.setProperty('--intCardMarginTop', cardTopMargin +'px');
-	root.style.setProperty('--intCardMarginBottom', cardBottomMargin +'px');
-	root.style.setProperty('--intCardMarginLeft', cardLeftMargin +'px');
-	root.style.setProperty('--intCardMarginRight', cardRightMargin +'px');
 
 }
 

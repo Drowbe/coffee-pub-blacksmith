@@ -29,6 +29,20 @@ li.chat-message  {
     margin-bottom: var(--intChatSpacing) !important;
 }
 
+li.chat-message.cpb-chat-message-no-padding {
+    padding: 0 !important;
+}
+
+li.chat-message.cpb-chat-message-no-padding .message-content {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+li.chat-message.cpb-chat-message-no-padding .message-content > .blacksmith-card,
+li.chat-message.cpb-chat-message-no-padding .message-content > .vote-card {
+    margin: 0 !important;
+}
+
 /* removes the leading icon from the roll table results */
 li.table-result img.result-image  {
 	/* THIS SHOULD BE PER MACRO, NOT GLOBAL */
@@ -95,8 +109,6 @@ li.table-result img.result-image  {
 .panel-drop-zone .drop-zone-content i {
     font-size: 24px;
 }
-
-
 
 
 

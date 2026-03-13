@@ -1385,68 +1385,14 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
-	// -- Top Margin --
-	game.settings.register(MODULE.ID,'cardTopMargin', {
-		name: MODULE.ID + '.cardTopMargin-Label',
-		hint: MODULE.ID + '.cardTopMargin-Hint',
+	game.settings.register(MODULE.ID, 'removeChatCardPadding', {
+		name: MODULE.ID + '.removeChatCardPadding-Label',
+		hint: MODULE.ID + '.removeChatCardPadding-Hint',
 		scope: "world",
 		config: true,
 		requiresReload: true,
-		type: Number,
-		range: {
-		min: -20,
-		max: 20,
-		step: 1,
-		},
-		default: -5,
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
-	// -- Bottom Margin --
-	game.settings.register(MODULE.ID,'cardBottomMargin', {
-		name: MODULE.ID + '.cardBottomMargin-Label',
-		hint: MODULE.ID + '.cardBottomMargin-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: true,
-		type: Number,
-		range: {
-		min: -20,
-		max: 20,
-		step: 1,
-		},
-		default: -5,
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
-	// -- Left Margin --
-	game.settings.register(MODULE.ID,'cardLeftMargin', {
-		name: MODULE.ID + '.cardLeftMargin-Label',
-		hint: MODULE.ID + '.cardLeftMargin-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: true,
-		type: Number,
-		range: {
-		min: -20,
-		max: 20,
-		step: 1,
-		},
-		default: -5,
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
-	// -- Right Margin --
-	game.settings.register(MODULE.ID,'cardRightMargin', {
-		name: MODULE.ID + '.cardRightMargin-Label',
-		hint: MODULE.ID + '.cardRightMargin-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: true,
-		type: Number,
-		range: {
-		min: -20,
-		max: 20,
-		step: 1,
-		},
-		default: -5,
+		type: Boolean,
+		default: true,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 

@@ -162,17 +162,8 @@
 				"chatSpacing-Label": "Chat Gap",
 				"chatSpacing-Hint": "Gap between chat messages. Applies globally to all chat messages.",
 
-				"cardTopMargin-Label": "Top Padding",
-				"cardTopMargin-Hint": "Padding above chat content. (Only applies to Coffee Pub modules.)",
-
-				"cardBottomMargin-Label": "Bottom Padding",
-				"cardBottomMargin-Hint": "Padding below chat content. (Only applies to Coffee Pub modules.)",
-				
-				"cardLeftMargin-Label": "Left Padding",
-				"cardLeftMargin-Hint": "Padding left of chat content. (Only applies to Coffee Pub modules.)",
-
-				"cardRightMargin-Label": "Right Padding",
-				"cardRightMargin-Hint": "Padding right of chat content. (Only applies to Coffee Pub modules.) ",
+				"removeChatCardPadding-Label": "Remove Chat Card Padding",
+				"removeChatCardPadding-Hint": "Removes Foundry's built-in chat message padding and wrapper styling for Coffee Pub chat cards only.",
 
 			"headingH3JournalTools-Label": "Journals",
 			"headingH3JournalTools-Hint": "Tools for upgrading actor and item links to compendium references.",

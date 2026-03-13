@@ -86,6 +86,17 @@ export class WrapperManager {
         try {
             // Ensure messageData is an object
             messageData = messageData || {};
+
+            const content = typeof messageData.content === 'string' ? messageData.content : '';
+            const isCoffeePubCard = content.includes('blacksmith-card')
+                || content.includes('cpb-chat-card')
+                || content.includes('vote-card')
+                || content.includes('coffeepub-hide-header');
+            if (isCoffeePubCard) {
+                messageData.flags ??= {};
+                messageData.flags[MODULE.ID] ??= {};
+                messageData.flags[MODULE.ID].isCoffeePubCard = true;
+            }
             
             // Pre-process message
             const hookResult = await Hooks.call('preCoffeePubChatMessage', messageData, context);
