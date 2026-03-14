@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.5.7] - 2026-03-14 - SETTINGS ORGANIZATION & CLEANUP
+
+### Changed
+
+- **Campaign settings hierarchy**: Reorganized the `Getting Started` campaign block so `Campaign Settings` is now the primary section with `Core`, `Geography`, and `Party` nested beneath it. `Campaign Name` now appears first in `Core`, followed by `Default Rulebooks`.
+- **Imports settings hierarchy**: Split import-related configuration out into a dedicated `Imports` section with `Item` and `Journal` subsections. Journal defaults are now grouped under `Narrative` and `Encounter`, while `Enhanced Image Guessing` now lives under `Imports > Item`.
+- **Regent AI settings layout**: Restored missing top-level Regent settings headings by adding `AI Settings` and `OpenAI`, plus visible narrative headings in Regent so its settings page has the same structural treatment as Blacksmith where appropriate.
+
+### Fixed
+
+- **Regent duplicate cookie setting**: Removed the bad duplicate `Narrative Use Cookies` checkbox in Regent that was actually a misregistered `openAIContextLength` setting.
+- **Regent/Blacksmith narrative default ownership**: Removed duplicate Regent registrations for Blacksmith-owned narrative import defaults (`defaultNarrativeFolder`, `narrativeDefaultCardImage`, `narrativeDefaultImagePath`) and updated Regent to read those values from Blacksmith instead.
+
+### Notes
+
+- **Campaign API planning**: Confirmed Blacksmith does not yet expose a dedicated `campaign` API surface. Current external access is only available indirectly through generic settings helpers. Future work will introduce a dedicated campaign subsystem and public API.
+
 ## [13.5.6] - 2026-03-14 - CHAT CARD CLEANUP, TOKEN SETTINGS & NAMEPLATE REMOVAL
 
 ### Added
