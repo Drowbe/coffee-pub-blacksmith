@@ -68,6 +68,7 @@ export class CampaignManager {
 
         return {
             name: getSettingSafely(MODULE.ID, 'defaultCampaignName', '') || '',
+            rulesVersion: getSettingSafely(MODULE.ID, 'rulesVersion', '2024') || '2024',
             customRulebooks,
             rulebooks: {
                 configuredCount: getSettingSafely(MODULE.ID, 'numRulebooks', 0) ?? 0,
@@ -175,6 +176,7 @@ export class CampaignManager {
         const legacyPartyMakeup = getSettingSafely(MODULE.ID, 'defaultPartyMakeup', '') || '';
         return {
             campaignName: campaign.core.name,
+            rulesVersion: campaign.core.rulesVersion,
             rulebooks: this.getRulebooksText(),
             partySize: String(campaign.party.memberCount || campaign.party.configuredSize || ''),
             partyLevel: campaign.party.summary.averageLevel != null ? String(campaign.party.summary.averageLevel) : String(legacyPartyLevel || ''),

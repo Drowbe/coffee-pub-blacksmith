@@ -900,14 +900,18 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.GETTING_STARTED
 	});
 
-	game.settings.register(MODULE.ID, 'defaultRulebooks', {
-		name: MODULE.ID + '.defaultRulebooks-Label',
-		hint: MODULE.ID + '.defaultRulebooks-Hint',
-		scope: "world",
+	game.settings.register(MODULE.ID, 'rulesVersion', {
+		name: MODULE.ID + '.rulesVersion-Label',
+		hint: MODULE.ID + '.rulesVersion-Hint',
+		scope: 'world',
 		config: true,
 		requiresReload: false,
 		type: String,
-		default: '',
+		default: '2024',
+		choices: {
+			'2024': 'Modern Rules (2024)',
+			'2014': 'Legacy Rules (2014)'
+		},
 		group: WORKFLOW_GROUPS.GETTING_STARTED
 	});
 
@@ -940,6 +944,17 @@ export const registerSettings = () => {
 			group: WORKFLOW_GROUPS.GETTING_STARTED
 		});
 	}
+
+	game.settings.register(MODULE.ID, 'defaultRulebooks', {
+		name: MODULE.ID + '.defaultRulebooks-Label',
+		hint: MODULE.ID + '.defaultRulebooks-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.GETTING_STARTED
+	});
 
 	// --------------------------------------
 	// -- H2: CAMPAIGN GEOGRAPHY

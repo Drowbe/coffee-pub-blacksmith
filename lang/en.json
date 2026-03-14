@@ -41,6 +41,9 @@
 				"defaultCampaignName-Label": "Campaign Name",
 				"defaultCampaignName-Hint": "",
 
+				"rulesVersion-Label": "Rules Version",
+				"rulesVersion-Hint": "Change handling of various rules between the 2024 and 2014 rulesets.",
+
 
 			"headingH3CampaignGeography-Label": "Geography",
 			"headingH3CampaignGeography-Hint": "The geography of the campaign. This includes the location, parent, environment, and area. These will be used as context for whenever location information is needed. Geography hierarchy: REALM > REGION > SITE > AREA.",	
@@ -52,10 +55,10 @@
 				"defaultCampaignRegion-Hint": "A defined area within a realm, such as a kingdom, territory, or geographic expanse.",
 
 				"defaultCampaignSite-Label": "Site",
-				"defaultCampaignSite-Hint": "A specific location or structure within a region like a building, mine, or stronghold.",
+				"defaultCampaignSite-Hint": "A specific location or structure within a region like a city, mine, or stronghold.",
 
 				"defaultCampaignArea-Label": "Area",
-				"defaultCampaignArea-Hint": "A distinct part of a site like a room, chamber, street, or location where scenes or encounters occur.",
+				"defaultCampaignArea-Hint": "A distinct location like a room, street, or zone.",
 
 
 	"SEPARATOR-USER-EXPERIENCE": "-------------------------------------------------------",

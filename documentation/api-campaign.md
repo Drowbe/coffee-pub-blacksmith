@@ -41,6 +41,7 @@ Returns the full normalized campaign object:
 {
   core: {
     name: string,
+    rulesVersion: string,
     customRulebooks: string,
     rulebooks: {
       configuredCount: number,
@@ -124,6 +125,7 @@ Returns a flattened helper object for prompt/template replacement:
 ```js
 {
   campaignName,
+  rulesVersion,
   rulebooks,
   partySize,
   partyLevel,
