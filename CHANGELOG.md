@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.5.6] - 2026-03-14 - CHAT CARD CLEANUP, TOKEN SETTINGS & NAMEPLATE REMOVAL
+
+### Added
+
+- **Hurry Up combat chat card**: The combat menubar `Hurry Up` action now posts a proper Blacksmith chat card instead of plain text, so it uses the normal Coffee Pub card styling/theme pipeline.
+- **Token override enable gates**: Added `Enable Token Scale` and `Enable Image Fit Mode` so dropped-token scale and fit-mode overrides only apply when explicitly enabled.
+
+### Changed
+
+- **Chat card padding persistence**: `Remove Chat Card Padding` is now stored per Coffee Pub chat message at creation time so newer cards keep the wrapper behavior they were created with across refreshes.
+- **Chat card padding fallback**: Startup/render fallback for `Remove Chat Card Padding` now defaults to keeping Foundry padding, matching the opt-in intent of the setting.
+- **Token and chat settings organization**: The default Coffee Pub theme selector now lives under `Chat Cards`, and the `Chat Gap` slider range was tightened to `0..20`.
+- **Live card theme catalog**: Renamed the neutral card theme display name from `Default` to `Tan` and added a new `Amber` theme with warm gold/brown narration-friendly accents.
+- **Dropped token overrides**: Token scale and image fit mode settings now only apply when their new enable checkboxes are turned on.
+
+### Removed
+
+- **Optional menubar toggle**: Removed `Enable Menubar` from settings and the related runtime gating. The menubar is now treated as required.
+- **Token nameplate styling feature**: Removed the non-functional `Token Nameplate Style` settings and all related runtime code after confirming the feature was not reliable in Foundry v13+.
+- **Stale nameplate TODO**: Removed the obsolete documentation TODO entry for adding a nameplate-style enable setting.
+
+
+
 
 ## [13.5.5] - 2026-03-13 - TOKEN OWNERSHIP CLEANUP, COMBAT BAR FILTERING & CURATOR CLEANUP
 
