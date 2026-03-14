@@ -186,5 +186,4 @@ export class WrapperManager {
             return wrapped(...args);
         }
     }
-
 }

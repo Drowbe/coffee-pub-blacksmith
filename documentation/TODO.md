@@ -169,12 +169,6 @@
   - Optionally wire in more `METADATA_PATTERNS` (e.g. profession, action, direction, quality, creatureType) if they should feed tags; currently only class, weapon, armor, size are used in the loop.
 - **Notes**: Same parsing applies to both token and portrait caches. Class, weapon, armor, size remain used by the matching algorithm; new tags are for display/filtering and search.
 
-#### Add Enable Setting for Nameplate Styling
-- **Issue**: Nameplate styling should operate independently from nameplate content/formatting
-- **Status**: PENDING - Needs implementation
-- **Location**: `scripts/settings.js`, `scripts/manager-canvas.js`
-- **Need**: New `enableNameplateStyling` setting, update `_updateSingleTokenNameplate()` to check setting
-
 #### Migrate defaultRulebooks Setting to Checkboxes and Custom Box
 - **Issue**: defaultRulebooks should use checkboxes for common rulebooks and custom text box for additional ones
 - **Status**: PENDING - Needs implementation

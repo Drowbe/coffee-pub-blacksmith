@@ -753,7 +753,7 @@
 	"headingH1Automation-Hint": "These setting add features like token image replacement, movement tools, and more.",
 	
 		"headingH2Tokens-Label": "Token Configuration",
-		"headingH2Tokens-Hint": "Blacksmith can autmatically change the name of a dropped token, change the token image, change the style of the nameplate under the token, rotate a token, add sound to a token and many more things.",
+		"headingH2Tokens-Hint": "Blacksmith can autmatically change the name of a dropped token, change the token image, rotate a token, add sound to a token and many more things.",
 
 			"headingH3TokenRotationOptions-Label": "Rotation",
 			"headingH3TokenRotationOptions-Hint": "Configure the options for token rotation on the canvas.",
@@ -839,30 +839,6 @@
 			
 				"tokenNameTable-Label": "Random Name Table",
 				"tokenNameTable-Hint": "If using a random name from a table, select the table that should be used to rename the token.",
-
-			"headingH3TokenNameplateStyle-Label": "Token Nameplate Style",
-			"headingH3TokenNameplateStyle-Hint": "",
-
-				"nameplateStyleEnabled-Label": "Enable Nameplate Style",
-				"nameplateStyleEnabled-Hint": "If checked, Blacksmith will apply the font and outline settings below to token nameplates.",
-
-				"nameplateFontSize-Label": "Font Size",
-				"nameplateFontSize-Hint": "Sets the fontsize for nameplates under tokens. Range: 5px to 70px. Default: 24px.",
-			
-				"nameplateFontFamily-Label": "Font Family",
-				"nameplateFontFamily-Hint": "Sets the font for nameplates under tokens. Default: Signika.",
-			
-				"nameplateColor-Label": "Font Color",
-				"nameplateColor-Hint": "Sets the font color for nameplates under tokens. Default: #FFFFFF.",
-			
-				"nameplateOutlineSize-Label": "Outline Size",
-				"nameplateOutlineSize-Hint": "Sets the outline size for nameplates under tokens. Default: 2px.",
-			
-				"nameplateOutlineColor-Label": " Outline Color",
-				"nameplateOutlineColor-Hint": "Sets the outline color for nameplates under tokens. Default: #111111.",
-
-
-
 
 
 

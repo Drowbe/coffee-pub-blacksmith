@@ -3,11 +3,11 @@
 // ================================================================== 
 
 // -- Import MODULE variables --
-import { MODULE, BLACKSMITH } from './const.js';
+import { MODULE } from './const.js';
 // -- Import the shared GLOBAL variables --
 // COFFEEPUB now available globally via window.COFFEEPUB
 // -- Load the shared GLOBAL functions --
-import { postConsoleAndNotification, getTokenImage, getTokenId, getSettingSafely } from './api-core.js';
+import { postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 
 // ================================================================== 
@@ -18,7 +18,6 @@ export class CanvasTools {
     static ID = 'canvas-tools';
     
     // Hook IDs for cleanup
-    static _nameplateCreateTokenHookId = null;
     static _preCreateTokenHookId = null;
     static _preUpdateTokenHookId = null;
     static _createTokenHookId = null;
@@ -26,8 +25,6 @@ export class CanvasTools {
     static _updateTokenRotationHookId = null;
 
     static initialize() {
-        // Initialize token nameplate functionality
-        this._initializeNameplates();
         // Initialize token naming functionality
         this._initializeTokenNaming();
         // Initialize token conversion functionality (dead to loot)
@@ -47,64 +44,6 @@ export class CanvasTools {
                 }
             });
         });
-    }
-
-    // *** TOKEN NAMEPLATES ***
-    static _initializeNameplates() {
-        Hooks.once('ready', this._updateNameplates.bind(this));
-        CanvasTools._nameplateCreateTokenHookId = HookManager.registerHook({
-			name: 'createToken',
-			description: 'Canvas Tools: Update nameplates when tokens are created',
-			context: 'manager-canvas-nameplates',
-			priority: 3,
-			callback: this._updateNameplates.bind(this)
-		});
-    }
-
-    static _updateNameplates(tokenDocument, options, userId) {
-        // Only GMs can modify token nameplates
-        if (!game.user.isGM) {
-            return;
-        }
-        
-        // Only process if we have a specific token (from createToken hook)
-        if (!tokenDocument) {
-            // Fallback: process all tokens (for ready hook)
-            let tokens = canvas.tokens.placeables;
-            for (let token of tokens) {
-                this._updateSingleTokenNameplate(token);
-            }
-            return;
-        }
-
-        // Process only the newly created token
-        const token = canvas.tokens.get(tokenDocument.id);
-        if (token) {
-            this._updateSingleTokenNameplate(token);
-        }
-    }
-
-    static _updateSingleTokenNameplate(token) {
-        if (!game.settings.get(MODULE.ID, 'nameplateStyleEnabled')) {
-            return;
-        }
-
-        let strNameplateFontsize = game.settings.get(MODULE.ID, 'nameplateFontSize') + "px";
-        let strNameplateColor = game.settings.get(MODULE.ID, 'nameplateColor');
-        let strNameplateOutlineSize = game.settings.get(MODULE.ID, 'nameplateOutlineSize');
-        let strNameplateOutlineColor = game.settings.get(MODULE.ID, 'nameplateOutlineColor');
-        let strNameplateFontFamily = game.settings.get(MODULE.ID, 'nameplateFontFamily');
-        let color = parseInt((strNameplateColor.charAt(0) === '#' ? strNameplateColor.slice(1) : strNameplateColor), 16);
-        let outlineColor = parseInt((strNameplateOutlineColor.charAt(0) === '#' ? strNameplateOutlineColor.slice(1) : strNameplateOutlineColor), 16);
-
-        let nameplate = token.nameplate;
-        if(nameplate) {  
-            nameplate.style.fontSize = strNameplateFontsize;
-            nameplate.style.fontFamily = strNameplateFontFamily; 
-            nameplate.tint = color; 
-            nameplate.stroke = outlineColor;
-            nameplate.strokeThickness = parseInt(strNameplateOutlineSize);
-        }
     }
 
     // *** TOKEN NAMING ***
@@ -559,15 +498,6 @@ export class CanvasTools {
      * Clean up all hooks and resources
      */
     static cleanup() {
-        // Unregister nameplate hooks
-        if (CanvasTools._nameplateCreateTokenHookId) {
-            HookManager.unregisterHook({
-                name: 'createToken',
-                callbackId: CanvasTools._nameplateCreateTokenHookId
-            });
-            CanvasTools._nameplateCreateTokenHookId = null;
-        }
-        
         // Unregister token naming hooks
         if (CanvasTools._preCreateTokenHookId) {
             HookManager.unregisterHook({
