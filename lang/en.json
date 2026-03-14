@@ -12,8 +12,8 @@
 		"headingH2CoffeePubSuite-Label": "Coffee Pub Suite",
 		"headingH2CoffeePubSuite-Hint": "Information about installed Coffee Pub modules",
 
-		"headingH2DefaultPartySettings-Label": "Party Settings",
-		"headingH2DefaultPartySettings-Hint": "Default settings for party creation and management",
+		"headingH2DefaultPartySettings-Label": "Party",
+		"headingH2DefaultPartySettings-Hint": "Party defaults used as campaign context for prompts and imports.",
 
 			"defaultPartyName-Label": "Default Party Name",
 			"defaultPartyName-Hint": "The default party name to use when creating new narratives.",
@@ -33,10 +33,10 @@
 		"headingH2CampaignSettings-Label": "Campaign Settings",
 		"headingH2CampaignSettings-Hint": "These are used as context for various tools and features, including both any AI generated content as well as augment any JSON imports for items, journal entries, characters, etc.",
 
-			"headingH3CampaignCommon-Label": "Common",
-			"headingH3CampaignCommon-Hint": "General campaign settings that are common to all narratives.",
+			"headingH3CampaignCommon-Label": "Core",
+			"headingH3CampaignCommon-Hint": "Core campaign settings used as shared context for prompts and imports.",
 
-				"defaultCampaignName-Label": "Default Campaign Name",
+				"defaultCampaignName-Label": "Campaign Name",
 				"defaultCampaignName-Hint": "",
 
 
@@ -77,7 +77,7 @@
 				"objectLinkStyle-Label": "Object Link Style",
 				"objectLinkStyle-Hint": "Styling for object links in chat and journals",
 
-			"headingH3CanvasTools-Label": "Canvas Tools",
+			"headingH3CanvasTools-Label": "Canvas",
 			"headingH3CanvasTools-Hint": "",
 
 				"canvasToolsHideLeftUI-Label": "Hide Left UI",
@@ -563,18 +563,24 @@
 	"headingH1ManageContent-Label": "Manage Content",
 	"headingH1ManageContent-Hint": "Tools for managing tokens, images, and content.",
 
+	"headingH1Imports-Label": "Imports",
+	"headingH1Imports-Hint": "Settings for import defaults and content generation helpers.",
+
 		"headingH2Pins-Label": "Canvas Pins",
 		"headingH2Pins-Hint": "",
 		"pinsAllowPlayerWrites-Label": "Allow player writes",
 		"pinsAllowPlayerWrites-Hint": "If enabled, players with ownership of a pin can create, update, and delete pins. When disabled, only GMs can modify pins.",
 
-		"headingH2ContentImports-Label": "Content Imports",
-		"headingH2ContentImports-Hint": "",
+		"headingH2ItemImports-Label": "Item",
+		"headingH2ItemImports-Hint": "",
+
+		"headingH2JournalImports-Label": "Journal",
+		"headingH2JournalImports-Hint": "",
 
 			"enableEnhancedImageGuessing-Label": "Enhanced Image Guessing",
 			"enableEnhancedImageGuessing-Hint": "Uses comprehensive synonym mapping to automatically select appropriate images for imported items based on their names and descriptions.",
 	
-		"headingH2NarrativeGenerator-Label": "Narratives",
+		"headingH2NarrativeGenerator-Label": "Narrative",
 		"headingH2NarrativeGenerator-Hint": "",
 
 			"headingH3NarrativeConfiguration-Label": "Narrative Defaults",
@@ -613,7 +619,7 @@
 				"narrativeDefaultEncounterDetails-Label": "Default Encounter Details",
 				"narrativeDefaultEncounterDetails-Hint": "",
 
-		"headingH2EncounterGenerator-Label": "Encounter Defaults",
+		"headingH2EncounterGenerator-Label": "Encounter",
 		"headingH2EncounterGenerator-Hint": "",
 
 				"encounterFolder-Label": "Encounter Folder",

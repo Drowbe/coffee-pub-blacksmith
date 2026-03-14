@@ -824,7 +824,90 @@ export const registerSettings = () => {
 	});
 
 	// --------------------------------------
-	// -- H2: DEFAULT PARTY SETTINGS
+	// -- H1: CAMPAIGN SETTINGS
+	// --------------------------------------
+	registerHeader('CampaignSettings', 'headingH2CampaignSettings-Label', 'headingH2CampaignSettings-Hint', 'H1', WORKFLOW_GROUPS.GETTING_STARTED, 'world');
+
+	// --------------------------------------
+	// -- H2: CAMPAIGN COMMON
+	// --------------------------------------
+	registerHeader('CampaignCommon', 'headingH3CampaignCommon-Label', 'headingH3CampaignCommon-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED, 'world');
+
+	// -- Default Campaign Name --
+	game.settings.register(MODULE.ID, 'defaultCampaignName', {
+		name: MODULE.ID + '.defaultCampaignName-Label',
+		hint: MODULE.ID + '.defaultCampaignName-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.GETTING_STARTED
+	});
+
+	game.settings.register(MODULE.ID, 'defaultRulebooks', {
+		name: MODULE.ID + '.defaultRulebooks-Label',
+		hint: MODULE.ID + '.defaultRulebooks-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.GETTING_STARTED
+	});
+
+	// --------------------------------------
+	// -- H2: CAMPAIGN GEOGRAPHY
+	// --------------------------------------
+	registerHeader('CampaignGeography', 'headingH3CampaignGeography-Label', 'headingH3CampaignGeography-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED, 'world');
+
+
+	// -- Default Campaign Realm --
+	game.settings.register(MODULE.ID, 'defaultCampaignRealm', {
+		name: MODULE.ID + '.defaultCampaignRealm-Label',
+		hint: MODULE.ID + '.defaultCampaignRealm-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+	// -- Default Campaign Region --
+	game.settings.register(MODULE.ID, 'defaultCampaignRegion', {
+		name: MODULE.ID + '.defaultCampaignRegion-Label',
+		hint: MODULE.ID + '.defaultCampaignRegion-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+	// -- Default Campaign Site --
+	game.settings.register(MODULE.ID, 'defaultCampaignSite', {	
+		name: MODULE.ID + '.defaultCampaignSite-Label',	
+		hint: MODULE.ID + '.defaultCampaignSite-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});	
+
+	// -- Default Campaign Area --
+	game.settings.register(MODULE.ID, 'defaultCampaignArea', {
+		name: MODULE.ID + '.defaultCampaignArea-Label',
+		hint: MODULE.ID + '.defaultCampaignArea-Hint',	
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: ''
+	});
+
+	// --------------------------------------
+	// -- H2: PARTY
 	// --------------------------------------
 	registerHeader('DefaultPartySettings', 'headingH2DefaultPartySettings-Label', 'headingH2DefaultPartySettings-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED, 'world');
 
@@ -879,17 +962,6 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.GETTING_STARTED
 	});
 
-	game.settings.register(MODULE.ID, 'defaultRulebooks', {
-		name: MODULE.ID + '.defaultRulebooks-Label',
-		hint: MODULE.ID + '.defaultRulebooks-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: '',
-		group: WORKFLOW_GROUPS.GETTING_STARTED
-	});
-
 	// -- Party Leader - HIDDEN SETTING -- 
 	game.settings.register(MODULE.ID, 'partyLeader', {
 		name: 'Party Leader',
@@ -908,79 +980,6 @@ export const registerSettings = () => {
 		config: false,
 		type: Object,
 		default: { scenes: {} }
-	});
-
-	// --------------------------------------
-	// -- H2: CAMPAIGN SETTINGS
-	// --------------------------------------
-	registerHeader('CampaignSettings', 'headingH2CampaignSettings-Label', 'headingH2CampaignSettings-Hint', 'H2', WORKFLOW_GROUPS.GETTING_STARTED, 'world');
-
-
-	// --------------------------------------
-	// -- H3: CAMPAIGN COMMON
-	// --------------------------------------
-	registerHeader('CampaignCommon', 'headingH3CampaignCommon-Label', 'headingH3CampaignCommon-Hint', 'H3', WORKFLOW_GROUPS.GETTING_STARTED, 'world');
-
-	// -- Default Campaign Name --
-	game.settings.register(MODULE.ID, 'defaultCampaignName', {
-		name: MODULE.ID + '.defaultCampaignName-Label',
-		hint: MODULE.ID + '.defaultCampaignName-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: '',
-		group: WORKFLOW_GROUPS.GETTING_STARTED
-	});
-
-	// --------------------------------------
-	// -- H3: CAMPAIGN GEOGRAPHY
-	// --------------------------------------
-	registerHeader('CampaignGeography', 'headingH3CampaignGeography-Label', 'headingH3CampaignGeography-Hint', 'H3', WORKFLOW_GROUPS.GETTING_STARTED, 'world');
-
-
-	// -- Default Campaign Realm --
-	game.settings.register(MODULE.ID, 'defaultCampaignRealm', {
-		name: MODULE.ID + '.defaultCampaignRealm-Label',
-		hint: MODULE.ID + '.defaultCampaignRealm-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-
-	// -- Default Campaign Region --
-	game.settings.register(MODULE.ID, 'defaultCampaignRegion', {
-		name: MODULE.ID + '.defaultCampaignRegion-Label',
-		hint: MODULE.ID + '.defaultCampaignRegion-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});
-
-	// -- Default Campaign Site --
-	game.settings.register(MODULE.ID, 'defaultCampaignSite', {	
-		name: MODULE.ID + '.defaultCampaignSite-Label',	
-		hint: MODULE.ID + '.defaultCampaignSite-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
-	});	
-
-	// -- Default Campaign Area --
-	game.settings.register(MODULE.ID, 'defaultCampaignArea', {
-		name: MODULE.ID + '.defaultCampaignArea-Label',
-		hint: MODULE.ID + '.defaultCampaignArea-Hint',	
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: ''
 	});
 
 
@@ -2907,10 +2906,17 @@ export const registerSettings = () => {
 		default: {}
 	});
 
+	// ==================================================================================================================== 
+	// ==================================================================================================================== 
+	// == IMPORTS
+	// ==================================================================================================================== 
+	// ==================================================================================================================== 
+	registerHeader('Imports', 'headingH1Imports-Label', 'headingH1Imports-Hint', 'H1', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+
 	// --------------------------------------
-	// -- H2: Imports
+	// -- H2: Item
 	// --------------------------------------
-	registerHeader('ContentImports', 'headingH2ContentImports-Label', 'headingH2ContentImports-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+	registerHeader('ItemImports', 'headingH2ItemImports-Label', 'headingH2ItemImports-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 
 	// -- Enhanced Image Guessing --
 	game.settings.register(MODULE.ID, 'enableEnhancedImageGuessing', {
@@ -2924,15 +2930,20 @@ export const registerSettings = () => {
 	});
 
 	// --------------------------------------
-	// -- H2: Narratives
+	// -- H2: Journal
 	// --------------------------------------
-	registerHeader('NarrativeGenerator', 'headingH2NarrativeGenerator-Label', 'headingH2NarrativeGenerator-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+	registerHeader('JournalImports', 'headingH2JournalImports-Label', 'headingH2JournalImports-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+
+	// --------------------------------------
+	// -- H3: Narrative
+	// --------------------------------------
+	registerHeader('NarrativeGenerator', 'headingH2NarrativeGenerator-Label', 'headingH2NarrativeGenerator-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 
 
 	// --------------------------------------
-	// -- H3: Narrative Configuration	
+	// -- H4: Narrative Configuration	
 	// --------------------------------------
-	registerHeader('NarrativeConfiguration', 'headingH3NarrativeConfiguration-Label', 'headingH3NarrativeConfiguration-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
+	registerHeader('NarrativeConfiguration', 'headingH3NarrativeConfiguration-Label', 'headingH3NarrativeConfiguration-Hint', 'H4', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 	
 	// -- Use Cookies --
 	game.settings.register(MODULE.ID, 'narrativeUseCookies', {
@@ -3024,9 +3035,9 @@ export const registerSettings = () => {
 
 
 	// --------------------------------------
-	// -- H3: Narrative Options	
+	// -- H4: Narrative Options	
 	// --------------------------------------
-	registerHeader('NarrativeOptions', 'headingH3NarrativeOptions-Label', 'headingH3NarrativeOptions-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
+	registerHeader('NarrativeOptions', 'headingH3NarrativeOptions-Label', 'headingH3NarrativeOptions-Hint', 'H4', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 	
 	// -- Include Treasure by Default --
 	game.settings.register(MODULE.ID, 'narrativeDefaultIncludeTreasure', {
@@ -3089,9 +3100,9 @@ export const registerSettings = () => {
 	});
 
 	// --------------------------------------
-	// -- H2: Narratives
+	// -- H3: Encounter
 	// --------------------------------------
-	registerHeader('EncounterGenerator', 'headingH2EncounterGenerator-Label', 'headingH2EncounterGenerator-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+	registerHeader('EncounterGenerator', 'headingH2EncounterGenerator-Label', 'headingH2EncounterGenerator-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 
 	// -- Encounter Folder --
 	game.settings.register(MODULE.ID, 'encounterFolder', {
