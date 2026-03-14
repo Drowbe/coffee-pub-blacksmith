@@ -672,6 +672,61 @@ function getThemeChoices() {
     return choices;
 }
 
+function getActorChoices() {
+	postConsoleAndNotification(MODULE.NAME, "Building Party Actor List...", "", false, false);
+	const choices = { none: '-- None --' };
+	const actors = Array.from(game.actors?.values?.() ?? [])
+		.filter(actor => !actor?.isToken)
+		.sort((a, b) => a.name.localeCompare(b.name));
+	for (const actor of actors) {
+		choices[actor.id] = actor.name;
+	}
+	BLACKSMITH.updateValue('arrPartyActorChoices', choices);
+	return choices;
+}
+
+function getRulebookCompendiumChoices() {
+	postConsoleAndNotification(MODULE.NAME, "Building Rulebook Compendium List...", "", false, false);
+	const choices = { none: '-- None --' };
+	const packs = Array.from(game.packs?.values?.() ?? [])
+		.map(pack => {
+			let packageLabel = pack.metadata.packageLabel || pack.metadata.package || pack.metadata.packageName || pack.metadata.system || pack.metadata.id.split('.')[0] || 'Unknown Source';
+			if (packageLabel === 'world') packageLabel = 'World';
+			return {
+				id: pack.metadata.id,
+				label: `${packageLabel}: ${pack.metadata.label}`
+			};
+		})
+		.sort((a, b) => a.label.localeCompare(b.label));
+	for (const pack of packs) {
+		choices[pack.id] = pack.label;
+	}
+	BLACKSMITH.updateValue('arrRulebookCompendiumChoices', choices);
+	return choices;
+}
+
+export function buildSelectedCampaignArrays() {
+	const selectedPartyMembers = [];
+	const partySize = game.settings.get(MODULE.ID, 'defaultPartySize') ?? 0;
+	for (let i = 1; i <= partySize; i++) {
+		const actorId = game.settings.get(MODULE.ID, `partyMember${i}`) || 'none';
+		if (actorId !== 'none' && actorId !== '') {
+			selectedPartyMembers.push(actorId);
+		}
+	}
+	BLACKSMITH.updateValue('arrSelectedPartyMembers', selectedPartyMembers);
+
+	const selectedRulebooks = [];
+	const numRulebooks = game.settings.get(MODULE.ID, 'numRulebooks') ?? 0;
+	for (let i = 1; i <= numRulebooks; i++) {
+		const compendiumId = game.settings.get(MODULE.ID, `rulebookCompendium${i}`) || 'none';
+		if (compendiumId !== 'none' && compendiumId !== '') {
+			selectedRulebooks.push(compendiumId);
+		}
+	}
+	BLACKSMITH.updateValue('arrSelectedRulebookCompendiums', selectedRulebooks);
+}
+
 // -- BACKGROUND IMAGE CHOICES --
 function getBackgroundImageChoices() {
     postConsoleAndNotification(MODULE.NAME, "Building Background Image List...", "", false, false);
@@ -856,6 +911,36 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.GETTING_STARTED
 	});
 
+	game.settings.register(MODULE.ID, 'numRulebooks', {
+		name: MODULE.ID + '.numRulebooks-Label',
+		hint: MODULE.ID + '.numRulebooks-Hint',
+		type: Number,
+		scope: 'world',
+		config: true,
+		requiresReload: true,
+		range: {
+			min: 0,
+			max: 15,
+			step: 1
+		},
+		default: 0,
+		group: WORKFLOW_GROUPS.GETTING_STARTED
+	});
+
+	for (let i = 1; i <= 15; i++) {
+		game.settings.register(MODULE.ID, `rulebookCompendium${i}`, {
+			name: `Rulebook ${i}`,
+			hint: null,
+			scope: 'world',
+			config: i <= (game.settings.get(MODULE.ID, 'numRulebooks') ?? 0),
+			requiresReload: false,
+			type: String,
+			default: 'none',
+			choices: BLACKSMITH.arrRulebookCompendiumChoices || getRulebookCompendiumChoices(),
+			group: WORKFLOW_GROUPS.GETTING_STARTED
+		});
+	}
+
 	// --------------------------------------
 	// -- H2: CAMPAIGN GEOGRAPHY
 	// --------------------------------------
@@ -927,6 +1012,7 @@ export const registerSettings = () => {
 		type: Number,
 		scope: 'world',
 		config: true,
+		requiresReload: true,
 		range: {
 			min: 1,
 			max: 20,
@@ -936,15 +1022,28 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.GETTING_STARTED
 	});
 
+	for (let i = 1; i <= 20; i++) {
+		game.settings.register(MODULE.ID, `partyMember${i}`, {
+			name: `Party Member ${i}`,
+			hint: null,
+			scope: 'world',
+			config: i <= (game.settings.get(MODULE.ID, 'defaultPartySize') ?? 0),
+			requiresReload: false,
+			type: String,
+			default: 'none',
+			choices: BLACKSMITH.arrPartyActorChoices || getActorChoices(),
+			group: WORKFLOW_GROUPS.GETTING_STARTED
+		});
+	}
+
 	game.settings.register(MODULE.ID, 'defaultPartyMakeup', {
 		name: MODULE.ID + '.defaultPartyMakeup-Label',
 		hint: MODULE.ID + '.defaultPartyMakeup-Hint',
 		scope: "world",
-		config: true,
+		config: false,
 		requiresReload: false,
 		type: String,
-		default: '',
-		group: WORKFLOW_GROUPS.GETTING_STARTED
+		default: ''
 	});
 
 	game.settings.register(MODULE.ID, 'defaultPartyLevel', {
@@ -952,14 +1051,13 @@ export const registerSettings = () => {
 		hint: MODULE.ID + '.defaultPartyLevel-Hint',
 		type: Number,
 		scope: 'world',
-		config: true,
+		config: false,
 		range: {
 			min: 1,
 			max: 20,
 			step: 1
 		},
-		default: 1,
-		group: WORKFLOW_GROUPS.GETTING_STARTED
+		default: 1
 	});
 
 	// -- Party Leader - HIDDEN SETTING -- 
@@ -4098,7 +4196,11 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 	});
 
+	getActorChoices();
+	getRulebookCompendiumChoices();
+
 	// Build selected compendium arrays after all settings are registered
 	buildSelectedCompendiumArrays();
+	buildSelectedCampaignArrays();
 
 } // END OF "export const registerSettings"

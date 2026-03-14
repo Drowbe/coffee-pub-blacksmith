@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Campaign settings hierarchy**: Reorganized the `Getting Started` campaign block so `Campaign Settings` is now the primary section with `Core`, `Geography`, and `Party` nested beneath it. `Campaign Name` now appears first in `Core`, followed by `Default Rulebooks`.
+- **Party configuration model**: Replaced freeform party defaults as the primary source of truth with a declarative party setup. `Party Size` now drives party-member actor dropdowns, and prompt generation now derives party makeup and average level from the selected actors with legacy fallback support.
+- **Rulebook configuration model**: Replaced rulebooks-as-text-only with a mixed model. `Number of Rulebooks` now drives rulebook compendium dropdowns, while the old text setting is now `Custom Rulebooks` for supplemental freeform sources.
 - **Imports settings hierarchy**: Split import-related configuration out into a dedicated `Imports` section with `Item` and `Journal` subsections. Journal defaults are now grouped under `Narrative` and `Encounter`, while `Enhanced Image Guessing` now lives under `Imports > Item`.
 - **Regent AI settings layout**: Restored missing top-level Regent settings headings by adding `AI Settings` and `OpenAI`, plus visible narrative headings in Regent so its settings page has the same structural treatment as Blacksmith where appropriate.
 
@@ -18,10 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Regent duplicate cookie setting**: Removed the bad duplicate `Narrative Use Cookies` checkbox in Regent that was actually a misregistered `openAIContextLength` setting.
 - **Regent/Blacksmith narrative default ownership**: Removed duplicate Regent registrations for Blacksmith-owned narrative import defaults (`defaultNarrativeFolder`, `narrativeDefaultCardImage`, `narrativeDefaultImagePath`) and updated Regent to read those values from Blacksmith instead.
+- **Prompt default sourcing**: Narrative, encounter, item, table, and actor prompt helpers now use normalized campaign data instead of reading a mix of old raw settings directly.
 
-### Notes
+### Added
 
-- **Campaign API planning**: Confirmed Blacksmith does not yet expose a dedicated `campaign` API surface. Current external access is only available indirectly through generic settings helpers. Future work will introduce a dedicated campaign subsystem and public API.
+- **Campaign subsystem**: Added `scripts/manager-campaign.js` to normalize campaign, geography, party, rulebook, and journal-default data from Blacksmith settings.
+- **Campaign API**: Added `scripts/api-campaign.js` and exposed `module.api.campaign` as the public read-only contract for normalized campaign data.
+- **Campaign API documentation**: Added [documentation/api-campaign.md](/c:/Users/drowb/AppData/Local/FoundryVTT/Data/modules/coffee-pub-blacksmith/documentation/api-campaign.md) so other Coffee Pub modules can migrate away from raw settings reads.
 
 ## [13.5.6] - 2026-03-14 - CHAT CARD CLEANUP, TOKEN SETTINGS & NAMEPLATE REMOVAL
 

@@ -128,6 +128,20 @@ export class BlacksmithAPI {
     }
 
     /**
+     * Get the Campaign API
+     * @returns {Promise<Object>} Campaign API instance
+     */
+    static getCampaign() {
+        return this.waitForReady().then(() => {
+            try {
+                return this._getAPI().campaign;
+            } catch (error) {
+                throw new Error(`Failed to get Campaign API: ${error.message}`);
+            }
+        });
+    }
+
+    /**
      * Get the BlacksmithCanvasLayer (available after canvasReady)
      * @returns {Promise<Object|null>} BlacksmithLayer instance or null if not available
      */

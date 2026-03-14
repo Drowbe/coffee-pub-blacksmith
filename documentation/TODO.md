@@ -169,11 +169,11 @@
   - Optionally wire in more `METADATA_PATTERNS` (e.g. profession, action, direction, quality, creatureType) if they should feed tags; currently only class, weapon, armor, size are used in the loop.
 - **Notes**: Same parsing applies to both token and portrait caches. Class, weapon, armor, size remain used by the matching algorithm; new tags are for display/filtering and search.
 
-#### Migrate defaultRulebooks Setting to Checkboxes and Custom Box
-- **Issue**: defaultRulebooks should use checkboxes for common rulebooks and custom text box for additional ones
-- **Status**: PENDING - Needs implementation
-- **Location**: `scripts/settings.js`
-- **Need**: Checkbox settings for PHB/DMG/MM/XGtE/TCoE, custom text box, backward compatibility
+#### Expand Rulebook Selection Phase 2
+- **Issue**: phase 1 now uses `Number of Rulebooks`, rulebook compendium dropdowns, and `Custom Rulebooks`; phase 2 may still want curated/common-book shortcuts
+- **Status**: PENDING
+- **Location**: `scripts/settings.js`, `scripts/manager-campaign.js`
+- **Need**: Decide whether to add common-rulebook presets/checkboxes on top of the current compendium-driven model
 
 #### Refactor Compendium Settings into Reusable Function
 - **Issue**: Compendium settings have repeated code patterns that could be consolidated

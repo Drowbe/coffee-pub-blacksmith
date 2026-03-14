@@ -15,11 +15,11 @@
 		"headingH2DefaultPartySettings-Label": "Party",
 		"headingH2DefaultPartySettings-Hint": "Party defaults used as campaign context for prompts and imports.",
 
-			"defaultPartyName-Label": "Default Party Name",
-			"defaultPartyName-Hint": "The default party name to use when creating new narratives.",
+			"defaultPartyName-Label": "Party Name",
+			"defaultPartyName-Hint": "The configured party name used for campaign context.",
 
-			"defaultPartySize-Label": "Default Party Size", 
-			"defaultPartySize-Hint": "The default party size to use when creating new narratives.",
+			"defaultPartySize-Label": "Party Size", 
+			"defaultPartySize-Hint": "How many party-member dropdowns to expose below.",
 
 			"defaultPartyMakeup-Label": "Default Party Makeup",
 			"defaultPartyMakeup-Hint": "The default party makeup to use when creating new narratives.",
@@ -27,8 +27,10 @@
 			"defaultPartyLevel-Label": "Default Party Level",
 			"defaultPartyLevel-Hint": "The default party level to use when creating new narratives.",
 
-			"defaultRulebooks-Label": "Default Rulebooks",
-			"defaultRulebooks-Hint": "A comma separated list of default rule books to use when creating new narratives.",
+			"defaultRulebooks-Label": "Custom Rulebooks",
+			"defaultRulebooks-Hint": "Additional freeform rulebooks or supplements that are not covered by the selected rulebook compendiums.",
+			"numRulebooks-Label": "Number of Rulebooks",
+			"numRulebooks-Hint": "How many rulebook compendium dropdowns to expose below.",
 		
 		"headingH2CampaignSettings-Label": "Campaign Settings",
 		"headingH2CampaignSettings-Hint": "These are used as context for various tools and features, including both any AI generated content as well as augment any JSON imports for items, journal entries, characters, etc.",
@@ -53,7 +55,7 @@
 				"defaultCampaignSite-Hint": "A specific location or structure within a region like a building, mine, or stronghold.",
 
 				"defaultCampaignArea-Label": "Area",
-				"defaultCampaignArea-Hint": "A distinct part of a site like a room, chamber, street, or locartion where scenes or encounters occur.",
+				"defaultCampaignArea-Hint": "A distinct part of a site like a room, chamber, street, or location where scenes or encounters occur.",
 
 
 	"SEPARATOR-USER-EXPERIENCE": "-------------------------------------------------------",

@@ -38,7 +38,7 @@ import {
     copyToClipboard 
 } from './common.js';
 // -- Import special page variables --
-import { registerSettings, buildSelectedCompendiumArrays, reorderCompendiumsForType, extractTypeFromCompendiumSetting } from './settings.js';
+import { registerSettings, buildSelectedCompendiumArrays, buildSelectedCampaignArrays, reorderCompendiumsForType, extractTypeFromCompendiumSetting } from './settings.js';
 import { BlacksmithLayer } from './canvas-layer.js';
 import { addToolbarButton } from './manager-toolbar.js';
 import { CombatTimer } from './timer-combat.js';
@@ -78,6 +78,8 @@ import { PinManager } from './manager-pins.js';
 import { PinsAPI } from './api-pins.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
 import { TokenIndicatorManager } from './manager-token-indicators.js';
+import { CampaignManager } from './manager-campaign.js';
+import { CampaignAPI } from './api-campaign.js';
 import './sidebar-combat.js';
 import './combat-tools.js'; 
 // ================================================================== 
@@ -747,6 +749,7 @@ Hooks.once('init', async function() {
     
     // Initialize UtilsManager
     UtilsManager.initialize();
+    CampaignManager.initialize();
     
     // Socket initialization moved to 'ready' hook for proper SocketLib integration
     
@@ -842,7 +845,9 @@ Hooks.once('init', async function() {
                 const compendiumSettingPattern = /^(numCompendiums|.+Compendium\d+|searchWorld.+First|searchWorld.+Last)$/;
                 if (compendiumSettingPattern.test(settingKey)) {
                     // If this is a compendium priority setting (e.g., "actorCompendium1"), trigger reordering
-                    const type = extractTypeFromCompendiumSetting(settingKey);
+                    const type = settingKey.startsWith('rulebookCompendium')
+                        ? null
+                        : extractTypeFromCompendiumSetting(settingKey);
                     if (type) {
                         // Use setTimeout to avoid race conditions and ensure setting is saved
                         setTimeout(async () => {
@@ -850,6 +855,11 @@ Hooks.once('init', async function() {
                         }, 200);
                     }
                     buildSelectedCompendiumArrays();
+                }
+
+                const campaignSettingPattern = /^(defaultPartySize|partyMember\d+|numRulebooks|rulebookCompendium\d+)$/;
+                if (campaignSettingPattern.test(settingKey)) {
+                    buildSelectedCampaignArrays();
                 }
             }
             
@@ -1073,6 +1083,9 @@ Hooks.once('init', async function() {
 
         // ✅ NEW: Chat Cards API for external modules
         chatCards: ChatCardsAPI,
+
+        // ✅ Campaign API for normalized campaign, party, and import context
+        campaign: CampaignAPI,
 
         // ✅ Combat assessment API (party CR, monster CR, encounter difficulty) from EncounterManager
         getPartyCR: EncounterManager.getPartyCR.bind(EncounterManager),
@@ -2089,30 +2102,26 @@ postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", 
 
 // Helper to replace placeholders in the narrative template with settings values
 async function getNarrativeTemplateWithDefaults(narrativeTemplate) {
+  const context = CampaignManager.getPromptContext();
   const settings = [
-    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', key: 'defaultCampaignName' },
-    { placeholder: '[ADD-RULEBOOKS-HERE]', key: 'defaultRulebooks' },
-    { placeholder: '[ADD-PARTY-SIZE-HERE]', key: 'defaultPartySize' },
-    { placeholder: '[ADD-PARTY-LEVEL-HERE]', key: 'defaultPartyLevel' },
-    { placeholder: '[ADD-PARTY-MAKEUP-HERE]', key: 'defaultPartyMakeup' },
-    { placeholder: '[ADD-FOLDER-NAME-HERE]', key: 'defaultNarrativeFolder' },
-    { placeholder: '[ADD-SCENE-AREA-HERE]', key: 'defaultCampaignArea' },
-    { placeholder: '[ADD-SCENE-ENVIRONMENT-HERE]', key: 'defaultCampaignSite' },
-    { placeholder: '[ADD-SCENE-LOCATION-HERE]', key: 'defaultCampaignRealm' },
-    { placeholder: '[ADD-IMAGE-PATH-HERE]', key: 'narrativeDefaultCardImage' }
+    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
+    { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
+    { placeholder: '[ADD-PARTY-SIZE-HERE]', value: context.partySize },
+    { placeholder: '[ADD-PARTY-LEVEL-HERE]', value: context.partyLevel },
+    { placeholder: '[ADD-PARTY-MAKEUP-HERE]', value: context.partyMakeup },
+    { placeholder: '[ADD-FOLDER-NAME-HERE]', value: context.narrativeFolder },
+    { placeholder: '[ADD-SCENE-AREA-HERE]', value: context.area },
+    { placeholder: '[ADD-SCENE-ENVIRONMENT-HERE]', value: context.site },
+    { placeholder: '[ADD-SCENE-LOCATION-HERE]', value: context.realm },
+    { placeholder: '[ADD-IMAGE-PATH-HERE]', value: context.narrativeCardImage }
   ];
   let result = narrativeTemplate;
-  for (const { placeholder, key } of settings) {
-    let value = undefined;
-    try {
-      value = game.settings.get(MODULE.ID, key);
-    } catch (e) {}
+  for (const { placeholder, value: initialValue } of settings) {
+    let value = initialValue;
     // Special logic for image path
     if (placeholder === '[ADD-IMAGE-PATH-HERE]') {
       if (value === 'custom') {
-        try {
-          value = game.settings.get(MODULE.ID, 'narrativeDefaultImagePath');
-        } catch (e) {}
+          value = context.narrativeImagePath;
       }
     }
     if (!value) continue; // leave placeholder if not set
@@ -2122,30 +2131,26 @@ async function getNarrativeTemplateWithDefaults(narrativeTemplate) {
 }
 
 async function getEncounterTemplateWithDefaults(encounterTemplate) {
+  const context = CampaignManager.getPromptContext();
   const settings = [
-    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', key: 'defaultCampaignName' },
-    { placeholder: '[ADD-RULEBOOKS-HERE]', key: 'defaultRulebooks' },
-    { placeholder: '[ADD-PARTY-SIZE-HERE]', key: 'defaultPartySize' },
-    { placeholder: '[ADD-PARTY-LEVEL-HERE]', key: 'defaultPartyLevel' },
-    { placeholder: '[ADD-PARTY-MAKEUP-HERE]', key: 'defaultPartyMakeup' },
-    { placeholder: '[ADD-FOLDER-NAME-HERE]', key: 'encounterFolder' },
-    { placeholder: '[ADD-SCENE-AREA-HERE]', key: 'defaultCampaignArea' },
-    { placeholder: '[ADD-SCENE-ENVIRONMENT-HERE]', key: 'defaultCampaignSite' },
-    { placeholder: '[ADD-SCENE-LOCATION-HERE]', key: 'defaultCampaignRealm' },
-    { placeholder: '[ADD-IMAGE-PATH-HERE]', key: 'encounterDefaultCardImage' }
+    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
+    { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
+    { placeholder: '[ADD-PARTY-SIZE-HERE]', value: context.partySize },
+    { placeholder: '[ADD-PARTY-LEVEL-HERE]', value: context.partyLevel },
+    { placeholder: '[ADD-PARTY-MAKEUP-HERE]', value: context.partyMakeup },
+    { placeholder: '[ADD-FOLDER-NAME-HERE]', value: context.encounterFolder },
+    { placeholder: '[ADD-SCENE-AREA-HERE]', value: context.area },
+    { placeholder: '[ADD-SCENE-ENVIRONMENT-HERE]', value: context.site },
+    { placeholder: '[ADD-SCENE-LOCATION-HERE]', value: context.realm },
+    { placeholder: '[ADD-IMAGE-PATH-HERE]', value: context.encounterCardImage }
   ];
   let result = encounterTemplate;
-  for (const { placeholder, key } of settings) {
-    let value = undefined;
-    try {
-      value = game.settings.get(MODULE.ID, key);
-    } catch (e) {}
+  for (const { placeholder, value: initialValue } of settings) {
+    let value = initialValue;
     // Special logic for image path
     if (placeholder === '[ADD-IMAGE-PATH-HERE]') {
       if (value === 'custom') {
-        try {
-          value = game.settings.get(MODULE.ID, 'encounterDefaultImagePath');
-        } catch (e) {}
+          value = context.encounterImagePath;
       }
     }
     if (!value) continue; // leave placeholder if not set
@@ -2763,18 +2768,16 @@ export async function handleSkillRollUpdate(data) {
 
 // Helper to replace placeholders in the item prompt with settings values
 async function getItemPromptWithDefaults(itemPrompt) {
+  const context = CampaignManager.getPromptContext();
   const settings = [
-    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', key: 'defaultCampaignName' },
-    { placeholder: '[ADD-RULEBOOKS-HERE]', key: 'defaultRulebooks' },
-    { placeholder: '[ADD-ITEM-SOURCE-HERE]', key: 'defaultCampaignName' }
+    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
+    { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
+    { placeholder: '[ADD-ITEM-SOURCE-HERE]', value: context.campaignName }
   ];
 
   let result = itemPrompt;
   for (const setting of settings) {
-    let value = '';
-    try {
-      value = game.settings.get(MODULE.ID, setting.key);
-    } catch (e) {}
+    const value = setting.value || '';
     if (value) {
       result = result.split(setting.placeholder).join(value);
     }
@@ -2784,19 +2787,17 @@ async function getItemPromptWithDefaults(itemPrompt) {
 
 // Helper to replace placeholders in the table prompt with settings values
 async function getTablePromptWithDefaults(tablePrompt) {
+  const context = CampaignManager.getPromptContext();
   const settings = [
-    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', key: 'defaultCampaignName' },
-    { placeholder: '[ADD-RULEBOOKS-HERE]', key: 'defaultRulebooks' },
-    { placeholder: '[ADD-ITEM-SOURCE-HERE]', key: 'defaultCampaignName' },
-    { placeholder: '[ADD-ACTORS-SOURCE-HERE]', key: 'defaultCampaignName' }
+    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
+    { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
+    { placeholder: '[ADD-ITEM-SOURCE-HERE]', value: context.campaignName },
+    { placeholder: '[ADD-ACTORS-SOURCE-HERE]', value: context.campaignName }
   ];
 
   let result = tablePrompt;
   for (const setting of settings) {
-    let value = '';
-    try {
-      value = game.settings.get(MODULE.ID, setting.key);
-    } catch (e) {}
+    const value = setting.value || '';
     if (value) {
       result = result.split(setting.placeholder).join(value);
     }
@@ -2806,21 +2807,19 @@ async function getTablePromptWithDefaults(tablePrompt) {
 
 // Helper to replace placeholders in the actor prompt with settings values
 async function getActorPromptWithDefaults(actorPrompt) {
+  const context = CampaignManager.getPromptContext();
   const settings = [
-    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', key: 'defaultCampaignName' },
-    { placeholder: '[ADD-RULEBOOKS-HERE]', key: 'defaultRulebooks' },
-    { placeholder: '[ADD-NPC-SOURCE-HERE]', key: 'defaultCampaignName' },
-    { placeholder: '[ADD-PARTY-SIZE-HERE]', key: 'defaultPartySize' },
-    { placeholder: '[ADD-PARTY-LEVEL-HERE]', key: 'defaultPartyLevel' },
-    { placeholder: '[ADD-PARTY-MAKEUP-HERE]', key: 'defaultPartyMakeup' }
+    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
+    { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
+    { placeholder: '[ADD-NPC-SOURCE-HERE]', value: context.campaignName },
+    { placeholder: '[ADD-PARTY-SIZE-HERE]', value: context.partySize },
+    { placeholder: '[ADD-PARTY-LEVEL-HERE]', value: context.partyLevel },
+    { placeholder: '[ADD-PARTY-MAKEUP-HERE]', value: context.partyMakeup }
   ];
 
   let result = actorPrompt;
   for (const setting of settings) {
-    let value = '';
-    try {
-      value = game.settings.get(MODULE.ID, setting.key);
-    } catch (e) {}
+    const value = setting.value || '';
     if (value) {
       result = result.split(setting.placeholder).join(value);
     }
