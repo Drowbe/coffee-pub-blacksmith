@@ -68,6 +68,7 @@ To generate a rollable table, use the template and guidance above. Create flavor
 - Relate the results to the campaign where appropriate.
 - The source of the table: "[ADD-ACTORS-SOURCE-HERE]".
 - The campaign is called "[ADD-CAMPAIGN-NAME-HERE]"
+- The campaign is using the [ADD-RULES-VERSION-HERE] rules revision.
 - The campaign is leveraging these rulebooks: [ADD-RULEBOOKS-HERE]
 - You may use actors from any of the following compendiums. For each result, you must set RESULTCOMPENDIUM to the compendium that actually contains that actor. Valid actor compendiums include: [ADD-COMPENDIUMS-HERE]
 - Don’t cluster all entries in a single compendium unless instructed to do so. 

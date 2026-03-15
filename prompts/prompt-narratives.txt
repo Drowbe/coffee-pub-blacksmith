@@ -168,9 +168,12 @@ USAGE INSTRUCTIONS
 When I ask you to generate narration for a scene and then give you context for the narration, you are to use the above to generate the narration in the form of the JSON template. Ask clarifying questions as needed. Here is the outline for the area:
 
 - The campaign is called "[ADD-CAMPAIGN-NAME-HERE]"
+- The campaign is using the [ADD-RULES-VERSION-HERE] rules revision.
 - The campaign is leveraging these rulebooks: [ADD-RULEBOOKS-HERE]
+- The party is called "[ADD-PARTY-NAME-HERE]".
 - This narrative will be for [ADD-PARTY-SIZE-HERE] level [ADD-PARTY-LEVEL-HERE] characters.
 - Assume the party includes the following characters: [ADD-PARTY-MAKEUP-HERE].
+- The party's primary classes include: [ADD-PARTY-CLASSES-HERE].
 
 Please include these specific details in the narration. As much as possible keep them cohesive with the larger campaign.
 

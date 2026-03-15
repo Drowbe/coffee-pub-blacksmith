@@ -257,9 +257,12 @@ Additional settings and details:
 
 - NPCSOURCE: set to "[ADD-NPC-SOURCE-HERE]"
 - The campaign is called "[ADD-CAMPAIGN-NAME-HERE]"
+- The campaign is using the [ADD-RULES-VERSION-HERE] rules revision.
 - The campaign is leveraging these rulebooks: [ADD-RULEBOOKS-HERE]
+- The party is called "[ADD-PARTY-NAME-HERE]".
 - This narrative will be for [ADD-PARTY-SIZE-HERE] level [ADD-PARTY-LEVEL-HERE] characters.
 - Assume the party includes the following characters: [ADD-PARTY-MAKEUP-HERE].
+- The party's primary classes include: [ADD-PARTY-CLASSES-HERE].
 - Ask clarifying questions if something is ambiguous.
 - Always use type: "npc" for monsters/NPCs
 - Use exact official names as they appear in the rulebooks to ensure proper compendium matching

@@ -21,12 +21,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Regent duplicate cookie setting**: Removed the bad duplicate `Narrative Use Cookies` checkbox in Regent that was actually a misregistered `openAIContextLength` setting.
 - **Regent/Blacksmith narrative default ownership**: Removed duplicate Regent registrations for Blacksmith-owned narrative import defaults (`defaultNarrativeFolder`, `narrativeDefaultCardImage`, `narrativeDefaultImagePath`) and updated Regent to read those values from Blacksmith instead.
 - **Prompt default sourcing**: Narrative, encounter, item, table, and actor prompt helpers now use normalized campaign data instead of reading a mix of old raw settings directly.
+- **Encounter actor folder sourcing**: Encounter-toolbar world-actor creation now uses the normalized campaign journal defaults instead of reading `encounterFolder` directly from raw settings.
+- **Narrative scene parent replacement**: Blacksmith now fills the narrative prompt's existing `[ADD-SCENE-PARENT-HERE]` token from campaign geography instead of leaving it unresolved.
 
 ### Added
 
 - **Campaign subsystem**: Added `scripts/manager-campaign.js` to normalize campaign, geography, party, rulebook, and journal-default data from Blacksmith settings.
 - **Campaign API**: Added `scripts/api-campaign.js` and exposed `module.api.campaign` as the public read-only contract for normalized campaign data.
 - **Campaign API documentation**: Added [documentation/api-campaign.md](/c:/Users/drowb/AppData/Local/FoundryVTT/Data/modules/coffee-pub-blacksmith/documentation/api-campaign.md) so other Coffee Pub modules can migrate away from raw settings reads.
+- **Richer prompt context**: Added `partyName` and `partyClasses` to the normalized campaign prompt context so Blacksmith prompts can consume more than just party size, level, and makeup.
 
 ## [13.5.6] - 2026-03-14 - CHAT CARD CLEANUP, TOKEN SETTINGS & NAMEPLATE REMOVAL
 

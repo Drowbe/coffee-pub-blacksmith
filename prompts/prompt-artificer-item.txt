@@ -302,6 +302,7 @@ Inject mystery or regional flavor. Make the party wonder where it came from and 
 
 Additional settings:
 - The campaign is called "[ADD-CAMPAIGN-NAME-HERE]"
+- The campaign is using the [ADD-RULES-VERSION-HERE] rules revision.
 - The campaign is leveraging these rulebooks: [ADD-RULEBOOKS-HERE]
 - Ask clarifying questions if something is ambiguous.
 

@@ -2105,11 +2105,15 @@ async function getNarrativeTemplateWithDefaults(narrativeTemplate) {
   const context = CampaignManager.getPromptContext();
   const settings = [
     { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
+    { placeholder: '[ADD-RULES-VERSION-HERE]', value: context.rulesVersion },
     { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
+    { placeholder: '[ADD-PARTY-NAME-HERE]', value: context.partyName },
     { placeholder: '[ADD-PARTY-SIZE-HERE]', value: context.partySize },
     { placeholder: '[ADD-PARTY-LEVEL-HERE]', value: context.partyLevel },
     { placeholder: '[ADD-PARTY-MAKEUP-HERE]', value: context.partyMakeup },
+    { placeholder: '[ADD-PARTY-CLASSES-HERE]', value: context.partyClasses },
     { placeholder: '[ADD-FOLDER-NAME-HERE]', value: context.narrativeFolder },
+    { placeholder: '[ADD-SCENE-PARENT-HERE]', value: context.region },
     { placeholder: '[ADD-SCENE-AREA-HERE]', value: context.area },
     { placeholder: '[ADD-SCENE-ENVIRONMENT-HERE]', value: context.site },
     { placeholder: '[ADD-SCENE-LOCATION-HERE]', value: context.realm },
@@ -2134,11 +2138,15 @@ async function getEncounterTemplateWithDefaults(encounterTemplate) {
   const context = CampaignManager.getPromptContext();
   const settings = [
     { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
+    { placeholder: '[ADD-RULES-VERSION-HERE]', value: context.rulesVersion },
     { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
+    { placeholder: '[ADD-PARTY-NAME-HERE]', value: context.partyName },
     { placeholder: '[ADD-PARTY-SIZE-HERE]', value: context.partySize },
     { placeholder: '[ADD-PARTY-LEVEL-HERE]', value: context.partyLevel },
     { placeholder: '[ADD-PARTY-MAKEUP-HERE]', value: context.partyMakeup },
+    { placeholder: '[ADD-PARTY-CLASSES-HERE]', value: context.partyClasses },
     { placeholder: '[ADD-FOLDER-NAME-HERE]', value: context.encounterFolder },
+    { placeholder: '[ADD-SCENE-PARENT-HERE]', value: context.region },
     { placeholder: '[ADD-SCENE-AREA-HERE]', value: context.area },
     { placeholder: '[ADD-SCENE-ENVIRONMENT-HERE]', value: context.site },
     { placeholder: '[ADD-SCENE-LOCATION-HERE]', value: context.realm },
@@ -2771,6 +2779,7 @@ async function getItemPromptWithDefaults(itemPrompt) {
   const context = CampaignManager.getPromptContext();
   const settings = [
     { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
+    { placeholder: '[ADD-RULES-VERSION-HERE]', value: context.rulesVersion },
     { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
     { placeholder: '[ADD-ITEM-SOURCE-HERE]', value: context.campaignName }
   ];
@@ -2790,6 +2799,7 @@ async function getTablePromptWithDefaults(tablePrompt) {
   const context = CampaignManager.getPromptContext();
   const settings = [
     { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
+    { placeholder: '[ADD-RULES-VERSION-HERE]', value: context.rulesVersion },
     { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
     { placeholder: '[ADD-ITEM-SOURCE-HERE]', value: context.campaignName },
     { placeholder: '[ADD-ACTORS-SOURCE-HERE]', value: context.campaignName }
@@ -2810,11 +2820,14 @@ async function getActorPromptWithDefaults(actorPrompt) {
   const context = CampaignManager.getPromptContext();
   const settings = [
     { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
+    { placeholder: '[ADD-RULES-VERSION-HERE]', value: context.rulesVersion },
     { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
     { placeholder: '[ADD-NPC-SOURCE-HERE]', value: context.campaignName },
+    { placeholder: '[ADD-PARTY-NAME-HERE]', value: context.partyName },
     { placeholder: '[ADD-PARTY-SIZE-HERE]', value: context.partySize },
     { placeholder: '[ADD-PARTY-LEVEL-HERE]', value: context.partyLevel },
-    { placeholder: '[ADD-PARTY-MAKEUP-HERE]', value: context.partyMakeup }
+    { placeholder: '[ADD-PARTY-MAKEUP-HERE]', value: context.partyMakeup },
+    { placeholder: '[ADD-PARTY-CLASSES-HERE]', value: context.partyClasses }
   ];
 
   let result = actorPrompt;

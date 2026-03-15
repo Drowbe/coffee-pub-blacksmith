@@ -7,6 +7,7 @@ import { getCachedTemplate } from './blacksmith.js';
 import { postConsoleAndNotification, resolveWildcardPath } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { EncounterManager } from './manager-encounter.js';
+import { CampaignManager } from './manager-campaign.js';
 import { deployTokens, deployTokensSequential, getDefaultTokenData, validateActorUUID, getTargetPosition, calculateCirclePosition, calculateScatterPosition, calculateSquarePosition, getDeploymentPatternName } from './api-tokens.js';
 import { clearPartyFromCanvas } from './utility-party.js';
 
@@ -26,6 +27,21 @@ export class EncounterToolbar {
      */
     static _getDefaultTokenData() {
         return getDefaultTokenData();
+    }
+
+    static async _getOrCreateEncounterActorFolder() {
+        const folderName = CampaignManager.getJournalDefaults().encounter.folder?.trim?.() || '';
+        if (!folderName) return null;
+
+        let encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
+        if (!encounterFolder) {
+            encounterFolder = await Folder.create({
+                name: folderName,
+                type: 'Actor',
+                color: '#ff0000'
+            });
+        }
+        return encounterFolder;
     }
     
     static init() {
@@ -1029,23 +1045,7 @@ export class EncounterToolbar {
                 // First, create a world copy of the actor if it's from a compendium
                 if (actor.pack) {
                     const actorData = actor.toObject();
-                    
-                    // Get or create the encounter folder
-                    const folderName = game.settings.get(MODULE.ID, 'encounterFolder');
-                    let encounterFolder = null;
-                    
-                    // Only create/find folder if folderName is not empty
-                    if (folderName && folderName.trim() !== '') {
-                        encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
-                        
-                        if (!encounterFolder) {
-                            encounterFolder = await Folder.create({
-                                name: folderName,
-                                type: 'Actor',
-                                color: '#ff0000'
-                            });
-                        }
-                    }
+                    const encounterFolder = await this._getOrCreateEncounterActorFolder();
                     
                     // Create the world actor
                     const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
@@ -1111,23 +1111,7 @@ export class EncounterToolbar {
             // First, create a world copy of the actor if it's from a compendium
             if (actor.pack) {
                 const actorData = actor.toObject();
-                
-                // Get or create the encounter folder
-                const folderName = game.settings.get(MODULE.ID, 'encounterFolder');
-                let encounterFolder = null;
-                
-                // Only create/find folder if folderName is not empty
-                if (folderName && folderName.trim() !== '') {
-                    encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
-                    
-                    if (!encounterFolder) {
-                        encounterFolder = await Folder.create({
-                            name: folderName,
-                            type: 'Actor',
-                            color: '#ff0000'
-                        });
-                    }
-                }
+                const encounterFolder = await this._getOrCreateEncounterActorFolder();
                 
                 // Create the world actor
                 const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};
@@ -1224,22 +1208,7 @@ export class EncounterToolbar {
             let worldActor = actor;
             if (actor.pack) {
                 const actorData = actor.toObject();
-                
-                // Get or create the encounter folder
-                const folderName = game.settings.get(MODULE.ID, 'encounterFolder');
-                let encounterFolder = null;
-                
-                if (folderName && folderName.trim() !== '') {
-                    encounterFolder = game.folders.find(f => f.name === folderName && f.type === 'Actor');
-                    
-                    if (!encounterFolder) {
-                        encounterFolder = await Folder.create({
-                            name: folderName,
-                            type: 'Actor',
-                            color: '#ff0000'
-                        });
-                    }
-                }
+                const encounterFolder = await this._getOrCreateEncounterActorFolder();
                 
                 // Create the world actor
                 const createOptions = encounterFolder ? { folder: encounterFolder.id } : {};

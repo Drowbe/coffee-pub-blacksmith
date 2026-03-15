@@ -125,6 +125,7 @@ Additional settings and details:
 - ITEMSOURCE: set to "[ADD-ITEM-SOURCE-HERE]"
 - ITEMLICENSE: set to "[ADD-ITEM-LICENSE-HERE]" (e.g., "OGL", "CC BY 4.0", or attribution string)
 - The campaign is called "[ADD-CAMPAIGN-NAME-HERE]"
+- The campaign is using the [ADD-RULES-VERSION-HERE] rules revision.
 - The campaign is leveraging these rulebooks: [ADD-RULEBOOKS-HERE]
 - Ask clarifying questions if something is ambiguous.
 

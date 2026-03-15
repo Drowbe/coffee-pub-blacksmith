@@ -170,6 +170,11 @@ export class CampaignManager {
             .join(', ');
     }
 
+    static getPartyClassesText() {
+        const classNames = this.getParty().summary.classNames;
+        return classNames.join(', ');
+    }
+
     static getPromptContext() {
         const campaign = this.getCampaign();
         const legacyPartyLevel = getSettingSafely(MODULE.ID, 'defaultPartyLevel', '') || '';
@@ -178,9 +183,11 @@ export class CampaignManager {
             campaignName: campaign.core.name,
             rulesVersion: campaign.core.rulesVersion,
             rulebooks: this.getRulebooksText(),
+            partyName: campaign.party.name,
             partySize: String(campaign.party.memberCount || campaign.party.configuredSize || ''),
             partyLevel: campaign.party.summary.averageLevel != null ? String(campaign.party.summary.averageLevel) : String(legacyPartyLevel || ''),
             partyMakeup: this.getPartyMakeupText() || legacyPartyMakeup,
+            partyClasses: this.getPartyClassesText(),
             realm: campaign.geography.realm,
             region: campaign.geography.region,
             site: campaign.geography.site,

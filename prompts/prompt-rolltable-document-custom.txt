@@ -65,6 +65,7 @@ To generate a rollable table, use the template and guidance above. Create flavor
 - Relate the results to the campaign where appropriate.
 - The source of the table: "[ADD-ITEM-SOURCE-HERE]".
 - The campaign is called "[ADD-CAMPAIGN-NAME-HERE]"
+- The campaign is using the [ADD-RULES-VERSION-HERE] rules revision.
 - The campaign is leveraging these rulebooks: [ADD-RULEBOOKS-HERE]
 - You can always draw from core DND5E SRD rules, items, actors, images, etc.
 - Ask clarifying questions if something is ambiguous.
