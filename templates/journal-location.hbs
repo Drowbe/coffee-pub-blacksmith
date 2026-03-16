@@ -1,3 +1,16 @@
+{{#if (or
+    (and strRealm (ne strRealm ""))
+    (and strRegion (ne strRegion ""))
+    (and strArea (ne strArea ""))
+    (and strSite (ne strSite "")))}}
+<h5>
+    {{~#if (and strRealm (ne strRealm ""))}}{{strRealm}}{{/if~}}
+    {{~#if (and strRegion (ne strRegion ""))}}{{#if (and strRealm (ne strRealm ""))}} • {{/if}}{{strRegion}}{{/if~}}
+    {{~#if (and strArea (ne strArea ""))}}{{#if (or (and strRealm (ne strRealm "")) (and strRegion (ne strRegion "")))}} • {{/if}}{{strArea}}{{/if~}}
+    {{~#if (and strSite (ne strSite ""))}} ({{strSite}}){{/if~}}
+</h5>
+{{/if}}
+
 {{#if (and strLocationImage (ne strLocationImage "") (ne strLocationImage "none") (ne strLocationImage "None") (ne strLocationImage "null"))}}
 <img src="{{{strLocationImage}}}">
 {{/if}}

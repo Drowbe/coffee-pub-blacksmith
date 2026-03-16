@@ -9,10 +9,10 @@ CONTEXTHERE
 Set these specific values for this narration:
 
 - FOLDERNAME: Set to "[ADD-FOLDER-NAME-HERE]"
-- SCENEPARENT: Set to "[ADD-SCENE-PARENT-HERE]"
-- SCENEAREA: Set to "[ADD-SCENE-AREA-HERE]"
-- ENVIRONMENT: Set to "[ADD-SCENE-ENVIRONMENT-HERE]"
-- LOCATION: Set to "[ADD-SCENE-LOCATION-HERE]"
+- REALM: Set to "[ADD-REALM-HERE]"
+- REGION: Set to "[ADD-REGION-HERE]"
+- SITE: Set to "[ADD-SITE-HERE]"
+- AREA: Set to "[ADD-AREA-HERE]"
 - CARDIMAGE: Set to "[ADD-IMAGE-PATH-HERE]"
 
 
@@ -53,13 +53,13 @@ JSON FIELD RULES & EXPECTATIONS
 Replace the ALL-CAPS placeholders with generated content:
 
 - "journaltype" – Always "narrative"
-- "foldername" – Always "New Narratives"
+- "foldername" – Always use the provided FOLDERNAME value
 
 Scene Info:
-- sceneparent: The larger region that contains this scene (e.g., "Mines of Tethyamar"). If none or not applicable, use "None" or leave blank—the journal will omit this field entirely (never show "(None)").
-- scenearea: Localized zone where the scene occurs (e.g., "Mine Shaft" or "Summoning Circle"). If none, use "None" or leave blank—omit from output.
-- sceneenvironment: The atmospheric setting, e.g. "Forest", "Dungeon", "Castle". If none, use "None" or leave blank—omit from output.
-- scenelocation: Geographical region or major landmark (e.g., "Phlan" or "Moonsea"). If none, use "None" or leave blank—omit from output.
+- realm: Broad world, plane, or setting-level location context (e.g., "Faerun" or "Eberron"). If none, use "None" or leave blank—omit from output.
+- region: Large territory, kingdom, coast, province, or campaign-level subsetting within the realm. If none, use "None" or leave blank—omit from output.
+- site: Specific city, dungeon, keep, temple, mine, settlement, or landmark where the scene takes place. If none, use "None" or leave blank—omit from output.
+- area: Localized zone within the site, such as a room, district, chamber, corridor, street, or encounter space. If none, use "None" or leave blank—omit from output.
 
 Encounter Details:
 - prepencounter: Comma-delimited list of official monster names (use singular names from 2024 manuals only). If none, use "None"
@@ -130,10 +130,10 @@ These ALL-CAPS values act as replaceable tokens. When generating a scene, you ma
 {
   "journaltype": "JOURNALTYPE",
   "foldername": "FOLDERNAME",
-  "sceneparent": "SCENEPARENT",
-  "scenearea": "SCENEAREA",
-  "sceneenvironment": "ENVIRONMENT",
-  "scenelocation": "LOCATION",
+  "realm": "REALM",
+  "region": "REGION",
+  "site": "SITE",
+  "area": "AREA",
   "scenetitle": "SCENETITLE",
   "prepencounter": "PREPENCOUNTER",
   "prepencounterdetails": "PREPENCOUNTERDETAILS",

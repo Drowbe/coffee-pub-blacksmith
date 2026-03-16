@@ -565,15 +565,11 @@
 	"SEPARATOR-MANAGE-CONTENT": "-------------------------------------------------------",
 
 
-	"headingH1ManageContent-Label": "Manage Content",
-	"headingH1ManageContent-Hint": "Tools for managing tokens, images, and content.",
 
 	"headingH1Imports-Label": "Imports",
 	"headingH1Imports-Hint": "Settings for import defaults and content generation helpers.",
 
-		"headingH2Pins-Label": "Canvas Pins",
-		"headingH2Pins-Hint": "",
-		"pinsAllowPlayerWrites-Label": "Allow player writes",
+		"pinsAllowPlayerWrites-Label": "Player Pin Editing",
 		"pinsAllowPlayerWrites-Hint": "If enabled, players with ownership of a pin can create, update, and delete pins. When disabled, only GMs can modify pins.",
 
 		"headingH2ItemImports-Label": "Item",

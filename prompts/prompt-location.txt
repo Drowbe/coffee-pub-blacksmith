@@ -10,6 +10,10 @@ Set these specific values for this location:
 FOLDERNAME: 
 JOURNALNAME: 
 TITLE: 
+REALM: [ADD-REALM-HERE]
+REGION: [ADD-REGION-HERE]
+SITE: [ADD-SITE-HERE]
+AREA: [ADD-AREA-HERE]
 LOCATIONIMAGE: 
 
 ========================================
@@ -51,6 +55,10 @@ JSON FIELD RULES
 - "foldername": Journal folder for this entry
 - "journalname": Journal entry name (container)
 - "title": The location name (city/town/settlement/site)
+- "realm": Broad world, plane, or setting-level context
+- "region": Kingdom, coast, province, territory, or campaign subregion
+- "site": Specific city, dungeon, keep, temple, mine, settlement, or landmark
+- "area": Localized zone within the site, such as a district, room, street, or chamber
 - "locationimage": Relative Foundry path or "None"
 
 Location card fields:
@@ -87,6 +95,10 @@ JSON TEMPLATE
   "foldername": "FOLDERNAME",
   "journalname": "JOURNALNAME",
   "title": "TITLE",
+  "realm": "REALM",
+  "region": "REGION",
+  "site": "SITE",
+  "area": "AREA",
   "locationimage": "LOCATIONIMAGE",
   "cardimagetitle": "CARDIMAGETITLE",
   "carddescriptionprimary": "CARDDESCRIPTIONPRIMARY",
@@ -169,3 +181,15 @@ Single cohesive image.
 No grids, panels, sheets, or collages.
 
 If image generation fails or if the model cannot generate the image for any reason, output exactly: "Image generation failed"
+
+--------------------------------
+USAGE CONTEXT
+--------------------------------
+
+- The campaign is called "[ADD-CAMPAIGN-NAME-HERE]"
+- The campaign is using the [ADD-RULES-VERSION-HERE] rules revision.
+- The campaign is leveraging these rulebooks: [ADD-RULEBOOKS-HERE]
+- Default realm context: [ADD-REALM-HERE]
+- Default region context: [ADD-REGION-HERE]
+- Default site context: [ADD-SITE-HERE]
+- Default area context: [ADD-AREA-HERE]

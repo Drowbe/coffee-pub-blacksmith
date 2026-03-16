@@ -135,16 +135,16 @@ export async function createJournalEntry(journalData) {
         return await createHTMLList(monsters);
     };
 
-    let strSceneParent = journalData.sceneparent;
-    let strSceneArea = journalData.scenearea;
-    let strSceneEnvironment = journalData.sceneenvironment;
-    let strSceneLocation = journalData.scenelocation;
+    let strRealm = journalData.realm;
+    let strRegion = journalData.region;
+    let strSite = journalData.site;
+    let strArea = journalData.area;
     // None or empty means omit from journal: normalize so template never shows "(None)"
     const omitIfNone = (s) => (s == null || String(s).trim() === '' || String(s).trim().toLowerCase() === 'none') ? '' : String(s).trim();
-    strSceneParent = omitIfNone(strSceneParent);
-    strSceneArea = omitIfNone(strSceneArea);
-    strSceneEnvironment = omitIfNone(strSceneEnvironment);
-    strSceneLocation = omitIfNone(strSceneLocation);
+    strRealm = omitIfNone(strRealm);
+    strRegion = omitIfNone(strRegion);
+    strSite = omitIfNone(strSite);
+    strArea = omitIfNone(strArea);
     const rawSceneTitle = journalData.scenetitle;
     let strSceneTitle = omitIfNone(rawSceneTitle) ? toSentenceCase(String(rawSceneTitle).trim()) : '';
     let strContextIntro = journalData.contextintro;
@@ -234,10 +234,10 @@ export async function createJournalEntry(journalData) {
     // Prepare data for the template
     var CARDDATA = {
         // Populate with necessary fields from journalData
-        strSceneParent: strSceneParent,
-        strSceneArea: strSceneArea,
-        strSceneEnvironment: strSceneEnvironment,
-        strSceneLocation: strSceneLocation,
+        strRealm: strRealm,
+        strRegion: strRegion,
+        strSite: strSite,
+        strArea: strArea,
         strSceneTitle: strSceneTitle,
         strContextIntro: strContextIntro,
         strPrepEncounter: strPrepEncounter,
@@ -270,10 +270,10 @@ export async function createJournalEntry(journalData) {
     // This will make it easier to identify and manipulate journal entries
     const metadata = {
         type: journalData.journaltype,
-        location: strSceneLocation || "",
-        parent: strSceneParent || "",
-        area: strSceneArea || "",
-        environment: strSceneEnvironment || "",
+        realm: strRealm || "",
+        region: strRegion || "",
+        site: strSite || "",
+        area: strArea || "",
         title: strSceneTitle || "",
         synopsis: "",
         keyMoments: "",
@@ -366,7 +366,7 @@ export async function createJournalEntry(journalData) {
     // Check if the journal entry already exists
     let existingEntry = game.journal.find(entry => {
         // If we have a scene area, use that, otherwise use scene title
-        const entryName = strSceneArea || strSceneTitle || "Unnamed Entry";
+        const entryName = strArea || strSceneTitle || "Unnamed Entry";
         return entry.name === entryName && entry.folder?.id === folder?.id;
     });
     if (existingEntry) {
@@ -396,7 +396,7 @@ export async function createJournalEntry(journalData) {
     } else {
         // Create a new journal entry with a page
         await JournalEntry.create({
-            name: strSceneArea || strSceneTitle || "Unnamed Entry",
+            name: strArea || strSceneTitle || "Unnamed Entry",
             pages: [
                 {
                     name: strSceneTitle,
@@ -424,13 +424,17 @@ async function createLocationJournalEntry(journalData, folder) {
     const strTitle = toSentenceCase(
         normalize(journalData.title)
         || normalize(journalData.scenetitle)
-        || normalize(journalData.scenelocation)
+        || normalize(journalData.realm)
         || 'Unnamed Location'
     );
     const strJournalName = toSentenceCase(
         normalize(journalData.journalname)
         || 'Locations'
     );
+    const strRealm = normalize(journalData.realm);
+    const strRegion = normalize(journalData.region);
+    const strSite = normalize(journalData.site);
+    const strArea = normalize(journalData.area);
     let targetFolder = folder;
     if (!targetFolder) {
         const defaultFolderName = 'Libraries';
@@ -474,6 +478,10 @@ async function createLocationJournalEntry(journalData, folder) {
     const template = await getCachedTemplate(BLACKSMITH.JOURNAL_LOCATION_TEMPLATE);
     const CARDDATA = {
         strTitle,
+        strRealm,
+        strRegion,
+        strSite,
+        strArea,
         strLocationImage,
         strIntroduction: normalize(journalData.introduction),
         strCardTitle: strTitle,

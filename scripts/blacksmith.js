@@ -2113,10 +2113,10 @@ async function getNarrativeTemplateWithDefaults(narrativeTemplate) {
     { placeholder: '[ADD-PARTY-MAKEUP-HERE]', value: context.partyMakeup },
     { placeholder: '[ADD-PARTY-CLASSES-HERE]', value: context.partyClasses },
     { placeholder: '[ADD-FOLDER-NAME-HERE]', value: context.narrativeFolder },
-    { placeholder: '[ADD-SCENE-PARENT-HERE]', value: context.region },
-    { placeholder: '[ADD-SCENE-AREA-HERE]', value: context.area },
-    { placeholder: '[ADD-SCENE-ENVIRONMENT-HERE]', value: context.site },
-    { placeholder: '[ADD-SCENE-LOCATION-HERE]', value: context.realm },
+    { placeholder: '[ADD-REGION-HERE]', value: context.region },
+    { placeholder: '[ADD-AREA-HERE]', value: context.area },
+    { placeholder: '[ADD-SITE-HERE]', value: context.site },
+    { placeholder: '[ADD-REALM-HERE]', value: context.realm },
     { placeholder: '[ADD-IMAGE-PATH-HERE]', value: context.narrativeCardImage }
   ];
   let result = narrativeTemplate;
@@ -2146,10 +2146,10 @@ async function getEncounterTemplateWithDefaults(encounterTemplate) {
     { placeholder: '[ADD-PARTY-MAKEUP-HERE]', value: context.partyMakeup },
     { placeholder: '[ADD-PARTY-CLASSES-HERE]', value: context.partyClasses },
     { placeholder: '[ADD-FOLDER-NAME-HERE]', value: context.encounterFolder },
-    { placeholder: '[ADD-SCENE-PARENT-HERE]', value: context.region },
-    { placeholder: '[ADD-SCENE-AREA-HERE]', value: context.area },
-    { placeholder: '[ADD-SCENE-ENVIRONMENT-HERE]', value: context.site },
-    { placeholder: '[ADD-SCENE-LOCATION-HERE]', value: context.realm },
+    { placeholder: '[ADD-REGION-HERE]', value: context.region },
+    { placeholder: '[ADD-AREA-HERE]', value: context.area },
+    { placeholder: '[ADD-SITE-HERE]', value: context.site },
+    { placeholder: '[ADD-REALM-HERE]', value: context.realm },
     { placeholder: '[ADD-IMAGE-PATH-HERE]', value: context.encounterCardImage }
   ];
   let result = encounterTemplate;
@@ -2163,6 +2163,28 @@ async function getEncounterTemplateWithDefaults(encounterTemplate) {
     }
     if (!value) continue; // leave placeholder if not set
     result = result.split(placeholder).join(value);
+  }
+  return result;
+}
+
+async function getLocationTemplateWithDefaults(locationTemplate) {
+  const context = CampaignManager.getPromptContext();
+  const settings = [
+    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
+    { placeholder: '[ADD-RULES-VERSION-HERE]', value: context.rulesVersion },
+    { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
+    { placeholder: '[ADD-REALM-HERE]', value: context.realm },
+    { placeholder: '[ADD-REGION-HERE]', value: context.region },
+    { placeholder: '[ADD-SITE-HERE]', value: context.site },
+    { placeholder: '[ADD-AREA-HERE]', value: context.area }
+  ];
+
+  let result = locationTemplate;
+  for (const setting of settings) {
+    const value = setting.value || '';
+    if (value) {
+      result = result.split(setting.placeholder).join(value);
+    }
   }
   return result;
 }
@@ -2296,7 +2318,8 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
                 const templateWithDefaults = await getEncounterTemplateWithDefaults(encounterTemplate);
                 copyToClipboard(templateWithDefaults);
                 } else if (type === "location") {
-                copyToClipboard(locationTemplate);
+                const templateWithDefaults = await getLocationTemplateWithDefaults(locationTemplate);
+                copyToClipboard(templateWithDefaults);
                 } else {
                 const templateWithDefaults = await getNarrativeTemplateWithDefaults(narrativeTemplate);
                 copyToClipboard(templateWithDefaults);

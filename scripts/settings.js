@@ -1184,10 +1184,21 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'canvasToolsHideUIOnLoad', {
 		name: MODULE.ID + '.canvasToolsHideUIOnLoad-Label',
 		hint: MODULE.ID + '.canvasToolsHideUIOnLoad-Hint',
+  		type: Boolean,
+  		config: true,
+  		requiresReload: false,
+  		scope: 'user',
+  		default: false,
+  		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+  	});
+
+	game.settings.register(MODULE.ID, 'pinsAllowPlayerWrites', {
+		name: MODULE.ID + '.pinsAllowPlayerWrites-Label',
+		hint: MODULE.ID + '.pinsAllowPlayerWrites-Hint',
 		type: Boolean,
 		config: true,
 		requiresReload: false,
-		scope: 'user',
+		scope: 'world',
 		default: false,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
@@ -2956,28 +2967,6 @@ export const registerSettings = () => {
 	});
 
 
-
-	// ==================================================================================================================== 
-	// ==================================================================================================================== 
-	// == MANAGE CONTENT
-	// ==================================================================================================================== 
-	// ==================================================================================================================== 
-	registerHeader('ManageContent', 'headingH1ManageContent-Label', 'headingH1ManageContent-Hint', 'H1', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
-
-	// --------------------------------------
-	// -- H2: Canvas Pins
-	// --------------------------------------
-	registerHeader('Pins', 'headingH2Pins-Label', 'headingH2Pins-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
-	game.settings.register(MODULE.ID, 'pinsAllowPlayerWrites', {
-		name: MODULE.ID + '.pinsAllowPlayerWrites-Label',
-		hint: MODULE.ID + '.pinsAllowPlayerWrites-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
 
 	// Per-user default pin design per module (Configure Pin "Use as Default"). Client scope so players can save their own.
 	game.settings.register(MODULE.ID, 'clientPinDefaultDesigns', {

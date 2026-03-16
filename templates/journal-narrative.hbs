@@ -1,15 +1,15 @@
 {{#if (or 
-    (and strSceneLocation (ne strSceneLocation ""))
-    (and strSceneParent (ne strSceneParent ""))
-    (and strSceneArea (ne strSceneArea ""))
-    (and strSceneEnvironment (ne strSceneEnvironment ""))
+    (and strRealm (ne strRealm ""))
+    (and strRegion (ne strRegion ""))
+    (and strArea (ne strArea ""))
+    (and strSite (ne strSite ""))
     (and strSceneTitle (ne strSceneTitle "")))}}
 <h5>
-    {{~#if (and strSceneLocation (ne strSceneLocation ""))}}{{strSceneLocation}}{{/if~}}
-    {{~#if (and strSceneParent (ne strSceneParent ""))}}{{#if (and strSceneLocation (ne strSceneLocation ""))}} • {{/if}}{{strSceneParent}}{{/if~}}
-    {{~#if (and strSceneArea (ne strSceneArea ""))}}{{#if (or (and strSceneLocation (ne strSceneLocation "")) (and strSceneParent (ne strSceneParent "")))}} • {{/if}}{{strSceneArea}}{{/if~}}
-    {{~#if (and strSceneEnvironment (ne strSceneEnvironment ""))}} ({{strSceneEnvironment}}){{/if~}}
-    {{~#if (and strSceneTitle (ne strSceneTitle ""))}}{{#if (or (and strSceneLocation (ne strSceneLocation "")) (and strSceneParent (ne strSceneParent "")) (and strSceneArea (ne strSceneArea "")))}} • {{/if}}{{strSceneTitle}}{{/if~}}
+    {{~#if (and strRealm (ne strRealm ""))}}{{strRealm}}{{/if~}}
+    {{~#if (and strRegion (ne strRegion ""))}}{{#if (and strRealm (ne strRealm ""))}} • {{/if}}{{strRegion}}{{/if~}}
+    {{~#if (and strArea (ne strArea ""))}}{{#if (or (and strRealm (ne strRealm "")) (and strRegion (ne strRegion "")))}} • {{/if}}{{strArea}}{{/if~}}
+    {{~#if (and strSite (ne strSite ""))}} ({{strSite}}){{/if~}}
+    {{~#if (and strSceneTitle (ne strSceneTitle ""))}}{{#if (or (and strRealm (ne strRealm "")) (and strRegion (ne strRegion "")) (and strArea (ne strArea "")))}} • {{/if}}{{strSceneTitle}}{{/if~}}
 </h5>
 {{/if}}
 
