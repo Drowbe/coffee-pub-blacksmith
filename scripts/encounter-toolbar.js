@@ -1497,7 +1497,7 @@ Hooks.once('ready', async () => {
         zone: 'middle',
         icon: 'fas fa-eye',
         label: 'Reveal',
-        tooltip: 'Reveal hidden hostile tokens',
+        tooltip: 'Reveal hidden NPC tokens on the canvas',
         group: 'actions',
         order: 2,
         visible: () => game.user.isGM,

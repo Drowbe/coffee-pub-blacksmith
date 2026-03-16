@@ -158,29 +158,41 @@ export class EncounterManager {
     }
 
     /**
-     * Reveal hidden hostile NPC tokens on the current scene (Reveal button action).
-     * GM only.
+     * Reveal hidden NPC tokens on the current scene (Reveal button action).
+     * Updates token documents so tokens become visible on the canvas for all clients. GM only.
      */
     static async revealHiddenTokens() {
         if (!game.user?.isGM) return;
         try {
+            const scene = canvas?.scene;
+            if (!scene) {
+                postConsoleAndNotification(MODULE.NAME, 'No active scene.', '', false, false);
+                return;
+            }
             const allTokens = canvas?.tokens?.placeables ?? [];
             if (allTokens.length === 0) {
                 postConsoleAndNotification(MODULE.NAME, 'No tokens found on the canvas.', '', false, false);
                 return;
             }
+            // Include any hidden token that is not player-owned (NPCs and unowned actors); disposition not required
             const hiddenMonsterTokens = allTokens.filter(
                 (token) =>
-                    token.actor?.type === 'npc' &&
                     token.document.hidden === true &&
-                    token.document.disposition <= -1
+                    (!token.actor || !token.actor.hasPlayerOwner)
             );
             if (hiddenMonsterTokens.length === 0) {
-                postConsoleAndNotification(MODULE.NAME, 'No hidden hostile tokens found on the canvas.', '', false, false);
+                postConsoleAndNotification(MODULE.NAME, 'No hidden NPC tokens found on the canvas.', '', false, false);
                 return;
             }
+            // Update via scene so the canvas and all clients receive the change; tokens become visible on the canvas
+            const updates = hiddenMonsterTokens.map((token) => ({
+                _id: token.document.id,
+                hidden: false
+            }));
+            await scene.updateEmbeddedDocuments('Token', updates);
+            // Refresh token placeables so the canvas re-renders visibility immediately
             for (const token of hiddenMonsterTokens) {
-                await token.document.update({ hidden: false });
+                if (typeof token.refresh === 'function') token.refresh();
             }
             postConsoleAndNotification(MODULE.NAME, 'Reveal: made tokens visible', `${hiddenMonsterTokens.length} token(s)`, true, false);
         } catch (error) {

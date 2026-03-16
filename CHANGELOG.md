@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Prompt default sourcing**: Narrative, encounter, item, table, and actor prompt helpers now use normalized campaign data instead of reading a mix of old raw settings directly.
 - **Encounter actor folder sourcing**: Encounter-toolbar world-actor creation now uses the normalized campaign journal defaults instead of reading `encounterFolder` directly from raw settings.
 - **Narrative scene parent replacement**: Blacksmith now fills the narrative prompt's existing `[ADD-SCENE-PARENT-HERE]` token from campaign geography instead of leaving it unresolved.
+- **Encounter Reveal – tokens visible on canvas**: The encounter bar Reveal button now updates token documents via `scene.updateEmbeddedDocuments('Token', updates)` and refreshes token placeables so hidden NPC tokens become visible on the canvas for all clients.
+- **Encounter Reveal – no hidden tokens found**: Reveal no longer required hostile disposition or strict NPC type; it now includes any hidden token that is not player-owned, so hidden NPCs with neutral or unset disposition are found and revealed. Tooltip updated to "Reveal hidden NPC tokens on the canvas".
 
 ### Added
 
