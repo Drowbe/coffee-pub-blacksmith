@@ -347,7 +347,7 @@
 		"headingH2TokenEnhancements-Label": "Token Enhancements",
 		"headingH2TokenEnhancements-Hint": "Automation of token actions. This include token changes for when a character dies, is targeted, has the current turn in combat, etc.",
 
-			"headingH3GeneralIndicatorSettings-Label": "Shared Style Settings",
+			"headingH3GeneralIndicatorSettings-Label": "Shared Token Indicator Settings",
 			"headingH3GeneralIndicatorSettings-Hint": "",
 
 				"generalIndicatorsEnabled-Label": "Enable Turn Indicator",
@@ -587,38 +587,14 @@
 			"headingH3NarrativeConfiguration-Label": "Narrative Defaults",
 			"headingH3NarrativeConfiguration-Hint": "",
 
-				"narrativeUseCookies-Label": "Use Cookies for Data",
-				"narrativeUseCookies-Hint": "If checked, the system will first attempt to pull data from cookies before using defaults.",
-
 				"defaultNarrativeFolder-Label": "Narrative Folder",
 				"defaultNarrativeFolder-Hint": "Folder that should be used when creating new narratives. (optional)",
-
-				"defaultJournalPageTitle-Label": "Journal Page Title",
-				"defaultJournalPageTitle-Hint": "Title that should be used when creating new journal pages. (optional)",
 
 				"narrativeDefaultCardImage-Label": "Card Image",
 				"narrativeDefaultCardImage-Hint": "",
 
 				"narrativeDefaultImagePath-Label": "Custom Image",
 				"narrativeDefaultImagePath-Hint": "Used if 'custom' is selected above. (optional)",
-
-			"headingH3NarrativeOptions-Label": "Narrative Options",
-			"headingH3NarrativeOptions-Hint": "",
-
-				"narrativeDefaultIncludeTreasure-Label": "Include Treasure by Default",
-				"narrativeDefaultIncludeTreasure-Hint": "",
-
-				"narrativeDefaultTreasureDetails-Label": "Default Treasure Details",
-				"narrativeDefaultTreasureDetails-Hint": "",
-
-				"narrativeDefaultIncludeEncounter-Label": "Include Encounter by Default",
-				"narrativeDefaultIncludeEncounter-Hint": "",
-
-				"narrativeDefaultXP-Label": "Default XP",
-				"narrativeDefaultXP-Hint": "",
-
-				"narrativeDefaultEncounterDetails-Label": "Default Encounter Details",
-				"narrativeDefaultEncounterDetails-Hint": "",
 
 		"headingH2EncounterGenerator-Label": "Encounter",
 		"headingH2EncounterGenerator-Hint": "",

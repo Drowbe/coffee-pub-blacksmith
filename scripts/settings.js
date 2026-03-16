@@ -1095,6 +1095,224 @@ export const registerSettings = () => {
 		default: { scenes: {} }
 	});
 
+	// ==================================================================================================================== 
+	// ==================================================================================================================== 
+	// == IMPORTS
+	// ==================================================================================================================== 
+	// ==================================================================================================================== 
+	registerHeader('Imports', 'headingH1Imports-Label', 'headingH1Imports-Hint', 'H1', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+
+	// --------------------------------------
+	// -- H2: Item
+	// --------------------------------------
+	registerHeader('ItemImports', 'headingH2ItemImports-Label', 'headingH2ItemImports-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+
+	// -- Enhanced Image Guessing --
+	game.settings.register(MODULE.ID, 'enableEnhancedImageGuessing', {
+		name: MODULE.ID + '.enableEnhancedImageGuessing-Label',
+		hint: MODULE.ID + '.enableEnhancedImageGuessing-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+	});
+
+	// --------------------------------------
+	// -- H2: Journal
+	// --------------------------------------
+	registerHeader('JournalImports', 'headingH2JournalImports-Label', 'headingH2JournalImports-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+
+	// --------------------------------------
+	// -- H3: Narrative
+	// --------------------------------------
+	registerHeader('NarrativeGenerator', 'headingH2NarrativeGenerator-Label', 'headingH2NarrativeGenerator-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+
+
+	// --------------------------------------
+	// -- H4: Narrative Configuration	
+	// --------------------------------------
+	registerHeader('NarrativeConfiguration', 'headingH3NarrativeConfiguration-Label', 'headingH3NarrativeConfiguration-Hint', 'H4', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+	
+	// -- Default Narrative Folder --
+	game.settings.register(MODULE.ID, 'defaultNarrativeFolder', {
+		name: MODULE.ID + '.defaultNarrativeFolder-Label',
+		hint: MODULE.ID + '.defaultNarrativeFolder-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: 'New Narratives',
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// -- Default Card Image Selection --
+	game.settings.register(MODULE.ID, 'narrativeDefaultCardImage', {
+		name: MODULE.ID + '.narrativeDefaultCardImage-Label',
+		hint: MODULE.ID + '.narrativeDefaultCardImage-Hint',
+		scope: 'world',
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: 'none',
+		choices: {
+			'none': 'No Image',
+			'custom': 'Custom: Paste the Path Below',
+			'modules/coffee-pub-blacksmith/images/banners/banners-heros-1.webp': 'Heroes 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-heros-2.webp': 'Heroes 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-heros-3.webp': 'Heroes 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-1.webp': 'Location:Crypt 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-2.webp': 'Location:Crypt 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-1.webp': 'Landscape: Forest 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-2.webp': 'Landscape: Forest 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-3.webp': 'Landscape: Forest 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-4.webp': 'Landscape: Forest 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-narration-jungle-1.webp': 'Landscape: Jungle 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-mountains-1.webp': 'Landscape: Mountains 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-mushrooms-1.webp': 'Landscape: Mushrooms 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-mushrooms-2.webp': 'Landscape: Mushrooms 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-path-1.webp': 'Landscape: Path 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-path-2.webp': 'Landscape: Path 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-1.webp': 'Landscape: Winter 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-2.webp': 'Landscape: Winter 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-3.webp': 'Landscape: Winter 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-dragon-1.webp': 'Monster: Dragon 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-minotour-1.webp': 'Monster: Minotaur 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-wraith-1.webp': 'Monster: Wraith 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-wraith-2.webp': 'Monster: Wraith 2'
+		},
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// -- Default Image Path (with FilePicker) --
+	game.settings.register(MODULE.ID, 'narrativeDefaultImagePath', {
+		name: MODULE.ID + '.narrativeDefaultImagePath-Label',
+		hint: MODULE.ID + '.narrativeDefaultImagePath-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: '',
+		filePicker: true,  // Enable FilePicker for image file selection
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// --------------------------------------
+	// -- H3: Encounter
+	// --------------------------------------
+	registerHeader('EncounterGenerator', 'headingH2EncounterGenerator-Label', 'headingH2EncounterGenerator-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+
+	// -- Encounter Folder --
+	game.settings.register(MODULE.ID, 'encounterFolder', {
+		name: MODULE.ID + '.encounterFolder-Label',
+		hint: MODULE.ID + '.encounterFolder-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'Encounters',
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// -- Default Encounter Card Image Selection --
+	game.settings.register(MODULE.ID, 'encounterDefaultCardImage', {
+		name: MODULE.ID + '.encounterDefaultCardImage-Label',
+		hint: MODULE.ID + '.encounterDefaultCardImage-Hint',
+		scope: 'world',
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: 'none',
+		choices: {
+			'none': 'No Image',
+			'custom': 'Custom: Paste the Path Below',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-acid-1.webp': 'Damage: Acid 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-acid-2.webp': 'Damage: Acid 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-acid-3.webp': 'Damage: Acid 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-1.webp': 'Damage: Bludgeoning 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-2.webp': 'Damage: Bludgeoning 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-3.webp': 'Damage: Bludgeoning 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-4.webp': 'Damage: Bludgeoning 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-1.webp': 'Damage: Cold 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-2.webp': 'Damage: Cold 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-3.webp': 'Damage: Cold 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-4.webp': 'Damage: Cold 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-1.webp': 'Damage: Fire 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-2.webp': 'Damage: Fire 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-3.webp': 'Damage: Fire 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-4.webp': 'Damage: Fire 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-5.webp': 'Damage: Fire 5',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-6.webp': 'Damage: Fire 6',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-1.webp': 'Damage: Force 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-2.webp': 'Damage: Force 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-3.webp': 'Damage: Force 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-4.webp': 'Damage: Force 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-1.webp': 'Damage: Lightning 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-2.webp': 'Damage: Lightning 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-3.webp': 'Damage: Lightning 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-4.webp': 'Damage: Lightning 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-1.webp': 'Damage: Necrotic 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-2.webp': 'Damage: Necrotic 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-3.webp': 'Damage: Necrotic 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-4.webp': 'Damage: Necrotic 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-5.webp': 'Damage: Necrotic 5',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-1.webp': 'Damage: Oops 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-2.webp': 'Damage: Oops 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-3.webp': 'Damage: Oops 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-4.webp': 'Damage: Oops 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-5.webp': 'Damage: Oops 5',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-6.webp': 'Damage: Oops 6',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-7.webp': 'Damage: Oops 7',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-8.webp': 'Damage: Oops 8',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-9.webp': 'Damage: Oops 9',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-10.webp': 'Damage: Oops 10',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-11.webp': 'Damage: Oops 11',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-piercing-1.webp': 'Damage: Piercing 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-piercing-2.webp': 'Damage: Piercing 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-piercing-3.webp': 'Damage: Piercing 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-1.webp': 'Damage: Poison 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-2.webp': 'Damage: Poison 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-3.webp': 'Damage: Poison 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-4.webp': 'Damage: Poison 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-5.webp': 'Damage: Poison 5',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-1.webp': 'Damage: Psychic 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-2.webp': 'Damage: Psychic 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-3.webp': 'Damage: Psychic 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-4.webp': 'Damage: Psychic 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-1.webp': 'Damage: Radiant 1',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-2.webp': 'Damage: Radiant 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-3.webp': 'Damage: Radiant 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-4.webp': 'Damage: Radiant 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-slashing-1.webp': 'Damage: Slashing 1',
+			'modules/coffee-pub-blacksmith/images/banners-damage-slashing-2.webp': 'Damage: Slashing 2',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-slashing-3.webp': 'Damage: Slashing 3',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-slashing-4.webp': 'Damage: Slashing 4',
+			'modules/coffee-pub-blacksmith/images/banners/banners-damage-thunder-1.webp': 'Damage: Thunder 1'
+		},
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// -- Default Encounter Image Path (with FilePicker) --
+	game.settings.register(MODULE.ID, 'encounterDefaultImagePath', {
+		name: MODULE.ID + '.encounterDefaultImagePath-Label',
+		hint: MODULE.ID + '.encounterDefaultImagePath-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: '',
+		filePicker: true,  // Enable FilePicker for image file selection
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// --------------------------------------
+	// -- H2: Compendiums
+	// --------------------------------------
+	registerHeader('CompendiumMapping', 'headingH2CompendiumMapping-Label', 'headingH2CompendiumMapping-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+
+	// Dynamically register settings for ALL compendium types found in the system
+	// This includes Actor, Item, Spell, Feature, and any other types (JournalEntry, RollTable, etc.)
+	registerDynamicCompendiumTypes();
+
 
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
@@ -3007,320 +3225,6 @@ export const registerSettings = () => {
 		type: Object,
 		default: {}
 	});
-
-	// ==================================================================================================================== 
-	// ==================================================================================================================== 
-	// == IMPORTS
-	// ==================================================================================================================== 
-	// ==================================================================================================================== 
-	registerHeader('Imports', 'headingH1Imports-Label', 'headingH1Imports-Hint', 'H1', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
-
-	// --------------------------------------
-	// -- H2: Item
-	// --------------------------------------
-	registerHeader('ItemImports', 'headingH2ItemImports-Label', 'headingH2ItemImports-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
-
-	// -- Enhanced Image Guessing --
-	game.settings.register(MODULE.ID, 'enableEnhancedImageGuessing', {
-		name: MODULE.ID + '.enableEnhancedImageGuessing-Label',
-		hint: MODULE.ID + '.enableEnhancedImageGuessing-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: true,
-	});
-
-	// --------------------------------------
-	// -- H2: Journal
-	// --------------------------------------
-	registerHeader('JournalImports', 'headingH2JournalImports-Label', 'headingH2JournalImports-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
-
-	// --------------------------------------
-	// -- H3: Narrative
-	// --------------------------------------
-	registerHeader('NarrativeGenerator', 'headingH2NarrativeGenerator-Label', 'headingH2NarrativeGenerator-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
-
-
-	// --------------------------------------
-	// -- H4: Narrative Configuration	
-	// --------------------------------------
-	registerHeader('NarrativeConfiguration', 'headingH3NarrativeConfiguration-Label', 'headingH3NarrativeConfiguration-Hint', 'H4', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
-	
-	// -- Use Cookies --
-	game.settings.register(MODULE.ID, 'narrativeUseCookies', {
-		name: MODULE.ID + '.narrativeUseCookies-Label',
-		hint: MODULE.ID + '.narrativeUseCookies-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// -- Default Narrative Folder --
-	game.settings.register(MODULE.ID, 'defaultNarrativeFolder', {
-		name: MODULE.ID + '.defaultNarrativeFolder-Label',
-		hint: MODULE.ID + '.defaultNarrativeFolder-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'New Narratives',
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// -- Default Journal Page Title --
-	game.settings.register(MODULE.ID, 'defaultJournalPageTitle', {
-		name: MODULE.ID + '.defaultJournalPageTitle-Label',
-		hint: MODULE.ID + '.defaultJournalPageTitle-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: '',
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-
-	// -- Default Card Image Selection --
-	game.settings.register(MODULE.ID, 'narrativeDefaultCardImage', {
-		name: MODULE.ID + '.narrativeDefaultCardImage-Label',
-		hint: MODULE.ID + '.narrativeDefaultCardImage-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'none',
-		choices: {
-			'none': 'No Image',
-			'custom': 'Custom: Paste the Path Below',
-			'modules/coffee-pub-blacksmith/images/banners/banners-heros-1.webp': 'Heroes 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-heros-2.webp': 'Heroes 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-heros-3.webp': 'Heroes 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-1.webp': 'Location:Crypt 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-2.webp': 'Location:Crypt 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-1.webp': 'Landscape: Forest 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-2.webp': 'Landscape: Forest 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-3.webp': 'Landscape: Forest 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-4.webp': 'Landscape: Forest 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-jungle-1.webp': 'Landscape: Jungle 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-mountains-1.webp': 'Landscape: Mountains 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-mushrooms-1.webp': 'Landscape: Mushrooms 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-mushrooms-2.webp': 'Landscape: Mushrooms 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-path-1.webp': 'Landscape: Path 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-path-2.webp': 'Landscape: Path 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-1.webp': 'Landscape: Winter 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-2.webp': 'Landscape: Winter 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-3.webp': 'Landscape: Winter 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-dragon-1.webp': 'Monster: Dragon 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-minotour-1.webp': 'Monster: Minotaur 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-wraith-1.webp': 'Monster: Wraith 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-wraith-2.webp': 'Monster: Wraith 2'
-		},
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// -- Default Image Path (with FilePicker) --
-	game.settings.register(MODULE.ID, 'narrativeDefaultImagePath', {
-		name: MODULE.ID + '.narrativeDefaultImagePath-Label',
-		hint: MODULE.ID + '.narrativeDefaultImagePath-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: '',
-		filePicker: true,  // Enable FilePicker for image file selection
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-
-	// --------------------------------------
-	// -- H4: Narrative Options	
-	// --------------------------------------
-	registerHeader('NarrativeOptions', 'headingH3NarrativeOptions-Label', 'headingH3NarrativeOptions-Hint', 'H4', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
-	
-	// -- Include Treasure by Default --
-	game.settings.register(MODULE.ID, 'narrativeDefaultIncludeTreasure', {
-		name: MODULE.ID + '.narrativeDefaultIncludeTreasure-Label',
-		hint: MODULE.ID + '.narrativeDefaultIncludeTreasure-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// -- Default Treasure Details --
-	game.settings.register(MODULE.ID, 'narrativeDefaultTreasureDetails', {
-		name: MODULE.ID + '.narrativeDefaultTreasureDetails-Label',
-		hint: MODULE.ID + '.narrativeDefaultTreasureDetails-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'None',
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// -- Include Encounter by Default --
-	game.settings.register(MODULE.ID, 'narrativeDefaultIncludeEncounter', {
-		name: MODULE.ID + '.narrativeDefaultIncludeEncounter-Label',
-		hint: MODULE.ID + '.narrativeDefaultIncludeEncounter-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'world',
-		default: false,
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// -- Default XP --
-	game.settings.register(MODULE.ID, 'narrativeDefaultXP', {
-		name: MODULE.ID + '.narrativeDefaultXP-Label',
-		hint: MODULE.ID + '.narrativeDefaultXP-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'None',
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// -- Default Encounter Details --
-	game.settings.register(MODULE.ID, 'narrativeDefaultEncounterDetails', {
-		name: MODULE.ID + '.narrativeDefaultEncounterDetails-Label',
-		hint: MODULE.ID + '.narrativeDefaultEncounterDetails-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: '',
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// --------------------------------------
-	// -- H3: Encounter
-	// --------------------------------------
-	registerHeader('EncounterGenerator', 'headingH2EncounterGenerator-Label', 'headingH2EncounterGenerator-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
-
-	// -- Encounter Folder --
-	game.settings.register(MODULE.ID, 'encounterFolder', {
-		name: MODULE.ID + '.encounterFolder-Label',
-		hint: MODULE.ID + '.encounterFolder-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: 'Encounters',
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// -- Default Encounter Card Image Selection --
-	game.settings.register(MODULE.ID, 'encounterDefaultCardImage', {
-		name: MODULE.ID + '.encounterDefaultCardImage-Label',
-		hint: MODULE.ID + '.encounterDefaultCardImage-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'none',
-		choices: {
-			'none': 'No Image',
-			'custom': 'Custom: Paste the Path Below',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-acid-1.webp': 'Damage: Acid 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-acid-2.webp': 'Damage: Acid 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-acid-3.webp': 'Damage: Acid 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-1.webp': 'Damage: Bludgeoning 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-2.webp': 'Damage: Bludgeoning 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-3.webp': 'Damage: Bludgeoning 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-4.webp': 'Damage: Bludgeoning 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-1.webp': 'Damage: Cold 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-2.webp': 'Damage: Cold 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-3.webp': 'Damage: Cold 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-4.webp': 'Damage: Cold 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-1.webp': 'Damage: Fire 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-2.webp': 'Damage: Fire 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-3.webp': 'Damage: Fire 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-4.webp': 'Damage: Fire 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-5.webp': 'Damage: Fire 5',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-6.webp': 'Damage: Fire 6',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-1.webp': 'Damage: Force 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-2.webp': 'Damage: Force 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-3.webp': 'Damage: Force 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-force-4.webp': 'Damage: Force 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-1.webp': 'Damage: Lightning 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-2.webp': 'Damage: Lightning 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-3.webp': 'Damage: Lightning 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-lightning-4.webp': 'Damage: Lightning 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-1.webp': 'Damage: Necrotic 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-2.webp': 'Damage: Necrotic 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-3.webp': 'Damage: Necrotic 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-4.webp': 'Damage: Necrotic 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-necrotic-5.webp': 'Damage: Necrotic 5',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-1.webp': 'Damage: Oops 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-2.webp': 'Damage: Oops 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-3.webp': 'Damage: Oops 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-4.webp': 'Damage: Oops 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-5.webp': 'Damage: Oops 5',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-6.webp': 'Damage: Oops 6',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-7.webp': 'Damage: Oops 7',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-8.webp': 'Damage: Oops 8',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-9.webp': 'Damage: Oops 9',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-10.webp': 'Damage: Oops 10',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-oops-11.webp': 'Damage: Oops 11',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-piercing-1.webp': 'Damage: Piercing 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-piercing-2.webp': 'Damage: Piercing 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-piercing-3.webp': 'Damage: Piercing 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-1.webp': 'Damage: Poison 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-2.webp': 'Damage: Poison 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-3.webp': 'Damage: Poison 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-4.webp': 'Damage: Poison 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-5.webp': 'Damage: Poison 5',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-1.webp': 'Damage: Psychic 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-2.webp': 'Damage: Psychic 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-3.webp': 'Damage: Psychic 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-4.webp': 'Damage: Psychic 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-1.webp': 'Damage: Radiant 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-2.webp': 'Damage: Radiant 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-3.webp': 'Damage: Radiant 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-4.webp': 'Damage: Radiant 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-slashing-1.webp': 'Damage: Slashing 1',
-			'modules/coffee-pub-blacksmith/images/banners-damage-slashing-2.webp': 'Damage: Slashing 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-slashing-3.webp': 'Damage: Slashing 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-slashing-4.webp': 'Damage: Slashing 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-damage-thunder-1.webp': 'Damage: Thunder 1'
-		},
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// -- Default Encounter Image Path (with FilePicker) --
-	game.settings.register(MODULE.ID, 'encounterDefaultImagePath', {
-		name: MODULE.ID + '.encounterDefaultImagePath-Label',
-		hint: MODULE.ID + '.encounterDefaultImagePath-Hint',
-		scope: "world",
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: '',
-		filePicker: true,  // Enable FilePicker for image file selection
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// --------------------------------------
-	// -- H2: Compendiums
-	// --------------------------------------
-	registerHeader('CompendiumMapping', 'headingH2CompendiumMapping-Label', 'headingH2CompendiumMapping-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
-
-	// Dynamically register settings for ALL compendium types found in the system
-	// This includes Actor, Item, Spell, Feature, and any other types (JournalEntry, RollTable, etc.)
-	registerDynamicCompendiumTypes();
-
-
-
-
-	
 
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
