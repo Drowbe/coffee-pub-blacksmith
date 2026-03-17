@@ -37,6 +37,10 @@
     gap: 2px;
 }
 
+
+
+
+
 .journal-page-pin-icon-option {
     display: inline-flex;
     align-items: center;
@@ -44,8 +48,8 @@
     width: 1.75rem;
     height: 1.75rem;
     padding: 0;
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.0);
     border-radius: 4px;
     color: var(--color-text-light-heading);
     cursor: pointer;
@@ -55,9 +59,12 @@
     font-size: 0.95rem;
 }
 
+.journal-page-pin-icon-option.selected:hover,
 .journal-page-pin-icon-option:hover {
-    background: rgba(0, 0, 0, 0.4);
-    color: var(--color-text-light-primary);
+  background-color: rgba(247, 133, 2, 0.9);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 1.8px rgba(171, 153, 60, 0.2);
 }
 
 .journal-page-pin-icon-option.selected {
@@ -82,8 +89,10 @@
     margin-right: 3px;
 }
 .journal-page-pins-bar .journal-page-pin-button:hover {
-    background: rgba(185, 84, 61, 1.0);
-    color: var(--color-text-light-primary);
+  background-color: rgba(247, 133, 2, 0.9);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 1.8px rgba(171, 153, 60, 0.2);
 }
 
 @media (max-width: 900px) {

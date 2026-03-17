@@ -1,7 +1,3 @@
-2026/03/15-10:27:47.362 5700 Recovering log #2789
-2026/03/15-10:27:47.368 5700 Delete type=0 #2789
-2026/03/15-10:27:47.369 5700 Delete type=3 #2788
-2026/03/16-13:46:53.778 6a5c Level-0 table #2793: started
-2026/03/16-13:46:53.779 6a5c Level-0 table #2793: 0 bytes OK
-2026/03/16-13:46:53.780 6a5c Delete type=0 #2791
-2026/03/16-13:46:53.783 6a5c Manual compaction at level-0 from '!folders!kOaw01a1lQdaYDrk' @ 72057594037927935 : 1 .. '!tables.results!lcAIOnaOk9X0Ln6m.wjnC7iMXGQrpwtYi' @ 0 : 0; will stop at (end)
+2026/03/16-14:31:18.378 10d5c Recovering log #2792
+2026/03/16-14:31:18.384 10d5c Delete type=0 #2792
+2026/03/16-14:31:18.384 10d5c Delete type=3 #2790

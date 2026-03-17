@@ -27,13 +27,15 @@
   font-family: var(--font-primary);
 }
 
-   /* ────────────────────────────────────────────────
+/* ────────────────────────────────────────────────
    Header with Title (on its own row, left aligned)
  ──────────────────────────────────────────────── */
  .encounter-toolbar-header {
    display: flex;
+   flex-wrap: wrap;
    justify-content: space-between;
    align-items: center;
+   gap: 6px;
    margin: 0;
    padding: 0;
    border: none;
@@ -57,6 +59,7 @@
  ──────────────────────────────────────────────── */
  .encounter-badges {
    display: flex;
+   flex-wrap: wrap;
    align-items: center;
    gap: 6px;
  }
@@ -71,98 +74,11 @@
   flex-wrap: wrap; /* Allows wrapping on narrow screens */
 }
 
-/* ────────────────────────────────────────────────
-  Action Buttons
-──────────────────────────────────────────────── */
-.encounter-btn {
-  line-height: normal;
-  padding: 4px 4px;
-  margin: 2px 0;
-  font-size: 0.8em;
-  border-radius: 4px;
-  text-transform: uppercase;
-  text-align: center;
-  background-color: #312E20;
-  color: #ffffff;
-  border: 1px solid #625D45;
-  width: auto;
-}
-
-.encounter-btn:hover {
-  background-color: #22c901;
-  color: #312E20;
-  border: 1px solid #1d8d07;
-  box-shadow: 0 0 0 1.8px rgba(171, 153, 60, 0.4);
-}
-
-.encounter-btn i {
-  padding-left: 2px;
-  padding-top: 2px;
-}
 
 /* ────────────────────────────────────────────────
-  Encounter Icons
+  Deploy badges (pattern, visibility, Deploy All)
 ──────────────────────────────────────────────── */
-.encounter-icons-none,
-.encounter-icons-npc,
-.encounter-icons-monster {
-  display: flex;
-  gap: 4px;
-  margin-right: 0px;
-  padding-right: 4px;
-  border-right: 1px dotted rgba(0, 0, 0, 0.3);
-}
 
-.encounter-icon-portrait {
-  width: 22px;
-  height: 22px;
-  object-fit: cover;
-  border: 0px dotted rgba(0, 0, 0, 0.3);
-}
-
-.encounter-icon-none,
-.encounter-icon-npc,
-.encounter-icon-monster {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  padding: 0px;
-}
-
-.encounter-icon-none:hover,
-.encounter-icon-npc:hover,
-.encounter-icon-monster:hover {
-  background: rgba(0, 0, 0, 0.8);
-  border-color: var(--color-border-highlight);
-  transform: scale(1.1);
-}
-
-.encounter-icon-none {
-  border: 1px solid rgba(24, 22, 22, 0.4);
-}
-.encounter-icon-npc {
-  border: 1px solid rgba(83, 123, 198, 0.4);
-}
-.encounter-icon-monster {
-  border: 1px solid rgba(254, 0, 0, 0.4);
-}
-
-.encounter-icon-none i,
-.encounter-icon-npc i,
-.encounter-icon-monster i {
-  font-size: 12px;
-  color: var(--color-text-primary);
-}
-
-/* ────────────────────────────────────────────────
-  FUNCTION BUTTONS Badge
-──────────────────────────────────────────────── */
 .badge-deploy {
   padding: 1px 4px;
   border-radius: 3px;
@@ -172,33 +88,99 @@
   letter-spacing: 0.5px;
   cursor: pointer;
   transition: all 0.2s ease;
+  line-height: normal;
+  text-align: center;
+  width: auto;
+  border: 1px solid rgba(98, 93, 69, 0.9);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .badge-deploy i {
- font-size: .8em;
- margin-right: 3px;
+  font-size: .8em;
+  margin-right: 3px;
+}
+
+.badge-deploy.deploy-type,
+.badge-deploy.deploy-visibility,
+.badge-deploy.deploy-monsters {
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 0, 0, 0.0);
+  color: rgba(255, 255, 255, 0.90);
 }
 
 .badge-deploy:hover {
-  background-color: #EBD04A;
-  color: #312E20;
-  border: 1px solid #AB993C;
-  box-shadow: 0 0 0 1.8px rgba(171, 153, 60, 0.4);
+  background-color: rgba(247, 133, 2, 0.9);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 1.8px rgba(171, 153, 60, 0.2);
 }
 
-/* Type of Deployment */
-.badge-deploy.deploy-type {
- background-color: #323536;
- border: 1px solid #1e2020;
- color: #ffffff;
+
+
+
+/* ────────────────────────────────────────────────
+  Encounter Icons
+──────────────────────────────────────────────── */
+.encounter-icons-none,
+.encounter-icons-npc,
+.encounter-icons-monster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-right: 0px;
+  padding-right: 4px;
+  border-right: 0px dotted rgba(0, 0, 0, 0.3);
 }
 
-/* Deployment Visibility */
-.badge-deploy.deploy-visibility {
-  background-color: #323536;
-  border: 1px solid #1e2020;
-  color: #ffffff;
- }
+.encounter-icon-portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 1px dotted rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+}
+
+.encounter-icon-none,
+.encounter-icon-npc,
+.encounter-icon-monster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 45px;
+  height: 45px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0px;
+}
+
+.encounter-icon-none:hover,
+.encounter-icon-npc:hover,
+.encounter-icon-monster:hover {
+  background: rgba(255, 136, 0, 0.6);
+  border-color: rgba(255, 136, 0, 0.9);
+  transform: scale(1.1);
+}
+
+.encounter-icon-none {
+  border: 2px solid rgba(24, 22, 22, 0.25);
+}
+.encounter-icon-npc {
+  border: 2px solid rgba(83, 123, 198, 0.25);
+}
+.encounter-icon-monster {
+  border: 2px solid rgba(254, 0, 0, 0.25);
+}
+
+.encounter-icon-none i,
+.encounter-icon-npc i,
+.encounter-icon-monster i {
+  font-size: 12px;
+  color: var(--color-text-primary);
+}
+
 
 
 /* ────────────────────────────────────────────────
@@ -211,9 +193,9 @@
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background-color: #4a5568;
-  color: #ffffff;
-  border: 1px solid #2d3748;
+  background-color: rgba(74, 85, 104, 0.9);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(45, 55, 72, 0.9);
 }
 
 .cr-badge i {
@@ -222,15 +204,15 @@
 }
 
 .cr-badge.encounter-party-cr {
-  background-color: #114270;
-  color: #ffffff;
-  border: 1px solid #2c5282;
+  background-color: rgba(17, 66, 112, 0.9);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(44, 82, 130, 0.9);
 }
 
 .cr-badge.encounter-monster-cr {
-  background-color: #8f1515;
-  color: #ffffff;
-  border: 1px solid #771111;
+  background-color: rgba(143, 21, 21, 0.9);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(119, 17, 17, 0.9);
 }
 
 /* ────────────────────────────────────────────────
@@ -255,42 +237,42 @@
 .difficulty-badge.none {
  background-color: #6c757d;
  border: 1px solid #495057;
- color: #ffffff;
+ color: rgba(255, 255, 255, 0.9);
 }
 
 .difficulty-badge.trivial {
  background-color: #155724;
  border: 1px solid #0d5510;
- color: #ffffff;
+ color: rgba(255, 255, 255, 0.9);
 }
 .difficulty-badge.easy {
  background-color: #197c1d;
  border: 1px solid #0d5510;
- color: #ffffff;
+ color: rgba(255, 255, 255, 0.9);
 }
 
 .difficulty-badge.medium {
  background-color: #d48105;
  border: 1px solid #995e06;
- color: #ffffff;
+ color: rgba(255, 255, 255, 0.9);
 }
 
 .difficulty-badge.hard {
  background-color: #c9180c;
  border: 1px solid #a0180e;
- color: #ffffff;
+ color: rgba(255, 255, 255, 0.9);
 }
 
 .difficulty-badge.deadly {
  background-color: #830c0c;
  border: 1px solid #580303;
- color: #ffffff;
+ color: rgba(255, 255, 255, 0.9);
 }
 
 .difficulty-badge.impossible {
  background-color: #3f0808;
  border: 1px solid #1a0303;
- color: #fffcfa;
+ color: rgba(255, 251, 250, 0.9);
 }
 
 /* ────────────────────────────────────────────────
@@ -299,7 +281,7 @@
 .encounter-tooltip {
   position: absolute;
   background: rgba(0, 0, 0, 0.9);
-  color: white;
+  color: rgba(255, 255, 255, 0.9);
   padding: 8px 12px;
   border-radius: 4px;
   font-size: 14px;
@@ -318,12 +300,12 @@
 
 .encounter-tooltip .monster-name {
   font-weight: bold;
-  color: #ffd700;
+  color: rgba(255, 215, 0, 0.9);
 }
 
 .encounter-tooltip .progress {
   font-size: 12px;
-  color: #cccccc;
+  color: rgba(204, 204, 204, 0.9);
   margin-top: 4px;
 }
 
@@ -331,8 +313,8 @@
   Optional: Empty State
 ──────────────────────────────────────────────── */
 .encounter-toolbar.no-encounter {
-  background: #f0f0f0;
-  border: 1px solid #ccc;
+  background: rgba(240, 240, 240, 0.9);
+  border: 1px solid rgba(204, 204, 204, 0.9);
   padding: 10px;
   margin: 10px 0;
   border-radius: 5px;
@@ -341,13 +323,13 @@
 
 .encounter-toolbar.no-encounter h3 {
   margin: 0 0 10px 0;
-  color: #666;
+  color: rgba(102, 102, 102, 0.9);
   font-size: 14px;
 }
 
 .encounter-toolbar.no-encounter p {
   margin: 0;
-  color: #888;
+  color: rgba(136, 136, 136, 0.9);
   font-style: italic;
   font-size: 12px;
 }

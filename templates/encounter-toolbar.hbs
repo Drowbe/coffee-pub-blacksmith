@@ -12,6 +12,11 @@
         <span class="badge-deploy deploy-visibility" data-tooltip="Click to toggle deployment visibility">
           <i class="fas fa-eye"></i>{{deploymentVisibility}}
         </span>
+        {{#if hasEncounterData}}
+        <span class="badge-deploy deploy-monsters" role="button" tabindex="0" data-tooltip="Deploy Monsters and NPCs - ALT: Hidden">
+          <i class="fas fa-dragon"></i>Deploy All
+        </span>
+        {{/if}}
 
       </div>
       <div class="encounter-badges">
@@ -66,9 +71,6 @@
             {{/each}}
           </div>
         {{/if}}
-        <button class="encounter-btn deploy-monsters" data-tooltip="Deploy Monsters and NPCs - ALT: Hidden">
-          <i class="fas fa-dragon"></i>Deploy All
-        </button>
       {{else}}
         {{! NO ENCOUNTER DATA }}
         <div class="encounter-icons-none">
