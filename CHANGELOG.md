@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Rulebook configuration model**: Replaced rulebooks-as-text-only with a mixed model. `Number of Rulebooks` now drives rulebook compendium dropdowns, while the old text setting is now `Custom Rulebooks` for supplemental freeform sources.
 - **Imports settings hierarchy**: Split import-related configuration out into a dedicated `Imports` section with `Item` and `Journal` subsections. Journal defaults are now grouped under `Narrative` and `Encounter`, while `Enhanced Image Guessing` now lives under `Imports > Item`.
 - **Regent AI settings layout**: Restored missing top-level Regent settings headings by adding `AI Settings` and `OpenAI`, plus visible narrative headings in Regent so its settings page has the same structural treatment as Blacksmith where appropriate.
+- **Encounter toolbar (journal)**: Items can wrap on narrow journal sheets; Deploy All is in the header next to the visibility badge and styled as a badge (span with `badge-deploy.deploy-monsters`). Removed unused `.encounter-btn` CSS.
+- **Journal pins toolbar**: Pin Page is now the first button; the Image (use first image from page) icon option is second, immediately after Pin Page. Removed `margin-left: auto` from the Pin Page button so it stays at the start.
 
 ### Fixed
 
