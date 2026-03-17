@@ -77,11 +77,11 @@
     display: inline-flex;
     align-items: center;
     white-space: nowrap;
-    margin-left: auto;
     padding: 0.25rem 0.5rem;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 4px;
     color: var(--color-text-light-heading);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     text-transform: uppercase;
     text-decoration: none;
 }
@@ -98,8 +98,5 @@
 @media (max-width: 900px) {
     .journal-page-pins-bar-left.toolbar-left {
         width: 100%;
-    }
-    .journal-page-pins-bar .journal-page-pin-button {
-        margin-left: 0;
     }
 }
