@@ -339,6 +339,7 @@ Hooks.once('ready', async () => {
             testNotificationSystem: MenuBar.testNotificationSystem.bind(MenuBar),
             testSecondaryBarSystem: MenuBar.testSecondaryBarSystem.bind(MenuBar),
             renderMenubar: MenuBar.renderMenubar.bind(MenuBar),
+            showMenubarContextMenu: MenuBar.showMenubarContextMenu.bind(MenuBar),
             registerMenubarVisibilityOverride: MenuBar.registerMenubarVisibilityOverride.bind(MenuBar),
             unregisterMenubarVisibilityOverride: MenuBar.unregisterMenubarVisibilityOverride.bind(MenuBar)
         });

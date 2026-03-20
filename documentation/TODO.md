@@ -4,6 +4,17 @@
 
 ## CRITICAL BUGS
 
+### Application V1 deprecation (CSSEditor / FormApplication)
+- **Issue**: Core logs compatibility warning: *The V1 Application framework is deprecated; use Application V2 (`foundry.applications.api.ApplicationV2`).* Backwards-compatible support will be removed in Foundry v16.
+- **Stack trace (example)**: `new FormApplication` → `new CSSEditor` (`window-gmtools.js`) → `blacksmith.js` (init path).
+- **Status**: PENDING – Migrate to Application V2.
+- **Location**: `scripts/window-gmtools.js` (`CSSEditor` extends `FormApplication`), callers in `scripts/blacksmith.js` and any other references.
+- **Need**:
+  - Replace `CSSEditor` with an `ApplicationV2` + `HandlebarsApplicationMixin` (or equivalent) implementation per project rules (Foundry v13+).
+  - Follow `documentation/applicationv2-window/guidance-applicationv2.md` and `documentation/api-window.md`.
+  - Remove V1 `Application` / `FormApplication` usage for this window; audit other Blacksmith windows still on V1 for the same migration.
+- **Priority**: CRITICAL – Required before v16 removes V1 support.
+
 ### Chat Card API
 - **Issue**: Chat card system exists internally but is not exposed via API for external modules
 - **Status**: PENDING - Critical need for external module integration
@@ -17,11 +28,10 @@
 - **Priority**: CRITICAL - Needed for external module development
 
 ### Memory Leak Investigation
-- **Issue**: Browser tab memory grows to 9.5 GB in ~3 hours while heap stays ~950 MB, leading to crashes.
-- **Status**: IN PROGRESS — see `documentation/performance.md` for full investigation notes, findings, and next steps.
-- **Progress**: 5 of 7 critical/high-priority items completed.
-- **Next Step**: Validate menubar rerender impact before investing. Profile during combat (memory, FPS); if menubar re-renders are not a hotspot, defer. If needed: low-effort throttle (100–150ms or RAF) for combat hooks first; fragment updates only if profiling justifies the 2–3 day effort. See `documentation/performance.md` §6 for LOE and approach options.
-- **Location**: See `documentation/performance.md`
+- **Issue**: Historical tab runaway (non-heap growth / crash) was tracked; **current builds are not reproducing** the old browser-tab growth pattern.
+- **Status**: ACTIVE (fresh baseline) — see `documentation/PERFORMANCE.md` for current stack rank, findings, and plan (lifecycle teardown for observers/timers, journal monitor consolidation, menubar/timer hotspots, legacy cleanup).
+- **Next Step**: Execute plan in `documentation/PERFORMANCE.md` § “Plan (Next Review Cycle)”; re-profile after targeted fixes; downgrade to MONITORING if stable.
+- **Location**: `documentation/PERFORMANCE.md` (canonical); duplicate `documentation/performance.md` should stay in sync or be removed.
 
 ## MEDIUM BUGS
 
@@ -101,12 +111,6 @@
 - **Status**: PENDING
 - **Location**: `documentation/architecture-pins.md`, `scripts/manager-pins.js`, `scripts/pins-renderer.js`
 - **Need**: Full automated tests; complete Phase 4–5 documentation and validation items. TODO.md is the master list; remove items when completed and added to CHANGELOG.
-
-#### Window API
-- **Issue**: Create a Window API for managing and controlling Blacksmith windows
-- **Status**: PENDING - Needs implementation
-- **Location**: New API file (e.g., `scripts/api-windows.js`)
-- **Need**: API for creating, managing, and controlling Blacksmith windows (similar to pins API pattern)
 
 #### Pin Text Display System
 - **Issue**: Pin text property exists but is not displayed. Need to implement text display system similar to Foundry's note/token text.
@@ -254,27 +258,6 @@ Keep jQuery detection during migration, but treat it as technical debt. Once all
 
 
 ## DEFERRED
-
-### Performance - Large Cache Memory & Parallelization
-- **Issue**: Additional performance optimizations available but not critical
-- **Status**: DEFERRED - Current performance is acceptable
-- **Items**: Large cache memory usage (17,562+ files), sequential token matching that could be parallelized
-- **Trigger for Revisiting**: If users report memory issues with very large collections (50,000+ files) or matching performance becomes bottleneck
-
-### Search Performance - Phase 2/3 Optimizations
-- **Issue**: Additional performance optimizations available if Phase 1 improvements prove insufficient
-- **Status**: DEFERRED - Phase 1 optimizations resolved lag issues
-- **Reason**: User testing confirms Phase 1 improvements are sufficient
-- **Available if needed**: Streaming/incremental results, score caching, parallelization, index-based search, pre-computed similarity scores
-- **Trigger for Revisiting**: If users report lag returns with larger datasets (20,000+ files) or different usage patterns
-
-### OpenAI API Not Exposed to External Modules
-- **Issue**: OpenAI functions exist in `api-core.js` but are NOT exposed via `module.api`
-- **Status**: DEFERRED - Not currently blocking any active development
-- **Location**: `scripts/api-core.js` (getOpenAIReplyAsHtml, getOpenAIReplyAsJson, getOpenAIReplyAsText)
-- **Plan**: Add OpenAI functions to `UtilsManager.getUtils()` and expose via `module.api.utils`
-- **Deferred Reason**: No external modules currently need this functionality
-
 
 ## BACKLOG
 

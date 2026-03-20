@@ -1,95 +1,104 @@
 # Performance & Memory Diagnostics
 
-Centralized notes for long-running performance and memory investigations. Use this file to capture reproduction steps, instrumentation plans, current findings, and next actions so the main `TODO.md` can stay concise.
+Current performance baseline and action plan after recent subsystem removals (OpenAI/Regent split from core, Broadcast/Herald removal, Curator/Image-replacement removal).
 
 ---
 
-## Memory Leak Investigation (CRITICAL)
+## Current Status
 
-- **Status**: ACTIVE (high-risk items resolved; medium-risk validation in progress)
+- **Status**: ACTIVE (fresh baseline review complete; targeted fixes pending)
 - **Owner**: Systems/Performance
 - **Last Updated**: 2026-03-02
+- **Key Observation**: We are **not** currently reproducing the old browser-tab runaway memory growth/crash pattern.
 
-### Summary
-- Browser tab grows from ~900 MB heap → 9.5 GB total during 3‑hour sessions, eventually crashing.
-- Heap usage is stable; growth is in non-heap allocations (DOM, textures, audio, timer handles).
-- Issue reproduces during normal gameplay with menubar, timers, token automation enabled.
+## Scope Notes
 
-### Reproduction & Instrumentation
-1. Follow `documentation/testing.md` “Memory Diagnostic Playbook” for snapshots and timelines.
-2. Track `PIXI.BaseTextureCache`, `canvas.stage.children`, and HookManager stats every 10 min.
-3. Toggle subsystems (menubar, token indicators, timers, token movement) to isolate curves.
-4. Capture at least three heap snapshots (baseline, mid-session, pre-crash) and diff by constructors.
+- This document intentionally removes legacy findings tied to removed subsystems.
+- Keep this file focused on **current** code paths only.
+- Related duplicate file exists at `documentation/performance.md`; keep these synchronized or consolidate to one canonical file.
 
-### Acceptance Criteria (for closing this investigation)
-- 3-hour GM session shows no runaway memory growth (no repeated upward staircase ending in tab instability/crash).
-- Documents/Nodes trend stabilizes after repeated open/close cycles of heavy UIs (token image replacement, menubar-driven updates).
-- No recurring detached DOM growth pattern across snapshot diffs.
-- Combat remains responsive (no sustained UI stutter attributable to menubar full re-renders).
+## Current Findings (Stack Ranked)
 
-### Current Findings (Stack Ranked)
 | Rank | Severity | Area | Status |
 | --- | --- | --- | --- |
-| 1 | Critical | Hook cleanup | ✅ Completed – `HookManager.unregisterHook` implemented and all call sites updated. |
-| 2 | High | Target hiding loop | ✅ Completed – replaced continuous RAF loop with event-driven hiding. |
-| 3 | High | Token movement state | ✅ Completed – state resets on scene/mode changes and hooks clean up properly. |
-| 4 | High | Token image search/filtering | ✅ Completed – cache indexes + lightweight result caching prevent 17k-entry clones. |
-| 5 | High | Token image replacement window | ✅ Completed – teardown now removes DOM, listeners, and timers between opens. |
-| 6 | Medium | Menubar rerenders | Active |
-| 7 | Medium | Image cache footprint | Active |
+| 1 | High | Encounter toolbar global observer/polling lifecycle | Active |
+| 2 | High | Journal page pins observer/polling lifecycle | Active |
+| 3 | High | Duplicate journal monitoring pipelines (duplicate work) | Active |
+| 4 | Medium | Menubar full rerenders on frequent update paths | Active |
+| 5 | Medium | Timer loops doing global DOM queries/rerenders | Active |
+| 6 | Medium | Socket native fallback listener lifecycle | Active |
+| 7 | Low | Legacy/no-op hooks and stale cleanup candidates | Active |
 
-### Detailed Findings
+## Detailed Findings
 
-**Items 1-3**: Critical and high-priority items resolved through infrastructure improvements (HookManager, event-driven patterns, state management). Documentation captured in table above.
+1. **Encounter toolbar installs long-lived global work with no teardown path**
+   - **Files**: `scripts/encounter-toolbar.js`
+   - **Evidence**: Uses `MutationObserver`, `setInterval(..., 500)`, and document-level click listener; no explicit disconnect/clear/remove path found in current flow.
+   - **Risk**: Session-long CPU churn, duplicate callbacks on lifecycle edge cases, potential retained references.
 
-4. **Token image search/filtering churn**
-   - **Status**: ✅ Completed.
-   - **Files**: `scripts/manager-image-cache.js`, `scripts/token-image-replacement.js`.
-   - **Evidence**: Previous code cloned `ImageCacheManager.cache.files` (17k entries) per keystroke and cached deep copies of match arrays for five minutes, visible in heap snapshots as large `Array` diffs and cached match objects.
-   - **Fix**: Added `categoryIndex`/`tagIndex` Maps during cache build, updated filtering/search routines to operate on ID lists, and changed `_cacheSearchResults` to store lightweight references only. Search now allocates O(resultCount) per query and releases arrays once pagination updates.
+2. **Journal page pins keeps observer + interval alive**
+   - **Files**: `scripts/journal-page-pins.js`
+   - **Evidence**: `setInterval(..., 2000)` and `MutationObserver` started from ready path; no explicit global dispose in current flow.
+   - **Risk**: Background scan overhead and retained references across long sessions/hot reload scenarios.
 
-5. **Token image replacement window leaks DOM between opens**
-   - **Status**: ✅ Completed.
-   - **Files**: `scripts/token-image-replacement.js` (`_updateResults`, `_teardownWindowResources`, `close`).
+3. **Duplicate journal instrumentation stacks**
+   - **Files**: `scripts/journal-page-pins.js`, `scripts/blacksmith.js`
+   - **Evidence**: Both register broad journal render/application monitoring; overlapping observers/hooks appear to do similar work.
+   - **Risk**: Duplicate processing, extra DOM scans, harder debugging when UI hooks fire multiple times.
+
+4. **Menubar rerender path is still broad**
+   - **Files**: `scripts/api-menubar.js`
+   - **Evidence**: Full container remove/rebuild path remains reachable from frequent update flows.
+   - **Risk**: Extra DOM churn and event rebind overhead under combat-heavy updates.
+
+5. **Timer UI updates query broadly and trigger extra renders**
+   - **Files**: `scripts/timer-round.js`, `scripts/timer-planning.js`
+   - **Evidence**: Global selectors in interval ticks and explicit combat render calls in planning flow.
+   - **Risk**: Unnecessary per-tick DOM/query cost, especially during long combats.
+
+6. **Socket fallback lifecycle cleanup gap**
+   - **Files**: `scripts/manager-sockets.js`
+   - **Evidence**: Native fallback registers socket listener; explicit `off` cleanup path is not clearly present.
+   - **Risk**: Duplicate handlers on re-init/fallback transitions.
+
+7. **Legacy/unused cleanup opportunities**
+   - **Files**: `scripts/blacksmith.js`, `scripts/settings.js`, `styles/window-template.css`, `scripts/window-base-v2.js`
    - **Evidence**:
-     - Performance recording showed Documents climbing from 33 → 915 and Nodes from 72k → 254k after opening/replacing images several times.
-     - Heap snapshots comparing “baseline” vs “post-window” contained thousands of `Detached HTMLDivElement` entries rooted in `.tir-thumbnail-item` trees.
-   - **Root Cause**: `close()` only cleared arrays and removed a few listeners; the rendered DOM stayed attached to `document.body`, `<img>` elements kept `src` references (decoded textures), and tracked timeouts/hooks were left pending.
-   - **Fix**: Introduced `_teardownWindowResources()` to clear delegated events, cancel tracked timeouts, wipe `this._activeImageElements`, remove the window root, and reset caches. `_updateResults()` now tracks `<img>` nodes so the next render can null their `src`. `close()` unregisters the `controlToken` hook via `HookManager.unregisterHook` and calls the teardown, ensuring each open/close cycle releases DOM/texture memory.
+     - No-op `renderApplication`/`closeApplication` hooks remain.
+     - Duplicate `movementType` setting registration exists.
+     - Regent-specific CSS selector residue and stale selector branches were reported.
+   - **Risk**: Maintenance noise and avoidable runtime overhead.
 
-6. **Menubar re-renders too frequently**
-   - **Status**: 🔄 Active (Medium Priority) – profiling gate before refactor
-   - **Files**: `scripts/api-menubar.js`.
-   - **Evidence**: Hooks (`updateCombat`, `createCombatant`, `updateCombatant`, `deleteCombatant`, `renderApplication`, `closeApplication`, `updateActor`, `updateToken`) → `updateCombatBar` → `updateSecondaryBar` → `renderMenubar(true)`. Combat bar updates trigger full menubar re-render (entire template, DOM teardown, handler reattach).
-   - **Impact**: Full rebuild on each combat/HP/token event; detached nodes if cleanup fails; CPU spikes and GC pressure during combat.
-   - **Mitigating factors**: 50ms debounce already in place; combat events typically a few per round, not continuous.
-   - **Insight**: Benefit may not justify effort without evidence. Five other critical/high items are done; if memory/FPS are stable and no combat lag reported, this is lower priority.
-   - **Approach options** (choose after validation):
-     - **A) Stricter throttling** (~0.5–1 day): Increase debounce or use RAF for combat hooks. Low risk.
-     - **B) Combat bar fragment update** (~2–3 days): `_renderCombatBarOnly(data)` that updates only the combat partial; stop calling `renderMenubar` from `updateSecondaryBar` when combat bar is open. Higher impact, more testing.
-     - **C) Full fragment updates** (~3–4 days): Extend B to all secondary bars; `updateSecondaryBarItemInfo` triggers partial re-render for encounter bar.
-     - **D) State diffing** (~1–2 weeks): Minimal DOM patching. Major refactor.
-   - **Recommendation**: Profile during combat first. If menubar re-renders are not a hotspot → defer. If needed → start with A; only pursue B if profiling shows combat path as significant cost.
+## What We Removed From This Doc
 
-7. **Image cache retains entire asset library in memory**
-   - **Status**: 🔄 Active (Medium Priority)
-   - **Files**: `scripts/manager-image-cache.js`.
-   - **Evidence**: `ImageCacheManager.cache` holds Maps for `files`, `folders`, `creatureTypes`, plus progress metadata. No eviction or unload. Scans only mutate the in-memory object; even after closing the feature the cache persists until page refresh.
-   - **Impact**: 17k+ entries (names, tags, folder paths, metadata) plus progress strings consume hundreds of MB. Combined with search allocations, this explains non-heap growth despite stable JS heap.
-   - **Actionable Notes**: Persist processed metadata to settings/storage to reload on demand, add a “flush cache” control, or load subsets lazily (e.g., per top-level folder). Track cache size and warn when above threshold.
+These historical sections were intentionally removed because the related subsystem is no longer part of current scope:
+- Image replacement cache/search leak analysis tied to removed curator/image-replacement runtime.
+- Old runaway-memory narrative as a current critical incident.
+- Legacy stack-rank items that referenced removed files/flows.
 
-### Current Execution Plan (short-term)
-1. **Baseline pass (no code changes)**  
-   Run one 90–180 minute session with current `13.5.x` build and collect timeline + snapshots. Confirm whether crash profile still reproduces.
+## Plan (Next Review Cycle)
 
-2. **Menubar decision gate**  
-   If profiling shows frequent full menubar rebuilds as a top CPU/GC contributor during combat, implement Option A (throttling) first; re-profile before considering Option B.
+1. **Lifecycle hardening pass (High, short)**
+   - Add explicit `dispose()` teardown for observer/timer/listener-heavy managers:
+     - `encounter-toolbar`
+     - `journal-page-pins`
+     - native socket fallback listener cleanup
 
-3. **Image cache safety controls**  
-   Add a manual cache flush path and lightweight cache-size telemetry (counts + approximate memory estimate) before implementing larger lazy-load/persistence work.
+2. **Journal monitoring consolidation (High, short)**
+   - Choose one canonical monitoring pipeline (manager-owned), remove duplicate watcher path, and keep hook coverage minimal.
 
-4. **Report + decision**  
-   Update this document with: reproduction result, before/after metrics, and go/no-go on deeper refactors.
+3. **Low-risk performance wins (Medium, short)**
+   - Reduce timer global queries via cached nodes + cache refresh on render events.
+   - Gate menubar full rerender behind dirty checks; keep partial/timer-only updates lightweight.
 
-Document any additional findings in this file, then link back to them from `TODO.md`.
+4. **Legacy cleanup sweep (Low, short)**
+   - Remove no-op hooks and duplicate setting registration.
+   - Remove stale selectors/comments tied to removed subsystems.
+
+5. **Validation pass**
+   - Re-run a 90–180 minute GM session and compare:
+     - DOM nodes/documents trend
+     - event listener counts (where measurable)
+     - combat responsiveness
+   - If stable, downgrade this investigation from ACTIVE to MONITORING.
 

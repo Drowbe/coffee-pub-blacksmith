@@ -3169,6 +3169,16 @@ class MenuBar {
         });
     }
 
+    /**
+     * Public wrapper for showing a menubar-style context menu.
+     * @param {Array<{ name: string, icon?: string, description?: string, onClick?: Function, submenu?: Array, separator?: boolean, disabled?: boolean }>} items
+     * @param {number} x
+     * @param {number} y
+     */
+    static showMenubarContextMenu(items, x, y) {
+        this._showMenubarContextMenu(items, x, y);
+    }
+
 
     /**
      * Build visibility menu items for pins (used by pin tool right-click and start menu flyout).
