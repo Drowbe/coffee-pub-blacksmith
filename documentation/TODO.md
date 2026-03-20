@@ -2,6 +2,20 @@
 
 **Master list:** This file contains all todos referenced in architecture and API documentation. **Process:** When a task is completed, add it to **`CHANGELOG.md`**, then remove it from this file and from any completed-task language in API/architecture docs.
 
+## Performance & memory (stack rank)
+
+Mirrors **`documentation/PERFORMANCE.md`** — active investigation items; update both when status changes.
+
+| Rank | Severity | Area | Status |
+| --- | --- | --- | --- |
+| 1 | High | Encounter toolbar global observer/polling lifecycle | Active |
+| 2 | High | Journal page pins observer/polling lifecycle | Active |
+| 3 | High | Duplicate journal monitoring pipelines (duplicate work) | Active |
+| 4 | Medium | Menubar full rerenders on frequent update paths | Active |
+| 5 | Medium | Timer loops doing global DOM queries/rerenders | Active |
+| 6 | Medium | Socket native fallback listener lifecycle | Active |
+| 7 | Low | Legacy/no-op hooks and stale cleanup candidates | Active |
+
 ## CRITICAL BUGS
 
 ### Application V1 deprecation (CSSEditor / FormApplication)
@@ -15,17 +29,14 @@
   - Remove V1 `Application` / `FormApplication` usage for this window; audit other Blacksmith windows still on V1 for the same migration.
 - **Priority**: CRITICAL – Required before v16 removes V1 support.
 
-### Chat Card API
-- **Issue**: Chat card system exists internally but is not exposed via API for external modules
-- **Status**: PENDING - Critical need for external module integration
-- **Location**: `scripts/manager-rolls.js`, new API file (e.g., `scripts/api-chatcards.js`)
-- **Need**: 
-  - Expose chat card creation/update functionality via API
-  - Allow external modules to create and manage chat cards similar to pins API pattern
-  - API methods: `chatCards.create()`, `chatCards.update()`, `chatCards.delete()`, etc.
-  - Support for custom card templates and styling
-  - Integration with existing roll system and skill check system
-- **Priority**: CRITICAL - Needed for external module development
+### Chat Card API (first-class CRUD + docs)
+- **Issue**: Theme helpers exist (`module.api.chatCards` → `scripts/api-chat-cards.js`: `getThemes`, `getThemeClassName`, etc.), but there is no first-class API for **creating/updating/deleting** chat messages/cards the way pins expose CRUD.
+- **Status**: PENDING – narrow the gap vs pins/chat integration expectations
+- **Location**: `scripts/api-chat-cards.js`, `scripts/blacksmith.js` (`module.api.chatCards`), consumers in roll/skill-check flows
+- **Need**:
+  - Decide contract: `chatCards.createMessage` / `updateMessage` / helpers that wrap `ChatMessage.create` + Blacksmith card HTML, or document “use Foundry chat + these theme helpers only.”
+  - Document in `documentation/guides/` or `api-chat-cards` wiki once contract is fixed
+- **Priority**: CRITICAL – if external modules must post themed cards programmatically
 
 ### Memory Leak Investigation
 - **Issue**: Historical tab runaway (non-heap growth / crash) was tracked; **current builds are not reproducing** the old browser-tab growth pattern.
@@ -49,10 +60,9 @@
 
 ### Verify Loot Token Restoration
 - **Issue**: Ensure tokens converted to loot piles reliably restore their original images after revival
-- **Status**: PENDING - Needs validation pass
-- **Location**: `scripts/token-image-utilities.js`
-- **Need**: Regression testing across scenarios (various token types, scene reloads, Item Piles enabled/disabled)
-- **Related Settings**: `tokenConvertDeadToLoot`, `tokenLootPileImage`
+- **Status**: PENDING – needs validation pass
+- **Location**: `scripts/manager-canvas.js` (`CanvasTools` token conversion / dead-to-loot paths); related helpers may live in `scripts/api-tokens.js` – confirm when testing
+- **Need**: Regression testing across scenarios (various token types, scene reloads, Item Piles enabled/disabled). Reconcile any world settings names with current `settings.js` (older names like `tokenConvertDeadToLoot` may have changed).
 
 
 ## ENHANCEMENTS
@@ -81,10 +91,10 @@
 - **Need**: `processRoll()` respects `diceRollToolSystem`; implement Foundry roll path when selected; document in api-rolls when that doc exists.
 
 #### Rolls API as first-class surface
-- **Issue**: Rolls are exposed only via `module.api.BLACKSMITH.rolls.execute`; there is no `module.api.rolls` namespace and no dedicated API doc.
-- **Status**: PENDING - Future enhancement
-- **Location**: `scripts/blacksmith.js` (module.api assignment), new `documentation/api-rolls.md`
-- **Need**: Expose a first-class rolls surface (e.g. `module.api.rolls = { execute: ... }` or small namespace); add `BlacksmithAPI.getRolls()` in `api/blacksmith-api.js` if desired; document in `api-rolls.md` for developers leveraging the roll system.
+- **Issue**: Rolls may still be exposed via nested `BLACKSMITH` helpers; there is no dedicated `module.api.rolls` namespace and no `documentation/api-rolls.md` yet.
+- **Status**: PENDING – Future enhancement
+- **Location**: `scripts/blacksmith.js` (module.api assignment); add `documentation/api-rolls.md` when stable
+- **Need**: Expose a first-class rolls surface (e.g. `module.api.rolls = { execute: ... }`); document for developers leveraging the roll system.
 - **Priority**: Medium – Improves discoverability and consistency with pins/chatCards/stats APIs
 
 #### Menubar API: Move party tool code out of api-menubar.js
@@ -98,7 +108,7 @@
 - **Issue**: Toolbar Phases 1–3 are done; Phase 4 (testing and validation) remains.
 - **Status**: PENDING
 - **Location**: `documentation/architecture-toolbarmanager.md`, `scripts/manager-toolbar.js`
-- **Need**: Test tool registration/unregistration; verify compatibility with existing modules; test Foundry v12/v13; validate API stability.
+- **Need**: Test tool registration/unregistration; verify compatibility with existing modules; **Foundry v13+ only** (per project target); validate API stability.
 
 #### Embedded other-module variables (Squire / panel-notes)
 - **Issue**: Blacksmith code embeds constants that belong to other modules (e.g. Squire), creating tight coupling and fragility if those modules change IDs or naming.
@@ -163,16 +173,6 @@
 - **Location**: `scripts/window-query.js`
 - **Need**: Verify all tabs work, review/fix drop functionality design, fix JSON generation
 
-#### Token/Portrait Image Cache – Expand Filename Parsing for Tags
-- **Issue**: Only filename parts that match specific patterns (class, weapon, armor, size) become tags. Unmatched parts (e.g. profession, race, gender) are discarded. Example: `merchant-shopkeeper-butcher-human-male-03.webp` currently yields only `MERCHANT`; user expects tags: merchant, shopkeeper, butcher, human, male.
-- **Status**: PENDING - Plan agreed; implementation not started
-- **Location**: `scripts/manager-image-cache.js` – `METADATA_PATTERNS`, `IGNORED_WORDS`, `_extractMetadata()` (lines 386–409), `_generateTagsFromMetadata()` (lines 474–507)
-- **Need**:
-  - Collect unmatched filename parts (after pattern checks and IGNORED_WORDS) into a new metadata array (e.g. `metadata.filenameTags` or similar).
-  - In `_generateTagsFromMetadata()`, add those parts as tags (uppercase) in addition to existing pattern-derived tags.
-  - Optionally wire in more `METADATA_PATTERNS` (e.g. profession, action, direction, quality, creatureType) if they should feed tags; currently only class, weapon, armor, size are used in the loop.
-- **Notes**: Same parsing applies to both token and portrait caches. Class, weapon, armor, size remain used by the matching algorithm; new tags are for display/filtering and search.
-
 #### Expand Rulebook Selection Phase 2
 - **Issue**: phase 1 now uses `Number of Rulebooks`, rulebook compendium dropdowns, and `Custom Rulebooks`; phase 2 may still want curated/common-book shortcuts
 - **Status**: PENDING
@@ -194,7 +194,7 @@
 #### Clarity / Quickview (GM-only vision aid)
 - **Issue**: GM-only local brightness filter and token vision override feature needs verification and finalization
 - **Status**: IN PROGRESS
-- **Location**: Clarity/Quickview implementation
+- **Location**: `scripts/utility-quickview.js`
 - **Remaining**: Verify player client sees no change, decide overlay behavior, confirm fog opacity, lifecycle sanity checks, remove debug logging, add changelog entry
 
 ### Low Priority
@@ -209,26 +209,25 @@
 ## TECHNICAL DEBT
 
 ### jQuery Detection Pattern is Technical Debt
-- **Status**: TECHNICAL DEBT - Transitional pattern during v13 migration  
-- **Priority**: MEDIUM - Should be addressed after migration is complete  
+- **Status**: TECHNICAL DEBT – cleanup target now that **v13+ is the supported platform**
+- **Priority**: MEDIUM – Reduce over time as call sites are proven native-DOM-only
 - **Location**: Multiple files using jQuery detection pattern
 
 **Why This Pattern is Problematic**
 
-In FoundryVTT v13, jQuery is completely removed. Ideally, `html` parameters should always be native DOM elements.
+In FoundryVTT v13, jQuery is removed from the core UI stack. `html` parameters should be native DOM elements.
 
-The jQuery detection pattern indicates we're still in a mixed state where jQuery might be passed in. This is defensive code to handle an inconsistency we should fix at the source, not normalize at the destination.
+The jQuery detection pattern is defensive for legacy callers; prefer fixing at the source.
 
 **What We Should Do Instead**
 
-**Long-term (fully migrated v13):**
+**Long-term:**
 - Ensure call sites pass native DOM elements consistently
-- Remove all jQuery detection code
+- Remove jQuery detection where the source is guaranteed native DOM
 - TypeScript or explicit checks at call sites can enforce this
 
-**Short-term (during migration):**
-- This pattern is acceptable to prevent crashes while migrating
-- Plan to remove it once all call sites are fixed
+**Short-term:**
+- Keep only where a hook still occasionally passes jQuery-shaped objects
 - Track which methods use this pattern and why
 
 **The Real Question**
@@ -265,7 +264,7 @@ Keep jQuery detection during migration, but treat it as technical debt. Once all
 - Add some way to see who is targeting things
 
 ### Token Outfits
-- Allow for token outfits - extend what we do for image replacement
+- Allow for token outfits - extend token/artwork workflows (historically tied to image replacement; **revisit if/when** a supported image pipeline exists in core or a companion module)
 
 ### Rest and Recovery
 - Allow for long and short rests with configurable food/water consumption and spell slot recovery
@@ -274,7 +273,7 @@ Keep jQuery detection during migration, but treat it as technical debt. Once all
 - Automatically trigger injury rolls based on configurable rules/conditions (HP thresholds, critical hits, massive damage, etc.)
 
 ### Multiple Image Directories for Token Image Replacement
-- Allow users to configure multiple image directories with priority order
+- Allow users to configure multiple image directories with priority order (deferred until a dedicated image pipeline is back in scope for Blacksmith or a companion module)
 
 ### No Initiative Mode
 - Alternative combat mode where GM manually controls turn order instead of initiative rolls
@@ -283,4 +282,4 @@ Keep jQuery detection during migration, but treat it as technical debt. Once all
 - Export compendium contents as formatted HTML document for sharing, printing, or archiving
 
 ### CODEX-AI Integration
-- Integrate CODEX system with AI API for cost-efficient context management, replace conversation history with relevant CODEX entries
+- Integrate CODEX system with AI API for cost-efficient context management, replace conversation history with relevant CODEX entries (likely **outside core Blacksmith** – e.g. Regent or a dedicated AI module; clarify product ownership before implementation)
