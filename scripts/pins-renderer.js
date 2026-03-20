@@ -2134,7 +2134,7 @@ export class PinRenderer {
         if (sound) {
             try {
                 const soundPath = this._resolveSoundPath(sound);
-                if (soundPath) await AudioHelper.play({ src: soundPath, volume: 0.8, loop: false }, false);
+                if (soundPath) await foundry.audio.AudioHelper.play({ src: soundPath, volume: 0.8, loop: false }, false);
             } catch (err) {
                 console.warn('BLACKSMITH | PINS Delete sound failed:', err);
             }
@@ -2285,7 +2285,7 @@ export class PinRenderer {
             if (effectiveSound && !signal.aborted) {
                 try {
                     const soundPath = PinRenderer._resolveSoundPath(effectiveSound);
-                    await AudioHelper.play({ src: soundPath, volume: 0.8, loop: false }, false);
+                    await foundry.audio.AudioHelper.play({ src: soundPath, volume: 0.8, loop: false }, false);
                 } catch (err) {
                     console.warn(`BLACKSMITH | PINS Failed to play sound: ${effectiveSound}`, err);
                 }
@@ -2323,7 +2323,7 @@ export class PinRenderer {
         if (effectiveSound) {
             try {
                 const soundPath = PinRenderer._resolveSoundPath(effectiveSound);
-                await AudioHelper.play({ src: soundPath, volume: 0.8, loop: false }, false);
+                await foundry.audio.AudioHelper.play({ src: soundPath, volume: 0.8, loop: false }, false);
             } catch (err) {
                 console.warn(`BLACKSMITH | PINS Failed to play sound: ${effectiveSound}`, err);
             }
