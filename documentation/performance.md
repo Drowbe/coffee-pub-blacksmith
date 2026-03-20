@@ -6,9 +6,9 @@ Centralized notes for long-running performance and memory investigations. Use th
 
 ## Memory Leak Investigation (CRITICAL)
 
-- **Status**: PENDING
+- **Status**: ACTIVE (high-risk items resolved; medium-risk validation in progress)
 - **Owner**: Systems/Performance
-- **Last Updated**: 2025-11-14
+- **Last Updated**: 2026-03-02
 
 ### Summary
 - Browser tab grows from ~900 MB heap → 9.5 GB total during 3‑hour sessions, eventually crashing.
@@ -20,6 +20,12 @@ Centralized notes for long-running performance and memory investigations. Use th
 2. Track `PIXI.BaseTextureCache`, `canvas.stage.children`, and HookManager stats every 10 min.
 3. Toggle subsystems (menubar, token indicators, timers, token movement) to isolate curves.
 4. Capture at least three heap snapshots (baseline, mid-session, pre-crash) and diff by constructors.
+
+### Acceptance Criteria (for closing this investigation)
+- 3-hour GM session shows no runaway memory growth (no repeated upward staircase ending in tab instability/crash).
+- Documents/Nodes trend stabilizes after repeated open/close cycles of heavy UIs (token image replacement, menubar-driven updates).
+- No recurring detached DOM growth pattern across snapshot diffs.
+- Combat remains responsive (no sustained UI stutter attributable to menubar full re-renders).
 
 ### Current Findings (Stack Ranked)
 | Rank | Severity | Area | Status |
@@ -52,7 +58,7 @@ Centralized notes for long-running performance and memory investigations. Use th
    - **Fix**: Introduced `_teardownWindowResources()` to clear delegated events, cancel tracked timeouts, wipe `this._activeImageElements`, remove the window root, and reset caches. `_updateResults()` now tracks `<img>` nodes so the next render can null their `src`. `close()` unregisters the `controlToken` hook via `HookManager.unregisterHook` and calls the teardown, ensuring each open/close cycle releases DOM/texture memory.
 
 6. **Menubar re-renders too frequently**
-   - **Status**: 🔄 Active (Medium Priority) – validate impact before investing
+   - **Status**: 🔄 Active (Medium Priority) – profiling gate before refactor
    - **Files**: `scripts/api-menubar.js`.
    - **Evidence**: Hooks (`updateCombat`, `createCombatant`, `updateCombatant`, `deleteCombatant`, `renderApplication`, `closeApplication`, `updateActor`, `updateToken`) → `updateCombatBar` → `updateSecondaryBar` → `renderMenubar(true)`. Combat bar updates trigger full menubar re-render (entire template, DOM teardown, handler reattach).
    - **Impact**: Full rebuild on each combat/HP/token event; detached nodes if cleanup fails; CPU spikes and GC pressure during combat.
@@ -71,6 +77,19 @@ Centralized notes for long-running performance and memory investigations. Use th
    - **Evidence**: `ImageCacheManager.cache` holds Maps for `files`, `folders`, `creatureTypes`, plus progress metadata. No eviction or unload. Scans only mutate the in-memory object; even after closing the feature the cache persists until page refresh.
    - **Impact**: 17k+ entries (names, tags, folder paths, metadata) plus progress strings consume hundreds of MB. Combined with search allocations, this explains non-heap growth despite stable JS heap.
    - **Actionable Notes**: Persist processed metadata to settings/storage to reload on demand, add a “flush cache” control, or load subsets lazily (e.g., per top-level folder). Track cache size and warn when above threshold.
+
+### Current Execution Plan (short-term)
+1. **Baseline pass (no code changes)**  
+   Run one 90–180 minute session with current `13.5.x` build and collect timeline + snapshots. Confirm whether crash profile still reproduces.
+
+2. **Menubar decision gate**  
+   If profiling shows frequent full menubar rebuilds as a top CPU/GC contributor during combat, implement Option A (throttling) first; re-profile before considering Option B.
+
+3. **Image cache safety controls**  
+   Add a manual cache flush path and lightweight cache-size telemetry (counts + approximate memory estimate) before implementing larger lazy-load/persistence work.
+
+4. **Report + decision**  
+   Update this document with: reproduction result, before/after metrics, and go/no-go on deeper refactors.
 
 Document any additional findings in this file, then link back to them from `TODO.md`.
 
