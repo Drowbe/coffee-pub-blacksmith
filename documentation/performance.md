@@ -8,7 +8,7 @@ Current performance baseline and action plan after recent subsystem removals (Op
 
 - **Status**: ACTIVE (fresh baseline review complete; targeted fixes pending)
 - **Owner**: Systems/Performance
-- **Last Updated**: 2026-03-02
+- **Last Updated**: 2026-03-02 (stack rank #7 pass 1: see Detailed Findings §7)
 - **Key Observation**: We are **not** currently reproducing the old browser-tab runaway memory growth/crash pattern.
 
 ## Scope Notes
@@ -27,7 +27,7 @@ Current performance baseline and action plan after recent subsystem removals (Op
 | 4 | Medium | Menubar full rerenders on frequent update paths | Active |
 | 5 | Medium | Timer loops doing global DOM queries/rerenders | Active |
 | 6 | Medium | Socket native fallback listener lifecycle | Active |
-| 7 | Low | Legacy/no-op hooks and stale cleanup candidates | Active |
+| 7 | Low | Legacy/no-op hooks and stale cleanup candidates | Pass 1 done (see §7) |
 
 ## Detailed Findings
 
@@ -63,11 +63,16 @@ Current performance baseline and action plan after recent subsystem removals (Op
 
 7. **Legacy/unused cleanup opportunities**
    - **Files**: `scripts/blacksmith.js`, `scripts/settings.js`, `styles/window-template.css`, `scripts/window-base-v2.js`
-   - **Evidence**:
+   - **Evidence (historical)**:
      - No-op `renderApplication`/`closeApplication` hooks remain.
      - Duplicate `movementType` setting registration exists.
      - Regent-specific CSS selector residue and stale selector branches were reported.
    - **Risk**: Maintenance noise and avoidable runtime overhead.
+   - **Pass 1 (done)**:
+     - Removed empty `renderApplication` / `closeApplication` HookManager registrations (no runtime behavior; fewer hook invocations per frame).
+     - Removed duplicate `movementType` world setting registration; single hidden default remains `normal-movement` (matches code fallbacks).
+     - Removed dead scroll-save branch for non-existent `.blacksmith-window-template-details-content` in `window-base-v2.js` (body scroll only).
+   - **Remaining**: Regent-related CSS in `window-template.css` (keep if `coffee-pub-regent` still embeds `#coffee-pub-regent-wrapper`); optional comment-only cleanup.
 
 ## What We Removed From This Doc
 
@@ -92,8 +97,8 @@ These historical sections were intentionally removed because the related subsyst
    - Gate menubar full rerender behind dirty checks; keep partial/timer-only updates lightweight.
 
 4. **Legacy cleanup sweep (Low, short)**
-   - Remove no-op hooks and duplicate setting registration.
-   - Remove stale selectors/comments tied to removed subsystems.
+   - ~~Remove no-op hooks and duplicate setting registration.~~ **Done in pass 1 (13.5.8).**
+   - Remove stale selectors/comments tied to removed subsystems (optional follow-up).
 
 5. **Validation pass**
    - Re-run a 90–180 minute GM session and compare:

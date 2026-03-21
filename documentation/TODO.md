@@ -14,7 +14,7 @@ Mirrors **`documentation/PERFORMANCE.md`** — active investigation items; updat
 | 4 | Medium | Menubar full rerenders on frequent update paths | Active |
 | 5 | Medium | Timer loops doing global DOM queries/rerenders | Active |
 | 6 | Medium | Socket native fallback listener lifecycle | Active |
-| 7 | Low | Legacy/no-op hooks and stale cleanup candidates | Active |
+| 7 | Low | Legacy/no-op hooks and stale cleanup candidates | Pass 1 done (see PERFORMANCE.md §7) |
 
 ## CRITICAL BUGS
 

@@ -5,7 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [13.5.8]
+## [13.5.8] - 2026-03-02 - PERF STACK QUICK WINS (RANK 7)
+
+### Changed
+
+- **HookManager**: Removed no-op `renderApplication` and `closeApplication` registrations (empty callbacks left after window-registry work); reduces redundant hook dispatch noise.
+- **BlacksmithWindowBaseV2**: Dropped scroll save/restore for unused `.blacksmith-window-template-details-content`; body scroll handling unchanged.
+
+### Fixed
+
+- **World settings**: Removed duplicate `movementType` registration that overwrote the intended default; single hidden setting now defaults to `normal-movement`, consistent with code fallbacks.
+
+### Documentation
+
+- **Performance stack (rank 7)**: Updated `documentation/PERFORMANCE.md` and `documentation/performance.md` — pass 1 complete for no-op hooks, duplicate setting, and dead scroll branch; optional Regent/CSS follow-up noted. `documentation/TODO.md` stack table aligned.
 
 
 ## [13.5.7] - 2026-03-14 - SETTINGS ORGANIZATION & CLEANUP

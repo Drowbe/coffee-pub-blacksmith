@@ -795,34 +795,6 @@ Hooks.once('init', async function() {
     // Log hook registration
     postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "blacksmith-skill-check", true, false);
     
-    // Register window lifecycle hooks for efficient lookups
-    const renderApplicationHookId = HookManager.registerHook({
-        name: 'renderApplication',
-        description: 'Blacksmith: Register blacksmith windows on render',
-        context: 'blacksmith-window-registration',
-        priority: 3, // Normal priority - window management
-        callback: (_app, _html, _data) => {
-            // Window registry removed; Regent (coffee-pub-regent) manages its own windows
-        }
-    });
-    
-    // Log hook registration
-    postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderApplication", "blacksmith-window-registration", true, false);
-    
-    // Register closeApplication hook for window cleanup
-    const closeApplicationHookId = HookManager.registerHook({
-        name: 'closeApplication',
-        description: 'Blacksmith: Unregister blacksmith windows on close',
-        context: 'blacksmith-window-cleanup',
-        priority: 3, // Normal priority - window management
-        callback: (_app) => {
-            // Window registry removed; Regent (coffee-pub-regent) manages its own windows
-        }
-    });
-
-    // Log hook registration
-    postConsoleAndNotification(MODULE.NAME, "Hook Manager | closeApplication", "blacksmith-window-cleanup", true, false);
-    
     // Register settingChange hook for cache management
     const settingChangeHookId = HookManager.registerHook({
         name: 'settingChange',

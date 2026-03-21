@@ -45,10 +45,8 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
     _saveScrollPositions() {
         const root = this._getRoot();
         const body = root?.querySelector?.('.blacksmith-window-template-body');
-        const details = root?.querySelector?.('.blacksmith-window-template-details-content');
         return {
-            body: body ? body.scrollTop : 0,
-            details: details ? details.scrollTop : 0
+            body: body ? body.scrollTop : 0
         };
     }
 
@@ -56,9 +54,7 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
         if (!saved) return;
         const root = this._getRoot();
         const body = root?.querySelector?.('.blacksmith-window-template-body');
-        const details = root?.querySelector?.('.blacksmith-window-template-details-content');
         if (body != null && saved.body != null) body.scrollTop = saved.body;
-        if (details != null && saved.details != null) details.scrollTop = saved.details;
     }
 
     async render(force = false) {

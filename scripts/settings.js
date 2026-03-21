@@ -3590,17 +3590,6 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
 
-	// -- Movement Type - HIDDEN SETTING --
-	game.settings.register(MODULE.ID, 'movementType', {
-		name: MODULE.ID + '.movementType-Label',
-		hint: MODULE.ID + '.movementType-Hint',
-		scope: 'world',
-		config: false,
-		type: String,
-		default: 'no-movement',
-		group: WORKFLOW_GROUPS.AUTOMATION
-	});
-
 	// -- Pre-Combat Movement Mode Storage - HIDDEN SETTING --
 	game.settings.register(MODULE.ID, 'preCombatMovementMode', {
 		type: String,
