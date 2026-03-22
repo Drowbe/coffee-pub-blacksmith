@@ -19,7 +19,7 @@
             {{/if}}
        </h3>
         {{#if vote.isActive}}
-            <div class="vote-status active" {{#if currentUserIsGM}}data-tooltip="{{getVoterList vote.votes}}"{{/if}}>
+            <div class="vote-status active" {{#if currentUserIsGM}}data-tooltip="{{getVoterList vote}}"{{/if}}>
                 {{#if progress}}
                     {{progress.current}}/{{progress.total}}
                 {{/if}}

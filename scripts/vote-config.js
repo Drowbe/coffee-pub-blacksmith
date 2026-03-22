@@ -31,16 +31,6 @@ export class VoteConfig extends Application {
             return {};
         }
 
-        // Check if user is excluded
-        const excludedUsers = game.settings.get(MODULE.ID, 'excludedUsersMenubar').split(',').map(id => id.trim());
-        const isExcluded = excludedUsers.includes(game.user.id) || excludedUsers.includes(game.user.name);
-
-        if (isExcluded && !isGM) {
-            ui.notifications.warn("You are excluded from participating in votes.");
-            this.close();
-            return {};
-        }
-
         return {
             fixedVoteTypes: [
                 {

@@ -73,6 +73,40 @@ export function isCurrentUserPartyLeader(moduleId = MODULE.ID) {
     return !!actor?.isOwner;
 }
 
+/**
+ * Logged-in non-GM users who have OWNER on at least one token's actor in the current scene canvas.
+ * Used for vote eligibility and similar "who is at the table" checks.
+ * @returns {User[]}
+ */
+export function getUsersWithOwnedTokenOnCanvas() {
+    if (typeof canvas === 'undefined' || !canvas?.ready || !canvas.tokens?.placeables) {
+        return [];
+    }
+    const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
+        ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+        : 3;
+    const seen = new Set();
+    const out = [];
+    for (const t of canvas.tokens.placeables) {
+        const actor = t.actor;
+        if (!actor) continue;
+        for (const u of game.users) {
+            if (!u?.active || u.isGM) continue;
+            try {
+                if (!actor.testUserPermission(u, OWNER)) continue;
+            } catch {
+                if (!actor.testUserPermission(u, 'OWNER')) continue;
+            }
+            if (!seen.has(u.id)) {
+                seen.add(u.id);
+                out.push(u);
+            }
+        }
+    }
+    out.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+    return out;
+}
+
 // GLOBAL VARS
 export const COFFEEPUB = {
     // SHARED MODULE VARIABLES

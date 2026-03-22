@@ -9,13 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Votes**: Eligible voters are **logged-in non-GM users with OWNER on at least one token in the current scene**; quorum/progress/`castVote` use a per-vote `eligibleUserIds` snapshot. Starting a vote with nobody eligible shows a clear warning. Character-vote “players” source uses the same rule.
+- **Party leader menu**: Labels show **player names only** in parentheses (active player owner preferred, never the GM display name); character-only label when only the GM has owner access. Dialog select matches the same labels.
 - **SocketManager (native fallback)**: Before registering the inbound `game.socket` listener, tear down any existing listeners on the module channel via `game.socket.off(...)` and reset the native handler map so re-init / hot reload does not stack duplicate handlers.
 - **HookManager**: Removed no-op `renderApplication` and `closeApplication` registrations (empty callbacks left after window-registry work); reduces redundant hook dispatch noise.
 - **BlacksmithWindowBaseV2**: Dropped scroll save/restore for unused `.blacksmith-window-template-details-content`; body scroll handling unchanged.
+- **Menubar (right zone)**: Session timer is always the rightmost control; dynamic right-zone tools render before it.
+
+### Removed
+
+- **Menubar user exclusion (moved to Herald)**: Removed world setting **Excluded Menubar Users** (`excludedUsersMenubar`) and the **Blacksmith Menubar** settings heading. Blacksmith no longer reads a comma-separated user list; menubar/combat-bar exclusion stubs always allow. Vote flows no longer use that list for eligibility (use Herald for per-user UI policy).
 
 ### Fixed
 
 - **World settings**: Removed duplicate `movementType` registration that overwrote the intended default; single hidden setting now defaults to `normal-movement`, consistent with code fallbacks.
+- **Menubar performance monitor**: Tool visibility now follows **Show Performance Monitor Tool** (`menubarShowPerformance`); label shows **client JS heap** (`Heap: X.X MB` or `Heap: N/A`) and updates on the same cadence as the session timer tick, with tooltip + click still opening the full performance notification. Re-renders when performance visibility or poll interval settings change.
 
 ### Documentation
 

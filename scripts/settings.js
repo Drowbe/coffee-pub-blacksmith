@@ -1491,21 +1491,6 @@ export const registerSettings = () => {
 	});
 
 	// --------------------------------------
-	// -- H3: MENUBAR
-	// --------------------------------------
-	registerHeader('Menubar', 'headingH3menubar-Label', 'headingH3menubar-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
-
-	game.settings.register(MODULE.ID, 'excludedUsersMenubar', {
-		name: MODULE.ID + '.excludedUsersMenubar-Label',
-		hint: MODULE.ID + '.excludedUsersMenubar-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		default: '',
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
-
-	// --------------------------------------
 	// -- H3: TOOLBAR
 	// --------------------------------------
 	registerHeader('Toolbar', 'headingH3Toolbar-Label', 'headingH3Toolbar-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'user');

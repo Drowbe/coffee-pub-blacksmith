@@ -157,10 +157,11 @@ export class PerformanceUtility {
         const clientMem = memInfo.client;
         
         if (!clientMem.available) {
-            return "Memory N/A";
+            return "Heap: N/A";
         }
 
-        return clientMem.used;
+        // Menubar label: client JS heap used (Chrome/Electron exposes performance.memory)
+        return `Heap: ${clientMem.used}`;
     }
 
     // /**
@@ -332,7 +333,7 @@ Hooks.once('ready', () => {
         title: () => {
             return PerformanceUtility.getMemoryDisplayString();
         },
-        tooltip: null,
+        tooltip: () => game.i18n.localize(`${MODULE.ID}.menubarPerformanceMonitor-Tooltip`),
         onClick: () => {
             PerformanceUtility.showPerformanceCheck();
         },
@@ -343,7 +344,13 @@ Hooks.once('ready', () => {
         moduleId: "blacksmith-core",
         gmOnly: false,
         leaderOnly: false,
-        visible: false, // Settings-driven
+        visible: () => {
+            try {
+                return !!game.settings.get(MODULE.ID, 'menubarShowPerformance');
+            } catch {
+                return false;
+            }
+        },
         toggleable: false,
         active: false,
         iconColor: null,

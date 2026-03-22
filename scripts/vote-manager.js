@@ -3,24 +3,13 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, getSettingSafely, isCurrentUserPartyLeader } from './api-core.js';
+import { postConsoleAndNotification, playSound, getSettingSafely, isCurrentUserPartyLeader, getUsersWithOwnedTokenOnCanvas } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { MenuBar } from './api-menubar.js';
 import { HookManager } from './manager-hooks.js';
 
 export class VoteManager {
     static activeVote = null;
-
-    /**
-     * Check if a user is excluded from voting
-     * @param {string} userId - The ID of the user to check
-     * @returns {boolean} True if the user is excluded
-     */
-    static _isUserExcluded(userId) {
-        const excludedUsers = game.settings.get(MODULE.ID, 'excludedUsersMenubar').split(',').map(id => id.trim());
-        const user = game.users.get(userId);
-        return excludedUsers.includes(userId) || excludedUsers.includes(user?.name);
-    }
 
     static initialize() {
 
@@ -38,14 +27,18 @@ export class VoteManager {
             return isGM;
         });
 
-        // Register helper to get list of voters
-        Handlebars.registerHelper('getVoterList', function(votes) {
-            if (!votes) return '';
+        // Register helper to get list of voters (eligible = snapshot when vote started)
+        Handlebars.registerHelper('getVoterList', function(vote) {
+            if (!vote?.votes) return '';
 
-            // Get all active non-GM players who aren't excluded
-            const allPlayers = game.users.filter(u => u.active && !u.isGM && !VoteManager._isUserExcluded(u.id));
-            
-            // Split into voted and not voted
+            const eligibleIds = Array.isArray(vote.eligibleUserIds) && vote.eligibleUserIds.length
+                ? vote.eligibleUserIds
+                : getUsersWithOwnedTokenOnCanvas().map((u) => u.id);
+            const allPlayers = eligibleIds
+                .map((id) => game.users.get(id))
+                .filter((u) => u && u.active && !u.isGM);
+
+            const votes = vote.votes;
             const votedPlayers = allPlayers.filter(u => votes[u.id]);
             const notVotedPlayers = allPlayers.filter(u => !votes[u.id]);
 
@@ -220,6 +213,14 @@ export class VoteManager {
             return;
         }
 
+        const eligibleVoters = getUsersWithOwnedTokenOnCanvas();
+        if (!eligibleVoters.length) {
+            ui.notifications.warn(
+                'No eligible voters: players must be logged in and have an owned token on the current scene.'
+            );
+            return;
+        }
+
         this.activeVote = {
             id: foundry.utils.randomID(),
             type: type,
@@ -227,21 +228,20 @@ export class VoteManager {
             votes: {},
             isActive: true,
             initiator: game.user.id,
-            initiatedByLeader: isLeader && !isGM
+            initiatedByLeader: isLeader && !isGM,
+            eligibleUserIds: eligibleVoters.map((u) => u.id)
         };
 
         // Set options based on vote type
         if (type === 'leader') {
-            this.activeVote.options = game.users
-                .filter(u => u.active && !u.isGM && !this._isUserExcluded(u.id))
-                .map(u => {
-                    const character = this._getUserCharacter(u.id);
-                    return {
-                        id: u.id,
-                        name: character ? character.name : u.name,
-                        characterId: character?.id || null
-                    };
-                });
+            this.activeVote.options = eligibleVoters.map((u) => {
+                const character = this._getUserCharacter(u.id);
+                return {
+                    id: u.id,
+                    name: character ? character.name : u.name,
+                    characterId: character?.id || null
+                };
+            });
         } else if (type === 'yesno') {
             this.activeVote.options = [
                 { id: 'yes', name: 'Yes' },
@@ -448,13 +448,11 @@ export class VoteManager {
                     }));
 
             case 'players':
-                return game.users
-                    .filter(u => u.active && !u.isGM && !this._isUserExcluded(u.id))
-                    .map(u => ({
-                        id: u.id,
-                        name: u.name,
-                        img: u.avatar
-                    }));
+                return getUsersWithOwnedTokenOnCanvas().map((u) => ({
+                    id: u.id,
+                    name: u.name,
+                    img: u.avatar
+                }));
 
             case 'combat':
                 if (!game.combat) return [];
@@ -476,16 +474,14 @@ export class VoteManager {
      * @returns {boolean} True if all eligible players have voted
      */
     static _haveAllPlayersVoted() {
-        // Get all active non-GM players who aren't excluded
-        const eligibleVoters = game.users.filter(u => u.active && !u.isGM && !VoteManager._isUserExcluded(u.id));
-        const totalVoters = eligibleVoters.length;
-        
-        // Count actual votes from eligible voters
-        const actualVotes = Object.keys(this.activeVote.votes)
-            .filter(id => !VoteManager._isUserExcluded(id))
-            .length;
-        
-        return actualVotes >= totalVoters;
+        const ids = this.activeVote?.eligibleUserIds;
+        const eligibleIds = new Set(
+            Array.isArray(ids) && ids.length ? ids : getUsersWithOwnedTokenOnCanvas().map((u) => u.id)
+        );
+        const totalVoters = eligibleIds.size;
+        const actualVotes = Object.keys(this.activeVote.votes).filter((id) => eligibleIds.has(id)).length;
+
+        return totalVoters > 0 && actualVotes >= totalVoters;
     }
 
     /**
@@ -500,22 +496,26 @@ export class VoteManager {
             return;
         }
 
-        // Check if the user is excluded
-        if (this._isUserExcluded(voterId)) {
-            ui.notifications.warn("You are excluded from participating in votes.");
-            return;
-        }
-
         // Check if the vote is still active
         if (!this.activeVote.isActive) {
             ui.notifications.warn("This vote has already ended.");
             return;
         }
 
-        // Check if there are any active players to vote
-        const activePlayers = game.users.filter(u => u.active && !u.isGM && !this._isUserExcluded(u.id));
-        if (activePlayers.length === 0) {
-            ui.notifications.warn("There are no active players eligible to vote.");
+        const eligibleIds = new Set(
+            Array.isArray(this.activeVote.eligibleUserIds) && this.activeVote.eligibleUserIds.length
+                ? this.activeVote.eligibleUserIds
+                : getUsersWithOwnedTokenOnCanvas().map((u) => u.id)
+        );
+        if (!eligibleIds.has(voterId)) {
+            ui.notifications.warn(
+                'You are not eligible to vote. Use a logged-in player with an owned token on the current scene.'
+            );
+            return;
+        }
+
+        if (eligibleIds.size === 0) {
+            ui.notifications.warn('There are no eligible voters for this vote.');
             return;
         }
 
@@ -732,16 +732,16 @@ export class VoteManager {
      * @returns {Object} Object containing current and total voter counts
      */
     static _getVotingProgress() {
-        const eligibleVoters = game.users.filter(u => u.active && !u.isGM && !VoteManager._isUserExcluded(u.id));
-        const nonGMVotes = Object.entries(this.activeVote.votes || {})
-            .filter(([userId]) => {
-                const user = game.users.get(userId);
-                return user && !user.isGM && !VoteManager._isUserExcluded(userId);
-            })
-            .length;
+        const ids = this.activeVote?.eligibleUserIds;
+        const eligibleIds = new Set(
+            Array.isArray(ids) && ids.length ? ids : getUsersWithOwnedTokenOnCanvas().map((u) => u.id)
+        );
+        const nonGMVotes = Object.entries(this.activeVote.votes || {}).filter(([userId]) =>
+            eligibleIds.has(userId)
+        ).length;
         return {
             current: nonGMVotes,
-            total: eligibleVoters.length
+            total: eligibleIds.size
         };
     }
 
@@ -883,13 +883,15 @@ export class VoteManager {
      * @private
      */
     static _getUserCharacter(userId) {
-        // Find all characters owned by this user
-        const userCharacters = game.actors.filter(actor => 
-            actor.type === 'character' && 
-            actor.ownership[userId] === 3 // OWNER level
+        const user = game.users.get(userId);
+        if (!user) return null;
+        const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
+            ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+            : 3;
+        const userCharacters = game.actors.filter(
+            (actor) => actor.type === 'character' && actor.testUserPermission(user, OWNER)
         );
-        
-        // Return the first character or null if none found
+
         return userCharacters[0] || null;
     }
 } 

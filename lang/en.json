@@ -113,12 +113,6 @@
 				"sidebarCombatChatEnabled-Label": "Combat Chat",
 				"sidebarCombatChatEnabled-Hint": "Add a tab that will combine the combat and chat tabs into a single tab. This is useful for players to see the combat and chat log in one place.",
 
-			"headingH3menubar-Label": "Blacksmith Menubar",
-			"headingH3menubar-Hint": "Settings for the menubar that appears at the top of foundry's interface.",
-	
-				"excludedUsersMenubar-Label": "Excluded Menubar Users",
-				"excludedUsersMenubar-Hint": "List of userIDs that should not see the menubar. (comma-separated)",
-
 			"headingH3Toolbar-Label": "Foundry Toolbar",
 			"headingH3Toolbar-Hint": "",
 		
@@ -892,6 +886,8 @@
 
 				"menubarShowPerformance-Label": "Show Performance Monitor Tool",
 				"menubarShowPerformance-Hint": "Show the performance monitor tool in the menubar left zone.",
+
+				"menubarPerformanceMonitor-Tooltip": "Client JS heap (used). Click for the full performance report (textures, modules, limits).",
 
 
 				"menubarPerformancePollInterval-Label": "Performance Monitor Poll Interval",

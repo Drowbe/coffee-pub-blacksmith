@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, getSettingSafely, setSettingSafely, playSound, matchUserBySetting, isCurrentUserPartyLeader } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely, setSettingSafely, playSound, isCurrentUserPartyLeader } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { ModuleManager } from './manager-modules.js';
 import { HookManager } from './manager-hooks.js';
@@ -179,7 +179,7 @@ class MenuBar {
         // Register setting change hook to refresh menubar when party leader changes
         const settingChangeHookId = HookManager.registerHook({
             name: 'settingChange',
-            description: 'MenuBar: Refresh menubar when party leader changes',
+            description: 'MenuBar: Refresh menubar on party leader / performance monitor settings',
             context: 'menubar-settings-change',
             priority: 3,
             callback: (module, key, value) => {
@@ -199,6 +199,10 @@ class MenuBar {
                     
                     // Refresh the menubar to update tool visibility
                     MenuBar.updateLeaderDisplay();
+                }
+
+                if (module === MODULE.ID && (key === 'menubarShowPerformance' || key === 'menubarPerformancePollInterval')) {
+                    MenuBar.renderMenubar(true);
                 }
             }
         });
@@ -2431,10 +2435,12 @@ class MenuBar {
         }
     }
 
-    static _isUserExcluded(user) {
-        if (!user) return false;
-        const raw = game.settings.get(MODULE.ID, 'excludedUsersMenubar') || '';
-        return matchUserBySetting(user, raw);
+    /**
+     * Per-user menubar hiding previously used world setting `excludedUsersMenubar`; that UX lives in Herald now.
+     * @returns {boolean} always false — Blacksmith does not exclude users from the menubar.
+     */
+    static _isUserExcluded(_user) {
+        return false;
     }
 
     static _removeMenubarDom() {
@@ -3545,36 +3551,34 @@ class MenuBar {
     }
 
     static _getLeaderEntries() {
+        const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
+            ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+            : 3;
+
         return game.actors
-            .filter(actor =>
-                actor.type === 'character' &&
-                actor.hasPlayerOwner
-            )
-            .map(actor => {
-                const ownerEntries = Object.entries(actor.ownership)
-                    .filter(([userId, level]) =>
-                        level === 3 &&
-                        !this._isUserExcluded(game.users.get(userId))
-                    )
-                    .map(([userId, level]) => ({
-                        userId,
-                        user: game.users.get(userId),
-                        level
-                    }))
-                    .filter(entry => entry.user && entry.user.active);
+            .filter(actor => actor.type === 'character' && actor.hasPlayerOwner)
+            .map((actor) => {
+                const nonGmOwners = game.users.filter(
+                    (u) => u && !u.isGM && actor.testUserPermission(u, OWNER)
+                );
+                const activePlayers = nonGmOwners.filter((u) => u.active);
+                // Menu label: never show the GM name — only a player (prefer logged-in player)
+                const labelUser = activePlayers[0] ?? nonGmOwners[0] ?? null;
+                // Stored leader user: prefer active player owner, then any player owner, then GM owner
+                const gmOwners = game.users.filter(
+                    (u) => u?.isGM && actor.testUserPermission(u, OWNER)
+                );
+                const primaryUser = activePlayers[0] ?? nonGmOwners[0] ?? gmOwners[0] ?? null;
 
-                // Prefer non-GM owner for display (so player name shows when they're logged in, not "Game Master")
-                const ownerEntry = ownerEntries.find(e => !e.user.isGM) ?? ownerEntries[0] ?? null;
+                if (!primaryUser) return null;
 
-                if (ownerEntry) {
-                    return {
-                        actor,
-                        owner: ownerEntry.user
-                    };
-                }
-                return null;
+                return {
+                    actor,
+                    owner: primaryUser,
+                    labelUser
+                };
             })
-            .filter(entry => entry !== null);
+            .filter((entry) => entry !== null);
     }
 
     static showLeaderMenu(event) {
@@ -3602,7 +3606,9 @@ class MenuBar {
         ];
 
         for (const entry of characterEntries) {
-            const label = `${entry.actor.name} (${entry.owner.name})`;
+            const label = entry.labelUser
+                ? `${entry.actor.name} (${entry.labelUser.name})`
+                : entry.actor.name;
             const isCurrent = entry.actor.id === currentActorId;
             items.push({
                 name: label,
@@ -3681,8 +3687,11 @@ class MenuBar {
                         <option value="">None</option>
                         ${characterEntries.map(entry => {
                             const isCurrentLeader = this.currentLeader === entry.actor.name;
+                            const optLabel = entry.labelUser
+                                ? `${entry.actor.name} (${entry.labelUser.name})`
+                                : entry.actor.name;
                             return `<option value="${entry.actor.id}|${entry.owner.id}" ${isCurrentLeader ? 'selected' : ''}>
-                                ${entry.actor.name} (${entry.owner.name})
+                                ${optLabel}
                             </option>`;
                         }).join('')}
                     </select>
@@ -3922,6 +3931,22 @@ class MenuBar {
         // Reset expiration flag if timer is not expired
         if (remaining > 0) {
             this.hasHandledExpiration = false;
+        }
+
+        this.updatePerformanceMonitorDisplay();
+    }
+
+    /**
+     * Refresh the performance-monitor label (client heap) without a full menubar re-render.
+     * Uses PerformanceUtility cache / poll interval from settings.
+     */
+    static updatePerformanceMonitorDisplay() {
+        try {
+            const span = document.querySelector('.blacksmith-menubar-left .memory-monitor-label');
+            if (!span) return;
+            span.textContent = PerformanceUtility.getMemoryDisplayString();
+        } catch {
+            /* ignore */
         }
     }
 
