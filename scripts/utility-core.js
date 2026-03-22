@@ -9,6 +9,21 @@ import { PerformanceUtility } from './utility-performance.js';
 
 export class CoreUIUtility {
     /**
+     * Whether a core UI region is hidden (inline style or computed, for v13 compatibility).
+     * @param {HTMLElement | null} el
+     * @returns {boolean}
+     */
+    static _isRegionHidden(el) {
+        if (!el) return false;
+        if (el.style.display === 'none') return true;
+        try {
+            return getComputedStyle(el).display === 'none';
+        } catch {
+            return false;
+        }
+    }
+
+    /**
      * Check the current state of UI elements to determine if interface is hidden
      * @returns {boolean} True if any UI elements are hidden
      */
@@ -17,44 +32,58 @@ export class CoreUIUtility {
         const uiBottom = document.getElementById('ui-bottom');
         const uiTop = document.getElementById('ui-top');
 
-        const isLeftHidden = uiLeft && uiLeft.style.display === 'none';
-        const isBottomHidden = uiBottom && uiBottom.style.display === 'none';
-        const isTopHidden = uiTop && uiTop.style.display === 'none';
-
-        return isLeftHidden || isBottomHidden || isTopHidden;
+        return (
+            this._isRegionHidden(uiLeft) ||
+            this._isRegionHidden(uiBottom) ||
+            this._isRegionHidden(uiTop)
+        );
     }
 
     /**
      * Toggle the FoundryVTT interface visibility
+     * @param {{ silent?: boolean }} [options]
      */
-    static toggleInterface() {
+    static toggleInterface(options = {}) {
+        const silent = !!options.silent;
         const uiLeft = document.getElementById('ui-left');
         const uiBottom = document.getElementById('ui-bottom');
         const uiTop = document.getElementById('ui-top');
         const label = document.querySelector('.interface-label');
 
-        // Check if any UI element that can be hidden is currently hidden
-        const isLeftHidden = uiLeft && uiLeft.style.display === 'none';
-        const isBottomHidden = uiBottom && uiBottom.style.display === 'none';
-        const isTopHidden = uiTop && uiTop.style.display === 'none';
+        const isLeftHidden = this._isRegionHidden(uiLeft);
+        const isBottomHidden = this._isRegionHidden(uiBottom);
+        const isTopHidden = this._isRegionHidden(uiTop);
         const isAnyHidden = isLeftHidden || isBottomHidden || isTopHidden;
 
-        // Get the settings
         const hideLeftUI = game.settings.get(MODULE.ID, 'canvasToolsHideLeftUI');
         const hideBottomUI = game.settings.get(MODULE.ID, 'canvasToolsHideBottomUI');
 
         if (isAnyHidden) {
-            ui.notifications.info("Showing the Interface...");
-            if (hideLeftUI && isLeftHidden) uiLeft.style.display = 'inherit';
-            if (hideBottomUI && isBottomHidden) uiBottom.style.display = 'inherit';
-            if (isTopHidden) uiTop.style.display = 'inherit';
+            if (!silent) ui.notifications.info('Showing the Interface...');
+            if (hideLeftUI && uiLeft && isLeftHidden) uiLeft.style.display = 'inherit';
+            if (hideBottomUI && uiBottom && isBottomHidden) uiBottom.style.display = 'inherit';
+            if (uiTop && isTopHidden) uiTop.style.display = 'inherit';
             if (label) label.textContent = '';
         } else {
-            ui.notifications.info("Hiding the Interface...");
-            if (hideLeftUI) uiLeft.style.display = 'none';
-            if (hideBottomUI) uiBottom.style.display = 'none';
+            if (!silent) ui.notifications.info('Hiding the Interface...');
+            if (hideLeftUI && uiLeft) uiLeft.style.display = 'none';
+            if (hideBottomUI && uiBottom) uiBottom.style.display = 'none';
             if (uiTop) uiTop.style.display = 'none';
             if (label) label.textContent = '';
+        }
+    }
+
+    /**
+     * If the user enabled "Apply on Load", hide the core UI once the DOM is available (may run multiple times).
+     */
+    static applyHideInterfaceOnLoad() {
+        const settingKey = `${MODULE.ID}.canvasToolsHideUIOnLoad`;
+        if (!game.settings.settings.has(settingKey) || !game.settings.get(MODULE.ID, 'canvasToolsHideUIOnLoad')) {
+            return;
+        }
+        if (!document.getElementById('ui-left')) return;
+        if (!this.isInterfaceHidden()) {
+            this.toggleInterface({ silent: true });
         }
     }
 
@@ -82,8 +111,9 @@ export class CoreUIUtility {
         });
 
         items.push({
-            name: "Performance Check",
+            name: PerformanceUtility.getMemoryDisplayString(),
             icon: "fa-solid fa-chart-simple",
+            description: 'Click for full performance report',
             onClick: () => {
                 PerformanceUtility.showPerformanceCheck();
             }
@@ -93,7 +123,7 @@ export class CoreUIUtility {
             items.push({
                 name: QuickViewUtility.isActive() ? "Quick View Off" : "Quick View On",
                 icon: QuickViewUtility.getIcon(),
-                description: "Enhanced larity for the GM",
+                description: "Enhanced clarity for the GM",
                 onClick: async () => {
                     await QuickViewUtility.toggle();
                     MenuBar.renderMenubar();
@@ -167,13 +197,11 @@ export class CoreUIUtility {
 
 // Register core UI menubar tools via the public API (same pattern as external modules)
 Hooks.once('ready', () => {
-    // Apply on Load: hide UI if configured (only if setting is already registered)
-    const settingKey = `${MODULE.ID}.canvasToolsHideUIOnLoad`;
-    if (game.settings.settings.has(settingKey) && game.settings.get(MODULE.ID, 'canvasToolsHideUIOnLoad')) {
-        if (!CoreUIUtility.isInterfaceHidden()) {
-            CoreUIUtility.toggleInterface();
-        }
-    }
+    // Apply on Load: hide UI when the setting is on — DOM may not exist on first tick (v13)
+    CoreUIUtility.applyHideInterfaceOnLoad();
+    requestAnimationFrame(() => requestAnimationFrame(() => CoreUIUtility.applyHideInterfaceOnLoad()));
+    setTimeout(() => CoreUIUtility.applyHideInterfaceOnLoad(), 250);
+    setTimeout(() => CoreUIUtility.applyHideInterfaceOnLoad(), 1500);
 
     const api = game.modules.get(MODULE.ID)?.api;
     if (!api?.registerMenubarTool) return;
@@ -251,4 +279,8 @@ Hooks.once('ready', () => {
         buttonNormalTint: null,
         buttonSelectedTint: null
     });
+});
+
+Hooks.once('canvasReady', () => {
+    CoreUIUtility.applyHideInterfaceOnLoad();
 });

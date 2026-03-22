@@ -15,6 +15,8 @@ export class TokenIndicatorManager {
     static _targetedIndicators = new Map();
     static _targetedAnimations = new Map();
     static _targetedTokens = new Set();
+    /** @type {Map<string, Set<string>>} userId -> set of targeted token document ids (all clients, not just game.user) */
+    static _targetsByUser = new Map();
 
     static _hideTargetsAnimationId = null;
 
@@ -82,6 +84,19 @@ export class TokenIndicatorManager {
             }
         });
 
+        this._hookIds.updateUser = HookManager.registerHook({
+            name: 'updateUser',
+            description: 'Token indicators: clear target set when a user disconnects',
+            context: 'token-indicators',
+            priority: 3,
+            callback: (user, changes) => {
+                if (changes.active === false && user?.id) {
+                    this._targetsByUser.delete(user.id);
+                    this._syncTargetedIndicators();
+                }
+            }
+        });
+
         this._hookIds.refreshToken = HookManager.registerHook({
             name: 'refreshToken',
             description: 'Token indicators: hide native target markers on refresh',
@@ -146,6 +161,7 @@ export class TokenIndicatorManager {
         }
         this._refreshDefaultTargetIndicatorHiding();
         this._updateTurnIndicator();
+        this._seedTargetsFromUserTargets();
         this._syncTargetedIndicators();
     }
 
@@ -153,6 +169,7 @@ export class TokenIndicatorManager {
         this._removeTurnIndicator();
         this._removeAllTargetedIndicators();
         this._stopHideTargetIndicatorsLoop();
+        this._targetsByUser.clear();
     }
 
     static _getTurnSettings() {
@@ -369,32 +386,70 @@ export class TokenIndicatorManager {
     }
 
     static _onTargetingChange(user, token, targeted) {
-        if (user?.id && user.id !== game.user.id) return;
         if (!getSettingSafely(MODULE.ID, 'generalIndicatorsEnabled', true)) return;
         if (!getSettingSafely(MODULE.ID, 'targetedIndicatorEnabled', true)) return;
 
         const tokenId = token?.id;
-        if (!tokenId) return;
+        if (!user?.id || !tokenId) return;
 
+        let set = this._targetsByUser.get(user.id);
+        if (!set) {
+            set = new Set();
+            this._targetsByUser.set(user.id, set);
+        }
         if (targeted) {
-            this._targetedTokens.add(tokenId);
-            this._addTargetedIndicator(token);
+            set.add(tokenId);
         } else {
-            this._targetedTokens.delete(tokenId);
-            this._removeTargetedIndicator(tokenId);
+            set.delete(tokenId);
+        }
+
+        this._syncTargetedIndicators();
+    }
+
+    /**
+     * Populate per-user target sets from Foundry's synced User#targets (all connected users).
+     */
+    static _seedTargetsFromUserTargets() {
+        this._targetsByUser.clear();
+        for (const u of game.users) {
+            if (!u.active) continue;
+            const set = new Set();
+            const tg = u.targets;
+            if (tg) {
+                if (typeof tg.forEach === 'function') {
+                    tg.forEach((t) => {
+                        const id = t?.id ?? t?.document?.id;
+                        if (id) set.add(id);
+                    });
+                } else if (Array.isArray(tg)) {
+                    for (const t of tg) {
+                        const id = t?.id ?? t?.document?.id;
+                        if (id) set.add(id);
+                    }
+                }
+            }
+            this._targetsByUser.set(u.id, set);
         }
     }
 
+    /**
+     * Union of all users' targets → custom ring graphics (visible to everyone who can see the token).
+     */
     static _syncTargetedIndicators() {
         if (!getSettingSafely(MODULE.ID, 'generalIndicatorsEnabled', true)) {
             this._removeAllTargetedIndicators();
             return;
         }
 
-        const nextTargets = new Set(Array.from(game.user?.targets ?? []).map(token => token.id));
+        const union = new Set();
+        for (const s of this._targetsByUser.values()) {
+            for (const id of s) {
+                union.add(id);
+            }
+        }
 
         for (const tokenId of Array.from(this._targetedTokens)) {
-            if (!nextTargets.has(tokenId)) {
+            if (!union.has(tokenId)) {
                 this._targetedTokens.delete(tokenId);
                 this._removeTargetedIndicator(tokenId);
             }
@@ -405,9 +460,12 @@ export class TokenIndicatorManager {
             return;
         }
 
-        for (const target of Array.from(game.user?.targets ?? [])) {
-            this._targetedTokens.add(target.id);
-            this._addTargetedIndicator(target);
+        for (const tokenId of union) {
+            this._targetedTokens.add(tokenId);
+            const token = canvas.tokens?.get(tokenId);
+            if (token) {
+                this._addTargetedIndicator(token);
+            }
         }
     }
 
@@ -458,6 +516,7 @@ export class TokenIndicatorManager {
             this._removeTargetedIndicator(tokenId);
         }
         this._targetedTokens.clear();
+        this._targetsByUser.clear();
     }
 
     static _createTargetedAnimation(tokenId, graphics, settings) {
@@ -534,7 +593,8 @@ export class TokenIndicatorManager {
     static _clearTargetsForUsersWithSetting() {
         if (!getSettingSafely(MODULE.ID, 'clearTargetsAfterTurn', false)) return;
         game.user?.targets?.clear();
-        this._removeAllTargetedIndicators();
+        this._seedTargetsFromUserTargets();
+        this._syncTargetedIndicators();
     }
 
     static _handleTokenVisibilityChange(tokenDocument) {

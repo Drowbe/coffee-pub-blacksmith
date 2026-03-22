@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Start menu (hamburger)**: The performance row shows the same **heap readout** as the optional menubar performance tool (`Heap: …` / `Heap: N/A`); click still opens the full **PERFORMANCE CHECK** notification. Typo: Quick View description “larity” → “clarity”.
+- **Apply on Load** (`canvasToolsHideUIOnLoad`): Hiding the core UI on load now uses **computed** `display` for visibility checks, **silent** toggle (no toast spam), **delayed retries** (`requestAnimationFrame`, timers), and **`canvasReady`** so v13 can build `#ui-left` before we hide.
+- **Targeted ring (custom indicator)**: Removed the guard that only handled **`game.user`** targets; target state is tracked **per user** and **unioned** so all clients see rings for **everyone’s** targets. Seeded from **`User#targets`** on refresh; `updateUser` clears disconnected users.
+
 - **World settings**: Removed duplicate `movementType` registration that overwrote the intended default; single hidden setting now defaults to `normal-movement`, consistent with code fallbacks.
 - **Menubar performance monitor**: Tool visibility now follows **Show Performance Monitor Tool** (`menubarShowPerformance`); label shows **client JS heap** (`Heap: X.X MB` or `Heap: N/A`) and updates on the same cadence as the session timer tick, with tooltip + click still opening the full performance notification. Re-renders when performance visibility or poll interval settings change.
 
