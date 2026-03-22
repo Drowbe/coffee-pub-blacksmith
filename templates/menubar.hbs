@@ -69,12 +69,7 @@
             <i class="fas {{currentMovement.icon}} movement-icon"></i>
             <span class="movement-label">{{currentMovement.name}}</span>
         </div>
-        {{!-- SESSION TIMER --}}
-        <div class="button timer-section default {{#if isGM}}button-active{{else}}tool-readonly{{/if}} {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" data-tooltip="{{#if isGM}}Set the session time.{{else}}Session time.{{/if}}" style="--progress: {{timerProgress}}%" data-tool="timer-section">
-            <i class="fas fa-eclipse"></i>
-            <span class="session-timer">{{timerText}}</span>
-        </div>
-        {{!-- DYNAMIC RIGHT ZONE TOOLS --}}
+        {{!-- DYNAMIC RIGHT ZONE TOOLS (timer stays after this block — always rightmost) --}}
         {{#each toolsByZone.right}}
             {{#each this}}
                 {{#each tools}}
@@ -85,6 +80,11 @@
                 {{/each}}
             {{/each}}
         {{/each}}
+        {{!-- SESSION TIMER — always last in the right zone --}}
+        <div class="button timer-section default {{#if isGM}}button-active{{else}}tool-readonly{{/if}} {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" data-tooltip="{{#if isGM}}Set the session time.{{else}}Session time.{{/if}}" style="--progress: {{timerProgress}}%" data-tool="timer-section">
+            <i class="fas fa-eclipse"></i>
+            <span class="session-timer">{{timerText}}</span>
+        </div>
     </div>
 </div>
 

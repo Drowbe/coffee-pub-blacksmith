@@ -8,7 +8,7 @@ Current performance baseline and action plan after recent subsystem removals (Op
 
 - **Status**: ACTIVE (fresh baseline review complete; targeted fixes pending)
 - **Owner**: Systems/Performance
-- **Last Updated**: 2026-03-02 (stack rank #7 pass 1: see Detailed Findings §7)
+- **Last Updated**: 2026-03-02 (stack #7 pass 1; stack #6 native socket teardown: see §6–§7)
 - **Key Observation**: We are **not** currently reproducing the old browser-tab runaway memory growth/crash pattern.
 
 ## Scope Notes
@@ -26,7 +26,7 @@ Current performance baseline and action plan after recent subsystem removals (Op
 | 3 | High | Duplicate journal monitoring pipelines (duplicate work) | Active |
 | 4 | Medium | Menubar full rerenders on frequent update paths | Active |
 | 5 | Medium | Timer loops doing global DOM queries/rerenders | Active |
-| 6 | Medium | Socket native fallback listener lifecycle | Active |
+| 6 | Medium | Socket native fallback listener lifecycle | Native inbound teardown done (see §6) |
 | 7 | Low | Legacy/no-op hooks and stale cleanup candidates | Pass 1 done (see §7) |
 
 ## Detailed Findings
@@ -58,8 +58,10 @@ Current performance baseline and action plan after recent subsystem removals (Op
 
 6. **Socket fallback lifecycle cleanup gap**
    - **Files**: `scripts/manager-sockets.js`
-   - **Evidence**: Native fallback registers socket listener; explicit `off` cleanup path is not clearly present.
+   - **Evidence (historical)**: Native fallback registered `game.socket.on` without removing prior listeners on the module channel.
    - **Risk**: Duplicate handlers on re-init/fallback transitions.
+   - **Mitigation (done)**: `_initializeNativeSockets` calls `_teardownNativeSocketListener()` (`game.socket.off(moduleChannel)`) before `on`, and replaces `_nativeHandlers` with a fresh `Map` so registrations are not stacked.
+   - **Remaining (optional)**: Explicit teardown on world unload / `closeGame` if long-lived sessions without full reload ever show duplicate behavior again.
 
 7. **Legacy/unused cleanup opportunities**
    - **Files**: `scripts/blacksmith.js`, `scripts/settings.js`, `styles/window-template.css`, `scripts/window-base-v2.js`
@@ -87,7 +89,7 @@ These historical sections were intentionally removed because the related subsyst
    - Add explicit `dispose()` teardown for observer/timer/listener-heavy managers:
      - `encounter-toolbar`
      - `journal-page-pins`
-     - native socket fallback listener cleanup
+     - ~~native socket fallback listener cleanup~~ **Done:** inbound `game.socket.off` before native re-register (`manager-sockets.js`).
 
 2. **Journal monitoring consolidation (High, short)**
    - Choose one canonical monitoring pipeline (manager-owned), remove duplicate watcher path, and keep hook coverage minimal.

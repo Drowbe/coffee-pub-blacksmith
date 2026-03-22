@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **SocketManager (native fallback)**: Before registering the inbound `game.socket` listener, tear down any existing listeners on the module channel via `game.socket.off(...)` and reset the native handler map so re-init / hot reload does not stack duplicate handlers.
 - **HookManager**: Removed no-op `renderApplication` and `closeApplication` registrations (empty callbacks left after window-registry work); reduces redundant hook dispatch noise.
 - **BlacksmithWindowBaseV2**: Dropped scroll save/restore for unused `.blacksmith-window-template-details-content`; body scroll handling unchanged.
 
@@ -19,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - **Performance stack (rank 7)**: Updated `documentation/PERFORMANCE.md` and `documentation/performance.md` — pass 1 complete for no-op hooks, duplicate setting, and dead scroll branch; optional Regent/CSS follow-up noted. `documentation/TODO.md` stack table aligned.
+- **Performance stack (rank 6)**: Documented native socket inbound teardown in `PERFORMANCE.md` / `performance.md` and `TODO.md` (stack row 6).
 
 
 ## [13.5.7] - 2026-03-14 - SETTINGS ORGANIZATION & CLEANUP

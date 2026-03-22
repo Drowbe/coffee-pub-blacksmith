@@ -22,6 +22,8 @@ class SocketManager {
     static _fallbackTimer = null;
     static _usingSocketLib = false; // Track which socket system we're using
     static _externalEventHandlers = null; // Map for external module event handlers (SocketLib pattern)
+    /** @type {((payload: unknown) => void) | null} Inbound handler for native Foundry socket fallback (must off before re-register) */
+    static _nativeInboundHandler = null;
 
     static initialize() {
         postConsoleAndNotification(MODULE.NAME, "SocketManager: Initializing socket system", "", true, false);
@@ -217,14 +219,15 @@ class SocketManager {
         try {
             postConsoleAndNotification(MODULE.NAME, "SocketManager: Initializing native Foundry socket fallback", "", true, false);
             
-            // Initialize handlers map
-            if (!this._nativeHandlers) {
-                this._nativeHandlers = new Map();
-            }
+            const socketPrefix = `module.${MODULE.ID}.`;
+            // Prevent stacked listeners if native init runs more than once (reload, race, retry)
+            this._teardownNativeSocketListener();
+
+            // Initialize handlers map (fresh registrations below)
+            this._nativeHandlers = new Map();
             
             // Set up native socket listener for incoming messages
-            const socketPrefix = `module.${MODULE.ID}.`;
-            game.socket.on(socketPrefix, (payload) => {
+            this._nativeInboundHandler = (payload) => {
                 // payload should have: { eventName, data, userId }
                 if (payload && payload.eventName && this._nativeHandlers.has(payload.eventName)) {
                     const handler = this._nativeHandlers.get(payload.eventName);
@@ -234,7 +237,8 @@ class SocketManager {
                         postConsoleAndNotification(MODULE.NAME, `SocketManager: Error in native socket handler for ${payload.eventName}`, error.message, false, true);
                     }
                 }
-            });
+            };
+            game.socket.on(socketPrefix, this._nativeInboundHandler);
             
             // Create a socket object that mimics SocketLib's interface
             this.socket = {
@@ -297,6 +301,22 @@ class SocketManager {
             this._fallbackTimer = null;
             postConsoleAndNotification(MODULE.NAME, "SocketManager: Fallback timer stopped - socket is ready", "", true, false);
         }
+    }
+
+    /**
+     * Remove native Foundry socket listener(s) for this module's channel so re-init / hot reload
+     * does not stack duplicate handlers (socket.io: off(eventName) clears all listeners for that event).
+     */
+    static _teardownNativeSocketListener() {
+        const socketPrefix = `module.${MODULE.ID}.`;
+        try {
+            if (game?.socket && typeof game.socket.off === 'function') {
+                game.socket.off(socketPrefix);
+            }
+        } catch (e) {
+            postConsoleAndNotification(MODULE.NAME, 'SocketManager: Native socket listener teardown failed', e, true, false);
+        }
+        this._nativeInboundHandler = null;
     }
 
     static registerSocketFunctions() {

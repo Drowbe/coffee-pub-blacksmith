@@ -13,7 +13,7 @@ Mirrors **`documentation/PERFORMANCE.md`** — active investigation items; updat
 | 3 | High | Duplicate journal monitoring pipelines (duplicate work) | Active |
 | 4 | Medium | Menubar full rerenders on frequent update paths | Active |
 | 5 | Medium | Timer loops doing global DOM queries/rerenders | Active |
-| 6 | Medium | Socket native fallback listener lifecycle | Active |
+| 6 | Medium | Socket native fallback listener lifecycle | Native inbound teardown done (see PERFORMANCE.md §6) |
 | 7 | Low | Legacy/no-op hooks and stale cleanup candidates | Pass 1 done (see PERFORMANCE.md §7) |
 
 ## CRITICAL BUGS
