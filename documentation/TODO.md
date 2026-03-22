@@ -8,8 +8,8 @@ Mirrors **`documentation/PERFORMANCE.md`** — active investigation items; updat
 
 | Rank | Severity | Area | Status |
 | --- | --- | --- | --- |
-| 1 | High | Encounter toolbar global observer/polling lifecycle | Active |
-| 2 | High | Journal page pins observer/polling lifecycle | Active |
+| 1 | High | Encounter toolbar global observer/polling lifecycle | Teardown done (`dispose` + `closeGame`); see `PERFORMANCE-journal-lifecycle-checklist.md` |
+| 2 | High | Journal page pins observer/polling lifecycle | Teardown done (`dispose` + `closeGame`); see checklist |
 | 3 | High | Duplicate journal monitoring pipelines (duplicate work) | Active |
 | 4 | Medium | Menubar full rerenders on frequent update paths | Active |
 | 5 | Medium | Timer loops doing global DOM queries/rerenders | Active |

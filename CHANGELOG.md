@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.5.8] - 2026-03-02 - PERF STACK QUICK WINS (RANK 7)
 
+### Added
+
+- **Performance**: `documentation/PERFORMANCE-journal-lifecycle-checklist.md` — ranked checklist for encounter toolbar, journal page pins, and duplicate journal monitoring (consolidation plan).
+
 ### Changed
 
 - **Votes**: Eligible voters are **logged-in non-GM users with OWNER on at least one token in the current scene**; quorum/progress/`castVote` use a per-vote `eligibleUserIds` snapshot. Starting a vote with nobody eligible shows a clear warning. Character-vote “players” source uses the same rule.
@@ -27,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Targeted ring (custom indicator)**: Removed the guard that only handled **`game.user`** targets; target state is tracked **per user** and **unioned** so all clients see rings for **everyone’s** targets. Seeded from **`User#targets`** on refresh; `updateUser` clears disconnected users.
 
 - **Combat bar (menubar)**: After closing the secondary combat bar, the toolbar button could not reopen it because `__combatBarUserClosed` was enforced inside the patched `openSecondaryBar` while the menubar **API** sometimes invoked the **unpatched** `toggleSecondaryBar` (no flag reset). Manual opens no longer use that guard; **`openCombatBar()`** (hook-driven auto-open) still respects **user dismissed**. Active combat resolution uses **`game.combats.active`** with **`game.combat`** fallback.
+
+- **Performance (journal / encounter lifecycle)**: **`EncounterToolbar.dispose()`** and **`JournalPagePins.dispose()`** tear down `MutationObserver`, polling intervals, document listeners, and HookManager registrations; **`Hooks.once('closeGame', …)`** in **`blacksmith.js`** invokes both. **`init()`** is idempotent on both managers. Removed debug **`console.log`** on **`renderJournalSheet`** in the journal double-click ready block. **`documentation/PERFORMANCE.md`**, **`performance.md`**, and **`TODO.md`** stack rows updated; optional observer consolidation remains (rank 3).
 
 - **World settings**: Removed duplicate `movementType` registration that overwrote the intended default; single hidden setting now defaults to `normal-movement`, consistent with code fallbacks.
 - **Menubar performance monitor**: Tool visibility now follows **Show Performance Monitor Tool** (`menubarShowPerformance`); label shows **client JS heap** (`Heap: X.X MB` or `Heap: N/A`) and updates on the same cadence as the session timer tick, with tooltip + click still opening the full performance notification. Re-renders when performance visibility or poll interval settings change.

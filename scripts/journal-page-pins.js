@@ -42,7 +42,18 @@ export class JournalPagePins {
     static PAGE_IMAGE_OPTION = '__journal-page-image__';
     static _cleanupPlacement = null;
 
+    static _initialized = false;
+    static _intervalId = null;
+    static _domObserver = null;
+    static _hookManagerIds = [];
+    /** Stable refs for Hooks.off in dispose() */
+    static _boundRenderSheet = null;
+    static _boundRenderApplicationJournal = null;
+
     static init() {
+        if (this._initialized) return;
+        this._initialized = true;
+
         this._registerPinType();
         this._registerHooks();
         this._registerPinEvents();
@@ -51,6 +62,44 @@ export class JournalPagePins {
         if (game?.ready) {
             this._afterReady();
         }
+    }
+
+    /**
+     * Tear down interval, DOM observer, HookManager entries, and direct Hooks (world exit / dev reload).
+     */
+    static dispose() {
+        if (this._intervalId != null) {
+            clearInterval(this._intervalId);
+            this._intervalId = null;
+        }
+        if (this._domObserver) {
+            try {
+                this._domObserver.disconnect();
+            } catch (_e) { /* non-fatal */ }
+            this._domObserver = null;
+        }
+        for (const id of this._hookManagerIds) {
+            try {
+                HookManager.removeCallback(id);
+            } catch (_e) { /* non-fatal */ }
+        }
+        this._hookManagerIds = [];
+
+        if (this._boundRenderSheet) {
+            try {
+                Hooks.off('renderJournalSheet', this._boundRenderSheet);
+                Hooks.off('renderJournalPageSheet', this._boundRenderSheet);
+            } catch (_e) { /* non-fatal */ }
+            this._boundRenderSheet = null;
+        }
+        if (this._boundRenderApplicationJournal) {
+            try {
+                Hooks.off('renderApplication', this._boundRenderApplicationJournal);
+            } catch (_e) { /* non-fatal */ }
+            this._boundRenderApplicationJournal = null;
+        }
+
+        this._initialized = false;
     }
 
     static _registerPinType() {
@@ -68,32 +117,35 @@ export class JournalPagePins {
     }
 
     static _registerHooks() {
-        // Fallback direct registration in case HookManager is bypassed
-        Hooks.on('renderJournalSheet', (app, html, data) => this._onRenderSheet(app, html, data));
-        Hooks.on('renderJournalPageSheet', (app, html, data) => this._onRenderSheet(app, html, data));
-        Hooks.on('renderApplication', (app, html, data) => {
+        this._boundRenderSheet = this._onRenderSheet.bind(this);
+        this._boundRenderApplicationJournal = (app, html, data) => {
             const name = app?.constructor?.name || '';
             if (name.includes('Journal') || app?.document?.documentName === 'JournalEntry' || app?.document?.documentName === 'JournalEntryPage') {
                 this._onRenderSheet(app, html, data);
             }
-        });
+        };
+
+        Hooks.on('renderJournalSheet', this._boundRenderSheet);
+        Hooks.on('renderJournalPageSheet', this._boundRenderSheet);
+        Hooks.on('renderApplication', this._boundRenderApplicationJournal);
         Hooks.once('ready', () => this._afterReady());
 
-        HookManager.registerHook({
-            name: 'renderJournalSheet',
-            description: 'Blacksmith: add journal page pin control (entry sheet)',
-            context: 'journal-page-pins-sheet',
-            priority: 3,
-            callback: this._onRenderSheet.bind(this)
-        });
-
-        HookManager.registerHook({
-            name: 'renderJournalPageSheet',
-            description: 'Blacksmith: add journal page pin control (page sheet)',
-            context: 'journal-page-pins-page',
-            priority: 3,
-            callback: this._onRenderSheet.bind(this)
-        });
+        this._hookManagerIds = [
+            HookManager.registerHook({
+                name: 'renderJournalSheet',
+                description: 'Blacksmith: add journal page pin control (entry sheet)',
+                context: 'journal-page-pins-sheet',
+                priority: 3,
+                callback: this._boundRenderSheet
+            }),
+            HookManager.registerHook({
+                name: 'renderJournalPageSheet',
+                description: 'Blacksmith: add journal page pin control (page sheet)',
+                context: 'journal-page-pins-page',
+                priority: 3,
+                callback: this._boundRenderSheet
+            })
+        ];
     }
 
     static _registerPinEvents() {
@@ -387,7 +439,9 @@ export class JournalPagePins {
     }
 
     static _setupDomObserver() {
-        if (this._domObserver) return;
+        if (this._domObserver) {
+            return;
+        }
         this._domObserver = new MutationObserver((mutations) => {
             for (const m of mutations) {
                 for (const node of m.addedNodes) {

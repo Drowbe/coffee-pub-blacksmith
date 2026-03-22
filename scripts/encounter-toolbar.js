@@ -18,6 +18,21 @@ export class EncounterToolbar {
     
     // Store hook IDs for proper removal
     static _tokenHookIds = [];
+
+    /** HookManager IDs for journal/settings hooks (see dispose). */
+    static _coreHookIds = [];
+
+    /** True after init(); prevents stacked observers/intervals on hot reload. */
+    static _initialized = false;
+
+    /** Body subtree observer for journal sheets (PERFORMANCE.md rank 1). */
+    static _globalObserver = null;
+
+    /** Return value of setInterval in _setupActivePageChecker (~500ms). */
+    static _activePageIntervalId = null;
+
+    /** Bound document capture listener for journal page navigation clicks. */
+    static _pageNavigationHandler = null;
     
     /**
      * Get default token data for v13 compatibility
@@ -45,48 +60,88 @@ export class EncounterToolbar {
     }
     
     static init() {
-        // Listen for journal sheet rendering (normal view only)
-        const renderJournalSheetHookId = HookManager.registerHook({
-            name: 'renderJournalSheet',
-            description: 'Encounter Toolbar: Add encounter toolbars to journal sheets',
-            context: 'encounter-toolbar-journal',
-            priority: 3, // Normal priority - UI enhancement
-            callback: this._onRenderJournalSheet.bind(this)
-        });
-        
-        // Also try renderJournalPageSheet hook (page-level, may fire in v13 ApplicationV2)
-        const renderJournalPageSheetHookId = HookManager.registerHook({
-            name: 'renderJournalPageSheet',
-            description: 'Encounter Toolbar: Add encounter toolbars to journal pages (v13 ApplicationV2)',
-            context: 'encounter-toolbar-journal-page',
-            priority: 3, // Normal priority - UI enhancement
-            callback: this._onRenderJournalPageSheet.bind(this)
-        });
-        
-        // Global MutationObserver fallback (when hooks don't fire in v13)
-        // Note: This is NOT a hook - it's a DOM observer, so it doesn't go through HookManager
+        if (this._initialized) return;
+        this._initialized = true;
+
+        this._coreHookIds = [
+            HookManager.registerHook({
+                name: 'renderJournalSheet',
+                description: 'Encounter Toolbar: Add encounter toolbars to journal sheets',
+                context: 'encounter-toolbar-journal',
+                priority: 3,
+                callback: this._onRenderJournalSheet.bind(this)
+            }),
+            HookManager.registerHook({
+                name: 'renderJournalPageSheet',
+                description: 'Encounter Toolbar: Add encounter toolbars to journal pages (v13 ApplicationV2)',
+                context: 'encounter-toolbar-journal-page',
+                priority: 3,
+                callback: this._onRenderJournalPageSheet.bind(this)
+            }),
+            HookManager.registerHook({
+                name: 'updateJournalEntryPage',
+                description: 'Encounter Toolbar: Handle journal entry page updates for toolbar refresh',
+                context: 'encounter-toolbar-journal-updates',
+                priority: 3,
+                callback: this._onUpdateJournalEntryPage.bind(this)
+            }),
+            HookManager.registerHook({
+                name: 'settingChange',
+                description: 'Encounter Toolbar: Handle setting changes for toolbar configuration',
+                context: 'encounter-toolbar-settings',
+                priority: 3,
+                callback: this._onSettingChange.bind(this)
+            })
+        ];
+
         this._setupGlobalObserver();
-        
-        // Also listen for when journal content is updated (saves)
-        const updateJournalEntryPageHookId = HookManager.registerHook({
-			name: 'updateJournalEntryPage',
-			description: 'Encounter Toolbar: Handle journal entry page updates for toolbar refresh',
-			context: 'encounter-toolbar-journal-updates',
-			priority: 3,
-			callback: this._onUpdateJournalEntryPage.bind(this)
-		});
-        
-        // Listen for token changes to update CR values in real-time
         this._setupTokenChangeHooks();
-        
-        // Listen for setting changes
-        const settingChangeHookId = HookManager.registerHook({
-			name: 'settingChange',
-			description: 'Encounter Toolbar: Handle setting changes for toolbar configuration',
-			context: 'encounter-toolbar-settings',
-			priority: 3,
-			callback: this._onSettingChange.bind(this)
-		});
+    }
+
+    /**
+     * Tear down observers, intervals, and document listeners (world exit / hot reload).
+     * HookManager callbacks for journal/settings/token are removed.
+     */
+    static dispose() {
+        try {
+            for (const id of this._coreHookIds) {
+                HookManager.removeCallback(id);
+            }
+        } catch (_e) { /* non-fatal */ }
+        this._coreHookIds = [];
+
+        if (this._tokenHookIds.length > 0) {
+            try {
+                this._tokenHookIds.forEach((id) => HookManager.removeCallback(id));
+            } catch (_e) { /* non-fatal */ }
+            this._tokenHookIds = [];
+        }
+
+        if (this._crUpdateTimer) {
+            clearTimeout(this._crUpdateTimer);
+            this._crUpdateTimer = null;
+        }
+
+        if (this._globalObserver) {
+            try {
+                this._globalObserver.disconnect();
+            } catch (_e) { /* non-fatal */ }
+            this._globalObserver = null;
+        }
+
+        if (this._activePageIntervalId != null) {
+            clearInterval(this._activePageIntervalId);
+            this._activePageIntervalId = null;
+        }
+
+        if (this._pageNavigationHandler) {
+            try {
+                document.removeEventListener('click', this._pageNavigationHandler, true);
+            } catch (_e) { /* non-fatal */ }
+            this._pageNavigationHandler = null;
+        }
+
+        this._initialized = false;
     }
 
     // Setup or remove token change hooks based on setting
@@ -314,6 +369,8 @@ export class EncounterToolbar {
 
     // Setup global MutationObserver to catch journal sheets when hooks don't fire
     static _setupGlobalObserver() {
+        if (this._globalObserver) return;
+
         // Check existing journal sheets on ready
         function checkExistingSheets() {
             const journalSheets = Object.values(ui.windows).filter(w => 
@@ -337,7 +394,7 @@ export class EncounterToolbar {
         }
         
         // Watch for new journal sheets being added AND page navigation within existing sheets
-        const observer = new MutationObserver((mutations) => {
+        this._globalObserver = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 // Watch for added nodes (new journal sheets)
                 for (const node of mutation.addedNodes) {
@@ -421,9 +478,9 @@ export class EncounterToolbar {
                 }
             }
         });
-        
+
         // Observe the document body for new journal sheets and page navigation
-        observer.observe(document.body, {
+        this._globalObserver.observe(document.body, {
             childList: true,
             subtree: true,
             attributes: true,
@@ -440,7 +497,9 @@ export class EncounterToolbar {
     
     // Set up periodic check for active page changes
     static _setupActivePageChecker() {
-        setInterval(() => {
+        if (this._activePageIntervalId != null) return;
+
+        this._activePageIntervalId = setInterval(() => {
             // Check all open journal sheets for active page changes
             const journalSheets = Object.values(ui.windows).filter(w => {
                 if (!w) return false;
@@ -472,11 +531,11 @@ export class EncounterToolbar {
     
     // Listen for clicks on journal page navigation
     static _setupPageNavigationListener() {
-        document.addEventListener('click', (event) => {
-            // Check if click is on a journal page navigation button/tab
+        if (this._pageNavigationHandler) return;
+
+        this._pageNavigationHandler = (event) => {
             const target = event.target.closest('a[data-page-id], .journal-page-nav a, .journal-entry-page-header a');
             if (target && target.getAttribute('data-page-id')) {
-                const pageId = target.getAttribute('data-page-id');
                 const journalSheet = target.closest('.journal-sheet, .journal-entry');
                 if (journalSheet) {
                     setTimeout(() => {
@@ -484,7 +543,8 @@ export class EncounterToolbar {
                     }, 200);
                 }
             }
-        }, true); // Use capture phase to catch early
+        };
+        document.addEventListener('click', this._pageNavigationHandler, true);
     }
 
     // Unified method to process journal sheets

@@ -15,14 +15,15 @@ Current performance baseline and action plan after recent subsystem removals (Op
 
 - This document intentionally removes legacy findings tied to removed subsystems.
 - Keep this file focused on **current** code paths only.
-- Related duplicate file exists at `documentation/performance.md`; keep these synchronized or consolidate to one canonical file.
+- Uppercase canonical: `documentation/PERFORMANCE.md` — keep synchronized or merge into one file.
+- **Checklist (ranks 1–3)**: `documentation/PERFORMANCE-journal-lifecycle-checklist.md` — step-by-step tasks and consolidation plan.
 
 ## Current Findings (Stack Ranked)
 
 | Rank | Severity | Area | Status |
 | --- | --- | --- | --- |
-| 1 | High | Encounter toolbar global observer/polling lifecycle | Active |
-| 2 | High | Journal page pins observer/polling lifecycle | Active |
+| 1 | High | Encounter toolbar global observer/polling lifecycle | Teardown: `EncounterToolbar.dispose()`, `closeGame` (`blacksmith.js`); optional observer/poll reduction still open |
+| 2 | High | Journal page pins observer/polling lifecycle | Teardown: `JournalPagePins.dispose()`, `closeGame`; optional `renderApplication` trim still open |
 | 3 | High | Duplicate journal monitoring pipelines (duplicate work) | Active |
 | 4 | Medium | Menubar full rerenders on frequent update paths | Active |
 | 5 | Medium | Timer loops doing global DOM queries/rerenders | Active |
@@ -31,15 +32,17 @@ Current performance baseline and action plan after recent subsystem removals (Op
 
 ## Detailed Findings
 
-1. **Encounter toolbar installs long-lived global work with no teardown path**
+1. **Encounter toolbar global observer / polling**
    - **Files**: `scripts/encounter-toolbar.js`
-   - **Evidence**: Uses `MutationObserver`, `setInterval(..., 500)`, and document-level click listener; no explicit disconnect/clear/remove path found in current flow.
-   - **Risk**: Session-long CPU churn, duplicate callbacks on lifecycle edge cases, potential retained references.
+   - **Evidence**: `MutationObserver`, `setInterval(..., 500)`, document capture-phase click.
+   - **Mitigation (done)**: `EncounterToolbar.dispose()` disconnects observer, clears interval, removes listener, removes HookManager callbacks; `Hooks.once('closeGame', …)` in `blacksmith.js` invokes it. `init()` is idempotent.
+   - **Remaining (optional)**: Reduce scope or remove fallback observer/poll if v13 hooks cover all cases.
 
-2. **Journal page pins keeps observer + interval alive**
+2. **Journal page pins observer + interval**
    - **Files**: `scripts/journal-page-pins.js`
-   - **Evidence**: `setInterval(..., 2000)` and `MutationObserver` started from ready path; no explicit global dispose in current flow.
-   - **Risk**: Background scan overhead and retained references across long sessions/hot reload scenarios.
+   - **Evidence**: `setInterval(..., 2000)`, `MutationObserver`, direct `Hooks.on` + HookManager.
+   - **Mitigation (done)**: `JournalPagePins.dispose()` clears interval, disconnects observer, `Hooks.off` + `HookManager.removeCallback`; same `closeGame` path. `init()` is idempotent.
+   - **Remaining (optional)**: Drop redundant `renderApplication` listener after testing; add `PinManager` handler unregister if API appears.
 
 3. **Duplicate journal instrumentation stacks**
    - **Files**: `scripts/journal-page-pins.js`, `scripts/blacksmith.js`
@@ -86,10 +89,8 @@ These historical sections were intentionally removed because the related subsyst
 ## Plan (Next Review Cycle)
 
 1. **Lifecycle hardening pass (High, short)**
-   - Add explicit `dispose()` teardown for observer/timer/listener-heavy managers:
-     - `encounter-toolbar`
-     - `journal-page-pins`
-     - ~~native socket fallback listener cleanup~~ **Done:** inbound `game.socket.off` before native re-register (`manager-sockets.js`).
+   - ~~Add explicit `dispose()` teardown for observer/timer/listener-heavy managers~~ **Done:** `EncounterToolbar.dispose()`, `JournalPagePins.dispose()`, `closeGame` in `blacksmith.js` (see `PERFORMANCE-journal-lifecycle-checklist.md`).
+   - ~~native socket fallback listener cleanup~~ **Done:** inbound `game.socket.off` before native re-register (`manager-sockets.js`).
 
 2. **Journal monitoring consolidation (High, short)**
    - Choose one canonical monitoring pipeline (manager-owned), remove duplicate watcher path, and keep hook coverage minimal.

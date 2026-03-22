@@ -463,6 +463,16 @@ Hooks.once('ready', async () => {
         LoadingProgressManager.logActivity("Setting up encounter toolbar...");
         EncounterToolbar.init();
 
+        // Tear down journal/encounter DOM watchers on world exit (reduces duplicate intervals if session restarts without full reload)
+        Hooks.once('closeGame', () => {
+            try {
+                EncounterToolbar.dispose();
+                JournalPagePins.dispose();
+            } catch (e) {
+                console.warn(`${MODULE.ID}: closeGame journal lifecycle dispose`, e);
+            }
+        });
+
         // SIDEBAR PIN
         LoadingProgressManager.logActivity("Configuring sidebar...");
         SidebarPin.initialize();
@@ -1786,11 +1796,6 @@ Hooks.once('ready', () => {
     // Also register direct hook as fallback
     Hooks.on('renderJournalPageSheet', (app, html, data) => {
         _onRenderJournalDoubleClick(app, html, data);
-    });
-    
-    // TEST: Add a simple test hook to see if ANY renderJournalSheet hook fires
-    Hooks.on('renderJournalSheet', (app, html, data) => {
-        console.log(`[${MODULE.NAME}] Journal: renderJournalSheet hook fired!`, app?.constructor?.name);
     });
     
     // Track processed journal sheets to avoid duplicate handlers
