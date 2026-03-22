@@ -351,6 +351,14 @@ Hooks.once('ready', async () => {
     // Register MenuBar's ready callback and templates before first await so it runs in same ready cycle
     MenuBar.initialize();
     CombatBarManager.initialize(MenuBar);
+    // CombatBarManager replaces several MenuBar statics; re-bind so module.api always calls patched methods.
+    if (mod?.api) {
+        mod.api.toggleSecondaryBar = MenuBar.toggleSecondaryBar.bind(MenuBar);
+        mod.api.openSecondaryBar = MenuBar.openSecondaryBar.bind(MenuBar);
+        mod.api.closeSecondaryBar = MenuBar.closeSecondaryBar.bind(MenuBar);
+        mod.api.updateSecondaryBar = MenuBar.updateSecondaryBar.bind(MenuBar);
+        mod.api.renderMenubar = MenuBar.renderMenubar.bind(MenuBar);
+    }
 
     // Update progress to final phase
     LoadingProgressManager.setPhase(5, "Finalizing...");

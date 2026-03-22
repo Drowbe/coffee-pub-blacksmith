@@ -99,8 +99,10 @@ export class CombatBarManager {
         const originalOpenSecondaryBar = menuBar.openSecondaryBar.bind(menuBar);
         menuBar.openSecondaryBar = function (typeId, options = {}) {
             if (typeId === 'combat') {
-                if (menuBar.__combatBarUserClosed) return false;
-                const combat = game.combat;
+                // Do not block manual opens here: __combatBarUserClosed is enforced in openCombatBar() only
+                // (hook-driven auto-open). Otherwise the menubar button can fail when toggleSecondaryBar
+                // is not the patched wrapper (e.g. stale api binding) and the flag is never cleared.
+                const combat = game.combats?.active ?? game.combat;
                 const data = combat ? CombatBarManager.getCombatData(combat) : {
                     combatants: [],
                     currentRound: 0,
@@ -110,7 +112,9 @@ export class CombatBarManager {
                     isActive: false,
                     actionButton: null
                 };
-                return originalOpenSecondaryBar(typeId, { ...options, data });
+                const result = originalOpenSecondaryBar(typeId, { ...options, data });
+                if (result) menuBar.__combatBarUserClosed = false;
+                return result;
             }
             return originalOpenSecondaryBar(typeId, options);
         };
@@ -146,7 +150,7 @@ export class CombatBarManager {
         menuBar._prepareSecondaryBarData = function () {
             const data = originalPrepareSecondaryBarData();
             if (data?.isOpen && data.type === 'combat' && !data.data) {
-                const combat = game.combat;
+                const combat = game.combats?.active ?? game.combat;
                 data.data = combat ? CombatBarManager.getCombatData(combat) : {
                     combatants: [],
                     currentRound: 0,
@@ -732,6 +736,8 @@ export class CombatBarManager {
     static openCombatBar(menuBar, combatData = null) {
         try {
             if (menuBar._isUserExcluded(game.user)) return false;
+            // Respect "user dismissed" for automatic opens only; menubar button uses openSecondaryBar directly.
+            if (menuBar.__combatBarUserClosed) return false;
             const combatHeight = game.settings.get(MODULE.ID, 'menubarCombatSize');
             document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${combatHeight}px`);
             const combat = game.combats.active;
