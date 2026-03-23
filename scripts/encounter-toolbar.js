@@ -10,6 +10,7 @@ import { EncounterManager } from './manager-encounter.js';
 import { CampaignManager } from './manager-campaign.js';
 import { deployTokens, deployTokensSequential, getDefaultTokenData, validateActorUUID, getTargetPosition, calculateCirclePosition, calculateScatterPosition, calculateSquarePosition, getDeploymentPatternName } from './api-tokens.js';
 import { clearPartyFromCanvas } from './utility-party.js';
+import { JournalDomWatchdog } from './journal-dom-watchdog.js';
 
 export class EncounterToolbar {
     
@@ -33,6 +34,10 @@ export class EncounterToolbar {
 
     /** Bound document capture listener for journal page navigation clicks. */
     static _pageNavigationHandler = null;
+
+    /** Shared watchdog handlers for journal sheet + page changes. */
+    static _watchdogSheetHandler = null;
+    static _watchdogPageHandler = null;
     
     /**
      * Get default token data for v13 compatibility
@@ -94,7 +99,11 @@ export class EncounterToolbar {
             })
         ];
 
-        this._setupGlobalObserver();
+        // Shared DOM monitoring (Phase C): one observer for journal sheets + active page changes.
+        this._watchdogSheetHandler = (sheetEl) => this._processJournalSheet(sheetEl, true);
+        this._watchdogPageHandler = (sheetEl) => this._processJournalSheet(sheetEl, true);
+        JournalDomWatchdog.registerSheetHandler(this._watchdogSheetHandler);
+        JournalDomWatchdog.registerPageHandler(this._watchdogPageHandler);
         this._setupTokenChangeHooks();
     }
 
@@ -139,6 +148,15 @@ export class EncounterToolbar {
                 document.removeEventListener('click', this._pageNavigationHandler, true);
             } catch (_e) { /* non-fatal */ }
             this._pageNavigationHandler = null;
+        }
+
+        if (this._watchdogSheetHandler) {
+            try { JournalDomWatchdog.unregisterSheetHandler(this._watchdogSheetHandler); } catch (_e) { /* non-fatal */ }
+            this._watchdogSheetHandler = null;
+        }
+        if (this._watchdogPageHandler) {
+            try { JournalDomWatchdog.unregisterPageHandler(this._watchdogPageHandler); } catch (_e) { /* non-fatal */ }
+            this._watchdogPageHandler = null;
         }
 
         this._initialized = false;

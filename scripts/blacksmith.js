@@ -63,6 +63,7 @@ import { PartyManager } from './manager-party.js';
 import { ReputationManager } from './manager-reputation.js';
 import { JournalTools } from './journal-tools.js';
 import { JournalPagePins } from './journal-page-pins.js';
+import { JournalDomWatchdog } from './journal-dom-watchdog.js';
 import { CSSEditor } from './window-gmtools.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
 import { XpManager } from './xp-manager.js';
@@ -1843,85 +1844,13 @@ Hooks.once('ready', () => {
         processedSheetElements.add(sheetElement);
     };
     
-    // Setup MutationObserver to watch for journal sheets (same approach as Encounter Toolbar)
-    // This is the ACTUAL solution - hooks don't fire in v13 ApplicationV2, so we watch the DOM
-    const observer = new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-            // Watch for added nodes (new journal sheets)
-            for (const node of mutation.addedNodes) {
-                if (node.nodeType === Node.ELEMENT_NODE) {
-                    // Check if this is a journal sheet
-                    let journalSheet = null;
-                    
-                    // Try direct class check
-                    if (node.classList?.contains('journal-sheet') || node.classList?.contains('journal-entry')) {
-                        journalSheet = node;
-                    }
-                    // Try querySelector for nested sheets
-                    if (!journalSheet) {
-                        journalSheet = node.querySelector?.('.journal-sheet') || 
-                                      node.querySelector?.('.journal-entry');
-                    }
-                    // Try checking if it's a form with journal classes
-                    if (!journalSheet && node.tagName === 'FORM') {
-                        if (node.classList?.contains('journal-sheet') || node.classList?.contains('journal-entry')) {
-                            journalSheet = node;
-                        }
-                    }
-                    
-                    if (journalSheet) {
-                        // Small delay to ensure DOM is fully rendered
-                        setTimeout(() => {
-                            processJournalSheet(journalSheet);
-                        }, 50);
-                    }
-                }
-            }
-            
-            // Watch for attribute changes on journal page articles (page navigation)
-            if (mutation.type === 'attributes' && mutation.target) {
-                const target = mutation.target;
-                
-                // Check for journal page navigation
-                if (target.tagName === 'ARTICLE' && target.classList?.contains('journal-entry-page')) {
-                    const journalSheet = target.closest('.journal-sheet, .journal-entry');
-                    if (journalSheet) {
-                        // Debounce rapid page changes
-                        if (journalSheet._pageChangeTimer) {
-                            clearTimeout(journalSheet._pageChangeTimer);
-                        }
-                        journalSheet._pageChangeTimer = setTimeout(() => {
-                            processJournalSheet(journalSheet);
-                        }, 100);
-                    }
-                }
-            }
-        }
-    });
-    
-    // Observe the document body for new journal sheets and page navigation
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['class', 'data-page-id'] // Watch for class changes (active page) and page ID changes
-    });
-    
-    // Also check existing journal sheets on ready
-    const checkExistingSheets = () => {
-        const domJournalSheets = document.querySelectorAll('.journal-sheet, .journal-entry');
-        for (const sheetElement of domJournalSheets) {
-            processJournalSheet(sheetElement);
-        }
+    // Use shared DOM watchdog to reduce duplicate MutationObserver pipelines.
+    const sheetHandler = (sheetEl) => {
+        // Small delay to ensure DOM is fully rendered (keeps behavior close to the old observer)
+        setTimeout(() => processJournalSheet(sheetEl), 50);
     };
-    
-    if (game.ready) {
-        checkExistingSheets();
-    } else {
-        Hooks.once('ready', checkExistingSheets);
-    }
-    
-    // No extra page-nav click listener here: observer + hooks above already handle page changes.
+    JournalDomWatchdog.registerSheetHandler(sheetHandler);
+    JournalDomWatchdog.registerPageHandler(sheetHandler);
 });
 
 // ***************************************************

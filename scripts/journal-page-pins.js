@@ -4,6 +4,7 @@ import { postConsoleAndNotification } from './api-core.js';
 import { getCachedTemplate } from './blacksmith.js';
 import { HookManager } from './manager-hooks.js';
 import { PinManager } from './manager-pins.js';
+import { JournalDomWatchdog } from './journal-dom-watchdog.js';
 
 /** Foundry ownership level for "View & Click" (observer). */
 const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
@@ -46,6 +47,8 @@ export class JournalPagePins {
     static _intervalId = null;
     static _domObserver = null;
     static _hookManagerIds = [];
+    static _watchdogSheetHandler = null;
+    static _watchdogPageHandler = null;
     /** Stable refs for Hooks.off in dispose() */
     static _boundRenderSheet = null;
     static _boundRenderApplicationJournal = null;
@@ -97,6 +100,15 @@ export class JournalPagePins {
                 Hooks.off('renderApplication', this._boundRenderApplicationJournal);
             } catch (_e) { /* non-fatal */ }
             this._boundRenderApplicationJournal = null;
+        }
+
+        if (this._watchdogSheetHandler) {
+            try { JournalDomWatchdog.unregisterSheetHandler(this._watchdogSheetHandler); } catch (_e) { /* non-fatal */ }
+            this._watchdogSheetHandler = null;
+        }
+        if (this._watchdogPageHandler) {
+            try { JournalDomWatchdog.unregisterPageHandler(this._watchdogPageHandler); } catch (_e) { /* non-fatal */ }
+            this._watchdogPageHandler = null;
         }
 
         this._initialized = false;
@@ -254,12 +266,23 @@ export class JournalPagePins {
     }
 
     static _afterReady() {
+        this._registerWatchdogHandlers();
         setTimeout(() => this._processOpenSheets(), 300);
-        this._setupDomObserver();
-        if (!this._intervalId) {
-            this._intervalId = setInterval(() => this._scanUiWindows(), 2000);
-        }
+        // Single scan for already-open journal windows; afterwards the shared watchdog drives updates.
         this._scanUiWindows();
+    }
+
+    static _registerWatchdogHandlers() {
+        if (this._watchdogSheetHandler) return;
+        this._watchdogSheetHandler = (sheetEl) => {
+            // _onRenderSheet handles edit/view mode and injection.
+            this._onRenderSheet(null, sheetEl, {});
+        };
+        this._watchdogPageHandler = (sheetEl) => {
+            this._onRenderSheet(null, sheetEl, {});
+        };
+        JournalDomWatchdog.registerSheetHandler(this._watchdogSheetHandler);
+        JournalDomWatchdog.registerPageHandler(this._watchdogPageHandler);
     }
 
     static _onRenderSheet(app, html) {
