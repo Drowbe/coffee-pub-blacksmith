@@ -10,7 +10,7 @@ Mirrors **`documentation/PERFORMANCE.md`** — active investigation items; updat
 | --- | --- | --- | --- |
 | 1 | High | Encounter toolbar global observer/polling lifecycle | Teardown done (`dispose` + `closeGame`); see `PERFORMANCE-journal-lifecycle-checklist.md` |
 | 2 | High | Journal page pins observer/polling lifecycle | Teardown done (`dispose` + `closeGame`); see checklist |
-| 3 | High | Duplicate journal monitoring pipelines (duplicate work) | Active |
+| 3 | High | Duplicate journal monitoring pipelines (duplicate work) | Active (Phase B trim done; consolidation pending) |
 | 4 | Medium | Menubar full rerenders on frequent update paths | Active |
 | 5 | Medium | Timer loops doing global DOM queries/rerenders | Active |
 | 6 | Medium | Socket native fallback listener lifecycle | Native inbound teardown done (see PERFORMANCE.md §6) |
