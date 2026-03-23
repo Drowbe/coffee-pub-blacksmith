@@ -15,6 +15,8 @@ Status: **planning only** (no renames applied by this file).
   - `timer-*` timing loops/schedulers
   - `stats-*` stat collectors/renderers
   - `utility-*` (or `util-*`) pure helpers with no lifecycle ownership
+- For UI files, prefer: `ui-<global-area>-<specific-area>.js` when it improves scanning
+  - Example: `ui-journal-encounter.js` (journal area, encounter feature)
 
 ## Potential Rename Table (sorted by risk: Low -> Medium)
 
@@ -26,15 +28,13 @@ Status: **planning only** (no renames applied by this file).
 | `scripts/sidebar-style.js` | `scripts/ui-sidebar-style.js` | Styling/controller logic is UI-focused. | Low | Verify no implied API/service ownership. |
 | `scripts/journal-dom-watchdog.js` | `scripts/manager-journal-dom.js` | Lifecycle/stateful shared watcher; aligns with `manager-*` conventions. | Low | Recommended rename for consistency; update imports in `blacksmith`, `encounter-toolbar`, `journal-page-pins`. |
 | `scripts/vote-manager.js` | `scripts/manager-vote.js` | Role-first manager naming consistency. | Low | Straightforward import churn. |
-| `scripts/window-gmtools.js` | `scripts/window-gm-tools.js` | Normalizes tokenization and readability. | Low | Cosmetic rename; update imports only. |
-| `scripts/window-skillcheck.js` | `scripts/window-skill-check.js` | Same normalization as above. | Low | Cosmetic rename; verify dynamic imports. |
 | `scripts/window-pin-config.js` | `scripts/window-pin-configuration.js` | Slightly clearer intent/consistency. | Low | Optional; current name already acceptable. |
-| `scripts/encounter-toolbar.js` | `scripts/ui-encounter-toolbar.js` | File is mostly UI composition/interaction; role becomes explicit. | Medium | Many imports; stage with a one-release re-export shim if needed. |
+| `scripts/encounter-toolbar.js` | `scripts/ui-journal-encounter.js` | This is journal-toolbar UI logic (not menubar); journal-area naming is clearer. | Medium | Many imports; stage with a one-release re-export shim if needed. |
 | `scripts/combat-tracker.js` | `scripts/ui-combat-tracker.js` | Clarifies UI ownership vs manager-style services. | Medium | Check all direct imports and menu bindings. |
 | `scripts/combat-tools.js` | `scripts/ui-combat-tools.js` | Similar to above; name aligns with UI role. | Medium | Verify hooks/import side effects remain intact. |
 | `scripts/data-collection-processor.js` | `scripts/manager-data-collection.js` | If stateful/orchestrated; role-first naming. | Medium | Re-evaluate if actually pure utility before renaming. |
 | `scripts/journal-tools.js` | `scripts/manager-journal-tools.js` | Owns hook lifecycle + journal tool orchestration; manager role is clearer than utility. | Medium | Better fit than `utility-journal-*`; if split later, pure helpers can move to `utility-journal-*`. |
-| `scripts/journal-page-pins.js` | `scripts/ui-journal-page-pins.js` | Consistent with UI naming in journal domain. | Medium | Many references; coordinate with `manager-pins.js`. |
+| `scripts/journal-page-pins.js` | `scripts/ui-journal-pins.js` | Journal UI naming with less implementation-detail noise than “page-pins”. | Medium | Many references; coordinate with `manager-pins.js`. |
 | `scripts/vote-config.js` | `scripts/window-vote-config.js` | It is a vote window (`Application`) rather than a manager; window role is clearer. | Medium | If migrated to Application V2, keep same `window-*` name and update internals. |
 | `scripts/window-base-v2.js` | `scripts/window-base.js` | If v2 is baseline project-wide, suffix can be removed. | Medium | Only after confirming no legacy base remains/returns. |
 
@@ -61,7 +61,7 @@ These already fit the conventions well and likely do not need rename churn:
 
 ## Suggested Rollout Order
 
-1. **Low-risk cosmetics** (tokenization only): `window-gmtools`, `window-skillcheck`, `common`, `journal-dom-watchdog`.
+1. **Low-risk cosmetics** (tokenization only): `common`, `journal-dom-watchdog`.
 2. **UI role clarifications**: `encounter-toolbar`, `combat-tracker`, `combat-tools`, `sidebar-*`, `journal-*`.
 3. **Semantic/contract-sensitive**: `data-collection-processor`, `window-base-v2`.
 
@@ -70,8 +70,6 @@ These already fit the conventions well and likely do not need rename churn:
 1. **Batch 1 (very low risk, 3-4 files)**
    - `journal-dom-watchdog` -> `manager-journal-dom`
    - `vote-manager` -> `manager-vote`
-   - `window-gmtools` -> `window-gm-tools`
-   - `window-skillcheck` -> `window-skill-check`
    - Verify: startup load, basic journal interactions, vote window open.
 
 2. **Batch 2 (low risk, utility/UI cosmetics)**
@@ -81,11 +79,11 @@ These already fit the conventions well and likely do not need rename churn:
    - Verify: sidebar behavior, pin config open, no missing imports.
 
 3. **Batch 3 (medium risk, domain role clarity)**
-   - `encounter-toolbar` -> `ui-encounter-toolbar`
+   - `encounter-toolbar` -> `ui-journal-encounter`
    - `combat-tracker` -> `ui-combat-tracker`
    - `combat-tools` -> `ui-combat-tools`
    - `journal-tools` -> `manager-journal-tools`
-   - `journal-page-pins` -> `ui-journal-page-pins`
+   - `journal-page-pins` -> `ui-journal-pins`
    - `vote-config` -> `window-vote-config`
    - Verify: encounter bar, combat tools/tracker, journal pins/tools, vote flows.
 
