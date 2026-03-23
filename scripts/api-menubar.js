@@ -7,14 +7,14 @@ import { MovementConfig } from './token-movement.js';
 import { PerformanceUtility } from './utility-performance.js';
 import { QuickViewUtility } from './utility-quickview.js';
 import { CoreUIUtility } from './utility-core.js';
-import { VoteConfig } from './vote-config.js';
+import { VoteConfig } from './window-vote-config.js';
 import { XpManager } from './xp-manager.js';
 import { CSSEditor } from './window-gmtools.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
 import { StatsWindow } from './window-stats-party.js';
 import { deployParty, clearPartyFromCanvas } from './utility-party.js';
 import { getDeploymentPatternName } from './api-tokens.js';
-import { EncounterToolbar } from './encounter-toolbar.js';
+import { EncounterToolbar } from './ui-journal-encounter.js';
 import { PartyManager } from './manager-party.js';
 import { ReputationManager } from './manager-reputation.js';
 import { UIContextMenu } from './ui-context-menu.js';
@@ -151,7 +151,7 @@ class MenuBar {
             }
         });
 
-        // Encounter bar refresh: encounter-toolbar.js calls api.updateSecondaryBarItemInfo directly when tokens change
+        // Encounter bar refresh: ui-journal-encounter.js calls api.updateSecondaryBarItemInfo directly when tokens change
     }
 
     static async _registerPartials() {
@@ -394,8 +394,8 @@ class MenuBar {
      * Register secondary bar types
      */
     static async registerSecondaryBarTypes() {
-        // Register encounter secondary bar (default tool system – items registered from encounter-toolbar.js)
-        // Encounter bar type is registered by encounter-toolbar.js with info items + buttons
+        // Register encounter secondary bar (default tool system – items registered from ui-journal-encounter.js)
+        // Encounter bar type is registered by ui-journal-encounter.js with info items + buttons
 
         // Register party secondary bar (default tool system)
         await this.registerSecondaryBarType('party', {

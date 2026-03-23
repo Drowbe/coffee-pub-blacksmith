@@ -71,7 +71,7 @@
     "scripts/manager-compendiums.js",
     "scripts/blacksmith.js",
     "scripts/sidebar-combat.js",
-    "scripts/journal-page-pins.js",
+    "scripts/ui-journal-pins.js",
     "api/blacksmith-api.js"
   ],
   "packs": [

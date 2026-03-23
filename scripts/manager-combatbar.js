@@ -1,7 +1,7 @@
 import { MODULE } from './const.js';
 import { getSettingSafely, postConsoleAndNotification, formatTime, playSound } from './api-core.js';
 import { RoundTimer } from './timer-round.js';
-import { CombatTracker } from './combat-tracker.js';
+import { CombatTracker } from './ui-combat-tracker.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { HookManager } from './manager-hooks.js';
 
@@ -989,7 +989,7 @@ export class CombatBarManager {
                     }
                     if (autoRollEnabled) {
                         postConsoleAndNotification(MODULE.NAME, "Combat Bar: Using core auto-roll functionality", "", true, false);
-                        const CT = await import('./combat-tracker.js');
+                        const CT = await import('./ui-combat-tracker.js');
                         await CT.CombatTracker._rollInitiativeForPlayerCharacters(combat);
                     } else {
                         const nextCombatant = ownedPCsNeedingInitiative[0];

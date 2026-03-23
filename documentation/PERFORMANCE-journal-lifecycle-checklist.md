@@ -4,7 +4,7 @@ Actionable steps aligned with **`documentation/PERFORMANCE.md`**. Update **PERFO
 
 ---
 
-## Rank 1 — Encounter toolbar (`scripts/encounter-toolbar.js`)
+## Rank 1 — Encounter toolbar (`scripts/ui-journal-encounter.js`)
 
 | Step | Task | Detail |
 | --- | --- | --- |
@@ -17,7 +17,7 @@ Actionable steps aligned with **`documentation/PERFORMANCE.md`**. Update **PERFO
 
 ---
 
-## Rank 2 — Journal page pins (`scripts/journal-page-pins.js`)
+## Rank 2 — Journal page pins (`scripts/ui-journal-pins.js`; optional shim `scripts/journal-page-pins.js`)
 
 | Step | Task | Detail |
 | --- | --- | --- |
@@ -44,7 +44,7 @@ Actionable steps aligned with **`documentation/PERFORMANCE.md`**. Update **PERFO
 | --- | --- |
 | **A — Document** | Treat this file + PERFORMANCE.md §3 as the single description of overlap. |
 | **B — Remove debug** | Delete the test `Hooks.on('renderJournalSheet', … console.log …)` in `blacksmith.js` when no longer needed (reduces duplicate invocations). |
-| **C — Shared observer (larger refactor)** | Completed: added `scripts/journal-dom-watchdog.js` and rewired `blacksmith.js`, `encounter-toolbar.js`, and `journal-page-pins.js` to subscribe to shared sheet/page events. |
+| **C — Shared observer (larger refactor)** | Completed: added `scripts/manager-journal-dom.js` and rewired `blacksmith.js`, `ui-journal-encounter.js`, and `ui-journal-pins.js` to subscribe to shared sheet/page events. |
 | **D — Unify hooks** | Prefer **HookManager-only** for sheet/page render if direct `Hooks.on` duplicates are confirmed redundant. |
 
 ---
@@ -60,8 +60,8 @@ Actionable steps aligned with **`documentation/PERFORMANCE.md`**. Update **PERFO
 
 ## Related files
 
-- `scripts/journal-dom-watchdog.js` — shared journal sheet/page DOM observer + interval fallback
-- `scripts/encounter-toolbar.js` — `init`/`dispose` now registers/unregisters `JournalDomWatchdog` handlers (body observer/interval removed from the manager itself)
-- `scripts/journal-page-pins.js` — `_afterReady` registers `JournalDomWatchdog` handlers; `dispose` unregisters
+- `scripts/manager-journal-dom.js` — shared journal sheet/page DOM observer + interval fallback
+- `scripts/ui-journal-encounter.js` — `init`/`dispose` now registers/unregisters `JournalDomWatchdog` handlers (body observer/interval removed from the manager itself)
+- `scripts/ui-journal-pins.js` — `_afterReady` registers `JournalDomWatchdog` handlers; `dispose` unregisters
 - `scripts/blacksmith.js` — journal double-click setup now subscribes to `JournalDomWatchdog` instead of owning a second MutationObserver
 - Canonical stack table: `documentation/PERFORMANCE.md`, `documentation/TODO.md`

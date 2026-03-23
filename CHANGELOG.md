@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Internal (file naming, Batch 3)**: Renamed scripts to role-first names — `encounter-toolbar.js` → `ui-journal-encounter.js`, `combat-tracker.js` → `ui-combat-tracker.js`, `combat-tools.js` → `ui-combat-tools.js`, `journal-tools.js` → `manager-journal-tools.js`, `journal-page-pins.js` → `ui-journal-pins.js` (also `module.json` esmodules entry), `vote-config.js` → `window-vote-config.js`. Imports updated; behavior unchanged.
+- **Compatibility shims**: Restored tiny `scripts/journal-page-pins.js` and `scripts/common.js` that re-export from `ui-journal-pins.js` / `utility-common.js` so stale manifests, caches, or deep links do not 404.
+
 ## [13.5.8] - 2026-03-02 - PERF STACK QUICK WINS (RANK 7)
 
 ### Added

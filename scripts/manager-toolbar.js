@@ -222,9 +222,9 @@ function registerTool(toolId, toolData) {
 async function registerDefaultTools() {
     // Import required modules (Regent tools are registered by coffee-pub-regent when enabled)
     const { CSSEditor } = await import('./window-gmtools.js');
-    const { JournalToolsWindow } = await import('./journal-tools.js');
+    const { JournalToolsWindow } = await import('./manager-journal-tools.js');
     const { SkillCheckDialog } = await import('./window-skillcheck.js');
-    const { VoteConfig } = await import('./vote-config.js');
+    const { VoteConfig } = await import('./window-vote-config.js');
     
     // Register all the default tools (Regent/lookup/character/assistant/encounter/narrative are in coffee-pub-regent)
     registerTool('css', {

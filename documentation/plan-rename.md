@@ -9,6 +9,7 @@ Completed:
 - Batch 2 `common` -> `utility-common` canonicalized, imports switched, old filename removed.
 - Batch 2 `sidebar-pin` -> `ui-sidebar-pin` canonicalized, imports switched, old filename removed.
 - Batch 2 `sidebar-style` -> `ui-sidebar-style` canonicalized, imports switched, old filename removed.
+- Batch 3 `encounter-toolbar` -> `ui-journal-encounter`, `combat-tracker` -> `ui-combat-tracker`, `combat-tools` -> `ui-combat-tools`, `journal-tools` -> `manager-journal-tools`, `journal-page-pins` -> `ui-journal-pins`, `vote-config` -> `window-vote-config` — canonicalized, imports + `module.json` updated, old filenames removed.
 
 ## Proposed Naming Rules (short form)
 
@@ -84,7 +85,7 @@ These already fit the conventions well and likely do not need rename churn:
    - optional: `window-pin-config` -> `window-pin-configuration`
    - Verify: sidebar behavior, pin config open, no missing imports.
 
-3. **Batch 3 (medium risk, domain role clarity)**
+3. **Batch 3 (medium risk, domain role clarity) — Completed**
    - `encounter-toolbar` -> `ui-journal-encounter`
    - `combat-tracker` -> `ui-combat-tracker`
    - `combat-tools` -> `ui-combat-tools`

@@ -3,7 +3,7 @@
  * 
  * This module provides a centralized system for searching and linking items, spells, features, and actors
  * across multiple compendiums based on user-configured settings. It consolidates the existing patterns
- * from common.js and journal-tools.js into a reusable system.
+ * from utility-common.js and manager-journal-tools.js into a reusable system.
  * 
  * Features:
  * - Unified search across multiple compendiums

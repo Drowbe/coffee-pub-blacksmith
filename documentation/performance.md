@@ -33,21 +33,21 @@ Current performance baseline and action plan after recent subsystem removals (Op
 ## Detailed Findings
 
 1. **Encounter toolbar global observer / polling**
-   - **Files**: `scripts/encounter-toolbar.js`
+   - **Files**: `scripts/ui-journal-encounter.js`
    - **Evidence**: `MutationObserver`, `setInterval(..., 500)`, document capture-phase click.
    - **Mitigation (done)**: `EncounterToolbar.dispose()` disconnects observer, clears interval, removes listener, removes HookManager callbacks; `Hooks.once('closeGame', …)` in `blacksmith.js` invokes it. `init()` is idempotent.
    - **Remaining (optional)**: Reduce scope or remove fallback observer/poll if v13 hooks cover all cases.
 
 2. **Journal page pins observer + interval**
-   - **Files**: `scripts/journal-page-pins.js`
+   - **Files**: `scripts/ui-journal-pins.js`
    - **Evidence**: `setInterval(..., 2000)`, `MutationObserver`, direct `Hooks.on` + HookManager.
    - **Mitigation (done)**: `JournalPagePins.dispose()` clears interval, disconnects observer, `Hooks.off` + `HookManager.removeCallback`; same `closeGame` path. `init()` is idempotent.
    - **Remaining (optional)**: Drop redundant `renderApplication` listener after testing; add `PinManager` handler unregister if API appears.
 
 3. **Duplicate journal instrumentation stacks**
-   - **Files**: `scripts/journal-page-pins.js`, `scripts/blacksmith.js`
+   - **Files**: `scripts/ui-journal-pins.js`, `scripts/blacksmith.js`
    - **Evidence**: Previously multiple features each had their own MutationObserver + interval fallbacks for journal UI updates.
-   - **Mitigation (pass C, done)**: Added shared `scripts/journal-dom-watchdog.js` and rewired `blacksmith.js` (double-click editing), `encounter-toolbar.js`, and `journal-page-pins.js` to consume the shared sheet/page events. This removes the per-feature journal DOM observer/interval pipelines.
+   - **Mitigation (pass C, done)**: Added shared `scripts/manager-journal-dom.js` and rewired `blacksmith.js` (double-click editing), `ui-journal-encounter.js`, and `ui-journal-pins.js` to consume the shared sheet/page events. This removes the per-feature journal DOM observer/interval pipelines.
    - **Remaining**: Optional follow-up: further reduce duplicate *hook* work (e.g. relying on HookManager only in cases where Foundry hooks fire reliably).
 
 4. **Menubar rerender path is still broad**

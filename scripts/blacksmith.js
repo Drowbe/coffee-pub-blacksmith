@@ -55,14 +55,14 @@ import { ModuleManager } from './manager-modules.js';
 import { UtilsManager } from './manager-utilities.js';
 import { StatsAPI } from './api-stats.js';
 import { CanvasTools } from './manager-canvas.js';
-import { CombatTracker } from './combat-tracker.js';
+import { CombatTracker } from './ui-combat-tracker.js';
 import { LatencyChecker } from './latency-checker.js';
-import { EncounterToolbar } from './encounter-toolbar.js';
+import { EncounterToolbar } from './ui-journal-encounter.js';
 import { EncounterManager } from './manager-encounter.js';
 import { PartyManager } from './manager-party.js';
 import { ReputationManager } from './manager-reputation.js';
-import { JournalTools } from './journal-tools.js';
-import { JournalPagePins } from './journal-page-pins.js';
+import { JournalTools } from './manager-journal-tools.js';
+import { JournalPagePins } from './ui-journal-pins.js';
 import { JournalDomWatchdog } from './manager-journal-dom.js';
 import { CSSEditor } from './window-gmtools.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
@@ -82,7 +82,7 @@ import { TokenIndicatorManager } from './manager-token-indicators.js';
 import { CampaignManager } from './manager-campaign.js';
 import { CampaignAPI } from './api-campaign.js';
 import './sidebar-combat.js';
-import './combat-tools.js'; 
+import './ui-combat-tools.js'; 
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
 // ================================================================== 
