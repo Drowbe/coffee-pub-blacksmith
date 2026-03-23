@@ -2,7 +2,11 @@
 
 Purpose: propose a consistent, low-risk file naming direction before broad refactors.
 
-Status: **planning only** (no renames applied by this file).
+Status: **in progress**.
+Completed:
+- Batch 1 `journal-dom-watchdog` -> `manager-journal-dom` canonicalized, imports switched, old filename removed.
+- Batch 1 `vote-manager` -> `manager-vote` canonicalized, imports switched, old filename removed.
+- Batch 2 work was intentionally rolled back to keep strict batch order.
 
 ## Proposed Naming Rules (short form)
 
@@ -67,7 +71,7 @@ These already fit the conventions well and likely do not need rename churn:
 
 ## How To Tackle This (execution plan)
 
-1. **Batch 1 (very low risk, 3-4 files)**
+1. **Batch 1 (very low risk, 3-4 files) — Completed**
    - `journal-dom-watchdog` -> `manager-journal-dom`
    - `vote-manager` -> `manager-vote`
    - Verify: startup load, basic journal interactions, vote window open.

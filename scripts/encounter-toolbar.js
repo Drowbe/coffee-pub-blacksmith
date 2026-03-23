@@ -10,7 +10,7 @@ import { EncounterManager } from './manager-encounter.js';
 import { CampaignManager } from './manager-campaign.js';
 import { deployTokens, deployTokensSequential, getDefaultTokenData, validateActorUUID, getTargetPosition, calculateCirclePosition, calculateScatterPosition, calculateSquarePosition, getDeploymentPatternName } from './api-tokens.js';
 import { clearPartyFromCanvas } from './utility-party.js';
-import { JournalDomWatchdog } from './journal-dom-watchdog.js';
+import { JournalDomWatchdog } from './manager-journal-dom.js';
 
 export class EncounterToolbar {
     

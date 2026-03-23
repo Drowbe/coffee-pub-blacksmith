@@ -1,6 +1,6 @@
-// ================================================================== 
+// ==================================================================
 // ===== IMPORTS ====================================================
-// ================================================================== 
+// ==================================================================
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, getSettingSafely, isCurrentUserPartyLeader, getUsersWithOwnedTokenOnCanvas } from './api-core.js';
@@ -20,8 +20,8 @@ export class VoteManager {
         // Register Handlebars helper for checking current user's GM status
         Handlebars.registerHelper('isCurrentUserGM', function() {
             const isGM = game.user.isGM;
-            postConsoleAndNotification(MODULE.NAME, "Vote Manager | Checking GM Status", 
-                `Current User: ${game.user.name}\nIs GM: ${isGM}`, 
+            postConsoleAndNotification(MODULE.NAME, "Vote Manager | Checking GM Status",
+                `Current User: ${game.user.name}\nIs GM: ${isGM}`,
                 true, false
             );
             return isGM;
@@ -43,7 +43,7 @@ export class VoteManager {
             const notVotedPlayers = allPlayers.filter(u => !votes[u.id]);
 
             let html = '<div style="text-align: left;">';
-            
+
             // Add voted players section if any have voted
             if (votedPlayers.length > 0) {
                 html += '<b>Voted:</b><ul style="margin: 0; padding-left: 15px;">';
@@ -66,11 +66,11 @@ export class VoteManager {
         // Register helper to get vote details for completed votes
         Handlebars.registerHelper('getVoteDetails', function(votes, options) {
             if (!votes || !options) return '';
-            
+
             // Create a map of option IDs to names
             const optionNames = {};
             options.forEach(opt => optionNames[opt.id] = opt.name);
-            
+
             // Get vote details for each voter
             const voteDetails = Object.entries(votes)
                 .filter(([userId]) => !game.users.get(userId)?.isGM)
@@ -80,7 +80,7 @@ export class VoteManager {
                     return `<li><b>${userName}</b>: ${voteName}</li></li>`;
                 })
                 .filter(Boolean);
-            
+
             return '<div style="text-align: left;"><b>RESULTS</b><br><br><ul>' + voteDetails.join('<br>') + '</ul></div>';
         });
 
@@ -99,8 +99,8 @@ export class VoteManager {
                     if (html && (html.jquery || typeof html.find === 'function')) {
                         nativeHtml = html[0] || html.get?.(0) || html;
                     }
-                    
-                    // Vote button click handler (use VoteManager explicitly — hook callback "this" is not VoteManager)
+
+                    // Vote button click handler (use VoteManager explicitly - hook callback "this" is not VoteManager)
                     nativeHtml.querySelectorAll('.vote-button').forEach(button => {
                         button.addEventListener('click', async (event) => {
                             event.preventDefault();
@@ -135,7 +135,7 @@ export class VoteManager {
                         const userVote = VoteManager.activeVote.votes[game.user.id];
                         nativeHtml.querySelectorAll('.vote-button').forEach((button) => {
                             const optionId = button.dataset.optionId;
-                            
+
                             // Disable buttons for GMs
                             if (game.user.isGM) {
                                 button.disabled = true;
@@ -164,7 +164,7 @@ export class VoteManager {
                 }
             }
         });
-        
+
         // Log hook registration
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "vote-manager-chat", true, false);
     }
@@ -306,9 +306,9 @@ export class VoteManager {
                     <div class="form-group">
                         <label>Character Source:</label>
                         <select name="source" required>
-                            ${Object.entries(sources).map(([key, source]) => 
-                                source.available ? 
-                                `<option value="${key}">${source.label}</option>` : 
+                            ${Object.entries(sources).map(([key, source]) =>
+                                source.available ?
+                                `<option value="${key}">${source.label}</option>` :
                                 `<option value="${key}" disabled>${source.label} (${source.unavailableMessage || 'Not Available'})</option>`
                             ).join('')}
                         </select>
@@ -333,7 +333,7 @@ export class VoteManager {
                         const title = titleInput ? titleInput.value : '';
                         const description = descriptionInput ? descriptionInput.value : '';
                         const source = sourceInput ? sourceInput.value : '';
-                        
+
                         if (!title) {
                             ui.notifications.error("Please enter a title for the vote.");
                             return;
@@ -524,7 +524,7 @@ export class VoteManager {
             this.activeVote.votes = {};
         }
 
-        // Record the vote (capture reference before any await—closeVote() may set activeVote to null)
+        // Record the vote (capture reference before any await-closeVote() may set activeVote to null)
         this.activeVote.votes[voterId] = choiceId;
         const votesToSync = this.activeVote.votes;
 
@@ -544,7 +544,7 @@ export class VoteManager {
             }
         }
 
-        // Notify other clients (use captured reference—activeVote may be null if vote just closed)
+        // Notify other clients (use captured reference-activeVote may be null if vote just closed)
         const socket = SocketManager.getSocket();
         await socket.executeForOthers("receiveVoteUpdate", {
             votes: votesToSync
@@ -690,33 +690,33 @@ export class VoteManager {
                         const tieBreakerSelect = nativeDialogHtml.querySelector('#tie-breaker-select');
                         const selectedValue = tieBreakerSelect ? tieBreakerSelect.value : '';
                         const [userId, actorId] = selectedValue.split('|');
-                        
+
                         // Initialize results if they don't exist
                         if (!this.activeVote.results) {
                             this.activeVote.results = {};
                         }
                         this.activeVote.results.winner = { userId, actorId };
-                        
+
                         // Set the leader
                         await MenuBar.setNewLeader({ userId, actorId }, true);
-                        
+
                         // Update the vote message to show final results
                         await this._updateVoteMessage();
-                        
+
                         // Close the vote after tie-breaker selection
                         // Mark vote as inactive and set end time
                         this.activeVote.isActive = false;
                         this.activeVote.endTime = Date.now();
-                        
+
                         // Play completion sound
                         playSound(window.COFFEEPUB?.SOUNDNOTIFICATION15, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
-                        
+
                         // Notify other clients
                         const socket = SocketManager.getSocket();
                         await socket.executeForOthers("receiveVoteClose", {
                             results: this.activeVote.results
                         });
-                        
+
                         // Clear the active vote
                         this.activeVote = null;
                     },
@@ -767,7 +767,7 @@ export class VoteManager {
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs',
             messageData,
         );
-        
+
         // Create a single message from the GM
         const message = await ChatMessage.create({
             content: content,
@@ -815,10 +815,10 @@ export class VoteManager {
      */
     static async receiveVoteStart(data) {
 
-        
+
         // Update our local vote state with the complete data
         this.activeVote = data.voteData;
-        
+
         // No need to create or update messages - just use the GM's message
     }
 
@@ -831,15 +831,15 @@ export class VoteManager {
 
         // Update our local vote state
         this.activeVote.votes = data.votes;
-        
+
         // Allow both GM and leader who initiated the vote to update the message
         const isInitiator = game.user.id === this.activeVote.initiator;
         const isGM = game.user.isGM;
         const isLeader = isCurrentUserPartyLeader();
-        
+
         if ((isGM || isLeader) && isInitiator) {
             await this._updateVoteMessage();
-            
+
             // Check if everyone has voted and close automatically if they have
             if (this._haveAllPlayersVoted()) {
                 await this.closeVote();
@@ -894,4 +894,5 @@ export class VoteManager {
 
         return userCharacters[0] || null;
     }
-} 
+}
+

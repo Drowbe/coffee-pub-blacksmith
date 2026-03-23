@@ -4,7 +4,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, isCurrentUserPartyLeader } from './api-core.js';
-import { VoteManager } from "./vote-manager.js";
+import { VoteManager } from "./manager-vote.js";
 import { MenuBar } from "./api-menubar.js";
 
 export class VoteConfig extends Application {

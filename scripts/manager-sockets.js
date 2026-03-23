@@ -7,7 +7,7 @@ import { postConsoleAndNotification, playSoundLocalWithDuration, playSoundLoopin
 import { CombatTimer } from './timer-combat.js';
 import { PlanningTimer } from './timer-planning.js';
 import { MenuBar } from './api-menubar.js';
-import { VoteManager } from './vote-manager.js';
+import { VoteManager } from './manager-vote.js';
 import { CSSEditor } from './window-gmtools.js';
 import { LatencyChecker } from './latency-checker.js';
 

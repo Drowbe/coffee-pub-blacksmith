@@ -4,7 +4,7 @@ import { postConsoleAndNotification } from './api-core.js';
 import { getCachedTemplate } from './blacksmith.js';
 import { HookManager } from './manager-hooks.js';
 import { PinManager } from './manager-pins.js';
-import { JournalDomWatchdog } from './journal-dom-watchdog.js';
+import { JournalDomWatchdog } from './manager-journal-dom.js';
 
 /** Foundry ownership level for "View & Click" (observer). */
 const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
