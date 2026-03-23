@@ -36,7 +36,7 @@ import {
     createHTMLList, 
     buildCompendiumLinkActor, 
     copyToClipboard 
-} from './common.js';
+} from './utility-common.js';
 // -- Import special page variables --
 import { registerSettings, buildSelectedCompendiumArrays, buildSelectedCampaignArrays, reorderCompendiumsForType, extractTypeFromCompendiumSetting } from './settings.js';
 import { BlacksmithLayer } from './canvas-layer.js';
@@ -72,8 +72,8 @@ import { HookManager } from './manager-hooks.js';
 import { ConstantsGenerator } from './constants-generator.js';
 import { assetLookup } from './asset-lookup.js';
 import { UIContextMenu } from './ui-context-menu.js';
-import { SidebarPin } from './sidebar-pin.js';
-import { SidebarStyle } from './sidebar-style.js';
+import { SidebarPin } from './ui-sidebar-pin.js';
+import { SidebarStyle } from './ui-sidebar-style.js';
 import { LoadingProgressManager } from './manager-loading-progress.js';
 import { PinManager } from './manager-pins.js';
 import { PinsAPI } from './api-pins.js';

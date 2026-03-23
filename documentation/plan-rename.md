@@ -6,7 +6,9 @@ Status: **in progress**.
 Completed:
 - Batch 1 `journal-dom-watchdog` -> `manager-journal-dom` canonicalized, imports switched, old filename removed.
 - Batch 1 `vote-manager` -> `manager-vote` canonicalized, imports switched, old filename removed.
-- Batch 2 work was intentionally rolled back to keep strict batch order.
+- Batch 2 `common` -> `utility-common` canonicalized, imports switched, old filename removed.
+- Batch 2 `sidebar-pin` -> `ui-sidebar-pin` canonicalized, imports switched, old filename removed.
+- Batch 2 `sidebar-style` -> `ui-sidebar-style` canonicalized, imports switched, old filename removed.
 
 ## Proposed Naming Rules (short form)
 
@@ -76,7 +78,7 @@ These already fit the conventions well and likely do not need rename churn:
    - `vote-manager` -> `manager-vote`
    - Verify: startup load, basic journal interactions, vote window open.
 
-2. **Batch 2 (low risk, utility/UI cosmetics)**
+2. **Batch 2 (low risk, utility/UI cosmetics) — Completed**
    - `common` -> `utility-common`
    - `sidebar-pin` / `sidebar-style` -> `ui-sidebar-*`
    - optional: `window-pin-config` -> `window-pin-configuration`
