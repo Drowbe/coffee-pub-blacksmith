@@ -1774,21 +1774,15 @@ function _onRenderJournalDoubleClick(app, html, data) {
     // END - HOOKMANAGER CALLBACK
     }
 
-// Set up periodic checker and click listener for page navigation (since hooks don't fire reliably)
+// Set up periodic checker for journal page navigation (hooks are still inconsistent across v13 journal renders)
 Hooks.once('ready', () => {
-    // Register renderJournalSheet hook (fires on initial journal sheet render)
-    // Use both HookManager and direct Hooks.on for maximum compatibility
+    // Register journal hooks through HookManager only (avoids duplicate callbacks).
     HookManager.registerHook({
         name: 'renderJournalSheet',
         description: 'Blacksmith: Enable journal double-click editing for GMs',
         context: 'blacksmith-journal-double-click',
         priority: 3,
         callback: _onRenderJournalDoubleClick
-    });
-
-    // Also register direct hook as fallback (in case HookManager doesn't fire)
-    Hooks.on('renderJournalSheet', (app, html, data) => {
-        _onRenderJournalDoubleClick(app, html, data);
     });
 
     // Register renderJournalPageSheet hook (fires when journal pages are switched in v13 ApplicationV2)
@@ -1800,10 +1794,6 @@ Hooks.once('ready', () => {
         callback: _onRenderJournalDoubleClick
     });
 
-    // Also register direct hook as fallback
-    Hooks.on('renderJournalPageSheet', (app, html, data) => {
-        _onRenderJournalDoubleClick(app, html, data);
-    });
     
     // Track processed journal sheets to avoid duplicate handlers
     const processedSheetElements = new WeakSet();
@@ -1931,38 +1921,7 @@ Hooks.once('ready', () => {
         Hooks.once('ready', checkExistingSheets);
     }
     
-    // Listen for clicks on journal page navigation
-    document.addEventListener('click', (event) => {
-        if (!game.user.isGM) return;
-        if (!game.settings.get(MODULE.ID, 'enableJournalDoubleClick')) return;
-        
-        // Check if click is on a journal page navigation button/tab
-        const target = event.target.closest('a[data-page-id], .journal-page-nav a, .journal-entry-page-header a');
-        if (target && target.getAttribute('data-page-id')) {
-            postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Page navigation clicked", 
-                `Page ID: ${target.getAttribute('data-page-id')}`, true, false);
-            
-            // Find the journal sheet containing this navigation
-            const journalSheet = target.closest('.journal-sheet, .journal-entry');
-            if (journalSheet) {
-                // Find the corresponding app
-                const sheet = Object.values(ui.windows).find(w => {
-                    if (!w || !w.element) return false;
-                    const wElement = w.element.jquery ? w.element[0] : w.element;
-                    return wElement === journalSheet || wElement?.contains?.(journalSheet);
-                });
-                
-                if (sheet) {
-                    // Small delay to let the page render
-                    setTimeout(() => {
-                        postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Processing after page navigation", 
-                            `Page ID: ${target.getAttribute('data-page-id')}`, true, false);
-                        _onRenderJournalDoubleClick(sheet, journalSheet, {});
-                    }, 200);
-                }
-            }
-        }
-    }, true); // Use capture phase to catch early
+    // No extra page-nav click listener here: observer + hooks above already handle page changes.
 });
 
 // ***************************************************

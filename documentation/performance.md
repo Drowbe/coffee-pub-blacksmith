@@ -46,8 +46,9 @@ Current performance baseline and action plan after recent subsystem removals (Op
 
 3. **Duplicate journal instrumentation stacks**
    - **Files**: `scripts/journal-page-pins.js`, `scripts/blacksmith.js`
-   - **Evidence**: Both register broad journal render/application monitoring; overlapping observers/hooks appear to do similar work.
-   - **Risk**: Duplicate processing, extra DOM scans, harder debugging when UI hooks fire multiple times.
+   - **Evidence**: Both still register broad journal monitoring; overlap remains.
+   - **Mitigation (pass B, done)**: Removed direct fallback `Hooks.on('renderJournalSheet')` + `Hooks.on('renderJournalPageSheet')` and removed extra journal page-nav capture-click listener from `scripts/blacksmith.js` (HookManager + MutationObserver path retained).
+   - **Remaining**: Move to one manager-owned watcher pipeline (single observer/dispatcher) to finish consolidation.
 
 4. **Menubar rerender path is still broad**
    - **Files**: `scripts/api-menubar.js`

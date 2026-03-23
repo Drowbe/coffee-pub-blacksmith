@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HookManager**: Removed no-op `renderApplication` and `closeApplication` registrations (empty callbacks left after window-registry work); reduces redundant hook dispatch noise.
 - **BlacksmithWindowBaseV2**: Dropped scroll save/restore for unused `.blacksmith-window-template-details-content`; body scroll handling unchanged.
 - **Menubar (right zone)**: Session timer is always the rightmost control; dynamic right-zone tools render before it.
+- **Journal double-click watchers (Phase B)**: In `scripts/blacksmith.js`, removed duplicate direct fallback hooks (`renderJournalSheet` / `renderJournalPageSheet`) and removed the extra capture-phase page-navigation click listener. HookManager + MutationObserver path remains; this trims duplicate callback pressure while keeping behavior.
 
 ### Removed
 
