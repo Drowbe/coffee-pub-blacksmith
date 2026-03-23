@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Targeted token rings**: New world setting **Use Player Color for Target Rings** (`targetedIndicatorUsePlayerColor`). When enabled, each user’s ring uses their **Player Color** from Foundry User Configuration; multiple users targeting the same token get **concentric** rings. Style/animation settings still apply; border/background color settings apply when the option is off. **Fix:** Player colors were incorrectly showing module border/background colors because Foundry v13 exposes `User#color` as `foundry.utils.Color` / numeric, not a hex string — resolved via `Color.from()` + numeric coercion.
+
 - **Votes**: Eligible voters are **logged-in non-GM users with OWNER on at least one token in the current scene**; quorum/progress/`castVote` use a per-vote `eligibleUserIds` snapshot. Starting a vote with nobody eligible shows a clear warning. Character-vote “players” source uses the same rule.
 - **Party leader menu**: Labels show **player names only** in parentheses (active player owner preferred, never the GM display name); character-only label when only the GM has owner access. Dialog select matches the same labels.
 - **SocketManager (native fallback)**: Before registering the inbound `game.socket` listener, tear down any existing listeners on the module channel via `game.socket.off(...)` and reset the native handler map so re-init / hot reload does not stack duplicate handlers.

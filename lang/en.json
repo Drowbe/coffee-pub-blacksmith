@@ -386,6 +386,9 @@
 				"targetedIndicatorEnabled-Label": "Enable Targeted Indicator",
 				"targetedIndicatorEnabled-Hint": "",
 
+				"targetedIndicatorUsePlayerColor-Label": "Use Player Color for Target Rings",
+				"targetedIndicatorUsePlayerColor-Hint": "When enabled, each user's target ring uses their Player Color from User Configuration (cursors, templates, etc.). Multiple users targeting the same token show concentric rings. When disabled, Border/Background colors below apply to all target rings.",
+
 				"targetedIndicatorStyle-Label": "Style",
 				"targetedIndicatorStyle-Hint": "",
 

@@ -12,8 +12,10 @@ export class TokenIndicatorManager {
     static _movementTimeout = null;
     static _isMoving = false;
 
+    /** Composite key: `tokenId` (global colors) or `tokenId::userId` (per-player colors). */
     static _targetedIndicators = new Map();
     static _targetedAnimations = new Map();
+    /** Token ids that have at least one targeting user (for movement / visibility updates). */
     static _targetedTokens = new Set();
     /** @type {Map<string, Set<string>>} userId -> set of targeted token document ids (all clients, not just game.user) */
     static _targetsByUser = new Map();
@@ -132,7 +134,8 @@ export class TokenIndicatorManager {
                     'targetedIndicatorAnimationSpeed',
                     'targetedIndicatorBorderColor',
                     'targetedIndicatorBackgroundColor',
-                    'hideDefaultTargetIndicators'
+                    'hideDefaultTargetIndicators',
+                    'targetedIndicatorUsePlayerColor'
                 ]);
                 if (!watchedKeys.has(key)) return;
                 this.refreshAll();
@@ -205,6 +208,76 @@ export class TokenIndicatorManager {
             pulseMax: getSettingSafely(MODULE.ID, 'generalIndicatorsOpacityMax', 0.8),
             innerOpacity: getSettingSafely(MODULE.ID, 'generalIndicatorsOpacityInner', 0.3),
             pulseSpeed: this._mapSpeedToAnimationSpeed(getSettingSafely(MODULE.ID, 'targetedIndicatorAnimationSpeed', 5), animation)
+        };
+    }
+
+    /**
+     * Parse a hex string to PIXI-compatible 0xRRGGBB.
+     * @param {string} hex
+     * @returns {number|null}
+     */
+    static _hexStringToPixiColor(hex) {
+        if (typeof hex !== 'string' || !hex.trim()) return null;
+        const m = hex.trim().match(/^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/);
+        if (!m) return null;
+        let h = m[1];
+        if (h.length === 3) {
+            h = h.split('').map((c) => c + c).join('');
+        }
+        const n = Number.parseInt(h, 16);
+        return Number.isFinite(n) ? n : null;
+    }
+
+    /**
+     * Resolve Foundry `User#color` (ColorField: {@link foundry.utils.Color}, number, or CSS string) to PIXI 0xRRGGBB.
+     * v13 does not expose player color as a plain string on `user.color` in all cases — string-only parsing missed it.
+     * @param {User} user
+     * @returns {number|null}
+     */
+    static _userPlayerColorToPixi(user) {
+        if (!user) return null;
+        const raw = user.color;
+        if (raw == null || raw === '') return null;
+
+        try {
+            const Color = globalThis.foundry?.utils?.Color;
+            if (Color?.from) {
+                const c = Color.from(raw);
+                if (c != null) {
+                    const n = Number(c);
+                    if (Number.isFinite(n)) return n >>> 0;
+                }
+            }
+        } catch (_e) {
+            /* fall through */
+        }
+
+        if (typeof raw === 'number' && Number.isFinite(raw)) {
+            return raw >>> 0;
+        }
+        if (typeof raw === 'string') {
+            return this._hexStringToPixiColor(raw);
+        }
+        const n = Number(raw);
+        if (Number.isFinite(n)) {
+            return n >>> 0;
+        }
+        return null;
+    }
+
+    /**
+     * Target ring settings using a Foundry user's player color (border + inner fill).
+     * @param {User} user
+     * @returns {object} Same shape as _getTargetedSettings()
+     */
+    static _getTargetedSettingsForUserColor(user) {
+        const base = this._getTargetedSettings();
+        const pixi = this._userPlayerColorToPixi(user);
+        if (pixi == null) return base;
+        return {
+            ...base,
+            color: pixi,
+            innerColor: pixi
         };
     }
 
@@ -433,7 +506,19 @@ export class TokenIndicatorManager {
     }
 
     /**
-     * Union of all users' targets → custom ring graphics (visible to everyone who can see the token).
+     * Ring radius for targeted tokens; optional layer for concentric rings when multiple users target one token.
+     */
+    static _getRingRadiusForTargeted(token, settings, layerIndex = 0) {
+        const tokenWidth = token.document.width * canvas.grid.size;
+        const tokenHeight = token.document.height * canvas.grid.size;
+        const base = (Math.max(tokenWidth, tokenHeight) / 2) + settings.offset;
+        const step = Math.max(4, Math.floor(settings.thickness * 0.65)) + 2;
+        return base + layerIndex * step;
+    }
+
+    /**
+     * Union of Foundry targets → custom ring graphics (visible to everyone who can see the token).
+     * With `targetedIndicatorUsePlayerColor`, each targeting user gets a ring in their User Configuration color (concentric if needed).
      */
     static _syncTargetedIndicators() {
         if (!getSettingSafely(MODULE.ID, 'generalIndicatorsEnabled', true)) {
@@ -441,17 +526,47 @@ export class TokenIndicatorManager {
             return;
         }
 
-        const union = new Set();
-        for (const s of this._targetsByUser.values()) {
-            for (const id of s) {
-                union.add(id);
+        const usePlayerColor = getSettingSafely(MODULE.ID, 'targetedIndicatorUsePlayerColor', false);
+
+        /** @type {Set<string>} */
+        const desiredKeys = new Set();
+
+        if (usePlayerColor) {
+            const byToken = new Map();
+            for (const [userId, set] of this._targetsByUser.entries()) {
+                const u = game.users.get(userId);
+                if (!u?.active) continue;
+                for (const tokenId of set) {
+                    if (!byToken.has(tokenId)) byToken.set(tokenId, []);
+                    byToken.get(tokenId).push(userId);
+                }
+            }
+            for (const [, userIds] of byToken) {
+                userIds.sort();
+            }
+            for (const [tokenId, userIds] of byToken) {
+                for (const uid of userIds) {
+                    desiredKeys.add(`${tokenId}::${uid}`);
+                }
+            }
+        } else {
+            for (const s of this._targetsByUser.values()) {
+                for (const id of s) {
+                    desiredKeys.add(id);
+                }
             }
         }
 
-        for (const tokenId of Array.from(this._targetedTokens)) {
-            if (!union.has(tokenId)) {
-                this._targetedTokens.delete(tokenId);
-                this._removeTargetedIndicator(tokenId);
+        this._targetedTokens.clear();
+        for (const s of this._targetsByUser.values()) {
+            for (const id of s) {
+                this._targetedTokens.add(id);
+            }
+        }
+
+        for (const key of Array.from(this._targetedIndicators.keys())) {
+            if (!desiredKeys.has(key)) {
+                this._removeTargetedIndicatorByKey(key);
             }
         }
 
@@ -460,27 +575,64 @@ export class TokenIndicatorManager {
             return;
         }
 
-        for (const tokenId of union) {
-            this._targetedTokens.add(tokenId);
-            const token = canvas.tokens?.get(tokenId);
-            if (token) {
-                this._addTargetedIndicator(token);
+        if (usePlayerColor) {
+            const byToken = new Map();
+            for (const [userId, set] of this._targetsByUser.entries()) {
+                const u = game.users.get(userId);
+                if (!u?.active) continue;
+                for (const tokenId of set) {
+                    if (!byToken.has(tokenId)) byToken.set(tokenId, []);
+                    byToken.get(tokenId).push(userId);
+                }
+            }
+            for (const [, userIds] of byToken) {
+                userIds.sort();
+            }
+            for (const [tokenId, userIds] of byToken) {
+                for (let layer = 0; layer < userIds.length; layer++) {
+                    const userId = userIds[layer];
+                    const key = `${tokenId}::${userId}`;
+                    if (this._targetedIndicators.has(key)) continue;
+                    const token = canvas.tokens?.get(tokenId);
+                    const user = game.users.get(userId);
+                    if (!token || !user) continue;
+                    if (!this._canUserSeeToken(token)) continue;
+                    this._addTargetedIndicatorRing(token, user, layer, true);
+                }
+            }
+        } else {
+            for (const tokenId of desiredKeys) {
+                if (this._targetedIndicators.has(tokenId)) continue;
+                const token = canvas.tokens?.get(tokenId);
+                if (!token) continue;
+                if (!this._canUserSeeToken(token)) continue;
+                this._addTargetedIndicatorRing(token, null, 0, false);
             }
         }
     }
 
-    static _addTargetedIndicator(tokenLike) {
-        const tokenId = tokenLike?.id;
-        const token = tokenId ? canvas.tokens?.get(tokenId) : null;
+    /**
+     * @param {Token} token
+     * @param {User|null} user — required when `usePlayerColor` is true (colors from `user.color`)
+     * @param {number} layerIndex — concentric offset when multiple users target the same token
+     * @param {boolean} usePlayerColor
+     */
+    static _addTargetedIndicatorRing(token, user, layerIndex, usePlayerColor) {
+        const tokenId = token.id;
+        const key = usePlayerColor && user ? `${tokenId}::${user.id}` : tokenId;
+
         if (!this._canUserSeeToken(token)) {
-            if (tokenId) this._removeTargetedIndicator(tokenId);
+            this._removeTargetedIndicatorByKey(key);
             return;
         }
-        if (this._targetedIndicators.has(token.id)) return;
+        if (this._targetedIndicators.has(key)) return;
 
-        const settings = this._getTargetedSettings();
+        const settings = usePlayerColor && user
+            ? this._getTargetedSettingsForUserColor(user)
+            : this._getTargetedSettings();
+        const ringRadius = this._getRingRadiusForTargeted(token, settings, layerIndex);
+
         const graphics = new PIXI.Graphics();
-        const ringRadius = this._getRingRadius(token, settings);
         this._drawIndicator(graphics, settings, ringRadius);
 
         const center = this._calculateTokenCenter(token);
@@ -488,12 +640,12 @@ export class TokenIndicatorManager {
         graphics.zIndex = 9;
 
         canvas.interface?.addChild(graphics);
-        this._targetedIndicators.set(token.id, graphics);
-        this._createTargetedAnimation(token.id, graphics, settings);
+        this._targetedIndicators.set(key, graphics);
+        this._createTargetedAnimation(key, graphics, settings);
     }
 
-    static _removeTargetedIndicator(tokenId) {
-        const graphics = this._targetedIndicators.get(tokenId);
+    static _removeTargetedIndicatorByKey(key) {
+        const graphics = this._targetedIndicators.get(key);
         if (graphics) {
             if (canvas.interface && graphics.parent) {
                 canvas.interface.removeChild(graphics);
@@ -501,25 +653,34 @@ export class TokenIndicatorManager {
             if (!graphics.destroyed) {
                 graphics.destroy();
             }
-            this._targetedIndicators.delete(tokenId);
+            this._targetedIndicators.delete(key);
         }
 
-        const animation = this._targetedAnimations.get(tokenId);
+        const animation = this._targetedAnimations.get(key);
         if (animation) {
             canvas.app?.ticker?.remove(animation);
-            this._targetedAnimations.delete(tokenId);
+            this._targetedAnimations.delete(key);
+        }
+    }
+
+    /** Remove every targeted ring associated with a token id (both global and per-user keys). */
+    static _removeTargetedRingsForToken(tokenId) {
+        for (const key of Array.from(this._targetedIndicators.keys())) {
+            if (key === tokenId || key.startsWith(`${tokenId}::`)) {
+                this._removeTargetedIndicatorByKey(key);
+            }
         }
     }
 
     static _removeAllTargetedIndicators() {
-        for (const tokenId of Array.from(this._targetedIndicators.keys())) {
-            this._removeTargetedIndicator(tokenId);
+        for (const key of Array.from(this._targetedIndicators.keys())) {
+            this._removeTargetedIndicatorByKey(key);
         }
         this._targetedTokens.clear();
-        this._targetsByUser.clear();
+        // Keep _targetsByUser as the mirror of Foundry User#targets; refreshAll re-seeds if needed.
     }
 
-    static _createTargetedAnimation(tokenId, graphics, settings) {
+    static _createTargetedAnimation(compositeKey, graphics, settings) {
         let time = 0;
         if (settings.animation === 'fixed') return;
 
@@ -537,18 +698,23 @@ export class TokenIndicatorManager {
             }
         };
 
-        this._targetedAnimations.set(tokenId, update);
+        this._targetedAnimations.set(compositeKey, update);
         canvas.app?.ticker?.add(update);
     }
 
     static _updateTargetedIndicatorPosition(tokenId, changes = null) {
-        const graphics = this._targetedIndicators.get(tokenId);
         const token = canvas.tokens?.get(tokenId);
-        if (!graphics || !token) return;
-
+        if (!token) return;
         const center = this._calculateTokenCenter(token, changes);
-        graphics.x = center.x;
-        graphics.y = center.y;
+
+        for (const key of this._targetedIndicators.keys()) {
+            if (key !== tokenId && !key.startsWith(`${tokenId}::`)) continue;
+            const graphics = this._targetedIndicators.get(key);
+            if (graphics) {
+                graphics.x = center.x;
+                graphics.y = center.y;
+            }
+        }
     }
 
     static _refreshDefaultTargetIndicatorHiding() {
@@ -603,7 +769,7 @@ export class TokenIndicatorManager {
 
         if (!canSee) {
             if (tokenDocument.id === this._currentTurnTokenId) this._removeTurnIndicator();
-            if (this._targetedIndicators.has(tokenDocument.id)) this._removeTargetedIndicator(tokenDocument.id);
+            this._removeTargetedRingsForToken(tokenDocument.id);
             return;
         }
 
@@ -611,9 +777,19 @@ export class TokenIndicatorManager {
             this._createTurnIndicator(token);
         }
 
-        if (this._targetedTokens.has(tokenDocument.id) && !this._targetedIndicators.has(tokenDocument.id)) {
-            this._addTargetedIndicator(token);
+        if (this._targetedTokens.has(tokenDocument.id) && !this._tokenHasAnyTargetedRing(tokenDocument.id)) {
+            this._syncTargetedIndicators();
         }
+    }
+
+    /** Whether any composite key exists for this token (global or `tokenId::userId`). */
+    static _tokenHasAnyTargetedRing(tokenId) {
+        if (this._targetedIndicators.has(tokenId)) return true;
+        const prefix = `${tokenId}::`;
+        for (const k of this._targetedIndicators.keys()) {
+            if (k.startsWith(prefix)) return true;
+        }
+        return false;
     }
 
     static _canUserSeeToken(token) {

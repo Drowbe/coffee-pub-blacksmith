@@ -2509,6 +2509,18 @@ export const registerSettings = () => {
 		requiresReload: false
 	});
 
+	// Use each player's User Configuration color for their target rings (Foundry synced targets)
+	game.settings.register(MODULE.ID, 'targetedIndicatorUsePlayerColor', {
+		name: MODULE.ID + '.targetedIndicatorUsePlayerColor-Label',
+		hint: MODULE.ID + '.targetedIndicatorUsePlayerColor-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- Targeted Indicator Style --
 	game.settings.register(MODULE.ID, 'targetedIndicatorStyle', {
 		name: MODULE.ID + '.targetedIndicatorStyle-Label',
