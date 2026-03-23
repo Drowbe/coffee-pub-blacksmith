@@ -387,7 +387,7 @@
 				"targetedIndicatorEnabled-Hint": "",
 
 				"targetedIndicatorUsePlayerColor-Label": "Use Player Color for Target Rings",
-				"targetedIndicatorUsePlayerColor-Hint": "When enabled, each user's target ring uses their Player Color from User Configuration (cursors, templates, etc.). Multiple users targeting the same token show concentric rings. When disabled, Border/Background colors below apply to all target rings.",
+				"targetedIndicatorUsePlayerColor-Hint": "When enabled, each user's target ring border uses their Player Color from User Configuration. Multiple users targeting the same token show concentric rings. Only users who own the active combatant's turn see a filled background on their rings; everyone else gets border-only rings. When disabled, Default Border / Default Background colors apply to the single ring style.",
 
 				"targetedIndicatorStyle-Label": "Style",
 				"targetedIndicatorStyle-Hint": "",
@@ -398,11 +398,14 @@
 				"targetedIndicatorAnimationSpeed-Label": "Animation Speed",
 				"targetedIndicatorAnimationSpeed-Hint": "",
 
-				"targetedIndicatorBorderColor-Label": "Border Color",
-				"targetedIndicatorBorderColor-Hint": "",
+				"targetedIndicatorBorderThickness-Label": "Border Thickness",
+				"targetedIndicatorBorderThickness-Hint": "Line width for targeted token rings (1–10).",
 
-				"targetedIndicatorBackgroundColor-Label": "Background Color",
-				"targetedIndicatorBackgroundColor-Hint": "",
+				"targetedIndicatorBorderColor-Label": "Default Border Color",
+				"targetedIndicatorBorderColor-Hint": "Hex (e.g. #a51214). Used when Player Color is off and for fallbacks.",
+
+				"targetedIndicatorBackgroundColor-Label": "Default Background Color",
+				"targetedIndicatorBackgroundColor-Hint": "Hex. Inner fill when Player Color is off. With Player Color on, fill uses the active turn owner's player color only.",
 
 
 	"headingH2Timers-Label": "Timers",

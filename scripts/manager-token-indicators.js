@@ -39,9 +39,15 @@ export class TokenIndicatorManager {
             context: 'token-indicators',
             priority: 3,
             callback: (_combat, changes) => {
-                if (changes.turn !== undefined || changes.round !== undefined || changes.combatantId !== undefined) {
-                    this._updateTurnIndicator();
-                    this._clearTargetsForUsersWithSetting();
+                const combatTurnish = changes.turn !== undefined || changes.round !== undefined
+                    || changes.combatantId !== undefined || changes.started !== undefined;
+                if (!combatTurnish) return;
+                this._updateTurnIndicator();
+                this._clearTargetsForUsersWithSetting();
+                if (getSettingSafely(MODULE.ID, 'targetedIndicatorUsePlayerColor', false)
+                    && getSettingSafely(MODULE.ID, 'targetedIndicatorEnabled', true)
+                    && getSettingSafely(MODULE.ID, 'generalIndicatorsEnabled', true)) {
+                    this._rebuildTargetedIndicatorGraphics();
                 }
             }
         });
@@ -53,6 +59,7 @@ export class TokenIndicatorManager {
             priority: 3,
             callback: () => {
                 this._removeTurnIndicator();
+                this._rebuildTargetedIndicatorGraphics();
             }
         });
 
@@ -135,7 +142,8 @@ export class TokenIndicatorManager {
                     'targetedIndicatorBorderColor',
                     'targetedIndicatorBackgroundColor',
                     'hideDefaultTargetIndicators',
-                    'targetedIndicatorUsePlayerColor'
+                    'targetedIndicatorUsePlayerColor',
+                    'targetedIndicatorBorderThickness'
                 ]);
                 if (!watchedKeys.has(key)) return;
                 this.refreshAll();
@@ -165,7 +173,7 @@ export class TokenIndicatorManager {
         this._refreshDefaultTargetIndicatorHiding();
         this._updateTurnIndicator();
         this._seedTargetsFromUserTargets();
-        this._syncTargetedIndicators();
+        this._rebuildTargetedIndicatorGraphics();
     }
 
     static cleanup() {
@@ -193,22 +201,103 @@ export class TokenIndicatorManager {
         };
     }
 
-    static _getTargetedSettings() {
-        const borderHex = getSettingSafely(MODULE.ID, 'targetedIndicatorBorderColor', '#a51214');
-        const backgroundHex = getSettingSafely(MODULE.ID, 'targetedIndicatorBackgroundColor', '#a51214');
+    static _getTargetedSettings(overrides = {}) {
+        const borderRaw = getSettingSafely(MODULE.ID, 'targetedIndicatorBorderColor', '#a51214');
+        const backgroundRaw = getSettingSafely(MODULE.ID, 'targetedIndicatorBackgroundColor', '#a51214');
+        const borderHex = this._coerceColorSettingToHex(borderRaw, '#a51214');
+        const backgroundHex = this._coerceColorSettingToHex(backgroundRaw, '#a51214');
         const animation = getSettingSafely(MODULE.ID, 'targetedIndicatorAnimation', 'pulse');
-        return {
+        const thickRaw = Number(getSettingSafely(MODULE.ID, 'targetedIndicatorBorderThickness', 3));
+        const thickness = Math.min(10, Math.max(1, Number.isFinite(thickRaw) ? thickRaw : 3));
+        const borderNum = Number.parseInt(borderHex.replace('#', '0x'), 16);
+        const innerNum = Number.parseInt(backgroundHex.replace('#', '0x'), 16);
+        const base = {
             style: getSettingSafely(MODULE.ID, 'targetedIndicatorStyle', 'solid'),
             animation,
-            color: Number.parseInt(borderHex.replace('#', '0x')),
-            innerColor: Number.parseInt(backgroundHex.replace('#', '0x')),
-            thickness: getSettingSafely(MODULE.ID, 'generalIndicatorsThickness', 10),
+            color: Number.isFinite(borderNum) ? borderNum : 0xa51214,
+            innerColor: Number.isFinite(innerNum) ? innerNum : 0xa51214,
+            thickness,
             offset: getSettingSafely(MODULE.ID, 'generalIndicatorsOffset', 8),
             pulseMin: getSettingSafely(MODULE.ID, 'generalIndicatorsOpacityMin', 0.3),
             pulseMax: getSettingSafely(MODULE.ID, 'generalIndicatorsOpacityMax', 0.8),
             innerOpacity: getSettingSafely(MODULE.ID, 'generalIndicatorsOpacityInner', 0.3),
             pulseSpeed: this._mapSpeedToAnimationSpeed(getSettingSafely(MODULE.ID, 'targetedIndicatorAnimationSpeed', 5), animation)
         };
+        return { ...base, ...overrides };
+    }
+
+    /**
+     * Normalize a setting value (string hex, {@link foundry.utils.Color}, number) to #RRGGBB for PIXI parsing.
+     */
+    static _coerceColorSettingToHex(raw, fallbackHex) {
+        if (raw == null || raw === '') return fallbackHex;
+        if (typeof raw === 'string') {
+            const t = raw.trim();
+            if (/^#[0-9a-fA-F]{3}$/.test(t) || /^#[0-9a-fA-F]{6}$/.test(t) || /^#[0-9a-fA-F]{8}$/.test(t)) {
+                return t.length === 4 ? `#${t[1]}${t[1]}${t[2]}${t[2]}${t[3]}${t[3]}` : t.slice(0, 7);
+            }
+            if (/^[0-9a-fA-F]{6}$/.test(t)) return `#${t}`;
+            return fallbackHex;
+        }
+        try {
+            const Color = globalThis.foundry?.utils?.Color;
+            if (Color?.from) {
+                const c = Color.from(raw);
+                if (c != null) {
+                    const n = Number(c);
+                    if (Number.isFinite(n)) {
+                        return `#${(n >>> 0).toString(16).padStart(6, '0')}`;
+                    }
+                }
+            }
+        } catch (_e) {
+            /* use fallback */
+        }
+        return fallbackHex;
+    }
+
+    /**
+     * Users with OWNER on the active combatant's actor (whose "turn" it is for targeted fill).
+     * @returns {Set<string>} user ids
+     */
+    static _getActiveCombatTurnOwnerUserIds() {
+        const set = new Set();
+        const combat = game.combats?.active;
+        if (!combat?.started) return set;
+        const combatant = combat.combatant;
+        if (!combatant) return set;
+        const OWN = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
+            ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+            : 3;
+        const actor = combatant.actor;
+        if (actor) {
+            for (const u of game.users) {
+                if (!u.active) continue;
+                try {
+                    if (actor.testUserPermission(u, OWN)) set.add(u.id);
+                } catch (_e) { /* */ }
+            }
+            return set;
+        }
+        const tokenDoc = combatant.token;
+        if (tokenDoc?.actor) {
+            const a = tokenDoc.actor;
+            for (const u of game.users) {
+                if (!u.active) continue;
+                try {
+                    if (a.testUserPermission(u, OWN)) set.add(u.id);
+                } catch (_e) { /* */ }
+            }
+        }
+        return set;
+    }
+
+    /** Remove all targeted ring graphics and redraw from `_targetsByUser` (e.g. turn changed, settings). */
+    static _rebuildTargetedIndicatorGraphics() {
+        for (const key of Array.from(this._targetedIndicators.keys())) {
+            this._removeTargetedIndicatorByKey(key);
+        }
+        this._syncTargetedIndicators();
     }
 
     /**
@@ -627,9 +716,17 @@ export class TokenIndicatorManager {
         }
         if (this._targetedIndicators.has(key)) return;
 
-        const settings = usePlayerColor && user
+        let settings = usePlayerColor && user
             ? this._getTargetedSettingsForUserColor(user)
             : this._getTargetedSettings();
+
+        if (usePlayerColor && user) {
+            const activeTurnOwners = this._getActiveCombatTurnOwnerUserIds();
+            if (!activeTurnOwners.has(user.id)) {
+                settings = { ...settings, innerOpacity: 0 };
+            }
+        }
+
         const ringRadius = this._getRingRadiusForTargeted(token, settings, layerIndex);
 
         const graphics = new PIXI.Graphics();

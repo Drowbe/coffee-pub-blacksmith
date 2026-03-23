@@ -345,8 +345,15 @@ Hooks.once('ready', async () => {
         });
     }
 
-    // Register settings before first await so other ready callbacks (e.g. utility-core) can read them
-    registerSettings();
+    // Register settings before first await so other ready callbacks (e.g. utility-core) can read them.
+    // Must not throw: this runs before the main init try/catch, so a throw would stall loading at "Finalizing...".
+    try {
+        registerSettings();
+    } catch (e) {
+        console.error(`${MODULE.ID}: registerSettings failed (early ready)`, e);
+        LoadingProgressManager.forceHide();
+        return;
+    }
 
     // Register MenuBar's ready callback and templates before first await so it runs in same ready cycle
     MenuBar.initialize();

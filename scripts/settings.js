@@ -2509,18 +2509,6 @@ export const registerSettings = () => {
 		requiresReload: false
 	});
 
-	// Use each player's User Configuration color for their target rings (Foundry synced targets)
-	game.settings.register(MODULE.ID, 'targetedIndicatorUsePlayerColor', {
-		name: MODULE.ID + '.targetedIndicatorUsePlayerColor-Label',
-		hint: MODULE.ID + '.targetedIndicatorUsePlayerColor-Hint',
-		scope: 'world',
-		config: true,
-		type: Boolean,
-		default: false,
-		requiresReload: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
 	// -- Targeted Indicator Style --
 	game.settings.register(MODULE.ID, 'targetedIndicatorStyle', {
 		name: MODULE.ID + '.targetedIndicatorStyle-Label',
@@ -2575,7 +2563,40 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	// -- Targeted Indicator Border Color --
+	// Targeted ring border width (does not use General Indicators thickness)
+	game.settings.register(MODULE.ID, 'targetedIndicatorBorderThickness', {
+		name: MODULE.ID + '.targetedIndicatorBorderThickness-Label',
+		hint: MODULE.ID + '.targetedIndicatorBorderThickness-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 3,
+		range: {
+			min: 1,
+			max: 10,
+			step: 1
+		},
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// Use each player's User Configuration color for target ring borders (Foundry synced targets)
+	game.settings.register(MODULE.ID, 'targetedIndicatorUsePlayerColor', {
+		name: MODULE.ID + '.targetedIndicatorUsePlayerColor-Label',
+		hint: MODULE.ID + '.targetedIndicatorUsePlayerColor-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// Use String for color keys — do not use ColorField as `game.settings.register` `type` here:
+	// it can stall or error during world load (registerSettings runs early in `ready`, outside try/catch).
+	// Hex values still work; `_coerceColorSettingToHex` in manager-token-indicators handles reads.
+
+	// -- Default targeted colors (hex string; Foundry may still render a color control in module settings UI) --
 	game.settings.register(MODULE.ID, 'targetedIndicatorBorderColor', {
 		name: MODULE.ID + '.targetedIndicatorBorderColor-Label',
 		hint: MODULE.ID + '.targetedIndicatorBorderColor-Hint',
@@ -2587,7 +2608,6 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	// -- Targeted Indicator Background Color --
 	game.settings.register(MODULE.ID, 'targetedIndicatorBackgroundColor', {
 		name: MODULE.ID + '.targetedIndicatorBackgroundColor-Label',
 		hint: MODULE.ID + '.targetedIndicatorBackgroundColor-Hint',
