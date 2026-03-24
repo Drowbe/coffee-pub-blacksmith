@@ -2,7 +2,8 @@
 
 Purpose: propose a consistent, low-risk file naming direction before broad refactors.
 
-Status: **in progress**.
+Status: **Nearly complete** — one optional rename left: `window-base-v2.js` → `window-base.js` (see **Remaining** below). Everything else on this plan is done and verified in-tree.
+
 Completed:
 - Batch 1 `journal-dom-watchdog` -> `manager-journal-dom` canonicalized, imports switched, old filename removed.
 - Batch 1 `vote-manager` -> `manager-vote` canonicalized, imports switched, old filename removed.
@@ -31,11 +32,11 @@ Completed:
 
 **Remaining** (not yet done) are listed first. **Done** rows are struck through; canonical filenames match the “Potential Rename” column (see **Completed** above for batch context).
 
-### Remaining (Batch 4)
+### Remaining (Batch 4 — last item)
 
 | Current File | Potential Rename | Why | Risk | Notes |
 | --- | --- | --- | --- | --- |
-| `scripts/window-base-v2.js` | `scripts/window-base.js` | If v2 is baseline project-wide, suffix can be removed. | Medium | Only after confirming no legacy base remains/returns. Public API can stay `BlacksmithWindowBaseV2` unless you rename the class separately. |
+| `scripts/window-base-v2.js` | `scripts/window-base.js` | v2 is the only base; filename suffix is redundant once you accept the churn. | Medium | Global `rg`/`grep` for `window-base-v2`; update `blacksmith.js`, every window subclass, docs, examples. **Public API:** keep `api.BlacksmithWindowBaseV2` / `getWindowBaseV2()` and class name `BlacksmithWindowBaseV2` unless you deliberately rename the class (would affect Regent and docs). Optional one-release shim: `window-base-v2.js` re-exporting `window-base.js` for stale deep links. **Verify:** world load; at least one Application V2 window using the base; Regent’s query window (if installed). |
 
 ### Done (archive)
 
@@ -80,7 +81,7 @@ These already fit the conventions well and likely do not need rename churn:
 
 1. ~~**Low-risk cosmetics**~~ — Done (Batches 1–2, pre–Batch 4).
 2. ~~**UI role clarifications**~~ — Done (Batch 3).
-3. **Semantic/contract-sensitive** (next): ~~`data-collection-processor`~~ **done**; `window-base-v2` remains.
+3. **Semantic/contract-sensitive**: ~~`data-collection-processor` → `manager-data-collection`~~ **done**. **Next:** `window-base-v2` → `window-base` only when you want that import/doc sweep.
 
 ## How To Tackle This (execution plan)
 
@@ -105,9 +106,8 @@ These already fit the conventions well and likely do not need rename churn:
    - Verify: encounter bar, combat tools/tracker, journal pins/tools, vote flows.
 
 4. **Batch 4 (semantic-sensitive) — in progress**
-   - ~~`data-collection-processor` -> `manager-data-collection`~~ — Done (filename only; static `DataCollectionProcessor`).
-   - `window-base-v2` -> `window-base` (only after confirming no v1/v2 split needs preserving)
-   - Verify: all window classes and inheritance paths.
+   - ~~`data-collection-processor` → `manager-data-collection`~~ — **Done** (filename only; static `DataCollectionProcessor`).
+   - `window-base-v2` → `window-base` — **Remaining** (see table above for scope, API, shim, verify).
 
 5. **Per-batch guardrails**
    - Keep each batch in one PR/commit.
