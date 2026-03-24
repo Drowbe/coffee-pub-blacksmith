@@ -11,6 +11,7 @@ Completed:
 - Batch 2 `sidebar-style` -> `ui-sidebar-style` canonicalized, imports switched, old filename removed.
 - Batch 3 `encounter-toolbar` -> `ui-journal-encounter`, `combat-tracker` -> `ui-combat-tracker`, `combat-tools` -> `ui-combat-tools`, `journal-tools` -> `manager-journal-tools`, `journal-page-pins` -> `ui-journal-pins`, `vote-config` -> `window-vote-config` — canonicalized, imports + `module.json` updated, old filenames removed.
 - **Pre–Batch 4 (low risk)**: `latency-checker.js` → `manager-latency-checker.js`; `window-pin-config.js` → `window-pin-configuration.js` — imports and docs updated, old filenames removed.
+- **Batch 4 (partial)**: `data-collection-processor.js` → `manager-data-collection.js` — `constants-generator.js` import updated; class name left `DataCollectionProcessor` (static helpers only, no instance lifecycle).
 
 ## Proposed Naming Rules (short form)
 
@@ -34,7 +35,6 @@ Completed:
 
 | Current File | Potential Rename | Why | Risk | Notes |
 | --- | --- | --- | --- | --- |
-| `scripts/data-collection-processor.js` | `scripts/manager-data-collection.js` | If stateful/orchestrated; role-first naming. | Medium | Re-evaluate if actually pure utility before renaming. |
 | `scripts/window-base-v2.js` | `scripts/window-base.js` | If v2 is baseline project-wide, suffix can be removed. | Medium | Only after confirming no legacy base remains/returns. Public API can stay `BlacksmithWindowBaseV2` unless you rename the class separately. |
 
 ### Done (archive)
@@ -80,7 +80,7 @@ These already fit the conventions well and likely do not need rename churn:
 
 1. ~~**Low-risk cosmetics**~~ — Done (Batches 1–2, pre–Batch 4).
 2. ~~**UI role clarifications**~~ — Done (Batch 3).
-3. **Semantic/contract-sensitive** (next): `data-collection-processor`, `window-base-v2`.
+3. **Semantic/contract-sensitive** (next): ~~`data-collection-processor`~~ **done**; `window-base-v2` remains.
 
 ## How To Tackle This (execution plan)
 
@@ -104,8 +104,8 @@ These already fit the conventions well and likely do not need rename churn:
    - `vote-config` -> `window-vote-config`
    - Verify: encounter bar, combat tools/tracker, journal pins/tools, vote flows.
 
-4. **Batch 4 (semantic-sensitive)**
-   - `data-collection-processor` -> `manager-data-collection` (only if confirmed stateful)
+4. **Batch 4 (semantic-sensitive) — in progress**
+   - ~~`data-collection-processor` -> `manager-data-collection`~~ — Done (filename only; static `DataCollectionProcessor`).
    - `window-base-v2` -> `window-base` (only after confirming no v1/v2 split needs preserving)
    - Verify: all window classes and inheritance paths.
 

@@ -1,8 +1,8 @@
 // ================================================================== 
-// ===== DATA COLLECTION PROCESSOR ==================================
+// ===== MANAGER DATA COLLECTION ======================================
 // ================================================================== 
-// Purpose: Centralized processing of data collections for generating UI choices and constants
-// This class replaces the repetitive processing logic in settings.js
+// Centralized processing of data collections for UI choices and constants generation.
+// Used by ConstantsGenerator. Exported class name remains `DataCollectionProcessor` (static helpers).
 
 import { MODULE } from './const.js';
 

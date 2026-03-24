@@ -5,7 +5,7 @@
 // This module will eventually replace the manual COFFEEPUB constants
 
 import { MODULE } from './const.js';
-import { DataCollectionProcessor } from './data-collection-processor.js';
+import { DataCollectionProcessor } from './manager-data-collection.js';
 import { 
     dataTheme, 
     dataBackgroundImages, 
