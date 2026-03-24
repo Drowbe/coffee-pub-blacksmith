@@ -9,7 +9,7 @@ import { PlanningTimer } from './timer-planning.js';
 import { MenuBar } from './api-menubar.js';
 import { VoteManager } from './manager-vote.js';
 import { CSSEditor } from './window-gmtools.js';
-import { LatencyChecker } from './latency-checker.js';
+import { LatencyChecker } from './manager-latency-checker.js';
 
 // ================================================================== 
 // ===== SOCKET MANAGER =============================================
@@ -472,7 +472,7 @@ class SocketManager {
             editor.applyCSS(data.css, data.transition);
         });
 
-        // Latency Checker Handlers (consolidated from latency-checker.js)
+        // Latency Checker Handlers (consolidated from manager-latency-checker.js)
         this.socket.register('ping', (data) => {
             // Handle ping for latency checker
             // SocketLib's executeForOthers may pass payload directly or wrapped

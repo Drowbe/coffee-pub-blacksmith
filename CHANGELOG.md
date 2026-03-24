@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Internal (file naming, pre–Batch 4)**: `latency-checker.js` → `manager-latency-checker.js`; `window-pin-config.js` → `window-pin-configuration.js`. Imports (`blacksmith.js`, `manager-sockets.js`, `api-pins.js`) and architecture docs updated; templates/CSS remain `window-pin-config.*`.
 - **Internal (file naming, Batch 3)**: Renamed scripts to role-first names — `encounter-toolbar.js` → `ui-journal-encounter.js`, `combat-tracker.js` → `ui-combat-tracker.js`, `combat-tools.js` → `ui-combat-tools.js`, `journal-tools.js` → `manager-journal-tools.js`, `journal-page-pins.js` → `ui-journal-pins.js` (also `module.json` esmodules entry), `vote-config.js` → `window-vote-config.js`. Imports updated; behavior unchanged.
 - **Compatibility shims**: Restored tiny `scripts/journal-page-pins.js` and `scripts/common.js` that re-export from `ui-journal-pins.js` / `utility-common.js` so stale manifests, caches, or deep links do not 404.
 

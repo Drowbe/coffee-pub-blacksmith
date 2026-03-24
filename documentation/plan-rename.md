@@ -10,6 +10,7 @@ Completed:
 - Batch 2 `sidebar-pin` -> `ui-sidebar-pin` canonicalized, imports switched, old filename removed.
 - Batch 2 `sidebar-style` -> `ui-sidebar-style` canonicalized, imports switched, old filename removed.
 - Batch 3 `encounter-toolbar` -> `ui-journal-encounter`, `combat-tracker` -> `ui-combat-tracker`, `combat-tools` -> `ui-combat-tools`, `journal-tools` -> `manager-journal-tools`, `journal-page-pins` -> `ui-journal-pins`, `vote-config` -> `window-vote-config` — canonicalized, imports + `module.json` updated, old filenames removed.
+- **Pre–Batch 4 (low risk)**: `latency-checker.js` → `manager-latency-checker.js`; `window-pin-config.js` → `window-pin-configuration.js` — imports and docs updated, old filenames removed.
 
 ## Proposed Naming Rules (short form)
 
@@ -29,13 +30,13 @@ Completed:
 
 | Current File | Potential Rename | Why | Risk | Notes |
 | --- | --- | --- | --- | --- |
-| `scripts/latency-checker.js` | `scripts/manager-latency-checker.js` | Lifecycle polling/monitor semantics are manager-like. | Low | Minimal conceptual change; straightforward import update. |
+| ~~`scripts/latency-checker.js`~~ | ~~`scripts/manager-latency-checker.js`~~ | Done (see Completed). | Low | — |
 | `scripts/common.js` | `scripts/utility-common.js` | Makes helper-only intent explicit. | Low | Consider splitting by domain later. |
 | `scripts/sidebar-pin.js` | `scripts/ui-sidebar-pin.js` | Sidebar behavior is UI-layer logic. | Low | Keep `manager-pins.js` separate for service layer. |
 | `scripts/sidebar-style.js` | `scripts/ui-sidebar-style.js` | Styling/controller logic is UI-focused. | Low | Verify no implied API/service ownership. |
 | `scripts/journal-dom-watchdog.js` | `scripts/manager-journal-dom.js` | Lifecycle/stateful shared watcher; aligns with `manager-*` conventions. | Low | Recommended rename for consistency; update imports in `blacksmith`, `encounter-toolbar`, `journal-page-pins`. |
 | `scripts/vote-manager.js` | `scripts/manager-vote.js` | Role-first manager naming consistency. | Low | Straightforward import churn. |
-| `scripts/window-pin-config.js` | `scripts/window-pin-configuration.js` | Slightly clearer intent/consistency. | Low | Optional; current name already acceptable. |
+| ~~`scripts/window-pin-config.js`~~ | ~~`scripts/window-pin-configuration.js`~~ | Done (see Completed). | Low | — |
 | `scripts/encounter-toolbar.js` | `scripts/ui-journal-encounter.js` | This is journal-toolbar UI logic (not menubar); journal-area naming is clearer. | Medium | Many imports; stage with a one-release re-export shim if needed. |
 | `scripts/combat-tracker.js` | `scripts/ui-combat-tracker.js` | Clarifies UI ownership vs manager-style services. | Medium | Check all direct imports and menu bindings. |
 | `scripts/combat-tools.js` | `scripts/ui-combat-tools.js` | Similar to above; name aligns with UI role. | Medium | Verify hooks/import side effects remain intact. |
@@ -82,7 +83,7 @@ These already fit the conventions well and likely do not need rename churn:
 2. **Batch 2 (low risk, utility/UI cosmetics) — Completed**
    - `common` -> `utility-common`
    - `sidebar-pin` / `sidebar-style` -> `ui-sidebar-*`
-   - optional: `window-pin-config` -> `window-pin-configuration`
+   - `window-pin-config` -> `window-pin-configuration` (done with pre–Batch 4 pass)
    - Verify: sidebar behavior, pin config open, no missing imports.
 
 3. **Batch 3 (medium risk, domain role clarity) — Completed**

@@ -56,7 +56,7 @@ import { UtilsManager } from './manager-utilities.js';
 import { StatsAPI } from './api-stats.js';
 import { CanvasTools } from './manager-canvas.js';
 import { CombatTracker } from './ui-combat-tracker.js';
-import { LatencyChecker } from './latency-checker.js';
+import { LatencyChecker } from './manager-latency-checker.js';
 import { EncounterToolbar } from './ui-journal-encounter.js';
 import { EncounterManager } from './manager-encounter.js';
 import { PartyManager } from './manager-party.js';

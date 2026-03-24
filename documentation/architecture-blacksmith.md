@@ -116,7 +116,7 @@ The **BlacksmithAPI** class in `api/blacksmith-api.js` provides a timing-safe wa
 - **Toolbar** (`manager-toolbar.js`) â€” Encounter toolbar tools; `registerToolbarTool`, etc. See **documentation/architecture-toolbarmanager.md**, **documentation/api-toolbar.md**.
 - **BlacksmithLayer** (`canvas-layer.js`) â€” Custom canvas layer (`blacksmith-utilities-layer`) for pins and other canvas UI.
 - **CanvasTools** (`manager-canvas.js`) â€” Canvas-related helpers. See **documentation/api-canvas.md**.
-- **Pins** â€” **PinManager** (`manager-pins.js`) and **PinRenderer** (`pins-renderer.js`) handle lifecycle and DOM rendering; **pins-schema.js** for validation/defaults; **PinsAPI** (`api-pins.js`) is the public API; **PinConfigWindow** (`window-pin-config.js`) for config UI. See **documentation/architecture-pins.md**, **documentation/api-pins.md**.
+- **Pins** â€” **PinManager** (`manager-pins.js`) and **PinRenderer** (`pins-renderer.js`) handle lifecycle and DOM rendering; **pins-schema.js** for validation/defaults; **PinsAPI** (`api-pins.js`) is the public API; **PinConfigWindow** (`window-pin-configuration.js`) for config UI. See **documentation/architecture-pins.md**, **documentation/api-pins.md**.
 
 ### 4.3 Feature Domains
 
@@ -136,7 +136,7 @@ The **BlacksmithAPI** class in `api/blacksmith-api.js` provides a timing-safe wa
 
 - **WrapperManager** (`manager-libwrapper.js`) â€” libWrapper integration.
 - **NavigationManager** (`manager-navigation.js`) â€” Scene navigation and scene icon updates.
-- **LatencyChecker** (`latency-checker.js`) â€” Latency display.
+- **LatencyChecker** (`manager-latency-checker.js`) — Latency display.
 - **SidebarPin** (`sidebar-pin.js`), **SidebarStyle** (`sidebar-style.js`) â€” Sidebar behavior and styling.
 - **CompendiumManager** (`manager-compendiums.js`) â€” Compendium usage and ordering.
 - **ConstantsGenerator** (`constants-generator.js`), **AssetLookup** (`asset-lookup.js`) â€” Constants and asset taxonomy (sounds, images, etc.).
@@ -149,7 +149,7 @@ The **BlacksmithAPI** class in `api/blacksmith-api.js` provides a timing-safe wa
 
 - **Application V2 window system** â€” Zone contract (title bar, option bar, header, body, action bar), window registry (`registerWindow` / `openWindow`), and optional base class for consistent windows. See **documentation/architecture-window.md** and **documentation/api-window.md**. Implementation guidance and examples: **documentation/applicationv2-window/guidance-applicationv2.md**, **documentation/applicationv2-window/README.md**.
 - **BlacksmithWindowQuery** (`window-query.js`) â€” Generic query/assistant window; partials registered via **window-query-registration.js**. (Lives in **coffee-pub-regent**; Regent owns the window.)
-- **PinConfigWindow** (`window-pin-config.js`) â€” Pin configuration (Application).
+- **PinConfigWindow** (`window-pin-configuration.js`) — Pin configuration (Application).
 - **SkillCheckDialog** (`window-skillcheck.js`) â€” Skill check dialog; uses manager-rolls for orchestration and delivery.
 - **CSSEditor** (`window-gmtools.js`) â€” GM custom CSS.
 - **StatsWindow** (`window-stats-party.js`), **PlayerStatsWindow** (`window-stats-player.js`).
@@ -174,7 +174,7 @@ All new windows should use Application V2 patterns per project rules; existing w
 
 - Shared: common, settings, loading-progress.
 - Overrides: overrides-foundry, overrides-modules.
-- Windows: window-common, window-gmtools, window-query, window-skillcheck, token-movement, window-xp, window-stats, window-roll-*, window-pin-config.
+- Windows: window-common, window-gmtools, window-query, window-skillcheck, token-movement, window-xp, window-stats, window-roll-*, window-pin-configuration.
 - Tabs: tabs-scenes.
 - Toolbars: toolbars, toolbar-zones, toolbar-encounter, journal-tools.
 - Cards: cards-layout-legacy, cards-themes-legacy, cards-layout, cards-themes, cards-xp, cards-stats, cards-skill-check.

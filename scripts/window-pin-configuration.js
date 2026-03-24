@@ -1,5 +1,5 @@
 // ==================================================================
-// ===== WINDOW-PIN-CONFIG – Pin Configuration Window ===============
+// ===== WINDOW-PIN-CONFIGURATION – Pin Configuration Window ========
 // ==================================================================
 // Application V2 window for configuring pin properties.
 // Ported from Squire's NoteIconPicker with Blacksmith integration.

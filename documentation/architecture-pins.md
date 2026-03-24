@@ -74,7 +74,7 @@ Only GMs can write scene flags and the world setting. Non-GM users with edit per
 - **Responsibility**: Public interface for other modules. Thin wrapper over PinManager and PinConfigWindow.
 - **Methods**: create, update, delete, get, list, place, unplace, on, registerContextMenuItem, unregisterContextMenuItem, configure, reload. See `api-pins.md` for contracts.
 
-### Pin configuration window (`scripts/window-pin-config.js`)
+### Pin configuration window (`scripts/window-pin-configuration.js`)
 
 - **Responsibility**: Application V2 window for editing pin properties (size, shape, style, icon, text, etc.).
 - **Entry**: `pinsAPI.configure(pinId, options)` (exposed in `api-pins.js`; loads `PinConfigWindow` and calls `PinConfigWindow.open(pinId, options)`).
@@ -83,7 +83,7 @@ Only GMs can write scene flags and the world setting. Non-GM users with edit per
 - **Save**: On submit, window builds a patch (size, shape, style, dropShadow, image, textLayout, textDisplay, textColor, textSize, textMaxLength, textMaxWidth, textScaleWithPin) and calls `pinsAPI.update(this.pinId, patch, { sceneId: this.sceneId })`.
 - **Context menu**: “Configure Pin” in `pins-renderer.js` is shown only when the user can edit; it calls `pinsAPI.configure(pinId, { sceneId: canvas?.scene?.id })` (or without `sceneId` for unplaced).
 - **Class**: Exported as `PinConfigWindow`; static `open(pinId, options)`; constructor accepts `pinId` and `options` (e.g. `sceneId`, `onSelect`, `useAsDefault`, `moduleId`).
-- **Files**: `scripts/window-pin-config.js`, `templates/window-pin-config.hbs`, `styles/window-pin-config.css`. Application id `blacksmith-pin-config`; root form class `blacksmith-pin-config`. Stable selectors for theming: `#blacksmith-pin-config`, `.blacksmith-pin-config`, `.window-content` (see `api-pins.md` for contracts).
+- **Files**: `scripts/window-pin-configuration.js`, `templates/window-pin-config.hbs`, `styles/window-pin-config.css`. Application id `blacksmith-pin-config`; root form class `blacksmith-pin-config`. Stable selectors for theming: `#blacksmith-pin-config`, `.blacksmith-pin-config`, `.window-content` (see `api-pins.md` for contracts).
 - **Ownership**: Ownership editor is not in the current window; permissions are enforced by the API. Full payload shape, default schema, and config-window contracts are in `api-pins.md`.
 
 **Config window checklist (current state):** Window extends Application V2; exports `PinConfigWindow`; static `open(pinId, options)`; `getData()` uses `PinManager.get()` with optional `sceneId` (omit for unplaced); permission check in `getData()` via `_canEdit()`; form submission calls `pinsAPI.update()`; template covers size, shape, style, icon color, text config; context menu and `pins.configure()` wired. Ownership editor not in window (optional future).
@@ -148,7 +148,7 @@ Image supports Font Awesome class strings and image URLs (no HTML in stored valu
 | CRUD & permissions | PinManager (`manager-pins.js`) |
 | Schema & migration | `pins-schema.js` |
 | Public API         | `api-pins.js` → `game.modules.get('coffee-pub-blacksmith')?.api?.pins` |
-| Config UI          | `window-pin-config.js` (PinConfigWindow); opened via `pinsAPI.configure()`; context menu “Configure Pin” in `pins-renderer.js` |
+| Config UI          | `window-pin-configuration.js` (PinConfigWindow); opened via `pinsAPI.configure()`; context menu “Configure Pin” in `pins-renderer.js` |
 | Hooks              | `blacksmith.js`: canvasReady / updateScene trigger pin load; dropCanvasData for dropping pins onto canvas |
 
 ---
