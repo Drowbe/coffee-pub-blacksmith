@@ -26,25 +26,34 @@ Completed:
 - For UI files, prefer: `ui-<global-area>-<specific-area>.js` when it improves scanning
   - Example: `ui-journal-encounter.js` (journal area, encounter feature)
 
-## Potential Rename Table (sorted by risk: Low -> Medium)
+## Potential Rename Table
+
+**Remaining** (not yet done) are listed first. **Done** rows are struck through; canonical filenames match the “Potential Rename” column (see **Completed** above for batch context).
+
+### Remaining (Batch 4)
 
 | Current File | Potential Rename | Why | Risk | Notes |
 | --- | --- | --- | --- | --- |
-| ~~`scripts/latency-checker.js`~~ | ~~`scripts/manager-latency-checker.js`~~ | Done (see Completed). | Low | — |
-| `scripts/common.js` | `scripts/utility-common.js` | Makes helper-only intent explicit. | Low | Consider splitting by domain later. |
-| `scripts/sidebar-pin.js` | `scripts/ui-sidebar-pin.js` | Sidebar behavior is UI-layer logic. | Low | Keep `manager-pins.js` separate for service layer. |
-| `scripts/sidebar-style.js` | `scripts/ui-sidebar-style.js` | Styling/controller logic is UI-focused. | Low | Verify no implied API/service ownership. |
-| `scripts/journal-dom-watchdog.js` | `scripts/manager-journal-dom.js` | Lifecycle/stateful shared watcher; aligns with `manager-*` conventions. | Low | Recommended rename for consistency; update imports in `blacksmith`, `encounter-toolbar`, `journal-page-pins`. |
-| `scripts/vote-manager.js` | `scripts/manager-vote.js` | Role-first manager naming consistency. | Low | Straightforward import churn. |
-| ~~`scripts/window-pin-config.js`~~ | ~~`scripts/window-pin-configuration.js`~~ | Done (see Completed). | Low | — |
-| `scripts/encounter-toolbar.js` | `scripts/ui-journal-encounter.js` | This is journal-toolbar UI logic (not menubar); journal-area naming is clearer. | Medium | Many imports; stage with a one-release re-export shim if needed. |
-| `scripts/combat-tracker.js` | `scripts/ui-combat-tracker.js` | Clarifies UI ownership vs manager-style services. | Medium | Check all direct imports and menu bindings. |
-| `scripts/combat-tools.js` | `scripts/ui-combat-tools.js` | Similar to above; name aligns with UI role. | Medium | Verify hooks/import side effects remain intact. |
 | `scripts/data-collection-processor.js` | `scripts/manager-data-collection.js` | If stateful/orchestrated; role-first naming. | Medium | Re-evaluate if actually pure utility before renaming. |
-| `scripts/journal-tools.js` | `scripts/manager-journal-tools.js` | Owns hook lifecycle + journal tool orchestration; manager role is clearer than utility. | Medium | Better fit than `utility-journal-*`; if split later, pure helpers can move to `utility-journal-*`. |
-| `scripts/journal-page-pins.js` | `scripts/ui-journal-pins.js` | Journal UI naming with less implementation-detail noise than “page-pins”. | Medium | Many references; coordinate with `manager-pins.js`. |
-| `scripts/vote-config.js` | `scripts/window-vote-config.js` | It is a vote window (`Application`) rather than a manager; window role is clearer. | Medium | If migrated to Application V2, keep same `window-*` name and update internals. |
-| `scripts/window-base-v2.js` | `scripts/window-base.js` | If v2 is baseline project-wide, suffix can be removed. | Medium | Only after confirming no legacy base remains/returns. |
+| `scripts/window-base-v2.js` | `scripts/window-base.js` | If v2 is baseline project-wide, suffix can be removed. | Medium | Only after confirming no legacy base remains/returns. Public API can stay `BlacksmithWindowBaseV2` unless you rename the class separately. |
+
+### Done (archive)
+
+| ~~Current File~~ | ~~Potential Rename~~ | Why | Risk | Notes |
+| --- | --- | --- | --- | --- |
+| ~~`scripts/latency-checker.js`~~ | ~~`scripts/manager-latency-checker.js`~~ | Manager-like lifecycle. | Low | Pre–Batch 4. |
+| ~~`scripts/common.js`~~ | ~~`scripts/utility-common.js`~~ | Helper-only intent explicit. | Low | Shim `scripts/common.js` may still re-export for stale links. |
+| ~~`scripts/sidebar-pin.js`~~ | ~~`scripts/ui-sidebar-pin.js`~~ | UI-layer sidebar behavior. | Low | Batch 2. |
+| ~~`scripts/sidebar-style.js`~~ | ~~`scripts/ui-sidebar-style.js`~~ | UI-focused styling/controller. | Low | Batch 2. |
+| ~~`scripts/journal-dom-watchdog.js`~~ | ~~`scripts/manager-journal-dom.js`~~ | Shared journal DOM watcher; `manager-*`. | Low | Batch 1. |
+| ~~`scripts/vote-manager.js`~~ | ~~`scripts/manager-vote.js`~~ | Role-first manager naming. | Low | Batch 1. |
+| ~~`scripts/window-pin-config.js`~~ | ~~`scripts/window-pin-configuration.js`~~ | Clearer window script name. | Low | Pre–Batch 4; templates/CSS still `window-pin-config.*`. |
+| ~~`scripts/encounter-toolbar.js`~~ | ~~`scripts/ui-journal-encounter.js`~~ | Journal-toolbar UI, not menubar. | Medium | Batch 3. |
+| ~~`scripts/combat-tracker.js`~~ | ~~`scripts/ui-combat-tracker.js`~~ | UI vs service ownership. | Medium | Batch 3. |
+| ~~`scripts/combat-tools.js`~~ | ~~`scripts/ui-combat-tools.js`~~ | UI role. | Medium | Batch 3. |
+| ~~`scripts/journal-tools.js`~~ | ~~`scripts/manager-journal-tools.js`~~ | Hook lifecycle orchestration. | Medium | Batch 3. |
+| ~~`scripts/journal-page-pins.js`~~ | ~~`scripts/ui-journal-pins.js`~~ | Journal UI naming. | Medium | Batch 3; shim `scripts/journal-page-pins.js` may still re-export. |
+| ~~`scripts/vote-config.js`~~ | ~~`scripts/window-vote-config.js`~~ | Application window, not manager. | Medium | Batch 3. |
 
 ## Keep As-Is (Recommended)
 
@@ -69,9 +78,9 @@ These already fit the conventions well and likely do not need rename churn:
 
 ## Suggested Rollout Order
 
-1. **Low-risk cosmetics** (tokenization only): `common`, `journal-dom-watchdog`.
-2. **UI role clarifications**: `encounter-toolbar`, `combat-tracker`, `combat-tools`, `sidebar-*`, `journal-*`.
-3. **Semantic/contract-sensitive**: `data-collection-processor`, `window-base-v2`.
+1. ~~**Low-risk cosmetics**~~ — Done (Batches 1–2, pre–Batch 4).
+2. ~~**UI role clarifications**~~ — Done (Batch 3).
+3. **Semantic/contract-sensitive** (next): `data-collection-processor`, `window-base-v2`.
 
 ## How To Tackle This (execution plan)
 
