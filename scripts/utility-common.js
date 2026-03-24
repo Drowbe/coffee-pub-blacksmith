@@ -38,6 +38,12 @@ import { getCachedTemplate } from './blacksmith.js';
 // ***************************************************
 // ** UTILITY Build ENCOUNTER or NARRATIVE Journal
 // ***************************************************
+/**
+ * Build and create a JournalEntry from structured data (Blacksmith narrative / encounter / location JSON shape).
+ * Exposed on `game.modules.get('coffee-pub-blacksmith').api.createJournalEntry` — do not import this file from other modules.
+ * @param {Object} journalData - Payload; see `documentation/api-create-journal-entry.md`.
+ * @returns {Promise<JournalEntry|void>}
+ */
 export async function createJournalEntry(journalData) {
     var strFolderName = toSentenceCase(journalData.foldername);
     var compiledHtml = "";

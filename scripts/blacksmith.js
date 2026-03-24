@@ -81,8 +81,23 @@ import { ChatCardsAPI } from './api-chat-cards.js';
 import { TokenIndicatorManager } from './manager-token-indicators.js';
 import { CampaignManager } from './manager-campaign.js';
 import { CampaignAPI } from './api-campaign.js';
+import { BlacksmithWindowBaseV2 } from './window-base-v2.js';
 import './sidebar-combat.js';
-import './ui-combat-tools.js'; 
+import './ui-combat-tools.js';
+
+// Expose Application V2 base as soon as this module script runs (before hooks), so dependent modules
+// that resolve a superclass at load time (e.g. Regent window-query.js) see api.BlacksmithWindowBaseV2
+// without waiting for ready. Registry methods (registerWindow / openWindow) still attach in ready.
+try {
+    const _bsMod = typeof game !== 'undefined' && game?.modules?.get?.(MODULE.ID);
+    if (_bsMod) {
+        if (!_bsMod.api) _bsMod.api = {};
+        _bsMod.api.BlacksmithWindowBaseV2 = BlacksmithWindowBaseV2;
+        _bsMod.api.getWindowBaseV2 = () => BlacksmithWindowBaseV2;
+    }
+} catch {
+    /* non-Foundry / test */
+}
 // ================================================================== 
 // ===== SET UP THE MODULE ==========================================
 // ================================================================== 
@@ -1038,6 +1053,9 @@ Hooks.once('init', async function() {
         openWindow: null,
         getRegisteredWindows: null,
         isWindowRegistered: null,
+        /** @see documentation/api-window.md — available from module load; same references re-applied here. */
+        BlacksmithWindowBaseV2,
+        getWindowBaseV2: () => BlacksmithWindowBaseV2,
         // ✅ NEW: Menubar API for external modules
         registerMenubarTool: null,  // Will be set after menubar loads
         unregisterMenubarTool: null,
@@ -1107,6 +1125,9 @@ Hooks.once('init', async function() {
 
         // ✅ Monster deployment API (same as journal encounter toolbar)
         deployMonsters: EncounterToolbar.deployMonsters.bind(EncounterToolbar),
+
+        // ✅ Create narrative / encounter / location journals from JSON (same path as Blacksmith JSON import; public for Regent et al.)
+        createJournalEntry,
 
         // ✅ Request a Roll (Skill Check) dialog – open with optional parameters
         openRequestRollDialog: (options = {}) => {

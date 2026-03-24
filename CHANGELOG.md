@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Public API**: `game.modules.get('coffee-pub-blacksmith').api.createJournalEntry(journalData)` — same behavior as JSON journal import (narrative / encounter / location). **Docs:** `documentation/api-create-journal-entry.md`.
+- **Public API**: `api.BlacksmithWindowBaseV2` and `api.getWindowBaseV2()` — stable access to the Application V2 base class for subclassing (registry `registerWindow` / `openWindow` unchanged). **Docs:** `documentation/api-window.md`. **Timing:** base class is also seeded on `module.api` at **module load** (before `init`/`ready`) so dependents that pick a superclass at import time (e.g. Regent) see it when listed after Blacksmith; registry methods still attach in `ready`.
+
 ### Changed
 
 - **Internal (file naming, Batch 3)**: Renamed scripts to role-first names — `encounter-toolbar.js` → `ui-journal-encounter.js`, `combat-tracker.js` → `ui-combat-tracker.js`, `combat-tools.js` → `ui-combat-tools.js`, `journal-tools.js` → `manager-journal-tools.js`, `journal-page-pins.js` → `ui-journal-pins.js` (also `module.json` esmodules entry), `vote-config.js` → `window-vote-config.js`. Imports updated; behavior unchanged.

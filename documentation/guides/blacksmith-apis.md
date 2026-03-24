@@ -20,7 +20,7 @@ API Pins: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Pins (canvas
 
 API Chat Cards: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Chat-Cards (chat card themes/helpers)
 
-API Window: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Window (Window API V2 registry)
+API Window: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Window (Window registry **and** public `BlacksmithWindowBaseV2` / `getWindowBaseV2()` for subclassing — see **documentation/api-window.md**)
 
 API Request Roll: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Request-Roll (open roll dialog)
 
@@ -40,7 +40,7 @@ API Supplement: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Supple
    - `blnDebug=true` logs only when Blacksmith debug is enabled (keeps noise down for normal users).
    - `blnNotification=true` shows a user-facing notification (use for actionable errors/warnings).
 
-3. Windows: always use the Window API registry for Application V2 windows (register/open via `api.registerWindow` / `api.openWindow`), rather than ad-hoc window wiring.
+3. Windows: use **`api.registerWindow` / `api.openWindow`** (after **`ready`**) so others can open your app by id. For **subclassing**, **`api.BlacksmithWindowBaseV2`** / **`getWindowBaseV2()`** is available as soon as Blacksmith’s script has loaded if your module runs after it in the graph — see **documentation/api-window.md** (do not import `scripts/window-base-v2.js`).
 
 4. Sockets: use `api.sockets` for sync instead of custom socket globals:
    `api.sockets?.register(eventName, handler)` and `api.sockets?.emit(eventName, data)` (optionally `executeAsGM` for GM-only actions).

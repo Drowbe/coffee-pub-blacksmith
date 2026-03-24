@@ -25,6 +25,26 @@ You implement the window itself (Application V2 class, template, `getData`, acti
 
 ---
 
+## Window registry vs public base class
+
+These are **two different** supported surfaces on `game.modules.get('coffee-pub-blacksmith').api`:
+
+| Surface | Purpose |
+|---------|---------|
+| **Registry** (`registerWindow`, `openWindow`, `unregisterWindow`, …) | Register an **id** and an **opener** so toolbars, macros, and other modules can open your window **without importing your class**. |
+| **Base class** (`BlacksmithWindowBaseV2`, or `getWindowBaseV2()`) | **Subclass** Blacksmith’s Application V2 base when you build a window that uses the zone template and shared behavior (scroll save/restore, optional `data-action` delegation, window size constraints). |
+
+- Use the **registry** when something else (Blacksmith toolbar, another module, a macro) should call `openWindow('your-id')`.
+- Use **`api.BlacksmithWindowBaseV2`** (recommended) or **`api.getWindowBaseV2()`** when your module defines `class MyWindow extends BlacksmithWindowBaseV2`. **Do not** deep-link `scripts/window-base-v2.js` from another module’s manifest — that path is not a stable public contract; the API is.
+
+**Availability timing**
+
+- **`BlacksmithWindowBaseV2` / `getWindowBaseV2()`** — Set on `module.api` **as soon as Blacksmith’s module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). Use this when you resolve a base class at **module top level** (e.g. `class X extends resolveBase()`).
+- **Window registry** (`registerWindow`, `openWindow`, …) — Populated during Blacksmith’s **`ready`** handling; use after `ready` (or `Hooks.once('ready', …)`).
+- Most other **`module.api`** members — Still filled in **`ready`** as today.
+
+---
+
 ## Zone Contract (Summary)
 
 Windows that follow the Blacksmith contract use up to **five zones**. Only **Body** is required; the rest are optional.
@@ -106,12 +126,13 @@ Follow **documentation/applicationv2-window/guidance-applicationv2.md** to creat
 const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
 
 if (blacksmith?.registerWindow) {
-    // Window API is available
+    // Window registry is available
 } else {
     Hooks.once('ready', () => {
-        // API should be available after ready
+        // Registry attaches during Blacksmith ready
     });
 }
+// `blacksmith?.BlacksmithWindowBaseV2` may already exist at module load (see “Availability timing” above).
 ```
 
 ### 3. Register Your Window
@@ -273,6 +294,7 @@ Both are exposed on `module.api`.
 ## Version History
 
 - **Implemented** — Window API (`api-windows.js`), core template (`window-template.hbs`), base class (`window-base-v2.js`). Template data contract documented above.
+- **Public API** — `BlacksmithWindowBaseV2` and `getWindowBaseV2()` exposed on `module.api` so consumers do not import `scripts/window-base-v2.js` directly.
 
 ---
 
