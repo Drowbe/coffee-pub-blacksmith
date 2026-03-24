@@ -18,6 +18,15 @@ Mirrors **`documentation/PERFORMANCE.md`** — active investigation items; updat
 
 ## CRITICAL BUGS
 
+### Post-rename compatibility shims — verify consumers, then remove (#1)
+- **Issue**: After script renames, **thin shims** remain so stale URLs do not 404: `scripts/common.js` → `utility-common.js`, `scripts/journal-page-pins.js` → `ui-journal-pins.js`, `scripts/window-base-v2.js` → `window-base.js`. Blacksmith’s **canonical** imports are already correct; passing in-game tests does **not** prove nothing external still hits the old paths.
+- **Status**: PENDING — keep shims until verified.
+- **Need**:
+  1. **Search** other modules you ship or depend on (and any published `module.json` / dynamic `import()` strings) for: `coffee-pub-blacksmith/scripts/common.js`, `journal-page-pins.js`, `window-base-v2.js` (and path fragments that imply those files).
+  2. **Update** any consumer still pointing at shim URLs to canonical files or, for the window base, to **`module.api.BlacksmithWindowBaseV2`** / **`getWindowBaseV2()`** per `documentation/api-window.md`.
+  3. **Remove shims** in a dedicated release after search is clean (or after one release cycle of overlap); reload worlds and confirm **no 404** in the network tab for those script URLs.
+- **Priority**: CRITICAL — required to close rename technical debt and confirm the ecosystem is not relying on legacy paths.
+
 ### Application V1 deprecation (CSSEditor / FormApplication)
 - **Issue**: Core logs compatibility warning: *The V1 Application framework is deprecated; use Application V2 (`foundry.applications.api.ApplicationV2`).* Backwards-compatible support will be removed in Foundry v16.
 - **Stack trace (example)**: `new FormApplication` → `new CSSEditor` (`window-gmtools.js`) → `blacksmith.js` (init path).
