@@ -35,7 +35,7 @@ These are **two different** supported surfaces on `game.modules.get('coffee-pub-
 | **Base class** (`BlacksmithWindowBaseV2`, or `getWindowBaseV2()`) | **Subclass** Blacksmith’s Application V2 base when you build a window that uses the zone template and shared behavior (scroll save/restore, optional `data-action` delegation, window size constraints). |
 
 - Use the **registry** when something else (Blacksmith toolbar, another module, a macro) should call `openWindow('your-id')`.
-- Use **`api.BlacksmithWindowBaseV2`** (recommended) or **`api.getWindowBaseV2()`** when your module defines `class MyWindow extends BlacksmithWindowBaseV2`. **Do not** deep-link `scripts/window-base-v2.js` from another module’s manifest — that path is not a stable public contract; the API is.
+- Use **`api.BlacksmithWindowBaseV2`** (recommended) or **`api.getWindowBaseV2()`** when your module defines `class MyWindow extends BlacksmithWindowBaseV2`. **Do not** deep-link `scripts/window-base.js` or the legacy shim `scripts/window-base-v2.js` from another module’s manifest — use **`module.api`**; file paths are not the stable contract.
 
 **Availability timing**
 
@@ -293,8 +293,9 @@ Both are exposed on `module.api`.
 
 ## Version History
 
-- **Implemented** — Window API (`api-windows.js`), core template (`window-template.hbs`), base class (`window-base-v2.js`). Template data contract documented above.
-- **Public API** — `BlacksmithWindowBaseV2` and `getWindowBaseV2()` exposed on `module.api` so consumers do not import `scripts/window-base-v2.js` directly.
+- **Implemented** — Window API (`api-windows.js`), core template (`window-template.hbs`), base class (`window-base.js`). Template data contract documented above.
+- **Public API** — `BlacksmithWindowBaseV2` and `getWindowBaseV2()` exposed on `module.api` so consumers do not import Blacksmith base scripts directly.
+- **Rename** — Canonical file `window-base.js`; `window-base-v2.js` is a one-release re-export shim for stale deep links.
 
 ---
 

@@ -2,7 +2,7 @@
 
 Purpose: propose a consistent, low-risk file naming direction before broad refactors.
 
-Status: **Nearly complete** — one optional rename left: `window-base-v2.js` → `window-base.js` (see **Remaining** below). Everything else on this plan is done and verified in-tree.
+Status: **Complete** — all planned renames in this document are done. Canonical Application V2 base: `scripts/window-base.js`; `scripts/window-base-v2.js` is a thin re-export shim for stale deep links (remove after a release cycle if desired).
 
 Completed:
 - Batch 1 `journal-dom-watchdog` -> `manager-journal-dom` canonicalized, imports switched, old filename removed.
@@ -12,7 +12,8 @@ Completed:
 - Batch 2 `sidebar-style` -> `ui-sidebar-style` canonicalized, imports switched, old filename removed.
 - Batch 3 `encounter-toolbar` -> `ui-journal-encounter`, `combat-tracker` -> `ui-combat-tracker`, `combat-tools` -> `ui-combat-tools`, `journal-tools` -> `manager-journal-tools`, `journal-page-pins` -> `ui-journal-pins`, `vote-config` -> `window-vote-config` — canonicalized, imports + `module.json` updated, old filenames removed.
 - **Pre–Batch 4 (low risk)**: `latency-checker.js` → `manager-latency-checker.js`; `window-pin-config.js` → `window-pin-configuration.js` — imports and docs updated, old filenames removed.
-- **Batch 4 (partial)**: `data-collection-processor.js` → `manager-data-collection.js` — `constants-generator.js` import updated; class name left `DataCollectionProcessor` (static helpers only, no instance lifecycle).
+- **Batch 4 (partial)**: `data-collection-processor.js` → `manager-data-collection.js` — `constants-generator.js` import updated; class name left `DataCollectionProcessor` (static helpers only, no instance lifecycle). **Verify:** module load; Blacksmith settings dropdowns (themes, sounds, banners, etc.) still populate (`ConstantsGenerator` / `generateAllChoices`).
+- **Batch 4 (complete)**: `window-base-v2.js` → `window-base.js` — `blacksmith.js` imports canonical file; class name and `api.BlacksmithWindowBaseV2` unchanged; shim `window-base-v2.js` re-exports from `window-base.js`.
 
 ## Proposed Naming Rules (short form)
 
@@ -30,13 +31,7 @@ Completed:
 
 ## Potential Rename Table
 
-**Remaining** (not yet done) are listed first. **Done** rows are struck through; canonical filenames match the “Potential Rename” column (see **Completed** above for batch context).
-
-### Remaining (Batch 4 — last item)
-
-| Current File | Potential Rename | Why | Risk | Notes |
-| --- | --- | --- | --- | --- |
-| `scripts/window-base-v2.js` | `scripts/window-base.js` | v2 is the only base; filename suffix is redundant once you accept the churn. | Medium | Global `rg`/`grep` for `window-base-v2`; update `blacksmith.js`, every window subclass, docs, examples. **Public API:** keep `api.BlacksmithWindowBaseV2` / `getWindowBaseV2()` and class name `BlacksmithWindowBaseV2` unless you deliberately rename the class (would affect Regent and docs). Optional one-release shim: `window-base-v2.js` re-exporting `window-base.js` for stale deep links. **Verify:** world load; at least one Application V2 window using the base; Regent’s query window (if installed). |
+**Done** — archive only. Struck-through “Current” names were removed or replaced by shims where noted in the Notes column.
 
 ### Done (archive)
 
@@ -55,6 +50,8 @@ Completed:
 | ~~`scripts/journal-tools.js`~~ | ~~`scripts/manager-journal-tools.js`~~ | Hook lifecycle orchestration. | Medium | Batch 3. |
 | ~~`scripts/journal-page-pins.js`~~ | ~~`scripts/ui-journal-pins.js`~~ | Journal UI naming. | Medium | Batch 3; shim `scripts/journal-page-pins.js` may still re-export. |
 | ~~`scripts/vote-config.js`~~ | ~~`scripts/window-vote-config.js`~~ | Application window, not manager. | Medium | Batch 3. |
+| ~~`scripts/data-collection-processor.js`~~ | ~~`scripts/manager-data-collection.js`~~ | Constants / UI choice pipeline for `ConstantsGenerator`. | Medium | Batch 4; exported class still `DataCollectionProcessor`. |
+| ~~`scripts/window-base-v2.js`~~ (implementation) | ~~`scripts/window-base.js`~~ | v2 suffix dropped; single Application V2 base. | Medium | Batch 4; `window-base-v2.js` kept as re-export shim; `api.BlacksmithWindowBaseV2` unchanged. |
 
 ## Keep As-Is (Recommended)
 
@@ -81,7 +78,7 @@ These already fit the conventions well and likely do not need rename churn:
 
 1. ~~**Low-risk cosmetics**~~ — Done (Batches 1–2, pre–Batch 4).
 2. ~~**UI role clarifications**~~ — Done (Batch 3).
-3. **Semantic/contract-sensitive**: ~~`data-collection-processor` → `manager-data-collection`~~ **done**. **Next:** `window-base-v2` → `window-base` only when you want that import/doc sweep.
+3. ~~**Semantic/contract-sensitive**~~ — Done: `manager-data-collection`, `window-base` (+ shim).
 
 ## How To Tackle This (execution plan)
 
@@ -105,9 +102,9 @@ These already fit the conventions well and likely do not need rename churn:
    - `vote-config` -> `window-vote-config`
    - Verify: encounter bar, combat tools/tracker, journal pins/tools, vote flows.
 
-4. **Batch 4 (semantic-sensitive) — in progress**
-   - ~~`data-collection-processor` → `manager-data-collection`~~ — **Done** (filename only; static `DataCollectionProcessor`).
-   - `window-base-v2` → `window-base` — **Remaining** (see table above for scope, API, shim, verify).
+4. **Batch 4 (semantic-sensitive) — Completed**
+   - ~~`data-collection-processor` → `manager-data-collection`~~ — Done (filename only; static `DataCollectionProcessor`).
+   - ~~`window-base-v2` → `window-base`~~ — Done; shim `window-base-v2.js` for stale imports.
 
 5. **Per-batch guardrails**
    - Keep each batch in one PR/commit.

@@ -68,7 +68,7 @@ Current performance baseline and action plan after recent subsystem removals (Op
    - **Remaining (optional)**: Explicit teardown on world unload / `closeGame` if long-lived sessions without full reload ever show duplicate behavior again.
 
 7. **Legacy/unused cleanup opportunities**
-   - **Files**: `scripts/blacksmith.js`, `scripts/settings.js`, `styles/window-template.css`, `scripts/window-base-v2.js`
+   - **Files**: `scripts/blacksmith.js`, `scripts/settings.js`, `styles/window-template.css`, `scripts/window-base.js`
    - **Evidence (historical)**:
      - No-op `renderApplication`/`closeApplication` hooks remain.
      - Duplicate `movementType` setting registration exists.
@@ -77,7 +77,7 @@ Current performance baseline and action plan after recent subsystem removals (Op
    - **Pass 1 (done)**:
      - Removed empty `renderApplication` / `closeApplication` HookManager registrations (no runtime behavior; fewer hook invocations per frame).
      - Removed duplicate `movementType` world setting registration; single hidden default remains `normal-movement` (matches code fallbacks).
-     - Removed dead scroll-save branch for non-existent `.blacksmith-window-template-details-content` in `window-base-v2.js` (body scroll only).
+     - Removed dead scroll-save branch for non-existent `.blacksmith-window-template-details-content` in `window-base.js` (body scroll only).
    - **Remaining**: Regent-related CSS in `window-template.css` (keep if `coffee-pub-regent` still embeds `#coffee-pub-regent-wrapper`); optional comment-only cleanup.
 
 ## What We Removed From This Doc

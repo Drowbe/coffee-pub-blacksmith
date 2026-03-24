@@ -81,7 +81,7 @@ import { ChatCardsAPI } from './api-chat-cards.js';
 import { TokenIndicatorManager } from './manager-token-indicators.js';
 import { CampaignManager } from './manager-campaign.js';
 import { CampaignAPI } from './api-campaign.js';
-import { BlacksmithWindowBaseV2 } from './window-base-v2.js';
+import { BlacksmithWindowBaseV2 } from './window-base.js';
 import './sidebar-combat.js';
 import './ui-combat-tools.js';
 

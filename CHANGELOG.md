@@ -7,26 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- **Public API**: `game.modules.get('coffee-pub-blacksmith').api.createJournalEntry(journalData)` — same behavior as JSON journal import (narrative / encounter / location). **Docs:** `documentation/api-create-journal-entry.md`.
-- **Public API**: `api.BlacksmithWindowBaseV2` and `api.getWindowBaseV2()` — stable access to the Application V2 base class for subclassing (registry `registerWindow` / `openWindow` unchanged). **Docs:** `documentation/api-window.md`. **Timing:** base class is also seeded on `module.api` at **module load** (before `init`/`ready`) so dependents that pick a superclass at import time (e.g. Regent) see it when listed after Blacksmith; registry methods still attach in `ready`.
-
-### Changed
-
-- **Internal (file naming, Batch 4 partial)**: `data-collection-processor.js` → `manager-data-collection.js` (`constants-generator.js` import updated; exported class still `DataCollectionProcessor`).
-- **Internal (file naming, pre–Batch 4)**: `latency-checker.js` → `manager-latency-checker.js`; `window-pin-config.js` → `window-pin-configuration.js`. Imports (`blacksmith.js`, `manager-sockets.js`, `api-pins.js`) and architecture docs updated; templates/CSS remain `window-pin-config.*`.
-- **Internal (file naming, Batch 3)**: Renamed scripts to role-first names — `encounter-toolbar.js` → `ui-journal-encounter.js`, `combat-tracker.js` → `ui-combat-tracker.js`, `combat-tools.js` → `ui-combat-tools.js`, `journal-tools.js` → `manager-journal-tools.js`, `journal-page-pins.js` → `ui-journal-pins.js` (also `module.json` esmodules entry), `vote-config.js` → `window-vote-config.js`. Imports updated; behavior unchanged.
-- **Compatibility shims**: Restored tiny `scripts/journal-page-pins.js` and `scripts/common.js` that re-export from `ui-journal-pins.js` / `utility-common.js` so stale manifests, caches, or deep links do not 404.
-
 ## [13.5.8] - 2026-03-02 - PERF STACK QUICK WINS (RANK 7)
 
 ### Added
 
 - **Performance**: `documentation/PERFORMANCE-journal-lifecycle-checklist.md` — ranked checklist for encounter toolbar, journal page pins, and duplicate journal monitoring (consolidation plan).
+- **Public API**: `game.modules.get('coffee-pub-blacksmith').api.createJournalEntry(journalData)` — same behavior as JSON journal import (narrative / encounter / location). **Docs:** `documentation/api-create-journal-entry.md`.
+- **Public API**: `api.BlacksmithWindowBaseV2` and `api.getWindowBaseV2()` — stable access to the Application V2 base class for subclassing (registry `registerWindow` / `openWindow` unchanged). **Docs:** `documentation/api-window.md`. **Timing:** base class is also seeded on `module.api` at **module load** (before `init`/`ready`) so dependents that pick a superclass at import time (e.g. Regent) see it when listed after Blacksmith; registry methods still attach in `ready`.
 
 ### Changed
 
+- **Internal (file naming, Batch 4)**: `window-base-v2.js` → **`window-base.js`** (canonical Application V2 base); `blacksmith.js` imports `window-base.js`. **`window-base-v2.js`** is a thin re-export shim for stale deep links. Class name **`BlacksmithWindowBaseV2`** and **`module.api`** surface unchanged.
+- **Internal (file naming, Batch 4 partial)**: `data-collection-processor.js` → `manager-data-collection.js` (`constants-generator.js` import updated; exported class still `DataCollectionProcessor`).
+- **Internal (file naming, pre–Batch 4)**: `latency-checker.js` → `manager-latency-checker.js`; `window-pin-config.js` → `window-pin-configuration.js`. Imports (`blacksmith.js`, `manager-sockets.js`, `api-pins.js`) and architecture docs updated; templates/CSS remain `window-pin-config.*`.
+- **Internal (file naming, Batch 3)**: Renamed scripts to role-first names — `encounter-toolbar.js` → `ui-journal-encounter.js`, `combat-tracker.js` → `ui-combat-tracker.js`, `combat-tools.js` → `ui-combat-tools.js`, `journal-tools.js` → `manager-journal-tools.js`, `journal-page-pins.js` → `ui-journal-pins.js` (also `module.json` esmodules entry), `vote-config.js` → `window-vote-config.js`. Imports updated; behavior unchanged.
+- **Compatibility shims**: Restored tiny `scripts/journal-page-pins.js` and `scripts/common.js` that re-export from `ui-journal-pins.js` / `utility-common.js` so stale manifests, caches, or deep links do not 404.
 - **Targeted token rings**: **Use Player Color** — concentric borders still use each user’s color; **inner fill** only for users with **OWNER** on the **active combatant** during started combat (others get border-only rings). New **Border Thickness** (`targetedIndicatorBorderThickness`, 1–10, default 3) drives targeted ring line width (separate from General Indicators thickness). **Default Border / Default Background** colors renamed (hex **String** settings; `ColorField` as `register` `type` was reverted — it could **stall world load** at “Finalizing…”). `_coerceColorSettingToHex` still normalizes reads. Setting order: Style → Animation → Speed → **Border Thickness** → **Use Player Color** → default colors. **Fix:** `User#color` via `Color.from()` + numeric coercion (v13). **Load fix:** early `registerSettings()` wrapped in try/catch + `forceHide` on failure.
 
 - **Votes**: Eligible voters are **logged-in non-GM users with OWNER on at least one token in the current scene**; quorum/progress/`castVote` use a per-vote `eligibleUserIds` snapshot. Starting a vote with nobody eligible shows a clear warning. Character-vote “players” source uses the same rule.
