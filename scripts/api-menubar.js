@@ -80,6 +80,12 @@ class MenuBar {
     /** @type {Map<string, (user: User) => { hide?: boolean }>} - Module visibility overrides (moduleId -> callback) */
     static _menubarVisibilityOverrides = new Map();
 
+    /** Fingerprint of last full menubar HTML build (excludes timer tick text); used to skip remove/rebuild when unchanged. */
+    static _menubarStructureFingerprint = null;
+
+    /** Last known party-leader role for this user (undefined until first menubar render path sets it). */
+    static _lastMenubarIsLeader = undefined;
+
     static async initialize() {
         // Load the templates
         foundry.applications.handlebars.loadTemplates([
@@ -2446,6 +2452,8 @@ class MenuBar {
     static _removeMenubarDom() {
         document.querySelector('.blacksmith-menubar-container')?.remove();
         document.querySelectorAll('.blacksmith-menubar-secondary').forEach(el => el.remove());
+        this._menubarStructureFingerprint = null;
+        this._lastMenubarIsLeader = undefined;
         // Set all height variables to 0 to prevent content from being pushed down
         document.documentElement.style.setProperty('--blacksmith-menubar-primary-height', '0px');
         document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', '0px');
@@ -2693,6 +2701,125 @@ class MenuBar {
         this._menubarVisibilityOverrides.delete(moduleId);
     }
 
+    /**
+     * Toolbar strip signature (visibility + zone + active) — excludes timer; used to detect real layout changes.
+     * @private
+     */
+    static _toolbarIconsLayoutSignature() {
+        const parts = [];
+        this.toolbarIcons.forEach((tool, toolId) => {
+            let isVisible = true;
+            try {
+                if (typeof tool.visible === 'function') isVisible = !!tool.visible();
+                else if (tool.visible !== undefined) isVisible = !!tool.visible;
+            } catch {
+                isVisible = true;
+            }
+            if (tool.gmOnly && !game.user?.isGM) isVisible = false;
+            if (tool.leaderOnly && !game.user?.isGM) {
+                try {
+                    const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
+                    if (leaderData?.userId !== game.user?.id) isVisible = false;
+                } catch {
+                    isVisible = false;
+                }
+            }
+            if (!isVisible) {
+                parts.push(`${toolId}:0`);
+                return;
+            }
+            let activeState = false;
+            try {
+                if (typeof tool.active === 'function') activeState = !!tool.active();
+                else activeState = !!tool.active;
+            } catch {
+                activeState = false;
+            }
+            parts.push(`${toolId}:1:${tool.zone || 'left'}:${tool.group || 'general'}:${activeState ? 1 : 0}:${tool.order ?? 999}`);
+        });
+        parts.sort();
+        return parts.join('|');
+    }
+
+    /**
+     * Visible secondary bar item ids/kinds when default template (excludes live HP/progress values).
+     * @private
+     */
+    static _secondaryBarStructureSignature() {
+        const sb = this.secondaryBar;
+        if (!sb?.isOpen || !sb?.type) return '';
+        const barType = this.secondaryBarTypes.get(sb.type);
+        if (barType?.hasCustomTemplate) {
+            const data = sb.data && typeof sb.data === 'object' ? sb.data : {};
+            const combatId = data.combat?.id ?? data.combatId ?? '';
+            const sceneId = typeof canvas !== 'undefined' && canvas?.scene?.id ? canvas.scene.id : '';
+            return `${sb.type}|custom|${combatId}|${sceneId}|${sb.height ?? ''}`;
+        }
+        const items = this.getSecondaryBarItems(sb.type);
+        const parts = [];
+        for (const item of items) {
+            let vis = true;
+            try {
+                if (typeof item.visible === 'function') vis = !!item.visible();
+                else if (item.visible !== undefined) vis = !!item.visible;
+            } catch {
+                vis = true;
+            }
+            if (!vis) continue;
+            parts.push(`${item.itemId}:${item.kind || ''}:${item.zone || 'middle'}`);
+        }
+        parts.sort();
+        return `${sb.type}|${parts.join(',')}|h${sb.height ?? ''}`;
+    }
+
+    /**
+     * Stable string for skipping full menubar rebuild when structure + non-timer labels match.
+     * @private
+     */
+    static _computeMenubarStructureFingerprint(templateData) {
+        const notifParts = (templateData.notifications || []).map((n) => `${n.id}\x1d${String(n.text ?? '')}\x1d${String(n.icon ?? '')}`);
+        notifParts.sort();
+        const mov = templateData.currentMovement || {};
+        let perfShow = '0';
+        try {
+            perfShow = getSettingSafely(MODULE.ID, 'menubarShowPerformance', false) ? '1' : '0';
+        } catch {
+            perfShow = '0';
+        }
+        return [
+            templateData.isGM ? '1' : '0',
+            templateData.isLeader ? '1' : '0',
+            String(templateData.leaderText ?? ''),
+            String(mov.name ?? ''),
+            String(mov.icon ?? ''),
+            this._toolbarIconsLayoutSignature(),
+            notifParts.join('\x1e'),
+            `${!!templateData.secondaryBar?.isOpen}\x1e${templateData.secondaryBar?.type || ''}\x1e${this._secondaryBarStructureSignature()}`,
+            templateData.isInterfaceHidden ? '1' : '0',
+            perfShow
+        ].join('\x1f');
+    }
+
+    /**
+     * Patch primary menubar DOM when skipping full rebuild (timer + movement + leader).
+     * @private
+     */
+    static _applyMenubarLightweightRefresh(templateData, rootEl) {
+        const leaderEl = rootEl.querySelector('.party-leader');
+        if (leaderEl) leaderEl.textContent = templateData.leaderText ?? '';
+        const mov = templateData.currentMovement;
+        if (mov) {
+            const iconEl = rootEl.querySelector('.movement .movement-icon');
+            const labelEl = rootEl.querySelector('.movement .movement-label');
+            if (iconEl && mov.icon) iconEl.className = `fas ${mov.icon} movement-icon`;
+            if (labelEl && mov.name != null) labelEl.textContent = mov.name;
+        }
+        this.updateTimerDisplay();
+        this.updatePerformanceMonitorDisplay();
+        this.updateVoteIconState();
+        requestAnimationFrame(() => this._setupMiddleZoneOverflow());
+    }
+
     static async renderMenubar(immediate = false) {
         try {
 
@@ -2784,6 +2911,13 @@ class MenuBar {
                 isInterfaceHidden: (() => { try { return CoreUIUtility.isInterfaceHidden(); } catch (_) { return false; } })()
             };
 
+            const structureFp = this._computeMenubarStructureFingerprint(templateData);
+            const existingPrimary = document.querySelector('.blacksmith-menubar-container');
+            if (existingPrimary && structureFp === this._menubarStructureFingerprint) {
+                this._applyMenubarLightweightRefresh(templateData, existingPrimary);
+                return;
+            }
+
             // Render the template
             const panelHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/menubar.hbs', templateData);
 
@@ -2804,6 +2938,16 @@ class MenuBar {
                 
                 // Setup middle zone overflow detection (run after layout)
                 requestAnimationFrame(() => this._setupMiddleZoneOverflow());
+
+                this._menubarStructureFingerprint = structureFp;
+                try {
+                    const ld = game.settings.get(MODULE.ID, 'partyLeader');
+                    this._lastMenubarIsLeader = !!(ld?.userId && game.user?.id === ld.userId);
+                } catch {
+                    this._lastMenubarIsLeader = undefined;
+                }
+            } else {
+                this._menubarStructureFingerprint = null;
             }
             
         } catch (error) {
@@ -3478,10 +3622,18 @@ class MenuBar {
     }
 
     static async updateLeaderDisplay() {
+        let leaderData = null;
+        try {
+            leaderData = game.settings.get(MODULE.ID, 'partyLeader');
+        } catch {
+            leaderData = null;
+        }
+        const isLeader = !!(leaderData?.userId && game.user?.id === leaderData.userId);
+
         const panel = document.querySelector('.blacksmith-menubar-container');
         if (!panel) {
-            // If menubar doesn't exist, re-render it
-            this.renderMenubar();
+            this._lastMenubarIsLeader = isLeader;
+            await this.renderMenubar();
             return;
         }
 
@@ -3490,13 +3642,15 @@ class MenuBar {
         if (leaderElement) {
             leaderElement.textContent = leaderText;
         }
-        
-        // Update vote icon state
+
         this.updateVoteIconState();
-        
-        // Re-render the entire menubar to update tool visibility
-        // This ensures leader-only tools appear/disappear when leader changes
-        this.renderMenubar();
+
+        const toolstripMustRefresh = this._lastMenubarIsLeader !== undefined && this._lastMenubarIsLeader !== isLeader;
+        this._lastMenubarIsLeader = isLeader;
+
+        if (toolstripMustRefresh) {
+            await this.renderMenubar(true);
+        }
     }
 
     /**
@@ -4578,12 +4732,9 @@ class MenuBar {
             await MenuBar.updateLeader(actor.name);
 
 
-            // Update vote icon permissions
+            // Update vote icon + leader strip (full rebuild only when this user's leader-only visibility changes)
             this.updateVoteIconState();
-
-
-            // Force menubar re-render to update leader status
-            this.renderMenubar();
+            await this.updateLeaderDisplay();
 
             // Send the leader messages only if requested AND we are the GM
             if (sendMessages && game.user.isGM) {

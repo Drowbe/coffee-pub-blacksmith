@@ -37,7 +37,7 @@ After a stress segment, closing journals should allow **DOM nodes** to drop some
 | 1 | High | Encounter toolbar lifecycle (`dispose` + `closeGame`) | Done | Legacy `_setupGlobalObserver` uncalled; see journal checklist rank 1 |
 | 2 | High | Journal page pins lifecycle (`dispose` + `closeGame`) | Done | HookManager-only: `renderJournalSheet`, `renderJournalPageSheet`, `renderApplication` — `ui-journal-pins.js` |
 | 3 | High | Duplicate journal monitoring pipelines | Done | Shared `JournalDomWatchdog`; pins use HookManager-only for journal render hooks |
-| 4 | Medium | Menubar full rerenders on frequent update paths | Active | — |
+| 4 | Medium | Menubar full rerenders on frequent update paths | Mitigated | Structure fingerprint skips DOM tear/rebuild when unchanged; `updateLeaderDisplay` full render only when leader-only visibility flips (`api-menubar.js`) |
 | 5 | Medium | Timer loops: global DOM queries / rerenders | Active | `timer-round.js`, `timer-planning.js`, menubar timer interval |
 | 6 | Medium | Socket native fallback listener lifecycle | Done | Inbound `game.socket.off` before `on`; see §6 |
 | 7 | Low | Legacy / no-op hooks, stale cleanup | Done | Pass 1; see §7 |
@@ -68,8 +68,8 @@ After a stress segment, closing journals should allow **DOM nodes** to drop some
 
 4. **Menubar rerender path is still broad**
    - **Files**: `scripts/api-menubar.js`
-   - **Evidence**: Full container remove/rebuild path remains reachable from frequent update flows; `_timerDisplayInterval` runs `updateTimerDisplay()` every 1s.
-   - **Risk**: Extra DOM churn and event rebind overhead under combat-heavy updates.
+   - **Evidence (mitigated 2026-03-28)**: `renderMenubar` compares `_computeMenubarStructureFingerprint(templateData)` to `_menubarStructureFingerprint`; if equal and primary container exists, **`_applyMenubarLightweightRefresh`** updates leader/movement/timer/memory labels only (no `remove`/`insertAdjacentHTML`). **`updateLeaderDisplay`** calls full `renderMenubar(true)` only when **`_lastMenubarIsLeader`** changes (leader-only tools strip). Session timer still uses **`updateTimerDisplay`** (1s) without full menubar rebuild.
+   - **Remaining**: Dynamic tool **title** changes without zone/active/visibility change may not refresh until something else invalidates the fingerprint; toggle/register paths still force rebuild when signature changes.
 
 5. **Timer UI updates query broadly and trigger extra renders**
    - **Files**: `scripts/timer-round.js`, `scripts/timer-planning.js`
@@ -186,7 +186,7 @@ These historical sections were intentionally removed because the related subsyst
 
 4. **Quick View / pin overlay parity (Medium, optional)** — Store hook IDs for `QuickViewUtility`; consider `closeGame` → `PinRenderer.cleanup()` for symmetry (§10–§11).
 
-5. **Low-risk performance wins (Medium, short)** — Reduce timer global queries via cached nodes + cache refresh on render events. Gate menubar full rerender behind dirty checks.
+5. **Low-risk performance wins (Medium, short)** — Reduce timer global queries via cached nodes + cache refresh on render events. ~~Gate menubar full rerender~~ **Menubar fingerprint + leader dirty check done (2026-03-28).**
 
 6. **Dead code removal (Low)** — Encounter `_setupGlobalObserver` stack; pins `_setupDomObserver` if permanently unused.
 
