@@ -5,12 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Documentation**: Merged `documentation/PERFORMANCE-journal-lifecycle-checklist.md` into **`documentation/PERFORMANCE.md`** (single source of truth). Added code-review items: duplicate journal pin hooks, `JournalDomWatchdog` sheet retention, Quick View hooks, pin renderer cleanup gap.
 
 ## [13.5.8] - 2026-03-02 - PERF STACK QUICK WINS (RANK 7)
 
 ### Added
 
-- **Performance**: `documentation/PERFORMANCE-journal-lifecycle-checklist.md` — ranked checklist for encounter toolbar, journal page pins, and duplicate journal monitoring (consolidation plan).
+- **Performance**: Ranked checklist for encounter toolbar, journal page pins, and duplicate journal monitoring — **now in** `documentation/PERFORMANCE.md` (Journal & encounter lifecycle checklist); was shipped as `PERFORMANCE-journal-lifecycle-checklist.md` in this release.
 - **Public API**: `game.modules.get('coffee-pub-blacksmith').api.createJournalEntry(journalData)` — same behavior as JSON journal import (narrative / encounter / location). **Docs:** `documentation/api-create-journal-entry.md`.
 - **Public API**: `api.BlacksmithWindowBaseV2` and `api.getWindowBaseV2()` — stable access to the Application V2 base class for subclassing (registry `registerWindow` / `openWindow` unchanged). **Docs:** `documentation/api-window.md`. **Timing:** base class is also seeded on `module.api` at **module load** (before `init`/`ready`) so dependents that pick a superclass at import time (e.g. Regent) see it when listed after Blacksmith; registry methods still attach in `ready`.
 
