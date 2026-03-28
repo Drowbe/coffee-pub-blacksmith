@@ -85,6 +85,7 @@ export class JournalDomWatchdog {
         // Interval fallback: detect active page id changes for already-known sheets.
         // Keep this centralized so we don't have multiple intervals per module.
         this._activePageIntervalId = window.setInterval(() => {
+            this._pruneDetachedSheets();
             for (const sheet of this._knownSheets) {
                 if (!sheet || !document.body.contains(sheet)) continue;
                 const pageId = this._getActivePageIdFromSheet(sheet);
@@ -148,6 +149,20 @@ export class JournalDomWatchdog {
 
     static unregisterPageHandler(handler) {
         this._pageHandlers.delete(handler);
+    }
+
+    /**
+     * Drop sheet roots no longer in the document so we do not retain detached DOM for the whole session.
+     */
+    static _pruneDetachedSheets() {
+        for (const sheet of [...this._knownSheets]) {
+            if (!sheet || !document.body.contains(sheet)) {
+                this._knownSheets.delete(sheet);
+                try {
+                    this._lastActivePageBySheet.delete(sheet);
+                } catch (_e) { /* non-fatal */ }
+            }
+        }
     }
 
     static _trackSheet(sheetEl) {

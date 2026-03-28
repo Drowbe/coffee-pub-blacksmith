@@ -6,10 +6,10 @@ Single source of truth for performance, lifecycle, and journal/encounter monitor
 
 ## Current Status
 
-- **Status**: ACTIVE (code review 2026-03-28; duplicate-hook and watchdog retention issues identified)
+- **Status**: ACTIVE (pins hooks + watchdog prune fixed 2026-03-28; other items still tracked)
 - **Owner**: Systems/Performance
-- **Last Updated**: 2026-03-28 (merged journal lifecycle checklist; grep-based code review)
-- **Key observation**: We are **not** currently reproducing the old browser-tab runaway memory growth/crash pattern. Session slowdown may still come from **duplicate hook work**, **unpruned watchdog state**, and **per-tick global DOM queries**.
+- **Last Updated**: 2026-03-28 (HookManager-only journal pins hooks; `_knownSheets` prune in watchdog interval)
+- **Key observation**: We are **not** currently reproducing the old browser-tab runaway memory growth/crash pattern. Remaining session cost drivers include **per-tick timer DOM queries**, **menubar churn**, and **Quick View token hooks** (see stack table).
 
 ## Scope Notes
 
@@ -22,14 +22,14 @@ Single source of truth for performance, lifecycle, and journal/encounter monitor
 | Rank | Severity | Area | Status |
 | --- | --- | --- | --- |
 | 1 | High | Encounter toolbar lifecycle (`dispose` + `closeGame`) | Done; legacy global observer path in file is **uncalled** (see §Journal checklist rank 1) |
-| 2 | High | Journal page pins lifecycle (`dispose` + `closeGame`) | Done; **duplicate hook registration** still causes double pin-bar work per render (see finding §8) |
-| 3 | High | Duplicate journal monitoring pipelines | Shared `JournalDomWatchdog` done; **Hooks.on + HookManager** overlap remains for pins |
+| 2 | High | Journal page pins lifecycle (`dispose` + `closeGame`) | Done; **duplicate hook registration fixed** — `renderJournalSheet` / `renderJournalPageSheet` / `renderApplication` via HookManager only (`ui-journal-pins.js`) |
+| 3 | High | Duplicate journal monitoring pipelines | Shared `JournalDomWatchdog` done; pins use **HookManager-only** for those render hooks |
 | 4 | Medium | Menubar full rerenders on frequent update paths | Active |
 | 5 | Medium | Timer loops doing global DOM queries/rerenders | Active (`timer-round.js`, `timer-planning.js`, menubar timer interval) |
 | 6 | Medium | Socket native fallback listener lifecycle | Native inbound teardown done (see §6) |
 | 7 | Low | Legacy/no-op hooks and stale cleanup candidates | Pass 1 done (see §7) |
-| 8 | High | **`JournalPagePins` double-registers journal render hooks** | Active — same bound callback via direct `Hooks.on` and `HookManager.registerHook` (`ui-journal-pins.js`) |
-| 9 | Medium | **`JournalDomWatchdog._knownSheets` never prunes** detached sheet roots | Active — closed journals may stay referenced in the `Set`, hurting GC over long sessions (`manager-journal-dom.js`) |
+| 8 | High | **`JournalPagePins` double-registers journal render hooks** | **Mitigated (2026-03-28)** — removed direct `Hooks.on`; `renderApplication` moved to HookManager for unified `dispose` |
+| 9 | Medium | **`JournalDomWatchdog._knownSheets` never prunes** detached sheet roots | **Mitigated (2026-03-28)** — `_pruneDetachedSheets()` each watchdog interval tick (`manager-journal-dom.js`) |
 | 10 | Medium | **`QuickViewUtility.initialize`** — multiple `Hooks.on` without stored IDs / teardown | Risk on hot reload if `initialize` runs twice; constant session cost from token hooks (`utility-quickview.js`) |
 | 11 | Low | **`PinRenderer.cleanup` / `PinDOMElement.cleanup`** not wired to `closeGame` | `PinManager.cleanup` on `unloadModule` does not call `PinRenderer.cleanup()` — gap for disable/hot-reload hygiene (`pins-renderer.js`, `manager-pins.js`) |
 
@@ -44,14 +44,14 @@ Single source of truth for performance, lifecycle, and journal/encounter monitor
 2. **Journal page pins observer + interval**
    - **Files**: `scripts/ui-journal-pins.js`
    - **Evidence**: `_setupDomObserver()` defines a body `MutationObserver` but **nothing calls it** (dead path). Live updates use **`JournalDomWatchdog`** + hooks. `dispose()` still clears `_domObserver` / `_intervalId` defensively.
-   - **Mitigation (done)**: `JournalPagePins.dispose()` clears interval/observer, `Hooks.off` + `HookManager.removeCallback`; same `closeGame` path.
-   - **Remaining (critical perf)**: **Remove duplicate registration** — see §8. Optionally drop redundant **`renderApplication`** direct `Hooks.on` after tests (see checklist rank 2).
+   - **Mitigation (done)**: `JournalPagePins.dispose()` clears interval/observer + **HookManager.removeCallback** only (no duplicate `Hooks.on`); same `closeGame` path.
+   - **Remaining**: Optional: drop **`renderApplication`** HookManager callback if sheet hooks prove sufficient in your matrix (checklist rank 2.5).
 
 3. **Duplicate journal instrumentation stacks**
    - **Files**: `scripts/ui-journal-pins.js`, `scripts/blacksmith.js`, `scripts/manager-journal-dom.js`
-   - **Evidence**: Shared watchdog consolidates DOM observation. **Pins still register the same render callbacks twice** (§8). Blacksmith journal double-click uses HookManager + `JournalDomWatchdog` only (no second body observer).
+   - **Evidence**: Shared watchdog consolidates DOM observation. **Pins use HookManager-only** for journal render hooks (§8 mitigated). Blacksmith journal double-click uses HookManager + `JournalDomWatchdog` only (no second body observer).
    - **Mitigation (pass C, done)**: `JournalDomWatchdog` rewired encounter, pins, and blacksmith double-click off duplicate per-feature body observers.
-   - **Remaining**: Prefer **one** registration path for pins (HookManager-only or direct `Hooks.on`, not both). Phase D: unify hooks where redundant.
+   - **Remaining**: Phase D — audit other features for redundant direct `Hooks.on` where HookManager already wraps the same hook name.
 
 4. **Menubar rerender path is still broad**
    - **Files**: `scripts/api-menubar.js`
@@ -74,16 +74,15 @@ Single source of truth for performance, lifecycle, and journal/encounter monitor
    - **Pass 1 (done)**: Removed empty HookManager registrations, duplicate `movementType` setting, dead scroll-save branch.
    - **Remaining**: Regent-related CSS (optional). **Journal double-click**: `_onRenderJournalDoubleClick` may attach a **per-sheet `MutationObserver` (`editModeObserver`)** until edit mode activates; if the user closes the sheet in view mode first, confirm whether the observer is disconnected (possible retained observer + DOM reference per opened journal).
 
-8. **Journal page pins — duplicate `renderJournalSheet` / `renderJournalPageSheet` handlers (new, 2026-03-28)**
+8. **Journal page pins — duplicate `renderJournalSheet` / `renderJournalPageSheet` handlers**
    - **Files**: `scripts/ui-journal-pins.js` (`_registerHooks`)
-   - **Evidence**: The same `_boundRenderSheet` is registered with **`Hooks.on('renderJournalSheet', …)`** and **`Hooks.on('renderJournalPageSheet', …)`** *and* again via **`HookManager.registerHook`** for both hook names. `HookManager` already installs a single Foundry hook runner per name; the direct `Hooks.on` calls add **additional** invocations. Net effect: **pin injection / bar logic can run twice per journal render**, scaling with how often journals open or re-render — a strong candidate for **session-long CPU creep** when journals are used heavily.
-   - **Mitigation**: Drop the direct `Hooks.on` pair (or drop HookManager entries for these two hooks only) so each hook name invokes the pin callback **once**. Keep `renderApplication` only if still required after that change.
+   - **Evidence (fixed 2026-03-28)**: Previously the same `_boundRenderSheet` was registered with both **`Hooks.on`** and **`HookManager.registerHook`**, doubling pin work per render.
+   - **Mitigation (done)**: **HookManager only** for `renderJournalSheet`, `renderJournalPageSheet`, and **`renderApplication`** (journal filter inside callback). `dispose` removes all three via `HookManager.removeCallback`.
 
-9. **`JournalDomWatchdog` — `_knownSheets` retention (new, 2026-03-28)**
+9. **`JournalDomWatchdog` — `_knownSheets` retention**
    - **Files**: `scripts/manager-journal-dom.js`
-   - **Evidence**: The interval fallback iterates `_knownSheets` and skips nodes not in `document.body`, but **does not remove** detached sheet elements from the `Set`. Each opened journal root can stay referenced for the rest of the session.
-   - **Risk**: Prevents GC of large sheet subtrees after close; `Set` grows with unique sheet elements over a long night of play.
-   - **Mitigation**: On each tick (or on `childList` mutations), **`delete` entries that fail `document.body.contains(sheet)`** (and optionally clear related `WeakMap` entries — WeakMap drops automatically when key is GC-eligible; the **Set** is what holds the key alive).
+   - **Evidence (fixed 2026-03-28)**: Interval skipped detached sheets but never removed them from `_knownSheets`.
+   - **Mitigation (done)**: **`_pruneDetachedSheets()`** runs at the start of each 1s interval tick; removes detached roots from the `Set` and **`WeakMap.delete(sheet)`** for tracked page ids.
 
 10. **`QuickViewUtility` hooks (new, 2026-03-28)**
    - **Files**: `scripts/utility-quickview.js`
@@ -119,8 +118,8 @@ Actionable steps aligned with ranks 1–3 above. When an item moves to done, upd
 | Step | Task | Detail |
 | --- | --- | --- |
 | 2.1 | **Track handles** | **`_afterReady` uses `JournalDomWatchdog`**. `_setupDomObserver()` is **uncalled** (dead); `dispose` still disconnects `_domObserver` if set. |
-| 2.2 | **Teardown** | `JournalPagePins.dispose()` unregisters watchdog handlers and removes HookManager/direct hook handlers. |
-| 2.3 | **HookManager** | Store `registerHook` IDs for `renderJournalSheet` + `renderJournalPageSheet`; `removeCallback` in `dispose`. **Also remove duplicate direct `Hooks.on` for those two hooks** (see §8). |
+| 2.2 | **Teardown** | `JournalPagePins.dispose()` unregisters watchdog handlers and **`HookManager.removeCallback`** for all registered hook IDs (no direct `Hooks.on` for journal renders). |
+| 2.3 | **HookManager** | Store IDs for `renderJournalSheet`, `renderJournalPageSheet`, and filtered **`renderApplication`**; `removeCallback` in `dispose`. |
 | 2.4 | **Idempotent `init`** | Single registration path; `dispose` clears `_initialized` (full re-init after dispose in-session is not supported because of `Hooks.once('ready', …)` — reload world or F5). |
 | 2.5 | **Optional** | Drop redundant **`renderApplication`** listener if HookManager + sheet hooks cover all journal apps in your test matrix. |
 | 2.6 | **Future** | If **`PinManager.registerHandler`** gains an unregister API, remove the journal-page `doubleClick` handler in `dispose` for symmetry. |
@@ -130,7 +129,7 @@ Actionable steps aligned with ranks 1–3 above. When an item moves to done, upd
 | Source | What it does |
 | --- | --- |
 | **EncounterToolbar** | HookManager render hooks + **`JournalDomWatchdog`** (no second body observer from `init()`). |
-| **JournalPagePins** | HookManager + **direct `Hooks.on`** + watchdog — **double fire on render hooks** until §8 fixed. |
+| **JournalPagePins** | **HookManager-only** journal render hooks + **`JournalDomWatchdog`**. |
 | **Blacksmith (double-click)** | HookManager + **`JournalDomWatchdog`** (no duplicate body observer). |
 
 #### Consolidation plan (phased)
@@ -140,7 +139,7 @@ Actionable steps aligned with ranks 1–3 above. When an item moves to done, upd
 | **A — Document** | This section + §3 / §8 describe overlap (single file). |
 | **B — Remove debug** | Remove any stray `console.log` on `renderJournalSheet` in `blacksmith.js` when no longer needed. |
 | **C — Shared observer** | **Done:** `scripts/manager-journal-dom.js` + rewires in `blacksmith.js`, `ui-journal-encounter.js`, `ui-journal-pins.js`. |
-| **D — Unify hooks** | **Pins:** one registration path per hook name. Prefer HookManager-only for consistency with encounter toolbar. |
+| **D — Unify hooks** | **Pins:** HookManager-only for `renderJournalSheet` / `renderJournalPageSheet` / `renderApplication` (**done** 2026-03-28). |
 
 ### Verification (after changes)
 
@@ -153,7 +152,7 @@ Actionable steps aligned with ranks 1–3 above. When an item moves to done, upd
 
 - `scripts/manager-journal-dom.js` — shared journal sheet/page DOM observer + 1s interval fallback  
 - `scripts/ui-journal-encounter.js` — `init` / `dispose`; watchdog handlers  
-- `scripts/ui-journal-pins.js` — `_afterReady` watchdog; **`_registerHooks` duplicate registration (fix §8)**  
+- `scripts/ui-journal-pins.js` — `_afterReady` watchdog; `_registerHooks` uses HookManager only for journal render hooks  
 - `scripts/blacksmith.js` — journal double-click + `closeGame` dispose for encounter + pins  
 
 ## What We Removed From This Doc
@@ -166,9 +165,9 @@ These historical sections were intentionally removed because the related subsyst
 
 ## Plan (Next Review Cycle)
 
-1. **Fix duplicate journal pin hooks (High, short)** — Remove redundant `Hooks.on` or redundant `HookManager.registerHook` entries in `ui-journal-pins.js` (§8). Re-test journal open/page switch/pin bar.
+1. ~~**Duplicate journal pin hooks**~~ **Done (2026-03-28)** — HookManager-only in `ui-journal-pins.js`.
 
-2. **Watchdog sheet pruning (Medium, short)** — In `manager-journal-dom.js`, remove detached sheet nodes from `_knownSheets` (§9).
+2. ~~**Watchdog `_knownSheets` prune**~~ **Done (2026-03-28)** — `_pruneDetachedSheets()` in `manager-journal-dom.js`.
 
 3. **Lifecycle hardening pass** — ~~`dispose()` for observer/timer-heavy managers~~ **Done.** ~~Native socket inbound `off` before `on`~~ **Done.**
 

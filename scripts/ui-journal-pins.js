@@ -49,7 +49,7 @@ export class JournalPagePins {
     static _hookManagerIds = [];
     static _watchdogSheetHandler = null;
     static _watchdogPageHandler = null;
-    /** Stable refs for Hooks.off in dispose() */
+    /** Bound callbacks registered only via HookManager (single dispatch per hook; no duplicate Hooks.on). */
     static _boundRenderSheet = null;
     static _boundRenderApplicationJournal = null;
 
@@ -68,7 +68,7 @@ export class JournalPagePins {
     }
 
     /**
-     * Tear down interval, DOM observer, HookManager entries, and direct Hooks (world exit / dev reload).
+     * Tear down interval, DOM observer, and HookManager entries (world exit / dev reload).
      */
     static dispose() {
         if (this._intervalId != null) {
@@ -87,20 +87,8 @@ export class JournalPagePins {
             } catch (_e) { /* non-fatal */ }
         }
         this._hookManagerIds = [];
-
-        if (this._boundRenderSheet) {
-            try {
-                Hooks.off('renderJournalSheet', this._boundRenderSheet);
-                Hooks.off('renderJournalPageSheet', this._boundRenderSheet);
-            } catch (_e) { /* non-fatal */ }
-            this._boundRenderSheet = null;
-        }
-        if (this._boundRenderApplicationJournal) {
-            try {
-                Hooks.off('renderApplication', this._boundRenderApplicationJournal);
-            } catch (_e) { /* non-fatal */ }
-            this._boundRenderApplicationJournal = null;
-        }
+        this._boundRenderSheet = null;
+        this._boundRenderApplicationJournal = null;
 
         if (this._watchdogSheetHandler) {
             try { JournalDomWatchdog.unregisterSheetHandler(this._watchdogSheetHandler); } catch (_e) { /* non-fatal */ }
@@ -137,11 +125,9 @@ export class JournalPagePins {
             }
         };
 
-        Hooks.on('renderJournalSheet', this._boundRenderSheet);
-        Hooks.on('renderJournalPageSheet', this._boundRenderSheet);
-        Hooks.on('renderApplication', this._boundRenderApplicationJournal);
         Hooks.once('ready', () => this._afterReady());
 
+        // HookManager only: avoids double-firing the same callback (previously also used Hooks.on here).
         this._hookManagerIds = [
             HookManager.registerHook({
                 name: 'renderJournalSheet',
@@ -156,6 +142,13 @@ export class JournalPagePins {
                 context: 'journal-page-pins-page',
                 priority: 3,
                 callback: this._boundRenderSheet
+            }),
+            HookManager.registerHook({
+                name: 'renderApplication',
+                description: 'Blacksmith: journal page pins fallback for journal ApplicationV2 renders',
+                context: 'journal-page-pins-render-app',
+                priority: 3,
+                callback: this._boundRenderApplicationJournal
             })
         ];
     }
