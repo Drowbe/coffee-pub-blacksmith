@@ -9,7 +9,18 @@ Single source of truth for performance, lifecycle, and journal/encounter monitor
 - **Status**: ACTIVE (pins hooks + watchdog prune fixed 2026-03-28; other items still tracked)
 - **Owner**: Systems/Performance
 - **Last Updated**: 2026-03-28 (HookManager-only journal pins hooks; `_knownSheets` prune in watchdog interval)
+- **Client validation**: In-world smoke test after these changes — journal page pins, page switching, and encounter toolbar reported **OK** (no duplicate pin bar / obvious regression).
 - **Key observation**: We are **not** currently reproducing the old browser-tab runaway memory growth/crash pattern. Remaining session cost drivers include **per-tick timer DOM queries**, **menubar churn**, and **Quick View token hooks** (see stack table).
+
+## Monitoring memory in the client (Chrome / Edge)
+
+Useful for the **90–180 minute validation pass** in the plan below.
+
+1. **Performance monitor** — DevTools (**F12**) → **⋮** → **More tools** → **Performance monitor**. Enable **JS heap size** and **DOM Nodes**; watch for a sustained upward trend vs normal GC noise.
+2. **Heap snapshots** — DevTools → **Memory** → **Heap snapshot** → baseline, then stress (e.g. open/close journals many times), then second snapshot → **Comparison** view for retained growth.
+3. **Tab memory** — **Shift+Esc** → browser **Task Manager** → Foundry tab **Memory** column over time.
+
+After a stress segment, closing journals should allow **DOM nodes** to drop somewhat; flatlines at a new high warrant a heap comparison snapshot.
 
 ## Scope Notes
 
@@ -19,19 +30,21 @@ Single source of truth for performance, lifecycle, and journal/encounter monitor
 
 ## Current Findings (Stack Ranked)
 
-| Rank | Severity | Area | Status |
-| --- | --- | --- | --- |
-| 1 | High | Encounter toolbar lifecycle (`dispose` + `closeGame`) | Done; legacy global observer path in file is **uncalled** (see §Journal checklist rank 1) |
-| 2 | High | Journal page pins lifecycle (`dispose` + `closeGame`) | Done; **duplicate hook registration fixed** — `renderJournalSheet` / `renderJournalPageSheet` / `renderApplication` via HookManager only (`ui-journal-pins.js`) |
-| 3 | High | Duplicate journal monitoring pipelines | Shared `JournalDomWatchdog` done; pins use **HookManager-only** for those render hooks |
-| 4 | Medium | Menubar full rerenders on frequent update paths | Active |
-| 5 | Medium | Timer loops doing global DOM queries/rerenders | Active (`timer-round.js`, `timer-planning.js`, menubar timer interval) |
-| 6 | Medium | Socket native fallback listener lifecycle | Native inbound teardown done (see §6) |
-| 7 | Low | Legacy/no-op hooks and stale cleanup candidates | Pass 1 done (see §7) |
-| 8 | High | **`JournalPagePins` double-registers journal render hooks** | **Mitigated (2026-03-28)** — removed direct `Hooks.on`; `renderApplication` moved to HookManager for unified `dispose` |
-| 9 | Medium | **`JournalDomWatchdog._knownSheets` never prunes** detached sheet roots | **Mitigated (2026-03-28)** — `_pruneDetachedSheets()` each watchdog interval tick (`manager-journal-dom.js`) |
-| 10 | Medium | **`QuickViewUtility.initialize`** — multiple `Hooks.on` without stored IDs / teardown | Risk on hot reload if `initialize` runs twice; constant session cost from token hooks (`utility-quickview.js`) |
-| 11 | Low | **`PinRenderer.cleanup` / `PinDOMElement.cleanup`** not wired to `closeGame` | `PinManager.cleanup` on `unloadModule` does not call `PinRenderer.cleanup()` — gap for disable/hot-reload hygiene (`pins-renderer.js`, `manager-pins.js`) |
+**Status values:** **Done** / **Mitigated** / **Active** (quick scan the Status column; detail is in Notes).
+
+| Rank | Severity | Area | Status | Notes |
+| --- | --- | --- | --- | --- |
+| 1 | High | Encounter toolbar lifecycle (`dispose` + `closeGame`) | Done | Legacy `_setupGlobalObserver` uncalled; see journal checklist rank 1 |
+| 2 | High | Journal page pins lifecycle (`dispose` + `closeGame`) | Done | HookManager-only: `renderJournalSheet`, `renderJournalPageSheet`, `renderApplication` — `ui-journal-pins.js` |
+| 3 | High | Duplicate journal monitoring pipelines | Done | Shared `JournalDomWatchdog`; pins use HookManager-only for journal render hooks |
+| 4 | Medium | Menubar full rerenders on frequent update paths | Active | — |
+| 5 | Medium | Timer loops: global DOM queries / rerenders | Active | `timer-round.js`, `timer-planning.js`, menubar timer interval |
+| 6 | Medium | Socket native fallback listener lifecycle | Done | Inbound `game.socket.off` before `on`; see §6 |
+| 7 | Low | Legacy / no-op hooks, stale cleanup | Done | Pass 1; see §7 |
+| 8 | High | Journal pins duplicate render hooks | Mitigated | 2026-03-28: removed duplicate `Hooks.on`; `renderApplication` via HookManager |
+| 9 | Medium | `JournalDomWatchdog._knownSheets` retention | Mitigated | 2026-03-28: `_pruneDetachedSheets()` each interval — `manager-journal-dom.js` |
+| 10 | Medium | `QuickViewUtility.initialize` hook lifecycle | Active | No stored hook IDs; token hook cost — `utility-quickview.js` |
+| 11 | Low | Pin DOM cleanup vs world exit | Active | `PinRenderer.cleanup` not on `closeGame` / `PinManager.cleanup` — see §11 |
 
 ## Detailed Findings
 

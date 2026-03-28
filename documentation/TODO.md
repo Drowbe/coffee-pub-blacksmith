@@ -6,15 +6,15 @@
 
 Mirrors **`documentation/PERFORMANCE.md`** — active investigation items; update both when status changes.
 
-| Rank | Severity | Area | Status |
-| --- | --- | --- | --- |
-| 1 | High | Encounter toolbar global observer/polling lifecycle | Teardown done (`dispose` + `closeGame`); see `PERFORMANCE.md` (Journal & encounter lifecycle checklist) |
-| 2 | High | Journal page pins observer/polling lifecycle | Teardown done; duplicate `Hooks.on` removed (HookManager-only) — see `PERFORMANCE.md` |
-| 3 | High | Duplicate journal monitoring pipelines (duplicate work) | Done (Phase C: shared `JournalDomWatchdog` consolidated journal DOM monitoring) |
-| 4 | Medium | Menubar full rerenders on frequent update paths | Active |
-| 5 | Medium | Timer loops doing global DOM queries/rerenders | Active |
-| 6 | Medium | Socket native fallback listener lifecycle | Native inbound teardown done (see PERFORMANCE.md §6) |
-| 7 | Low | Legacy/no-op hooks and stale cleanup candidates | Pass 1 done (see PERFORMANCE.md §7) |
+| Rank | Severity | Area | Status | Notes |
+| --- | --- | --- | --- | --- |
+| 1 | High | Encounter toolbar global observer/polling lifecycle | Done | `dispose` + `closeGame`; full checklist in `PERFORMANCE.md` |
+| 2 | High | Journal page pins observer/polling lifecycle | Done | Duplicate `Hooks.on` removed (HookManager-only); see `PERFORMANCE.md` |
+| 3 | High | Duplicate journal monitoring pipelines | Done | Phase C: shared `JournalDomWatchdog` |
+| 4 | Medium | Menubar full rerenders on frequent update paths | Active | — |
+| 5 | Medium | Timer loops: global DOM queries/rerenders | Active | — |
+| 6 | Medium | Socket native fallback listener lifecycle | Done | See `PERFORMANCE.md` §6 |
+| 7 | Low | Legacy/no-op hooks and stale cleanup | Done | Pass 1; see `PERFORMANCE.md` §7 |
 
 ## CRITICAL BUGS
 
