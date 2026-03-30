@@ -2773,6 +2773,41 @@ class MenuBar {
     }
 
     /**
+     * Live values for the open secondary bar: `updateSecondaryBarItemInfo` map + custom template `data`.
+     * Must be part of the menubar fingerprint; otherwise `renderMenubar` skips rebuild and bars stay stale.
+     * @private
+     */
+    static _secondaryBarLiveContentSignature() {
+        const sb = this.secondaryBar;
+        if (!sb?.isOpen || !sb?.type) return '';
+        const barTypeId = sb.type;
+        const chunks = [];
+
+        const infoMap = this.secondaryBarInfoUpdates.get(barTypeId);
+        if (infoMap && infoMap.size > 0) {
+            const keys = [...infoMap.keys()].sort();
+            for (const k of keys) {
+                try {
+                    chunks.push(`${k}:${JSON.stringify(infoMap.get(k))}`);
+                } catch {
+                    chunks.push(`${k}:!json`);
+                }
+            }
+        }
+
+        const barType = this.secondaryBarTypes.get(barTypeId);
+        if (barType?.hasCustomTemplate && sb.data != null && typeof sb.data === 'object') {
+            try {
+                chunks.push(`__customData:${JSON.stringify(sb.data)}`);
+            } catch {
+                chunks.push('__customData:!json');
+            }
+        }
+
+        return chunks.join('|');
+    }
+
+    /**
      * Stable string for skipping full menubar rebuild when structure + non-timer labels match.
      * @private
      */
@@ -2795,6 +2830,7 @@ class MenuBar {
             this._toolbarIconsLayoutSignature(),
             notifParts.join('\x1e'),
             `${!!templateData.secondaryBar?.isOpen}\x1e${templateData.secondaryBar?.type || ''}\x1e${this._secondaryBarStructureSignature()}`,
+            this._secondaryBarLiveContentSignature(),
             templateData.isInterfaceHidden ? '1' : '0',
             perfShow
         ].join('\x1f');
