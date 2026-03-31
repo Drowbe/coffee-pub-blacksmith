@@ -24,6 +24,56 @@ export class PlanningTimer {
         }
     };
 
+    static _planningDomCache = { bars: [], texts: [], progress: [] };
+
+    static _refreshPlanningDomCache() {
+        const bars = [];
+        const texts = [];
+        const progress = [];
+        if (ui.combat?.element) {
+            const sidebarBar = ui.combat.element.querySelector('.planning-timer-bar');
+            const sidebarText = ui.combat.element.querySelector('.planning-timer-text');
+            if (sidebarBar) bars.push(sidebarBar);
+            if (sidebarText) texts.push(sidebarText);
+            ui.combat.element.querySelectorAll('.planning-timer-progress').forEach((el) => progress.push(el));
+        }
+        document.querySelectorAll('#combat-popout .planning-timer-bar, .combat-sidebar .planning-timer-bar').forEach((bar) => {
+            if (!bars.includes(bar)) bars.push(bar);
+        });
+        document.querySelectorAll('#combat-popout .planning-timer-text, .combat-sidebar .planning-timer-text').forEach((text) => {
+            if (!texts.includes(text)) texts.push(text);
+        });
+        document.querySelectorAll('#combat-popout .planning-timer-progress, .combat-sidebar .planning-timer-progress').forEach((p) => {
+            if (!progress.includes(p)) progress.push(p);
+        });
+        this._planningDomCache = { bars, texts, progress };
+    }
+
+    static _clearPlanningDomCache() {
+        this._planningDomCache = { bars: [], texts: [], progress: [] };
+    }
+
+    static _isPlanningDomCacheStale() {
+        const c = this._planningDomCache;
+        for (const key of ['bars', 'texts', 'progress']) {
+            for (const el of c[key]) {
+                if (!el.isConnected) return true;
+            }
+        }
+        return false;
+    }
+
+    static _planningDomCacheAllEmpty() {
+        const c = this._planningDomCache;
+        return !c.bars.length && !c.texts.length && !c.progress.length;
+    }
+
+    /** Bar width, color tiers, and interval "ending soon" logic must share one denominator (settings vs state.duration). */
+    static _planningBarDenominatorSeconds() {
+        const configuredLimit = getSettingSafely(MODULE.ID, 'planningTimerDuration', this.DEFAULTS.timeLimit);
+        return Math.max(configuredLimit, this.state.duration || 0);
+    }
+
     static initialize() {
         postConsoleAndNotification(MODULE.NAME, "Planning Timer | Initializing", "", false, false);
         
@@ -87,9 +137,7 @@ export class PlanningTimer {
             if (game.combat?.started && game.combat.turn === 0) {
                 // Defer planning restoration until CombatStats is ready to prevent race condition
                 if (CombatStats.currentStats) {
-                    const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
-                    this.startTimer(duration, true);
-                    // Only render if timer actually started (all initiatives rolled)
+                    this._tryStartWhenPlanningReady();
                     if (this.state.isActive) {
                         ui.combat.render(true);
                     }
@@ -97,9 +145,7 @@ export class PlanningTimer {
                     // Wait for CombatStats to be ready before restoring planning state
                     Hooks.once('blacksmithUpdated', () => {
                         if (game.combat?.started && game.combat.turn === 0) {
-                            const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
-                            this.startTimer(duration, true);
-                            // Only render if timer actually started (all initiatives rolled)
+                            this._tryStartWhenPlanningReady();
                             if (this.state.isActive) {
                                 ui.combat.render(true);
                             }
@@ -121,6 +167,18 @@ export class PlanningTimer {
             context: 'timer-planning',
             priority: 3, // Normal priority - timer management
             callback: this.handleCombatUpdate.bind(this)
+        });
+
+        const updateCombatantHookId = HookManager.registerHook({
+            name: 'updateCombatant',
+            description: 'Planning Timer: Start timer only after initiative values are set (turn 0)',
+            context: 'timer-planning-initiative',
+            priority: 3,
+            callback: (combatant, data, options, userId) => {
+                if (!game.user.isGM || !('initiative' in data)) return;
+                if (!combatant?.combat || !game.combats.has(combatant.combat.id)) return;
+                this._tryStartWhenPlanningReady();
+            }
         });
         
         // Log hook registration
@@ -233,6 +291,11 @@ export class PlanningTimer {
             return;
         }
 
+        // Initiative cleared mid-planning (e.g. new round) — stop so render hook does not fight stale state
+        if (combat.started && combat.turn === 0 && this.state.isActive && !this.verifyTimerConditions()) {
+            this.cleanupTimer();
+        }
+
         // Handle combat start/stop
         if ("started" in changed) {
             if (changed.started && combat.turn === 0) {
@@ -253,6 +316,11 @@ export class PlanningTimer {
         if ("turn" in changed) {
             this.handleTurnChange(combat);
         }
+
+        // Initiative batch / sort can refresh `turns` without a distinct per-combatant hook order
+        if ("turns" in changed && combat.started && combat.turn === 0) {
+            this._tryStartWhenPlanningReady();
+        }
     }
 
     static handleCombatStart(combat) {
@@ -263,13 +331,12 @@ export class PlanningTimer {
         this.state.isExpired = false;
         this.cleanupTimer();
 
-        const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
-        this.startTimer(duration, true);
-
-        // Only render if timer actually started (all initiatives rolled)
-        if (this.state.isActive) {
-            requestAnimationFrame(() => ui.combat.render(true));
-        }
+        queueMicrotask(() => {
+            this._tryStartWhenPlanningReady();
+            if (this.state.isActive) {
+                requestAnimationFrame(() => ui.combat.render(true));
+            }
+        });
     }
 
     static handleNewRound(combat) {
@@ -279,12 +346,28 @@ export class PlanningTimer {
         // Ensure combat timer is cleaned up
         Hooks.callAll('combatTimerCleanup');
 
-        const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
-        this.startTimer(duration, true);
-
-        // Only render if timer actually started (all initiatives rolled)
-        if (this.state.isActive) {
-            setTimeout(() => ui.combat.render(true), 100);
+        let clearBetweenRounds = false;
+        try {
+            clearBetweenRounds = game.settings.get(MODULE.ID, 'combatTrackerClearInitiative');
+        } catch {
+            clearBetweenRounds = false;
+        }
+        // Never startTimer() synchronously here: same updateCombat tick can still have last round's initiative
+        // until Clear Initiative embed updates (race → flash of planning bar then disappearance).
+        if (clearBetweenRounds) {
+            setTimeout(() => {
+                this._tryStartWhenPlanningReady();
+                if (this.state.isActive) {
+                    ui.combat.render(true);
+                }
+            }, 350);
+        } else {
+            queueMicrotask(() => {
+                this._tryStartWhenPlanningReady();
+                if (this.state.isActive) {
+                    ui.combat.render(true);
+                }
+            });
         }
     }
 
@@ -294,12 +377,26 @@ export class PlanningTimer {
             this.cleanupTimer();
             Hooks.callAll('combatTimerCleanup');
 
-            const duration = game.settings.get(MODULE.ID, 'planningTimerDuration');
-            this.startTimer(duration, true);
-
-            // Only render if timer actually started (all initiatives rolled)
-            if (this.state.isActive) {
-                setTimeout(() => ui.combat.render(true), 100);
+            let clearBetweenRounds = false;
+            try {
+                clearBetweenRounds = game.settings.get(MODULE.ID, 'combatTrackerClearInitiative');
+            } catch {
+                clearBetweenRounds = false;
+            }
+            if (clearBetweenRounds) {
+                setTimeout(() => {
+                    this._tryStartWhenPlanningReady();
+                    if (this.state.isActive) {
+                        ui.combat.render(true);
+                    }
+                }, 350);
+            } else {
+                queueMicrotask(() => {
+                    this._tryStartWhenPlanningReady();
+                    if (this.state.isActive) {
+                        setTimeout(() => ui.combat.render(true), 100);
+                    }
+                });
             }
         } else if (combat.turn > 0) {
             this.cleanupTimer();
@@ -332,10 +429,14 @@ export class PlanningTimer {
     }
 
     static async _onRenderCombatTracker(app, html, data) {
-        // Verify settings and combat state
+        // v13: Detect and convert jQuery to native DOM if needed
+        let nativeHtml = html;
+        if (html && (html.jquery || typeof html.find === 'function')) {
+            nativeHtml = html[0] || html.get?.(0) || html;
+        }
+
         if (!this.verifyTimerConditions()) {
-            // Debug: Log why timer isn't showing (use getSettingSafely to avoid errors)
-            const enabled = getSettingSafely(MODULE.ID, 'planningTimerEnabled', false);
+            nativeHtml?.querySelectorAll?.('.planning-timer-item, .planning-timer-container, .planning-phase')?.forEach((el) => el.remove());
             return;
         }
 
@@ -368,12 +469,6 @@ export class PlanningTimer {
                 isExpired: this.state.isExpired
             }
         );
-        
-        // v13: Detect and convert jQuery to native DOM if needed
-        let nativeHtml = html;
-        if (html && (html.jquery || typeof html.find === 'function')) {
-            nativeHtml = html[0] || html.get?.(0) || html;
-        }
         
         // Remove any existing planning timers (v13: html is native DOM element)
         nativeHtml.querySelectorAll('.planning-timer-item, .planning-timer-container, .planning-phase').forEach(el => el.remove());
@@ -477,7 +572,7 @@ export class PlanningTimer {
         const clickX = event.clientX - rect.left;
         const percentage = clickX / rect.width;
         
-        const timeLimit = game.settings.get(MODULE.ID, 'planningTimerDuration');
+        const timeLimit = this._planningBarDenominatorSeconds();
         const newTime = Math.round(timeLimit * percentage);
         
         this.setTime(newTime);
@@ -530,9 +625,9 @@ export class PlanningTimer {
                 this.state.remaining--;
                 this.syncState();
 
-                // Calculate percentage of time remaining
-                const timeLimit = game.settings.get(MODULE.ID, 'planningTimerDuration');
-                const percentRemaining = (this.state.remaining / timeLimit) * 100;
+                // Calculate percentage of time remaining (same denominator as updateUI bar width)
+                const timeLimit = PlanningTimer._planningBarDenominatorSeconds();
+                const percentRemaining = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
 
                 // Check ending soon threshold
                 const endingSoonThreshold = game.settings.get(MODULE.ID, 'planningTimerEndingSoonThreshold');
@@ -618,9 +713,9 @@ export class PlanningTimer {
                 this.state.remaining--;
                 this.syncState();
 
-                // Calculate percentage of time remaining
-                const timeLimit = game.settings.get(MODULE.ID, 'planningTimerDuration');
-                const percentRemaining = (this.state.remaining / timeLimit) * 100;
+                // Calculate percentage of time remaining (same denominator as updateUI bar width)
+                const timeLimit = PlanningTimer._planningBarDenominatorSeconds();
+                const percentRemaining = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
 
                 // Check ending soon threshold
                 const endingSoonThreshold = game.settings.get(MODULE.ID, 'planningTimerEndingSoonThreshold');
@@ -690,17 +785,43 @@ export class PlanningTimer {
         const isGMOnly = getSettingSafely(MODULE.ID, 'combatTimerGMOnly', false);
         if (isGMOnly && !game.user.isGM) return false;
 
-        // Check if all combatants have rolled initiative before showing planning timer
         const combatants = game.combat.turns || [];
-        const combatantsNeedingInitiative = combatants.filter(c => 
-            c.initiative === null && !c.isDefeated
+        // Empty turns (race right after combat start / before turns are built) must not pass — otherwise the timer starts with no initiatives checked
+        if (combatants.length === 0) {
+            return false;
+        }
+
+        const combatantsNeedingInitiative = combatants.filter(c =>
+            c.initiative == null && !c.isDefeated
         );
         if (combatantsNeedingInitiative.length > 0) {
-            // Not all initiatives rolled yet - don't show timer
             return false;
         }
 
         return true;
+    }
+
+    /**
+     * GM-only: start planning timer once initiatives are actually complete (used from updateCombatant).
+     */
+    static _tryStartWhenPlanningReady() {
+        if (!game.user.isGM) return;
+        if (!this.isInitialized) return;
+        try {
+            if (!game.settings.get(MODULE.ID, 'planningTimerEnabled')) return;
+        } catch {
+            return;
+        }
+        const combat = game.combat;
+        if (!combat?.started || combat.turn !== 0) return;
+        if (this.state.isActive || this.state.isExpired) return;
+        if (!this.verifyTimerConditions()) return;
+
+        const duration = game.settings.get(MODULE.ID, 'planningTimerDuration') ?? this.DEFAULTS.timeLimit;
+        this.startTimer(duration);
+        if (this.state.isActive) {
+            requestAnimationFrame(() => ui.combat.render(true));
+        }
     }
 
     static startTimer(duration = null) {
@@ -745,9 +866,9 @@ export class PlanningTimer {
                 this.state.remaining--;
                 this.syncState();
 
-                // Calculate percentage of time remaining
-                const timeLimit = game.settings.get(MODULE.ID, 'planningTimerDuration');
-                const percentRemaining = (this.state.remaining / timeLimit) * 100;
+                // Calculate percentage of time remaining (same denominator as updateUI bar width)
+                const timeLimit = PlanningTimer._planningBarDenominatorSeconds();
+                const percentRemaining = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
 
                 // Check ending soon threshold
                 const endingSoonThreshold = game.settings.get(MODULE.ID, 'planningTimerEndingSoonThreshold');
@@ -800,35 +921,18 @@ export class PlanningTimer {
 
     static updateUI() {
         try {
-            // Use duration from state instead of settings
-            const timeLimit = this.state.duration || this.DEFAULTS.timeLimit;
-            const percentage = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
-            
-            // v13: Find all combat tracker windows (sidebar and popout)
-            const allBars = [];
-            const allTexts = [];
-            const allProgressElements = [];
-            
-            // Check sidebar combat tracker
-            if (ui.combat?.element) {
-                const sidebarBar = ui.combat.element.querySelector('.planning-timer-bar');
-                const sidebarText = ui.combat.element.querySelector('.planning-timer-text');
-                const sidebarProgress = ui.combat.element.querySelectorAll('.planning-timer-progress');
-                if (sidebarBar) allBars.push(sidebarBar);
-                if (sidebarText) allTexts.push(sidebarText);
-                sidebarProgress.forEach(el => allProgressElements.push(el));
+            const needsDomRefresh = this._isPlanningDomCacheStale()
+                || (this._planningDomCacheAllEmpty() && this.state.isActive && this.verifyTimerConditions());
+            if (needsDomRefresh) {
+                this._refreshPlanningDomCache();
             }
-            
-            // Check popout windows
-            document.querySelectorAll('#combat-popout .planning-timer-bar, .combat-sidebar .planning-timer-bar').forEach(bar => {
-                if (!allBars.includes(bar)) allBars.push(bar);
-            });
-            document.querySelectorAll('#combat-popout .planning-timer-text, .combat-sidebar .planning-timer-text').forEach(text => {
-                if (!allTexts.includes(text)) allTexts.push(text);
-            });
-            document.querySelectorAll('#combat-popout .planning-timer-progress, .combat-sidebar .planning-timer-progress').forEach(progress => {
-                if (!allProgressElements.includes(progress)) allProgressElements.push(progress);
-            });
+
+            const timeLimit = this._planningBarDenominatorSeconds();
+            const percentage = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
+
+            const allBars = this._planningDomCache.bars;
+            const allTexts = this._planningDomCache.texts;
+            const allProgressElements = this._planningDomCache.progress;
             
             // Update all bars
             allBars.forEach(bar => {
@@ -977,6 +1081,7 @@ export class PlanningTimer {
         // Reset percentage tracking
         this.previousPercentRemaining = undefined;
 
+        this._clearPlanningDomCache();
         this.updateUI();
         this.syncState();
     }

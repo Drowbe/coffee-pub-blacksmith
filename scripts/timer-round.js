@@ -14,6 +14,40 @@ export class RoundTimer {
     static updateInterval = null;
     static isActive = false;
 
+    /** Cached text nodes — refreshed when combat tracker renders or when refs go stale */
+    static _roundTimerDomCache = {
+        round: [],
+        combatbarRound: [],
+        total: [],
+        combatbarTotal: []
+    };
+
+    static _refreshRoundTimerDomCache() {
+        const c = this._roundTimerDomCache;
+        c.round = Array.from(document.querySelectorAll('.round-timer-container .combat-time-round'));
+        c.combatbarRound = Array.from(document.querySelectorAll('.combat-endcap-left .combat-time-round'));
+        c.total = Array.from(document.querySelectorAll('.round-timer-container .combat-time-total'));
+        c.combatbarTotal = Array.from(document.querySelectorAll('.combat-endcap-right .combat-time-total'));
+    }
+
+    static _clearRoundTimerDomCache() {
+        const c = this._roundTimerDomCache;
+        c.round = [];
+        c.combatbarRound = [];
+        c.total = [];
+        c.combatbarTotal = [];
+    }
+
+    static _isRoundTimerDomCacheStale() {
+        const c = this._roundTimerDomCache;
+        for (const key of ['round', 'combatbarRound', 'total', 'combatbarTotal']) {
+            for (const el of c[key]) {
+                if (!el.isConnected) return true;
+            }
+        }
+        return false;
+    }
+
     static initialize() {
         postConsoleAndNotification(MODULE.NAME, `Round Timer | Initializing`, "", false, false);
         
@@ -104,38 +138,21 @@ export class RoundTimer {
             // Start update interval
             this.updateInterval = setInterval(() => {
                 if (game.combat?.started && this.isActive) {
+                    if (this._isRoundTimerDomCacheStale()) {
+                        this._refreshRoundTimerDomCache();
+                    }
+
                     const roundDuration = this._getCurrentRoundDuration();
                     const formattedRoundTime = formatTime(roundDuration || 0, "hh:mm:ss");
                     
                     const totalCombatTime = this._getTotalCombatDuration();
                     const formattedTotalTime = formatTime(totalCombatTime || 0, "hh:mm:ss");
                     
-                    // Update all instances of the round timer (both sidebar and popout)
-                    const roundElements = document.querySelectorAll('.round-timer-container .combat-time-round');
-                    roundElements.forEach(element => {
-                        element.textContent = formattedRoundTime;
-                    });
-
-                    // update the combat bar round time
-                    const combatbarRoundElements = document.querySelectorAll('.combat-endcap-left .combat-time-round');
-                    combatbarRoundElements.forEach(element => {
-                        element.textContent = formattedRoundTime;
-                    });
-
-                    // Update all instances of the total combat time
-                    const totalElements = document.querySelectorAll('.round-timer-container .combat-time-total');
-                    totalElements.forEach(element => {
-                        element.textContent = formattedTotalTime;
-                    });
-
-                    // update the combat bar total time
-                    const combatbarTotalElements = document.querySelectorAll('.combat-endcap-right .combat-time-total');
-                    combatbarTotalElements.forEach(element => {
-                        element.textContent = formattedTotalTime;
-                    });
-
-
-
+                    const c = this._roundTimerDomCache;
+                    c.round.forEach((el) => { el.textContent = formattedRoundTime; });
+                    c.combatbarRound.forEach((el) => { el.textContent = formattedRoundTime; });
+                    c.total.forEach((el) => { el.textContent = formattedTotalTime; });
+                    c.combatbarTotal.forEach((el) => { el.textContent = formattedTotalTime; });
                 }
             }, 1000); // Update every second
         });
@@ -181,6 +198,8 @@ export class RoundTimer {
                 }
             }
         }
+
+        this._refreshRoundTimerDomCache();
     }
 
     static _onUpdateCombat(combat, changed, options, userId) {
@@ -252,5 +271,6 @@ export class RoundTimer {
             clearInterval(this.updateInterval);
             this.updateInterval = null;
         }
+        this._clearRoundTimerDomCache();
     }
 } 

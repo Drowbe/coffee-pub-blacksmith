@@ -12,7 +12,7 @@ Mirrors **`documentation/PERFORMANCE.md`** — active investigation items; updat
 | 2 | High | Journal page pins observer/polling lifecycle | Done | Duplicate `Hooks.on` removed (HookManager-only); see `PERFORMANCE.md` |
 | 3 | High | Duplicate journal monitoring pipelines | Done | Phase C: shared `JournalDomWatchdog` |
 | 4 | Medium | Menubar full rerenders on frequent update paths | Mitigated | Fingerprint + leader-only full render; see `PERFORMANCE.md` §4 |
-| 5 | Medium | Timer loops: global DOM queries/rerenders | Active | — |
+| 5 | Medium | Timer loops: global DOM queries/rerenders | Mitigated | Cached DOM in `timer-round.js`, `timer-planning.js`, `timer-combat.js`; see `PERFORMANCE.md` §5 |
 | 6 | Medium | Socket native fallback listener lifecycle | Done | See `PERFORMANCE.md` §6 |
 | 7 | Low | Legacy/no-op hooks and stale cleanup | Done | Pass 1; see `PERFORMANCE.md` §7 |
 

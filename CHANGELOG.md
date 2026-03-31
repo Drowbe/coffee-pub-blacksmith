@@ -5,10 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [13.5.9]
 
 ### Changed
 
+- **Performance**: **Round / planning / combat tracker timers** — avoid per-tick or per-`updateUI` `document.querySelectorAll` hot paths by caching bar/text/progress (or round/total time) element lists; **refresh** when cached nodes disconnect, when the combat tracker re-renders (`renderCombatTracker`), or when the cache is empty while the timer should be visible (`timer-round.js`, `timer-planning.js`, `timer-combat.js`). See **`documentation/PERFORMANCE.md`** rank 5.
 - **Documentation**: Merged `documentation/PERFORMANCE-journal-lifecycle-checklist.md` into **`documentation/PERFORMANCE.md`** (single source of truth). Added code-review items: duplicate journal pin hooks, `JournalDomWatchdog` sheet retention, Quick View hooks, pin renderer cleanup gap.
 - **Performance**: **`JournalPagePins`** — register `renderJournalSheet`, `renderJournalPageSheet`, and journal-filtered `renderApplication` via **`HookManager` only** (removed duplicate `Hooks.on` that ran pin logic twice per render). **`JournalDomWatchdog`** — prune detached journal sheet roots from `_knownSheets` each interval tick to avoid retaining closed sheet DOM for the whole session.
 - **Performance**: **Menubar** (`api-menubar.js`) — **`renderMenubar`** skips full DOM remove/rebuild when a **structure fingerprint** (tools, notifications, secondary bar, movement, leader text, etc.; not per-second timer) is unchanged; applies **lightweight refresh** for timer/progress/leader/movement labels. **`updateLeaderDisplay`** triggers a full render only when this user’s **party-leader role** changes (leader-only tools visibility).

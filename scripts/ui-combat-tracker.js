@@ -564,6 +564,14 @@ class CombatTracker {
 							// --- END - HOOKMANAGER CALLBACK ---
 					}
 				});
+
+                // Reload / load order: initiative may already be complete but combatStart/updateCombatant did not run
+                this._trackedSetTimeout(() => {
+                    const combat = game.combat;
+                    if (combat?.started && combat.combatants.size > 0) {
+                        this._checkAllInitiativesRolled(combat);
+                    }
+                }, 500);
                 
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Could not initialize Combat Tracker`, error, false, false);

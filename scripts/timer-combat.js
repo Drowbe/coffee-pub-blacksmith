@@ -25,6 +25,50 @@ class CombatTimer {
         }
     };
 
+    static _combatTimerDomCache = { bars: [], texts: [], progress: [] };
+
+    static _refreshCombatTimerDomCache() {
+        const bars = [];
+        const texts = [];
+        const progress = [];
+        if (ui.combat?.element) {
+            const sidebarBar = ui.combat.element.querySelector('.combat-timer-bar');
+            const sidebarText = ui.combat.element.querySelector('.combat-timer-text');
+            if (sidebarBar) bars.push(sidebarBar);
+            if (sidebarText) texts.push(sidebarText);
+            ui.combat.element.querySelectorAll('.combat-timer-progress').forEach((el) => progress.push(el));
+        }
+        document.querySelectorAll('#combat-popout .combat-timer-bar, .combat-sidebar .combat-timer-bar').forEach((bar) => {
+            if (!bars.includes(bar)) bars.push(bar);
+        });
+        document.querySelectorAll('#combat-popout .combat-timer-text, .combat-sidebar .combat-timer-text').forEach((text) => {
+            if (!texts.includes(text)) texts.push(text);
+        });
+        document.querySelectorAll('#combat-popout .combat-timer-progress, .combat-sidebar .combat-timer-progress').forEach((p) => {
+            if (!progress.includes(p)) progress.push(p);
+        });
+        this._combatTimerDomCache = { bars, texts, progress };
+    }
+
+    static _clearCombatTimerDomCache() {
+        this._combatTimerDomCache = { bars: [], texts: [], progress: [] };
+    }
+
+    static _isCombatTimerDomCacheStale() {
+        const c = this._combatTimerDomCache;
+        for (const key of ['bars', 'texts', 'progress']) {
+            for (const el of c[key]) {
+                if (!el.isConnected) return true;
+            }
+        }
+        return false;
+    }
+
+    static _combatTimerDomCacheAllEmpty() {
+        const c = this._combatTimerDomCache;
+        return !c.bars.length && !c.texts.length && !c.progress.length;
+    }
+
     static initialize() {
         Hooks.once('ready', () => {
             try {
@@ -34,9 +78,11 @@ class CombatTimer {
                 }
 
                 
-                // Initialize state
+                // Initialize state — keep duration and remaining aligned with configured turn length (fixes progress bar %)
                 this.state = foundry.utils.deepClone(this.DEFAULTS.state);
-                this.state.remaining = game.settings.get(MODULE.ID, 'combatTimerDuration') ?? 60;
+                const combatDur = game.settings.get(MODULE.ID, 'combatTimerDuration') ?? 60;
+                this.state.remaining = combatDur;
+                this.state.duration = combatDur;
                 
                 
                 // Add debounce for round changes
@@ -236,6 +282,7 @@ class CombatTimer {
             clearInterval(this.timer);
             this.timer = null;
         }
+        this._clearCombatTimerDomCache();
     }
 
     static async syncState() {
@@ -333,6 +380,7 @@ class CombatTimer {
                 this.bindTimerEvents(nativeHtml);
             }
 
+            this._refreshCombatTimerDomCache();
             this.updateUI();
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Combat Timer: Error rendering combat tracker", error, false, false);
@@ -844,35 +892,20 @@ class CombatTimer {
 
     static updateUI() {
         try {
-            // Update progress bar using state duration
-            const timeLimit = this.state.duration || this.DEFAULTS.timeLimit;
-            const percentage = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
-            
-            // v13: Find all combat timer elements in all windows (sidebar and popout)
-            const allBars = [];
-            const allTexts = [];
-            const allProgressElements = [];
-            
-            // Check sidebar combat tracker
-            if (ui.combat?.element) {
-                const sidebarBar = ui.combat.element.querySelector('.combat-timer-bar');
-                const sidebarText = ui.combat.element.querySelector('.combat-timer-text');
-                const sidebarProgress = ui.combat.element.querySelectorAll('.combat-timer-progress');
-                if (sidebarBar) allBars.push(sidebarBar);
-                if (sidebarText) allTexts.push(sidebarText);
-                sidebarProgress.forEach(el => allProgressElements.push(el));
+            const needsDomRefresh = this._isCombatTimerDomCacheStale()
+                || (this._combatTimerDomCacheAllEmpty() && this.state.isActive && game.combat?.started && (game.combat?.round ?? 0) > 0);
+            if (needsDomRefresh) {
+                this._refreshCombatTimerDomCache();
             }
-            
-            // Check popout windows
-            document.querySelectorAll('#combat-popout .combat-timer-bar, .combat-sidebar .combat-timer-bar').forEach(bar => {
-                if (!allBars.includes(bar)) allBars.push(bar);
-            });
-            document.querySelectorAll('#combat-popout .combat-timer-text, .combat-sidebar .combat-timer-text').forEach(text => {
-                if (!allTexts.includes(text)) allTexts.push(text);
-            });
-            document.querySelectorAll('#combat-popout .combat-timer-progress, .combat-sidebar .combat-timer-progress').forEach(progress => {
-                if (!allProgressElements.includes(progress)) allProgressElements.push(progress);
-            });
+
+            // Denominator: configured max (same as tick/critical thresholds) so remaining never exceeds a stale DEFAULTS.duration
+            const configuredLimit = game.settings.get(MODULE.ID, 'combatTimerDuration') ?? this.DEFAULTS.timeLimit;
+            const timeLimit = Math.max(configuredLimit, this.state.duration || 0);
+            const percentage = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
+
+            const allBars = this._combatTimerDomCache.bars;
+            const allTexts = this._combatTimerDomCache.texts;
+            const allProgressElements = this._combatTimerDomCache.progress;
             
             if (allBars.length === 0) return; // No timer bars found
             
@@ -1035,7 +1068,10 @@ class CombatTimer {
         this.previousPercentRemaining = undefined;
         
         // Clear visual states
-        const progressElements = document.querySelectorAll('.combat-timer-progress');
+        this._refreshCombatTimerDomCache();
+        const progressElements = this._combatTimerDomCache.progress.length
+            ? this._combatTimerDomCache.progress
+            : document.querySelectorAll('.combat-timer-progress');
         progressElements.forEach(el => el.classList.remove('expired'));
         
         // Start fresh timer (startTimer will send chat message if enabled)

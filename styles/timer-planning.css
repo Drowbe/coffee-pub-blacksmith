@@ -54,11 +54,16 @@
     cursor: pointer;
 }
 
-/* Timer Bar */
+/* Timer Bar — anchor left so width% matches remaining time; avoid stray edge artifacts when narrow */
 .planning-timer-bar {
     position: absolute;
-    width: 100%;
+    left: 0;
+    top: 0;
+    width: 0%;
+    min-width: 0;
+    max-width: 100%;
     height: 100%;
+    box-sizing: border-box;
     background-color: #3a79c2;
     transition: width 1s linear, background-color 0.5s ease;
 }
@@ -73,18 +78,16 @@
 
 .planning-timer-bar.low {
     background-color: #032c5c;
-    animation: pulse 2s infinite;
+    /* Use brightness pulse — opacity pulse on a narrow bar bleeds the track / layout and reads as a wrong edge stripe */
+    animation: planning-timer-low-pulse 2s ease-in-out infinite;
 }
 
-@keyframes pulse {
-    0% {
-        opacity: 1;
+@keyframes planning-timer-low-pulse {
+    0%, 100% {
+        filter: brightness(1);
     }
     50% {
-        opacity: 0.5;
-    }
-    100% {
-        opacity: 1;
+        filter: brightness(1.2);
     }
 }
 

@@ -8,9 +8,9 @@ Single source of truth for performance, lifecycle, and journal/encounter monitor
 
 - **Status**: ACTIVE (pins hooks + watchdog prune fixed 2026-03-28; other items still tracked)
 - **Owner**: Systems/Performance
-- **Last Updated**: 2026-03-28 (HookManager-only journal pins hooks; `_knownSheets` prune in watchdog interval)
+- **Last Updated**: 2026-03-28 (rank 5: cached timer DOM for round / planning / combat tracker timers)
 - **Client validation**: In-world smoke test after these changes — journal page pins, page switching, and encounter toolbar reported **OK** (no duplicate pin bar / obvious regression).
-- **Key observation**: We are **not** currently reproducing the old browser-tab runaway memory growth/crash pattern. Remaining session cost drivers include **per-tick timer DOM queries**, **menubar churn**, and **Quick View token hooks** (see stack table).
+- **Key observation**: We are **not** currently reproducing the old browser-tab runaway memory growth/crash pattern. Remaining session cost drivers include **menubar churn** and **Quick View token hooks** (see stack table); combat tracker timer DOM is **cached** (rank 5 mitigated).
 
 ## Monitoring memory in the client (Chrome / Edge)
 
@@ -38,7 +38,7 @@ After a stress segment, closing journals should allow **DOM nodes** to drop some
 | 2 | High | Journal page pins lifecycle (`dispose` + `closeGame`) | Done | HookManager-only: `renderJournalSheet`, `renderJournalPageSheet`, `renderApplication` — `ui-journal-pins.js` |
 | 3 | High | Duplicate journal monitoring pipelines | Done | Shared `JournalDomWatchdog`; pins use HookManager-only for journal render hooks |
 | 4 | Medium | Menubar full rerenders on frequent update paths | Mitigated | Structure fingerprint skips DOM tear/rebuild when unchanged; `updateLeaderDisplay` full render only when leader-only visibility flips (`api-menubar.js`) |
-| 5 | Medium | Timer loops: global DOM queries / rerenders | Active | `timer-round.js`, `timer-planning.js`, menubar timer interval |
+| 5 | Medium | Timer loops: global DOM queries / rerenders | Mitigated | Round / planning / combat tracker: cached element lists, refresh on `renderCombatTracker` or stale refs; menubar session timer remains label-only refresh (`api-menubar.js`) |
 | 6 | Medium | Socket native fallback listener lifecycle | Done | Inbound `game.socket.off` before `on`; see §6 |
 | 7 | Low | Legacy / no-op hooks, stale cleanup | Done | Pass 1; see §7 |
 | 8 | High | Journal pins duplicate render hooks | Mitigated | 2026-03-28: removed duplicate `Hooks.on`; `renderApplication` via HookManager |
@@ -74,9 +74,9 @@ After a stress segment, closing journals should allow **DOM nodes** to drop some
    - **Fix (second follow-up)**: Same signature includes **`secondaryBarActiveStates`** (switch / “select one” groups) and **non-switch toggleable** button `active` bits so selected styling updates after clicks.
 
 5. **Timer UI updates query broadly and trigger extra renders**
-   - **Files**: `scripts/timer-round.js`, `scripts/timer-planning.js`
-   - **Evidence**: `document.querySelectorAll` for `.round-timer-container .combat-time-round`, `.combat-endcap-left .combat-time-round`, etc., on a **1s interval** while combat is active.
-   - **Risk**: Unnecessary per-tick DOM/query cost during long combats.
+   - **Files**: `scripts/timer-round.js`, `scripts/timer-planning.js`, `scripts/timer-combat.js`
+   - **Evidence (historical)**: `document.querySelectorAll` on a **1s interval** (round timer) and on every `updateUI` / `syncState` for planning and combat timers.
+   - **Mitigation (2026-03-28)**: **Round timer** — cache four node lists; **refresh** when any cached node disconnects or after **`renderCombatTracker`** injects markup. **Planning / combat timers** — cache bar/text/progress arrays; **refresh** when stale, when cache is empty while the timer should be visible, or after **`renderCombatTracker`** (combat timer explicitly refreshes before `updateUI`). **Remaining**: menubar session timer tick (unchanged; not full menubar rebuild).
 
 6. **Socket fallback lifecycle cleanup gap**
    - **Files**: `scripts/manager-sockets.js`
