@@ -24,6 +24,13 @@ export class QuickViewUtility {
 
   static _tokenOverlays = new Map();
 
+  /** Token IDs that should show the hatch (obscured by vision/fog for the scene view, or sheet-hidden). */
+  static _tokenIdsNeedingHatch = new Set();
+
+  /** Collapses multiple visibility updates into one post-pipeline pass (outer + inner rAF). */
+  static _tokenRevealOuterRaf = null;
+  static _tokenRevealInnerRaf = null;
+
   static _darknessAlphaTarget() {
     const v = getSettingSafely(MODULE.ID, 'quickViewDarknessAlpha', 0.5);
     if (typeof v !== 'number' || Number.isNaN(v)) return 0.5;
@@ -71,11 +78,14 @@ export class QuickViewUtility {
       // Make fog more transparent
       this._applyFogTransparency();
 
-      // Show overlays (only if token is selected)
-      this._showAllTokens();
-
       this._isActive = true;
       this._syncVisibilityReveal();
+      try {
+        canvas.visibility?.restrictVisibility?.();
+      } catch {
+        /* ignore */
+      }
+      this._scheduleQuickViewTokens();
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Clarity mode activated', '', true, false);
     } catch (error) {
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Error activating clarity mode', error, false, true);
@@ -100,8 +110,22 @@ export class QuickViewUtility {
       // Remove token overlays
       this._hideAllTokens();
 
+      this._tokenIdsNeedingHatch.clear();
+      if (this._tokenRevealOuterRaf !== null) {
+        cancelAnimationFrame(this._tokenRevealOuterRaf);
+        this._tokenRevealOuterRaf = null;
+      }
+      if (this._tokenRevealInnerRaf !== null) {
+        cancelAnimationFrame(this._tokenRevealInnerRaf);
+        this._tokenRevealInnerRaf = null;
+      }
       this._isActive = false;
       this._syncVisibilityReveal();
+      try {
+        canvas.visibility?.refreshVisibility?.();
+      } catch {
+        /* ignore */
+      }
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Clarity mode deactivated', '', true, false);
     } catch (error) {
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Error deactivating clarity mode', error, false, true);
@@ -276,16 +300,17 @@ export class QuickViewUtility {
   // ==================================================================
 
   /**
-   * Let GM see the whole scene by disabling token-only vision
+   * Let GM see the whole scene by disabling token-only vision when the legacy sight layer exists.
+   * v13+ often has no `canvas.sight`; token hiding is undone in `_afterRestrictVisibility` instead.
    */
   static _applyTokenVisionOverride() {
     try {
-      if (!canvas.sight) return;
+      const sight = canvas.sight;
+      if (!sight || typeof sight.tokenVision !== 'boolean') return;
       if (this._originalTokenVision === null) {
-        this._originalTokenVision = canvas.sight.tokenVision;
+        this._originalTokenVision = sight.tokenVision;
       }
-      canvas.sight.tokenVision = false;
-      // No explicit refresh call to avoid deprecation warnings; rely on perception updates elsewhere
+      sight.tokenVision = false;
     } catch (error) {
       console.error('Clarity debug — error applying token vision override:', error);
     }
@@ -296,9 +321,13 @@ export class QuickViewUtility {
    */
   static _restoreTokenVisionOverride() {
     try {
-      if (!canvas.sight) return;
+      const sight = canvas.sight;
+      if (!sight || typeof sight.tokenVision !== 'boolean') {
+        this._originalTokenVision = null;
+        return;
+      }
       if (this._originalTokenVision !== null) {
-        canvas.sight.tokenVision = this._originalTokenVision;
+        sight.tokenVision = this._originalTokenVision;
       }
       this._originalTokenVision = null;
     } catch (error) {
@@ -311,58 +340,106 @@ export class QuickViewUtility {
   // ==================================================================
 
   /**
-   * Show all tokens with hatched overlay
-   * When a token is selected, show ALL tokens with hatches.
+   * Run after the visibility pipeline finishes (double rAF) so core finishes culling before we un-hide.
    */
-  static _showAllTokens() {
-    console.log('Clarity debug — _showAllTokens called');
-
-    if (!canvas.tokens) {
-      console.log('Clarity debug — no canvas.tokens');
-      return;
-    }
-
-    const tokens = canvas.tokens.placeables;
-    const selectedTokens = canvas.tokens.controlled;
-    const hasSelectedToken = selectedTokens.length > 0;
-
-    console.log(
-      'Clarity debug — tokens count:',
-      tokens.length,
-      'selected tokens:',
-      selectedTokens.length,
-      'hasSelectedToken:',
-      hasSelectedToken
-    );
-
-    if (!hasSelectedToken) {
-      console.log('Clarity debug — returning early, no token selected');
-      return;
-    }
-
-    console.log('Clarity debug — processing tokens, will call _addTokenOverlay');
-
-    tokens.forEach(token => {
-      if (!token) return;
-
-      console.log('Clarity debug — calling _addTokenOverlay for:', token.name);
-
-      const opts = {
-        image: 'modules/coffee-pub-blacksmith/images/overlays/overlay-pattern-04.webp',
-        // FOR NOW: below the art is the indicator
-        above: false,
-        rotate: false,
-        blendMode: 'normal', // normal, overlay, multiply, screen, darken, lighten
-        fixedPatternScale: true,
-        alpha: 0.7
-      };
-
-      console.log('Clarity debug — overlay opts:', { token: token.name, ...opts });
-
-      QuickViewUtility._addTokenOverlay(token, opts).catch(err => {
-        console.error('Clarity debug — _addTokenOverlay error:', err);
+  static _scheduleQuickViewTokens() {
+    if (!game.user.isGM || !this._isActive || !canvas?.tokens) return;
+    if (this._tokenRevealOuterRaf !== null) cancelAnimationFrame(this._tokenRevealOuterRaf);
+    if (this._tokenRevealInnerRaf !== null) cancelAnimationFrame(this._tokenRevealInnerRaf);
+    this._tokenRevealOuterRaf = requestAnimationFrame(() => {
+      this._tokenRevealOuterRaf = null;
+      this._tokenRevealInnerRaf = requestAnimationFrame(() => {
+        this._tokenRevealInnerRaf = null;
+        this._afterRestrictVisibility();
       });
     });
+  }
+
+  /**
+   * Only touch the token container and its primary mesh. Do not recurse into children or force
+   * `alpha` / `renderable` on the whole subtree — that corrupts Foundry’s token draw pipeline and
+   * produces the global “mystery token” / missing-art fallback.
+   */
+  static _forceTokenVisibleForGM(token) {
+    if (!token) return;
+    try {
+      token.visible = true;
+      const mesh = token.mesh;
+      if (mesh) mesh.visible = true;
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /**
+   * Un-hide tokens for the GM and record hatch targets. Avoid `refreshVisibility` / `applyRenderFlags`
+   * here: they re-run core visibility refresh and routinely leave every token on the mystery icon.
+   */
+  static _afterRestrictVisibility() {
+    if (!game.user.isGM || !this._isActive || !canvas.tokens) return;
+
+    const needHatch = new Set();
+    for (const token of canvas.tokens.placeables) {
+      if (!token?.document || token.isPreview) continue;
+
+      const mesh = token.mesh;
+      const meshHidden = mesh && mesh.worldVisible === false;
+      const notShownToView = !token.isVisible || meshHidden;
+      let markHatch = notShownToView || !!token.document.hidden;
+      try {
+        if (!markHatch && typeof canvas.fog?.isPointExplored === 'function') {
+          const pt = token.center;
+          if (pt && !canvas.fog.isPointExplored(pt)) markHatch = true;
+        }
+      } catch {
+        /* ignore */
+      }
+
+      this._forceTokenVisibleForGM(token);
+
+      if (markHatch) needHatch.add(token.id);
+    }
+    this._setTokenHatchIds(needHatch);
+  }
+
+  /**
+   * Called from CanvasVisibility#restrictVisibility wrapper: which tokens get the hatch overlay.
+   */
+  static _setTokenHatchIds(ids) {
+    this._tokenIdsNeedingHatch.clear();
+    for (const id of ids) this._tokenIdsNeedingHatch.add(id);
+    if (this._isActive) this._showAllTokens();
+  }
+
+  static _hatchOverlayOptions() {
+    return {
+      image: 'modules/coffee-pub-blacksmith/images/overlays/overlay-pattern-04.webp',
+      above: false,
+      rotate: false,
+      blendMode: 'normal',
+      fixedPatternScale: true,
+      alpha: 0.7
+    };
+  }
+
+  /**
+   * Apply hatch only on tokens that would still be hidden from a normal player sight pass
+   * (fog/vision), or that are GM sheet-hidden.
+   */
+  static _showAllTokens() {
+    if (!this._isActive || !canvas.tokens) return;
+
+    const opts = this._hatchOverlayOptions();
+
+    for (const token of canvas.tokens.placeables) {
+      if (!token?.document) continue;
+
+      this._removeTokenOverlay(token);
+
+      if (this._tokenIdsNeedingHatch.has(token.id)) {
+        this._addTokenOverlay(token, opts).catch(() => {});
+      }
+    }
   }
 
   /**
@@ -396,15 +473,6 @@ export class QuickViewUtility {
     // Prevent stacking
     this._removeTokenOverlay(token);
 
-    console.log('Clarity debug — _addTokenOverlay START:', token.name, {
-      image: o.image,
-      above: o.above,
-      rotate: o.rotate,
-      blendMode,
-      fixedPatternScale: o.fixedPatternScale,
-      alpha: o.alpha
-    });
-
     if (!o.image) return;
 
     const texture = await this._loadTexture(o.image);
@@ -435,8 +503,6 @@ export class QuickViewUtility {
       const invX = sx > 0.0001 ? 1 / sx : 1;
       const invY = sy > 0.0001 ? 1 / sy : 1;
       overlay.tileScale.set(invX, invY);
-
-      console.log('Clarity debug — fixedPatternScale ON:', { sx, sy, tileScaleX: invX, tileScaleY: invY });
     }
 
     // Never intercept pointer events
@@ -461,21 +527,13 @@ export class QuickViewUtility {
     }
 
     this._tokenOverlays.set(token.id, { token, overlay });
-
-    console.log('Clarity debug — overlay ADDED OK:', {
-      token: token.name,
-      tokenChildren: token.children?.length ?? 0,
-      meshIndex,
-      overlayIndex: token.children?.indexOf?.(overlay) ?? -1
-    });
   }
 
   /**
    * Remove hatched overlay from a token
    */
   static _removeTokenOverlay(token) {
-    const mesh = token?.mesh;
-    if (!mesh || !token) return;
+    if (!token) return;
 
     // First try direct lookup from map
     const tracked = this._tokenOverlays.get(token.id);
@@ -540,7 +598,12 @@ export class QuickViewUtility {
     if (canvas.visibility) this._onDrawCanvasVisibility(canvas.visibility);
     this._syncVisibilityReveal();
     this._hideAllTokens();
-    this._showAllTokens();
+    try {
+      canvas.visibility?.restrictVisibility?.();
+    } catch {
+      /* ignore */
+    }
+    this._scheduleQuickViewTokens();
   }
 
   static _onVisibilityRefresh(visibility) {
@@ -551,6 +614,7 @@ export class QuickViewUtility {
       const g = visibility.getChildByName(this._REVEAL_CHILD_NAME);
       if (g) g.visible = this._isActive;
     }
+    if (this._isActive) this._scheduleQuickViewTokens();
   }
 
   /**
@@ -582,26 +646,36 @@ export class QuickViewUtility {
     Hooks.on('sightRefresh', (visibility) => {
       if (this._isActive) this._applyLightingBoost();
       this._sightRefreshReveal(visibility);
+      if (this._isActive) this._scheduleQuickViewTokens();
     });
 
     Hooks.on('createToken', () => {
-      if (this._isActive) this._showAllTokens();
+      if (!this._isActive) return;
+      try {
+        canvas.visibility?.restrictVisibility?.();
+      } catch {
+        /* ignore */
+      }
     });
 
     Hooks.on('updateToken', () => {
-      if (this._isActive) {
-        this._hideAllTokens();
-        this._showAllTokens();
+      if (!this._isActive) return;
+      try {
+        canvas.visibility?.restrictVisibility?.();
+      } catch {
+        /* ignore */
       }
     });
 
     Hooks.on('controlToken', () => {
-      if (this._isActive) {
-        this._applyLightingBoost();
-        this._applyTokenVisionOverride();
-        this._sightRefreshReveal(canvas?.visibility);
-        this._hideAllTokens();
-        this._showAllTokens();
+      if (!this._isActive) return;
+      this._applyLightingBoost();
+      this._applyTokenVisionOverride();
+      this._sightRefreshReveal(canvas?.visibility);
+      try {
+        canvas.visibility?.restrictVisibility?.();
+      } catch {
+        /* ignore */
       }
     });
 

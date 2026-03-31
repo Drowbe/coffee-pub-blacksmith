@@ -1,6 +1,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { QuickViewUtility } from './utility-quickview.js';
 
 /**
  * Manages all libWrapper integrations for the Blacksmith module
@@ -59,6 +60,11 @@ export class WrapperManager {
                     callback: this._onTokenDraw,
                     type: 'WRAPPER'
                 },
+                {
+                    target: 'foundry.canvas.groups.CanvasVisibility.prototype.restrictVisibility',
+                    callback: this._onRestrictVisibility,
+                    type: 'WRAPPER'
+                }
             ];
 
             // Register all wrappers and log their registration
@@ -185,5 +191,23 @@ export class WrapperManager {
             console.error("Coffee Pub Blacksmith | Error in token draw wrapper:", error);
             return wrapped(...args);
         }
+    }
+
+    /**
+     * After core token visibility restriction, Quick View forces GM-facing visibility and
+     * reapplies hatch overlays only where tokens are still sight-hidden or sheet-hidden.
+     */
+    static _onRestrictVisibility(wrapped, ...args) {
+        const result = wrapped(...args);
+        try {
+            if (result instanceof Promise) {
+                void result.then(() => QuickViewUtility._scheduleQuickViewTokens()).catch(() => {});
+            } else {
+                QuickViewUtility._scheduleQuickViewTokens();
+            }
+        } catch (error) {
+            console.error('Coffee Pub Blacksmith | restrictVisibility wrapper:', error);
+        }
+        return result;
     }
 }
