@@ -2773,7 +2773,7 @@ class MenuBar {
     }
 
     /**
-     * Live values for the open secondary bar: `updateSecondaryBarItemInfo` map + custom template `data`.
+     * Live values for the open secondary bar: info updates, custom `data`, switch selection, toggleable buttons.
      * Must be part of the menubar fingerprint; otherwise `renderMenubar` skips rebuild and bars stay stale.
      * @private
      */
@@ -2801,6 +2801,30 @@ class MenuBar {
                 chunks.push(`__customData:${JSON.stringify(sb.data)}`);
             } catch {
                 chunks.push('__customData:!json');
+            }
+        }
+
+        // Switch-mode "select one" groups (secondaryBarActiveStates drives which button looks active)
+        const activeStates = this.secondaryBarActiveStates.get(barTypeId);
+        if (activeStates && activeStates.size > 0) {
+            const entries = [...activeStates.entries()].sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+            chunks.push(`__activeStates:${entries.map(([g, id]) => `${g}=${id}`).join(',')}`);
+        }
+
+        // Default-mode toggleable buttons (item.active on stored item; not used for switch groups)
+        const items = this.secondaryBarItems.get(barTypeId);
+        const groups = this.secondaryBarGroups.get(barTypeId);
+        if (items && groups) {
+            const toggles = [];
+            for (const [id, item] of items.entries()) {
+                if (item.kind !== 'button' || !item.toggleable) continue;
+                const gc = groups.get(item.group || 'default');
+                if (gc?.mode === 'switch') continue;
+                toggles.push(`${id}:${item.active ? 1 : 0}`);
+            }
+            toggles.sort();
+            if (toggles.length) {
+                chunks.push(`__toggleBtn:${toggles.join('|')}`);
             }
         }
 

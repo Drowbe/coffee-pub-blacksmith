@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Performance**: **`JournalPagePins`** — register `renderJournalSheet`, `renderJournalPageSheet`, and journal-filtered `renderApplication` via **`HookManager` only** (removed duplicate `Hooks.on` that ran pin logic twice per render). **`JournalDomWatchdog`** — prune detached journal sheet roots from `_knownSheets` each interval tick to avoid retaining closed sheet DOM for the whole session.
 - **Performance**: **Menubar** (`api-menubar.js`) — **`renderMenubar`** skips full DOM remove/rebuild when a **structure fingerprint** (tools, notifications, secondary bar, movement, leader text, etc.; not per-second timer) is unchanged; applies **lightweight refresh** for timer/progress/leader/movement labels. **`updateLeaderDisplay`** triggers a full render only when this user’s **party-leader role** changes (leader-only tools visibility).
 - **Fix**: Menubar fingerprint now includes **live secondary bar content** (`secondaryBarInfoUpdates` + custom bar `data` JSON) so **`updateSecondaryBarItemInfo`** / **`updateSecondaryBar`** still force a real rebuild when reputation, party health, Minstrel, Herald, etc. update while a bar is open.
+- **Fix**: Fingerprint also includes **`secondaryBarActiveStates`** (switch / “select one” groups) and **toggleable** secondary button `active` flags so the selected button styling updates after **`updateSecondaryBarItemActive`** / toggle clicks.
 
 ## [13.5.8] - 2026-03-02 - PERF STACK QUICK WINS (RANK 7)
 
