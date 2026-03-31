@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.5.9]
 
+### Fixed
+
+- **Combat timer** (`timer-combat.js`): Align **`state.duration`** with configured turn length on init and use **`Math.max(configuredLimit, state.duration)`** for progress **width** so the bar matches “time remaining” when duration and settings differ (fixes bar stuck at full width).
+- **Planning timer** (`timer-planning.js`, `styles/timer-planning.css`, `ui-combat-tracker.js`): **Do not** treat an **empty** `combat.turns` as “all initiatives rolled”; start only via **`updateCombatant`** / deferred **`_tryStartWhenPlanningReady`** so the bar does not flash on round advance before initiative clears; **`renderCombatTracker`** strips planning DOM when **verify** fails; GM **`updateCombat`** stops the timer when initiative is cleared mid-planning; **one** shared **`_planningBarDenominatorSeconds()`** for bar width, color tiers, and “ending soon” interval logic (fixes critical-threshold mismatch); **brightness** pulse instead of **opacity** for **`.low`** to avoid edge strip artifacts; **ready** pass on **`CombatTracker`** runs **`_checkAllInitiativesRolled`** when combat is already active (reload).
+
 ### Changed
 
 - **Performance**: **Round / planning / combat tracker timers** — avoid per-tick or per-`updateUI` `document.querySelectorAll` hot paths by caching bar/text/progress (or round/total time) element lists; **refresh** when cached nodes disconnect, when the combat tracker re-renders (`renderCombatTracker`), or when the cache is empty while the timer should be visible (`timer-round.js`, `timer-planning.js`, `timer-combat.js`). See **`documentation/PERFORMANCE.md`** rank 5.
