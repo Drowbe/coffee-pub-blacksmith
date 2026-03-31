@@ -31,6 +31,9 @@ export class QuickViewUtility {
   static _tokenRevealOuterRaf = null;
   static _tokenRevealInnerRaf = null;
 
+  /** Debounce `refreshToken` storms (e.g. hover) before re-applying GM visibility. */
+  static _refreshTokenDebounceTid = null;
+
   static _darknessAlphaTarget() {
     const v = getSettingSafely(MODULE.ID, 'quickViewDarknessAlpha', 0.5);
     if (typeof v !== 'number' || Number.isNaN(v)) return 0.5;
@@ -118,6 +121,10 @@ export class QuickViewUtility {
       if (this._tokenRevealInnerRaf !== null) {
         cancelAnimationFrame(this._tokenRevealInnerRaf);
         this._tokenRevealInnerRaf = null;
+      }
+      if (this._refreshTokenDebounceTid !== null) {
+        clearTimeout(this._refreshTokenDebounceTid);
+        this._refreshTokenDebounceTid = null;
       }
       this._isActive = false;
       this._syncVisibilityReveal();
@@ -355,6 +362,15 @@ export class QuickViewUtility {
     });
   }
 
+  static _debouncedScheduleQuickViewTokens() {
+    if (!game.user.isGM || !this._isActive) return;
+    if (this._refreshTokenDebounceTid !== null) clearTimeout(this._refreshTokenDebounceTid);
+    this._refreshTokenDebounceTid = setTimeout(() => {
+      this._refreshTokenDebounceTid = null;
+      this._scheduleQuickViewTokens();
+    }, 16);
+  }
+
   /**
    * Only touch the token container and its primary mesh. Do not recurse into children or force
    * `alpha` / `renderable` on the whole subtree — that corrupts Foundry’s token draw pipeline and
@@ -372,8 +388,9 @@ export class QuickViewUtility {
   }
 
   /**
-   * Un-hide tokens for the GM and record hatch targets. Avoid `refreshVisibility` / `applyRenderFlags`
-   * here: they re-run core visibility refresh and routinely leave every token on the mystery icon.
+   * Un-hide tokens for the GM and record hatch targets. Hatch = core hid the token from the active
+   * sight polygon (`token.visible` false after restrict), not “in lit pocket” tokens. Do not use
+   * `isVisible` / fog exploration here — they mark the wrong set for GMs (inverted hatch).
    */
   static _afterRestrictVisibility() {
     if (!game.user.isGM || !this._isActive || !canvas.tokens) return;
@@ -382,18 +399,8 @@ export class QuickViewUtility {
     for (const token of canvas.tokens.placeables) {
       if (!token?.document || token.isPreview) continue;
 
-      const mesh = token.mesh;
-      const meshHidden = mesh && mesh.worldVisible === false;
-      const notShownToView = !token.isVisible || meshHidden;
-      let markHatch = notShownToView || !!token.document.hidden;
-      try {
-        if (!markHatch && typeof canvas.fog?.isPointExplored === 'function') {
-          const pt = token.center;
-          if (pt && !canvas.fog.isPointExplored(pt)) markHatch = true;
-        }
-      } catch {
-        /* ignore */
-      }
+      const coreWouldHideFromSight = !token.visible;
+      const markHatch = coreWouldHideFromSight || !!token.document.hidden;
 
       this._forceTokenVisibleForGM(token);
 
@@ -505,8 +512,10 @@ export class QuickViewUtility {
       overlay.tileScale.set(invX, invY);
     }
 
-    // Never intercept pointer events
+    // Never intercept pointer events (hover must hit the token mesh, not the hatch)
     overlay.eventMode = 'none';
+    overlay.interactive = false;
+    overlay.interactiveChildren = false;
 
     // Never mask. Ever. (This is what was blanking/disappearing things.)
     overlay.mask = null;
@@ -677,6 +686,16 @@ export class QuickViewUtility {
       } catch {
         /* ignore */
       }
+    });
+
+    Hooks.on('hoverToken', () => {
+      if (!this._isActive || !game.user.isGM) return;
+      this._scheduleQuickViewTokens();
+    });
+
+    Hooks.on('refreshToken', () => {
+      if (!this._isActive || !game.user.isGM) return;
+      this._debouncedScheduleQuickViewTokens();
     });
 
     postConsoleAndNotification(MODULE.NAME, 'Quick View Utility: Initialized', '', true, false);
