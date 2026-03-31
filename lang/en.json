@@ -94,6 +94,9 @@
 				"canvasToolsHideUIOnLoad-Label": "Apply on Load",
 				"canvasToolsHideUIOnLoad-Hint": "When enabled, the interface will automatically hide on load if you have the toggle set to hide.",
 
+				"quickViewDarknessAlpha-Label": "Quick View: darkness overlay",
+				"quickViewDarknessAlpha-Hint": "While Quick View (clarity mode) is on, this scales how much the global darkness layer dims the map. Lower values brighten hidden and unexplored areas more on your screen only (GMs). Does not change the scene for players.",
+
 			"headingH3Sidebars-Label": "Sidebars",
 			"headingH3Sidebars-Hint": "",
 

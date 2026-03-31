@@ -4,7 +4,7 @@
 
 import { MODULE } from './const.js';
 import { MenuBar } from './api-menubar.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 
 /**
  * Quick View Utility - Clarity Mode for GMs
@@ -15,9 +15,20 @@ export class QuickViewUtility {
   static _originalFogExplored = null;
   static _originalFogOpacity = undefined;
   static _originalTokenVision = null;
-  static _brightnessFilter = null;
+  /** Prior value of the core illumination shader reveal flag (see `uniforms` on the illumination effects filter) */
+  static _priorIlluminationUniformValue = undefined;
+  /** Captured darkness filter alpha before Quick View */
+  static _originalDarknessFilterAlpha = undefined;
+
+  static _REVEAL_CHILD_NAME = 'coffee-pub-blacksmith-quickview-reveal';
 
   static _tokenOverlays = new Map();
+
+  static _darknessAlphaTarget() {
+    const v = getSettingSafely(MODULE.ID, 'quickViewDarknessAlpha', 0.5);
+    if (typeof v !== 'number' || Number.isNaN(v)) return 0.5;
+    return Math.min(1, Math.max(0.2, v));
+  }
 
   /**
    * Toggle clarity mode on/off
@@ -52,8 +63,7 @@ export class QuickViewUtility {
     }
 
     try {
-      // Apply brightness increase (always-on, regardless of token selection)
-      await this._applyBrightness();
+      this._applyLightingBoost();
 
       // Allow GM to see the whole scene (disable token-only vision)
       this._applyTokenVisionOverride();
@@ -65,6 +75,7 @@ export class QuickViewUtility {
       this._showAllTokens();
 
       this._isActive = true;
+      this._syncVisibilityReveal();
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Clarity mode activated', '', true, false);
     } catch (error) {
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Error activating clarity mode', error, false, true);
@@ -78,8 +89,7 @@ export class QuickViewUtility {
     if (!this._isActive) return;
 
     try {
-      // Restore original brightness
-      await this._restoreBrightness();
+      this._restoreLightingBoost();
 
       // Restore token vision requirement
       this._restoreTokenVisionOverride();
@@ -91,6 +101,7 @@ export class QuickViewUtility {
       this._hideAllTokens();
 
       this._isActive = false;
+      this._syncVisibilityReveal();
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Clarity mode deactivated', '', true, false);
     } catch (error) {
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Error deactivating clarity mode', error, false, true);
@@ -98,53 +109,125 @@ export class QuickViewUtility {
   }
 
   // ==================================================================
-  // ===== BRIGHTNESS MANAGEMENT ======================================
+  // ===== LIGHTING / BRIGHTNESS (core effects pipeline, GM-only) =======
   // ==================================================================
 
   /**
-   * Apply brightness increase locally (GM-only) using a screen filter.
-   * Does not update the scene, so players are unaffected.
+   * Boost local GM view using the core lighting pipeline (illumination shader + darkness layer).
+   * Requires `drawCanvasDarknessEffects` to swap in an alpha filter so darkness strength applies.
+   * Does not change scene data.
    */
-  static async _applyBrightness() {
-    if (!canvas.app?.stage) return;
+  static _applyLightingBoost() {
+    if (!canvas?.ready) return;
 
     try {
-      // If filter already applied, skip
-      if (this._brightnessFilter) return;
+      const illumination = canvas.effects?.illumination;
+      const uniforms = illumination?.filter?.uniforms;
+      if (uniforms && 'gmVision' in uniforms) {
+        if (this._priorIlluminationUniformValue === undefined) {
+          this._priorIlluminationUniformValue = uniforms.gmVision;
+        }
+        uniforms.gmVision = true;
+      }
 
-      // Create a color matrix filter to brighten the view (local-only)
-      const filter = new PIXI.filters.ColorMatrixFilter();
-      filter.brightness(1.5, false); // 50% brighter, preserve colors
-
-      // Apply to stage filters
-      const existing = canvas.app.stage.filters ?? [];
-      canvas.app.stage.filters = [...existing, filter];
-      this._brightnessFilter = filter;
-
-      console.log('Clarity debug — local brightness filter applied (GM-only)');
+      const darknessFx = canvas.effects?.darkness;
+      const dFilter = darknessFx?.filter;
+      if (dFilter && 'alpha' in dFilter) {
+        if (this._originalDarknessFilterAlpha === undefined) {
+          this._originalDarknessFilterAlpha = dFilter.alpha;
+        }
+        dFilter.alpha = this._darknessAlphaTarget();
+      }
     } catch (error) {
-      console.error('Clarity debug — error applying brightness:', error);
-      postConsoleAndNotification(MODULE.NAME, 'Quick View: Error applying brightness', error, false, false);
+      console.error('Clarity debug — error applying lighting boost:', error);
+      postConsoleAndNotification(MODULE.NAME, 'Quick View: Error applying lighting boost', error, false, false);
     }
   }
 
   /**
-   * Restore original brightness (remove local filter)
+   * Restore illumination/darkness effects to pre–Quick View values.
    */
-  static async _restoreBrightness() {
-    if (!canvas.app?.stage) return;
+  static _restoreLightingBoost() {
+    if (!canvas?.ready) return;
 
     try {
-      if (this._brightnessFilter) {
-        const filters = canvas.app.stage.filters ?? [];
-        canvas.app.stage.filters = filters.filter(f => f !== this._brightnessFilter);
-        this._brightnessFilter = null;
-        console.log('Clarity debug — local brightness filter removed');
+      const illumination = canvas.effects?.illumination;
+      const uniforms = illumination?.filter?.uniforms;
+      if (uniforms && this._priorIlluminationUniformValue !== undefined && 'gmVision' in uniforms) {
+        uniforms.gmVision = this._priorIlluminationUniformValue;
+      }
+
+      const darknessFx = canvas.effects?.darkness;
+      const dFilter = darknessFx?.filter;
+      if (dFilter && this._originalDarknessFilterAlpha !== undefined && 'alpha' in dFilter) {
+        dFilter.alpha = this._originalDarknessFilterAlpha;
       }
     } catch (error) {
-      console.error('Clarity debug — error restoring brightness:', error);
-      postConsoleAndNotification(MODULE.NAME, 'Quick View: Error restoring brightness', error, false, false);
+      console.error('Clarity debug — error restoring lighting boost:', error);
+      postConsoleAndNotification(MODULE.NAME, 'Quick View: Error restoring lighting boost', error, false, false);
+    } finally {
+      this._priorIlluminationUniformValue = undefined;
+      this._originalDarknessFilterAlpha = undefined;
     }
+  }
+
+  /**
+   * Full-scene reveal mesh for the visibility group: shows unexplored areas dimly for the GM
+   * when Quick View is active. Hook: `drawCanvasVisibility` (see core CanvasGroup draw hook naming).
+   */
+  static _onDrawCanvasVisibility(visibility) {
+    if (!game.user.isGM || !visibility || !canvas?.dimensions?.rect) return;
+
+    try {
+      const RectGraphics = PIXI.LegacyGraphics ?? PIXI.Graphics;
+      let g = visibility.getChildByName?.(this._REVEAL_CHILD_NAME);
+      if (!g) {
+        g = new RectGraphics();
+        g.name = this._REVEAL_CHILD_NAME;
+        visibility.addChild(g);
+      }
+      g.clear();
+      g.beginFill(0xffffff);
+      g.drawShape(canvas.dimensions.rect);
+      g.endFill();
+      g.eventMode = 'none';
+      g.visible = this._isActive;
+    } catch (error) {
+      console.error('Clarity debug — drawCanvasVisibility reveal:', error);
+    }
+  }
+
+  /**
+   * Core darkness layer uses a filter whose alpha is not always adjustable; swap to AlphaFilter for GMs.
+   */
+  static _onDrawCanvasDarknessEffects(layer) {
+    if (!game.user.isGM || !layer) return;
+
+    try {
+      const prev = layer.filter;
+      const idx = layer.filters?.indexOf(prev) ?? -1;
+      const keepAlpha = typeof prev?.alpha === 'number' ? prev.alpha : 1;
+      layer.filter = new PIXI.AlphaFilter(keepAlpha);
+      if (idx >= 0 && layer.filters) layer.filters[idx] = layer.filter;
+    } catch (error) {
+      console.error('Clarity debug — drawCanvasDarknessEffects:', error);
+    }
+  }
+
+  static _syncVisibilityReveal() {
+    this._sightRefreshReveal(canvas?.visibility);
+  }
+
+  static _sightRefreshReveal(visibility) {
+    const v = visibility ?? canvas?.visibility;
+    if (!game.user.isGM || !canvas?.ready || !v) return;
+
+    let g = v.getChildByName?.(this._REVEAL_CHILD_NAME);
+    if (!g && canvas.dimensions?.rect) {
+      this._onDrawCanvasVisibility(v);
+      g = v.getChildByName?.(this._REVEAL_CHILD_NAME);
+    }
+    if (g) g.visible = this._isActive;
   }
 
   // ==================================================================
@@ -440,16 +523,65 @@ export class QuickViewUtility {
   }
 
   /**
+   * After a full canvas rebuild, cached effect overrides and overlay state are invalid — reapply.
+   */
+  static _resyncAfterCanvasReady() {
+    if (!this._isActive || !game.user.isGM) return;
+
+    this._originalFogOpacity = undefined;
+    this._originalTokenVision = null;
+    this._priorIlluminationUniformValue = undefined;
+    this._originalDarknessFilterAlpha = undefined;
+    this._tokenOverlays.clear();
+
+    this._applyLightingBoost();
+    this._applyTokenVisionOverride();
+    this._applyFogTransparency();
+    if (canvas.visibility) this._onDrawCanvasVisibility(canvas.visibility);
+    this._syncVisibilityReveal();
+    this._hideAllTokens();
+    this._showAllTokens();
+  }
+
+  static _onVisibilityRefresh(visibility) {
+    if (!game.user.isGM || !visibility) return;
+    if (!visibility.getChildByName?.(this._REVEAL_CHILD_NAME)) {
+      this._onDrawCanvasVisibility(visibility);
+    } else {
+      const g = visibility.getChildByName(this._REVEAL_CHILD_NAME);
+      if (g) g.visible = this._isActive;
+    }
+  }
+
+  /**
    * Initialize quick view utility
    */
   static initialize() {
     Hooks.on('canvasReady', () => {
-      if (this._isActive) {
-        this._isActive = false;
-        this._originalBrightness = null;
-        this._originalFogExplored = null;
-        this._tokenOverlays.clear();
-      }
+      this._resyncAfterCanvasReady();
+    });
+
+    const drawVis = (group) => {
+      this._onDrawCanvasVisibility(group);
+    };
+    Hooks.on('drawCanvasVisibility', drawVis);
+    Hooks.on('drawCanvasVisibilityGroup', drawVis);
+
+    Hooks.on('initializeVisionMode', (visibility) => {
+      this._onDrawCanvasVisibility(visibility);
+    });
+
+    Hooks.on('visibilityRefresh', (visibility) => {
+      this._onVisibilityRefresh(visibility);
+    });
+
+    Hooks.on('drawCanvasDarknessEffects', (layer) => {
+      this._onDrawCanvasDarknessEffects(layer);
+    });
+
+    Hooks.on('sightRefresh', (visibility) => {
+      if (this._isActive) this._applyLightingBoost();
+      this._sightRefreshReveal(visibility);
     });
 
     Hooks.on('createToken', () => {
@@ -463,19 +595,11 @@ export class QuickViewUtility {
       }
     });
 
-    Hooks.on('controlToken', async () => {
+    Hooks.on('controlToken', () => {
       if (this._isActive) {
-        // Reapply brightness so the scene stays bright even when a token is selected
-        await this._applyBrightness();
-        // Keep GM full-scene visibility
+        this._applyLightingBoost();
         this._applyTokenVisionOverride();
-        this._hideAllTokens();
-        this._showAllTokens();
-      }
-    });
-
-    Hooks.on('canvasReady', () => {
-      if (this._isActive) {
+        this._sightRefreshReveal(canvas?.visibility);
         this._hideAllTokens();
         this._showAllTokens();
       }

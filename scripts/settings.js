@@ -1410,6 +1410,27 @@ export const registerSettings = () => {
   		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
   	});
 
+	// -- Quick View (GM clarity): darkness overlay strength while active --
+	game.settings.register(MODULE.ID, 'quickViewDarknessAlpha', {
+		name: MODULE.ID + '.quickViewDarknessAlpha-Label',
+		hint: MODULE.ID + '.quickViewDarknessAlpha-Hint',
+		type: Number,
+		range: { min: 0.2, max: 1, step: 0.05 },
+		default: 0.5,
+		config: true,
+		requiresReload: false,
+		scope: 'user',
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE,
+		onChange: async () => {
+			try {
+				const { QuickViewUtility } = await import('./utility-quickview.js');
+				if (QuickViewUtility.isActive()) QuickViewUtility._applyLightingBoost();
+			} catch {
+				/* module cycling / non-canvas */
+			}
+		}
+	});
+
 	game.settings.register(MODULE.ID, 'pinsAllowPlayerWrites', {
 		name: MODULE.ID + '.pinsAllowPlayerWrites-Label',
 		hint: MODULE.ID + '.pinsAllowPlayerWrites-Hint',
