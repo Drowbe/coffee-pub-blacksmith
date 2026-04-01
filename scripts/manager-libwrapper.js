@@ -199,12 +199,16 @@ export class WrapperManager {
      */
     static _onRestrictVisibility(wrapped, ...args) {
         const result = wrapped(...args);
-        try {
-            if (result instanceof Promise) {
-                void result.then(() => QuickViewUtility._scheduleQuickViewTokens()).catch(() => {});
-            } else {
-                QuickViewUtility._scheduleQuickViewTokens();
+        const finish = () => {
+            try {
+                QuickViewUtility._syncQuickViewHatchAfterRestrict();
+            } catch (error) {
+                console.error('Coffee Pub Blacksmith | restrictVisibility wrapper:', error);
             }
+        };
+        try {
+            if (result instanceof Promise) void result.then(finish).catch(() => {});
+            else finish();
         } catch (error) {
             console.error('Coffee Pub Blacksmith | restrictVisibility wrapper:', error);
         }

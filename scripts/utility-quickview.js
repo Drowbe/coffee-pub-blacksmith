@@ -4,13 +4,15 @@
 
 import { MODULE } from './const.js';
 import { MenuBar } from './api-menubar.js';
-import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely, setSettingSafely } from './api-core.js';
 
 /**
  * Quick View Utility - Clarity Mode for GMs
  * Provides enhanced visibility: increased brightness, fog reveal, and token visibility
  */
 export class QuickViewUtility {
+  static _quickViewKeybindingRegistered = false;
+
   static _isActive = false;
   static _originalFogExplored = null;
   static _originalFogOpacity = undefined;
@@ -23,6 +25,9 @@ export class QuickViewUtility {
   static _REVEAL_CHILD_NAME = 'coffee-pub-blacksmith-quickview-reveal';
 
   static _tokenOverlays = new Map();
+
+  /** Parent on `canvas.interface` for sight highlights (not darkened with token meshes). */
+  static _sightHighlightLayer = null;
 
   /** Token IDs that should show the hatch (obscured by vision/fog for the scene view, or sheet-hidden). */
   static _tokenIdsNeedingHatch = new Set();
@@ -40,13 +45,55 @@ export class QuickViewUtility {
     return Math.min(1, Math.max(0.2, v));
   }
 
+  /** Hex string (e.g. #ffcc33) to packed RGB for PIXI lineStyle. */
+  static _sightHighlightColorNumber() {
+    const raw = getSettingSafely(MODULE.ID, 'quickViewSightHighlightColor', '#ffcc33');
+    let s = typeof raw === 'string' ? raw.trim() : '';
+    if (!s.startsWith('#')) s = `#${s}`;
+    const n = Number.parseInt(s.slice(1, 7), 16);
+    return Number.isFinite(n) && s.length >= 4 ? n : 0xffcc33;
+  }
+
+  /**
+   * Mirrors the "Enable Quickview" client setting (menubar, hotkey, settings UI).
+   */
+  static async _onQuickViewEnabledSettingChange(value) {
+    if (!game.user.isGM) return;
+    if (value) {
+      if (!canvas?.scene) {
+        await setSettingSafely(MODULE.ID, 'quickViewEnabled', false);
+        postConsoleAndNotification(MODULE.NAME, 'Quick View: No active scene', '', false, false);
+        try {
+          MenuBar.renderMenubar();
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+      if (!this._isActive) await this.activate();
+    } else {
+      await this.deactivate({ syncSetting: false });
+    }
+    try {
+      MenuBar.renderMenubar();
+    } catch {
+      /* ignore */
+    }
+  }
+
   /**
    * Toggle clarity mode on/off
    * @returns {boolean} New active state
    */
   static async toggle() {
-    if (this._isActive) await this.deactivate();
-    else await this.activate();
+    if (!game.user.isGM) return this._isActive;
+    const next = !getSettingSafely(MODULE.ID, 'quickViewEnabled', false);
+    await setSettingSafely(MODULE.ID, 'quickViewEnabled', next);
+    try {
+      MenuBar.renderMenubar();
+    } catch {
+      /* ignore */
+    }
     return this._isActive;
   }
 
@@ -62,6 +109,8 @@ export class QuickViewUtility {
    * Activate clarity mode
    */
   static async activate() {
+    if (this._isActive) return;
+
     if (!game.user.isGM) {
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Only GMs can use clarity mode', '', false, false);
       return;
@@ -69,6 +118,7 @@ export class QuickViewUtility {
 
     if (!canvas.scene) {
       postConsoleAndNotification(MODULE.NAME, 'Quick View: No active scene', '', false, false);
+      await setSettingSafely(MODULE.ID, 'quickViewEnabled', false);
       return;
     }
 
@@ -90,6 +140,11 @@ export class QuickViewUtility {
       }
       this._scheduleQuickViewTokens();
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Clarity mode activated', '', true, false);
+      try {
+        MenuBar.renderMenubar();
+      } catch {
+        /* ignore */
+      }
     } catch (error) {
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Error activating clarity mode', error, false, true);
     }
@@ -97,8 +152,9 @@ export class QuickViewUtility {
 
   /**
    * Deactivate clarity mode
+   * @param {{ syncSetting?: boolean }} [options] - When `syncSetting` is true (default), clears `quickViewEnabled` if still on.
    */
-  static async deactivate() {
+  static async deactivate({ syncSetting = true } = {}) {
     if (!this._isActive) return;
 
     try {
@@ -136,6 +192,15 @@ export class QuickViewUtility {
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Clarity mode deactivated', '', true, false);
     } catch (error) {
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Error deactivating clarity mode', error, false, true);
+    }
+
+    if (syncSetting && game.user.isGM && getSettingSafely(MODULE.ID, 'quickViewEnabled', false)) {
+      await setSettingSafely(MODULE.ID, 'quickViewEnabled', false);
+    }
+    try {
+      MenuBar.renderMenubar();
+    } catch {
+      /* ignore */
     }
   }
 
@@ -308,7 +373,7 @@ export class QuickViewUtility {
 
   /**
    * Let GM see the whole scene by disabling token-only vision when the legacy sight layer exists.
-   * v13+ often has no `canvas.sight`; token hiding is undone in `_afterRestrictVisibility` instead.
+   * v13+ often has no `canvas.sight`; token hiding is undone in `_syncQuickViewHatchAfterRestrict` instead.
    */
   static _applyTokenVisionOverride() {
     try {
@@ -357,7 +422,7 @@ export class QuickViewUtility {
       this._tokenRevealOuterRaf = null;
       this._tokenRevealInnerRaf = requestAnimationFrame(() => {
         this._tokenRevealInnerRaf = null;
-        this._afterRestrictVisibility();
+        this._reapplyGmTokenVisibilityAndOverlays();
       });
     });
   }
@@ -388,19 +453,45 @@ export class QuickViewUtility {
   }
 
   /**
-   * Un-hide tokens for the GM and record hatch targets. Hatch = core hid the token from the active
-   * sight polygon (`token.visible` false after restrict), not “in lit pocket” tokens. Do not use
-   * `isVisible` / fog exploration here — they mark the wrong set for GMs (inverted hatch).
+   * True when a token should be visually flagged in Clarity mode: sheet-hidden, or its center lies
+   * outside the current vision polygon. GMs often keep `token.visible === true` after
+   * `restrictVisibility`, so we use `CanvasVisibility#testVisibility` instead of `token.visible`.
    */
-  static _afterRestrictVisibility() {
+  static _needsSightHighlight(token) {
+    if (!token?.document || token.isPreview) return false;
+    if (token.document.hidden) return true;
+
+    const cv = canvas?.visibility;
+    if (cv?.tokenVision === false) return false;
+
+    const center = token.center;
+    if (cv && typeof cv.testVisibility === 'function' && center) {
+      try {
+        return !cv.testVisibility(center, { object: token, tolerance: 4 });
+      } catch {
+        /* fall through */
+      }
+    }
+
+    try {
+      return token.isVisible === false;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Run synchronously right after core `restrictVisibility` (libWrapper). Evaluate sight before
+   * forcing GM visibility so `testVisibility` / `isVisible` still match the core pass.
+   */
+  static _syncQuickViewHatchAfterRestrict() {
     if (!game.user.isGM || !this._isActive || !canvas.tokens) return;
 
     const needHatch = new Set();
     for (const token of canvas.tokens.placeables) {
       if (!token?.document || token.isPreview) continue;
 
-      const coreWouldHideFromSight = !token.visible;
-      const markHatch = coreWouldHideFromSight || !!token.document.hidden;
+      const markHatch = this._needsSightHighlight(token);
 
       this._forceTokenVisibleForGM(token);
 
@@ -410,7 +501,20 @@ export class QuickViewUtility {
   }
 
   /**
-   * Called from CanvasVisibility#restrictVisibility wrapper: which tokens get the hatch overlay.
+   * After hover / refresh: keep existing hatch IDs; only re-force GM visibility and redraw highlights.
+   */
+  static _reapplyGmTokenVisibilityAndOverlays() {
+    if (!game.user.isGM || !this._isActive || !canvas.tokens) return;
+
+    for (const token of canvas.tokens.placeables) {
+      if (!token?.document || token.isPreview) continue;
+      this._forceTokenVisibleForGM(token);
+    }
+    this._showAllTokens();
+  }
+
+  /**
+   * Stores which token IDs get the sight highlight (sync pass after `restrictVisibility`).
    */
   static _setTokenHatchIds(ids) {
     this._tokenIdsNeedingHatch.clear();
@@ -418,25 +522,81 @@ export class QuickViewUtility {
     if (this._isActive) this._showAllTokens();
   }
 
-  static _hatchOverlayOptions() {
-    return {
-      image: 'modules/coffee-pub-blacksmith/images/overlays/overlay-pattern-04.webp',
-      above: false,
-      rotate: false,
-      blendMode: 'normal',
-      fixedPatternScale: true,
-      alpha: 0.7
-    };
+  static _ensureSightHighlightLayer() {
+    const iface = canvas?.interface;
+    if (!iface) return null;
+
+    if (
+      this._sightHighlightLayer
+      && !this._sightHighlightLayer.destroyed
+      && this._sightHighlightLayer.parent === iface
+    ) {
+      return this._sightHighlightLayer;
+    }
+
+    const layer = new PIXI.Container();
+    layer.name = 'coffee-pub-blacksmith-quickview-sight-highlights';
+    layer.eventMode = 'none';
+    layer.interactiveChildren = false;
+    layer.sortableChildren = true;
+    layer.zIndex = 7;
+    iface.sortableChildren = true;
+    iface.addChild(layer);
+    this._sightHighlightLayer = layer;
+    return layer;
+  }
+
+  static _destroySightHighlightLayer() {
+    const layer = this._sightHighlightLayer;
+    if (!layer || layer.destroyed) {
+      this._sightHighlightLayer = null;
+      return;
+    }
+    try {
+      if (layer.parent) layer.parent.removeChild(layer);
+      layer.destroy({ children: true });
+    } catch {
+      /* ignore */
+    }
+    this._sightHighlightLayer = null;
   }
 
   /**
-   * Apply hatch only on tokens that would still be hidden from a normal player sight pass
-   * (fog/vision), or that are GM sheet-hidden.
+   * Rounded rect in scene space on `canvas.interface` so it is not dimmed with the token mesh.
+   */
+  static _addTokenSightHighlight(token) {
+    if (!token?.mesh) return;
+
+    this._removeTokenOverlay(token);
+
+    const w = token.w;
+    const h = token.h;
+    const c = token.center;
+    if (!w || !h || !c) return;
+
+    const layer = this._ensureSightHighlightLayer();
+    if (!layer) return;
+
+    const corner = Math.min(8, Math.min(w, h) * 0.12);
+    const g = new PIXI.Graphics();
+    g.name = 'clarity-token-sight-highlight';
+    g.lineStyle(4, this._sightHighlightColorNumber(), 1);
+    g.drawRoundedRect(-w / 2, -h / 2, w, h, corner);
+    g.position.set(c.x, c.y);
+    g.rotation = token.rotation;
+    g.eventMode = 'none';
+    g.interactive = false;
+    g.zIndex = 1;
+
+    layer.addChild(g);
+    this._tokenOverlays.set(token.id, { token, overlay: g });
+  }
+
+  /**
+   * Outline tokens in `_tokenIdsNeedingHatch` (outside controlled sight or hidden from players).
    */
   static _showAllTokens() {
     if (!this._isActive || !canvas.tokens) return;
-
-    const opts = this._hatchOverlayOptions();
 
     for (const token of canvas.tokens.placeables) {
       if (!token?.document) continue;
@@ -444,98 +604,9 @@ export class QuickViewUtility {
       this._removeTokenOverlay(token);
 
       if (this._tokenIdsNeedingHatch.has(token.id)) {
-        this._addTokenOverlay(token, opts).catch(() => {});
+        this._addTokenSightHighlight(token);
       }
     }
-  }
-
-  /**
-   * Add a hatched overlay to a token that matches the token's selection bounds.
-   *
-   * @param {Token} token
-   * @param {object} opts
-   * @param {string} opts.image Overlay texture path
-   * @param {boolean} opts.above If true, draw above token art; else below
-   * @param {boolean} opts.fixedPatternScale If true, keep pattern density fixed (screen/world-space feel)
-   * @param {number} opts.alpha Overlay alpha
-   * @param {number|string} opts.blendMode PIXI.BLEND_MODES.* or string alias ("multiply", etc.)
-   * @param {boolean} opts.rotate If true, overlay rotates with token; if false, counter-rotate to stay upright
-   */
-  static async _addTokenOverlay(token, opts = {}) {
-    const mesh = token?.mesh;
-    if (!token || !mesh) return;
-
-    const defaults = {
-      image: '',
-      above: false,                 // <- FOR NOW: below art
-      fixedPatternScale: true,
-      alpha: 0.9,
-      blendMode: 'multiply',
-      rotate: false                 // <- FOR NOW: keep pattern upright
-    };
-
-    const o = { ...defaults, ...opts };
-    const blendMode = this._normalizeBlendMode(o.blendMode);
-
-    // Prevent stacking
-    this._removeTokenOverlay(token);
-
-    if (!o.image) return;
-
-    const texture = await this._loadTexture(o.image);
-
-    // IMPORTANT: token container coords match selection bounds
-    const w = token.w;
-    const h = token.h;
-
-    if (!w || !h) {
-      console.warn('Clarity debug — token w/h invalid:', token.name, { w, h });
-      return;
-    }
-
-    const overlay = new PIXI.TilingSprite(texture, w, h);
-    overlay.name = 'clarity-token-overlay';
-    overlay.alpha = o.alpha;
-    overlay.blendMode = blendMode;
-
-    // Fill bounding box in token local space
-    overlay.position.set(0, 0);
-
-    // Keep hatch upright by counter-rotating if requested
-    if (o.rotate === false) overlay.rotation = -token.rotation;
-
-    // Fixed pattern density (neutralize world scale)
-    if (o.fixedPatternScale) {
-      const { sx, sy } = this._getWorldScale(token);
-      const invX = sx > 0.0001 ? 1 / sx : 1;
-      const invY = sy > 0.0001 ? 1 / sy : 1;
-      overlay.tileScale.set(invX, invY);
-    }
-
-    // Never intercept pointer events (hover must hit the token mesh, not the hatch)
-    overlay.eventMode = 'none';
-    overlay.interactive = false;
-    overlay.interactiveChildren = false;
-
-    // Never mask. Ever. (This is what was blanking/disappearing things.)
-    overlay.mask = null;
-
-    // Insert below the art reliably
-    token.sortableChildren = true;
-
-    // token.mesh might not be a direct child; we still prefer below a known mesh index if we find it
-    const meshIndex = token.children?.indexOf(mesh) ?? -1;
-
-    if (o.above) {
-      if (meshIndex >= 0) token.addChildAt(overlay, meshIndex + 1);
-      else token.addChild(overlay);
-    } else {
-      // Below
-      if (meshIndex >= 0) token.addChildAt(overlay, Math.max(0, meshIndex));
-      else token.addChildAt(overlay, 0);
-    }
-
-    this._tokenOverlays.set(token.id, { token, overlay });
   }
 
   /**
@@ -548,6 +619,7 @@ export class QuickViewUtility {
     const tracked = this._tokenOverlays.get(token.id);
     if (tracked?.overlay) {
       try {
+        if (tracked.overlay.parent) tracked.overlay.parent.removeChild(tracked.overlay);
         tracked.overlay.destroy({ children: true });
       } catch (e) {
         // ignore
@@ -556,7 +628,7 @@ export class QuickViewUtility {
       return;
     }
 
-    // Fallback: search by name
+    // Fallback: legacy child on the token container
     const overlay = token.getChildByName?.('clarity-token-overlay');
     if (!overlay) return;
 
@@ -571,22 +643,26 @@ export class QuickViewUtility {
    * Remove all token overlays
    */
   static _hideAllTokens() {
-    this._tokenOverlays.forEach((overlayData, tokenId) => {
+    for (const data of this._tokenOverlays.values()) {
       try {
-        const token = overlayData.token;
-        if (token) this._removeTokenOverlay(token);
-      } catch (e) {
-        // ignore
+        const o = data?.overlay;
+        if (o) {
+          if (o.parent) o.parent.removeChild(o);
+          if (!o.destroyed) o.destroy({ children: true });
+        }
+      } catch {
+        /* ignore */
       }
-    });
+    }
     this._tokenOverlays.clear();
+    this._destroySightHighlightLayer();
   }
 
   /**
    * Handle scene changes - deactivate clarity mode when scene changes
    */
   static onSceneChange() {
-    if (this._isActive) this.deactivate();
+    if (this._isActive) void this.deactivate({ syncSetting: true });
   }
 
   /**
@@ -599,14 +675,13 @@ export class QuickViewUtility {
     this._originalTokenVision = null;
     this._priorIlluminationUniformValue = undefined;
     this._originalDarknessFilterAlpha = undefined;
-    this._tokenOverlays.clear();
+    this._hideAllTokens();
 
     this._applyLightingBoost();
     this._applyTokenVisionOverride();
     this._applyFogTransparency();
     if (canvas.visibility) this._onDrawCanvasVisibility(canvas.visibility);
     this._syncVisibilityReveal();
-    this._hideAllTokens();
     try {
       canvas.visibility?.restrictVisibility?.();
     } catch {
@@ -631,7 +706,12 @@ export class QuickViewUtility {
    */
   static initialize() {
     Hooks.on('canvasReady', () => {
-      this._resyncAfterCanvasReady();
+      void (async () => {
+        if (game.user.isGM && getSettingSafely(MODULE.ID, 'quickViewEnabled', false) && !this._isActive && canvas?.scene) {
+          await this.activate();
+        }
+        this._resyncAfterCanvasReady();
+      })();
     });
 
     const drawVis = (group) => {
@@ -699,6 +779,37 @@ export class QuickViewUtility {
     });
 
     postConsoleAndNotification(MODULE.NAME, 'Quick View Utility: Initialized', '', true, false);
+    this._registerQuickViewKeybinding();
+  }
+
+  /**
+   * Foundry expects keybindings during `init`; registering only in `ready` can omit them from Configure Controls.
+   * Safe to call multiple times (e.g. init + ready + initialize fallback for late loads).
+   */
+  static _registerQuickViewKeybinding() {
+    if (this._quickViewKeybindingRegistered || !game?.keybindings?.register) return;
+    const controlMod = typeof KeyboardManager !== 'undefined' && KeyboardManager?.MODIFIER_KEYS?.CONTROL;
+    const modifiers = controlMod != null ? [controlMod] : ['Control'];
+    try {
+      const precedence =
+        typeof CONST !== 'undefined' && CONST.KEYBINDING_PRECEDENCE_NORMAL !== undefined
+          ? CONST.KEYBINDING_PRECEDENCE_NORMAL
+          : undefined;
+      game.keybindings.register(MODULE.ID, 'toggleQuickView', {
+        name: MODULE.ID + '.keybindingQuickViewToggle-Name',
+        hint: MODULE.ID + '.keybindingQuickViewToggle-Hint',
+        editable: [{ key: 'KeyQ', modifiers }],
+        restricted: true,
+        ...(precedence !== undefined ? { precedence } : {}),
+        onDown: () => {
+          if (!game.user?.isGM) return;
+          void QuickViewUtility.toggle();
+        }
+      });
+      this._quickViewKeybindingRegistered = true;
+    } catch (e) {
+      console.error('Coffee Pub Blacksmith | Quick View keybinding registration failed', e);
+    }
   }
 
   /**
@@ -717,61 +828,15 @@ export class QuickViewUtility {
     return this._isActive ? 'ON' : 'OFF';
   }
 
-  // ==================================================================
-  // ===== Helpers =====================================================
-  // ==================================================================
-
-  static _normalizeBlendMode(blendMode) {
-    if (typeof blendMode === 'number') return blendMode;
-
-    const s = String(blendMode || '').toLowerCase().trim();
-    const map = {
-      normal: PIXI.BLEND_MODES.NORMAL,
-      add: PIXI.BLEND_MODES.ADD,
-      multiply: PIXI.BLEND_MODES.MULTIPLY,
-      screen: PIXI.BLEND_MODES.SCREEN,
-      overlay: PIXI.BLEND_MODES.OVERLAY,
-      darken: PIXI.BLEND_MODES.DARKEN,
-      lighten: PIXI.BLEND_MODES.LIGHTEN
-    };
-
-    return map[s] ?? PIXI.BLEND_MODES.MULTIPLY;
-  }
-
-  static async _loadTexture(path) {
-    // Foundry’s TextureLoader is stable, but PIXI.Assets also works in many setups.
-    // This approach is intentionally conservative.
-    try {
-      if (foundry?.canvas?.TextureLoader) return await foundry.canvas.TextureLoader.loadTexture(path);
-    } catch (e) {
-      // fall through
-    }
-
-    // Fallback
-    return await PIXI.Assets.load(path);
-  }
-
-  static _getWorldScale(displayObject) {
-    // PIXI v7: worldTransform exists and contains scale components in a/b/c/d.
-    // We'll derive approximate scale magnitude on X/Y.
-    const wt = displayObject?.worldTransform;
-    if (!wt) return { sx: 1, sy: 1 };
-
-    // sx = sqrt(a^2 + b^2), sy = sqrt(c^2 + d^2)
-    const a = wt.a ?? 1;
-    const b = wt.b ?? 0;
-    const c = wt.c ?? 0;
-    const d = wt.d ?? 1;
-
-    const sx = Math.sqrt(a * a + b * b) || 1;
-    const sy = Math.sqrt(c * c + d * d) || 1;
-
-    return { sx, sy };
-  }
 }
 
-// Register Menubar Tool for Quick View
+Hooks.once('init', () => {
+    QuickViewUtility._registerQuickViewKeybinding();
+});
+
 Hooks.once('ready', () => {
+    QuickViewUtility._registerQuickViewKeybinding();
+
     MenuBar.registerMenubarTool('quickview', {
         icon: () => {
             return QuickViewUtility.getIcon();
@@ -780,12 +845,20 @@ Hooks.once('ready', () => {
         title: () => {
             return QuickViewUtility.getTitle();
         },
-        tooltip: "Toggle Clarity Mode: Increase brightness, reveal fog, show all tokens",
+        tooltip: "Quickview (GM): brightness, fog reveal, token sight highlights. Configure in module settings → Run the Game → Vision.",
         onClick: async () => {
             await QuickViewUtility.toggle();
-            // Trigger menubar re-render
-            MenuBar.renderMenubar();
         },
+        contextMenuItems: () => [
+            {
+                name: QuickViewUtility.isActive() ? 'Disable Quickview' : 'Enable Quickview',
+                icon: QuickViewUtility.getIcon(),
+                onClick: async () => {
+                    await QuickViewUtility.toggle();
+                    MenuBar.renderMenubar();
+                }
+            }
+        ],
         zone: "left",
         group: "general",
         groupOrder: 100, // GENERAL group
@@ -793,7 +866,7 @@ Hooks.once('ready', () => {
         moduleId: "blacksmith-core",
         gmOnly: true,
         leaderOnly: false,
-        visible: false, // Settings-driven visibility handled elsewhere/dynamically if needed
+        visible: () => game.user.isGM,
         toggleable: true,
         active: () => {
             return QuickViewUtility.isActive();

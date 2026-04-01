@@ -94,9 +94,6 @@
 				"canvasToolsHideUIOnLoad-Label": "Apply on Load",
 				"canvasToolsHideUIOnLoad-Hint": "When enabled, the interface will automatically hide on load if you have the toggle set to hide.",
 
-				"quickViewDarknessAlpha-Label": "Quick View: darkness overlay",
-				"quickViewDarknessAlpha-Hint": "While Quick View (clarity mode) is on, this scales how much the global darkness layer dims the map. Lower values brighten hidden and unexplored areas more on your screen only (GMs). Does not change the scene for players.",
-
 			"headingH3Sidebars-Label": "Sidebars",
 			"headingH3Sidebars-Hint": "",
 
@@ -170,6 +167,21 @@
 
 	"headingH1RunTheGame-Label": "Run the Game",
 	"headingH1RunTheGame-Hint": "Settings for running games, toolbars, chat, and gameplay features",
+
+		"headingH2Vision-Label": "Vision",
+		"headingH2Vision-Hint": "GM Quickview (clarity mode), darkness overlay, and out-of-sight token highlights.",
+
+			"quickViewEnabled-Label": "Enable Quickview",
+			"quickViewEnabled-Hint": "When enabled, Quickview is on for you: brighter GM view, fog reveal, and highlights for tokens outside current sight. Matches the menubar control and the configurable hotkey.",
+
+			"quickViewDarknessAlpha-Label": "Darkness overlay strength",
+			"quickViewDarknessAlpha-Hint": "While Quickview is on, scales how much the global darkness layer dims the map. Lower values brighten hidden and unexplored areas more on your screen only (GMs). Does not change the scene for players.",
+
+			"quickViewSightHighlightColor-Label": "Out-of-sight token highlight color",
+			"quickViewSightHighlightColor-Hint": "Border color for tokens outside the current vision polygon while Quickview is active.",
+
+			"keybindingQuickViewToggle-Name": "Toggle Quickview",
+			"keybindingQuickViewToggle-Hint": "Turn GM Quickview (clarity mode) on or off.",
 
 		"headingH2CombatEnhancements-Label": "Combat",
 		"headingH2CombatEnhancements-Hint": "Enhancements and quality of lifeimprovements to the combat system.",

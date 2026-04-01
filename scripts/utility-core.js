@@ -121,9 +121,9 @@ export class CoreUIUtility {
 
         if (game.user.isGM) {
             items.push({
-                name: QuickViewUtility.isActive() ? "Quick View Off" : "Quick View On",
+                name: QuickViewUtility.isActive() ? "Disable Quickview" : "Enable Quickview",
                 icon: QuickViewUtility.getIcon(),
-                description: "Enhanced clarity for the GM",
+                description: "GM Quickview: brightness, fog reveal, token sight highlights",
                 onClick: async () => {
                     await QuickViewUtility.toggle();
                     MenuBar.renderMenubar();
