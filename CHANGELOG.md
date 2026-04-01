@@ -7,13 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.5.9]
 
+### Added
+
+- **Vision (GM Quickview)** (`settings.js`, `lang/en.json`): New **Run the Game → Vision** block — **Enable Quickview** (`quickViewEnabled`, client, mirrors menubar/hotkey), **Darkness overlay strength** (moved from User Experience → Canvas), **Out-of-sight token highlight color** (`quickViewSightHighlightColor`, hex string).
+- **Quickview keybinding**: **Toggle Quickview** via Foundry **Configure Controls** — default **Ctrl+Q** (`game.keybindings.register` on **`init`**, with **`ready`** + **`initialize()`** fallbacks so the action always appears under **Coffee Pub Blacksmith**). **`utility-quickview.js`**
+- **Menubar Quickview** (`utility-quickview.js`): Tool **visible for GMs**; right-click **Enable Quickview** / **Disable Quickview**; start menu (`utility-core.js`) uses the same labels.
+
 ### Fixed
 
+- **Quickview — out-of-sight token highlight** (`utility-quickview.js`, `manager-libwrapper.js`): Highlights no longer relied on `token.visible` after a deferred pass (often always true for GMs). **Detection** uses **`canvas.visibility.testVisibility`** (with **`token.isVisible`** fallback) **before** forcing GM visibility. **Drawing** uses **`canvas.interface`** (world-space rounded rect) so borders are not dimmed with token meshes. **`restrictVisibility`** wrapper runs **`_syncQuickViewHatchAfterRestrict`** immediately; deferred **`_scheduleQuickViewTokens`** only reapplies GM visibility and redraws stored highlight IDs (`_reapplyGmTokenVisibilityAndOverlays`).
 - **Combat timer** (`timer-combat.js`): Align **`state.duration`** with configured turn length on init and use **`Math.max(configuredLimit, state.duration)`** for progress **width** so the bar matches “time remaining” when duration and settings differ (fixes bar stuck at full width).
 - **Planning timer** (`timer-planning.js`, `styles/timer-planning.css`, `ui-combat-tracker.js`): **Do not** treat an **empty** `combat.turns` as “all initiatives rolled”; start only via **`updateCombatant`** / deferred **`_tryStartWhenPlanningReady`** so the bar does not flash on round advance before initiative clears; **`renderCombatTracker`** strips planning DOM when **verify** fails; GM **`updateCombat`** stops the timer when initiative is cleared mid-planning; **one** shared **`_planningBarDenominatorSeconds()`** for bar width, color tiers, and “ending soon” interval logic (fixes critical-threshold mismatch); **brightness** pulse instead of **opacity** for **`.low`** to avoid edge strip artifacts; **ready** pass on **`CombatTracker`** runs **`_checkAllInitiativesRolled`** when combat is already active (reload).
 
 ### Changed
 
+- **Quickview (GM)** (`utility-quickview.js`): On/off is driven by the **Enable Quickview** client setting (menubar, hotkey, and settings sheet stay in sync); changing scenes clears the setting when Quickview was active; **`canvasReady`** reapplies when the setting is on after load.
 - **Performance**: **Round / planning / combat tracker timers** — avoid per-tick or per-`updateUI` `document.querySelectorAll` hot paths by caching bar/text/progress (or round/total time) element lists; **refresh** when cached nodes disconnect, when the combat tracker re-renders (`renderCombatTracker`), or when the cache is empty while the timer should be visible (`timer-round.js`, `timer-planning.js`, `timer-combat.js`). See **`documentation/PERFORMANCE.md`** rank 5.
 - **Documentation**: Merged `documentation/PERFORMANCE-journal-lifecycle-checklist.md` into **`documentation/PERFORMANCE.md`** (single source of truth). Added code-review items: duplicate journal pin hooks, `JournalDomWatchdog` sheet retention, Quick View hooks, pin renderer cleanup gap.
 - **Performance**: **`JournalPagePins`** — register `renderJournalSheet`, `renderJournalPageSheet`, and journal-filtered `renderApplication` via **`HookManager` only** (removed duplicate `Hooks.on` that ran pin logic twice per render). **`JournalDomWatchdog`** — prune detached journal sheet roots from `_knownSheets` each interval tick to avoid retaining closed sheet DOM for the whole session.
