@@ -493,12 +493,14 @@ class SocketManager {
     }
 
     /**
-     * Register `ping` / `pong` / `latencyUpdate` only when world **Enable System Latency Checks** is on.
-     * Safe to call again after toggling the setting on (e.g. from settings `onChange`); idempotent.
+     * Register `ping` / `pong` / `latencyUpdate` once the socket is ready.
+     * Handlers always exist so other clients (e.g. stale sessions still sending pings after the GM
+     * disabled latency) do not trigger SocketlibUnregisteredHandlerError. Actual work runs only
+     * while world **Enable System Latency Checks** is on (`runLatencyPayload` / LatencyChecker gate).
+     * Safe to call again after toggling the setting; idempotent.
      */
     static ensureLatencySocketHandlers() {
         if (this._latencySocketHandlersRegistered) return;
-        if (!getSettingSafely(MODULE.ID, 'enableLatency', true)) return;
         if (!this.socket || !this.isSocketReady) return;
 
         const runLatencyPayload = (data, label) => {

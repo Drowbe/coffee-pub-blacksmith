@@ -15,7 +15,7 @@ Two-level affordance model:
 |---|------|------------------|----------------------|-----------------|--------|
 | 1 | Quick View | Yes — `enableQuickViewFeature` + dynamic import; conditional libWrapper | `quickViewEnabled` = **Quickview on** | Done |
 | 2 | Performance monitor | Yes — `enablePerformanceMonitor`; dynamic import when hamburger opens | Context menu only (no menubar tool) | Done |
-| 3 | Latency | Partial — `enableLatency` gates socket registration + checker | `enableLatency` world setting | Done |
+| 3 | Latency | Handlers always registered; `enableLatency` gates work + checker | `enableLatency` world setting | Done |
 | 4 | Pins menubar | N/A | No menubar button; **Pins** flyout on hamburger only; **Pins** H3 under Layout after **Canvas** | Done |
 | 5 | Combat timer | Mostly yes — no hooks if disabled | — | OK; optional dynamic import later | Not started |
 | 6 | Round timer | No — hooks + 1s interval always | `showRoundTimer` mostly UI template | Gate **`initialize()`** (register hooks / interval only when enabled) | Not started |
@@ -41,8 +41,8 @@ Update **Status** as work proceeds (e.g. Not started → In progress → Done).
 
 ### Latency
 
-- `SocketManager.ensureLatencySocketHandlers()` registers `ping` / `pong` / `latencyUpdate` only when `enableLatency` is true (at socket init or via settings `onChange`).
-- `LatencyChecker._handleSocketMessage` and UI paths no-op when `enableLatency` is false; disabling runs `cleanupChecker()` (strips player-list latency UI). Handlers stay registered but ignore traffic while off.
+- `SocketManager.ensureLatencySocketHandlers()` registers `ping` / `pong` / `latencyUpdate` as soon as the socket is ready (once, idempotent). Payload handling no-ops when `enableLatency` is false so clients with latency off still accept messages and avoid SocketlibUnregisteredHandlerError from stale senders.
+- `LatencyChecker._handleSocketMessage` and UI paths no-op when `enableLatency` is false; disabling runs `cleanupChecker()` (strips player-list latency UI).
 
 ### Pins
 
@@ -68,7 +68,7 @@ Update **Status** as work proceeds (e.g. Not started → In progress → Done).
 2. **Quick View** — `enableQuickview` load gate; remove static `QuickViewUtility` from `manager-libwrapper.js` (lazy/indirect); dynamic import when enabled; rename current setting to **Quickview on**.
 3. **Round timer** — Gate hook + interval registration behind an enable flag (align with combat timer pattern).
 4. **Performance** — Enable flag + settings section; unify menubar vs start-menu behavior per product decision.
-5. **Latency** — Guard socket handlers or register them only when enabled.
+5. **Latency** — Handlers always registered; gate processing on `enableLatency` (avoids Socketlib errors from mixed clients).
 6. **Pins** — Done: hamburger **Pins** submenu only (no menubar tool); **Canvas** then **Pins** in Layout settings.
 7. **Planning timer** — Optionally defer hook registration until enabled (or accept early-return pattern).
 8. **Stats** — Optional later: dynamic import to shrink cold path when tracking is off.
