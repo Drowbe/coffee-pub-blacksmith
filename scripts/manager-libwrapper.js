@@ -1,7 +1,6 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
-import { QuickViewUtility } from './utility-quickview.js';
 
 /**
  * Manages all libWrapper integrations for the Blacksmith module
@@ -59,13 +58,16 @@ export class WrapperManager {
                     target: 'foundry.canvas.placeables.Token.prototype.draw',
                     callback: this._onTokenDraw,
                     type: 'WRAPPER'
-                },
-                {
+                }
+            ];
+
+            if (getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)) {
+                wrapperRegistrations.push({
                     target: 'foundry.canvas.groups.CanvasVisibility.prototype.restrictVisibility',
                     callback: this._onRestrictVisibility,
                     type: 'WRAPPER'
-                }
-            ];
+                });
+            }
 
             // Register all wrappers and log their registration
             for (const reg of wrapperRegistrations) {
@@ -199,16 +201,17 @@ export class WrapperManager {
      */
     static _onRestrictVisibility(wrapped, ...args) {
         const result = wrapped(...args);
-        const finish = () => {
+        const finish = async () => {
             try {
+                const { QuickViewUtility } = await import('./utility-quickview.js');
                 QuickViewUtility._syncQuickViewHatchAfterRestrict();
             } catch (error) {
                 console.error('Coffee Pub Blacksmith | restrictVisibility wrapper:', error);
             }
         };
         try {
-            if (result instanceof Promise) void result.then(finish).catch(() => {});
-            else finish();
+            if (result instanceof Promise) void result.then(() => finish()).catch(() => {});
+            else void finish();
         } catch (error) {
             console.error('Coffee Pub Blacksmith | restrictVisibility wrapper:', error);
         }

@@ -171,11 +171,14 @@
 		"headingH2Vision-Label": "Vision",
 		"headingH2Vision-Hint": "GM Quickview (clarity mode), darkness overlay, and out-of-sight token highlights.",
 
-			"quickViewEnabled-Label": "Enable Quickview",
-			"quickViewEnabled-Hint": "When enabled, Quickview is on for you: brighter GM view, fog reveal, and highlights for tokens outside current sight. Matches the menubar control and the configurable hotkey.",
+			"enableQuickViewFeature-Label": "Enable Quickview",
+			"enableQuickViewFeature-Hint": "Loads Quickview (vision hooks, menubar tool, hotkey). When off, Quickview does not load until you reload. Use Quickview on for your runtime clarity toggle.",
+
+			"quickViewEnabled-Label": "Quickview on",
+			"quickViewEnabled-Hint": "When on, Quickview clarity mode is active for you: brighter GM view, fog reveal, and highlights for tokens outside current sight. Matches the menubar control and the configurable hotkey. Requires Enable Quickview (reload) for the feature to load.",
 
 			"quickViewDarknessAlpha-Label": "Darkness overlay strength",
-			"quickViewDarknessAlpha-Hint": "While Quickview is on, scales how much the global darkness layer dims the map. Lower values brighten hidden and unexplored areas more on your screen only (GMs). Does not change the scene for players.",
+			"quickViewDarknessAlpha-Hint": "While Quickview is on (GM only), sets the darkness layer filter alpha on your client: slide toward the minimum (0.2) for a brighter GM view in hidden and unexplored areas; slide toward the maximum (1) for a darker, closer-to-normal overlay. The value is read when Quickview turns on and whenever you move the slider while it is on. Does not change the scene for players.",
 
 			"quickViewSightHighlightColor-Label": "Out-of-sight token highlight color",
 			"quickViewSightHighlightColor-Hint": "Border color for tokens outside the current vision polygon while Quickview is active.",

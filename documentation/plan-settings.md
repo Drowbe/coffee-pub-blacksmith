@@ -13,7 +13,7 @@ Two-level affordance model:
 
 | # | Area | Load gate today? | On/off vs visibility | Target / action | Status |
 |---|------|------------------|----------------------|-----------------|--------|
-| 1 | Quick View | No — static imports + libWrapper always | `quickViewEnabled` is on/off but labeled like “enable” | Add true **Enable Quickview** gate; rename current to **Quickview on**; lazy-load; conditional `restrictVisibility` wrapper | Not started |
+| 1 | Quick View | Yes — `enableQuickViewFeature` + dynamic import; conditional libWrapper | `quickViewEnabled` = **Quickview on** | Done |
 | 2 | Performance monitor | No | `menubarShowPerformance` = menubar visibility only; start menu always | **Enable** gate + optional menubar visibility; single UX (e.g. context/start only) + **`Performance`** settings section | Not started |
 | 3 | Latency | Partial — init skips hooks/interval | Socket `ping`/`pong`/`latencyUpdate` always registered | No-op or don’t register handlers when `enableLatency` false | Not started |
 | 4 | Pins menubar | N/A | `menubarShowPins` **never read**; tool `visible: false` hardcoded | Wire setting OR remove; **Pins** section under Canvas; move **Player Pin Editing** | Not started |
@@ -31,8 +31,8 @@ Update **Status** as work proceeds (e.g. Not started → In progress → Done).
 
 ### Quick View
 
-- `utility-quickview.js` loads via `api-menubar.js`, `utility-core.js`, and **`manager-libwrapper.js`** (static `QuickViewUtility` import).
-- `restrictVisibility` wrapper is always registered; inactive Quickview returns early in `_syncQuickViewHatchAfterRestrict` but still runs on every pass.
+- `enableQuickViewFeature` (reload): when false, `utility-quickview.js` is not loaded from the main path; libWrapper does not register `restrictVisibility` for Quickview.
+- When enabled, Quickview loads after `ready` and registers hooks, menubar, and keybinding from `QuickViewUtility.initialize()`; `restrictVisibility` sync runs only when the wrapper is registered and Quickview is active.
 
 ### Performance monitor
 

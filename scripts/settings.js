@@ -1705,6 +1705,17 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('Vision', 'headingH2Vision-Label', 'headingH2Vision-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME, 'user');
 
+	game.settings.register(MODULE.ID, 'enableQuickViewFeature', {
+		name: MODULE.ID + '.enableQuickViewFeature-Label',
+		hint: MODULE.ID + '.enableQuickViewFeature-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: true,
+		scope: 'user',
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	game.settings.register(MODULE.ID, 'quickViewEnabled', {
 		name: MODULE.ID + '.quickViewEnabled-Label',
 		hint: MODULE.ID + '.quickViewEnabled-Hint',
@@ -1715,6 +1726,7 @@ export const registerSettings = () => {
 		default: false,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME,
 		onChange: async (value) => {
+			if (!getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)) return;
 			try {
 				const { QuickViewUtility } = await import('./utility-quickview.js');
 				await QuickViewUtility._onQuickViewEnabledSettingChange(!!value);
@@ -1735,6 +1747,7 @@ export const registerSettings = () => {
 		scope: 'user',
 		group: WORKFLOW_GROUPS.RUN_THE_GAME,
 		onChange: async () => {
+			if (!getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)) return;
 			try {
 				const { QuickViewUtility } = await import('./utility-quickview.js');
 				if (QuickViewUtility.isActive()) QuickViewUtility._applyLightingBoost();
@@ -1754,6 +1767,7 @@ export const registerSettings = () => {
 		scope: 'user',
 		group: WORKFLOW_GROUPS.RUN_THE_GAME,
 		onChange: async () => {
+			if (!getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)) return;
 			try {
 				const { QuickViewUtility } = await import('./utility-quickview.js');
 				if (QuickViewUtility.isActive()) QuickViewUtility._showAllTokens();

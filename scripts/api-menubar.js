@@ -5,7 +5,6 @@ import { ModuleManager } from './manager-modules.js';
 import { HookManager } from './manager-hooks.js';
 import { MovementConfig } from './token-movement.js';
 import { PerformanceUtility } from './utility-performance.js';
-import { QuickViewUtility } from './utility-quickview.js';
 import { CoreUIUtility } from './utility-core.js';
 import { VoteConfig } from './window-vote-config.js';
 import { XpManager } from './xp-manager.js';

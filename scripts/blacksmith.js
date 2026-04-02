@@ -896,10 +896,12 @@ Hooks.once('init', async function() {
     CombatTracker.initialize();
     // VOTE MANAGER
     VoteManager.initialize();
-    // QUICK VIEW UTILITY
-    import('./utility-quickview.js').then(({ QuickViewUtility }) => {
-        QuickViewUtility.initialize();
-    });
+    // QUICK VIEW — load only when the Vision load gate is on (see enableQuickViewFeature)
+    if (getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)) {
+        import('./utility-quickview.js').then(({ QuickViewUtility }) => {
+            QuickViewUtility.initialize();
+        });
+    }
 
     // BLACKSMITH TOOLBAR MANAGER
     // Register toolbar button and expose API

@@ -13,6 +13,9 @@ import { postConsoleAndNotification, getSettingSafely, setSettingSafely } from '
 export class QuickViewUtility {
   static _quickViewKeybindingRegistered = false;
 
+  /** Prevents duplicate hook / keybinding registration if `initialize()` is ever called twice. */
+  static _moduleInitialized = false;
+
   static _isActive = false;
   static _originalFogExplored = null;
   static _originalFogOpacity = undefined;
@@ -55,7 +58,7 @@ export class QuickViewUtility {
   }
 
   /**
-   * Mirrors the "Enable Quickview" client setting (menubar, hotkey, settings UI).
+   * Mirrors the **Quickview on** client setting (`quickViewEnabled`: menubar, hotkey, settings sheet).
    */
   static async _onQuickViewEnabledSettingChange(value) {
     if (!game.user.isGM) return;
@@ -87,12 +90,16 @@ export class QuickViewUtility {
    */
   static async toggle() {
     if (!game.user.isGM) return this._isActive;
+    if (!getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)) return this._isActive;
     const next = !getSettingSafely(MODULE.ID, 'quickViewEnabled', false);
-    await setSettingSafely(MODULE.ID, 'quickViewEnabled', next);
-    try {
-      MenuBar.renderMenubar();
-    } catch {
-      /* ignore */
+    const saved = await setSettingSafely(MODULE.ID, 'quickViewEnabled', next);
+    if (saved) {
+      try {
+        // Idempotent with the settings `onChange` handler; ensures canvas matches even if core `set` does not await `onChange`.
+        await this._onQuickViewEnabledSettingChange(!!next);
+      } catch {
+        /* module cycling */
+      }
     }
     return this._isActive;
   }
@@ -111,6 +118,8 @@ export class QuickViewUtility {
   static async activate() {
     if (this._isActive) return;
 
+    if (!getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)) return;
+
     if (!game.user.isGM) {
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Only GMs can use clarity mode', '', false, false);
       return;
@@ -123,6 +132,10 @@ export class QuickViewUtility {
     }
 
     try {
+      // Fresh baseline + slider: user may have changed Darkness overlay strength while Quickview was off.
+      this._priorIlluminationUniformValue = undefined;
+      this._originalDarknessFilterAlpha = undefined;
+
       this._applyLightingBoost();
 
       // Allow GM to see the whole scene (disable token-only vision)
@@ -485,6 +498,7 @@ export class QuickViewUtility {
    * forcing GM visibility so `testVisibility` / `isVisible` still match the core pass.
    */
   static _syncQuickViewHatchAfterRestrict() {
+    if (!getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)) return;
     if (!game.user.isGM || !this._isActive || !canvas.tokens) return;
 
     const needHatch = new Set();
@@ -666,10 +680,24 @@ export class QuickViewUtility {
   }
 
   /**
-   * After a full canvas rebuild, cached effect overrides and overlay state are invalid — reapply.
+   * Apply persisted `quickViewEnabled` when the canvas is (or becomes) ready. Runs on `canvasReady` and once after
+   * registration so a late `initialize()` (e.g. dynamic import after the first `canvasReady`) does not miss activation.
+   * No-ops if `game.user` is not ready yet (can happen during very early `ready`).
    */
+  static async _syncCanvasWithQuickViewSetting() {
+    if (!game?.user?.isGM || !getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)) return;
+    try {
+      if (getSettingSafely(MODULE.ID, 'quickViewEnabled', false) && !this._isActive && canvas?.ready && canvas?.scene) {
+        await this.activate();
+      }
+      this._resyncAfterCanvasReady();
+    } catch (e) {
+      console.error('Coffee Pub Blacksmith | Quick View canvas sync failed', e);
+    }
+  }
+
   static _resyncAfterCanvasReady() {
-    if (!this._isActive || !game.user.isGM) return;
+    if (!this._isActive || !game?.user?.isGM) return;
 
     this._originalFogOpacity = undefined;
     this._originalTokenVision = null;
@@ -702,17 +730,18 @@ export class QuickViewUtility {
   }
 
   /**
-   * Initialize quick view utility
+   * Register hooks and keybinding. Quickview is toggled from the left start menu (hamburger), not a main-bar tool.
+   * Call only when `enableQuickViewFeature` is true (see `blacksmith.js`); idempotent.
    */
   static initialize() {
+    if (!getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)) return;
+    if (this._moduleInitialized) return;
+    this._moduleInitialized = true;
+
     Hooks.on('canvasReady', () => {
-      void (async () => {
-        if (game.user.isGM && getSettingSafely(MODULE.ID, 'quickViewEnabled', false) && !this._isActive && canvas?.scene) {
-          await this.activate();
-        }
-        this._resyncAfterCanvasReady();
-      })();
+      void this._syncCanvasWithQuickViewSetting();
     });
+    void this._syncCanvasWithQuickViewSetting();
 
     const drawVis = (group) => {
       this._onDrawCanvasVisibility(group);
@@ -803,6 +832,7 @@ export class QuickViewUtility {
         ...(precedence !== undefined ? { precedence } : {}),
         onDown: () => {
           if (!game.user?.isGM) return;
+          if (!getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)) return;
           void QuickViewUtility.toggle();
         }
       });
@@ -829,50 +859,3 @@ export class QuickViewUtility {
   }
 
 }
-
-Hooks.once('init', () => {
-    QuickViewUtility._registerQuickViewKeybinding();
-});
-
-Hooks.once('ready', () => {
-    QuickViewUtility._registerQuickViewKeybinding();
-
-    MenuBar.registerMenubarTool('quickview', {
-        icon: () => {
-            return QuickViewUtility.getIcon();
-        },
-        name: "quickview",
-        title: () => {
-            return QuickViewUtility.getTitle();
-        },
-        tooltip: "Quickview (GM): brightness, fog reveal, token sight highlights. Configure in module settings → Run the Game → Vision.",
-        onClick: async () => {
-            await QuickViewUtility.toggle();
-        },
-        contextMenuItems: () => [
-            {
-                name: QuickViewUtility.isActive() ? 'Disable Quickview' : 'Enable Quickview',
-                icon: QuickViewUtility.getIcon(),
-                onClick: async () => {
-                    await QuickViewUtility.toggle();
-                    MenuBar.renderMenubar();
-                }
-            }
-        ],
-        zone: "left",
-        group: "general",
-        groupOrder: 100, // GENERAL group
-        order: 5,
-        moduleId: "blacksmith-core",
-        gmOnly: true,
-        leaderOnly: false,
-        visible: () => game.user.isGM,
-        toggleable: true,
-        active: () => {
-            return QuickViewUtility.isActive();
-        },
-        iconColor: null,
-        buttonNormalTint: null,
-        buttonSelectedTint: null
-    });
-});

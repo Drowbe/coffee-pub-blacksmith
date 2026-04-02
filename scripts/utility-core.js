@@ -4,7 +4,7 @@
 
 import { MODULE } from './const.js';
 import { MenuBar } from './api-menubar.js';
-import { QuickViewUtility } from './utility-quickview.js';
+import { getSettingSafely } from './api-core.js';
 import { PerformanceUtility } from './utility-performance.js';
 
 export class CoreUIUtility {
@@ -89,9 +89,9 @@ export class CoreUIUtility {
 
     /**
      * Build the start menu context items
-     * @returns {Array<{name: string, icon: string, description?: string, onClick?: Function, submenu?: Array, separator?: boolean}>}
+     * @returns {Promise<Array<{name: string, icon: string, description?: string, onClick?: Function, submenu?: Array, separator?: boolean}>>}
      */
-    static getLeftStartMenuItems() {
+    static async getLeftStartMenuItems() {
         const items = [];
 
         items.push({
@@ -119,12 +119,20 @@ export class CoreUIUtility {
             }
         });
 
-        if (game.user.isGM) {
+        if (game.user.isGM && getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)) {
+            let qvOn = getSettingSafely(MODULE.ID, 'quickViewEnabled', false);
+            try {
+                const { QuickViewUtility } = await import('./utility-quickview.js');
+                qvOn = QuickViewUtility.isActive();
+            } catch {
+                /* module cycling / not yet loaded */
+            }
             items.push({
-                name: QuickViewUtility.isActive() ? "Disable Quickview" : "Enable Quickview",
-                icon: QuickViewUtility.getIcon(),
-                description: "GM Quickview: brightness, fog reveal, token sight highlights",
+                name: qvOn ? 'Quickview On' : 'Quickview Off',
+                icon: qvOn ? 'fa-solid fa-lightbulb' : 'fa-regular fa-lightbulb',
+                description: 'GM Quickview: brightness, fog reveal, token sight highlights',
                 onClick: async () => {
+                    const { QuickViewUtility } = await import('./utility-quickview.js');
                     await QuickViewUtility.toggle();
                     MenuBar.renderMenubar();
                 }
@@ -212,8 +220,8 @@ Hooks.once('ready', () => {
         name: "left-start-menu",
         title: "",
         tooltip: "Open menu",
-        onClick: (event) => {
-            const items = CoreUIUtility.getLeftStartMenuItems();
+        onClick: async (event) => {
+            const items = await CoreUIUtility.getLeftStartMenuItems();
             if (!Array.isArray(items) || items.length === 0) return;
             const trigger = event?.target?.closest?.('[data-tool]');
             const rect = trigger?.getBoundingClientRect?.();
