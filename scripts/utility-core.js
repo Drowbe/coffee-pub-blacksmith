@@ -134,9 +134,9 @@ export class CoreUIUtility {
                 /* module cycling / not yet loaded */
             }
             items.push({
-                name: qvOn ? 'Quickview On' : 'Quickview Off',
-                icon: qvOn ? 'fa-solid fa-lightbulb' : 'fa-regular fa-lightbulb',
-                description: 'GM Quickview: brightness, fog reveal, token sight highlights',
+                name: qvOn ? 'GM Quickview On' : 'GM Quickview Off', 
+                icon: qvOn ? 'fa-solid fa-street-view' : 'fa-regular fa-street-view',
+                description: '',
                 onClick: async () => {
                     const { QuickViewUtility } = await import('./utility-quickview.js');
                     await QuickViewUtility.toggle();
@@ -153,7 +153,7 @@ export class CoreUIUtility {
             {
                 name: isHidden ? "Show Interface" : "Hide Interface",
                 icon: "fa-solid fa-sidebar",
-                description: "Toggle core Foundry UI visibility",
+                description: "",
                 onClick: () => {
                     CoreUIUtility.toggleInterface();
                     MenuBar.renderMenubar();
@@ -162,7 +162,7 @@ export class CoreUIUtility {
             {
                 name: applyOnLoad ? "Disable Apply on Load" : "Enable Apply on Load",
                 icon: applyOnLoad ? "fa-solid fa-square-check" : "fa-regular fa-square",
-                description: "Automatically hide UI when client loads",
+                description: "",
                 onClick: async () => {
                     await game.settings.set(MODULE.ID, 'canvasToolsHideUIOnLoad', !applyOnLoad);
                     ui.notifications.info(`Apply on Load is now ${!applyOnLoad ? 'Enabled' : 'Disabled'}.`);
@@ -173,7 +173,7 @@ export class CoreUIUtility {
         items.push({
             name: "Manage UI",
             icon: "fa-solid fa-desktop",
-            description: "Interface visibility settings",
+            description: "",
             submenu: uiSubmenu
         });
 
@@ -197,9 +197,9 @@ export class CoreUIUtility {
 
             if (pinsSubmenu.length > 0) {
                 items.push({
-                    name: "Pins",
+                    name: "Manage Pins",
                     icon: "fa-solid fa-map-pin",
-                    description: "Visibility and clear options",
+                    description: "",
                     submenu: pinsSubmenu
                 });
             }
