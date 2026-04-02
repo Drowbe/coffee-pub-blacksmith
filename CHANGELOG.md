@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [13.5.10]
+
+### Added
+
+- **Layout & experience → Pins** (`settings.js`, `lang/en.json`): New **Pins** heading under **Canvas** with **Player Pin Editing** (`pinsAllowPlayerWrites`); strings moved out of the **Imports** block so localization matches the sheet order.
+
+### Changed
+
+- **Developer Tools → System** (`settings.js`, `lang/en.json`): **H1 Developer Tools** uses **client** scope so GMs and players see the same tab title. **H2** label is **System** (replaces **Performance**) with an updated hint (menubar tools, performance monitor, latency). Subsections: **H3 Menubar** (show Settings / Refresh tools), **H3 Performance Monitor** (**Enable Performance monitor**, **Heap display refresh interval**), **H3 System Latency** (unchanged settings, clarified hints).
+- **Pins UI** (`manager-pins.js`, `api-menubar.js`): Pin visibility and clear actions are **only** in the **left hamburger menu** (**Pins** submenu via `CoreUIUtility.getLeftStartMenuItems` / `MenuBar._getPinsVisibilityMenuItems`); there is no pin control on the main menubar strip. Removed `pins-visibility`-specific icon fallbacks in menubar zone grouping.
+
+### Removed
+
+- **Menubar pins tool** (`manager-pins.js`): Unregistered **`pins-visibility`** (previously hardcoded `visible: false` / briefly tied to a toggle).
+- **Setting** `menubarShowPins` (**Show Pins Toggle Tool**) (`settings.js`, `lang/en.json`): Dropped; stale client values are harmless.
+
+### Fixed
+
+- **Latency + SocketLib** (`manager-sockets.js`): **`ping`**, **`pong`**, and **`latencyUpdate`** handlers are **always** registered once the Blacksmith socket is ready. Payload handling still no-ops when **Enable System Latency Checks** is off. Prevents **`SocketlibUnregisteredHandlerError: No socket handler with the name 'ping'`** when the GM disables latency but another client (e.g. not yet refreshed) still sends pings.
+
+### Documentation
+
+- **`documentation/plan-settings.md`**: Tracking table and findings updated for **System** settings layout, **Pins** (hamburger-only, **Canvas → Pins**), and latency handler registration model.
+
 ## [13.5.9]
 
 ### Added

@@ -16,6 +16,19 @@ Mirrors **`documentation/PERFORMANCE.md`** — active investigation items; updat
 | 6 | Medium | Socket native fallback listener lifecycle | Done | See `PERFORMANCE.md` §6 |
 | 7 | Low | Legacy/no-op hooks and stale cleanup | Done | Pass 1; see `PERFORMANCE.md` §7 |
 
+## Settings & feature gating
+
+Canonical tracking table, load-gate vs on/off notes, and file references: **`documentation/plan-settings.md`**.
+
+| Priority | Item | Status | Notes |
+| --- | --- | --- | --- |
+| High | **Round timer** — register hooks + `setInterval(1000)` only when the feature is enabled | Not started | Same pattern as combat timer; see `plan-settings.md` #6 and `PERFORMANCE.md` (round timer registration row) |
+| Medium | **Planning timer** — defer `HookManager` registration until enabled, or keep early-return | Not started | `plan-settings.md` #7 |
+| Medium | **Combat / player stats** — optional dynamic import when tracking off | Not started | `plan-settings.md` #8–9; shrinks cold path |
+| Low | **Menubar toggles** — `menubarShowSettings` / `menubarShowRefresh` exist in settings but tools use `visible: false` without reading them | Not started | Wire `visible` + `onChange` → `MenuBar.renderMenubar` (same pattern as former pins toggle) |
+
+**Done (recorded in `CHANGELOG.md` / `plan-settings.md`):** Developer Tools **→ System** layout; performance monitor + latency settings hierarchy; **Pins** hamburger-only + **Layout → Pins**; latency **ping/pong/latencyUpdate** handlers always registered (processing gated on `enableLatency`).
+
 ## CRITICAL BUGS
 
 ### Post-rename compatibility shims — verify consumers, then remove (#1)
@@ -50,8 +63,8 @@ Mirrors **`documentation/PERFORMANCE.md`** — active investigation items; updat
 ### Memory Leak Investigation
 - **Issue**: Historical tab runaway (non-heap growth / crash) was tracked; **current builds are not reproducing** the old browser-tab growth pattern.
 - **Status**: ACTIVE (fresh baseline) — see `documentation/PERFORMANCE.md` for current stack rank, findings, and plan (lifecycle teardown for observers/timers, journal monitor consolidation, menubar/timer hotspots, legacy cleanup).
-- **Next Step**: Execute plan in `documentation/PERFORMANCE.md` § “Plan (Next Review Cycle)”; re-profile after targeted fixes; downgrade to MONITORING if stable.
-- **Location**: `documentation/PERFORMANCE.md` (canonical); duplicate `documentation/performance.md` should stay in sync or be removed.
+- **Next Step**: Execute plan in `documentation/PERFORMANCE.md` § “Plan (Next Review Cycle)”; align with **`documentation/plan-settings.md`** for timer gating (#6–7); re-profile after targeted fixes; downgrade to MONITORING if stable.
+- **Location**: `documentation/PERFORMANCE.md` (canonical).
 
 ## MEDIUM BUGS
 

@@ -7,6 +7,8 @@ Two-level affordance model:
 | **Enable (load gate)** | Feature does not load: no registration of hooks/wrappers/menubar (ideally dynamic `import()` only when on). |
 | **On/Off** | Feature loads; a setting or control only toggles runtime behavior. |
 
+**Related docs:** Open gating/perf follow-ups are also tracked in **`documentation/TODO.md`** (Settings & feature gating) and timer/socket notes in **`documentation/PERFORMANCE.md`**.
+
 ---
 
 ## Tracking table
@@ -49,6 +51,11 @@ Update **Status** as work proceeds (e.g. Not started → In progress → Done).
 - Pin visibility and clear actions are only in the **left hamburger menu** (`CoreUIUtility.getLeftStartMenuItems` → **Pins** submenu); there is no pins tool on the main menubar strip.
 - **Layout & experience → Canvas** is followed by **Pins** (`pinsAllowPlayerWrites` — Player Pin Editing).
 
+### Developer Tools → System
+
+- **H1 Developer Tools** is **client**-scoped so GMs and players see the same tab; world-only rows (e.g. CSS, latency) still respect Foundry’s normal GM edit rules.
+- **H2 System** groups **H3 Menubar** (show Settings / Refresh in the left zone — those toggles exist in settings; wiring to `visible` in `utility-core.js` may still be pending), **H3 Performance Monitor** (`enablePerformanceMonitor`, heap poll interval), and **H3 System Latency** (`enableLatency`, interval).
+
 ### Timers
 
 - **Combat:** `combatTimerEnabled` false → `initialize()` returns before registering hooks. Good.
@@ -64,15 +71,15 @@ Update **Status** as work proceeds (e.g. Not started → In progress → Done).
 
 ## Implementation plan (order of attack)
 
-1. **Convention** — Document load gate vs on/off vs visibility in one place (this file + short note in contributor-facing doc if needed).
-2. **Quick View** — `enableQuickview` load gate; remove static `QuickViewUtility` from `manager-libwrapper.js` (lazy/indirect); dynamic import when enabled; rename current setting to **Quickview on**.
-3. **Round timer** — Gate hook + interval registration behind an enable flag (align with combat timer pattern).
-4. **Performance** — Enable flag + settings section; unify menubar vs start-menu behavior per product decision.
-5. **Latency** — Handlers always registered; gate processing on `enableLatency` (avoids Socketlib errors from mixed clients).
-6. **Pins** — Done: hamburger **Pins** submenu only (no menubar tool); **Canvas** then **Pins** in Layout settings.
+1. **Convention** — This file + cross-links in **`TODO.md`** / **`PERFORMANCE.md`** for remaining work.
+2. **Quick View** — Load gate and **Quickview on** client setting are in place; any further libWrapper/lifecycle polish is optional (see **`PERFORMANCE.md`** §10).
+3. **Round timer** — **Next high-value item:** gate hook + `setInterval(1000)` registration behind an enable flag (align with combat timer pattern). See **`PERFORMANCE.md`** stack / plan.
+4. **Performance monitor** — **Done:** user setting under **System → Performance Monitor**; heap/report via hamburger dynamic import; no dedicated menubar heap tool.
+5. **Latency** — **Done:** handlers registered as soon as the socket is ready; gate **work** on `enableLatency` (avoids Socketlib errors when clients disagree).
+6. **Pins** — **Done:** hamburger **Pins** submenu only; **Layout → Canvas → Pins** for **Player Pin Editing**.
 7. **Planning timer** — Optionally defer hook registration until enabled (or accept early-return pattern).
 8. **Stats** — Optional later: dynamic import to shrink cold path when tracking is off.
 
 ---
 
-*Last updated: 2026-03-28*
+*Last updated: 2026-03-28 (System settings doc, cross-links, implementation plan refreshed)*
