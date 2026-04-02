@@ -16,7 +16,7 @@ Two-level affordance model:
 | 1 | Quick View | Yes — `enableQuickViewFeature` + dynamic import; conditional libWrapper | `quickViewEnabled` = **Quickview on** | Done |
 | 2 | Performance monitor | Yes — `enablePerformanceMonitor`; dynamic import when hamburger opens | Context menu only (no menubar tool) | Done |
 | 3 | Latency | Partial — `enableLatency` gates socket registration + checker | `enableLatency` world setting | Done |
-| 4 | Pins menubar | N/A | `menubarShowPins` **never read**; tool `visible: false` hardcoded | Wire setting OR remove; **Pins** section under Canvas; move **Player Pin Editing** | Not started |
+| 4 | Pins menubar | N/A | No menubar button; **Pins** flyout on hamburger only; **Pins** H3 under Layout after **Canvas** | Done |
 | 5 | Combat timer | Mostly yes — no hooks if disabled | — | OK; optional dynamic import later | Not started |
 | 6 | Round timer | No — hooks + 1s interval always | `showRoundTimer` mostly UI template | Gate **`initialize()`** (register hooks / interval only when enabled) | Not started |
 | 7 | Planning timer | No — all hooks registered up front | Handlers early-return when disabled | Register hooks only when enabled, or accept minimal callbacks | Not started |
@@ -46,8 +46,8 @@ Update **Status** as work proceeds (e.g. Not started → In progress → Done).
 
 ### Pins
 
-- `menubarShowPins` is registered in `settings.js` but has **no** references in `scripts/`.
-- `manager-pins.js` registers `pins-visibility` with `visible: false` hardcoded.
+- Pin visibility and clear actions are only in the **left hamburger menu** (`CoreUIUtility.getLeftStartMenuItems` → **Pins** submenu); there is no pins tool on the main menubar strip.
+- **Layout & experience → Canvas** is followed by **Pins** (`pinsAllowPlayerWrites` — Player Pin Editing).
 
 ### Timers
 
@@ -69,7 +69,7 @@ Update **Status** as work proceeds (e.g. Not started → In progress → Done).
 3. **Round timer** — Gate hook + interval registration behind an enable flag (align with combat timer pattern).
 4. **Performance** — Enable flag + settings section; unify menubar vs start-menu behavior per product decision.
 5. **Latency** — Guard socket handlers or register them only when enabled.
-6. **Pins** — Implement `menubarShowPins` → menubar `visible`; settings layout **Canvas → Pins**.
+6. **Pins** — Done: hamburger **Pins** submenu only (no menubar tool); **Canvas** then **Pins** in Layout settings.
 7. **Planning timer** — Optionally defer hook registration until enabled (or accept early-return pattern).
 8. **Stats** — Optional later: dynamic import to shrink cold path when tracking is off.
 

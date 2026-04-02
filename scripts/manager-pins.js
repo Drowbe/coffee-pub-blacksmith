@@ -7,7 +7,6 @@
 // ==================================================================
 
 import { MODULE } from './const.js';
-import { MenuBar } from './api-menubar.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import {
     PIN_SCHEMA_VERSION,
@@ -1615,42 +1614,3 @@ if (typeof Hooks !== 'undefined') {
         }
     });
 }
-
-// Register Menubar Tool for Pins Visibility
-Hooks.once('ready', () => {
-    MenuBar.registerMenubarTool('pins-visibility', {
-        icon: "fa-solid fa-map-pin",
-        name: "pins-visibility",
-        title: '',
-        tooltip: "Hide/Show all pins",
-        onClick: async () => {
-            await PinManager.setGlobalHidden(!PinManager.isGlobalHidden());
-            MenuBar.renderMenubar(true);
-        },
-        zone: "left",
-        group: "general",
-        groupOrder: 100, // GENERAL group
-        order: 4,
-        moduleId: "blacksmith-core",
-        gmOnly: false,
-        leaderOnly: false,
-        visible: false, // Generally enabled/shown via user-override/custom settings but default false here
-        toggleable: true,
-        active: () => {
-            return PinManager.isGlobalHidden();
-        },
-        iconColor: null,
-        buttonNormalTint: null,
-        buttonSelectedTint: null,
-        contextMenuItems: () => {
-            if (typeof api.getPinsVisibilityMenuItems === 'function') {
-                return api.getPinsVisibilityMenuItems();
-            } else if (typeof api._getPinsVisibilityMenuItems === 'function') {
-                return api._getPinsVisibilityMenuItems();
-            } else if (api.MenuBar && typeof api.MenuBar._getPinsVisibilityMenuItems === 'function') {
-                return api.MenuBar._getPinsVisibilityMenuItems();
-            }
-            return [];
-        }
-    });
-});

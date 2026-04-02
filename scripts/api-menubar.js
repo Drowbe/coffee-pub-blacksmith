@@ -871,10 +871,10 @@ class MenuBar {
                 try {
                     resolvedIcon = typeof tool.icon === 'function' ? tool.icon() : tool.icon;
                 } catch (e) {
-                    resolvedIcon = (tool.name === 'pins-visibility') ? 'fa-solid fa-map-pin' : (tool.icon || '');
+                    resolvedIcon = tool.icon || '';
                 }
                 if (resolvedIcon == null || String(resolvedIcon).trim() === '') {
-                    resolvedIcon = (tool.name === 'pins-visibility') ? 'fa-solid fa-map-pin' : (tool.icon || '');
+                    resolvedIcon = tool.icon || '';
                 }
                 const processedTool = {
                     toolId,
@@ -3377,7 +3377,7 @@ class MenuBar {
 
 
     /**
-     * Build visibility menu items for pins (used by pin tool right-click and start menu flyout).
+     * Build visibility menu items for pins (left hamburger → Pins submenu).
      * @returns {Array<{name: string, icon: string, onClick: Function}>}
      * @private
      */

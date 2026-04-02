@@ -94,6 +94,12 @@
 				"canvasToolsHideUIOnLoad-Label": "Apply on Load",
 				"canvasToolsHideUIOnLoad-Hint": "When enabled, the interface will automatically hide on load if you have the toggle set to hide.",
 
+			"headingH3Pins-Label": "Pins",
+			"headingH3Pins-Hint": "Map pin editing permissions and related options.",
+
+				"pinsAllowPlayerWrites-Label": "Player Pin Editing",
+				"pinsAllowPlayerWrites-Hint": "If enabled, players with ownership of a pin can create, update, and delete pins. When disabled, only GMs can modify pins.",
+
 			"headingH3Sidebars-Label": "Sidebars",
 			"headingH3Sidebars-Hint": "",
 
@@ -587,9 +593,6 @@
 	"headingH1Imports-Label": "Imports",
 	"headingH1Imports-Hint": "Settings for import defaults and content generation helpers.",
 
-		"pinsAllowPlayerWrites-Label": "Player Pin Editing",
-		"pinsAllowPlayerWrites-Hint": "If enabled, players with ownership of a pin can create, update, and delete pins. When disabled, only GMs can modify pins.",
-
 		"headingH2ItemImports-Label": "Item",
 		"headingH2ItemImports-Hint": "",
 
@@ -903,9 +906,6 @@
 
 				"menubarShowRefresh-Label": "Show Refresh Tool",
 				"menubarShowRefresh-Hint": "Show the refresh tool in the menubar left zone.",
-
-				"menubarShowPins-Label": "Show Pins Toggle Tool",
-				"menubarShowPins-Hint": "Show the pins visibility toggle in the menubar left zone.",
 
 			"headingH3PerformanceMonitor-Label": "Performance Monitor",
 			"headingH3PerformanceMonitor-Hint": "Per-client heap line and full report from the left hamburger menu.",

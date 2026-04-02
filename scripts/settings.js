@@ -1410,6 +1410,11 @@ export const registerSettings = () => {
   		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
   	});
 
+	// --------------------------------------
+	// -- H3: PINS
+	// --------------------------------------
+	registerHeader('Pins', 'headingH3Pins-Label', 'headingH3Pins-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'world');
+
 	game.settings.register(MODULE.ID, 'pinsAllowPlayerWrites', {
 		name: MODULE.ID + '.pinsAllowPlayerWrites-Label',
 		hint: MODULE.ID + '.pinsAllowPlayerWrites-Hint',
@@ -1420,8 +1425,6 @@ export const registerSettings = () => {
 		default: false,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
-
-
 
 	// --------------------------------------
 	// -- H3: SIDEBARS
@@ -4058,17 +4061,6 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'menubarShowRefresh', {
 		name: MODULE.ID + '.menubarShowRefresh-Label',
 		hint: MODULE.ID + '.menubarShowRefresh-Hint',
-		scope: 'user',
-		config: true,
-		type: Boolean,
-		default: true,
-		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
-	});
-
-	// Show Pins Toggle Tool
-	game.settings.register(MODULE.ID, 'menubarShowPins', {
-		name: MODULE.ID + '.menubarShowPins-Label',
-		hint: MODULE.ID + '.menubarShowPins-Hint',
 		scope: 'user',
 		config: true,
 		type: Boolean,
