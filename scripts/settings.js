@@ -4000,7 +4000,7 @@ export const registerSettings = () => {
 	// == H1: DEVELOPER TOOLS
 	// ====================================================================================================================
 	// ====================================================================================================================
-	registerHeader('DeveloperTools', 'headingH1DeveloperTools-Label', 'headingH1DeveloperTools-Hint', 'H1', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'world');
+	registerHeader('DeveloperTools', 'headingH1DeveloperTools-Label', 'headingH1DeveloperTools-Hint', 'H1', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'user');
 
 	// --------------------------------------
 	// -- H2: CSS CUSTOMIZATION
@@ -4035,26 +4035,13 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 	});
 
-
 	// --------------------------------------
-	// -- H2: PERFORMANCE
+	// -- H2: SYSTEM (menubar, performance monitor, latency)
 	// --------------------------------------
-	registerHeader('PerformanceTools', 'headingH2PerformanceTools-Label', 'headingH2PerformanceTools-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'user');
+	registerHeader('System', 'headingH2System-Label', 'headingH2System-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'user');
 
-	game.settings.register(MODULE.ID, 'enablePerformanceMonitor', {
-		name: MODULE.ID + '.enablePerformanceMonitor-Label',
-		hint: MODULE.ID + '.enablePerformanceMonitor-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: true,
-		scope: 'user',
-		default: true,
-		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
-	});
-
-	// -- H3: PERFORMANCE MENUBAR OPTIONS ---------------
-	registerHeader('PerformanceMenubarOptions', 'headingH3PerformanceMenubarOptions-Label', 'headingH3PerformanceMenubarOptions-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'user');
-
+	// -- H3: Menubar ---------------
+	registerHeader('SystemMenubar', 'headingH3SystemMenubar-Label', 'headingH3SystemMenubar-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'user');
 
 	// Show Settings Tool
 	game.settings.register(MODULE.ID, 'menubarShowSettings', {
@@ -4089,7 +4076,20 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 	});
 
-	// Performance context menu: heap cache refresh interval (see utility-core / utility-performance)
+	// -- H3: Performance Monitor ---------------
+	registerHeader('PerformanceMonitor', 'headingH3PerformanceMonitor-Label', 'headingH3PerformanceMonitor-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'user');
+
+	game.settings.register(MODULE.ID, 'enablePerformanceMonitor', {
+		name: MODULE.ID + '.enablePerformanceMonitor-Label',
+		hint: MODULE.ID + '.enablePerformanceMonitor-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: true,
+		scope: 'user',
+		default: true,
+		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+	});
+
 	game.settings.register(MODULE.ID, 'menubarPerformancePollInterval', {
 		name: MODULE.ID + '.menubarPerformancePollInterval-Label',
 		hint: MODULE.ID + '.menubarPerformancePollInterval-Hint',
@@ -4105,7 +4105,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 	});
 
-	// -- H3: LATENCY SETTINGS ---------------
+	// -- H3: System Latency ---------------
 	registerHeader('Latency', 'headingH3Latency-Label', 'headingH3Latency-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'world');
 
 	game.settings.register(MODULE.ID, 'enableLatency', {
@@ -4115,7 +4115,22 @@ export const registerSettings = () => {
 		scope: 'world',
 		config: true,
 		default: true,
-		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS,
+		onChange: async (value) => {
+			try {
+				if (value) {
+					const { SocketManager } = await import('./manager-sockets.js');
+					SocketManager.ensureLatencySocketHandlers();
+					const { LatencyChecker } = await import('./manager-latency-checker.js');
+					await LatencyChecker.initialize();
+				} else {
+					const { LatencyChecker } = await import('./manager-latency-checker.js');
+					LatencyChecker.cleanupChecker();
+				}
+			} catch {
+				/* module cycling */
+			}
+		}
 	});
 
 	game.settings.register(MODULE.ID, 'latencyCheckInterval', {

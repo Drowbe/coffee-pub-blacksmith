@@ -881,7 +881,7 @@
 
 
 	"headingH1DeveloperTools-Label": "Developer Tools",
-	"headingH1DeveloperTools-Hint": "Debug settings, console options, and developer tools",
+	"headingH1DeveloperTools-Hint": "CSS and console options, plus shared System settings. GMs and players all see this heading; some rows below are world (GM) or client (each user) as labeled in each section.",
 
 		"headingH2CSS-Label": "CSS Customization",
 		"headingH2CSS-Hint": "Customize CSS styling and appearance",
@@ -892,15 +892,11 @@
 			"cssDarkMode-Label": "Dark Mode",
 			"cssDarkMode-Hint": "Enable dark mode for the css editor",
 
-		"headingH2PerformanceTools-Label": "Performance",
-		"headingH2PerformanceTools-Hint": "Client heap and full report from the left hamburger context menu when the monitor is enabled.",
+		"headingH2System-Label": "System",
+		"headingH2System-Hint": "Blacksmith menubar tools, optional client performance monitor (hamburger menu), and world-wide latency measurement in the players list.",
 
-			"enablePerformanceMonitor-Label": "Enable Performance monitor",
-			"enablePerformanceMonitor-Hint": "When on, the performance module loads only when you open the left hamburger menu (heap line + full report). When off, it does not load at all until you reload.",
-
-			"headingH3PerformanceMenubarOptions-Label": "Menubar",
-			"headingH3PerformanceMenubarOptions-Hint": "Which Blacksmith tools appear in the menubar left zone.",
-
+			"headingH3SystemMenubar-Label": "Menubar",
+			"headingH3SystemMenubar-Hint": "Which Blacksmith tools appear in the menubar left zone.",
 
 				"menubarShowSettings-Label": "Show Settings Tool",
 				"menubarShowSettings-Hint": "Show the settings tool in the menubar left zone.",
@@ -911,15 +907,20 @@
 				"menubarShowPins-Label": "Show Pins Toggle Tool",
 				"menubarShowPins-Hint": "Show the pins visibility toggle in the menubar left zone.",
 
-				"menubarPerformancePollInterval-Label": "Heap display refresh interval",
-				"menubarPerformancePollInterval-Hint": "Seconds between cache refreshes for the heap value shown in the hamburger context menu (5 to 300).",
+			"headingH3PerformanceMonitor-Label": "Performance Monitor",
+			"headingH3PerformanceMonitor-Hint": "Per-client heap line and full report from the left hamburger menu.",
 
+			"enablePerformanceMonitor-Label": "Enable Performance monitor",
+			"enablePerformanceMonitor-Hint": "When on, the performance module loads when you open the left hamburger menu (heap line + full report). When off, it does not load until you reload. Each user chooses for themselves.",
+
+			"menubarPerformancePollInterval-Label": "Heap display refresh interval",
+			"menubarPerformancePollInterval-Hint": "Seconds between cache refreshes for the heap value shown in the hamburger menu (5 to 300). Per client.",
 
 			"headingH3Latency-Label": "System Latency",
-			"headingH3Latency-Hint": "Settings related to the system latency between players and the server.",
+			"headingH3Latency-Hint": "World settings: latency checks and display for everyone in this world.",
 
 				"enableLatency-Label": "Enable System Latency Checks",
-				"enableLatency-Hint": "If checked, the system latency will be checked and displayed in the system list.",
+				"enableLatency-Hint": "World setting: applies to everyone in this world. When on, clients register latency socket handlers and show ping times in the players list. When off, new sessions skip registering handlers until this is on again; clients that had it on still ignore traffic while off.",
 
 				"latencyCheckInterval-Label": "Latency Check Interval",
 				"latencyCheckInterval-Hint": "The interval in seconds between latency checks. Default: 30 seconds. (0 to disable)",

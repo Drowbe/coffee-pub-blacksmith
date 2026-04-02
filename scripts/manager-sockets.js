@@ -3,7 +3,14 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSoundLocalWithDuration, playSoundLoopingLocal, stopSoundByPathLocal, stopSoundByKeyLocal } from './api-core.js';
+import {
+    postConsoleAndNotification,
+    playSoundLocalWithDuration,
+    playSoundLoopingLocal,
+    stopSoundByPathLocal,
+    stopSoundByKeyLocal,
+    getSettingSafely
+} from './api-core.js';
 import { CombatTimer } from './timer-combat.js';
 import { PlanningTimer } from './timer-planning.js';
 import { MenuBar } from './api-menubar.js';
@@ -24,6 +31,9 @@ class SocketManager {
     static _externalEventHandlers = null; // Map for external module event handlers (SocketLib pattern)
     /** @type {((payload: unknown) => void) | null} Inbound handler for native Foundry socket fallback (must off before re-register) */
     static _nativeInboundHandler = null;
+
+    /** True after `ping` / `pong` / `latencyUpdate` handlers are registered (see `ensureLatencySocketHandlers`). */
+    static _latencySocketHandlersRegistered = false;
 
     static initialize() {
         postConsoleAndNotification(MODULE.NAME, "SocketManager: Initializing socket system", "", true, false);
@@ -472,45 +482,7 @@ class SocketManager {
             editor.applyCSS(data.css, data.transition);
         });
 
-        // Latency Checker Handlers (consolidated from manager-latency-checker.js)
-        this.socket.register('ping', (data) => {
-            // Handle ping for latency checker
-            // SocketLib's executeForOthers may pass payload directly or wrapped
-            // Extract the actual payload from nested structure (same pattern as updateSkillRoll)
-            const payload = data.data || data;
-            // Call the latency checker's internal handler with proper context
-            try {
-                const result = LatencyChecker._handleSocketMessage.call(LatencyChecker, payload);
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, "SocketManager: Error calling LatencyChecker._handleSocketMessage for ping", error, true, false);
-            }
-        });
-
-        this.socket.register('pong', (data) => {
-            // Handle pong for latency checker
-            // SocketLib's executeForOthers may pass payload directly or wrapped
-            // Extract the actual payload from nested structure (same pattern as updateSkillRoll)
-            const payload = data.data || data;
-            // Call the latency checker's internal handler with proper context
-            try {
-                const result = LatencyChecker._handleSocketMessage.call(LatencyChecker, payload);
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, "SocketManager: Error calling LatencyChecker._handleSocketMessage for pong", error, true, false);
-            }
-        });
-
-        this.socket.register('latencyUpdate', (data) => {
-            // Handle latency update for latency checker
-            // SocketLib's executeForOthers may pass payload directly or wrapped
-            // Extract the actual payload from nested structure (same pattern as updateSkillRoll)
-            const payload = data.data || data;
-            // Call the latency checker's internal handler with proper context
-            try {
-                const result = LatencyChecker._handleSocketMessage.call(LatencyChecker, payload);
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, "SocketManager: Error calling LatencyChecker._handleSocketMessage for latencyUpdate", error, true, false);
-            }
-        });
+        this.ensureLatencySocketHandlers();
         
         // Pin broadcast handlers
         // Note: PinRenderer will also register these handlers dynamically when it initializes:
@@ -518,6 +490,38 @@ class SocketManager {
         // - 'panToPin': Broadcast pan-to-pin (Bring Players Here) to all users who can see the pin
 
         postConsoleAndNotification(MODULE.NAME, "SocketManager: All socket functions registered", "", true, false);
+    }
+
+    /**
+     * Register `ping` / `pong` / `latencyUpdate` only when world **Enable System Latency Checks** is on.
+     * Safe to call again after toggling the setting on (e.g. from settings `onChange`); idempotent.
+     */
+    static ensureLatencySocketHandlers() {
+        if (this._latencySocketHandlersRegistered) return;
+        if (!getSettingSafely(MODULE.ID, 'enableLatency', true)) return;
+        if (!this.socket || !this.isSocketReady) return;
+
+        const runLatencyPayload = (data, label) => {
+            const payload = data?.data ?? data;
+            try {
+                if (!getSettingSafely(MODULE.ID, 'enableLatency', true)) return;
+                LatencyChecker._handleSocketMessage.call(LatencyChecker, payload);
+            } catch (error) {
+                postConsoleAndNotification(
+                    MODULE.NAME,
+                    `SocketManager: LatencyChecker._handleSocketMessage failed (${label})`,
+                    error,
+                    true,
+                    false
+                );
+            }
+        };
+
+        this.socket.register('ping', (data) => runLatencyPayload(data, 'ping'));
+        this.socket.register('pong', (data) => runLatencyPayload(data, 'pong'));
+        this.socket.register('latencyUpdate', (data) => runLatencyPayload(data, 'latencyUpdate'));
+
+        this._latencySocketHandlersRegistered = true;
     }
 
     static getSocket() {

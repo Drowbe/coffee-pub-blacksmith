@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
 
@@ -12,6 +12,8 @@ export class LatencyChecker {
     static #startTimes = new Map();
     static #initialized = false;
     static #checkInterval = null;
+    static #playerListHookId = null;
+    static #unloadModuleHookId = null;
     
     static isInitialized() {
         return this.#initialized;
@@ -21,47 +23,46 @@ export class LatencyChecker {
         postConsoleAndNotification(MODULE.NAME, "Latency: Initializing LatencyChecker", "", true, false);
         
         try {
-            // Check if latency is enabled in settings
-            if (!game.settings.get(MODULE.ID, 'enableLatency')) {
+            if (!getSettingSafely(MODULE.ID, 'enableLatency', true)) {
                 postConsoleAndNotification(MODULE.NAME, "Latency: Latency display is disabled in settings", "", true, false);
                 return;
             }
 
-            // Wait for socket to be ready
             if (!game.socket?.connected) {
                 postConsoleAndNotification(MODULE.NAME, "Latency: Socket not connected!", "", false, false);
                 return;
             }
 
-            // Socket handlers are now registered in SocketManager
-            postConsoleAndNotification(MODULE.NAME, "Latency: Socket handlers registered successfully", "", true, false);
-            
-            // Only start operations after handlers are registered
+            if (this.#initialized) return;
+
+            SocketManager.ensureLatencySocketHandlers();
+            postConsoleAndNotification(MODULE.NAME, "Latency: Socket handlers ready (when enabled)", "", true, false);
+
+            this.#playerListHookId = HookManager.registerHook({
+                name: 'renderPlayerList',
+                key: 'blacksmith-latency-renderPlayerList',
+                description: 'Latency Checker: Monitor player list rendering for latency updates',
+                context: 'latency-checker-player-list',
+                priority: 3,
+                callback: this.#onRenderPlayerList.bind(this)
+            });
+
+            this.#unloadModuleHookId = HookManager.registerHook({
+                name: 'unloadModule',
+                key: 'blacksmith-latency-unload',
+                description: 'Latency Checker: Cleanup on module unload',
+                context: 'latency-checker-cleanup',
+                priority: 3,
+                callback: (moduleId) => {
+                    if (moduleId === MODULE.ID) {
+                        this.cleanupChecker({ unloadModule: true });
+                        postConsoleAndNotification(MODULE.NAME, "Latency Checker | Cleaned up on module unload", "", true, false);
+                    }
+                }
+            });
+
             this.#initialized = true;
-            
-            // Hook into the player list rendering
-            const renderPlayerListHookId = HookManager.registerHook({
-				name: 'renderPlayerList',
-				description: 'Latency Checker: Monitor player list rendering for latency updates',
-				context: 'latency-checker-player-list',
-				priority: 3,
-				callback: this.#onRenderPlayerList.bind(this)
-			});
-			
-			// Register cleanup hook for module unload
-			const unloadHookId = HookManager.registerHook({
-				name: 'unloadModule',
-				description: 'Latency Checker: Cleanup on module unload',
-				context: 'latency-checker-cleanup',
-				priority: 3,
-				callback: (moduleId) => {
-					if (moduleId === MODULE.ID) {
-						this.cleanupChecker();
-						postConsoleAndNotification(MODULE.NAME, "Latency Checker | Cleaned up on module unload", "", true, false);
-					}
-				}
-			});
-            
+
             // Start periodic checks
             this.startPeriodicCheck();
             
@@ -150,6 +151,8 @@ export class LatencyChecker {
             return;
         }
 
+        if (!getSettingSafely(MODULE.ID, 'enableLatency', true)) return;
+
         if (data.type === "ping" && data.to === game.user.id) {
             // Respond to ping with a pong
             const socket = SocketManager.getSocket();
@@ -223,8 +226,29 @@ export class LatencyChecker {
         this.#updateLatencyDisplay();
     }
 
+    static #stripLatencyUi() {
+        try {
+            const playersActive = document.getElementById('players-active');
+            const playerList = playersActive?.querySelector('ol.players-list');
+            if (!playerList) return;
+            playerList.querySelectorAll('li.player').forEach((li) => {
+                const playerNameSpan = li.querySelector('.player-name');
+                if (!playerNameSpan) return;
+                playerNameSpan.querySelectorAll('.player-latency').forEach((span) => span.remove());
+                playerNameSpan.style.paddingRight = '';
+            });
+        } catch {
+            /* ignore */
+        }
+    }
+
     static #updateLatencyDisplay() {
         try {
+            if (!getSettingSafely(MODULE.ID, 'enableLatency', true)) {
+                this.#stripLatencyUi();
+                return;
+            }
+
             // v13: New structure uses #players-active > ol.players-list
             const playersActive = document.getElementById("players-active");
             if (!playersActive) return;
@@ -303,6 +327,10 @@ export class LatencyChecker {
     }
 
     static #onRenderPlayerList(playerList, html) {
+        if (!getSettingSafely(MODULE.ID, 'enableLatency', true)) {
+            this.#stripLatencyUi();
+            return;
+        }
         this.#updateLatencyDisplay();
     }
 
@@ -314,11 +342,24 @@ export class LatencyChecker {
     /**
      * Clean up latency checker interval
      */
-    static cleanupChecker() {
+    /**
+     * @param {{ unloadModule?: boolean }} [options] - Pass `unloadModule: true` when Blacksmith is unloading so the `unloadModule` hook is removed too.
+     */
+    static cleanupChecker(options = {}) {
+        const unloadModule = !!options.unloadModule;
         if (this.#checkInterval) {
             clearInterval(this.#checkInterval);
             this.#checkInterval = null;
         }
+        if (this.#playerListHookId) {
+            HookManager.unregisterHook('renderPlayerList', this.#playerListHookId);
+            this.#playerListHookId = null;
+        }
+        if (unloadModule && this.#unloadModuleHookId) {
+            HookManager.unregisterHook('unloadModule', this.#unloadModuleHookId);
+            this.#unloadModuleHookId = null;
+        }
         this.#initialized = false;
+        this.#stripLatencyUi();
     }
 } 
