@@ -4037,9 +4037,20 @@ export const registerSettings = () => {
 
 
 	// --------------------------------------
-	// -- H2: PERFORMANCE TOOLS
+	// -- H2: PERFORMANCE
 	// --------------------------------------
 	registerHeader('PerformanceTools', 'headingH2PerformanceTools-Label', 'headingH2PerformanceTools-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'user');
+
+	game.settings.register(MODULE.ID, 'enablePerformanceMonitor', {
+		name: MODULE.ID + '.enablePerformanceMonitor-Label',
+		hint: MODULE.ID + '.enablePerformanceMonitor-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: true,
+		scope: 'user',
+		default: true,
+		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+	});
 
 	// -- H3: PERFORMANCE MENUBAR OPTIONS ---------------
 	registerHeader('PerformanceMenubarOptions', 'headingH3PerformanceMenubarOptions-Label', 'headingH3PerformanceMenubarOptions-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'user');
@@ -4078,18 +4089,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
 	});
 
-	// Show Performance Monitor Tool
-	game.settings.register(MODULE.ID, 'menubarShowPerformance', {
-		name: MODULE.ID + '.menubarShowPerformance-Label',
-		hint: MODULE.ID + '.menubarShowPerformance-Hint',
-		scope: 'user',
-		config: true,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
-	});
-
-	// Performance Monitor Poll Interval
+	// Performance context menu: heap cache refresh interval (see utility-core / utility-performance)
 	game.settings.register(MODULE.ID, 'menubarPerformancePollInterval', {
 		name: MODULE.ID + '.menubarPerformancePollInterval-Label',
 		hint: MODULE.ID + '.menubarPerformancePollInterval-Hint',

@@ -4,7 +4,6 @@ import { SocketManager } from './manager-sockets.js';
 import { ModuleManager } from './manager-modules.js';
 import { HookManager } from './manager-hooks.js';
 import { MovementConfig } from './token-movement.js';
-import { PerformanceUtility } from './utility-performance.js';
 import { CoreUIUtility } from './utility-core.js';
 import { VoteConfig } from './window-vote-config.js';
 import { XpManager } from './xp-manager.js';
@@ -184,7 +183,7 @@ class MenuBar {
         // Register setting change hook to refresh menubar when party leader changes
         const settingChangeHookId = HookManager.registerHook({
             name: 'settingChange',
-            description: 'MenuBar: Refresh menubar on party leader / performance monitor settings',
+            description: 'MenuBar: Refresh menubar on party leader changes',
             context: 'menubar-settings-change',
             priority: 3,
             callback: (module, key, value) => {
@@ -204,10 +203,6 @@ class MenuBar {
                     
                     // Refresh the menubar to update tool visibility
                     MenuBar.updateLeaderDisplay();
-                }
-
-                if (module === MODULE.ID && (key === 'menubarShowPerformance' || key === 'menubarPerformancePollInterval')) {
-                    MenuBar.renderMenubar(true);
                 }
             }
         });
@@ -2838,12 +2833,6 @@ class MenuBar {
         const notifParts = (templateData.notifications || []).map((n) => `${n.id}\x1d${String(n.text ?? '')}\x1d${String(n.icon ?? '')}`);
         notifParts.sort();
         const mov = templateData.currentMovement || {};
-        let perfShow = '0';
-        try {
-            perfShow = getSettingSafely(MODULE.ID, 'menubarShowPerformance', false) ? '1' : '0';
-        } catch {
-            perfShow = '0';
-        }
         return [
             templateData.isGM ? '1' : '0',
             templateData.isLeader ? '1' : '0',
@@ -2854,8 +2843,7 @@ class MenuBar {
             notifParts.join('\x1e'),
             `${!!templateData.secondaryBar?.isOpen}\x1e${templateData.secondaryBar?.type || ''}\x1e${this._secondaryBarStructureSignature()}`,
             this._secondaryBarLiveContentSignature(),
-            templateData.isInterfaceHidden ? '1' : '0',
-            perfShow
+            templateData.isInterfaceHidden ? '1' : '0'
         ].join('\x1f');
     }
 
@@ -2874,7 +2862,6 @@ class MenuBar {
             if (labelEl && mov.name != null) labelEl.textContent = mov.name;
         }
         this.updateTimerDisplay();
-        this.updatePerformanceMonitorDisplay();
         this.updateVoteIconState();
         requestAnimationFrame(() => this._setupMiddleZoneOverflow());
     }
@@ -4146,21 +4133,6 @@ class MenuBar {
             this.hasHandledExpiration = false;
         }
 
-        this.updatePerformanceMonitorDisplay();
-    }
-
-    /**
-     * Refresh the performance-monitor label (client heap) without a full menubar re-render.
-     * Uses PerformanceUtility cache / poll interval from settings.
-     */
-    static updatePerformanceMonitorDisplay() {
-        try {
-            const span = document.querySelector('.blacksmith-menubar-left .memory-monitor-label');
-            if (!span) return;
-            span.textContent = PerformanceUtility.getMemoryDisplayString();
-        } catch {
-            /* ignore */
-        }
     }
 
     static async handleTimerWarning() {

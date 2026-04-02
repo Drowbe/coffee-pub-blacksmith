@@ -3,14 +3,13 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { MenuBar } from './api-menubar.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { getSettingSafely } from './api-core.js';
 
 /**
- * Performance monitoring utility for memory and resource tracking
+ * Performance monitoring utility for memory and resource tracking.
+ * Loaded only when **Enable Performance monitor** is on and the left hamburger context menu is opened (dynamic import).
  */
 export class PerformanceUtility {
-    
     // Cache for memory values to avoid frequent API calls
     static _memoryCache = {
         data: null,
@@ -26,7 +25,7 @@ export class PerformanceUtility {
         const now = Date.now();
         
         // Update interval from settings
-        const pollIntervalSeconds = game.settings.get(MODULE.ID, 'menubarPerformancePollInterval') || 5;
+        const pollIntervalSeconds = getSettingSafely(MODULE.ID, 'menubarPerformancePollInterval', 60) || 5;
         const pollIntervalMs = pollIntervalSeconds * 1000;
         
         // Return cached data if it's still fresh
@@ -316,45 +315,4 @@ export class PerformanceUtility {
             modules: report.modules
         });
     }
-
-    /**
-     * Initialize performance monitoring (if needed for future enhancements)
-     */
-    static initialize() {
-        postConsoleAndNotification(MODULE.NAME, "Performance Utility: Initialized", "", true, false);
-    }
 }
-
-// Register Menubar Tool for Performance Monitor
-Hooks.once('ready', () => {
-    MenuBar.registerMenubarTool('memory-monitor', {
-        icon: "fa-solid fa-chart-simple",
-        name: "memory-monitor",
-        title: () => {
-            return PerformanceUtility.getMemoryDisplayString();
-        },
-        tooltip: () => game.i18n.localize(`${MODULE.ID}.menubarPerformanceMonitor-Tooltip`),
-        onClick: () => {
-            PerformanceUtility.showPerformanceCheck();
-        },
-        zone: "left",
-        group: "general",
-        groupOrder: 100, // GENERAL group
-        order: 5,
-        moduleId: "blacksmith-core",
-        gmOnly: false,
-        leaderOnly: false,
-        visible: () => {
-            try {
-                return !!game.settings.get(MODULE.ID, 'menubarShowPerformance');
-            } catch {
-                return false;
-            }
-        },
-        toggleable: false,
-        active: false,
-        iconColor: null,
-        buttonNormalTint: null,
-        buttonSelectedTint: null
-    });
-});

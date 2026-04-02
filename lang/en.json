@@ -892,11 +892,14 @@
 			"cssDarkMode-Label": "Dark Mode",
 			"cssDarkMode-Hint": "Enable dark mode for the css editor",
 
-		"headingH2PerformanceTools-Label": "Performance Tools",
-		"headingH2PerformanceTools-Hint": "Performance monitoring and menubar tools",
+		"headingH2PerformanceTools-Label": "Performance",
+		"headingH2PerformanceTools-Hint": "Client heap and full report from the left hamburger context menu when the monitor is enabled.",
+
+			"enablePerformanceMonitor-Label": "Enable Performance monitor",
+			"enablePerformanceMonitor-Hint": "When on, the performance module loads only when you open the left hamburger menu (heap line + full report). When off, it does not load at all until you reload.",
 
 			"headingH3PerformanceMenubarOptions-Label": "Menubar",
-			"headingH3PerformanceMenubarOptions-Hint": "Show performance tools in the menubar.",
+			"headingH3PerformanceMenubarOptions-Hint": "Which Blacksmith tools appear in the menubar left zone.",
 
 
 				"menubarShowSettings-Label": "Show Settings Tool",
@@ -908,14 +911,8 @@
 				"menubarShowPins-Label": "Show Pins Toggle Tool",
 				"menubarShowPins-Hint": "Show the pins visibility toggle in the menubar left zone.",
 
-				"menubarShowPerformance-Label": "Show Performance Monitor Tool",
-				"menubarShowPerformance-Hint": "Show the performance monitor tool in the menubar left zone.",
-
-				"menubarPerformanceMonitor-Tooltip": "Client JS heap (used). Click for the full performance report (textures, modules, limits).",
-
-
-				"menubarPerformancePollInterval-Label": "Performance Monitor Poll Interval",
-				"menubarPerformancePollInterval-Hint": "The interval in seconds between performance monitor data updates. Default: 5 seconds. (5 to 300 seconds)",	
+				"menubarPerformancePollInterval-Label": "Heap display refresh interval",
+				"menubarPerformancePollInterval-Hint": "Seconds between cache refreshes for the heap value shown in the hamburger context menu (5 to 300).",
 
 
 			"headingH3Latency-Label": "System Latency",

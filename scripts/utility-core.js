@@ -5,7 +5,6 @@
 import { MODULE } from './const.js';
 import { MenuBar } from './api-menubar.js';
 import { getSettingSafely } from './api-core.js';
-import { PerformanceUtility } from './utility-performance.js';
 
 export class CoreUIUtility {
     /**
@@ -110,14 +109,21 @@ export class CoreUIUtility {
             }
         });
 
-        items.push({
-            name: PerformanceUtility.getMemoryDisplayString(),
-            icon: "fa-solid fa-chart-simple",
-            description: 'Click for full performance report',
-            onClick: () => {
-                PerformanceUtility.showPerformanceCheck();
+        if (getSettingSafely(MODULE.ID, 'enablePerformanceMonitor', true)) {
+            try {
+                const { PerformanceUtility } = await import('./utility-performance.js');
+                items.push({
+                    name: PerformanceUtility.getMemoryDisplayString(),
+                    icon: 'fa-solid fa-chart-simple',
+                    description: 'Left hamburger menu only. Click for full performance report.',
+                    onClick: () => {
+                        PerformanceUtility.showPerformanceCheck();
+                    }
+                });
+            } catch {
+                /* module cycling */
             }
-        });
+        }
 
         if (game.user.isGM && getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)) {
             let qvOn = getSettingSafely(MODULE.ID, 'quickViewEnabled', false);

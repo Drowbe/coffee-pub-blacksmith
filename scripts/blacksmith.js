@@ -903,6 +903,8 @@ Hooks.once('init', async function() {
         });
     }
 
+    // PERFORMANCE MONITOR — loaded only via dynamic import when the hamburger menu is opened (see enablePerformanceMonitor in utility-core)
+
     // BLACKSMITH TOOLBAR MANAGER
     // Register toolbar button and expose API
     await addToolbarButton();

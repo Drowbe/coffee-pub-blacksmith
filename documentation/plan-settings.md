@@ -14,7 +14,7 @@ Two-level affordance model:
 | # | Area | Load gate today? | On/off vs visibility | Target / action | Status |
 |---|------|------------------|----------------------|-----------------|--------|
 | 1 | Quick View | Yes — `enableQuickViewFeature` + dynamic import; conditional libWrapper | `quickViewEnabled` = **Quickview on** | Done |
-| 2 | Performance monitor | No | `menubarShowPerformance` = menubar visibility only; start menu always | **Enable** gate + optional menubar visibility; single UX (e.g. context/start only) + **`Performance`** settings section | Not started |
+| 2 | Performance monitor | Yes — `enablePerformanceMonitor`; dynamic import when hamburger opens | Context menu only (no menubar tool) | Done |
 | 3 | Latency | Partial — init skips hooks/interval | Socket `ping`/`pong`/`latencyUpdate` always registered | No-op or don’t register handlers when `enableLatency` false | Not started |
 | 4 | Pins menubar | N/A | `menubarShowPins` **never read**; tool `visible: false` hardcoded | Wire setting OR remove; **Pins** section under Canvas; move **Player Pin Editing** | Not started |
 | 5 | Combat timer | Mostly yes — no hooks if disabled | — | OK; optional dynamic import later | Not started |
@@ -36,9 +36,8 @@ Update **Status** as work proceeds (e.g. Not started → In progress → Done).
 
 ### Performance monitor
 
-- `utility-performance.js` registers menubar `memory-monitor`; visibility uses `menubarShowPerformance`.
-- `utility-core.js` start menu always offers performance row via `PerformanceUtility` (not gated by that setting).
-- `MenuBar.updatePerformanceMonitorDisplay()` can call into `PerformanceUtility` during lightweight refresh when the label exists.
+- `enablePerformanceMonitor` (reload): when false, the start/context menu does not offer the heap row and `utility-performance.js` is never imported.
+- When enabled, `utility-core.js` dynamic-imports `utility-performance.js` when building the left hamburger menu; there is no menubar heap tool.
 
 ### Latency
 
