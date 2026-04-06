@@ -9,9 +9,28 @@ import { MODULE, BLACKSMITH } from './const.js';
 // -- Load the shared GLOBAL functions --
 import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, resetModuleSettings, getSettingSafely, setSettingSafely } from './api-core.js';
 import { CHAT_CARD_THEMES } from './api-chat-cards.js';
+import { assetLookup } from './asset-lookup.js';
 // -- Import special page variables --
 // Load the data sets for the settings dropdowns
 import { dataNameplate, dataSounds, dataIcons, dataBackgroundImages } from '../resources/assets.js';
+
+/** Prefer merged AssetLookup data when initialized; fallback to bundled imports (e.g. first registerSettings pass). */
+function getNameplateSource() {
+    const n = assetLookup?.dataCollections?.nameplates;
+    return Array.isArray(n) ? n : dataNameplate.names;
+}
+function getBackgroundImagesSource() {
+    const n = assetLookup?.dataCollections?.backgroundImages;
+    return Array.isArray(n) ? n : dataBackgroundImages.images;
+}
+function getIconsSource() {
+    const n = assetLookup?.dataCollections?.icons;
+    return Array.isArray(n) ? n : dataIcons.icons;
+}
+function getSoundsSource() {
+    const n = assetLookup?.dataCollections?.sounds;
+    return Array.isArray(n) ? n : dataSounds.sounds;
+}
 
 
 
@@ -645,7 +664,7 @@ function getMacroChoices() {
 function getNameplateChoices() {
 	postConsoleAndNotification(MODULE.NAME, "Building Nameplate List...", "", false, false);
 	let choices = {};
-	for(const data of dataNameplate.names) {
+	for(const data of getNameplateSource()) {
 		choices[data.id] = data.name;
 	}
 	BLACKSMITH.updateValue('arrNameChoices', choices);
@@ -732,7 +751,7 @@ function getBackgroundImageChoices() {
     postConsoleAndNotification(MODULE.NAME, "Building Background Image List...", "", false, false);
     let choices = {};
     BLACKSMITH.arrBackgroundImageChoicesEnabled = [];
-    let sortedImages = dataBackgroundImages.images;
+    let sortedImages = [...getBackgroundImagesSource()];
     // Move 'themecolor' to front
     sortedImages.sort((a, b) => {
         if(a.value === 'themecolor') return -1;
@@ -756,7 +775,7 @@ function getIconChoices() {
     let choices = {};
     BLACKSMITH.arrIconChoicesEnabled = [];
     
-    let sortedIcons = dataIcons.icons;
+    let sortedIcons = [...getIconsSource()];
     // Move 'none' to front
     sortedIcons.sort((a, b) => {
         if(a.id === 'icon-none') return -1;
@@ -784,7 +803,7 @@ function getSoundChoices() {
     // Add the "No Sound" option second
     choices['sound-none'] = 'No Sound';
     // Then add all the sound choices from data collection (excluding sound-none since we already added it)
-    let sortedSounds = dataSounds.sounds.filter(sound => sound.id !== 'sound-none');
+    let sortedSounds = getSoundsSource().filter(sound => sound.id !== 'sound-none');
     // Remove duplicates based on ID
     const uniqueSounds = [];
     const seenIds = new Set();
@@ -803,6 +822,16 @@ function getSoundChoices() {
     BLACKSMITH.updateValue('arrSoundChoices', choices);
     // Return it to this modules settings.
     return choices; 
+}
+
+/**
+ * Rebuild BLACKSMITH dropdown caches from AssetLookup after bundled + JSON merge or Asset Mapping path change.
+ */
+export function refreshAssetDerivedChoices() {
+    getBackgroundImageChoices();
+    getIconChoices();
+    getSoundChoices();
+    getNameplateChoices();
 }
 
 // ====================================================================================================================  
@@ -1313,6 +1342,34 @@ export const registerSettings = () => {
 	// This includes Actor, Item, Spell, Feature, and any other types (JournalEntry, RollTable, etc.)
 	registerDynamicCompendiumTypes();
 
+	// --------------------------------------
+	// -- H2: Asset Mapping (optional JSON overrides per category)
+	// --------------------------------------
+	registerHeader('AssetMapping', 'headingH2AssetMapping-Label', 'headingH2AssetMapping-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+
+	const assetMapField = (key, labelKey, hintKey) => {
+		game.settings.register(MODULE.ID, key, {
+			name: MODULE.ID + labelKey,
+			hint: MODULE.ID + hintKey,
+			scope: 'world',
+			config: true,
+			type: String,
+			default: '',
+			filePicker: true,
+			group: WORKFLOW_GROUPS.MANAGE_CONTENT,
+			onChange: () => {
+				void import('./asset-loader.js').then(m => m.reloadAssetManifestsFromWorldSettings());
+			}
+		});
+	};
+	assetMapField('assetMapThemesJson', '.assetMapThemesJson-Label', '.assetMapThemesJson-Hint');
+	assetMapField('assetMapBackgroundImagesJson', '.assetMapBackgroundImagesJson-Label', '.assetMapBackgroundImagesJson-Hint');
+	assetMapField('assetMapIconsJson', '.assetMapIconsJson-Label', '.assetMapIconsJson-Hint');
+	assetMapField('assetMapNameplatesJson', '.assetMapNameplatesJson-Label', '.assetMapNameplatesJson-Hint');
+	assetMapField('assetMapSoundsJson', '.assetMapSoundsJson-Label', '.assetMapSoundsJson-Hint');
+	assetMapField('assetMapVolumesJson', '.assetMapVolumesJson-Label', '.assetMapVolumesJson-Hint');
+	assetMapField('assetMapBannersJson', '.assetMapBannersJson-Label', '.assetMapBannersJson-Hint');
+	assetMapField('assetMapBackgroundsJson', '.assetMapBackgroundsJson-Label', '.assetMapBackgroundsJson-Hint');
 
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 

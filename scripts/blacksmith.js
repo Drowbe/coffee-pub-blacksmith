@@ -38,7 +38,7 @@ import {
     copyToClipboard 
 } from './utility-common.js';
 // -- Import special page variables --
-import { registerSettings, buildSelectedCompendiumArrays, buildSelectedCampaignArrays, reorderCompendiumsForType, extractTypeFromCompendiumSetting } from './settings.js';
+import { registerSettings, buildSelectedCompendiumArrays, buildSelectedCampaignArrays, reorderCompendiumsForType, extractTypeFromCompendiumSetting, refreshAssetDerivedChoices } from './settings.js';
 import { BlacksmithLayer } from './canvas-layer.js';
 import { addToolbarButton } from './manager-toolbar.js';
 import { CombatTimer } from './timer-combat.js';
@@ -70,7 +70,9 @@ import { XpManager } from './xp-manager.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
 import { ConstantsGenerator } from './constants-generator.js';
-import { assetLookup } from './asset-lookup.js';
+import { assetLookup, initializeAssetLookupInstance } from './asset-lookup.js';
+import { loadAssetBundlesWithOverrides } from './asset-loader.js';
+import * as assetBundles from '../resources/assets.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { SidebarPin } from './ui-sidebar-pin.js';
 import { SidebarStyle } from './ui-sidebar-style.js';
@@ -361,12 +363,28 @@ Hooks.once('ready', async () => {
         });
     }
 
-    // Register settings before first await so other ready callbacks (e.g. utility-core) can read them.
+    // Register settings first so Asset Mapping paths exist before we fetch optional JSON overrides.
     // Must not throw: this runs before the main init try/catch, so a throw would stall loading at "Finalizing...".
     try {
         registerSettings();
     } catch (e) {
         console.error(`${MODULE.ID}: registerSettings failed (early ready)`, e);
+        LoadingProgressManager.forceHide();
+        return;
+    }
+
+    // Build AssetLookup synchronously from bundled data BEFORE any await. Other modules' `ready` hooks
+    // run during awaits; they must never see `assetLookup === null` (getAllConstants, registerModule, etc.).
+    initializeAssetLookupInstance(assetBundles);
+    refreshAssetDerivedChoices();
+
+    // Optional JSON overrides (async fetch; merge after bundled baseline is already live).
+    try {
+        const mergedBundles = await loadAssetBundlesWithOverrides(assetBundles);
+        initializeAssetLookupInstance(mergedBundles);
+        refreshAssetDerivedChoices();
+    } catch (e) {
+        console.error(`${MODULE.ID}: loadAssetBundlesWithOverrides / merge failed`, e);
         LoadingProgressManager.forceHide();
         return;
     }
@@ -388,10 +406,8 @@ Hooks.once('ready', async () => {
     LoadingProgressManager.logActivity("Initializing modules...");
     
     try {
-        // Register settings FIRST during the ready phase
+        // Settings already registered at start of ready (before asset merge).
         LoadingProgressManager.logActivity("Registering settings...");
-        // (already called at start of ready; no-op if called again)
-        registerSettings();
         
         // Initialize HookManager (infrastructure layer)
         LoadingProgressManager.logActivity("Initializing hook system...");
@@ -1024,7 +1040,7 @@ Hooks.once('init', async function() {
     const module = game.modules.get(MODULE.ID);
     // Merge AssetLookup-generated constants (sound paths, volume, theme, etc.) onto BLACKSMITH
     // so BlacksmithConstants.SOUNDNOTIFICATION01 etc. work for external modules
-    const generatedConstants = assetLookup.getAllConstants();
+    const generatedConstants = assetLookup?.getAllConstants?.() ?? {};
     if (generatedConstants && typeof generatedConstants === 'object') {
         Object.assign(BLACKSMITH, generatedConstants);
     }

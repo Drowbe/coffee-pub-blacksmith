@@ -5,30 +5,23 @@
 // This tool will replace hardcoded constants with smart lookups
 
 import { MODULE } from './const.js';
-import { 
-    dataTheme, 
-    dataBackgroundImages, 
-    dataIcons, 
-    dataNameplate, 
-    dataSounds,
-    dataVolume,
-    dataBanners,
-    dataBackgrounds
-} from '../resources/assets.js';
 
+/**
+ * @param {object} assetBundles - Namespace from `import * as assetBundles from '../resources/assets.js'` (or merged overrides)
+ */
 export class AssetLookup {
     
-    constructor() {
-        
+    constructor(assetBundles = {}) {
+        const safe = (x) => (Array.isArray(x) ? x : []);
         this.dataCollections = {
-            themes: dataTheme.themes,
-            backgroundImages: dataBackgroundImages.images,
-            icons: dataIcons.icons,
-            nameplates: dataNameplate.names,
-            sounds: dataSounds.sounds,
-            volumes: dataVolume.volumes,
-            banners: dataBanners.banners,
-            backgrounds: dataBackgrounds.backgrounds
+            themes: safe(assetBundles.dataTheme?.themes),
+            backgroundImages: safe(assetBundles.dataBackgroundImages?.images),
+            icons: safe(assetBundles.dataIcons?.icons),
+            nameplates: safe(assetBundles.dataNameplate?.names),
+            sounds: safe(assetBundles.dataSounds?.sounds),
+            volumes: safe(assetBundles.dataVolume?.volumes),
+            banners: safe(assetBundles.dataBanners?.banners),
+            backgrounds: safe(assetBundles.dataBackgrounds?.backgrounds)
         };
              
         // Validate data collections
@@ -355,5 +348,15 @@ export class AssetLookup {
     }
 }
 
-// Create global instance
-export const assetLookup = new AssetLookup();
+/** @type {AssetLookup|null} Set by initializeAssetLookupInstance (ready hook, after registerSettings). */
+export let assetLookup = null;
+
+/**
+ * Build COFFEEPUB / window constants from bundled or merged asset data. Call once during `ready` after registerSettings (so Asset Mapping paths exist).
+ * @param {object} assetBundles - `import * as assetBundles from '../resources/assets.js'` or merged object with same exports
+ * @returns {AssetLookup}
+ */
+export function initializeAssetLookupInstance(assetBundles) {
+    assetLookup = new AssetLookup(assetBundles);
+    return assetLookup;
+}

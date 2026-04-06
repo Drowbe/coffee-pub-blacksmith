@@ -132,11 +132,19 @@ On invalid user file: **log**, **fall back** to bundled defaults for **that cate
 
 | Phase | Status |
 |-------|--------|
-| 1 Split | Not started |
-| 2 Loader | Not started |
-| 3 Defer AssetLookup | Not started |
-| 4 Settings | Not started |
+| 1 Split | **In progress** — `assets.js` re-exports `assets-legacy.js`; run `node scripts/extract-assets-to-json.mjs` to emit `resources/asset-defaults/*.json` |
+| 2 Loader | **Done** — `loadAssetBundlesWithOverrides` fetches optional JSON per Asset Mapping path; invalid/missing file falls back to bundled data for that category |
+| 3 Defer AssetLookup | **Done** — `registerSettings()` → **sync** `initializeAssetLookupInstance(bundled)` before **any** `await` (so interleaved `ready` hooks never see null), then `await` merge + re-init + `refreshAssetDerivedChoices()` |
+| 4 Settings | **Done** — Asset Mapping: 8 paths + `onChange` → `reloadAssetManifestsFromWorldSettings()` |
 | 5 Companion | Not started |
-| 6 Docs | Not started |
+| 6 Docs | This file |
 
 Update this table as work proceeds.
+
+### Implemented files (reference)
+
+- `resources/assets.js` — re-exports from `assets-legacy.js`
+- `resources/assets-legacy.js` — full bundled data (copy of former monolith)
+- `scripts/asset-loader.js` — `loadAssetBundlesWithOverrides`, `reloadAssetManifestsFromWorldSettings`
+- `scripts/asset-lookup.js` — `AssetLookup` takes bundle namespace; `export let assetLookup`; `initializeAssetLookupInstance()`
+- `scripts/extract-assets-to-json.mjs` — JSON emitter for defaults

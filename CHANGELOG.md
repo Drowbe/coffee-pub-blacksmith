@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.6.0]
+
+### Added
+
+- **Asset Mapping** (`settings.js`, `lang/en.json`): Optional per-category JSON paths under **Manage Content** (themes, background images, icons, nameplates, sounds, volumes, banners, skill-check backgrounds); empty path uses bundled data from `assets-legacy.js`.
+- **Asset loader** (`asset-loader.js`): `loadAssetBundlesWithOverrides` fetches and merges overrides; `reloadAssetManifestsFromWorldSettings` rebuilds `AssetLookup` and choice caches when a path changes (`onChange` on each Asset Mapping setting).
+- **Maintainability**: `resources/assets.js` re-exports `assets-legacy.js`; `scripts/extract-assets-to-json.mjs` emits `resources/asset-defaults/*.json` for maintainers (run with Node from repo root).
+
+### Fixed
+
+- **Asset lookup + module API during `ready`** (`blacksmith.js`): Initialize **`AssetLookup` from bundled assets synchronously** before the first `await` (JSON override fetch). Async `ready` callbacks from other Coffee Pub modules can run between awaits; they must not see **`assetLookup === null`** (`getAllConstants`, `registerModule`, etc.). Optional merge still runs afterward; **`getAllConstants`** uses optional chaining as a safety net.
+
+### Documentation
+
+- **`documentation/plan-assets.md`**: Status and implementation notes for split manifests, loader, deferred init, and settings.
+
 ## [13.5.10]
 
 ### Added

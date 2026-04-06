@@ -633,6 +633,26 @@
 		"headingH2CompendiumMapping-Label": "Compendium Mapping",
 		"headingH2CompendiumMapping-Hint": "When we automate searching for things, we look in the compendiums first. This is where we will look for a match. They are in priority order and we stop looking when we find a match.",
 
+		"headingH2AssetMapping-Label": "Asset Mapping",
+		"headingH2AssetMapping-Hint": "Optional JSON files that replace bundled asset lists per category (themes, sounds, banners, etc.). Leave empty to use module defaults. Merging from custom paths will be applied in a follow-up release once defaults ship as JSON; companion modules can point here.",
+
+		"assetMapThemesJson-Label": "Themes JSON",
+		"assetMapThemesJson-Hint": "JSON file with a top-level \"themes\" array (see documentation/plan-assets.md). Empty = bundled defaults.",
+		"assetMapBackgroundImagesJson-Label": "Background images JSON",
+		"assetMapBackgroundImagesJson-Hint": "JSON with an \"images\" array. Empty = bundled defaults.",
+		"assetMapIconsJson-Label": "Icons JSON",
+		"assetMapIconsJson-Hint": "JSON with an \"icons\" array. Empty = bundled defaults.",
+		"assetMapNameplatesJson-Label": "Nameplates JSON",
+		"assetMapNameplatesJson-Hint": "JSON with a \"names\" array. Empty = bundled defaults.",
+		"assetMapSoundsJson-Label": "Sounds JSON",
+		"assetMapSoundsJson-Hint": "JSON with a \"sounds\" array. Empty = bundled defaults.",
+		"assetMapVolumesJson-Label": "Volumes JSON",
+		"assetMapVolumesJson-Hint": "JSON with a \"volumes\" array. Empty = bundled defaults.",
+		"assetMapBannersJson-Label": "Banners JSON",
+		"assetMapBannersJson-Hint": "JSON with a \"banners\" array. Empty = bundled defaults.",
+		"assetMapBackgroundsJson-Label": "Skill-check backgrounds JSON",
+		"assetMapBackgroundsJson-Hint": "JSON with a \"backgrounds\" array (BACK* cinematic constants). Empty = bundled defaults.",
+
 
 			"headingH3ActorCompendiums-Label": "Actors",
 			"headingH3ActorCompendiums-Hint": "",
