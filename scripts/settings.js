@@ -1343,18 +1343,20 @@ export const registerSettings = () => {
 	registerDynamicCompendiumTypes();
 
 	// --------------------------------------
-	// -- H2: Asset Mapping (optional JSON overrides per category)
+	// -- H2: Asset Mapping (shipped JSON defaults; clear = embedded JS only)
 	// --------------------------------------
 	registerHeader('AssetMapping', 'headingH2AssetMapping-Label', 'headingH2AssetMapping-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 
-	const assetMapField = (key, labelKey, hintKey) => {
+	const assetMapDefaultPath = (fileName) => `modules/${MODULE.ID}/resources/asset-defaults/${fileName}`;
+
+	const assetMapField = (key, labelKey, hintKey, defaultFileName) => {
 		game.settings.register(MODULE.ID, key, {
 			name: MODULE.ID + labelKey,
 			hint: MODULE.ID + hintKey,
 			scope: 'world',
 			config: true,
 			type: String,
-			default: '',
+			default: assetMapDefaultPath(defaultFileName),
 			filePicker: true,
 			group: WORKFLOW_GROUPS.MANAGE_CONTENT,
 			onChange: () => {
@@ -1362,13 +1364,13 @@ export const registerSettings = () => {
 			}
 		});
 	};
-	assetMapField('assetMapBackgroundImagesJson', '.assetMapBackgroundImagesJson-Label', '.assetMapBackgroundImagesJson-Hint');
-	assetMapField('assetMapIconsJson', '.assetMapIconsJson-Label', '.assetMapIconsJson-Hint');
-	assetMapField('assetMapNameplatesJson', '.assetMapNameplatesJson-Label', '.assetMapNameplatesJson-Hint');
-	assetMapField('assetMapSoundsJson', '.assetMapSoundsJson-Label', '.assetMapSoundsJson-Hint');
-	assetMapField('assetMapVolumesJson', '.assetMapVolumesJson-Label', '.assetMapVolumesJson-Hint');
-	assetMapField('assetMapBannersJson', '.assetMapBannersJson-Label', '.assetMapBannersJson-Hint');
-	assetMapField('assetMapBackgroundsJson', '.assetMapBackgroundsJson-Label', '.assetMapBackgroundsJson-Hint');
+	assetMapField('assetMapBackgroundImagesJson', '.assetMapBackgroundImagesJson-Label', '.assetMapBackgroundImagesJson-Hint', 'assets-background-images.json');
+	assetMapField('assetMapIconsJson', '.assetMapIconsJson-Label', '.assetMapIconsJson-Hint', 'assets-icons.json');
+	assetMapField('assetMapNameplatesJson', '.assetMapNameplatesJson-Label', '.assetMapNameplatesJson-Hint', 'assets-nameplates.json');
+	assetMapField('assetMapSoundsJson', '.assetMapSoundsJson-Label', '.assetMapSoundsJson-Hint', 'assets-sounds.json');
+	assetMapField('assetMapVolumesJson', '.assetMapVolumesJson-Label', '.assetMapVolumesJson-Hint', 'assets-volumes.json');
+	assetMapField('assetMapBannersJson', '.assetMapBannersJson-Label', '.assetMapBannersJson-Hint', 'assets-banners.json');
+	assetMapField('assetMapBackgroundsJson', '.assetMapBackgroundsJson-Label', '.assetMapBackgroundsJson-Hint', 'assets-backgrounds.json');
 
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 

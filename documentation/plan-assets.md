@@ -9,7 +9,7 @@ Track progress here; update statuses as work lands.
 | **1 — Split** | Bundled data split; shipped JSON defaults | **Done** | `assets.js` → `assets-legacy.js`; `resources/asset-defaults/*.json` generated via `extract-assets-to-json.mjs` **or** `extract-assets-to-json.ps1` (no Node); listed in `module.json` → **files** |
 | **2 — Loader** | Fetch, validate, merge per category | **Done** | `scripts/asset-loader.js` — `loadAssetBundlesWithOverrides`, `reloadAssetManifestsFromWorldSettings`; fallback on error |
 | **3 — Defer AssetLookup** | Safe init order for consumers | **Done** | Sync `initializeAssetLookupInstance(bundled)` before any `await`; then async merge + re-init + `refreshAssetDerivedChoices()` (`blacksmith.js`) |
-| **4 — Settings** | Per-category Asset Mapping + reload | **Done** | Seven optional paths + `onChange` (`settings.js`, `lang/en.json`; legacy `dataTheme` removed) |
+| **4 — Settings** | Per-category Asset Mapping + reload | **Done** | Seven paths; **defaults** = shipped `resources/asset-defaults/*.json`; clear = JS-only; `onChange` reload (`settings.js`, `lang/en.json`) |
 | **5 — Companion** | Separate module for rich pack | **Not started** | JSON + art; document example `modules/<id>/...` paths |
 | **6 — Docs & CHANGELOG** | Schema, migration, changelog | **In progress** | This doc + `CHANGELOG`; schema examples for authors still thin |
 
