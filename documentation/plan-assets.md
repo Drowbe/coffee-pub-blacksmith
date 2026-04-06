@@ -1,5 +1,18 @@
 # Asset manifests & “Asset Mapping” settings — plan
 
+## Roadmap
+
+Track progress here; update statuses as work lands.
+
+| Phase | Deliverable | Status | Notes |
+|-------|-------------|--------|-------|
+| **1 — Split** | Bundled data split; optional shipped JSON defaults | **In progress** | `assets.js` re-exports `assets-legacy.js`; run `node scripts/extract-assets-to-json.mjs` → `resources/asset-defaults/`; add paths to `module.json` **files** when defaults ship in-package |
+| **2 — Loader** | Fetch, validate, merge per category | **Done** | `scripts/asset-loader.js` — `loadAssetBundlesWithOverrides`, `reloadAssetManifestsFromWorldSettings`; fallback on error |
+| **3 — Defer AssetLookup** | Safe init order for consumers | **Done** | Sync `initializeAssetLookupInstance(bundled)` before any `await`; then async merge + re-init + `refreshAssetDerivedChoices()` (`blacksmith.js`) |
+| **4 — Settings** | Per-category Asset Mapping + reload | **Done** | Eight optional paths + `onChange` (`settings.js`, `lang/en.json`) |
+| **5 — Companion** | Separate module for rich pack | **Not started** | JSON + art; document example `modules/<id>/...` paths |
+| **6 — Docs & CHANGELOG** | Schema, migration, changelog | **In progress** | This doc + `CHANGELOG`; schema examples for authors still thin |
+
 Split bundled asset data into JSON files, add **per-category** settings so GMs can point at their own JSON, and reserve a **companion module** for the richer art pack. Policy context: Foundry is discouraging AI-generated images in packages; core should ship **generic / clearly licensed** defaults.
 
 **Related:** `resources/assets.js` (current monolith), `scripts/asset-lookup.js`, `scripts/constants-generator.js`, `scripts/settings.js`.
@@ -128,20 +141,8 @@ On invalid user file: **log**, **fall back** to bundled defaults for **that cate
 
 ---
 
-## Status
+## Reference — implemented files
 
-| Phase | Status |
-|-------|--------|
-| 1 Split | **In progress** — `assets.js` re-exports `assets-legacy.js`; run `node scripts/extract-assets-to-json.mjs` to emit `resources/asset-defaults/*.json` |
-| 2 Loader | **Done** — `loadAssetBundlesWithOverrides` fetches optional JSON per Asset Mapping path; invalid/missing file falls back to bundled data for that category |
-| 3 Defer AssetLookup | **Done** — `registerSettings()` → **sync** `initializeAssetLookupInstance(bundled)` before **any** `await` (so interleaved `ready` hooks never see null), then `await` merge + re-init + `refreshAssetDerivedChoices()` |
-| 4 Settings | **Done** — Asset Mapping: 8 paths + `onChange` → `reloadAssetManifestsFromWorldSettings()` |
-| 5 Companion | Not started |
-| 6 Docs | This file |
-
-Update this table as work proceeds.
-
-### Implemented files (reference)
 
 - `resources/assets.js` — re-exports from `assets-legacy.js`
 - `resources/assets-legacy.js` — full bundled data (copy of former monolith)
