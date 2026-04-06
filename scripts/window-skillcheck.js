@@ -39,8 +39,12 @@ export class SkillCheckDialog extends Application {
             showRollExplanation: true,
             showDC: true,
             groupRoll: true,
-            isCinematic: false
+            isCinematic: false,
+            requestRollFavorites: []
         };
+        if (!Array.isArray(this.userPreferences.requestRollFavorites)) {
+            this.userPreferences.requestRollFavorites = [];
+        }
     }
 
     static get defaultOptions() {
@@ -55,32 +59,248 @@ export class SkillCheckDialog extends Application {
         });
     }
 
+    /**
+     * Resolve token and actor for a contestant row (canvas token and/or sheet actor).
+     * @param {HTMLElement} el - `.cpb-actor-item`
+     * @returns {{ tokenId: string|null, actorId: string|null, token: Token|null, actor: Actor|null }}
+     */
+    _resolveContestantFromElement(el) {
+        const tokenId = el?.dataset?.tokenId || null;
+        const actorId = el?.dataset?.actorId || null;
+        const token = tokenId ? (canvas?.tokens?.placeables ?? []).find(t => t.id === tokenId) ?? null : null;
+        const actor = token?.actor ?? (actorId ? game.actors.get(actorId) : null) ?? null;
+        return {
+            tokenId: tokenId || null,
+            actorId: actor?.id ?? actorId ?? null,
+            token,
+            actor
+        };
+    }
+
+    /** Stable id for Request Roll favorites (user scope). */
+    static _computeFavoriteId(item) {
+        const o = {
+            type: item?.dataset?.type,
+            value: item?.dataset?.value ?? '',
+            rollType: item?.dataset?.rollType ?? '',
+            group: item?.dataset?.group ?? '',
+            dc: item?.dataset?.dc ?? '',
+            defenderSkill: item?.dataset?.defenderSkill ?? '',
+            toolName: item?.dataset?.toolName ?? '',
+            common: item?.dataset?.common ?? ''
+        };
+        return JSON.stringify(o);
+    }
+
+    static _favoriteRecordFromItem(item) {
+        const iconEl = item.querySelector(':scope > i');
+        const labelEl = item.querySelector('.cpb-roll-label');
+        const descEl = item.querySelector('.cpb-roll-description');
+        return {
+            id: SkillCheckDialog._computeFavoriteId(item),
+            type: item.dataset.type,
+            value: item.dataset.value ?? '',
+            rollType: item.dataset.rollType ?? '',
+            group: item.dataset.group ?? '',
+            dc: item.dataset.dc ?? '',
+            defenderSkill: item.dataset.defenderSkill ?? '',
+            rollTitle: item.dataset.rollTitle ?? '',
+            toolName: item.dataset.toolName ?? '',
+            common: item.dataset.common ?? '',
+            actorTools: item.dataset.actorTools ?? '',
+            tooltip: item.dataset.tooltip ?? '',
+            label: labelEl?.textContent?.trim() ?? '',
+            description: descEl?.textContent?.trim() ?? '',
+            iconClass: iconEl?.className ?? 'fas fa-dice-d20'
+        };
+    }
+
+    _assignFavoriteIdsToCheckItems(htmlElement) {
+        if (!htmlElement?.querySelectorAll) return;
+        htmlElement.querySelectorAll('.cpb-check-item[data-type]').forEach((item) => {
+            if (item.classList.contains('cpb-favorite-row')) return;
+            item.dataset.favoriteId = SkillCheckDialog._computeFavoriteId(item);
+        });
+    }
+
+    _findCanonicalFavoriteTarget(htmlElement, favoriteId) {
+        if (!htmlElement?.querySelectorAll || !favoriteId) return null;
+        return Array.from(htmlElement.querySelectorAll('.cpb-check-item')).find(
+            (el) => !el.classList.contains('cpb-favorite-row') && el.dataset.favoriteId === favoriteId
+        ) ?? null;
+    }
+
+    _renderFavoritesSection(htmlElement) {
+        const list = htmlElement.querySelector('.cpb-favorites-list');
+        const empty = htmlElement.querySelector('.cpb-favorites-empty');
+        const favs = this.userPreferences.requestRollFavorites || [];
+        if (!list) return;
+        list.innerHTML = '';
+        if (favs.length === 0) {
+            if (empty) empty.style.display = '';
+            return;
+        }
+        if (empty) empty.style.display = 'none';
+        for (const rec of favs) {
+            const row = document.createElement('div');
+            row.className = 'cpb-check-item cpb-favorite-row';
+            row.dataset.favoriteId = rec.id;
+            row.dataset.type = rec.type;
+            row.dataset.value = rec.value ?? '';
+            if (rec.rollType) row.dataset.rollType = rec.rollType;
+            if (rec.group !== undefined && rec.group !== '') row.dataset.group = rec.group;
+            if (rec.dc) row.dataset.dc = rec.dc;
+            if (rec.defenderSkill) row.dataset.defenderSkill = rec.defenderSkill;
+            if (rec.rollTitle) row.dataset.rollTitle = rec.rollTitle;
+            if (rec.toolName) row.dataset.toolName = rec.toolName;
+            if (rec.common !== undefined && rec.common !== '') row.dataset.common = rec.common;
+            if (rec.actorTools) row.dataset.actorTools = rec.actorTools;
+            if (rec.tooltip) row.dataset.tooltip = rec.tooltip;
+
+            const icon = document.createElement('i');
+            icon.className = rec.iconClass || 'fas fa-dice-d20';
+
+            const label = document.createElement('span');
+            label.className = 'cpb-roll-label';
+            label.textContent = rec.label || '';
+
+            const desc = document.createElement('span');
+            desc.className = 'cpb-roll-description';
+            desc.textContent = rec.description || '';
+
+            const trail = document.createElement('div');
+            trail.className = 'cpb-check-item-trailing';
+            const favBtn = document.createElement('button');
+            favBtn.type = 'button';
+            favBtn.className = 'cpb-favorite-toggle cpb-favorite-is-active';
+            favBtn.title = 'Remove from favorites';
+            favBtn.setAttribute('aria-label', 'Remove from favorites');
+            favBtn.innerHTML = '<i class="fas fa-heart"></i>';
+            const auto = document.createElement('div');
+            auto.className = 'cpb-roll-type-auto';
+            auto.innerHTML = '<i class="fas fa-play"></i>';
+            trail.appendChild(favBtn);
+            trail.appendChild(auto);
+
+            row.appendChild(icon);
+            row.appendChild(label);
+            row.appendChild(desc);
+            row.appendChild(trail);
+            list.appendChild(row);
+        }
+    }
+
+    _syncFavoriteHeartStates(htmlElement) {
+        if (!htmlElement?.querySelectorAll) return;
+        const ids = new Set((this.userPreferences.requestRollFavorites || []).map((f) => f.id));
+        htmlElement.querySelectorAll('.cpb-check-item:not(.cpb-favorite-row) .cpb-favorite-toggle').forEach((btn) => {
+            const item = btn.closest('.cpb-check-item');
+            const fid = item?.dataset.favoriteId;
+            const active = !!(fid && ids.has(fid));
+            btn.classList.toggle('cpb-favorite-is-active', active);
+            const i = btn.querySelector('i');
+            if (i) i.className = active ? 'fas fa-heart' : 'far fa-heart';
+        });
+    }
+
+    _toggleFavorite(htmlElement, item) {
+        if (!item) return;
+        const favs = [...(this.userPreferences.requestRollFavorites || [])];
+        let next;
+        if (item.classList.contains('cpb-favorite-row')) {
+            const favoriteId = item.dataset.favoriteId;
+            next = favs.filter((f) => f.id !== favoriteId);
+        } else {
+            const rec = SkillCheckDialog._favoriteRecordFromItem(item);
+            const idx = favs.findIndex((f) => f.id === rec.id);
+            if (idx >= 0) next = favs.filter((_, i) => i !== idx);
+            else next = [...favs, rec];
+        }
+        this.userPreferences = { ...this.userPreferences, requestRollFavorites: next };
+        game.settings.set(MODULE.ID, 'skillCheckPreferences', this.userPreferences);
+        this._renderFavoritesSection(htmlElement);
+        this._assignFavoriteIdsToCheckItems(htmlElement);
+        this._syncFavoriteHeartStates(htmlElement);
+    }
+
+    _attachRequestRollFavoriteListeners(htmlElement) {
+        if (!htmlElement || htmlElement.dataset.cpbFavListenersAttached === '1') return;
+        htmlElement.dataset.cpbFavListenersAttached = '1';
+
+        const favList = htmlElement.querySelector('.cpb-favorites-list');
+        if (favList) {
+            favList.addEventListener('click', (ev) => {
+                if (ev.target.closest('.cpb-favorite-toggle')) return;
+                const row = ev.target.closest('.cpb-favorite-row');
+                if (!row) return;
+                ev.preventDefault();
+                ev.stopPropagation();
+                const target = this._findCanonicalFavoriteTarget(htmlElement, row.dataset.favoriteId);
+                if (target) target.click();
+                else ui.notifications.warn('That favorite is no longer available (e.g. tools list changed). Remove it from favorites.');
+            });
+        }
+
+        this._favoriteCaptureHandler = (ev) => {
+            const btn = ev.target.closest('.cpb-favorite-toggle');
+            if (!btn || !htmlElement.contains(btn)) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            const item = btn.closest('.cpb-check-item');
+            if (item) this._toggleFavorite(htmlElement, item);
+        };
+        htmlElement.addEventListener('click', this._favoriteCaptureHandler, true);
+    }
+
     getData() {
         // Guard: no canvas or scene can cause canvas.tokens to be undefined
         const placeables = canvas?.tokens?.placeables ?? [];
         const controlled = canvas?.tokens?.controlled ?? [];
 
-        // Get all tokens from the canvas, including NPCs and monsters
-        const canvasTokens = placeables
-            .filter(t => t.actor)
-            .map(t => {
-                const hp = t.actor.system?.attributes?.hp;
-                return {
-                    id: t.id,
-                    name: t.name, // Use the token's name for display
-                    hasOwner: t.actor.hasPlayerOwner,
-                    actor: t.actor,
-                    isSelected: t.isSelected,
-                    // Add additional info for display
-                    level: t.actor.type === 'character' ? t.actor.system?.details?.level : null,
-                    class: t.actor.type === 'character' ? t.actor.system?.details?.class : null,
-                    type: t.actor.type,
-                    hp: hp ? {
-                        value: hp.value ?? 0,
-                        max: hp.max ?? 0
-                    } : { value: 0, max: 0 }
-                };
+        // Canvas tokens plus party PCs without a token on this scene (theater of the mind)
+        const actors = [];
+        const seenActorIds = new Set();
+        for (const t of placeables) {
+            if (!t.actor) continue;
+            const a = t.actor;
+            seenActorIds.add(a.id);
+            const hp = a.system?.attributes?.hp;
+            actors.push({
+                tokenId: t.id,
+                actorId: a.id,
+                name: t.name,
+                hasOwner: a.hasPlayerOwner,
+                isSelected: t.isSelected,
+                level: a.type === 'character' ? a.system?.details?.level : null,
+                class: a.type === 'character' ? a.system?.details?.class : null,
+                type: a.type,
+                hp: hp ? {
+                    value: hp.value ?? 0,
+                    max: hp.max ?? 0
+                } : { value: 0, max: 0 },
+                img: a.img
             });
+        }
+        for (const a of game.actors.filter((act) => act.type === 'character' && act.hasPlayerOwner)) {
+            if (seenActorIds.has(a.id)) continue;
+            seenActorIds.add(a.id);
+            const hp = a.system?.attributes?.hp;
+            actors.push({
+                tokenId: '',
+                actorId: a.id,
+                name: a.name,
+                hasOwner: true,
+                isSelected: false,
+                level: a.system?.details?.level ?? null,
+                class: a.system?.details?.class ?? null,
+                type: a.type,
+                hp: hp ? {
+                    value: hp.value ?? 0,
+                    max: hp.max ?? 0
+                } : { value: 0, max: 0 },
+                img: a.img
+            });
+        }
 
         // Check if there are any selected tokens
         const hasSelectedTokens = controlled.length > 0;
@@ -122,7 +342,7 @@ export class SkillCheckDialog extends Application {
         });
 
         const templateData = {
-            actors: canvasTokens,
+            actors,
             skills,
             abilities,
             saves,
@@ -160,9 +380,7 @@ export class SkillCheckDialog extends Application {
         const selectedActorEls = element.querySelectorAll('.cpb-actor-item.selected');
         const names = new Set();
         selectedActorEls.forEach((el) => {
-            const tokenId = el.dataset.tokenId;
-            const token = canvas?.tokens?.placeables?.find(t => t.id === tokenId);
-            const actor = token?.actor;
+            const { actor } = this._resolveContestantFromElement(el);
             if (!actor) return;
             actor.items.filter(i => i.type === "tool").forEach(tool => {
                 if (tool.name) names.add(tool.name.toLowerCase().trim());
@@ -225,9 +443,7 @@ export class SkillCheckDialog extends Application {
         postConsoleAndNotification(MODULE.NAME, 'Selected actors count:', selectedCount, true, false);
 
         selectedActorEls.forEach((el) => {
-            const tokenId = el.dataset.tokenId;
-            const token = canvas.tokens?.placeables?.find(t => t.id === tokenId);
-            const actor = token?.actor;
+            const { actor } = this._resolveContestantFromElement(el);
             if (!actor) return;
 
             // Keep track of tool names processed for this actor to avoid double-counting
@@ -325,6 +541,8 @@ export class SkillCheckDialog extends Application {
             this._updateToolList();
             this._updateSkillKitState(htmlElement);
         }
+
+        this._attachRequestRollFavoriteListeners(htmlElement);
         
         // Roll type filter (middle column): when API passed initialType/initialValue, show that tab first so selection is visible
         const secondColumn = htmlElement.querySelector('.cpb-dialog-column:nth-child(2)');
@@ -556,6 +774,7 @@ export class SkillCheckDialog extends Application {
 
         // Handle check item selection (v13: native DOM)
         htmlElement.querySelectorAll('.cpb-check-item, .check-item').forEach((item) => {
+            if (item.classList.contains('cpb-favorite-row')) return;
             const handleCheckItemSelection = (ev) => {
                 ev.preventDefault();
                 const type = item.dataset.type;
@@ -595,9 +814,7 @@ export class SkillCheckDialog extends Application {
                     // Party roll: select all party members (v13: native DOM)
                     if (rollType === 'party') {
                         htmlElement.querySelectorAll('.cpb-actor-item').forEach((actorItem) => {
-                        const tokenId = actorItem.dataset.tokenId; // This is now a token ID
-                        const token = canvas.tokens.placeables.find(t => t.id === tokenId);
-                        const actor = token?.actor;
+                        const { actor } = this._resolveContestantFromElement(actorItem);
                         if (actor && actor.hasPlayerOwner) {
                             actorItem.classList.add('selected');
                             actorItem.classList.add('cpb-group-1');
@@ -874,14 +1091,12 @@ export class SkillCheckDialog extends Application {
                 if (this._isQuickPartyRoll && this._quickRollOverrides && this._quickRollOverrides.rollType === 'party') {
                     // For party rolls, include all party members regardless of UI selection (v13: native DOM)
                     selectedActors = Array.from(htmlElement.querySelectorAll('.cpb-actor-item')).map(item => {
-                    const tokenId = item.dataset.tokenId;
-                    const token = canvas.tokens.placeables.find(t => t.id === tokenId);
-                    const actor = token?.actor;
+                    const { tokenId, actor } = this._resolveContestantFromElement(item);
                     // Only include party members (characters with player owners)
                     if (actor && actor.hasPlayerOwner) {
                         return {
-                            tokenId: tokenId,
-                            actorId: actor?.id,
+                            tokenId: tokenId || null,
+                            actorId: actor.id,
                             name: item.querySelector('.cpb-actor-name, .actor-name').textContent,
                             group: 1, // Party rolls are always group 1 (challengers)
                             actor: actor
@@ -892,18 +1107,16 @@ export class SkillCheckDialog extends Application {
                 } else {
                     // For non-party rolls, use the currently selected actors (v13: native DOM)
                     selectedActors = Array.from(htmlElement.querySelectorAll('.cpb-actor-item.selected')).map(item => {
-                    const tokenId = item.dataset.tokenId; // This is now a token ID
-                    const token = canvas.tokens.placeables.find(t => t.id === tokenId);
-                    const actor = token?.actor;
+                    const { tokenId, actor } = this._resolveContestantFromElement(item);
                     return {
-                        tokenId: tokenId,
-                        actorId: actor?.id, // Get the actual actor ID for roll operations
+                        tokenId: tokenId || null,
+                        actorId: actor?.id,
                         name: item.querySelector('.cpb-actor-name, .actor-name').textContent,
                         group: item.classList.contains('cpb-group-1') ? 1 : 
                                item.classList.contains('cpb-group-2') ? 2 : 1,
-                        actor: actor // Store the actor object for convenience
+                        actor: actor
                     };
-                });
+                }).filter((a) => a.actor);
             }
             
             const isRoller = selectedActors.some(a => {
@@ -1031,8 +1244,8 @@ export class SkillCheckDialog extends Application {
             // Process actors and their specific tool IDs if needed
             const processedActors = selectedActors.map(actor => {
                 const result = { 
-                    id: actor.tokenId, // Use token ID as the primary id (for template matching)
-                    actorId: actor.actorId, // Store actor ID for roll operations
+                    id: actor.tokenId || actor.actorId,
+                    actorId: actor.actorId,
                     name: actor.name,
                     group: actor.group
                     // Don't add ownership here - check it client-side
@@ -1318,16 +1531,23 @@ export class SkillCheckDialog extends Application {
             toolItem.className = `cpb-check-item${tool.isCommon ? '' : ' cpb-tool-unavailable'}`;
             toolItem.dataset.type = 'tool';
             toolItem.dataset.toolName = tool.name;
+            toolItem.dataset.value = tool.name;
             toolItem.dataset.actorTools = JSON.stringify(actorToolsArray).replace(/'/g, "&apos;");
             toolItem.dataset.common = tool.isCommon;
             toolItem.dataset.rollTitle = tool.name;
             toolItem.dataset.tooltip = tool.description;
             
-            // Build inner HTML
+            // Build inner HTML (favorite heart only when tool is usable for all selected actors)
+            const trailing = tool.isCommon
+                ? `<div class="cpb-check-item-trailing">
+                <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                <div class="cpb-roll-type-indicator"></div>
+            </div>`
+                : `<div class="cpb-roll-type-indicator"></div>`;
             toolItem.innerHTML = `
                 <i class="fas fa-tools"></i>
                 <span class="cpb-roll-label">${tool.name}</span><span class="cpb-roll-description">${tool.description}</span>
-                <div class="cpb-roll-type-indicator"></div>
+                ${trailing}
             `;
             
             // Only attach click handler if the tool is common
@@ -1445,6 +1665,10 @@ export class SkillCheckDialog extends Application {
             
             toolSection.appendChild(toolItem);
         });
+
+        this._assignFavoriteIdsToCheckItems(element);
+        this._renderFavoritesSection(element);
+        this._syncFavoriteHeartStates(element);
     }
 
     // Update helper method to optionally defer visibility updates (v13: native DOM)
@@ -1456,30 +1680,26 @@ export class SkillCheckDialog extends Application {
             return;
         }
         htmlElement.querySelectorAll('.cpb-actor-list .cpb-actor-item').forEach((el) => {
-            const tokenId = el.dataset.tokenId; // This is now a token ID
-            const token = canvas.tokens.placeables.find(t => t.id === tokenId);
-            const actor = token?.actor;
-            
+            const { tokenId, token, actor } = this._resolveContestantFromElement(el);
             if (!actor) return;
             
             let show = false;
             switch (filterType) {
                 case 'selected':
-                    // Show only selected tokens on canvas
-                    show = canvas.tokens.controlled.some(t => t.id === tokenId);
+                    // Show only selected tokens on canvas (off-canvas PCs hidden here)
+                    show = !!(tokenId && canvas.tokens.controlled.some(t => t.id === tokenId));
                     break;
                 case 'canvas':
-                    // Show all tokens on canvas regardless of type
-                    show = token != null;
+                    // Tokens placed on this scene only
+                    show = !!tokenId && token != null;
                     break;
                 case 'party':
-                    // Show only player characters (type === 'character')
+                    // All player-owned PCs, including those not on the canvas
                     show = actor.type === 'character' && actor.hasPlayerOwner;
                     break;
                 case 'monster':
-                    // Show only non-player characters (type === 'npc')
-                    //show = token != null && (!actor.hasPlayerOwner || actor.type !== 'character');
-                    show = actor.type === 'npc';
+                    // NPC tokens on the canvas
+                    show = !!(tokenId && token && actor.type === 'npc');
                     break;
                 default:
                     show = true;
@@ -1782,6 +2002,12 @@ export class SkillCheckDialog extends Application {
                     processedActors = placeables
                         .filter(t => t.actor && t.actor.hasPlayerOwner)
                         .map(t => ({ id: t.id, actorId: t.actor.id, name: t.name, group: 1 }));
+                }
+                const seenActorIds = new Set(processedActors.map(a => a.actorId));
+                for (const act of game.actors.filter(a => a.type === 'character' && a.hasPlayerOwner)) {
+                    if (seenActorIds.has(act.id)) continue;
+                    seenActorIds.add(act.id);
+                    processedActors.push({ id: act.id, actorId: act.id, name: act.name, group: 1 });
                 }
             }
             if (options.situationalBonus != null || options.customModifier != null) {

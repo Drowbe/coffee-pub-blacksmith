@@ -3377,7 +3377,8 @@ export const registerSettings = () => {
 			showRollExplanation: true,
 			showDC: true,
 			groupRoll: true,
-			isCinematic: false
+			isCinematic: false,
+			requestRollFavorites: []
 		},
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 	});

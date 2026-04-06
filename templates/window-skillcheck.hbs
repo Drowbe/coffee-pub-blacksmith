@@ -47,8 +47,8 @@
             </div>
             <div class="cpb-actor-list">
                 {{#each actors}}
-                    <div class="cpb-actor-item" data-token-id="{{this.id}}">
-                        <img src="{{this.actor.img}}" alt="{{this.name}}">
+                    <div class="cpb-actor-item{{#unless this.tokenId}} cpb-actor-off-canvas{{/unless}}" data-token-id="{{this.tokenId}}" data-actor-id="{{this.actorId}}">
+                        <img src="{{this.img}}" alt="{{this.name}}">
                         <div class="cpb-actor-details">
                             <div class="cpb-actor-name">{{this.name}}</div>
                             {{#if (eq this.type "character")}}
@@ -117,7 +117,8 @@
                 <div class="cpb-check-section" data-filter="quick">
 
                     <div class="cpb-section-header">Favorites</div>
-                    <h2>COMING SOON...</h2>
+                    <div class="cpb-favorites-list"></div>
+                    <p class="cpb-favorites-empty">No favorites yet. Use the heart on any roll row to add it here.</p>
 
                     <div class="cpb-section-header">Quick Rolls</div>
 
@@ -125,136 +126,208 @@
                     <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-tooltip="Party’s awareness of hidden details, sounds, or threats." data-value="perception" data-group="false" data-roll-title="Party Perception">
                         <i class="fas fa-magnifying-glass-waveform" title="Party Perception"></i>
                         <span class="cpb-roll-label">Party Perception: Individual Success</span><span class="cpb-roll-description">Party’s awareness of hidden details, sounds, or threats.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-tooltip="Party’s ability to read motives, lies, or intentions." data-value="insight" data-group="false" data-roll-title="Party Insight">
                         <i class="fas fa-brain" title="Party Insight"></i>
                         <span class="cpb-roll-label">Party Insight: Individual Success</span><span class="cpb-roll-description">Party’s ability to read motives, lies, or intentions.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-tooltip="Party’s skill at analyzing clues, objects, or mechanisms." data-value="investigation" data-group="false" data-roll-title="Party Investigation">
                         <i class="fas fa-magnifying-glass" title="Party Investigation"></i> 
                         <span class="cpb-roll-label">Party Investigation: Individual Success</span><span class="cpb-roll-description">Party’s skill at analyzing clues, objects, or mechanisms.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-tooltip="Party’s knowledge of plants, animals, terrain, and survival lore." data-value="nature" data-group="false" data-roll-title="Party Nature">
                         <i class="fas fa-sheep" title="Party Nature"></i>
                         <span class="cpb-roll-label">Party Nature: Individual Success</span><span class="cpb-roll-description">Party’s knowledge of plants, animals, terrain, and survival lore.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-tooltip="Party’s ability to move quietly and avoid detection." data-value="stealth" data-group="false" data-roll-title="Party Stealth">
                         <i class="fas fa-burst" title="Party Stealth"></i> 
                         <span class="cpb-roll-label">Party Stealth: Individual Success</span><span class="cpb-roll-description">Party’s ability to move quietly and avoid detection.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div> 
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
 
                     <div class="cpb-section-subheader">Party Rolls (Group Success)</div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-tooltip="Party’s awareness of hidden details, sounds, or threats." data-value="perception" data-group="true" data-roll-title="Party Perception">
                         <i class="fas fa-magnifying-glass-waveform" title="Party Perception"></i>
                         <span class="cpb-roll-label">Party Perception: Group Success</span><span class="cpb-roll-description">Party’s awareness of hidden details, sounds, or threats.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-tooltip="Party’s ability to read motives, lies, or intentions." data-value="insight" data-group="true" data-roll-title="Party Insight">
                         <i class="fas fa-brain" title="Party Insight"></i>
                         <span class="cpb-roll-label">Party Insight: Group Success</span><span class="cpb-roll-description">Party’s ability to read motives, lies, or intentions.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-tooltip="Party’s skill at analyzing clues, objects, or mechanisms." data-value="investigation" data-group="true" data-roll-title="Party Investigation">
                         <i class="fas fa-magnifying-glass" title="Party Investigation"></i> 
                         <span class="cpb-roll-label">Party Investigation: Group Success</span><span class="cpb-roll-description">Party’s skill at analyzing clues, objects, or mechanisms.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-tooltip="Party’s knowledge of plants, animals, terrain, and survival lore." data-value="nature" data-group="true" data-roll-title="Party Nature">
                         <i class="fas fa-sheep" title="Party Nature"></i>
                         <span class="cpb-roll-label">Party Nature: Group Success</span><span class="cpb-roll-description">Party’s knowledge of plants, animals, terrain, and survival lore.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="party" data-tooltip="Party’s ability to move quietly and avoid detection." data-value="stealth" data-group="true" data-roll-title="Party Stealth">
                         <i class="fas fa-burst" title="Party Stealth"></i> 
                         <span class="cpb-roll-label">Party Stealth: Group Success</span><span class="cpb-roll-description">Party’s ability to move quietly and avoid detection.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div> 
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
 
                     <div class="cpb-section-subheader">COMMON ROLLS</div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-tooltip="Moderate check to spot hidden creatures, objects, or environmental changes." data-value="perception" data-dc="10" data-group="true" data-roll-title="Perception Check">
                         <i class="fas fa-magnifying-glass-waveform" title="DC 10 Group Perception"></i>
                         <span class="cpb-roll-label">DC 10 Perception Check</span><span class="cpb-roll-description">Moderate check to spot hidden creatures, objects, or environmental changes.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-tooltip="Tougher check to spot hidden creatures, objects, or environmental changes." data-value="perception" data-dc="15" data-group="true" data-roll-title="Perception Check">
                         <i class="fas fa-magnifying-glass-waveform" title="DC 15 Group Perception"></i>
                         <span class="cpb-roll-label">DC 15 Perception Check</span><span class="cpb-roll-description">Tougher check to spot hidden creatures, objects, or environmental changes.</span>
-                    <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
 
                     <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-tooltip="Discern motives, detect lies, or read emotions." data-value="insight" data-dc="10" data-group="true" data-roll-title="Insight Check">
                         <i class="fas fa-magnifying-glass-waveform" title="DC 10 Group Insight"></i>
                         <span class="cpb-roll-label">DC 10 Insight Check</span><span class="cpb-roll-description">Moderate check to discern motives, detect lies, or read emotions.</span>
-                    <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
 
                     <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-tooltip="Tougher check to discern motives, detect lies, or read emotions." data-value="insight" data-dc="15" data-group="true" data-roll-title="Insight Check">
                         <i class="fas fa-magnifying-glass-waveform" title="DC 15 Group Insight"></i>
                         <span class="cpb-roll-label">DC 15 Insight Check</span><span class="cpb-roll-description">Tougher check to discern motives, detect lies, or read emotions.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
 
                     <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-tooltip="Search, analyze, or piece together clues and mechanisms." data-value="investigation" data-dc="10" data-group="true" data-roll-title="Investigation Check">
                         <i class="fas fa-magnifying-glass-waveform" title="DC 10 Group Investigation"></i>
                         <span class="cpb-roll-label">DC 10 Investigation Check</span><span class="cpb-roll-description">Moderate search, analyze, or piece together clues and mechanisms.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
 
                     <div class="cpb-check-item" data-type="quick" data-roll-type="individual" data-tooltip="Thorough search, analyze, or piece together clues and mechanisms." data-value="investigation" data-dc="15" data-group="true" data-roll-title="Investigation Check">
                         <i class="fas fa-magnifying-glass-waveform" title="DC 15 Group Investigation"></i>
                         <span class="cpb-roll-label">DC 15 Investigation Check</span><span class="cpb-roll-description">Thorough search, analyze, or piece together clues and mechanisms.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     
                     <div class="cpb-section-subheader">GRAPPLE ROLLS</div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Use Strength to grab and restrain a foe." data-value="athletics" data-defender-skill="athletics" data-roll-title="Grapple Attack">
                         <i class="fas fa-hand-back-fist" title="Grapple Attack"></i> 
                         <span class="cpb-roll-label">Grapple Attack</span><span class="cpb-roll-description">Use Strength to grab and restrain a foe.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Contest to break free or avoid being grabbed with agility." data-value="athletics" data-defender-skill="acrobatics" data-roll-title="Grapple vs Acrobatics">
                         <i class="fas fa-person-running" title="Grapple vs Acrobatics"></i> 
                         <span class="cpb-roll-label">Grapple vs Acrobatics</span><span class="cpb-roll-description">Contest to break free or avoid being grabbed with agility.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Push a creature back or knock them prone." data-value="athletics" data-defender-skill="athletics" data-roll-title="Shove Attack">
                         <i class="fas fa-arrows-up-down-left-right" title="Shove Attack"></i> 
                         <span class="cpb-roll-label">Shove Attack</span><span class="cpb-roll-description">Push a creature back or knock them prone.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Use Strength or Dexterity (Acrobatics) to break free." data-value="athletics" data-defender-skill="athletics" data-roll-title="Escape Grapple">
                         <i class="fas fa-person-walking-dashed-line-arrow-right" title="Escape Grapple"></i> 
                         <span class="cpb-roll-label">Escape Grapple</span><span class="cpb-roll-description">Use Strength or Dexterity (Acrobatics) to break free.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     
                     <div class="cpb-section-subheader">MANIPULATION ROLLS</div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Lie, bluff, or disguise against another’s intuition." data-value="deception" data-defender-skill="insight" data-roll-title="Deception vs Insight">
                         <i class="fas fa-mask" title="Deception vs Insight"></i> 
                         <span class="cpb-roll-label">Deception vs Insight</span><span class="cpb-roll-description">Lie, bluff, or disguise against another’s intuition.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Convince, negotiate, or appeal to someone’s motives." data-value="persuasion" data-defender-skill="insight" data-roll-title="Persuasion vs Insight">
                         <i class="fas fa-comments" title="Persuasion vs Insight"></i> 
                         <span class="cpb-roll-label">Persuasion vs Insight</span><span class="cpb-roll-description">Convince, negotiate, or appeal to someone’s motives.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Use threats, fear, or force of presence to sway another." data-value="intimidation" data-defender-skill="insight" data-roll-title="Intimidation vs Insight">
                         <i class="fas fa-angry" title="Intimidation vs Insight"></i> 
                         <span class="cpb-roll-label">Intimidation vs Insight</span><span class="cpb-roll-description">Use threats, fear, or force of presence to sway another.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                     
                     <div class="cpb-section-subheader">STEALTH ROLLS</div>
                     <div class="cpb-check-item" data-type="quick" data-roll-type="contested" data-tooltip="Sneak quietly or hide against another’s awareness." data-value="stealth" data-defender-skill="perception" data-roll-title="Stealth vs Perception">
                         <i class="fas fa-user-ninja" title="Stealth vs Perception"></i> 
                         <span class="cpb-roll-label">Stealth vs Perception</span><span class="cpb-roll-description">Sneak quietly or hide against another’s awareness.</span>
-                        <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-auto"><i class="fas fa-play"></i></div>
+                        </div>
                     </div>
                 </div>
 
@@ -265,7 +338,10 @@
                     <div class="cpb-check-item" data-type="skill" data-value="{{this.id}}"  data-roll-title="{{this.name}} Skill Check" data-tooltip="{{this.description}}">
                         <i class="{{this.icon}}"></i>
                         <span class="cpb-roll-label">{{this.name}}</span><span class="cpb-roll-description">{{this.description}}</span>
-                        <div class="cpb-roll-type-indicator"></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-indicator"></div>
+                        </div>
                     </div>
                     {{/each}}
                 </div>
@@ -277,7 +353,10 @@
                     <div class="cpb-check-item" data-type="ability" data-value="{{this.id}}" data-roll-title="{{this.name}} Ability Check" data-tooltip="{{this.description}}">
                         <i class="fas fa-user-circle"></i>
                         <span class="cpb-roll-label">{{this.name}}</span><span class="cpb-roll-description">{{this.description}}</span>
-                        <div class="cpb-roll-type-indicator"></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-indicator"></div>
+                        </div>
                     </div>
                     {{/each}}
                 </div>
@@ -289,7 +368,10 @@
                     <div class="cpb-check-item" data-type="save" data-value="{{this.id}}"  data-roll-title="{{this.name}} Saving Throw" data-tooltip="{{this.description}}">
                         <i class="fas fa-shield-heart"></i>
                         <span class="cpb-roll-label">{{this.name}}</span><span class="cpb-roll-description">{{this.description}}</span>
-                        <div class="cpb-roll-type-indicator"></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-indicator"></div>
+                        </div>
                     </div>
                     {{/each}}
                 </div>
@@ -301,48 +383,72 @@
                         <div class="cpb-check-item" data-type="dice" data-value="d2" data-roll-title="1d2 Dice Roll">
                             <i class="fas fa-coin" title="d2"></i> 
                             <span class="cpb-roll-label">1d2</span><span class="cpb-roll-description">Simple coin flip.</span>
+                            <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
                             <div class="cpb-roll-type-indicator"></div>
+                        </div>
                         </div>
                         <div class="cpb-check-item" data-type="dice" data-value="d4" data-roll-title="1d4 Dice Roll">
                             <i class="fas fa-dice-d4" title="d4"></i> 
                             <span class="cpb-roll-label">1d4</span><span class="cpb-roll-description">Four-sided die.</span>
+                            <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
                             <div class="cpb-roll-type-indicator"></div>
+                        </div>
                         </div>
                     </div>
                     <div class="cpb-dice-grid">
                         <div class="cpb-check-item" data-type="dice" data-value="d6" data-roll-title="1d6 Dice Roll">
                             <i class="fas fa-dice-d6" title="d6"></i> 
                             <span class="cpb-roll-label">1d6</span><span class="cpb-roll-description">Six-sided die.</span>
+                            <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
                             <div class="cpb-roll-type-indicator"></div>
+                        </div>
                         </div>
                         <div class="cpb-check-item" data-type="dice" data-value="d8" data-roll-title="1d8 Dice Roll">
                             <i class="fas fa-dice-d8" title="d8"></i> 
                             <span class="cpb-roll-label">1d8</span><span class="cpb-roll-description">Eight-sided die.</span>
+                            <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
                             <div class="cpb-roll-type-indicator"></div>
+                        </div>
                         </div>
                     </div>
                     <div class="cpb-dice-grid">
                         <div class="cpb-check-item" data-type="dice" data-value="d10" data-roll-title="1d10 Dice Roll">
                             <i class="fas fa-dice-d10" title="d10"></i> 
                             <span class="cpb-roll-label">1d10</span><span class="cpb-roll-description">Ten-sided die.</span>
+                            <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
                             <div class="cpb-roll-type-indicator"></div>
+                        </div>
                         </div>
                         <div class="cpb-check-item" data-type="dice" data-value="d12" data-roll-title="1d12 Dice Roll">
                             <i class="fas fa-dice-d12" title="d12"></i> 
                             <span class="cpb-roll-label">1d12</span><span class="cpb-roll-description">Twelve-sided die.</span>
+                            <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
                             <div class="cpb-roll-type-indicator"></div>
+                        </div>
                         </div>
                     </div>
                     <div class="cpb-dice-grid">
                         <div class="cpb-check-item" data-type="dice" data-value="d20" data-roll-title="1d20 Dice Roll">
                             <i class="fas fa-dice-d20" title="d20"></i> 
                             <span class="cpb-roll-label">1d20</span><span class="cpb-roll-description">Twenty-sided die.</span>
+                            <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
                             <div class="cpb-roll-type-indicator"></div>
+                        </div>
                         </div>
                         <div class="cpb-check-item" data-type="dice" data-value="d100" data-roll-title="1d100 Dice Roll">
                             <i class="fas fa-hundred-points" title="d100"></i> 
                             <span class="cpb-roll-label">1d100</span><span class="cpb-roll-description">Hundred-sided die.</span>
+                            <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
                             <div class="cpb-roll-type-indicator"></div>
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -354,7 +460,10 @@
                     <div class="cpb-check-item{{#unless isCommon}} cpb-tool-unavailable{{/unless}}" data-type="tool" data-value="{{id}}" data-common="{{isCommon}}" data-roll-title="{{name}}"  data-tooltip="{{this.description}}">
                         <i class="fas fa-tools"></i>
                         <span class="cpb-roll-label">{{this.name}}</span><span class="cpb-roll-description">{{this.description}}</span>
-                        <div class="cpb-roll-type-indicator"></div>
+                        <div class="cpb-check-item-trailing">
+                            <button type="button" class="cpb-favorite-toggle" title="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
+                            <div class="cpb-roll-type-indicator"></div>
+                        </div>
                     </div>
                     {{/each}}
                 </div>
