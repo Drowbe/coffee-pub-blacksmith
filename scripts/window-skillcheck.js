@@ -33,6 +33,8 @@ export class SkillCheckDialog extends Application {
         // API: optional pre-fill for Roll Configuration window (e.g. harvest +2)
         this.initialSituationalBonus = data.situationalBonus != null ? data.situationalBonus : null;
         this.initialCustomModifier = data.customModifier != null ? String(data.customModifier) : null;
+        /** When set, activateListeners runs this favorite once the dialog DOM is ready (e.g. menubar context menu). */
+        this._pendingFavoriteRec = data.pendingFavoriteRec ?? null;
 
         // Load user preferences
         this.userPreferences = game.settings.get('coffee-pub-blacksmith', 'skillCheckPreferences') || {
@@ -130,6 +132,200 @@ export class SkillCheckDialog extends Application {
         ) ?? null;
     }
 
+    /**
+     * When data-favorite-id round-trips or stored id drifts, match the same fields as _computeFavoriteId.
+     */
+    _findCanonicalFavoriteTargetByDataset(htmlElement, row) {
+        if (!htmlElement?.querySelectorAll || !row) return null;
+        const t = row.dataset.type;
+        const v = row.dataset.value ?? '';
+        const rt = row.dataset.rollType ?? '';
+        const g = row.dataset.group ?? '';
+        const dc = row.dataset.dc ?? '';
+        const ds = row.dataset.defenderSkill ?? '';
+        const tn = row.dataset.toolName ?? '';
+        const c = row.dataset.common ?? '';
+        return Array.from(htmlElement.querySelectorAll('.cpb-check-item')).find((item) => {
+            if (item.classList.contains('cpb-favorite-row')) return false;
+            if (item.dataset.type !== t) return false;
+            if ((item.dataset.value ?? '') !== v) return false;
+            if ((item.dataset.rollType ?? '') !== rt) return false;
+            if ((item.dataset.group ?? '') !== g) return false;
+            if ((item.dataset.dc ?? '') !== dc) return false;
+            if ((item.dataset.defenderSkill ?? '') !== ds) return false;
+            if ((item.dataset.toolName ?? '') !== tn) return false;
+            if ((item.dataset.common ?? '') !== c) return false;
+            return true;
+        }) ?? null;
+    }
+
+    _findCanonicalForFavoriteRow(htmlElement, row) {
+        const fid = row?.dataset?.favoriteId;
+        const byId = fid ? this._findCanonicalFavoriteTarget(htmlElement, fid) : null;
+        if (byId) return byId;
+        return this._findCanonicalFavoriteTargetByDataset(htmlElement, row);
+    }
+
+    /**
+     * Programmatic roll-button clicks nested under a synthetic click often do not run the request.
+     * Defer to the next macrotask so the stack is not inside a synthetic click handler.
+     */
+    _queueRollButtonClick(htmlElement) {
+        const rollButton = htmlElement.querySelector('button[data-button="roll"]');
+        if (rollButton) setTimeout(() => rollButton.click(), 0);
+    }
+
+    /**
+     * Same behavior as clicking a Quick tab roll row (party / contested / DC quick paths).
+     * @param {HTMLElement} htmlElement - Dialog root
+     * @param {HTMLElement} item - Row with data-type="quick" and related data-* (canonical row or favorite clone)
+     */
+    _handleQuickRollItem(htmlElement, item) {
+        const rollType = item.dataset.rollType || null;
+        const value = item.dataset.value;
+        const groupAttr = item.dataset.group;
+        const dcAttr = item.dataset.dc;
+        const defenderSkillAttr = item.dataset.defenderSkill;
+        const rollTitle = item.dataset.rollTitle || null;
+        let isGroupRoll = null;
+        if (groupAttr !== undefined) isGroupRoll = groupAttr === 'true';
+        let dcOverride = dcAttr !== undefined ? dcAttr : null;
+
+        if (rollType !== 'contested' && rollType !== 'party') {
+            const defenders = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-2');
+            if (defenders.length > 0) {
+                ui.notifications.warn("You have defenders selected, but this is not a contested roll type. Please deselect defenders or choose a contested roll.");
+                return;
+            }
+        }
+
+        htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('selected'));
+        htmlElement.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator').forEach(ind => ind.innerHTML = '');
+
+        if (rollType === 'party') {
+            htmlElement.querySelectorAll('.cpb-actor-item').forEach((actorItem) => {
+                const { actor } = this._resolveContestantFromElement(actorItem);
+                if (actor && actor.hasPlayerOwner) {
+                    actorItem.classList.add('selected');
+                    actorItem.classList.add('cpb-group-1');
+                    const indicator = actorItem.querySelector('.cpb-group-indicator');
+                    if (indicator) {
+                        indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                    }
+                }
+            });
+        } else if (rollType === 'contested') {
+            postConsoleAndNotification(MODULE.NAME, 'CPB | Setting up contested roll:', { value, defenderSkillAttr }, true, false);
+
+            const quickRollMap = {
+                'perception': 'prc',
+                'insight': 'ins',
+                'investigation': 'inv',
+                'nature': 'nat',
+                'stealth': 'ste',
+                'athletics': 'ath',
+                'acrobatics': 'acr',
+                'deception': 'dec',
+                'persuasion': 'per',
+                'intimidation': 'itm'
+            };
+            const challengerSkillValue = quickRollMap[value] || value;
+            if (challengerSkillValue) {
+                const challengerSkillItem = htmlElement.querySelector(`.cpb-check-item[data-type="skill"][data-value="${challengerSkillValue}"]`);
+                if (challengerSkillItem) {
+                    challengerSkillItem.classList.add('selected', 'cpb-skill-challenger');
+                    const indicator = challengerSkillItem.querySelector('.cpb-roll-type-indicator');
+                    if (indicator) {
+                        indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                    }
+                    this.challengerRoll = { type: 'skill', value: challengerSkillValue };
+                }
+            }
+
+            if (defenderSkillAttr) {
+                const defenderSkillValue = quickRollMap[defenderSkillAttr] || defenderSkillAttr;
+                const defenderSkillItem = htmlElement.querySelector(`.cpb-check-item[data-type="skill"][data-value="${defenderSkillValue}"]`);
+                if (defenderSkillItem) {
+                    defenderSkillItem.classList.add('selected', 'cpb-skill-defender');
+                    const indicator = defenderSkillItem.querySelector('.cpb-roll-type-indicator');
+                    if (indicator) {
+                        indicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
+                    }
+                    this.defenderRoll = { type: 'skill', value: defenderSkillValue };
+                }
+            }
+
+            this._isQuickPartyRoll = true;
+            this._quickRollOverrides = {
+                isGroupRoll: false,
+                dcOverride: null,
+                isContested: true,
+                rollType: rollType,
+                rollTitle: rollTitle
+            };
+
+            this._queueRollButtonClick(htmlElement);
+            return;
+        }
+
+        const quickRollMap = {
+            'perception': 'prc',
+            'insight': 'ins',
+            'investigation': 'inv',
+            'nature': 'nat',
+            'stealth': 'ste'
+        };
+        const skillValue = quickRollMap[value] || value;
+        if (skillValue) {
+            const skillItem = htmlElement.querySelector(`.cpb-check-item[data-type="skill"][data-value="${skillValue}"]`);
+            if (skillItem) {
+                skillItem.classList.add('selected', 'cpb-skill-challenger');
+                const indicator = skillItem.querySelector('.cpb-roll-type-indicator');
+                if (indicator) {
+                    indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                }
+                this.selectedType = 'skill';
+                this.selectedValue = skillValue;
+            }
+        }
+
+        this._isQuickPartyRoll = true;
+        this._quickRollOverrides = {
+            isGroupRoll,
+            dcOverride,
+            rollType: rollType,
+            rollTitle: rollTitle
+        };
+
+        this._queueRollButtonClick(htmlElement);
+    }
+
+    _runFavoriteRowClick(htmlElement, row) {
+        const rec = SkillCheckDialog._favoriteRecordFromItem(row);
+        SkillCheckDialog.executeFavoriteSilent(rec).then((result) => {
+            if (result?.messageId && !result?.openedDialog) this.close();
+        });
+    }
+
+    /** Build a minimal element with the same data-* as a stored favorite record (menubar / pending run). */
+    static _elementFromFavoriteRecord(rec) {
+        if (!rec) return null;
+        const div = document.createElement('div');
+        div.className = 'cpb-check-item';
+        div.dataset.type = rec.type ?? '';
+        div.dataset.value = rec.value ?? '';
+        div.dataset.rollType = rec.rollType ?? '';
+        div.dataset.group = rec.group ?? '';
+        div.dataset.dc = rec.dc ?? '';
+        div.dataset.defenderSkill = rec.defenderSkill ?? '';
+        if (rec.rollTitle) div.dataset.rollTitle = rec.rollTitle;
+        div.dataset.toolName = rec.toolName ?? '';
+        div.dataset.common = rec.common ?? '';
+        if (rec.actorTools) div.dataset.actorTools = rec.actorTools;
+        if (rec.tooltip) div.dataset.tooltip = rec.tooltip;
+        return div;
+    }
+
     _renderFavoritesSection(htmlElement) {
         const list = htmlElement.querySelector('.cpb-favorites-list');
         const empty = htmlElement.querySelector('.cpb-favorites-empty');
@@ -147,13 +343,13 @@ export class SkillCheckDialog extends Application {
             row.dataset.favoriteId = rec.id;
             row.dataset.type = rec.type;
             row.dataset.value = rec.value ?? '';
-            if (rec.rollType) row.dataset.rollType = rec.rollType;
-            if (rec.group !== undefined && rec.group !== '') row.dataset.group = rec.group;
-            if (rec.dc) row.dataset.dc = rec.dc;
-            if (rec.defenderSkill) row.dataset.defenderSkill = rec.defenderSkill;
+            row.dataset.rollType = rec.rollType ?? '';
+            row.dataset.group = rec.group ?? '';
+            row.dataset.dc = rec.dc ?? '';
+            row.dataset.defenderSkill = rec.defenderSkill ?? '';
             if (rec.rollTitle) row.dataset.rollTitle = rec.rollTitle;
-            if (rec.toolName) row.dataset.toolName = rec.toolName;
-            if (rec.common !== undefined && rec.common !== '') row.dataset.common = rec.common;
+            row.dataset.toolName = rec.toolName ?? '';
+            row.dataset.common = rec.common ?? '';
             if (rec.actorTools) row.dataset.actorTools = rec.actorTools;
             if (rec.tooltip) row.dataset.tooltip = rec.tooltip;
 
@@ -235,9 +431,7 @@ export class SkillCheckDialog extends Application {
                 if (!row) return;
                 ev.preventDefault();
                 ev.stopPropagation();
-                const target = this._findCanonicalFavoriteTarget(htmlElement, row.dataset.favoriteId);
-                if (target) target.click();
-                else ui.notifications.warn('That favorite is no longer available (e.g. tools list changed). Remove it from favorites.');
+                this._runFavoriteRowClick(htmlElement, row);
             });
         }
 
@@ -785,143 +979,10 @@ export class SkillCheckDialog extends Application {
                 const value = item.dataset.value;
                 const isRightClick = ev.type === 'contextmenu';
 
-                // Handle quick rolls
                 if (type === 'quick') {
-                    // Read new data attributes
-                    const rollType = item.dataset.rollType || null;
-                    const groupAttr = item.dataset.group;
-                    const dcAttr = item.dataset.dc;
-                    const defenderSkillAttr = item.dataset.defenderSkill;
-                    const rollTitle = item.dataset.rollTitle || null;
-                    let isGroupRoll = null;
-                    if (groupAttr !== undefined) isGroupRoll = groupAttr === 'true';
-                    let dcOverride = dcAttr !== undefined ? dcAttr : null;
-
-                    // Check if defenders are selected for non-contested rolls (v13: native DOM)
-                    if (rollType !== 'contested' && rollType !== 'party') {
-                        const defenders = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-2');
-                        const hasDefenders = defenders.length > 0;
-                        if (hasDefenders) {
-                            ui.notifications.warn("You have defenders selected, but this is not a contested roll type. Please deselect defenders or choose a contested roll.");
-                            return;
-                        }
-                    }
-
-                    // Clear any existing selections (v13: native DOM)
-                    htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('selected'));
-                    htmlElement.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator').forEach(ind => ind.innerHTML = '');
-
-                    // Party roll: select all party members (v13: native DOM)
-                    if (rollType === 'party') {
-                        htmlElement.querySelectorAll('.cpb-actor-item').forEach((actorItem) => {
-                        const { actor } = this._resolveContestantFromElement(actorItem);
-                        if (actor && actor.hasPlayerOwner) {
-                            actorItem.classList.add('selected');
-                            actorItem.classList.add('cpb-group-1');
-                            const indicator = actorItem.querySelector('.cpb-group-indicator');
-                            if (indicator) {
-                                indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
-                            }
-                        }
-                    });
-                } else if (rollType === 'contested') {
-                    // Contested roll: set up both challenger and defender skills
-                    postConsoleAndNotification(MODULE.NAME, 'CPB | Setting up contested roll:', { value, defenderSkillAttr }, true, false);
-                    
-                    // Set the challenger skill selection
-                    const quickRollMap = {
-                        'perception': 'prc',
-                        'insight': 'ins',
-                        'investigation': 'inv',
-                        'nature': 'nat',
-                        'stealth': 'ste',
-                        'athletics': 'ath',
-                        'acrobatics': 'acr',
-                        'deception': 'dec',
-                        'persuasion': 'per',
-                        'intimidation': 'itm'
-                    };
-                    const challengerSkillValue = quickRollMap[value] || value;
-                        if (challengerSkillValue) {
-                            const challengerSkillItem = htmlElement.querySelector(`.cpb-check-item[data-type="skill"][data-value="${challengerSkillValue}"]`);
-                            if (challengerSkillItem) {
-                                challengerSkillItem.classList.add('selected', 'cpb-skill-challenger');
-                                const indicator = challengerSkillItem.querySelector('.cpb-roll-type-indicator');
-                                if (indicator) {
-                                    indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
-                                }
-                                this.challengerRoll = { type: 'skill', value: challengerSkillValue };
-                            }
-                        }
-
-                        // Set the defender skill selection (v13: native DOM)
-                        if (defenderSkillAttr) {
-                            const defenderSkillValue = quickRollMap[defenderSkillAttr] || defenderSkillAttr;
-                            const defenderSkillItem = htmlElement.querySelector(`.cpb-check-item[data-type="skill"][data-value="${defenderSkillValue}"]`);
-                            if (defenderSkillItem) {
-                                defenderSkillItem.classList.add('selected', 'cpb-skill-defender');
-                                const indicator = defenderSkillItem.querySelector('.cpb-roll-type-indicator');
-                                if (indicator) {
-                                    indicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
-                                }
-                                this.defenderRoll = { type: 'skill', value: defenderSkillValue };
-                            }
-                        }
-
-                        // Set quick contested roll flag and store overrides
-                        this._isQuickPartyRoll = true;
-                        this._quickRollOverrides = {
-                            isGroupRoll: false, // Contested rolls are never group rolls
-                            dcOverride: null, // Contested rolls don't use DC
-                            isContested: true,
-                            rollType: rollType, // Store the roll type for consistency
-                            rollTitle: rollTitle // Store the roll title
-                        };
-
-                        // Automatically click the roll button (v13: native DOM)
-                        const rollButton = htmlElement.querySelector('button[data-button="roll"]');
-                        if (rollButton) rollButton.click();
-                        return;
-                } else if (rollType === 'common') {
-                    // Common roll: use only selected tokens (do nothing extra)
-                }
-
-                // Set the skill selection
-                const quickRollMap = {
-                    'perception': 'prc',
-                    'insight': 'ins',
-                    'investigation': 'inv',
-                    'nature': 'nat',
-                    'stealth': 'ste'
-                };
-                    const skillValue = quickRollMap[value] || value;
-                    if (skillValue) {
-                        const skillItem = htmlElement.querySelector(`.cpb-check-item[data-type="skill"][data-value="${skillValue}"]`);
-                        if (skillItem) {
-                            skillItem.classList.add('selected', 'cpb-skill-challenger');
-                            const indicator = skillItem.querySelector('.cpb-roll-type-indicator');
-                            if (indicator) {
-                                indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
-                            }
-                            this.selectedType = 'skill';
-                            this.selectedValue = skillValue;
-                        }
-                    }
-
-                    // Set quick party/common roll flag and store overrides
-                    this._isQuickPartyRoll = true;
-                    this._quickRollOverrides = {
-                        isGroupRoll,
-                        dcOverride,
-                        rollType: rollType, // Store the roll type to distinguish party vs other quick rolls
-                        rollTitle: rollTitle // Store the roll title
-                    };
-
-                    // Automatically click the roll button (v13: native DOM)
-                    const rollButton = htmlElement.querySelector('button[data-button="roll"]');
-                    if (rollButton) rollButton.click();
+                    this._handleQuickRollItem(htmlElement, item);
                     return;
-            }
+                }
 
             // If this is a non-common tool, prevent selection and show notification
             if (type === 'tool' && item.dataset.common === 'false') {
@@ -1490,6 +1551,26 @@ export class SkillCheckDialog extends Application {
             dcInput.addEventListener('input', handleDCChange);
             dcInput.addEventListener('change', handleDCChange);
         }
+
+        if (this._pendingFavoriteRec) {
+            const rec = this._pendingFavoriteRec;
+            this._pendingFavoriteRec = null;
+            const synthetic = SkillCheckDialog._elementFromFavoriteRecord(rec);
+            setTimeout(() => {
+                if (!synthetic) return;
+                const t = rec.type;
+                if (t === 'quick') {
+                    this._handleQuickRollItem(htmlElement, synthetic);
+                } else {
+                    const canonical = this._findCanonicalForFavoriteRow(htmlElement, synthetic);
+                    if (canonical) {
+                        canonical.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                    } else {
+                        ui.notifications.warn('This favorite could not be matched in the dialog. Open the correct roll tab or remove the favorite.');
+                    }
+                }
+            }, 0);
+        }
     }
 
     _updateToolList() {
@@ -1925,6 +2006,138 @@ export class SkillCheckDialog extends Application {
                 link = null;
         }
         return { name, desc, link };
+    }
+
+    /**
+     * Run a stored favorite without opening the dialog: posts the roll request chat card via {@link SkillCheckDialog.createRequestRoll}.
+     * Party quick rolls force initialFilter "party". Other quick rolls use the same default as the API (selected tokens if any, else party).
+     * Contested quick rolls and tool favorites open the full dialog (not expressible as a silent card).
+     * @param {object} rec - Record from {@link SkillCheckDialog._favoriteRecordFromItem} or persisted user settings
+     * @returns {Promise<{ message: ChatMessage, messageId: string }|{ openedDialog: boolean, fallback?: boolean }|null>}
+     */
+    static async executeFavoriteSilent(rec) {
+        if (!rec) return null;
+        try {
+            return await SkillCheckDialog._executeFavoriteSilentInner(rec);
+        } catch (e) {
+            const msg = e?.message ?? String(e);
+            ui.notifications.error(msg);
+            return null;
+        }
+    }
+
+    /**
+     * @param {object} rec
+     * @returns {Promise<object|null>}
+     */
+    static async _executeFavoriteSilentInner(rec) {
+        const type = rec.type;
+
+        if (type === 'quick') {
+            const rt = rec.rollType || '';
+            if (rt === 'contested') {
+                ui.notifications.info('Contested rolls require the full Request a Roll window.');
+                new SkillCheckDialog({ pendingFavoriteRec: rec }).render(true);
+                return { openedDialog: true };
+            }
+
+            const quickValueToSkillId = {
+                perception: 'prc',
+                insight: 'ins',
+                investigation: 'inv',
+                nature: 'nat',
+                stealth: 'ste',
+                athletics: 'ath',
+                acrobatics: 'acr',
+                deception: 'dec',
+                persuasion: 'per',
+                intimidation: 'itm'
+            };
+            const raw = String(rec.value ?? '').trim().toLowerCase();
+            const skillValue = quickValueToSkillId[raw] || rec.value;
+
+            if (!skillValue) {
+                ui.notifications.warn('Favorite is missing a skill value.');
+                return null;
+            }
+
+            const groupRoll = rec.group === 'true';
+            let dcOpt;
+            if (rec.dc != null && String(rec.dc).trim() !== '') {
+                const n = Number(rec.dc);
+                if (!Number.isNaN(n)) dcOpt = String(n);
+            }
+
+            const opts = {
+                initialType: 'skill',
+                initialValue: skillValue,
+                groupRoll,
+                ...(rec.rollTitle ? { title: rec.rollTitle } : {}),
+                ...(dcOpt !== undefined ? { dc: dcOpt } : {})
+            };
+            if (rt === 'party') opts.initialFilter = 'party';
+
+            try {
+                return await SkillCheckDialog.createRequestRoll(opts);
+            } catch (err) {
+                if (err?.message?.includes('no actors found')) {
+                    ui.notifications.warn('No eligible actors for this roll. Select tokens on the canvas or add party PCs.');
+                    new SkillCheckDialog({ pendingFavoriteRec: rec }).render(true);
+                    return { openedDialog: true, fallback: true };
+                }
+                throw err;
+            }
+        }
+
+        if (type === 'tool') {
+            ui.notifications.info('Tool rolls open Request a Roll to choose proficiency.');
+            new SkillCheckDialog({ pendingFavoriteRec: rec }).render(true);
+            return { openedDialog: true };
+        }
+
+        if (type === 'skill' || type === 'ability' || type === 'save') {
+            const opts = {
+                initialType: type,
+                initialValue: rec.value,
+                ...(rec.rollTitle ? { title: rec.rollTitle } : {})
+            };
+            if (rec.dc != null && String(rec.dc).trim() !== '') {
+                const n = Number(rec.dc);
+                if (!Number.isNaN(n)) opts.dc = String(n);
+            }
+            if (rec.group === 'true' || rec.group === 'false') opts.groupRoll = rec.group === 'true';
+
+            try {
+                return await SkillCheckDialog.createRequestRoll(opts);
+            } catch (err) {
+                if (err?.message?.includes('no actors found')) {
+                    ui.notifications.warn('No eligible actors for this roll. Select tokens on the canvas or add party PCs.');
+                    new SkillCheckDialog({ pendingFavoriteRec: rec }).render(true);
+                    return { openedDialog: true, fallback: true };
+                }
+                throw err;
+            }
+        }
+
+        if (type === 'dice') {
+            try {
+                return await SkillCheckDialog.createRequestRoll({
+                    initialType: 'dice',
+                    initialValue: rec.value,
+                    ...(rec.rollTitle ? { title: rec.rollTitle } : {})
+                });
+            } catch (err) {
+                if (err?.message?.includes('no actors found')) {
+                    ui.notifications.warn('No eligible actors for this roll. Select tokens on the canvas or add party PCs.');
+                    new SkillCheckDialog({ pendingFavoriteRec: rec }).render(true);
+                    return { openedDialog: true, fallback: true };
+                }
+                throw err;
+            }
+        }
+
+        ui.notifications.warn('Unknown favorite type.');
+        return null;
     }
 
     /**
@@ -2520,7 +2733,25 @@ Hooks.once('ready', () => {
         active: false,
         iconColor: null,
         buttonNormalTint: null,
-        buttonSelectedTint: null
+        buttonSelectedTint: null,
+        contextMenuItems: () => {
+            const prefs = game.settings.get(MODULE.ID, 'skillCheckPreferences') || {};
+            const favs = Array.isArray(prefs.requestRollFavorites) ? prefs.requestRollFavorites : [];
+            if (favs.length === 0) {
+                return [{
+                    name: 'No favorites yet',
+                    icon: 'far fa-heart',
+                    onClick: () => ui.notifications.info('Add favorites using the heart on a roll row in Request a Roll.')
+                }];
+            }
+            return favs.map((rec) => ({
+                name: String(rec.label || rec.rollTitle || 'Favorite').slice(0, 96),
+                icon: 'fa-solid fa-dice',
+                onClick: () => {
+                    SkillCheckDialog.executeFavoriteSilent(rec);
+                }
+            }));
+        }
     });
 });
 
