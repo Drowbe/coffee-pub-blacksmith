@@ -466,10 +466,13 @@ class SocketManager {
         // Cinema Overlay Update Handler
         this.socket.register('updateCinemaOverlay', (data) => {
             postConsoleAndNotification(MODULE.NAME, "SocketManager: Received updateCinemaOverlay", data, false, false);
-            const { rollResults, context } = data;
+            const payload = data?.data ?? data;
+            const { rollResults, context } = payload ?? {};
             // Import and call the cinema update function
             import('./manager-rolls.js').then(({ updateCinemaOverlay }) => {
-                updateCinemaOverlay(rollResults, context);
+                if (rollResults && context) {
+                    updateCinemaOverlay(rollResults, context);
+                }
             }).catch(error => {
                 postConsoleAndNotification(MODULE.NAME, "SocketManager: Error importing updateCinemaOverlay", error, true, false);
             });

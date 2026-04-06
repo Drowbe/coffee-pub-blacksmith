@@ -2565,6 +2565,20 @@ function detectD20Roll(result) {
     return null;
 }
 
+/**
+ * Open Request a Roll ({@link SkillCheckDialog}) windows, for optional UI sync after chat updates.
+ */
+function getBlacksmithWindows() {
+    if (!ui?.windows) return [];
+    return Object.values(ui.windows).filter((w) => w instanceof SkillCheckDialog);
+}
+
+function _applicationDomElement(app) {
+    if (!app?.element) return null;
+    const el = app.element;
+    return typeof el.jquery !== 'undefined' ? el[0] ?? el.get?.(0) : el;
+}
+
 export async function handleSkillRollUpdate(data) {
     const { messageId, tokenId, result } = data;
     const message = game.messages.get(messageId);
@@ -2694,8 +2708,9 @@ export async function handleSkillRollUpdate(data) {
     // If this was a requested roll, update the GM's interface
     if (flags.requesterId === game.user.id) {
         const windows = getBlacksmithWindows();
-        windows.forEach(window => {
-            const inputField = window.element[0].querySelector(`input[name="diceValue"]`);
+        windows.forEach((win) => {
+            const root = _applicationDomElement(win);
+            const inputField = root?.querySelector?.('input[name="diceValue"]');
             if (inputField) {
                 inputField.value = result.total;
             }

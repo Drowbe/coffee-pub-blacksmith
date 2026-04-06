@@ -357,17 +357,20 @@ export async function deliverRollResults(rollResults, context) {
             postConsoleAndNotification(MODULE.NAME, `deliverRollResults: Cinema mode detected, calling updateCinemaOverlay`, null, true, false);
             await updateCinemaOverlay(rollResults, context);
             
-            // Emit cinema update to all clients for synchronization
+            // Other clients only — roller already ran updateCinemaOverlay above (avoids double timers / races)
             const socket = SocketManager.getSocket();
-            if (socket) {
-                await socket.executeForEveryone("updateCinemaOverlay", {
-                    type: "updateCinemaOverlay",
-                    rollResults: {
-                        roll: resultForSocket,
-                        rollData: rollData
-                    },
-                    context: context
-                });
+            const cinemaPayload = {
+                type: "updateCinemaOverlay",
+                rollResults: {
+                    roll: resultForSocket,
+                    rollData: rollData
+                },
+                context: context
+            };
+            if (socket?.executeForOthers) {
+                await socket.executeForOthers("updateCinemaOverlay", cinemaPayload);
+            } else if (socket?.executeForEveryone) {
+                await socket.executeForEveryone("updateCinemaOverlay", cinemaPayload);
             }
         } else {
             postConsoleAndNotification(MODULE.NAME, `deliverRollResults: Not cinema mode, rollData.cinemaMode:`, rollData.cinemaMode, true, false);
@@ -1410,6 +1413,30 @@ async function showCinemaOverlay(rollData) {
 }
 
 /**
+ * Match cinematic card to roll context. Cards use data-token-id from request actors; fall back via message flags if needed.
+ * @param {HTMLElement} overlay
+ * @param {string} tokenId
+ * @param {string} messageId
+ * @returns {HTMLElement|null}
+ */
+function findCinematicActorCard(overlay, tokenId, messageId) {
+    if (!overlay || tokenId == null || tokenId === '') return null;
+    const id = String(tokenId);
+    const esc = typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(id) : id.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    let card = overlay.querySelector(`[data-token-id="${esc}"]`);
+    if (card) return card;
+    const msg = messageId ? game.messages.get(messageId) : null;
+    const actors = msg?.flags?.['coffee-pub-blacksmith']?.actors ?? [];
+    const match = actors.find(a => String(a.id) === id || String(a.actorId) === id);
+    if (match) {
+        const mid = String(match.id);
+        const esc2 = typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(mid) : mid.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        card = overlay.querySelector(`[data-token-id="${esc2}"]`);
+    }
+    return card ?? null;
+}
+
+/**
  * Update cinema overlay with roll results
  * @param {object} rollResults - Roll results
  * @param {object} context - Context data
@@ -1429,8 +1456,7 @@ export async function updateCinemaOverlay(rollResults, context) {
             return;
         }
         
-        // Find the specific actor card
-        const actorCard = overlay.querySelector(`[data-token-id="${tokenId}"]`);
+        const actorCard = findCinematicActorCard(overlay, tokenId, messageId);
         if (!actorCard) {
             postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: No actor card found for token ${tokenId}`, null, true, false);
             return;
@@ -1448,7 +1474,7 @@ export async function updateCinemaOverlay(rollResults, context) {
             // First try the terms structure (newer Foundry format)
             if (roll?.terms) {
                 for (const term of roll.terms) {
-                    if (term.class === 'D20Die' && term.results && term.results.length > 0) {
+                    if ((term.class === 'D20Die' || (term.class === 'Die' && term.faces === 20)) && term.results && term.results.length > 0) {
                         // For advantage/disadvantage, find the active result
                         if (term.results.length === 2) {
                             // This is advantage/disadvantage - find the active result
@@ -1587,113 +1613,7 @@ export async function updateCinemaOverlay(rollResults, context) {
             });
             
             if (allComplete) {
-                // Check for group results in the chat message
-                const message = game.messages.get(messageId);
-                if (message && message.flags && message.flags['coffee-pub-blacksmith']) {
-                    const flags = message.flags['coffee-pub-blacksmith'];
-                    
-                    // Show group results if available
-                    if (flags.contestedRoll || flags.groupRollData || (flags.isGroupRoll && flags.hasOwnProperty('groupSuccess'))) {
-                        postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: Showing group results`, { 
-                            contestedRoll: flags.contestedRoll, 
-                            groupRollData: flags.groupRollData,
-                            isGroupRoll: flags.isGroupRoll,
-                            groupSuccess: flags.groupSuccess,
-                            successCount: flags.successCount,
-                            totalCount: flags.totalCount
-                        }, true, false);
-                        
-                        // Create and show the group results overlay
-                        let resultText, resultClass, detailText = '';
-                        let resultBackgroundImage;
-                        
-                        if (flags.contestedRoll) {
-                            // Contested roll results
-                            const { winningGroup, isTie } = flags.contestedRoll;
-                            if (isTie) {
-                                resultText = 'DRAW';
-                                resultClass = 'tie';
-                                detailText = 'Both sides are evenly matched';
-                                resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-draw.webp';
-                            } else if (winningGroup === 1) {
-                                resultText = 'CHALLENGERS WIN';
-                                resultClass = 'contested-challengers';
-                                resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-versus-challengers.webp';
-                            } else {
-                                resultText = 'DEFENDERS WIN';
-                                resultClass = 'contested-defenders';
-                                resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-versus-defenders.webp';
-                            }
-                        } else if (flags.isGroupRoll && flags.hasOwnProperty('groupSuccess')) {
-                            // Group roll results
-                            const { groupSuccess, successCount, totalCount } = flags;
-                            resultText = groupSuccess ? 'GROUP SUCCESS' : 'GROUP FAILURE';
-                            resultClass = groupSuccess ? 'success' : 'failure';
-                            detailText = `${successCount} of ${totalCount} Succeeded`;
-                            
-                            // Determine background image for group results
-                            if (resultClass === 'success') {
-                                resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-success.webp';
-                            } else {
-                                resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-failure.webp';
-                            }
-                        }
-                        
-                        // Create the results bar HTML
-                        const resultsBarHtml = `
-                            <div id="cpb-cinematic-results-bar" style="background-image: url('${resultBackgroundImage}');">
-                                <div class="cpb-cinematic-group-result ${resultClass}">
-                                    <div class="cpb-cinematic-group-result-text">${resultText}</div>
-                                    ${detailText ? `<div class="cpb-cinematic-group-result-detail">${detailText}</div>` : ''}
-                                </div>
-                            </div>
-                        `;
-                        
-                        // Append the results bar to the main cinematic bar
-                        const cinematicBar = overlay.querySelector('#cpb-cinematic-bar');
-                        if (cinematicBar) {
-                            cinematicBar.insertAdjacentHTML('beforeend', resultsBarHtml);
-                        }
-                        
-                        // Play sound for group results
-                        let groupSound;
-                        if (flags.contestedRoll) {
-                            // Contested roll - always use SOUNDVERSUS
-                            groupSound = COFFEEPUB.SOUNDVERSUS;
-                        } else if (resultClass === 'success') {
-                            groupSound = COFFEEPUB.SOUNDSUCCESS;
-                        } else if (resultClass === 'failure') {
-                            groupSound = COFFEEPUB.SOUNDFAILURE;
-            } else {
-                            groupSound = COFFEEPUB.SOUNDVERSUS; // For ties
-                        }
-                        
-                        playSound(groupSound, COFFEEPUB.SOUNDVOLUMELOW);
-                        
-                        // Auto-close after showing group results
-                        setTimeout(() => {
-                            overlay.style.transition = 'opacity 1s';
-                            overlay.style.opacity = '0';
-                            setTimeout(() => {
-                                if (overlay.parentNode) {
-                                    overlay.remove();
-                                }
-                            }, 1000);
-                        }, groupResultsTime); // Longer delay for group results
-                    } else {
-                        // No group results, just auto-close
-                        setTimeout(() => {
-                            overlay.style.transition = 'opacity 1s';
-                            overlay.style.opacity = '0';
-                            setTimeout(() => {
-                                if (overlay.parentNode) {
-                                    overlay.remove();
-                                }
-                            }, 1000);
-                        }, rollResultsTime);
-                    }
-                } else {
-                    // No message data, just auto-close
+                const fadeOutAndRemove = (delayMs) => {
                     setTimeout(() => {
                         overlay.style.transition = 'opacity 1s';
                         overlay.style.opacity = '0';
@@ -1702,7 +1622,107 @@ export async function updateCinemaOverlay(rollResults, context) {
                                 overlay.remove();
                             }
                         }, 1000);
-                    }, rollResultsTime);
+                    }, delayMs);
+                };
+
+                const resolveCinematicEnd = () => {
+                    const message = game.messages.get(messageId);
+                    const flags = message?.flags?.['coffee-pub-blacksmith'];
+                    if (!flags) {
+                        fadeOutAndRemove(rollResultsTime);
+                        return;
+                    }
+
+                    // groupRollData was never merged onto flags (spread flattens groupRollData); use real fields only
+                    const showGroupBanner = flags.contestedRoll
+                        || (flags.isGroupRoll && flags.hasOwnProperty('groupSuccess'));
+
+                    if (!showGroupBanner) {
+                        fadeOutAndRemove(rollResultsTime);
+                        return;
+                    }
+
+                    if (overlay.querySelector('#cpb-cinematic-results-bar')) {
+                        return;
+                    }
+
+                    postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: Showing group results`, {
+                        contestedRoll: flags.contestedRoll,
+                        isGroupRoll: flags.isGroupRoll,
+                        groupSuccess: flags.groupSuccess,
+                        successCount: flags.successCount,
+                        totalCount: flags.totalCount
+                    }, true, false);
+
+                    let resultText, resultClass, detailText = '';
+                    let resultBackgroundImage;
+
+                    if (flags.contestedRoll) {
+                        const { winningGroup, isTie } = flags.contestedRoll;
+                        if (isTie) {
+                            resultText = 'DRAW';
+                            resultClass = 'tie';
+                            detailText = 'Both sides are evenly matched';
+                            resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-draw.webp';
+                        } else if (winningGroup === 1) {
+                            resultText = 'CHALLENGERS WIN';
+                            resultClass = 'contested-challengers';
+                            resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-versus-challengers.webp';
+                        } else {
+                            resultText = 'DEFENDERS WIN';
+                            resultClass = 'contested-defenders';
+                            resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-versus-defenders.webp';
+                        }
+                    } else if (flags.isGroupRoll && flags.hasOwnProperty('groupSuccess')) {
+                        const { groupSuccess, successCount, totalCount } = flags;
+                        resultText = groupSuccess ? 'GROUP SUCCESS' : 'GROUP FAILURE';
+                        resultClass = groupSuccess ? 'success' : 'failure';
+                        detailText = `${successCount} of ${totalCount} Succeeded`;
+                        resultBackgroundImage = resultClass === 'success'
+                            ? 'modules/coffee-pub-blacksmith/images/banners/banners-contest-success.webp'
+                            : 'modules/coffee-pub-blacksmith/images/banners/banners-contest-failure.webp';
+                    }
+
+                    if (!resultBackgroundImage) {
+                        fadeOutAndRemove(rollResultsTime);
+                        return;
+                    }
+
+                    const resultsBarHtml = `
+                            <div id="cpb-cinematic-results-bar" style="background-image: url('${resultBackgroundImage}');">
+                                <div class="cpb-cinematic-group-result ${resultClass}">
+                                    <div class="cpb-cinematic-group-result-text">${resultText}</div>
+                                    ${detailText ? `<div class="cpb-cinematic-group-result-detail">${detailText}</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+
+                    const cinematicBar = overlay.querySelector('#cpb-cinematic-bar');
+                    if (cinematicBar) {
+                        cinematicBar.insertAdjacentHTML('beforeend', resultsBarHtml);
+                    }
+
+                    let groupSound;
+                    if (flags.contestedRoll) {
+                        groupSound = COFFEEPUB.SOUNDVERSUS;
+                    } else if (resultClass === 'success') {
+                        groupSound = COFFEEPUB.SOUNDSUCCESS;
+                    } else if (resultClass === 'failure') {
+                        groupSound = COFFEEPUB.SOUNDFAILURE;
+                    } else {
+                        groupSound = COFFEEPUB.SOUNDVERSUS;
+                    }
+
+                    playSound(groupSound, COFFEEPUB.SOUNDVOLUMELOW);
+                    fadeOutAndRemove(groupResultsTime);
+                };
+
+                // Non-GM clients may receive message sync after the GM processes the roll; brief defer avoids empty flags
+                const endDelay = game.user.isGM ? 0 : 160;
+                if (endDelay) {
+                    setTimeout(resolveCinematicEnd, endDelay);
+                } else {
+                    resolveCinematicEnd();
                 }
             }
         }, diceSpinTime); // Small delay for reveal effect
