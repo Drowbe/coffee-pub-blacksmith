@@ -2009,16 +2009,30 @@ export class SkillCheckDialog extends Application {
     }
 
     /**
-     * Run a stored favorite without opening the dialog: posts the roll request chat card via {@link SkillCheckDialog.createRequestRoll}.
-     * Party quick rolls force initialFilter "party". Other quick rolls use the same default as the API (selected tokens if any, else party).
+     * Delegates to `game.modules.get(MODULE.ID).api.openRequestRollDialog({ silent: true, ...options })` (same public API as external callers).
+     * Falls back to {@link SkillCheckDialog.createRequestRoll} only if the module API is unavailable (e.g. unusual load order).
+     * @param {object} options - Roll options; any `silent` key is stripped so callers cannot disable silent mode.
+     */
+    static _openRequestRollSilent(options) {
+        const api = game.modules.get(MODULE.ID)?.api;
+        if (typeof api?.openRequestRollDialog === 'function') {
+            const { silent: _s, ...rest } = options ?? {};
+            return api.openRequestRollDialog({ silent: true, ...rest });
+        }
+        return SkillCheckDialog.createRequestRoll(options ?? {});
+    }
+
+    /**
+     * Run a stored favorite without opening the dialog: maps the record to options and uses {@link SkillCheckDialog._openRequestRollSilent}
+     * (module `openRequestRollDialog({ silent: true })`), including the no-actors fallback implemented in `blacksmith.js`.
+     * Party quick rolls force initialFilter "party". Other quick rolls use the API default (selected tokens if any, else party).
      * Contested quick rolls and tool favorites open the full dialog (not expressible as a silent card).
      * @param {object} rec - Record from {@link SkillCheckDialog._favoriteRecordFromItem} or persisted user settings
-     * @returns {Promise<{ message: ChatMessage, messageId: string }|{ openedDialog: boolean, fallback?: boolean }|null>}
      */
     static async executeFavoriteSilent(rec) {
         if (!rec) return null;
         try {
-            return await SkillCheckDialog._executeFavoriteSilentInner(rec);
+            return await SkillCheckDialog._executeFavoriteFromRecord(rec);
         } catch (e) {
             const msg = e?.message ?? String(e);
             ui.notifications.error(msg);
@@ -2028,9 +2042,8 @@ export class SkillCheckDialog extends Application {
 
     /**
      * @param {object} rec
-     * @returns {Promise<object|null>}
      */
-    static async _executeFavoriteSilentInner(rec) {
+    static async _executeFavoriteFromRecord(rec) {
         const type = rec.type;
 
         if (type === 'quick') {
@@ -2077,16 +2090,7 @@ export class SkillCheckDialog extends Application {
             };
             if (rt === 'party') opts.initialFilter = 'party';
 
-            try {
-                return await SkillCheckDialog.createRequestRoll(opts);
-            } catch (err) {
-                if (err?.message?.includes('no actors found')) {
-                    ui.notifications.warn('No eligible actors for this roll. Select tokens on the canvas or add party PCs.');
-                    new SkillCheckDialog({ pendingFavoriteRec: rec }).render(true);
-                    return { openedDialog: true, fallback: true };
-                }
-                throw err;
-            }
+            return SkillCheckDialog._openRequestRollSilent(opts);
         }
 
         if (type === 'tool') {
@@ -2107,33 +2111,15 @@ export class SkillCheckDialog extends Application {
             }
             if (rec.group === 'true' || rec.group === 'false') opts.groupRoll = rec.group === 'true';
 
-            try {
-                return await SkillCheckDialog.createRequestRoll(opts);
-            } catch (err) {
-                if (err?.message?.includes('no actors found')) {
-                    ui.notifications.warn('No eligible actors for this roll. Select tokens on the canvas or add party PCs.');
-                    new SkillCheckDialog({ pendingFavoriteRec: rec }).render(true);
-                    return { openedDialog: true, fallback: true };
-                }
-                throw err;
-            }
+            return SkillCheckDialog._openRequestRollSilent(opts);
         }
 
         if (type === 'dice') {
-            try {
-                return await SkillCheckDialog.createRequestRoll({
-                    initialType: 'dice',
-                    initialValue: rec.value,
-                    ...(rec.rollTitle ? { title: rec.rollTitle } : {})
-                });
-            } catch (err) {
-                if (err?.message?.includes('no actors found')) {
-                    ui.notifications.warn('No eligible actors for this roll. Select tokens on the canvas or add party PCs.');
-                    new SkillCheckDialog({ pendingFavoriteRec: rec }).render(true);
-                    return { openedDialog: true, fallback: true };
-                }
-                throw err;
-            }
+            return SkillCheckDialog._openRequestRollSilent({
+                initialType: 'dice',
+                initialValue: rec.value,
+                ...(rec.rollTitle ? { title: rec.rollTitle } : {})
+            });
         }
 
         ui.notifications.warn('Unknown favorite type.');
