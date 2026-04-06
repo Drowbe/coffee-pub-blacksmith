@@ -6,7 +6,7 @@
 // ==================================================================
 
 import { PinManager } from './manager-pins.js';
-import { dataSounds } from '../resources/assets.js';
+import { assetLookup } from './asset-lookup.js';
 
 /** Module ID for availability checks. */
 const MODULE_ID = 'coffee-pub-blacksmith';
@@ -60,7 +60,7 @@ export class PinsAPI {
      */
     static getSoundOptions() {
         const list = [{ value: '', label: 'None' }];
-        const sounds = dataSounds?.sounds;
+        const sounds = assetLookup?.dataCollections?.sounds;
         if (!Array.isArray(sounds)) return list;
         const seen = new Set();
         const rest = sounds

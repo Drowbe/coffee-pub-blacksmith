@@ -163,7 +163,7 @@ All new windows should use Application V2 patterns per project rules; existing w
 
 - **Templates** â€” Handlebars under `templates/` (e.g. `window-query.hbs`, `vote-card.hbs`, timer and stats templates). **getCachedTemplate()** in blacksmith.js caches compiled templates with TTL.
 - **Packs** â€” User manual, treatments, blacksmith-tables, blacksmith-injuries (see `module.json`).
-- **Resources** â€” `resources/assets.js`, `dictionary.js`, `monster-mapping.json`, `schema-rolls.json`, `taxonomy.json` used by asset lookup, rolls, and related systems.
+- **Resources** — `resources/asset-defaults/*.json` (asset manifests), `dictionary.js`, `monster-mapping.json`, `schema-rolls.json`, `taxonomy.json` used by asset lookup, rolls, and related systems.
 - **Lang** â€” `lang/en.json` for localization.
 
 ---

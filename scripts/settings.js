@@ -10,26 +10,25 @@ import { MODULE, BLACKSMITH } from './const.js';
 import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, resetModuleSettings, getSettingSafely, setSettingSafely } from './api-core.js';
 import { CHAT_CARD_THEMES } from './api-chat-cards.js';
 import { assetLookup } from './asset-lookup.js';
-// -- Import special page variables --
-// Load the data sets for the settings dropdowns
-import { dataNameplate, dataSounds, dataIcons, dataBackgroundImages } from '../resources/assets.js';
 
-/** Prefer merged AssetLookup data when initialized; fallback to bundled imports (e.g. first registerSettings pass). */
+const _emptyArr = [];
+
+/** Data from AssetLookup (sync baseline before registerSettings; see blacksmith.js ready order). */
 function getNameplateSource() {
     const n = assetLookup?.dataCollections?.nameplates;
-    return Array.isArray(n) ? n : dataNameplate.names;
+    return Array.isArray(n) ? n : _emptyArr;
 }
 function getBackgroundImagesSource() {
     const n = assetLookup?.dataCollections?.backgroundImages;
-    return Array.isArray(n) ? n : dataBackgroundImages.images;
+    return Array.isArray(n) ? n : _emptyArr;
 }
 function getIconsSource() {
     const n = assetLookup?.dataCollections?.icons;
-    return Array.isArray(n) ? n : dataIcons.icons;
+    return Array.isArray(n) ? n : _emptyArr;
 }
 function getSoundsSource() {
     const n = assetLookup?.dataCollections?.sounds;
-    return Array.isArray(n) ? n : dataSounds.sounds;
+    return Array.isArray(n) ? n : _emptyArr;
 }
 
 

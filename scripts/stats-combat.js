@@ -21,7 +21,7 @@ import {
     getWorkflowKey
 } from './utility-midi-resolution.js';
 //import { MVPDescriptionGenerator } from './mvp-description-generator.js';
-import { MVPTemplates } from '../resources/assets.js';
+import { assetLookup } from './asset-lookup.js';
 
 // Helper function to get actor portrait
 function getActorPortrait(combatant) {
@@ -5122,7 +5122,9 @@ class MVPDescriptionGenerator {
             return this._extractBestHitMoment(actorId, rawStats, topHits) || this._extractBestHealMoment(actorId, topHeals);
         })() || {};
 
-        const template = this._pickRandom(MVPTemplates[theme.templatesKey]) || this._pickRandom(MVPTemplates.noMvpTemplates) || '';
+        const mvp = assetLookup?.mvpTemplates ?? {};
+        const template =
+            this._pickRandom(mvp[theme.templatesKey]) || this._pickRandom(mvp.noMvpTemplates) || '';
 
         const description = this._renderTemplate(template, {
             name: name || rawStats?.name || 'Someone',

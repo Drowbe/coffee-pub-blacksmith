@@ -71,8 +71,7 @@ import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
 import { ConstantsGenerator } from './constants-generator.js';
 import { assetLookup, initializeAssetLookupInstance } from './asset-lookup.js';
-import { loadAssetBundlesWithOverrides } from './asset-loader.js';
-import * as assetBundles from '../resources/assets.js';
+import { loadAssetBundlesWithOverrides, loadDefaultAssetBundlesFromJson } from './asset-loader.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { SidebarPin } from './ui-sidebar-pin.js';
 import { SidebarStyle } from './ui-sidebar-style.js';
@@ -363,7 +362,28 @@ Hooks.once('ready', async () => {
         });
     }
 
-    // Register settings first so Asset Mapping paths exist before we fetch optional JSON overrides.
+    // Defaults load only from shipped `resources/asset-defaults/*.json` (fetch). No separate sync bundle or Node build.
+    let baseBundles;
+    try {
+        baseBundles = await loadDefaultAssetBundlesFromJson();
+    } catch (e) {
+        console.error(`${MODULE.ID}: loadDefaultAssetBundlesFromJson failed (early ready)`, e);
+        LoadingProgressManager.forceHide();
+        return;
+    }
+
+    // Build AssetLookup before registerSettings() (dropdown sources read assetLookup).
+    // Other modules' `ready` hooks run during awaits; they must never see `assetLookup === null` (getAllConstants, etc.).
+    try {
+        initializeAssetLookupInstance(baseBundles);
+        refreshAssetDerivedChoices();
+    } catch (e) {
+        console.error(`${MODULE.ID}: initializeAssetLookupInstance failed (early ready)`, e);
+        LoadingProgressManager.forceHide();
+        return;
+    }
+
+    // Register settings so Asset Mapping paths exist before we fetch optional JSON overrides.
     // Must not throw: this runs before the main init try/catch, so a throw would stall loading at "Finalizing...".
     try {
         registerSettings();
@@ -373,14 +393,9 @@ Hooks.once('ready', async () => {
         return;
     }
 
-    // Build AssetLookup synchronously from bundled data BEFORE any await. Other modules' `ready` hooks
-    // run during awaits; they must never see `assetLookup === null` (getAllConstants, registerModule, etc.).
-    initializeAssetLookupInstance(assetBundles);
-    refreshAssetDerivedChoices();
-
-    // Optional JSON overrides (async fetch; merge after bundled baseline is already live).
+    // Optional per-category Asset Mapping overrides (fetch; merge after default JSON baseline is live).
     try {
-        const mergedBundles = await loadAssetBundlesWithOverrides(assetBundles);
+        const mergedBundles = await loadAssetBundlesWithOverrides(baseBundles);
         initializeAssetLookupInstance(mergedBundles);
         refreshAssetDerivedChoices();
     } catch (e) {

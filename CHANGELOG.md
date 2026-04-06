@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Asset Mapping** (`settings.js`, `lang/en.json`): Per-category paths under **Manage Content** default to **`modules/<id>/resources/asset-defaults/*.json`** (shipped with the module). Clear a field to use only the embedded `assets-legacy.js` data for that category (no fetch). Chat card appearance themes remain in **`api-chat-cards.js`** (`CHAT_CARD_THEMES`); legacy `dataTheme` removed.
 - **Asset loader** (`asset-loader.js`): `loadAssetBundlesWithOverrides` fetches and merges overrides; `reloadAssetManifestsFromWorldSettings` rebuilds `AssetLookup` and choice caches when a path changes (`onChange` on each Asset Mapping setting).
-- **Phase 1 — default JSON split** (`resources/asset-defaults/`, `module.json`): Shipped **`assets-*.json`** mirrors of bundled data (`manifestVersion` + category keys); **`module.json` → `files`** lists them for packaging. Regenerate with **`node scripts/extract-assets-to-json.mjs`** or **`scripts/extract-assets-to-json.ps1`** (PowerShell, no Node). **`resources/asset-defaults/README.md`** documents usage; Foundry **does not** require Node or PowerShell at runtime.
+- **Phase 1 — default JSON split** (`resources/asset-defaults/`, `module.json`): Shipped **`assets-*.json`** (`manifestVersion` + category keys); **`module.json` → `files`** lists them for packaging. Defaults load at runtime via **`fetch`** only (`loadDefaultAssetBundlesFromJson`); **no** Node or build step. **`resources/asset-defaults/README.md`** documents authoring.
 
 ### Fixed
 

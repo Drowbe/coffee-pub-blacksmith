@@ -6,15 +6,32 @@
 
 import { MODULE } from './const.js';
 import { DataCollectionProcessor } from './manager-data-collection.js';
-import { 
-    dataBackgroundImages, 
-    dataIcons, 
-    dataNameplate, 
-    dataSounds,
-    dataVolume,
-    dataBanners,
-    dataBackgrounds
-} from '../resources/assets.js';
+import { assetLookup } from './asset-lookup.js';
+
+/** Same shape as bundled asset modules; driven by AssetLookup (JSON / sync-generated baseline + overrides). */
+function getBundlesFromLookup() {
+    const a = assetLookup;
+    if (!a) {
+        return {
+            dataBackgroundImages: { images: [] },
+            dataIcons: { icons: [] },
+            dataNameplate: { names: [] },
+            dataSounds: { sounds: [] },
+            dataVolume: { volumes: [] },
+            dataBanners: { banners: [] },
+            dataBackgrounds: { backgrounds: [] }
+        };
+    }
+    return {
+        dataBackgroundImages: { images: a.dataCollections.backgroundImages },
+        dataIcons: { icons: a.dataCollections.icons },
+        dataNameplate: { names: a.dataCollections.nameplates },
+        dataSounds: { sounds: a.dataCollections.sounds },
+        dataVolume: { volumes: a.dataCollections.volumes },
+        dataBanners: { banners: a.dataCollections.banners },
+        dataBackgrounds: { backgrounds: a.dataCollections.backgrounds }
+    };
+}
 
 export class ConstantsGenerator {
     
@@ -65,6 +82,7 @@ export class ConstantsGenerator {
         const backgroundConstants = {};
         
         try {
+            const { dataBackgroundImages } = getBundlesFromLookup();
             dataBackgroundImages.images.forEach(image => {
                 if (image.constantname && image.value) {
                     backgroundConstants[image.constantname] = image.value;
@@ -85,6 +103,7 @@ export class ConstantsGenerator {
         const iconConstants = {};
         
         try {
+            const { dataIcons } = getBundlesFromLookup();
             dataIcons.icons.forEach(icon => {
                 if (icon.constantname && icon.value) {
                     iconConstants[icon.constantname] = icon.value;
@@ -105,6 +124,7 @@ export class ConstantsGenerator {
         const nameplateConstants = {};
         
         try {
+            const { dataNameplate } = getBundlesFromLookup();
             dataNameplate.names.forEach(nameplate => {
                 if (nameplate.constantname && nameplate.id) {
                     nameplateConstants[nameplate.constantname] = nameplate.id;
@@ -125,6 +145,7 @@ export class ConstantsGenerator {
         const soundConstants = {};
         
         try {
+            const { dataSounds } = getBundlesFromLookup();
             dataSounds.sounds.forEach(sound => {
                 if (sound.constantname && sound.path) {
                     soundConstants[sound.constantname] = sound.path;
@@ -145,6 +166,7 @@ export class ConstantsGenerator {
         const volumeConstants = {};
         
         try {
+            const { dataVolume } = getBundlesFromLookup();
             dataVolume.volumes.forEach(volume => {
                 if (volume.constantname && volume.value) {
                     volumeConstants[volume.constantname] = volume.value;
@@ -165,6 +187,7 @@ export class ConstantsGenerator {
         const bannerConstants = {};
         
         try {
+            const { dataBanners } = getBundlesFromLookup();
             dataBanners.banners.forEach(banner => {
                 if (banner.constantname && banner.path) {
                     bannerConstants[banner.constantname] = banner.path;
@@ -185,6 +208,7 @@ export class ConstantsGenerator {
         const backgroundConstants = {};
         
         try {
+            const { dataBackgrounds } = getBundlesFromLookup();
             dataBackgrounds.backgrounds.forEach(background => {
                 if (background.constantname && background.path) {
                     backgroundConstants[background.constantname] = background.path;
@@ -204,6 +228,14 @@ export class ConstantsGenerator {
     static generateAllChoices() {
         try {
             const choices = {};
+            const {
+                dataBackgroundImages,
+                dataIcons,
+                dataNameplate,
+                dataSounds,
+                dataVolume,
+                dataBanners
+            } = getBundlesFromLookup();
             
             choices.themes = {};
             
@@ -259,15 +291,7 @@ export class ConstantsGenerator {
      */
     static getAllconstantnames() {
         try {
-            const dataCollections = {
-                dataBackgroundImages,
-                dataIcons,
-                dataNameplate,
-                dataSounds,
-                dataVolume,
-                dataBanners,
-                dataBackgrounds
-            };
+            const dataCollections = getBundlesFromLookup();
             
             return DataCollectionProcessor.getconstantnames(dataCollections);
             

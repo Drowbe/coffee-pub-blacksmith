@@ -7,7 +7,7 @@
 import { MODULE } from './const.js';
 
 /**
- * @param {object} assetBundles - Namespace from `import * as assetBundles from '../resources/assets.js'` (or merged overrides)
+ * @param {object} assetBundles - Bundle namespace from loadDefaultAssetBundlesFromJson / loadAssetBundlesWithOverrides (or merged overrides)
  */
 export class AssetLookup {
     
@@ -23,6 +23,11 @@ export class AssetLookup {
             banners: safe(assetBundles.dataBanners?.banners),
             backgrounds: safe(assetBundles.dataBackgrounds?.backgrounds)
         };
+
+        this.mvpTemplates =
+            assetBundles.MVPTemplates && typeof assetBundles.MVPTemplates === 'object'
+                ? assetBundles.MVPTemplates
+                : {};
              
         // Validate data collections
         Object.keys(this.dataCollections).forEach(key => {
@@ -353,7 +358,7 @@ export let assetLookup = null;
 
 /**
  * Build COFFEEPUB / window constants from bundled or merged asset data. Call once during `ready` after registerSettings (so Asset Mapping paths exist).
- * @param {object} assetBundles - `import * as assetBundles from '../resources/assets.js'` or merged object with same exports
+ * @param {object} assetBundles - Bundle object from loadDefaultAssetBundlesFromJson / loadAssetBundlesWithOverrides
  * @returns {AssetLookup}
  */
 export function initializeAssetLookupInstance(assetBundles) {

@@ -6,16 +6,24 @@ Track progress here; update statuses as work lands.
 
 | Phase | Deliverable | Status | Notes |
 |-------|-------------|--------|-------|
-| **1 — Split** | Bundled data split; shipped JSON defaults | **Done** | `assets.js` → `assets-legacy.js`; `resources/asset-defaults/*.json` generated via `extract-assets-to-json.mjs` **or** `extract-assets-to-json.ps1` (no Node); listed in `module.json` → **files** |
+| **1 — Split** | Bundled data split; shipped JSON defaults | **Done** | Authoring + runtime defaults: **`resources/asset-defaults/*.json`** only (fetched at load; **no** Node/build/sync bundle); listed in `module.json` → **files** |
 | **2 — Loader** | Fetch, validate, merge per category | **Done** | `scripts/asset-loader.js` — `loadAssetBundlesWithOverrides`, `reloadAssetManifestsFromWorldSettings`; fallback on error |
-| **3 — Defer AssetLookup** | Safe init order for consumers | **Done** | Sync `initializeAssetLookupInstance(bundled)` before any `await`; then async merge + re-init + `refreshAssetDerivedChoices()` (`blacksmith.js`) |
-| **4 — Settings** | Per-category Asset Mapping + reload | **Done** | Seven paths; **defaults** = shipped `resources/asset-defaults/*.json`; clear = JS-only; `onChange` reload (`settings.js`, `lang/en.json`) |
+| **3 — Defer AssetLookup** | Safe init order for consumers | **Done** | `await loadDefaultAssetBundlesFromJson()` then `initializeAssetLookupInstance` **before** `registerSettings()`; then `await loadAssetBundlesWithOverrides` + re-init + `refreshAssetDerivedChoices()` (`blacksmith.js`) |
+| **4 — Settings** | Per-category Asset Mapping + reload | **Done** | Seven paths; **defaults** = shipped `resources/asset-defaults/*.json`; clear = use defaults only; `onChange` reload (`settings.js`, `lang/en.json`) |
 | **5 — Companion** | Separate module for rich pack | **Not started** | JSON + art; document example `modules/<id>/...` paths |
 | **6 — Docs & CHANGELOG** | Schema, migration, changelog | **In progress** | This doc + `CHANGELOG`; schema examples for authors still thin |
 
 Split bundled asset data into JSON files, add **per-category** settings so GMs can point at their own JSON, and reserve a **companion module** for the richer art pack. Policy context: Foundry is discouraging AI-generated images in packages; core should ship **generic / clearly licensed** defaults.
 
-**Related:** `resources/assets.js` (current monolith), `scripts/asset-lookup.js`, `scripts/constants-generator.js`, `scripts/settings.js`.
+**Related:** `resources/asset-defaults/*.json`, `scripts/asset-loader.js`, `scripts/asset-lookup.js`, `scripts/constants-generator.js`, `scripts/settings.js`.
+
+---
+
+## Endgame (ship target)
+
+- **Authoring** lives only in `resources/asset-defaults/*.json`. **No Node, no build step** — Foundry loads defaults with `fetch` (`loadDefaultAssetBundlesFromJson`).
+- **Runtime** uses `AssetLookup` (`assetLookup`, `mvpTemplates`, `dataCollections`) for features and APIs; bootstrap is **`await loadDefaultAssetBundlesFromJson()`** in `blacksmith.js` `ready`, then `reloadAssetManifestsFromWorldSettings` in `asset-loader.js`.
+- **Asset Mapping** merges per-category JSON over the default baseline via `loadAssetBundlesWithOverrides`.
 
 ---
 
@@ -23,24 +31,12 @@ Split bundled asset data into JSON files, add **per-category** settings so GMs c
 
 **What happens today**
 
-- When Foundry loads the module, JavaScript runs **immediately**.
-- At the end of `asset-lookup.js` we have something like: **create `AssetLookup` now and export it**.
-- That object **reads** all the theme/sound/banner arrays **in that same instant** — from the baked-in `assets.js` data.
+- Default manifests live as **JSON files** under the module path. They are **not** embedded in a second generated JS bundle.
+- During `ready`, the module **`await`s `loadDefaultAssetBundlesFromJson()`** (parallel `fetch`), then builds `AssetLookup`. Optional Asset Mapping paths merge in a second async step.
 
-**Why that matters for custom JSON**
+**Custom JSON**
 
-- Loading a **user** JSON file is **not** instant: the browser has to **fetch** the file over the network and **parse** it. That takes a moment.
-- So we **cannot** honestly fill `AssetLookup` with user data **at the exact millisecond** the module file first loads — unless we only use built-in data.
-
-**So we have two honest options**
-
-1. **Wait, then build** — Don’t create `AssetLookup` until **after** we’ve loaded defaults (and any overrides) from JSON. Anything that needed `assetLookup` before that either waits or uses a tiny stub until ready.
-
-2. **Start with defaults, swap later** — Create `AssetLookup` once with **bundled** JSON first, then **reload** the same object when the user’s file arrives (more moving parts).
-
-**Recommendation:** **Wait, then build** (or defer the singleton) so the first real state is “we have merged data.” Document that a few callers may need **`await` hook** or a `ready` flag.
-
-**One sentence:** *Built-in data can load synchronously; user files load asynchronously. Today’s code assumes data is ready the moment the module loads — we must change that assumption when user paths are involved.*
+- Same mechanism: **fetch** + parse. Invalid paths fall back per category (see `asset-loader.js`).
 
 ---
 
@@ -55,7 +51,7 @@ Split bundled asset data into JSON files, add **per-category** settings so GMs c
 
 ---
 
-## Inventory (what we split from `assets.js`)
+## Inventory (bundle shape / JSON files)
 
 | Export | JSON root key | Notes |
 |--------|----------------|--------|
@@ -120,14 +116,13 @@ On invalid user file: **log**, **fall back** to bundled defaults for **that cate
 
 ## Files likely to touch (when implementing)
 
-- `resources/asset-defaults/*.json` (new)
-- `resources/assets.js` (shrink or replace with loader)
-- `scripts/asset-lookup.js` (deferred init, reload API)
-- `scripts/constants-generator.js` (import from loader or passed data)
+- `resources/asset-defaults/*.json`
+- `scripts/asset-loader.js` (`loadDefaultAssetBundlesFromJson`, merge, reload)
+- `scripts/asset-lookup.js` (`mvpTemplates`, `initializeAssetLookupInstance`)
+- `scripts/constants-generator.js` (reads `assetLookup` via `getBundlesFromLookup()`)
 - `scripts/settings.js` (Asset Mapping group + keys)
-- `scripts/blacksmith.js` (init order if AssetLookup moves)
+- `scripts/blacksmith.js` (`ready` init order)
 - `module.json` (include JSON files)
-- `scripts/settings.js` / `api-stats.js` / `stats-combat.js` / `api-pins.js` — any static import from `assets.js` must follow the new data source
 
 ---
 
@@ -141,10 +136,6 @@ On invalid user file: **log**, **fall back** to bundled defaults for **that cate
 
 ## Reference — implemented files
 
-- `resources/assets.js` — re-exports from `assets-legacy.js`
-- `resources/assets-legacy.js` — full bundled data (copy of former monolith)
-- `resources/asset-defaults/*.json` — shipped mirrors of bundled exports; see `resources/asset-defaults/README.md`
-- `scripts/asset-loader.js` — `loadAssetBundlesWithOverrides`, `reloadAssetManifestsFromWorldSettings`
+- `resources/asset-defaults/*.json` — shipped defaults; **files** in `module.json`; see `resources/asset-defaults/README.md`
+- `scripts/asset-loader.js` — `loadDefaultAssetBundlesFromJson`, `loadAssetBundlesWithOverrides`, `reloadAssetManifestsFromWorldSettings`
 - `scripts/asset-lookup.js` — `AssetLookup` takes bundle namespace; `export let assetLookup`; `initializeAssetLookupInstance()`
-- `scripts/extract-assets-to-json.mjs` — JSON emitter (Node)
-- `scripts/extract-assets-to-json.ps1` — same output without Node (PowerShell 5.1+)
