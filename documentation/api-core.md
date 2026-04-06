@@ -562,19 +562,6 @@ Each asset now includes enhanced metadata:
     "description": "Standard volume level for most sounds"
 }
 
-// theme example
-{
-    "name": "Dark And Stormy", // this is what shows as a choice in the settings
-    "id": "theme-dark",
-    "value": "cardsdark", // this gets used in the settings and passed to css for processing
-    "constantname": "THEMEDARK",
-    "path": "",
-    "tags": ["theme", "dark", "stormy", "atmospheric"],
-    "type": "theme",
-    "category": "theme",
-    "description": "This dark theme envelops your tabletop in a brooding atmosphere where shadows dance and lightning crackles, creating the perfect backdrop for mysterious adventures."
-}
-
 // background image example
 {
     "name": "Brick", // this is what shows as a choice in the settings
@@ -1074,7 +1061,7 @@ const macroChoices = BlacksmithConstants.arrMacroChoices;  // Macro names for dr
 ### **Available Constants:**
 - **Sound Constants**: `BlacksmithConstants.SOUNDNOTIFICATION01`, `BlacksmithConstants.SOUNDBUTTON01`, `BlacksmithConstants.SOUNDSUCCESS`, etc.
 - **Background Constants**: `BlacksmithConstants.BACKSKILLCHECK`, `BlacksmithConstants.BACKABILITYCHECK`, `BlacksmithConstants.BACKSAVINGTHROW`, etc.
-- **Theme Constants**: `BlacksmithConstants.THEMEDEFAULT`, `BlacksmithConstants.THEMEBLUE`, `BlacksmithConstants.THEMERED`, etc.
+- **Chat card themes** (IDs / CSS classes): use **`ChatCardsAPI`** / `CHAT_CARD_THEMES` in `api-chat-cards.js` — not `BlacksmithConstants.THEME*` (legacy removed).
 - **Icon Constants**: `BlacksmithConstants.ICONNONE`, `BlacksmithConstants.ICONCHESSQUEEN`, `BlacksmithConstants.ICONSHIELD`, etc.
 - **Volume Constants**: `BlacksmithConstants.SOUNDVOLUMESOFT`, `BlacksmithConstants.SOUNDVOLUMENORMAL`, `BlacksmithConstants.SOUNDVOLUMELOUD`
 - **Choice arrays (for dropdowns)**: `BlacksmithConstants.arrThemeChoices`, `BlacksmithConstants.arrSoundChoices`, `BlacksmithConstants.arrTableChoices`, `BlacksmithConstants.arrMacroChoices` (object: value → label, e.g. for macro pickers)
@@ -1083,7 +1070,6 @@ const macroChoices = BlacksmithConstants.arrMacroChoices;  // Macro names for dr
 ```javascript
 // Method 1: BlacksmithConstants (recommended for external modules)
 const sound = BlacksmithConstants.SOUNDNOTIFICATION01;
-const theme = BlacksmithConstants.THEMEDEFAULT;
 
 // Method 2: Asset Lookup (for tag-based searching)
 const assetLookup = BlacksmithAPI.getAssetLookup();

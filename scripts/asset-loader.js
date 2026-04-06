@@ -61,7 +61,6 @@ function applyCategoryOverride(baseFragment, json, arrayKey, label) {
  */
 export async function loadAssetBundlesWithOverrides(baseBundles = bundledAssetExports) {
     const out = {
-        dataTheme: cloneDeep(baseBundles.dataTheme),
         dataBackgroundImages: cloneDeep(baseBundles.dataBackgroundImages),
         dataIcons: cloneDeep(baseBundles.dataIcons),
         dataNameplate: cloneDeep(baseBundles.dataNameplate),
@@ -77,7 +76,6 @@ export async function loadAssetBundlesWithOverrides(baseBundles = bundledAssetEx
     }
 
     const jobs = [
-        ['assetMapThemesJson', 'dataTheme', 'themes'],
         ['assetMapBackgroundImagesJson', 'dataBackgroundImages', 'images'],
         ['assetMapIconsJson', 'dataIcons', 'icons'],
         ['assetMapNameplatesJson', 'dataNameplate', 'names'],

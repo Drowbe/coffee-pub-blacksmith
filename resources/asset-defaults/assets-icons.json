@@ -1,0 +1,138 @@
+{
+    "manifestVersion":  1,
+    "icons":  [
+                  {
+                      "name":  "— No Icon —",
+                      "id":  "icon-none",
+                      "value":  "none",
+                      "constantname":  "ICONNONE",
+                      "path":  "",
+                      "tags":  [
+                                   "icon",
+                                   "none",
+                                   "empty"
+                               ],
+                      "type":  "icon",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Chess: Queen",
+                      "id":  "icon-chess-queen",
+                      "value":  "fa-chess-queen",
+                      "constantname":  "ICONCHESSQUEEN",
+                      "path":  "",
+                      "tags":  [
+                                   "icon",
+                                   "chess",
+                                   "queen",
+                                   "royalty"
+                               ],
+                      "type":  "icon",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Chess: King",
+                      "id":  "icon-chess-king",
+                      "value":  "fa-chess-king",
+                      "constantname":  "ICONCHESSKING",
+                      "path":  "",
+                      "tags":  [
+                                   "icon",
+                                   "chess",
+                                   "king",
+                                   "royalty"
+                               ],
+                      "type":  "icon",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Chess: Rook",
+                      "id":  "icon-chess-rook",
+                      "value":  "fa-chess-rook",
+                      "constantname":  "ICONCHESSROOK",
+                      "path":  "",
+                      "tags":  [
+                                   "icon",
+                                   "chess",
+                                   "rook",
+                                   "castle"
+                               ],
+                      "type":  "icon",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Fist",
+                      "id":  "icon-fist",
+                      "value":  "fa-hand-fist",
+                      "constantname":  "ICONFIST",
+                      "path":  "",
+                      "tags":  [
+                                   "icon",
+                                   "fist",
+                                   "hand",
+                                   "combat"
+                               ],
+                      "type":  "icon",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Paw",
+                      "id":  "icon-paw",
+                      "value":  "fa-paw",
+                      "constantname":  "ICONPAW",
+                      "path":  "",
+                      "tags":  [
+                                   "icon",
+                                   "paw",
+                                   "animal",
+                                   "beast"
+                               ],
+                      "type":  "icon",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Shield",
+                      "id":  "icon-shield",
+                      "value":  "fa-shield",
+                      "path":  "",
+                      "tags":  [
+                                   "icon",
+                                   "shield",
+                                   "defense",
+                                   "protection"
+                               ],
+                      "type":  "icon",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Skull",
+                      "id":  "icon-skull",
+                      "value":  "fa-skull",
+                      "constantname":  "ICONSKULL",
+                      "path":  "",
+                      "tags":  [
+                                   "icon",
+                                   "skull",
+                                   "death",
+                                   "danger"
+                               ],
+                      "type":  "icon",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Coffee Pot",
+                      "id":  "icon-coffee-pot",
+                      "value":  "fa-coffee-pot",
+                      "constantname":  "ICONCOFFEEPOT",
+                      "path":  "",
+                      "tags":  [
+                                   "icon",
+                                   "coffee",
+                                   "pot",
+                                   "beverage"
+                               ],
+                      "type":  "icon",
+                      "category":  "interface"
+                  }
+              ]
+}

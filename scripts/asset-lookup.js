@@ -14,7 +14,7 @@ export class AssetLookup {
     constructor(assetBundles = {}) {
         const safe = (x) => (Array.isArray(x) ? x : []);
         this.dataCollections = {
-            themes: safe(assetBundles.dataTheme?.themes),
+            themes: [],
             backgroundImages: safe(assetBundles.dataBackgroundImages?.images),
             icons: safe(assetBundles.dataIcons?.icons),
             nameplates: safe(assetBundles.dataNameplate?.names),

@@ -1,0 +1,75 @@
+{
+    "manifestVersion":  1,
+    "healerTemplates":  [
+                            "{name} kept the party breathing and the enemy guessing.||[healing]Poured out {healing} healing at the exact right moments.",
+                            "{name} played battlefield medic like it was a calling.||[healing]Delivered {healing} healing when it mattered most.||[misses]Also missed {misses} times—apparently triage is harder while dodging swords.",
+                            "{name} refused to let anyone stay down.||[healing]Backstopped the fight with {healing} healing.||[foe]Even {foe} couldn’t finish the job.",
+                            "{name} turned panic into momentum.||[healing]Kept the wheels on with {healing} healing.||[fumbles]And still snagged MVP despite {fumbles} fumble(s).",
+                            "{name} made victory possible one clutch heal at a time.||[healing]Total healing: {healing}.||[foe]All while {foe} tried (and failed) to close it out.",
+                            "{name} kept the party standing long enough to win.||[healing]The heal count says it all: {healing}."
+                        ],
+    "executionerTemplates":  [
+                                 "{name} brought the finishing energy.||[damage]Dropped {damage} damage on the battlefield.||[foe+weapon]The highlight: {foe} got introduced to {weapon}.",
+                                 "{name} hit like a freight train with manners.||[damage]Total damage: {damage}.||[crits]With {crits} crit(s) for emphasis.",
+                                 "{name} was the reason the enemies started reconsidering life choices.||[damage]{damage} damage delivered.||[misses]Missed {misses} times first—just to build suspense.",
+                                 "{name} didn’t negotiate—{name} demonstrated.||[foe]Ask {foe}.||[damage]{damage} damage later, the point was made.",
+                                 "{name} carved a path to victory.||[damage]{damage} damage dealt.||[crits]Crit(s): {crits}.",
+                                 "{name} ended arguments quickly.||[damage]{damage} damage handled the discussion.||[fumbles]Also had {fumbles} fumble(s), because drama is important."
+                             ],
+    "sharpshooterTemplates":  [
+                                  "{name} made every swing feel inevitable.||[attempts]Went {hits}/{attempts}.||[noMisses]Perfect accuracy. No notes.",
+                                  "{name} delivered clean work.||[attempts]Hit {hits} of {attempts} ({accuracy}%).||[misses]Only {misses} miss(es)—and they still got MVP.",
+                                  "{name} was surgical today.||[accuracyHigh]{accuracy}% accuracy is not an accident.||[foe+weapon]{weapon} on {foe} was the headline.",
+                                  "{name} kept it crisp.||[attempts]{hits}/{attempts} landed ({accuracy}%).||[crits]And {crits} crit(s) to make it memorable.",
+                                  "{name} didn’t waste turns.||[attempts]{hits}/{attempts} connected ({accuracy}%).||[fumbles]Even with {fumbles} fumble(s).",
+                                  "{name} made the dice behave.||[attempts]{hits}/{attempts} hits ({accuracy}%).||[misses]Misses: {misses}. (Still MVP.)"
+                              ],
+    "critArtistTemplates":  [
+                                "{name} made the highlight reel.||[crits]{crits} critical hit(s) landed.||[foe]One of them had {foe} seeing stars.",
+                                "{name} turned one good roll into a victory condition.||[crits]{crits} crit(s).||[damage]And {damage} damage to prove it.",
+                                "{name} found the weak spot and kept finding it.||[crits]Crit count: {crits}.||[misses]Also missed {misses} times—so the crits hit even harder.",
+                                "{name} was pure chaos and it worked.||[crits]{crits} crit(s).||[fumbles]{fumbles} fumble(s).||The universe was entertained.",
+                                "{name} brought the kind of crit energy villains warn each other about.||[crits]{crits} crit(s).||[foe+weapon]{weapon} on {foe} did not ask permission.",
+                                "{name} spiked the round with perfect timing.||[crits]{crits} crit(s).||[attempts]{hits}/{attempts} hits overall."
+                            ],
+    "workhorseTemplates":  [
+                               "{name} kept the pressure on from bell to bell.||[attempts]{attempts} attempts, {hits} hit(s).||[damage]{damage} damage along the way.",
+                               "{name} did the job nobody else wanted to do: keep swinging.||[attempts]{hits}/{attempts} landed.||[misses]{misses} miss(es), but who’s counting? (Us. We are.)",
+                               "{name} stayed on task and it paid off.||[hits]{hits} hit(s) delivered.||[foe]{foe} definitely noticed.",
+                               "{name} was relentless.||[attempts]{attempts} attempts.||[crits]{crits} crit(s).||[fumbles]{fumbles} fumble(s).||Still MVP. Incredible.",
+                               "{name} kept the tempo high and the enemy low.||[damage]{damage} damage dealt.||[attempts]{hits}/{attempts} hits ({accuracy}%).",
+                               "{name} was the engine of the round.||[hits]{hits} hit(s).||[damage]{damage} damage.||No glamour—just results."
+                           ],
+    "battleMedicTemplates":  [
+                                 "{name} patched allies up and punched problems down.||[healing]{healing} healing.||[damage]{damage} damage.",
+                                 "{name} ran a two‑track plan: heal, then hurt.||[healing]Healing: {healing}.||[damage]Damage: {damage}.",
+                                 "{name} kept the party alive and the enemy stressed.||[healing]{healing} healing.||[foe]{foe} did not appreciate it.",
+                                 "{name} multitasked like a menace.||[healing]{healing} healing.||[damage]{damage} damage.||[fumbles]And {fumbles} fumble(s), because why not.",
+                                 "{name} was the answer to every problem on the map.||[healing]Heals: {healing}.||[damage]Hits: {hits}.||[foe+weapon]{weapon} on {foe} sealed it.",
+                                 "{name} kept the fight stable and the enemies unstable.||[healing]{healing} healing delivered.||[misses]Missed {misses} times too—balance in all things."
+                             ],
+    "chaosMvpTemplates":  [
+                              "{name} won MVP the hard way.||[misses]Missed {misses} time(s).||[fumbles]Fumbled {fumbles} time(s).||And still carried. Legendary.",
+                              "{name} was a walking plot twist.||[fumbles]{fumbles} fumble(s).||[crits]{crits} crit(s).||The math says MVP. The vibes agree.",
+                              "{name} somehow turned mistakes into momentum.||[misses]{misses} miss(es).||[damage]{damage} damage anyway.||Respect.",
+                              "{name} made the round look messy on purpose.||[fumbles]{fumbles} fumble(s).||[healing]{healing} healing to clean it up.||Still MVP.",
+                              "{name} mixed chaos and competence in the perfect ratio.||[misses]Misses: {misses}.||[crits]Crits: {crits}.||[damage]Damage: {damage}.",
+                              "{name} was the reason the table laughed and the enemies died.||[misses]{misses} miss(es).||[fumbles]{fumbles} fumble(s).||MVP anyway."
+                          ],
+    "allRounderTemplates":  [
+                                "{name} did a bit of everything—and did it well.||[damage]{damage} damage.||[healing]{healing} healing.||[attempts]{hits}/{attempts} landed ({accuracy}%).",
+                                "{name} was the steady hand that wins fights.||[hits]{hits} hit(s).||[damage]{damage} damage.||[healing]{healing} healing.",
+                                "{name} covered every angle.||[attempts]{hits}/{attempts} hits ({accuracy}%).||[crits]{crits} crit(s).||[healing]{healing} healing.",
+                                "{name} brought the complete package.||[damage]{damage} damage dealt.||[healing]{healing} healing given.||Clean, consistent, MVP.",
+                                "{name} was everywhere at once.||[foe]{foe} felt it.||[damage]{damage} damage.||[healing]{healing} healing.",
+                                "{name} earned MVP the honest way: consistent contribution.||[hits]{hits} hit(s).||[damage]{damage} damage.||[healing]{healing} healing."
+                            ],
+    "noMvpTemplates":  [
+                           "No MVP this round—everyone’s playing it a little too safe. Time to get heroic.",
+                           "No MVP—this round was sponsored by cautious footwork and polite threats.",
+                           "No MVP—someone tell the dice it’s okay to be dramatic.",
+                           "No MVP—combat happened, technically. Next round, let’s make it personal.",
+                           "No MVP—everyone kept their heads down. Great for survival, bad for highlights.",
+                           "No MVP—saving your big moment for later? Bold. Risky. Iconic."
+                       ]
+}

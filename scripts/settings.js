@@ -1362,7 +1362,6 @@ export const registerSettings = () => {
 			}
 		});
 	};
-	assetMapField('assetMapThemesJson', '.assetMapThemesJson-Label', '.assetMapThemesJson-Hint');
 	assetMapField('assetMapBackgroundImagesJson', '.assetMapBackgroundImagesJson-Label', '.assetMapBackgroundImagesJson-Hint');
 	assetMapField('assetMapIconsJson', '.assetMapIconsJson-Label', '.assetMapIconsJson-Hint');
 	assetMapField('assetMapNameplatesJson', '.assetMapNameplatesJson-Label', '.assetMapNameplatesJson-Hint');

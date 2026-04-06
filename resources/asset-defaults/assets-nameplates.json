@@ -1,0 +1,177 @@
+{
+    "manifestVersion":  1,
+    "names":  [
+                  {
+                      "name":  "Do Not Change Token Names",
+                      "id":  "none",
+                      "value":  "",
+                      "constantname":  "NAMEPLATENONE",
+                      "path":  "",
+                      "tags":  [
+                                   "nameplate",
+                                   "none",
+                                   "default"
+                               ],
+                      "type":  "nameplate",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Replace Token with Name",
+                      "id":  "name-replace",
+                      "value":  "",
+                      "constantname":  "NAMEPLATEREPLACE",
+                      "path":  "",
+                      "tags":  [
+                                   "nameplate",
+                                   "replace",
+                                   "token"
+                               ],
+                      "type":  "nameplate",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Append Name: Token Name",
+                      "id":  "name-append-end",
+                      "value":  "",
+                      "constantname":  "NAMEPLATEAPPENDEND",
+                      "path":  "",
+                      "tags":  [
+                                   "nameplate",
+                                   "append",
+                                   "end",
+                                   "token"
+                               ],
+                      "type":  "nameplate",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Append Name: Name Token",
+                      "id":  "name-append-start",
+                      "value":  "",
+                      "constantname":  "NAMEPLATEAPPENDSTART",
+                      "path":  "",
+                      "tags":  [
+                                   "nameplate",
+                                   "append",
+                                   "start",
+                                   "name"
+                               ],
+                      "type":  "nameplate",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Append Name: Token (Name)",
+                      "id":  "name-append-end-parenthesis",
+                      "value":  "",
+                      "constantname":  "NAMEPLATEAPPENDENDPARENTHESIS",
+                      "path":  "",
+                      "tags":  [
+                                   "nameplate",
+                                   "append",
+                                   "end",
+                                   "parenthesis",
+                                   "token"
+                               ],
+                      "type":  "nameplate",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Append Name: Name (Token)",
+                      "id":  "name-append-start-parenthesis",
+                      "value":  "",
+                      "constantname":  "NAMEPLATEAPPENDSTARTPARENTHESIS",
+                      "path":  "",
+                      "tags":  [
+                                   "nameplate",
+                                   "append",
+                                   "start",
+                                   "parenthesis",
+                                   "name"
+                               ],
+                      "type":  "nameplate",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Append Name: Token - Name",
+                      "id":  "name-append-end-dash",
+                      "value":  "",
+                      "constantname":  "NAMEPLATEAPPENDENDDASH",
+                      "path":  "",
+                      "tags":  [
+                                   "nameplate",
+                                   "append",
+                                   "end",
+                                   "dash",
+                                   "token"
+                               ],
+                      "type":  "nameplate",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Append Name: Name - Token",
+                      "id":  "name-append-start-dash",
+                      "value":  "",
+                      "constantname":  "NAMEPLATEAPPENDSTARTDASH",
+                      "path":  "",
+                      "tags":  [
+                                   "nameplate",
+                                   "append",
+                                   "start",
+                                   "dash",
+                                   "name"
+                               ],
+                      "type":  "nameplate",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Append Number: Token 01",
+                      "id":  "number-append-end",
+                      "value":  "",
+                      "constantname":  "NAMEPLATENUMBERAPPENDEND",
+                      "path":  "",
+                      "tags":  [
+                                   "nameplate",
+                                   "number",
+                                   "append",
+                                   "end",
+                                   "token"
+                               ],
+                      "type":  "nameplate",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Append Number: Token (01)",
+                      "id":  "number-append-end-parenthesis",
+                      "value":  "",
+                      "constantname":  "NAMEPLATENUMBERAPPENDENDPARENTHESIS",
+                      "path":  "",
+                      "tags":  [
+                                   "nameplate",
+                                   "number",
+                                   "append",
+                                   "end",
+                                   "parenthesis",
+                                   "token"
+                               ],
+                      "type":  "nameplate",
+                      "category":  "interface"
+                  },
+                  {
+                      "name":  "Append Number: Token - 01",
+                      "id":  "number-append-end-dash",
+                      "value":  "",
+                      "constantname":  "NAMEPLATENUMBERAPPENDENDDASH",
+                      "path":  "",
+                      "tags":  [
+                                   "nameplate",
+                                   "number",
+                                   "append",
+                                   "end",
+                                   "dash",
+                                   "token"
+                               ],
+                      "type":  "nameplate",
+                      "category":  "interface"
+                  }
+              ]
+}

@@ -10,7 +10,7 @@ export class DataCollectionProcessor {
     
     /**
      * Process any data collection automatically to generate choices for UI dropdowns
-     * @param {Object} dataCollection - The data collection object (e.g., dataTheme, dataBackgroundImages)
+     * @param {Object} dataCollection - The data collection object (e.g., dataBackgroundImages)
      * @param {Object} options - Processing options
      * @param {string} options.collectionKey - Key for the collection array (e.g., 'themes', 'images')
      * @param {string} options.idKey - Property to use as the key (default: 'id')

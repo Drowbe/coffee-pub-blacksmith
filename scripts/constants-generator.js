@@ -7,7 +7,6 @@
 import { MODULE } from './const.js';
 import { DataCollectionProcessor } from './manager-data-collection.js';
 import { 
-    dataTheme, 
     dataBackgroundImages, 
     dataIcons, 
     dataNameplate, 
@@ -27,8 +26,7 @@ export class ConstantsGenerator {
         try {
             const constants = {};
             
-            // Generate theme constants
-            constants.themes = this.generateThemeConstants();
+            constants.themes = {};
             
             // Generate background image constants
             constants.backgroundImages = this.generateBackgroundImageConstants();
@@ -57,26 +55,6 @@ export class ConstantsGenerator {
             console.error(`${MODULE.TITLE} | ConstantsGenerator: Error generating constants:`, error);
             return {};
         }
-    }
-
-    /**
-     * Generate theme constants
-     * @returns {Object} Theme constants
-     */
-    static generateThemeConstants() {
-        const themeConstants = {};
-        
-        try {
-            dataTheme.themes.forEach(theme => {
-                if (theme.constantname && theme.id) {
-                    themeConstants[theme.constantname] = theme.id;
-                }
-            });
-        } catch (error) {
-            console.warn(`${MODULE.TITLE} | ConstantsGenerator: Error generating theme constants:`, error);
-        }
-        
-        return themeConstants;
     }
 
     /**
@@ -227,11 +205,7 @@ export class ConstantsGenerator {
         try {
             const choices = {};
             
-            // Generate theme choices
-            choices.themes = DataCollectionProcessor.processCollection(dataTheme, {
-                collectionKey: 'themes',
-                blacksmithKey: 'arrThemeChoices'
-            });
+            choices.themes = {};
             
             // Generate background image choices
             choices.backgroundImages = DataCollectionProcessor.processCollection(dataBackgroundImages, {
@@ -286,7 +260,6 @@ export class ConstantsGenerator {
     static getAllconstantnames() {
         try {
             const dataCollections = {
-                dataTheme,
                 dataBackgroundImages,
                 dataIcons,
                 dataNameplate,

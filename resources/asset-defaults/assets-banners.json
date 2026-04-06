@@ -1,0 +1,261 @@
+{
+    "manifestVersion":  1,
+    "banners":  [
+                    {
+                        "name":  "Heroes 01",
+                        "id":  "banner-heroes-01",
+                        "value":  "",
+                        "constantname":  "BANNERHEROES01",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-heros-1.webp",
+                        "tags":  [
+                                     "banner",
+                                     "heroes",
+                                     "player",
+                                     "character"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Heroic banner for player characters"
+                    },
+                    {
+                        "name":  "Heroes 02",
+                        "id":  "banner-heroes-02",
+                        "value":  "",
+                        "constantname":  "BANNERHEROES02",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-heros-2.webp",
+                        "tags":  [
+                                     "banner",
+                                     "heroes",
+                                     "player",
+                                     "character"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Heroic banner for player characters"
+                    },
+                    {
+                        "name":  "Heroes 03",
+                        "id":  "banner-heroes-03",
+                        "value":  "",
+                        "constantname":  "BANNERHEROES03",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-heros-3.webp",
+                        "tags":  [
+                                     "banner",
+                                     "heroes",
+                                     "player",
+                                     "character"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Heroic banner for player characters"
+                    },
+                    {
+                        "name":  "Narration: Crypt 01",
+                        "id":  "banner-narration-crypt-01",
+                        "value":  "",
+                        "constantname":  "BANNERHEROES04",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-1.webp",
+                        "tags":  [
+                                     "banner",
+                                     "narration",
+                                     "crypt",
+                                     "underground"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Crypt narration banner"
+                    },
+                    {
+                        "name":  "Narration: Crypt 02",
+                        "id":  "banner-narration-crypt-02",
+                        "value":  "",
+                        "constantname":  "BANNERHEROES05",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-2.webp",
+                        "tags":  [
+                                     "banner",
+                                     "narration",
+                                     "crypt",
+                                     "underground"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Crypt narration banner"
+                    },
+                    {
+                        "name":  "Narration: Forest 01",
+                        "id":  "banner-narration-forest-01",
+                        "value":  "",
+                        "constantname":  "BANNERHEROES06",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-1.webp",
+                        "tags":  [
+                                     "banner",
+                                     "narration",
+                                     "forest",
+                                     "nature"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Forest narration banner"
+                    },
+                    {
+                        "name":  "Narration: Forest 02",
+                        "id":  "banner-narration-forest-02",
+                        "value":  "",
+                        "constantname":  "BANNERHEROES07",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-2.webp",
+                        "tags":  [
+                                     "banner",
+                                     "narration",
+                                     "forest",
+                                     "nature"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Forest narration banner"
+                    },
+                    {
+                        "name":  "Narration: Forest 03",
+                        "id":  "banner-narration-forest-03",
+                        "value":  "",
+                        "constantname":  "BANNERHEROES08",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-3.webp",
+                        "tags":  [
+                                     "banner",
+                                     "narration",
+                                     "forest",
+                                     "nature"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Forest narration banner"
+                    },
+                    {
+                        "name":  "Narration: Forest 04",
+                        "id":  "banner-narration-forest-04",
+                        "value":  "",
+                        "constantname":  "BANNERHEROES09",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-4.webp",
+                        "tags":  [
+                                     "banner",
+                                     "narration",
+                                     "forest",
+                                     "nature"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Forest narration banner"
+                    },
+                    {
+                        "name":  "Narration: Jungle 01",
+                        "id":  "banner-narration-jungle-01",
+                        "value":  "",
+                        "constantname":  "BANNERHEROES10",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-narration-jungle-1.webp",
+                        "tags":  [
+                                     "banner",
+                                     "narration",
+                                     "jungle",
+                                     "tropical"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Jungle narration banner"
+                    },
+                    {
+                        "name":  "Dragon",
+                        "id":  "banner-monster-dragon",
+                        "value":  "",
+                        "constantname":  "BANNERMONSTER01",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-dragon.webp",
+                        "tags":  [
+                                     "banner",
+                                     "monster",
+                                     "dragon",
+                                     "beast"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Dragon monster banner"
+                    },
+                    {
+                        "name":  "Minotaur",
+                        "id":  "banner-monster-minotaur",
+                        "value":  "",
+                        "constantname":  "BANNERMONSTER02",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-minotaur.webp",
+                        "tags":  [
+                                     "banner",
+                                     "monster",
+                                     "minotaur",
+                                     "beast"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Minotaur monster banner"
+                    },
+                    {
+                        "name":  "Wraith 01",
+                        "id":  "banner-monster-wraith-01",
+                        "value":  "",
+                        "constantname":  "BANNERMONSTER03",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-wraith-1.webp",
+                        "tags":  [
+                                     "banner",
+                                     "monster",
+                                     "wraith",
+                                     "undead"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Wraith monster banner"
+                    },
+                    {
+                        "name":  "Wraith 02",
+                        "id":  "banner-monster-wraith-02",
+                        "value":  "",
+                        "constantname":  "BANNERMONSTER04",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-wraith-2.webp",
+                        "tags":  [
+                                     "banner",
+                                     "monster",
+                                     "wraith",
+                                     "undead"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Wraith monster banner"
+                    },
+                    {
+                        "name":  "Landscape: Winter 01",
+                        "id":  "banner-landscape-winter-01",
+                        "value":  "",
+                        "constantname":  "BANNERLANDSCAPE01",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-1.webp",
+                        "tags":  [
+                                     "banner",
+                                     "landscape",
+                                     "winter",
+                                     "snow"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Winter landscape banner"
+                    },
+                    {
+                        "name":  "Landscape: Winter 02",
+                        "id":  "banner-landscape-winter-02",
+                        "value":  "",
+                        "constantname":  "BANNERLANDSCAPE02",
+                        "path":  "modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-2.webp",
+                        "tags":  [
+                                     "banner",
+                                     "landscape",
+                                     "winter",
+                                     "snow"
+                                 ],
+                        "type":  "image",
+                        "category":  "banner",
+                        "description":  "Winter landscape banner"
+                    }
+                ]
+}

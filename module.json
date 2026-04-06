@@ -64,6 +64,16 @@
   "styles": [
     "styles/default.css"
   ],
+  "files": [
+    "resources/asset-defaults/assets-background-images.json",
+    "resources/asset-defaults/assets-icons.json",
+    "resources/asset-defaults/assets-nameplates.json",
+    "resources/asset-defaults/assets-sounds.json",
+    "resources/asset-defaults/assets-volumes.json",
+    "resources/asset-defaults/assets-banners.json",
+    "resources/asset-defaults/assets-backgrounds.json",
+    "resources/asset-defaults/assets-mvp-templates.json"
+  ],
   "esmodules": [
     "scripts/const.js",
     "scripts/api-core.js",

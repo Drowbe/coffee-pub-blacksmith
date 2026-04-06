@@ -1,0 +1,65 @@
+{
+    "manifestVersion":  1,
+    "volumes":  [
+                    {
+                        "name":  "Loud",
+                        "id":  "volume-loud",
+                        "value":  "0.8",
+                        "constantname":  "SOUNDVOLUMELOUD",
+                        "path":  "",
+                        "tags":  [
+                                     "volume",
+                                     "loud",
+                                     "dramatic"
+                                 ],
+                        "type":  "volume",
+                        "category":  "setting",
+                        "description":  "Loud volume level for dramatic effects"
+                    },
+                    {
+                        "name":  "Normal",
+                        "id":  "volume-normal",
+                        "value":  "0.5",
+                        "constantname":  "SOUNDVOLUMENORMAL",
+                        "path":  "",
+                        "tags":  [
+                                     "volume",
+                                     "normal",
+                                     "standard"
+                                 ],
+                        "type":  "volume",
+                        "category":  "setting",
+                        "description":  "Standard volume level for most sounds"
+                    },
+                    {
+                        "name":  "Soft",
+                        "id":  "volume-soft",
+                        "value":  "0.3",
+                        "constantname":  "SOUNDVOLUMESOFT",
+                        "path":  "",
+                        "tags":  [
+                                     "volume",
+                                     "soft",
+                                     "subtle"
+                                 ],
+                        "type":  "volume",
+                        "category":  "setting",
+                        "description":  "Soft volume level for subtle effects"
+                    },
+                    {
+                        "name":  "Max",
+                        "id":  "volume-max",
+                        "value":  "1.0",
+                        "constantname":  "SOUNDVOLUMEMAX",
+                        "path":  "",
+                        "tags":  [
+                                     "volume",
+                                     "max",
+                                     "maximum"
+                                 ],
+                        "type":  "volume",
+                        "category":  "setting",
+                        "description":  "Maximum volume level"
+                    }
+                ]
+}

@@ -1,6 +1,7 @@
 /**
  * One-time / CI: emit resources/asset-defaults/*.json from bundled assets (resources/assets.js).
  * Run from repo root: node scripts/extract-assets-to-json.mjs
+ * No Node? Use: powershell -ExecutionPolicy Bypass -File scripts/extract-assets-to-json.ps1
  */
 import { writeFileSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -14,7 +15,6 @@ mkdirSync(outDir, { recursive: true });
 const m = await import(join(root, 'resources', 'assets.js'));
 
 const files = [
-  ['assets-themes.json', m.dataTheme],
   ['assets-background-images.json', m.dataBackgroundImages],
   ['assets-icons.json', m.dataIcons],
   ['assets-nameplates.json', m.dataNameplate],

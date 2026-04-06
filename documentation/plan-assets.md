@@ -6,10 +6,10 @@ Track progress here; update statuses as work lands.
 
 | Phase | Deliverable | Status | Notes |
 |-------|-------------|--------|-------|
-| **1 — Split** | Bundled data split; optional shipped JSON defaults | **In progress** | `assets.js` re-exports `assets-legacy.js`; run `node scripts/extract-assets-to-json.mjs` → `resources/asset-defaults/`; add paths to `module.json` **files** when defaults ship in-package |
+| **1 — Split** | Bundled data split; shipped JSON defaults | **Done** | `assets.js` → `assets-legacy.js`; `resources/asset-defaults/*.json` generated via `extract-assets-to-json.mjs` **or** `extract-assets-to-json.ps1` (no Node); listed in `module.json` → **files** |
 | **2 — Loader** | Fetch, validate, merge per category | **Done** | `scripts/asset-loader.js` — `loadAssetBundlesWithOverrides`, `reloadAssetManifestsFromWorldSettings`; fallback on error |
 | **3 — Defer AssetLookup** | Safe init order for consumers | **Done** | Sync `initializeAssetLookupInstance(bundled)` before any `await`; then async merge + re-init + `refreshAssetDerivedChoices()` (`blacksmith.js`) |
-| **4 — Settings** | Per-category Asset Mapping + reload | **Done** | Eight optional paths + `onChange` (`settings.js`, `lang/en.json`) |
+| **4 — Settings** | Per-category Asset Mapping + reload | **Done** | Seven optional paths + `onChange` (`settings.js`, `lang/en.json`; legacy `dataTheme` removed) |
 | **5 — Companion** | Separate module for rich pack | **Not started** | JSON + art; document example `modules/<id>/...` paths |
 | **6 — Docs & CHANGELOG** | Schema, migration, changelog | **In progress** | This doc + `CHANGELOG`; schema examples for authors still thin |
 
@@ -59,7 +59,6 @@ Split bundled asset data into JSON files, add **per-category** settings so GMs c
 
 | Export | JSON root key | Notes |
 |--------|----------------|--------|
-| `dataTheme` | `themes` | Chat card themes |
 | `dataBackgroundImages` | `images` | Token backgrounds / tiles |
 | `dataIcons` | `icons` | |
 | `dataNameplate` | `names` | |
@@ -71,7 +70,6 @@ Split bundled asset data into JSON files, add **per-category** settings so GMs c
 
 Suggested file names (examples):
 
-- `assets-themes.json`
 - `assets-background-images.json`
 - `assets-icons.json`
 - `assets-nameplates.json`
@@ -143,9 +141,10 @@ On invalid user file: **log**, **fall back** to bundled defaults for **that cate
 
 ## Reference — implemented files
 
-
 - `resources/assets.js` — re-exports from `assets-legacy.js`
 - `resources/assets-legacy.js` — full bundled data (copy of former monolith)
+- `resources/asset-defaults/*.json` — shipped mirrors of bundled exports; see `resources/asset-defaults/README.md`
 - `scripts/asset-loader.js` — `loadAssetBundlesWithOverrides`, `reloadAssetManifestsFromWorldSettings`
 - `scripts/asset-lookup.js` — `AssetLookup` takes bundle namespace; `export let assetLookup`; `initializeAssetLookupInstance()`
-- `scripts/extract-assets-to-json.mjs` — JSON emitter for defaults
+- `scripts/extract-assets-to-json.mjs` — JSON emitter (Node)
+- `scripts/extract-assets-to-json.ps1` — same output without Node (PowerShell 5.1+)
