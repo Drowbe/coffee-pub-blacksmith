@@ -66,6 +66,478 @@ These are working assumptions for the migration:
 
 ---
 
+## External Migration Constraints
+
+Any internal asset refactor has to respect the current external API story already published in:
+
+- `documentation/api-core.md`
+- the GitHub wiki page `API: Core Blacksmith`
+
+Those docs currently teach downstream modules to rely on:
+
+- `BlacksmithAPI` as the bridge import
+- global objects such as `BlacksmithHookManager`, `BlacksmithUtils`, and `BlacksmithConstants`
+- choice arrays exposed on `BlacksmithConstants`
+- asset constants exposed through the Blacksmith global surface
+- the idea that asset data currently has `id` / `value` / `path` separation
+
+Because of that, internal cleanup cannot be planned as if Blacksmith were only consumed internally.
+
+### Practical rule
+
+We should lock a few internals before promising a migration path:
+
+- canonical asset identity
+- public schema expectations for user JSON
+- semantic ids vs free library assets
+- which catalogs are public vs internal
+- what compatibility `BlacksmithConstants` continues to provide during the shim period
+
+### Current external promises we should assume are in use
+
+Until proven otherwise, assume external modules may depend on:
+
+- `BlacksmithConstants.arrThemeChoices`
+- `BlacksmithConstants.arrSoundChoices`
+- `BlacksmithConstants.arrTableChoices`
+- asset constants currently exposed via `BlacksmithConstants` or globals
+- `BlacksmithAPI.waitForReady()` / `BlacksmithAPI.get()`
+- early `module.api` availability in `ready`
+
+### Migration requirement
+
+For every internal asset/API change, we should classify external impact as one of:
+
+- no external change
+- externally compatible via shim
+- externally deprecated with migration path
+- external breaking change
+
+Breaking changes should not happen by accident as a side effect of internal cleanup.
+
+### Documentation requirement
+
+When the internal design is settled, we will need to update both:
+
+- local external docs
+- GitHub wiki docs
+
+They currently present a constants-heavy global object model. If the preferred future model becomes id-first registry access plus semantic slots, the docs will need a staged migration story rather than a silent drift.
+
+---
+
+## Current Usage Patterns
+
+Before redesigning the internals, we should acknowledge how the current system is actually used today.
+
+### 1. Settings and dropdown sourcing
+
+Blacksmith is currently used as a shared source of dropdown choices for sibling modules.
+
+Examples include:
+
+- sounds
+- tables
+- macros
+- compendiums
+- images
+- icons
+
+This often happens through `BlacksmithConstants` choice arrays and selected-compendium arrays such as:
+
+- `arrSelectedActorCompendiums`
+- `arrSelectedMonsterCompendiums`
+- `arrSelectedItemCompendiums`
+- `arrThemeChoices`
+- `arrSoundChoices`
+- `arrTableChoices`
+- `arrMacroChoices`
+
+This is a real ecosystem use case, not just internal plumbing.
+
+### 2. Constants as direct runtime references
+
+Modules may directly reference constants in code for runtime behavior.
+
+Examples:
+
+- `SOUNDSPELLMAGICCIRCLE`
+- `SOUNDNOTIFICATION01`
+- `SOUNDBUTTON01`
+- `BACKSKILLCHECK`
+
+This means the current constants surface is not just a debug convenience. It is part of how sibling modules and runtime code reference sounds and images today.
+
+### 3. Asset lookup as a search/filter tool
+
+`AssetLookup` is currently positioned as a powerful query surface for assets.
+
+Examples from the docs include:
+
+- interface sounds tagged `error`
+- monster banners
+- monster banners tagged both `monster` and `flying`
+
+That lookup capability is useful, but it is also more complex than many consumers likely need for ordinary settings or stable feature behavior.
+
+### 4. Debug/introspection helper surfaces
+
+The current external docs also present these helper commands:
+
+- `BlacksmithAPIConstants()`
+- `BlacksmithAPIGenerateConstants()`
+- `BlacksmithAPIAssetLookup()`
+
+These return large, overlapping objects and are useful for debugging, but they are not a clear long-term consumption model for external modules.
+
+The presence of these commands is a sign that the underlying model is not yet simple enough to explain without tooling.
+
+---
+
+## Why The Current Model Feels Overlapped
+
+The current system is trying to serve several different jobs at once:
+
+- stable constants for existing modules
+- dropdown choices for settings
+- tag-based discovery and filtering
+- full catalog introspection
+- backward compatibility with older global patterns
+
+Those are all valid needs, but they should not all be represented as equally primary API surfaces.
+
+### What the sample output shows
+
+The `documentation/object-sample.md` dump from `BlacksmithAPIGenerateConstants()` shows:
+
+- grouped generated constants by asset family
+- grouped generated choices by asset family
+- a large amount of data duplication between ids, values, paths, and constant names
+
+That output is useful for diagnostics, but it also highlights the design problem:
+
+- one sound may exist as a constant name
+- the same sound also exists as a path
+- the same sound also exists as a choice entry
+- the same sound also exists as a searchable tagged record
+
+That is why the API currently feels powerful but overly complicated.
+
+---
+
+## Working Interpretation Of Those Use Cases
+
+These use cases suggest Blacksmith needs different surfaces for different jobs.
+
+### A. Stable settings surface
+
+For module settings and serialized configuration, consumers want:
+
+- simple dropdown choices
+- stable ids
+- predictable labels
+
+They do not need full introspection dumps.
+
+### B. Stable runtime reference surface
+
+For runtime behavior, consumers want:
+
+- a stable semantic reference
+- a reliable way to resolve that reference
+
+Today this is often done through constants. During migration, this likely becomes:
+
+- semantic ids
+- plus a compatibility constants shim
+
+### C. Discovery/query surface
+
+For richer features, consumers may want:
+
+- tag queries
+- category queries
+- random selection
+- broader filtering
+
+This is where a lookup/query tool is still useful.
+
+### D. Debug surface
+
+Large object dumps are still fine for debugging, but they should be clearly documented as diagnostic helpers rather than as the preferred consumption model.
+
+---
+
+## Design Implication
+
+The target is probably not “one API does everything.”
+
+It is more likely:
+
+- one canonical data model
+- one stable settings/serialization model
+- one stable runtime resolution model
+- one optional query/discovery model
+- one compatibility layer for old constants/globals
+- one debug layer for inspection
+
+That is much easier to document and much easier to migrate.
+
+---
+
+## Three-Layer Model To Evaluate
+
+The current conversation suggests Blacksmith is mixing together two legitimate but different needs:
+
+1. core module behavior needs stable internal references
+2. users want to replace images and sounds for presentation/customization
+
+A useful working model is to separate those concerns into three layers.
+
+### Layer 1. Asset library
+
+This is the pool of available assets.
+
+Examples:
+
+- sounds
+- banners
+- backgrounds
+- illustrations
+- icons
+
+Characteristics:
+
+- records are schema-defined
+- users may extend or replace these catalogs where supported
+- lookup/filtering happens here
+- tags/categories/families/usages help discovery
+
+This answers:
+
+- what assets exist?
+- what can the user choose from?
+
+### Layer 2. Semantic slots
+
+These are stable behavioral roles Blacksmith features depend on.
+
+Examples:
+
+- combat-start sound
+- combat-end sound
+- request-roll cinematic illustration
+- request-roll standard background
+- application panel background
+- critical success sound
+- fumble sound
+
+Characteristics:
+
+- code depends on the slot identity
+- slots should have stable ids
+- slots should not depend on raw paths
+- slots should not depend on user-defined constant names
+
+This answers:
+
+- what does the feature need?
+
+### Layer 3. Slot-to-asset mappings
+
+This is the layer that connects behavior to presentation.
+
+Examples:
+
+- `slot: request-roll.cinematic.background -> assetId: image-illustration-crypt-01`
+- `slot: sound.combat.start -> assetId: sound-fanfare-intro-01`
+
+Characteristics:
+
+- settings should usually store the mapped asset id
+- users can swap assets without changing feature logic
+- code only resolves the slot, then resolves the mapped asset
+
+This answers:
+
+- which asset currently fulfills this role?
+
+### Why this model matters
+
+It resolves the collision between:
+
+- stable core behavior
+- user customization
+
+without requiring:
+
+- raw path dependencies in code
+- user-defined constants
+- giant undifferentiated lookup-only APIs
+
+---
+
+## Classification Framework
+
+Before deciding final files or schemas, each current asset/data use should be classified into one of three buckets:
+
+- library asset
+- semantic slot
+- internal-only asset/data
+
+### Bucket A. Library asset
+
+Use this when the thing is primarily part of a user-facing pool of selectable assets.
+
+Typical signs:
+
+- multiple records of the same kind exist
+- users may want to add their own alternatives
+- tag/filter/search behavior is useful
+- the feature does not care about one exact specific asset identity
+
+Examples:
+
+- general sound libraries
+- illustration libraries
+- banner libraries
+- icon libraries
+
+### Bucket B. Semantic slot
+
+Use this when feature behavior depends on a stable role, even if the actual presentation asset may vary.
+
+Typical signs:
+
+- code means “the combat start sound”, not “some sound tagged fanfare”
+- settings serialize a stable choice for a named feature behavior
+- downstream modules need a predictable thing to configure or call
+- users should be able to remap presentation without changing feature code
+
+Examples:
+
+- request-roll cinematic image
+- combat start sound
+- combat end sound
+- critical roll sound
+- app window background
+
+### Bucket C. Internal-only asset/data
+
+Use this when the thing is implementation detail and should not yet be modeled as user-configurable or shared.
+
+Typical signs:
+
+- only one feature uses it
+- there is no clear reuse case
+- exposing it would complicate the public contract
+- it exists only as a fallback or decorative internal detail
+
+Examples:
+
+- emergency fallback assets
+- one-off internal UI assets
+- implementation-specific defaults with no planned customization path
+
+---
+
+## Classification Checklist
+
+Ask these questions for each current asset/data use.
+
+### 1. Does code need a specific named role?
+
+If yes, it is probably a semantic slot.
+
+Examples:
+
+- “play the combat start sound”
+- “show the Request a Roll cinematic visual”
+
+### 2. Is this mainly a pool of choices for users?
+
+If yes, it is probably a library asset.
+
+Examples:
+
+- illustration choices
+- sound library choices
+- banner choices
+
+### 3. Should users be able to swap this without changing behavior?
+
+If yes, the behavior should likely use a semantic slot mapped to a library asset.
+
+### 4. Is this only an internal implementation detail?
+
+If yes, keep it internal-only unless a real public use case appears.
+
+### 5. Would downstream modules need to reference this predictably?
+
+If yes, avoid raw path dependency and prefer a semantic slot or documented asset id.
+
+### 6. Is tag-based filtering sufficient, or does the feature need a guaranteed stable identity?
+
+- filtering only: library asset
+- guaranteed stable identity: semantic slot
+
+---
+
+## Applying This Model To The Current Problem
+
+This model helps explain the current collision:
+
+### Core module use
+
+Core module features often need semantic slots.
+
+Examples:
+
+- application backgrounds
+- specific UI/feature sounds
+- standard icons for certain feature states
+
+These should not rely on arbitrary user-provided constants.
+
+### User-configurable assets
+
+Users often want library assets and remappings.
+
+Examples:
+
+- custom cinematic illustrations for Request a Roll
+- custom combat start/end sounds
+- custom banners
+- alternate visual flavor packs
+
+These should be configurable without forcing the user to understand Blacksmith internals.
+
+### Resulting design direction
+
+The likely direction is:
+
+- Blacksmith core uses semantic slots
+- users choose or provide assets in library catalogs
+- settings map slots to asset ids where customization is supported
+- some internal assets remain Blacksmith-owned and are not remappable
+
+---
+
+## Questions To Use During Inventory
+
+For each current asset/data use, document:
+
+- Is this a library asset, semantic slot, or internal-only?
+- Is it used by Blacksmith core, external modules, users, or all three?
+- Should users be able to replace it?
+- Does the feature need a stable role or just a pool of choices?
+- Is the current implementation storing a constant, an id, a path, or a value?
+- What should the long-term stored form be?
+
+This should guide the eventual file layout, schema design, and migration plan more than the current file names do.
+
+---
+
 ## Core Migration Principles
 
 ### 1. One canonical identity per asset
@@ -83,6 +555,33 @@ Use other fields for specific purposes only:
 - `constantname`: legacy compatibility alias only
 
 If a category does not need both `id` and `value`, it should not have both just because other categories do.
+
+### 1a. User JSON defines records, not code constants
+
+For user-supplied JSON, the contract must be schema-based.
+
+Blacksmith should not depend on:
+
+- user-defined JS constant names
+- ad hoc variable names
+- undocumented field conventions
+
+Instead, Blacksmith should depend only on documented schema fields.
+
+For example, user-supplied sound catalogs should not define `constantname` as part of the public contract. If compatibility code still supports generated constants internally, that is a Blacksmith implementation detail, not a user authoring requirement.
+
+### 1b. Tags are for filtering, not identity
+
+Tags are useful for:
+
+- browsing
+- search
+- fallback selection
+- grouping
+
+Tags should not be treated as the primary serialized identity of an asset.
+
+If code must refer to a specific semantic slot, it should use a documented id or role, not “whatever asset has tag X”.
 
 ### 2. One runtime asset registry
 
@@ -189,6 +688,11 @@ Examples:
 - maybe tiles
 - maybe panels
 
+These catalogs may be one of two subtypes:
+
+- library catalogs
+- semantic catalogs
+
 ### B. Shared config catalogs
 
 These are structured presets, but not “assets” in the same sense as images/sounds.
@@ -220,6 +724,94 @@ Examples may include:
 - internal UI fallbacks
 - hardcoded emergency fallback images
 - one-off decorative assets for a specific feature
+
+---
+
+## Public Contract Model
+
+This is the key design boundary for the next phase.
+
+### 1. Library catalogs
+
+These are user-extensible pools of assets.
+
+Examples:
+
+- a sound library
+- a banner library
+- an icon library
+
+Behavior:
+
+- users can define their own records
+- Blacksmith reads documented schema fields only
+- tags/categories support filtering and browsing
+- code should not assume that arbitrary library records have special semantic meaning
+
+Typical public fields:
+
+- `id`
+- `name`
+- `path`
+- `tags`
+- optional `category`
+
+### 2. Semantic catalogs
+
+These are stable behavioral slots where code depends on a known identity.
+
+Examples:
+
+- a default UI button sound
+- a standard notification error sound
+- a specific contested-roll result visual
+- a specific skill-check background role
+
+Behavior:
+
+- Blacksmith defines the stable ids or semantic roles
+- users may remap what asset record fulfills that slot
+- runtime code depends on the semantic id, not a constant name and not a raw path
+
+This is the likely right model for serialized settings and stable feature behavior.
+
+### 3. Internal-only assets/data
+
+These remain Blacksmith-controlled.
+
+Behavior:
+
+- not part of the user JSON contract
+- not exposed as public shared asset slots unless there is a clear reuse case
+- may still be moved out of code and into internal JSON if that improves maintainability
+
+---
+
+## Schema Expectations
+
+For any user-supplied catalog, the schema must be explicit and documented.
+
+### Required rule
+
+Blacksmith may only depend on documented fields in user JSON.
+
+### Working direction for public asset records
+
+Prefer a minimal, stable record shape:
+
+- `id`: stable serialized identifier
+- `name`: UI label
+- `path`: asset file path
+- `tags`: filtering metadata
+- optional `category`: coarse grouping
+
+### Fields that should not be part of the public user requirement
+
+- `constantname`
+- Blacksmith-specific generated globals
+- implementation-only compatibility fields
+
+If those exist, they should be treated as internal or transitional.
 
 ---
 
@@ -276,6 +868,7 @@ If constants remain during migration:
 - constants should map to ids or resolved values consistently
 - constants should be generated from the registry
 - constants should be documented as compatibility aliases
+- user JSON should not be expected to provide them
 
 ---
 
@@ -339,6 +932,12 @@ Settings should store:
 - asset `id` for shared asset references
 - raw path only when the user is intentionally choosing an arbitrary custom path outside the catalog system
 
+For semantic behavior:
+
+- store the semantic id or mapped asset id
+- do not store legacy constant names
+- do not depend on raw paths where a stable semantic slot exists
+
 ### Compatibility model
 
 Legacy support may include:
@@ -348,6 +947,12 @@ Legacy support may include:
 - `api.BLACKSMITH` compatibility keys
 
 But those should be derived outputs, not the source of truth.
+
+### Behavioral rule of thumb
+
+If runtime code needs “a specific thing”, use a semantic id.
+
+If runtime code needs “something matching these traits”, use a library catalog query with tags and filters.
 
 ---
 
@@ -393,6 +998,7 @@ But those should be derived outputs, not the source of truth.
 - Implementation plan per subsystem
 - Changelog and migration notes
 - External API documentation updates
+- Explicit compatibility matrix for downstream modules
 
 ---
 
@@ -418,6 +1024,8 @@ These are intentionally not resolved in this document.
 - Whether curated narrative/encounter card image lists are shared assets or feature data
 - How long the legacy constants shim remains supported
 - Whether some shipped art moves to a companion pack instead of core
+- Which current systems should use semantic ids vs free library selection
+- Exact external migration guidance for Coffee Pub sibling modules
 
 ---
 
