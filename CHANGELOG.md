@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.6.1]
 
+### Fixed
+
+- **External `module.api` null during `ready`** (`scripts/blacksmith.js`, `api/blacksmith-api.js`): Assign the full public **`game.modules.get('coffee-pub-blacksmith').api`** **synchronously at the start of `init`**, before any **`await`** in that hook, so other modules’ **`ready`** handlers never see **`api === null`** while Blacksmith’s async **`init`** is suspended. Load **`BlacksmithAPI`** via **`import()`** only when calling **`markReadyForConsumers()`** in **`ready`**. **`markReadyForConsumers()`** calls **`_syncGlobalsFromApi()`** when **`BlacksmithAPI`** is already marked ready so **`window.Blacksmith*`** stays aligned after asset merge; **`_markReady()`** reuses **`_syncGlobalsFromApi()`**.
+- **`module.api.assetLookup` stale reference** (`scripts/blacksmith.js`): After each **`initializeAssetLookupInstance`** in **`ready`**, set **`mod.api.assetLookup`** to the live export so consumers do not keep a pre-instance **`null`**.
+- **Combat tracker settings before registration** (`scripts/ui-combat-tracker.js`): Read combat-related settings with **`getSettingSafely`** so deferred **`ready`** / timeout paths do not call **`game.settings.get`** before **`registerSettings()`** has run (fixes **`combatTrackerSetFirstTurn` is not a registered game setting** and similar throws).
+
+### Changed
+
+- **Documentation** (`documentation/architecture-blacksmith.md`, `documentation/api-core.md`, `documentation/api-window.md`, `documentation/guides/blacksmith-apis.md`): Document **`module.api`** vs **`window.Blacksmith*`** timing (**`markReadyForConsumers`**), when to use **`BlacksmithAPI.waitForReady()`**, and integration checklist corrections.
 
 ## [13.6.0]
 
