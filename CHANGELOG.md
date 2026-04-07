@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Asset lookup + module API during `ready`** (`blacksmith.js`): Initialize **`AssetLookup` from bundled assets synchronously** before the first `await` (JSON override fetch). Async `ready` callbacks from other Coffee Pub modules can run between awaits; they must not see **`assetLookup === null`** (`getAllConstants`, `registerModule`, etc.). Optional merge still runs afterward; **`getAllConstants`** uses optional chaining as a safety net.
+- **Compendium / roll table / sound choice caches + `BlacksmithAPI` timing** (`settings.js`, `blacksmith.js`, `api/blacksmith-api.js`): **`primeCoreChoiceCaches()`** runs at the **start** of `ready` (before asset fetch) for compendiums/tables/macros. **`BlacksmithAPI.markReadyForConsumers()`** runs **only after** merged asset JSON + **`refreshAssetDerivedChoices()`** so **`BLACKSMITH.arrSoundChoices`** and related caches match shipped + Asset Mapping. **`getCompendiumChoices`** is synchronous (removed unnecessary `async`). **`checkBlacksmithReady()`** no longer calls **`_markReady()`** on `ready` (that ran too early).
+- **Menubar vs `registerSettings` order** (`api-menubar.js`, `blacksmith.js`): **`MenuBar.runReadySetup()`** (partials, **`registerSecondaryBarTypes`**, first render) runs **after** **`registerSettings()`**, fixing **`encounterToolbarDeploymentPattern` is not a registered game setting** when **`_registerPartyTools`** read settings before registration.
+
+### Changed
+
+- **JSON layout** (`resources/`, `module.json`, `asset-loader.js`, Asset Mapping in `settings.js` / `lang/en.json`): Renamed/moved files — **`assets-background-cards.json`**, **`assets-skillchecks.json`**, **`config-volumes.json`**, **`config-nameplates.json`**, **`narratives-stats-mvp.json`**; removed Asset Mapping overrides for volumes and nameplates (shipped **`resources/`** config only).
 
 ### Documentation
 

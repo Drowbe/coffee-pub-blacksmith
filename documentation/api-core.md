@@ -14,11 +14,18 @@ Coffee Pub Blacksmith offers a clean, reliable integration path for external mod
 
 - ✅ **Handles timing issues automatically** - No more race conditions
 - ✅ **Provides consistent interface** - Same API regardless of when you call it  
-- ✅ **Manages availability checks** - Automatically waits for Blacksmith to be ready
+- ✅ **Manages availability checks** - **`BlacksmithAPI.waitForReady()`** waits until asset caches and globals are synced (**after** `markReadyForConsumers()` in Blacksmith’s **`ready`**)
 - ✅ **Offers debugging tools** - Console commands to verify integration
-- ✅ **Simple direct access** - No async/await complexity
+- ✅ **Simple direct access** - **`game.modules.get('coffee-pub-blacksmith').api`** is non-null early (see below)
 
-You can access global objects directly once Blacksmith is ready:
+**Initialization timing (important):**
+
+- **`module.api`** (on `game.modules.get('coffee-pub-blacksmith')`) is assigned **synchronously at the start of Blacksmith’s `init`**, before any `await` in that hook, so other modules’ **`ready`** handlers never see a **null** API for registration and utilities.
+- **Asset JSON, `AssetLookup`, and merged `BLACKSMITH` keys** are loaded during Blacksmith’s **`ready`**. The **`BLACKSMITH`** object on **`api.BLACKSMITH`** is the same reference as the internal one—it gains keys as merges run; **`api.assetLookup`** is updated to the live instance after **`initializeAssetLookupInstance`**.
+- **`BlacksmithAPI.waitForReady()`** (and **`get()`**) resolve **after** assets are merged and **`markReadyForConsumers()`** runs—use this when you need **full asset-backed constants** or **`window.Blacksmith*`** globals to be in sync.
+- **`window.BlacksmithUtils`**, **`BlacksmithConstants`**, etc. are assigned when **`markReadyForConsumers()`** runs, not at the first line of **`ready`**.
+
+You can access global objects directly **after** `BlacksmithAPI.waitForReady()` (or after you know Blacksmith has finished its early **`ready`** work, if you only need `module.api`):
 
 ```javascript
 const hookManager = BlacksmithHookManager;
@@ -93,7 +100,7 @@ Import the Blacksmith API bridge file to ensure the API is available:
 import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
 ```
 
-**Why import?**: The global objects are only available after Blacksmith is fully ready. Importing the bridge file ensures proper initialization and timing.
+**Why import?**: The bridge file exposes **`BlacksmithAPI`** ( **`waitForReady`**, **`get`**, helpers). Importing it does not replace **`waitForReady()`**—globals such as **`window.BlacksmithUtils`** are still attached when **`markReadyForConsumers()`** runs after asset load. For **`module.api.registerModule`** in **`ready`**, you can use **`game.modules.get('coffee-pub-blacksmith').api`** without waiting for **`waitForReady()`** once Blacksmith’s **`init`** has run the synchronous API assign. See **architecture-blacksmith.md** §3.3.
 
 ## **Step 3: Register Your Module (Required)**
 
@@ -1734,7 +1741,7 @@ Hooks.once('ready', () => {
 - No confirmation of successful registration
 
 **Solutions:**
-1. **Check timing**: Register during `init` hook, not later
+1. **Check timing**: Register during **`ready`** (or after **`await BlacksmithAPI.waitForReady()`**); do not use **`init`** for **`registerModule`**
 2. **Verify function**: Ensure `registerModule` exists before calling
 3. **Check parameters**: Provide required name and version
 4. **Add error handling**: Catch and log registration errors
@@ -2109,12 +2116,12 @@ For full canvas layer API documentation, see: **`documentation/api-canvas.md`**
 - **Wrong Import Path**: Don't use `/scripts/` - use `/api/`
 - **Missing Module ID**: Always provide module ID for settings access
 - **Incorrect Parameter Order**: Check parameter documentation carefully
-- **Using null objects**: Wait for Blacksmith to be ready before accessing global objects
+- **Using null objects**: Wait for **`BlacksmithAPI.waitForReady()`** before using **`window.Blacksmith*`** globals; **`module.api`** in **`ready`** is non-null after Blacksmith’s synchronous **`init`** API assign
 
 ## **🔧 Integration Checklist:**
 - [ ] Import the bridge file: `import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js'`
-- [ ] Wait for Blacksmith to be ready (global objects are automatically available after import)
-- [ ] Register your module during the 'init' hook
+- [ ] Call **`await BlacksmithAPI.waitForReady()`** when you need asset-backed data; skip if you only need **`registerModule`** / **`utils`** from **`module.api`** in **`ready`**
+- [ ] Register your module during the **`ready`** hook (not **`init`**)
 - [ ] Always provide context for hook cleanup
 - [ ] Use proper error handling and availability checks
 - [ ] Test integration with provided console commands

@@ -65,14 +65,14 @@
     "styles/default.css"
   ],
   "files": [
-    "resources/asset-defaults/assets-background-images.json",
+    "resources/config-volumes.json",
+    "resources/config-nameplates.json",
+    "resources/narratives-stats-mvp.json",
+    "resources/asset-defaults/assets-background-cards.json",
     "resources/asset-defaults/assets-icons.json",
-    "resources/asset-defaults/assets-nameplates.json",
     "resources/asset-defaults/assets-sounds.json",
-    "resources/asset-defaults/assets-volumes.json",
     "resources/asset-defaults/assets-banners.json",
-    "resources/asset-defaults/assets-backgrounds.json",
-    "resources/asset-defaults/assets-mvp-templates.json"
+    "resources/asset-defaults/assets-skillchecks.json"
   ],
   "esmodules": [
     "scripts/const.js",

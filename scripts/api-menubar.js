@@ -393,6 +393,21 @@ class MenuBar {
     /**
      * Register secondary bar types
      */
+    /**
+     * Partials, leader/timer, default tools, secondary bar types, first render — must run after
+     * `registerSettings()` (e.g. encounterToolbarDeploymentPattern). Invoked from blacksmith.js `ready`.
+     */
+    static async runReadySetup() {
+        await this._registerPartials();
+        await this.loadLeader();
+        await this.loadTimer();
+        this.isLoading = false;
+        setTimeout(() => this.startTimerUpdates(), 1000);
+        this.registerDefaultTools();
+        await this.registerSecondaryBarTypes();
+        this.renderMenubar();
+    }
+
     static async registerSecondaryBarTypes() {
         // Register encounter secondary bar (default tool system – items registered from ui-journal-encounter.js)
         // Encounter bar type is registered by ui-journal-encounter.js with info items + buttons
@@ -4843,16 +4858,6 @@ class MenuBar {
     }
 }
 
-// Register menubar ready logic at module load so it runs when Foundry emits 'ready' (not during another ready callback).
-Hooks.once('ready', async () => {
-    await MenuBar._registerPartials();
-    await MenuBar.loadLeader();
-    await MenuBar.loadTimer();
-    MenuBar.isLoading = false;
-    setTimeout(() => MenuBar.startTimerUpdates(), 1000);
-    MenuBar.registerDefaultTools();
-    await MenuBar.registerSecondaryBarTypes();
-    MenuBar.renderMenubar();
-});
+// Menubar ready setup runs from blacksmith.js `ready` after registerSettings() via MenuBar.runReadySetup().
 
 export { MenuBar }; 

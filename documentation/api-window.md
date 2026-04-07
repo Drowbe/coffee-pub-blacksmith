@@ -39,9 +39,9 @@ These are **two different** supported surfaces on `game.modules.get('coffee-pub-
 
 **Availability timing**
 
-- **`BlacksmithWindowBaseV2` / `getWindowBaseV2()`** — Set on `module.api` **as soon as Blacksmith’s module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). Use this when you resolve a base class at **module top level** (e.g. `class X extends resolveBase()`).
-- **Window registry** (`registerWindow`, `openWindow`, …) — Populated during Blacksmith’s **`ready`** handling; use after `ready` (or `Hooks.once('ready', …)`).
-- Most other **`module.api`** members — Still filled in **`ready`** as today.
+- **`BlacksmithWindowBaseV2` / `getWindowBaseV2()`** — Also patched on `module.api` **as soon as Blacksmith’s module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). Use this when you resolve a base class at **module top level** (e.g. `class X extends resolveBase()`).
+- **Window registry** (`registerWindow`, `openWindow`, …) — Placeholders are cleared when the **api-windows** dynamic import completes during Blacksmith’s **`init`** (after `await addToolbarButton()`). Prefer calling **`registerWindow`** / **`openWindow`** from **`ready`** or after **`await BlacksmithAPI.waitForReady()`** so the rest of the stack is consistent.
+- **Most other `module.api` members** — The **public shell** (`registerModule`, `utils`, `HookManager`, menubar bindings, etc.) is assigned **synchronously at the start of Blacksmith’s `init`** (before any `await` there). **Asset-backed** fields (`assetLookup`, merged `BLACKSMITH` constants) finish during Blacksmith’s **`ready`**; use **`BlacksmithAPI.waitForReady()`** if you need that data. See **documentation/architecture-blacksmith.md** §3.2–3.3.
 
 ---
 

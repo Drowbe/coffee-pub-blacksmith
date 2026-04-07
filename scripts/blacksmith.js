@@ -38,7 +38,7 @@ import {
     copyToClipboard 
 } from './utility-common.js';
 // -- Import special page variables --
-import { registerSettings, buildSelectedCompendiumArrays, buildSelectedCampaignArrays, reorderCompendiumsForType, extractTypeFromCompendiumSetting, refreshAssetDerivedChoices } from './settings.js';
+import { registerSettings, buildSelectedCompendiumArrays, buildSelectedCampaignArrays, reorderCompendiumsForType, extractTypeFromCompendiumSetting, refreshAssetDerivedChoices, primeCoreChoiceCaches } from './settings.js';
 import { BlacksmithLayer } from './canvas-layer.js';
 import { addToolbarButton } from './manager-toolbar.js';
 import { CombatTimer } from './timer-combat.js';
@@ -310,6 +310,9 @@ Hooks.once('canvasReady', () => {
 
 Hooks.once('ready', async () => {
     postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: Ready hook started", "", false, false);
+
+    // Before any await: compendiums / roll tables / macros must exist for other modules' ready hooks and BlacksmithAPI readiness.
+    primeCoreChoiceCaches();
     
     // Bind menubar API synchronously so it is available to all ready callbacks (internal and external)
     const mod = game.modules.get(MODULE.ID);
@@ -377,6 +380,7 @@ Hooks.once('ready', async () => {
     try {
         initializeAssetLookupInstance(baseBundles);
         refreshAssetDerivedChoices();
+        if (mod?.api) mod.api.assetLookup = assetLookup;
     } catch (e) {
         console.error(`${MODULE.ID}: initializeAssetLookupInstance failed (early ready)`, e);
         LoadingProgressManager.forceHide();
@@ -393,19 +397,33 @@ Hooks.once('ready', async () => {
         return;
     }
 
-    // Optional per-category Asset Mapping overrides (fetch; merge after default JSON baseline is live).
+    // Menubar secondary bars read world settings (e.g. encounterToolbarDeploymentPattern) — must run after registerSettings().
     try {
-        const mergedBundles = await loadAssetBundlesWithOverrides(baseBundles);
-        initializeAssetLookupInstance(mergedBundles);
-        refreshAssetDerivedChoices();
+        MenuBar.initialize();
+        await MenuBar.runReadySetup();
     } catch (e) {
-        console.error(`${MODULE.ID}: loadAssetBundlesWithOverrides / merge failed`, e);
+        console.error(`${MODULE.ID}: MenuBar.runReadySetup failed`, e);
         LoadingProgressManager.forceHide();
         return;
     }
 
-    // Register MenuBar's ready callback and templates before first await so it runs in same ready cycle
-    MenuBar.initialize();
+    // Optional per-category Asset Mapping overrides (fetch; merge after default JSON baseline is live).
+    const { BlacksmithAPI } = await import('../api/blacksmith-api.js');
+    try {
+        const mergedBundles = await loadAssetBundlesWithOverrides(baseBundles);
+        initializeAssetLookupInstance(mergedBundles);
+        refreshAssetDerivedChoices();
+        if (mod?.api) mod.api.assetLookup = assetLookup;
+    } catch (e) {
+        console.error(`${MODULE.ID}: loadAssetBundlesWithOverrides / merge failed`, e);
+        LoadingProgressManager.forceHide();
+        BlacksmithAPI.markReadyForConsumers();
+        return;
+    }
+
+    BlacksmithAPI.markReadyForConsumers();
+    MenuBar.renderMenubar(true);
+
     CombatBarManager.initialize(MenuBar);
     // CombatBarManager replaces several MenuBar statics; re-bind so module.api always calls patched methods.
     if (mod?.api) {
@@ -823,6 +841,149 @@ Hooks.once('init', async function() {
     // Initialize UtilsManager
     UtilsManager.initialize();
     CampaignManager.initialize();
+
+    // Expose module.api before any await in init — other modules' `ready` hooks may run while this
+    // async init is suspended (e.g. at await addToolbarButton), so the public API must exist first.
+    // =========================================================================
+    // ===== BEGIN: EXPOSE API (early, before any await) ======================
+    // =========================================================================
+    const module = game.modules.get(MODULE.ID);
+    const generatedConstants = assetLookup?.getAllConstants?.() ?? {};
+    if (generatedConstants && typeof generatedConstants === 'object') {
+        Object.assign(BLACKSMITH, generatedConstants);
+    }
+    if (!module.api) module.api = {};
+    Object.assign(module.api, {
+        ModuleManager,
+        registerModule: ModuleManager.registerModule.bind(ModuleManager),
+        isModuleActive: ModuleManager.isModuleActive.bind(ModuleManager),
+        getModuleFeatures: ModuleManager.getModuleFeatures.bind(ModuleManager),
+        utils: UtilsManager.getUtils(),
+        version: MODULE.APIVERSION,
+        BLACKSMITH: BLACKSMITH,
+        stats: StatsAPI,
+        HookManager,
+        ConstantsGenerator,
+        assetLookup,
+        uiContextMenu: UIContextMenu,
+        registerToolbarTool: null,
+        unregisterToolbarTool: null,
+        getRegisteredTools: null,
+        getToolsByModule: null,
+        isToolRegistered: null,
+        getToolbarSettings: null,
+        setToolbarSettings: null,
+        registerWindow: null,
+        unregisterWindow: null,
+        openWindow: null,
+        getRegisteredWindows: null,
+        isWindowRegistered: null,
+        /** @see documentation/api-window.md — available from module load; same references re-applied here. */
+        BlacksmithWindowBaseV2,
+        getWindowBaseV2: () => BlacksmithWindowBaseV2,
+        registerMenubarTool: null,
+        unregisterMenubarTool: null,
+        getRegisteredMenubarTools: null,
+        getMenubarToolsByModule: null,
+        isMenubarToolRegistered: null,
+        getMenubarToolsByZone: null,
+        testMenubarAPI: null,
+        testRefactoredMenubar: null,
+        testInterfaceTool: null,
+        testSettingsTool: null,
+        testMovementTool: null,
+        addNotification: null,
+        updateNotification: null,
+        removeNotification: null,
+        clearNotificationsByModule: null,
+        getActiveNotifications: null,
+        clearAllNotifications: null,
+        getNotificationIdsByModule: null,
+        registerSecondaryBarType: null,
+        openSecondaryBar: null,
+        closeSecondaryBar: null,
+        sockets: null,
+        toggleSecondaryBar: null,
+        updateSecondaryBar: null,
+        openCombatBar: null,
+        closeCombatBar: null,
+        updateCombatBar: null,
+        testNotificationSystem: null,
+        CanvasLayer: null,
+        getCanvasLayer: null,
+        pins: PinsAPI,
+        chatCards: ChatCardsAPI,
+        campaign: CampaignAPI,
+        getPartyCR: EncounterManager.getPartyCR.bind(EncounterManager),
+        getMonsterCR: EncounterManager.getMonsterCR.bind(EncounterManager),
+        calculateEncounterDifficulty: EncounterManager.calculateEncounterDifficulty.bind(EncounterManager),
+        getCombatAssessment: EncounterManager.getCombatAssessment.bind(EncounterManager),
+        parseCR: EncounterManager.parseCR.bind(EncounterManager),
+        formatCR: EncounterManager.formatCR.bind(EncounterManager),
+        getPartyHealthSummary: PartyManager.getPartyHealthSummary.bind(PartyManager),
+        getPartyActorHp: PartyManager.getActorHp.bind(PartyManager),
+        getPartyReputation: ReputationManager.getPartyReputation.bind(ReputationManager),
+        setPartyReputation: ReputationManager.setPartyReputation.bind(ReputationManager),
+        getReputationScaleEntry: ReputationManager.getScaleEntry.bind(ReputationManager),
+        postCurrentReputationCard: ReputationManager.postCurrentReputationCard.bind(ReputationManager),
+        postNewReputationCard: ReputationManager.postNewReputationCard.bind(ReputationManager),
+        deployMonsters: EncounterToolbar.deployMonsters.bind(EncounterToolbar),
+        createJournalEntry,
+        openRequestRollDialog: (options = {}) => {
+            if (options.silent === true) {
+                return SkillCheckDialog.createRequestRoll(options).catch((err) => {
+                    if (err?.message?.includes('no actors found')) {
+                        const dialog = new SkillCheckDialog({ ...options, _api: true });
+                        dialog.render(true);
+                        return { message: null, messageId: null, fallbackDialog: dialog };
+                    }
+                    throw err;
+                });
+            }
+            const dialog = new SkillCheckDialog({ ...options, _api: true });
+            dialog.render(true);
+            return dialog;
+        }
+    });
+    if (MenuBar) {
+        Object.assign(module.api, {
+            registerMenubarTool: MenuBar.registerMenubarTool.bind(MenuBar),
+            unregisterMenubarTool: MenuBar.unregisterMenubarTool.bind(MenuBar),
+            getRegisteredMenubarTools: MenuBar.getRegisteredMenubarTools.bind(MenuBar),
+            getMenubarToolsByModule: MenuBar.getMenubarToolsByModule.bind(MenuBar),
+            isMenubarToolRegistered: MenuBar.isMenubarToolRegistered.bind(MenuBar),
+            getMenubarToolsByZone: MenuBar.getMenubarToolsByZone.bind(MenuBar),
+            renderMenubar: MenuBar.renderMenubar.bind(MenuBar),
+            addNotification: MenuBar.addNotification.bind(MenuBar),
+            updateNotification: MenuBar.updateNotification.bind(MenuBar),
+            removeNotification: MenuBar.removeNotification.bind(MenuBar),
+            clearNotificationsByModule: MenuBar.clearNotificationsByModule.bind(MenuBar),
+            getActiveNotifications: MenuBar.getActiveNotifications.bind(MenuBar),
+            clearAllNotifications: MenuBar.clearAllNotifications.bind(MenuBar),
+            getNotificationIdsByModule: MenuBar.getNotificationIdsByModule.bind(MenuBar),
+            registerSecondaryBarType: MenuBar.registerSecondaryBarType.bind(MenuBar),
+            registerSecondaryBarItem: MenuBar.registerSecondaryBarItem.bind(MenuBar),
+            unregisterSecondaryBarItem: MenuBar.unregisterSecondaryBarItem.bind(MenuBar),
+            updateSecondaryBarItemActive: MenuBar.updateSecondaryBarItemActive.bind(MenuBar),
+            updateSecondaryBarItemInfo: MenuBar.updateSecondaryBarItemInfo.bind(MenuBar),
+            getSecondaryBarItems: MenuBar.getSecondaryBarItems.bind(MenuBar),
+            openSecondaryBar: MenuBar.openSecondaryBar.bind(MenuBar),
+            updateMenubarToolActive: MenuBar.updateMenubarToolActive.bind(MenuBar),
+            closeSecondaryBar: MenuBar.closeSecondaryBar.bind(MenuBar),
+            toggleSecondaryBar: MenuBar.toggleSecondaryBar.bind(MenuBar),
+            updateSecondaryBar: MenuBar.updateSecondaryBar.bind(MenuBar),
+            registerSecondaryBarTool: MenuBar.registerSecondaryBarTool.bind(MenuBar),
+            openCombatBar: (combatData = null) => CombatBarManager.openCombatBar(MenuBar, combatData),
+            closeCombatBar: () => CombatBarManager.closeCombatBar(MenuBar),
+            updateCombatBar: (combatData = null) => CombatBarManager.updateCombatBar(MenuBar, combatData),
+            createCombat: MenuBar.createCombat?.bind(MenuBar),
+            toggleCombatTracker: () => CombatBarManager.toggleCombatTracker(),
+            hasQuickEncounterTool: MenuBar.hasQuickEncounterTool?.bind(MenuBar),
+            openQuickEncounterWindow: MenuBar.openQuickEncounterWindow?.bind(MenuBar),
+            registerMenubarVisibilityOverride: MenuBar.registerMenubarVisibilityOverride.bind(MenuBar),
+            unregisterMenubarVisibilityOverride: MenuBar.unregisterMenubarVisibilityOverride.bind(MenuBar)
+        });
+    }
     
     // Socket initialization moved to 'ready' hook for proper SocketLib integration
     
@@ -1042,189 +1203,6 @@ Hooks.once('init', async function() {
     }).catch(error => {
         postConsoleAndNotification(MODULE.NAME, "Failed to initialize SocketManager", error, false, false);
     });
-
-
-
-
-
-
-    // =========================================================================
-    // ===== BEGIN: EXPOSE API =================================================
-    // =========================================================================
-    // Expose our API on the module
-    const module = game.modules.get(MODULE.ID);
-    // Merge AssetLookup-generated constants (sound paths, volume, theme, etc.) onto BLACKSMITH
-    // so BlacksmithConstants.SOUNDNOTIFICATION01 etc. work for external modules
-    const generatedConstants = assetLookup?.getAllConstants?.() ?? {};
-    if (generatedConstants && typeof generatedConstants === 'object') {
-        Object.assign(BLACKSMITH, generatedConstants);
-    }
-    // Merge into existing api (menubar already bound at start of ready); do not replace so external callbacks see API immediately
-    if (!module.api) module.api = {};
-    Object.assign(module.api, {
-        ModuleManager,
-        registerModule: ModuleManager.registerModule.bind(ModuleManager),
-        isModuleActive: ModuleManager.isModuleActive.bind(ModuleManager),
-        getModuleFeatures: ModuleManager.getModuleFeatures.bind(ModuleManager),
-        utils: UtilsManager.getUtils(),
-        version: MODULE.APIVERSION,
-        BLACKSMITH: BLACKSMITH,
-        stats: StatsAPI,
-        HookManager,  // ✅ NEW: Expose HookManager for other Coffee Pub modules
-        ConstantsGenerator,  // ✅ NEW: Expose ConstantsGenerator for constants generation
-        assetLookup,  // ✅ NEW: Expose AssetLookup for flexible asset access
-        uiContextMenu: UIContextMenu,  // ✅ NEW: Shared context menu with flyouts
-        // ✅ NEW: Toolbar API for external modules
-        registerToolbarTool: null,  // Will be set after toolbar manager loads
-        unregisterToolbarTool: null,
-        getRegisteredTools: null,
-        getToolsByModule: null,
-        isToolRegistered: null,
-        getToolbarSettings: null,
-        setToolbarSettings: null,
-        // ✅ Window API (Application V2) for external modules
-        registerWindow: null,
-        unregisterWindow: null,
-        openWindow: null,
-        getRegisteredWindows: null,
-        isWindowRegistered: null,
-        /** @see documentation/api-window.md — available from module load; same references re-applied here. */
-        BlacksmithWindowBaseV2,
-        getWindowBaseV2: () => BlacksmithWindowBaseV2,
-        // ✅ NEW: Menubar API for external modules
-        registerMenubarTool: null,  // Will be set after menubar loads
-        unregisterMenubarTool: null,
-        getRegisteredMenubarTools: null,
-        getMenubarToolsByModule: null,
-        isMenubarToolRegistered: null,
-        getMenubarToolsByZone: null,
-        testMenubarAPI: null,
-        testRefactoredMenubar: null,
-        testInterfaceTool: null,
-        testSettingsTool: null,
-        testMovementTool: null,
-        
-        // Notification API
-        addNotification: null,
-        updateNotification: null,
-        removeNotification: null,
-        clearNotificationsByModule: null,
-        getActiveNotifications: null,
-        clearAllNotifications: null,
-        getNotificationIdsByModule: null,
-        // ✅ NEW: Secondary Bar API for external modules
-        registerSecondaryBarType: null,
-        openSecondaryBar: null,
-        closeSecondaryBar: null,
-        
-        // ✅ NEW: Socket API for external modules (set after SocketManager initializes)
-        sockets: null,
-        toggleSecondaryBar: null,
-        updateSecondaryBar: null,
-        // ✅ NEW: Combat Bar API for external modules
-        openCombatBar: null,
-        closeCombatBar: null,
-        updateCombatBar: null,
-        testNotificationSystem: null,
-        // ✅ NEW: Canvas Layer API for external modules
-        CanvasLayer: null,  // BlacksmithLayer instance (available after canvasReady)
-        getCanvasLayer: null,  // Helper function to get BlacksmithLayer
-
-        // ✅ NEW: Canvas Pins API for external modules
-        pins: PinsAPI,
-
-        // ✅ NEW: Chat Cards API for external modules
-        chatCards: ChatCardsAPI,
-
-        // ✅ Campaign API for normalized campaign, party, and import context
-        campaign: CampaignAPI,
-
-        // ✅ Combat assessment API (party CR, monster CR, encounter difficulty) from EncounterManager
-        getPartyCR: EncounterManager.getPartyCR.bind(EncounterManager),
-        getMonsterCR: EncounterManager.getMonsterCR.bind(EncounterManager),
-        calculateEncounterDifficulty: EncounterManager.calculateEncounterDifficulty.bind(EncounterManager),
-        getCombatAssessment: EncounterManager.getCombatAssessment.bind(EncounterManager),
-        parseCR: EncounterManager.parseCR.bind(EncounterManager),
-        formatCR: EncounterManager.formatCR.bind(EncounterManager),
-
-        // ✅ Party API (party health summary for progressbars, etc.)
-        getPartyHealthSummary: PartyManager.getPartyHealthSummary.bind(PartyManager),
-        getPartyActorHp: PartyManager.getActorHp.bind(PartyManager),
-
-        // ✅ Reputation API (scene-scoped party reputation; balancebar in party bar; chat cards)
-        getPartyReputation: ReputationManager.getPartyReputation.bind(ReputationManager),
-        setPartyReputation: ReputationManager.setPartyReputation.bind(ReputationManager),
-        getReputationScaleEntry: ReputationManager.getScaleEntry.bind(ReputationManager),
-        postCurrentReputationCard: ReputationManager.postCurrentReputationCard.bind(ReputationManager),
-        postNewReputationCard: ReputationManager.postNewReputationCard.bind(ReputationManager),
-
-        // ✅ Monster deployment API (same as journal encounter toolbar)
-        deployMonsters: EncounterToolbar.deployMonsters.bind(EncounterToolbar),
-
-        // ✅ Create narrative / encounter / location journals from JSON (same path as Blacksmith JSON import; public for Regent et al.)
-        createJournalEntry,
-
-        // ✅ Request a Roll (Skill Check) dialog – open with optional parameters
-        openRequestRollDialog: (options = {}) => {
-            if (options.silent === true) {
-                return SkillCheckDialog.createRequestRoll(options).catch((err) => {
-                    if (err?.message?.includes('no actors found')) {
-                        const dialog = new SkillCheckDialog({ ...options, _api: true });
-                        dialog.render(true);
-                        return { message: null, messageId: null, fallbackDialog: dialog };
-                    }
-                    throw err;
-                });
-            }
-            const dialog = new SkillCheckDialog({ ...options, _api: true });
-            dialog.render(true);
-            return dialog;
-        },
-
-        // ✅ NEW: Socket API for external modules (set after SocketManager initializes)
-        sockets: null
-    });
-
-    // Re-apply menubar API so it is not overwritten by nulls in the merge above
-    if (MenuBar) {
-        Object.assign(module.api, {
-            registerMenubarTool: MenuBar.registerMenubarTool.bind(MenuBar),
-            unregisterMenubarTool: MenuBar.unregisterMenubarTool.bind(MenuBar),
-            getRegisteredMenubarTools: MenuBar.getRegisteredMenubarTools.bind(MenuBar),
-            getMenubarToolsByModule: MenuBar.getMenubarToolsByModule.bind(MenuBar),
-            isMenubarToolRegistered: MenuBar.isMenubarToolRegistered.bind(MenuBar),
-            getMenubarToolsByZone: MenuBar.getMenubarToolsByZone.bind(MenuBar),
-            renderMenubar: MenuBar.renderMenubar.bind(MenuBar),
-            addNotification: MenuBar.addNotification.bind(MenuBar),
-            updateNotification: MenuBar.updateNotification.bind(MenuBar),
-            removeNotification: MenuBar.removeNotification.bind(MenuBar),
-            clearNotificationsByModule: MenuBar.clearNotificationsByModule.bind(MenuBar),
-            getActiveNotifications: MenuBar.getActiveNotifications.bind(MenuBar),
-            clearAllNotifications: MenuBar.clearAllNotifications.bind(MenuBar),
-            getNotificationIdsByModule: MenuBar.getNotificationIdsByModule.bind(MenuBar),
-            registerSecondaryBarType: MenuBar.registerSecondaryBarType.bind(MenuBar),
-            registerSecondaryBarItem: MenuBar.registerSecondaryBarItem.bind(MenuBar),
-            unregisterSecondaryBarItem: MenuBar.unregisterSecondaryBarItem.bind(MenuBar),
-            updateSecondaryBarItemActive: MenuBar.updateSecondaryBarItemActive.bind(MenuBar),
-            updateSecondaryBarItemInfo: MenuBar.updateSecondaryBarItemInfo.bind(MenuBar),
-            getSecondaryBarItems: MenuBar.getSecondaryBarItems.bind(MenuBar),
-            openSecondaryBar: MenuBar.openSecondaryBar.bind(MenuBar),
-            updateMenubarToolActive: MenuBar.updateMenubarToolActive.bind(MenuBar),
-            closeSecondaryBar: MenuBar.closeSecondaryBar.bind(MenuBar),
-            toggleSecondaryBar: MenuBar.toggleSecondaryBar.bind(MenuBar),
-            updateSecondaryBar: MenuBar.updateSecondaryBar.bind(MenuBar),
-            registerSecondaryBarTool: MenuBar.registerSecondaryBarTool.bind(MenuBar),
-            openCombatBar: (combatData = null) => CombatBarManager.openCombatBar(MenuBar, combatData),
-            closeCombatBar: () => CombatBarManager.closeCombatBar(MenuBar),
-            updateCombatBar: (combatData = null) => CombatBarManager.updateCombatBar(MenuBar, combatData),
-            createCombat: MenuBar.createCombat?.bind(MenuBar),
-            toggleCombatTracker: () => CombatBarManager.toggleCombatTracker(),
-            hasQuickEncounterTool: MenuBar.hasQuickEncounterTool?.bind(MenuBar),
-            openQuickEncounterWindow: MenuBar.openQuickEncounterWindow?.bind(MenuBar),
-            registerMenubarVisibilityOverride: MenuBar.registerMenubarVisibilityOverride.bind(MenuBar),
-            unregisterMenubarVisibilityOverride: MenuBar.unregisterMenubarVisibilityOverride.bind(MenuBar)
-        });
-    }
     
     // Set up Socket API after module.api is defined
     // Use the same dynamic import that initializes SocketManager

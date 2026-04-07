@@ -33,7 +33,8 @@ API Supplement: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Supple
 ## Quick How-To (for other Coffee Pub modules)
 
 1. Get the API safely:
-   `const api = game.modules.get('coffee-pub-blacksmith')?.api; if (!api) return;`
+   `const api = game.modules.get('coffee-pub-blacksmith')?.api; if (!api) return;`  
+   Blacksmith assigns **`api`** synchronously at the start of its **`init`** (before any **`await`** there), so in **`ready`** it should not be null. For **asset-backed constants**, **`assetLookup`**, or **`window.Blacksmith*`** globals, also **`await BlacksmithAPI.waitForReady()`** (see **documentation/architecture-blacksmith.md** §3.3).
 
 2. `postConsoleAndNotification` (debug + console + optional UI toast):
    use `api.utils.postConsoleAndNotification(moduleId, message, data?, blnDebug, blnNotification)`

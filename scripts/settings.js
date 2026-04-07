@@ -138,7 +138,7 @@ function checkInstalledModules() {
 }
 
 // -- COMPENDIUM CHOICES  --
-async function getCompendiumChoices() {
+function getCompendiumChoices() {
     postConsoleAndNotification(MODULE.NAME, "Building Compendium List...", "", false, false);
 
     const choicesArray = Array.from(game.packs.values()).map(compendium => {
@@ -833,6 +833,17 @@ export function refreshAssetDerivedChoices() {
     getNameplateChoices();
 }
 
+/**
+ * Populate compendium, roll table, and macro choice caches synchronously at the start of `ready`
+ * (before any await). Ensures BLACKSMITH.arrCompendiumChoices* / arrTableChoices / arrMacroChoices exist when
+ * other modules' `ready` hooks run and when BlacksmithAPI marks ready.
+ */
+export function primeCoreChoiceCaches() {
+    getCompendiumChoices();
+    getTableChoices();
+    getMacroChoices();
+}
+
 // ====================================================================================================================  
 // ===== SETTINGS ===================================================
 // ==================================================================================================================== 
@@ -841,7 +852,7 @@ export const registerSettings = () => {
     // Settings registration function - called during the 'ready' phase when Foundry is ready
 
     // Build the Dropdown choices
-    getCompendiumChoices(); // Run async in background - don't block settings registration
+    getCompendiumChoices();
     getTableChoices();
     getMacroChoices();
     getBackgroundImageChoices();
@@ -1342,7 +1353,7 @@ export const registerSettings = () => {
 	registerDynamicCompendiumTypes();
 
 	// --------------------------------------
-	// -- H2: Asset Mapping (shipped JSON defaults; clear = embedded JS only)
+	// -- H2: Asset Mapping (shipped asset-defaults JSON; volumes/nameplates/MVP ship under resources/ — not overridable here)
 	// --------------------------------------
 	registerHeader('AssetMapping', 'headingH2AssetMapping-Label', 'headingH2AssetMapping-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 
@@ -1363,13 +1374,11 @@ export const registerSettings = () => {
 			}
 		});
 	};
-	assetMapField('assetMapBackgroundImagesJson', '.assetMapBackgroundImagesJson-Label', '.assetMapBackgroundImagesJson-Hint', 'assets-background-images.json');
+	assetMapField('assetMapBackgroundImagesJson', '.assetMapBackgroundImagesJson-Label', '.assetMapBackgroundImagesJson-Hint', 'assets-background-cards.json');
 	assetMapField('assetMapIconsJson', '.assetMapIconsJson-Label', '.assetMapIconsJson-Hint', 'assets-icons.json');
-	assetMapField('assetMapNameplatesJson', '.assetMapNameplatesJson-Label', '.assetMapNameplatesJson-Hint', 'assets-nameplates.json');
 	assetMapField('assetMapSoundsJson', '.assetMapSoundsJson-Label', '.assetMapSoundsJson-Hint', 'assets-sounds.json');
-	assetMapField('assetMapVolumesJson', '.assetMapVolumesJson-Label', '.assetMapVolumesJson-Hint', 'assets-volumes.json');
 	assetMapField('assetMapBannersJson', '.assetMapBannersJson-Label', '.assetMapBannersJson-Hint', 'assets-banners.json');
-	assetMapField('assetMapBackgroundsJson', '.assetMapBackgroundsJson-Label', '.assetMapBackgroundsJson-Hint', 'assets-backgrounds.json');
+	assetMapField('assetMapBackgroundsJson', '.assetMapBackgroundsJson-Label', '.assetMapBackgroundsJson-Hint', 'assets-skillchecks.json');
 
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 

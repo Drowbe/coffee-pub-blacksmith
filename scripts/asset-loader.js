@@ -1,6 +1,9 @@
 /**
- * Asset data: defaults load from shipped JSON under resources/asset-defaults/ (runtime fetch only;
- * no Node/build step). Optional per-category overrides via Asset Mapping settings.
+ * Asset data: defaults load from shipped JSON (runtime fetch only; no Node/build step).
+ * - Visual/audio lists: `resources/asset-defaults/*.json`
+ * - System config: `resources/config-volumes.json`, `resources/config-nameplates.json` (not Asset Mapping)
+ * - Narrative: `resources/narratives-stats-mvp.json` (not Asset Mapping)
+ * Optional per-category overrides via Asset Mapping settings for asset-defaults categories only.
  * See documentation/plan-assets.md.
  */
 
@@ -22,6 +25,9 @@ function stripManifestVersion(json) {
     delete out.manifestVersion;
     return out;
 }
+
+const RESOURCES_ROOT = () => `modules/${MODULE.ID}/resources`;
+const ASSET_DEFAULTS = () => `${RESOURCES_ROOT()}/asset-defaults`;
 
 /**
  * @param {string} path - Foundry-relative path (e.g. modules/.../file.json)
@@ -62,22 +68,20 @@ function applyCategoryOverride(baseFragment, json, arrayKey, label) {
     return { ...baseFragment, [arrayKey]: arr };
 }
 
-const DEFAULT_JSON_BASE = () => `modules/${MODULE.ID}/resources/asset-defaults`;
-
 /**
  * Load all default category JSON files from the module (HTTP). Sole source for default bundles at init.
  * @returns {Promise<object>}
  */
 export async function loadDefaultAssetBundlesFromJson() {
-    const base = DEFAULT_JSON_BASE();
+    const ad = ASSET_DEFAULTS();
+    const root = RESOURCES_ROOT();
+
     const jobs = [
-        ['assets-background-images.json', 'dataBackgroundImages', 'images'],
-        ['assets-icons.json', 'dataIcons', 'icons'],
-        ['assets-nameplates.json', 'dataNameplate', 'names'],
-        ['assets-sounds.json', 'dataSounds', 'sounds'],
-        ['assets-volumes.json', 'dataVolume', 'volumes'],
-        ['assets-banners.json', 'dataBanners', 'banners'],
-        ['assets-backgrounds.json', 'dataBackgrounds', 'backgrounds']
+        [`${ad}/assets-background-cards.json`, 'dataBackgroundImages', 'images'],
+        [`${ad}/assets-icons.json`, 'dataIcons', 'icons'],
+        [`${ad}/assets-sounds.json`, 'dataSounds', 'sounds'],
+        [`${ad}/assets-banners.json`, 'dataBanners', 'banners'],
+        [`${ad}/assets-skillchecks.json`, 'dataBackgrounds', 'backgrounds']
     ];
 
     const out = {
@@ -92,8 +96,8 @@ export async function loadDefaultAssetBundlesFromJson() {
     };
 
     await Promise.all(
-        jobs.map(async ([file, exportKey, arrayKey]) => {
-            const json = await fetchJsonFromPath(`${base}/${file}`);
+        jobs.map(async ([filePath, exportKey, arrayKey]) => {
+            const json = await fetchJsonFromPath(filePath);
             const cleaned = stripManifestVersion(json);
             if (cleaned && Array.isArray(cleaned[arrayKey])) {
                 out[exportKey] = { [arrayKey]: cleaned[arrayKey] };
@@ -102,13 +106,33 @@ export async function loadDefaultAssetBundlesFromJson() {
     );
 
     try {
-        const mvp = await fetchJsonFromPath(`${base}/assets-mvp-templates.json`);
+        const vol = await fetchJsonFromPath(`${root}/config-volumes.json`);
+        const cleaned = stripManifestVersion(vol);
+        if (cleaned && Array.isArray(cleaned.volumes)) {
+            out.dataVolume = { volumes: cleaned.volumes };
+        }
+    } catch (e) {
+        console.warn(`${MODULE.TITLE} | Asset loader: could not load config-volumes.json`, e);
+    }
+
+    try {
+        const np = await fetchJsonFromPath(`${root}/config-nameplates.json`);
+        const cleaned = stripManifestVersion(np);
+        if (cleaned && Array.isArray(cleaned.names)) {
+            out.dataNameplate = { names: cleaned.names };
+        }
+    } catch (e) {
+        console.warn(`${MODULE.TITLE} | Asset loader: could not load config-nameplates.json`, e);
+    }
+
+    try {
+        const mvp = await fetchJsonFromPath(`${root}/narratives-stats-mvp.json`);
         const cleaned = stripManifestVersion(mvp);
         if (cleaned && typeof cleaned === 'object') {
             out.MVPTemplates = cleaned;
         }
     } catch (e) {
-        console.warn(`${MODULE.TITLE} | Asset loader: could not load MVP templates JSON`, e);
+        console.warn(`${MODULE.TITLE} | Asset loader: could not load narratives-stats-mvp.json`, e);
     }
 
     return out;
@@ -138,9 +162,7 @@ export async function loadAssetBundlesWithOverrides(baseBundles) {
     const jobs = [
         ['assetMapBackgroundImagesJson', 'dataBackgroundImages', 'images'],
         ['assetMapIconsJson', 'dataIcons', 'icons'],
-        ['assetMapNameplatesJson', 'dataNameplate', 'names'],
         ['assetMapSoundsJson', 'dataSounds', 'sounds'],
-        ['assetMapVolumesJson', 'dataVolume', 'volumes'],
         ['assetMapBannersJson', 'dataBanners', 'banners'],
         ['assetMapBackgroundsJson', 'dataBackgrounds', 'backgrounds']
     ];

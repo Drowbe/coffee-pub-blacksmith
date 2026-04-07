@@ -344,36 +344,46 @@ export class BlacksmithAPI {
     }
 
     /**
-     * Mark the API as ready and resolve all waiting callbacks
+     * Call from `blacksmith.js` after default + merged asset JSON is loaded and choice caches
+     * (including sounds) are refreshed; do not call from `ready` before that or consumers see empty data.
      */
-    static _markReady() {
-        this.isReady = true;
+    static markReadyForConsumers() {
+        if (!this.isReady) {
+            console.log('🔧 Blacksmith API: markReadyForConsumers (caches + settings ready)');
+            this._markReady();
+        } else {
+            // Already marked ready (e.g. early API shell); refresh globals after asset merge updates api.BLACKSMITH
+            this._syncGlobalsFromApi();
+        }
+    }
+
+    /** Re-assign window.* helpers from current module.api (same object refs; safe after BLACKSMITH merges). */
+    static _syncGlobalsFromApi() {
         try {
             const api = this._getAPI();
-            
-            // Assign global objects for direct access
             if (typeof window !== 'undefined') {
                 window.BlacksmithUtils = api.utils;
                 window.BlacksmithHookManager = api.HookManager;
                 window.BlacksmithModuleManager = api.ModuleManager;
                 window.BlacksmithStats = api.stats;
                 window.BlacksmithConstants = api.BLACKSMITH;
-                
-                // Create global Blacksmith object if it doesn't exist
-                if (!window.Blacksmith) {
-                    window.Blacksmith = {};
-                }
-                // Expose socket API on global Blacksmith object (may be set asynchronously later)
-                if (api.sockets) {
-                    window.Blacksmith.socket = api.sockets;
-                }
-                
-                // CanvasLayer is available after canvasReady
-                if (api.CanvasLayer) {
-                    window.BlacksmithCanvasLayer = api.CanvasLayer;
-                }
+                if (!window.Blacksmith) window.Blacksmith = {};
+                if (api.sockets) window.Blacksmith.socket = api.sockets;
+                if (api.CanvasLayer) window.BlacksmithCanvasLayer = api.CanvasLayer;
             }
-            
+        } catch (e) {
+            console.warn('🔧 Blacksmith API: _syncGlobalsFromApi failed', e);
+        }
+    }
+
+    /**
+     * Mark the API as ready and resolve all waiting callbacks
+     */
+    static _markReady() {
+        this.isReady = true;
+        try {
+            const api = this._getAPI();
+            this._syncGlobalsFromApi();
             this.readyCallbacks.forEach(callback => callback(api));
         } catch (error) {
             console.error('🔧 Blacksmith API: Error getting API during ready callback:', error);
@@ -388,35 +398,23 @@ export class BlacksmithAPI {
 // ===== INITIALIZATION & READY CHECKING ===========================
 // ================================================================== 
 
-// Simple readiness checking using FoundryVTT hooks
-function initializeReadyChecking() {
-    if (typeof Hooks !== 'undefined') {
-        // Wait for FoundryVTT to be ready
-        Hooks.once('ready', () => {
-            console.log('🔧 Blacksmith API: FoundryVTT ready, checking Blacksmith...');
-            checkBlacksmithReady();
-        });
-    } else {
-        // Wait for Hooks to be available
-        setTimeout(initializeReadyChecking, 100);
-    }
+// Readiness: `module.api` (including `version`, `registerModule`, `utils`) is assigned synchronously
+// at the start of Blacksmith's `init` before any `await`, so other modules' `ready` hooks never see a
+// null API. **markReadyForConsumers()** runs from `blacksmith.js` after asset merge + choice caches;
+// it calls `_markReady()` once, then `_syncGlobalsFromApi()` on subsequent calls after merges.
+
+function checkBlacksmithReady() {
+    return BlacksmithAPI.isAPIOpen();
 }
 
-// Check if Blacksmith is ready
-function checkBlacksmithReady() {
-    try {
-        const module = game.modules.get('coffee-pub-blacksmith');
-        if (module?.api && module.api.version) {
-            if (!BlacksmithAPI.isReady) {
-                console.log('🔧 Blacksmith API: Ready detected');
-                BlacksmithAPI._markReady();
-            }
-            return true;
-        }
-    } catch (e) {
-        console.log('🔧 Blacksmith API: Error during readiness check:', e);
+function initializeReadyChecking() {
+    if (typeof Hooks !== 'undefined') {
+        Hooks.once('ready', () => {
+            console.log('🔧 Blacksmith API: FoundryVTT ready, awaiting Blacksmith.markReadyForConsumers()...');
+        });
+    } else {
+        setTimeout(initializeReadyChecking, 100);
     }
-    return false;
 }
 
 // Start the readiness checking

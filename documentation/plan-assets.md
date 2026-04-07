@@ -62,18 +62,13 @@ Split bundled asset data into JSON files, add **per-category** settings so GMs c
 | `dataVolume` | `volumes` | |
 | `dataBanners` | `banners` | |
 | `dataBackgrounds` | `backgrounds` | Skill-check cinematic `BACK*` constants |
-| `MVPTemplates` | structured object | Combat stats MVP strings — same file or `assets-mvp-templates.json` |
+| `MVPTemplates` | structured object | Combat stats MVP strings — `resources/narratives-stats-mvp.json` (not Asset Mapping) |
 
-Suggested file names (examples):
+**File layout**
 
-- `assets-background-images.json`
-- `assets-icons.json`
-- `assets-nameplates.json`
-- `assets-sounds.json`
-- `assets-volumes.json`
-- `assets-banners.json`
-- `assets-backgrounds.json`
-- `assets-mvp-templates.json` (if split)
+- **Asset defaults** (`resources/asset-defaults/`): `assets-background-cards.json`, `assets-icons.json`, `assets-sounds.json`, `assets-banners.json`, `assets-skillchecks.json`
+- **System config** (`resources/`): `config-volumes.json`, `config-nameplates.json` (not Asset Mapping)
+- **Narrative** (`resources/`): `narratives-stats-mvp.json` (not Asset Mapping)
 
 Folder example: `resources/asset-defaults/` (name TBD).
 

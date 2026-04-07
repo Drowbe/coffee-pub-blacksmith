@@ -56,20 +56,18 @@ This document describes the high-level architecture of the **Coffee Pub Blacksmi
 
 2. **`init`** (in `blacksmith.js`)
    - Loading progress phase 1 (â€œLoading modulesâ€¦â€).
-   - **ModuleManager**, **UtilsManager** initialized first.
-   - **HookManager** used to register hooks (e.g. `renderChatMessageHTML`, `renderApplication`, `closeApplication`, `settingChange`).
-   - **MenuBar**, **CombatTimer**, **PlanningTimer**, **RoundTimer**, **CombatTracker**, **VoteManager** initialized.
-   - **QuickViewUtility** (dynamic import), **addToolbarButton()**, then dynamic imports to expose **toolbar API** and **menubar API** onto `module.api`.
+   - **ModuleManager**, **UtilsManager**, **CampaignManager** initialized first.
+   - **`module.api` is assigned synchronously** (full public surface: `registerModule`, `utils`, `HookManager`, `version`, `BLACKSMITH`, menubar bindings, etc.) **before any `await` in this hook**. This prevents other modulesâ€™ **`ready`** handlers from seeing `game.modules.get('coffee-pub-blacksmith').api === null` while Blacksmithâ€™s async `init` is suspended.
+   - **HookManager** used to register hooks (e.g. `renderChatMessageHTML`, `settingChange`).
+   - **CombatTimer**, **PlanningTimer**, **RoundTimer**, **CombatTracker**, **VoteManager** initialized.
+   - **QuickViewUtility** (dynamic import), **`await addToolbarButton()`**, then dynamic imports to **augment** **toolbar** / **window** / **menubar** slots on `module.api` where those were placeholders.
    - **hookCanvas()** registered (canvasInit, canvasReady, updateScene, dropCanvasData for layer and pins).
-   - **SocketManager** initialized via dynamic import (deferred to avoid SocketLib timing issues).
-   - **`module.api`** is assigned (see below). Toolbar/menubar/socket APIs are attached either inline or in the same init via dynamic imports.
+   - **SocketManager** via dynamic import; **`module.api.sockets`** populated when the socket facade is built.
+   - **MenuBar** usage: class is imported at bootstrap; **MenuBar.initialize()** / full menubar **ready** setup run in Blacksmithâ€™s **`ready`** hook (see below).
 
 3. **`ready`**
-   - Loading progress phase 5 (â€œFinalizingâ€¦â€).
-   - **registerSettings()** first, then **HookManager.initialize()**, **registerBlacksmithUpdatedHook()**, **registerWindowQueryPartials()**.
-   - After settings verification: **CombatStats**, **CPBPlayerStats**, **XpManager**, **WrapperManager**, **NavigationManager**, **LatencyChecker**, **CanvasTools**, **PinManager**, **JournalTools**, **EncounterToolbar**, **SidebarPin**, **SidebarStyle**.
-   - **BLACKSMITH.rolls.execute** set from **manager-rolls.js** (`executeRoll`).
-   - **initializeSettingsDependentFeatures()**, **initializeSceneInteractions()**, then loading progress hidden.
+   - **Early `ready`**: Load default asset JSON (`loadDefaultAssetBundlesFromJson`), **`initializeAssetLookupInstance`**, **`registerSettings()`**, **`MenuBar.runReadySetup()`**, optional merged overrides, **`refreshAssetDerivedChoices()`**, then **`BlacksmithAPI.markReadyForConsumers()`** (resolves **`BlacksmithAPI.waitForReady()`** and syncs `window.Blacksmith*` globals).
+   - Loading progress phase 5 (â€œFinalizingâ€¦â€) and the rest of Blacksmith **ready**: **HookManager.initialize()**, **registerBlacksmithUpdatedHook()**, **registerWindowQueryPartials()**, combat/stats/wrappers/navigation/etc., **BLACKSMITH.rolls.execute**, **initializeSettingsDependentFeatures()**, **initializeSceneInteractions()**, then loading progress hidden.
 
 4. **`canvasReady`**
    - Loading progress phase 4 (â€œPreparing canvasâ€¦â€).
@@ -77,26 +75,35 @@ This document describes the high-level architecture of the **Coffee Pub Blacksmi
 
 ### 3.2 API Exposure (`module.api`)
 
-`game.modules.get('coffee-pub-blacksmith').api` is set during `init` and then augmented by dynamic imports. It includes:
+`game.modules.get('coffee-pub-blacksmith').api` is **created at the start of Blacksmithâ€™s `init`** (before any `await` in that hook) and **augmented** later (dynamic imports in `init`, socket facade, canvas layer on `canvasReady`, etc.).
 
 | Surface | Description |
 |--------|-------------|
 | **ModuleManager** | Register/detect Coffee Pub modules and features. |
 | **registerModule**, **isModuleActive**, **getModuleFeatures** | Module registration helpers. |
 | **utils** | UtilsManager.getUtils() â€” shared helpers. |
-| **version**, **BLACKSMITH** | API version and shared constants. |
+| **version**, **BLACKSMITH** | API version and shared constants object (same reference as internal `BLACKSMITH`; runtime merges from AssetLookup land during **`ready`**). |
 | **stats** | StatsAPI. |
 | **HookManager** | Central hook registration. |
-| **ConstantsGenerator**, **assetLookup** | Constants and asset lookup. |
-| **Toolbar API** | registerToolbarTool, unregisterToolbarTool, getRegisteredTools, etc. (set after manager-toolbar load). |
-| **Window API** | registerWindow, unregisterWindow, openWindow (planned; set when window registry is implemented). See **documentation/api-window.md**. |
-| **Menubar API** | registerMenubarTool, notifications, secondary bar, combat bar, etc. (set after api-menubar load). |
-| **sockets** | SocketManager facade: waitForReady, register, emit (set after SocketManager init). |
+| **ConstantsGenerator**, **assetLookup** | Constants generator always; **assetLookup** is `null` until **`initializeAssetLookupInstance`** runs in **`ready`**, then **`module.api.assetLookup`** is updated to the live instance. |
+| **Toolbar API** | Placeholders cleared when **manager-toolbar** loads (`init`, after `await addToolbarButton`). |
+| **Window API** | Placeholders cleared when **api-windows** loads (`init`). See **documentation/api-window.md**. |
+| **Menubar API** | Bound at **`init`** (early assign); may be rebound when dynamic **api-menubar** import completes. |
+| **sockets** | SocketManager facade: waitForReady, register, emit (attached when SocketManager wiring runs in **`init`**). |
 | **CanvasLayer**, **getCanvasLayer** | Set on canvasReady. |
 | **pins** | PinsAPI (public pins API). |
 | **chatCards** | ChatCardsAPI. |
 
-The **BlacksmithAPI** class in `api/blacksmith-api.js` provides a timing-safe way for other modules to access this surface (e.g. `BlacksmithAPI.get()`, `BlacksmithAPI.getSockets()`, `BlacksmithAPI.getCanvasLayer()`).
+The **BlacksmithAPI** class in `api/blacksmith-api.js` resolves **`waitForReady()`** / **`get()`** after **`markReadyForConsumers()`** (postâ€“asset merge and cache refresh in **`ready`**), which is the right gate for code that needs **full asset-backed constants** and stable globals. **`module.api`** is non-null earlier for **`registerModule`** and utils without waiting.
+
+### 3.3 Two phases for external modules
+
+| Phase | When | What you can rely on |
+|--------|------|----------------------|
+| **API shell** | After Blacksmithâ€™s **`init`** has run the synchronous **`module.api` assign** (before its first **`await`**) | **`registerModule`**, **`utils`**, **`HookManager`**, **`version`**, object refs like **`api.BLACKSMITH`** (may not yet include JSON-derived keys). **`assetLookup`** may still be **`null`** until **`ready`**. |
+| **Data / caches ready** | After Blacksmithâ€™s **`ready`** path has loaded assets, merged overrides, refreshed choice caches, and called **`markReadyForConsumers()`** | **`BlacksmithAPI.waitForReady()`** resolves; **`assetLookup`**, merged **`BLACKSMITH`** keys, and **`window.BlacksmithConstants`** reflect loaded data. |
+
+If your integration only needs registration and utilities, using **`Hooks.once('ready', …)`** with **`game.modules.get('coffee-pub-blacksmith').api`** is enough. If you need **sound/theme/asset lists** or **`assetLookup`**, use **`await BlacksmithAPI.waitForReady()`** (or defer reads until after it).
 
 ---
 
@@ -200,7 +207,7 @@ Theming is CSS-variable based; chat card theming is documented in **documentatio
 Other modules should:
 
 1. Depend on `coffee-pub-blacksmith` and optionally `api/blacksmith-api.js` for timing-safe access.
-2. Use **BlacksmithAPI.get()** (or **BlacksmithAPI.waitForReady()**) before using any API.
+2. Use **BlacksmithAPI.waitForReady()** (or **get()**) when you need **asset-backed data** or globals that are synced in **`markReadyForConsumers()`**. For **registerModule** / **utils** only, **`module.api`** in **`ready`** is sufficient once Blacksmithâ€™s **`init`** has passed the synchronous API assign.
 3. Register as a Coffee Pub module via **module.api.registerModule()** if integrating with ModuleManager.
 4. Use **module.api** (or BlacksmithAPI helpers) for: hooks, utils, stats, toolbar, menubar, sockets, pins, chat cards, canvas layer, etc., as documented in the respective api-* and architecture-* docs.
 
