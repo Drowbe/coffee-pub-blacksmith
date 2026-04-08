@@ -66,6 +66,137 @@ These are working assumptions for the migration:
 
 ---
 
+## Decision Log / Open Questions
+
+These are the main decisions still open before implementation should proceed.
+
+### 1. Canonical top-level taxonomy
+
+What should the stable file/catalog shape be?
+
+Still open:
+
+- broader catalogs such as `assets-images.json`
+- narrower catalogs such as separate application/card/illustration files
+
+### 2. Classification of current uses
+
+For each current asset/data use, we still need to decide whether it is:
+
+- a library asset
+- a semantic slot
+- a feature theme concern
+- internal-only asset/data
+
+### 3. Core vs Vault boundary
+
+We still need to define:
+
+- what Blacksmith core ships as curated defaults
+- what moves to `coffee-pub-vault`
+- what remains internal/private and never becomes part of the public contract
+
+### 4. Durable constants boundary
+
+Working direction:
+
+- durable compatibility constants likely remain only for curated core defaults / stable semantic behavior
+
+Still open:
+
+- exactly which constants survive
+- which become shim-only
+- which should disappear from the recommended external model
+
+### 5. Public asset schema
+
+We still need to lock the public schema for user-provided asset catalogs:
+
+- required fields
+- optional fields
+- whether `value` remains
+- whether `constantname` becomes internal-only
+- whether `family`, `usage`, or both are formal schema fields
+
+### 6. Feature theme schema
+
+We still need a real schema for files like:
+
+- `theme-requestroll.json`
+- `theme-narrative-import.json`
+- `theme-encounter-import.json`
+
+Open points:
+
+- how themes identify their feature
+- how themes map slots
+- whether themes can inherit from or extend other themes
+- how modules register themes
+
+### 7. Resolution order
+
+We still need to define the official resolution stack.
+
+Likely candidates:
+
+- module-local override
+- selected Vault asset/theme
+- selected core asset/theme
+- Blacksmith hard fallback
+
+But this is not locked yet.
+
+### 8. Settings storage model
+
+We still need to decide what settings usually store:
+
+- theme id
+- slot-to-asset mapped id
+- raw asset id
+- raw path only for advanced/manual cases
+
+### 9. External API target
+
+We still need to define the future recommended external model for sibling modules:
+
+- what remains on `BlacksmithConstants`
+- what should move to registry/slot access
+- what stays debug-only
+- what becomes deprecated
+
+### 10. First-class feature families
+
+We still need to decide which feature areas deserve first-class treatment instead of remaining hardcoded or purely lookup-based.
+
+Examples:
+
+- Request a Roll
+- narrative imports
+- encounter imports
+- combat start/end
+- pin interactions
+
+### 11. Meaning of `family`
+
+The term is useful, but not yet formally defined.
+
+Still open:
+
+- is `family` library organization?
+- is it feature grouping?
+- how does it differ from `category`, `usage`, and slot namespace?
+
+### 12. Migration strategy for sibling modules
+
+Before implementation, we should know:
+
+- what should continue working unchanged
+- what will be shimmed
+- what will require migration work in sibling modules
+- what documentation/wiki changes must ship with the refactor
+
+---
+
 ## External Migration Constraints
 
 Any internal asset refactor has to respect the current external API story already published in:
@@ -318,6 +449,13 @@ This answers:
 - what assets exist?
 - what can the user choose from?
 
+Note:
+
+There may be both:
+
+- global shared asset libraries
+- feature-local theme asset libraries
+
 ### Layer 2. Semantic slots
 
 These are stable behavioral roles Blacksmith features depend on.
@@ -362,6 +500,11 @@ This answers:
 
 - which asset currently fulfills this role?
 
+Those mappings may resolve either to:
+
+- a global shared asset id
+- or a theme-local asset reference, depending on the feature theme model
+
 ### Why this model matters
 
 It resolves the collision between:
@@ -385,9 +528,15 @@ For those cases, a feature-specific theme JSON may be the right unit.
 
 Examples:
 
-- `theme-requestroll.json`
-- `theme-narrative-import.json`
-- `theme-encounter-import.json`
+- `themes/request-roll/theme-requestroll.json`
+- `themes/narrative-import/theme-narrative-import.json`
+- `themes/encounter-import/theme-encounter-import.json`
+
+Current repo example:
+
+- `themes/request-roll/theme-requestroll.json`
+- `themes/request-roll/images/`
+- `themes/request-roll/sounds/`
 
 ### What a feature theme is
 
@@ -401,6 +550,12 @@ It should define a coherent set of slot mappings for that feature, such as:
 - failure sound
 - versus sound
 - feature-specific icon or panel styling if needed later
+
+A feature theme may:
+
+- reference global shared assets
+- include feature-local bundled images/sounds
+- or mix both approaches
 
 ### What a feature theme is not
 
@@ -438,6 +593,47 @@ Feature themes would sit above the slot mapping layer as a curated preset mechan
 - feature themes map a coherent set of those slots for one feature
 - settings may choose a theme, then allow fine-tuning of individual slots if needed
 
+### Theme bundle convention
+
+The emerging filesystem convention is:
+
+- `themes/<feature>/`
+
+Within a feature folder, a theme bundle may include:
+
+- one or more theme definition JSON files
+- local `images/`
+- local `sounds/`
+- possibly other feature-local assets later
+
+This means not every theme asset must be promoted into a global shared asset catalog.
+
+### Global vs feature-local assets
+
+This gives Blacksmith two valid asset scopes:
+
+#### Global shared assets
+
+Used across features/modules.
+
+Examples:
+
+- normalized core UI sounds
+- shared icons
+- shared application backgrounds
+- cross-feature reusable visuals
+
+#### Feature-local theme assets
+
+Used primarily by a feature theme package.
+
+Examples:
+
+- `themes/request-roll/images/*`
+- `themes/request-roll/sounds/*`
+
+This should reduce pressure to force every presentation asset into one global taxonomy too early.
+
 ### Working direction
 
 Use feature theme JSONs where:
@@ -451,6 +647,11 @@ Examples likely include:
 - Request a Roll
 - narrative imports
 - encounter imports
+
+Working implication:
+
+- feature themes may either reference global asset ids or local theme-bundled assets
+- the plan should not assume all presentation assets must live in shared global catalogs
 
 ---
 
@@ -1278,6 +1479,11 @@ Vault should provide:
 - more extensive optional asset libraries
 - richer feature theme packs
 - optional visual/audio flavor expansions
+
+Vault may reasonably contribute:
+
+- global shared assets
+- feature theme bundles under feature-specific theme folders
 
 Vault should extend the available assets and themes without redefining the core API contract.
 
