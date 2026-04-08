@@ -377,6 +377,83 @@ without requiring:
 
 ---
 
+## Additional Layer: Feature Themes
+
+The current discussion suggests that some features may need a higher-level abstraction than raw asset catalogs or individual slot mappings.
+
+For those cases, a feature-specific theme JSON may be the right unit.
+
+Examples:
+
+- `theme-requestroll.json`
+- `theme-narrative-import.json`
+- `theme-encounter-import.json`
+
+### What a feature theme is
+
+A feature theme is a curated presentation bundle for one feature.
+
+It should define a coherent set of slot mappings for that feature, such as:
+
+- background image
+- cinematic illustration
+- success sound
+- failure sound
+- versus sound
+- feature-specific icon or panel styling if needed later
+
+### What a feature theme is not
+
+It is not:
+
+- a raw asset catalog
+- a replacement for the global image/sound/icon libraries
+- the same thing as existing chat card themes
+
+This distinction matters because Blacksmith already uses “theme” language for chat cards.
+
+So internally and in docs we should distinguish:
+
+- chat card themes
+- feature themes
+
+### Why feature themes may help
+
+For many use cases, users do not want to configure six unrelated asset settings for one feature.
+
+They want:
+
+- “give Request a Roll this look and feel”
+- “use this import presentation style for narratives”
+- “use this encounter presentation pack”
+
+That is a theme-level decision, not a raw asset-level decision.
+
+### Likely relationship to the three-layer model
+
+Feature themes would sit above the slot mapping layer as a curated preset mechanism:
+
+- asset libraries provide raw candidate assets
+- semantic slots define what the feature needs
+- feature themes map a coherent set of those slots for one feature
+- settings may choose a theme, then allow fine-tuning of individual slots if needed
+
+### Working direction
+
+Use feature theme JSONs where:
+
+- the feature has a recognizable presentation identity
+- multiple coordinated asset slots belong together
+- users benefit from selecting a pack/preset rather than hand-wiring every asset
+
+Examples likely include:
+
+- Request a Roll
+- narrative imports
+- encounter imports
+
+---
+
 ## Classification Framework
 
 Before deciding final files or schemas, each current asset/data use should be classified into one of three buckets:
@@ -421,6 +498,10 @@ Examples:
 - combat end sound
 - critical roll sound
 - app window background
+
+Note:
+
+A semantic slot may still be fulfilled through a selected feature theme rather than a manually assigned individual asset.
 
 ### Bucket C. Internal-only asset/data
 
@@ -520,6 +601,8 @@ The likely direction is:
 - users choose or provide assets in library catalogs
 - settings map slots to asset ids where customization is supported
 - some internal assets remain Blacksmith-owned and are not remappable
+
+For some features, the user-facing configuration may instead choose a feature theme first, with per-slot overrides as an optional advanced layer.
 
 ---
 
@@ -1014,6 +1097,200 @@ Use a table like this for each asset/data group.
 
 ---
 
+## First-Pass Inventory (Current Repo)
+
+This is the current-state inventory from the repo as of this document update. It is intentionally practical rather than final.
+
+### A. Current mapped JSON catalogs
+
+| Current File | Current Key | Count | Current Role | Current Classification | Main Consumers | Notes |
+|------|------|------|------|------|------|------|
+| `resources/asset-defaults/assets-sounds.json` | `sounds` | 131 | Shared sound catalog | Mixed: library asset + semantic slot source | settings dropdowns, constants, `AssetLookup`, direct runtime sound refs | Very broad; likely too inclusive without stronger internal structure |
+| `resources/asset-defaults/assets-banners.json` | `banners` | 16 | Shared banner/image catalog | Mixed: library asset + semantic slot source | settings, `AssetLookup`, constants | Does not cover all banner-like image usage |
+| `resources/asset-defaults/assets-icons.json` | `icons` | 9 | Shared icon catalog | Library asset | settings, constants | Currently Font Awesome oriented |
+| `resources/asset-defaults/assets-background-cards.json` | `images` | 12 | Card/tile background images | Likely library asset | settings, constants | Name is already overloaded with tiles/backgrounds |
+| `resources/asset-defaults/assets-skillchecks.json` | `backgrounds` | 6 | Skill-check cinematic backgrounds | Semantic slot source | `window-skillcheck`, constants | These behave more like stable feature visuals than a free library |
+| `resources/config-nameplates.json` | `names` | 11 | Nameplate presets | Shared config catalog | settings, constants | Not an asset catalog in the same sense as images/sounds |
+| `resources/config-volumes.json` | `volumes` | 4 | Volume presets | Shared config catalog | runtime sound playback, constants | Also not an asset catalog in the same sense |
+| `resources/narratives-stats-mvp.json` | structured object | n/a | Narrative text/templates | Feature data catalog | stats/narrative systems | Not an asset catalog |
+
+### B. Current sound catalog shape
+
+The current sound catalog is broad and already contains several distinct families under one file.
+
+Current `category` counts in `assets-sounds.json`:
+
+- `effects`: 55
+- `interface`: 43
+- `reaction`: 19
+- `soundtrack`: 5
+- `instrument`: 4
+- `weapon`: 3
+- `magic`: 1
+- `one-shots`: 1
+
+Common tags also show mixed semantic intent:
+
+- `interface`
+- `notification`
+- `button`
+- `error`
+- `movement`
+- `object`
+- `fanfare`
+- `combat`
+
+Interpretation:
+
+- one file is workable
+- but “sounds” is currently doing several jobs at once
+- the file likely needs stronger internal structure even if it remains a single file
+
+### C. Shipped image families not currently mapped through the asset catalogs
+
+These exist in the repo but are not currently represented as first-class mapped JSON catalogs.
+
+| Path | Count | Likely Role | Initial Classification |
+|------|------|------|------|
+| `images/backgrounds` | 9 | Application/panel backgrounds | likely library asset or semantic slot source |
+| `images/overlays` | 4 | Decorative overlays | internal-only or future library asset |
+| `images/markers` | 12 | Marker assets | likely feature/library decision pending |
+| `images/pins-map` | 80 | Map pin art | likely feature-specific library asset |
+| `images/pins-note` | 53 | Note/pin icons and shapes | likely feature-specific library asset |
+| `images/portraits` | 23 | Fallback portrait + blood overlays | mixed internal-only + semantic slot source |
+| `images/tiles` | 19 | Tile/background textures | likely library asset |
+| `images/tokens/death` | 57 | Death-state token art | feature-specific asset family |
+| `images/tokens/loot` | 14 | Loot token art | feature-specific asset family |
+
+This confirms that a large amount of shipped visual content is outside the current mapped asset system.
+
+### D. Current settings/cache surfaces adjacent to the asset system
+
+These are not asset catalogs, but they are part of the current “shared choices and shared data” story:
+
+- `arrThemeChoices`
+- `arrSoundChoices`
+- `arrTableChoices`
+- `arrMacroChoices`
+- `arrSelectedActorCompendiums`
+- `arrSelectedMonsterCompendiums`
+- `arrSelectedItemCompendiums`
+- other `arrSelected[Type]Compendiums`
+
+These matter because external modules are already consuming them as Blacksmith-owned shared configuration surfaces.
+
+### E. Current hardcoded literals bypassing catalogs
+
+These should be treated as part of the inventory because they represent real asset/config usage not yet modeled cleanly.
+
+Known examples:
+
+- curated narrative card image selector in settings
+- curated encounter card image selector in settings
+- contested/group-roll result banner paths
+- journal pin default sounds
+- portrait/token fallback paths
+
+Representative code locations:
+
+- `scripts/settings.js` `narrativeDefaultCardImage`
+- `scripts/settings.js` `encounterDefaultCardImage`
+- `scripts/manager-rolls.js` contested/group-roll result banners
+- `scripts/ui-journal-pins.js` default sound paths
+- `scripts/window-skillcheck.js` skill-check background fallback paths
+
+### F. Current consumption surfaces
+
+The current inventory only makes sense if we also name how the data is consumed.
+
+#### 1. Choice/cache consumers
+
+Used for settings and sibling-module dropdowns:
+
+- `BlacksmithConstants.arrSoundChoices`
+- `BlacksmithConstants.arrThemeChoices`
+- `BlacksmithConstants.arrTableChoices`
+- selected compendium arrays
+
+#### 2. Constant consumers
+
+Used for direct runtime references:
+
+- `window.COFFEEPUB?.SOUNDBUTTON04`
+- `window.COFFEEPUB?.SOUNDNOTIFICATION09`
+- `window.COFFEEPUB?.SOUNDVOLUMENORMAL`
+- `BACKSKILLCHECK`
+- `BACKCONTESTEDROLL`
+
+#### 3. Query/lookup consumers
+
+Used for search/filter behavior:
+
+- `assetLookup.getByTypeAndTags(...)`
+- `assetLookup.getByCategory(...)`
+- `assetLookup.searchByCriteria(...)`
+- `assetLookup.getRandom(...)`
+
+#### 4. Debug/introspection consumers
+
+Used mostly for inspection rather than normal feature consumption:
+
+- `BlacksmithAPIConstants()`
+- `BlacksmithAPIGenerateConstants()`
+- `BlacksmithAPIAssetLookup()`
+
+### G. Inventory takeaways
+
+The inventory currently suggests:
+
+- the existing JSON split solved packaging and override loading, but not the conceptual model
+- sounds are probably still one file, but they need better internal structure
+- images are more fragmented than the current catalogs imply
+- several important feature visuals/sounds are still modeled as hardcoded literals instead of library assets, semantic slots, or internal-only assets
+- Blacksmith’s shared config caches and shared asset surfaces are currently intermixed in external docs and usage
+- some feature areas will likely want feature theme JSONs rather than exposing every slot as a first-class setting immediately
+
+This first-pass inventory should be refined rather than treated as final taxonomy.
+
+---
+
+## Optional Module Layer: Vault
+
+Another working direction from the current discussion:
+
+- `coffee-pub-blacksmith` should ship a greatly simplified, policy-safe curated core
+- `coffee-pub-vault` should be an optional module that registers richer asset libraries and feature themes
+
+### Working role of Blacksmith core
+
+Core should provide:
+
+- normalized shared core sounds/icons/backgrounds where needed across Coffee Pub modules
+- durable compatibility constants for curated core behavior where necessary
+- stable semantic slots
+- the registry and resolution model
+- one or more safe default feature themes
+
+### Working role of Vault
+
+Vault should provide:
+
+- more extensive optional asset libraries
+- richer feature theme packs
+- optional visual/audio flavor expansions
+
+Vault should extend the available assets and themes without redefining the core API contract.
+
+### Working role of sibling modules
+
+Sibling modules should be able to:
+
+- use Blacksmith core defaults
+- opt into Vault-provided assets/themes when available
+- provide module-local defaults or overrides where appropriate
+
+---
+
 ## Open Topics For Later Conversation
 
 These are intentionally not resolved in this document.
@@ -1026,6 +1303,7 @@ These are intentionally not resolved in this document.
 - Whether some shipped art moves to a companion pack instead of core
 - Which current systems should use semantic ids vs free library selection
 - Exact external migration guidance for Coffee Pub sibling modules
+- Where feature themes should be first-class and where simple slot mappings are enough
 
 ---
 
