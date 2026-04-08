@@ -1378,7 +1378,6 @@ export const registerSettings = () => {
 	assetMapField('assetMapIconsJson', '.assetMapIconsJson-Label', '.assetMapIconsJson-Hint', 'assets-icons.json');
 	assetMapField('assetMapSoundsJson', '.assetMapSoundsJson-Label', '.assetMapSoundsJson-Hint', 'assets-sounds.json');
 	assetMapField('assetMapBannersJson', '.assetMapBannersJson-Label', '.assetMapBannersJson-Hint', 'assets-banners.json');
-	assetMapField('assetMapBackgroundsJson', '.assetMapBackgroundsJson-Label', '.assetMapBackgroundsJson-Hint', 'assets-skillchecks.json');
 
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
@@ -3429,6 +3428,21 @@ export const registerSettings = () => {
 		scope: 'world',
 		default: true,
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
+	});
+
+	// -- Request Roll Theme File --
+	game.settings.register(MODULE.ID, 'assetMapBackgroundsJson', {
+		name: MODULE.ID + '.assetMapBackgroundsJson-Label',
+		hint: MODULE.ID + '.assetMapBackgroundsJson-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: `modules/${MODULE.ID}/themes/request-roll/theme-requestroll.json`,
+		filePicker: true,
+		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION,
+		onChange: () => {
+			void import('./asset-loader.js').then(m => m.reloadAssetManifestsFromWorldSettings());
+		}
 	});
 
 

@@ -644,8 +644,8 @@
 		"assetMapSoundsJson-Hint": "JSON with a \"sounds\" array. Default = shipped file; clear = skip override for this category.",
 		"assetMapBannersJson-Label": "Banners JSON",
 		"assetMapBannersJson-Hint": "JSON with a \"banners\" array. Default = shipped file; clear = skip override for this category.",
-		"assetMapBackgroundsJson-Label": "Skill-check backgrounds JSON",
-		"assetMapBackgroundsJson-Hint": "JSON with a \"backgrounds\" array (BACK* cinematic constants). Default = shipped file; clear = skip override for this category.",
+		"assetMapBackgroundsJson-Label": "Theme File",
+		"assetMapBackgroundsJson-Hint": "Choose the theme file used for Request Rolls.",
 
 
 			"headingH3ActorCompendiums-Label": "Actors",
