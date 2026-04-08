@@ -3431,9 +3431,9 @@ export const registerSettings = () => {
 	});
 
 	// -- Request Roll Theme File --
-	game.settings.register(MODULE.ID, 'assetMapBackgroundsJson', {
-		name: MODULE.ID + '.assetMapBackgroundsJson-Label',
-		hint: MODULE.ID + '.assetMapBackgroundsJson-Hint',
+	game.settings.register(MODULE.ID, 'requestRollThemeJson', {
+		name: MODULE.ID + '.requestRollThemeJson-Label',
+		hint: MODULE.ID + '.requestRollThemeJson-Hint',
 		scope: 'world',
 		config: true,
 		type: String,

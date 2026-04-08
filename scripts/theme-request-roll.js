@@ -1,6 +1,7 @@
 import { MODULE } from './const.js';
 
 const DEFAULT_REQUEST_ROLL_THEME_PATH = `modules/${MODULE.ID}/themes/request-roll/theme-requestroll.json`;
+const REQUEST_ROLL_THEME_SETTING = 'requestRollThemeJson';
 
 let _cachedPath = null;
 let _cachedTheme = null;
@@ -20,10 +21,15 @@ function toFetchUrl(path) {
 
 function getThemePath() {
     try {
-        return normalizePath(game?.settings?.get?.(MODULE.ID, 'assetMapBackgroundsJson'));
+        const configuredPath = game?.settings?.get?.(MODULE.ID, REQUEST_ROLL_THEME_SETTING);
+        if (String(configuredPath ?? '').trim()) {
+            return normalizePath(configuredPath);
+        }
     } catch {
         return DEFAULT_REQUEST_ROLL_THEME_PATH;
     }
+
+    return DEFAULT_REQUEST_ROLL_THEME_PATH;
 }
 
 async function loadThemeJson() {

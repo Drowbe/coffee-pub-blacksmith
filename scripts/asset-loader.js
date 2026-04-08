@@ -164,7 +164,6 @@ export async function loadAssetBundlesWithOverrides(baseBundles) {
         ['assetMapIconsJson', 'dataIcons', 'icons'],
         ['assetMapSoundsJson', 'dataSounds', 'sounds'],
         ['assetMapBannersJson', 'dataBanners', 'banners'],
-        ['assetMapBackgroundsJson', 'dataBackgrounds', 'backgrounds']
     ];
 
     for (const [settingKey, exportKey, arrayKey] of jobs) {
