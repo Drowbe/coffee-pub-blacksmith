@@ -3441,7 +3441,7 @@ export const registerSettings = () => {
 		filePicker: true,
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION,
 		onChange: () => {
-			void import('./asset-loader.js').then(m => m.reloadAssetManifestsFromWorldSettings());
+			void import('./theme-request-roll.js').then(m => m.invalidateRequestRollThemeCache());
 		}
 	});
 

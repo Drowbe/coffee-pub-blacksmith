@@ -1,90 +1,306 @@
 {
-    "manifestVersion":  1,
-    "backgrounds":  [
-                        {
-                            "name":  "Skill Check Background",
-                            "id":  "background-skill-check",
-                            "value":  "",
-                            "constantname":  "BACKSKILLCHECK",
-                            "path":  "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-02.webp",
-                            "tags":  [
-                                         "background",
-                                         "skill-check",
-                                         "radiant"
-                                     ],
-                            "type":  "image",
-                            "category":  "background"
-                        },
-                        {
-                            "name":  "Ability Check Background",
-                            "id":  "background-ability-check",
-                            "value":  "",
-                            "constantname":  "BACKABILITYCHECK",
-                            "path":  "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-03.webp",
-                            "tags":  [
-                                         "background",
-                                         "ability-check",
-                                         "cold"
-                                     ],
-                            "type":  "image",
-                            "category":  "background"
-                        },
-                        {
-                            "name":  "Saving Throw Background",
-                            "id":  "background-saving-throw",
-                            "value":  "",
-                            "constantname":  "BACKSAVINGTHROW",
-                            "path":  "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-04.webp",
-                            "tags":  [
-                                         "background",
-                                         "saving-throw",
-                                         "bludgeoning"
-                                     ],
-                            "type":  "image",
-                            "category":  "background"
-                        },
-                        {
-                            "name":  "Dice Roll Background",
-                            "id":  "background-dice-roll",
-                            "value":  "",
-                            "constantname":  "BACKDICEROLL",
-                            "path":  "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-05.webp",
-                            "tags":  [
-                                         "background",
-                                         "skill-check",
-                                         "dice-roll",
-                                         "psychic"
-                                     ],
-                            "type":  "image",
-                            "category":  "background"
-                        },
-                        {
-                            "name":  "Tool Check Background",
-                            "id":  "background-tool-check",
-                            "value":  "",
-                            "constantname":  "BACKTOOLCHECK",
-                            "path":  "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-06.webp",
-                            "tags":  [
-                                         "background",
-                                         "tool-check",
-                                         "poison"
-                                     ],
-                            "type":  "image",
-                            "category":  "background"
-                        },
-                        {
-                            "name":  "Contested Roll Background",
-                            "id":  "background-contested-roll",
-                            "value":  "",
-                            "constantname":  "BACKCONTESTEDROLL",
-                            "path":  "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-07.webp",
-                            "tags":  [
-                                         "background",
-                                         "contested-roll",
-                                         "fire"
-                                     ],
-                            "type":  "image",
-                            "category":  "background"
-                        }
-                    ]
+    "manifestVersion": 1,
+    "feature": "request-roll",
+    "cinematicBanners": [
+        {
+            "name": "Skill Check Banner",
+            "id": "cinematic-banner-skill-check",
+            "value": "",
+            "constantname": "BACKSKILLCHECK",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-02.webp",
+            "tags": [
+                "cinematic-banner",
+                "request-roll",
+                "skill-check"
+            ],
+            "type": "image",
+            "category": "request-roll"
+        },
+        {
+            "name": "Ability Check Banner",
+            "id": "cinematic-banner-ability-check",
+            "value": "",
+            "constantname": "BACKABILITYCHECK",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-03.webp",
+            "tags": [
+                "cinematic-banner",
+                "request-roll",
+                "ability-check"
+            ],
+            "type": "image",
+            "category": "request-roll"
+        },
+        {
+            "name": "Saving Throw Banner",
+            "id": "cinematic-banner-saving-throw",
+            "value": "",
+            "constantname": "BACKSAVINGTHROW",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-04.webp",
+            "tags": [
+                "cinematic-banner",
+                "request-roll",
+                "saving-throw"
+            ],
+            "type": "image",
+            "category": "request-roll"
+        },
+        {
+            "name": "Dice Roll Banner",
+            "id": "cinematic-banner-dice-roll",
+            "value": "",
+            "constantname": "BACKDICEROLL",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-05.webp",
+            "tags": [
+                "cinematic-banner",
+                "request-roll",
+                "dice-roll"
+            ],
+            "type": "image",
+            "category": "request-roll"
+        },
+        {
+            "name": "Tool Check Banner",
+            "id": "cinematic-banner-tool-check",
+            "value": "",
+            "constantname": "BACKTOOLCHECK",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-06.webp",
+            "tags": [
+                "cinematic-banner",
+                "request-roll",
+                "tool-check"
+            ],
+            "type": "image",
+            "category": "request-roll"
+        },
+        {
+            "name": "Contested Roll Banner",
+            "id": "cinematic-banner-contested-roll",
+            "value": "",
+            "constantname": "BACKCONTESTEDROLL",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-07.webp",
+            "tags": [
+                "cinematic-banner",
+                "request-roll",
+                "contested-roll"
+            ],
+            "type": "image",
+            "category": "request-roll"
+        },
+        {
+            "name": "Contested Result: Draw",
+            "id": "cinematic-banner-contested-result-draw",
+            "value": "",
+            "constantname": "BACKCONTESTDRAW",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-01.webp",
+            "tags": [
+                "cinematic-banner",
+                "request-roll",
+                "result",
+                "contested-roll",
+                "draw"
+            ],
+            "type": "image",
+            "category": "request-roll"
+        },
+        {
+            "name": "Contested Result: Challengers Win",
+            "id": "cinematic-banner-contested-result-challengers",
+            "value": "",
+            "constantname": "BACKCONTESTCHALLENGERS",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-01.webp",
+            "tags": [
+                "cinematic-banner",
+                "request-roll",
+                "result",
+                "contested-roll",
+                "challengers"
+            ],
+            "type": "image",
+            "category": "request-roll"
+        },
+        {
+            "name": "Contested Result: Defenders Win",
+            "id": "cinematic-banner-contested-result-defenders",
+            "value": "",
+            "constantname": "BACKCONTESTDEFENDERS",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-01.webp",
+            "tags": [
+                "cinematic-banner",
+                "request-roll",
+                "result",
+                "contested-roll",
+                "defenders"
+            ],
+            "type": "image",
+            "category": "request-roll"
+        },
+        {
+            "name": "Group Result: Success",
+            "id": "cinematic-banner-group-result-success",
+            "value": "",
+            "constantname": "BACKGROUPSUCCESS",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-01.webp",
+            "tags": [
+                "cinematic-banner",
+                "request-roll",
+                "result",
+                "group-roll",
+                "success"
+            ],
+            "type": "image",
+            "category": "request-roll"
+        },
+        {
+            "name": "Group Result: Failure",
+            "id": "cinematic-banner-group-result-failure",
+            "value": "",
+            "constantname": "BACKGROUPFAILURE",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-01.webp",
+            "tags": [
+                "cinematic-banner",
+                "request-roll",
+                "result",
+                "group-roll",
+                "failure"
+            ],
+            "type": "image",
+            "category": "request-roll"
+        }
+    ],
+    "sounds": [
+        {
+            "name": "Request Posted",
+            "id": "request-roll-sound-posted",
+            "value": "",
+            "constantname": "SOUNDREQUESTROLLPOSTED",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/sounds/request-posted.mp3",
+            "tags": [
+                "sound",
+                "request-roll",
+                "notification",
+                "posted"
+            ],
+            "type": "sound",
+            "category": "request-roll"
+        },
+        {
+            "name": "Cinematic Open",
+            "id": "request-roll-sound-cinematic-open",
+            "value": "",
+            "constantname": "SOUNDCINEMATICOPEN",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/sounds/cinematic-open.mp3",
+            "tags": [
+                "sound",
+                "request-roll",
+                "cinematic",
+                "open"
+            ],
+            "type": "sound",
+            "category": "request-roll"
+        },
+        {
+            "name": "Dice Roll",
+            "id": "request-roll-sound-dice-roll",
+            "value": "",
+            "constantname": "SOUNDDICEROLL",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/sounds/dice-roll.mp3",
+            "tags": [
+                "sound",
+                "request-roll",
+                "dice-roll"
+            ],
+            "type": "sound",
+            "category": "request-roll"
+        },
+        {
+            "name": "Roll Complete",
+            "id": "request-roll-sound-roll-complete",
+            "value": "",
+            "constantname": "SOUNDROLLCOMPLETE",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/sounds/roll-complete.mp3",
+            "tags": [
+                "sound",
+                "request-roll",
+                "result",
+                "complete"
+            ],
+            "type": "sound",
+            "category": "request-roll"
+        },
+        {
+            "name": "Roll Critical",
+            "id": "request-roll-sound-roll-critical",
+            "value": "",
+            "constantname": "SOUNDROLLCRITICAL",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/sounds/critical-roll.mp3",
+            "tags": [
+                "sound",
+                "request-roll",
+                "result",
+                "critical"
+            ],
+            "type": "sound",
+            "category": "request-roll"
+        },
+        {
+            "name": "Roll Fumble",
+            "id": "request-roll-sound-roll-fumble",
+            "value": "",
+            "constantname": "SOUNDROLLFUMBLE",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/sounds/fumble.mp3",
+            "tags": [
+                "sound",
+                "request-roll",
+                "result",
+                "fumble"
+            ],
+            "type": "sound",
+            "category": "request-roll"
+        },
+        {
+            "name": "Versus Result",
+            "id": "request-roll-sound-versus",
+            "value": "",
+            "constantname": "SOUNDVERSUS",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/sounds/versus-result.mp3",
+            "tags": [
+                "sound",
+                "request-roll",
+                "result",
+                "versus"
+            ],
+            "type": "sound",
+            "category": "request-roll"
+        },
+        {
+            "name": "Success Result",
+            "id": "request-roll-sound-success",
+            "value": "",
+            "constantname": "SOUNDSUCCESS",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/sounds/success-result.mp3",
+            "tags": [
+                "sound",
+                "request-roll",
+                "result",
+                "success"
+            ],
+            "type": "sound",
+            "category": "request-roll"
+        },
+        {
+            "name": "Failure Result",
+            "id": "request-roll-sound-failure",
+            "value": "",
+            "constantname": "SOUNDFAILURE",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/sounds/failure-result.mp3",
+            "tags": [
+                "sound",
+                "request-roll",
+                "result",
+                "failure"
+            ],
+            "type": "sound",
+            "category": "request-roll"
+        }
+    ]
 }

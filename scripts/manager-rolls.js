@@ -2,6 +2,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound } from './api-core.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 import { SocketManager } from './manager-sockets.js';
+import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './theme-request-roll.js';
 
 // Import SkillCheckDialog for chat message formatting
 import { SkillCheckDialog } from './window-skillcheck.js';
@@ -427,16 +428,10 @@ export async function deliverRollResults(rollResults, context) {
             }
             
             // Play sound based on d20 result (same logic as cinema mode)
-            let individualSound;
-            if (d20Roll === 20) {
-                individualSound = COFFEEPUB.SOUNDROLLCRITICAL;
-            } else if (d20Roll === 1) {
-                individualSound = COFFEEPUB.SOUNDROLLFUMBLE;
-            } else {
-                individualSound = COFFEEPUB.SOUNDROLLCOMPLETE;
-            }
-            
-            playSound(individualSound, COFFEEPUB.SOUNDVOLUMENORMAL);
+            const resolvedIndividualSound = await resolveRequestRollSound(
+                d20Roll === 20 ? 'SOUNDROLLCRITICAL' : d20Roll === 1 ? 'SOUNDROLLFUMBLE' : 'SOUNDROLLCOMPLETE'
+            );
+            if (resolvedIndividualSound) playSound(resolvedIndividualSound, COFFEEPUB.SOUNDVOLUMENORMAL);
         }
         
         postConsoleAndNotification(MODULE.NAME, `deliverRollResults: Results delivered successfully`, null, true, false);
@@ -1467,7 +1462,7 @@ export async function updateCinemaOverlay(rollResults, context) {
         const groupResultsTime = 5000;
         const rollResultsTime = 4000;
 
-        setTimeout(() => {
+        setTimeout(async () => {
             // Play individual roll sound (crit/fumble/normal) - same as old system
             let d20Roll = null;
             
@@ -1520,20 +1515,14 @@ export async function updateCinemaOverlay(rollResults, context) {
             }
             
             // Play individual roll sound based on d20 result
-            let individualSound;
-            if (d20Roll === 20) {
-                individualSound = COFFEEPUB.SOUNDROLLCRITICAL;
-            } else if (d20Roll === 1) {
-                individualSound = COFFEEPUB.SOUNDROLLFUMBLE;
-            } else {
-                individualSound = COFFEEPUB.SOUNDROLLCOMPLETE;
-            }
-            
-            playSound(individualSound, COFFEEPUB.SOUNDVOLUMENORMAL);
+            const resolvedIndividualSound = await resolveRequestRollSound(
+                d20Roll === 20 ? 'SOUNDROLLCRITICAL' : d20Roll === 1 ? 'SOUNDROLLFUMBLE' : 'SOUNDROLLCOMPLETE'
+            );
+            if (resolvedIndividualSound) playSound(resolvedIndividualSound, COFFEEPUB.SOUNDVOLUMENORMAL);
             
         }, diceSpinTime); // Small delay for reveal effect
         
-        setTimeout(() => {
+        setTimeout(async () => {
             // Determine the sound to play based on the roll result
             // Improved d20 roll detection to handle different roll types
             let d20Roll = null;
@@ -1625,7 +1614,7 @@ export async function updateCinemaOverlay(rollResults, context) {
                     }, delayMs);
                 };
 
-                const resolveCinematicEnd = () => {
+                const resolveCinematicEnd = async () => {
                     const message = game.messages.get(messageId);
                     const flags = message?.flags?.['coffee-pub-blacksmith'];
                     if (!flags) {
@@ -1663,15 +1652,15 @@ export async function updateCinemaOverlay(rollResults, context) {
                             resultText = 'DRAW';
                             resultClass = 'tie';
                             detailText = 'Both sides are evenly matched';
-                            resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-draw.webp';
+                            resultBackgroundImage = await resolveRequestRollCinematicBanner('BACKCONTESTDRAW');
                         } else if (winningGroup === 1) {
                             resultText = 'CHALLENGERS WIN';
                             resultClass = 'contested-challengers';
-                            resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-versus-challengers.webp';
+                            resultBackgroundImage = await resolveRequestRollCinematicBanner('BACKCONTESTCHALLENGERS');
                         } else {
                             resultText = 'DEFENDERS WIN';
                             resultClass = 'contested-defenders';
-                            resultBackgroundImage = 'modules/coffee-pub-blacksmith/images/banners/banners-contest-versus-defenders.webp';
+                            resultBackgroundImage = await resolveRequestRollCinematicBanner('BACKCONTESTDEFENDERS');
                         }
                     } else if (flags.isGroupRoll && flags.hasOwnProperty('groupSuccess')) {
                         const { groupSuccess, successCount, totalCount } = flags;
@@ -1679,8 +1668,8 @@ export async function updateCinemaOverlay(rollResults, context) {
                         resultClass = groupSuccess ? 'success' : 'failure';
                         detailText = `${successCount} of ${totalCount} Succeeded`;
                         resultBackgroundImage = resultClass === 'success'
-                            ? 'modules/coffee-pub-blacksmith/images/banners/banners-contest-success.webp'
-                            : 'modules/coffee-pub-blacksmith/images/banners/banners-contest-failure.webp';
+                            ? await resolveRequestRollCinematicBanner('BACKGROUPSUCCESS')
+                            : await resolveRequestRollCinematicBanner('BACKGROUPFAILURE');
                     }
 
                     if (!resultBackgroundImage) {
@@ -1702,18 +1691,10 @@ export async function updateCinemaOverlay(rollResults, context) {
                         cinematicBar.insertAdjacentHTML('beforeend', resultsBarHtml);
                     }
 
-                    let groupSound;
-                    if (flags.contestedRoll) {
-                        groupSound = COFFEEPUB.SOUNDVERSUS;
-                    } else if (resultClass === 'success') {
-                        groupSound = COFFEEPUB.SOUNDSUCCESS;
-                    } else if (resultClass === 'failure') {
-                        groupSound = COFFEEPUB.SOUNDFAILURE;
-                    } else {
-                        groupSound = COFFEEPUB.SOUNDVERSUS;
-                    }
-
-                    playSound(groupSound, COFFEEPUB.SOUNDVOLUMELOW);
+                    const resolvedGroupSound = await resolveRequestRollSound(
+                        flags.contestedRoll ? 'SOUNDVERSUS' : resultClass === 'success' ? 'SOUNDSUCCESS' : resultClass === 'failure' ? 'SOUNDFAILURE' : 'SOUNDVERSUS'
+                    );
+                    if (resolvedGroupSound) playSound(resolvedGroupSound, COFFEEPUB.SOUNDVOLUMELOW);
                     fadeOutAndRemove(groupResultsTime);
                 };
 
@@ -1839,6 +1820,3 @@ function createPostRollVerboseFormula(roll, rollData) {
 // ==================================================================
 // ===== PUBLIC API ==================================================
 // ==================================================================
-
-
-

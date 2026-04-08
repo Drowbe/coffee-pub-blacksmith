@@ -4,6 +4,7 @@ import { playSound, rollCoffeePubDice, postConsoleAndNotification, getSettingSaf
 import { handleSkillRollUpdate } from './blacksmith.js';
 import { SocketManager } from './manager-sockets.js';
 import { skillDescriptions, abilityDescriptions, saveDescriptions, toolDescriptions } from '../resources/dictionary.js';
+import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './theme-request-roll.js';
 
 
 export class SkillCheckDialog extends Application {
@@ -1463,7 +1464,8 @@ export class SkillCheckDialog extends Application {
             }
 
             // Play sound for roll request posted to chat
-            playSound(COFFEEPUB.SOUNDNOTIFICATION02, COFFEEPUB.SOUNDVOLUMENORMAL);
+            const postedSound = await resolveRequestRollSound('SOUNDREQUESTROLLPOSTED');
+            if (postedSound) playSound(postedSound, COFFEEPUB.SOUNDVOLUMENORMAL);
             
             // Scroll chat to bottom to show the new roll request
             SkillCheckDialog._scrollChatToBottom();
@@ -2271,7 +2273,8 @@ export class SkillCheckDialog extends Application {
             SkillCheckDialog._pendingRollCallbacks.set(message.id, options.onRollComplete);
         }
 
-        playSound(COFFEEPUB.SOUNDNOTIFICATION02, COFFEEPUB.SOUNDVOLUMENORMAL);
+        const postedSound = await resolveRequestRollSound('SOUNDREQUESTROLLPOSTED');
+        if (postedSound) playSound(postedSound, COFFEEPUB.SOUNDVOLUMENORMAL);
         SkillCheckDialog._scrollChatToBottom();
 
         if (isCinematic) {
@@ -2294,13 +2297,12 @@ export class SkillCheckDialog extends Application {
      * @param {object} messageData - The chat message data (flags) for the skill check.
      * @param {string} messageId - The ID of the chat message.
      */
-    static _showCinematicDisplay(messageData, messageId) {
+    static async _showCinematicDisplay(messageData, messageId) {
         
-        // Use the constant
-        const soundPath = COFFEEPUB.SOUNDCINEMATICOPEN;
+        const soundPath = await resolveRequestRollSound('SOUNDCINEMATICOPEN');
         const volume = COFFEEPUB.SOUNDVOLUMENORMAL;
         
-        playSound(soundPath, volume);
+        if (soundPath) playSound(soundPath, volume);
         // Remove any existing overlay (v13: native DOM)
         const existingOverlay = document.getElementById('cpb-cinematic-overlay');
         if (existingOverlay) {
@@ -2379,62 +2381,30 @@ export class SkillCheckDialog extends Application {
         } else {
             actorCardsHtml = messageData.actors.map(createActorCardHtml).join('');
         }
-
-
-
-
-        // Try to get constants from AssetLookup if COFFEEPUB is not ready
-        let assetLookup = null;
-        try {
-            const module = game.modules.get('coffee-pub-blacksmith');
-            assetLookup = module?.api?.assetLookup;
-            if (assetLookup) {
-                const allConstants = assetLookup.getAllConstants();
-            }
-        } catch (e) {
-        }
-
         // Determine the background image based on the roll type
         let backgroundImage;
-        
-        // Helper function to get constant value with fallback
-        const getConstant = (constantName, fallbackPath) => {
-            // Try COFFEEPUB first
-            if (window.COFFEEPUB?.[constantName]) {
-                return window.COFFEEPUB[constantName];
-            }
-            // Try AssetLookup as fallback
-            if (assetLookup) {
-                const value = assetLookup.getConstant(constantName);
-                if (value) {
-                    return value;
-                }
-            }
-            // Use fallback path
-            return fallbackPath;
-        };
 
         if (messageData.hasMultipleGroups) {
-            backgroundImage = getConstant('BACKCONTESTEDROLL', 'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-6.webp');
+            backgroundImage = await resolveRequestRollCinematicBanner('BACKCONTESTEDROLL');
         } else {
             switch (messageData.rollType) {
                 case 'skill':
-                    backgroundImage = getConstant('BACKSKILLCHECK', 'modules/coffee-pub-blacksmith/images/banners/banners-damage-radiant-2.webp');
+                    backgroundImage = await resolveRequestRollCinematicBanner('BACKSKILLCHECK');
                     break;
                 case 'ability':
-                    backgroundImage = getConstant('BACKABILITYCHECK', 'modules/coffee-pub-blacksmith/images/banners/banners-damage-cold-3.webp');
+                    backgroundImage = await resolveRequestRollCinematicBanner('BACKABILITYCHECK');
                     break;
                 case 'save':
-                    backgroundImage = getConstant('BACKSAVINGTHROW', 'modules/coffee-pub-blacksmith/images/banners/banners-damage-bludgeoning-4.webp');
+                    backgroundImage = await resolveRequestRollCinematicBanner('BACKSAVINGTHROW');
                     break;
                 case 'tool':
-                    backgroundImage = getConstant('BACKTOOLCHECK', 'modules/coffee-pub-blacksmith/images/banners/banners-damage-poison-3.webp');
+                    backgroundImage = await resolveRequestRollCinematicBanner('BACKTOOLCHECK');
                     break;
                 case 'dice':
-                    backgroundImage = getConstant('BACKDICEROLL', 'modules/coffee-pub-blacksmith/images/banners/banners-damage-psychic-2.webp');
+                    backgroundImage = await resolveRequestRollCinematicBanner('BACKDICEROLL');
                     break;
                 default:
-                    backgroundImage = getConstant('BACKCONTESTEDROLL', 'modules/coffee-pub-blacksmith/images/banners/banners-damage-fire-6.webp');
+                    backgroundImage = await resolveRequestRollCinematicBanner('BACKCONTESTEDROLL');
             }
         }
 
@@ -2499,8 +2469,8 @@ export class SkillCheckDialog extends Application {
         rollButtons.forEach(btn => {
             btn.addEventListener('click', async (event) => {
             postConsoleAndNotification(MODULE.NAME, `Cinema mode: Dice button clicked`, { eventTarget: event.target }, true, false);
-            const diceSound = COFFEEPUB.SOUNDDICEROLL;
-            playSound(diceSound, COFFEEPUB.SOUNDVOLUMENORMAL);
+            const diceSound = await resolveRequestRollSound('SOUNDDICEROLL');
+            if (diceSound) playSound(diceSound, COFFEEPUB.SOUNDVOLUMENORMAL);
             const button = event.currentTarget;
             const card = button.closest('.cpb-cinematic-card');
             const tokenId = card.dataset.tokenId;
@@ -2740,4 +2710,3 @@ Hooks.once('ready', () => {
         }
     });
 });
-
