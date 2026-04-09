@@ -1075,7 +1075,7 @@ const macroChoices = BlacksmithConstants.arrMacroChoices;  // Macro names for dr
 
 ### **Available Constants:**
 - **Sound Constants**: `BlacksmithConstants.SOUNDNOTIFICATION01`, `BlacksmithConstants.SOUNDBUTTON01`, `BlacksmithConstants.SOUNDSUCCESS`, etc.
-- **Legacy Background Constants**: some older background constants may still exist for compatibility, but feature-local presentation assets such as Request Roll cinematic banners are no longer the recommended shared external surface
+- **Feature-local presentation assets**: Request Roll cinematic banners and Request Roll-specific sounds are internal feature-theme data, not shared external constants
 - **Chat card themes** (IDs / CSS classes): use **`ChatCardsAPI`** / `CHAT_CARD_THEMES` in `api-chat-cards.js` — not `BlacksmithConstants.THEME*` (legacy removed).
 - **Icon Constants**: `BlacksmithConstants.ICONNONE`, `BlacksmithConstants.ICONCHESSQUEEN`, `BlacksmithConstants.ICONSHIELD`, etc.
 - **Volume Constants**: `BlacksmithConstants.SOUNDVOLUMESOFT`, `BlacksmithConstants.SOUNDVOLUMENORMAL`, `BlacksmithConstants.SOUNDVOLUMELOUD`

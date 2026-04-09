@@ -20,8 +20,7 @@ export class AssetLookup {
             nameplates: safe(assetBundles.dataNameplate?.names),
             sounds: safe(assetBundles.dataSounds?.sounds),
             volumes: safe(assetBundles.dataVolume?.volumes),
-            banners: safe(assetBundles.dataBanners?.banners),
-            backgrounds: safe(assetBundles.dataBackgrounds?.backgrounds)
+            banners: safe(assetBundles.dataBanners?.banners)
         };
 
         this.mvpTemplates =

@@ -8,7 +8,6 @@ Shipped **visual/audio** lists under this folder. At runtime, Foundry loads them
 | `assets-icons.json` | Icons (`icons`) |
 | `assets-sounds.json` | Sounds (`sounds`) |
 | `assets-banners.json` | Banners (`banners`) |
-| `assets-skillchecks.json` | Skill-check cinematic backgrounds (`backgrounds`, `BACK*` constants) |
 
 **Not in this folder (system / narrative, not Asset Mapping):**
 
@@ -18,4 +17,4 @@ Shipped **visual/audio** lists under this folder. At runtime, Foundry loads them
 
 Each JSON file includes top-level `manifestVersion` (currently `1`) plus the keys above. Chat card **UI** themes are in `scripts/api-chat-cards.js`.
 
-**Runtime:** **Manage Content → Asset Mapping** overrides **only** the asset-defaults categories listed in settings (card backgrounds, icons, sounds, banners, skill-check backgrounds). **Clear** a field to use shipped defaults for that category.
+**Runtime:** **Manage Content → Asset Mapping** overrides **only** the asset-defaults categories listed in settings (card backgrounds, icons, sounds, banners). **Clear** a field to use shipped defaults for that category.

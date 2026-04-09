@@ -80,8 +80,7 @@ export async function loadDefaultAssetBundlesFromJson() {
         [`${ad}/assets-background-cards.json`, 'dataBackgroundImages', 'images'],
         [`${ad}/assets-icons.json`, 'dataIcons', 'icons'],
         [`${ad}/assets-sounds.json`, 'dataSounds', 'sounds'],
-        [`${ad}/assets-banners.json`, 'dataBanners', 'banners'],
-        [`${ad}/assets-skillchecks.json`, 'dataBackgrounds', 'backgrounds']
+        [`${ad}/assets-banners.json`, 'dataBanners', 'banners']
     ];
 
     const out = {
@@ -91,7 +90,6 @@ export async function loadDefaultAssetBundlesFromJson() {
         dataSounds: { sounds: [] },
         dataVolume: { volumes: [] },
         dataBanners: { banners: [] },
-        dataBackgrounds: { backgrounds: [] },
         MVPTemplates: {}
     };
 
@@ -151,7 +149,6 @@ export async function loadAssetBundlesWithOverrides(baseBundles) {
         dataSounds: cloneDeep(baseBundles.dataSounds),
         dataVolume: cloneDeep(baseBundles.dataVolume),
         dataBanners: cloneDeep(baseBundles.dataBanners),
-        dataBackgrounds: cloneDeep(baseBundles.dataBackgrounds),
         MVPTemplates: cloneDeep(baseBundles.MVPTemplates)
     };
 

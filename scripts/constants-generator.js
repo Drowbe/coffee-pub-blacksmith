@@ -18,8 +18,7 @@ function getBundlesFromLookup() {
             dataNameplate: { names: [] },
             dataSounds: { sounds: [] },
             dataVolume: { volumes: [] },
-            dataBanners: { banners: [] },
-            dataBackgrounds: { backgrounds: [] }
+            dataBanners: { banners: [] }
         };
     }
     return {
@@ -28,8 +27,7 @@ function getBundlesFromLookup() {
         dataNameplate: { names: a.dataCollections.nameplates },
         dataSounds: { sounds: a.dataCollections.sounds },
         dataVolume: { volumes: a.dataCollections.volumes },
-        dataBanners: { banners: a.dataCollections.banners },
-        dataBackgrounds: { backgrounds: a.dataCollections.backgrounds }
+        dataBanners: { banners: a.dataCollections.banners }
     };
 }
 
@@ -62,9 +60,6 @@ export class ConstantsGenerator {
             
             // Generate banner constants
             constants.banners = this.generateBannerConstants();
-            
-            // Generate background constants
-            constants.backgrounds = this.generateBackgroundConstants();
             
             return constants;
             
@@ -201,27 +196,6 @@ export class ConstantsGenerator {
     }
 
     /**
-     * Generate background constants
-     * @returns {Object} Background constants
-     */
-    static generateBackgroundConstants() {
-        const backgroundConstants = {};
-        
-        try {
-            const { dataBackgrounds } = getBundlesFromLookup();
-            dataBackgrounds.backgrounds.forEach(background => {
-                if (background.constantname && background.path) {
-                    backgroundConstants[background.constantname] = background.path;
-                }
-            });
-        } catch (error) {
-            console.warn(`${MODULE.TITLE} | ConstantsGenerator: Error generating background constants:`, error);
-        }
-        
-        return backgroundConstants;
-    }
-
-    /**
      * Generate choices for UI dropdowns using DataCollectionProcessor
      * @returns {Object} All choices for settings
      */
@@ -325,8 +299,7 @@ export class ConstantsGenerator {
                     !constants.nameplates[constantname] && 
                     !constants.sounds[constantname] && 
                     !constants.volumes[constantname] &&
-                    !constants.banners[constantname] &&
-                    !constants.backgrounds[constantname]) {
+                    !constants.banners[constantname]) {
                     validation.missingConstants.push(constantname);
                     validation.success = false;
                 }

@@ -84,7 +84,7 @@ Important boundary:
 Implication for the broader plan:
 
 - Request Roll is now a concrete example of a feature-local theme bundle
-- the older `assets-skillchecks.json` / `backgrounds` model should be treated as legacy naming, not the target direction for this feature
+- the older `assets-skillchecks.json` / `backgrounds` model has been retired from the active runtime and should be treated as superseded legacy naming
 
 ---
 
@@ -1332,7 +1332,7 @@ This is the current-state inventory from the repo as of this document update. It
 | `resources/asset-defaults/assets-banners.json` | `banners` | 16 | Shared banner/image catalog | Mixed: library asset + semantic slot source | settings, `AssetLookup`, constants | Does not cover all banner-like image usage |
 | `resources/asset-defaults/assets-icons.json` | `icons` | 9 | Shared icon catalog | Library asset | settings, constants | Currently Font Awesome oriented |
 | `resources/asset-defaults/assets-background-cards.json` | `images` | 12 | Card/tile background images | Likely library asset | settings, constants | Name is already overloaded with tiles/backgrounds |
-| `resources/asset-defaults/assets-skillchecks.json` | `backgrounds` | 6 | Legacy skill-check cinematic backgrounds | Legacy semantic slot source | legacy constants, older Request Roll path | Superseded in active Request Roll flow by `themes/request-roll/theme-requestroll.json` with `cinematicBanners` |
+| `resources/asset-defaults/assets-skillchecks.json` | `backgrounds` | 6 | Retired skill-check cinematic backgrounds | Former semantic slot source | retired loader/constants path | Replaced in active Request Roll flow by `themes/request-roll/theme-requestroll.json` with `cinematicBanners` |
 | `resources/config-nameplates.json` | `names` | 11 | Nameplate presets | Shared config catalog | settings, constants | Not an asset catalog in the same sense as images/sounds |
 | `resources/config-volumes.json` | `volumes` | 4 | Volume presets | Shared config catalog | runtime sound playback, constants | Also not an asset catalog in the same sense |
 | `resources/narratives-stats-mvp.json` | structured object | n/a | Narrative text/templates | Feature data catalog | stats/narrative systems | Not an asset catalog |
