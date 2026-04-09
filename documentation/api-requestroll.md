@@ -6,6 +6,14 @@
 
 The Request a Roll API lets external modules open Blacksmith’s **Request a Roll** (Skill Check) dialog programmatically and optionally pre-fill its state. The dialog is the same one opened by the “Request a Roll” toolbar tool and menubar entry: it lets the GM choose a roll type (skill, ability, save, or tool), select actors (challengers/defenders), set a DC, and send a roll request to chat.
 
+Request Roll presentation is now driven by an internal feature theme file:
+
+- world setting: `requestRollThemeJson`
+- default file: `modules/coffee-pub-blacksmith/themes/request-roll/theme-requestroll.json`
+- current top-level arrays: `cinematicBanners` and `sounds`
+
+This theme file is for Blacksmith’s internal Request Roll presentation. It is not part of the shared external asset API and should not be treated as a cross-module `BlacksmithConstants` or `AssetLookup` surface.
+
 Use this API when your module needs to:
 - Open the Request a Roll dialog from a button, macro, or hook
 - **Create a roll request without opening the dialog** (silent mode) — post the request card to chat immediately
@@ -318,3 +326,9 @@ Hooks.on('my-module.requestRoll', (context) => {
 - **`api-menubar.md`** – Menubar and toolbar registration (the “Request Roll” entry uses the same dialog)
 - **`api-toolbar.md`** – Toolbar tool registration
 - **`architecture-rolls.md`** – Roll and skill check flow architecture
+
+## Implementation Notes
+
+- The Request Roll cinematic overlay and Request Roll-specific sounds are resolved from `theme-requestroll.json`.
+- The old “skill-check backgrounds” terminology has been replaced in this feature theme with `cinematicBanners`.
+- These theme assets are feature-local to Request Rolls and are not intended to be consumed by other modules through the general asset mapping system.

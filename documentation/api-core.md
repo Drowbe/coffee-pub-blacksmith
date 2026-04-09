@@ -39,7 +39,7 @@ const utils = BlacksmithUtils;
 - **Utility Functions**: Logging, notifications, settings management
 - **Module Registration**: Register your module with Blacksmith
 - **Statistics API**: Access combat and player statistics
-- **Core Constants**: Theme choices, sound choices, background image choices (via `BlacksmithConstants`)
+- **Core Constants**: Theme choices, sound choices, and shared dropdown choices (via `BlacksmithConstants`)
 - **Asset Constants**: All sound, image, theme, and volume constants
 - **Asset Lookup Tool**: Tag-based asset searching and filtering
 - **Data Structure**: `id`/`value`/`path` separation for enhanced asset management
@@ -47,6 +47,12 @@ const utils = BlacksmithUtils;
 - **Compendium Configuration**: Access configured compendium arrays for all document types (v12.1.19+)
 - **Canvas Layer API**: Access to BlacksmithLayer for canvas drawing and UI overlays (available after canvasReady)
 - **Socket API**: Unified socket management with SocketLib integration and native fallback (see `api-sockets.md`)
+
+Request Roll note:
+
+- Request Roll presentation assets are feature-local to Blacksmith
+- the Request Roll cinematic overlay and Request Roll-specific sounds are driven by `themes/request-roll/theme-requestroll.json`
+- those theme assets are not part of the shared external `BlacksmithConstants` or `AssetLookup` contract for other modules
 - **Combat assessment API**: Party CR, monster CR, and encounter difficulty for the current canvas (same logic as the encounter toolbar)
 - **Monster deployment API**: Deploy monsters/NPCs to the canvas (same as journal encounter toolbar; GM only; supports UUIDs or metadata and optional position/pattern overrides)
 
@@ -529,7 +535,9 @@ For detailed information about what each command returns and displays:
 
 ## **Overview**
 
-The **Asset Lookup Tool** provides flexible, tag-based access to all Blacksmith assets (sounds, images, themes, etc.) while maintaining backward compatibility with existing constants.
+The **Asset Lookup Tool** provides flexible, tag-based access to shared Blacksmith asset catalogs while maintaining backward compatibility with existing constants.
+
+It is intended for shared asset catalogs and compatibility surfaces. Feature-local presentation bundles, such as Request Roll theme assets, are not part of this external lookup contract.
 
 ### **Key Benefits:**
 - **🔄 Flexible Access**: Find assets by type, category, and tags
@@ -1067,7 +1075,7 @@ const macroChoices = BlacksmithConstants.arrMacroChoices;  // Macro names for dr
 
 ### **Available Constants:**
 - **Sound Constants**: `BlacksmithConstants.SOUNDNOTIFICATION01`, `BlacksmithConstants.SOUNDBUTTON01`, `BlacksmithConstants.SOUNDSUCCESS`, etc.
-- **Background Constants**: `BlacksmithConstants.BACKSKILLCHECK`, `BlacksmithConstants.BACKABILITYCHECK`, `BlacksmithConstants.BACKSAVINGTHROW`, etc.
+- **Legacy Background Constants**: some older background constants may still exist for compatibility, but feature-local presentation assets such as Request Roll cinematic banners are no longer the recommended shared external surface
 - **Chat card themes** (IDs / CSS classes): use **`ChatCardsAPI`** / `CHAT_CARD_THEMES` in `api-chat-cards.js` — not `BlacksmithConstants.THEME*` (legacy removed).
 - **Icon Constants**: `BlacksmithConstants.ICONNONE`, `BlacksmithConstants.ICONCHESSQUEEN`, `BlacksmithConstants.ICONSHIELD`, etc.
 - **Volume Constants**: `BlacksmithConstants.SOUNDVOLUMESOFT`, `BlacksmithConstants.SOUNDVOLUMENORMAL`, `BlacksmithConstants.SOUNDVOLUMELOUD`

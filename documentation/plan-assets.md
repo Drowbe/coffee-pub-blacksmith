@@ -66,6 +66,28 @@ These are working assumptions for the migration:
 
 ---
 
+## Request Roll Status
+
+Request Rolls have now been separated from the generic Asset Mapping path.
+
+- Request Roll presentation is driven by `themes/request-roll/theme-requestroll.json`
+- the world setting is `requestRollThemeJson`
+- the Request Roll runtime reads that theme JSON directly
+- the active Request Roll theme shape uses `cinematicBanners` and `sounds`
+
+Important boundary:
+
+- this Request Roll theme file is Blacksmith-internal feature configuration
+- it is not intended to be a shared external asset surface for sibling modules
+- it should not be modeled as part of the general `BlacksmithConstants` / `AssetLookup` contract
+
+Implication for the broader plan:
+
+- Request Roll is now a concrete example of a feature-local theme bundle
+- the older `assets-skillchecks.json` / `backgrounds` model should be treated as legacy naming, not the target direction for this feature
+
+---
+
 ## Decision Log / Open Questions
 
 These are the main decisions still open before implementation should proceed.
@@ -1310,7 +1332,7 @@ This is the current-state inventory from the repo as of this document update. It
 | `resources/asset-defaults/assets-banners.json` | `banners` | 16 | Shared banner/image catalog | Mixed: library asset + semantic slot source | settings, `AssetLookup`, constants | Does not cover all banner-like image usage |
 | `resources/asset-defaults/assets-icons.json` | `icons` | 9 | Shared icon catalog | Library asset | settings, constants | Currently Font Awesome oriented |
 | `resources/asset-defaults/assets-background-cards.json` | `images` | 12 | Card/tile background images | Likely library asset | settings, constants | Name is already overloaded with tiles/backgrounds |
-| `resources/asset-defaults/assets-skillchecks.json` | `backgrounds` | 6 | Skill-check cinematic backgrounds | Semantic slot source | `window-skillcheck`, constants | These behave more like stable feature visuals than a free library |
+| `resources/asset-defaults/assets-skillchecks.json` | `backgrounds` | 6 | Legacy skill-check cinematic backgrounds | Legacy semantic slot source | legacy constants, older Request Roll path | Superseded in active Request Roll flow by `themes/request-roll/theme-requestroll.json` with `cinematicBanners` |
 | `resources/config-nameplates.json` | `names` | 11 | Nameplate presets | Shared config catalog | settings, constants | Not an asset catalog in the same sense as images/sounds |
 | `resources/config-volumes.json` | `volumes` | 4 | Volume presets | Shared config catalog | runtime sound playback, constants | Also not an asset catalog in the same sense |
 | `resources/narratives-stats-mvp.json` | structured object | n/a | Narrative text/templates | Feature data catalog | stats/narrative systems | Not an asset catalog |
@@ -1391,6 +1413,11 @@ Known examples:
 - contested/group-roll result banner paths
 - journal pin default sounds
 - portrait/token fallback paths
+
+Request Roll note:
+
+- Request Roll contested/group-roll banners and Request Roll-specific sounds have now been moved into the feature-local `themes/request-roll/theme-requestroll.json`
+- those entries should now be treated as part of the Request Roll theme bundle, not as generic shared asset-mapping data
 
 Representative code locations:
 
