@@ -118,6 +118,30 @@ Core supports **rendering dialogs/apps in a separate window** (user-facing highl
    - Set `minimum`, `verified`, and `maximum` to reflect what you actually test.
    - Blacksmith currently declares `minimum: "13"`, `maximum: "14"` — once v14 is verified, bump `verified` to `14` and test on both min and max.
 
+### Required smoke-test matrix on v14
+
+Do not treat “module loads without a red stack trace” as sufficient. For Blacksmith, run a short manual pass that exercises the parts most likely to break:
+
+1. **Core load**
+   - Enable Blacksmith on a clean v14 world.
+   - Confirm init/ready completes without hard errors or compatibility spam that points to Blacksmith code.
+2. **Window framework**
+   - Open every remaining **V1 window** (`CSSEditor`, XP distribution, Journal Tools).
+   - Confirm open, submit/apply, resize, close, and reopen all still behave correctly.
+3. **Journal integration**
+   - Open a journal sheet with Blacksmith enhancements enabled.
+   - Switch pages repeatedly and confirm toolbar/tools/pins reattach correctly.
+   - Test both inline journal rendering and **pop-out** journal windows.
+4. **DOM assumptions**
+   - Re-test any path that previously handled **jQuery vs native DOM** objects.
+   - Confirm selectors, event delegation, and mutation observers still fire once per action.
+5. **Canvas-linked features**
+   - Verify pins / encounter UI / token-linked tools on an actual scene.
+   - Re-test scene switch, token move, and sidebar refresh behavior.
+6. **Compatibility logging**
+   - Run once with compatibility warnings enabled and record every warning that resolves to Blacksmith-owned files.
+   - Classify each as **must-fix now**, **acceptable short-term shim**, or **safe until v16**.
+
 ---
 
 ## Coffee Pub Blacksmith — quick codebase notes
@@ -127,6 +151,19 @@ These are **starting points** from a static scan; verify after a v14 load.
 - **Application V1 / `FormApplication` still present** in places (e.g. XP distribution, journal tools window, CSS editor) while other windows use **Application V2** (`window-base.js`). Project convention targets V2; v14 is a good forcing function to **finish V2 migration** for remaining dialogs.
 - **No `MeasuredTemplate` / TinyMCE hits** in scripts at time of writing — lower risk for the hardest v14 breaks unless added later.
 - **Journal / ApplicationV2** integration already exists (`renderJournalPageSheet`, comments in `blacksmith.js`, `manager-journal-dom.js`, etc.) — re-test under v14 ProseMirror and pop-out scenarios.
+
+### Blacksmith priority risks
+
+If you are sequencing migration work for this repo, prioritize these before lower-risk cleanups:
+
+1. **Remaining V1 windows are the most likely break/deprecation source.**
+   - Confirm behavior for `CSSEditor`, XP distribution, and `JournalToolsWindow`.
+   - If one of these fails on v14, migrate that window before spending time on lower-signal cleanup.
+2. **Journal DOM integration is the next highest-risk subsystem.**
+   - Blacksmith relies on `renderJournalPageSheet`, DOM watchers, and page-switch handling.
+   - Re-test normal sheets, page navigation, and pop-outs before assuming journal features are v14-safe.
+3. **Manifest verification should happen last, not first.**
+   - Do **not** bump `verified` to `14` until the smoke-test matrix passes on a real v14 install.
 
 ---
 
@@ -148,10 +185,20 @@ These are **starting points** from a static scan; verify after a v14 load.
 - You need **long-term** v13 support *and* a **large** v14-only rewrite that would make the mainline unreadable.
 - You maintain **incompatible** compendium or data formats between generations (rare for pure modules; more common for systems).
 
+### Guardrails if you keep one codebase
+
+Do not scatter generation checks through feature code unless there is no better option.
+
+- Put version-sensitive behavior behind a **small compatibility layer** or helper module.
+- Prefer helpers like “resolve current journal element” or “read active effect changes” over repeated inline `game.release.generation >= 14` checks.
+- Keep the **call sites stable** and isolate Foundry-version differences in one place.
+- If generation checks start appearing across unrelated files, treat that as a signal to refactor the adapter layer or reconsider support scope.
+
 **Practical compromise:** single repo, **one main branch** targeting v14 once stable, with a **`release/v13` tag or branch** frozen for critical fixes only — clearer than permanent dual feature development.
 
 ---
 
 ## Changelog for this document
 
+- **2026-04-11** — Raised Blacksmith-specific priority risks, added a v14 smoke-test matrix, and documented guardrails for a single 13/14 codebase.
 - **2026-04-09** — Initial comprehensive pass from official v14 release notes (14.349–14.359) + Blacksmith codebase grep.
