@@ -14,7 +14,9 @@ import {
     validatePinData,
     migrateAndValidatePins,
     normalizePinImageForStorage,
-    normalizeTextLayout
+    normalizeTextLayout,
+    normalizePinGroup,
+    normalizePinTags
 } from './pins-schema.js';
 
 const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
@@ -24,7 +26,7 @@ const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
     ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
     : 0;
 
-/** @typedef {{ id: string; x: number; y: number; size: { w: number; h: number }; style: object; text?: string; image?: string; iconText?: string; config: object; moduleId: string; ownership: { default: number; users?: Record<string, number> }; version: number }} PinData */
+/** @typedef {{ id: string; x: number; y: number; size: { w: number; h: number }; style: object; text?: string; image?: string; iconText?: string; config: object; moduleId: string; type?: string; group?: string; tags?: string[]; ownership: { default: number; users?: Record<string, number> }; version: number }} PinData */
 
 /**
  * @typedef {Object} PinCreateOptions
@@ -55,6 +57,9 @@ const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
  * @property {boolean} [unplacedOnly] - If true, list unplaced pins (no sceneId needed)
  * @property {string} [moduleId]
  * @property {string} [type] - Filter by pin type
+ * @property {string} [group] - Filter by pin group
+ * @property {string} [tag] - Filter by a tag
+ * @property {boolean} [includeHiddenByFilter] - Include pins hidden by client visibility filters/profile
  */
 
 /**
@@ -79,6 +84,8 @@ const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
 const UNPLACED_SETTING_KEY = 'pinsUnplaced';
 const PINS_HIDDEN_MODULES_KEY = 'pinsHiddenModules';
 const PINS_HIDDEN_MODULE_TYPES_KEY = 'pinsHiddenModuleTypes';
+const PINS_HIDDEN_GROUPS_KEY = 'pinsHiddenGroups';
+const PINS_HIDDEN_TAGS_KEY = 'pinsHiddenTags';
 const PINS_HIDE_ALL_KEY = 'pinsHideAll';
 
 export class PinManager {
@@ -87,6 +94,8 @@ export class PinManager {
     static UNPLACED_SETTING_KEY = UNPLACED_SETTING_KEY;
     static HIDDEN_MODULES_SETTING_KEY = PINS_HIDDEN_MODULES_KEY;
     static HIDDEN_MODULE_TYPES_SETTING_KEY = PINS_HIDDEN_MODULE_TYPES_KEY;
+    static HIDDEN_GROUPS_SETTING_KEY = PINS_HIDDEN_GROUPS_KEY;
+    static HIDDEN_TAGS_SETTING_KEY = PINS_HIDDEN_TAGS_KEY;
     static HIDE_ALL_SETTING_KEY = PINS_HIDE_ALL_KEY;
 
     // Event handler storage: Map<eventType, Set<handler>>
@@ -231,6 +240,16 @@ export class PinManager {
         return raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : {};
     }
 
+    static _getHiddenGroupsMap() {
+        const raw = getSettingSafely(MODULE.ID, this.HIDDEN_GROUPS_SETTING_KEY, {});
+        return raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : {};
+    }
+
+    static _getHiddenTagsMap() {
+        const raw = getSettingSafely(MODULE.ID, this.HIDDEN_TAGS_SETTING_KEY, {});
+        return raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : {};
+    }
+
     static isGlobalHidden() {
         return !!getSettingSafely(MODULE.ID, this.HIDE_ALL_SETTING_KEY, false);
     }
@@ -248,10 +267,36 @@ export class PinManager {
         return !!map[key];
     }
 
+    static isGroupHidden(group) {
+        const key = normalizePinGroup(group);
+        if (!key) return false;
+        const map = this._getHiddenGroupsMap();
+        return !!map[key];
+    }
+
+    static isTagHidden(tag) {
+        const key = normalizePinGroup(tag);
+        if (!key) return false;
+        const map = this._getHiddenTagsMap();
+        return !!map[key];
+    }
+
+    static _getPinGroup(pin) {
+        return normalizePinGroup(pin?.group);
+    }
+
+    static _getPinTags(pin) {
+        return normalizePinTags(pin?.tags);
+    }
+
     static _isHiddenByFilter(pin) {
         if (this.isGlobalHidden()) return true;
         if (pin?.moduleId && this.isModuleHidden(pin.moduleId)) return true;
         if (pin?.moduleId && pin?.type != null && this.isModuleTypeHidden(pin.moduleId, pin.type)) return true;
+        const group = this._getPinGroup(pin);
+        if (group && this.isGroupHidden(group)) return true;
+        const tags = this._getPinTags(pin);
+        if (tags.some((tag) => this.isTagHidden(tag))) return true;
         return false;
     }
 
@@ -290,6 +335,88 @@ export class PinManager {
         await game.settings.set(MODULE.ID, this.HIDDEN_MODULE_TYPES_SETTING_KEY, map);
         const { PinRenderer } = await import('./pins-renderer.js');
         PinRenderer.applyVisibilityFilters();
+    }
+
+    static async setGroupHidden(group, hidden) {
+        const key = normalizePinGroup(group);
+        if (!key) return;
+        const map = this._getHiddenGroupsMap();
+        if (hidden) map[key] = true;
+        else delete map[key];
+        await game.settings.set(MODULE.ID, this.HIDDEN_GROUPS_SETTING_KEY, map);
+        const { PinRenderer } = await import('./pins-renderer.js');
+        PinRenderer.applyVisibilityFilters();
+    }
+
+    static async setTagHidden(tag, hidden) {
+        const key = normalizePinGroup(tag);
+        if (!key) return;
+        const map = this._getHiddenTagsMap();
+        if (hidden) map[key] = true;
+        else delete map[key];
+        await game.settings.set(MODULE.ID, this.HIDDEN_TAGS_SETTING_KEY, map);
+        const { PinRenderer } = await import('./pins-renderer.js');
+        PinRenderer.applyVisibilityFilters();
+    }
+
+    static _matchesListFilters(pin, options = {}) {
+        if (options.moduleId != null && options.moduleId !== '' && pin.moduleId !== options.moduleId) {
+            return false;
+        }
+        if (options.type != null && options.type !== '' && (pin.type || 'default') !== options.type) {
+            return false;
+        }
+        if (options.group != null && options.group !== '' && this._getPinGroup(pin) !== normalizePinGroup(options.group)) {
+            return false;
+        }
+        if (options.tag != null && options.tag !== '') {
+            const tagKey = normalizePinGroup(options.tag);
+            if (!this._getPinTags(pin).includes(tagKey)) return false;
+        }
+        if (options.includeHiddenByFilter === false && this._isHiddenByFilter(pin)) {
+            return false;
+        }
+        return true;
+    }
+
+    static getSceneFilterSummary(sceneId, options = {}) {
+        if (!sceneId) {
+            return { total: 0, modules: [], types: [], groups: [], tags: [] };
+        }
+        const pins = this.list({
+            sceneId,
+            includeHiddenByFilter: options.includeHiddenByFilter === true
+        });
+        const summary = {
+            total: pins.length,
+            modules: new Map(),
+            types: new Map(),
+            groups: new Map(),
+            tags: new Map()
+        };
+
+        const countInto = (map, key, pin) => {
+            if (!key) return;
+            const current = map.get(key) || { key, count: 0, pins: [] };
+            current.count += 1;
+            current.pins.push(pin.id);
+            map.set(key, current);
+        };
+
+        for (const pin of pins) {
+            countInto(summary.modules, pin.moduleId || 'unknown', pin);
+            countInto(summary.types, `${pin.moduleId || ''}|${pin.type || 'default'}`, pin);
+            countInto(summary.groups, this._getPinGroup(pin), pin);
+            for (const tag of this._getPinTags(pin)) countInto(summary.tags, tag, pin);
+        }
+
+        return {
+            total: summary.total,
+            modules: Array.from(summary.modules.values()).sort((a, b) => a.key.localeCompare(b.key)),
+            types: Array.from(summary.types.values()).sort((a, b) => a.key.localeCompare(b.key)),
+            groups: Array.from(summary.groups.values()).sort((a, b) => a.key.localeCompare(b.key)),
+            tags: Array.from(summary.tags.values()).sort((a, b) => a.key.localeCompare(b.key))
+        };
     }
 
     /**
@@ -950,6 +1077,12 @@ export class PinManager {
             const type = String(patch.type).trim();
             merged.type = type || 'default';
         }
+        if (patch.group !== undefined) {
+            merged.group = normalizePinGroup(patch.group);
+        }
+        if (patch.tags !== undefined) {
+            merged.tags = normalizePinTags(patch.tags);
+        }
         if (typeof patch.allowDuplicatePins === 'boolean') merged.allowDuplicatePins = patch.allowDuplicatePins;
         if (patch.config != null && typeof patch.config === 'object' && !Array.isArray(patch.config)) {
             merged.config = { ...merged.config, ...patch.config };
@@ -1181,24 +1314,14 @@ export class PinManager {
             let pins = this._getUnplacedPins();
             const userId = game.user?.id ?? '';
             pins = pins.filter((p) => this._canView(p, userId));
-            if (options.moduleId != null && options.moduleId !== '') {
-                pins = pins.filter((p) => p.moduleId === options.moduleId);
-            }
-            if (options.type != null && options.type !== '') {
-                pins = pins.filter((p) => (p.type || 'default') === options.type);
-            }
+            pins = pins.filter((p) => this._matchesListFilters(p, options));
             return pins.map((p) => foundry.utils.deepClone(p));
         }
         const scene = this._getScene(options.sceneId);
         let pins = this._getScenePins(scene);
         const userId = game.user?.id ?? '';
         pins = pins.filter((p) => this._canView(p, userId));
-        if (options.moduleId != null && options.moduleId !== '') {
-            pins = pins.filter((p) => p.moduleId === options.moduleId);
-        }
-        if (options.type != null && options.type !== '') {
-            pins = pins.filter((p) => (p.type || 'default') === options.type);
-        }
+        pins = pins.filter((p) => this._matchesListFilters(p, options));
         return pins.map((p) => foundry.utils.deepClone(p));
     }
 

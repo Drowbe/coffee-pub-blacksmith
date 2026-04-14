@@ -189,7 +189,19 @@ export class CoreUIUtility {
                 clearItems = MenuBar._getPinsClearMenuItems();
             }
 
-            const pinsSubmenu = [...visibilityItems];
+            const pinsSubmenu = [];
+            if (api?.pins?.openLayers) {
+                pinsSubmenu.push({
+                    name: "Pin Layers",
+                    icon: "fa-solid fa-layer-group",
+                    description: "Open the pin layers window.",
+                    onClick: () => api.pins.openLayers({ sceneId: canvas?.scene?.id })
+                });
+                if (visibilityItems.length > 0 || clearItems.length > 0) {
+                    pinsSubmenu.push({ separator: true });
+                }
+            }
+            pinsSubmenu.push(...visibilityItems);
             if (visibilityItems.length > 0 && clearItems.length > 0) {
                 pinsSubmenu.push({ separator: true });
             }

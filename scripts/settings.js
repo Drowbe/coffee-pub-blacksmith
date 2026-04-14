@@ -3388,6 +3388,30 @@ export const registerSettings = () => {
 		default: {}
 	});
 
+	// Per-user pin visibility: hidden group map
+	game.settings.register(MODULE.ID, 'pinsHiddenGroups', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
+	// Per-user pin visibility: hidden tag map
+	game.settings.register(MODULE.ID, 'pinsHiddenTags', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
+	// Pin Layers window bounds (client scope so each player/device remembers their own).
+	game.settings.register(MODULE.ID, 'pinLayersWindowBounds', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
 	// == ROLLING AND PROGRESSION

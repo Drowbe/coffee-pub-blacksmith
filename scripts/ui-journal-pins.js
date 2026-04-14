@@ -579,6 +579,8 @@ export class JournalPagePins {
                 id: crypto.randomUUID(),
                 moduleId: MODULE.ID,
                 type: this.PIN_TYPE,
+                group: 'journal',
+                tags: ['journal-page'],
                 text: label,
                 config: {
                     journalPageUuid: page.uuid,
@@ -615,6 +617,8 @@ export class JournalPagePins {
                 id: pinId ?? crypto.randomUUID(),
                 moduleId: MODULE.ID,
                 type: this.PIN_TYPE,
+                group: 'journal',
+                tags: ['journal-page'],
                 text: label,
                 config: {
                     journalPageUuid: page.uuid,

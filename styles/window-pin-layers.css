@@ -1,0 +1,100 @@
+.blacksmith-pin-layers-window {
+    min-height: 0;
+}
+
+.blacksmith-pin-layers-window .blacksmith-window-template-btn-secondary,
+.blacksmith-pin-layers-window .blacksmith-window-template-btn-primary {
+    width: auto;
+}
+
+.blacksmith-pin-layers-root {
+    display: grid;
+    gap: 14px;
+    padding: 14px;
+}
+
+.blacksmith-pin-layers-section {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.22);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.blacksmith-pin-layers-section h3 {
+    margin: 0;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(255, 240, 214, 0.9);
+    background: rgba(55, 27, 17, 0.55);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.blacksmith-pin-layers-list {
+    display: grid;
+}
+
+.blacksmith-pin-layers-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.blacksmith-pin-layers-row:first-child {
+    border-top: 0;
+}
+
+.blacksmith-pin-layers-row.is-hidden {
+    opacity: 0.72;
+}
+
+.blacksmith-pin-layers-row-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.blacksmith-pin-layers-row-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.blacksmith-pin-layers-row-count,
+.blacksmith-pin-layers-summary span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.85rem;
+}
+
+.blacksmith-pin-layers-summary {
+    display: flex;
+    gap: 8px;
+}
+
+.blacksmith-pin-layers-toggle {
+    min-width: 96px;
+    justify-content: center;
+}
+
+.blacksmith-pin-layers-empty,
+.blacksmith-pin-layers-hint {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.92rem;
+}
+
+.blacksmith-pin-layers-empty {
+    padding: 12px;
+}

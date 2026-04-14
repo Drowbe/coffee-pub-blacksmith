@@ -1146,7 +1146,7 @@ class PinDOMElement {
         
         // GM zone: bulk delete options (only when user is GM)
         if (game.user?.isGM) {
-            const allPins = PinManager.list({ sceneId: canvas?.scene?.id });
+            const allPins = PinManager.list({ sceneId: canvas?.scene?.id, includeHiddenByFilter: true });
             const pinTypes = new Set();
             for (const pin of allPins) {
                 pinTypes.add(pin.type || 'default');
@@ -1995,7 +1995,7 @@ export class PinRenderer {
             // Filter pins based on visibility permissions
             const { PinManager } = await import('./manager-pins.js');
             const userId = game.user?.id || '';
-            const visiblePins = pins.filter(pin => this._canUserSeePin(pin, userId, PinManager));
+            const visiblePins = pins.filter((pin) => this._canUserSeePin(pin, userId, PinManager) && !PinManager._isHiddenByFilter(pin));
 
             for (const pinData of visiblePins) {
                 await this._addPin(pinData);
@@ -2037,7 +2037,7 @@ export class PinRenderer {
         const { PinManager } = await import('./manager-pins.js');
         const userId = game.user?.id || '';
         
-        if (this._canUserSeePin(pinData, userId, PinManager)) {
+        if (this._canUserSeePin(pinData, userId, PinManager) && !PinManager._isHiddenByFilter(pinData)) {
             // User can see the pin - create or update it
             PinDOMElement.createOrUpdatePin(pinData.id, pinData);
             await this._applyVisibilityForPin(pinData);

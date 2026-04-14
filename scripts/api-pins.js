@@ -381,6 +381,68 @@ export class PinsAPI {
     }
 
     /**
+     * Hide or show a pin group for the current user.
+     * @param {string} group
+     * @param {boolean} visible
+     * @returns {Promise<void>}
+     */
+    static async setGroupVisibility(group, visible) {
+        await PinManager.setGroupHidden(group, !visible);
+    }
+
+    /**
+     * Get visibility for a pin group for the current user.
+     * @param {string} group
+     * @returns {boolean}
+     */
+    static getGroupVisibility(group) {
+        return !PinManager.isGroupHidden(group);
+    }
+
+    /**
+     * Hide or show a tag for the current user.
+     * @param {string} tag
+     * @param {boolean} visible
+     * @returns {Promise<void>}
+     */
+    static async setTagVisibility(tag, visible) {
+        await PinManager.setTagHidden(tag, !visible);
+    }
+
+    /**
+     * Get visibility for a tag for the current user.
+     * @param {string} tag
+     * @returns {boolean}
+     */
+    static getTagVisibility(tag) {
+        return !PinManager.isTagHidden(tag);
+    }
+
+    /**
+     * Summarize the active scene's pins for layer-management UI.
+     * @param {string} [sceneId]
+     * @param {{ includeHiddenByFilter?: boolean }} [options]
+     * @returns {{ total: number, modules: Array, types: Array, groups: Array, tags: Array }}
+     */
+    static getSceneFilterSummary(sceneId, options = {}) {
+        return PinManager.getSceneFilterSummary(sceneId ?? canvas?.scene?.id, options);
+    }
+
+    /**
+     * Open the Application V2 pin layers window.
+     * @param {object} [options]
+     * @returns {Promise<Application|void>}
+     */
+    static async openLayers(options = {}) {
+        const api = game.modules.get(MODULE_ID)?.api;
+        if (api?.openWindow) {
+            return api.openWindow('blacksmith-pin-layers', options);
+        }
+        const { PinLayersWindow } = await import('./window-pin-layers.js');
+        return PinLayersWindow.open(options);
+    }
+
+    /**
      * Pan the canvas to center on a pin's location.
      * Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin).
      * @param {string} pinId - The pin ID to pan to

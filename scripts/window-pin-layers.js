@@ -1,0 +1,246 @@
+import { MODULE } from './const.js';
+import { PinManager } from './manager-pins.js';
+import { BlacksmithWindowBaseV2 } from './window-base.js';
+
+const APP_ID = 'blacksmith-pin-layers';
+let _pinLayersWindowRef = null;
+
+function esc(value) {
+    return foundry.utils.escapeHTML(String(value ?? ''));
+}
+
+export class PinLayersWindow extends BlacksmithWindowBaseV2 {
+    static ROOT_CLASS = 'blacksmith-window-template-root';
+
+    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {
+            id: APP_ID,
+            classes: ['blacksmith-pin-layers-window'],
+            position: { width: 720, height: 760 },
+            window: { title: 'Pin Layers', resizable: true, minimizable: true },
+            windowSizeConstraints: { minWidth: 560, minHeight: 520, maxWidth: 1100, maxHeight: 1000 }
+        }
+    );
+
+    static PARTS = {
+        body: {
+            template: `modules/${MODULE.ID}/templates/window-template.hbs`
+        }
+    };
+
+    static ACTION_HANDLERS = {
+        refresh: () => _pinLayersWindowRef?._refresh(),
+        closeLayers: () => _pinLayersWindowRef?.close(),
+        hideAll: () => _pinLayersWindowRef?._hideAll(),
+        showAll: () => _pinLayersWindowRef?._showAll(),
+        toggleType: (_event, target) => _pinLayersWindowRef?._toggleType(target),
+        toggleGroup: (_event, target) => _pinLayersWindowRef?._toggleGroup(target),
+        toggleTag: (_event, target) => _pinLayersWindowRef?._toggleTag(target)
+    };
+
+    constructor(options = {}) {
+        const opts = foundry.utils.mergeObject({}, options);
+        opts.id = opts.id ?? `${APP_ID}-${foundry.utils.randomID().slice(0, 8)}`;
+        const bounds = game.settings.get(MODULE.ID, 'pinLayersWindowBounds') || {};
+        opts.position = foundry.utils.mergeObject(
+            foundry.utils.mergeObject({}, PinLayersWindow.DEFAULT_OPTIONS.position ?? {}),
+            bounds
+        );
+        super(opts);
+        this.sceneId = options.sceneId ?? canvas?.scene?.id ?? null;
+    }
+
+    static async open(options = {}) {
+        const win = new PinLayersWindow(options);
+        _pinLayersWindowRef = win;
+        return win.render(true);
+    }
+
+    async close(options) {
+        try {
+            const pos = this.position ?? {};
+            await game.settings.set(MODULE.ID, 'pinLayersWindowBounds', {
+                left: pos.left,
+                top: pos.top,
+                width: pos.width,
+                height: pos.height
+            });
+        } catch (_err) {
+            // Non-fatal UI preference write.
+        }
+        if (_pinLayersWindowRef === this) _pinLayersWindowRef = null;
+        return super.close(options);
+    }
+
+    async getData() {
+        const scene = this.sceneId ? game.scenes?.get(this.sceneId) : canvas?.scene;
+        const sceneId = scene?.id ?? canvas?.scene?.id ?? null;
+        const allSummary = sceneId ? PinManager.getSceneFilterSummary(sceneId, { includeHiddenByFilter: true }) : { total: 0, types: [], groups: [], tags: [] };
+        const visibleSummary = sceneId ? PinManager.getSceneFilterSummary(sceneId, { includeHiddenByFilter: false }) : { total: 0, types: [], groups: [], tags: [] };
+
+        const typeRows = allSummary.types.map((entry) => {
+            const [moduleId, type] = String(entry.key || '').split('|');
+            const hidden = PinManager.isModuleTypeHidden(moduleId, type);
+            const friendlyName = PinManager.getPinTypeLabel(moduleId, type);
+            const moduleTitle = game.modules.get(moduleId)?.title ?? moduleId;
+            const label = friendlyName || `${moduleTitle} - ${type || 'default'}`;
+            return this._buildToggleRow({
+                action: 'toggleType',
+                keyLabel: label,
+                count: entry.count,
+                hidden,
+                attrs: {
+                    'data-module-id': moduleId,
+                    'data-type': type || 'default'
+                }
+            });
+        }).join('');
+
+        const groupRows = allSummary.groups.map((entry) => this._buildToggleRow({
+            action: 'toggleGroup',
+            keyLabel: entry.key,
+            count: entry.count,
+            hidden: PinManager.isGroupHidden(entry.key),
+            attrs: { 'data-group': entry.key }
+        })).join('');
+
+        const tagRows = allSummary.tags.map((entry) => this._buildToggleRow({
+            action: 'toggleTag',
+            keyLabel: entry.key,
+            count: entry.count,
+            hidden: PinManager.isTagHidden(entry.key),
+            attrs: { 'data-tag': entry.key }
+        })).join('');
+
+        return {
+            appId: this.id,
+            showOptionBar: true,
+            showHeader: true,
+            showTools: false,
+            showActionBar: true,
+            optionBarLeft: `
+                <button type="button" class="blacksmith-window-template-btn-secondary" data-action="hideAll">
+                    <i class="fa-solid fa-eye-slash"></i> Hide All
+                </button>
+                <button type="button" class="blacksmith-window-template-btn-secondary" data-action="showAll">
+                    <i class="fa-solid fa-eye"></i> Show All
+                </button>
+            `,
+            optionBarRight: `
+                <button type="button" class="blacksmith-window-template-btn-secondary" data-action="refresh">
+                    <i class="fa-solid fa-rotate"></i> Refresh
+                </button>
+            `,
+            headerIcon: 'fa-solid fa-layer-group',
+            windowTitle: 'Pin Layers',
+            subtitle: scene?.name ? `Scene: ${scene.name}` : 'No active scene',
+            headerRight: `
+                <div class="blacksmith-pin-layers-summary">
+                    <span>Visible: ${visibleSummary.total}</span>
+                    <span>Total: ${allSummary.total}</span>
+                </div>
+            `,
+            bodyContent: `
+                <div class="blacksmith-pin-layers-root">
+                    <section class="blacksmith-pin-layers-section">
+                        <h3>Types</h3>
+                        <div class="blacksmith-pin-layers-list">${typeRows || '<div class="blacksmith-pin-layers-empty">No pin types on this scene.</div>'}</div>
+                    </section>
+                    <section class="blacksmith-pin-layers-section">
+                        <h3>Groups</h3>
+                        <div class="blacksmith-pin-layers-list">${groupRows || '<div class="blacksmith-pin-layers-empty">No groups assigned yet.</div>'}</div>
+                    </section>
+                    <section class="blacksmith-pin-layers-section">
+                        <h3>Tags</h3>
+                        <div class="blacksmith-pin-layers-list">${tagRows || '<div class="blacksmith-pin-layers-empty">No tags assigned yet.</div>'}</div>
+                    </section>
+                </div>
+            `,
+            actionBarLeft: `<div class="blacksmith-pin-layers-hint">Groups and tags are filtered before pin DOM is created.</div>`,
+            actionBarRight: `
+                <button type="button" class="blacksmith-window-template-btn-secondary" data-action="closeLayers">
+                    <i class="fa-solid fa-xmark"></i> Close
+                </button>
+            `
+        };
+    }
+
+    _buildToggleRow({ action, keyLabel, count, hidden, attrs = {} }) {
+        const attrString = Object.entries(attrs)
+            .map(([key, value]) => `${key}="${esc(value)}"`)
+            .join(' ');
+        return `
+            <div class="blacksmith-pin-layers-row ${hidden ? 'is-hidden' : ''}">
+                <div class="blacksmith-pin-layers-row-main">
+                    <div class="blacksmith-pin-layers-row-label">${esc(keyLabel)}</div>
+                    <div class="blacksmith-pin-layers-row-count">${count}</div>
+                </div>
+                <button
+                    type="button"
+                    class="blacksmith-window-template-btn-secondary blacksmith-pin-layers-toggle"
+                    data-action="${action}"
+                    ${attrString}>
+                    <i class="fa-solid ${hidden ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                    ${hidden ? 'Show' : 'Hide'}
+                </button>
+            </div>
+        `;
+    }
+
+    async _refresh() {
+        await this.render(true);
+    }
+
+    async _hideAll() {
+        await PinManager.setGlobalHidden(true);
+        await this.render(true);
+    }
+
+    async _showAll() {
+        await PinManager.setGlobalHidden(false);
+        const summary = PinManager.getSceneFilterSummary(this.sceneId ?? canvas?.scene?.id, { includeHiddenByFilter: true });
+        for (const entry of summary.types) {
+            const [moduleId, type] = String(entry.key || '').split('|');
+            await PinManager.setModuleTypeHidden(moduleId, type || 'default', false);
+        }
+        for (const entry of summary.groups) await PinManager.setGroupHidden(entry.key, false);
+        for (const entry of summary.tags) await PinManager.setTagHidden(entry.key, false);
+        await this.render(true);
+    }
+
+    async _toggleType(target) {
+        const moduleId = target?.dataset?.moduleId || '';
+        const type = target?.dataset?.type || 'default';
+        if (!moduleId) return;
+        const visible = !PinManager.isModuleTypeHidden(moduleId, type);
+        await PinManager.setModuleTypeHidden(moduleId, type, visible);
+        await this.render(true);
+    }
+
+    async _toggleGroup(target) {
+        const group = target?.dataset?.group || '';
+        if (!group) return;
+        const visible = !PinManager.isGroupHidden(group);
+        await PinManager.setGroupHidden(group, visible);
+        await this.render(true);
+    }
+
+    async _toggleTag(target) {
+        const tag = target?.dataset?.tag || '';
+        if (!tag) return;
+        const visible = !PinManager.isTagHidden(tag);
+        await PinManager.setTagHidden(tag, visible);
+        await this.render(true);
+    }
+}
+
+Hooks.once('ready', () => {
+    const api = game.modules.get(MODULE.ID)?.api;
+    if (!api?.registerWindow) return;
+    api.registerWindow('blacksmith-pin-layers', {
+        open: (options = {}) => PinLayersWindow.open(options),
+        title: 'Pin Layers',
+        moduleId: MODULE.ID
+    });
+});

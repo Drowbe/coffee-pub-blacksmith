@@ -33,6 +33,8 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {number} [textMaxWidth] - Max characters per line before wrap (default: 0 = single line); break at word boundary
  * @property {boolean} [textScaleWithPin] - Whether text scales with pin size based on zoom (default: true). If false, text stays fixed size.
  * @property {string} [type] - Pin type/category (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified. Used for filtering and organization.
+ * @property {string} [group] - User-facing grouping field (e.g., 'journal', 'locations', 'quests'). Defaults to ''.
+ * @property {string[]} [tags] - User-facing classification tags. Supports registered and freeform values. Defaults to [].
  * @property {boolean} [allowDuplicatePins] - If true, the same source (e.g. one journal page) may have multiple pins on the map; if false (default), one pin per source (creating replaces existing).
  * @property {{ hover?: { animation?: string | null; sound?: string | null }; click?: { animation?: string | null; sound?: string | null }; doubleClick?: { animation?: string | null; sound?: string | null }; delete?: { animation?: string | null; sound?: string | null }; add?: { animation?: string | null; sound?: string | null } }} [eventAnimations] - Optional animations and sounds for hover, click, double-click, delete, and add (when pin is placed on canvas). Default: all none.
  * @property {Record<string, unknown>} config
@@ -112,12 +114,39 @@ export function normalizeTextLayout(value) {
     return '';
 }
 
+/**
+ * Normalize a pin group key for storage and filtering.
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function normalizePinGroup(value) {
+    if (value == null) return '';
+    const raw = String(value).trim();
+    if (!raw) return '';
+    return raw.toLowerCase().replace(/\s+/g, '-');
+}
+
+/**
+ * Normalize tag array for storage and filtering.
+ * @param {unknown} value
+ * @returns {string[]}
+ */
+export function normalizePinTags(value) {
+    const arr = Array.isArray(value)
+        ? value
+        : (typeof value === 'string' ? value.split(',') : []);
+    const normalized = arr
+        .map((entry) => normalizePinGroup(entry))
+        .filter(Boolean);
+    return Array.from(new Set(normalized));
+}
+
 // ------------------------------------------------------------------
 // Constants
 // ------------------------------------------------------------------
 
 /** Current pin data schema version. Bump when format changes and add migration. */
-export const PIN_SCHEMA_VERSION = 2;
+export const PIN_SCHEMA_VERSION = 3;
 
 /** Default values per architecture (apply when creating/validating, not stored if omitted). */
 export const PIN_DEFAULTS = Object.freeze({
@@ -133,6 +162,8 @@ export const PIN_DEFAULTS = Object.freeze({
     textMaxWidth: 0, // 0 = single line; >0 = max chars per line, break at word
     textScaleWithPin: true, // If true, text scales with zoom; if false, text stays fixed size
     type: 'default', // Pin type/category - defaults to 'default' if not specified
+    group: '', // User-facing grouping bucket
+    tags: [], // User-facing classification tags
     allowDuplicatePins: false, // If true, same source (e.g. journal page) can have multiple pins on the map
     version: PIN_SCHEMA_VERSION,
     ownership: { default: 0 },
@@ -154,6 +185,14 @@ MIGRATION_MAP.set(2, (pin) => {
     if (migrated.type == null || migrated.type === '') {
         migrated.type = 'default';
     }
+    return migrated;
+});
+
+// Migration from v2 to v3: Add group/tags fields
+MIGRATION_MAP.set(3, (pin) => {
+    const migrated = { ...pin };
+    if (migrated.group == null) migrated.group = '';
+    if (!Array.isArray(migrated.tags)) migrated.tags = [];
     return migrated;
 });
 
@@ -199,6 +238,8 @@ export function applyDefaults(partial) {
         image: undefined,
         iconText: undefined,
         type: PIN_DEFAULTS.type, // Always set default type
+        group: PIN_DEFAULTS.group,
+        tags: [...PIN_DEFAULTS.tags],
         config: { ...(PIN_DEFAULTS.config) },
         moduleId: '',
         ownership: { ...PIN_DEFAULTS.ownership },
@@ -293,6 +334,12 @@ export function applyDefaults(partial) {
         base.type = String(partial.type).trim() || PIN_DEFAULTS.type;
     } else {
         base.type = PIN_DEFAULTS.type; // Always set default type
+    }
+    if (partial.group !== undefined) {
+        base.group = normalizePinGroup(partial.group);
+    }
+    if (partial.tags !== undefined) {
+        base.tags = normalizePinTags(partial.tags);
     }
     if (typeof partial.allowDuplicatePins === 'boolean') base.allowDuplicatePins = partial.allowDuplicatePins;
     if (partial.config != null && typeof partial.config === 'object' && !Array.isArray(partial.config)) {

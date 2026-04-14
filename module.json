@@ -72,7 +72,8 @@
     "resources/asset-defaults/assets-icons.json",
     "resources/asset-defaults/assets-sounds.json",
     "resources/asset-defaults/assets-banners.json",
-    "resources/asset-defaults/assets-skillchecks.json"
+    "resources/asset-defaults/assets-skillchecks.json",
+    "resources/pin-taxonomy.json"
   ],
   "esmodules": [
     "scripts/const.js",
@@ -82,6 +83,7 @@
     "scripts/blacksmith.js",
     "scripts/sidebar-combat.js",
     "scripts/ui-journal-pins.js",
+    "scripts/window-pin-layers.js",
     "api/blacksmith-api.js"
   ],
   "packs": [

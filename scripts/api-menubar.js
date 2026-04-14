@@ -3399,8 +3399,8 @@ class MenuBar {
     static _getPinsVisibilityMenuItems() {
         const globalHidden = PinManager.isGlobalHidden();
         const sceneId = canvas?.scene?.id;
-        const scenePins = sceneId ? PinManager.list({ sceneId }) : [];
-        const unplacedPins = PinManager.list({ unplacedOnly: true }) || [];
+        const scenePins = sceneId ? PinManager.list({ sceneId, includeHiddenByFilter: true }) : [];
+        const unplacedPins = PinManager.list({ unplacedOnly: true, includeHiddenByFilter: true }) || [];
         const allPins = [...scenePins, ...unplacedPins];
         const pairKey = (p) => `${p.moduleId || ''}|${(p.type != null && p.type !== '') ? p.type : 'default'}`;
         const pairs = [...new Map(allPins.filter((p) => p.moduleId).map((p) => {
@@ -3462,7 +3462,7 @@ class MenuBar {
         const canClearPins = !!game.user?.isGM && !!canvas?.scene;
         const sceneId = canvas?.scene?.id;
         const sceneName = canvas?.scene?.name || 'this scene';
-        const scenePins = sceneId ? (PinManager.list({ sceneId }) || []) : [];
+        const scenePins = sceneId ? (PinManager.list({ sceneId, includeHiddenByFilter: true }) || []) : [];
 
         const pinTypeMap = new Map(); // key: moduleId|type => { moduleId, type, label, count }
         for (const pin of scenePins) {
