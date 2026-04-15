@@ -44,6 +44,36 @@
             </div>
         </div>
         {{/if}}
+        {{#if isGM}}
+        <div class="blacksmith-pin-config-section blacksmith-pin-config-classification-section">
+            <div class="blacksmith-pin-config-section-header"><i class="fa-solid fa-layer-group"></i> Classification</div>
+            <div class="blacksmith-pin-config-section-body">
+                <div class="blacksmith-pin-config-design-row">
+                    <label class="blacksmith-pin-config-design-field">
+                        <span>Group</span>
+                        <input type="text" class="blacksmith-input blacksmith-pin-config-group" list="blacksmith-pin-config-group-list" value="{{pinGroup}}" placeholder="journal">
+                        <datalist id="blacksmith-pin-config-group-list">
+                            {{#each pinSuggestedGroups}}
+                            <option value="{{this}}"></option>
+                            {{/each}}
+                        </datalist>
+                    </label>
+                    <label class="blacksmith-pin-config-design-field">
+                        <span>Tags</span>
+                        <input type="text" class="blacksmith-input blacksmith-pin-config-tags" value="{{pinTagsCsv}}" placeholder="journal-page, location">
+                    </label>
+                </div>
+                <div class="blacksmith-pin-config-help">
+                    {{pinClassificationHelp}} taxonomy. Use one group and comma-separated tags. Suggested tags:
+                    {{#if pinSuggestedTags.length}}
+                    {{#each pinSuggestedTags}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+                    {{else}}
+                    None registered.
+                    {{/if}}
+                </div>
+            </div>
+        </div>
+        {{/if}}
         <div class="blacksmith-pin-config-section blacksmith-pin-config-design-section">
             <div class="blacksmith-pin-config-section-header"><i class="fa-solid fa-ruler-combined"></i> Pin Design</div>
             <div class="blacksmith-pin-config-section-body">

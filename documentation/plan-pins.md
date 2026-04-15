@@ -4,16 +4,16 @@
 
 | # | Area | Goal | Status | Notes |
 |---|------|------|--------|-------|
-| 1 | Problem statement | Define the pin-overload problem, current behavior, and target outcome | Not started | Align on UX, architecture, and performance goals |
-| 2 | Data model | Add first-class pin classification beyond `type` | Not started | Candidate fields: `group`, `tags`, `collectionId` |
-| 3 | Permission model | Separate permission visibility from user view preferences | Not started | Keep `ownership` and GM-only visibility as hard gates |
-| 4 | View-state model | Add client-side filter profiles / saved pin views | Not started | User chooses what is loaded/rendered |
-| 5 | Render pipeline | Filter before DOM creation, not only after render | Not started | Prevent loading/rendering pins the user has hidden |
-| 6 | UI | Add a real pin management UI, not just hamburger toggles | Not started | Panel/window for filters, counts, presets |
-| 7 | API | Expose the new classification and filter surface cleanly | Not started | Keep existing API compatible where possible |
-| 8 | Migration | Define fallback behavior for existing pins with only `type` | Not started | Avoid breaking current consumers |
-| 9 | Performance | Verify whether load/render pressure is real and where | Not started | Focus on DOM churn first, memory second |
-| 10 | Documentation and tests | Update docs and add coverage for the new system | Not started | Track API, architecture, UI, and migration behavior |
+| 1 | Problem statement | Define the pin-overload problem, current behavior, and target outcome | Completed | Architecture direction and decision set are documented below |
+| 2 | Data model | Add first-class pin classification beyond `type` | In progress | `group` and `tags[]` implemented; taxonomy/authoring path partially implemented |
+| 3 | Permission model | Separate permission visibility from user view preferences | In progress | Hard gates remain `ownership`; client filters now separate group/tag visibility |
+| 4 | View-state model | Add client-side filter profiles / saved pin views | In progress | Global per-user filter state exists; named profiles still pending |
+| 5 | Render pipeline | Filter before DOM creation, not only after render | Completed | Renderer now skips hidden-by-filter pins before DOM creation |
+| 6 | UI | Add a real pin management UI, not just hamburger toggles | In progress | V2 Pin Layers window exists; profile UX and richer search still pending |
+| 7 | API | Expose the new classification and filter surface cleanly | In progress | Group/tag visibility and taxonomy methods added; docs still need update |
+| 8 | Migration | Define fallback behavior for existing pins with only `type` | In progress | Schema v3 migrates old pins with empty `group/tags` defaults |
+| 9 | Performance | Verify whether load/render pressure is real and where | Planned | Pre-filtering shipped first; deeper measurement still needed |
+| 10 | Documentation and tests | Update docs and add coverage for the new system | Planned | Code has moved ahead of docs/tests |
 
 ## Locked Decisions
 

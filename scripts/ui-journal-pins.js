@@ -105,15 +105,42 @@ export class JournalPagePins {
     static _registerPinType() {
         const pins = this._getPinsApi();
         if (pins?.isAvailable?.()) {
-            pins.registerPinType(MODULE.ID, this.PIN_TYPE, 'Journal Page');
+            this._registerJournalTaxonomy(pins);
             return;
         }
         Hooks.once('ready', () => {
             const readyPins = this._getPinsApi();
             if (readyPins?.isAvailable?.()) {
-                readyPins.registerPinType(MODULE.ID, this.PIN_TYPE, 'Journal Page');
+                this._registerJournalTaxonomy(readyPins);
             }
         });
+    }
+
+    static _registerJournalTaxonomy(pinsApi) {
+        if (!pinsApi) return;
+        pinsApi.registerPinTaxonomy?.(MODULE.ID, this.PIN_TYPE, {
+            label: 'Journal Page',
+            defaultGroup: 'journal',
+            defaultTags: ['journal-page'],
+            suggestedGroups: ['journal', 'locations', 'quests', 'reference'],
+            suggestedTags: ['location', 'shop', 'npc', 'quest', 'rumor', 'reference', 'gm-notes']
+        });
+        pinsApi.registerPinType(MODULE.ID, this.PIN_TYPE, 'Journal Page');
+        void pinsApi.loadBuiltinTaxonomy?.();
+    }
+
+    static async _getPinClassificationDefaults() {
+        const pins = this._getPinsApi();
+        if (pins?.loadBuiltinTaxonomy) {
+            await pins.loadBuiltinTaxonomy();
+        }
+        const taxonomy = pins?.getPinTaxonomyChoices?.(MODULE.ID, this.PIN_TYPE) ?? null;
+        return {
+            group: taxonomy?.defaultGroup || 'journal',
+            tags: Array.isArray(taxonomy?.defaultTags) && taxonomy.defaultTags.length
+                ? [...taxonomy.defaultTags]
+                : ['journal-page']
+        };
     }
 
     static _registerHooks() {
@@ -572,6 +599,8 @@ export class JournalPagePins {
             ? this._getFirstImageFromPage(page)
             : placementIcon;
 
+        const classification = await this._getPinClassificationDefaults();
+
         if (pin && allowDuplicates) {
             // Allow duplicate pins: create a new pin for this placement instead of reusing
             const label = this._getPagePinLabel(page);
@@ -579,8 +608,8 @@ export class JournalPagePins {
                 id: crypto.randomUUID(),
                 moduleId: MODULE.ID,
                 type: this.PIN_TYPE,
-                group: 'journal',
-                tags: ['journal-page'],
+                group: classification.group,
+                tags: classification.tags,
                 text: label,
                 config: {
                     journalPageUuid: page.uuid,
@@ -617,8 +646,8 @@ export class JournalPagePins {
                 id: pinId ?? crypto.randomUUID(),
                 moduleId: MODULE.ID,
                 type: this.PIN_TYPE,
-                group: 'journal',
-                tags: ['journal-page'],
+                group: classification.group,
+                tags: classification.tags,
                 text: label,
                 config: {
                     journalPageUuid: page.uuid,

@@ -345,6 +345,44 @@ export class PinsAPI {
     }
 
     /**
+     * Ensure the built-in pin taxonomy JSON has been loaded into the runtime registry.
+     * @returns {Promise<void>}
+     */
+    static async loadBuiltinTaxonomy() {
+        await PinManager.ensureBuiltinTaxonomyLoaded();
+    }
+
+    /**
+     * Register taxonomy metadata for a pin type.
+     * @param {string} moduleId
+     * @param {string} type
+     * @param {object} taxonomy
+     */
+    static registerPinTaxonomy(moduleId, type, taxonomy) {
+        PinManager.registerPinTaxonomy(moduleId, type, taxonomy);
+    }
+
+    /**
+     * Get taxonomy metadata for a pin type.
+     * @param {string} moduleId
+     * @param {string} [type]
+     * @returns {object | null}
+     */
+    static getPinTaxonomy(moduleId, type) {
+        return PinManager.getPinTaxonomy(moduleId, type);
+    }
+
+    /**
+     * Get normalized group/tag choices for a pin type.
+     * @param {string} moduleId
+     * @param {string} [type]
+     * @returns {{ groups: string[], tags: string[], defaultGroup: string, defaultTags: string[], label: string }}
+     */
+    static getPinTaxonomyChoices(moduleId, type) {
+        return PinManager.getPinTaxonomyChoices(moduleId, type);
+    }
+
+    /**
      * Hide or show all pins globally for the current user (client scope).
      * @param {boolean} visible - If false, hides all pins; if true, shows them.
      * @returns {Promise<void>}

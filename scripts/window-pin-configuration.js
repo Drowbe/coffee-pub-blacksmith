@@ -7,7 +7,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
-import { normalizeTextLayout } from './pins-schema.js';
+import { normalizeTextLayout, normalizePinGroup, normalizePinTags } from './pins-schema.js';
 
 /**
  * PinConfigWindow - Application V2 window for configuring pins
@@ -43,6 +43,8 @@ export class PinConfigWindow extends Application {
         this.pinTextScaleWithPin = true;
         this._pinRatio = 1;
         this.allowDuplicatePins = false;
+        this.pinGroup = '';
+        this.pinTags = [];
     }
 
     static get defaultOptions() {
@@ -249,6 +251,8 @@ export class PinConfigWindow extends Application {
         const pinImageZoomPercent = Math.round(zoomNum * 100);
 
         this.allowDuplicatePins = pin.allowDuplicatePins === true;
+        this.pinGroup = normalizePinGroup(pin.group);
+        this.pinTags = normalizePinTags(pin.tags);
 
         // Event animations (hover, click, double-click, delete, add) with optional sound
         const ev = pin.eventAnimations && typeof pin.eventAnimations === 'object' ? pin.eventAnimations : {};
@@ -335,7 +339,9 @@ export class PinConfigWindow extends Application {
 
         const imageValue = this.selected?.type === 'img' ? this.selected.value : '';
 
+        await PinManager.ensureBuiltinTaxonomyLoaded();
         const pinTypeLabel = PinManager.getPinTypeLabel(pin.moduleId, pin.type) || '';
+        const taxonomyChoices = PinManager.getPinTaxonomyChoices(pin.moduleId, pin.type);
 
         this.pinType = pin.type || 'default';
         if (!this.moduleId) this.moduleId = pin.moduleId || null;
@@ -369,6 +375,11 @@ export class PinConfigWindow extends Application {
             iconMode: this.iconMode,
             showUseAsDefault: true, // Always show toggle - modules can handle saving defaults themselves
             pinAllowDuplicatePins: this.allowDuplicatePins,
+            pinGroup: this.pinGroup,
+            pinTagsCsv: this.pinTags.join(', '),
+            pinSuggestedGroups: taxonomyChoices.groups || [],
+            pinSuggestedTags: taxonomyChoices.tags || [],
+            pinClassificationHelp: taxonomyChoices.label || pinTypeLabel || (this.pinType || 'Pin'),
             pinImageFit: this.pinImageFit,
             pinImageZoom: this.pinImageZoom,
             pinImageZoomPercent,
@@ -418,6 +429,8 @@ export class PinConfigWindow extends Application {
         const textMaxLengthInput = nativeHtml.querySelector('.blacksmith-pin-config-text-max-length');
         const textMaxWidthInput = nativeHtml.querySelector('.blacksmith-pin-config-text-max-width');
         const textScaleInput = nativeHtml.querySelector('.blacksmith-pin-config-text-scale');
+        const groupInput = nativeHtml.querySelector('.blacksmith-pin-config-group');
+        const tagsInput = nativeHtml.querySelector('.blacksmith-pin-config-tags');
         const defaultInput = nativeHtml.querySelector('.blacksmith-pin-config-default');
         const allowDuplicateInput = nativeHtml.querySelector('.blacksmith-pin-config-allow-duplicate');
         const sourceToggle = nativeHtml.querySelector('.blacksmith-pin-config-source-toggle-input');
@@ -834,6 +847,8 @@ export class PinConfigWindow extends Application {
 
             // GM-only: include ownership default from Permissions section
             if (game.user?.isGM) {
+                pinUpdateData.group = normalizePinGroup(groupInput?.value ?? this.pinGroup ?? '');
+                pinUpdateData.tags = normalizePinTags(tagsInput?.value ?? this.pinTags ?? []);
                 const ownershipSelect = nativeHtml.querySelector('.blacksmith-pin-config-ownership-default');
                 if (ownershipSelect) {
                     const defaultLevel = Number(ownershipSelect.value);

@@ -114,6 +114,9 @@ export class PinManager {
 
     /** In-memory registry: (moduleId|type) -> friendly name for UI. Modules register so we don't assume labels. */
     static _pinTypeLabels = new Map();
+    static _taxonomyRegistry = new Map();
+    static _taxonomyLoadPromise = null;
+    static _builtinTaxonomyLoaded = false;
 
     // GM proxy handler registration flag
     static _gmProxyHandlerRegistered = false;
@@ -149,6 +152,99 @@ export class PinManager {
         if (!moduleId) return '';
         const key = this._pinTypeKey(moduleId, type);
         return this._pinTypeLabels.get(key) ?? '';
+    }
+
+    static _normalizeTaxonomyTagList(value) {
+        return normalizePinTags(value);
+    }
+
+    static _taxonomyTypeKey(moduleId, type) {
+        return this._pinTypeKey(moduleId, type ?? 'default');
+    }
+
+    static registerPinTaxonomy(moduleId, type, taxonomy = {}) {
+        if (!moduleId || typeof moduleId !== 'string') return;
+        const normalizedType = (type != null && type !== '') ? String(type).trim() : 'default';
+        const normalized = {
+            moduleId: String(moduleId).trim(),
+            type: normalizedType,
+            label: (taxonomy.label != null && String(taxonomy.label).trim()) ? String(taxonomy.label).trim() : '',
+            defaultGroup: normalizePinGroup(taxonomy.defaultGroup),
+            defaultTags: this._normalizeTaxonomyTagList(taxonomy.defaultTags),
+            suggestedGroups: Array.from(new Set((Array.isArray(taxonomy.suggestedGroups) ? taxonomy.suggestedGroups : [])
+                .map((entry) => normalizePinGroup(entry))
+                .filter(Boolean))),
+            suggestedTags: this._normalizeTaxonomyTagList(taxonomy.suggestedTags)
+        };
+        const key = this._taxonomyTypeKey(moduleId, normalizedType);
+        this._taxonomyRegistry.set(key, normalized);
+        if (normalized.label) {
+            this.registerPinType(moduleId, normalizedType, normalized.label);
+        }
+    }
+
+    static getPinTaxonomy(moduleId, type) {
+        if (!moduleId) return null;
+        const key = this._taxonomyTypeKey(moduleId, type);
+        const entry = this._taxonomyRegistry.get(key);
+        return entry ? foundry.utils.deepClone(entry) : null;
+    }
+
+    static getPinTaxonomyChoices(moduleId, type) {
+        const taxonomy = this.getPinTaxonomy(moduleId, type);
+        if (!taxonomy) {
+            return {
+                groups: [],
+                tags: [],
+                defaultGroup: '',
+                defaultTags: [],
+                label: ''
+            };
+        }
+        const groups = Array.from(new Set([
+            taxonomy.defaultGroup,
+            ...(taxonomy.suggestedGroups || [])
+        ].filter(Boolean)));
+        const tags = Array.from(new Set([
+            ...(taxonomy.defaultTags || []),
+            ...(taxonomy.suggestedTags || [])
+        ].filter(Boolean)));
+        return {
+            groups,
+            tags,
+            defaultGroup: taxonomy.defaultGroup || '',
+            defaultTags: Array.isArray(taxonomy.defaultTags) ? [...taxonomy.defaultTags] : [],
+            label: taxonomy.label || ''
+        };
+    }
+
+    static async ensureBuiltinTaxonomyLoaded() {
+        if (this._builtinTaxonomyLoaded) return;
+        if (this._taxonomyLoadPromise) {
+            await this._taxonomyLoadPromise;
+            return;
+        }
+        this._taxonomyLoadPromise = (async () => {
+            try {
+                const response = await fetch(`modules/${MODULE.ID}/resources/pin-taxonomy.json`);
+                if (!response.ok) {
+                    throw new Error(`Failed to load pin taxonomy: ${response.status}`);
+                }
+                const payload = await response.json();
+                const defaultModuleId = (payload?.moduleId && String(payload.moduleId).trim()) || MODULE.ID;
+                const pinTypes = payload?.pinTypes && typeof payload.pinTypes === 'object' ? payload.pinTypes : {};
+                for (const [type, entry] of Object.entries(pinTypes)) {
+                    const moduleId = (entry?.moduleId && String(entry.moduleId).trim()) || defaultModuleId;
+                    this.registerPinTaxonomy(moduleId, type, entry);
+                }
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Failed to load pin taxonomy.', error?.message || error, false, true);
+            } finally {
+                this._builtinTaxonomyLoaded = true;
+                this._taxonomyLoadPromise = null;
+            }
+        })();
+        await this._taxonomyLoadPromise;
     }
 
     /**
