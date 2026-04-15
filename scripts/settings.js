@@ -1491,6 +1491,23 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
+	game.settings.register(MODULE.ID, 'pinTaxonomyOverrideJson', {
+		name: 'Pin Taxonomy Override JSON',
+		hint: 'Optional world-level JSON path to merge over the shipped pin taxonomy. Leave blank to use only the built-in defaults.',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '',
+		filePicker: true,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE,
+		onChange: () => {
+			void import('./manager-pins.js').then(async ({ PinManager }) => {
+				PinManager.invalidateBuiltinTaxonomy();
+				await PinManager.ensureBuiltinTaxonomyLoaded();
+			});
+		}
+	});
+
 	// --------------------------------------
 	// -- H3: SIDEBARS
 	// --------------------------------------

@@ -30,6 +30,78 @@
     max-width: 240px;
 }
 
+.blacksmith-pin-layers-search {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+}
+
+.blacksmith-pin-layers-search-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.blacksmith-pin-layers-search-query {
+    min-width: 240px;
+    flex: 1 1 320px;
+}
+
+.blacksmith-pin-layers-search-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.9rem;
+}
+
+.blacksmith-pin-layers-search-results {
+    display: grid;
+}
+
+.blacksmith-pin-layers-search-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.blacksmith-pin-layers-search-row:first-child {
+    border-top: 0;
+}
+
+.blacksmith-pin-layers-search-row.is-hidden {
+    opacity: 0.72;
+}
+
+.blacksmith-pin-layers-search-main {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.blacksmith-pin-layers-search-title {
+    font-weight: 600;
+    color: rgba(255, 244, 224, 0.95);
+}
+
+.blacksmith-pin-layers-search-meta {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.68);
+}
+
+.blacksmith-pin-layers-search-meta span {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
 .blacksmith-pin-layers-section {
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(0, 0, 0, 0.22);

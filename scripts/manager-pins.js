@@ -118,7 +118,9 @@ export class PinManager {
 
     /** In-memory registry: (moduleId|type) -> friendly name for UI. Modules register so we don't assume labels. */
     static _pinTypeLabels = new Map();
-    static _taxonomyRegistry = new Map();
+    static _builtinTaxonomyRegistry = new Map();
+    static _overrideTaxonomyRegistry = new Map();
+    static _runtimeTaxonomyRegistry = new Map();
     static _taxonomyLoadPromise = null;
     static _builtinTaxonomyLoaded = false;
 
@@ -166,10 +168,10 @@ export class PinManager {
         return this._pinTypeKey(moduleId, type ?? 'default');
     }
 
-    static registerPinTaxonomy(moduleId, type, taxonomy = {}) {
+    static _normalizeTaxonomyEntry(moduleId, type, taxonomy = {}) {
         if (!moduleId || typeof moduleId !== 'string') return;
         const normalizedType = (type != null && type !== '') ? String(type).trim() : 'default';
-        const normalized = {
+        return {
             moduleId: String(moduleId).trim(),
             type: normalizedType,
             label: (taxonomy.label != null && String(taxonomy.label).trim()) ? String(taxonomy.label).trim() : '',
@@ -180,17 +182,48 @@ export class PinManager {
                 .filter(Boolean))),
             suggestedTags: this._normalizeTaxonomyTagList(taxonomy.suggestedTags)
         };
-        const key = this._taxonomyTypeKey(moduleId, normalizedType);
-        this._taxonomyRegistry.set(key, normalized);
+    }
+
+    static registerPinTaxonomy(moduleId, type, taxonomy = {}) {
+        const normalized = this._normalizeTaxonomyEntry(moduleId, type, taxonomy);
+        if (!normalized) return;
+        const key = this._taxonomyTypeKey(moduleId, normalized.type);
+        this._runtimeTaxonomyRegistry.set(key, normalized);
         if (normalized.label) {
-            this.registerPinType(moduleId, normalizedType, normalized.label);
+            this.registerPinType(moduleId, normalized.type, normalized.label);
         }
+    }
+
+    static _mergeTaxonomyEntries(...entries) {
+        const valid = entries.filter(Boolean);
+        if (!valid.length) return null;
+        const merged = {
+            moduleId: valid[valid.length - 1].moduleId || valid[0].moduleId || '',
+            type: valid[valid.length - 1].type || valid[0].type || 'default',
+            label: '',
+            defaultGroup: '',
+            defaultTags: [],
+            suggestedGroups: [],
+            suggestedTags: []
+        };
+        for (const entry of valid) {
+            if (entry.label) merged.label = entry.label;
+            if (entry.defaultGroup) merged.defaultGroup = entry.defaultGroup;
+            if (Array.isArray(entry.defaultTags) && entry.defaultTags.length) merged.defaultTags = [...entry.defaultTags];
+            merged.suggestedGroups = Array.from(new Set([...(merged.suggestedGroups || []), ...(entry.suggestedGroups || [])].filter(Boolean)));
+            merged.suggestedTags = Array.from(new Set([...(merged.suggestedTags || []), ...(entry.suggestedTags || [])].filter(Boolean)));
+        }
+        return merged;
     }
 
     static getPinTaxonomy(moduleId, type) {
         if (!moduleId) return null;
         const key = this._taxonomyTypeKey(moduleId, type);
-        const entry = this._taxonomyRegistry.get(key);
+        const entry = this._mergeTaxonomyEntries(
+            this._builtinTaxonomyRegistry.get(key),
+            this._overrideTaxonomyRegistry.get(key),
+            this._runtimeTaxonomyRegistry.get(key)
+        );
         return entry ? foundry.utils.deepClone(entry) : null;
     }
 
@@ -230,16 +263,12 @@ export class PinManager {
         }
         this._taxonomyLoadPromise = (async () => {
             try {
-                const response = await fetch(`modules/${MODULE.ID}/resources/pin-taxonomy.json`);
-                if (!response.ok) {
-                    throw new Error(`Failed to load pin taxonomy: ${response.status}`);
-                }
-                const payload = await response.json();
-                const defaultModuleId = (payload?.moduleId && String(payload.moduleId).trim()) || MODULE.ID;
-                const pinTypes = payload?.pinTypes && typeof payload.pinTypes === 'object' ? payload.pinTypes : {};
-                for (const [type, entry] of Object.entries(pinTypes)) {
-                    const moduleId = (entry?.moduleId && String(entry.moduleId).trim()) || defaultModuleId;
-                    this.registerPinTaxonomy(moduleId, type, entry);
+                this._builtinTaxonomyRegistry.clear();
+                this._overrideTaxonomyRegistry.clear();
+                await this._loadTaxonomyJsonIntoRegistry(`modules/${MODULE.ID}/resources/pin-taxonomy.json`, this._builtinTaxonomyRegistry);
+                const overridePath = String(getSettingSafely(MODULE.ID, 'pinTaxonomyOverrideJson', '') || '').trim();
+                if (overridePath && overridePath !== `modules/${MODULE.ID}/resources/pin-taxonomy.json`) {
+                    await this._loadTaxonomyJsonIntoRegistry(overridePath, this._overrideTaxonomyRegistry);
                 }
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Failed to load pin taxonomy.', error?.message || error, false, true);
@@ -249,6 +278,67 @@ export class PinManager {
             }
         })();
         await this._taxonomyLoadPromise;
+    }
+
+    static async _loadTaxonomyJsonIntoRegistry(path, registry) {
+        const response = await fetch(path);
+        if (!response.ok) {
+            throw new Error(`Failed to load pin taxonomy from ${path}: ${response.status}`);
+        }
+        const payload = await response.json();
+        const defaultModuleId = (payload?.moduleId && String(payload.moduleId).trim()) || MODULE.ID;
+        const pinTypes = payload?.pinTypes && typeof payload.pinTypes === 'object' ? payload.pinTypes : {};
+        for (const [type, entry] of Object.entries(pinTypes)) {
+            const moduleId = (entry?.moduleId && String(entry.moduleId).trim()) || defaultModuleId;
+            const normalized = this._normalizeTaxonomyEntry(moduleId, type, entry);
+            if (!normalized) continue;
+            registry.set(this._taxonomyTypeKey(moduleId, type), normalized);
+            if (normalized.label && !this._runtimeTaxonomyRegistry.has(this._taxonomyTypeKey(moduleId, type))) {
+                this.registerPinType(moduleId, type, normalized.label);
+            }
+        }
+    }
+
+    static invalidateBuiltinTaxonomy() {
+        this._builtinTaxonomyLoaded = false;
+        this._taxonomyLoadPromise = null;
+        this._builtinTaxonomyRegistry.clear();
+        this._overrideTaxonomyRegistry.clear();
+    }
+
+    static getScenePinSearchResults(sceneId, options = {}) {
+        const query = String(options.query || '').trim().toLowerCase();
+        if (!query) return [];
+        const includeHiddenByFilter = options.includeHiddenByFilter === true;
+        const limit = Number.isFinite(options.limit) ? Math.max(1, Number(options.limit)) : 50;
+        const pins = this.list({ sceneId, includeHiddenByFilter });
+        const results = [];
+        for (const pin of pins) {
+            const haystack = [
+                pin.text,
+                pin.type,
+                pin.group,
+                ...(Array.isArray(pin.tags) ? pin.tags : []),
+                pin.moduleId,
+                this.getPinTypeLabel(pin.moduleId, pin.type)
+            ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+            if (!haystack.includes(query)) continue;
+            results.push({
+                id: pin.id,
+                text: String(pin.text || '').trim() || '(Untitled Pin)',
+                moduleId: pin.moduleId || '',
+                type: pin.type || 'default',
+                group: this._getPinGroup(pin),
+                tags: this._getPinTags(pin),
+                hiddenByFilter: this._isHiddenByFilter(pin),
+                typeLabel: this.getPinTypeLabel(pin.moduleId, pin.type) || ''
+            });
+            if (results.length >= limit) break;
+        }
+        return results;
     }
 
     /**

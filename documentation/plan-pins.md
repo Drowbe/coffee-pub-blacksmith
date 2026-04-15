@@ -9,11 +9,11 @@
 | 3 | Permission model | Separate permission visibility from user view preferences | In progress | Hard gates remain `ownership`; client filters now separate group/tag visibility |
 | 4 | View-state model | Add client-side filter profiles / saved pin views | In progress | Global per-user filter state and named profiles now exist; deeper search/preset UX still pending |
 | 5 | Render pipeline | Filter before DOM creation, not only after render | Completed | Renderer now skips hidden-by-filter pins before DOM creation |
-| 6 | UI | Add a real pin management UI, not just hamburger toggles | In progress | V2 Pin Layers window exists with types/groups/tags and named profile controls; richer search still pending |
-| 7 | API | Expose the new classification and filter surface cleanly | In progress | Group/tag visibility, taxonomy methods, and named profile helpers are in place; more docs/examples still needed |
+| 6 | UI | Add a real pin management UI, not just hamburger toggles | In progress | V2 Pin Layers window exists with types/groups/tags, named profiles, and profile-aware search |
+| 7 | API | Expose the new classification and filter surface cleanly | In progress | Group/tag visibility, taxonomy methods, named profiles, and taxonomy override loading are in place; more docs/examples still needed |
 | 8 | Migration | Define fallback behavior for existing pins with only `type` | In progress | Schema v3 migrates old pins with empty `group/tags` defaults |
 | 9 | Performance | Verify whether load/render pressure is real and where | Planned | Pre-filtering shipped first; deeper measurement still needed |
-| 10 | Documentation and tests | Update docs and add coverage for the new system | In progress | `api-pins.md` has started catching up; tests and broader docs still pending |
+| 10 | Documentation and tests | Update docs and add coverage for the new system | In progress | `api-pins.md` and plan tracking are catching up; tests and broader docs still pending |
 
 ## Locked Decisions
 
