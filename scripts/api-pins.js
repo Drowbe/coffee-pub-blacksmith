@@ -383,6 +383,49 @@ export class PinsAPI {
     }
 
     /**
+     * List saved per-user pin visibility profiles.
+     * @returns {{ name: string, state: object }[]}
+     */
+    static listVisibilityProfiles() {
+        return PinManager.listVisibilityProfiles();
+    }
+
+    /**
+     * Save the current visibility filters as a named profile.
+     * @param {string} name
+     * @returns {Promise<{ name: string, state: object }>}
+     */
+    static saveVisibilityProfile(name) {
+        return PinManager.saveVisibilityProfile(name);
+    }
+
+    /**
+     * Apply a saved visibility profile.
+     * @param {string} name
+     * @returns {Promise<object>}
+     */
+    static applyVisibilityProfile(name) {
+        return PinManager.applyVisibilityProfile(name);
+    }
+
+    /**
+     * Delete a saved visibility profile.
+     * @param {string} name
+     * @returns {Promise<boolean>}
+     */
+    static deleteVisibilityProfile(name) {
+        return PinManager.deleteVisibilityProfile(name);
+    }
+
+    /**
+     * Get the currently active visibility profile name.
+     * @returns {string}
+     */
+    static getActiveVisibilityProfileName() {
+        return PinManager.getActiveFilterProfileName();
+    }
+
+    /**
      * Hide or show all pins globally for the current user (client scope).
      * @param {boolean} visible - If false, hides all pins; if true, shows them.
      * @returns {Promise<void>}

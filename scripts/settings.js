@@ -3412,6 +3412,22 @@ export const registerSettings = () => {
 		default: {}
 	});
 
+	// Named per-user pin filter profiles.
+	game.settings.register(MODULE.ID, 'pinsFilterProfiles', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
+	// Last applied pin filter profile for this user/device.
+	game.settings.register(MODULE.ID, 'pinsActiveFilterProfile', {
+		scope: 'client',
+		config: false,
+		type: String,
+		default: ''
+	});
+
 	// ==================================================================================================================== 
 	// ==================================================================================================================== 
 	// == ROLLING AND PROGRESSION

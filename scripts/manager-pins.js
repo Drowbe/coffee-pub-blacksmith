@@ -87,6 +87,8 @@ const PINS_HIDDEN_MODULE_TYPES_KEY = 'pinsHiddenModuleTypes';
 const PINS_HIDDEN_GROUPS_KEY = 'pinsHiddenGroups';
 const PINS_HIDDEN_TAGS_KEY = 'pinsHiddenTags';
 const PINS_HIDE_ALL_KEY = 'pinsHideAll';
+const PINS_FILTER_PROFILES_KEY = 'pinsFilterProfiles';
+const PINS_ACTIVE_FILTER_PROFILE_KEY = 'pinsActiveFilterProfile';
 
 export class PinManager {
     static FLAG_KEY = 'pins';
@@ -97,6 +99,8 @@ export class PinManager {
     static HIDDEN_GROUPS_SETTING_KEY = PINS_HIDDEN_GROUPS_KEY;
     static HIDDEN_TAGS_SETTING_KEY = PINS_HIDDEN_TAGS_KEY;
     static HIDE_ALL_SETTING_KEY = PINS_HIDE_ALL_KEY;
+    static FILTER_PROFILES_SETTING_KEY = PINS_FILTER_PROFILES_KEY;
+    static ACTIVE_FILTER_PROFILE_SETTING_KEY = PINS_ACTIVE_FILTER_PROFILE_KEY;
 
     // Event handler storage: Map<eventType, Set<handler>>
     static _eventHandlers = new Map();
@@ -346,6 +350,20 @@ export class PinManager {
         return raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : {};
     }
 
+    static _getStoredFilterProfiles() {
+        const raw = getSettingSafely(MODULE.ID, this.FILTER_PROFILES_SETTING_KEY, {});
+        return raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : {};
+    }
+
+    static _normalizeProfileName(name) {
+        if (name == null) return '';
+        return String(name).trim();
+    }
+
+    static getActiveFilterProfileName() {
+        return this._normalizeProfileName(getSettingSafely(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, ''));
+    }
+
     static isGlobalHidden() {
         return !!getSettingSafely(MODULE.ID, this.HIDE_ALL_SETTING_KEY, false);
     }
@@ -408,6 +426,7 @@ export class PinManager {
 
     static async setGlobalHidden(hidden) {
         await game.settings.set(MODULE.ID, this.HIDE_ALL_SETTING_KEY, !!hidden);
+        await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
         const { PinRenderer } = await import('./pins-renderer.js');
         PinRenderer.applyVisibilityFilters();
     }
@@ -418,6 +437,7 @@ export class PinManager {
         if (hidden) map[moduleId] = true;
         else delete map[moduleId];
         await game.settings.set(MODULE.ID, this.HIDDEN_MODULES_SETTING_KEY, map);
+        await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
         const { PinRenderer } = await import('./pins-renderer.js');
         PinRenderer.applyVisibilityFilters();
     }
@@ -429,6 +449,7 @@ export class PinManager {
         if (hidden) map[key] = true;
         else delete map[key];
         await game.settings.set(MODULE.ID, this.HIDDEN_MODULE_TYPES_SETTING_KEY, map);
+        await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
         const { PinRenderer } = await import('./pins-renderer.js');
         PinRenderer.applyVisibilityFilters();
     }
@@ -440,6 +461,7 @@ export class PinManager {
         if (hidden) map[key] = true;
         else delete map[key];
         await game.settings.set(MODULE.ID, this.HIDDEN_GROUPS_SETTING_KEY, map);
+        await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
         const { PinRenderer } = await import('./pins-renderer.js');
         PinRenderer.applyVisibilityFilters();
     }
@@ -451,8 +473,89 @@ export class PinManager {
         if (hidden) map[key] = true;
         else delete map[key];
         await game.settings.set(MODULE.ID, this.HIDDEN_TAGS_SETTING_KEY, map);
+        await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
         const { PinRenderer } = await import('./pins-renderer.js');
         PinRenderer.applyVisibilityFilters();
+    }
+
+    static getVisibilityProfileState() {
+        return {
+            hideAll: this.isGlobalHidden(),
+            hiddenModules: this._getHiddenModulesMap(),
+            hiddenModuleTypes: this._getHiddenModuleTypesMap(),
+            hiddenGroups: this._getHiddenGroupsMap(),
+            hiddenTags: this._getHiddenTagsMap()
+        };
+    }
+
+    static async applyVisibilityProfileState(state = {}, options = {}) {
+        const normalized = {
+            hideAll: !!state.hideAll,
+            hiddenModules: state.hiddenModules && typeof state.hiddenModules === 'object' && !Array.isArray(state.hiddenModules) ? { ...state.hiddenModules } : {},
+            hiddenModuleTypes: state.hiddenModuleTypes && typeof state.hiddenModuleTypes === 'object' && !Array.isArray(state.hiddenModuleTypes) ? { ...state.hiddenModuleTypes } : {},
+            hiddenGroups: state.hiddenGroups && typeof state.hiddenGroups === 'object' && !Array.isArray(state.hiddenGroups) ? { ...state.hiddenGroups } : {},
+            hiddenTags: state.hiddenTags && typeof state.hiddenTags === 'object' && !Array.isArray(state.hiddenTags) ? { ...state.hiddenTags } : {}
+        };
+        await game.settings.set(MODULE.ID, this.HIDE_ALL_SETTING_KEY, normalized.hideAll);
+        await game.settings.set(MODULE.ID, this.HIDDEN_MODULES_SETTING_KEY, normalized.hiddenModules);
+        await game.settings.set(MODULE.ID, this.HIDDEN_MODULE_TYPES_SETTING_KEY, normalized.hiddenModuleTypes);
+        await game.settings.set(MODULE.ID, this.HIDDEN_GROUPS_SETTING_KEY, normalized.hiddenGroups);
+        await game.settings.set(MODULE.ID, this.HIDDEN_TAGS_SETTING_KEY, normalized.hiddenTags);
+        if (options.activeProfileName !== undefined) {
+            await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, this._normalizeProfileName(options.activeProfileName));
+        }
+        const { PinRenderer } = await import('./pins-renderer.js');
+        PinRenderer.applyVisibilityFilters();
+    }
+
+    static listVisibilityProfiles() {
+        const profiles = this._getStoredFilterProfiles();
+        return Object.entries(profiles)
+            .map(([name, state]) => ({
+                name,
+                state: foundry.utils.deepClone(state)
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    static getVisibilityProfile(name) {
+        const key = this._normalizeProfileName(name);
+        if (!key) return null;
+        const profiles = this._getStoredFilterProfiles();
+        const profile = profiles[key];
+        return profile ? foundry.utils.deepClone(profile) : null;
+    }
+
+    static async saveVisibilityProfile(name) {
+        const key = this._normalizeProfileName(name);
+        if (!key) throw new Error('Profile name is required.');
+        const profiles = this._getStoredFilterProfiles();
+        profiles[key] = this.getVisibilityProfileState();
+        await game.settings.set(MODULE.ID, this.FILTER_PROFILES_SETTING_KEY, profiles);
+        await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, key);
+        return { name: key, state: foundry.utils.deepClone(profiles[key]) };
+    }
+
+    static async applyVisibilityProfile(name) {
+        const key = this._normalizeProfileName(name);
+        if (!key) throw new Error('Profile name is required.');
+        const profile = this.getVisibilityProfile(key);
+        if (!profile) throw new Error(`Profile not found: ${key}`);
+        await this.applyVisibilityProfileState(profile, { activeProfileName: key });
+        return profile;
+    }
+
+    static async deleteVisibilityProfile(name) {
+        const key = this._normalizeProfileName(name);
+        if (!key) return false;
+        const profiles = this._getStoredFilterProfiles();
+        if (!(key in profiles)) return false;
+        delete profiles[key];
+        await game.settings.set(MODULE.ID, this.FILTER_PROFILES_SETTING_KEY, profiles);
+        if (this.getActiveFilterProfileName() === key) {
+            await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
+        }
+        return true;
     }
 
     static _matchesListFilters(pin, options = {}) {

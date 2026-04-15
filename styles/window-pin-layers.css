@@ -13,6 +13,23 @@
     padding: 14px;
 }
 
+.blacksmith-pin-layers-profile-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.blacksmith-pin-layers-profile-select {
+    min-width: 180px;
+    max-width: 240px;
+}
+
+.blacksmith-pin-layers-profile-name {
+    min-width: 180px;
+    max-width: 240px;
+}
+
 .blacksmith-pin-layers-section {
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(0, 0, 0, 0.22);
@@ -82,6 +99,7 @@
 .blacksmith-pin-layers-summary {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .blacksmith-pin-layers-toggle {
