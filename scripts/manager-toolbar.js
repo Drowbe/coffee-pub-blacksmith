@@ -374,10 +374,50 @@ function requestControlsRender() {
     if (_renderQueued) return;
     _renderQueued = true;
     
-    queueMicrotask(() => {
+    setTimeout(() => {
         _renderQueued = false;
         refreshSceneControls();
-    });
+    }, 0);
+}
+
+function getControlByName(controls, name) {
+    if (!controls || !name) return null;
+    if (Array.isArray(controls)) {
+        return controls.find(control => control?.name === name) ?? null;
+    }
+    return controls[name] ?? null;
+}
+
+function setControlByName(controls, name, value) {
+    if (!controls || !name || !value) return;
+    if (Array.isArray(controls)) {
+        const index = controls.findIndex(control => control?.name === name);
+        if (index >= 0) controls[index] = value;
+        else controls.push(value);
+        return;
+    }
+    controls[name] = value;
+}
+
+function ensureTemplateClearTool(controls) {
+    const templatesControl = getControlByName(controls, 'templates');
+    const tools = templatesControl?.tools;
+    if (!templatesControl || !tools || Array.isArray(tools) || tools.clear) return;
+    const existingOrders = Object.values(tools)
+        .map(tool => (typeof tool?.order === 'number' ? tool.order : null))
+        .filter(order => order != null);
+    const fallbackOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 999;
+    tools.clear = {
+        name: 'clear',
+        title: 'Clear',
+        icon: 'fa-solid fa-trash',
+        button: true,
+        visible: false,
+        active: false,
+        onClick: () => {},
+        onChange: () => {},
+        order: fallbackOrder
+    };
 }
 
 /**
@@ -390,6 +430,12 @@ function refreshSceneControls() {
     
     // If controls haven't rendered yet, don't poke it
     if (!ui.controls.rendered) return false;
+
+    try {
+        ensureTemplateClearTool(ui.controls.controls);
+    } catch (e) {
+        return false;
+    }
     
     const activeControl = safeActiveControlName();
     const activeTool = safeActiveToolName();
@@ -697,8 +743,10 @@ export async function addToolbarButton() {
 		description: 'Manager Toolbar: Add click handler to blacksmith utilities button and token toolbar',
 		context: 'manager-toolbar-scene',
 		priority: 3,
-		callback: (controls) => {
+        callback: (controls) => {
 			// --- BEGIN - HOOKMANAGER CALLBACK ---
+
+            ensureTemplateClearTool(controls);
 
             // v13: Get active control and tool - do NOT use game.activeTool/activeControl here
             // as they can crash during early initialization. Safely access ui.controls with try-catch
@@ -745,8 +793,9 @@ export async function addToolbarButton() {
 
             // Update or create blacksmith utilities control (v13: controls is an object keyed by control name)
             // v13 requires: activeTool must point to a valid tool key, and all tools need onChange handlers
-            if (controls['blacksmith-utilities']) {
-                const existingControl = controls['blacksmith-utilities'];
+            const blacksmithControl = getControlByName(controls, 'blacksmith-utilities');
+            if (blacksmithControl) {
+                const existingControl = blacksmithControl;
                 const existingTools = existingControl.tools || {};
                 
                 // Get currently active tool name to preserve it
@@ -876,7 +925,7 @@ export async function addToolbarButton() {
                 // We'll prevent auto-activation by ensuring the tool's onChange doesn't trigger onClick
                 const defaultActiveTool = toolKeys.length > 0 ? toolKeys[0] : "";
                 
-            controls['blacksmith-utilities'] = {
+            setControlByName(controls, 'blacksmith-utilities', {
                 name: "blacksmith-utilities",
                 title: "Blacksmith Utilities",
                 icon: "fa-solid fa-mug-hot",
@@ -893,7 +942,7 @@ export async function addToolbarButton() {
                         // v13 requirement: control onToolChange handler
                         // Handle tool change within the control
                     }
-                };
+                });
             }
 
             // Add tools to FoundryVTT native toolbars
@@ -930,7 +979,7 @@ export async function addToolbarButton() {
             
             // Add tools to token toolbar (default behavior for now)
             // v13: controls is an object, access directly by key
-            const tokenControl = controls.tokens;
+                const tokenControl = getControlByName(controls, 'tokens');
             if (tokenControl) {
                 // v13: tools is always an object keyed by tool name
                 if (!tokenControl.tools) {
