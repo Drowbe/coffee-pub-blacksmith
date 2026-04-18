@@ -26,6 +26,10 @@
 @import "window-pin-config.css";
 @import "window-pin-layers.css";
 @import "window-template.css";
+@import "window-form-controls.css";
+@import "window-tabs.css";
+@import "window-list.css";
+@import "window-panels.css";
 
 /* --- Tabs ---------------------- */
 @import "tabs-scenes.css";

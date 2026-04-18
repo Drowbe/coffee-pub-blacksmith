@@ -2,8 +2,8 @@
     min-height: 0;
 }
 
-.blacksmith-pin-layers-window .blacksmith-window-template-btn-secondary,
-.blacksmith-pin-layers-window .blacksmith-window-template-btn-primary {
+.blacksmith-pin-layers-window .blacksmith-window-btn-secondary,
+.blacksmith-pin-layers-window .blacksmith-window-btn-primary {
     width: auto;
 }
 

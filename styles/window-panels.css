@@ -1,0 +1,236 @@
+/* ================================================================== */
+/* Blacksmith canonical panel components — cards, detail rows, stats  */
+/* ================================================================== */
+
+
+/* ----- Panel card ----- */
+/*
+  A self-contained widget with an optional header and a body area.
+  Different from .blacksmith-window-section (which is a content divider).
+
+  Usage:
+    <div class="blacksmith-panel-card">
+      <div class="blacksmith-panel-card-header">
+        <span class="blacksmith-panel-card-title">Inventory</span>
+        <div class="blacksmith-panel-card-header-actions">
+          <button ...>Add</button>
+        </div>
+      </div>
+      <div class="blacksmith-panel-card-body">...</div>
+    </div>
+
+  Color variant: add blacksmith-panel-card-variant-{name} alongside the base class.
+    <div class="blacksmith-panel-card blacksmith-panel-card-variant-danger">
+*/
+
+.blacksmith-panel-card {
+    background: rgba(0, 0, 0, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.blacksmith-panel-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+}
+
+.blacksmith-panel-card-title {
+    font-size: 0.82em;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--blacksmith-window-accent-color, #ac9f81);
+}
+
+.blacksmith-panel-card-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.blacksmith-panel-card-body {
+    padding: 12px;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* ----- Color variant system ----- */
+/*
+  Modifier classes apply a semantic color theme to the card.
+  Each variant overrides border and background.
+  Uses the semantic variant tokens from vars.css.
+
+  Available variants:
+    blacksmith-panel-card-variant-danger
+    blacksmith-panel-card-variant-success
+    blacksmith-panel-card-variant-warning
+    blacksmith-panel-card-variant-info
+    blacksmith-panel-card-variant-music
+    blacksmith-panel-card-variant-environment
+    blacksmith-panel-card-variant-oneshot
+    blacksmith-panel-card-variant-timeline
+*/
+
+.blacksmith-panel-card-variant-danger {
+    border-color: var(--blacksmith-variant-danger-border);
+    background: var(--blacksmith-variant-danger-bg);
+}
+
+.blacksmith-panel-card-variant-success {
+    border-color: var(--blacksmith-variant-success-border);
+    background: var(--blacksmith-variant-success-bg);
+}
+
+.blacksmith-panel-card-variant-warning {
+    border-color: var(--blacksmith-variant-warning-border);
+    background: var(--blacksmith-variant-warning-bg);
+}
+
+.blacksmith-panel-card-variant-info {
+    border-color: var(--blacksmith-variant-info-border);
+    background: var(--blacksmith-variant-info-bg);
+}
+
+.blacksmith-panel-card-variant-music {
+    border-color: var(--blacksmith-variant-music-border);
+    background: var(--blacksmith-variant-music-bg);
+}
+
+.blacksmith-panel-card-variant-environment {
+    border-color: var(--blacksmith-variant-environment-border);
+    background: var(--blacksmith-variant-environment-bg);
+}
+
+.blacksmith-panel-card-variant-oneshot {
+    border-color: var(--blacksmith-variant-oneshot-border);
+    background: var(--blacksmith-variant-oneshot-bg);
+}
+
+.blacksmith-panel-card-variant-timeline {
+    border-color: var(--blacksmith-variant-timeline-border);
+    background: var(--blacksmith-variant-timeline-bg);
+}
+
+
+/* ----- Detail row (label + value pair) ----- */
+/*
+  A horizontal label/value pair for property lists. Groups of rows go
+  inside .blacksmith-detail-rows.
+
+  Usage:
+    <div class="blacksmith-detail-rows">
+      <div class="blacksmith-detail-row">
+        <span class="blacksmith-detail-label">Duration</span>
+        <span class="blacksmith-detail-value">8 hours</span>
+      </div>
+      <div class="blacksmith-detail-row">
+        <span class="blacksmith-detail-label">Components</span>
+        <span class="blacksmith-detail-value">Iron, Coal</span>
+      </div>
+    </div>
+*/
+
+.blacksmith-detail-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.blacksmith-detail-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85em;
+}
+
+.blacksmith-detail-label {
+    flex: 0 0 110px;
+    font-weight: 600;
+    color: var(--blacksmith-window-accent-color, #ac9f81);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.9em;
+}
+
+.blacksmith-detail-value {
+    flex: 1;
+    min-width: 0;
+    background: rgba(0, 0, 0, 0.35);
+    padding: 4px 8px;
+    border-radius: var(--blacksmith-radius-md, 4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(224, 224, 224, 0.95);
+}
+
+
+/* ----- Stat scoreboard + tile ----- */
+/*
+  A flex grid of centered stat tiles. Used for scoreboards and
+  summary metrics (batch count, cost, yield, etc.).
+
+  Usage:
+    <div class="blacksmith-stat-scoreboard">
+      <div class="blacksmith-stat-tile">
+        <span class="blacksmith-stat-tile-label">Batches</span>
+        <span class="blacksmith-stat-tile-value">12</span>
+      </div>
+      <div class="blacksmith-stat-tile">
+        <span class="blacksmith-stat-tile-label">Gold Cost</span>
+        <span class="blacksmith-stat-tile-value">240</span>
+      </div>
+    </div>
+*/
+
+.blacksmith-stat-scoreboard {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.blacksmith-stat-tile {
+    flex: 1 1 0;
+    min-width: 3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8px 6px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    box-sizing: border-box;
+    gap: 4px;
+}
+
+.blacksmith-stat-tile-label {
+    font-size: 0.65em;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--blacksmith-window-accent-color, #ac9f81);
+    line-height: 1.2;
+    opacity: 0.9;
+}
+
+.blacksmith-stat-tile-value {
+    font-size: 1.2em;
+    font-weight: 900;
+    color: rgba(232, 232, 232, 0.98);
+    line-height: 1.15;
+    word-break: break-word;
+}

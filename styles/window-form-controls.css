@@ -1,0 +1,230 @@
+/* ================================================================== */
+/* Blacksmith canonical form controls — toggle, badge, range slider   */
+/* ================================================================== */
+
+/* ----- Toggle switch ----- */
+/*
+  Usage:
+    <label class="blacksmith-toggle">
+      <input type="checkbox" class="blacksmith-toggle-input">
+      <span class="blacksmith-toggle-slider"></span>
+    </label>
+
+  With row wrapper and label:
+    <div class="blacksmith-toggle-row">
+      <span class="blacksmith-toggle-label">Show Labels</span>
+      <label class="blacksmith-toggle">
+        <input type="checkbox" class="blacksmith-toggle-input">
+        <span class="blacksmith-toggle-slider"></span>
+      </label>
+    </div>
+*/
+
+.blacksmith-toggle {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 24px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.blacksmith-toggle-input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.blacksmith-toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.blacksmith-toggle-slider::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: rgba(216, 202, 164, 0.9);
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+}
+
+.blacksmith-toggle-input:checked + .blacksmith-toggle-slider {
+    background: rgba(128, 118, 96, 0.5);
+    border-color: var(--blacksmith-window-accent-color, #ac9f81);
+}
+
+.blacksmith-toggle-input:checked + .blacksmith-toggle-slider::before {
+    transform: translateX(22px);
+}
+
+.blacksmith-toggle:hover .blacksmith-toggle-slider {
+    border-color: rgba(255, 100, 0, 0.6);
+    box-shadow: 0 0 0 2px rgba(255, 100, 0, 0.2);
+}
+
+/* Row wrapper: optional left label + toggle */
+.blacksmith-toggle-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.blacksmith-toggle-label {
+    font-size: 0.85em;
+    color: rgba(224, 224, 224, 0.9);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+}
+
+
+/* ----- Badge / tag pill ----- */
+/*
+  Usage:
+    <span class="blacksmith-badge">Label</span>
+    <span class="blacksmith-badge blacksmith-badge-accent">12</span>
+    <span class="blacksmith-badge blacksmith-badge-success">Active</span>
+    <span class="blacksmith-badge blacksmith-badge-danger">Error</span>
+*/
+
+.blacksmith-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--blacksmith-radius-pill, 16px);
+    font-size: 0.76em;
+    color: rgba(224, 224, 224, 0.9);
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.blacksmith-badge-accent {
+    background: rgba(172, 159, 129, 0.15);
+    border-color: rgba(172, 159, 129, 0.35);
+    color: var(--blacksmith-window-accent-color, #ac9f81);
+    font-weight: 600;
+}
+
+.blacksmith-badge-success {
+    background: rgba(41, 94, 47, 0.2);
+    border-color: rgba(58, 138, 67, 0.4);
+    color: rgba(140, 210, 140, 0.95);
+}
+
+.blacksmith-badge-danger {
+    background: rgba(120, 30, 30, 0.2);
+    border-color: rgba(200, 60, 60, 0.3);
+    color: rgba(220, 140, 140, 0.95);
+}
+
+.blacksmith-badge-warning {
+    background: rgba(115, 86, 35, 0.2);
+    border-color: rgba(168, 130, 63, 0.35);
+    color: rgba(220, 190, 130, 0.95);
+}
+
+
+/* ----- Range slider (native input[type="range"]) ----- */
+/*
+  Usage:
+    <div class="blacksmith-slider">
+      <i class="fa-solid fa-volume-low"></i>
+      <input type="range" min="0" max="100" value="50">
+      <span>50%</span>
+    </div>
+
+  The icon and span are optional. Without them, just use the input directly
+  inside .blacksmith-slider for the track/thumb styling.
+*/
+
+.blacksmith-slider {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+}
+
+.blacksmith-slider i {
+    color: var(--blacksmith-window-accent-color, #ac9f81);
+    font-size: 0.8em;
+    opacity: 0.8;
+    flex-shrink: 0;
+}
+
+.blacksmith-slider span {
+    color: rgba(224, 224, 224, 0.9);
+    font-size: 0.8em;
+    min-width: 30px;
+    text-align: left;
+    flex-shrink: 0;
+}
+
+.blacksmith-slider input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    flex: 1 1 auto;
+    height: 18px;
+    margin: 0;
+    min-width: 30px;
+}
+
+.blacksmith-slider input[type="range"]::-webkit-slider-runnable-track {
+    background: rgba(148, 140, 123, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    height: 10px;
+}
+
+.blacksmith-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(18, 18, 18, 0.96);
+    border: 1px solid var(--blacksmith-window-accent-color, #ac9f81);
+    border-radius: 50%;
+    height: 14px;
+    width: 14px;
+    margin-top: -3px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.blacksmith-slider input[type="range"]::-webkit-slider-thumb:hover {
+    border-color: rgba(255, 100, 0, 0.8);
+    box-shadow: 0 0 4px rgba(255, 100, 0, 0.4);
+}
+
+.blacksmith-slider input[type="range"]::-moz-range-track {
+    background: rgba(148, 140, 123, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    height: 10px;
+}
+
+.blacksmith-slider input[type="range"]::-moz-range-thumb {
+    background: rgba(18, 18, 18, 0.96);
+    border: 1px solid var(--blacksmith-window-accent-color, #ac9f81);
+    border-radius: 50%;
+    height: 14px;
+    width: 14px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.blacksmith-slider input[type="range"]::-moz-range-thumb:hover {
+    border-color: rgba(255, 100, 0, 0.8);
+    box-shadow: 0 0 4px rgba(255, 100, 0, 0.4);
+}

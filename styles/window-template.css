@@ -210,8 +210,9 @@
 }
 
 /* Button styles */
-.blacksmith-window-template-btn-primary,
-.blacksmith-window-template-btn-secondary {
+.blacksmith-window-btn-primary,
+.blacksmith-window-btn-secondary,
+.blacksmith-window-btn-critical {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -224,26 +225,35 @@
     text-transform: uppercase;
 }
 
-.blacksmith-window-template-btn-primary {
+.blacksmith-window-btn-primary {
     background: rgba(41, 94, 47, 0.9);
     color: rgba(255, 255, 255, 0.9);
     width: 300px;
 }
 
-.blacksmith-window-template-btn-secondary {
+.blacksmith-window-btn-secondary {
     background: rgba(33, 40, 46, 0.9);
     border-color: rgba(255, 255, 255, 0.1);
     color: rgba(224, 224, 224, 0.9);
 }
 
-.blacksmith-window-template-btn-primary:hover:not(:disabled),
-.blacksmith-window-template-btn-secondary:hover:not(:disabled) {
+.blacksmith-window-btn-critical {
+    background: rgba(120, 30, 30, 0.9);
+    border-color: rgba(200, 60, 60, 0.4);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.blacksmith-window-btn-primary:hover:not(:disabled),
+.blacksmith-window-btn-secondary:hover:not(:disabled),
+.blacksmith-window-btn-critical:hover:not(:disabled) {
     background: rgba(255, 100, 0, 0.6);
     border-color: rgba(255, 100, 0, 0.6);
     color: rgba(255, 255, 255, 0.9);
 }
 
-.blacksmith-window-template-btn-primary:disabled {
+.blacksmith-window-btn-primary:disabled,
+.blacksmith-window-btn-secondary:disabled,
+.blacksmith-window-btn-critical:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
@@ -284,4 +294,59 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+/* ----- Multi-column body layout ----- */
+/*
+  Replaces the single-div body with a multi-column grid.
+  Place inside .blacksmith-window-template-body as its only child.
+  Set column widths via CSS custom properties on the element or its scope.
+
+  Usage:
+    <div class="blacksmith-body-columns blacksmith-body-columns-3"
+         style="--blacksmith-body-col-1: 260px; --blacksmith-body-col-3: 320px;">
+      <div>...</div>   <!-- column 1, fixed 260px -->
+      <div>...</div>   <!-- column 2, 1fr (default) -->
+      <div>...</div>   <!-- column 3, fixed 320px -->
+    </div>
+
+  Each child column manages its own overflow independently.
+  The gap between columns is rendered as a visible 1px divider
+  via background on the parent.
+*/
+
+.blacksmith-body-columns {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    gap: 1px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.blacksmith-body-columns > * {
+    background: var(--blacksmith-window-background, #232323);
+    min-height: 0;
+    overflow: hidden;
+}
+
+.blacksmith-body-columns-2 {
+    grid-template-columns:
+        var(--blacksmith-body-col-1, 1fr)
+        var(--blacksmith-body-col-2, 1fr);
+}
+
+.blacksmith-body-columns-3 {
+    grid-template-columns:
+        var(--blacksmith-body-col-1, 1fr)
+        var(--blacksmith-body-col-2, 1fr)
+        var(--blacksmith-body-col-3, 1fr);
+}
+
+.blacksmith-body-columns-4 {
+    grid-template-columns:
+        var(--blacksmith-body-col-1, 1fr)
+        var(--blacksmith-body-col-2, 1fr)
+        var(--blacksmith-body-col-3, 1fr)
+        var(--blacksmith-body-col-4, 1fr);
 }

@@ -111,7 +111,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                         ${entry.hiddenByFilter ? '<span>filtered</span>' : ''}
                     </div>
                 </div>
-                <button type="button" class="blacksmith-window-template-btn-secondary" data-action="panToPin" data-pin-id="${esc(entry.id)}">
+                <button type="button" class="blacksmith-window-btn-secondary" data-action="panToPin" data-pin-id="${esc(entry.id)}">
                     <i class="fa-solid fa-location-crosshairs"></i> Pan
                 </button>
             </div>
@@ -164,28 +164,28 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                         ${profileOptions}
                     </select>
                     <input type="text" class="blacksmith-input blacksmith-pin-layers-profile-name" value="${esc(activeProfileName)}" placeholder="Profile name">
-                    <button type="button" class="blacksmith-window-template-btn-secondary" data-action="saveProfile">
+                    <button type="button" class="blacksmith-window-btn-secondary" data-action="saveProfile">
                         <i class="fa-solid fa-floppy-disk"></i> Save Profile
                     </button>
-                    <button type="button" class="blacksmith-window-template-btn-secondary" data-action="applyProfile">
+                    <button type="button" class="blacksmith-window-btn-secondary" data-action="applyProfile">
                         <i class="fa-solid fa-layer-group"></i> Apply
                     </button>
-                    <button type="button" class="blacksmith-window-template-btn-secondary" data-action="deleteProfile">
+                    <button type="button" class="blacksmith-window-btn-secondary" data-action="deleteProfile">
                         <i class="fa-solid fa-trash"></i> Delete
                     </button>
                 </div>
             `,
             optionBarRight: `
-                <button type="button" class="blacksmith-window-template-btn-secondary" data-action="hideAll">
+                <button type="button" class="blacksmith-window-btn-secondary" data-action="hideAll">
                     <i class="fa-solid fa-eye-slash"></i> Hide All
                 </button>
-                <button type="button" class="blacksmith-window-template-btn-secondary" data-action="showAll">
+                <button type="button" class="blacksmith-window-btn-secondary" data-action="showAll">
                     <i class="fa-solid fa-eye"></i> Show All
                 </button>
-                <button type="button" class="blacksmith-window-template-btn-secondary" data-action="clearProfile">
+                <button type="button" class="blacksmith-window-btn-secondary" data-action="clearProfile">
                     <i class="fa-solid fa-ban"></i> Custom View
                 </button>
-                <button type="button" class="blacksmith-window-template-btn-secondary" data-action="refresh">
+                <button type="button" class="blacksmith-window-btn-secondary" data-action="refresh">
                     <i class="fa-solid fa-rotate"></i> Refresh
                 </button>
             `,
@@ -242,7 +242,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             `,
             actionBarLeft: `<div class="blacksmith-pin-layers-hint">Groups and tags are filtered before pin DOM is created.</div>`,
             actionBarRight: `
-                <button type="button" class="blacksmith-window-template-btn-secondary" data-action="closeLayers">
+                <button type="button" class="blacksmith-window-btn-secondary" data-action="closeLayers">
                     <i class="fa-solid fa-xmark"></i> Close
                 </button>
             `
@@ -261,7 +261,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 </div>
                 <button
                     type="button"
-                    class="blacksmith-window-template-btn-secondary blacksmith-pin-layers-toggle"
+                    class="blacksmith-window-btn-secondary blacksmith-pin-layers-toggle"
                     data-action="${action}"
                     ${attrString}>
                     <i class="fa-solid ${hidden ? 'fa-eye' : 'fa-eye-slash'}"></i>

@@ -845,6 +845,244 @@ On dragover, JS adds `.dragover` class which changes background to `rgba(0, 100,
 
 ---
 
+### 10.11 Window Buttons
+
+Canonical button components for all Blacksmith windows. Defined in `window-template.css`. Use these instead of module-specific button classes.
+
+**Three variants:**
+
+| Class | Role | Visual |
+|---|---|---|
+| `.blacksmith-window-btn-primary` | Primary / confirm action | Green (`rgba(41,94,47,0.9)`), 300px wide |
+| `.blacksmith-window-btn-secondary` | Secondary / utility action | Dark (`rgba(33,40,46,0.9)`) |
+| `.blacksmith-window-btn-critical` | Destructive / danger action | Red (`rgba(120,30,30,0.9)`) |
+
+All three variants share: `padding: 8px 12px`, `border-radius: 4px`, `text-transform: uppercase`, `font-family: inherit`. Hover state is orange (`rgba(255,100,0,0.6)`) for all variants. Disabled state: `opacity: 0.6; cursor: not-allowed`.
+
+```html
+<!-- Primary: main confirm action -->
+<button type="button" class="blacksmith-window-btn-primary" data-action="save">
+  <i class="fa-solid fa-floppy-disk"></i> Save
+</button>
+
+<!-- Secondary: utility/cancel -->
+<button type="button" class="blacksmith-window-btn-secondary" data-action="cancel">
+  <i class="fa-solid fa-xmark"></i> Cancel
+</button>
+
+<!-- Critical: destructive action -->
+<button type="button" class="blacksmith-window-btn-critical" data-action="delete">
+  <i class="fa-solid fa-trash"></i> Delete
+</button>
+```
+
+Place buttons in `actionBarLeft` (secondary) and `actionBarRight` (primary/critical) in the window data object.
+
+---
+
+### 10.12 Toggle Switch
+
+Canonical pill toggle for boolean settings. Defined in `window-form-controls.css`. Replaces `blacksmith-pin-config-toggle` and `artificer-toggle`.
+
+```html
+<!-- Standalone -->
+<label class="blacksmith-toggle">
+  <input type="checkbox" class="blacksmith-toggle-input" {{checked}}>
+  <span class="blacksmith-toggle-slider"></span>
+</label>
+
+<!-- With label row -->
+<div class="blacksmith-toggle-row">
+  <span class="blacksmith-toggle-label">Show Labels</span>
+  <label class="blacksmith-toggle">
+    <input type="checkbox" class="blacksmith-toggle-input">
+    <span class="blacksmith-toggle-slider"></span>
+  </label>
+</div>
+```
+
+Size: 46×24px pill. Thumb travels 22px on check. Checked state uses `--blacksmith-window-accent-color` border. Hover state: orange glow.
+
+---
+
+### 10.13 Badge / Tag Pill
+
+Inline pill label for counts, tags, and status indicators. Defined in `window-form-controls.css`.
+
+```html
+<span class="blacksmith-badge">Label</span>
+<span class="blacksmith-badge blacksmith-badge-accent">12</span>
+<span class="blacksmith-badge blacksmith-badge-success">Active</span>
+<span class="blacksmith-badge blacksmith-badge-danger">Error</span>
+<span class="blacksmith-badge blacksmith-badge-warning">Pending</span>
+```
+
+Variants: `blacksmith-badge-accent` (gold), `blacksmith-badge-success` (green), `blacksmith-badge-danger` (red), `blacksmith-badge-warning` (amber).
+
+---
+
+### 10.14 Tab Bar
+
+Multi-section navigation strip. Defined in `window-tabs.css`. Designed for `optionBarLeft` or `toolsContent` in the window template.
+
+```html
+<nav class="blacksmith-tabs">
+  <button type="button" class="blacksmith-tab is-active"
+          data-action="selectTab" data-value="overview">
+    <i class="fa-solid fa-chart-pie"></i><span>Overview</span>
+  </button>
+  <button type="button" class="blacksmith-tab"
+          data-action="selectTab" data-value="details">
+    <i class="fa-solid fa-list"></i><span>Details</span>
+  </button>
+</nav>
+```
+
+Window JS state drives `.is-active`. Body content re-renders on tab switch — no hidden panels. Active tab: gold accent border/text. Hover: subtle bg highlight.
+
+---
+
+### 10.15 Range Slider
+
+Native `input[type="range"]` with dark styled track and thumb. Defined in `window-form-controls.css`. Uses webkit and moz pseudo-elements.
+
+```html
+<div class="blacksmith-slider">
+  <i class="fa-solid fa-volume-low"></i>
+  <input type="range" min="0" max="100" value="50">
+  <span>50%</span>
+</div>
+```
+
+The icon and `<span>` are optional. Track: `rgba(148,140,123,0.3)`. Thumb: dark circle with `--blacksmith-window-accent-color` border. Thumb hover: orange glow.
+
+---
+
+### 10.16 List Row
+
+Thumbnail + title + meta + action row. Defined in `window-list.css`. Replaces `minstrel-list-row`, `crafting-ingredient-row`, and `gather-result-item`.
+
+```html
+<div class="blacksmith-list">
+  <div class="blacksmith-list-row">
+    <img class="blacksmith-list-row-img" src="..." alt="">
+    <div class="blacksmith-list-row-main">
+      <div class="blacksmith-list-row-title">Item Name</div>
+      <div class="blacksmith-list-row-meta">Category · Detail</div>
+    </div>
+    <div class="blacksmith-list-row-action">
+      <button type="button" class="blacksmith-window-btn-secondary" data-action="pan">Pan</button>
+    </div>
+  </div>
+</div>
+```
+
+The `.blacksmith-list-row-img`, `.blacksmith-list-row-meta`, and `.blacksmith-list-row-action` zones are optional. Add `.is-active` for selected state. Add `.blacksmith-list-row-img-lg` for 48px thumbnail. Use `.blacksmith-list-empty` for zero-state messaging.
+
+---
+
+### 10.17 Panel Card
+
+Self-contained widget with optional header. Defined in `window-panels.css`. Different from `.blacksmith-window-section` (which is a content divider) — a panel card is a discrete widget that can be column-slotted or floated.
+
+```html
+<div class="blacksmith-panel-card">
+  <div class="blacksmith-panel-card-header">
+    <span class="blacksmith-panel-card-title">Inventory</span>
+    <div class="blacksmith-panel-card-header-actions">
+      <button ...>Add</button>
+    </div>
+  </div>
+  <div class="blacksmith-panel-card-body">
+    <!-- content -->
+  </div>
+</div>
+```
+
+Add a color variant modifier to theme the card:
+
+```html
+<div class="blacksmith-panel-card blacksmith-panel-card-variant-danger">
+```
+
+Available variants: `danger`, `success`, `warning`, `info`, `music`, `environment`, `oneshot`, `timeline`. Each reads its own `--blacksmith-variant-*-border` and `--blacksmith-variant-*-bg` tokens from `vars.css`.
+
+---
+
+### 10.18 Detail Row and Stat Tile
+
+Two complementary display patterns for named property values. Defined in `window-panels.css`.
+
+**Detail row** — horizontal label/value pairs. Label is fixed-width accent text; value has dark pill bg.
+
+```html
+<div class="blacksmith-detail-rows">
+  <div class="blacksmith-detail-row">
+    <span class="blacksmith-detail-label">Duration</span>
+    <span class="blacksmith-detail-value">8 hours</span>
+  </div>
+  <div class="blacksmith-detail-row">
+    <span class="blacksmith-detail-label">Components</span>
+    <span class="blacksmith-detail-value">Iron, Coal</span>
+  </div>
+</div>
+```
+
+**Stat tile** — centered scoreboard grid for numeric metrics.
+
+```html
+<div class="blacksmith-stat-scoreboard">
+  <div class="blacksmith-stat-tile">
+    <span class="blacksmith-stat-tile-label">Batches</span>
+    <span class="blacksmith-stat-tile-value">12</span>
+  </div>
+  <div class="blacksmith-stat-tile">
+    <span class="blacksmith-stat-tile-label">Gold Cost</span>
+    <span class="blacksmith-stat-tile-value">240</span>
+  </div>
+</div>
+```
+
+Tiles flex-grow equally; min-width `3rem`. Label: `0.65em` uppercase accent. Value: `1.2em` bold white.
+
+---
+
+### 10.19 Multi-Column Body Layout
+
+CSS grid wrapper for multi-panel windows. Defined in `window-template.css`. Replaces ad-hoc workspace grids in Minstrel and Artificer.
+
+```html
+<div class="blacksmith-body-columns blacksmith-body-columns-3"
+     style="--blacksmith-body-col-1: 260px; --blacksmith-body-col-3: 320px;">
+  <div><!-- left column --></div>
+  <div><!-- center column (1fr by default) --></div>
+  <div><!-- right column --></div>
+</div>
+```
+
+Place directly inside `.blacksmith-window-template-body`. Column counts: `blacksmith-body-columns-2`, `-3`, `-4`. Each column defaults to `1fr`; override per-column with `--blacksmith-body-col-N`. Columns are separated by a 1px divider rendered via background on the grid. Each child fills its column with `overflow: hidden` — add your own scroll on child elements.
+
+---
+
+### 10.20 Color Variant Tokens
+
+Defined in `vars.css` under `COLOR: VARIANT PALETTE`. Each variant has two tokens: `-border` (45% opacity) and `-bg` (12% opacity).
+
+| Variant | Border token | Bg token |
+|---|---|---|
+| `danger` | `--blacksmith-variant-danger-border` | `--blacksmith-variant-danger-bg` |
+| `success` | `--blacksmith-variant-success-border` | `--blacksmith-variant-success-bg` |
+| `warning` | `--blacksmith-variant-warning-border` | `--blacksmith-variant-warning-bg` |
+| `info` | `--blacksmith-variant-info-border` | `--blacksmith-variant-info-bg` |
+| `music` | `--blacksmith-variant-music-border` | `--blacksmith-variant-music-bg` |
+| `environment` | `--blacksmith-variant-environment-border` | `--blacksmith-variant-environment-bg` |
+| `oneshot` | `--blacksmith-variant-oneshot-border` | `--blacksmith-variant-oneshot-bg` |
+| `timeline` | `--blacksmith-variant-timeline-border` | `--blacksmith-variant-timeline-bg` |
+
+Child modules can define their own variant tokens in their root scope and create matching modifier classes.
+
+---
+
 ## 11. Naming Conventions
 
 ### 11.1 CSS Class Naming

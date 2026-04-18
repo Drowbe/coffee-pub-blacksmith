@@ -92,6 +92,40 @@
 
 
     /* -------------------------------------------------------- */
+    /* --- COLOR: VARIANT PALETTE (module-type / semantic) --- */
+    /* -------------------------------------------------------- */
+    /*
+        Two tokens per variant: -border (higher opacity) and -bg (lower opacity).
+        Used by .blacksmith-panel-card-variant-* modifier classes.
+        Child modules can define their own variants by adding tokens in their root scope.
+    */
+
+    --blacksmith-variant-danger-border:          rgba(104, 41, 41, 0.45);
+    --blacksmith-variant-danger-bg:              rgba(104, 41, 41, 0.12);
+
+    --blacksmith-variant-success-border:         rgba(51, 92, 51, 0.45);
+    --blacksmith-variant-success-bg:             rgba(51, 92, 51, 0.12);
+
+    --blacksmith-variant-warning-border:         rgba(115, 86, 35, 0.45);
+    --blacksmith-variant-warning-bg:             rgba(115, 86, 35, 0.12);
+
+    --blacksmith-variant-info-border:            rgba(47, 68, 106, 0.45);
+    --blacksmith-variant-info-bg:                rgba(47, 68, 106, 0.12);
+
+    --blacksmith-variant-music-border:           rgba(160, 63, 1, 0.45);
+    --blacksmith-variant-music-bg:               rgba(160, 63, 1, 0.12);
+
+    --blacksmith-variant-environment-border:     rgba(42, 70, 62, 0.45);
+    --blacksmith-variant-environment-bg:         rgba(42, 70, 62, 0.12);
+
+    --blacksmith-variant-oneshot-border:         rgba(124, 133, 0, 0.45);
+    --blacksmith-variant-oneshot-bg:             rgba(124, 133, 0, 0.12);
+
+    --blacksmith-variant-timeline-border:        rgba(47, 68, 106, 0.45);
+    --blacksmith-variant-timeline-bg:            rgba(47, 68, 106, 0.12);
+
+
+    /* -------------------------------------------------------- */
     /* --- TYPOGRAPHY ---------------------------------------- */
     /* -------------------------------------------------------- */
 

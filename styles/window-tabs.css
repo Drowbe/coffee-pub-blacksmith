@@ -1,0 +1,73 @@
+/* ================================================================== */
+/* Blacksmith canonical tab bar — multi-section window navigation     */
+/* ================================================================== */
+
+/*
+  Usage (in optionBarLeft or toolsContent of window template):
+    <nav class="blacksmith-tabs">
+      <button type="button" class="blacksmith-tab is-active"
+              data-action="selectTab" data-value="overview">
+        <i class="fa-solid fa-chart-pie"></i><span>Overview</span>
+      </button>
+      <button type="button" class="blacksmith-tab"
+              data-action="selectTab" data-value="details">
+        <i class="fa-solid fa-list"></i><span>Details</span>
+      </button>
+    </nav>
+
+  Window JS state drives which tab has .is-active.
+  Body content swaps based on the active tab — no hidden panels,
+  just re-render with the correct tab ID in context.
+*/
+
+.blacksmith-tabs {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    flex-wrap: wrap;
+}
+
+.blacksmith-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--blacksmith-radius-md, 4px);
+    color: rgba(200, 200, 200, 0.72);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.82em;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    white-space: nowrap;
+}
+
+.blacksmith-tab i {
+    font-size: 0.9em;
+    opacity: 0.75;
+}
+
+.blacksmith-tab:hover:not(.is-active) {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: rgba(224, 224, 224, 0.9);
+}
+
+.blacksmith-tab.is-active {
+    background: rgba(172, 159, 129, 0.15);
+    border-color: var(--blacksmith-window-accent-color, #ac9f81);
+    color: var(--blacksmith-window-accent-color, #ac9f81);
+}
+
+.blacksmith-tab.is-active i {
+    opacity: 1;
+}
+
+.blacksmith-tab:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}

@@ -81,8 +81,8 @@ When you use Blacksmith’s core template (`templates/window-template.hbs`) and 
 | **headerRight** | string (HTML) | Header right zone (buttons, dropdowns, labels). |
 | **toolsContent** | string (HTML) | Tools bar content (search, filters, progress bars, etc.). Single area; module controls layout. |
 | **bodyContent** | string (HTML) | Main scrollable body content. |
-| **actionBarLeft** | string (HTML) | Action bar left (secondary buttons, status text). Use class `blacksmith-window-template-btn-secondary` and `data-action="name"` for buttons that trigger `ACTION_HANDLERS`. |
-| **actionBarRight** | string (HTML) | Action bar right (primary buttons). Use `blacksmith-window-template-btn-primary` for primary style. |
+| **actionBarLeft** | string (HTML) | Action bar left (secondary buttons, status text). Use class `blacksmith-window-btn-secondary` and `data-action="name"` for buttons that trigger `ACTION_HANDLERS`. |
+| **actionBarRight** | string (HTML) | Action bar right (primary buttons). Use `blacksmith-window-btn-primary` for primary style. For destructive actions use `blacksmith-window-btn-critical`. |
 
 The base class sets `showOptionBar`, `showHeader`, `showTools`, and `showActionBar` to `true` when not provided, so all zones are visible by default. Return `showOptionBar: false` (or `showHeader` / `showTools` / `showActionBar`) to hide a zone.
 
