@@ -1,3 +1,5 @@
-2026/04/14-15:54:13.866 8f74 Recovering log #2887
-2026/04/14-15:54:13.875 8f74 Delete type=0 #2887
-2026/04/14-15:54:13.876 8f74 Delete type=3 #2886
+2026/04/17-20:57:09.932 98bc Log #2877: 0 ops saved to Table #2878 OK
+2026/04/17-20:57:09.936 98bc Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-tables/002877.log: OK
+2026/04/17-20:57:09.937 98bc Table #2877: 263 entries OK
+2026/04/17-20:57:09.944 98bc Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-tables/MANIFEST-002890: OK
+2026/04/17-20:57:09.952 98bc **** Repaired leveldb C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-tables; recovered 1 files; 47939 bytes. Some data may have been lost. ****

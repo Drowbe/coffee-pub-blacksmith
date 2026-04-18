@@ -1,0 +1,132 @@
+/* ============================================================ */
+/* === COFFEE PUB BLACKSMITH — DESIGN TOKENS ================= */
+/* ============================================================ */
+/*
+    Single source of truth for all design primitives.
+    Import order: this file loads FIRST via default.css.
+
+    USAGE IN THIS MODULE:
+      Use these tokens directly in component CSS.
+
+    USAGE IN CHILD MODULES:
+      All tokens are globally available — no import needed.
+      Override within your module's root scope:
+        #coffee-pub-mymodule { --blacksmith-color-brand-accent: #4a7a2a; }
+
+    DO NOT add component-specific rules to this file.
+    DO NOT use hardcoded color/spacing values in new CSS — reference tokens.
+*/
+
+:root {
+
+    /* -------------------------------------------------------- */
+    /* --- SPACING -------------------------------------------- */
+    /* -------------------------------------------------------- */
+
+    --blacksmith-space-1:  2px;
+    --blacksmith-space-2:  4px;
+    --blacksmith-space-3:  6px;
+    --blacksmith-space-4:  8px;
+    --blacksmith-space-5:  10px;
+    --blacksmith-space-6:  12px;
+    --blacksmith-space-8:  16px;
+    --blacksmith-space-10: 20px;
+
+
+    /* -------------------------------------------------------- */
+    /* --- COLOR: BRAND --------------------------------------- */
+    /* -------------------------------------------------------- */
+
+    --blacksmith-color-brand:        #594a3c;   /* primary text & body */
+    --blacksmith-color-brand-dark:   #481515;   /* headers */
+    --blacksmith-color-brand-accent: #c15701;   /* interactive / hover orange */
+    --blacksmith-color-brand-muted:  #8d8061;   /* borders, dividers, muted text */
+
+
+    /* -------------------------------------------------------- */
+    /* --- COLOR: LIGHT SURFACES (parchment / card context) -- */
+    /* -------------------------------------------------------- */
+
+    --blacksmith-surface-0: #ffffff;    /* pure white */
+    --blacksmith-surface-1: #f6f1ed;    /* off-white content areas */
+    --blacksmith-surface-2: #e4ddd9;    /* raised areas, headers */
+    --blacksmith-surface-3: #c4bcaa;    /* stronger contrast areas */
+
+
+    /* -------------------------------------------------------- */
+    /* --- COLOR: DARK SURFACES (window / toolbar context) --- */
+    /* -------------------------------------------------------- */
+
+    --blacksmith-surface-dark-0: #0e0c0c;   /* near black, deepest */
+    --blacksmith-surface-dark-1: #222222;   /* main window background */
+    --blacksmith-surface-dark-2: #313030;   /* button background */
+    --blacksmith-surface-dark-3: #4b4b4b;   /* borders, dividers */
+
+
+    /* -------------------------------------------------------- */
+    /* --- COLOR: TEXT --------------------------------------- */
+    /* -------------------------------------------------------- */
+
+    --blacksmith-text-primary:   #594a3c;   /* on light surfaces */
+    --blacksmith-text-secondary: #746950;   /* subdued on light */
+    --blacksmith-text-light:     #bdbdae;   /* on dark surfaces */
+    --blacksmith-text-muted:     #ada39d;   /* subdued on dark */
+    --blacksmith-text-inverse:   #ffffff;   /* high contrast on dark */
+
+
+    /* -------------------------------------------------------- */
+    /* --- COLOR: INTERACTIVE STATES ------------------------- */
+    /* -------------------------------------------------------- */
+
+    --blacksmith-interactive-default: rgba(21, 9, 1, 0.9);
+    --blacksmith-interactive-hover:   rgba(97, 41, 4, 0.4);
+    --blacksmith-interactive-active:  rgba(124, 62, 10, 0.8);
+
+
+    /* -------------------------------------------------------- */
+    /* --- COLOR: STATUS / SEMANTIC -------------------------- */
+    /* -------------------------------------------------------- */
+
+    --blacksmith-status-success: #629602;
+    --blacksmith-status-warning: #aa6000;
+    --blacksmith-status-danger:  #8b0000;
+    --blacksmith-status-damage:  #d63737;   /* distinct from danger — combat damage */
+    --blacksmith-status-info:    #3c6685;
+
+
+    /* -------------------------------------------------------- */
+    /* --- TYPOGRAPHY ---------------------------------------- */
+    /* -------------------------------------------------------- */
+
+    --blacksmith-font-size-xs:   0.8em;
+    --blacksmith-font-size-sm:   0.85em;
+    --blacksmith-font-size-base: 1em;
+    --blacksmith-font-size-md:   1.1em;
+    --blacksmith-font-size-lg:   1.3em;
+    --blacksmith-font-size-xl:   1.5em;
+
+    --blacksmith-font-weight-light:  100;
+    --blacksmith-font-weight-normal: 400;
+    --blacksmith-font-weight-bold:   700;
+    --blacksmith-font-weight-black:  900;
+
+
+    /* -------------------------------------------------------- */
+    /* --- BORDER RADIUS ------------------------------------- */
+    /* -------------------------------------------------------- */
+
+    --blacksmith-radius-sm:   3px;
+    --blacksmith-radius-md:   4px;
+    --blacksmith-radius-lg:   5px;
+    --blacksmith-radius-pill: 16px;
+
+
+    /* -------------------------------------------------------- */
+    /* --- ELEVATION / SHADOW -------------------------------- */
+    /* -------------------------------------------------------- */
+
+    --blacksmith-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --blacksmith-shadow-md: 0 2px 4px rgba(0, 0, 0, 0.4);
+    --blacksmith-shadow-lg: 0 4px 10px rgba(0, 0, 0, 0.6);
+
+}

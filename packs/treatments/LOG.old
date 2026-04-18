@@ -1,3 +1,4 @@
-2026/04/14-15:54:13.837 9fe8 Recovering log #2866
-2026/04/14-15:54:13.852 9fe8 Delete type=0 #2866
-2026/04/14-15:54:13.855 9fe8 Delete type=3 #2865
+2026/04/17-20:57:09.887 df08 Log #2857: 0 ops saved to Table #2858 OK
+2026/04/17-20:57:09.890 df08 Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\treatments/002857.log: OK
+2026/04/17-20:57:09.897 df08 Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\treatments/MANIFEST-002869: OK
+2026/04/17-20:57:09.906 df08 **** Repaired leveldb C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\treatments; recovered 0 files; 0 bytes. Some data may have been lost. ****

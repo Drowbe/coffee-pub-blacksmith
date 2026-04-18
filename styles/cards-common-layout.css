@@ -2,14 +2,14 @@
 /* --- CHAT CARDS - COMMON ------------ */
 /* ------------------------------------ */
 
-/* 
-    This is the new, clean, simplified card structure. 
+/*
+    This is the new, clean, simplified card structure.
     It's used for all the new cards, and the old cards are being converted to match it.
     The new SPECIFIC cards are:
     - Round Summary
     - Turn Details
     - Party Stats
-    - Skill Rolls    
+    - Skill Rolls
 */
 
 
@@ -17,17 +17,17 @@
 
 /* CSS Variables - Default Theme Colors (can be overridden by themes) */
 :root {
-    --blacksmith-card-bg: #ffffff;
-    --blacksmith-card-border: #594a3c;
-    --blacksmith-card-text: #594a3c;
-    --blacksmith-card-header-text: #594a3c;
-    --blacksmith-card-section-header-text: #481515;
+    --blacksmith-card-bg: var(--blacksmith-surface-0);
+    --blacksmith-card-border: var(--blacksmith-color-brand);
+    --blacksmith-card-text: var(--blacksmith-color-brand);
+    --blacksmith-card-header-text: var(--blacksmith-color-brand);
+    --blacksmith-card-section-header-text: var(--blacksmith-color-brand-dark);
     --blacksmith-card-section-header-border: rgba(0, 0, 0, 0.2);
-    --blacksmith-card-section-subheader-text: #481515;
+    --blacksmith-card-section-subheader-text: var(--blacksmith-color-brand-dark);
     --blacksmith-card-section-subheader-bg: rgba(0, 0, 0, 0.1);
-    --blacksmith-card-section-content-text: #594a3c;
-    --blacksmith-card-hover-color: #c15701;
-    --blacksmith-card-button-text: #594a3c;
+    --blacksmith-card-section-content-text: var(--blacksmith-color-brand);
+    --blacksmith-card-hover-color: var(--blacksmith-color-brand-accent);
+    --blacksmith-card-button-text: var(--blacksmith-color-brand);
     --blacksmith-card-button-border: #999;
     --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
@@ -42,10 +42,10 @@
     /* Layout Properties */
     padding: 0;
     margin: 0;
-    font-family: var(--dnd5e-font-roboto); 
+    font-family: var(--dnd5e-font-roboto);
     background-color: var(--blacksmith-card-bg);
     border: 1px solid var(--blacksmith-card-border);
-    border-radius: 5px;
+    border-radius: var(--blacksmith-radius-lg);
     padding: 0.5em;
     margin-bottom: 0em;
 }
@@ -55,14 +55,14 @@
 .blacksmith-card .fas {
     width: 14px;
     text-align: center;
-    margin-right: 4px;
-    padding-top: 2px;
+    margin-right: var(--blacksmith-space-2);
+    padding-top: var(--blacksmith-space-1);
 }
 
 /* Layout adjustments when any theme is applied */
 .blacksmith-card[class*="theme-"] {
-    border-radius: 4px;
-    padding: 6px;
+    border-radius: var(--blacksmith-radius-md);
+    padding: var(--blacksmith-space-3);
     margin-bottom: 0px;
 }
 
@@ -81,13 +81,13 @@
 
 .blacksmith-card .card-header {
     font-family: "Modesto Condensed";
-    font-size: 1.5em;
-    font-weight: 900;
+    font-size: var(--blacksmith-font-size-xl);
+    font-weight: var(--blacksmith-font-weight-black);
     color: var(--blacksmith-card-header-text);
     line-height: 1.1;
     display: flex;
     align-items: center; /* vertical center */
-    gap: 6px;
+    gap: var(--blacksmith-space-3);
 }
 
 /* Only add margin when section is not collapsed */
@@ -110,36 +110,36 @@
 .blacksmith-card .section-header {
     border-top: 0px dotted var(--blacksmith-card-section-header-border);
     border-bottom: 1px dotted var(--blacksmith-card-section-header-border);
-    margin-top: 10px;
-    margin-bottom: 6px;
+    margin-top: var(--blacksmith-space-5);
+    margin-bottom: var(--blacksmith-space-3);
     padding-top: 0px;
     padding-bottom: 3px;
-    font-size: 1.0em;
-    font-weight: 900;
+    font-size: var(--blacksmith-font-size-base);
+    font-weight: var(--blacksmith-font-weight-black);
     text-transform: uppercase;
     color: var(--blacksmith-card-section-header-text);
 }
 
 .blacksmith-card .section-header i {
     margin-right: 3px;
-    padding-top: 2px;
+    padding-top: var(--blacksmith-space-1);
 }
 .blacksmith-card .section-subheader {
     color: var(--blacksmith-card-section-subheader-text);
     text-align: center;
-    font-weight: 900;
-    font-size: 1.3em;
-    padding: 6px;
+    font-weight: var(--blacksmith-font-weight-black);
+    font-size: var(--blacksmith-font-size-lg);
+    padding: var(--blacksmith-space-3);
     background: var(--blacksmith-card-section-subheader-bg);
     border: 0px solid rgba(170, 2, 0, 0.4);
-    border-radius: 4px;
-    margin-top: 10px;
-    margin-bottom: 6px;
+    border-radius: var(--blacksmith-radius-md);
+    margin-top: var(--blacksmith-space-5);
+    margin-bottom: var(--blacksmith-space-3);
     text-transform: uppercase;
 }
 .blacksmith-card .section-subheader i {
     margin-right: 3px;
-    padding-top: 2px;
+    padding-top: var(--blacksmith-space-1);
 }
 
 /* ********** SECTION CONTENT ********** */
@@ -147,9 +147,9 @@
 /* Section content styling - works with both old and new collapsible structures */
 .blacksmith-card .section-content,
 .blacksmith-card .collapsible-content {
-    font-family: var(--dnd5e-font-roboto); 
-    font-size: 1.0em;
-    margin-top: 10px !important;
+    font-family: var(--dnd5e-font-roboto);
+    font-size: var(--blacksmith-font-size-base);
+    margin-top: var(--blacksmith-space-5) !important;
     color: var(--blacksmith-card-section-content-text);
 }
 
@@ -157,8 +157,8 @@
 .blacksmith-card .collapsible-content.section-dark {
     background-color: var(--blacksmith-card-background);
     border: 1px solid var(--blacksmith-card-border-color);
-    padding: 4px 6px 4px 6px;
-    border-radius: 4px;
+    padding: var(--blacksmith-space-2) var(--blacksmith-space-3);
+    border-radius: var(--blacksmith-radius-md);
 }
 
 /* Foundry handles collapsing, but we keep this for backward compatibility */
@@ -174,48 +174,43 @@
 
 .blacksmith-card .section-content p,
 .blacksmith-card .collapsible-content p {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--blacksmith-space-4) 0;
 }
 
 .blacksmith-card .section-content ul,
 .blacksmith-card .collapsible-content ul {
     margin: 5px 0;
-    padding-left: 20px;
+    padding-left: var(--blacksmith-space-10);
 }
 
 .blacksmith-card .section-content li,
 .blacksmith-card .collapsible-content li {
-    margin: 2px 0;
+    margin: var(--blacksmith-space-1) 0;
 }
 
 
 .blacksmith-card .section-content img,
 .blacksmith-card .collapsible-content img {
     border: 1px solid var(--blacksmith-card-border-color) !important;
-    border-radius: 4px !important;
-    margin: 6px auto !important;
+    border-radius: var(--blacksmith-radius-md) !important;
+    margin: var(--blacksmith-space-3) auto;
     padding: 0 !important;
 }
-
-
-
-
-
 
 
 .blacksmith-card .section-label {
     font-weight: bold;
     color: var(--color-text-dark-primary);
-    margin: 4px 0;
-    padding: 4px 8px;
+    margin: var(--blacksmith-space-2) 0;
+    padding: var(--blacksmith-space-2) var(--blacksmith-space-4);
     font-size: var(--font-size-13);
 }
 
 .blacksmith-card .section-description {
     font-style: normal;
     color: var(--color-text-dark-secondary);
-    margin: 4px 0;
-    padding: 4px 8px;
+    margin: var(--blacksmith-space-2) 0;
+    padding: var(--blacksmith-space-2) var(--blacksmith-space-4);
     font-size: var(--font-size-13);
     border-left: 3px solid var(--color-border-light-tertiary);
 }
@@ -263,44 +258,44 @@
 .section-table {
     display: grid;
     grid-template-columns: 1fr 2fr;
-    gap: 4px;
+    gap: var(--blacksmith-space-2);
     background: rgba(0, 0, 0, 0.00);
     border: 0px solid rgba(0, 0, 0, 0.07);
-    border-radius: 4px;
-    margin-top: 10px;
-    margin-bottom: 10px;
+    border-radius: var(--blacksmith-radius-md);
+    margin-top: var(--blacksmith-space-5);
+    margin-bottom: var(--blacksmith-space-5);
 }
 
 .row-label {
-    font-weight: 400;
+    font-weight: var(--blacksmith-font-weight-normal);
     background: rgba(0, 0, 0, 0.3);
     color: rgba(255, 255, 255, 0.8);
     margin: 0px 0;
-    padding: 4px 6px;
-    font-size: 1.0em;
+    padding: var(--blacksmith-space-2) var(--blacksmith-space-3);
+    font-size: var(--blacksmith-font-size-base);
     text-align: right;
-    border-radius: 4px 0px 0px 4px;
-}   
+    border-radius: var(--blacksmith-radius-md) 0px 0px var(--blacksmith-radius-md);
+}
 
 .label-dimmed {
     background: rgba(101, 18, 1, 0.3);
     color: rgba(255, 255, 255, 0.8);
-}   
+}
 
 .label-highlighted {
     background: rgba(64, 99, 1, 0.4);
     color: rgba(255, 255, 255, 0.8);
-}   
+}
 
 .row-content {
     font-style: inherit;
     font-weight: 600;
-    font-size: 1.0em;
+    font-size: var(--blacksmith-font-size-base);
     background: rgba(0, 0, 0, 0.05);
     color: rgba(0, 0, 0, 0.7);
     margin: 0px 0;
-    padding: 4px 6px;
-    border-radius: 0px 4px 4px 0px;
+    padding: var(--blacksmith-space-2) var(--blacksmith-space-3);
+    border-radius: 0px var(--blacksmith-radius-md) var(--blacksmith-radius-md) 0px;
 }
 
 
@@ -314,30 +309,30 @@
     justify-content: space-between;
     padding: 0;
     border: 0px solid var(--blacksmith-card-button-border);
-    border-radius: 3px;
+    border-radius: var(--blacksmith-radius-sm);
     background: var(--blacksmith-card-button-container-bg);
-    margin-top: 10px;
+    margin-top: var(--blacksmith-space-5);
     margin-bottom: 0px;
     margin-left: 0px;
     margin-right: 0px;
-    gap: 2px;
+    gap: var(--blacksmith-space-1);
 }
 .blacksmith-chat-buttons button.chat-button {
     width: 100%;
     text-align: left;
     background: none;
     border: 1px solid var(--blacksmith-card-button-border);
-    padding: 1px 6px;
-    margin-top: 2px;
-    margin-bottom: 2px;
-    margin-left: 2px;
-    margin-right: 2px;
+    padding: 1px var(--blacksmith-space-3);
+    margin-top: var(--blacksmith-space-1);
+    margin-bottom: var(--blacksmith-space-1);
+    margin-left: var(--blacksmith-space-1);
+    margin-right: var(--blacksmith-space-1);
     font-size: var(--font-size-13);
     display: flex;
     align-items: center;
     justify-content: flex-start;
     color: var(--blacksmith-card-button-text);
-    font-weight: bold;
+    font-weight: var(--blacksmith-font-weight-bold);
     text-transform: uppercase;
 }
 .blacksmith-chat-buttons button.chat-button:hover {
@@ -346,7 +341,7 @@
 .blacksmith-chat-buttons button.chat-button i {
     color: var(--blacksmith-card-button-text);
     margin-top: 0px;
-    margin-right: 4px;
+    margin-right: var(--blacksmith-space-2);
     flex-shrink: 0;
 }
 
@@ -358,62 +353,62 @@
 
 /* HR */
 .blacksmith-card hr {
-    margin: 4px 0;
+    margin: var(--blacksmith-space-2) 0;
     padding: 0;
     border: none;
     border-top: 1px dotted #323030;
 }
 /* H1 */
 .blacksmith-card h1 {
-    font-weight:550;
+    font-weight: 550;
     font-size: 1.2em;
     font-style: normal;
     text-transform: uppercase;
-	display: inline; 
-    margin: 4px 0;
-    padding: 0 0 4px 0;
+	display: inline;
+    margin: var(--blacksmith-space-2) 0;
+    padding: 0 0 var(--blacksmith-space-2) 0;
 }
 /* H2 */
 .blacksmith-card h2 {
-	font-weight:550;
-    font-size: 1.0em;
+	font-weight: 550;
+    font-size: var(--blacksmith-font-size-base);
 	text-transform: uppercase;
-    margin: 4px 0;
+    margin: var(--blacksmith-space-2) 0;
     padding: 0;
 }
 /* H3 */
 .blacksmith-card h3 {
-	font-weight:400;
-    font-size: 0.85em;
-    margin: 10px 0 0 0;
+	font-weight: var(--blacksmith-font-weight-normal);
+    font-size: var(--blacksmith-font-size-sm);
+    margin: var(--blacksmith-space-5) 0 0 0;
     padding: 0;
 }
 /* Lists */
 .blacksmith-card ol,
 .blacksmith-card ul {
-	font-weight:400;
-    font-size: 1.0em;
-    margin: 5px 0 5px 20px;
+	font-weight: var(--blacksmith-font-weight-normal);
+    font-size: var(--blacksmith-font-size-base);
+    margin: 5px 0 5px var(--blacksmith-space-10);
     padding: 0;
 }
 /* List Items */
 .blacksmith-card li {
-	font-weight:400;
+	font-weight: var(--blacksmith-font-weight-normal);
     font-size: 0.9em;
-    margin: 2px 0 0 0;
+    margin: var(--blacksmith-space-1) 0 0 0;
     padding: 0;
 }
 /* Paragraph */
 .blacksmith-card p {
-	font-weight:400;
-    font-size: 1.0em;
+	font-weight: var(--blacksmith-font-weight-normal);
+    font-size: var(--blacksmith-font-size-base);
     margin: 0;
-    padding: 2px 0;
+    padding: var(--blacksmith-space-1) 0;
 }
 /* Table */
 .blacksmith-card table {
-    font-size: 0.8em;
-    margin: 8px 0;
+    font-size: var(--blacksmith-font-size-xs);
+    margin: var(--blacksmith-space-4) 0;
     border-top: 1px solid #BDB7A0;
 	border-bottom: 1px solid #BDB7A0;
 	border-left: 1px dotted #BDB7A0;
@@ -421,28 +416,28 @@
 }
 /* Table Heading */
 .blacksmith-card table th {
-    font-size: 1.0em;
+    font-size: var(--blacksmith-font-size-base);
 	vertical-align: bottom;
-    padding: 3px 8px;
+    padding: 3px var(--blacksmith-space-4);
     background: #E5E1D5;
 	border-bottom: 1px solid #BDB7A0;
 }
 /* Table Row */
 .blacksmith-card table tr {
-    font-size: 1.0em;
-    padding: 3px 4px;
+    font-size: var(--blacksmith-font-size-base);
+    padding: 3px var(--blacksmith-space-2);
     background: #F3F1E9;
     border-bottom: 1px dotted #CAC5B0;
 }
 /* Table Cell */
 .blacksmith-card table td {
-    font-size: 1.0em;
-    padding: 3px 8px;
+    font-size: var(--blacksmith-font-size-base);
+    padding: 3px var(--blacksmith-space-4);
 }
 /* Preformatted */
 .blacksmith-card pre {
     white-space: pre-wrap;
-	font-size: 0.8em;
+	font-size: var(--blacksmith-font-size-xs);
 	font-family: var(--font-primary);
     margin: 0;
     padding: 3px 0;
@@ -458,48 +453,48 @@
 /* *****      MARKDOWN OVERRIDES          ***** */
 /* ******************************************** */
 .blacksmith-card .markdown-div {
-	font-size: 1.0em;
+	font-size: var(--blacksmith-font-size-base);
 }
 .blacksmith-card .markdown-h1 {
-	font-size: 1.3em;
-	font-weight: 900;
+	font-size: var(--blacksmith-font-size-lg);
+	font-weight: var(--blacksmith-font-weight-black);
 }
 .blacksmith-card .markdown-h2 {
-	font-size: 1.1em;
-	font-weight: 900;
+	font-size: var(--blacksmith-font-size-md);
+	font-weight: var(--blacksmith-font-weight-black);
 }
 .blacksmith-card .markdown-h3 {
 	font-size: 0.9em;
-	font-weight: 900;
+	font-weight: var(--blacksmith-font-weight-black);
 }
 .blacksmith-card .markdown-p {
-	font-size: 1.0em;
-	font-weight: 400;
-	margin: 4px 0;
+	font-size: var(--blacksmith-font-size-base);
+	font-weight: var(--blacksmith-font-weight-normal);
+	margin: var(--blacksmith-space-2) 0;
 }
 .blacksmith-card .markdown-blockquote {
 	background-color: #f0ecdd;
-	padding: 3px 8px;
-	margin: 10px 0;
+	padding: 3px var(--blacksmith-space-4);
+	margin: var(--blacksmith-space-5) 0;
 	border-left: 5px solid #8a857c;
 	border-right: 0 solid #8a857c;
 	border-top: 0 solid #8a857c;
 	border-bottom: 0 solid #8a857c;
 	box-shadow: 0 0 0 0 #8a857c;
-	border-radius: 2px;
+	border-radius: var(--blacksmith-radius-sm);
 }
 .blacksmith-card .markdown-ul {
-	font-size: 1.0em;
-	font-weight: 400;
-	padding: 3px 8px 3px 0;
-	margin: 4px 0;
+	font-size: var(--blacksmith-font-size-base);
+	font-weight: var(--blacksmith-font-weight-normal);
+	padding: 3px var(--blacksmith-space-4) 3px 0;
+	margin: var(--blacksmith-space-2) 0;
 	list-style-type: disc;
 }
 .blacksmith-card .markdown-ol {
-	font-size: 1.0em;
-	font-weight: 400;
-	padding: 3px 8px 3px 0;
-	margin: 4px 0;
+	font-size: var(--blacksmith-font-size-base);
+	font-weight: var(--blacksmith-font-weight-normal);
+	padding: 3px var(--blacksmith-space-4) 3px 0;
+	margin: var(--blacksmith-space-2) 0;
 	list-style-type: decimal-leading-zero;
 }
 .blacksmith-card .markdown-hr {
@@ -576,34 +571,34 @@
     display: flex;
     align-items: center;
     background: var(--blacksmith-card-background);
-    border-radius: 4px;
-    padding: 6px 6px 6px 6px;
-    margin: 6px 0;
+    border-radius: var(--blacksmith-radius-md);
+    padding: var(--blacksmith-space-3);
+    margin: var(--blacksmith-space-3) 0;
 }
 .blacksmith-card .container-user .token-image {
     height: 32px;
-    border-radius: 4px;
-    margin-right: 4px;
+    border-radius: var(--blacksmith-radius-md);
+    margin-right: var(--blacksmith-space-2);
     flex-shrink: 0;
 }
 
 .blacksmith-card .container-user .token-text-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 2px;         /* controls the space between the two lines */
-    line-height: 1.1; /* keeps things tight */
+    gap: var(--blacksmith-space-1);
+    line-height: 1.1;
 }
 
 
 .blacksmith-card .container-user .token-name {
-    font-weight: 900;
-    font-size: 1.1em;
+    font-weight: var(--blacksmith-font-weight-black);
+    font-size: var(--blacksmith-font-size-md);
     margin: 0;
 }
 
 .blacksmith-card .container-user .token-character {
-    font-weight: 100;
-    font-size: 0.85em;
+    font-weight: var(--blacksmith-font-weight-light);
+    font-size: var(--blacksmith-font-size-sm);
     margin: 0;
 }
 
@@ -613,4 +608,4 @@
     display: block; /* makes sure no weird inline line-box behavior */
 }
 
-  
+

@@ -2,6 +2,9 @@
 /* --- LOAD COMMON CSS FILES ---------- */
 /* ------------------------------------ */
 
+/* --- Design Tokens (load first) -- */
+@import "vars.css";
+
 /* --- Shared ---------------------- */
 @import "common.css";
 @import "settings.css";

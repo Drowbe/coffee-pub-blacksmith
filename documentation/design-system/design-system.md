@@ -49,6 +49,7 @@ All styles are loaded from `styles/default.css`, which `@import`s every other CS
 coffee-pub-blacksmith/
 ├── styles/
 │   ├── default.css               ← Master entry point (@imports everything)
+│   ├── vars.css                  ← Design tokens — loaded FIRST (spacing, color, type, radius, shadow)
 │   ├── common.css                ← :root layout variables, chat/scene cleanup
 │   ├── cards-common-layout.css   ← Base card component (layout + typography)
 │   ├── cards-common-themes.css   ← Card theme color overrides (ONLY colors here)
@@ -94,7 +95,9 @@ coffee-pub-blacksmith/
 
 ## 3. CSS Custom Properties (Tokens)
 
-All variables are defined on `:root` and available globally in Foundry VTT.
+All primitive tokens are defined in `styles/vars.css`, which is the first file imported by `default.css`. They are available globally in Foundry VTT — child modules do not need to import anything.
+
+**Rule for new code:** Never write a hardcoded color, spacing value, font size, border radius, or box-shadow in new CSS. Always reference a token from `vars.css`. If no token fits, add one to `vars.css` first.
 
 ### 3.1 Card System Tokens
 
