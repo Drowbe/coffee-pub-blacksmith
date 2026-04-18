@@ -23,14 +23,11 @@
     /* --- SPACING -------------------------------------------- */
     /* -------------------------------------------------------- */
 
-    --blacksmith-space-1:  2px;
-    --blacksmith-space-2:  4px;
-    --blacksmith-space-3:  6px;
-    --blacksmith-space-4:  8px;
-    --blacksmith-space-5:  10px;
-    --blacksmith-space-6:  12px;
-    --blacksmith-space-8:  16px;
-    --blacksmith-space-10: 20px;
+    --blacksmith-space-xs: 2px;
+    --blacksmith-space-sm: 4px;
+    --blacksmith-space-md: 8px;
+    --blacksmith-space-lg: 12px;
+    --blacksmith-space-xl: 20px;
 
 
     /* -------------------------------------------------------- */

@@ -55,14 +55,14 @@
 .blacksmith-card .fas {
     width: 14px;
     text-align: center;
-    margin-right: var(--blacksmith-space-2);
-    padding-top: var(--blacksmith-space-1);
+    margin-right: var(--blacksmith-space-sm);
+    padding-top: var(--blacksmith-space-xs);
 }
 
 /* Layout adjustments when any theme is applied */
 .blacksmith-card[class*="theme-"] {
     border-radius: var(--blacksmith-radius-md);
-    padding: var(--blacksmith-space-3);
+    padding: var(--blacksmith-space-md);
     margin-bottom: 0px;
 }
 
@@ -87,7 +87,7 @@
     line-height: 1.1;
     display: flex;
     align-items: center; /* vertical center */
-    gap: var(--blacksmith-space-3);
+    gap: var(--blacksmith-space-md);
 }
 
 /* Only add margin when section is not collapsed */
@@ -110,8 +110,8 @@
 .blacksmith-card .section-header {
     border-top: 0px dotted var(--blacksmith-card-section-header-border);
     border-bottom: 1px dotted var(--blacksmith-card-section-header-border);
-    margin-top: var(--blacksmith-space-5);
-    margin-bottom: var(--blacksmith-space-3);
+    margin-top: var(--blacksmith-space-lg);
+    margin-bottom: var(--blacksmith-space-md);
     padding-top: 0px;
     padding-bottom: 3px;
     font-size: var(--blacksmith-font-size-base);
@@ -122,24 +122,24 @@
 
 .blacksmith-card .section-header i {
     margin-right: 3px;
-    padding-top: var(--blacksmith-space-1);
+    padding-top: var(--blacksmith-space-xs);
 }
 .blacksmith-card .section-subheader {
     color: var(--blacksmith-card-section-subheader-text);
     text-align: center;
     font-weight: var(--blacksmith-font-weight-black);
     font-size: var(--blacksmith-font-size-lg);
-    padding: var(--blacksmith-space-3);
+    padding: var(--blacksmith-space-md);
     background: var(--blacksmith-card-section-subheader-bg);
     border: 0px solid rgba(170, 2, 0, 0.4);
     border-radius: var(--blacksmith-radius-md);
-    margin-top: var(--blacksmith-space-5);
-    margin-bottom: var(--blacksmith-space-3);
+    margin-top: var(--blacksmith-space-lg);
+    margin-bottom: var(--blacksmith-space-md);
     text-transform: uppercase;
 }
 .blacksmith-card .section-subheader i {
     margin-right: 3px;
-    padding-top: var(--blacksmith-space-1);
+    padding-top: var(--blacksmith-space-xs);
 }
 
 /* ********** SECTION CONTENT ********** */
@@ -149,7 +149,7 @@
 .blacksmith-card .collapsible-content {
     font-family: var(--dnd5e-font-roboto);
     font-size: var(--blacksmith-font-size-base);
-    margin-top: var(--blacksmith-space-5) !important;
+    margin-top: var(--blacksmith-space-lg) !important;
     color: var(--blacksmith-card-section-content-text);
 }
 
@@ -157,7 +157,7 @@
 .blacksmith-card .collapsible-content.section-dark {
     background-color: var(--blacksmith-card-background);
     border: 1px solid var(--blacksmith-card-border-color);
-    padding: var(--blacksmith-space-2) var(--blacksmith-space-3);
+    padding: var(--blacksmith-space-sm) var(--blacksmith-space-md);
     border-radius: var(--blacksmith-radius-md);
 }
 
@@ -174,18 +174,18 @@
 
 .blacksmith-card .section-content p,
 .blacksmith-card .collapsible-content p {
-    margin: 0 0 var(--blacksmith-space-4) 0;
+    margin: 0 0 var(--blacksmith-space-md) 0;
 }
 
 .blacksmith-card .section-content ul,
 .blacksmith-card .collapsible-content ul {
     margin: 5px 0;
-    padding-left: var(--blacksmith-space-10);
+    padding-left: var(--blacksmith-space-xl);
 }
 
 .blacksmith-card .section-content li,
 .blacksmith-card .collapsible-content li {
-    margin: var(--blacksmith-space-1) 0;
+    margin: var(--blacksmith-space-xs) 0;
 }
 
 
@@ -193,7 +193,7 @@
 .blacksmith-card .collapsible-content img {
     border: 1px solid var(--blacksmith-card-border-color) !important;
     border-radius: var(--blacksmith-radius-md) !important;
-    margin: var(--blacksmith-space-3) auto;
+    margin: var(--blacksmith-space-md) auto;
     padding: 0 !important;
 }
 
@@ -201,16 +201,16 @@
 .blacksmith-card .section-label {
     font-weight: bold;
     color: var(--color-text-dark-primary);
-    margin: var(--blacksmith-space-2) 0;
-    padding: var(--blacksmith-space-2) var(--blacksmith-space-4);
+    margin: var(--blacksmith-space-sm) 0;
+    padding: var(--blacksmith-space-sm) var(--blacksmith-space-md);
     font-size: var(--font-size-13);
 }
 
 .blacksmith-card .section-description {
     font-style: normal;
     color: var(--color-text-dark-secondary);
-    margin: var(--blacksmith-space-2) 0;
-    padding: var(--blacksmith-space-2) var(--blacksmith-space-4);
+    margin: var(--blacksmith-space-sm) 0;
+    padding: var(--blacksmith-space-sm) var(--blacksmith-space-md);
     font-size: var(--font-size-13);
     border-left: 3px solid var(--color-border-light-tertiary);
 }
@@ -258,12 +258,12 @@
 .section-table {
     display: grid;
     grid-template-columns: 1fr 2fr;
-    gap: var(--blacksmith-space-2);
+    gap: var(--blacksmith-space-sm);
     background: rgba(0, 0, 0, 0.00);
     border: 0px solid rgba(0, 0, 0, 0.07);
     border-radius: var(--blacksmith-radius-md);
-    margin-top: var(--blacksmith-space-5);
-    margin-bottom: var(--blacksmith-space-5);
+    margin-top: var(--blacksmith-space-lg);
+    margin-bottom: var(--blacksmith-space-lg);
 }
 
 .row-label {
@@ -271,7 +271,7 @@
     background: rgba(0, 0, 0, 0.3);
     color: rgba(255, 255, 255, 0.8);
     margin: 0px 0;
-    padding: var(--blacksmith-space-2) var(--blacksmith-space-3);
+    padding: var(--blacksmith-space-sm) var(--blacksmith-space-md);
     font-size: var(--blacksmith-font-size-base);
     text-align: right;
     border-radius: var(--blacksmith-radius-md) 0px 0px var(--blacksmith-radius-md);
@@ -294,7 +294,7 @@
     background: rgba(0, 0, 0, 0.05);
     color: rgba(0, 0, 0, 0.7);
     margin: 0px 0;
-    padding: var(--blacksmith-space-2) var(--blacksmith-space-3);
+    padding: var(--blacksmith-space-sm) var(--blacksmith-space-md);
     border-radius: 0px var(--blacksmith-radius-md) var(--blacksmith-radius-md) 0px;
 }
 
@@ -311,22 +311,22 @@
     border: 0px solid var(--blacksmith-card-button-border);
     border-radius: var(--blacksmith-radius-sm);
     background: var(--blacksmith-card-button-container-bg);
-    margin-top: var(--blacksmith-space-5);
+    margin-top: var(--blacksmith-space-lg);
     margin-bottom: 0px;
     margin-left: 0px;
     margin-right: 0px;
-    gap: var(--blacksmith-space-1);
+    gap: var(--blacksmith-space-xs);
 }
 .blacksmith-chat-buttons button.chat-button {
     width: 100%;
     text-align: left;
     background: none;
     border: 1px solid var(--blacksmith-card-button-border);
-    padding: 1px var(--blacksmith-space-3);
-    margin-top: var(--blacksmith-space-1);
-    margin-bottom: var(--blacksmith-space-1);
-    margin-left: var(--blacksmith-space-1);
-    margin-right: var(--blacksmith-space-1);
+    padding: 1px var(--blacksmith-space-md);
+    margin-top: var(--blacksmith-space-xs);
+    margin-bottom: var(--blacksmith-space-xs);
+    margin-left: var(--blacksmith-space-xs);
+    margin-right: var(--blacksmith-space-xs);
     font-size: var(--font-size-13);
     display: flex;
     align-items: center;
@@ -341,7 +341,7 @@
 .blacksmith-chat-buttons button.chat-button i {
     color: var(--blacksmith-card-button-text);
     margin-top: 0px;
-    margin-right: var(--blacksmith-space-2);
+    margin-right: var(--blacksmith-space-sm);
     flex-shrink: 0;
 }
 
@@ -353,7 +353,7 @@
 
 /* HR */
 .blacksmith-card hr {
-    margin: var(--blacksmith-space-2) 0;
+    margin: var(--blacksmith-space-sm) 0;
     padding: 0;
     border: none;
     border-top: 1px dotted #323030;
@@ -365,22 +365,22 @@
     font-style: normal;
     text-transform: uppercase;
 	display: inline;
-    margin: var(--blacksmith-space-2) 0;
-    padding: 0 0 var(--blacksmith-space-2) 0;
+    margin: var(--blacksmith-space-sm) 0;
+    padding: 0 0 var(--blacksmith-space-sm) 0;
 }
 /* H2 */
 .blacksmith-card h2 {
 	font-weight: 550;
     font-size: var(--blacksmith-font-size-base);
 	text-transform: uppercase;
-    margin: var(--blacksmith-space-2) 0;
+    margin: var(--blacksmith-space-sm) 0;
     padding: 0;
 }
 /* H3 */
 .blacksmith-card h3 {
 	font-weight: var(--blacksmith-font-weight-normal);
     font-size: var(--blacksmith-font-size-sm);
-    margin: var(--blacksmith-space-5) 0 0 0;
+    margin: var(--blacksmith-space-lg) 0 0 0;
     padding: 0;
 }
 /* Lists */
@@ -388,14 +388,14 @@
 .blacksmith-card ul {
 	font-weight: var(--blacksmith-font-weight-normal);
     font-size: var(--blacksmith-font-size-base);
-    margin: 5px 0 5px var(--blacksmith-space-10);
+    margin: 5px 0 5px var(--blacksmith-space-xl);
     padding: 0;
 }
 /* List Items */
 .blacksmith-card li {
 	font-weight: var(--blacksmith-font-weight-normal);
     font-size: 0.9em;
-    margin: var(--blacksmith-space-1) 0 0 0;
+    margin: var(--blacksmith-space-xs) 0 0 0;
     padding: 0;
 }
 /* Paragraph */
@@ -403,12 +403,12 @@
 	font-weight: var(--blacksmith-font-weight-normal);
     font-size: var(--blacksmith-font-size-base);
     margin: 0;
-    padding: var(--blacksmith-space-1) 0;
+    padding: var(--blacksmith-space-xs) 0;
 }
 /* Table */
 .blacksmith-card table {
     font-size: var(--blacksmith-font-size-xs);
-    margin: var(--blacksmith-space-4) 0;
+    margin: var(--blacksmith-space-md) 0;
     border-top: 1px solid #BDB7A0;
 	border-bottom: 1px solid #BDB7A0;
 	border-left: 1px dotted #BDB7A0;
@@ -418,21 +418,21 @@
 .blacksmith-card table th {
     font-size: var(--blacksmith-font-size-base);
 	vertical-align: bottom;
-    padding: 3px var(--blacksmith-space-4);
+    padding: 3px var(--blacksmith-space-md);
     background: #E5E1D5;
 	border-bottom: 1px solid #BDB7A0;
 }
 /* Table Row */
 .blacksmith-card table tr {
     font-size: var(--blacksmith-font-size-base);
-    padding: 3px var(--blacksmith-space-2);
+    padding: 3px var(--blacksmith-space-sm);
     background: #F3F1E9;
     border-bottom: 1px dotted #CAC5B0;
 }
 /* Table Cell */
 .blacksmith-card table td {
     font-size: var(--blacksmith-font-size-base);
-    padding: 3px var(--blacksmith-space-4);
+    padding: 3px var(--blacksmith-space-md);
 }
 /* Preformatted */
 .blacksmith-card pre {
@@ -470,12 +470,12 @@
 .blacksmith-card .markdown-p {
 	font-size: var(--blacksmith-font-size-base);
 	font-weight: var(--blacksmith-font-weight-normal);
-	margin: var(--blacksmith-space-2) 0;
+	margin: var(--blacksmith-space-sm) 0;
 }
 .blacksmith-card .markdown-blockquote {
 	background-color: #f0ecdd;
-	padding: 3px var(--blacksmith-space-4);
-	margin: var(--blacksmith-space-5) 0;
+	padding: 3px var(--blacksmith-space-md);
+	margin: var(--blacksmith-space-lg) 0;
 	border-left: 5px solid #8a857c;
 	border-right: 0 solid #8a857c;
 	border-top: 0 solid #8a857c;
@@ -486,15 +486,15 @@
 .blacksmith-card .markdown-ul {
 	font-size: var(--blacksmith-font-size-base);
 	font-weight: var(--blacksmith-font-weight-normal);
-	padding: 3px var(--blacksmith-space-4) 3px 0;
-	margin: var(--blacksmith-space-2) 0;
+	padding: 3px var(--blacksmith-space-md) 3px 0;
+	margin: var(--blacksmith-space-sm) 0;
 	list-style-type: disc;
 }
 .blacksmith-card .markdown-ol {
 	font-size: var(--blacksmith-font-size-base);
 	font-weight: var(--blacksmith-font-weight-normal);
-	padding: 3px var(--blacksmith-space-4) 3px 0;
-	margin: var(--blacksmith-space-2) 0;
+	padding: 3px var(--blacksmith-space-md) 3px 0;
+	margin: var(--blacksmith-space-sm) 0;
 	list-style-type: decimal-leading-zero;
 }
 .blacksmith-card .markdown-hr {
@@ -572,20 +572,20 @@
     align-items: center;
     background: var(--blacksmith-card-background);
     border-radius: var(--blacksmith-radius-md);
-    padding: var(--blacksmith-space-3);
-    margin: var(--blacksmith-space-3) 0;
+    padding: var(--blacksmith-space-md);
+    margin: var(--blacksmith-space-md) 0;
 }
 .blacksmith-card .container-user .token-image {
     height: 32px;
     border-radius: var(--blacksmith-radius-md);
-    margin-right: var(--blacksmith-space-2);
+    margin-right: var(--blacksmith-space-sm);
     flex-shrink: 0;
 }
 
 .blacksmith-card .container-user .token-text-wrapper {
     display: flex;
     flex-direction: column;
-    gap: var(--blacksmith-space-1);
+    gap: var(--blacksmith-space-xs);
     line-height: 1.1;
 }
 

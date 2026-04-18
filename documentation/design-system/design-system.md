@@ -99,6 +99,29 @@ All primitive tokens are defined in `styles/vars.css`, which is the first file i
 
 **Rule for new code:** Never write a hardcoded color, spacing value, font size, border radius, or box-shadow in new CSS. Always reference a token from `vars.css`. If no token fits, add one to `vars.css` first.
 
+### 3.0 Spacing Tokens
+
+Defined in `vars.css`. Use these for all padding, margin, and gap values in new CSS. Do not write bare pixel values for spacing — pick the nearest step.
+
+| Token | Value | Use |
+|---|---|---|
+| `--blacksmith-space-xs` | `2px` | Micro gaps — icon padding, hairline margins |
+| `--blacksmith-space-sm` | `4px` | Tight spacing — icon margins, dense rows |
+| `--blacksmith-space-md` | `8px` | Standard padding — buttons, compact elements |
+| `--blacksmith-space-lg` | `12px` | Section padding — card internals, form groups |
+| `--blacksmith-space-xl` | `20px` | Section separation — between major content blocks |
+
+**Rounding guide for existing values:** 2px→xs, 4px→sm, 6px→md, 8px→md, 10px→lg, 12px→lg, 16px→xl, 20px→xl
+
+**Child module usage:**
+```css
+padding: var(--blacksmith-space-lg);
+gap: var(--blacksmith-space-sm);
+margin-bottom: var(--blacksmith-space-xl);
+```
+
+---
+
 ### 3.1 Card System Tokens
 
 Defined in `cards-common-layout.css`. These are the master defaults — themes override them by scoping the same variable names to a class.
@@ -397,40 +420,27 @@ When rendering markdown inside a card, use these classes (not bare HTML tags) to
 
 ## 6. Spacing & Layout
 
-### 6.1 Common Padding Values
+### 6.1 Spacing Scale
 
-| Context | Value |
+All spacing in new CSS should use tokens from `vars.css`. See Section 3.0 for the full token table. Quick reference:
+
+```css
+--blacksmith-space-xs: 2px   /* micro gaps */
+--blacksmith-space-sm: 4px   /* tight */
+--blacksmith-space-md: 8px   /* standard */
+--blacksmith-space-lg: 12px  /* section */
+--blacksmith-space-xl: 20px  /* separation */
+```
+
+### 6.2 Common Spacing Patterns
+
+| Context | Token |
 |---|---|
-| Base card padding | `0.5em` |
-| Themed card padding | `6px` |
-| Section content / dark section | `4px 6px` |
-| Section subheader | `6px` |
-| Container-user (actor info row) | `6px` |
-| Chat buttons | `1px 6px` |
-| Menubar buttons | `2px 8px` |
-| Tooltip box | `10px` |
-
-### 6.2 Common Margin Values
-
-| Context | Value |
-|---|---|
-| `.section-header` top | `10px` |
-| `.section-header` bottom | `6px` |
-| `.section-subheader` top | `10px` |
-| `.section-subheader` bottom | `6px` |
-| Section content top | `10px` |
-| `.container-user` | `6px 0` |
-| Chat message spacing | `3px` (top + bottom) |
-
-### 6.3 Gap (Flexbox)
-
-| Context | Gap |
-|---|---|
-| Dense / icon rows | `4px` |
-| Standard flex rows | `6px` |
-| Loose / spaced groups | `8px` |
-| Menubar middle tools | `4px` |
-| Menubar end zones | `12px` |
+| Icon margins, hairline gaps | `xs` |
+| Button padding, dense row gaps | `sm` |
+| Card padding, section content gaps | `md` |
+| Section header margins, form group padding | `lg` |
+| List indentation, major block separation | `xl` |
 
 ### 6.4 Section Table Layout
 
@@ -1277,6 +1287,15 @@ The `.bh-` prefix is described as reserved but is referenced nowhere in the curr
     --blacksmith-card-button-hover-bg: rgba(R, G, B, 0.12);
     --blacksmith-card-button-container-bg: rgba(R, G, B, 0.05);
 }
+```
+
+### Spacing Token Quick Reference
+```
+--blacksmith-space-xs: 2px   ← micro (icon padding, hairlines)
+--blacksmith-space-sm: 4px   ← tight (icon margins, dense rows)
+--blacksmith-space-md: 8px   ← standard (buttons, compact elements)
+--blacksmith-space-lg: 12px  ← section (card internals, form groups)
+--blacksmith-space-xl: 20px  ← separation (between major blocks)
 ```
 
 ### JS: Safe Settings Pattern
