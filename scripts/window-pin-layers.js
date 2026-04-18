@@ -201,35 +201,43 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             `,
             bodyContent: `
                 <div class="blacksmith-pin-layers-root">
-                    <section class="blacksmith-pin-layers-section">
-                        <h3>Pin Search</h3>
-                        <div class="blacksmith-pin-layers-search">
-                            <div class="blacksmith-pin-layers-search-controls">
-                                <input type="text" class="blacksmith-input blacksmith-pin-layers-search-query" value="${esc(this.searchQuery)}" placeholder="Search pin text, type, group, or tags">
-                                <label class="blacksmith-pin-layers-search-toggle">
-                                    <input type="checkbox" class="blacksmith-pin-layers-search-hidden" ${this.includeHiddenSearch ? 'checked' : ''}>
-                                    Include filtered pins
-                                </label>
-                            </div>
-                            <div class="blacksmith-pin-layers-search-results">
-                                ${this.searchQuery
-                                    ? (searchRows || '<div class="blacksmith-pin-layers-empty">No pins matched the current search.</div>')
-                                    : '<div class="blacksmith-pin-layers-empty">Search defaults to currently visible pins. Enable "Include filtered pins" to recover hidden matches intentionally.</div>'}
+                    <div class="blacksmith-window-section">
+                        <div class="blacksmith-window-section-header"><i class="fa-solid fa-magnifying-glass"></i> Pin Search</div>
+                        <div class="blacksmith-window-section-body">
+                            <div class="blacksmith-pin-layers-search">
+                                <div class="blacksmith-pin-layers-search-controls">
+                                    <input type="text" class="blacksmith-input blacksmith-pin-layers-search-query" value="${esc(this.searchQuery)}" placeholder="Search pin text, type, group, or tags">
+                                    <label class="blacksmith-pin-layers-search-toggle">
+                                        <input type="checkbox" class="blacksmith-pin-layers-search-hidden" ${this.includeHiddenSearch ? 'checked' : ''}>
+                                        Include filtered pins
+                                    </label>
+                                </div>
+                                <div class="blacksmith-pin-layers-search-results">
+                                    ${this.searchQuery
+                                        ? (searchRows || '<div class="blacksmith-pin-layers-empty">No pins matched the current search.</div>')
+                                        : '<div class="blacksmith-pin-layers-empty">Search defaults to currently visible pins. Enable "Include filtered pins" to recover hidden matches intentionally.</div>'}
+                                </div>
                             </div>
                         </div>
-                    </section>
-                    <section class="blacksmith-pin-layers-section">
-                        <h3>Types</h3>
-                        <div class="blacksmith-pin-layers-list">${typeRows || '<div class="blacksmith-pin-layers-empty">No pin types on this scene.</div>'}</div>
-                    </section>
-                    <section class="blacksmith-pin-layers-section">
-                        <h3>Groups</h3>
-                        <div class="blacksmith-pin-layers-list">${groupRows || '<div class="blacksmith-pin-layers-empty">No groups assigned yet.</div>'}</div>
-                    </section>
-                    <section class="blacksmith-pin-layers-section">
-                        <h3>Tags</h3>
-                        <div class="blacksmith-pin-layers-list">${tagRows || '<div class="blacksmith-pin-layers-empty">No tags assigned yet.</div>'}</div>
-                    </section>
+                    </div>
+                    <div class="blacksmith-window-section">
+                        <div class="blacksmith-window-section-header"><i class="fa-solid fa-tag"></i> Types</div>
+                        <div class="blacksmith-window-section-body">
+                            <div class="blacksmith-pin-layers-list">${typeRows || '<div class="blacksmith-pin-layers-empty">No pin types on this scene.</div>'}</div>
+                        </div>
+                    </div>
+                    <div class="blacksmith-window-section">
+                        <div class="blacksmith-window-section-header"><i class="fa-solid fa-layer-group"></i> Groups</div>
+                        <div class="blacksmith-window-section-body">
+                            <div class="blacksmith-pin-layers-list">${groupRows || '<div class="blacksmith-pin-layers-empty">No groups assigned yet.</div>'}</div>
+                        </div>
+                    </div>
+                    <div class="blacksmith-window-section">
+                        <div class="blacksmith-window-section-header"><i class="fa-solid fa-tags"></i> Tags</div>
+                        <div class="blacksmith-window-section-body">
+                            <div class="blacksmith-pin-layers-list">${tagRows || '<div class="blacksmith-pin-layers-empty">No tags assigned yet.</div>'}</div>
+                        </div>
+                    </div>
                 </div>
             `,
             actionBarLeft: `<div class="blacksmith-pin-layers-hint">Groups and tags are filtered before pin DOM is created.</div>`,

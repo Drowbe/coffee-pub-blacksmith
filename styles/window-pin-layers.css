@@ -33,7 +33,6 @@
 .blacksmith-pin-layers-search {
     display: grid;
     gap: 10px;
-    padding: 12px;
 }
 
 .blacksmith-pin-layers-search-controls {
@@ -100,24 +99,6 @@
     padding: 2px 8px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.06);
-}
-
-.blacksmith-pin-layers-section {
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(0, 0, 0, 0.22);
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.blacksmith-pin-layers-section h3 {
-    margin: 0;
-    padding: 10px 12px;
-    font-size: 0.95rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: rgba(255, 240, 214, 0.9);
-    background: rgba(55, 27, 17, 0.55);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .blacksmith-pin-layers-list {

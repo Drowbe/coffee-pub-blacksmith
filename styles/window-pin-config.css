@@ -352,39 +352,6 @@ div#blacksmith-pin-config .window-content {
     color: #f2f0e6;
 }
 
-/* Section styling */
-.blacksmith-pin-config-section {
-    margin-bottom: 16px;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 8px;
-    padding: 12px;
-}
-
-.blacksmith-pin-config-section-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.85em;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #c9b993;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.blacksmith-pin-config-section-header i {
-    color: #c9b993;
-    font-size: 0.9em;
-}
-
-.blacksmith-pin-config-section-body {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
 
 /* Permissions section (GM only) */
 .blacksmith-pin-config-permissions-section .blacksmith-pin-config-permissions-default {
