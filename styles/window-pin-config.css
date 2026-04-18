@@ -22,7 +22,8 @@ div#blacksmith-pin-config .window-content {
 .blacksmith-pin-config .window-note-body {
     flex: 1;
     overflow: auto;
-    padding-bottom: 12px;
+    padding: 14px;
+    gap: 0;
 }
 
 .blacksmith-pin-config .window-note-header {

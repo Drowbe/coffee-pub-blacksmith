@@ -10,7 +10,13 @@
     overflow: hidden !important;
 }
 
-/* Variables: scope to template root */
+/* Global fallbacks — allow shared components (e.g. blacksmith-window-section) to work inside V1 windows */
+:root {
+    --blacksmith-window-accent-color: #ac9f81;
+    --blacksmith-window-border-color: #444;
+}
+
+/* Variables: scope to template root (override defaults above for V2 windows) */
 .blacksmith-window-template-root {
     --blacksmith-window-border-color: #444;
     --blacksmith-window-accent-color: #ac9f81;
