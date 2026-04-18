@@ -305,6 +305,28 @@ Hooks.once('ready', () => {
         buttonNormalTint: null,
         buttonSelectedTint: null
     });
+
+    // PIN LAYERS
+    api.registerMenubarTool('pin-layers', {
+        icon: "fa-solid fa-layer-group",
+        name: "pin-layers",
+        title: "Pin Layers",
+        tooltip: "Open Pin Layers",
+        onClick: () => api.pins?.openLayers({ sceneId: canvas?.scene?.id }),
+        zone: "left",
+        group: "pins",
+        groupOrder: 200,
+        order: 1,
+        moduleId: "blacksmith-core",
+        gmOnly: false,
+        leaderOnly: false,
+        visible: true,
+        toggleable: false,
+        active: false,
+        iconColor: null,
+        buttonNormalTint: null,
+        buttonSelectedTint: null
+    });
 });
 
 Hooks.once('canvasReady', () => {

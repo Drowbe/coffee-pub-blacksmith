@@ -1,170 +1,262 @@
+/* ================================================================== */
+/* Pin Layers window — flat Minstrel-style layout                     */
+/* ================================================================== */
+
 .blacksmith-pin-layers-window {
     min-height: 0;
 }
 
+/* Override button width-auto for this window */
 .blacksmith-pin-layers-window .blacksmith-window-btn-secondary,
-.blacksmith-pin-layers-window .blacksmith-window-btn-primary {
+.blacksmith-pin-layers-window .blacksmith-window-btn-primary,
+.blacksmith-pin-layers-window .blacksmith-window-btn-critical {
     width: auto;
 }
 
-.blacksmith-pin-layers-root {
-    display: grid;
-    padding: 14px;
+/* Icon-only button variant (delete trash) */
+.blacksmith-pin-layers-btn-icon {
+    padding: 8px 10px;
+    min-width: unset;
 }
+
+/* Compact buttons inside the profile option bar */
+.blacksmith-pin-layers-btn-sm {
+    padding: 3px 8px !important;
+    font-size: 0.82em !important;
+    min-width: unset !important;
+}
+
+.blacksmith-pin-layers-btn-sm.blacksmith-pin-layers-btn-icon {
+    padding: 3px 7px !important;
+}
+
+/* ----- Option bar: profile controls ----- */
 
 .blacksmith-pin-layers-profile-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 6px;
+    flex-wrap: nowrap;
+    width: 100%;
 }
 
 .blacksmith-pin-layers-profile-select {
-    min-width: 180px;
-    max-width: 240px;
+    min-width: 160px;
+    max-width: 200px;
 }
 
 .blacksmith-pin-layers-profile-name {
-    min-width: 180px;
-    max-width: 240px;
+    min-width: 140px;
+    max-width: 180px;
 }
 
-.blacksmith-pin-layers-search {
-    display: grid;
-    gap: 10px;
-}
+/* ----- Header summary badges ----- */
 
-.blacksmith-pin-layers-search-controls {
+.blacksmith-pin-layers-summary {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
     flex-wrap: wrap;
+}
+
+/* ----- Tools zone: search bar ----- */
+
+.blacksmith-pin-layers-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.blacksmith-pin-layers-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    position: relative;
+}
+
+.blacksmith-pin-layers-search-wrap > i {
+    color: rgba(180, 180, 180, 0.55);
+    font-size: 0.85em;
+    flex-shrink: 0;
 }
 
 .blacksmith-pin-layers-search-query {
-    min-width: 240px;
-    flex: 1 1 320px;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-right: 28px;
 }
 
-.blacksmith-pin-layers-search-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: rgba(255, 255, 255, 0.82);
-    font-size: 0.9rem;
-}
-
-.blacksmith-pin-layers-search-results {
-    display: grid;
-}
-
-.blacksmith-pin-layers-search-row {
+/* X clears the search — sits inside the input at its right edge */
+.blacksmith-pin-layers-search-clear {
+    all: unset;
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    color: rgba(200, 200, 200, 0.45);
+    cursor: pointer;
+    transition: color 0.15s ease;
 }
 
-.blacksmith-pin-layers-search-row:first-child {
+.blacksmith-pin-layers-search-clear:hover {
+    color: rgba(255, 100, 0, 0.9);
+}
+
+/* ----- Body root ----- */
+
+.blacksmith-pin-layers-root {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ----- Flat section headers (no card, just a divider row) ----- */
+
+.blacksmith-pin-layers-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.78em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--blacksmith-window-accent-color, #ac9f81);
+}
+
+.blacksmith-pin-layers-section-header i {
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.blacksmith-pin-layers-section-header-first {
     border-top: 0;
 }
 
-.blacksmith-pin-layers-search-row.is-hidden {
-    opacity: 0.72;
-}
-
-.blacksmith-pin-layers-search-main {
-    min-width: 0;
-    display: grid;
-    gap: 4px;
-}
-
-.blacksmith-pin-layers-search-title {
-    font-weight: 600;
-    color: rgba(255, 244, 224, 0.95);
-}
-
-.blacksmith-pin-layers-search-meta {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    font-size: 0.82rem;
-    color: rgba(255, 255, 255, 0.68);
-}
-
-.blacksmith-pin-layers-search-meta span {
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.06);
-}
+/* ----- Row list ----- */
 
 .blacksmith-pin-layers-list {
-    display: grid;
+    display: flex;
+    flex-direction: column;
 }
+
+/* ----- Filter row (type / group / tag) ----- */
 
 .blacksmith-pin-layers-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 10px;
+    padding: 7px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 0.1s ease;
 }
 
-.blacksmith-pin-layers-row:first-child {
-    border-top: 0;
+.blacksmith-pin-layers-row:hover {
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .blacksmith-pin-layers-row.is-hidden {
-    opacity: 0.72;
+    opacity: 0.55;
 }
 
 .blacksmith-pin-layers-row-main {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    flex: 1;
     min-width: 0;
 }
 
 .blacksmith-pin-layers-row-label {
+    flex: 1;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 0.92em;
+    color: rgba(224, 224, 224, 0.9);
 }
 
-.blacksmith-pin-layers-row-count,
-.blacksmith-pin-layers-summary span {
-    display: inline-flex;
+/* ----- Search result sub-meta tags ----- */
+
+.blacksmith-pin-layers-row-submeta {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    font-size: 0.78em;
+    color: rgba(180, 180, 180, 0.68);
+    margin-top: 2px;
+}
+
+.blacksmith-pin-layers-row-submeta span {
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.blacksmith-pin-layers-filtered-tag {
+    background: rgba(200, 60, 60, 0.15) !important;
+    color: rgba(220, 140, 140, 0.9);
+}
+
+/* ----- Pan button in search results ----- */
+
+.blacksmith-pin-layers-pan-btn {
+    flex-shrink: 0;
+    padding: 5px 10px;
+    font-size: 0.85em;
+}
+
+/* ----- Eye-icon toggle button ----- */
+
+.blacksmith-pin-layers-eye {
+    all: unset;
+    display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 2rem;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 0.85rem;
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    color: rgba(180, 180, 180, 0.4);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.15s ease, background 0.15s ease;
 }
 
-.blacksmith-pin-layers-summary {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+.blacksmith-pin-layers-eye:hover {
+    color: rgba(255, 100, 0, 0.9);
+    background: rgba(255, 100, 0, 0.1);
 }
 
-.blacksmith-pin-layers-toggle {
-    min-width: 96px;
-    justify-content: center;
+/* When the item is hidden the eye icon stays orange to signal the filter is active */
+.blacksmith-pin-layers-eye.is-hidden {
+    color: rgba(255, 100, 0, 0.65);
 }
 
-.blacksmith-pin-layers-empty,
-.blacksmith-pin-layers-hint {
-    color: rgba(255, 255, 255, 0.72);
-    font-size: 0.92rem;
+/* Delete variant — red tint instead of orange */
+.blacksmith-pin-layers-eye-delete {
+    color: rgba(180, 60, 60, 0.35);
 }
+
+.blacksmith-pin-layers-eye-delete:hover {
+    color: rgba(220, 60, 60, 0.9);
+    background: rgba(220, 60, 60, 0.1);
+}
+
+/* ----- Empty state / hint ----- */
 
 .blacksmith-pin-layers-empty {
-    padding: 12px;
+    padding: 12px 14px;
+    color: rgba(180, 180, 180, 0.55);
+    font-size: 0.88em;
+    font-style: italic;
 }
+
