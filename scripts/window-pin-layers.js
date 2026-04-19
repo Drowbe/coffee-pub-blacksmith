@@ -388,6 +388,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         root?.querySelector('.blacksmith-pin-layers-profile-select')
             ?.addEventListener('change', (e) => {
                 this._selectedProfileValue = e.target.value;
+                void this._persistLastProfile();
                 void this.render(true);
             });
 
@@ -453,6 +454,16 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         await this.render(true);
     }
 
+    async _persistLastProfile() {
+        try {
+            const bounds = game.settings.get(MODULE.ID, 'pinLayersWindowBounds') || {};
+            await game.settings.set(MODULE.ID, 'pinLayersWindowBounds', {
+                ...bounds,
+                lastProfile: this._selectedProfileValue ?? ''
+            });
+        } catch (_err) {}
+    }
+
     _getPendingProfileName() {
         return this._getRoot()?.querySelector('.blacksmith-pin-layers-profile-name')?.value?.trim() || '';
     }
@@ -462,6 +473,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         if (!name) { ui.notifications?.warn('Enter a profile name to save.'); return; }
         await PinManager.saveVisibilityProfile(name);
         this._selectedProfileValue = name;
+        await this._persistLastProfile();
         ui.notifications?.info(`Saved pin profile: ${name}`);
         await this.render(true);
     }
@@ -470,6 +482,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const name = this._selectedProfileValue;
         if (!name) { ui.notifications?.warn('Choose a saved profile to apply.'); return; }
         await PinManager.applyVisibilityProfile(name);
+        await this._persistLastProfile();
         ui.notifications?.info(`Applied pin profile: ${name}`);
         await this.render(true);
     }
@@ -478,6 +491,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const name = this._selectedProfileValue;
         if (!name) { ui.notifications?.warn('No profile selected to update.'); return; }
         await PinManager.saveVisibilityProfile(name);
+        await this._persistLastProfile();
         ui.notifications?.info(`Updated pin profile: ${name}`);
         await this.render(true);
     }
@@ -488,6 +502,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const removed = await PinManager.deleteVisibilityProfile(name);
         if (!removed) { ui.notifications?.warn(`Profile not found: ${name}`); return; }
         this._selectedProfileValue = '';
+        await this._persistLastProfile();
         ui.notifications?.info(`Deleted pin profile: ${name}`);
         await this.render(true);
     }
@@ -587,4 +602,17 @@ Hooks.once('ready', () => {
         title: 'Pins',
         moduleId: MODULE.ID
     });
+});
+
+// On each canvas load, re-apply the last selected profile so filter state is consistent after reload.
+Hooks.on('canvasReady', async () => {
+    try {
+        const bounds = game.settings.get(MODULE.ID, 'pinLayersWindowBounds') || {};
+        const profileName = bounds.lastProfile;
+        if (!profileName) return;
+        const profiles = PinManager.listVisibilityProfiles();
+        if (profiles.some(p => p.name === profileName)) {
+            await PinManager.applyVisibilityProfile(profileName);
+        }
+    } catch (_err) {}
 });
