@@ -110,6 +110,15 @@
     color: rgba(255, 100, 0, 0.9);
 }
 
+/* ----- Browse tab: filter toolbar (lives in tools zone) ----- */
+
+.blacksmith-pin-layers-browse-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
 /* ----- Body root ----- */
 
 .blacksmith-pin-layers-root {

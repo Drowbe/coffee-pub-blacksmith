@@ -18,7 +18,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             id: APP_ID,
             classes: ['blacksmith-pin-layers-window'],
             position: { width: 720, height: 760 },
-            window: { title: 'Pin Layers', resizable: true, minimizable: true },
+            window: { title: 'Pins', resizable: true, minimizable: true },
             windowSizeConstraints: { minWidth: 560, minHeight: 520, maxWidth: 1100, maxHeight: 1000 }
         }
     );
@@ -30,36 +30,41 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     };
 
     static ACTION_HANDLERS = {
-        refresh: () => _pinLayersWindowRef?._refresh(),
-        hideAll: () => _pinLayersWindowRef?._hideAll(),
-        showAll: () => _pinLayersWindowRef?._showAll(),
-        saveProfile: () => _pinLayersWindowRef?._saveProfile(),
-        applyProfile: () => _pinLayersWindowRef?._applyProfile(),
+        selectTab:     (_event, target) => _pinLayersWindowRef?._selectTab(target),
+        refresh:       () => _pinLayersWindowRef?._refresh(),
+        hideAll:       () => _pinLayersWindowRef?._hideAll(),
+        showAll:       () => _pinLayersWindowRef?._showAll(),
+        saveProfile:   () => _pinLayersWindowRef?._saveProfile(),
+        applyProfile:  () => _pinLayersWindowRef?._applyProfile(),
         updateProfile: () => _pinLayersWindowRef?._updateProfile(),
         deleteProfile: () => _pinLayersWindowRef?._deleteProfile(),
-        clearSearch: () => { if (_pinLayersWindowRef) { _pinLayersWindowRef.searchQuery = ''; _pinLayersWindowRef.render(true); } },
-        panToPin: (_event, target) => _pinLayersWindowRef?._panToPin(target),
-        toggleType: (_event, target) => _pinLayersWindowRef?._toggleType(target),
-        toggleGroup: (_event, target) => _pinLayersWindowRef?._toggleGroup(target),
-        toggleTag: (_event, target) => _pinLayersWindowRef?._toggleTag(target),
-        deleteGroup: (_event, target) => _pinLayersWindowRef?._deleteGroup(target)
+        clearBrowse:   () => { if (_pinLayersWindowRef) { _pinLayersWindowRef.browseQuery = ''; _pinLayersWindowRef.render(true); } },
+        panToPin:      (_event, target) => _pinLayersWindowRef?._panToPin(target),
+        toggleType:    (_event, target) => _pinLayersWindowRef?._toggleType(target),
+        toggleGroup:   (_event, target) => _pinLayersWindowRef?._toggleGroup(target),
+        toggleTag:     (_event, target) => _pinLayersWindowRef?._toggleTag(target),
+        deleteGroup:   (_event, target) => _pinLayersWindowRef?._deleteGroup(target)
     };
 
     constructor(options = {}) {
         const opts = foundry.utils.mergeObject({}, options);
         opts.id = opts.id ?? `${APP_ID}-${foundry.utils.randomID().slice(0, 8)}`;
         const bounds = game.settings.get(MODULE.ID, 'pinLayersWindowBounds') || {};
+        const { lastProfile, lastTab, ...positionBounds } = bounds;
         opts.position = foundry.utils.mergeObject(
             foundry.utils.mergeObject({}, PinLayersWindow.DEFAULT_OPTIONS.position ?? {}),
-            bounds
+            positionBounds
         );
         super(opts);
         this.sceneId = options.sceneId ?? canvas?.scene?.id ?? null;
-        this.searchQuery = options.searchQuery ?? '';
-        this.includeHiddenSearch = options.includeHiddenSearch === true;
-        this._selectedProfileValue = null; // null = uninitialized; '' = New Profile; name = saved profile
-        this._searchDebounce = null;
-        this._restoreSearchFocus = false;
+        this.activeTab = lastTab || 'layers';
+        this.browseQuery = '';
+        this.browseIncludeHidden = false;
+        this._selectedProfileValue = lastProfile !== undefined
+            ? lastProfile
+            : (PinManager.getActiveFilterProfileName() || '');
+        this._browseDebounce = null;
+        this._restoreBrowseFocus = false;
     }
 
     static async open(options = {}) {
@@ -75,7 +80,9 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 left: pos.left,
                 top: pos.top,
                 width: pos.width,
-                height: pos.height
+                height: pos.height,
+                lastProfile: this._selectedProfileValue ?? '',
+                lastTab: this.activeTab ?? 'layers'
             });
         } catch (_err) {
             // Non-fatal UI preference write.
@@ -88,34 +95,137 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         await PinManager.ensureBuiltinTaxonomyLoaded();
         const scene = this.sceneId ? game.scenes?.get(this.sceneId) : canvas?.scene;
         const sceneId = scene?.id ?? canvas?.scene?.id ?? null;
+        const isLayers = this.activeTab !== 'browse';
+
+        // --- Layers tab data ---
         const allSummary = sceneId
             ? PinManager.getSceneFilterSummary(sceneId, { includeHiddenByFilter: true })
             : { total: 0, types: [], groups: [], tags: [] };
         const visibleSummary = sceneId
             ? PinManager.getSceneFilterSummary(sceneId, { includeHiddenByFilter: false })
             : { total: 0, types: [], groups: [], tags: [] };
+
+        // --- Profile data ---
         const profiles = PinManager.listVisibilityProfiles();
         const activeProfileName = PinManager.getActiveFilterProfileName();
-        // Initialize selected profile to the active one on first render
-        if (this._selectedProfileValue === null) {
-            this._selectedProfileValue = activeProfileName || '';
-        }
         const selectedProfile = this._selectedProfileValue;
         const isNewProfile = selectedProfile === '';
-        const searchResults = sceneId
-            ? PinManager.getScenePinSearchResults(sceneId, {
-                query: this.searchQuery,
-                includeHiddenByFilter: this.includeHiddenSearch,
-                limit: 30
-            })
-            : [];
-
         const profileOptions = [
             `<option value="" ${isNewProfile ? 'selected' : ''}>New Profile</option>`,
             ...profiles.map((entry) =>
                 `<option value="${esc(entry.name)}" ${entry.name === selectedProfile ? 'selected' : ''}>${esc(entry.name)}</option>`)
         ].join('');
 
+        // --- Browse tab data ---
+        let browsePins = [];
+        if (!isLayers && sceneId) {
+            const allPins = PinManager.list({ sceneId, includeHiddenByFilter: true }) || [];
+            const q = this.browseQuery.toLowerCase().trim();
+            browsePins = q
+                ? allPins.filter(p =>
+                    (p.text || '').toLowerCase().includes(q) ||
+                    (PinManager.getPinTypeLabel(p.moduleId, p.type) || p.type || '').toLowerCase().includes(q) ||
+                    (p.group || '').toLowerCase().includes(q) ||
+                    (p.tags || []).some(t => t.toLowerCase().includes(q)))
+                : allPins;
+            if (!this.browseIncludeHidden) {
+                browsePins = browsePins.filter(p => !this._isPinHiddenByFilter(p));
+            }
+        }
+
+        // --- Build HTML ---
+        const tabNav = `
+            <nav class="blacksmith-tabs">
+                <button type="button" class="blacksmith-tab ${isLayers ? 'is-active' : ''}" data-action="selectTab" data-value="layers">
+                    <i class="fa-solid fa-layer-group"></i><span>Layers</span>
+                </button>
+                <button type="button" class="blacksmith-tab ${!isLayers ? 'is-active' : ''}" data-action="selectTab" data-value="browse">
+                    <i class="fa-solid fa-magnifying-glass"></i><span>Browse</span>
+                    <span class="blacksmith-badge" style="margin-left:2px">${allSummary.total}</span>
+                </button>
+            </nav>
+        `;
+
+        const bodyContent = isLayers
+            ? this._buildLayersBody(allSummary)
+            : this._buildBrowseBody(browsePins, allSummary.total);
+
+        const profileBar = `
+            <div class="blacksmith-pin-layers-profile-bar">
+                <select class="blacksmith-input blacksmith-pin-layers-profile-select">
+                    ${profileOptions}
+                </select>
+                ${isNewProfile ? `
+                    <input type="text" class="blacksmith-input blacksmith-pin-layers-profile-name" value="" placeholder="Profile name">
+                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm" data-action="saveProfile" title="Save as new profile">
+                        <i class="fa-solid fa-floppy-disk"></i> Save
+                    </button>
+                ` : `
+                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm" data-action="applyProfile" title="Restore this profile's saved filters">
+                        <i class="fa-solid fa-check"></i> Apply
+                    </button>
+                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm" data-action="updateProfile" title="Save current filters over this profile">
+                        <i class="fa-solid fa-floppy-disk"></i> Update
+                    </button>
+                    <button type="button" class="blacksmith-window-btn-critical blacksmith-pin-layers-btn-icon blacksmith-pin-layers-btn-sm" data-action="deleteProfile" title="Delete this profile">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                `}
+            </div>
+        `;
+
+        return {
+            appId: this.id,
+            showOptionBar: true,
+            showHeader: true,
+            showTools: true,
+            showActionBar: true,
+            optionBarLeft: tabNav,
+            toolsContent: isLayers ? profileBar : `
+                <div class="blacksmith-pin-layers-browse-toolbar">
+                    <div class="blacksmith-pin-layers-search-wrap">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" class="blacksmith-input blacksmith-pin-layers-browse-input"
+                            value="${esc(this.browseQuery)}" placeholder="Filter pins by name, type, group, or tag…">
+                        ${this.browseQuery ? `<button type="button" class="blacksmith-pin-layers-search-clear" data-action="clearBrowse" title="Clear filter"><i class="fa-solid fa-xmark"></i></button>` : ''}
+                    </div>
+                    <div class="blacksmith-toggle-row">
+                        <span class="blacksmith-toggle-label">Show hidden</span>
+                        <label class="blacksmith-toggle">
+                            <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-layers-browse-hidden" ${this.browseIncludeHidden ? 'checked' : ''}>
+                            <span class="blacksmith-toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            `,
+            headerIcon: 'fa-solid fa-layer-group',
+            windowTitle: 'Pins',
+            subtitle: scene?.name ? `Scene: ${scene.name}` : 'No active scene',
+            headerRight: `
+                <div class="blacksmith-pin-layers-summary">
+                    ${activeProfileName ? `<span class="blacksmith-badge blacksmith-badge-accent"><i class="fa-solid fa-layer-group"></i> ${esc(activeProfileName)}</span>` : `<span class="blacksmith-badge">Custom</span>`}
+                    <span class="blacksmith-badge blacksmith-badge-success"><i class="fa-solid fa-eye"></i> ${visibleSummary.total}</span>
+                    <span class="blacksmith-badge">${allSummary.total} total</span>
+                </div>
+            `,
+            bodyContent,
+            actionBarLeft: isLayers ? `
+                <button type="button" class="blacksmith-window-btn-secondary" data-action="refresh">
+                    <i class="fa-solid fa-rotate"></i> Refresh
+                </button>
+            ` : '',
+            actionBarRight: isLayers ? `
+                <button type="button" class="blacksmith-window-btn-secondary" data-action="hideAll">
+                    <i class="fa-solid fa-eye-slash"></i> Hide All
+                </button>
+                <button type="button" class="blacksmith-window-btn-primary" data-action="showAll">
+                    <i class="fa-solid fa-eye"></i> Show All
+                </button>
+            ` : ''
+        };
+    }
+
+    _buildLayersBody(allSummary) {
         const typeRows = allSummary.types.map((entry) => {
             const [moduleId, type] = String(entry.key || '').split('|');
             const hidden = PinManager.isModuleTypeHidden(moduleId, type);
@@ -128,134 +238,75 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const groupRows = allSummary.groups.map((entry) => this._buildGroupRow(entry)).join('');
 
         const tagRows = allSummary.tags.map((entry) => this._buildToggleRow({
-            action: 'toggleTag', keyLabel: entry.key, count: entry.count, hidden: PinManager.isTagHidden(entry.key), attrs: { 'data-tag': entry.key }
+            action: 'toggleTag', keyLabel: entry.key, count: entry.count,
+            hidden: PinManager.isTagHidden(entry.key), attrs: { 'data-tag': entry.key }
         })).join('');
 
-        const searchResultRows = searchResults.map((entry) => `
-            <div class="blacksmith-pin-layers-row ${entry.hiddenByFilter ? 'is-hidden' : ''}">
-                <div class="blacksmith-pin-layers-row-main">
-                    <div class="blacksmith-pin-layers-row-label">${esc(entry.text)}</div>
-                    <div class="blacksmith-pin-layers-row-submeta">
-                        <span>${esc(entry.typeLabel || entry.type)}</span>
-                        ${entry.group ? `<span>${esc(entry.group)}</span>` : ''}
-                        ${entry.tags.length ? `<span>${esc(entry.tags.join(', '))}</span>` : ''}
-                        ${entry.hiddenByFilter ? `<span class="blacksmith-pin-layers-filtered-tag">filtered</span>` : ''}
-                    </div>
-                </div>
-                <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-pan-btn" data-action="panToPin" data-pin-id="${esc(entry.id)}">
-                    <i class="fa-solid fa-location-crosshairs"></i> Pan
-                </button>
+        return `<div class="blacksmith-pin-layers-root">
+            <div class="blacksmith-pin-layers-section-header blacksmith-pin-layers-section-header-first">
+                <i class="fa-solid fa-tag"></i><span>Types</span>
+                <span class="blacksmith-badge">${allSummary.types.length}</span>
             </div>
-        `).join('');
+            <div class="blacksmith-pin-layers-list">
+                ${typeRows || '<div class="blacksmith-pin-layers-empty">No pin types on this scene.</div>'}
+            </div>
+            <div class="blacksmith-pin-layers-section-header">
+                <i class="fa-solid fa-layer-group"></i><span>Groups</span>
+                <span class="blacksmith-badge">${allSummary.groups.length}</span>
+            </div>
+            <div class="blacksmith-pin-layers-list">
+                ${groupRows || '<div class="blacksmith-pin-layers-empty">No groups assigned yet.</div>'}
+            </div>
+            <div class="blacksmith-pin-layers-section-header">
+                <i class="fa-solid fa-tags"></i><span>Tags</span>
+                <span class="blacksmith-badge">${allSummary.tags.length}</span>
+            </div>
+            <div class="blacksmith-pin-layers-list">
+                ${tagRows || '<div class="blacksmith-pin-layers-empty">No tags assigned yet.</div>'}
+            </div>
+        </div>`;
+    }
 
-        const bodyContent = this.searchQuery
-            ? `<div class="blacksmith-pin-layers-root">
-                <div class="blacksmith-pin-layers-section-header blacksmith-pin-layers-section-header-first">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <span>Search Results</span>
-                    <span class="blacksmith-badge">${searchResults.length}</span>
-                </div>
-                <div class="blacksmith-pin-layers-list">
-                    ${searchResultRows || '<div class="blacksmith-pin-layers-empty">No pins matched.</div>'}
-                </div>
-               </div>`
-            : `<div class="blacksmith-pin-layers-root">
-                <div class="blacksmith-pin-layers-section-header blacksmith-pin-layers-section-header-first">
-                    <i class="fa-solid fa-tag"></i>
-                    <span>Types</span>
-                    <span class="blacksmith-badge">${allSummary.types.length}</span>
-                </div>
-                <div class="blacksmith-pin-layers-list">
-                    ${typeRows || '<div class="blacksmith-pin-layers-empty">No pin types on this scene.</div>'}
-                </div>
-                <div class="blacksmith-pin-layers-section-header">
-                    <i class="fa-solid fa-layer-group"></i>
-                    <span>Groups</span>
-                    <span class="blacksmith-badge">${allSummary.groups.length}</span>
-                </div>
-                <div class="blacksmith-pin-layers-list">
-                    ${groupRows || '<div class="blacksmith-pin-layers-empty">No groups assigned yet.</div>'}
-                </div>
-                <div class="blacksmith-pin-layers-section-header">
-                    <i class="fa-solid fa-tags"></i>
-                    <span>Tags</span>
-                    <span class="blacksmith-badge">${allSummary.tags.length}</span>
-                </div>
-                <div class="blacksmith-pin-layers-list">
-                    ${tagRows || '<div class="blacksmith-pin-layers-empty">No tags assigned yet.</div>'}
-                </div>
-               </div>`;
+    _buildBrowseBody(pins, totalPins) {
+        const pinRows = pins.map((p) => {
+            const hidden = this._isPinHiddenByFilter(p);
+            const typeLabel = PinManager.getPinTypeLabel(p.moduleId, p.type) || p.type || '';
+            return `
+                <div class="blacksmith-pin-layers-row ${hidden ? 'is-hidden' : ''}">
+                    <div class="blacksmith-pin-layers-row-main">
+                        <div class="blacksmith-pin-layers-row-label">${esc(p.text || '(unnamed)')}</div>
+                        <div class="blacksmith-pin-layers-row-submeta">
+                            ${typeLabel ? `<span>${esc(typeLabel)}</span>` : ''}
+                            ${p.group ? `<span>${esc(p.group)}</span>` : ''}
+                            ${(p.tags || []).map(t => `<span>${esc(t)}</span>`).join('')}
+                            ${hidden ? `<span class="blacksmith-pin-layers-filtered-tag">hidden</span>` : ''}
+                        </div>
+                    </div>
+                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-pan-btn"
+                        data-action="panToPin" data-pin-id="${esc(p.id)}">
+                        <i class="fa-solid fa-location-crosshairs"></i> Pan
+                    </button>
+                </div>`;
+        }).join('');
 
-        return {
-            appId: this.id,
-            showOptionBar: true,
-            showHeader: true,
-            showTools: true,
-            showActionBar: true,
-            optionBarLeft: `
-                <div class="blacksmith-pin-layers-profile-bar">
-                    <select class="blacksmith-input blacksmith-pin-layers-profile-select">
-                        ${profileOptions}
-                    </select>
-                    ${isNewProfile ? `
-                        <input type="text" class="blacksmith-input blacksmith-pin-layers-profile-name" value="" placeholder="Profile name">
-                        <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm" data-action="saveProfile" title="Save as new profile">
-                            <i class="fa-solid fa-floppy-disk"></i> Save
-                        </button>
-                    ` : `
-                        <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm" data-action="applyProfile" title="Restore this profile's saved filters">
-                            <i class="fa-solid fa-check"></i> Apply
-                        </button>
-                        <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm" data-action="updateProfile" title="Save current filters over this profile">
-                            <i class="fa-solid fa-floppy-disk"></i> Update
-                        </button>
-                        <button type="button" class="blacksmith-window-btn-critical blacksmith-pin-layers-btn-icon blacksmith-pin-layers-btn-sm" data-action="deleteProfile" title="Delete this profile">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    `}
-                </div>
-            `,
-            toolsContent: `
-                <div class="blacksmith-pin-layers-search-bar">
-                    <div class="blacksmith-pin-layers-search-wrap">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" class="blacksmith-input blacksmith-pin-layers-search-query" value="${esc(this.searchQuery)}" placeholder="Search pins by name, type, group, or tag...">
-                        ${this.searchQuery ? `<button type="button" class="blacksmith-pin-layers-search-clear" data-action="clearSearch" title="Clear search"><i class="fa-solid fa-xmark"></i></button>` : ''}
-                    </div>
-                    <div class="blacksmith-toggle-row">
-                        <span class="blacksmith-toggle-label">Hidden</span>
-                        <label class="blacksmith-toggle">
-                            <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-layers-search-hidden" ${this.includeHiddenSearch ? 'checked' : ''}>
-                            <span class="blacksmith-toggle-slider"></span>
-                        </label>
-                    </div>
-                </div>
-            `,
-            headerIcon: 'fa-solid fa-layer-group',
-            windowTitle: 'Pin Layers',
-            subtitle: scene?.name ? `Scene: ${scene.name}` : 'No active scene',
-            headerRight: `
-                <div class="blacksmith-pin-layers-summary">
-                    ${activeProfileName ? `<span class="blacksmith-badge blacksmith-badge-accent"><i class="fa-solid fa-layer-group"></i> ${esc(activeProfileName)}</span>` : `<span class="blacksmith-badge">Custom</span>`}
-                    <span class="blacksmith-badge blacksmith-badge-success"><i class="fa-solid fa-eye"></i> ${visibleSummary.total}</span>
-                    <span class="blacksmith-badge">${allSummary.total} total</span>
-                </div>
-            `,
-            bodyContent,
-            actionBarLeft: `
-                <button type="button" class="blacksmith-window-btn-secondary" data-action="refresh">
-                    <i class="fa-solid fa-rotate"></i> Refresh
-                </button>
-            `,
-            actionBarRight: `
-                <button type="button" class="blacksmith-window-btn-secondary" data-action="hideAll">
-                    <i class="fa-solid fa-eye-slash"></i> Hide All
-                </button>
-                <button type="button" class="blacksmith-window-btn-primary" data-action="showAll">
-                    <i class="fa-solid fa-eye"></i> Show All
-                </button>
-            `
-        };
+        return `<div class="blacksmith-pin-layers-root">
+            <div class="blacksmith-pin-layers-section-header blacksmith-pin-layers-section-header-first">
+                <i class="fa-solid fa-map-pin"></i>
+                <span>${this.browseQuery ? 'Filtered Pins' : 'All Pins'}</span>
+                <span class="blacksmith-badge">${pins.length}${pins.length < totalPins ? ` of ${totalPins}` : ''}</span>
+            </div>
+            <div class="blacksmith-pin-layers-list">
+                ${pinRows || '<div class="blacksmith-pin-layers-empty">No pins matched.</div>'}
+            </div>
+        </div>`;
+    }
+
+    _isPinHiddenByFilter(p) {
+        if (PinManager.isGlobalHidden()) return true;
+        if (PinManager.isModuleTypeHidden(p.moduleId, p.type)) return true;
+        if (p.group && PinManager.isGroupHidden(p.group)) return true;
+        if ((p.tags || []).some(t => PinManager.isTagHidden(t))) return true;
+        return false;
     }
 
     _buildToggleRow({ action, keyLabel, count, hidden, attrs = {} }) {
@@ -268,16 +319,11 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                     <div class="blacksmith-pin-layers-row-label">${esc(keyLabel)}</div>
                     <span class="blacksmith-badge">${count}</span>
                 </div>
-                <button
-                    type="button"
-                    class="blacksmith-pin-layers-eye ${hidden ? 'is-hidden' : ''}"
-                    data-action="${action}"
-                    title="${hidden ? 'Show' : 'Hide'}"
-                    ${attrString}>
+                <button type="button" class="blacksmith-pin-layers-eye ${hidden ? 'is-hidden' : ''}"
+                    data-action="${action}" title="${hidden ? 'Show' : 'Hide'}" ${attrString}>
                     <i class="fa-solid ${hidden ? 'fa-eye' : 'fa-eye-slash'}"></i>
                 </button>
-            </div>
-        `;
+            </div>`;
     }
 
     _buildGroupRow(entry) {
@@ -297,17 +343,14 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                     data-action="deleteGroup" title="Remove group from all pins" ${attr}>
                     <i class="fa-solid fa-trash"></i>
                 </button>
-            </div>
-        `;
+            </div>`;
     }
 
-    // Called after every render in ApplicationV2 — the correct place to attach DOM listeners.
     async _onRender(context, options) {
         await super._onRender?.(context, options);
         this._attachLocalListeners();
     }
 
-    // Kept for compatibility with any V1-style render paths.
     activateListeners(html) {
         super.activateListeners(html);
         this._attachLocalListeners();
@@ -315,44 +358,51 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
 
     _attachLocalListeners() {
         const root = this._getRoot();
-        const select = root?.querySelector('.blacksmith-pin-layers-profile-select');
-        const input = root?.querySelector('.blacksmith-pin-layers-profile-name');
-        const searchInput = root?.querySelector('.blacksmith-pin-layers-search-query');
-        const hiddenToggle = root?.querySelector('.blacksmith-pin-layers-search-hidden');
 
-        select?.addEventListener('change', () => {
-            this._selectedProfileValue = select.value;
-            void this.render(true);
-        });
+        // Profile select (Layers tab)
+        root?.querySelector('.blacksmith-pin-layers-profile-select')
+            ?.addEventListener('change', (e) => {
+                this._selectedProfileValue = e.target.value;
+                void this.render(true);
+            });
 
-        searchInput?.addEventListener('input', () => {
-            const nextValue = searchInput.value || '';
-            if (this._searchDebounce) clearTimeout(this._searchDebounce);
-            this._searchDebounce = setTimeout(() => {
-                this.searchQuery = nextValue;
-                this._restoreSearchFocus = true;
+        // Browse filter input
+        const browseInput = root?.querySelector('.blacksmith-pin-layers-browse-input');
+        browseInput?.addEventListener('input', () => {
+            const next = browseInput.value || '';
+            if (this._browseDebounce) clearTimeout(this._browseDebounce);
+            this._browseDebounce = setTimeout(() => {
+                this.browseQuery = next;
+                this._restoreBrowseFocus = true;
                 void this.render(true);
             }, 180);
         });
 
-        hiddenToggle?.addEventListener('change', () => {
-            this.includeHiddenSearch = !!hiddenToggle.checked;
-            void this.render(true);
-        });
+        // Browse hidden toggle
+        root?.querySelector('.blacksmith-pin-layers-browse-hidden')
+            ?.addEventListener('change', (e) => {
+                this.browseIncludeHidden = !!e.target.checked;
+                void this.render(true);
+            });
 
-        if (this._restoreSearchFocus && searchInput) {
-            this._restoreSearchFocus = false;
-            const cursor = searchInput.value.length;
+        // Restore focus to browse input after re-render
+        if (this._restoreBrowseFocus && browseInput) {
+            this._restoreBrowseFocus = false;
+            const cursor = browseInput.value.length;
             requestAnimationFrame(() => {
-                searchInput.focus();
-                try { searchInput.setSelectionRange(cursor, cursor); } catch (_err) {}
+                browseInput.focus();
+                try { browseInput.setSelectionRange(cursor, cursor); } catch (_e) {}
             });
         }
     }
 
-    async _refresh() {
-        await this.render(true);
+    _selectTab(target) {
+        const tab = target?.dataset?.value || 'layers';
+        this.activeTab = tab;
+        void this.render(true);
     }
+
+    async _refresh() { await this.render(true); }
 
     async _hideAll() {
         await PinManager.setGlobalHidden(true);
@@ -372,8 +422,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     _getPendingProfileName() {
-        const root = this._getRoot();
-        return root?.querySelector('.blacksmith-pin-layers-profile-name')?.value?.trim() || '';
+        return this._getRoot()?.querySelector('.blacksmith-pin-layers-profile-name')?.value?.trim() || '';
     }
 
     async _saveProfile() {
@@ -418,9 +467,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         if (!sceneId) return;
         const pins = (PinManager.list({ sceneId, includeHiddenByFilter: true }) || [])
             .filter(p => (p.group || '').toLowerCase().trim() === group.toLowerCase().trim());
-        for (const pin of pins) {
-            await PinManager.update(pin.id, { group: '' });
-        }
+        for (const pin of pins) await PinManager.update(pin.id, { group: '' });
         await PinManager.setGroupHidden(group, false);
         ui.notifications?.info(`Removed group "${group}" from ${pins.length} pin${pins.length !== 1 ? 's' : ''}.`);
         await this.render(true);
@@ -437,24 +484,21 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const moduleId = target?.dataset?.moduleId || '';
         const type = target?.dataset?.type || 'default';
         if (!moduleId) return;
-        const visible = !PinManager.isModuleTypeHidden(moduleId, type);
-        await PinManager.setModuleTypeHidden(moduleId, type, visible);
+        await PinManager.setModuleTypeHidden(moduleId, type, !PinManager.isModuleTypeHidden(moduleId, type));
         await this.render(true);
     }
 
     async _toggleGroup(target) {
         const group = target?.dataset?.group || '';
         if (!group) return;
-        const visible = !PinManager.isGroupHidden(group);
-        await PinManager.setGroupHidden(group, visible);
+        await PinManager.setGroupHidden(group, !PinManager.isGroupHidden(group));
         await this.render(true);
     }
 
     async _toggleTag(target) {
         const tag = target?.dataset?.tag || '';
         if (!tag) return;
-        const visible = !PinManager.isTagHidden(tag);
-        await PinManager.setTagHidden(tag, visible);
+        await PinManager.setTagHidden(tag, !PinManager.isTagHidden(tag));
         await this.render(true);
     }
 }
@@ -464,7 +508,7 @@ Hooks.once('ready', () => {
     if (!api?.registerWindow) return;
     api.registerWindow('blacksmith-pin-layers', {
         open: (options = {}) => PinLayersWindow.open(options),
-        title: 'Pin Layers',
+        title: 'Pins',
         moduleId: MODULE.ID
     });
 });

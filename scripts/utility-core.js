@@ -177,46 +177,6 @@ export class CoreUIUtility {
             submenu: uiSubmenu
         });
 
-        if (api) {
-            let visibilityItems = [];
-            let clearItems = [];
-            
-            if (typeof MenuBar._getPinsVisibilityMenuItems === 'function') {
-                visibilityItems = MenuBar._getPinsVisibilityMenuItems();
-            }
-            
-            if (typeof MenuBar._getPinsClearMenuItems === 'function') {
-                clearItems = MenuBar._getPinsClearMenuItems();
-            }
-
-            const pinsSubmenu = [];
-            if (api?.pins?.openLayers) {
-                pinsSubmenu.push({
-                    name: "Pin Layers",
-                    icon: "fa-solid fa-layer-group",
-                    description: "Open the pin layers window.",
-                    onClick: () => api.pins.openLayers({ sceneId: canvas?.scene?.id })
-                });
-                if (visibilityItems.length > 0 || clearItems.length > 0) {
-                    pinsSubmenu.push({ separator: true });
-                }
-            }
-            pinsSubmenu.push(...visibilityItems);
-            if (visibilityItems.length > 0 && clearItems.length > 0) {
-                pinsSubmenu.push({ separator: true });
-            }
-            pinsSubmenu.push(...clearItems);
-
-            if (pinsSubmenu.length > 0) {
-                items.push({
-                    name: "Manage Pins",
-                    icon: "fa-solid fa-map-pin",
-                    description: "",
-                    submenu: pinsSubmenu
-                });
-            }
-        }
-
         return items;
     }
 }
@@ -306,17 +266,27 @@ Hooks.once('ready', () => {
         buttonSelectedTint: null
     });
 
-    // PIN LAYERS
+    // PINS
     api.registerMenubarTool('pin-layers', {
         icon: "fa-solid fa-layer-group",
         name: "pin-layers",
-        title: "Pin Layers",
-        tooltip: "Open Pin Layers",
+        title: "Pins",
+        tooltip: "Open Pins",
         onClick: () => api.pins?.openLayers({ sceneId: canvas?.scene?.id }),
+        contextMenuItems: () => {
+            const visibilityItems = typeof MenuBar._getPinsVisibilityMenuItems === 'function'
+                ? MenuBar._getPinsVisibilityMenuItems() : [];
+            const clearItems = typeof MenuBar._getPinsClearMenuItems === 'function'
+                ? MenuBar._getPinsClearMenuItems() : [];
+            const items = [...visibilityItems];
+            if (visibilityItems.length > 0 && clearItems.length > 0) items.push({ separator: true });
+            items.push(...clearItems);
+            return items;
+        },
         zone: "left",
         group: "pins",
         groupOrder: 200,
-        order: 1,
+        order: 2,
         moduleId: "blacksmith-core",
         gmOnly: false,
         leaderOnly: false,
