@@ -8,14 +8,52 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { normalizeTextLayout, normalizePinGroup, normalizePinTags } from './pins-schema.js';
+import { BlacksmithWindowBaseV2 } from './window-base.js';
 
 /**
  * PinConfigWindow - Application V2 window for configuring pins
  * Supports both direct API updates and callback pattern for modules
  */
-export class PinConfigWindow extends Application {
+export class PinConfigWindow extends BlacksmithWindowBaseV2 {
+    static ROOT_CLASS = 'blacksmith-pin-config';
+
+    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {
+            id: 'blacksmith-pin-config',
+            classes: ['blacksmith-window', 'blacksmith-pin-config-window'],
+            position: { width: 700, height: 600 },
+            window: { title: 'Configure Pin', resizable: true, minimizable: true }
+        }
+    );
+
+    static PARTS = {
+        body: {
+            template: `modules/${MODULE.ID}/templates/window-pin-config.hbs`
+        }
+    };
+
+    // No ACTION_HANDLERS — all listeners attached directly in _attachLocalListeners
+    static ACTION_HANDLERS = null;
+
     constructor(pinId, options = {}) {
-        super(options);
+        const opts = foundry.utils.mergeObject({}, options);
+        let saved = {};
+        try {
+            if (game.settings?.get) {
+                saved = game.settings.get(MODULE.ID, 'pinConfigWindowBounds') || {};
+            }
+        } catch { saved = {}; }
+        const posBounds = {};
+        if (typeof saved.width === 'number') posBounds.width = saved.width;
+        if (typeof saved.height === 'number') posBounds.height = saved.height;
+        if (typeof saved.top === 'number') posBounds.top = saved.top;
+        if (typeof saved.left === 'number') posBounds.left = saved.left;
+        opts.position = foundry.utils.mergeObject(
+            foundry.utils.mergeObject({}, PinConfigWindow.DEFAULT_OPTIONS.position ?? {}),
+            posBounds
+        );
+        super(opts);
         this.pinId = pinId;
         // Only set sceneId if explicitly provided; undefined allows PinManager.get() to check unplaced first
         this.sceneId = options.sceneId !== undefined ? options.sceneId : undefined;
@@ -24,7 +62,7 @@ export class PinConfigWindow extends Application {
         this.defaultSettingKey = options.defaultSettingKey || null;
         this.moduleId = options.moduleId || null;
         this.pinType = null; // Set from pin in getData (pin.type || 'default')
-        
+
         // Will be populated from pin data
         this.selected = null; // { type: 'fa'|'img', value: string } or null
         this.iconMode = 'icon'; // 'icon' or 'image'
@@ -47,42 +85,21 @@ export class PinConfigWindow extends Application {
         this.pinTags = [];
     }
 
-    static get defaultOptions() {
-        let saved = {};
+    async close(options) {
         try {
-            if (game.settings?.get) {
-                saved = game.settings.get(MODULE.ID, 'pinConfigWindowBounds') || {};
+            const pos = this.position ?? {};
+            if (game.settings?.set) {
+                await game.settings.set(MODULE.ID, 'pinConfigWindowBounds', {
+                    top: pos.top,
+                    left: pos.left,
+                    width: pos.width,
+                    height: pos.height
+                });
             }
         } catch {
-            saved = {};
+            // Non-fatal UI preference write.
         }
-        const width = saved.width ?? 700;
-        const height = saved.height ?? 600;
-        const top = typeof saved.top === 'number' ? saved.top : undefined;
-        const left = typeof saved.left === 'number' ? saved.left : undefined;
-        return foundry.utils.mergeObject(super.defaultOptions, {
-            id: 'blacksmith-pin-config',
-            title: 'Configure Pin',
-            template: `modules/${MODULE.ID}/templates/window-pin-config.hbs`,
-            width,
-            height,
-            ...(top != null && { top }),
-            ...(left != null && { left }),
-            resizable: true,
-            classes: ['blacksmith-window', 'blacksmith-pin-config-window']
-        });
-    }
-
-    /**
-     * Save window position and size to client setting when moved or resized.
-     */
-    setPosition(options = {}) {
-        const pos = super.setPosition(options);
-        if (this.rendered && game.settings?.set) {
-            const { top, left, width, height } = this.position;
-            game.settings.set(MODULE.ID, 'pinConfigWindowBounds', { top, left, width, height });
-        }
-        return pos;
+        return super.close(options);
     }
 
     static iconCategories = null;
@@ -120,7 +137,7 @@ export class PinConfigWindow extends Application {
         if (!imageString || typeof imageString !== 'string') return null;
         const trimmed = imageString.trim();
         if (!trimmed) return null;
-        
+
         // Check for Font Awesome HTML
         const faHtmlMatch = trimmed.match(/<i\s+[^>]*class=["']([^"']+)["']/i);
         if (faHtmlMatch?.[1]) {
@@ -129,7 +146,7 @@ export class PinConfigWindow extends Application {
                 return { type: 'fa', value: classes.join(' ') };
             }
         }
-        
+
         // Check for Font Awesome class string
         if (trimmed.includes('fa-')) {
             const classes = trimmed.split(/\s+/).filter(c => c.startsWith('fa-'));
@@ -137,23 +154,23 @@ export class PinConfigWindow extends Application {
                 return { type: 'fa', value: classes.join(' ') };
             }
         }
-        
+
         // Check for image URL or <img> tag
         const imgMatch = trimmed.match(/<img\s+[^>]*src=["']([^"']+)["']/i);
         if (imgMatch?.[1]) {
             return { type: 'img', value: imgMatch[1] };
         }
-        
+
         // Check if it's a URL
         if (/^(https?:\/\/|\/|data:)/i.test(trimmed)) {
             return { type: 'img', value: trimmed };
         }
-        
+
         // Assume it's an image path
         if (trimmed.startsWith('modules/')) {
             return { type: 'img', value: `/${trimmed}` };
         }
-        
+
         return { type: 'img', value: trimmed };
     }
 
@@ -208,7 +225,7 @@ export class PinConfigWindow extends Application {
         // If sceneId is undefined, PinManager.get() will check unplaced store first, then all scenes
         const { PinManager } = await import('./manager-pins.js');
         const pin = PinManager.get(this.pinId, this.sceneId !== undefined ? { sceneId: this.sceneId } : {});
-        
+
         if (!pin) {
             throw new Error(`Pin not found: ${this.pinId}`);
         }
@@ -391,13 +408,15 @@ export class PinConfigWindow extends Application {
         };
     }
 
-    activateListeners(html) {
-        super.activateListeners(html);
-        const nativeHtml = html?.[0] || html;
+    async _onRender(context, options) {
+        await super._onRender?.(context, options);
+        this._attachLocalListeners();
+    }
 
-        const root = nativeHtml?.classList?.contains('blacksmith-pin-config')
-            ? nativeHtml
-            : nativeHtml.querySelector('.blacksmith-pin-config');
+    _attachLocalListeners() {
+        const nativeHtml = this.element;
+        const root = nativeHtml.querySelector('.blacksmith-pin-config') ?? nativeHtml;
+
         // Preview element is optional - may not exist in template
         const preview = nativeHtml.querySelector('.window-note-header-icon') || null;
         const imageInput = nativeHtml.querySelector('.blacksmith-pin-config-image-input');
