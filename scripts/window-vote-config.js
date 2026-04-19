@@ -1,26 +1,35 @@
-// ================================================================== 
+// ==================================================================
 // ===== IMPORTS ====================================================
-// ================================================================== 
+// ==================================================================
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, isCurrentUserPartyLeader } from './api-core.js';
 import { VoteManager } from "./manager-vote.js";
 import { MenuBar } from "./api-menubar.js";
+import { BlacksmithWindowBaseV2 } from './window-base.js';
 
-export class VoteConfig extends Application {
-    static get defaultOptions() {
-        return foundry.utils.mergeObject(super.defaultOptions, {
+export class VoteConfig extends BlacksmithWindowBaseV2 {
+    static ROOT_CLASS = 'vote-config';
+
+    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {
             id: 'vote-config',
-            template: 'modules/coffee-pub-blacksmith/templates/vote-window.hbs',
-            title: 'Start a Vote',
-            width: 300,
-            height: 'auto',
-            classes: ['coffee-pub-blacksmith', 'vote-config']
-        });
-    }
+            classes: ['coffee-pub-blacksmith', 'vote-config'],
+            position: { width: 300, height: 'auto' },
+            window: { title: 'Start a Vote', resizable: false, minimizable: false }
+        }
+    );
+
+    static PARTS = {
+        body: {
+            template: `modules/${MODULE.ID}/templates/vote-window.hbs`
+        }
+    };
+
+    static ACTION_HANDLERS = null;
 
     getData() {
-        // Check if user is GM or current leader
         const isGM = game.user.isGM;
         const isLeader = isCurrentUserPartyLeader();
         const canStartVote = isGM || isLeader;
@@ -38,7 +47,7 @@ export class VoteConfig extends Application {
                     name: 'Select a Leader',
                     description: 'Vote for a party leader from among the active players.',
                     icon: 'fa-crown',
-                    gmOnly: true // Only GM can start leader votes
+                    gmOnly: true
                 },
                 {
                     id: 'yesno',
@@ -70,60 +79,47 @@ export class VoteConfig extends Application {
                     description: 'Create your own vote with custom options.',
                     icon: 'fa-plus-circle'
                 }
-            ].filter(type => !type.gmOnly || isGM) // Filter out GM-only options for non-GMs
+            ].filter(type => !type.gmOnly || isGM)
         };
     }
 
-    activateListeners(html) {
-        super.activateListeners(html);
+    async _onRender(context, options) {
+        await super._onRender?.(context, options);
+        this._attachLocalListeners();
+    }
 
-        // v13: Application.activateListeners may still receive jQuery in some cases
-        // Convert to native DOM if needed
-        let htmlElement = html;
-        if (html && (html.jquery || typeof html.find === 'function')) {
-            htmlElement = html[0] || html.get?.(0) || html;
-        } else if (html && typeof html.querySelectorAll !== 'function') {
-            // Not a valid DOM element
-            return;
-        }
-        
-        if (!htmlElement) {
-            return;
-        }
+    _attachLocalListeners() {
+        const nativeHtml = this.element;
 
-        // v13: Use native DOM instead of jQuery
-        const voteTypeButtons = htmlElement.querySelectorAll('.vote-type');
-        voteTypeButtons.forEach(button => {
+        nativeHtml.querySelectorAll('.vote-type').forEach(button => {
             button.addEventListener('click', async (event) => {
                 event.preventDefault();
                 const type = event.currentTarget.dataset.type;
-            
 
+                if (type === 'leader' && !game.user.isGM) {
+                    ui.notifications.warn("Only the GM can start leader votes.");
+                    return;
+                }
 
-            if (type === 'leader' && !game.user.isGM) {
-                ui.notifications.warn("Only the GM can start leader votes.");
-                return;
-            }
-            
-            if (type === 'custom') {
-                this.createCustomVote();
-            } else if (type === 'characters') {
-                try {
-                    await VoteManager._showCharacterVoteDialog();
-                    this.close();
-                } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, 'Error starting character vote:', error, false, false);
-                    ui.notifications.error("Error starting character vote. Check the console for details.");
+                if (type === 'custom') {
+                    this.createCustomVote();
+                } else if (type === 'characters') {
+                    try {
+                        await VoteManager._showCharacterVoteDialog();
+                        this.close();
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, 'Error starting character vote:', error, false, false);
+                        ui.notifications.error("Error starting character vote. Check the console for details.");
+                    }
+                } else {
+                    try {
+                        await VoteManager.startVote(type);
+                        this.close();
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, 'Error starting vote:', error, false, false);
+                        ui.notifications.error("Error starting vote. Check the console for details.");
+                    }
                 }
-            } else {
-                try {
-                    await VoteManager.startVote(type);
-                    this.close();
-                } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, 'Error starting vote:', error, false, false);
-                    ui.notifications.error("Error starting vote. Check the console for details.");
-                }
-            }
             });
         });
     }
@@ -146,7 +142,6 @@ export class VoteConfig extends Application {
                     icon: '<i class="fas fa-check"></i>',
                     label: "Create Vote",
                     callback: async (html) => {
-                        // v13: Detect and convert jQuery to native DOM if needed
                         let nativeDialogHtml = html;
                         if (html && (html.jquery || typeof html.find === 'function')) {
                             nativeDialogHtml = html[0] || html.get?.(0) || html;
@@ -155,7 +150,7 @@ export class VoteConfig extends Application {
                         const optionsTextarea = nativeDialogHtml.querySelector('[name="options"]');
                         const title = titleInput ? titleInput.value.trim() : '';
                         const optionsText = optionsTextarea ? optionsTextarea.value.trim() : '';
-                        
+
                         if (!title || !optionsText) {
                             ui.notifications.warn("Please provide both a title and options.");
                             return;
@@ -188,7 +183,6 @@ export class VoteConfig extends Application {
             },
             default: "create",
             render: html => {
-                // v13: Detect and convert jQuery to native DOM if needed
                 let nativeDialogHtml = html;
                 if (html && (html.jquery || typeof html.find === 'function')) {
                     nativeDialogHtml = html[0] || html.get?.(0) || html;
@@ -201,4 +195,4 @@ export class VoteConfig extends Application {
         });
         dialog.render(true);
     }
-} 
+}

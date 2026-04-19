@@ -1,25 +1,32 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getPortraitImage } from './api-core.js';
 import { StatsAPI } from './api-stats.js';
+import { BlacksmithWindowBaseV2 } from './window-base.js';
 
-export class PlayerStatsWindow extends Application {
-    static get defaultOptions() {
-        return foundry.utils.mergeObject(super.defaultOptions, {
+export class PlayerStatsWindow extends BlacksmithWindowBaseV2 {
+    static ROOT_CLASS = 'blacksmith-player-stats';
+
+    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {
             id: 'blacksmith-player-stats-window',
-            title: 'Player Statistics',
-            template: `modules/${MODULE.ID}/templates/window-stats-player.hbs`,
-            width: 750,
-            height: 700,
-            resizable: true,
-            minimizable: true,
             classes: ['blacksmith-stats', 'blacksmith-player-stats'],
-            submitOnChange: false,
-            closeOnSubmit: false
-        });
-    }
+            position: { width: 750, height: 700 },
+            window: { title: 'Player Statistics', resizable: true, minimizable: true }
+        }
+    );
+
+    static PARTS = {
+        body: {
+            template: `modules/${MODULE.ID}/templates/window-stats-player.hbs`
+        }
+    };
+
+    static ACTION_HANDLERS = null;
 
     constructor(actorId, options = {}) {
-        super(options);
+        const opts = foundry.utils.mergeObject({}, options);
+        super(opts);
         this.actorId = actorId;
     }
 
@@ -186,13 +193,13 @@ export class PlayerStatsWindow extends Application {
         };
     }
 
-    activateListeners(html) {
-        super.activateListeners(html);
+    async _onRender(context, options) {
+        await super._onRender?.(context, options);
+        this._attachLocalListeners();
+    }
 
-        const element = html?.[0];
-        if (!element) return;
-
-        element.querySelectorAll('.close-player-stats').forEach(btn => {
+    _attachLocalListeners() {
+        this.element.querySelectorAll('.close-player-stats').forEach(btn => {
             btn.addEventListener('click', () => this.close());
         });
     }

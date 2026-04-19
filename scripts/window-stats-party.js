@@ -2,22 +2,28 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, getPortraitImage } from './api-core.js';
 import { StatsAPI } from './api-stats.js';
 import { CPBPlayerStats } from './stats-player.js';
+import { BlacksmithWindowBaseV2 } from './window-base.js';
 
-export class StatsWindow extends Application {
-    static get defaultOptions() {
-        return foundry.utils.mergeObject(super.defaultOptions, {
+export class StatsWindow extends BlacksmithWindowBaseV2 {
+    static ROOT_CLASS = 'blacksmith-stats';
+
+    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {
             id: 'blacksmith-stats-window',
-            title: 'Party Statistics',
-            template: `modules/${MODULE.ID}/templates/window-stats-party.hbs`,
-            width: 1030,
-            height: 720,
-            resizable: true,
-            minimizable: true,
             classes: ['blacksmith-stats'],
-            submitOnChange: false,
-            closeOnSubmit: false
-        });
-    }
+            position: { width: 1030, height: 720 },
+            window: { title: 'Party Statistics', resizable: true, minimizable: true }
+        }
+    );
+
+    static PARTS = {
+        body: {
+            template: `modules/${MODULE.ID}/templates/window-stats-party.hbs`
+        }
+    };
+
+    static ACTION_HANDLERS = null;
 
     static async show() {
         const win = new StatsWindow();
@@ -28,13 +34,13 @@ export class StatsWindow extends Application {
         try {
             // Get all combat history for summary (all-time stats)
             const allHistory = StatsAPI.combat.getCombatHistory() || [];
-            
+
             // Get last 20 for display table (paging will be added later)
             let displayHistory = StatsAPI.combat.getCombatHistory(20) || [];
             if (!displayHistory.length && allHistory.length) {
                 displayHistory = allHistory.slice(0, 20);
             }
-            
+
             const combats = displayHistory.map((summary, index) => this._mapCombatSummary(summary, index, displayHistory.length));
 
             const leaderboard = await this._buildLeaderboard();
@@ -107,11 +113,13 @@ export class StatsWindow extends Application {
         }
     }
 
-    activateListeners(html) {
-        super.activateListeners(html);
+    async _onRender(context, options) {
+        await super._onRender?.(context, options);
+        this._attachLocalListeners();
+    }
 
-        const element = html?.[0];
-        if (!element) return;
+    _attachLocalListeners() {
+        const element = this.element;
 
         const combatSection = element.querySelector('[data-section="combat-history"]');
         const lifetimeSection = element.querySelector('[data-section="lifetime-leaderboard"]');
@@ -133,14 +141,12 @@ export class StatsWindow extends Application {
         element.querySelector('.close-stats')?.addEventListener('click', () => this.close());
         element.querySelector('.export-history')?.addEventListener('click', () => this._exportHistory());
         element.querySelector('.import-history')?.addEventListener('click', () => this._importHistory());
-        
-        // Delete history link
+
         element.querySelector('.delete-history-btn')?.addEventListener('click', (event) => {
             event.preventDefault();
             this._onDeleteAllHistory();
         });
 
-        // Delete individual combat buttons
         element.querySelectorAll('.delete-combat-btn').forEach(btn => {
             btn.addEventListener('click', (event) => {
                 event.preventDefault();
@@ -152,7 +158,6 @@ export class StatsWindow extends Application {
             });
         });
 
-        // View player stats buttons
         element.querySelectorAll('.view-player-stats-btn').forEach(btn => {
             btn.addEventListener('click', (event) => {
                 event.preventDefault();
@@ -164,7 +169,6 @@ export class StatsWindow extends Application {
             });
         });
 
-        // Clear player stats buttons
         element.querySelectorAll('.clear-player-stats-btn').forEach(btn => {
             btn.addEventListener('click', (event) => {
                 event.preventDefault();
@@ -258,7 +262,7 @@ export class StatsWindow extends Application {
     async _buildSummary(allHistory, leaderboard) {
         // Calculate all-time stats from ALL combat history (not just displayed)
         const totalCombats = allHistory.length;
-        
+
         // Calculate aggregates across all combats
         let totalHits = 0;
         let totalMisses = 0;
@@ -299,7 +303,6 @@ export class StatsWindow extends Application {
         };
 
         // Find Biggest Hit, Most Crits, Most Fumbles, Most Hits, and Most Misses from all players
-        // Need to check all actors, not just those in leaderboard
         const actors = game.actors.filter(actor => actor.hasPlayerOwner && !actor.isToken);
         let biggestHitEntry = null;
         let biggestHitAmount = 0;
@@ -338,13 +341,11 @@ export class StatsWindow extends Application {
                     mvp: { totalScore: mvpTotalScore }
                 };
 
-                // Biggest Hit
                 if (biggestHit > biggestHitAmount) {
                     biggestHitAmount = biggestHit;
                     biggestHitEntry = entry;
                 }
 
-                // Most Crits (tie-breaker: highest MVP totalScore)
                 if (crits > mostCritsCount) {
                     mostCritsCount = crits;
                     mostCritsEntry = entry;
@@ -354,7 +355,6 @@ export class StatsWindow extends Application {
                     }
                 }
 
-                // Most Fumbles (tie-breaker: lowest MVP totalScore)
                 if (fumbles > mostFumblesCount) {
                     mostFumblesCount = fumbles;
                     mostFumblesEntry = entry;
@@ -364,7 +364,6 @@ export class StatsWindow extends Application {
                     }
                 }
 
-                // Most Hits (tie-breaker: highest MVP totalScore)
                 if (hits > mostHitsCount) {
                     mostHitsCount = hits;
                     mostHitsEntry = entry;
@@ -374,7 +373,6 @@ export class StatsWindow extends Application {
                     }
                 }
 
-                // Most Misses (tie-breaker: lowest MVP totalScore)
                 if (misses > mostMissesCount) {
                     mostMissesCount = misses;
                     mostMissesEntry = entry;
@@ -392,7 +390,7 @@ export class StatsWindow extends Application {
             totalCombats,
             totalRounds,
             averageHitRate,
-            averageHitRateValue: parseFloat(averageHitRate), // For progress bar
+            averageHitRateValue: parseFloat(averageHitRate),
             topMvp,
             biggestHit: {
                 name: biggestHitEntry ? biggestHitEntry.name : '—',
@@ -455,13 +453,11 @@ export class StatsWindow extends Application {
         }
 
         try {
-            // Get all combat history for export
             const history = StatsAPI.combat.getCombatHistory() || [];
-            
-            // Get all player stats
+
             const actors = game.actors.filter(actor => actor.hasPlayerOwner && !actor.isToken);
             const playerStats = [];
-            
+
             for (const actor of actors) {
                 try {
                     const stats = await StatsAPI.player.getStats(actor.id);
@@ -479,7 +475,6 @@ export class StatsWindow extends Application {
                 }
             }
 
-            // Create export payload
             const payload = {
                 version: '1.0',
                 exportDate: new Date().toISOString(),
@@ -489,12 +484,12 @@ export class StatsWindow extends Application {
 
             const jsonString = JSON.stringify(payload, null, 2);
             const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = url;
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
             anchor.download = `blacksmith-stats-export-${new Date().toISOString().split('T')[0]}.json`;
-        anchor.click();
-        URL.revokeObjectURL(url);
+            anchor.click();
+            URL.revokeObjectURL(url);
             ui.notifications.info(`Exported ${history.length} combat(s) and ${playerStats.length} player stat(s).`);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Failed to export statistics', error, false, false);
@@ -519,12 +514,8 @@ export class StatsWindow extends Application {
         if (!confirmed) return;
 
         try {
-            // Clear combat history
             await StatsAPI.combat.clearHistory();
-            
-            // Clear all player stats
             await StatsAPI.player.clearAllStats();
-            
             ui.notifications.info('All combat history and player statistics have been cleared.');
             this.render();
         } catch (error) {
@@ -541,7 +532,6 @@ export class StatsWindow extends Application {
 
         if (!combatId) return;
 
-        // Get the combat summary before removing it (search all history)
         const history = StatsAPI.combat.getCombatHistory() || [];
         const combatSummary = history.find(s => s.combatId === combatId);
 
@@ -556,14 +546,12 @@ export class StatsWindow extends Application {
         if (!confirmed) return;
 
         try {
-            // Remove from combat history
             const removed = await StatsAPI.combat.removeCombat(combatId);
-            
+
             if (removed && combatSummary) {
-                // Remove from all players' stats
                 await CPBPlayerStats.removeCombatFromAllPlayers(combatId, combatSummary);
             }
-            
+
             ui.notifications.info('Combat entry removed from history.');
             this.render();
         } catch (error) {
@@ -579,7 +567,6 @@ export class StatsWindow extends Application {
             return;
         }
 
-        // Import and show PlayerStatsWindow
         const { PlayerStatsWindow } = await import('./window-stats-player.js');
         PlayerStatsWindow.show(actorId);
     }
@@ -622,12 +609,11 @@ export class StatsWindow extends Application {
             return;
         }
 
-        // Create file input
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.json';
         input.style.display = 'none';
-        
+
         input.addEventListener('change', async (event) => {
             const file = event.target.files[0];
             if (!file) return;
@@ -645,7 +631,6 @@ export class StatsWindow extends Application {
                     };
                 }
 
-                // Validate structure
                 if (!imported.combatHistory && !imported.playerStats) {
                     ui.notifications.error('Invalid statistics file format.');
                     return;
@@ -686,19 +671,16 @@ export class StatsWindow extends Application {
         let skippedCombats = 0;
         let skippedPlayers = 0;
 
-        // Import combat history
         if (imported.combatHistory && Array.isArray(imported.combatHistory)) {
             const currentHistory = StatsAPI.combat.getCombatHistory() || [];
             const historyMap = new Map();
-            
-            // Index existing history by combatId
+
             currentHistory.forEach(combat => {
                 if (combat.combatId) {
                     historyMap.set(combat.combatId, combat);
                 }
             });
 
-            // Merge imported combats
             for (const importedCombat of imported.combatHistory) {
                 if (!importedCombat.combatId) {
                     skippedCombats++;
@@ -707,37 +689,31 @@ export class StatsWindow extends Application {
 
                 const existing = historyMap.get(importedCombat.combatId);
                 if (existing) {
-                    // Compare dates - keep the more recent one, or merge if same
                     const existingDate = existing.date ? new Date(existing.date).getTime() : 0;
                     const importedDate = importedCombat.date ? new Date(importedCombat.date).getTime() : 0;
-                    
+
                     if (importedDate > existingDate) {
-                        // Imported is newer, replace
                         historyMap.set(importedCombat.combatId, importedCombat);
                         combatCount++;
                     } else {
-                        // Existing is newer or same, skip
                         skippedCombats++;
                     }
                 } else {
-                    // New combat, add it
                     historyMap.set(importedCombat.combatId, importedCombat);
                     combatCount++;
                 }
             }
 
-            // Convert back to array and store (keep all history for verification)
             const mergedHistory = Array.from(historyMap.values())
                 .sort((a, b) => {
                     const dateA = a.date ? new Date(a.date).getTime() : 0;
                     const dateB = b.date ? new Date(b.date).getTime() : 0;
-                    return dateB - dateA; // Most recent first
+                    return dateB - dateA;
                 });
 
             await game.settings.set(MODULE.ID, 'combatHistory', mergedHistory);
         }
 
-        // Import player stats
         if (imported.playerStats && Array.isArray(imported.playerStats)) {
             for (const importedPlayer of imported.playerStats) {
                 if (!importedPlayer.stats?.lifetime) {
@@ -745,13 +721,12 @@ export class StatsWindow extends Application {
                     continue;
                 }
 
-                // Try to find actor by ID first, then by name
                 let actor = importedPlayer.actorId ? game.actors.get(importedPlayer.actorId) : null;
-                
+
                 if (!actor && importedPlayer.actorName) {
-                    actor = game.actors.find(a => 
-                        a.hasPlayerOwner && 
-                        !a.isToken && 
+                    actor = game.actors.find(a =>
+                        a.hasPlayerOwner &&
+                        !a.isToken &&
                         a.name === importedPlayer.actorName
                     );
                 }
@@ -765,7 +740,6 @@ export class StatsWindow extends Application {
                     continue;
                 }
 
-                // Merge player stats
                 const merged = await this._mergePlayerStats(actor.id, importedPlayer.stats.lifetime);
                 if (merged) {
                     playerCount++;
@@ -775,7 +749,6 @@ export class StatsWindow extends Application {
             }
         }
 
-        // Refresh window and notify
         ui.notifications.info(
             `Import complete: ${combatCount} combat(s) imported, ${playerCount} player(s) updated. ` +
             `Skipped: ${skippedCombats} combat(s), ${skippedPlayers} player(s).`
@@ -787,7 +760,6 @@ export class StatsWindow extends Application {
         try {
             const currentStats = await StatsAPI.player.getStats(actorId);
             if (!currentStats) {
-                // Initialize if doesn't exist
                 await CPBPlayerStats.initializeActorStats(actorId);
                 const initialized = await StatsAPI.player.getStats(actorId);
                 if (!initialized) return false;
@@ -796,7 +768,6 @@ export class StatsWindow extends Application {
             const current = await StatsAPI.player.getStats(actorId);
             const merged = foundry.utils.deepClone(current);
 
-            // Merge attacks totals (additive)
             if (importedLifetime.attacks) {
                 const currentAttacks = merged.lifetime.attacks || {};
                 const importedAttacks = importedLifetime.attacks;
@@ -810,60 +781,54 @@ export class StatsWindow extends Application {
                     totalDamage: (currentAttacks.totalDamage || 0) + (importedAttacks.totalDamage || 0)
                 };
 
-                // Merge biggest/weakest (compare)
                 if (importedAttacks.biggest) {
-                    if (!currentAttacks.biggest || 
+                    if (!currentAttacks.biggest ||
                         (importedAttacks.biggest.amount || 0) > (currentAttacks.biggest.amount || 0)) {
                         merged.lifetime.attacks.biggest = importedAttacks.biggest;
                     }
                 }
 
                 if (importedAttacks.weakest) {
-                    if (!currentAttacks.weakest || 
+                    if (!currentAttacks.weakest ||
                         (importedAttacks.weakest.amount || 0) < (currentAttacks.weakest.amount || 0) ||
                         currentAttacks.weakest.amount === 0) {
                         merged.lifetime.attacks.weakest = importedAttacks.weakest;
                     }
                 }
 
-                // Merge hitLog (combine and keep most recent 20)
                 const combinedHitLog = [
                     ...(importedAttacks.hitLog || []),
                     ...(currentAttacks.hitLog || [])
                 ].sort((a, b) => {
                     const dateA = a.date ? new Date(a.date).getTime() : 0;
                     const dateB = b.date ? new Date(b.date).getTime() : 0;
-                    return dateB - dateA; // Most recent first
+                    return dateB - dateA;
                 }).slice(0, 20);
                 merged.lifetime.attacks.hitLog = combinedHitLog;
 
-                // Merge damageByWeapon (additive)
                 merged.lifetime.attacks.damageByWeapon = { ...(currentAttacks.damageByWeapon || {}) };
                 if (importedAttacks.damageByWeapon) {
                     for (const [weapon, damage] of Object.entries(importedAttacks.damageByWeapon)) {
-                        merged.lifetime.attacks.damageByWeapon[weapon] = 
+                        merged.lifetime.attacks.damageByWeapon[weapon] =
                             (merged.lifetime.attacks.damageByWeapon[weapon] || 0) + (damage || 0);
                     }
                 }
 
-                // Merge damageByType (additive)
                 merged.lifetime.attacks.damageByType = { ...(currentAttacks.damageByType || {}) };
                 if (importedAttacks.damageByType) {
                     for (const [type, damage] of Object.entries(importedAttacks.damageByType)) {
-                        merged.lifetime.attacks.damageByType[type] = 
+                        merged.lifetime.attacks.damageByType[type] =
                             (merged.lifetime.attacks.damageByType[type] || 0) + (damage || 0);
                     }
                 }
 
-                // Recalculate hitMissRatio
                 const totalHits = merged.lifetime.attacks.totalHits || 0;
                 const totalMisses = merged.lifetime.attacks.totalMisses || 0;
-                merged.lifetime.attacks.hitMissRatio = (totalHits + totalMisses) > 0 
-                    ? (totalHits / (totalHits + totalMisses)) * 100 
+                merged.lifetime.attacks.hitMissRatio = (totalHits + totalMisses) > 0
+                    ? (totalHits / (totalHits + totalMisses)) * 100
                     : 0;
             }
 
-            // Merge healing (additive)
             if (importedLifetime.healing) {
                 const currentHealing = merged.lifetime.healing || {};
                 const importedHealing = importedLifetime.healing;
@@ -874,17 +839,15 @@ export class StatsWindow extends Application {
                     received: (currentHealing.received || 0) + (importedHealing.received || 0)
                 };
 
-                // Merge byTarget (additive)
                 merged.lifetime.healing.byTarget = { ...(currentHealing.byTarget || {}) };
                 if (importedHealing.byTarget) {
                     for (const [target, amount] of Object.entries(importedHealing.byTarget)) {
-                        merged.lifetime.healing.byTarget[target] = 
+                        merged.lifetime.healing.byTarget[target] =
                             (merged.lifetime.healing.byTarget[target] || 0) + (amount || 0);
                     }
                 }
             }
 
-            // Merge turnStats (recalculate averages)
             if (importedLifetime.turnStats) {
                 const currentTurnStats = merged.lifetime.turnStats || {};
                 const importedTurnStats = importedLifetime.turnStats;
@@ -898,23 +861,21 @@ export class StatsWindow extends Application {
                     average: totalCount > 0 ? totalTime / totalCount : 0
                 };
 
-                // Compare fastest/slowest
                 if (importedTurnStats.fastest) {
-                    if (!currentTurnStats.fastest || 
+                    if (!currentTurnStats.fastest ||
                         (importedTurnStats.fastest.duration || Infinity) < (currentTurnStats.fastest.duration || Infinity)) {
                         merged.lifetime.turnStats.fastest = importedTurnStats.fastest;
                     }
                 }
 
                 if (importedTurnStats.slowest) {
-                    if (!currentTurnStats.slowest || 
+                    if (!currentTurnStats.slowest ||
                         (importedTurnStats.slowest.duration || 0) > (currentTurnStats.slowest.duration || 0)) {
                         merged.lifetime.turnStats.slowest = importedTurnStats.slowest;
                     }
                 }
             }
 
-            // Merge MVP stats (additive totals, compare records)
             if (importedLifetime.mvp) {
                 const currentMvp = merged.lifetime.mvp || {};
                 const importedMvp = importedLifetime.mvp;
@@ -932,10 +893,8 @@ export class StatsWindow extends Application {
                 };
             }
 
-            // Update lastUpdated timestamp
             merged.lifetime.lastUpdated = new Date().toISOString();
 
-            // Save merged stats
             const actor = game.actors.get(actorId);
             if (actor) {
                 await actor.setFlag(MODULE.ID, 'playerStats', merged);

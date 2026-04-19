@@ -214,16 +214,17 @@
 }
 
 .vote-type {
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid var(--color-border-light-primary);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 4px;
     padding: 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .vote-type:hover {
-    border-color: #c15701;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(193, 87, 1, 0.7);
 }
 
 .vote-type-layout {
@@ -235,7 +236,7 @@
 .vote-type-icon {
     flex: 0 0 auto;
     font-size: 1.4em;
-    color: #594a3c;
+    color: var(--blacksmith-window-accent-color, #ac9f81);
     padding-top: 2px;
 }
 
@@ -249,12 +250,12 @@
 .vote-type-name {
     font-family: var(--dnd5e-font-roboto-slab);
     font-weight: bold;
-    color: #594a3c;
+    color: rgba(224, 224, 224, 0.9);
     font-size: 1.1em;
 }
 
 .vote-type-description {
-    color: #594a3c;
+    color: rgba(180, 180, 180, 0.68);
     font-size: 0.9em;
     line-height: 1.4;
 }
