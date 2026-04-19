@@ -1,6 +1,3 @@
-
-
-
 # Coffee Pub Blacksmith
 
 ![Latest Release](https://img.shields.io/github/v/release/Drowbe/coffee-pub-blacksmith)
@@ -9,218 +6,99 @@
 ![Foundry v13](https://img.shields.io/badge/foundry-v13-green)
 ![MIT License](https://img.shields.io/badge/license-MIT-blue)
 
+> **v12 notice:** Version 12.1.23 is the final build compatible with FoundryVTT v12. All subsequent releases target v13+.
 
-## IMPORTANT NOTICE
+## Overview
 
-Blacksmith version 12.1.23 is the final build of BLACKSMITH that will be compatible with FoundryVTT v12. All future builds will be compatible with FoundryVTT v13 and later.
+Blacksmith is the foundational framework for the entire Coffee Pub module series. It provides the shared design system, window base classes, APIs, and cross-client communication layer that all other Coffee Pub modules depend on. It is also a capable standalone module with GM tools, combat statistics, and UI customization features.
 
 ## Disclaimer
 
-This is a personal project created for my FoundryVTT games to introduce various quality-of-life features and functions. 
+This is a personal project built for my own FoundryVTT games. If you find it useful, feel free to use it — but it comes with no guarantees of stability, compatibility, or support. **Use at your own risk.**
 
-If you stumble upon this repository and find it useful, feel free to try it out! However, please note that this project is developed for personal use, and I make no guarantees regarding stability, compatibility, or ongoing support.
+## Features
 
-**Use at your own risk.** I am not responsible for any issues, data loss, or unexpected behavior resulting from using this project.
+### GM Tools
+- **CSS Editor**: Live custom CSS editor with CodeMirror 6 syntax highlighting, line numbers, and search/replace (Ctrl+F / Ctrl+H)
+- **Voting System**: Create and broadcast votes to players with real-time results
+- **Pin Layers**: Manage canvas pin visibility by layer with per-layer eye toggles
 
-A comprehensive combat enhancement module for FoundryVTT that provides detailed combat statistics, performance tracking, timing tools, and injury mechanics to enrich your tabletop experience.
+### Combat & Statistics
+- **Combat Timers**: Synchronized turn countdowns across all clients, with pause/resume and auto-start on movement or attacks
+- **Planning Timer**: Dedicated pre-combat timing tool
+- **Party Statistics**: Detailed combat history, leaderboards, and per-player performance tracking
+- **Player Statistics**: Individual breakdown of hits, misses, damage, healing, kills, crits, and MVP scores
+- **Enhanced Combat Tracker**: Drag-and-drop initiative, health bars, portrait display
 
-The Blacksmith Module serves as the foundational framework for the entire Coffee Pub module series, providing essential services and shared functionality that all other modules depend upon. While powerful as a standalone module with features like enhanced combat statistics, customizable UI elements, and comprehensive token management, its true potential is realized when integrated with the complete Coffee Pub suite, where it orchestrates seamless communication and synchronization between all modules.
+### UI & Theming
+- **Design System**: Shared CSS tokens, component library, and window base classes used across all Coffee Pub modules
+- **Theme Support**: Multiple visual themes with persistent settings; drives theme selection for all Coffee Pub modules
+- **Chat Cards**: Enhanced roll result layout with improved success/failure indicators and tooltips
 
+### Movement Controls
+- **Movement Modes**: Normal, No movement, Combat, Follow, and Conga line modes
+- **GM Controls**: Visual mode indicators, persistent settings, quick-access toolbar buttons
 
-## **Key Features**
+### Quality of Life
+- **Token Management**: Smart renaming, customizable nameplates, fuzzy name matching
+- **Scene Management**: Custom mouse behaviors, configurable scene indicators
+- **Network Stats**: Real-time latency display with color-coded indicators for all players
 
-### **Real-Time Multiplayer Tools**
-- **Combat Timers**: Synchronized countdowns across all clients
-- **Planning Timers**: Session preparation timing for everyone
-- **Voting System**: Instant results visible to all players
-- **Cross-Client Sync**: Professional gaming experience
+### Developer API
+- **Module Registration**: Standardized integration point for other Coffee Pub modules
+- **Socket Layer**: Cross-client messaging via SocketLib with native fallback
+- **Statistics API**: Public interface for reading and writing combat stats
+- **Window Base (V2)**: `BlacksmithWindowBaseV2` — ApplicationV2-based window class used by all windows in the suite
 
-### **Advanced Canvas Management**
-- **Custom Layers**: Blacksmith utilities layer
-- **Canvas Tools**: Advanced manipulation and management
-- **Layer Integration**: Seamless FoundryVTT integration
+## Requirements
 
-### **Module Integration System**
-- **Centralized Registration**: Easy integration for other modules
-- **Feature Management**: Comprehensive module coordination
-- **API Access**: Public interfaces for external modules
-
-### **Statistics and Analytics**
-- **Combat Tracking**: Detailed encounter analysis
-- **Player Performance**: Individual and group statistics
-- **Data Export**: Comprehensive reporting capabilities
-
-
-### **Movement Controls**
-- **Movement Modes**: Normal movement, No movement, Combat movement, Follow movement, Conga line movement
-- **Control Features**: Movement configuration dialog, Visual indicators for current mode, GM-only movement mode control, Persistent movement settings, Quick access movement controls
-
-### **Chat Card System**
-- **Enhanced Layout**: Better visual hierarchy for roll results, Improved success/failure indicators, Detailed roll information tooltips, Group vs group contest visualization, Customizable card spacing and margins
-- **Information Display**: Clear skill check results, Contest outcome visualization, Party-wide success tracking, Enhanced tooltips and details
-
-### Player Statistics
-- **Individual Performance Tracking**: Attack success rates and accuracy percentages, Damage dealt and received tracking, Healing performed and received, Turn timing statistics with pause/resume support
-- **Combat Session Stats**: Detailed tracking of player achievements within each combat
-- **Turn Management**: Enhanced turn tracking with accurate timing
-
-### Network Statistics
-- **Latency Display**: Real-time latency monitoring for all players, Color-coded indicators (good/medium/poor), Configurable check frequency, Automatic local GM detection
-
-### Combat Management
-- **Combat Timer**: Accurate turn duration tracking with pause/resume functionality, Automatic active time calculation (excluding paused time), Visual progress indicators, Configurable notifications, Auto-start on token movement, targeting, and attack/damage rolls, Robust round change detection to prevent timer issues
-- **Planning Timer**: Dedicated planning phase timing tool, Pause/resume support, Integration with combat stats, Seamless transition to combat timer
-- **Turn Management**: Enhanced turn tracking and notification system
-- **Enhanced Combat Tracker**: Drag and drop initiative ordering, Health bars for combatants, Optional portrait display, "Set as current combatant" button
-
-### UI Enhancements
-- **Combat Dashboard**: Real-time combat statistics display, Round summary with timing breakdowns, Party performance metrics, Notable moments showcase
-- **Timer Integration**: Visual progress bars for turn tracking, Time remaining indicators, Status notifications
-- **Theme Support**: Multiple visual themes for UI elements, Drives theme selectiosn for all other Coffee Pub modules
-
-### AI-Powered Content and Rules System
-- **Multi-Workspace Interface**: Regent: AI chatbot for quick rule lookups and clarifications, Lookup: AI-assisted rules interpretation and contextual references, Character: Smart character development and backstory generation, Assistant: Advanced AI tools for real-time game assistance, Narrative: AI-driven story creation and scene development, Encounter: Intelligent encounter design and balancing
-
-- **The Regent AI Assistant**: Real-time rule clarifications and interpretations, Player-accessible AI chat interface, GM oversight of all player queries, Contextual understanding of game state, Integration with game system rules, Customizable AI behavior and responses, Quick access through toolbar button, Optional macro trigger support
-
-- **Content Generation**: Contextual rule lookups and interpretations, Dynamic narrative and scene generation, Intelligent encounter building suggestions, NPC personality and behavior generation, Automated story hooks and plot development
-- **Dynamic Contextual Roll Lookup System**: Context-aware skill check suggestions, Smart dice roll recommendations
-- **Smart Journal Integration**: AI-enhanced journal entry creation, Smart image and scene suggestions, Contextual geography and location development, Dynamic narrative rewards calculation
-- **AI-Powered Encounter Building**: Intelligent monster selection and balancing, Smart party composition analysis, Context-aware NPC integration, Dynamic CR calculations
-  - AI-assisted encounter worksheet system
-
-### Quality of Life Improvements
-- **Journal Enhancements**: Double-click to edit journal entries, Customizable journal behaviors, Smart folder organization
-- **Scene Management**: Enhanced scene navigation, Custom mouse behaviors (Left-click: View, Double-click: Activate) , Configurable scene indicators, Flexible title formatting and layout
-- **Chat Improvements**: Customizable chat spacing and margins, Enhanced card layouts, Configurable message styling, Roll table icon customization
-- **Token Management**: Smart token renaming, Customizable nameplate styling, Token ignore lists, Fuzzy matching for token names      
-- **Theme System**: Multiple visual themes, Customizable UI elements, Dynamic theme switching, Persistent theme settings
-
+- **FoundryVTT**: v13+
+- **Game System**: D&D 5e (fully supported)
+- **[socketlib](https://github.com/manuelVo/foundryvtt-socketlib)**: Required for cross-client sync
 
 ## Installation
 
-1. Inside Foundry VTT, use the following manifest URL:
-   ```
-   https://github.com/Drowbe/coffee-pub-blacksmith/releases/latest/download/module.json
-   ```
-2. Enable the module in your game world's module settings
+1. Install **socketlib** first:
+   - Foundry Admin → Install Module → paste manifest URL:
+   `https://github.com/farling42/foundryvtt-socketlib/releases/latest/download/module.json`
 
-## Configuration
+2. Install **Coffee Pub Blacksmith**:
+   - Foundry Admin → Install Module → paste manifest URL:
+   `https://github.com/Drowbe/coffee-pub-blacksmith/releases/latest/download/module.json`
 
-### Required Modules
-- [socketlib](https://github.com/manuelVo/foundryvtt-socketlib): Required for client synchronization and communication
+3. Enable both modules in your world.
 
-### Recommended Coffee Pub Modules
-Each module in the Coffee Pub collection enhances different aspects of your game:
+## Coffee Pub Module Suite
 
-- [Coffee Pub Artificer](https://github.com/Drowbe/coffee-pub-artificer): Item and content creation tools
-- [Coffee Pub Bibliosoph](https://github.com/Drowbe/coffee-pub-bibliosoph): Library and reference management
-- [Coffee Pub Cartographer](https://github.com/Drowbe/coffee-pub-cartographer): Drawing and map tools
-- [Coffee Pub Crier](https://github.com/Drowbe/coffee-pub-crier): Enhanced announcements and notifications
-- [Coffee Pub Herald](https://github.com/Drowbe/coffee-pub-herald): Streaming and broadcast view (cameraman user, view modes, clean UI-free display)
-- [Coffee Pub Monarch](https://github.com/Drowbe/coffee-pub-monarch): Module collection management
-- [Coffee Pub Regent](https://github.com/Drowbe/coffee-pub-regent): AI assistant and rules lookup (Consult the Regent, worksheets, OpenAI integration)
-- [Coffee Pub Scribe](https://github.com/Drowbe/coffee-pub-scribe): Advanced journaling and note-taking
-- [Coffee Pub Squire](https://github.com/Drowbe/coffee-pub-squire): Character sheet as a sidebar tray
+Blacksmith is the foundation for all modules in the suite:
 
-The Blacksmith module serves as the foundation for all Coffee Pub modules, providing shared services and functionality that other modules build upon.
+| Module | Description |
+|---|---|
+| [Artificer](https://github.com/Drowbe/coffee-pub-artificer) | Item and content creation tools |
+| [Bibliosoph](https://github.com/Drowbe/coffee-pub-bibliosoph) | Library and reference management |
+| [Cartographer](https://github.com/Drowbe/coffee-pub-cartographer) | Drawing and map tools |
+| [Crier](https://github.com/Drowbe/coffee-pub-crier) | Enhanced announcements and notifications |
+| [Herald](https://github.com/Drowbe/coffee-pub-herald) | Streaming and broadcast view |
+| [Monarch](https://github.com/Drowbe/coffee-pub-monarch) | Module collection management |
+| [Regent](https://github.com/Drowbe/coffee-pub-regent) | AI assistant and rules lookup |
+| [Scribe](https://github.com/Drowbe/coffee-pub-scribe) | Advanced journaling and note-taking |
+| [Squire](https://github.com/Drowbe/coffee-pub-squire) | Character sheet sidebar tray |
 
+## Development Setup
 
-## **Requirements**
+Requires [Node.js LTS](https://nodejs.org). After cloning:
 
-- **FoundryVTT**: Version 12.x (verified compatible)
-- **Game System**: D&D5e (fully supported)
-- **SocketLib**: **REQUIRED** - now working perfectly
-- **libWrapper**: Supported (optional)
+```bash
+npm install
+npm run build:cm6
+```
 
-## **Installation**
-
-1. **Install SocketLib** (required dependency):
-   - FoundryVTT Admin Panel → Install Module
-   - Manifest URL: `https://github.com/farling42/foundryvtt-socketlib/releases/latest/download/module.json`
-
-2. **Install Coffee Pub Blacksmith**:
-   - FoundryVTT Admin Panel → Install Module
-   - Manifest URL: `https://github.com/Drowbe/coffee-pub-blacksmith/releases/latest/download/module.json`
-
-3. **Enable Both Modules** in your world
-
-## **Configuration**
-
-### **Socket System**
-- **Automatic**: SocketLib detection and integration
-- **Fallback**: Native Foundry sockets if needed
-- **Cross-Client**: All features sync automatically
-
-### **Timer Settings**
-- **Combat Timers**: Customizable countdown displays
-- **Planning Timers**: Session preparation tools
-- **Round Timers**: Tactical encounter timing
-
-### **UI Customization**
-- **Console Styling**: Multiple debug output styles
-- **Chat Appearance**: Customizable message formatting
-- **Window Themes**: Multiple visual themes available
-
-## **API Documentation**
-
-### **For Developers**
-- **Module Registration**: Easy integration with Blacksmith
-- **Utility Functions**: Access to common gaming utilities
-- **Socket Communication**: Cross-client messaging system
-- **Statistics API**: Performance tracking and analytics
-
-
-## **Development Status**
-
-### **Completed Features**
-- ✅ **Socket System**: Production ready with SocketLib
-- ✅ **Timer System**: All timer types fully functional
-- ✅ **Voting System**: Real-time cross-client voting
-- ✅ **Module Management**: Centralized system operational
-- ✅ **Canvas Tools**: Advanced canvas manipulation
-- ✅ **Statistics API**: Comprehensive tracking system
-
-### **In Development**
-- **Roll System**: Unified dice rolling architecture
-- **Advanced Roll Types**: Skill, ability, save, tool checks
-- **Window Modes**: Multiple UI presentation options
-- **Cinema Mode**: Cinematic roll display system
-
-### **Planned Features**
-- **Roll Result Handling**: Comprehensive result processing
-
-
-## **Known Issues**
-- **BREAKING**: Currently in mid-reachitecture for all modules.
-
-### **Resolved Issues**
-- ✅ **Socket Communication**: SocketLib now working perfectly
-- ✅ **Cross-Client Sync**: All features sync across clients
-- ✅ **Module Loading**: Consistent and reliable loading
-- ✅ **File Organization**: Clean and maintainable structure
-
+`npm run build:cm6` bundles the CodeMirror 6 CSS editor into `scripts/vendor/codemirror.mjs`. This file is committed to the repo — end users do not need Node. Only contributors modifying the editor dependencies need to rebuild it.
 
 ## Support
 
-If you encounter any issues or have suggestions, please file them in the [Issues](https://github.com/Drowbe/coffee-pub-blacksmith/issues) section of this repository.
+File bugs and feature requests in [Issues](https://github.com/Drowbe/coffee-pub-blacksmith/issues).
 
 ## License
 
-This work is licensed under the included LICENSE file.
-
-## Credits
-
-Part of the Coffee Pub module collection
-
-
----
-
-**Last Updated**: Current session - Socket system fully functional
-**Status**: Production ready with SocketLib integration
-**Next Milestone**: Roll system development completion
-
----
-
-*Coffee Pub Blacksmith - gaming tools for FoundryVTT*
-
+Licensed under the included LICENSE file.
