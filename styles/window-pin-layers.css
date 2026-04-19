@@ -224,6 +224,48 @@
     font-size: 0.85em;
 }
 
+/* ----- Tag cloud ----- */
+
+.blacksmith-pin-layers-tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 8px 14px 14px;
+}
+
+.blacksmith-pin-layers-tag-pill {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(200, 200, 200, 0.82);
+    cursor: pointer;
+    font-size: 0.82em;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+}
+
+.blacksmith-pin-layers-tag-pill:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.22);
+    color: rgba(224, 224, 224, 0.95);
+}
+
+.blacksmith-pin-layers-tag-pill.is-hidden {
+    background: rgba(255, 100, 0, 0.15);
+    border-color: rgba(255, 100, 0, 0.4);
+    color: rgba(255, 140, 60, 0.9);
+}
+
+.blacksmith-pin-layers-tag-count {
+    font-size: 0.82em;
+    opacity: 0.55;
+}
+
 /* ----- Eye-icon toggle button ----- */
 
 .blacksmith-pin-layers-eye {

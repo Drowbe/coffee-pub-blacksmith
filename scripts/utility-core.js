@@ -4,6 +4,7 @@
 
 import { MODULE } from './const.js';
 import { MenuBar } from './api-menubar.js';
+import { PinManager } from './manager-pins.js';
 import { getSettingSafely } from './api-core.js';
 
 export class CoreUIUtility {
@@ -270,7 +271,7 @@ Hooks.once('ready', () => {
     api.registerMenubarTool('pin-layers', {
         icon: "fa-solid fa-layer-group",
         name: "pin-layers",
-        title: "Pins",
+        title: "",
         tooltip: "Open Pins",
         onClick: () => api.pins?.openLayers({ sceneId: canvas?.scene?.id }),
         contextMenuItems: () => {
@@ -284,9 +285,9 @@ Hooks.once('ready', () => {
             return items;
         },
         zone: "left",
-        group: "pins",
-        groupOrder: 200,
-        order: 2,
+        group: "general",
+        groupOrder: 100,
+        order: 10,
         moduleId: "blacksmith-core",
         gmOnly: false,
         leaderOnly: false,
@@ -301,4 +302,26 @@ Hooks.once('ready', () => {
 
 Hooks.once('canvasReady', () => {
     CoreUIUtility.applyHideInterfaceOnLoad();
+});
+
+// Reflect pin filter state on the Pins menubar icon (orange = filters active)
+function _syncPinsIconColor() {
+    try {
+        const anyHidden = PinManager.isGlobalHidden() ||
+            Object.keys(game.settings.get(MODULE.ID, PinManager.HIDDEN_MODULE_TYPES_SETTING_KEY) || {}).length > 0 ||
+            Object.keys(game.settings.get(MODULE.ID, PinManager.HIDDEN_GROUPS_SETTING_KEY) || {}).length > 0 ||
+            Object.keys(game.settings.get(MODULE.ID, PinManager.HIDDEN_TAGS_SETTING_KEY) || {}).length > 0;
+        const tool = MenuBar.toolbarIcons?.get('pin-layers');
+        if (!tool) return;
+        tool.iconColor = anyHidden ? 'rgba(255, 140, 0, 0.9)' : null;
+        MenuBar.renderMenubar(true);
+    } catch (_err) {}
+}
+
+const _PIN_FILTER_KEYS = new Set([
+    'pinsHideAll', 'pinsHiddenModuleTypes', 'pinsHiddenGroups', 'pinsHiddenTags'
+]);
+
+Hooks.on('updateSetting', (setting) => {
+    if (_PIN_FILTER_KEYS.has(setting?.key)) _syncPinsIconColor();
 });
