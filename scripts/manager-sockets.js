@@ -203,7 +203,12 @@ class SocketManager {
             };
             
             postConsoleAndNotification(MODULE.NAME, "SocketManager: _initializeSocket: Module registered successfully", { socketType: typeof this.socket }, true, false);
-            
+
+            // Register latency handlers immediately — before anything else — so a ping arriving
+            // from another client during Game.setupGame doesn't throw SocketlibUnregisteredHandlerError.
+            this.isSocketReady = true;
+            this.ensureLatencySocketHandlers();
+
             this.registerSocketFunctions();
             
             this.isInitialized = true;
