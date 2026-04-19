@@ -540,14 +540,41 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     async _toggleGroup(target) {
         const group = target?.dataset?.group || '';
         if (!group) return;
-        await PinManager.setGroupHidden(group, !PinManager.isGroupHidden(group));
+        const currentlyHidden = PinManager.isGroupHidden(group);
+        if (currentlyHidden) {
+            // Showing this group — unblock the types of its pins so they can actually appear
+            const sceneId = this.sceneId ?? canvas?.scene?.id;
+            const pins = (PinManager.list({ sceneId, includeHiddenByFilter: true }) || [])
+                .filter(p => (p.group || '').toLowerCase().trim() === group.toLowerCase().trim());
+            for (const pin of pins) {
+                if (pin.moduleId && PinManager.isModuleTypeHidden(pin.moduleId, pin.type)) {
+                    await PinManager.setModuleTypeHidden(pin.moduleId, pin.type || 'default', false);
+                }
+            }
+        }
+        await PinManager.setGroupHidden(group, !currentlyHidden);
         await this.render(true);
     }
 
     async _toggleTag(target) {
         const tag = target?.dataset?.tag || '';
         if (!tag) return;
-        await PinManager.setTagHidden(tag, !PinManager.isTagHidden(tag));
+        const currentlyHidden = PinManager.isTagHidden(tag);
+        if (currentlyHidden) {
+            // Showing this tag — unblock the types and groups of its pins so they can actually appear
+            const sceneId = this.sceneId ?? canvas?.scene?.id;
+            const pins = (PinManager.list({ sceneId, includeHiddenByFilter: true }) || [])
+                .filter(p => (p.tags || []).some(t => t.toLowerCase().trim() === tag.toLowerCase().trim()));
+            for (const pin of pins) {
+                if (pin.moduleId && PinManager.isModuleTypeHidden(pin.moduleId, pin.type)) {
+                    await PinManager.setModuleTypeHidden(pin.moduleId, pin.type || 'default', false);
+                }
+                if (pin.group && PinManager.isGroupHidden(pin.group)) {
+                    await PinManager.setGroupHidden(pin.group, false);
+                }
+            }
+        }
+        await PinManager.setTagHidden(tag, !currentlyHidden);
         await this.render(true);
     }
 }
