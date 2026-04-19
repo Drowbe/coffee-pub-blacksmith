@@ -5,11 +5,32 @@ import { handleSkillRollUpdate } from './blacksmith.js';
 import { SocketManager } from './manager-sockets.js';
 import { skillDescriptions, abilityDescriptions, saveDescriptions, toolDescriptions } from '../resources/dictionary.js';
 import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './theme-request-roll.js';
+import { BlacksmithWindowBaseV2 } from './window-base.js';
 
 
-export class SkillCheckDialog extends Application {
+export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
     /** @type {Map<string, Function>} Pending onRollComplete callbacks by message ID (for API callers) */
     static _pendingRollCallbacks = new Map();
+
+    static ROOT_CLASS = 'skill-check-dialog';
+
+    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {
+            id: 'skill-check-dialog',
+            classes: ['coffee-pub-blacksmith', 'skill-check-dialog'],
+            position: { width: 800, height: 700 },
+            window: { title: 'Request a Roll', resizable: true, minimizable: true }
+        }
+    );
+
+    static PARTS = {
+        body: {
+            template: `modules/${MODULE.ID}/templates/window-skillcheck.hbs`
+        }
+    };
+
+    static ACTION_HANDLERS = null;
 
     constructor(data = {}) {
         const options = {};
@@ -48,18 +69,6 @@ export class SkillCheckDialog extends Application {
         if (!Array.isArray(this.userPreferences.requestRollFavorites)) {
             this.userPreferences.requestRollFavorites = [];
         }
-    }
-
-    static get defaultOptions() {
-        return foundry.utils.mergeObject(super.defaultOptions, {
-            id: 'skill-check-dialog',
-            template: 'modules/coffee-pub-blacksmith/templates/window-skillcheck.hbs',
-            classes: ['coffee-pub-blacksmith', 'skill-check-dialog'],
-            title: 'Request a Roll',
-            width: 800,
-            height: 700,
-            resizable: true
-        });
     }
 
     /**
@@ -612,25 +621,13 @@ export class SkillCheckDialog extends Application {
     }
 
     _getElementForUpdate() {
-        if (!this.element) return null;
-        if (this.element.jquery || typeof this.element.find === 'function') {
-            return this.element[0] || this.element.get?.(0);
-        }
-        return this.element.querySelectorAll ? this.element : null;
+        return this.element?.querySelectorAll ? this.element : null;
     }
 
     _getToolProficiencies() {
         const toolProfs = new Map(); // Map of tool name to count and actor-specific IDs
-        // v13: this.element may be native DOM; normalize like _updateToolList. During getData() this.element may be unset or empty.
-        let element;
-        if (this.element && typeof this.element.jquery !== 'undefined') {
-            element = this.element[0] || this.element.get?.(0);
-        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
-            element = this.element;
-        } else {
-            return [];
-        }
-        if (!element || typeof element.querySelectorAll !== 'function') return [];
+        const element = this.element?.querySelectorAll ? this.element : null;
+        if (!element) return [];
         const selectedActorEls = element.querySelectorAll('.cpb-actor-item.selected');
         const selectedCount = selectedActorEls.length;
         if (selectedCount === 0) return [];
@@ -687,25 +684,14 @@ export class SkillCheckDialog extends Application {
         return result;
     }
 
-    activateListeners(html) {
-        super.activateListeners(html);
+    async _onRender(context, options) {
+        await super._onRender?.(context, options);
+        this._attachLocalListeners();
+    }
 
-        // v13: Application.activateListeners may still receive jQuery in some cases
-        // Convert to native DOM if needed
-        let htmlElement = html;
-        if (html && (html.jquery || typeof html.find === 'function')) {
-            htmlElement = html[0] || html.get?.(0) || html;
-        } else if (html && typeof html.querySelectorAll !== 'function') {
-            // Not a valid DOM element
-            postConsoleAndNotification(MODULE.NAME, "SkillCheckDialog.activateListeners: Invalid html parameter", html, true, false);
-            return;
-        }
-        
-        if (!htmlElement) {
-            return;
-        }
-
-        postConsoleAndNotification(MODULE.NAME, "SKILLROLLL | LOCATION CHECK: We are in skill-check-dialogue.js and in activateListeners(html)...", "", true, false);
+    _attachLocalListeners() {
+        const htmlElement = this.element;
+        postConsoleAndNotification(MODULE.NAME, "SKILLROLLL | LOCATION CHECK: We are in skill-check-dialogue.js and in _attachLocalListeners()...", "", true, false);
 
         // Apply initial filter (API can pass initialFilter; else selected tokens or party)
         const hasSelectedTokens = (canvas?.tokens?.controlled?.length ?? 0) > 0;
@@ -1577,23 +1563,8 @@ export class SkillCheckDialog extends Application {
 
     _updateToolList() {
         const tools = this._getToolProficiencies();
-        // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
-        let element;
-        if (this.element && typeof this.element.jquery !== 'undefined') {
-            // It's a jQuery object, get the native DOM element
-            element = this.element[0] || this.element.get?.(0);
-        } else if (this.element && typeof this.element.querySelectorAll === 'function') {
-            // It's already a native DOM element
-            element = this.element;
-        } else {
-            console.error('_updateToolList: Invalid this.element', this.element);
-            return;
-        }
-        
-        if (!element) {
-            console.error('_updateToolList: Could not extract DOM element');
-            return;
-        }
+        const element = this.element?.querySelectorAll ? this.element : null;
+        if (!element) return;
         
         // v13: native DOM - get last check section
         const checkSections = element.querySelectorAll('.cpb-check-section');
@@ -1756,10 +1727,8 @@ export class SkillCheckDialog extends Application {
 
     // Update helper method to optionally defer visibility updates (v13: native DOM)
     _applyFilter(html, filterType, updateVisibility = true) {
-        // v13: Handle both jQuery and native DOM
-        const htmlElement = html && typeof html.jquery !== 'undefined' ? (html[0] || html.get?.(0)) : html;
+        const htmlElement = html;
         if (!htmlElement || typeof htmlElement.querySelectorAll !== 'function') {
-            console.error('_applyFilter: Invalid html parameter');
             return;
         }
         htmlElement.querySelectorAll('.cpb-actor-list .cpb-actor-item').forEach((el) => {
@@ -1854,12 +1823,8 @@ export class SkillCheckDialog extends Application {
      * Apply roll type filter to show/hide sections (v13: native DOM)
      */
     _applyRollTypeFilter(html, filterType) {
-        // v13: Handle both jQuery and native DOM
-        const htmlElement = html && typeof html.jquery !== 'undefined' ? (html[0] || html.get?.(0)) : html;
-        if (!htmlElement || typeof htmlElement.querySelectorAll !== 'function') {
-            console.error('_applyRollTypeFilter: Invalid html parameter');
-            return;
-        }
+        const htmlElement = html;
+        if (!htmlElement || typeof htmlElement.querySelectorAll !== 'function') return;
         // Hide all sections first
         htmlElement.querySelectorAll('.cpb-check-section').forEach(section => {
             section.style.display = 'none';
@@ -2583,19 +2548,11 @@ export class SkillCheckDialog extends Application {
      * @param {object} html - The jQuery-wrapped HTML of the chat card.
      */
     static handleChatMessageClick(message, html) {
-        // v13: Handle both jQuery and native DOM (renderChatMessage hook may still pass jQuery)
-        // Convert jQuery to native DOM if needed
-        let htmlElement;
-        if (html && typeof html.jquery !== 'undefined') {
-            // It's a jQuery object, get the native DOM element
-            htmlElement = html[0] || html.get?.(0);
-        } else if (html && typeof html.querySelectorAll === 'function') {
-            // It's already a native DOM element
-            htmlElement = html;
-        } else {
-            console.warn('SkillCheckDialog.handleChatMessageClick: Invalid html parameter', html);
-            return;
-        }
+        // renderChatMessage hook may still pass jQuery in v13 — normalize to native DOM
+        const htmlElement = (html?.jquery || typeof html?.find === 'function')
+            ? (html[0] ?? html.get?.(0))
+            : html;
+        if (!htmlElement?.querySelectorAll) return;
         
         if (!htmlElement) {
             console.warn('SkillCheckDialog.handleChatMessageClick: Could not extract DOM element');
