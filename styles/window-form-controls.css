@@ -228,3 +228,177 @@
     border-color: rgba(255, 100, 0, 0.8);
     box-shadow: 0 0 4px rgba(255, 100, 0, 0.4);
 }
+
+
+/* ----- Text input, number input ----- */
+/*
+  Usage:
+    <input type="text"   class="blacksmith-input" placeholder="Enter value">
+    <input type="number" class="blacksmith-input" placeholder="0">
+*/
+
+.blacksmith-input {
+    background: var(--blacksmith-surface-dark-1, #222);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--blacksmith-radius-md, 4px);
+    color: var(--blacksmith-text-light, #bdbdae);
+    font-size: var(--blacksmith-font-size-sm, 0.85em);
+    padding: 5px 8px;
+    width: 100%;
+    box-sizing: border-box;
+    line-height: 1.4;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.blacksmith-input::placeholder {
+    color: var(--blacksmith-text-muted, #ada39d);
+    opacity: 0.7;
+}
+
+.blacksmith-input:focus,
+.blacksmith-input:focus-visible {
+    outline: none;
+    border-color: var(--blacksmith-color-brand-accent, #c15701);
+    box-shadow: 0 0 0 2px rgba(193, 87, 1, 0.2);
+}
+
+.blacksmith-input:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* number: hide browser spin arrows */
+.blacksmith-input[type="number"]::-webkit-inner-spin-button,
+.blacksmith-input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.blacksmith-input[type="number"] { -moz-appearance: textfield; }
+
+
+/* ----- Select ----- */
+/*
+  Usage:
+    <select class="blacksmith-select">
+      <option value="a">Option A</option>
+    </select>
+*/
+
+.blacksmith-select {
+    background: var(--blacksmith-surface-dark-1, #222);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--blacksmith-radius-md, 4px);
+    color: var(--blacksmith-text-light, #bdbdae);
+    font-size: var(--blacksmith-font-size-sm, 0.85em);
+    padding: 5px 28px 5px 8px;
+    width: 100%;
+    box-sizing: border-box;
+    line-height: 1.4;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(189,189,174,0.6)'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.blacksmith-select option {
+    background: var(--blacksmith-surface-dark-1, #222);
+    color: var(--blacksmith-text-light, #bdbdae);
+}
+
+.blacksmith-select:focus,
+.blacksmith-select:focus-visible {
+    outline: none;
+    border-color: var(--blacksmith-color-brand-accent, #c15701);
+    box-shadow: 0 0 0 2px rgba(193, 87, 1, 0.2);
+}
+
+.blacksmith-select:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+
+/* ----- Textarea ----- */
+/*
+  Usage:
+    <textarea class="blacksmith-textarea" placeholder="Enter description..."></textarea>
+*/
+
+.blacksmith-textarea {
+    background: var(--blacksmith-surface-dark-1, #222);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--blacksmith-radius-md, 4px);
+    color: var(--blacksmith-text-light, #bdbdae);
+    font-size: var(--blacksmith-font-size-sm, 0.85em);
+    padding: 6px 8px;
+    width: 100%;
+    box-sizing: border-box;
+    line-height: 1.5;
+    min-height: 64px;
+    resize: vertical;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.blacksmith-textarea::placeholder {
+    color: var(--blacksmith-text-muted, #ada39d);
+    opacity: 0.7;
+}
+
+.blacksmith-textarea:focus,
+.blacksmith-textarea:focus-visible {
+    outline: none;
+    border-color: var(--blacksmith-color-brand-accent, #c15701);
+    box-shadow: 0 0 0 2px rgba(193, 87, 1, 0.2);
+}
+
+.blacksmith-textarea:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+
+/* ----- Field wrapper (label + control) ----- */
+/*
+  Usage:
+    <div class="blacksmith-field">
+      <label class="blacksmith-field-label">Title</label>
+      <input class="blacksmith-input" type="text">
+    </div>
+
+  Side-by-side fields:
+    <div class="blacksmith-field-row">
+      <div class="blacksmith-field">...</div>
+      <div class="blacksmith-field">...</div>
+    </div>
+*/
+
+.blacksmith-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--blacksmith-space-sm, 4px);
+    flex: 1 1 0;
+}
+
+.blacksmith-field-label {
+    font-size: var(--blacksmith-font-size-xs, 0.8em);
+    color: var(--blacksmith-text-muted, #ada39d);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: var(--blacksmith-font-weight-normal, 400);
+}
+
+.blacksmith-field-row {
+    display: flex;
+    gap: var(--blacksmith-space-md, 8px);
+    width: 100%;
+}
+
+.blacksmith-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--blacksmith-space-md, 8px);
+    width: 100%;
+}

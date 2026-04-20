@@ -3,6 +3,7 @@ import { postConsoleAndNotification, playSound } from './api-core.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 import { SocketManager } from './manager-sockets.js';
 import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './theme-request-roll.js';
+import { BlacksmithWindowBaseV2 } from './window-base.js';
 
 // Import SkillCheckDialog for chat message formatting
 import { SkillCheckDialog } from './window-skillcheck.js';
@@ -1124,80 +1125,73 @@ async function showRollWindow(rollData) {
 /**
  * Roll Window Class - Handles the roll configuration interface
  */
-class RollWindow extends Application {
+class RollWindow extends BlacksmithWindowBaseV2 {
+    static ROOT_CLASS = 'roll-window';
+
+    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {
+            id: 'roll-window',
+            classes: ['roll-window'],
+            position: { width: 600, height: 500 },
+            window: { title: 'Roll Configuration', resizable: true, minimizable: true }
+        }
+    );
+
+    static PARTS = {
+        body: {
+            template: `modules/${MODULE.ID}/templates/window-roll-normal.hbs`
+        }
+    };
+
+    static ACTION_HANDLERS = null;
+
     constructor(rollData) {
         super();
         this.rollData = rollData;
         postConsoleAndNotification(MODULE.NAME, `RollWindow constructor: Created with roll data`, rollData, true, false);
     }
 
-    static get defaultOptions() {
-        return foundry.utils.mergeObject(super.defaultOptions, {
-            id: 'roll-window',
-            template: 'modules/coffee-pub-blacksmith/templates/window-roll-normal.hbs',
-            title: 'Roll Configuration',
-            width: 600,
-            height: 500,
-            resizable: true,
-            classes: ['roll-window']
-        });
-    }
-
     getData() {
         postConsoleAndNotification(MODULE.NAME, `RollWindow getData: Preparing template data`, null, true, false);
-        
-        // Return the roll data for the template
         return this.rollData;
     }
 
-    activateListeners(html) {
-        super.activateListeners(html);
-        
-        // v13: Application.activateListeners may still receive jQuery in some cases
-        // Convert to native DOM if needed
-        let htmlElement = html;
-        if (html && (html.jquery || typeof html.find === 'function')) {
-            htmlElement = html[0] || html.get?.(0) || html;
-        } else if (html && typeof html.querySelectorAll !== 'function') {
-            // Not a valid DOM element
-            postConsoleAndNotification(MODULE.NAME, "RollWindow.activateListeners: Invalid html parameter", html, true, false);
-            return;
-        }
-        
-        if (!htmlElement) {
-            return;
-        }
-        
-        postConsoleAndNotification(MODULE.NAME, `RollWindow activateListeners: Setting up event handlers`, null, true, false);
-        
-        // Roll buttons - each button triggers a roll with different advantage/disadvantage
-        const rollAdvantage = htmlElement.querySelector('.roll-advantage');
-        const rollNormal = htmlElement.querySelector('.roll-normal');
-        const rollDisadvantage = htmlElement.querySelector('.roll-disadvantage');
-        const cancelRoll = htmlElement.querySelector('.cancel-roll');
-        
+    async _onRender(context, options) {
+        await super._onRender?.(context, options);
+        this._attachLocalListeners();
+    }
+
+    _attachLocalListeners() {
+        const el = this.element;
+        postConsoleAndNotification(MODULE.NAME, `RollWindow _attachLocalListeners: Setting up event handlers`, null, true, false);
+
+        const rollAdvantage = el.querySelector('.roll-advantage');
+        const rollNormal = el.querySelector('.roll-normal');
+        const rollDisadvantage = el.querySelector('.roll-disadvantage');
+        const cancelRoll = el.querySelector('.cancel-roll');
+
         if (rollAdvantage) {
             rollAdvantage.addEventListener('click', async (event) => {
                 event.preventDefault();
                 await this._executeRoll('advantage');
             });
         }
-        
+
         if (rollNormal) {
             rollNormal.addEventListener('click', async (event) => {
                 event.preventDefault();
                 await this._executeRoll('normal');
             });
         }
-        
+
         if (rollDisadvantage) {
             rollDisadvantage.addEventListener('click', async (event) => {
                 event.preventDefault();
                 await this._executeRoll('disadvantage');
             });
         }
-        
-        // Cancel button
+
         if (cancelRoll) {
             cancelRoll.addEventListener('click', (event) => {
                 event.preventDefault();
@@ -1206,32 +1200,19 @@ class RollWindow extends Application {
             });
         }
 
-        // Real-time formula updates
-        this._setupFormulaUpdates(htmlElement);
+        this._setupFormulaUpdates(el);
     }
 
     async _executeRoll(rollType) {
         try {
             postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Starting ${rollType} roll execution`, null, true, false);
-            
-            // v13: Handle both jQuery and native DOM (this.element may still be jQuery)
-            let element;
-            if (this.element && typeof this.element.jquery !== 'undefined') {
-                // It's a jQuery object, get the native DOM element
-                element = this.element[0] || this.element.get?.(0);
-            } else if (this.element && typeof this.element.querySelectorAll === 'function') {
-                // It's already a native DOM element
-                element = this.element;
-            } else {
+
+            const element = this.element;
+            if (!element?.querySelectorAll) {
                 postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Invalid this.element`, null, true, false);
                 return;
             }
-            
-            if (!element) {
-                postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Could not extract DOM element`, null, true, false);
-                return;
-            }
-            
+
             // Get roll options from the form
             const advantage = rollType === 'advantage';
             const disadvantage = rollType === 'disadvantage';
@@ -1278,22 +1259,9 @@ class RollWindow extends Application {
     }
     
     _setupFormulaUpdates(html) {
-        // v13: Handle both jQuery and native DOM (html parameter may still be jQuery)
-        let htmlElement;
-        if (html && typeof html.jquery !== 'undefined') {
-            // It's a jQuery object, get the native DOM element
-            htmlElement = html[0] || html.get?.(0);
-        } else if (html && typeof html.querySelectorAll === 'function') {
-            // It's already a native DOM element
-            htmlElement = html;
-        } else {
-            return;
-        }
-        
-        if (!htmlElement) {
-            return;
-        }
-        
+        const htmlElement = html;
+        if (!htmlElement?.querySelectorAll) return;
+
         const formulaElement = htmlElement.querySelector('.roll-formula');
         const situationalInput = htmlElement.querySelector('input[name="situational-bonus"]');
         const customModifierInput = htmlElement.querySelector('input[name="custom-modifier"]');

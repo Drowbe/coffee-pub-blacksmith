@@ -5,6 +5,7 @@
 import { MODULE, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { BlacksmithWindowBaseV2 } from './window-base.js';
 
 export class JournalTools {
     static async init() {
@@ -2366,7 +2367,27 @@ export class JournalTools {
 // ===== JOURNAL TOOLS WINDOW =======================================
 // ================================================================== 
 
-export class JournalToolsWindow extends FormApplication {
+export class JournalToolsWindow extends BlacksmithWindowBaseV2 {
+    static ROOT_CLASS = 'journal-tools-window';
+
+    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {
+            id: 'journal-tools-window',
+            classes: ['journal-tools-window'],
+            position: { width: 800, height: 1000 },
+            window: { title: 'Journal Tools', resizable: true, minimizable: true }
+        }
+    );
+
+    static PARTS = {
+        body: {
+            template: `modules/${MODULE.ID}/templates/journal-tools-window.hbs`
+        }
+    };
+
+    static ACTION_HANDLERS = null;
+
     constructor(journal) {
         super();
         this.journal = journal;
@@ -2374,33 +2395,8 @@ export class JournalToolsWindow extends FormApplication {
         this.shouldStop = false;
     }
 
-    /**
-     * Get native DOM element from this.element (handles jQuery conversion)
-     * @returns {HTMLElement|null} Native DOM element
-     */
     _getNativeElement() {
-        if (!this.element) return null;
-        // v13: Detect and convert jQuery to native DOM if needed
-        if (this.element.jquery || typeof this.element.find === 'function') {
-            return this.element[0] || this.element.get?.(0) || this.element;
-        }
-        // Ensure it's a valid DOM element with querySelector
-        if (typeof this.element.querySelector === 'function') {
-            return this.element;
-        }
-        return null;
-    }
-
-    static get defaultOptions() {
-        return foundry.utils.mergeObject(super.defaultOptions, {
-            id: "journal-tools-window",
-            title: "Journal Tools",
-            template: "modules/coffee-pub-blacksmith/templates/journal-tools-window.hbs",
-            width: 800,
-            height: 1000,
-            resizable: true,
-            classes: ["journal-tools-window"]
-        });
+        return this.element?.querySelector ? this.element : null;
     }
 
     getData() {
@@ -2489,79 +2485,45 @@ export class JournalToolsWindow extends FormApplication {
         return "Unknown";
     }
 
-    async _updateObject(event, formData) {
-        // This method is called by FormApplication but we handle everything in _onApplyTools
-        // So we just return without doing anything to avoid conflicts
-        return;
+    async _onRender(context, options) {
+        await super._onRender?.(context, options);
+        this._attachLocalListeners();
     }
 
-    activateListeners(html) {
-        super.activateListeners(html);
-        
-        // v13: Application/FormApplication.activateListeners may still receive jQuery
-        // Convert to native DOM if needed
-        let htmlElement = html;
-        if (html && (html.jquery || typeof html.find === 'function')) {
-            htmlElement = html[0] || html.get?.(0) || html;
-        } else if (html && typeof html.querySelectorAll !== 'function') {
-            // Not a valid DOM element
-            return;
-        }
-        if (!htmlElement) return;
+    _attachLocalListeners() {
+        const el = this.element;
 
-        // Add event listeners for the custom buttons
-        const applyToolsButton = htmlElement.querySelector('.apply-tools');
-        if (applyToolsButton) {
-            applyToolsButton.addEventListener('click', this._onApplyTools.bind(this));
-        }
-        
-        const cancelToolsButton = htmlElement.querySelector('.cancel-tools');
-        if (cancelToolsButton) {
-            cancelToolsButton.addEventListener('click', this._onCancelTools.bind(this));
-        }
-        
-        const copyResultsEntityButton = htmlElement.querySelector('#copy-results-entity');
-        if (copyResultsEntityButton) {
-            copyResultsEntityButton.addEventListener('click', this._onCopyStatus.bind(this));
-        }
-        
-        const openJournalButton = htmlElement.querySelector('#open-journal-btn');
-        if (openJournalButton) {
-            openJournalButton.addEventListener('click', this._onOpenJournal.bind(this));
-        }
-        
-        // Tab switching
-        htmlElement.querySelectorAll('.journal-tools-tab').forEach(tab => {
+        const applyToolsButton = el.querySelector('.apply-tools');
+        if (applyToolsButton) applyToolsButton.addEventListener('click', this._onApplyTools.bind(this));
+
+        const cancelToolsButton = el.querySelector('.cancel-tools');
+        if (cancelToolsButton) cancelToolsButton.addEventListener('click', this._onCancelTools.bind(this));
+
+        const copyResultsEntityButton = el.querySelector('#copy-results-entity');
+        if (copyResultsEntityButton) copyResultsEntityButton.addEventListener('click', this._onCopyStatus.bind(this));
+
+        const openJournalButton = el.querySelector('#open-journal-btn');
+        if (openJournalButton) openJournalButton.addEventListener('click', this._onOpenJournal.bind(this));
+
+        el.querySelectorAll('.journal-tools-tab').forEach(tab => {
             tab.addEventListener('click', this._onTabSwitch.bind(this));
         });
-        
-        // Search & Replace functionality
-        const clearSearchButton = htmlElement.querySelector('.clear-search-btn');
-        if (clearSearchButton) {
-            clearSearchButton.addEventListener('click', this._onClearSearch.bind(this));
-        }
-        
-        const runReportButton = htmlElement.querySelector('.run-report-btn');
-        if (runReportButton) {
-            runReportButton.addEventListener('click', this._onRunReport.bind(this));
-        }
-        
-        const massReplaceButton = htmlElement.querySelector('.mass-replace-btn');
-        if (massReplaceButton) {
-            massReplaceButton.addEventListener('click', this._onMassReplace.bind(this));
-        }
-        
-        const copyResultsSearchButton = htmlElement.querySelector('#copy-results-search');
-        if (copyResultsSearchButton) {
-            copyResultsSearchButton.addEventListener('click', this._onCopyResults.bind(this));
-        }
 
-        // Delegated click for dynamically generated result titles
-        htmlElement.addEventListener('click', (event) => {
+        const clearSearchButton = el.querySelector('.clear-search-btn');
+        if (clearSearchButton) clearSearchButton.addEventListener('click', this._onClearSearch.bind(this));
+
+        const runReportButton = el.querySelector('.run-report-btn');
+        if (runReportButton) runReportButton.addEventListener('click', this._onRunReport.bind(this));
+
+        const massReplaceButton = el.querySelector('.mass-replace-btn');
+        if (massReplaceButton) massReplaceButton.addEventListener('click', this._onMassReplace.bind(this));
+
+        const copyResultsSearchButton = el.querySelector('#copy-results-search');
+        if (copyResultsSearchButton) copyResultsSearchButton.addEventListener('click', this._onCopyResults.bind(this));
+
+        el.addEventListener('click', (event) => {
             const target = event.target.closest('.replace-title');
-            if (target) {
-                this._onResultTitleClick.call(this, event, target);
-            }
+            if (target) this._onResultTitleClick.call(this, event, target);
         });
     }
 
@@ -2682,15 +2644,9 @@ export class JournalToolsWindow extends FormApplication {
             
             // Method 4: Try to find and click the page tab in the sheet
             if (sheet && sheet.rendered) {
-                const nativeElement = sheet.element;
-                if (nativeElement) {
-                    // v13: Detect and convert jQuery to native DOM if needed
-                    let nativeSheetElement = nativeElement;
-                    if (nativeElement.jquery || typeof nativeElement.find === 'function') {
-                        nativeSheetElement = nativeElement[0] || nativeElement.get?.(0) || nativeElement;
-                    }
-                    
-                    const pageTab = nativeSheetElement.querySelector(`[data-page-id="${pageId}"]`);
+                const sheetElement = sheet.element;
+                if (sheetElement?.querySelector) {
+                    const pageTab = sheetElement.querySelector(`[data-page-id="${pageId}"]`);
                     if (pageTab) {
                         pageTab.click();
                         return;

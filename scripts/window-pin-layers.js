@@ -388,11 +388,6 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         this._attachLocalListeners();
     }
 
-    activateListeners(html) {
-        super.activateListeners(html);
-        this._attachLocalListeners();
-    }
-
     _attachLocalListeners() {
         const root = this._getRoot();
 

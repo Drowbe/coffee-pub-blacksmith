@@ -7,6 +7,7 @@ import { postConsoleAndNotification, playSound, playSoundLooping, stopSoundByPat
 import { SocketManager } from './manager-sockets.js';
 import { MenuBar } from "./api-menubar.js";
 import { HookManager } from './manager-hooks.js';
+import { BlacksmithWindowBaseV2 } from './window-base.js';
 
 // ================================================================== 
 // ===== STATE VARIABLES ============================================
@@ -322,17 +323,26 @@ function handleTokenOrdering(token, isFirstTimeSetup, isGMMoveOfFollower) {
 
 
 
-export class MovementConfig extends Application {
-    static get defaultOptions() {
-        return foundry.utils.mergeObject(super.defaultOptions, {
+export class MovementConfig extends BlacksmithWindowBaseV2 {
+    static ROOT_CLASS = 'movement-config';
+
+    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {
             id: 'movement-config',
-            template: 'modules/coffee-pub-blacksmith/templates/movement-window.hbs',
-            title: 'Configure Movement',
-            width: 300,
-            height: 'auto',
-            classes: ['coffee-pub-blacksmith', 'movement-config']
-        });
-    }
+            classes: ['coffee-pub-blacksmith', 'movement-config'],
+            position: { width: 300, height: 'auto' },
+            window: { title: 'Configure Movement', resizable: false, minimizable: true }
+        }
+    );
+
+    static PARTS = {
+        body: {
+            template: `modules/${MODULE.ID}/templates/movement-window.hbs`
+        }
+    };
+
+    static ACTION_HANDLERS = null;
 
     getData() {
         // Check if user is GM or current leader
@@ -376,56 +386,32 @@ export class MovementConfig extends Application {
         };
     }
 
-    activateListeners(html) {
-        super.activateListeners(html);
+    async _onRender(context, options) {
+        await super._onRender?.(context, options);
+        this._attachLocalListeners();
+    }
 
-        // v13: Application.activateListeners may still receive jQuery in some cases
-        // Convert to native DOM if needed
-        let htmlElement = html;
-        if (html && (html.jquery || typeof html.find === 'function')) {
-            htmlElement = html[0] || html.get?.(0) || html;
-        } else if (html && typeof html.querySelectorAll !== 'function') {
-            // Not a valid DOM element
-            return;
-        }
-        
-        if (!htmlElement) {
-            return;
-        }
+    _attachLocalListeners() {
+        const el = this.element;
 
-        // Add click handler for movement types
-        htmlElement.querySelectorAll('.movement-type').forEach(button => {
+        el.querySelectorAll('.movement-type').forEach(button => {
             button.addEventListener('click', async (event) => {
                 const movementId = event.currentTarget.dataset.movementId;
                 await this._handleMovementChange(movementId);
             });
         });
 
-        // Add change handler for spacing slider
-        const spacingSlider = htmlElement.querySelector('.token-spacing-slider');
+        const spacingSlider = el.querySelector('.token-spacing-slider');
         if (spacingSlider) {
-            spacingSlider.addEventListener('input', async (event) => {
+            const onSpacingChange = async (event) => {
                 const spacing = parseInt(event.currentTarget.value);
                 await game.settings.set(MODULE.ID, 'tokenSpacing', spacing);
-                tokenSpacing = spacing; // Update the local variable
-                
-                // Update the display value
-                const spacingValue = htmlElement.querySelector('.spacing-value');
-                if (spacingValue) {
-                    spacingValue.textContent = spacing;
-                }
-            });
-            spacingSlider.addEventListener('change', async (event) => {
-                const spacing = parseInt(event.currentTarget.value);
-                await game.settings.set(MODULE.ID, 'tokenSpacing', spacing);
-                tokenSpacing = spacing; // Update the local variable
-                
-                // Update the display value
-                const spacingValue = html.querySelector('.spacing-value');
-                if (spacingValue) {
-                    spacingValue.textContent = spacing;
-                }
-            });
+                tokenSpacing = spacing;
+                const spacingValue = el.querySelector('.spacing-value');
+                if (spacingValue) spacingValue.textContent = spacing;
+            };
+            spacingSlider.addEventListener('input', onSpacingChange);
+            spacingSlider.addEventListener('change', onSpacingChange);
         }
     }
 
