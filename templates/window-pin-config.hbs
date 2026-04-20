@@ -59,9 +59,9 @@
                             {{#each pinSuggestedGroups}}<option value="{{this}}"></option>{{/each}}
                         </datalist>
                         {{#if pinSuggestedGroups.length}}
-                        <div class="blacksmith-pin-config-chips" data-chip-type="group">
+                        <div class="blacksmith-tags" data-chip-type="group">
                             {{#each pinSuggestedGroups}}
-                            <span class="blacksmith-pin-config-chip" data-value="{{this}}">{{this}}</span>
+                            <span class="blacksmith-tag" data-value="{{this}}">{{this}}</span>
                             {{/each}}
                         </div>
                         {{/if}}
@@ -70,9 +70,9 @@
                         <span class="blacksmith-field-label">Tags</span>
                         <input type="text" class="blacksmith-input blacksmith-pin-config-tags" value="{{pinTagsCsv}}" placeholder="tag1, tag2">
                         {{#if pinSuggestedTags.length}}
-                        <div class="blacksmith-pin-config-chips" data-chip-type="tag">
+                        <div class="blacksmith-tags" data-chip-type="tag">
                             {{#each pinSuggestedTags}}
-                            <span class="blacksmith-pin-config-chip" data-value="{{this}}">{{this}}</span>
+                            <span class="blacksmith-tag" data-value="{{this}}">{{this}}</span>
                             {{/each}}
                         </div>
                         {{/if}}

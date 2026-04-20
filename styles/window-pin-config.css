@@ -117,42 +117,6 @@ div#blacksmith-pin-config .window-content {
     margin: 6px 0 10px;
 }
 
-/* Suggestion chips */
-.blacksmith-pin-config-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 6px;
-}
-
-.blacksmith-pin-config-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 999px;
-    font-size: 0.75em;
-    color: rgba(210, 200, 170, 0.8);
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-    white-space: nowrap;
-}
-
-.blacksmith-pin-config-chip:hover {
-    background: rgba(172, 159, 129, 0.15);
-    border-color: rgba(172, 159, 129, 0.4);
-    color: rgba(216, 202, 164, 0.95);
-}
-
-.blacksmith-pin-config-chip.active {
-    background: rgba(172, 159, 129, 0.2);
-    border-color: var(--blacksmith-window-accent-color, #ac9f81);
-    color: var(--blacksmith-window-accent-color, #c9b993);
-    font-weight: 600;
-}
-
 /* Select dropdown options dark theme */
 .blacksmith-pin-config select.blacksmith-input option {
     background-color: #2a2a2a;

@@ -778,11 +778,11 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         const getTagsArray = () => (tagsInput?.value || '').split(',').map(t => t.trim()).filter(Boolean);
         const updateTagChips = () => {
             const current = getTagsArray();
-            nativeHtml.querySelectorAll('.blacksmith-pin-config-chips[data-chip-type="tag"] .blacksmith-pin-config-chip').forEach(chip => {
+            nativeHtml.querySelectorAll('.blacksmith-tags[data-chip-type="tag"] .blacksmith-tag').forEach(chip => {
                 chip.classList.toggle('active', current.includes(chip.dataset.value));
             });
         };
-        nativeHtml.querySelectorAll('.blacksmith-pin-config-chips[data-chip-type="tag"] .blacksmith-pin-config-chip').forEach(chip => {
+        nativeHtml.querySelectorAll('.blacksmith-tags[data-chip-type="tag"] .blacksmith-tag').forEach(chip => {
             chip.addEventListener('click', () => {
                 const tags = getTagsArray();
                 const idx = tags.indexOf(chip.dataset.value);
@@ -798,11 +798,11 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         // Group chips — click to set the group input value
         const updateGroupChips = () => {
             const current = (groupInput?.value || '').trim();
-            nativeHtml.querySelectorAll('.blacksmith-pin-config-chips[data-chip-type="group"] .blacksmith-pin-config-chip').forEach(chip => {
+            nativeHtml.querySelectorAll('.blacksmith-tags[data-chip-type="group"] .blacksmith-tag').forEach(chip => {
                 chip.classList.toggle('active', chip.dataset.value === current);
             });
         };
-        nativeHtml.querySelectorAll('.blacksmith-pin-config-chips[data-chip-type="group"] .blacksmith-pin-config-chip').forEach(chip => {
+        nativeHtml.querySelectorAll('.blacksmith-tags[data-chip-type="group"] .blacksmith-tag').forEach(chip => {
             chip.addEventListener('click', () => {
                 if (groupInput) groupInput.value = chip.dataset.value;
                 updateGroupChips();

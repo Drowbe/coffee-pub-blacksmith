@@ -251,10 +251,10 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const tagPills = allSummary.tags.map((entry) => {
             const hidden = PinManager.isTagHidden(entry.key);
             return `<button type="button"
-                class="blacksmith-pin-layers-tag-pill ${hidden ? 'is-hidden' : ''}"
+                class="blacksmith-tag ${hidden ? 'is-hidden' : ''}"
                 data-action="toggleTag" data-tag="${esc(entry.key)}"
                 title="${hidden ? 'Show' : 'Hide'} '${esc(entry.key)}' (${entry.count})">
-                ${esc(entry.key)}<span class="blacksmith-pin-layers-tag-count">${entry.count}</span>
+                ${esc(entry.key)}<span class="blacksmith-badge">${entry.count}</span>
             </button>`;
         }).join('');
 
@@ -292,10 +292,10 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                     <div class="blacksmith-pin-layers-row-main">
                         <div class="blacksmith-pin-layers-row-label">${esc(p.text || '(unnamed)')}</div>
                         <div class="blacksmith-pin-layers-row-submeta">
-                            ${typeLabel ? `<span>${esc(typeLabel)}</span>` : ''}
-                            ${p.group ? `<span>${esc(p.group)}</span>` : ''}
-                            ${(p.tags || []).map(t => `<span>${esc(t)}</span>`).join('')}
-                            ${hidden ? `<span class="blacksmith-pin-layers-filtered-tag">hidden</span>` : ''}
+                            ${typeLabel ? `<span class="blacksmith-tag">${esc(typeLabel)}</span>` : ''}
+                            ${p.group ? `<span class="blacksmith-tag">${esc(p.group)}</span>` : ''}
+                            ${(p.tags || []).map(t => `<span class="blacksmith-tag">${esc(t)}</span>`).join('')}
+                            ${hidden ? `<span class="blacksmith-tag blacksmith-pin-layers-filtered-tag">hidden</span>` : ''}
                         </div>
                     </div>
                     <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-pan-btn"

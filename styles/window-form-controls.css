@@ -402,3 +402,62 @@
     gap: var(--blacksmith-space-md, 8px);
     width: 100%;
 }
+
+
+/* ----- Tags ----- */
+/*
+  Usage:
+    <div class="blacksmith-tags" data-chip-type="tag">
+      <span class="blacksmith-tag" data-value="combat">combat</span>
+      <span class="blacksmith-tag active" data-value="boss">boss</span>
+    </div>
+
+  Use data-chip-type="tag" or "group" to namespace event delegation.
+  Add .active via JS when the tag is selected/applied.
+*/
+
+.blacksmith-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.blacksmith-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 3px;
+    color: rgba(210, 200, 170, 0.8);
+    font-size: 0.78em;
+    font-weight: 300;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    white-space: nowrap;
+}
+
+.blacksmith-tag:hover {
+    background: rgba(255, 100, 0, 0.15);
+    border-color: rgba(255, 100, 0, 0.55);
+    color: rgba(255, 255, 255, 0.95);
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 2px rgba(255, 100, 0, 0.2);
+}
+
+.blacksmith-tag.active {
+    background: rgba(193, 87, 1, 0.85);
+    border-color: var(--blacksmith-color-brand-accent, #c15701);
+    color: rgba(255, 255, 255, 1.0);
+    font-weight: 500;
+    box-shadow: 0 0 0 2px rgba(193, 87, 1, 0.4);
+}
+
+.blacksmith-tag.active:hover {
+    background: rgba(193, 87, 1, 1.0);
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 3px rgba(193, 87, 1, 0.55);
+}
