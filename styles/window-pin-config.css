@@ -45,7 +45,7 @@ div#blacksmith-pin-config .window-content {
 .blacksmith-pin-config .window-note-header-controls {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
     flex-shrink: 0;
 }
 
@@ -64,91 +64,20 @@ div#blacksmith-pin-config .window-content {
     color: #c9b993;
 }
 
-.blacksmith-pin-config-source-toggle {
+/* Source section header — flex space-between to hold the inline toggle */
+.blacksmith-pin-config-source-header {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: inherit;
-    padding: 8px 10px;
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    justify-content: center;
+    justify-content: space-between;
 }
 
-.blacksmith-pin-config-source-label {
-    text-transform: uppercase;
-    font-weight: 700;
-    font-size: 0.8em;
-    letter-spacing: 0.08em;
-    color: rgba(216, 202, 164, 0.9);
-}
-
-.blacksmith-pin-config-source-switch {
-    position: relative;
-    width: 46px;
-    height: 24px;
-    flex: 0 0 auto;
-}
-
-.blacksmith-pin-config-source-toggle-input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-    position: absolute;
-}
-
-.blacksmith-pin-config-source-toggle-slider {
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 999px;
-    cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-.blacksmith-pin-config-source-toggle-slider::before {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 18px;
-    height: 18px;
-    background: #d8caa4;
-    border-radius: 50%;
-    transition: transform 0.2s ease;
-}
-
-.blacksmith-pin-config-source-toggle-input:checked + .blacksmith-pin-config-source-toggle-slider::before {
-    transform: translateX(22px);
-}
-
-.blacksmith-pin-config[data-icon-mode="image"] .blacksmith-pin-config-library-section,
-.blacksmith-pin-config[data-icon-mode="icon"] .blacksmith-pin-config-image-section {
+/* Show/hide image vs icon bodies via data-icon-mode on root */
+.blacksmith-pin-config[data-icon-mode="image"] .blacksmith-pin-config-library-body,
+.blacksmith-pin-config[data-icon-mode="icon"] .blacksmith-pin-config-image-body {
     display: none;
 }
 
-.blacksmith-pin-config-design-row {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-}
-
-.blacksmith-pin-config-design-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: 0.85em;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    color: rgba(201, 185, 147, 0.9);
-}
-
-.blacksmith-pin-config-design-field span {
-    font-weight: 600;
-}
-
+/* Color pickers */
 .blacksmith-pin-config-border-row {
     display: grid;
     grid-template-columns: 1fr 70px;
@@ -181,38 +110,93 @@ div#blacksmith-pin-config .window-content {
     border-radius: 3px;
 }
 
-.blacksmith-pin-config-design-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 10px;
-    color: rgba(230, 223, 204, 0.9);
-    font-size: 0.9em;
-}
-
-.blacksmith-pin-config-design-toggle input {
-    margin: 0;
-}
-
+/* Help text */
 .blacksmith-pin-config-help {
     font-size: 0.8em;
     color: rgba(210, 200, 170, 0.75);
     margin: 6px 0 10px;
 }
 
+/* Suggestion chips */
+.blacksmith-pin-config-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.blacksmith-pin-config-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+    font-size: 0.75em;
+    color: rgba(210, 200, 170, 0.8);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+}
+
+.blacksmith-pin-config-chip:hover {
+    background: rgba(172, 159, 129, 0.15);
+    border-color: rgba(172, 159, 129, 0.4);
+    color: rgba(216, 202, 164, 0.95);
+}
+
+.blacksmith-pin-config-chip.active {
+    background: rgba(172, 159, 129, 0.2);
+    border-color: var(--blacksmith-window-accent-color, #ac9f81);
+    color: var(--blacksmith-window-accent-color, #c9b993);
+    font-weight: 600;
+}
+
+/* Select dropdown options dark theme */
+.blacksmith-pin-config select.blacksmith-input option {
+    background-color: #2a2a2a;
+    color: #f2f0e6;
+}
+
+/* Permissions section */
+.blacksmith-pin-config-permissions-section .blacksmith-pin-config-help {
+    margin-top: 4px;
+}
+
+/* Event Animations section */
+.blacksmith-pin-config-animation-section .blacksmith-pin-config-help {
+    margin-bottom: 8px;
+}
+
+.blacksmith-pin-config-event-animations {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.blacksmith-pin-config-event-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 1fr;
+    align-items: center;
+    gap: 10px;
+}
+
+.blacksmith-pin-config-event-label {
+    font-size: 0.9em;
+    color: rgba(230, 223, 204, 0.9);
+}
+
+.blacksmith-pin-config-event-row .blacksmith-input {
+    min-width: 0;
+}
+
+/* Icon library */
 .blacksmith-pin-config-icon-filters {
     display: grid;
     grid-template-columns: 1fr 180px;
     gap: 8px;
     margin-bottom: 12px;
-}
-
-.blacksmith-pin-config-icon-search {
-    width: 100%;
-}
-
-.blacksmith-pin-config-icon-category-filter {
-    width: 100%;
 }
 
 .blacksmith-pin-config-icon-grid {
@@ -267,6 +251,7 @@ div#blacksmith-pin-config .window-content {
     display: block;
 }
 
+/* Image section */
 .blacksmith-pin-config-image-row {
     display: flex;
     gap: 8px;
@@ -298,156 +283,40 @@ div#blacksmith-pin-config .window-content {
     display: none;
 }
 
-/* Image Fit Zoom row: visible when Zoom is selected */
+/* Image Fit Zoom row */
 .blacksmith-pin-config-image-zoom-row.is-hidden {
     display: none !important;
 }
+
 .blacksmith-pin-config-image-zoom-row {
     display: flex;
     align-items: flex-end;
 }
+
 .blacksmith-pin-config-zoom-control {
     display: flex;
     align-items: center;
     gap: 10px;
 }
+
 .blacksmith-pin-config-zoom-control input[type="range"] {
     flex: 1;
     min-width: 80px;
     max-width: 140px;
 }
+
 .blacksmith-pin-config-zoom-value {
     font-size: 0.9em;
     color: rgba(230, 223, 204, 0.9);
     min-width: 2.5em;
 }
 
-.blacksmith-pin-config .form-actions {
+/* Footer */
+.blacksmith-pin-config-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 14px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 12px;
-    margin-top: auto;
     flex-shrink: 0;
-}
-
-/* Input styling */
-.blacksmith-pin-config .blacksmith-input {
-    width: 100%;
-    padding: 6px 8px;
-    background-color: rgba(0, 0, 0, 0.5);
-    color: #f2f0e6;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    font-size: 0.9em;
-    box-sizing: border-box;
-}
-
-.blacksmith-pin-config .blacksmith-input:focus {
-    outline: none;
-    border-color: rgba(201, 185, 147, 0.6);
-    box-shadow: 0 0 4px rgba(201, 185, 147, 0.3);
-}
-
-/* Select dropdown: style options so the open list matches the dark theme (avoids light/grey native list) */
-.blacksmith-pin-config select.blacksmith-input option {
-    background-color: #2a2a2a;
-    color: #f2f0e6;
-}
-
-
-/* Permissions section (GM only) */
-.blacksmith-pin-config-permissions-section .blacksmith-pin-config-permissions-default {
-    max-width: 280px;
-}
-
-.blacksmith-pin-config-permissions-section .blacksmith-pin-config-help {
-    margin-top: 4px;
-}
-
-/* Event Animations section */
-.blacksmith-pin-config-animation-section .blacksmith-pin-config-help {
-    margin-bottom: 8px;
-}
-
-.blacksmith-pin-config-event-animations {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.blacksmith-pin-config-event-row {
-    display: grid;
-    grid-template-columns: 100px 1fr 1fr;
-    align-items: center;
-    gap: 10px;
-}
-
-.blacksmith-pin-config-event-label {
-    font-size: 0.9em;
-    color: rgba(230, 223, 204, 0.9);
-}
-
-.blacksmith-pin-config-event-row .blacksmith-input {
-    min-width: 0;
-}
-
-/* Toggle container for "Use as Default" */
-.blacksmith-pin-config-toggle-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.blacksmith-pin-config-toggle-label {
-    font-size: 0.9em;
-    color: rgba(230, 223, 204, 0.9);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-}
-
-.blacksmith-pin-config-toggle {
-    position: relative;
-    width: 46px;
-    height: 24px;
-    flex: 0 0 auto;
-}
-
-.blacksmith-pin-config-default {
-    opacity: 0;
-    width: 0;
-    height: 0;
-    position: absolute;
-}
-
-.blacksmith-pin-config-allow-duplicate {
-    opacity: 0;
-    width: 0;
-    height: 0;
-    position: absolute;
-}
-
-.blacksmith-pin-config-toggle-slider {
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 999px;
-    cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-.blacksmith-pin-config-toggle-slider::before {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 18px;
-    height: 18px;
-    background: #d8caa4;
-    border-radius: 50%;
-    transition: transform 0.2s ease;
-}
-
-.blacksmith-pin-config-default:checked + .blacksmith-pin-config-toggle-slider::before,
-.blacksmith-pin-config-allow-duplicate:checked + .blacksmith-pin-config-toggle-slider::before {
-    transform: translateX(22px);
 }

@@ -774,6 +774,43 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             updateMode(sourceToggle.checked ? 'icon' : 'image');
         });
 
+        // Tag chips — click to toggle a suggested tag on/off in the input
+        const getTagsArray = () => (tagsInput?.value || '').split(',').map(t => t.trim()).filter(Boolean);
+        const updateTagChips = () => {
+            const current = getTagsArray();
+            nativeHtml.querySelectorAll('.blacksmith-pin-config-chips[data-chip-type="tag"] .blacksmith-pin-config-chip').forEach(chip => {
+                chip.classList.toggle('active', current.includes(chip.dataset.value));
+            });
+        };
+        nativeHtml.querySelectorAll('.blacksmith-pin-config-chips[data-chip-type="tag"] .blacksmith-pin-config-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const tags = getTagsArray();
+                const idx = tags.indexOf(chip.dataset.value);
+                if (idx >= 0) tags.splice(idx, 1);
+                else tags.push(chip.dataset.value);
+                if (tagsInput) tagsInput.value = tags.join(', ');
+                updateTagChips();
+            });
+        });
+        tagsInput?.addEventListener('input', updateTagChips);
+        updateTagChips();
+
+        // Group chips — click to set the group input value
+        const updateGroupChips = () => {
+            const current = (groupInput?.value || '').trim();
+            nativeHtml.querySelectorAll('.blacksmith-pin-config-chips[data-chip-type="group"] .blacksmith-pin-config-chip').forEach(chip => {
+                chip.classList.toggle('active', chip.dataset.value === current);
+            });
+        };
+        nativeHtml.querySelectorAll('.blacksmith-pin-config-chips[data-chip-type="group"] .blacksmith-pin-config-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                if (groupInput) groupInput.value = chip.dataset.value;
+                updateGroupChips();
+            });
+        });
+        groupInput?.addEventListener('input', updateGroupChips);
+        updateGroupChips();
+
         applyShapeState();
         applyIconModeState();
 
