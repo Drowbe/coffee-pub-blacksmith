@@ -1073,6 +1073,7 @@ function processCongaMovement(sortedFollowers) {
             }
 
             const position = leaderMovementPath[follower.currentIndex - 1];
+            if (!position) return Promise.resolve();
 
             return follower.token.document.update({
                 x: position.x,
