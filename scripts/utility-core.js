@@ -309,7 +309,6 @@ function _syncPinsIconColor() {
     try {
         const anyHidden = PinManager.isGlobalHidden() ||
             Object.keys(game.settings.get(MODULE.ID, PinManager.HIDDEN_MODULE_TYPES_SETTING_KEY) || {}).length > 0 ||
-            Object.keys(game.settings.get(MODULE.ID, PinManager.HIDDEN_GROUPS_SETTING_KEY) || {}).length > 0 ||
             Object.keys(game.settings.get(MODULE.ID, PinManager.HIDDEN_TAGS_SETTING_KEY) || {}).length > 0;
         const tool = MenuBar.toolbarIcons?.get('pin-layers');
         if (!tool) return;
@@ -319,7 +318,7 @@ function _syncPinsIconColor() {
 }
 
 const _PIN_FILTER_KEYS = new Set([
-    'pinsHideAll', 'pinsHiddenModuleTypes', 'pinsHiddenGroups', 'pinsHiddenTags'
+    'pinsHideAll', 'pinsHiddenModuleTypes', 'pinsHiddenTags'
 ]);
 
 Hooks.on('updateSetting', (setting) => {

@@ -120,9 +120,7 @@ export class JournalPagePins {
         if (!pinsApi) return;
         pinsApi.registerPinTaxonomy?.(MODULE.ID, this.PIN_TYPE, {
             label: 'Journal Page',
-            defaultGroup: 'journal',
             defaultTags: ['journal-page'],
-            suggestedGroups: ['journal', 'locations', 'quests', 'reference'],
             suggestedTags: ['location', 'shop', 'npc', 'quest', 'rumor', 'reference', 'gm-notes']
         });
         pinsApi.registerPinType(MODULE.ID, this.PIN_TYPE, 'Journal Page');
@@ -136,7 +134,6 @@ export class JournalPagePins {
         }
         const taxonomy = pins?.getPinTaxonomyChoices?.(MODULE.ID, this.PIN_TYPE) ?? null;
         return {
-            group: taxonomy?.defaultGroup || 'journal',
             tags: Array.isArray(taxonomy?.defaultTags) && taxonomy.defaultTags.length
                 ? [...taxonomy.defaultTags]
                 : ['journal-page']
@@ -608,7 +605,6 @@ export class JournalPagePins {
                 id: crypto.randomUUID(),
                 moduleId: MODULE.ID,
                 type: this.PIN_TYPE,
-                group: classification.group,
                 tags: classification.tags,
                 text: label,
                 config: {
@@ -646,7 +642,6 @@ export class JournalPagePins {
                 id: pinId ?? crypto.randomUUID(),
                 moduleId: MODULE.ID,
                 type: this.PIN_TYPE,
-                group: classification.group,
                 tags: classification.tags,
                 text: label,
                 config: {

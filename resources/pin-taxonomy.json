@@ -1,18 +1,11 @@
 {
-  "version": 1,
+  "version": 2,
   "moduleId": "coffee-pub-blacksmith",
-  "pinTypes": {
+  "pinCategories": {
     "journal-page": {
       "label": "Journal Page",
-      "defaultGroup": "journal",
       "defaultTags": [
-        "journal-page"
-      ],
-      "suggestedGroups": [
-        "journal",
-        "locations",
-        "quests",
-        "reference"
+        "journal"
       ],
       "suggestedTags": [
         "location",
@@ -21,7 +14,7 @@
         "quest",
         "rumor",
         "reference",
-        "gm-notes"
+        "note"
       ]
     }
   }

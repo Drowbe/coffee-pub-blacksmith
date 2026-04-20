@@ -461,3 +461,49 @@
     transform: translateY(-1px);
     box-shadow: 0 0 0 3px rgba(193, 87, 1, 0.55);
 }
+
+
+/* ----- Icon action button ----- */
+/*
+  Usage:
+    <button type="button" class="blacksmith-icon-action" title="Edit">
+      <i class="fa-solid fa-pencil"></i>
+    </button>
+
+    Active/enabled state:
+    <button type="button" class="blacksmith-icon-action is-active" title="Visible">
+      <i class="fa-solid fa-eye"></i>
+    </button>
+
+    Danger variant:
+    <button type="button" class="blacksmith-icon-action blacksmith-icon-action-danger" title="Delete">
+      <i class="fa-solid fa-trash"></i>
+    </button>
+*/
+
+.blacksmith-icon-action {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    min-height: 18px;
+    color: var(--blacksmith-window-accent-color, #ac9f81);
+    opacity: 0.35;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.blacksmith-icon-action:hover,
+.blacksmith-icon-action.is-active {
+    color: rgba(255, 100, 0, 0.92);
+    opacity: 1;
+}
+
+.blacksmith-icon-action:disabled {
+    cursor: default;
+    opacity: 0.18;
+    pointer-events: none;
+}
+

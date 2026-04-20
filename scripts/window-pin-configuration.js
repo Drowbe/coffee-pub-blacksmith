@@ -7,7 +7,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
-import { normalizeTextLayout, normalizePinGroup, normalizePinTags } from './pins-schema.js';
+import { normalizeTextLayout, normalizePinTags } from './pins-schema.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 
 /**
@@ -81,7 +81,6 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this.pinTextScaleWithPin = true;
         this._pinRatio = 1;
         this.allowDuplicatePins = false;
-        this.pinGroup = '';
         this.pinTags = [];
     }
 
@@ -268,7 +267,6 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         const pinImageZoomPercent = Math.round(zoomNum * 100);
 
         this.allowDuplicatePins = pin.allowDuplicatePins === true;
-        this.pinGroup = normalizePinGroup(pin.group);
         this.pinTags = normalizePinTags(pin.tags);
 
         // Event animations (hover, click, double-click, delete, add) with optional sound
@@ -392,9 +390,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             iconMode: this.iconMode,
             showUseAsDefault: true, // Always show toggle - modules can handle saving defaults themselves
             pinAllowDuplicatePins: this.allowDuplicatePins,
-            pinGroup: this.pinGroup,
             pinTagsCsv: this.pinTags.join(', '),
-            pinSuggestedGroups: taxonomyChoices.groups || [],
             pinSuggestedTags: taxonomyChoices.tags || [],
             pinClassificationHelp: taxonomyChoices.label || pinTypeLabel || (this.pinType || 'Pin'),
             pinImageFit: this.pinImageFit,
@@ -448,7 +444,6 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         const textMaxLengthInput = nativeHtml.querySelector('.blacksmith-pin-config-text-max-length');
         const textMaxWidthInput = nativeHtml.querySelector('.blacksmith-pin-config-text-max-width');
         const textScaleInput = nativeHtml.querySelector('.blacksmith-pin-config-text-scale');
-        const groupInput = nativeHtml.querySelector('.blacksmith-pin-config-group');
         const tagsInput = nativeHtml.querySelector('.blacksmith-pin-config-tags');
         const defaultInput = nativeHtml.querySelector('.blacksmith-pin-config-default');
         const allowDuplicateInput = nativeHtml.querySelector('.blacksmith-pin-config-allow-duplicate');
@@ -795,22 +790,6 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         tagsInput?.addEventListener('input', updateTagChips);
         updateTagChips();
 
-        // Group chips — click to set the group input value
-        const updateGroupChips = () => {
-            const current = (groupInput?.value || '').trim();
-            nativeHtml.querySelectorAll('.blacksmith-tags[data-chip-type="group"] .blacksmith-tag').forEach(chip => {
-                chip.classList.toggle('active', chip.dataset.value === current);
-            });
-        };
-        nativeHtml.querySelectorAll('.blacksmith-tags[data-chip-type="group"] .blacksmith-tag').forEach(chip => {
-            chip.addEventListener('click', () => {
-                if (groupInput) groupInput.value = chip.dataset.value;
-                updateGroupChips();
-            });
-        });
-        groupInput?.addEventListener('input', updateGroupChips);
-        updateGroupChips();
-
         applyShapeState();
         applyIconModeState();
 
@@ -903,7 +882,6 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
 
             // GM-only: include ownership default from Permissions section
             if (game.user?.isGM) {
-                pinUpdateData.group = normalizePinGroup(groupInput?.value ?? this.pinGroup ?? '');
                 pinUpdateData.tags = normalizePinTags(tagsInput?.value ?? this.pinTags ?? []);
                 const ownershipSelect = nativeHtml.querySelector('.blacksmith-pin-config-ownership-default');
                 if (ownershipSelect) {

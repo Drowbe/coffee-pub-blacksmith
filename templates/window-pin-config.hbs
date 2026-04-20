@@ -49,23 +49,9 @@
         {{!-- Classification --}}
         {{#if isGM}}
         <div class="blacksmith-window-section blacksmith-pin-config-classification-section">
-            <div class="blacksmith-window-section-header"><i class="fa-solid fa-layer-group"></i> Classification</div>
+            <div class="blacksmith-window-section-header"><i class="fa-solid fa-tags"></i> Classification</div>
             <div class="blacksmith-window-section-body">
                 <div class="blacksmith-field-row">
-                    <div class="blacksmith-field">
-                        <span class="blacksmith-field-label">Group</span>
-                        <input type="text" class="blacksmith-input blacksmith-pin-config-group" list="blacksmith-pin-config-group-list" value="{{pinGroup}}" placeholder="journal">
-                        <datalist id="blacksmith-pin-config-group-list">
-                            {{#each pinSuggestedGroups}}<option value="{{this}}"></option>{{/each}}
-                        </datalist>
-                        {{#if pinSuggestedGroups.length}}
-                        <div class="blacksmith-tags" data-chip-type="group">
-                            {{#each pinSuggestedGroups}}
-                            <span class="blacksmith-tag" data-value="{{this}}">{{this}}</span>
-                            {{/each}}
-                        </div>
-                        {{/if}}
-                    </div>
                     <div class="blacksmith-field">
                         <span class="blacksmith-field-label">Tags</span>
                         <input type="text" class="blacksmith-input blacksmith-pin-config-tags" value="{{pinTagsCsv}}" placeholder="tag1, tag2">
@@ -79,7 +65,7 @@
                     </div>
                 </div>
                 {{#unless pinSuggestedTags.length}}
-                <div class="blacksmith-pin-config-help">{{pinClassificationHelp}} taxonomy. Use one group and comma-separated tags.</div>
+                <div class="blacksmith-pin-config-help">{{pinClassificationHelp}} taxonomy. Use comma-separated tags.</div>
                 {{/unless}}
             </div>
         </div>

@@ -373,10 +373,10 @@ export class PinsAPI {
     }
 
     /**
-     * Get normalized group/tag choices for a pin type.
+     * Get normalized tag choices for a pin category.
      * @param {string} moduleId
      * @param {string} [type]
-     * @returns {{ groups: string[], tags: string[], defaultGroup: string, defaultTags: string[], label: string }}
+     * @returns {{ tags: string[], defaultTags: string[], label: string }}
      */
     static getPinTaxonomyChoices(moduleId, type) {
         return PinManager.getPinTaxonomyChoices(moduleId, type);
@@ -462,25 +462,6 @@ export class PinsAPI {
     }
 
     /**
-     * Hide or show a pin group for the current user.
-     * @param {string} group
-     * @param {boolean} visible
-     * @returns {Promise<void>}
-     */
-    static async setGroupVisibility(group, visible) {
-        await PinManager.setGroupHidden(group, !visible);
-    }
-
-    /**
-     * Get visibility for a pin group for the current user.
-     * @param {string} group
-     * @returns {boolean}
-     */
-    static getGroupVisibility(group) {
-        return !PinManager.isGroupHidden(group);
-    }
-
-    /**
      * Hide or show a tag for the current user.
      * @param {string} tag
      * @param {boolean} visible
@@ -503,7 +484,7 @@ export class PinsAPI {
      * Summarize the active scene's pins for layer-management UI.
      * @param {string} [sceneId]
      * @param {{ includeHiddenByFilter?: boolean }} [options]
-     * @returns {{ total: number, modules: Array, types: Array, groups: Array, tags: Array }}
+     * @returns {{ total: number, modules: Array, types: Array, tags: Array }}
      */
     static getSceneFilterSummary(sceneId, options = {}) {
         return PinManager.getSceneFilterSummary(sceneId ?? canvas?.scene?.id, options);

@@ -18,6 +18,7 @@ import {
     normalizePinGroup,
     normalizePinTags
 } from './pins-schema.js';
+// normalizePinGroup is still used for tag normalization (tags use the same key-normalization function)
 
 const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
     ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
@@ -26,7 +27,7 @@ const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
     ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
     : 0;
 
-/** @typedef {{ id: string; x: number; y: number; size: { w: number; h: number }; style: object; text?: string; image?: string; iconText?: string; config: object; moduleId: string; type?: string; group?: string; tags?: string[]; ownership: { default: number; users?: Record<string, number> }; version: number }} PinData */
+/** @typedef {{ id: string; x: number; y: number; size: { w: number; h: number }; style: object; text?: string; image?: string; iconText?: string; config: object; moduleId: string; type?: string; tags?: string[]; ownership: { default: number; users?: Record<string, number> }; version: number }} PinData */
 
 /**
  * @typedef {Object} PinCreateOptions
@@ -56,8 +57,7 @@ const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
  * @property {string} [sceneId] - List pins on this scene; omit and use unplacedOnly for unplaced
  * @property {boolean} [unplacedOnly] - If true, list unplaced pins (no sceneId needed)
  * @property {string} [moduleId]
- * @property {string} [type] - Filter by pin type
- * @property {string} [group] - Filter by pin group
+ * @property {string} [type] - Filter by pin category key
  * @property {string} [tag] - Filter by a tag
  * @property {boolean} [includeHiddenByFilter] - Include pins hidden by client visibility filters/profile
  */
@@ -84,7 +84,6 @@ const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
 const UNPLACED_SETTING_KEY = 'pinsUnplaced';
 const PINS_HIDDEN_MODULES_KEY = 'pinsHiddenModules';
 const PINS_HIDDEN_MODULE_TYPES_KEY = 'pinsHiddenModuleTypes';
-const PINS_HIDDEN_GROUPS_KEY = 'pinsHiddenGroups';
 const PINS_HIDDEN_TAGS_KEY = 'pinsHiddenTags';
 const PINS_HIDE_ALL_KEY = 'pinsHideAll';
 const PINS_FILTER_PROFILES_KEY = 'pinsFilterProfiles';
@@ -96,7 +95,6 @@ export class PinManager {
     static UNPLACED_SETTING_KEY = UNPLACED_SETTING_KEY;
     static HIDDEN_MODULES_SETTING_KEY = PINS_HIDDEN_MODULES_KEY;
     static HIDDEN_MODULE_TYPES_SETTING_KEY = PINS_HIDDEN_MODULE_TYPES_KEY;
-    static HIDDEN_GROUPS_SETTING_KEY = PINS_HIDDEN_GROUPS_KEY;
     static HIDDEN_TAGS_SETTING_KEY = PINS_HIDDEN_TAGS_KEY;
     static HIDE_ALL_SETTING_KEY = PINS_HIDE_ALL_KEY;
     static FILTER_PROFILES_SETTING_KEY = PINS_FILTER_PROFILES_KEY;
@@ -175,11 +173,7 @@ export class PinManager {
             moduleId: String(moduleId).trim(),
             type: normalizedType,
             label: (taxonomy.label != null && String(taxonomy.label).trim()) ? String(taxonomy.label).trim() : '',
-            defaultGroup: normalizePinGroup(taxonomy.defaultGroup),
             defaultTags: this._normalizeTaxonomyTagList(taxonomy.defaultTags),
-            suggestedGroups: Array.from(new Set((Array.isArray(taxonomy.suggestedGroups) ? taxonomy.suggestedGroups : [])
-                .map((entry) => normalizePinGroup(entry))
-                .filter(Boolean))),
             suggestedTags: this._normalizeTaxonomyTagList(taxonomy.suggestedTags)
         };
     }
@@ -201,16 +195,12 @@ export class PinManager {
             moduleId: valid[valid.length - 1].moduleId || valid[0].moduleId || '',
             type: valid[valid.length - 1].type || valid[0].type || 'default',
             label: '',
-            defaultGroup: '',
             defaultTags: [],
-            suggestedGroups: [],
             suggestedTags: []
         };
         for (const entry of valid) {
             if (entry.label) merged.label = entry.label;
-            if (entry.defaultGroup) merged.defaultGroup = entry.defaultGroup;
             if (Array.isArray(entry.defaultTags) && entry.defaultTags.length) merged.defaultTags = [...entry.defaultTags];
-            merged.suggestedGroups = Array.from(new Set([...(merged.suggestedGroups || []), ...(entry.suggestedGroups || [])].filter(Boolean)));
             merged.suggestedTags = Array.from(new Set([...(merged.suggestedTags || []), ...(entry.suggestedTags || [])].filter(Boolean)));
         }
         return merged;
@@ -231,25 +221,17 @@ export class PinManager {
         const taxonomy = this.getPinTaxonomy(moduleId, type);
         if (!taxonomy) {
             return {
-                groups: [],
                 tags: [],
-                defaultGroup: '',
                 defaultTags: [],
                 label: ''
             };
         }
-        const groups = Array.from(new Set([
-            taxonomy.defaultGroup,
-            ...(taxonomy.suggestedGroups || [])
-        ].filter(Boolean)));
         const tags = Array.from(new Set([
             ...(taxonomy.defaultTags || []),
             ...(taxonomy.suggestedTags || [])
         ].filter(Boolean)));
         return {
-            groups,
             tags,
-            defaultGroup: taxonomy.defaultGroup || '',
             defaultTags: Array.isArray(taxonomy.defaultTags) ? [...taxonomy.defaultTags] : [],
             label: taxonomy.label || ''
         };
@@ -287,7 +269,10 @@ export class PinManager {
         }
         const payload = await response.json();
         const defaultModuleId = (payload?.moduleId && String(payload.moduleId).trim()) || MODULE.ID;
-        const pinTypes = payload?.pinTypes && typeof payload.pinTypes === 'object' ? payload.pinTypes : {};
+        // Support both `pinCategories` (new) and legacy `pinTypes`
+        const pinTypes = (payload?.pinCategories && typeof payload.pinCategories === 'object')
+            ? payload.pinCategories
+            : (payload?.pinTypes && typeof payload.pinTypes === 'object' ? payload.pinTypes : {});
         for (const [type, entry] of Object.entries(pinTypes)) {
             const moduleId = (entry?.moduleId && String(entry.moduleId).trim()) || defaultModuleId;
             const normalized = this._normalizeTaxonomyEntry(moduleId, type, entry);
@@ -317,7 +302,6 @@ export class PinManager {
             const haystack = [
                 pin.text,
                 pin.type,
-                pin.group,
                 ...(Array.isArray(pin.tags) ? pin.tags : []),
                 pin.moduleId,
                 this.getPinTypeLabel(pin.moduleId, pin.type)
@@ -331,7 +315,6 @@ export class PinManager {
                 text: String(pin.text || '').trim() || '(Untitled Pin)',
                 moduleId: pin.moduleId || '',
                 type: pin.type || 'default',
-                group: this._getPinGroup(pin),
                 tags: this._getPinTags(pin),
                 hiddenByFilter: this._isHiddenByFilter(pin),
                 typeLabel: this.getPinTypeLabel(pin.moduleId, pin.type) || ''
@@ -430,11 +413,6 @@ export class PinManager {
         return raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : {};
     }
 
-    static _getHiddenGroupsMap() {
-        const raw = getSettingSafely(MODULE.ID, this.HIDDEN_GROUPS_SETTING_KEY, {});
-        return raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : {};
-    }
-
     static _getHiddenTagsMap() {
         const raw = getSettingSafely(MODULE.ID, this.HIDDEN_TAGS_SETTING_KEY, {});
         return raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : {};
@@ -471,22 +449,11 @@ export class PinManager {
         return !!map[key];
     }
 
-    static isGroupHidden(group) {
-        const key = normalizePinGroup(group);
-        if (!key) return false;
-        const map = this._getHiddenGroupsMap();
-        return !!map[key];
-    }
-
     static isTagHidden(tag) {
         const key = normalizePinGroup(tag);
         if (!key) return false;
         const map = this._getHiddenTagsMap();
         return !!map[key];
-    }
-
-    static _getPinGroup(pin) {
-        return normalizePinGroup(pin?.group);
     }
 
     static _getPinTags(pin) {
@@ -497,8 +464,6 @@ export class PinManager {
         if (this.isGlobalHidden()) return true;
         if (pin?.moduleId && this.isModuleHidden(pin.moduleId)) return true;
         if (pin?.moduleId && pin?.type != null && this.isModuleTypeHidden(pin.moduleId, pin.type)) return true;
-        const group = this._getPinGroup(pin);
-        if (group && this.isGroupHidden(group)) return true;
         const tags = this._getPinTags(pin);
         if (tags.some((tag) => this.isTagHidden(tag))) return true;
         return false;
@@ -544,18 +509,6 @@ export class PinManager {
         PinRenderer.applyVisibilityFilters();
     }
 
-    static async setGroupHidden(group, hidden) {
-        const key = normalizePinGroup(group);
-        if (!key) return;
-        const map = this._getHiddenGroupsMap();
-        if (hidden) map[key] = true;
-        else delete map[key];
-        await game.settings.set(MODULE.ID, this.HIDDEN_GROUPS_SETTING_KEY, map);
-        await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
-        const { PinRenderer } = await import('./pins-renderer.js');
-        PinRenderer.applyVisibilityFilters();
-    }
-
     static async setTagHidden(tag, hidden) {
         const key = normalizePinGroup(tag);
         if (!key) return;
@@ -573,7 +526,6 @@ export class PinManager {
             hideAll: this.isGlobalHidden(),
             hiddenModules: this._getHiddenModulesMap(),
             hiddenModuleTypes: this._getHiddenModuleTypesMap(),
-            hiddenGroups: this._getHiddenGroupsMap(),
             hiddenTags: this._getHiddenTagsMap()
         };
     }
@@ -583,13 +535,11 @@ export class PinManager {
             hideAll: !!state.hideAll,
             hiddenModules: state.hiddenModules && typeof state.hiddenModules === 'object' && !Array.isArray(state.hiddenModules) ? { ...state.hiddenModules } : {},
             hiddenModuleTypes: state.hiddenModuleTypes && typeof state.hiddenModuleTypes === 'object' && !Array.isArray(state.hiddenModuleTypes) ? { ...state.hiddenModuleTypes } : {},
-            hiddenGroups: state.hiddenGroups && typeof state.hiddenGroups === 'object' && !Array.isArray(state.hiddenGroups) ? { ...state.hiddenGroups } : {},
             hiddenTags: state.hiddenTags && typeof state.hiddenTags === 'object' && !Array.isArray(state.hiddenTags) ? { ...state.hiddenTags } : {}
         };
         await game.settings.set(MODULE.ID, this.HIDE_ALL_SETTING_KEY, normalized.hideAll);
         await game.settings.set(MODULE.ID, this.HIDDEN_MODULES_SETTING_KEY, normalized.hiddenModules);
         await game.settings.set(MODULE.ID, this.HIDDEN_MODULE_TYPES_SETTING_KEY, normalized.hiddenModuleTypes);
-        await game.settings.set(MODULE.ID, this.HIDDEN_GROUPS_SETTING_KEY, normalized.hiddenGroups);
         await game.settings.set(MODULE.ID, this.HIDDEN_TAGS_SETTING_KEY, normalized.hiddenTags);
         if (options.activeProfileName !== undefined) {
             await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, this._normalizeProfileName(options.activeProfileName));
@@ -655,9 +605,6 @@ export class PinManager {
         if (options.type != null && options.type !== '' && (pin.type || 'default') !== options.type) {
             return false;
         }
-        if (options.group != null && options.group !== '' && this._getPinGroup(pin) !== normalizePinGroup(options.group)) {
-            return false;
-        }
         if (options.tag != null && options.tag !== '') {
             const tagKey = normalizePinGroup(options.tag);
             if (!this._getPinTags(pin).includes(tagKey)) return false;
@@ -670,7 +617,7 @@ export class PinManager {
 
     static getSceneFilterSummary(sceneId, options = {}) {
         if (!sceneId) {
-            return { total: 0, modules: [], types: [], groups: [], tags: [] };
+            return { total: 0, modules: [], types: [], tags: [] };
         }
         const pins = this.list({
             sceneId,
@@ -680,7 +627,6 @@ export class PinManager {
             total: pins.length,
             modules: new Map(),
             types: new Map(),
-            groups: new Map(),
             tags: new Map()
         };
 
@@ -695,7 +641,6 @@ export class PinManager {
         for (const pin of pins) {
             countInto(summary.modules, pin.moduleId || 'unknown', pin);
             countInto(summary.types, `${pin.moduleId || ''}|${pin.type || 'default'}`, pin);
-            countInto(summary.groups, this._getPinGroup(pin), pin);
             for (const tag of this._getPinTags(pin)) countInto(summary.tags, tag, pin);
         }
 
@@ -703,7 +648,6 @@ export class PinManager {
             total: summary.total,
             modules: Array.from(summary.modules.values()).sort((a, b) => a.key.localeCompare(b.key)),
             types: Array.from(summary.types.values()).sort((a, b) => a.key.localeCompare(b.key)),
-            groups: Array.from(summary.groups.values()).sort((a, b) => a.key.localeCompare(b.key)),
             tags: Array.from(summary.tags.values()).sort((a, b) => a.key.localeCompare(b.key))
         };
     }
@@ -1365,9 +1309,6 @@ export class PinManager {
         if (patch.type != null) {
             const type = String(patch.type).trim();
             merged.type = type || 'default';
-        }
-        if (patch.group !== undefined) {
-            merged.group = normalizePinGroup(patch.group);
         }
         if (patch.tags !== undefined) {
             merged.tags = normalizePinTags(patch.tags);

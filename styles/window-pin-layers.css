@@ -50,13 +50,33 @@
     max-width: 180px;
 }
 
-/* ----- Header summary badges ----- */
+/* ----- Header summary ----- */
 
 .blacksmith-pin-layers-summary {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
     flex-wrap: wrap;
+}
+
+.blacksmith-pin-layers-summary-profile {
+    font-size: 0.78em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--blacksmith-window-accent-color, #ac9f81);
+}
+
+.blacksmith-pin-layers-summary-stat {
+    font-size: 0.78em;
+    color: rgba(180, 180, 180, 0.6);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.blacksmith-pin-layers-summary-stat i {
+    font-size: 0.9em;
 }
 
 /* ----- Tools zone: search bar ----- */
@@ -162,7 +182,7 @@
 .blacksmith-pin-layers-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 7px 14px;
     border-top: 1px solid rgba(255, 255, 255, 0.04);
     transition: background 0.1s ease;
@@ -176,12 +196,29 @@
     opacity: 0.55;
 }
 
-.blacksmith-pin-layers-row-main {
+/* Column wrapper for browse rows (title row + submeta tags stacked) */
+.blacksmith-pin-layers-row-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Title + action icon on one line (inside row-content) */
+.blacksmith-pin-layers-row-top {
     display: flex;
     align-items: center;
     gap: 8px;
+    width: 100%;
+}
+
+/* Used by layers/groups rows that have no submeta */
+.blacksmith-pin-layers-row-main {
     flex: 1;
     min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .blacksmith-pin-layers-row-label {
@@ -200,7 +237,7 @@
     display: flex;
     gap: 4px;
     flex-wrap: wrap;
-    margin-top: 2px;
+    margin-top: 4px;
 }
 
 .blacksmith-pin-layers-row-submeta .blacksmith-tag {
@@ -213,13 +250,7 @@
     color: rgba(220, 140, 140, 0.9) !important;
 }
 
-/* ----- Pan button in search results ----- */
 
-.blacksmith-pin-layers-pan-btn {
-    flex-shrink: 0;
-    padding: 5px 10px;
-    font-size: 0.85em;
-}
 
 /* ----- Tag cloud ----- */
 
@@ -264,47 +295,18 @@
     color: rgba(255, 140, 60, 0.9);
 }
 
+.blacksmith-pin-layers-tag-count {
+    opacity: 0.5;
+    font-size: 0.9em;
+    margin-left: 4px;
+}
+
 .blacksmith-pin-layers-tag-cloud .blacksmith-tag.is-hidden:hover {
     background: rgba(255, 100, 0, 0.25);
     border-color: rgba(255, 100, 0, 0.7);
     color: rgba(255, 180, 100, 1.0);
 }
 
-/* ----- Eye-icon toggle button ----- */
-
-.blacksmith-pin-layers-eye {
-    all: unset;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 4px;
-    color: rgba(180, 180, 180, 0.4);
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: color 0.15s ease, background 0.15s ease;
-}
-
-.blacksmith-pin-layers-eye:hover {
-    color: rgba(255, 100, 0, 0.9);
-    background: rgba(255, 100, 0, 0.1);
-}
-
-/* When the item is hidden the eye icon stays orange to signal the filter is active */
-.blacksmith-pin-layers-eye.is-hidden {
-    color: rgba(255, 100, 0, 0.65);
-}
-
-/* Delete variant — red tint instead of orange */
-.blacksmith-pin-layers-eye-delete {
-    color: rgba(180, 60, 60, 0.35);
-}
-
-.blacksmith-pin-layers-eye-delete:hover {
-    color: rgba(220, 60, 60, 0.9);
-    background: rgba(220, 60, 60, 0.1);
-}
 
 /* ----- Empty state / hint ----- */
 

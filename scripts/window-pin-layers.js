@@ -41,9 +41,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         clearBrowse:   () => { if (_pinLayersWindowRef) { _pinLayersWindowRef.browseQuery = ''; _pinLayersWindowRef.render(true); } },
         panToPin:      (_event, target) => _pinLayersWindowRef?._panToPin(target),
         toggleType:    (_event, target) => _pinLayersWindowRef?._toggleType(target),
-        toggleGroup:   (_event, target) => _pinLayersWindowRef?._toggleGroup(target),
         toggleTag:     (_event, target) => _pinLayersWindowRef?._toggleTag(target),
-        deleteGroup:   (_event, target) => _pinLayersWindowRef?._deleteGroup(target),
         deleteType:    (_event, target) => _pinLayersWindowRef?._deleteType(target)
     };
 
@@ -152,7 +150,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 </button>
                 <button type="button" class="blacksmith-tab ${!isLayers ? 'is-active' : ''}" data-action="selectTab" data-value="browse">
                     <i class="fa-solid fa-magnifying-glass"></i><span>Browse</span>
-                    <span class="blacksmith-badge" style="margin-left:2px">${allSummary.total}</span>
+                    <span class="blacksmith-pin-layers-tag-count">${allSummary.total}</span>
                 </button>
             </nav>
         `;
@@ -197,7 +195,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                     <div class="blacksmith-pin-layers-search-wrap">
                         <i class="fa-solid fa-magnifying-glass"></i>
                         <input type="text" class="blacksmith-input blacksmith-pin-layers-browse-input"
-                            value="${esc(this.browseQuery)}" placeholder="Filter pins by name, type, group, or tag…">
+                            value="${esc(this.browseQuery)}" placeholder="Filter pins by name, category, or tag…">
                         ${this.browseQuery ? `<button type="button" class="blacksmith-pin-layers-search-clear" data-action="clearBrowse" title="Clear filter"><i class="fa-solid fa-xmark"></i></button>` : ''}
                     </div>
                     <div class="blacksmith-toggle-row">
@@ -214,9 +212,9 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             subtitle: scene?.name ? `Scene: ${scene.name}` : 'No active scene',
             headerRight: `
                 <div class="blacksmith-pin-layers-summary">
-                    ${activeProfileName ? `<span class="blacksmith-badge blacksmith-badge-accent"><i class="fa-solid fa-layer-group"></i> ${esc(activeProfileName)}</span>` : `<span class="blacksmith-badge">Custom</span>`}
-                    <span class="blacksmith-badge blacksmith-badge-success"><i class="fa-solid fa-eye"></i> ${visibleSummary.total}</span>
-                    <span class="blacksmith-badge">${allSummary.total} total</span>
+                    <span class="blacksmith-pin-layers-summary-profile">${activeProfileName ? esc(activeProfileName) : 'Custom'}</span>
+                    <span class="blacksmith-pin-layers-summary-stat"><i class="fa-solid fa-eye"></i> ${visibleSummary.total}</span>
+                    <span class="blacksmith-pin-layers-summary-stat">${allSummary.total} total</span>
                 </div>
             `,
             bodyContent,
@@ -237,7 +235,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     _buildLayersBody(allSummary) {
-        const typeRows = allSummary.types.map((entry) => {
+        const categoryRows = allSummary.types.map((entry) => {
             const [moduleId, type] = String(entry.key || '').split('|');
             const hidden = PinManager.isModuleTypeHidden(moduleId, type);
             const friendlyName = PinManager.getPinTypeLabel(moduleId, type);
@@ -246,36 +244,27 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             return this._buildTypeRow({ label, count: entry.count, hidden, moduleId, type: type || 'default' });
         }).join('');
 
-        const groupRows = allSummary.groups.map((entry) => this._buildGroupRow(entry)).join('');
-
         const tagPills = allSummary.tags.map((entry) => {
             const hidden = PinManager.isTagHidden(entry.key);
             return `<button type="button"
                 class="blacksmith-tag ${hidden ? 'is-hidden' : ''}"
                 data-action="toggleTag" data-tag="${esc(entry.key)}"
                 title="${hidden ? 'Show' : 'Hide'} '${esc(entry.key)}' (${entry.count})">
-                ${esc(entry.key)}<span class="blacksmith-badge">${entry.count}</span>
+                ${esc(entry.key)}<span class="blacksmith-pin-layers-tag-count">${entry.count}</span>
             </button>`;
         }).join('');
 
         return `<div class="blacksmith-pin-layers-root">
             <div class="blacksmith-pin-layers-section-header blacksmith-pin-layers-section-header-first">
-                <i class="fa-solid fa-tag"></i><span>Types</span>
-                <span class="blacksmith-badge">${allSummary.types.length}</span>
+                <i class="fa-solid fa-tag"></i><span>Categories</span>
+                <span class="blacksmith-pin-layers-tag-count">${allSummary.types.length}</span>
             </div>
             <div class="blacksmith-pin-layers-list">
-                ${typeRows || '<div class="blacksmith-pin-layers-empty">No pin types on this scene.</div>'}
-            </div>
-            <div class="blacksmith-pin-layers-section-header">
-                <i class="fa-solid fa-layer-group"></i><span>Groups</span>
-                <span class="blacksmith-badge">${allSummary.groups.length}</span>
-            </div>
-            <div class="blacksmith-pin-layers-list">
-                ${groupRows || '<div class="blacksmith-pin-layers-empty">No groups assigned yet.</div>'}
+                ${categoryRows || '<div class="blacksmith-pin-layers-empty">No pin categories on this scene.</div>'}
             </div>
             <div class="blacksmith-pin-layers-section-header">
                 <i class="fa-solid fa-tags"></i><span>Tags</span>
-                <span class="blacksmith-badge">${allSummary.tags.length}</span>
+                <span class="blacksmith-pin-layers-tag-count">${allSummary.tags.length}</span>
             </div>
             <div class="blacksmith-pin-layers-tag-cloud">
                 ${tagPills || '<div class="blacksmith-pin-layers-empty">No tags assigned yet.</div>'}
@@ -289,19 +278,21 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             const typeLabel = PinManager.getPinTypeLabel(p.moduleId, p.type) || p.type || '';
             return `
                 <div class="blacksmith-pin-layers-row ${hidden ? 'is-hidden' : ''}">
-                    <div class="blacksmith-pin-layers-row-main">
-                        <div class="blacksmith-pin-layers-row-label">${esc(p.text || '(unnamed)')}</div>
+                    <div class="blacksmith-pin-layers-row-content">
+                        <div class="blacksmith-pin-layers-row-top">
+                            <div class="blacksmith-pin-layers-row-label">${esc(p.text || '(unnamed)')}</div>
+                            <button type="button" class="blacksmith-icon-action"
+                                data-action="panToPin" data-pin-id="${esc(p.id)}" title="Pan to pin">
+                                <i class="fa-solid fa-location-crosshairs"></i>
+                            </button>
+                        </div>
+                        ${(typeLabel || (p.tags && p.tags.length) || hidden) ? `
                         <div class="blacksmith-pin-layers-row-submeta">
                             ${typeLabel ? `<span class="blacksmith-tag">${esc(typeLabel)}</span>` : ''}
-                            ${p.group ? `<span class="blacksmith-tag">${esc(p.group)}</span>` : ''}
                             ${(p.tags || []).map(t => `<span class="blacksmith-tag">${esc(t)}</span>`).join('')}
                             ${hidden ? `<span class="blacksmith-tag blacksmith-pin-layers-filtered-tag">hidden</span>` : ''}
-                        </div>
+                        </div>` : ''}
                     </div>
-                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-pan-btn"
-                        data-action="panToPin" data-pin-id="${esc(p.id)}">
-                        <i class="fa-solid fa-location-crosshairs"></i> Pan
-                    </button>
                 </div>`;
         }).join('');
 
@@ -309,7 +300,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             <div class="blacksmith-pin-layers-section-header blacksmith-pin-layers-section-header-first">
                 <i class="fa-solid fa-map-pin"></i>
                 <span>${this.browseQuery ? 'Filtered Pins' : 'All Pins'}</span>
-                <span class="blacksmith-badge">${pins.length}${pins.length < totalPins ? ` of ${totalPins}` : ''}</span>
+                <span class="blacksmith-pin-layers-tag-count">${pins.length}${pins.length < totalPins ? ` of ${totalPins}` : ''}</span>
             </div>
             <div class="blacksmith-pin-layers-list">
                 ${pinRows || '<div class="blacksmith-pin-layers-empty">No pins matched.</div>'}
@@ -320,7 +311,6 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     _isPinHiddenByFilter(p) {
         if (PinManager.isGlobalHidden()) return true;
         if (PinManager.isModuleTypeHidden(p.moduleId, p.type)) return true;
-        if (p.group && PinManager.isGroupHidden(p.group)) return true;
         if ((p.tags || []).some(t => PinManager.isTagHidden(t))) return true;
         return false;
     }
@@ -332,12 +322,13 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         return `
             <div class="blacksmith-pin-layers-row ${hidden ? 'is-hidden' : ''}">
                 <div class="blacksmith-pin-layers-row-main">
-                    <div class="blacksmith-pin-layers-row-label">${esc(keyLabel)}</div>
-                    <span class="blacksmith-badge">${count}</span>
+                    <div class="blacksmith-pin-layers-row-label">
+                        ${esc(keyLabel)}<span class="blacksmith-pin-layers-tag-count">${count}</span>
+                    </div>
                 </div>
-                <button type="button" class="blacksmith-pin-layers-eye ${hidden ? 'is-hidden' : ''}"
+                <button type="button" class="blacksmith-icon-action ${hidden ? '' : 'is-active'}"
                     data-action="${action}" title="${hidden ? 'Show' : 'Hide'}" ${attrString}>
-                    <i class="fa-solid ${hidden ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                    <i class="fa-solid fa-eye"></i>
                 </button>
             </div>`;
     }
@@ -347,37 +338,17 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         return `
             <div class="blacksmith-pin-layers-row ${hidden ? 'is-hidden' : ''}">
                 <div class="blacksmith-pin-layers-row-main">
-                    <div class="blacksmith-pin-layers-row-label">${esc(label)}</div>
-                    <span class="blacksmith-badge">${count}</span>
+                    <div class="blacksmith-pin-layers-row-label">
+                        ${esc(label)}<span class="blacksmith-pin-layers-tag-count">${count}</span>
+                    </div>
                 </div>
-                <button type="button" class="blacksmith-pin-layers-eye ${hidden ? 'is-hidden' : ''}"
+                <button type="button" class="blacksmith-icon-action ${hidden ? '' : 'is-active'}"
                     data-action="toggleType" title="${hidden ? 'Show' : 'Hide'}" ${attrs}>
-                    <i class="fa-solid ${hidden ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                    <i class="fa-solid fa-eye"></i>
                 </button>
                 ${this._canBulkMutatePins ? `
-                <button type="button" class="blacksmith-pin-layers-eye blacksmith-pin-layers-eye-delete"
+                <button type="button" class="blacksmith-icon-action"
                     data-action="deleteType" title="Delete all ${esc(label)} pins" ${attrs}>
-                    <i class="fa-solid fa-trash"></i>
-                </button>` : ''}
-            </div>`;
-    }
-
-    _buildGroupRow(entry) {
-        const hidden = PinManager.isGroupHidden(entry.key);
-        const attr = `data-group="${esc(entry.key)}"`;
-        return `
-            <div class="blacksmith-pin-layers-row ${hidden ? 'is-hidden' : ''}">
-                <div class="blacksmith-pin-layers-row-main">
-                    <div class="blacksmith-pin-layers-row-label">${esc(entry.key)}</div>
-                    <span class="blacksmith-badge">${entry.count}</span>
-                </div>
-                <button type="button" class="blacksmith-pin-layers-eye ${hidden ? 'is-hidden' : ''}"
-                    data-action="toggleGroup" title="${hidden ? 'Show' : 'Hide'}" ${attr}>
-                    <i class="fa-solid ${hidden ? 'fa-eye' : 'fa-eye-slash'}"></i>
-                </button>
-                ${this._canBulkMutatePins ? `
-                <button type="button" class="blacksmith-pin-layers-eye blacksmith-pin-layers-eye-delete"
-                    data-action="deleteGroup" title="Remove group from all pins" ${attr}>
                     <i class="fa-solid fa-trash"></i>
                 </button>` : ''}
             </div>`;
@@ -444,7 +415,6 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             const [moduleId, type] = String(entry.key || '').split('|');
             await PinManager.setModuleTypeHidden(moduleId, type || 'default', true);
         }
-        for (const entry of summary.groups) await PinManager.setGroupHidden(entry.key, true);
         for (const entry of summary.tags) await PinManager.setTagHidden(entry.key, true);
         await this.render(true);
     }
@@ -456,7 +426,6 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             const [moduleId, type] = String(entry.key || '').split('|');
             await PinManager.setModuleTypeHidden(moduleId, type || 'default', false);
         }
-        for (const entry of summary.groups) await PinManager.setGroupHidden(entry.key, false);
         for (const entry of summary.tags) await PinManager.setTagHidden(entry.key, false);
         await this.render(true);
     }
@@ -535,23 +504,6 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         await this.render(true);
     }
 
-    async _deleteGroup(target) {
-        if (!game.user?.isGM) {
-            ui.notifications?.warn('Only a Gamemaster can remove groups from pins in bulk.');
-            return;
-        }
-        const group = target?.dataset?.group || '';
-        if (!group) return;
-        const sceneId = this.sceneId ?? canvas?.scene?.id;
-        if (!sceneId) return;
-        const pins = (PinManager.list({ sceneId, includeHiddenByFilter: true }) || [])
-            .filter(p => (p.group || '').toLowerCase().trim() === group.toLowerCase().trim());
-        for (const pin of pins) await PinManager.update(pin.id, { group: '' });
-        await PinManager.setGroupHidden(group, false);
-        ui.notifications?.info(`Removed group "${group}" from ${pins.length} pin${pins.length !== 1 ? 's' : ''}.`);
-        await this.render(true);
-    }
-
     async _panToPin(target) {
         const pinId = target?.dataset?.pinId || '';
         if (!pinId) return;
@@ -567,40 +519,18 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         await this.render(true);
     }
 
-    async _toggleGroup(target) {
-        const group = target?.dataset?.group || '';
-        if (!group) return;
-        const currentlyHidden = PinManager.isGroupHidden(group);
-        if (currentlyHidden) {
-            // Showing this group — unblock the types of its pins so they can actually appear
-            const sceneId = this.sceneId ?? canvas?.scene?.id;
-            const pins = (PinManager.list({ sceneId, includeHiddenByFilter: true }) || [])
-                .filter(p => (p.group || '').toLowerCase().trim() === group.toLowerCase().trim());
-            for (const pin of pins) {
-                if (pin.moduleId && PinManager.isModuleTypeHidden(pin.moduleId, pin.type)) {
-                    await PinManager.setModuleTypeHidden(pin.moduleId, pin.type || 'default', false);
-                }
-            }
-        }
-        await PinManager.setGroupHidden(group, !currentlyHidden);
-        await this.render(true);
-    }
-
     async _toggleTag(target) {
         const tag = target?.dataset?.tag || '';
         if (!tag) return;
         const currentlyHidden = PinManager.isTagHidden(tag);
         if (currentlyHidden) {
-            // Showing this tag — unblock the types and groups of its pins so they can actually appear
+            // Showing this tag — unblock the categories of its pins so they can actually appear
             const sceneId = this.sceneId ?? canvas?.scene?.id;
             const pins = (PinManager.list({ sceneId, includeHiddenByFilter: true }) || [])
                 .filter(p => (p.tags || []).some(t => t.toLowerCase().trim() === tag.toLowerCase().trim()));
             for (const pin of pins) {
                 if (pin.moduleId && PinManager.isModuleTypeHidden(pin.moduleId, pin.type)) {
                     await PinManager.setModuleTypeHidden(pin.moduleId, pin.type || 'default', false);
-                }
-                if (pin.group && PinManager.isGroupHidden(pin.group)) {
-                    await PinManager.setGroupHidden(pin.group, false);
                 }
             }
         }

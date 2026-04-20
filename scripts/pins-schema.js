@@ -32,8 +32,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {number} [textMaxLength] - Maximum text length before ellipsis (default: 0 = no limit)
  * @property {number} [textMaxWidth] - Max characters per line before wrap (default: 0 = single line); break at word boundary
  * @property {boolean} [textScaleWithPin] - Whether text scales with pin size based on zoom (default: true). If false, text stays fixed size.
- * @property {string} [type] - Pin type/category (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified. Used for filtering and organization.
- * @property {string} [group] - User-facing grouping field (e.g., 'journal', 'locations', 'quests'). Defaults to ''.
+ * @property {string} [type] - Pin category key (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified. Used for filtering and organization.
  * @property {string[]} [tags] - User-facing classification tags. Supports registered and freeform values. Defaults to [].
  * @property {boolean} [allowDuplicatePins] - If true, the same source (e.g. one journal page) may have multiple pins on the map; if false (default), one pin per source (creating replaces existing).
  * @property {{ hover?: { animation?: string | null; sound?: string | null }; click?: { animation?: string | null; sound?: string | null }; doubleClick?: { animation?: string | null; sound?: string | null }; delete?: { animation?: string | null; sound?: string | null }; add?: { animation?: string | null; sound?: string | null } }} [eventAnimations] - Optional animations and sounds for hover, click, double-click, delete, and add (when pin is placed on canvas). Default: all none.
@@ -146,7 +145,7 @@ export function normalizePinTags(value) {
 // ------------------------------------------------------------------
 
 /** Current pin data schema version. Bump when format changes and add migration. */
-export const PIN_SCHEMA_VERSION = 3;
+export const PIN_SCHEMA_VERSION = 4;
 
 /** Default values per architecture (apply when creating/validating, not stored if omitted). */
 export const PIN_DEFAULTS = Object.freeze({
@@ -161,8 +160,7 @@ export const PIN_DEFAULTS = Object.freeze({
     textMaxLength: 0, // 0 = no limit
     textMaxWidth: 0, // 0 = single line; >0 = max chars per line, break at word
     textScaleWithPin: true, // If true, text scales with zoom; if false, text stays fixed size
-    type: 'default', // Pin type/category - defaults to 'default' if not specified
-    group: '', // User-facing grouping bucket
+    type: 'default', // Pin category key - defaults to 'default' if not specified
     tags: [], // User-facing classification tags
     allowDuplicatePins: false, // If true, same source (e.g. journal page) can have multiple pins on the map
     version: PIN_SCHEMA_VERSION,
@@ -193,6 +191,19 @@ MIGRATION_MAP.set(3, (pin) => {
     const migrated = { ...pin };
     if (migrated.group == null) migrated.group = '';
     if (!Array.isArray(migrated.tags)) migrated.tags = [];
+    return migrated;
+});
+
+// Migration from v3 to v4: Remove group field — promote non-empty group values into tags
+MIGRATION_MAP.set(4, (pin) => {
+    const migrated = { ...pin };
+    const group = typeof migrated.group === 'string' ? migrated.group.trim().toLowerCase() : '';
+    if (group) {
+        const tags = Array.isArray(migrated.tags) ? [...migrated.tags] : [];
+        if (!tags.includes(group)) tags.push(group);
+        migrated.tags = tags;
+    }
+    delete migrated.group;
     return migrated;
 });
 
@@ -238,7 +249,6 @@ export function applyDefaults(partial) {
         image: undefined,
         iconText: undefined,
         type: PIN_DEFAULTS.type, // Always set default type
-        group: PIN_DEFAULTS.group,
         tags: [...PIN_DEFAULTS.tags],
         config: { ...(PIN_DEFAULTS.config) },
         moduleId: '',
@@ -334,9 +344,6 @@ export function applyDefaults(partial) {
         base.type = String(partial.type).trim() || PIN_DEFAULTS.type;
     } else {
         base.type = PIN_DEFAULTS.type; // Always set default type
-    }
-    if (partial.group !== undefined) {
-        base.group = normalizePinGroup(partial.group);
     }
     if (partial.tags !== undefined) {
         base.tags = normalizePinTags(partial.tags);
