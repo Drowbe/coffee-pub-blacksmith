@@ -1765,6 +1765,48 @@ export class PinManager {
     }
 
     /**
+     * GM-side socket body for {@link PinManager.requestGM} (`blacksmith-pins-gm-proxy`).
+     * Kept in one place so early registration (`blacksmith.socketReady`) matches lazy registration.
+     */
+    static async _handlePinsGmProxyRequest(data) {
+        if (!game.user?.isGM) {
+            return { error: 'Permission denied: only GMs can execute pin actions.' };
+        }
+        try {
+            switch (data.action) {
+                case 'create': {
+                    const created = await this.createAsGM(data.params.sceneId, data.params.payload, data.params.options || {});
+                    return { success: true, data: created };
+                }
+                case 'update': {
+                    const updated = await this.updateAsGM(data.params.sceneId, data.params.pinId, data.params.patch, data.params.options || {});
+                    return { success: true, data: updated };
+                }
+                case 'updateUnplaced': {
+                    const updatedUnplaced = await this.update(data.params.pinId, data.params.patch, data.params.options || {});
+                    return { success: true, data: updatedUnplaced };
+                }
+                case 'place': {
+                    const placed = await this.place(data.params.pinId, data.params.placement);
+                    return { success: true, data: placed };
+                }
+                case 'unplace': {
+                    const unplaced = await this.unplace(data.params.pinId);
+                    return { success: true, data: unplaced };
+                }
+                case 'delete': {
+                    await this.deleteAsGM(data.params.sceneId, data.params.pinId, data.params.options || {});
+                    return { success: true };
+                }
+                default:
+                    return { error: `Unknown action: ${data.action}` };
+            }
+        } catch (err) {
+            return { error: err.message || String(err) };
+        }
+    }
+
+    /**
      * Request GM to perform a pin action (for non-GM users)
      * Uses socket system to forward request to GM. Used when the caller has edit permission but cannot write the backing store (scene flags require Scene update; unplaced pins use world setting 'pinsUnplaced').
      * @param {string} action - Action type: 'create', 'update', 'updateUnplaced', 'place', 'unplace', or 'delete'
@@ -1815,38 +1857,7 @@ export class PinManager {
         // Register handler once if not already registered
         const handlerName = 'blacksmith-pins-gm-proxy';
         if (!this._gmProxyHandlerRegistered && socket.register) {
-            socket.register(handlerName, async (data) => {
-                if (!game.user?.isGM) {
-                    return { error: 'Permission denied: only GMs can execute pin actions.' };
-                }
-
-                try {
-                    switch (data.action) {
-                        case 'create':
-                            const created = await this.createAsGM(data.params.sceneId, data.params.payload, data.params.options || {});
-                            return { success: true, data: created };
-                        case 'update':
-                            const updated = await this.updateAsGM(data.params.sceneId, data.params.pinId, data.params.patch, data.params.options || {});
-                            return { success: true, data: updated };
-                        case 'updateUnplaced':
-                            const updatedUnplaced = await this.update(data.params.pinId, data.params.patch, data.params.options || {});
-                            return { success: true, data: updatedUnplaced };
-                        case 'place':
-                            const placed = await this.place(data.params.pinId, data.params.placement);
-                            return { success: true, data: placed };
-                        case 'unplace':
-                            const unplaced = await this.unplace(data.params.pinId);
-                            return { success: true, data: unplaced };
-                        case 'delete':
-                            await this.deleteAsGM(data.params.sceneId, data.params.pinId, data.params.options || {});
-                            return { success: true };
-                        default:
-                            return { error: `Unknown action: ${data.action}` };
-                    }
-                } catch (err) {
-                    return { error: err.message || String(err) };
-                }
-            });
+            socket.register(handlerName, async (data) => PinManager._handlePinsGmProxyRequest(data));
             this._gmProxyHandlerRegistered = true;
         }
 
@@ -1998,28 +2009,7 @@ if (typeof Hooks !== 'undefined') {
             if (!socket?.register) return;
             if (PinManager._gmProxyHandlerRegistered) return;
             const handlerName = 'blacksmith-pins-gm-proxy';
-            socket.register(handlerName, async (data) => {
-                if (!game.user?.isGM) {
-                    return { error: 'Permission denied: only GMs can execute pin actions.' };
-                }
-                try {
-                    switch (data.action) {
-                        case 'create':
-                            const created = await PinManager.createAsGM(data.params.sceneId, data.params.payload, data.params.options || {});
-                            return { success: true, data: created };
-                        case 'update':
-                            const updated = await PinManager.updateAsGM(data.params.sceneId, data.params.pinId, data.params.patch, data.params.options || {});
-                            return { success: true, data: updated };
-                        case 'delete':
-                            await PinManager.deleteAsGM(data.params.sceneId, data.params.pinId, data.params.options || {});
-                            return { success: true };
-                        default:
-                            return { error: `Unknown action: ${data.action}` };
-                    }
-                } catch (err) {
-                    return { error: err.message || String(err) };
-                }
-            });
+            socket.register(handlerName, async (data) => PinManager._handlePinsGmProxyRequest(data));
             PinManager._gmProxyHandlerRegistered = true;
         } catch (_) {
             // Socket or registration failed; requestGM will still attempt lazy registration when called

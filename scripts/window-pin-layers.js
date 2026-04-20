@@ -49,7 +49,8 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
 
     constructor(options = {}) {
         const opts = foundry.utils.mergeObject({}, options);
-        opts.id = opts.id ?? `${APP_ID}-${foundry.utils.randomID().slice(0, 8)}`;
+        // Stable id so only one Pin Layers window exists (singleton).
+        opts.id = opts.id ?? APP_ID;
         const bounds = game.settings.get(MODULE.ID, 'pinLayersWindowBounds') || {};
         const { lastProfile, lastTab, ...positionBounds } = bounds;
         opts.position = foundry.utils.mergeObject(
@@ -69,6 +70,14 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     static async open(options = {}) {
+        const existing = _pinLayersWindowRef;
+        if (existing?.element?.isConnected) {
+            existing.sceneId = options.sceneId ?? canvas?.scene?.id ?? existing.sceneId;
+            await existing.render(true);
+            await Promise.resolve(existing.bringToFront?.());
+            return existing;
+        }
+        if (existing && !existing.element?.isConnected) _pinLayersWindowRef = null;
         const win = new PinLayersWindow(options);
         _pinLayersWindowRef = win;
         return win.render(true);
@@ -93,6 +102,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     async getData() {
+        this._canBulkMutatePins = !!game.user?.isGM;
         await PinManager.ensureBuiltinTaxonomyLoaded();
         const scene = this.sceneId ? game.scenes?.get(this.sceneId) : canvas?.scene;
         const sceneId = scene?.id ?? canvas?.scene?.id ?? null;
@@ -344,10 +354,11 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                     data-action="toggleType" title="${hidden ? 'Show' : 'Hide'}" ${attrs}>
                     <i class="fa-solid ${hidden ? 'fa-eye' : 'fa-eye-slash'}"></i>
                 </button>
+                ${this._canBulkMutatePins ? `
                 <button type="button" class="blacksmith-pin-layers-eye blacksmith-pin-layers-eye-delete"
                     data-action="deleteType" title="Delete all ${esc(label)} pins" ${attrs}>
                     <i class="fa-solid fa-trash"></i>
-                </button>
+                </button>` : ''}
             </div>`;
     }
 
@@ -364,10 +375,11 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                     data-action="toggleGroup" title="${hidden ? 'Show' : 'Hide'}" ${attr}>
                     <i class="fa-solid ${hidden ? 'fa-eye' : 'fa-eye-slash'}"></i>
                 </button>
+                ${this._canBulkMutatePins ? `
                 <button type="button" class="blacksmith-pin-layers-eye blacksmith-pin-layers-eye-delete"
                     data-action="deleteGroup" title="Remove group from all pins" ${attr}>
                     <i class="fa-solid fa-trash"></i>
-                </button>
+                </button>` : ''}
             </div>`;
     }
 
@@ -508,6 +520,10 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     async _deleteType(target) {
+        if (!game.user?.isGM) {
+            ui.notifications?.warn('Only a Gamemaster can delete pins from this panel.');
+            return;
+        }
         const moduleId = target?.dataset?.moduleId || '';
         const type = target?.dataset?.type || 'default';
         if (!moduleId) return;
@@ -525,6 +541,10 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     async _deleteGroup(target) {
+        if (!game.user?.isGM) {
+            ui.notifications?.warn('Only a Gamemaster can remove groups from pins in bulk.');
+            return;
+        }
         const group = target?.dataset?.group || '';
         if (!group) return;
         const sceneId = this.sceneId ?? canvas?.scene?.id;
