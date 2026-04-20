@@ -342,7 +342,10 @@ class MenuBar {
             active: false,
             iconColor: null,
             buttonNormalTint: null,
-            buttonSelectedTint: null
+            buttonSelectedTint: null,
+            contextMenuItems: [
+                { name: 'Movement Settings', icon: 'fa-solid fa-gear', onClick: () => new MovementConfig().render(true) }
+            ]
         });
 
         // SESSION TIMER
