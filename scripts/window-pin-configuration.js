@@ -82,6 +82,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this._pinRatio = 1;
         this.allowDuplicatePins = false;
         this.pinTags = [];
+        this._updateAllMode = false;
     }
 
     _buildPinUpdateData({ widthInput, heightInput, lockInput, shapeInput, strokeWidthInput,
@@ -137,35 +138,82 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         };
     }
 
-    async _saveAndUpdateAll(inputs) {
-        if (!game.user?.isGM) { ui.notifications?.warn('Only a GM can update all pins.'); return; }
+    async _applyCheckedSectionsToAll(fullUpdateData, nativeHtml) {
+        if (!game.user?.isGM) return;
+
+        // Collect which sections are checked
+        const checked = new Set();
+        nativeHtml.querySelectorAll('.blacksmith-pin-config-section-check:checked').forEach(cb => {
+            checked.add(cb.dataset.section);
+        });
+        if (checked.size === 0) return;
+
         const { PinManager } = await import('./manager-pins.js');
         const pin = PinManager.get(this.pinId, this.sceneId !== undefined ? { sceneId: this.sceneId } : {});
         if (!pin) return;
         const sceneId = this.sceneId ?? canvas?.scene?.id;
-        if (!sceneId) { ui.notifications?.warn('No active scene.'); return; }
+        if (!sceneId) return;
+
         const allPins = PinManager.list({ sceneId, includeHiddenByFilter: true }) || [];
-        const peers = allPins.filter(p => p.moduleId === pin.moduleId && (p.type || 'default') === (pin.type || 'default'));
-        if (peers.length === 0) { ui.notifications?.warn('No matching pins found on this scene.'); return; }
+        const peers = allPins.filter(p =>
+            p.id !== this.pinId &&
+            p.moduleId === pin.moduleId &&
+            (p.type || 'default') === (pin.type || 'default')
+        );
+        if (peers.length === 0) { ui.notifications?.info('No other matching pins to update.'); return; }
+
+        // Build partial update from only the checked sections
+        const partial = {};
+        if (checked.has('design')) {
+            partial.size = fullUpdateData.size;
+            partial.lockProportions = fullUpdateData.lockProportions;
+            partial.shape = fullUpdateData.shape;
+            partial.style = fullUpdateData.style;
+            partial.dropShadow = fullUpdateData.dropShadow;
+        }
+        if (checked.has('text')) {
+            partial.textLayout = fullUpdateData.textLayout;
+            partial.textDisplay = fullUpdateData.textDisplay;
+            partial.textColor = fullUpdateData.textColor;
+            partial.textSize = fullUpdateData.textSize;
+            partial.textMaxLength = fullUpdateData.textMaxLength;
+            partial.textMaxWidth = fullUpdateData.textMaxWidth;
+            partial.textScaleWithPin = fullUpdateData.textScaleWithPin;
+        }
+        if (checked.has('animations')) {
+            partial.events = fullUpdateData.events;
+        }
+        if (checked.has('source')) {
+            partial.image = fullUpdateData.image;
+            partial.imageFit = fullUpdateData.imageFit;
+            partial.imageZoom = fullUpdateData.imageZoom;
+        }
+        if (checked.has('classification')) {
+            partial.tags = fullUpdateData.tags;
+        }
+        if (checked.has('permissions')) {
+            partial.ownership = fullUpdateData.ownership;
+        }
+
+        const sectionNames = [...checked].join(', ');
         const confirmed = await Dialog.confirm({
-            title: 'Save and Update All',
-            content: `<p>Apply this design to all <strong>${peers.length}</strong> matching pins on this scene?</p>`
+            title: 'Update All Matching Pins',
+            content: `<p>Apply <strong>${sectionNames}</strong> to <strong>${peers.length}</strong> other matching pin${peers.length !== 1 ? 's' : ''} on this scene?</p>`
         });
         if (!confirmed) return;
+
         const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
         if (!pinsAPI) return;
-        const baseUpdate = this._buildPinUpdateData(inputs);
         let count = 0;
         for (const p of peers) {
             try {
-                await pinsAPI.update(p.id, baseUpdate, { sceneId });
+                await pinsAPI.update(p.id, partial, { sceneId });
                 count++;
             } catch (err) {
                 console.warn(`BLACKSMITH | PINS Failed to update pin ${p.id}:`, err);
             }
         }
         ui.notifications?.info(`Updated ${count} pin${count !== 1 ? 's' : ''}.`);
-        this.close();
     }
 
     async close(options) {
@@ -452,6 +500,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         return {
             isGM,
             pinTypeLabel,
+            pinName: pin.text || '',
             ownershipOptions,
             previewHtml: PinConfigWindow.buildIconHtml(this.selected, 'window-note-header-image'),
             imageValue,
@@ -488,7 +537,8 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             animationOptions,
             deleteAnimationOptions,
             soundOptions,
-            eventAnimations
+            eventAnimations,
+            updateAllMode: this._updateAllMode
         };
     }
 
@@ -896,11 +946,9 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
 
         nativeHtml.querySelector('button.cancel')?.addEventListener('click', () => this.close());
 
-        nativeHtml.querySelector('.blacksmith-pin-config-save-all')?.addEventListener('click', async () => {
-            await this._saveAndUpdateAll({ widthInput, heightInput, lockInput, shapeInput, strokeWidthInput,
-                fillInput, strokeInput, iconColorInput, shadowInput, textLayoutInput, textDisplayInput,
-                textColorInput, textSizeInput, textMaxLengthInput, textMaxWidthInput, textScaleInput,
-                imageInput, imageFitSelect, imageZoomInput, tagsInput, allowDuplicateInput, nativeHtml });
+        nativeHtml.querySelector('.blacksmith-pin-config-update-all-toggle')?.addEventListener('change', (e) => {
+            this._updateAllMode = !!e.target.checked;
+            this.render(true);
         });
 
         nativeHtml.querySelector('.blacksmith-pin-config-save')?.addEventListener('click', async () => {
@@ -991,6 +1039,11 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                         // Callback may try to write world settings (player lacks permission); don't fail the save
                         postConsoleAndNotification(MODULE.NAME, 'Pin config callback error', callbackErr?.message || callbackErr, false, false);
                     }
+                }
+
+                // If Update All mode is on, apply checked sections to matching pins
+                if (this._updateAllMode) {
+                    await this._applyCheckedSectionsToAll(pinUpdateData, nativeHtml);
                 }
 
                 ui.notifications.info('Pin configuration updated.');

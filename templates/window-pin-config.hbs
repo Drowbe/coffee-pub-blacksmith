@@ -4,8 +4,13 @@
     <div class="window-note-header">
         <div class="window-note-header-content">
             <div class="window-note-header-title">
-                {{#if pinTypeLabel}}<div class="blacksmith-pin-config-title"><i class="fa-solid fa-location-dot"></i> {{pinTypeLabel}}</div>{{/if}}
+                <div class="blacksmith-pin-config-title">
+                    <i class="fa-solid fa-location-dot"></i>
+                    {{#if pinTypeLabel}}<span class="blacksmith-pin-config-category">{{pinTypeLabel}}:</span>{{/if}}
+                    <span class="blacksmith-pin-config-pin-name">{{pinName}}</span>
+                </div>
             </div>
+            {{#if isGM}}
             <div class="window-note-header-controls">
                 <div class="blacksmith-toggle-row">
                     <span class="blacksmith-toggle-label">Allow Duplicates</span>
@@ -21,7 +26,15 @@
                         <span class="blacksmith-toggle-slider"></span>
                     </label>
                 </div>
+                <div class="blacksmith-toggle-row">
+                    <span class="blacksmith-toggle-label">Update All</span>
+                    <label class="blacksmith-toggle">
+                        <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-update-all-toggle" {{#if updateAllMode}}checked{{/if}}>
+                        <span class="blacksmith-toggle-slider"></span>
+                    </label>
+                </div>
             </div>
+            {{/if}}
         </div>
     </div>
 
@@ -29,7 +42,7 @@
         {{!-- Permissions --}}
         {{#if isGM}}
         <div class="blacksmith-window-section blacksmith-pin-config-permissions-section">
-            <div class="blacksmith-window-section-header"><i class="fa-solid fa-shield-halved"></i> Permissions</div>
+            <div class="blacksmith-window-section-header">{{#if updateAllMode}}<input type="checkbox" class="blacksmith-pin-config-section-check" data-section="permissions">{{/if}}<i class="fa-solid fa-shield-halved"></i> Permissions</div>
             <div class="blacksmith-window-section-body">
                 <div class="blacksmith-field" style="max-width: 280px;">
                     <span class="blacksmith-field-label">Who can access this pin?</span>
@@ -49,7 +62,7 @@
         {{!-- Classification --}}
         {{#if isGM}}
         <div class="blacksmith-window-section blacksmith-pin-config-classification-section">
-            <div class="blacksmith-window-section-header"><i class="fa-solid fa-tags"></i> Classification</div>
+            <div class="blacksmith-window-section-header">{{#if updateAllMode}}<input type="checkbox" class="blacksmith-pin-config-section-check" data-section="classification">{{/if}}<i class="fa-solid fa-tags"></i> Classification</div>
             <div class="blacksmith-window-section-body">
                 <div class="blacksmith-field-row">
                     <div class="blacksmith-field">
@@ -73,7 +86,7 @@
 
         {{!-- Pin Design --}}
         <div class="blacksmith-window-section blacksmith-pin-config-design-section">
-            <div class="blacksmith-window-section-header"><i class="fa-solid fa-ruler-combined"></i> Pin Design</div>
+            <div class="blacksmith-window-section-header">{{#if updateAllMode}}<input type="checkbox" class="blacksmith-pin-config-section-check" data-section="design">{{/if}}<i class="fa-solid fa-ruler-combined"></i> Pin Design</div>
             <div class="blacksmith-window-section-body">
                 <div class="blacksmith-field-row">
                     <label class="blacksmith-field">
@@ -146,7 +159,7 @@
 
         {{!-- Text Format --}}
         <div class="blacksmith-window-section blacksmith-pin-config-text-section">
-            <div class="blacksmith-window-section-header"><i class="fa-solid fa-font"></i> Text Format</div>
+            <div class="blacksmith-window-section-header">{{#if updateAllMode}}<input type="checkbox" class="blacksmith-pin-config-section-check" data-section="text">{{/if}}<i class="fa-solid fa-font"></i> Text Format</div>
             <div class="blacksmith-window-section-body">
                 <div class="blacksmith-field-row">
                     <label class="blacksmith-field">
@@ -209,7 +222,7 @@
 
         {{!-- Event Animations --}}
         <div class="blacksmith-window-section blacksmith-pin-config-animation-section">
-            <div class="blacksmith-window-section-header"><i class="fa-solid fa-wand-sparkles"></i> Event Animations</div>
+            <div class="blacksmith-window-section-header">{{#if updateAllMode}}<input type="checkbox" class="blacksmith-pin-config-section-check" data-section="animations">{{/if}}<i class="fa-solid fa-wand-sparkles"></i> Event Animations</div>
             <div class="blacksmith-window-section-body">
                 <div class="blacksmith-pin-config-help">Play an animation and optional sound when the pin is hovered, clicked, double-clicked, added to the canvas, or deleted. Right-click is reserved for the context menu.</div>
                 <div class="blacksmith-pin-config-event-animations">
@@ -285,7 +298,7 @@
         {{!-- Combined Pin Source section with toggle in header --}}
         <div class="blacksmith-window-section blacksmith-pin-config-source-section">
             <div class="blacksmith-window-section-header blacksmith-pin-config-source-header">
-                <span><i class="fa-solid fa-icons"></i> Pin Source</span>
+                <span>{{#if updateAllMode}}<input type="checkbox" class="blacksmith-pin-config-section-check" data-section="source">{{/if}}<i class="fa-solid fa-icons"></i> Pin Source</span>
                 <div class="blacksmith-toggle-row">
                     <span class="blacksmith-toggle-label">Image</span>
                     <label class="blacksmith-toggle">
@@ -364,10 +377,7 @@
         <button type="button" class="btn-secondary cancel">
             <i class="fa-solid fa-times"></i> Cancel
         </button>
-        <button type="button" class="btn-secondary blacksmith-pin-config-save-all">
-            <i class="fa-solid fa-layer-group"></i> Save and Update All
-        </button>
-        <button type="button" class="btn-primary blacksmith-pin-config-save">
+<button type="button" class="btn-primary blacksmith-pin-config-save">
             <i class="fa-solid fa-check"></i> Save
         </button>
     </div>

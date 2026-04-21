@@ -284,3 +284,12 @@ div#blacksmith-pin-config .window-content {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     flex-shrink: 0;
 }
+
+/* Update All — section checkboxes in section headers */
+.blacksmith-pin-config-section-check {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    accent-color: var(--blacksmith-window-accent-color, #c07a3c);
+    cursor: pointer;
+}
