@@ -190,22 +190,23 @@ class PinDOMElement {
         const scale = canvas.stage.scale.x;
         
         // Pin size in scene units, converted to screen pixels
-        const pinSizeScene = Math.min(pinData.size.w, pinData.size.h);
-        const pinSizeScreen = pinSizeScene * scale;
-        
-        // Icon (FA symbol) size uses CSS variable --blacksmith-pin-icon-size-ratio (default 0.6 to match note panel)
+        const pinWScene = pinData.size.w;
+        const pinHScene = pinData.size.h;
+        const pinWScreen = pinWScene * scale;
+        const pinHScreen = pinHScene * scale;
+
+        // Icon size is based on the smaller dimension so it fits within non-square pins
         const ratioStr = typeof document !== 'undefined'
             ? getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-pin-icon-size-ratio').trim()
             : '';
         const iconRatio = (parseFloat(ratioStr) || 0.6);
-        const iconSizeScene = pinSizeScene * iconRatio;
-        const iconSizeScreen = iconSizeScene * scale;
-        
+        const iconSizeScreen = Math.min(pinWScreen, pinHScreen) * iconRatio;
+
         // Center pin on screen coordinates
-        const left = Math.round(screen.x - pinSizeScreen / 2);
-        const top = Math.round(screen.y - pinSizeScreen / 2);
-        
-        return { left, top, width: pinSizeScreen, height: pinSizeScreen, iconSizeScreen, screen, scale };
+        const left = Math.round(screen.x - pinWScreen / 2);
+        const top = Math.round(screen.y - pinHScreen / 2);
+
+        return { left, top, width: pinWScreen, height: pinHScreen, iconSizeScreen, screen, scale };
     }
 
     /**

@@ -84,6 +84,90 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this.pinTags = [];
     }
 
+    _buildPinUpdateData({ widthInput, heightInput, lockInput, shapeInput, strokeWidthInput,
+        fillInput, strokeInput, iconColorInput, shadowInput, textLayoutInput, textDisplayInput,
+        textColorInput, textSizeInput, textMaxLengthInput, textMaxWidthInput, textScaleInput,
+        imageInput, imageFitSelect, imageZoomInput, allowDuplicateInput, nativeHtml }) {
+        const clampDim = (v, fb) => { const p = Number(v); return Number.isFinite(p) ? Math.max(8, Math.round(p)) : fb; };
+        const clampSW  = (v, fb) => { const p = Number(v); return Number.isFinite(p) ? Math.max(0, Math.round(p)) : fb; };
+        const clampTS  = (v, fb) => { const p = Number(v); return Number.isFinite(p) ? Math.max(6, Math.round(p)) : fb; };
+        const clampLen = (v)     => { if (v === '' || v == null) return 0; const p = Number(v); return Number.isFinite(p) ? Math.max(0, Math.round(p)) : 0; };
+
+        const mode = this.iconMode === 'image' ? 'image' : 'icon';
+        const finalSelection = mode === 'image'
+            ? { type: 'img', value: (imageInput?.value?.trim() || '') }
+            : (this.selected?.type === 'fa' ? this.selected : { type: 'fa', value: 'fa-solid fa-location-dot' });
+
+        const allowedLayouts = ['under', 'over', 'above', 'right', 'left', 'arc-above', 'arc-below'];
+        const rawLayout = textLayoutInput?.value ?? this.pinTextLayout ?? 'under';
+        const savedTextLayout = (() => { const n = normalizeTextLayout(rawLayout); return (n && allowedLayouts.includes(n)) ? n : 'under'; })();
+
+        const w = clampDim(widthInput?.value, this.pinSize.w);
+        const h = lockInput?.checked ? w : clampDim(heightInput?.value, this.pinSize.h);
+
+        return {
+            size: { w, h },
+            shape: this.pinShape,
+            style: {
+                fill: this.pinStyle.fill,
+                stroke: this.pinStyle.stroke,
+                strokeWidth: clampSW(strokeWidthInput?.value, this.pinStyle.strokeWidth),
+                alpha: this.pinStyle.alpha ?? 1,
+                iconColor: this.pinStyle.iconColor ?? '#ffffff'
+            },
+            dropShadow: this.dropShadow,
+            image: PinConfigWindow.iconToStoredImage(finalSelection),
+            textLayout: savedTextLayout,
+            textDisplay: this.pinTextDisplay,
+            textColor: this.pinTextColor,
+            textSize: clampTS(textSizeInput?.value, this.pinTextSize),
+            textMaxLength: clampLen(textMaxLengthInput?.value),
+            textMaxWidth: clampLen(textMaxWidthInput?.value),
+            textScaleWithPin: this.pinTextScaleWithPin,
+            imageFit: imageFitSelect ? imageFitSelect.value : this.pinImageFit,
+            imageZoom: (imageFitSelect?.value === 'zoom' && imageZoomInput) ? Number(imageZoomInput.value) / 100 : this.pinImageZoom,
+            allowDuplicatePins: !!allowDuplicateInput?.checked,
+            eventAnimations: {
+                hover:       { animation: nativeHtml.querySelector('.blacksmith-pin-config-event-hover-animation')?.value || null,       sound: nativeHtml.querySelector('.blacksmith-pin-config-event-hover-sound')?.value?.trim() || null },
+                click:       { animation: nativeHtml.querySelector('.blacksmith-pin-config-event-click-animation')?.value || null,       sound: nativeHtml.querySelector('.blacksmith-pin-config-event-click-sound')?.value?.trim() || null },
+                doubleClick: { animation: nativeHtml.querySelector('.blacksmith-pin-config-event-doubleclick-animation')?.value || null, sound: nativeHtml.querySelector('.blacksmith-pin-config-event-doubleclick-sound')?.value?.trim() || null },
+                delete:      { animation: nativeHtml.querySelector('.blacksmith-pin-config-event-delete-animation')?.value || null,      sound: nativeHtml.querySelector('.blacksmith-pin-config-event-delete-sound')?.value?.trim() || null },
+                add:         { animation: nativeHtml.querySelector('.blacksmith-pin-config-event-add-animation')?.value || null,         sound: nativeHtml.querySelector('.blacksmith-pin-config-event-add-sound')?.value?.trim() || null }
+            }
+        };
+    }
+
+    async _saveAndUpdateAll(inputs) {
+        if (!game.user?.isGM) { ui.notifications?.warn('Only a GM can update all pins.'); return; }
+        const { PinManager } = await import('./manager-pins.js');
+        const pin = PinManager.get(this.pinId, this.sceneId !== undefined ? { sceneId: this.sceneId } : {});
+        if (!pin) return;
+        const sceneId = this.sceneId ?? canvas?.scene?.id;
+        if (!sceneId) { ui.notifications?.warn('No active scene.'); return; }
+        const allPins = PinManager.list({ sceneId, includeHiddenByFilter: true }) || [];
+        const peers = allPins.filter(p => p.moduleId === pin.moduleId && (p.type || 'default') === (pin.type || 'default'));
+        if (peers.length === 0) { ui.notifications?.warn('No matching pins found on this scene.'); return; }
+        const confirmed = await Dialog.confirm({
+            title: 'Save and Update All',
+            content: `<p>Apply this design to all <strong>${peers.length}</strong> matching pins on this scene?</p>`
+        });
+        if (!confirmed) return;
+        const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+        if (!pinsAPI) return;
+        const baseUpdate = this._buildPinUpdateData(inputs);
+        let count = 0;
+        for (const p of peers) {
+            try {
+                await pinsAPI.update(p.id, baseUpdate, { sceneId });
+                count++;
+            } catch (err) {
+                console.warn(`BLACKSMITH | PINS Failed to update pin ${p.id}:`, err);
+            }
+        }
+        ui.notifications?.info(`Updated ${count} pin${count !== 1 ? 's' : ''}.`);
+        this.close();
+    }
+
     async close(options) {
         try {
             const pos = this.position ?? {};
@@ -240,7 +324,11 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this.iconMode = this.selected?.type === 'img' ? 'image' : 'icon';
         this.lastIconSelection = this.selected?.type === 'fa' ? this.selected : null;
         this.pinSize = pin.size || { w: 32, h: 32 };
-        this.lockProportions = true; // Default, could be stored in pin.config if needed
+        // Derive lock state: check saved design first, fall back to dimension equality
+        const _savedDesigns = game.settings.get(MODULE.ID, 'clientPinDefaultDesigns') || {};
+        const _designKey = `${this.moduleId}|${this.pinType || 'default'}`;
+        const _savedLock = _savedDesigns[_designKey]?.lockProportions;
+        this.lockProportions = _savedLock !== undefined ? _savedLock : (this.pinSize.w === this.pinSize.h);
         this.pinShape = pin.shape || 'circle';
         this.pinStyle = {
             fill: pin.style?.fill || '#000000',
@@ -570,18 +658,14 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         const syncPinSize = (source) => {
             if (!widthInput || !heightInput) return;
             let width = clampDimension(widthInput.value, this.pinSize.w);
-            let height = clampDimension(heightInput.value, this.pinSize.h);
+            let height;
 
             if (lockInput?.checked) {
-                if (source === 'width') {
-                    height = clampDimension(Math.round(width / (this._pinRatio || 1)), height);
-                    heightInput.value = height;
-                } else if (source === 'height') {
-                    width = clampDimension(Math.round(height * (this._pinRatio || 1)), width);
-                    widthInput.value = width;
-                }
+                // Constrain proportions = square: height always mirrors width
+                height = width;
+                heightInput.value = height;
             } else {
-                this._pinRatio = height ? width / height : this._pinRatio;
+                height = clampDimension(heightInput.value, this.pinSize.h);
             }
 
             this.pinSize = { w: width, h: height };
@@ -629,15 +713,18 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         });
 
         widthInput?.addEventListener('input', () => syncPinSize('width'));
+        widthInput?.addEventListener('change', () => syncPinSize('width'));
         heightInput?.addEventListener('input', () => syncPinSize('height'));
+        heightInput?.addEventListener('change', () => syncPinSize('height'));
         lockInput?.addEventListener('change', () => {
-            if (widthInput && heightInput) {
-                const width = clampDimension(widthInput.value, this.pinSize.w);
-                const height = clampDimension(heightInput.value, this.pinSize.h);
-                this._pinRatio = height ? width / height : this._pinRatio;
-            }
             this.lockProportions = !!lockInput.checked;
-            syncPinSize('width');
+            if (this.lockProportions) {
+                // Snap height to width and disable the field
+                syncPinSize('width');
+                if (heightInput) heightInput.disabled = true;
+            } else {
+                if (heightInput) heightInput.disabled = false;
+            }
         });
         shapeInput?.addEventListener('change', () => {
             const shape = shapeInput.value;
@@ -809,109 +896,52 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
 
         nativeHtml.querySelector('button.cancel')?.addEventListener('click', () => this.close());
 
+        nativeHtml.querySelector('.blacksmith-pin-config-save-all')?.addEventListener('click', async () => {
+            await this._saveAndUpdateAll({ widthInput, heightInput, lockInput, shapeInput, strokeWidthInput,
+                fillInput, strokeInput, iconColorInput, shadowInput, textLayoutInput, textDisplayInput,
+                textColorInput, textSizeInput, textMaxLengthInput, textMaxWidthInput, textScaleInput,
+                imageInput, imageFitSelect, imageZoomInput, tagsInput, allowDuplicateInput, nativeHtml });
+        });
+
         nativeHtml.querySelector('.blacksmith-pin-config-save')?.addEventListener('click', async () => {
-            const mode = this.iconMode === 'image' ? 'image' : 'icon';
-            let finalSelection = null;
-            if (mode === 'image') {
-                const value = imageInput?.value?.trim() || '';
-                if (!value) {
-                    ui.notifications?.warn('Select an image for the pin.');
-                    return;
-                }
-                finalSelection = { type: 'img', value };
-            } else {
-                finalSelection = this.selected?.type === 'fa'
-                    ? this.selected
-                    : { type: 'fa', value: 'fa-solid fa-location-dot' };
+            if (this.iconMode === 'image' && !(imageInput?.value?.trim())) {
+                ui.notifications?.warn('Select an image for the pin.');
+                return;
             }
 
-            // Read text layout from DOM at save time so selection is never lost (e.g. if change didn't fire)
-            const allowedLayouts = ['under', 'over', 'above', 'right', 'left', 'arc-above', 'arc-below'];
-            const rawLayout = textLayoutInput?.value ?? this.pinTextLayout ?? 'under';
-            const normalizedLayout = normalizeTextLayout(rawLayout);
-            const savedTextLayout = (normalizedLayout && allowedLayouts.includes(normalizedLayout))
-                ? normalizedLayout
-                : 'under';
+            const pinUpdateData = this._buildPinUpdateData({ widthInput, heightInput, lockInput, shapeInput,
+                strokeWidthInput, fillInput, strokeInput, iconColorInput, shadowInput, textLayoutInput,
+                textDisplayInput, textColorInput, textSizeInput, textMaxLengthInput, textMaxWidthInput,
+                textScaleInput, imageInput, imageFitSelect, imageZoomInput, allowDuplicateInput, nativeHtml });
 
-            // Prepare config data for callback
-            const configData = {
-                icon: finalSelection,
-                pinSize: { w: this.pinSize.w, h: this.pinSize.h },
-                pinShape: this.pinShape,
-                pinStyle: (() => {
-                    const style = { ...this.pinStyle };
-                    if (strokeWidthInput) style.strokeWidth = clampStrokeWidth(strokeWidthInput.value, style.strokeWidth);
-                    return style;
-                })(),
-                pinDropShadow: this.dropShadow,
-                pinTextConfig: {
-                    textLayout: savedTextLayout,
-                    textDisplay: this.pinTextDisplay,
-                    textColor: this.pinTextColor,
-                    textSize: this.pinTextSize,
-                    textMaxLength: this.pinTextMaxLength,
-                    textMaxWidth: this.pinTextMaxWidth,
-                    textScaleWithPin: this.pinTextScaleWithPin
-                }
-            };
-
-            // Convert to pin API format — store FA as class string, image as URL only (no HTML)
-            const pinUpdateData = {
-                size: configData.pinSize,
-                shape: configData.pinShape,
-                style: {
-                    fill: configData.pinStyle.fill,
-                    stroke: configData.pinStyle.stroke,
-                    strokeWidth: configData.pinStyle.strokeWidth,
-                    alpha: configData.pinStyle.alpha ?? 1,
-                    iconColor: configData.pinStyle.iconColor ?? '#ffffff'
-                },
-                dropShadow: configData.pinDropShadow,
-                image: PinConfigWindow.iconToStoredImage(finalSelection),
-                textLayout: configData.pinTextConfig.textLayout,
-                textDisplay: configData.pinTextConfig.textDisplay,
-                textColor: configData.pinTextConfig.textColor,
-                textSize: configData.pinTextConfig.textSize,
-                textMaxLength: configData.pinTextConfig.textMaxLength,
-                textMaxWidth: configData.pinTextConfig.textMaxWidth,
-                textScaleWithPin: configData.pinTextConfig.textScaleWithPin,
-                imageFit: imageFitSelect ? imageFitSelect.value : this.pinImageFit,
-                imageZoom: (imageFitSelect?.value === 'zoom' && imageZoomInput) ? Number(imageZoomInput.value) / 100 : this.pinImageZoom,
-                allowDuplicatePins: !!allowDuplicateInput?.checked
-            };
-
-            // GM-only: include ownership default from Permissions section
+            // GM-only: tags and ownership are per-pin, not part of bulk update
             if (game.user?.isGM) {
                 pinUpdateData.tags = normalizePinTags(tagsInput?.value ?? this.pinTags ?? []);
                 const ownershipSelect = nativeHtml.querySelector('.blacksmith-pin-config-ownership-default');
                 if (ownershipSelect) {
                     const defaultLevel = Number(ownershipSelect.value);
                     if (Number.isInteger(defaultLevel)) {
-                        pinUpdateData.ownership = {
-                            ...this._pinOwnership,
-                            default: defaultLevel
-                        };
+                        pinUpdateData.ownership = { ...this._pinOwnership, default: defaultLevel };
                     }
                 }
             }
 
-            // Event animations (hover, click, double-click, delete, add) with optional sound
-            const hoverAnim = nativeHtml.querySelector('.blacksmith-pin-config-event-hover-animation')?.value ?? '';
-            const clickAnim = nativeHtml.querySelector('.blacksmith-pin-config-event-click-animation')?.value ?? '';
-            const doubleClickAnim = nativeHtml.querySelector('.blacksmith-pin-config-event-doubleclick-animation')?.value ?? '';
-            const deleteAnim = nativeHtml.querySelector('.blacksmith-pin-config-event-delete-animation')?.value ?? '';
-            const addAnim = nativeHtml.querySelector('.blacksmith-pin-config-event-add-animation')?.value ?? '';
-            const hoverSound = (nativeHtml.querySelector('.blacksmith-pin-config-event-hover-sound')?.value ?? '').trim();
-            const clickSound = (nativeHtml.querySelector('.blacksmith-pin-config-event-click-sound')?.value ?? '').trim();
-            const doubleClickSound = (nativeHtml.querySelector('.blacksmith-pin-config-event-doubleclick-sound')?.value ?? '').trim();
-            const deleteSound = (nativeHtml.querySelector('.blacksmith-pin-config-event-delete-sound')?.value ?? '').trim();
-            const addSound = (nativeHtml.querySelector('.blacksmith-pin-config-event-add-sound')?.value ?? '').trim();
-            pinUpdateData.eventAnimations = {
-                hover: { animation: hoverAnim || null, sound: hoverSound || null },
-                click: { animation: clickAnim || null, sound: clickSound || null },
-                doubleClick: { animation: doubleClickAnim || null, sound: doubleClickSound || null },
-                delete: { animation: deleteAnim || null, sound: deleteSound || null },
-                add: { animation: addAnim || null, sound: addSound || null }
+            // For callback compat
+            const configData = {
+                icon: this.selected,
+                pinSize: pinUpdateData.size,
+                pinShape: pinUpdateData.shape,
+                pinStyle: pinUpdateData.style,
+                pinDropShadow: pinUpdateData.dropShadow,
+                pinTextConfig: {
+                    textLayout: pinUpdateData.textLayout,
+                    textDisplay: pinUpdateData.textDisplay,
+                    textColor: pinUpdateData.textColor,
+                    textSize: pinUpdateData.textSize,
+                    textMaxLength: pinUpdateData.textMaxLength,
+                    textMaxWidth: pinUpdateData.textMaxWidth,
+                    textScaleWithPin: pinUpdateData.textScaleWithPin
+                }
             };
 
             try {
@@ -928,6 +958,9 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                 if (makeDefault && this.moduleId) {
                     try {
                         const design = {
+                            image: pinUpdateData.image,
+                            imageFit: pinUpdateData.imageFit,
+                            imageZoom: pinUpdateData.imageZoom,
                             size: configData.pinSize,
                             lockProportions: this.lockProportions,
                             shape: configData.pinShape,

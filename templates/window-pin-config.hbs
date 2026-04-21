@@ -4,7 +4,7 @@
     <div class="window-note-header">
         <div class="window-note-header-content">
             <div class="window-note-header-title">
-                <div class="blacksmith-pin-config-title"><i class="fa-solid fa-location-dot"></i> Configure Pin{{#if pinTypeLabel}} — {{pinTypeLabel}}{{/if}}</div>
+                {{#if pinTypeLabel}}<div class="blacksmith-pin-config-title"><i class="fa-solid fa-location-dot"></i> {{pinTypeLabel}}</div>{{/if}}
             </div>
             <div class="window-note-header-controls">
                 <div class="blacksmith-toggle-row">
@@ -82,7 +82,7 @@
                     </label>
                     <label class="blacksmith-field">
                         <span class="blacksmith-field-label">Height</span>
-                        <input type="number" class="blacksmith-input blacksmith-pin-config-height" min="8" step="1" value="{{pinHeight}}">
+                        <input type="number" class="blacksmith-input blacksmith-pin-config-height" min="8" step="1" value="{{#if lockProportions}}{{pinWidth}}{{else}}{{pinHeight}}{{/if}}" {{#if lockProportions}}disabled{{/if}}>
                     </label>
                 </div>
                 <div class="blacksmith-toggle-row">
@@ -364,8 +364,11 @@
         <button type="button" class="btn-secondary cancel">
             <i class="fa-solid fa-times"></i> Cancel
         </button>
+        <button type="button" class="btn-secondary blacksmith-pin-config-save-all">
+            <i class="fa-solid fa-layer-group"></i> Save and Update All
+        </button>
         <button type="button" class="btn-primary blacksmith-pin-config-save">
-            <i class="fa-solid fa-check"></i> Save pin design
+            <i class="fa-solid fa-check"></i> Save
         </button>
     </div>
 </div>
