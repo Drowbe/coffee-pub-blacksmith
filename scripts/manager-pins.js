@@ -85,6 +85,7 @@ const UNPLACED_SETTING_KEY = 'pinsUnplaced';
 const PINS_HIDDEN_MODULES_KEY = 'pinsHiddenModules';
 const PINS_HIDDEN_MODULE_TYPES_KEY = 'pinsHiddenModuleTypes';
 const PINS_HIDDEN_TAGS_KEY = 'pinsHiddenTags';
+const PINS_TAG_REGISTRY_KEY = 'pinTagRegistry';
 const PINS_HIDE_ALL_KEY = 'pinsHideAll';
 const PINS_FILTER_PROFILES_KEY = 'pinsFilterProfiles';
 const PINS_ACTIVE_FILTER_PROFILE_KEY = 'pinsActiveFilterProfile';
@@ -96,6 +97,7 @@ export class PinManager {
     static HIDDEN_MODULES_SETTING_KEY = PINS_HIDDEN_MODULES_KEY;
     static HIDDEN_MODULE_TYPES_SETTING_KEY = PINS_HIDDEN_MODULE_TYPES_KEY;
     static HIDDEN_TAGS_SETTING_KEY = PINS_HIDDEN_TAGS_KEY;
+    static TAG_REGISTRY_SETTING_KEY = PINS_TAG_REGISTRY_KEY;
     static HIDE_ALL_SETTING_KEY = PINS_HIDE_ALL_KEY;
     static FILTER_PROFILES_SETTING_KEY = PINS_FILTER_PROFILES_KEY;
     static ACTIVE_FILTER_PROFILE_SETTING_KEY = PINS_ACTIVE_FILTER_PROFILE_KEY;
@@ -117,6 +119,7 @@ export class PinManager {
     /** In-memory registry: (moduleId|type) -> friendly name for UI. Modules register so we don't assume labels. */
     static _pinTypeLabels = new Map();
     static _builtinTaxonomyRegistry = new Map();
+    static _globalTags = [];
     static _overrideTaxonomyRegistry = new Map();
     static _runtimeTaxonomyRegistry = new Map();
     static _taxonomyLoadPromise = null;
@@ -173,8 +176,7 @@ export class PinManager {
             moduleId: String(moduleId).trim(),
             type: normalizedType,
             label: (taxonomy.label != null && String(taxonomy.label).trim()) ? String(taxonomy.label).trim() : '',
-            defaultTags: this._normalizeTaxonomyTagList(taxonomy.defaultTags),
-            suggestedTags: this._normalizeTaxonomyTagList(taxonomy.suggestedTags)
+            tags: this._normalizeTaxonomyTagList(taxonomy.tags)
         };
     }
 
@@ -195,13 +197,11 @@ export class PinManager {
             moduleId: valid[valid.length - 1].moduleId || valid[0].moduleId || '',
             type: valid[valid.length - 1].type || valid[0].type || 'default',
             label: '',
-            defaultTags: [],
-            suggestedTags: []
+            tags: []
         };
         for (const entry of valid) {
             if (entry.label) merged.label = entry.label;
-            if (Array.isArray(entry.defaultTags) && entry.defaultTags.length) merged.defaultTags = [...entry.defaultTags];
-            merged.suggestedTags = Array.from(new Set([...(merged.suggestedTags || []), ...(entry.suggestedTags || [])].filter(Boolean)));
+            merged.tags = Array.from(new Set([...(merged.tags || []), ...(entry.tags || [])].filter(Boolean)));
         }
         return merged;
     }
@@ -219,21 +219,13 @@ export class PinManager {
 
     static getPinTaxonomyChoices(moduleId, type) {
         const taxonomy = this.getPinTaxonomy(moduleId, type);
-        if (!taxonomy) {
-            return {
-                tags: [],
-                defaultTags: [],
-                label: ''
-            };
-        }
         const tags = Array.from(new Set([
-            ...(taxonomy.defaultTags || []),
-            ...(taxonomy.suggestedTags || [])
+            ...(taxonomy?.tags || []),
+            ...this._globalTags
         ].filter(Boolean)));
         return {
             tags,
-            defaultTags: Array.isArray(taxonomy.defaultTags) ? [...taxonomy.defaultTags] : [],
-            label: taxonomy.label || ''
+            label: taxonomy?.label || ''
         };
     }
 
@@ -268,18 +260,42 @@ export class PinManager {
             throw new Error(`Failed to load pin taxonomy from ${path}: ${response.status}`);
         }
         const payload = await response.json();
-        const defaultModuleId = (payload?.moduleId && String(payload.moduleId).trim()) || MODULE.ID;
-        // Support both `pinCategories` (new) and legacy `pinTypes`
-        const pinTypes = (payload?.pinCategories && typeof payload.pinCategories === 'object')
+        // Collect global tags
+        if (Array.isArray(payload?.globalTags)) {
+            for (const t of payload.globalTags) {
+                const k = normalizePinGroup(t);
+                if (k && !this._globalTags.includes(k)) this._globalTags.push(k);
+            }
+        }
+        // v3: modules.{moduleId}.pinCategories
+        if (payload?.modules && typeof payload.modules === 'object') {
+            for (const [moduleId, moduleEntry] of Object.entries(payload.modules)) {
+                const categories = moduleEntry?.pinCategories;
+                if (!categories || typeof categories !== 'object') continue;
+                for (const [type, entry] of Object.entries(categories)) {
+                    const normalized = this._normalizeTaxonomyEntry(moduleId, type, entry);
+                    if (!normalized) continue;
+                    registry.set(this._taxonomyTypeKey(moduleId, type), normalized);
+                    if (normalized.label && !this._runtimeTaxonomyRegistry.has(this._taxonomyTypeKey(moduleId, type))) {
+                        this.registerPinType(moduleId, type, normalized.label);
+                    }
+                }
+            }
+        }
+        // Legacy: flat pinCategories / pinTypes with optional per-entry moduleId
+        const legacyTypes = (payload?.pinCategories && !payload.modules && typeof payload.pinCategories === 'object')
             ? payload.pinCategories
-            : (payload?.pinTypes && typeof payload.pinTypes === 'object' ? payload.pinTypes : {});
-        for (const [type, entry] of Object.entries(pinTypes)) {
-            const moduleId = (entry?.moduleId && String(entry.moduleId).trim()) || defaultModuleId;
-            const normalized = this._normalizeTaxonomyEntry(moduleId, type, entry);
-            if (!normalized) continue;
-            registry.set(this._taxonomyTypeKey(moduleId, type), normalized);
-            if (normalized.label && !this._runtimeTaxonomyRegistry.has(this._taxonomyTypeKey(moduleId, type))) {
-                this.registerPinType(moduleId, type, normalized.label);
+            : (payload?.pinTypes && typeof payload.pinTypes === 'object' ? payload.pinTypes : null);
+        if (legacyTypes) {
+            const defaultModuleId = (payload?.moduleId && String(payload.moduleId).trim()) || MODULE.ID;
+            for (const [type, entry] of Object.entries(legacyTypes)) {
+                const moduleId = (entry?.moduleId && String(entry.moduleId).trim()) || defaultModuleId;
+                const normalized = this._normalizeTaxonomyEntry(moduleId, type, entry);
+                if (!normalized) continue;
+                registry.set(this._taxonomyTypeKey(moduleId, type), normalized);
+                if (normalized.label && !this._runtimeTaxonomyRegistry.has(this._taxonomyTypeKey(moduleId, type))) {
+                    this.registerPinType(moduleId, type, normalized.label);
+                }
             }
         }
     }
@@ -289,6 +305,7 @@ export class PinManager {
         this._taxonomyLoadPromise = null;
         this._builtinTaxonomyRegistry.clear();
         this._overrideTaxonomyRegistry.clear();
+        this._globalTags = [];
     }
 
     static getScenePinSearchResults(sceneId, options = {}) {
@@ -418,6 +435,131 @@ export class PinManager {
         return raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : {};
     }
 
+    static _getTagRegistry() {
+        const raw = getSettingSafely(MODULE.ID, this.TAG_REGISTRY_SETTING_KEY, []);
+        return Array.isArray(raw) ? raw : [];
+    }
+
+    static getTagRegistry() {
+        return [...this._getTagRegistry()];
+    }
+
+    static async _addTagsToRegistry(tags) {
+        if (!game.user?.isGM) return;
+        if (!Array.isArray(tags) || tags.length === 0) return;
+        const normalized = tags.map(t => normalizePinGroup(t)).filter(Boolean);
+        if (normalized.length === 0) return;
+        const current = this._getTagRegistry();
+        const added = normalized.filter(t => !current.includes(t));
+        if (added.length === 0) return;
+        const updated = [...current, ...added].sort();
+        await game.settings.set(MODULE.ID, this.TAG_REGISTRY_SETTING_KEY, updated);
+    }
+
+    static async deleteTagGlobally(tagKey) {
+        if (!game.user?.isGM) return;
+        const key = normalizePinGroup(tagKey);
+        if (!key) return;
+        // Remove from registry
+        const registry = this._getTagRegistry().filter(t => t !== key);
+        await game.settings.set(MODULE.ID, this.TAG_REGISTRY_SETTING_KEY, registry);
+        // Remove from hidden tags setting
+        const hiddenMap = this._getHiddenTagsMap();
+        if (hiddenMap[key] !== undefined) {
+            delete hiddenMap[key];
+            await game.settings.set(MODULE.ID, this.HIDDEN_TAGS_SETTING_KEY, hiddenMap);
+        }
+        // Remove from saved profiles
+        const profiles = this._getStoredFilterProfiles();
+        let profilesChanged = false;
+        for (const profileState of Object.values(profiles)) {
+            if (profileState.hiddenTags && key in profileState.hiddenTags) {
+                delete profileState.hiddenTags[key];
+                profilesChanged = true;
+            }
+        }
+        if (profilesChanged) await game.settings.set(MODULE.ID, this.FILTER_PROFILES_SETTING_KEY, profiles);
+        // Remove from all scene pins
+        for (const scene of game.scenes) {
+            const pins = scene.getFlag(MODULE.ID, 'pins');
+            if (!Array.isArray(pins)) continue;
+            const updated = pins.map(p => {
+                const tags = normalizePinTags(p.tags).filter(t => t !== key);
+                return { ...p, tags };
+            });
+            const changed = updated.some((p, i) => p.tags.length !== normalizePinTags(pins[i].tags).length);
+            if (changed) await scene.setFlag(MODULE.ID, 'pins', updated);
+        }
+    }
+
+    static async renameTagGlobally(oldKey, newKey) {
+        if (!game.user?.isGM) return;
+        const oldNorm = normalizePinGroup(oldKey);
+        const newNorm = normalizePinGroup(newKey);
+        if (!oldNorm || !newNorm || oldNorm === newNorm) return;
+        // Update registry
+        const registry = this._getTagRegistry();
+        if (!registry.includes(oldNorm)) return;
+        const updated = registry.map(t => (t === oldNorm ? newNorm : t));
+        if (!updated.includes(newNorm)) updated.push(newNorm);
+        await game.settings.set(MODULE.ID, this.TAG_REGISTRY_SETTING_KEY, [...new Set(updated)].sort());
+        // Update hidden tags
+        const hiddenMap = this._getHiddenTagsMap();
+        if (hiddenMap[oldNorm] !== undefined) {
+            hiddenMap[newNorm] = hiddenMap[oldNorm];
+            delete hiddenMap[oldNorm];
+            await game.settings.set(MODULE.ID, this.HIDDEN_TAGS_SETTING_KEY, hiddenMap);
+        }
+        // Update saved profiles
+        const profiles = this._getStoredFilterProfiles();
+        let profilesChanged = false;
+        for (const profileState of Object.values(profiles)) {
+            if (profileState.hiddenTags && oldNorm in profileState.hiddenTags) {
+                profileState.hiddenTags[newNorm] = profileState.hiddenTags[oldNorm];
+                delete profileState.hiddenTags[oldNorm];
+                profilesChanged = true;
+            }
+        }
+        if (profilesChanged) await game.settings.set(MODULE.ID, this.FILTER_PROFILES_SETTING_KEY, profiles);
+        // Update all scene pins
+        for (const scene of game.scenes) {
+            const pins = scene.getFlag(MODULE.ID, 'pins');
+            if (!Array.isArray(pins)) continue;
+            let changed = false;
+            const remapped = pins.map(p => {
+                const tags = normalizePinTags(p.tags);
+                if (!tags.includes(oldNorm)) return p;
+                changed = true;
+                const newTags = tags.map(t => (t === oldNorm ? newNorm : t));
+                return { ...p, tags: [...new Set(newTags)] };
+            });
+            if (changed) await scene.setFlag(MODULE.ID, 'pins', remapped);
+        }
+    }
+
+    static async seedTagRegistryIfEmpty() {
+        if (!game.user?.isGM) return;
+        const wasEmpty = this._getTagRegistry().length === 0;
+        // Always merge taxonomy tags — picks up any JSON updates on each load
+        const taxonomyTags = [...this._globalTags];
+        for (const [, entry] of this._builtinTaxonomyRegistry) {
+            for (const t of entry.tags ?? []) { const k = normalizePinGroup(t); if (k) taxonomyTags.push(k); }
+        }
+        if (taxonomyTags.length > 0) await this._addTagsToRegistry(taxonomyTags);
+        // Only scan all scene pins on the very first run (registry was empty before taxonomy merge)
+        if (!wasEmpty) return;
+        const tags = new Set(this._getTagRegistry());
+        for (const scene of game.scenes) {
+            const pins = scene.getFlag(MODULE.ID, 'pins');
+            if (!Array.isArray(pins)) continue;
+            for (const p of pins) {
+                for (const t of normalizePinTags(p.tags)) if (t) tags.add(t);
+            }
+        }
+        const sorted = [...tags].filter(Boolean).sort();
+        if (sorted.length > 0) await game.settings.set(MODULE.ID, this.TAG_REGISTRY_SETTING_KEY, sorted);
+    }
+
     static _getStoredFilterProfiles() {
         const raw = getSettingSafely(MODULE.ID, this.FILTER_PROFILES_SETTING_KEY, {});
         return raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : {};
@@ -528,6 +670,19 @@ export class PinManager {
             hiddenModuleTypes: this._getHiddenModuleTypesMap(),
             hiddenTags: this._getHiddenTagsMap()
         };
+    }
+
+    static visibilityStateMatchesProfile(profileName) {
+        const key = this._normalizeProfileName(profileName);
+        if (!key) return false;
+        const saved = this.getVisibilityProfile(key);
+        if (!saved) return false;
+        const current = this.getVisibilityProfileState();
+        const stable = (obj) => JSON.stringify(Object.fromEntries(Object.entries(obj ?? {}).sort()));
+        return current.hideAll === saved.hideAll
+            && stable(current.hiddenModules) === stable(saved.hiddenModules)
+            && stable(current.hiddenModuleTypes) === stable(saved.hiddenModuleTypes)
+            && stable(current.hiddenTags) === stable(saved.hiddenTags);
     }
 
     static async applyVisibilityProfileState(state = {}, options = {}) {
@@ -689,6 +844,9 @@ export class PinManager {
                         if (key.startsWith(prefix)) this._pinTypeLabels.delete(key);
                     }
                 }
+            });
+            this.seedTagRegistryIfEmpty().catch(err => {
+                console.warn('BLACKSMITH | PINS Failed to seed tag registry:', err);
             });
         });
     }
@@ -1102,6 +1260,7 @@ export class PinManager {
         }
         const next = [...pins, foundry.utils.deepClone(pin)];
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
+        this._addTagsToRegistry(pin.tags).catch(() => {});
         if (typeof Hooks !== 'undefined') {
             Hooks.callAll('blacksmith.pins.created', { pinId: pin.id, sceneId: scene.id, moduleId: pin.moduleId, placement: 'placed', pin: foundry.utils.deepClone(pin) });
         }
@@ -1220,6 +1379,7 @@ export class PinManager {
         const next = [...pins];
         next[idx] = foundry.utils.deepClone(updated);
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
+        this._addTagsToRegistry(updated.tags).catch(() => {});
         if (typeof Hooks !== 'undefined') {
             Hooks.callAll('blacksmith.pins.updated', { pinId, sceneId: scene.id, moduleId: updated.moduleId ?? existing.moduleId, type: updated.type ?? existing.type, patch, pin: foundry.utils.deepClone(updated) });
         }

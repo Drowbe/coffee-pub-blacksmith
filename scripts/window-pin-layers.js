@@ -41,8 +41,10 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         clearBrowse:   () => { if (_pinLayersWindowRef) { _pinLayersWindowRef.browseQuery = ''; _pinLayersWindowRef.render(true); } },
         panToPin:      (_event, target) => _pinLayersWindowRef?._panToPin(target),
         toggleType:    (_event, target) => _pinLayersWindowRef?._toggleType(target),
-        toggleTag:     (_event, target) => _pinLayersWindowRef?._toggleTag(target),
-        deleteType:    (_event, target) => _pinLayersWindowRef?._deleteType(target)
+        toggleTag:       (_event, target) => _pinLayersWindowRef?._toggleTag(target),
+        deleteType:      (_event, target) => _pinLayersWindowRef?._deleteType(target),
+        toggleTagManage: () => _pinLayersWindowRef?._toggleTagManage(),
+        deleteTagChip:   (_event, target) => _pinLayersWindowRef?._deleteTagChip(target)
     };
 
     constructor(options = {}) {
@@ -65,6 +67,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             : (PinManager.getActiveFilterProfileName() || '');
         this._browseDebounce = null;
         this._restoreBrowseFocus = false;
+        this._tagManageMode = false;
     }
 
     static async open(options = {}) {
@@ -119,6 +122,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const activeProfileName = PinManager.getActiveFilterProfileName();
         const selectedProfile = this._selectedProfileValue;
         const isNewProfile = selectedProfile === '';
+        const profileMatchesCurrent = !isNewProfile && PinManager.visibilityStateMatchesProfile(selectedProfile);
         const profileOptions = [
             `<option value="" ${isNewProfile ? 'selected' : ''}>New Profile</option>`,
             ...profiles.map((entry) =>
@@ -134,7 +138,6 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 ? allPins.filter(p =>
                     (p.text || '').toLowerCase().includes(q) ||
                     (PinManager.getPinTypeLabel(p.moduleId, p.type) || p.type || '').toLowerCase().includes(q) ||
-                    (p.group || '').toLowerCase().includes(q) ||
                     (p.tags || []).some(t => t.toLowerCase().includes(q)))
                 : allPins;
             if (!this.browseIncludeHidden) {
@@ -173,9 +176,10 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                     <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm" data-action="applyProfile" title="Restore this profile's saved filters">
                         <i class="fa-solid fa-check"></i> Apply
                     </button>
+                    ${!profileMatchesCurrent ? `
                     <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm" data-action="updateProfile" title="Save current filters over this profile">
                         <i class="fa-solid fa-floppy-disk"></i> Update
-                    </button>
+                    </button>` : ''}
                     <button type="button" class="blacksmith-window-btn-critical blacksmith-pin-layers-btn-icon blacksmith-pin-layers-btn-sm" data-action="deleteProfile" title="Delete this profile">
                         <i class="fa-solid fa-trash"></i>
                     </button>
@@ -244,13 +248,26 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             return this._buildTypeRow({ label, count: entry.count, hidden, moduleId, type: type || 'default' });
         }).join('');
 
-        const tagPills = allSummary.tags.map((entry) => {
-            const hidden = PinManager.isTagHidden(entry.key);
+        // Merge scene tags with world registry so all known tags are visible
+        const sceneCounts = new Map(allSummary.tags.map(e => [e.key, e.count]));
+        const registryTags = PinManager.getTagRegistry();
+        const allTagKeys = [...new Set([...registryTags, ...allSummary.tags.map(e => e.key)])].sort();
+        const isGM = !!game.user?.isGM;
+        const managing = isGM && this._tagManageMode;
+
+        const tagPills = allTagKeys.map((key) => {
+            const count = sceneCounts.get(key) ?? 0;
+            const hidden = PinManager.isTagHidden(key);
+            if (managing) {
+                return `<span class="blacksmith-tag blacksmith-tag-manage ${count === 0 ? 'is-empty' : ''}">
+                    ${esc(key)}<button type="button" class="blacksmith-tag-delete" data-action="deleteTagChip" data-tag="${esc(key)}" title="Delete '${esc(key)}' globally"><i class="fa-solid fa-xmark"></i></button>
+                </span>`;
+            }
             return `<button type="button"
-                class="blacksmith-tag ${hidden ? 'is-hidden' : ''}"
-                data-action="toggleTag" data-tag="${esc(entry.key)}"
-                title="${hidden ? 'Show' : 'Hide'} '${esc(entry.key)}' (${entry.count})">
-                ${esc(entry.key)}<span class="blacksmith-pin-layers-tag-count">${entry.count}</span>
+                class="blacksmith-tag ${hidden ? 'is-hidden' : ''} ${count === 0 ? 'is-empty' : ''}"
+                data-action="toggleTag" data-tag="${esc(key)}"
+                title="${hidden ? 'Show' : 'Hide'} '${esc(key)}' (${count})">
+                ${esc(key)}<span class="blacksmith-pin-layers-tag-count">${count}</span>
             </button>`;
         }).join('');
 
@@ -264,7 +281,8 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             </div>
             <div class="blacksmith-pin-layers-section-header">
                 <i class="fa-solid fa-tags"></i><span>Tags</span>
-                <span class="blacksmith-pin-layers-tag-count">${allSummary.tags.length}</span>
+                <span class="blacksmith-pin-layers-tag-count">${allTagKeys.length}</span>
+                ${isGM ? `<button type="button" class="blacksmith-icon-action blacksmith-pin-layers-manage-tags ${managing ? 'is-active' : ''}" data-action="toggleTagManage" title="${managing ? 'Done managing tags' : 'Manage tags'}"><i class="fa-solid fa-pencil"></i></button>` : ''}
             </div>
             <div class="blacksmith-pin-layers-tag-cloud">
                 ${tagPills || '<div class="blacksmith-pin-layers-empty">No tags assigned yet.</div>'}
@@ -276,6 +294,15 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const pinRows = pins.map((p) => {
             const hidden = this._isPinHiddenByFilter(p);
             const typeLabel = PinManager.getPinTypeLabel(p.moduleId, p.type) || p.type || '';
+            const typeHidden = PinManager.isModuleTypeHidden(p.moduleId, p.type);
+            const tagChips = (p.tags || []).map(t => {
+                const tagHidden = PinManager.isTagHidden(t);
+                return `<span class="blacksmith-tag ${tagHidden ? 'is-hidden' : ''}">${esc(t)}</span>`;
+            }).join('');
+            const categoryChip = typeLabel
+                ? `<span class="blacksmith-tag blacksmith-tag-category ${typeHidden ? 'is-hidden' : ''}"><i class="fa-solid fa-layer-group"></i> ${esc(typeLabel)}</span>`
+                : '';
+            const hasMeta = typeLabel || (p.tags && p.tags.length);
             return `
                 <div class="blacksmith-pin-layers-row ${hidden ? 'is-hidden' : ''}">
                     <div class="blacksmith-pin-layers-row-content">
@@ -286,11 +313,9 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                                 <i class="fa-solid fa-location-crosshairs"></i>
                             </button>
                         </div>
-                        ${(typeLabel || (p.tags && p.tags.length) || hidden) ? `
+                        ${hasMeta ? `
                         <div class="blacksmith-pin-layers-row-submeta">
-                            ${typeLabel ? `<span class="blacksmith-tag">${esc(typeLabel)}</span>` : ''}
-                            ${(p.tags || []).map(t => `<span class="blacksmith-tag">${esc(t)}</span>`).join('')}
-                            ${hidden ? `<span class="blacksmith-tag blacksmith-pin-layers-filtered-tag">hidden</span>` : ''}
+                            ${categoryChip}${tagChips}
                         </div>` : ''}
                     </div>
                 </div>`;
@@ -415,6 +440,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             const [moduleId, type] = String(entry.key || '').split('|');
             await PinManager.setModuleTypeHidden(moduleId, type || 'default', true);
         }
+        for (const tag of PinManager.getTagRegistry()) await PinManager.setTagHidden(tag, true);
         for (const entry of summary.tags) await PinManager.setTagHidden(entry.key, true);
         await this.render(true);
     }
@@ -426,6 +452,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             const [moduleId, type] = String(entry.key || '').split('|');
             await PinManager.setModuleTypeHidden(moduleId, type || 'default', false);
         }
+        for (const tag of PinManager.getTagRegistry()) await PinManager.setTagHidden(tag, false);
         for (const entry of summary.tags) await PinManager.setTagHidden(entry.key, false);
         await this.render(true);
     }
@@ -535,6 +562,26 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             }
         }
         await PinManager.setTagHidden(tag, !currentlyHidden);
+        await this.render(true);
+    }
+
+    _toggleTagManage() {
+        if (!game.user?.isGM) return;
+        this._tagManageMode = !this._tagManageMode;
+        void this.render(true);
+    }
+
+    async _deleteTagChip(target) {
+        if (!game.user?.isGM) return;
+        const tag = target?.dataset?.tag;
+        if (!tag) return;
+        const confirmed = await Dialog.confirm({
+            title: 'Delete Tag Globally',
+            content: `<p>Remove tag <strong>${tag}</strong> from all pins on all scenes? This cannot be undone.</p>`
+        });
+        if (!confirmed) return;
+        await PinManager.deleteTagGlobally(tag);
+        ui.notifications?.info(`Deleted tag "${tag}" from all scenes.`);
         await this.render(true);
     }
 }

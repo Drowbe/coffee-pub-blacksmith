@@ -376,10 +376,47 @@ export class PinsAPI {
      * Get normalized tag choices for a pin category.
      * @param {string} moduleId
      * @param {string} [type]
-     * @returns {{ tags: string[], defaultTags: string[], label: string }}
+     * @returns {{ tags: string[], label: string }}
      */
     static getPinTaxonomyChoices(moduleId, type) {
         return PinManager.getPinTaxonomyChoices(moduleId, type);
+    }
+
+    /**
+     * Get the world-level tag registry (all known tags, GM-writable).
+     * Returns a sorted copy of the registry array.
+     * @returns {string[]}
+     */
+    static getTagRegistry() {
+        return PinManager.getTagRegistry();
+    }
+
+    /**
+     * Delete a tag from the registry and remove it from every pin on every scene. GM only.
+     * @param {string} tagKey - The tag to delete
+     * @returns {Promise<void>}
+     */
+    static deleteTagGlobally(tagKey) {
+        return PinManager.deleteTagGlobally(tagKey);
+    }
+
+    /**
+     * Rename a tag across the registry and every pin on every scene. GM only.
+     * @param {string} oldKey - Existing tag key
+     * @param {string} newKey - Replacement tag key
+     * @returns {Promise<void>}
+     */
+    static renameTagGlobally(oldKey, newKey) {
+        return PinManager.renameTagGlobally(oldKey, newKey);
+    }
+
+    /**
+     * Seed the tag registry from existing scene pins + taxonomy if the registry is empty. GM only.
+     * Call once on first load to populate from existing data.
+     * @returns {Promise<void>}
+     */
+    static seedTagRegistryIfEmpty() {
+        return PinManager.seedTagRegistryIfEmpty();
     }
 
     /**

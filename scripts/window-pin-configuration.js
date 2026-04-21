@@ -391,7 +391,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             showUseAsDefault: true, // Always show toggle - modules can handle saving defaults themselves
             pinAllowDuplicatePins: this.allowDuplicatePins,
             pinTagsCsv: this.pinTags.join(', '),
-            pinSuggestedTags: taxonomyChoices.tags || [],
+            pinSuggestedTags: [...new Set([...(taxonomyChoices.tags || []), ...PinManager.getTagRegistry()])].sort(),
             pinClassificationHelp: taxonomyChoices.label || pinTypeLabel || (this.pinType || 'Pin'),
             pinImageFit: this.pinImageFit,
             pinImageZoom: this.pinImageZoom,

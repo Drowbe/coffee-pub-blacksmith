@@ -3421,6 +3421,15 @@ export const registerSettings = () => {
 		default: {}
 	});
 
+	// World-level tag registry — master list of all known tags across all scenes.
+	// GM-writable. Auto-populated when pins are created/updated by GMs.
+	game.settings.register(MODULE.ID, 'pinTagRegistry', {
+		scope: 'world',
+		config: false,
+		type: Array,
+		default: []
+	});
+
 	// Pin Layers window bounds (client scope so each player/device remembers their own).
 	game.settings.register(MODULE.ID, 'pinLayersWindowBounds', {
 		scope: 'client',

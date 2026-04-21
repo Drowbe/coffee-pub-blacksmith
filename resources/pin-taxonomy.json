@@ -1,21 +1,131 @@
 {
-  "version": 2,
-  "moduleId": "coffee-pub-blacksmith",
-  "pinCategories": {
-    "journal-page": {
-      "label": "Journal Page",
-      "defaultTags": [
-        "journal"
-      ],
-      "suggestedTags": [
-        "location",
-        "shop",
-        "npc",
-        "quest",
-        "rumor",
-        "reference",
-        "note"
-      ]
+  "version": 3,
+  "globalTags": [
+    "location",
+    "shop",
+    "character",
+    "quest",
+    "rumor",
+    "encounter",
+    "note"
+  ],
+  "modules": {
+    "coffee-pub-blacksmith": {
+      "pinCategories": {
+        "journal-pin": {
+          "label": "Journal Pin",
+          "tags": [
+            "narrative",
+            "backstory",
+            "encounter",
+            "travel",
+            "location",
+            "tavern",
+            "shop",
+            "character",
+            "quest",
+            "rumor"
+          ]
+        }
+      }
+    },
+    "coffee-pub-squire": {
+      "pinCategories": {
+        "note-pin": {
+          "label": "Note Pin",
+          "tags": [
+            "party",
+            "personal",
+            "location",
+            "todo",
+            "sticky" 
+          ]
+        },
+        "codex-pin": {
+          "label": "Codex Pin",
+          "tags": [
+            "artifact",
+            "book",
+            "character",
+            "event",
+            "faction",
+            "location",
+            "item",
+            "map"
+          ]
+        },
+        "quest-pin": {
+          "label": "Quest Pin",
+          "tags": [
+            "quest",
+            "main",
+            "side",
+            "optional",
+            "backstory"
+          ]
+        },
+        "objective-pin": {
+          "label": "Objective Pin",
+          "tags": [
+            "objective",
+            "main",
+            "side",
+            "optional",
+            "backstory"
+          ]
+        }
+      }
+    },
+    "coffee-pub-artificer": {
+      "pinCategories": {
+        "habitat-pin": {
+          "label": "Habitat Pin",
+          "tags": [
+            "mountain",
+            "arctic",
+            "planar",
+            "coastal",
+            "swamp",
+            "desert",
+            "underdark",
+            "forest",
+            "underwater",
+            "grassland",
+            "urban",
+            "hill"
+          ]
+        },
+        "component-pin": {
+          "label": "Component Pin",
+          "tags": [
+            "creature-part",
+            "environmental",
+            "essence",
+            "gem",
+            "mineral",
+            "plant"
+          ]
+        },
+        "harvesting-pin": {
+          "label": "Harvesting Pin",
+          "tags": [
+            "herbalism",
+            "alchemy",
+            "poisoncraft",
+            "cooking",
+            "healing",
+            "smithing",
+            "leatherworking",
+            "tinkering",
+            "cartography",
+            "inscription",
+            "enchanting",
+            "gemcraft",
+            "tailoring",
+            "masonry"
+          ]
+        }
+      }
     }
   }
 }

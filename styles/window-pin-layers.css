@@ -242,12 +242,33 @@
 
 .blacksmith-pin-layers-row-submeta .blacksmith-tag {
     cursor: default;
+    background: rgba(255, 100, 0, 0.15);
+    border-color: rgba(255, 100, 0, 0.4);
+    color: rgba(255, 140, 60, 0.9);
 }
 
-.blacksmith-pin-layers-filtered-tag {
-    background: rgba(200, 60, 60, 0.15) !important;
-    border-color: rgba(200, 60, 60, 0.35) !important;
-    color: rgba(220, 140, 140, 0.9) !important;
+.blacksmith-pin-layers-row-submeta .blacksmith-tag.is-hidden {
+    background: rgba(0, 0, 0, 0.35);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(210, 200, 170, 0.25);
+}
+
+.blacksmith-tag-category {
+    background: rgba(70, 120, 200, 0.15);
+    border-color: rgba(70, 120, 200, 0.35);
+    color: rgba(140, 180, 240, 0.85);
+    gap: 4px;
+}
+
+.blacksmith-tag-category i {
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+.blacksmith-tag-category.is-hidden {
+    background: rgba(0, 0, 0, 0.35) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color: rgba(140, 180, 240, 0.25) !important;
 }
 
 
@@ -267,10 +288,10 @@
     align-items: center;
     gap: 5px;
     padding: 2px 6px;
-    background: rgba(0, 0, 0, 0.45);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 100, 0, 0.15);
+    border: 1px solid rgba(255, 100, 0, 0.4);
     border-radius: 3px;
-    color: rgba(210, 200, 170, 0.8);
+    color: rgba(255, 140, 60, 0.9);
     font-size: 0.78em;
     font-weight: 300;
     text-transform: uppercase;
@@ -282,17 +303,23 @@
 }
 
 .blacksmith-pin-layers-tag-cloud .blacksmith-tag:hover {
-    background: rgba(255, 100, 0, 0.15);
-    border-color: rgba(255, 100, 0, 0.55);
-    color: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 100, 0, 0.25);
+    border-color: rgba(255, 100, 0, 0.7);
+    color: rgba(255, 180, 100, 1.0);
     transform: translateY(-1px);
     box-shadow: 0 0 0 2px rgba(255, 100, 0, 0.2);
 }
 
 .blacksmith-pin-layers-tag-cloud .blacksmith-tag.is-hidden {
-    background: rgba(255, 100, 0, 0.15);
-    border-color: rgba(255, 100, 0, 0.4);
-    color: rgba(255, 140, 60, 0.9);
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: rgba(210, 200, 170, 0.4);
+}
+
+.blacksmith-pin-layers-tag-cloud .blacksmith-tag.is-hidden:hover {
+    background: rgba(0, 0, 0, 0.55);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: rgba(210, 200, 170, 0.7);
 }
 
 .blacksmith-pin-layers-tag-count {
@@ -301,10 +328,55 @@
     margin-left: 4px;
 }
 
-.blacksmith-pin-layers-tag-cloud .blacksmith-tag.is-hidden:hover {
-    background: rgba(255, 100, 0, 0.25);
-    border-color: rgba(255, 100, 0, 0.7);
-    color: rgba(255, 180, 100, 1.0);
+.blacksmith-pin-layers-tag-cloud .blacksmith-tag.is-empty {
+    opacity: 0.55;
+    border-style: dashed;
+}
+
+/* ----- Tag manage mode ----- */
+
+.blacksmith-pin-layers-tag-cloud .blacksmith-tag-manage {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px 2px 6px;
+    background: rgba(255, 100, 0, 0.1);
+    border: 1px dashed rgba(255, 100, 0, 0.35);
+    border-radius: 3px;
+    color: rgba(255, 140, 60, 0.7);
+    font-size: 0.78em;
+    font-weight: 300;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.blacksmith-pin-layers-tag-cloud .blacksmith-tag-manage.is-empty {
+    opacity: 0.45;
+}
+
+.blacksmith-tag-delete {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    color: rgba(255, 100, 0, 0.6);
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: color 0.12s ease, background 0.12s ease;
+}
+
+.blacksmith-tag-delete:hover {
+    color: rgba(255, 60, 30, 1.0);
+    background: rgba(255, 60, 30, 0.15);
+}
+
+.blacksmith-pin-layers-manage-tags {
+    margin-left: auto !important;
+    flex-shrink: 0;
 }
 
 
