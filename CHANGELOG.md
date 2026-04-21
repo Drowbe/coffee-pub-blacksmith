@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.6.2]
+
+### Added
+
+- **World tag registry** (`manager-pins.js`, `api-pins.js`, `settings.js`): New GM-writable world setting `pinTagRegistry` (`string[]`) that tracks every tag ever used across all pins. Auto-seeded on `ready` from the built-in taxonomy and auto-populated whenever a pin is created or updated. Exposed on the public API: `getTagRegistry()`, `deleteTagGlobally()`, `renameTagGlobally()`, `seedTagRegistryIfEmpty()`. `deleteTagGlobally` and `renameTagGlobally` scrub all scene pins and saved visibility profile snapshots so profiles never contain stale tags.
+- **Pin Layers — tag manage mode** (`window-pin-layers.js`, `window-pin-layers.css`): GMs can toggle a "Manage" icon-button in the Tags section header to enter manage mode, which replaces per-tag toggle counts with X (delete) buttons. Confirming a delete calls `deleteTagGlobally`. Replaced the previously broken right-click context menu (which crashed on empty selector) with this toggle pattern.
+- **Pin Layers — Update button** (`window-pin-layers.js`): The profile Update button now only appears when the current visibility state differs from the saved profile snapshot, preventing accidental no-op saves. Profile snapshots are automatically kept current when tags are deleted or renamed globally.
+- **Pin Config — Update All mode** (`window-pin-configuration.js`, `window-pin-config.hbs`): Replaced the single "Save and Update All" footer button with an "Update All" header toggle (GM only). When active, each section header (Permissions, Classification, Pin Design, Text Format, Event Animations, Pin Source) shows a checkbox defaulting to unchecked. On save, only checked sections are bulk-applied to all other same-type pins on the scene after a confirmation dialog.
+- **`pin-taxonomy.json` v3** (`resources/pin-taxonomy.json`): Restructured as a multi-module master list with top-level `globalTags` array and a `modules` object keyed by `moduleId`. Each pin category has a single `tags` array (removed legacy `defaultTags`/`suggestedTags`). Added `coffee-pub-artificer` entries: `habitat-pin` (12 terrain tags), `component-pin` (6 component types), `harvesting-pin` (14 skill tags).
+
+### Fixed
+
+- **Non-square pin rendering** (`pins-renderer.js`): `_calculatePinPosition` was using `Math.min(w, h)` for both dimensions, forcing all pins square regardless of configured height. Fixed to apply `pinWScreen` and `pinHScreen` independently so a 120×240 pin renders as 120×240.
+- **Constrain proportions behaviour** (`window-pin-configuration.js`, `window-pin-config.hbs`): "Constrain proportions" now enforces a true 1:1 square (height = width) and disables the height input while locked, rather than maintaining an arbitrary saved ratio. Toggling off re-enables the height field.
+- **`lockProportions` resets to ON on every open** (`window-pin-configuration.js`): `getData()` now reads `lockProportions` from `clientPinDefaultDesigns` for the matching `moduleId|type` key (saved when "Use as Default" is checked), falling back to `w === h` for pins without a saved default, instead of always hardcoding `true`.
+- **"Save as Default" missing image fields** (`window-pin-configuration.js`): The design snapshot saved to `clientPinDefaultDesigns` now includes `image`, `imageFit`, and `imageZoom` so the full visual appearance is restored when the window reopens for a matching pin type.
+- **Browse tab tag color scheme** (`window-pin-layers.js`, `window-pin-layers.css`): Orange now correctly means visible/active; muted dark means hidden — consistent with the Layers tab. Category chips are styled distinctly (blue-slate with a layer-group icon) to differentiate them from regular tag chips. Removed the redundant "hidden" word badge.
+- **Pin Config header** (`window-pin-config.hbs`, `window-pin-configuration.js`): Header now shows `Category: Pin Title` (e.g., `Journal Pin: The Rusty Anchor`) with `pin.text` passed as `pinName`. Previously the pin title was dropped.
+
+### Changed
+
+- **Pin Config — GM-only controls** (`window-pin-config.hbs`): Allow Duplicates, Use as Default, and Update All toggles are now all wrapped in `{{#if isGM}}` so non-GM players never see them.
+- **Taxonomy loader** (`manager-pins.js`): `_loadTaxonomyJsonIntoRegistry` reads the v3 format (`globalTags` + `modules.{moduleId}.pinCategories`), with legacy flat `pinCategories`/`pinTypes` fallback for older JSONs.
+- **API docs** (`documentation/api/api-pins.md`): Added Tag Registry section documenting `getTagRegistry`, `deleteTagGlobally`, `renameTagGlobally`, and `seedTagRegistryIfEmpty` with usage examples.
+
+
 ## [13.6.1]
 
 ### Fixed

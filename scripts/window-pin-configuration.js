@@ -181,7 +181,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             partial.textScaleWithPin = fullUpdateData.textScaleWithPin;
         }
         if (checked.has('animations')) {
-            partial.events = fullUpdateData.events;
+            partial.eventAnimations = fullUpdateData.eventAnimations;
         }
         if (checked.has('source')) {
             partial.image = fullUpdateData.image;

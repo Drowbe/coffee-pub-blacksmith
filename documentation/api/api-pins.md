@@ -26,7 +26,7 @@ The pins API follows Blacksmith's standard pattern:
 - **`scripts/pins-schema.js`** - Data model, validation, migration (Phase 1.1)
 - **`scripts/manager-pins.js`** - Internal manager with CRUD, permissions, event handler registration, and context menu item registration (Phase 1.2, 1.3)
 - **`scripts/pins-renderer.js`** - Pure DOM pin rendering (circle/square/none + Font Awesome icons or image URLs), DOM events, context menu (Phase 2, 3)
-- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `place()`, `unplace()`, `on()`, `registerContextMenuItem()`, `registerPinType()`, taxonomy helpers (`loadBuiltinTaxonomy()`, `registerPinTaxonomy()`, `getPinTaxonomy()`, `getPinTaxonomyChoices()`), `getPinTypeLabel()`, `reload()`, `refreshPin()`, `deleteAll()`, `deleteAllByType()`, `createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`, `reconcile()`, visibility filters (`setGlobalVisibility`, `setModuleVisibility`, `setTagVisibility`) and named profile helpers (`listVisibilityProfiles()`, `saveVisibilityProfile()`, `applyVisibilityProfile()`, `deleteVisibilityProfile()`), `isAvailable()`, `isReady()`, `whenReady()`. **Note**: `setGroupVisibility`/`getGroupVisibility` removed — groups have been replaced by tags.
+- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `place()`, `unplace()`, `on()`, `registerContextMenuItem()`, `registerPinType()`, taxonomy helpers (`loadBuiltinTaxonomy()`, `registerPinTaxonomy()`, `getPinTaxonomy()`, `getPinTaxonomyChoices()`), `getPinTypeLabel()`, `reload()`, `refreshPin()`, `deleteAll()`, `deleteAllByType()`, `createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`, `reconcile()`, visibility filters (`setGlobalVisibility`, `setModuleVisibility`, `setTagVisibility`) and named profile helpers (`listVisibilityProfiles()`, `saveVisibilityProfile()`, `applyVisibilityProfile()`, `deleteVisibilityProfile()`), tag registry helpers (`getTagRegistry()`, `deleteTagGlobally()`, `renameTagGlobally()`, `seedTagRegistryIfEmpty()`), `isAvailable()`, `isReady()`, `whenReady()`. **Note**: `setGroupVisibility`/`getGroupVisibility` removed — groups have been replaced by tags.
 - **`scripts/blacksmith.js`** - Exposes `module.api.pins = PinsAPI`; hooks for `canvasReady` / `updateScene` pin loading
 - **`styles/pins.css`** - All pin styling (CSS variables for configuration)
 
@@ -1334,6 +1334,41 @@ Returns `true` if the module's pins are visible for the current user.
 
 ```javascript
 const visible = pins.getModuleVisibility('coffee-pub-squire');
+```
+
+### Tag Registry (GM-only write)
+
+The **world-level tag registry** (`pinTagRegistry` world setting) is a sorted, deduplicated list of every tag string ever used across all pins in the world. It is seeded on `ready` from the built-in taxonomy and auto-populated whenever a pin is created or updated. Players can read it; only GMs can write.
+
+The registry is used to populate tag suggestion chips in the Configure Pin window and the Pin Layers manage mode, so GMs see all tags that exist even if no pin currently uses them.
+
+#### `pins.getTagRegistry()`
+Returns a **copy** of the current world tag registry as `string[]`.
+
+```javascript
+const tags = pins.getTagRegistry();
+// → ['encounter', 'location', 'npc', 'quest', ...]
+```
+
+#### `pins.deleteTagGlobally(tagKey)` *(GM only)*
+Removes `tagKey` from the world registry **and** scrubs it from every pin on every scene, and from all saved visibility profile snapshots.
+
+```javascript
+await pins.deleteTagGlobally('old-tag');
+```
+
+#### `pins.renameTagGlobally(oldKey, newKey)` *(GM only)*
+Renames `oldKey` → `newKey` in the world registry, on every pin on every scene, and in all saved visibility profile snapshots.
+
+```javascript
+await pins.renameTagGlobally('dungeon', 'dungeon-entrance');
+```
+
+#### `pins.seedTagRegistryIfEmpty()`
+Merges taxonomy tags into the world registry unconditionally, then scans all scenes for pin tags (only when the registry was previously empty). Called automatically on `ready`; expose here for modules that need to trigger a re-seed after registering new taxonomy.
+
+```javascript
+await pins.seedTagRegistryIfEmpty();
 ```
 
 ### GM-Only Hidden Indicator
