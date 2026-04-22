@@ -411,6 +411,16 @@ export class JournalPagePins {
                 }
                 journalHeader.insertAdjacentElement('afterend', bar);
                 bar.addEventListener('click', (event) => {
+                    // Tag chip toggle
+                    const tagOption = event.target.closest?.('.journal-page-pin-tag-option');
+                    if (tagOption) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        tagOption.classList.toggle('selected');
+                        return;
+                    }
+
+                    // Icon option
                     const iconOption = event.target.closest?.('.journal-page-pin-icon-option');
                     if (iconOption) {
                         event.preventDefault();
@@ -423,6 +433,8 @@ export class JournalPagePins {
                         }
                         return;
                     }
+
+                    // Pin button
                     const target = event.target.closest?.('.journal-page-pin-button');
                     if (!target) return;
                     event.preventDefault();
@@ -431,6 +443,8 @@ export class JournalPagePins {
                     const sheet = (event.target.closest?.('.journal-sheet') || event.target.closest?.('.journal-entry')) ?? root;
                     const pinnedPageId = barEl?.getAttribute?.('data-page-id');
                     const placementIcon = barEl?.getAttribute?.('data-placement-icon') || null;
+                    const selectedTags = [...barEl.querySelectorAll('.journal-page-pin-tag-option.selected')]
+                        .map(el => el.dataset.tag).filter(Boolean);
                     const j = pinnedPageId ? this._resolveJournalFromSheet(sheet, null) : null;
                     const page = j?.pages?.get(pinnedPageId) ?? null;
                     if (!page) {
@@ -444,16 +458,28 @@ export class JournalPagePins {
                             return;
                         }
                     }
-                    this._beginPlacement(page, { placementIcon });
+                    this._beginPlacement(page, { placementIcon, selectedTags });
                 });
+
+                // Populate tag chips then restore saved icon/tag state for current page
+                this._populateTagChips(bar)
+                    .then(() => this._restoreBarState(bar, activePage))
+                    .catch(() => {});
             } catch (err) {
                 postConsoleAndNotification(MODULE.NAME, 'Journal page pins: failed to render toolbar', err?.message ?? err, false, true);
                 return;
             }
         }
 
+        const prevPageId = bar.dataset.activePage ?? '';
         bar.setAttribute('data-page-id', pageId ?? '');
+        bar.dataset.activePage = pageId ?? '';
         bar.hidden = !activePage;
+
+        // Restore state whenever the active page changes on an existing bar
+        if (bar.querySelector('.journal-page-pins-tag-row')?.dataset.populated && pageId !== prevPageId) {
+            this._restoreBarState(bar, activePage).catch(() => {});
+        }
     }
 
     static _processOpenSheets() {
@@ -574,6 +600,70 @@ export class JournalPagePins {
         }
     }
 
+    static async _populateTagChips(bar) {
+        const tagRow = bar.querySelector('.journal-page-pins-tag-row');
+        if (!tagRow || tagRow.dataset.populated) return;
+        tagRow.dataset.populated = '1';
+        const pins = this._getPinsApi();
+        if (pins?.loadBuiltinTaxonomy) await pins.loadBuiltinTaxonomy();
+        // Use getPinTaxonomy (not Choices) so we show only the registered journal-pin tags, not all global tags.
+        const taxonomy = pins?.getPinTaxonomy?.(MODULE.ID, this.PIN_TYPE) ?? null;
+        const tags = Array.isArray(taxonomy?.tags) && taxonomy.tags.length ? taxonomy.tags : ['journal'];
+        tagRow.innerHTML = tags.map(tag =>
+            `<button type="button" class="journal-page-pin-tag-option" data-tag="${tag}">${tag}</button>`
+        ).join('');
+    }
+
+    static _normalizeImageToIcon(image) {
+        if (!image || typeof image !== 'string') return null;
+        if (image === this.PAGE_IMAGE_OPTION) return this.PAGE_IMAGE_OPTION;
+        if (!image.includes('<')) return image.trim();
+        const match = image.match(/class=["']([^"']+)["']/);
+        return match ? match[1].trim() : null;
+    }
+
+    static async _restoreBarState(bar, activePage) {
+        const DEFAULT_TAG = 'narrative';
+        // Reset icon to default
+        const defaultIcon = 'fa-solid fa-book-open';
+        bar.querySelectorAll('.journal-page-pin-icon-option').forEach(el => el.classList.remove('selected'));
+        const defaultIconBtn = bar.querySelector(`.journal-page-pin-icon-option[data-placement-icon="${defaultIcon}"]`);
+        if (defaultIconBtn) {
+            defaultIconBtn.classList.add('selected');
+            bar.setAttribute('data-placement-icon', defaultIcon);
+        }
+        // Reset tag chips
+        bar.querySelectorAll('.journal-page-pin-tag-option').forEach(el => el.classList.remove('selected'));
+
+        const pins = this._getPinsApi();
+        const pinId = activePage?.getFlag?.(MODULE.ID, 'pinId') || null;
+        const pin = pinId ? pins?.get?.(pinId) : null;
+
+        if (pin) {
+            const iconClass = this._normalizeImageToIcon(pin.image);
+            if (iconClass) {
+                const iconBtn = bar.querySelector(`.journal-page-pin-icon-option[data-placement-icon="${iconClass}"]`);
+                if (iconBtn) {
+                    bar.querySelectorAll('.journal-page-pin-icon-option').forEach(el => el.classList.remove('selected'));
+                    iconBtn.classList.add('selected');
+                    bar.setAttribute('data-placement-icon', iconClass);
+                }
+            }
+            const savedTags = Array.isArray(pin.tags) ? pin.tags : [];
+            let anySelected = false;
+            bar.querySelectorAll('.journal-page-pin-tag-option').forEach(el => {
+                if (savedTags.includes(el.dataset.tag)) { el.classList.add('selected'); anySelected = true; }
+            });
+            if (!anySelected) {
+                const chip = bar.querySelector(`.journal-page-pin-tag-option[data-tag="${DEFAULT_TAG}"]`);
+                if (chip) chip.classList.add('selected');
+            }
+        } else {
+            const chip = bar.querySelector(`.journal-page-pin-tag-option[data-tag="${DEFAULT_TAG}"]`);
+            if (chip) chip.classList.add('selected');
+        }
+    }
+
     static async _ensurePin(page, pins, opts = {}) {
         let pinId = page.getFlag(MODULE.ID, 'pinId') || null;
         let pin = pinId ? pins.get(pinId) : null;
@@ -595,7 +685,10 @@ export class JournalPagePins {
             ? this._getFirstImageFromPage(page)
             : placementIcon;
 
-        const classification = await this._getPinClassificationDefaults();
+        const userSelectedTags = Array.isArray(opts?.selectedTags) ? opts.selectedTags : null;
+        const classification = userSelectedTags !== null
+            ? { tags: userSelectedTags }
+            : await this._getPinClassificationDefaults();
 
         if (pin && allowDuplicates) {
             // Allow duplicate pins: create a new pin for this placement instead of reusing
@@ -667,15 +760,12 @@ export class JournalPagePins {
             pinId = pin.id;
             await page.setFlag(MODULE.ID, 'pinId', pinId);
         } else {
-            // Keep existing linked pins aligned with the current page title.
+            // Keep existing linked pins aligned with the current page title and any newly selected tags.
             const label = this._getPagePinLabel(page);
             const patch = {};
-            if (pin.text !== label) {
-                patch.text = label;
-            }
-            if (resolvedPlacementImage && pin.image !== resolvedPlacementImage) {
-                patch.image = resolvedPlacementImage;
-            }
+            if (pin.text !== label) patch.text = label;
+            if (resolvedPlacementImage && pin.image !== resolvedPlacementImage) patch.image = resolvedPlacementImage;
+            if (userSelectedTags !== null) patch.tags = userSelectedTags;
             if (Object.keys(patch).length > 0) {
                 pin = await pins.update(pin.id, patch) || pin;
             }

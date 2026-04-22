@@ -1,10 +1,8 @@
 .journal-page-pins-bar {
     display: flex;
-    align-items: center;
-    min-height: 1.5rem;
+    flex-direction: column;
     padding: 0 16px 8px 14px;
     font-size: 1.0em;
-    
 }
 
 .journal-page-pins-bar-row {
@@ -16,8 +14,8 @@
     gap: 6px;
     padding: 2px 0px;
     background: var(--dnd5e-journal-header-background);
-    border-radius: 3px;
-    font-family: var(--font-primary); 
+    border-radius: 3px 3px 0 0;
+    font-family: var(--font-primary);
 }
 
 .journal-page-pins-bar-left.toolbar-left,
@@ -78,10 +76,10 @@
     align-items: center;
     white-space: nowrap;
     padding: 0.25rem 0.5rem;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(20, 90, 35, 0.75);
     border-radius: 4px;
-    color: var(--color-text-light-heading);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: rgba(190, 245, 200, 0.95);
+    border: 1px solid rgba(60, 160, 80, 0.4);
     text-transform: uppercase;
     text-decoration: none;
 }
@@ -89,10 +87,53 @@
     margin-right: 3px;
 }
 .journal-page-pins-bar .journal-page-pin-button:hover {
-  background-color: rgba(247, 133, 2, 0.9);
-  color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  box-shadow: 0 0 0 1.8px rgba(171, 153, 60, 0.2);
+    background-color: rgba(30, 130, 50, 0.9);
+    color: #fff;
+    border: 1px solid rgba(80, 200, 100, 0.6);
+    box-shadow: 0 0 0 1.8px rgba(60, 200, 80, 0.2);
+}
+
+.journal-page-pins-tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 8px 5px;
+    min-height: 0;
+    background: var(--dnd5e-journal-header-background);
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0 0 3px 3px;
+}
+
+.journal-page-pins-tag-row:empty {
+    display: none;
+}
+
+.journal-page-pin-tag-option {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--color-text-light-6, rgba(200, 200, 200, 0.7));
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.journal-page-pin-tag-option:hover {
+    background: rgba(247, 133, 2, 0.5);
+    border-color: rgba(247, 133, 2, 0.7);
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.journal-page-pin-tag-option.selected {
+    background: rgba(185, 84, 61, 0.6);
+    border-color: rgba(185, 84, 61, 1);
+    color: var(--color-text-light-primary, #fff);
 }
 
 @media (max-width: 900px) {
