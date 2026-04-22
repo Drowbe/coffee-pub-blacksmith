@@ -18,7 +18,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             id: APP_ID,
             classes: ['blacksmith-pin-layers-window'],
             position: { width: 720, height: 760 },
-            window: { title: 'Pins', resizable: true, minimizable: true },
+            window: { title: 'Pin Layers', resizable: true, minimizable: true },
             windowSizeConstraints: { minWidth: 560, minHeight: 520, maxWidth: 1100, maxHeight: 1000 }
         }
     );
@@ -212,8 +212,8 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 </div>
             `,
             headerIcon: 'fa-solid fa-layer-group',
-            windowTitle: 'Pins',
-            subtitle: scene?.name ? `Scene: ${scene.name}` : 'No active scene',
+            windowTitle: scene?.name || 'No active scene',
+            subtitle: 'Scene Pins',
             headerRight: `
                 <div class="blacksmith-pin-layers-summary">
                     <span class="blacksmith-pin-layers-summary-profile">${activeProfileName ? esc(activeProfileName) : 'Custom'}</span>
@@ -591,7 +591,7 @@ Hooks.once('ready', () => {
     if (!api?.registerWindow) return;
     api.registerWindow('blacksmith-pin-layers', {
         open: (options = {}) => PinLayersWindow.open(options),
-        title: 'Pins',
+        title: 'Pin Layers',
         moduleId: MODULE.ID
     });
 });

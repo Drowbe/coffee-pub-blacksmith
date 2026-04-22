@@ -1,32 +1,32 @@
 {{!-- Pin Configuration Window Template --}}
 <div class="blacksmith-pin-config" data-icon-mode="{{iconMode}}">
     {{!-- Header --}}
-    <div class="window-note-header">
-        <div class="window-note-header-content">
-            <div class="window-note-header-title">
-                <div class="blacksmith-pin-config-title">
-                    <i class="fa-solid fa-location-dot"></i>
-                    {{#if pinTypeLabel}}<span class="blacksmith-pin-config-category">{{pinTypeLabel}}:</span>{{/if}}
-                    <span class="blacksmith-pin-config-pin-name">{{pinName}}</span>
-                </div>
+    <header class="blacksmith-window-template-header">
+        <div class="blacksmith-window-template-header-content">
+            <div class="blacksmith-window-template-header-icon">
+                {{{previewHtml}}}
+            </div>
+            <div class="blacksmith-window-template-header-title-block">
+                <div class="blacksmith-window-template-header-title">{{pinName}}</div>
+                <div class="blacksmith-window-template-header-subtitle">{{pinTypeLabel}}</div>
             </div>
             {{#if isGM}}
             <div class="window-note-header-controls">
-                <div class="blacksmith-toggle-row">
-                    <span class="blacksmith-toggle-label">Allow Duplicates</span>
+                <div class="blacksmith-toggle-row" data-tooltip="Allow multiple instances of this pin type to be placed on the same scene.">
+                    <span class="blacksmith-toggle-label">Duplicates</span>
                     <label class="blacksmith-toggle">
                         <input type="checkbox" id="blacksmith-pin-config-allow-duplicate" class="blacksmith-toggle-input blacksmith-pin-config-allow-duplicate" {{#if pinAllowDuplicatePins}}checked{{/if}}>
                         <span class="blacksmith-toggle-slider"></span>
                     </label>
                 </div>
-                <div class="blacksmith-toggle-row">
-                    <span class="blacksmith-toggle-label">Use as Default</span>
+                <div class="blacksmith-toggle-row" data-tooltip="Save the current design as the default for this pin type. Applies to you only.">
+                    <span class="blacksmith-toggle-label">Default</span>
                     <label class="blacksmith-toggle">
                         <input type="checkbox" id="blacksmith-pin-config-default-toggle" class="blacksmith-toggle-input blacksmith-pin-config-default">
                         <span class="blacksmith-toggle-slider"></span>
                     </label>
                 </div>
-                <div class="blacksmith-toggle-row">
+                <div class="blacksmith-toggle-row" data-tooltip="When saving, apply checked sections to all matching pins on this scene.">
                     <span class="blacksmith-toggle-label">Update All</span>
                     <label class="blacksmith-toggle">
                         <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-update-all-toggle" {{#if updateAllMode}}checked{{/if}}>
@@ -36,7 +36,7 @@
             </div>
             {{/if}}
         </div>
-    </div>
+    </header>
 
     <div class="window-note-body">
         {{!-- Permissions --}}
