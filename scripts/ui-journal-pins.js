@@ -37,7 +37,7 @@ const JOURNAL_PIN_DEFAULTS = Object.freeze({
 });
 
 export class JournalPagePins {
-    static PIN_TYPE = 'journal-page';
+    static PIN_TYPE = 'journal-pin';
     static BUTTON_CLASS = 'journal-page-pin-button';
     static PLACEMENT_CLASS = 'journal-page-pin-placement-mode';
     static PAGE_IMAGE_OPTION = '__journal-page-image__';
@@ -119,10 +119,10 @@ export class JournalPagePins {
     static _registerJournalTaxonomy(pinsApi) {
         if (!pinsApi) return;
         pinsApi.registerPinTaxonomy?.(MODULE.ID, this.PIN_TYPE, {
-            label: 'Journal Page',
-            tags: ['journal-page', 'location', 'shop', 'npc', 'quest', 'rumor', 'reference', 'gm-notes']
+            label: 'Journal Pin',
+            tags: ['journal', 'location', 'shop', 'npc', 'quest', 'rumor', 'reference', 'gm-notes']
         });
-        pinsApi.registerPinType(MODULE.ID, this.PIN_TYPE, 'Journal Page');
+        pinsApi.registerPinType(MODULE.ID, this.PIN_TYPE, 'Journal Pin');
         void pinsApi.loadBuiltinTaxonomy?.();
     }
 
@@ -135,7 +135,7 @@ export class JournalPagePins {
         return {
             tags: Array.isArray(taxonomy?.tags) && taxonomy.tags.length
                 ? [...taxonomy.tags]
-                : ['journal-page']
+                : ['journal']
         };
     }
 

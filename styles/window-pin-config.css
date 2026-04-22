@@ -12,8 +12,13 @@ div#blacksmith-pin-config .window-content {
     color: #ffffff;
 }
 
-/* Window Container */
+/* Window Container — define template CSS variables so shared header/action-bar components render correctly */
 .blacksmith-pin-config {
+    --blacksmith-window-border-color: #444;
+    --blacksmith-window-accent-color: #ac9f81;
+    --blacksmith-window-background: #232323;
+    --blacksmith-window-header-bg: rgba(0, 0, 0, 0.7);
+    --blacksmith-window-banner-image-title: url('../images/backgrounds/background-skull-red.webp');
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -257,15 +262,6 @@ div#blacksmith-pin-config .window-content {
     min-width: 2.5em;
 }
 
-/* Footer */
-.blacksmith-pin-config-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    padding: 12px 14px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    flex-shrink: 0;
-}
 
 /* Update All — section checkboxes in section headers */
 .blacksmith-pin-config-section-check {
@@ -274,4 +270,9 @@ div#blacksmith-pin-config .window-content {
     flex-shrink: 0;
     accent-color: var(--blacksmith-window-accent-color, #c07a3c);
     cursor: pointer;
+}
+
+/* Pin config footer — override template primary button width (not full-width here) */
+.blacksmith-pin-config .blacksmith-window-btn-primary {
+    width: auto;
 }

@@ -1,5 +1,29 @@
 [
   {
+    "category": "Common",
+    "description": "common, narratives, notes, codex, quests , and objectives",
+    "icons": [
+      "fa-solid fa-book",
+      "fa-solid fa-book-open",
+      "fa-solid fa-book-atlas",
+      "fa-solid fa-scroll",
+      "fa-solid fa-pen",
+      "fa-solid fa-feather",
+      "fa-solid fa-file-lines",
+      "fa-solid fa-file-circle-check",
+      "fa-solid fa-clipboard",
+      "fa-solid fa-clipboard-list",
+      "fa-solid fa-brain",
+      "fa-solid fa-magnifying-glass",
+      "fa-solid fa-magnifying-glass-plus",
+      "fa-solid fa-graduation-cap",
+      "fa-solid fa-lightbulb",
+      "fa-solid fa-diagram-project",
+      "fa-solid fa-notes-medical",
+      "fa-solid fa-folder-open"
+    ]
+  },  
+  {
     "category": "People & Creatures",
     "description": "Humanoids, creatures, monsters, and character-like beings.",
     "icons": [
@@ -226,7 +250,6 @@
       "fa-solid fa-shield",
       "fa-solid fa-shield-halved",
       "fa-solid fa-bow-arrow",
-      "fa-solid fa-crossbow",
       "fa-solid fa-mace",
       "fa-solid fa-club",
       "fa-solid fa-hammer",

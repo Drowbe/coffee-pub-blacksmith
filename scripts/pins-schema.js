@@ -145,7 +145,7 @@ export function normalizePinTags(value) {
 // ------------------------------------------------------------------
 
 /** Current pin data schema version. Bump when format changes and add migration. */
-export const PIN_SCHEMA_VERSION = 4;
+export const PIN_SCHEMA_VERSION = 5;
 
 /** Default values per architecture (apply when creating/validating, not stored if omitted). */
 export const PIN_DEFAULTS = Object.freeze({
@@ -204,6 +204,13 @@ MIGRATION_MAP.set(4, (pin) => {
         migrated.tags = tags;
     }
     delete migrated.group;
+    return migrated;
+});
+
+// Migration from v4 to v5: Rename type 'journal-page' → 'journal-pin' (type describes what pin represents, not source)
+MIGRATION_MAP.set(5, (pin) => {
+    const migrated = { ...pin };
+    if (migrated.type === 'journal-page') migrated.type = 'journal-pin';
     return migrated;
 });
 
