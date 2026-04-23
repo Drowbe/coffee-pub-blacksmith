@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.6.4]
+
+### Added
+
+- **Pin taxonomy API — `getModuleTaxonomy(moduleId)`** (`manager-pins.js`, `api-pins.js`): New public method returns a module's full taxonomy as `{ [type]: { label, tags } }`. Allows other modules to read their registered pin types and tags without needing to know internal registry keys.
+- **Pin taxonomy — type-scoped tag visibility** (`manager-pins.js`, `settings.js`): New client setting `pinsHiddenTypeTags` (`object`) stores hidden state per `moduleId|type|tag` key, separate from the existing global `pinsHiddenTags`. New methods: `isTypeTagHidden`, `setTypeTagHidden`, `clearTypeTagHiddenState`. Toggling a tag in a type group no longer bleeds into the same tag name in another type's group.
+- **Pin taxonomy — `removeTagFromTypeOnScene(moduleId, type, tag, sceneId)`** (`manager-pins.js`): Strips a specific tag from all pins of a given type on a single scene without touching the global tag registry or deleting any pins. Returns the number of pins updated.
+- **Pin Layers — TAXONOMY section** (`window-pin-layers.js`, `window-pin-layers.css`): Replaced the flat CATEGORIES + TAGS layout with a single TAXONOMY section. Tags are grouped by type (one group per registered pin type), each showing a **Predefined** subsection (taxonomy-defined tags) and a **Custom** subsection (registry orphan tags + scene-local custom tags). A **Global** group shows the top-level `globalTags` from the JSON. A **Custom** catch-all group at the bottom shows all orphan registry tags.
+- **Pin Layers — GLOBAL PIN MANAGEMENT section** (`window-pin-layers.js`, `window-pin-layers.css`): GM-only section at the bottom of the Layers tab. Shows a "Delete All [type] Custom Tags" button per registered pin type, which strips every non-taxonomy tag from all pins of that type across all scenes (with confirmation).
+- **Pin Layers — manage mode: two-button custom tag chips** (`window-pin-layers.js`): In manage mode, custom tags inside a type group show two action buttons: ✕ to strip the tag from pins on the current scene only (`removeTagFromTypeOnScene`) and a trash icon to delete the tag globally from all scenes (`deleteTagGlobally`). Taxonomy-defined (predefined) tags are shown as protected chips with dashed border — no delete button.
+- **Pin Layers — tag counts always visible** (`window-pin-layers.js`): Every tag chip now shows a scene-pin count. Predefined tags with zero matching pins render with a dashed border (`is-empty`). Custom tags from the orphan registry that have been stripped from all scene pins remain visible with count 0 rather than disappearing.
+- **Configure Pin — Suggested / Other tag groups** (`window-pin-configuration.js`, `window-pin-config.hbs`, `window-pin-config.css`): The flat tag chip list is split into two labeled sections. **Suggested** shows the current pin type's taxonomy tags plus custom tags found on scene pins of that type. **Other** shows global tags, other types' taxonomy tags, and orphan registry tags — all in one flat group. Both groups toggle tags into the Tags input identically.
+
+### Fixed
+
+- **Pin taxonomy — `PIN_TYPE` lazy getter** (`ui-journal-pins.js`): Replaced the hardcoded `static PIN_TYPE = 'journal-pin'` with a lazy getter that reads the first key from `getModuleTaxonomy(MODULE.ID)` at runtime. The JSON key is now the authoritative source; changing the key in `pin-taxonomy.json` propagates automatically without code changes.
+- **Pin taxonomy — hardcoded tags removed from `_registerJournalTaxonomy`** (`ui-journal-pins.js`): The tag array `['journal', 'location', 'shop', ...]` was being merged into the taxonomy on every registration, overriding the JSON. Removed entirely; taxonomy now comes solely from `loadBuiltinTaxonomy` / `pin-taxonomy.json`.
+- **Pin Layers — unified tag chip CSS** (`window-pin-layers.js`, `window-pin-layers.css`): The tag cloud was overriding `.blacksmith-tag` with `all: unset` and forcing orange-by-default, diverging from the global design system. Removed the override; tag chips now use the shared `.blacksmith-tag` / `.blacksmith-tag.active` styles from `window-form-controls.css`. Active (visible) tags render orange; inactive (hidden) tags render neutral — matching the Pin Configuration window.
+
+### Changed
+
+- **Pin Layers — tag chip active state inverted** (`window-pin-layers.js`): Tag chips now use `.active` when the tag is *visible* (click to hide) and no modifier when *hidden* (click to show), consistent with the global `.blacksmith-tag` convention used in Pin Configuration.
+- **Pin Layers — Global Pin Management icons** (`window-pin-layers.js`): Management buttons changed from broom (`fa-broom`) to trash (`fa-trash`) to reflect that the action permanently deletes custom tags across all scenes.
+
 ## [13.6.3]
 
 ### Added
