@@ -11,7 +11,7 @@
 > - **Events**: `hover`, `click`, `doubleClick`, `rightClick`, `middleClick`, `drag*` — scoped by `pinId`, `moduleId`, or `sceneId`. Cleaned up via disposer or `AbortSignal`.
 > - **Animations**: `ping()` with 11 types, broadcast support, loop control. Optional per-pin event animations (hover, click, double-click, add, delete) with sound.
 > - **Visibility**: Ownership-based rendering filter + per-user client-side filters (`setGlobalVisibility`, `setModuleVisibility`, `setTagVisibility`) + named profiles. `config.blacksmithVisibility` (`'visible'`/`'hidden'`) lets GMs hide a pin from the map independently of ownership.
-> - **Taxonomy**: Built-in `pin-taxonomy.json` (v3 format). Modules register taxonomy via `registerPinTaxonomy()`. World-level tag registry tracks every tag ever used.
+> - **Taxonomy**: Built-in `pin-taxonomy.json` (v3 format). Modules register taxonomy via `registerPinTaxonomy()`. Read back with `getModuleTaxonomy(moduleId)` (all types) or `getPinTaxonomy(moduleId, type)` (one type). World-level tag registry tracks every tag ever used.
 > - **GM tools**: Bulk delete (`deleteAll`, `deleteAllByType`), GM proxy (`requestGM`), ownership resolver hook, reconciliation helper, Pin Layers window with Browse/tag management/visibility profiles.
 > - **Configure Pin window**: Full visual editor — Design, Text, Animations, Source, Permissions (ownership + Player Visibility + Allow Duplicates), Classification. "Update All [type] Pins" with tag-scoped filter. "Default for [type]" with per-section checkboxes.
 
@@ -1359,6 +1359,31 @@ The registry is used to populate tag suggestion chips in the Configure Pin windo
 > - **`getPinTaxonomyChoices(moduleId, type)`** — merges the registered tags with every tag in the global registry (i.e. every tag ever used across all modules). Use this for global autocomplete inputs where showing all known tags is helpful. **Do not** use it to populate a chip picker scoped to a specific type — it will show unrelated tags from other modules.
 >
 > Rule of thumb: **`getPinTaxonomy` for type-scoped pickers; `getPinTaxonomyChoices` for global autocomplete.**
+
+#### `pins.getModuleTaxonomy(moduleId)`
+Returns **all registered taxonomy entries** for a module in one call — every pin type registered via the built-in JSON, an override JSON, or `registerPinTaxonomy()`. Merges all three sources the same way `getPinTaxonomy` does for each individual type.
+
+**Returns**: `Record<string, { label: string, tags: string[] }>` — plain object keyed by type. Empty object if the module has no registered taxonomy.
+
+```javascript
+const pins = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+const taxonomy = pins.getModuleTaxonomy('coffee-pub-artificer');
+// → {
+//     'habitat-location': { label: 'Habitat Location', tags: ['mountain', 'arctic', ...] },
+//     'component-location': { label: 'Component Location', tags: ['creature', 'gem', ...] },
+//     'skill-location': { label: 'Skill', tags: ['herbalism', 'alchemy', ...] }
+//   }
+
+// Iterate all types for a module:
+for (const [type, entry] of Object.entries(taxonomy)) {
+    console.log(entry.label, entry.tags);
+}
+
+// Get a specific type's tags from the result:
+const habitatTags = taxonomy['habitat-location']?.tags ?? [];
+```
+
+Use `getModuleTaxonomy` when you need all types for a module at once (e.g., building a full type+tag selector UI). Use `getPinTaxonomy(moduleId, type)` when you only need one specific type.
 
 #### `pins.getTagRegistry()`
 Returns a **copy** of the current world tag registry as `string[]`.

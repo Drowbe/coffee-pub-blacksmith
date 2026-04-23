@@ -373,6 +373,17 @@ export class PinsAPI {
     }
 
     /**
+     * Get all registered taxonomy entries for a module.
+     * Returns a plain object keyed by type, each value being { label, tags }.
+     * Merges built-in JSON, override JSON, and runtime-registered entries.
+     * @param {string} moduleId - Your module id (e.g. 'coffee-pub-artificer')
+     * @returns {Record<string, { label: string, tags: string[] }>}
+     */
+    static getModuleTaxonomy(moduleId) {
+        return PinManager.getModuleTaxonomy(moduleId);
+    }
+
+    /**
      * Get normalized tag choices for a pin category.
      * @param {string} moduleId
      * @param {string} [type]

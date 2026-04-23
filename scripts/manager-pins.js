@@ -217,6 +217,28 @@ export class PinManager {
         return entry ? foundry.utils.deepClone(entry) : null;
     }
 
+    /**
+     * Get all registered taxonomy entries for a module — every type that has been registered
+     * via the built-in JSON, an override JSON, or registerPinTaxonomy().
+     * Returns a plain object keyed by type, each value being { label, tags }.
+     * @param {string} moduleId
+     * @returns {Record<string, { label: string, tags: string[] }>}
+     */
+    static getModuleTaxonomy(moduleId) {
+        if (!moduleId) return {};
+        const prefix = `${String(moduleId).trim()}|`;
+        const types = new Set();
+        for (const key of this._builtinTaxonomyRegistry.keys()) if (key.startsWith(prefix)) types.add(key.slice(prefix.length));
+        for (const key of this._overrideTaxonomyRegistry.keys()) if (key.startsWith(prefix)) types.add(key.slice(prefix.length));
+        for (const key of this._runtimeTaxonomyRegistry.keys()) if (key.startsWith(prefix)) types.add(key.slice(prefix.length));
+        const result = {};
+        for (const type of types) {
+            const entry = this.getPinTaxonomy(moduleId, type);
+            if (entry) result[type] = { label: entry.label, tags: entry.tags };
+        }
+        return result;
+    }
+
     static getPinTaxonomyChoices(moduleId, type) {
         const taxonomy = this.getPinTaxonomy(moduleId, type);
         const tags = Array.from(new Set([

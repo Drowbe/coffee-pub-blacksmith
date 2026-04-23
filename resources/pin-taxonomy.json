@@ -1,19 +1,16 @@
 {
   "version": 3,
   "globalTags": [
-    "location",
-    "shop",
-    "character",
-    "quest",
-    "rumor",
-    "encounter",
-    "note"
+    "todo",
+    "revisit",
+    "avoid",
+    "complete"
   ],
   "modules": {
     "coffee-pub-blacksmith": {
       "pinCategories": {
-        "journal-pin": {
-          "label": "Journal Pin",
+        "journal-page": {
+          "label": "Journal Page",
           "tags": [
             "narrative",
             "backstory",
@@ -24,7 +21,8 @@
             "shop",
             "character",
             "quest",
-            "rumor"
+            "rumor",
+            "information"
           ]
         }
       }
@@ -32,17 +30,15 @@
     "coffee-pub-squire": {
       "pinCategories": {
         "note-pin": {
-          "label": "Note Pin",
+          "label": "Note",
           "tags": [
             "party",
             "personal",
-            "location",
-            "todo",
             "sticky" 
           ]
         },
-        "codex-pin": {
-          "label": "Codex Pin",
+        "codex": {
+          "label": "Codex",
           "tags": [
             "artifact",
             "book",
@@ -54,24 +50,22 @@
             "map"
           ]
         },
-        "quest-pin": {
-          "label": "Quest Pin",
+        "quest": {
+          "label": "Quest",
           "tags": [
-            "quest",
             "main",
             "side",
-            "optional",
-            "backstory"
+            "backstory",
+            "faction"
           ]
         },
-        "objective-pin": {
-          "label": "Objective Pin",
+        "objective": {
+          "label": "Objective",
           "tags": [
-            "objective",
             "main",
             "side",
-            "optional",
-            "backstory"
+            "backstory",
+            "faction"
           ]
         }
       }
@@ -98,7 +92,7 @@
         "component-location": {
           "label": "Component Location",
           "tags": [
-            "creaturepart",
+            "creature",
             "environmental",
             "essence",
             "gem",
@@ -107,7 +101,7 @@
           ]
         },
         "skill-location": {
-          "label": "Skill Pin",
+          "label": "Skill",
           "tags": [
             "herbalism",
             "alchemy",
