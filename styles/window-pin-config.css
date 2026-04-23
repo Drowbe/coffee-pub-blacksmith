@@ -331,3 +331,19 @@ div#blacksmith-pin-config .window-content {
 .blacksmith-pin-config .blacksmith-window-btn-primary {
     width: auto;
 }
+
+
+/* Tag group section labels (Suggested / Other) */
+.blacksmith-pin-config-tag-group-label {
+    margin-top: 8px;
+    margin-bottom: 3px;
+    font-size: 0.68em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(172, 159, 129, 0.5);
+}
+
+.blacksmith-pin-config-tag-group-label:first-of-type {
+    margin-top: 6px;
+}

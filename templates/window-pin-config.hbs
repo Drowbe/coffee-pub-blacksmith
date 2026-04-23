@@ -82,8 +82,17 @@
                         <span class="blacksmith-field-label">Tags</span>
                         <input type="text" class="blacksmith-input blacksmith-pin-config-tags" value="{{pinTagsCsv}}" placeholder="tag1, tag2">
                         {{#if pinSuggestedTags.length}}
+                        <div class="blacksmith-pin-config-tag-group-label">Suggested</div>
                         <div class="blacksmith-tags" data-chip-type="tag">
                             {{#each pinSuggestedTags}}
+                            <span class="blacksmith-tag" data-value="{{this}}">{{this}}</span>
+                            {{/each}}
+                        </div>
+                        {{/if}}
+                        {{#if pinOtherTags.length}}
+                        <div class="blacksmith-pin-config-tag-group-label">Other</div>
+                        <div class="blacksmith-tags" data-chip-type="tag">
+                            {{#each pinOtherTags}}
                             <span class="blacksmith-tag" data-value="{{this}}">{{this}}</span>
                             {{/each}}
                         </div>

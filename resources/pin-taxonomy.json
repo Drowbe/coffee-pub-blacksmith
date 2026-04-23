@@ -29,7 +29,7 @@
     },
     "coffee-pub-squire": {
       "pinCategories": {
-        "note-pin": {
+        "note": {
           "label": "Note",
           "tags": [
             "party",

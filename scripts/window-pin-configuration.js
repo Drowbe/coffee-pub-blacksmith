@@ -501,6 +501,26 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         const pinTypeLabel = PinManager.getPinTypeLabel(pin.moduleId, pin.type) || '';
         const taxonomyChoices = PinManager.getPinTaxonomyChoices(pin.moduleId, pin.type);
 
+        // Build Suggested / Other tag groups
+        const thisTypeTaxonomy = PinManager.getPinTaxonomy(pin.moduleId, pin.type);
+        const thisTypeTaxonomySet = new Set(thisTypeTaxonomy?.tags || []);
+        const customTypeTagSet = new Set();
+        {
+            const sceneId = this.sceneId ?? canvas?.scene?.id;
+            if (sceneId) {
+                const scenePins = PinManager.list({ sceneId, includeHiddenByFilter: true }) || [];
+                for (const p of scenePins) {
+                    if (p.moduleId !== pin.moduleId || (p.type || 'default') !== (pin.type || 'default')) continue;
+                    for (const t of (p.tags || [])) {
+                        if (!thisTypeTaxonomySet.has(t)) customTypeTagSet.add(t);
+                    }
+                }
+            }
+        }
+        const suggestedSet = new Set([...thisTypeTaxonomySet, ...customTypeTagSet]);
+        const pinSuggestedTags = [...suggestedSet].sort();
+        const pinOtherTags = PinManager.getTagRegistry().filter(t => !suggestedSet.has(t)).sort();
+
         this.pinType = pin.type || 'default';
         if (!this.moduleId) this.moduleId = pin.moduleId || null;
 
@@ -535,7 +555,8 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             showUseAsDefault: true, // Always show toggle - modules can handle saving defaults themselves
             pinAllowDuplicatePins: this.allowDuplicatePins,
             pinTagsCsv: this.pinTags.join(', '),
-            pinSuggestedTags: [...new Set([...(taxonomyChoices.tags || []), ...PinManager.getTagRegistry()])].sort(),
+            pinSuggestedTags,
+            pinOtherTags,
             pinClassificationHelp: taxonomyChoices.label || pinTypeLabel || (this.pinType || 'Pin'),
             pinImageFit: this.pinImageFit,
             pinImageZoom: this.pinImageZoom,
