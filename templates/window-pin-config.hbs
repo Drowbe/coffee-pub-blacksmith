@@ -15,7 +15,7 @@
                 <div class="blacksmith-toggle-row" data-tooltip="Save the current design as the default for this pin type. Applies to you only.">
                     <span class="blacksmith-toggle-label">Default for {{pinTypeLabel}}</span>
                     <label class="blacksmith-toggle">
-                        <input type="checkbox" id="blacksmith-pin-config-default-toggle" class="blacksmith-toggle-input blacksmith-pin-config-default">
+                        <input type="checkbox" id="blacksmith-pin-config-default-toggle" class="blacksmith-toggle-input blacksmith-pin-config-default" {{#if defaultMode}}checked{{/if}}>
                         <span class="blacksmith-toggle-slider"></span>
                     </label>
                 </div>
@@ -28,7 +28,13 @@
         {{!-- Permissions --}}
         {{#if isGM}}
         <div class="blacksmith-window-section blacksmith-pin-config-permissions-section">
-            <div class="blacksmith-window-section-header">{{#if updateAllMode}}<input type="checkbox" class="blacksmith-pin-config-section-check" data-section="permissions">{{/if}}<i class="fa-solid fa-shield-halved"></i> Permissions</div>
+            <div class="blacksmith-window-section-header">
+                <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-shield-halved"></i> Permissions</span>
+                <span class="blacksmith-pin-config-section-actions">
+                    {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="permissions"> Update All</label>{{/if}}
+                    {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="permissions"> Default</label>{{/if}}
+                </span>
+            </div>
             <div class="blacksmith-window-section-body">
                 <div class="blacksmith-field-row">
                     <div class="blacksmith-field">
@@ -63,7 +69,13 @@
         {{!-- Classification --}}
         {{#if isGM}}
         <div class="blacksmith-window-section blacksmith-pin-config-classification-section">
-            <div class="blacksmith-window-section-header">{{#if updateAllMode}}<input type="checkbox" class="blacksmith-pin-config-section-check" data-section="classification">{{/if}}<i class="fa-solid fa-tags"></i> Classification</div>
+            <div class="blacksmith-window-section-header">
+                <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-tags"></i> Classification</span>
+                <span class="blacksmith-pin-config-section-actions">
+                    {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="classification"> Update All</label>{{/if}}
+                    {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="classification"> Default</label>{{/if}}
+                </span>
+            </div>
             <div class="blacksmith-window-section-body">
                 <div class="blacksmith-field-row">
                     <div class="blacksmith-field">
@@ -87,7 +99,13 @@
 
         {{!-- Pin Design --}}
         <div class="blacksmith-window-section blacksmith-pin-config-design-section">
-            <div class="blacksmith-window-section-header">{{#if updateAllMode}}<input type="checkbox" class="blacksmith-pin-config-section-check" data-section="design">{{/if}}<i class="fa-solid fa-ruler-combined"></i> Pin Design</div>
+            <div class="blacksmith-window-section-header">
+                <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-ruler-combined"></i> Pin Design</span>
+                <span class="blacksmith-pin-config-section-actions">
+                    {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="design"> Update All</label>{{/if}}
+                    {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="design"> Default</label>{{/if}}
+                </span>
+            </div>
             <div class="blacksmith-window-section-body">
                 <div class="blacksmith-field-row">
                     <label class="blacksmith-field">
@@ -160,7 +178,13 @@
 
         {{!-- Text Format --}}
         <div class="blacksmith-window-section blacksmith-pin-config-text-section">
-            <div class="blacksmith-window-section-header">{{#if updateAllMode}}<input type="checkbox" class="blacksmith-pin-config-section-check" data-section="text">{{/if}}<i class="fa-solid fa-font"></i> Text Format</div>
+            <div class="blacksmith-window-section-header">
+                <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-font"></i> Text Format</span>
+                <span class="blacksmith-pin-config-section-actions">
+                    {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="text"> Update All</label>{{/if}}
+                    {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="text"> Default</label>{{/if}}
+                </span>
+            </div>
             <div class="blacksmith-window-section-body">
                 <div class="blacksmith-field-row">
                     <label class="blacksmith-field">
@@ -223,7 +247,13 @@
 
         {{!-- Event Animations --}}
         <div class="blacksmith-window-section blacksmith-pin-config-animation-section">
-            <div class="blacksmith-window-section-header">{{#if updateAllMode}}<input type="checkbox" class="blacksmith-pin-config-section-check" data-section="animations">{{/if}}<i class="fa-solid fa-wand-sparkles"></i> Event Animations</div>
+            <div class="blacksmith-window-section-header">
+                <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-wand-sparkles"></i> Event Animations</span>
+                <span class="blacksmith-pin-config-section-actions">
+                    {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="animations"> Update All</label>{{/if}}
+                    {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="animations"> Default</label>{{/if}}
+                </span>
+            </div>
             <div class="blacksmith-window-section-body">
                 <div class="blacksmith-pin-config-help">Play an animation and optional sound when the pin is hovered, clicked, double-clicked, added to the canvas, or deleted. Right-click is reserved for the context menu.</div>
                 <div class="blacksmith-pin-config-event-animations">
@@ -296,18 +326,24 @@
             </div>
         </div>
 
-        {{!-- Combined Pin Source section with toggle in header --}}
+        {{!-- Combined Pin Source section with toggle in body --}}
         <div class="blacksmith-window-section blacksmith-pin-config-source-section">
-            <div class="blacksmith-window-section-header blacksmith-pin-config-source-header">
-                <span>{{#if updateAllMode}}<input type="checkbox" class="blacksmith-pin-config-section-check" data-section="source">{{/if}}<i class="fa-solid fa-icons"></i> Pin Source</span>
-                <div class="blacksmith-toggle-row">
-                    <span class="blacksmith-toggle-label">Image</span>
-                    <label class="blacksmith-toggle">
-                        <input type="checkbox" id="blacksmith-pin-config-source-toggle" class="blacksmith-toggle-input blacksmith-pin-config-source-toggle-input" {{#if (eq iconMode 'icon')}}checked{{/if}}>
-                        <span class="blacksmith-toggle-slider"></span>
-                    </label>
-                    <span class="blacksmith-toggle-label">Icon</span>
-                </div>
+            <div class="blacksmith-window-section-header">
+                <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-icons"></i> Pin Source</span>
+                <span class="blacksmith-pin-config-section-actions">
+                    {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="source"> Update All</label>{{/if}}
+                    {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="source"> Default</label>{{/if}}
+                </span>
+            </div>
+
+            {{!-- Source type toggle (always visible) --}}
+            <div class="blacksmith-toggle-row blacksmith-pin-config-source-type-toggle">
+                <span class="blacksmith-toggle-label">Image</span>
+                <label class="blacksmith-toggle">
+                    <input type="checkbox" id="blacksmith-pin-config-source-toggle" class="blacksmith-toggle-input blacksmith-pin-config-source-toggle-input" {{#if (eq iconMode 'icon')}}checked{{/if}}>
+                    <span class="blacksmith-toggle-slider"></span>
+                </label>
+                <span class="blacksmith-toggle-label">Icon</span>
             </div>
 
             {{!-- Image body --}}

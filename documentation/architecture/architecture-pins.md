@@ -76,19 +76,19 @@ Only GMs can write scene flags and the world setting. Non-GM users with edit per
 
 ### Pin configuration window (`scripts/window-pin-configuration.js`)
 
-- **Responsibility**: Application V2 window for editing pin properties (size, shape, style, icon, text, etc.).
-- **Entry**: `pinsAPI.configure(pinId, options)` (exposed in `api-pins.js`; loads `PinConfigWindow` and calls `PinConfigWindow.open(pinId, options)`).
-- **Resolve pin**: `getData()` calls `PinManager.get(this.pinId, this.sceneId !== undefined ? { sceneId: this.sceneId } : {})` — no default `sceneId` so unplaced store is checked first when omitted.
-- **Permission**: `PinManager._canEdit(pin, userId)` in `getData()`; window does not open without edit permission (API also enforces on update).
-- **Save**: On submit, window builds a patch (size, shape, style, dropShadow, image, textLayout, textDisplay, textColor, textSize, textMaxLength, textMaxWidth, textScaleWithPin) and calls `pinsAPI.update(this.pinId, patch, { sceneId: this.sceneId })`.
-- **Context menu**: “Configure Pin” in `pins-renderer.js` is shown only when the user can edit; it calls `pinsAPI.configure(pinId, { sceneId: canvas?.scene?.id })` (or without `sceneId` for unplaced).
-- **Class**: Exported as `PinConfigWindow`; static `open(pinId, options)`; constructor accepts `pinId` and `options` (e.g. `sceneId`, `onSelect`, `useAsDefault`, `moduleId`).
-- **Files**: `scripts/window-pin-configuration.js`, `templates/window-pin-config.hbs`, `styles/window-pin-config.css`. Application id `blacksmith-pin-config`; root form class `blacksmith-pin-config`. Stable selectors for theming: `#blacksmith-pin-config`, `.blacksmith-pin-config`, `.window-content` (see `api-pins.md` for contracts).
-- **Ownership**: Ownership editor is not in the current window; permissions are enforced by the API. Full payload shape, default schema, and config-window contracts are in `api-pins.md`.
-
-**Config window checklist (current state):** Window extends Application V2; exports `PinConfigWindow`; static `open(pinId, options)`; `getData()` uses `PinManager.get()` with optional `sceneId` (omit for unplaced); permission check in `getData()` via `_canEdit()`; form submission calls `pinsAPI.update()`; template covers size, shape, style, icon color, text config; context menu and `pins.configure()` wired. Ownership editor not in window (optional future).
-
-**Testing:** Right-click pin → “Configure Pin” opens only if user can edit; save updates pin on canvas or unplaced list; `pinsAPI.configure(pinId)` with no `sceneId` works for unplaced pins; non-editing user gets permission error or no open.
+- **Responsibility**: Application V2 window for editing all pin properties.
+- **Entry**: `pinsAPI.configure(pinId, options)` → `PinConfigWindow.open(pinId, options)`.
+- **Resolve pin**: `getData()` calls `PinManager.get(this.pinId, ...)` — unplaced store checked first when `sceneId` is omitted.
+- **Permission**: `PinManager._canEdit(pin, userId)` in `getData()`; window refuses to open without edit permission.
+- **Sections**: Permissions, Classification, Pin Design, Text Format, Event Animations, Pin Source.
+- **Save**: Builds a full patch and calls `pinsAPI.update(this.pinId, patch, { sceneId })`. GM-only fields (tags, ownership, player visibility, allow duplicates) are applied separately.
+- **Player Visibility** (`config.blacksmithVisibility`): Shown in the Permissions section alongside the ownership dropdown. `'visible'` (default) or `'hidden'`. Separate from ownership — a pin can have player-viewable ownership but be hidden from the map.
+- **Allow Duplicates**: Moved from header toggle into the Permissions section body.
+- **Update All mode** (`_updateAllMode`): Toggle in action bar left (“Update All [type] Pins”). When enabled, each section header shows a checkbox; on save, only checked sections are bulk-applied to same-type peer pins after confirmation. Permissions section includes ownership, player visibility, and allow-duplicates when checked.
+- **Use as Default mode** (`_defaultMode`): “Default for [type]” toggle in the window header. When enabled, each section header shows a separate checkbox; on save, only checked sections are written to `clientPinDefaultDesigns` (client-scope setting keyed `moduleId|type`). Warns if no sections selected.
+- **Icon label**: `formatIconLabel(iconClass)` extracts the icon name from a FA class string (e.g. `fa-solid fa-skull` → `skull`), skipping style prefix classes (`fa-solid`, `fa-regular`, etc.).
+- **Class**: `PinConfigWindow`; static `open(pinId, options)`. Constructor params: `pinId`, `options.sceneId`, `options.onSelect`, `options.moduleId`.
+- **Files**: `scripts/window-pin-configuration.js`, `templates/window-pin-config.hbs`, `styles/window-pin-config.css`.
 
 ---
 

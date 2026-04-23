@@ -200,8 +200,11 @@ interface PinData {
   textScaleWithPin?: boolean; // Whether text scales with pin size based on zoom (default: true). If false, text stays fixed size.
   type?: string; // Pin category key (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default'. Used for coarse filtering and organization. Displayed in the Pins window as "Category".
   tags?: string[]; // User-facing classification tags. Supports registered and freeform values; normalized to lowercase kebab-case. Use tags for all fine-grained filtering — the old `group` field was removed (v4 schema auto-migrates group values into tags).
-  allowDuplicatePins?: boolean; // If true, the same source (e.g. one journal page) may have multiple pins on the map; if false (default), one pin per source (creating replaces existing). Configurable in Configure Pin header.
-  config?: Record<string, unknown>;
+  allowDuplicatePins?: boolean; // If true, the same source (e.g. one journal page) may have multiple pins on the map; if false (default), one pin per source (creating replaces existing). Configurable in Configure Pin > Permissions.
+  config?: {
+    blacksmithVisibility?: 'visible' | 'hidden'; // Whether the pin is shown on the map ('visible', default) or hidden from all non-GM users ('hidden'). GM-only field. Separate from ownership — a pin with OBSERVER ownership can still be hidden. Editable in Configure Pin > Permissions or per-pin in Browse view.
+    [key: string]: unknown;
+  };
   moduleId: string; // consumer module id
   ownership?: { default: number; users?: Record<string, number> };
   eventAnimations?: {
@@ -986,15 +989,16 @@ The window uses an internal `{ type, value }` format. For storage or passing int
 
 Recommendation: store **FA as class string** and **images as URL string** so all modules and the API stay consistent.
 
-#### 3. Default storage schema (“Use as Default”)
+#### 3. Default storage schema (“Default for [type]”)
 
-The **“Use as Default”** toggle saves the current design (size, shape, style, text options, etc.) so that **new pins of that module and pin type** use it when nothing else is set. Storage is **per module + pin type**:
+The **”Default for [type]”** toggle (renamed from “Use as Default” in v13.6.3) saves selected sections of the current pin design so that **new pins of that module and pin type** use them when nothing else is set. Storage is **per module + pin type**:
 
 - **Where it’s stored**: Blacksmith’s client setting `clientPinDefaultDesigns`, keyed by **`moduleId|type`** (e.g. `coffee-pub-blacksmith|journal-page`, `coffee-pub-blacksmith|encounter`). So one module can have different defaults for “Journal Page”, “Encounter”, “Map Annotation”, etc. Each player has their own (client scope). If the pin has no type, `default` is used (e.g. `my-module|default`).
-- **When it applies**: When a module creates a new pin, it calls **`pins.getDefaultPinDesign(moduleId, type)`**. If that returns a saved default for that (module, type) pair, the module merges it into the new pin’s data. So journal-page pins use the default for `moduleId|journal-page`, encounter pins use `moduleId|encounter`, and so on.
-- **What’s saved**: Only the design portion (size, shape, style, dropShadow, text layout/display/color/size, **allowDuplicatePins**, etc.). Ownership and event animations are **not** part of the saved default; they come from the module’s own defaults or the pin data when creating.
+- **When it applies**: When a module creates a new pin, it calls **`pins.getDefaultPinDesign(moduleId, type)`**. If that returns a saved default for that (module, type) pair, the module merges it into the new pin’s data.
+- **What’s saved**: Only the sections the user checks when “Default for [type]” is active. Available sections: Design (size, shape, style, drop shadow), Text (layout, display, color, size, max length/width, scale), Animations (eventAnimations), Source (image/icon), Classification (type, tags), Permissions (ownership, blacksmithVisibility, allowDuplicatePins). If no section checkboxes are rendered (backward compat), all design fields are saved.
+- **What’s excluded**: Ownership and event animations are excluded unless the Permissions / Animations section is explicitly checked.
 
-When “Use as Default” is checked, the window uses the pin’s **moduleId** and **type** (from the pin being edited) and writes the design object to `clientPinDefaultDesigns` under the key **`moduleId|type`** (or `moduleId|default` if type is missing):
+When “Default for [type]” is toggled on, the window uses the pin’s **moduleId** and **type** (from the pin being edited) and writes only the checked sections to `clientPinDefaultDesigns` under the key **`moduleId|type`** (or `moduleId|default` if type is missing):
 
 ```ts
 {
@@ -1100,8 +1104,10 @@ await pinsAPI.configure(pinId, {
 - Opens an Application V2 window with a form for editing pin properties.
 - Only users who can **edit** the pin (ownership-based) can open the window.
 - The window includes: **Appearance** (shape, size, fill, stroke, stroke width, icon color, opacity, drop shadow); **Icon/Image** (Font Awesome library + image URL with built-in FilePicker “Browse”); **Text** (layout, display mode, color, size, max characters, chars per line, scale-with-pin); **Event Animations** (hover, click, double-click, add to canvas, delete — each with optional animation and sound). Pin **type** is not currently editable in the window; **ownership** is not changed by the save.
-- The window header shows **“Configure Pin”** and, when the pin has a registered type, **“ — &lt;type label&gt;”** (e.g. “Configure Pin — Journal Page”). The type label comes from `pins.getPinTypeLabel(pin.moduleId, pin.type)`. The header also includes an **"Allow Duplicate Pins"** toggle (default off): when on, the same source (e.g. one journal page) can have multiple pins on the map; when off, one pin per source (creating a pin for that source replaces any existing one).
-- On submit, the pin is updated via `pins.update()` (ownership is preserved). If “Use as Default” is checked, the [default storage schema](#3-default-storage-schema-use-as-default) is written to Blacksmith’s `clientPinDefaultDesigns` under the key **`moduleId|type`** (from the pin being edited). If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
+- The window header shows **”[Category]: [Pin Title]”** (e.g. “Journal Pin: The Rusty Anchor”) using `pins.getPinTypeLabel(pin.moduleId, pin.type)`. The header includes a **”Default for [type]”** toggle (renamed from “Default” in v13.6.3); when enabled, each section shows an additional checkbox so the user can choose which sections (Design, Text, Animations, Source, Classification, Permissions) are saved as the client default for that type.
+- **Permissions section** (v13.6.3): Contains ownership dropdown, **Player Visibility** dropdown (`config.blacksmithVisibility`: `’visible’` / `’hidden’`), and **”Allow Duplicates of this Pin on the Canvas”** toggle (moved from header). Player Visibility is separate from ownership — a pin can be player-observable but hidden from the map (`’hidden’`) so the GM can reveal it later.
+- **Action bar left** (v13.6.3): **”Update All [type] Pins”** toggle (moved from header). When enabled, each section header shows a checkbox; on save, only checked sections are bulk-applied to all pins of the same type, with a confirmation dialog. The Permissions section includes ownership, player visibility, and allow-duplicates when checked.
+- On submit, the pin is updated via `pins.update()` (ownership is preserved). If “Default for [type]” is toggled on, only the checked sections are written to `clientPinDefaultDesigns` under the key **`moduleId|type`** (from the pin being edited). If no section checkboxes are checked, a warning is shown. If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
 - The window is also available from the pin’s right-click context menu (“Configure Pin”).
 
 **Styling**: Use the [stable selectors](#8-styling-hooks-stable-selectors) `div#blacksmith-pin-config`, `.blacksmith-pin-config`, and `div#blacksmith-pin-config .window-content` for theming.
@@ -1341,6 +1347,13 @@ const visible = pins.getModuleVisibility('coffee-pub-squire');
 The **world-level tag registry** (`pinTagRegistry` world setting) is a sorted, deduplicated list of every tag string ever used across all pins in the world. It is seeded on `ready` from the built-in taxonomy and auto-populated whenever a pin is created or updated. Players can read it; only GMs can write.
 
 The registry is used to populate tag suggestion chips in the Configure Pin window and the Pin Layers manage mode, so GMs see all tags that exist even if no pin currently uses them.
+
+> **`getPinTaxonomy` vs `getPinTaxonomyChoices`** — critical distinction for UI:
+>
+> - **`getPinTaxonomy(moduleId, type)`** — returns only the tags registered for that specific pin type. Use this for type-scoped tag chip pickers (journal toolbar, Configure Pin tag row) so the user only sees relevant tags.
+> - **`getPinTaxonomyChoices(moduleId, type)`** — merges the registered tags with every tag in the global registry (i.e. every tag ever used across all modules). Use this for global autocomplete inputs where showing all known tags is helpful. **Do not** use it to populate a chip picker scoped to a specific type — it will show unrelated tags from other modules.
+>
+> Rule of thumb: **`getPinTaxonomy` for type-scoped pickers; `getPinTaxonomyChoices` for global autocomplete.**
 
 #### `pins.getTagRegistry()`
 Returns a **copy** of the current world tag registry as `string[]`.
@@ -1819,14 +1832,16 @@ Pins have a right-click context menu with the following options:
 - **Configure Pin**: Opens the Configure Pin window for visual and layout settings
 - **Delete Pin**: Deletes the individual pin
 
+**Available to Users with Edit Permissions (via Context Menu):**
+- **Player Visibility**: Toggle the pin's visibility on the map (`config.blacksmithVisibility`). Renamed from "Visibility" in v13.6.3.
+
 **GM-Only Options** (appear below a separator):
-- **Delete All "[type]" Pins**: Deletes all pins of the same type as the clicked pin (e.g., "Delete All 'note' Pins"). Shows a confirmation dialog.
-- **Delete All Pins**: Deletes all pins on the current scene. Shows a confirmation dialog.
+- Bulk delete operations have been **moved to the Pin Layers window action bar** (as of v13.6.3). The context menu no longer shows "Delete All Pins" or "Delete All [Type] Pins".
 
 **Module-Registered Items:**
 - Modules can register custom context menu items using `pins.registerContextMenuItem()`. These appear above the separator, before the built-in options. See [`pins.registerContextMenuItem()`](#pinsregistercontextmenuitemitemid-itemdata) and [`pins.unregisterContextMenuItem()`](#pinsunregistercontextmenuitemitemid) for the full API.
 
-**Note**: GM bulk delete operations require confirmation via dialog to prevent accidental deletion. The "Delete All of Type" option only appears if there are pins of that type on the scene.
+**Note**: GM bulk delete operations (Delete All Pins, Delete All [Type] Pins) are available in the Pin Layers window action bar with confirmation dialogs. The "Delete All of Type" action only appears if there are pins of that type on the scene.
 
 ### Error Handling
 - API calls validate input and throw on invalid data or missing scene.

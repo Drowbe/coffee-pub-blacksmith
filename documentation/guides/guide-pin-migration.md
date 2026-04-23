@@ -1,8 +1,23 @@
 # Pin API — Integration & Migration Guide
 
-**Audience:** Developers of Coffee Pub modules (Squire, Artificer, Minstrel, etc.) integrating with the Blacksmith Pins API as of **v13.6.2**.
+**Audience:** Developers of Coffee Pub modules (Squire, Artificer, Minstrel, etc.) integrating with the Blacksmith Pins API as of **v13.6.3**.
 
 For the full method reference see [`api-pins.md`](../api/api-pins.md).
+
+---
+
+## What changed in 13.6.3
+
+| Area | Change |
+|------|--------|
+| Journal toolbar | Tag chip row added below icon row. Tags are sourced from `getPinTaxonomy` (registered type tags only). State (selected icon + tags) is restored on open. Default tag "narrative" selected when no saved pin state exists. |
+| `getPinTaxonomy` vs `getPinTaxonomyChoices` | **Breaking for UI**: `getPinTaxonomyChoices` merges registered tags with every global tag ever used (all modules). Use `getPinTaxonomy` when populating a tag picker for a specific pin type so only that type's tags appear. |
+| Player Visibility | New field (`config.blacksmithVisibility`) separate from ownership. `'visible'` (default) or `'hidden'`. Editable in Configure Pin > Permissions. Exposed in Browse view with a per-pin toggle. |
+| Context menu | "Delete All Pins" and "Delete All [Type] Pins" removed. "Visibility" renamed to "Player Visibility". Bulk delete is now in the Pin Layers action bar. |
+| Configure Pin — Permissions | "Allow Duplicates" moved from header into the Permissions section. Player Visibility dropdown added alongside ownership. Both are included in "Update All" (permissions section) and "Use as Default" (if Permissions section is checked). |
+| Configure Pin — action bar | "Update All [type] Pins" toggle moved to action bar left (was a header toggle). |
+| Configure Pin — Use as Default | "Default for [type]" toggle now shows per-section checkboxes so you can choose which sections (Design, Text, Animations, Source, Classification, Permissions) are saved as the default. |
+| Window position persistence | All `BlacksmithWindowBaseV2` windows now save and restore their position and size via `localStorage`. No code changes needed in subclasses. |
 
 ---
 
@@ -206,6 +221,65 @@ const result = await pins.reconcile({
     items: journalEntries
 });
 console.log(`Reconciled: ${result.kept} kept, ${result.cleared} cleared`);
+```
+
+---
+
+---
+
+## 9. Use `getPinTaxonomy` (not `getPinTaxonomyChoices`) for type-scoped tag pickers
+
+`getPinTaxonomyChoices(moduleId, type)` merges the registered tags for that type with **every global tag ever written to any pin** across all modules. It is useful for showing all possible completion options in a free-form input. It is **not** suitable for a tag chip picker scoped to a specific type — it will show tags from unrelated modules and types.
+
+Use `getPinTaxonomy(moduleId, type)` to get only the tags registered for that specific pin type:
+
+```javascript
+// WRONG — includes all global tags from every module
+const choices = pins.getPinTaxonomyChoices('coffee-pub-squire', 'quest-pin');
+// choices.tags may include 'encounter', 'narrative', 'tavern', etc. from other modules
+
+// CORRECT — only the tags registered for quest-pin
+const taxonomy = pins.getPinTaxonomy('coffee-pub-squire', 'quest-pin');
+const tags = taxonomy?.tags ?? [];
+// → ['active', 'completed', 'failed', 'side-quest', 'main-quest']
+```
+
+**Rule of thumb:**
+- `getPinTaxonomy` → tag chip pickers, toolbar tag selectors, any UI scoped to one type.
+- `getPinTaxonomyChoices` → global autocomplete, free-form tag inputs where showing all known tags is helpful.
+
+---
+
+## 10. Player Visibility vs Ownership
+
+These are independent fields that control pin visibility for different reasons:
+
+| Field | What it controls | Who sets it |
+|-------|-----------------|-------------|
+| `ownership.default` | Whether players can *see* the pin at all (based on document permission levels) | GM, in Configure Pin > Permissions |
+| `config.blacksmithVisibility` | Whether the pin is *shown on the map* right now (`'visible'` / `'hidden'`) | GM, in Configure Pin > Permissions or Browse view |
+
+A pin can have `ownership.default = OBSERVER` (players can see it) but `blacksmithVisibility = 'hidden'` (hidden from the map). This lets the GM keep a pin "ready but not yet revealed."
+
+```javascript
+const OBSERVER = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
+
+// Create a pin that is configured for players but hidden until the GM reveals it
+await pins.create({
+    moduleId: 'coffee-pub-squire',
+    type: 'quest-pin',
+    tags: ['main-quest'],
+    text: 'The Hidden Lair',
+    ownership: { default: OBSERVER },          // players CAN see it when visible
+    config: { blacksmithVisibility: 'hidden' }, // but it is hidden from the map now
+    sceneId: canvas.scene.id,
+    x: 1400, y: 900
+});
+
+// Reveal it later
+await pins.update(pinId, {
+    config: { ...existingPin.config, blacksmithVisibility: 'visible' }
+});
 ```
 
 ---

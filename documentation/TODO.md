@@ -221,6 +221,11 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 
 ### Low Priority
 
+#### Configure Pin — Section Checkbox Label Size Inheritance Bug
+- **Issue**: The "Update All" / "Default" checkbox labels in section headers render too small. `font-size` overrides in `.blacksmith-pin-config-section-check-label` (including absolute `px` values) have no visible effect, suggesting the label text is controlled by an ancestor rule or Foundry's CSS reset that overrides the element styles.
+- **Status**: PENDING — `font-size: 11px`, `text-transform: none`, and `line-height: 1.4` are set on the label but not applying. Needs investigation into Foundry's CSS cascade for Application V2 windows.
+- **Location**: `styles/window-pin-config.css` (`.blacksmith-pin-config-section-check-label`), `templates/window-pin-config.hbs`
+
 #### Migrate Combat Hooks to lib-wrapper
 - **Issue**: Using Foundry hooks for Combat methods that should be wrapped with lib-wrapper instead
 - **Status**: PENDING - Needs implementation

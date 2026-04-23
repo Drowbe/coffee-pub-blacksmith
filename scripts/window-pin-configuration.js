@@ -83,6 +83,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this.allowDuplicatePins = false;
         this.pinTags = [];
         this._updateAllMode = false;
+        this._defaultMode = false;
     }
 
     _buildPinUpdateData({ widthInput, heightInput, lockInput, shapeInput, strokeWidthInput,
@@ -541,6 +542,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             soundOptions,
             eventAnimations,
             updateAllMode: this._updateAllMode,
+            defaultMode: this._defaultMode,
             pinVisibilityVisible: (pin.config?.blacksmithVisibility ?? 'visible') !== 'hidden',
             pinVisibilityHidden: pin.config?.blacksmithVisibility === 'hidden'
         };
@@ -955,6 +957,11 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             this.render(true);
         });
 
+        nativeHtml.querySelector('.blacksmith-pin-config-default')?.addEventListener('change', (e) => {
+            this._defaultMode = !!e.target.checked;
+            this.render(true);
+        });
+
         nativeHtml.querySelector('.blacksmith-pin-config-save')?.addEventListener('click', async () => {
             if (this.iconMode === 'image' && !(imageInput?.value?.trim())) {
                 ui.notifications?.warn('Select an image for the pin.');
@@ -1014,29 +1021,40 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
 
                 await pinsAPI.update(this.pinId, pinUpdateData, { sceneId: this.sceneId });
 
-                // If "Use as Default" checked, save to client-scope store (each player can have their own default)
+                // If "Use as Default" checked, save selected sections to client-scope store
                 const makeDefault = !!defaultInput?.checked;
                 if (makeDefault && this.moduleId) {
                     try {
+                        const checkedSections = new Set(
+                            [...nativeHtml.querySelectorAll('.blacksmith-pin-config-section-default-check:checked')]
+                                .map(cb => cb.dataset.section)
+                        );
+                        // If no section checkboxes exist (defaultMode not triggered a render yet), save all
+                        const saveAll = checkedSections.size === 0 &&
+                            nativeHtml.querySelectorAll('.blacksmith-pin-config-section-default-check').length === 0;
+                        const has = s => saveAll || checkedSections.has(s);
+
                         const design = {
-                            image: pinUpdateData.image,
-                            imageFit: pinUpdateData.imageFit,
-                            imageZoom: pinUpdateData.imageZoom,
-                            size: configData.pinSize,
-                            lockProportions: this.lockProportions,
-                            shape: configData.pinShape,
-                            style: configData.pinStyle,
-                            dropShadow: configData.pinDropShadow,
-                            ...configData.pinTextConfig,
-                            allowDuplicatePins: !!allowDuplicateInput?.checked,
-                            eventAnimations: pinUpdateData.eventAnimations,
-                            ...(pinUpdateData.ownership ? { ownership: foundry.utils.deepClone(pinUpdateData.ownership) } : {}),
-                            ...(pinUpdateData.config ? { config: foundry.utils.deepClone(pinUpdateData.config) } : {})
+                            ...(has('source') ? { image: pinUpdateData.image, imageFit: pinUpdateData.imageFit, imageZoom: pinUpdateData.imageZoom } : {}),
+                            ...(has('design') ? { size: configData.pinSize, lockProportions: this.lockProportions, shape: configData.pinShape, style: configData.pinStyle, dropShadow: configData.pinDropShadow } : {}),
+                            ...(has('text') ? configData.pinTextConfig : {}),
+                            ...(has('animations') ? { eventAnimations: pinUpdateData.eventAnimations } : {}),
+                            ...(has('classification') ? { tags: pinUpdateData.tags } : {}),
+                            ...(has('permissions') ? {
+                                allowDuplicatePins: !!allowDuplicateInput?.checked,
+                                ...(pinUpdateData.ownership ? { ownership: foundry.utils.deepClone(pinUpdateData.ownership) } : {}),
+                                ...(pinUpdateData.config ? { config: foundry.utils.deepClone(pinUpdateData.config) } : {})
+                            } : {})
                         };
-                        const typeKey = this.pinType || 'default';
-                        const compoundKey = `${this.moduleId}|${typeKey}`;
-                        const cur = game.settings.get(MODULE.ID, 'clientPinDefaultDesigns') || {};
-                        await game.settings.set(MODULE.ID, 'clientPinDefaultDesigns', { ...cur, [compoundKey]: design });
+
+                        if (Object.keys(design).length === 0) {
+                            ui.notifications?.warn('No sections selected — default not saved.');
+                        } else {
+                            const typeKey = this.pinType || 'default';
+                            const compoundKey = `${this.moduleId}|${typeKey}`;
+                            const cur = game.settings.get(MODULE.ID, 'clientPinDefaultDesigns') || {};
+                            await game.settings.set(MODULE.ID, 'clientPinDefaultDesigns', { ...cur, [compoundKey]: design });
+                        }
                     } catch (defaultErr) {
                         postConsoleAndNotification(MODULE.NAME, 'Use as Default not saved', defaultErr?.message || defaultErr, false, false);
                     }

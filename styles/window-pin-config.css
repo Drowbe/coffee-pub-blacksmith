@@ -51,12 +51,6 @@ div#blacksmith-pin-config .window-content {
 }
 
 
-/* Source section header — flex space-between to hold the inline toggle */
-.blacksmith-pin-config-source-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
 
 /* Show/hide image vs icon bodies via data-icon-mode on root */
 .blacksmith-pin-config[data-icon-mode="image"] .blacksmith-pin-config-library-body,
@@ -263,13 +257,52 @@ div#blacksmith-pin-config .window-content {
 }
 
 
-/* Update All — section checkboxes in section headers */
-.blacksmith-pin-config-section-check {
-    width: 16px;
-    height: 16px;
+/* Section header layout — title on left, action checkboxes on right */
+.blacksmith-pin-config .blacksmith-window-section-header {
+    justify-content: space-between;
+}
+
+.blacksmith-pin-config-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.blacksmith-pin-config-section-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.blacksmith-pin-config-section-check-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    line-height: 1.4;
+    color: rgba(230, 223, 204, 0.6);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* Source type toggle moved into body */
+.blacksmith-pin-config-source-type-toggle {
+    margin-bottom: 12px;
+}
+
+/* Update All / Use as Default — section checkboxes in section headers */
+.blacksmith-pin-config-section-check,
+.blacksmith-pin-config-section-default-check {
+    width: 14px;
+    height: 14px;
     flex-shrink: 0;
     accent-color: var(--blacksmith-window-accent-color, #c07a3c);
     cursor: pointer;
+    margin: 0;
 }
 
 /* Pin config footer — override template primary button width (not full-width here) */
