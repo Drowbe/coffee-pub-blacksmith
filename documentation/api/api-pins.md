@@ -2,23 +2,37 @@
 
 **Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
 
-> **Current state:** Unplaced pins are the normal, primary use case. **Remaining work** (tests, deeper profile/search UX, and follow-on phases) is tracked in `architecture-pins.md`, `TODO.md`, and `plan-pins.md`.
+> **Remaining work** (tests, deeper profile/search UX, and follow-on phases) is tracked in `architecture-pins.md`, `TODO.md`, and `plan-pins.md`.
 >
-> **Unplaced pins:** most pins are created and configured without being on the canvas (notes, quests, etc. have pin data; only some are placed). Unplaced pin support is implemented: create without `sceneId`/x/y → unplaced; `place(pinId, { sceneId, x, y })` to put on a scene; `unplace(pinId)` to remove from canvas but keep data; `list({ unplacedOnly: true })`; hooks `blacksmith.pins.created`, `blacksmith.pins.placed`, `blacksmith.pins.unplaced`. Pins render using pure DOM approach (no PIXI), support Font Awesome icons, image URLs, and text (iconText), support multiple shapes (circle, square, none), and dispatch hover/click/double-click/right-click/middle-click/drag events. Context menu registration system allows modules to add custom menu items. Pin animation system (`ping()`) with 11 animation types (including 'ping' combo) and sound support, with broadcast capability. Event animations: optional per-pin animations and sounds on hover, click, double-click, add (when placed on canvas), and delete (configurable in Configure Pin). Automatic visibility filtering based on ownership permissions and per-user visibility filters (`pins.setGlobalVisibility`, `pins.setModuleVisibility`, `pins.setTagVisibility`) plus named client-side visibility profiles. Text display system with multiple layouts (under, over, above, right, left, arc-above, arc-below), display modes (always, hover, never, gm), and scaling options. Border and text scaling with zoom. Icon/image type changes (icon ↔ image swaps) are automatically detected and handled during `update()`. Pins support a coarse technical `type` (displayed in the UI as "Category") plus user-facing `tags[]` classification. The `group` field has been removed (schema v4 auto-migrates any existing group values into tags). Built-in taxonomy data can be loaded from `resources/pin-taxonomy.json`, an optional world-level taxonomy JSON can override/extend it, and modules can register additional taxonomy metadata at runtime. The Pin Layers window now includes profile-aware search that defaults to visible pins and requires an explicit toggle to include filtered pins. GM bulk delete controls (`deleteAll()`, `deleteAllByType()`) available via API and context menu with `moduleId` filtering. GM proxy methods (`createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`) for permission escalation. Ownership resolver hook (`blacksmith.pins.resolveOwnership`) for custom ownership mapping. Reconciliation helper (`reconcile()`) for repairing module-tracked pin links. Helper methods: `exists()`, `panTo()`, `findScene()`, `refreshPin()`, `place()`, `unplace()`.
+> **Feature summary:**
+> - **Rendering**: Pure DOM overlay (no PIXI). Shapes: `circle`, `square`, `none`. Icons: Font Awesome class strings or image URLs. Text labels with 7 layout modes and 4 display modes.
+> - **Placement model**: Pins exist in two stores — *placed* (on a scene, stored in scene flags) or *unplaced* (data-only, stored in a world setting). Create without `sceneId`/x/y to keep unplaced; use `place()` / `unplace()` to move between stores.
+> - **Classification**: Coarse `type` (displayed as "Category") + fine-grained `tags[]`. The old `group` field is removed (v4 schema auto-migrates existing values into tags).
+> - **Events**: `hover`, `click`, `doubleClick`, `rightClick`, `middleClick`, `drag*` — scoped by `pinId`, `moduleId`, or `sceneId`. Cleaned up via disposer or `AbortSignal`.
+> - **Animations**: `ping()` with 11 types, broadcast support, loop control. Optional per-pin event animations (hover, click, double-click, add, delete) with sound.
+> - **Visibility**: Ownership-based rendering filter + per-user client-side filters (`setGlobalVisibility`, `setModuleVisibility`, `setTagVisibility`) + named profiles. `config.blacksmithVisibility` (`'visible'`/`'hidden'`) lets GMs hide a pin from the map independently of ownership.
+> - **Taxonomy**: Built-in `pin-taxonomy.json` (v3 format). Modules register taxonomy via `registerPinTaxonomy()`. World-level tag registry tracks every tag ever used.
+> - **GM tools**: Bulk delete (`deleteAll`, `deleteAllByType`), GM proxy (`requestGM`), ownership resolver hook, reconciliation helper, Pin Layers window with Browse/tag management/visibility profiles.
+> - **Configure Pin window**: Full visual editor — Design, Text, Animations, Source, Permissions (ownership + Player Visibility + Allow Duplicates), Classification. "Update All [type] Pins" with tag-scoped filter. "Default for [type]" with per-section checkboxes.
 
 ## Overview
 
-The Canvas Pins API provides a system for creating, managing, and interacting with configurable pins. **The normal use case is unplaced pins**: notes, quests, locations, and similar data define pin configuration (icon, text, type, etc.) without being on any scene. Only some of those pins are *placed* on a scene—i.e., given `sceneId`, `x`, and `y`—so they appear on the canvas. Placed pins are the special case; unplaced pins are the default. Create pins without `sceneId`/x/y to keep them unplaced; use `place(pinId, { sceneId, x, y })` when you want them on the canvas, and `unplace(pinId)` to remove them from the canvas while keeping their data.
+The Canvas Pins API provides a system for creating, managing, and interacting with configurable pins. Pins exist in two stores:
 
-### Unplaced Pins
+- **Placed** — on a scene, stored in scene flags, rendered on the canvas. A placed pin has `sceneId`, `x`, and `y`.
+- **Unplaced** — data-only, stored in a world setting, not visible on any canvas. An unplaced pin has no `sceneId` or coordinates.
 
-- **Unplaced** = pin data exists in the pins system but the pin is not on any scene. It has no `sceneId`, and typically no `x`/`y`. Most pins (notes, quests, locations, etc.) are unplaced until a user or module chooses to put them on a scene.
-- **Create unplaced**: Call `create(pinData)` with no `sceneId`, `x`, or `y` in `pinData`. Omit those fields (or pass them as `undefined`) to create an unplaced pin. You can still pass `options.sceneId` and coordinates in `pinData` if you want to create and place in one step.
-- **Place an unplaced pin**: `place(pinId, { sceneId, x, y })` moves the pin onto that scene at those coordinates. The pin must currently be unplaced.
-- **Unplace a pin**: `unplace(pinId)` removes the pin from the canvas but keeps its data. The pin becomes unplaced again. The pin must currently be on a scene.
-- **Lookup**: When you call `get(pinId)` or `exists(pinId)` without `sceneId`, the API looks in the unplaced store first, then in scenes. So you can resolve a pin by ID without knowing whether it is placed.
-- **List unplaced only**: `list({ unplacedOnly: true })` returns only unplaced pins. No `sceneId` is required. Combine with `moduleId` or `type` as needed.
-- **Delete**: `delete(pinId)` works for both placed and unplaced pins. Without `sceneId`, the API searches the unplaced store then all scenes.
+Use whichever model fits your module's workflow. Map-centric modules (waypoints, encounter markers) typically create pins directly on the scene. Compendium-style modules (journals, quests, NPCs) often create pins unplaced and let the GM drag them onto the current scene via the Layers window — or your module can call `place()` programmatically.
+
+### Placement API
+
+- **Create placed**: Pass `sceneId`, `x`, and `y` in `pinData`.
+- **Create unplaced**: Omit `sceneId`, `x`, and `y`. The pin is stored in the world setting.
+- **Place an unplaced pin**: `place(pinId, { sceneId, x, y })` moves it onto a scene.
+- **Unplace a pin**: `unplace(pinId)` removes it from the canvas but keeps its data.
+- **Lookup by ID**: `get(pinId)` and `exists(pinId)` without `sceneId` search the unplaced store first, then all scenes — you can resolve a pin without knowing its placement state.
+- **List unplaced only**: `list({ unplacedOnly: true })` returns only unplaced pins. Combine with `moduleId` or `type` as needed.
+- **Delete**: `delete(pinId)` works for both stores. Without `sceneId`, the API searches unplaced then all scenes.
 
 ## Implementation Structure
 
@@ -1076,12 +1090,6 @@ await pinsAPI.configure(pinId, {
     }
 });
 
-// Open with "Use as Default" toggle enabled (storage schema documented above)
-await pinsAPI.configure(pinId, {
-    moduleId: 'my-module',
-    defaultSettingKey: 'defaultPinDesign',
-    useAsDefault: true
-});
 ```
 
 **Parameters**:
@@ -1089,9 +1097,6 @@ await pinsAPI.configure(pinId, {
 - `options` (object, optional): Options
   - `sceneId` (string, optional): Scene ID (defaults to active scene)
   - `onSelect` (Function, optional): Callback when configuration is saved. Receives the [exact payload](#1-onselect-payload-exact-shape) (`icon`, `pinSize`, `pinShape`, `pinStyle`, `pinDropShadow`, `pinTextConfig`).
-  - `useAsDefault` (boolean, optional): Show “Use as Default” toggle in the window header (default: `false`)
-  - `defaultSettingKey` (string, optional): Module setting key where the [default storage object](#3-default-storage-schema-useasdefault) is written when “Use as Default” is checked
-  - `moduleId` (string, optional): Calling module ID (required if `useAsDefault` is `true`)
 
   **Planned** (not yet in this release): `pinType`, `allowTypeEdit`, `typeChoices`, `iconCategories`, `permission`, `allowImageUrl`, `allowFilePicker` — see [Pin configuration window – contracts and behavior](#pin-configuration-window--contracts-and-behavior) for current vs planned behavior.
 
@@ -1831,8 +1836,6 @@ Pins have a right-click context menu with the following options:
 **Available to Users with Edit Permissions:**
 - **Configure Pin**: Opens the Configure Pin window for visual and layout settings
 - **Delete Pin**: Deletes the individual pin
-
-**Available to Users with Edit Permissions (via Context Menu):**
 - **Player Visibility**: Toggle the pin's visibility on the map (`config.blacksmithVisibility`). Renamed from "Visibility" in v13.6.3.
 
 **GM-Only Options** (appear below a separator):
