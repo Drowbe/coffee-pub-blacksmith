@@ -1007,7 +1007,7 @@ Recommendation: store **FA as class string** and **images as URL string** so all
 
 The **”Default for [type]”** toggle (renamed from “Use as Default” in v13.6.3) saves selected sections of the current pin design so that **new pins of that module and pin type** use them when nothing else is set. Storage is **per module + pin type**:
 
-- **Where it’s stored**: Blacksmith’s client setting `clientPinDefaultDesigns`, keyed by **`moduleId|type`** (e.g. `coffee-pub-blacksmith|journal-page`, `coffee-pub-blacksmith|encounter`). So one module can have different defaults for “Journal Page”, “Encounter”, “Map Annotation”, etc. Each player has their own (client scope). If the pin has no type, `default` is used (e.g. `my-module|default`).
+- **Where it’s stored**: Blacksmith’s client setting `clientPinDefaultDesigns`, keyed by **`moduleId|type`** (e.g. `coffee-pub-blacksmith|journal-pin`, `coffee-pub-blacksmith|encounter`). So one module can have different defaults for “Journal Page”, “Encounter”, “Map Annotation”, etc. Each player has their own (client scope). If the pin has no type, `default` is used (e.g. `my-module|default`).
 - **When it applies**: When a module creates a new pin, it calls **`pins.getDefaultPinDesign(moduleId, type)`**. If that returns a saved default for that (module, type) pair, the module merges it into the new pin’s data.
 - **What’s saved**: Only the sections the user checks when “Default for [type]” is active. Available sections: Design (size, shape, style, drop shadow), Text (layout, display, color, size, max length/width, scale), Animations (eventAnimations), Source (image/icon), Classification (type, tags), Permissions (ownership, blacksmithVisibility, allowDuplicatePins). If no section checkboxes are rendered (backward compat), all design fields are saved.
 - **What’s excluded**: Ownership and event animations are excluded unless the Permissions / Animations section is explicitly checked.
@@ -1032,7 +1032,7 @@ When “Default for [type]” is toggled on, the window uses the pin’s **modul
 }
 ```
 
-When creating new pins, call **`pins.getDefaultPinDesign(moduleId, type)`** to get the current user’s saved default for that (module, type) (or `null`). Merge that with any other defaults and pass the result into `pins.create()` (using the same property names as in [PinData](#pin-data-schema)). Pass the **pin type** (e.g. `'journal-page'`, `'encounter'`) so each type has its own default.
+When creating new pins, call **`pins.getDefaultPinDesign(moduleId, type)`** to get the current user’s saved default for that (module, type) (or `null`). Merge that with any other defaults and pass the result into `pins.create()` (using the same property names as in [PinData](#pin-data-schema)). Pass the **pin type** (e.g. `'journal-pin'`, `'encounter'`) so each type has its own default.
 
 #### 4. Pin type handling
 
@@ -1124,12 +1124,12 @@ Get the current user’s default pin design for a **module and pin type** (saved
 
 **Parameters**:
 - `moduleId` (string): Module ID (e.g. `'coffee-pub-blacksmith'`).
-- `type` (string, optional): Pin type (e.g. `'journal-page'`, `'encounter'`, `'default'`). Omit or pass `'default'` for a generic default for that module. If a design was previously saved under the legacy key (moduleId only), it is still returned when no design exists for `moduleId|type`.
+- `type` (string, optional): Pin type (e.g. `'journal-pin'`, `'encounter'`, `'default'`). Omit or pass `'default'` for a generic default for that module. If a design was previously saved under the legacy key (moduleId only), it is still returned when no design exists for `moduleId|type`.
 
 ```javascript
 // Journal page pins: default for this module + type
-const defaultDesign = pinsAPI.getDefaultPinDesign('coffee-pub-blacksmith', 'journal-page');
-await pinsAPI.create({ id: crypto.randomUUID(), moduleId: 'coffee-pub-blacksmith', type: 'journal-page', ...defaultDesign, text: label, config: { ... } });
+const defaultDesign = pinsAPI.getDefaultPinDesign('coffee-pub-blacksmith', 'journal-pin');
+await pinsAPI.create({ id: crypto.randomUUID(), moduleId: 'coffee-pub-blacksmith', type: 'journal-pin', ...defaultDesign, text: label, config: { ... } });
 
 // Encounter pins: separate default for same module
 const encounterDefault = pinsAPI.getDefaultPinDesign('coffee-pub-blacksmith', 'encounter');

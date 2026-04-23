@@ -9,7 +9,7 @@
   "modules": {
     "coffee-pub-blacksmith": {
       "pinCategories": {
-        "journal-page": {
+        "journal-pin": {
           "label": "Journal Page",
           "tags": [
             "narrative",

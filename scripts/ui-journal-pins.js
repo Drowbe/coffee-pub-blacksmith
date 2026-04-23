@@ -37,7 +37,16 @@ const JOURNAL_PIN_DEFAULTS = Object.freeze({
 });
 
 export class JournalPagePins {
-    static PIN_TYPE = 'journal-pin';
+    static _resolvedPinType = null;
+
+    static get PIN_TYPE() {
+        if (this._resolvedPinType) return this._resolvedPinType;
+        const pins = game?.modules?.get('coffee-pub-blacksmith')?.api?.pins;
+        const taxonomy = pins?.getModuleTaxonomy?.(MODULE.ID);
+        const firstType = Object.keys(taxonomy ?? {})[0];
+        if (firstType) this._resolvedPinType = firstType;
+        return firstType ?? 'journal-pin'; // fallback if taxonomy not yet loaded
+    }
     static BUTTON_CLASS = 'journal-page-pin-button';
     static PLACEMENT_CLASS = 'journal-page-pin-placement-mode';
     static PAGE_IMAGE_OPTION = '__journal-page-image__';
@@ -118,10 +127,7 @@ export class JournalPagePins {
 
     static _registerJournalTaxonomy(pinsApi) {
         if (!pinsApi) return;
-        pinsApi.registerPinTaxonomy?.(MODULE.ID, this.PIN_TYPE, {
-            label: 'Journal Pin',
-            tags: ['journal', 'location', 'shop', 'npc', 'quest', 'rumor', 'reference', 'gm-notes']
-        });
+        // Tags come from pin-taxonomy.json — do not register them here.
         pinsApi.registerPinType(MODULE.ID, this.PIN_TYPE, 'Journal Pin');
         void pinsApi.loadBuiltinTaxonomy?.();
     }
@@ -608,7 +614,7 @@ export class JournalPagePins {
         if (pins?.loadBuiltinTaxonomy) await pins.loadBuiltinTaxonomy();
         // Use getPinTaxonomy (not Choices) so we show only the registered journal-pin tags, not all global tags.
         const taxonomy = pins?.getPinTaxonomy?.(MODULE.ID, this.PIN_TYPE) ?? null;
-        const tags = Array.isArray(taxonomy?.tags) && taxonomy.tags.length ? taxonomy.tags : ['journal'];
+        const tags = Array.isArray(taxonomy?.tags) && taxonomy.tags.length ? taxonomy.tags : ['narrative'];
         tagRow.innerHTML = tags.map(tag =>
             `<button type="button" class="journal-page-pin-tag-option" data-tag="${tag}">${tag}</button>`
         ).join('');

@@ -3413,8 +3413,16 @@ export const registerSettings = () => {
 		default: {}
 	});
 
-	// Per-user pin visibility: hidden tag map
+	// Per-user pin visibility: hidden tag map (global/orphan tags)
 	game.settings.register(MODULE.ID, 'pinsHiddenTags', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
+	// Per-user pin visibility: hidden type-tag map keyed by 'moduleId|type|tag'
+	game.settings.register(MODULE.ID, 'pinsHiddenTypeTags', {
 		scope: 'client',
 		config: false,
 		type: Object,

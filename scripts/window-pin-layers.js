@@ -43,8 +43,11 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         toggleType:    (_event, target) => _pinLayersWindowRef?._toggleType(target),
         toggleTag:       (_event, target) => _pinLayersWindowRef?._toggleTag(target),
         deleteType:      (_event, target) => _pinLayersWindowRef?._deleteType(target),
-        toggleTagManage:       () => _pinLayersWindowRef?._toggleTagManage(),
-        deleteTagChip:         (_event, target) => _pinLayersWindowRef?._deleteTagChip(target),
+        toggleTagManage:         () => _pinLayersWindowRef?._toggleTagManage(),
+        deleteTagChip:           (_event, target) => _pinLayersWindowRef?._deleteTagChip(target),
+        toggleTypeTag:           (_event, target) => _pinLayersWindowRef?._toggleTypeTag(target),
+        deleteCustomTypeTag:     (_event, target) => _pinLayersWindowRef?._deleteCustomTypeTag(target),
+        stripTypeTagFromScene:   (_event, target) => _pinLayersWindowRef?._stripTypeTagFromScene(target),
         deleteAllPins:         () => _pinLayersWindowRef?._deleteAllPins(),
         configurePin:          (_event, target) => _pinLayersWindowRef?._configurePin(target),
         deleteBrowsePin:       (_event, target) => _pinLayersWindowRef?._deleteBrowsePin(target),
@@ -246,55 +249,203 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     _buildLayersBody(allSummary) {
-        const categoryRows = allSummary.types.map((entry) => {
-            const [moduleId, type] = String(entry.key || '').split('|');
-            const hidden = PinManager.isModuleTypeHidden(moduleId, type);
-            const friendlyName = PinManager.getPinTypeLabel(moduleId, type);
-            const moduleTitle = game.modules.get(moduleId)?.title ?? moduleId;
-            const label = friendlyName || `${moduleTitle} - ${type || 'default'}`;
-            return this._buildTypeRow({ label, count: entry.count, hidden, moduleId, type: type || 'default' });
-        }).join('');
-
-        // Merge scene tags with world registry so all known tags are visible
-        const sceneCounts = new Map(allSummary.tags.map(e => [e.key, e.count]));
-        const registryTags = PinManager.getTagRegistry();
-        const allTagKeys = [...new Set([...registryTags, ...allSummary.tags.map(e => e.key)])].sort();
         const isGM = !!game.user?.isGM;
         const managing = isGM && this._tagManageMode;
 
-        const tagPills = allTagKeys.map((key) => {
-            const count = sceneCounts.get(key) ?? 0;
-            const hidden = PinManager.isTagHidden(key);
-            if (managing) {
-                return `<span class="blacksmith-tag blacksmith-tag-manage ${count === 0 ? 'is-empty' : ''}">
-                    ${esc(key)}<button type="button" class="blacksmith-tag-delete" data-action="deleteTagChip" data-tag="${esc(key)}" title="Delete '${esc(key)}' globally"><i class="fa-solid fa-xmark"></i></button>
-                </span>`;
+        // Build scene pin counts per type and per (type, tag)
+        const sceneId = this.sceneId ?? canvas?.scene?.id;
+        const scenePins = sceneId ? (PinManager.list({ sceneId, includeHiddenByFilter: true }) || []) : [];
+        const typeTagCounts = new Map();   // 'moduleId|type|tag' → count
+        const typeCounts = new Map();      // 'moduleId|type' → count
+        for (const p of scenePins) {
+            const typeKey = `${p.moduleId}|${p.type || 'default'}`;
+            typeCounts.set(typeKey, (typeCounts.get(typeKey) || 0) + 1);
+            for (const tag of (p.tags || [])) {
+                const k = `${typeKey}|${tag}`;
+                typeTagCounts.set(k, (typeTagCounts.get(k) || 0) + 1);
             }
-            return `<button type="button"
-                class="blacksmith-tag ${hidden ? 'is-hidden' : ''} ${count === 0 ? 'is-empty' : ''}"
-                data-action="toggleTag" data-tag="${esc(key)}"
-                title="${hidden ? 'Show' : 'Hide'} '${esc(key)}' (${count})">
-                ${esc(key)}<span class="blacksmith-pin-layers-tag-count">${count}</span>
-            </button>`;
-        }).join('');
+        }
+
+        const allTaxonomies = PinManager.getAllTaxonomies();
+        const globalTags = PinManager.getGlobalTaxonomyTags();
+
+        // Set of every tag covered by any taxonomy (for orphan detection)
+        const allTaxonomyTagSet = new Set(globalTags);
+        for (const types of Object.values(allTaxonomies)) {
+            for (const entry of Object.values(types)) {
+                for (const t of (entry.tags || [])) allTaxonomyTagSet.add(t);
+            }
+        }
+
+        const sections = [];
+
+        // Build a global scene-pin tag count (for global section)
+        const globalTagSceneCounts = new Map();
+        for (const p of scenePins) {
+            for (const tag of (p.tags || [])) {
+                globalTagSceneCounts.set(tag, (globalTagSceneCounts.get(tag) || 0) + 1);
+            }
+        }
+
+        // World registry orphan tags (not in any taxonomy) — used as the base for custom sections
+        const worldRegistry = PinManager.getTagRegistry();
+        const orphanRegistryTags = worldRegistry.filter(t => !allTaxonomyTagSet.has(t));
+
+        // GLOBAL group
+        if (globalTags.length) {
+            const chips = [...globalTags].sort().map(tag => {
+                const hidden = PinManager.isTagHidden(tag);
+                const count = globalTagSceneCounts.get(tag) ?? 0;
+                return this._buildTagChip({ tag, hidden, count, isCustom: false, managing, isGlobal: true });
+            }).join('');
+            sections.push(this._buildTaxonomyGroup({ label: 'Global', chips }));
+        }
+
+        // Per-type groups
+        for (const [moduleId, types] of Object.entries(allTaxonomies)) {
+            for (const [type, entry] of Object.entries(types)) {
+                const taxonomyTagSet = new Set(entry.tags || []);
+                const typeKey = `${moduleId}|${type}`;
+                const typeCount = typeCounts.get(typeKey) ?? null;
+
+                // Seed custom tags from orphan registry (count=0) so stripped tags stay visible
+                const customTagCounts = new Map();
+                for (const tag of orphanRegistryTags) customTagCounts.set(tag, 0);
+
+                // Overlay counts from current scene pins of this type
+                for (const p of scenePins) {
+                    if (p.moduleId !== moduleId || (p.type || 'default') !== (type || 'default')) continue;
+                    for (const tag of (p.tags || [])) {
+                        if (!taxonomyTagSet.has(tag)) customTagCounts.set(tag, (customTagCounts.get(tag) || 0) + 1);
+                    }
+                }
+
+                const predefinedChips = (entry.tags || []).map(tag => {
+                    const count = typeTagCounts.get(`${typeKey}|${tag}`) ?? 0;
+                    const hidden = PinManager.isTypeTagHidden(moduleId, type, tag);
+                    return this._buildTagChip({ tag, count, hidden, isCustom: false, managing, isGlobal: false, moduleId, type });
+                }).join('');
+
+                const customChips = [...customTagCounts.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([tag, count]) => {
+                    const hidden = PinManager.isTypeTagHidden(moduleId, type, tag);
+                    return this._buildTagChip({ tag, count, hidden, isCustom: true, managing, isGlobal: false, moduleId, type });
+                }).join('');
+
+                sections.push(this._buildTaxonomyGroup({ label: entry.label || type, count: typeCount, predefinedChips, customChips }));
+            }
+        }
+
+        // CUSTOM (orphan) group — registry tags not in any taxonomy (catch-all with total scene counts)
+        if (orphanRegistryTags.length) {
+            const chips = orphanRegistryTags.sort((a, b) => a.localeCompare(b)).map(tag => {
+                const hidden = PinManager.isTagHidden(tag);
+                const count = globalTagSceneCounts.get(tag) ?? 0;
+                return this._buildTagChip({ tag, hidden, count, isCustom: true, managing, isGlobal: true });
+            }).join('');
+            sections.push(this._buildTaxonomyGroup({ label: 'Custom', chips }));
+        }
+
+        // GLOBAL PIN MANAGEMENT section (GM only)
+        let managementSection = '';
+        if (isGM) {
+            const typeButtons = Object.entries(allTaxonomies).flatMap(([moduleId, types]) =>
+                Object.entries(types).map(([type, entry]) =>
+                    `<button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-mgmt-btn"
+                        data-action="deleteCustomTypeTag"
+                        data-module-id="${esc(moduleId)}" data-type="${esc(type)}"
+                        title="Remove non-taxonomy tags from all ${esc(entry.label || type)} pins globally">
+                        <i class="fa-solid fa-trash"></i> Delete All ${esc(entry.label || type)} Custom Tags
+                    </button>`
+                )
+            ).join('');
+            managementSection = `
+                <div class="blacksmith-pin-layers-section-header">
+                    <i class="fa-solid fa-wrench"></i><span>Global Pin Management</span>
+                </div>
+                <div class="blacksmith-pin-layers-mgmt-actions">
+                    ${typeButtons || '<div class="blacksmith-pin-layers-empty">No pin types registered.</div>'}
+                </div>`;
+        }
+
+        const manageNote = managing
+            ? `<div class="blacksmith-pin-layers-manage-note"><i class="fa-solid fa-lock"></i> Taxonomy tags are protected. Only custom tags show <i class="fa-solid fa-xmark"></i> buttons.</div>`
+            : '';
 
         return `<div class="blacksmith-pin-layers-root">
             <div class="blacksmith-pin-layers-section-header blacksmith-pin-layers-section-header-first">
-                <i class="fa-solid fa-tag"></i><span>Categories</span>
-                <span class="blacksmith-pin-layers-tag-count">${allSummary.types.length}</span>
+                <i class="fa-solid fa-tags"></i><span>Taxonomy</span>
+                ${isGM ? `<button type="button" class="blacksmith-icon-action blacksmith-pin-layers-manage-tags ${managing ? 'is-active' : ''}" data-action="toggleTagManage" title="${managing ? 'Done managing' : 'Manage tags'}"><i class="fa-solid fa-pencil"></i></button>` : ''}
             </div>
-            <div class="blacksmith-pin-layers-list">
-                ${categoryRows || '<div class="blacksmith-pin-layers-empty">No pin categories on this scene.</div>'}
+            ${manageNote}
+            <div class="blacksmith-pin-layers-taxonomy-sections">
+                ${sections.join('') || '<div class="blacksmith-pin-layers-empty">No taxonomy registered.</div>'}
             </div>
-            <div class="blacksmith-pin-layers-section-header">
-                <i class="fa-solid fa-tags"></i><span>Tags</span>
-                <span class="blacksmith-pin-layers-tag-count">${allTagKeys.length}</span>
-                ${isGM ? `<button type="button" class="blacksmith-icon-action blacksmith-pin-layers-manage-tags ${managing ? 'is-active' : ''}" data-action="toggleTagManage" title="${managing ? 'Done managing tags' : 'Manage tags'}"><i class="fa-solid fa-pencil"></i></button>` : ''}
-            </div>
-            <div class="blacksmith-pin-layers-tag-cloud">
-                ${tagPills || '<div class="blacksmith-pin-layers-empty">No tags assigned yet.</div>'}
-            </div>
+            ${managementSection}
         </div>`;
+    }
+
+    _buildTaxonomyGroup({ label, count, chips, predefinedChips, customChips }) {
+        let body;
+        if (predefinedChips !== undefined || customChips !== undefined) {
+            const predefined = predefinedChips || '';
+            const custom = customChips || '';
+            body = `
+                <div class="blacksmith-pin-layers-taxonomy-subgroup">
+                    <div class="blacksmith-pin-layers-taxonomy-subgroup-label">Predefined</div>
+                    <div class="blacksmith-pin-layers-tag-cloud">
+                        ${predefined || '<span class="blacksmith-pin-layers-empty-inline">—</span>'}
+                    </div>
+                </div>
+                <div class="blacksmith-pin-layers-taxonomy-subgroup">
+                    <div class="blacksmith-pin-layers-taxonomy-subgroup-label">Custom</div>
+                    <div class="blacksmith-pin-layers-tag-cloud">
+                        ${custom || '<span class="blacksmith-pin-layers-empty-inline">—</span>'}
+                    </div>
+                </div>`;
+        } else {
+            body = `<div class="blacksmith-pin-layers-tag-cloud">
+                ${chips || '<span class="blacksmith-pin-layers-empty-inline">—</span>'}
+            </div>`;
+        }
+        return `<div class="blacksmith-pin-layers-taxonomy-group">
+            <div class="blacksmith-pin-layers-taxonomy-group-label">
+                <span>${esc(label)}</span>
+                ${count != null ? `<span class="blacksmith-pin-layers-tag-count">${count}</span>` : ''}
+            </div>
+            ${body}
+        </div>`;
+    }
+
+    _buildTagChip({ tag, count, hidden, isCustom, managing, isGlobal, moduleId, type }) {
+        if (managing && isCustom) {
+            const baseAttrs = isGlobal ? `data-tag="${esc(tag)}"` : `data-tag="${esc(tag)}" data-module-id="${esc(moduleId)}" data-type="${esc(type)}"`;
+            if (!isGlobal) {
+                // Type-scoped custom tag: strip from scene OR delete globally
+                return `<span class="blacksmith-tag blacksmith-tag-manage ${count === 0 ? 'is-empty' : ''}">
+                    ${esc(tag)}
+                    <button type="button" class="blacksmith-tag-delete" data-action="stripTypeTagFromScene" ${baseAttrs} title="Strip '${esc(tag)}' from pins on this scene"><i class="fa-solid fa-xmark"></i></button>
+                    <button type="button" class="blacksmith-tag-delete blacksmith-tag-delete-global" data-action="deleteTagChip" ${baseAttrs} title="Delete '${esc(tag)}' from all scenes globally"><i class="fa-solid fa-trash"></i></button>
+                </span>`;
+            }
+            return `<span class="blacksmith-tag blacksmith-tag-manage ${count === 0 ? 'is-empty' : ''}">
+                ${esc(tag)}<button type="button" class="blacksmith-tag-delete" data-action="deleteTagChip" ${baseAttrs} title="Delete '${esc(tag)}' globally"><i class="fa-solid fa-trash"></i></button>
+            </span>`;
+        }
+        if (managing) {
+            return `<span class="blacksmith-tag blacksmith-tag-protected ${hidden ? 'is-hidden' : ''} ${count === 0 ? 'is-empty' : ''}">
+                ${esc(tag)}${count != null ? `<span class="blacksmith-pin-layers-tag-count">${count}</span>` : ''}
+            </span>`;
+        }
+        const action = isGlobal ? 'toggleTag' : 'toggleTypeTag';
+        const attrs = isGlobal
+            ? `data-tag="${esc(tag)}"`
+            : `data-tag="${esc(tag)}" data-module-id="${esc(moduleId)}" data-type="${esc(type)}"`;
+        return `<button type="button"
+            class="blacksmith-tag ${hidden ? '' : 'active'} ${count === 0 ? 'is-empty' : ''}"
+            data-action="${action}" ${attrs}
+            title="${hidden ? 'Show' : 'Hide'} '${esc(tag)}'${count != null ? ` (${count})` : ''}">
+            ${esc(tag)}${count != null ? `<span class="blacksmith-pin-layers-tag-count">${count}</span>` : ''}
+        </button>`;
     }
 
     _buildBrowseBody(pins, totalPins) {
@@ -361,7 +512,9 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     _isPinHiddenByFilter(p) {
         if (PinManager.isGlobalHidden()) return true;
         if (PinManager.isModuleTypeHidden(p.moduleId, p.type)) return true;
-        if ((p.tags || []).some(t => PinManager.isTagHidden(t))) return true;
+        const tags = p.tags || [];
+        if (tags.some(t => PinManager.isTagHidden(t))) return true;
+        if (tags.some(t => PinManager.isTypeTagHidden(p.moduleId, p.type, t))) return true;
         return false;
     }
 
@@ -467,6 +620,15 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         }
         for (const tag of PinManager.getTagRegistry()) await PinManager.setTagHidden(tag, true);
         for (const entry of summary.tags) await PinManager.setTagHidden(entry.key, true);
+        // Hide all type-tag combos from the full taxonomy
+        const allTaxonomies = PinManager.getAllTaxonomies();
+        for (const [moduleId, types] of Object.entries(allTaxonomies)) {
+            for (const [type, entry] of Object.entries(types)) {
+                for (const tag of (entry.tags || [])) {
+                    await PinManager.setTypeTagHidden(moduleId, type, tag, true);
+                }
+            }
+        }
         await this.render(true);
     }
 
@@ -479,6 +641,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         }
         for (const tag of PinManager.getTagRegistry()) await PinManager.setTagHidden(tag, false);
         for (const entry of summary.tags) await PinManager.setTagHidden(entry.key, false);
+        await PinManager.clearTypeTagHiddenState();
         await this.render(true);
     }
 
@@ -652,6 +815,59 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         if (!confirmed) return;
         await PinManager.deleteTagGlobally(tag);
         ui.notifications?.info(`Deleted tag "${tag}" from all scenes.`);
+        await this.render(true);
+    }
+
+    async _toggleTypeTag(target) {
+        const tag = target?.dataset?.tag || '';
+        const moduleId = target?.dataset?.moduleId || '';
+        const type = target?.dataset?.type || 'default';
+        if (!tag || !moduleId) return;
+        await PinManager.setTypeTagHidden(moduleId, type, tag, !PinManager.isTypeTagHidden(moduleId, type, tag));
+        await this.render(true);
+    }
+
+    async _deleteCustomTypeTag(target) {
+        if (!game.user?.isGM) return;
+        const moduleId = target?.dataset?.moduleId || '';
+        const type = target?.dataset?.type || 'default';
+        if (!moduleId) return;
+        const taxonomy = PinManager.getPinTaxonomy(moduleId, type);
+        const label = taxonomy?.label || type;
+        const confirmed = await Dialog.confirm({
+            title: 'Delete Custom Tags',
+            content: `<p>Remove all non-taxonomy tags from <strong>${label}</strong> pins across all scenes?</p><p>Taxonomy-defined tags on these pins are preserved. This cannot be undone.</p>`,
+            yes: () => true, no: () => false, defaultYes: false
+        });
+        if (!confirmed) return;
+        const count = await PinManager.deleteCustomTagsForType(moduleId, type);
+        ui.notifications?.info(count > 0
+            ? `Removed ${count} custom tag instance${count !== 1 ? 's' : ''} from ${label} pins.`
+            : `No custom tags found on ${label} pins.`);
+        await this.render(true);
+    }
+
+    async _stripTypeTagFromScene(target) {
+        if (!game.user?.isGM) return;
+        const tag = target?.dataset?.tag || '';
+        const moduleId = target?.dataset?.moduleId || '';
+        const type = target?.dataset?.type || 'default';
+        if (!tag || !moduleId) return;
+        const sceneId = this.sceneId ?? canvas?.scene?.id;
+        if (!sceneId) return;
+        const taxonomy = PinManager.getPinTaxonomy?.(moduleId, type);
+        const label = taxonomy?.label || type;
+        const sceneName = game.scenes?.get(sceneId)?.name || 'this scene';
+        const confirmed = await Dialog.confirm({
+            title: 'Strip Tag From Scene',
+            content: `<p>Remove tag <strong>${tag}</strong> from all <strong>${label}</strong> pins on <strong>${sceneName}</strong>?</p><p>Pins are not deleted. This cannot be undone.</p>`,
+            yes: () => true, no: () => false, defaultYes: false
+        });
+        if (!confirmed) return;
+        const count = await PinManager.removeTagFromTypeOnScene(moduleId, type, tag, sceneId);
+        ui.notifications?.info(count > 0
+            ? `Stripped tag "${tag}" from ${count} pin${count !== 1 ? 's' : ''} on ${sceneName}.`
+            : `Tag "${tag}" was not found on any ${label} pins on ${sceneName}.`);
         await this.render(true);
     }
 }
