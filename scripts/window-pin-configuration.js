@@ -83,6 +83,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this.allowDuplicatePins = false;
         this.pinTags = [];
         this._updateAllMode = false;
+        this._updateAllTags = new Set();
         this._defaultMode = false;
     }
 
@@ -156,10 +157,12 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         if (!sceneId) return;
 
         const allPins = PinManager.list({ sceneId, includeHiddenByFilter: true }) || [];
+        const tagFilter = this._updateAllTags;
         const peers = allPins.filter(p =>
             p.id !== this.pinId &&
             p.moduleId === pin.moduleId &&
-            (p.type || 'default') === (pin.type || 'default')
+            (p.type || 'default') === (pin.type || 'default') &&
+            (tagFilter.size === 0 || (p.tags || []).some(t => tagFilter.has(t)))
         );
         if (peers.length === 0) { ui.notifications?.info('No other matching pins to update.'); return; }
 
@@ -198,9 +201,10 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         }
 
         const sectionNames = [...checked].join(', ');
+        const tagNote = tagFilter.size > 0 ? ` with tag${tagFilter.size !== 1 ? 's' : ''} <strong>${[...tagFilter].join(', ')}</strong>` : '';
         const confirmed = await Dialog.confirm({
             title: 'Update All Matching Pins',
-            content: `<p>Apply <strong>${sectionNames}</strong> to <strong>${peers.length}</strong> other matching pin${peers.length !== 1 ? 's' : ''} on this scene?</p>`
+            content: `<p>Apply <strong>${sectionNames}</strong> to <strong>${peers.length}</strong> other ${pin.type || 'default'} pin${peers.length !== 1 ? 's' : ''}${tagNote} on this scene?</p>`
         });
         if (!confirmed) return;
 
@@ -542,6 +546,20 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             soundOptions,
             eventAnimations,
             updateAllMode: this._updateAllMode,
+            updateAllTagList: (() => {
+                const sceneId = this.sceneId ?? canvas?.scene?.id;
+                if (!sceneId) return this.pinTags.map(t => ({ tag: t, selected: this._updateAllTags.has(t) }));
+                const allPins = PinManager.list({ sceneId, includeHiddenByFilter: true }) || [];
+                const allTags = new Set();
+                for (const p of allPins) {
+                    if (p.id === this.pinId) continue;
+                    if ((p.type || 'default') !== (pin.type || 'default')) continue;
+                    if (p.moduleId !== pin.moduleId) continue;
+                    for (const t of (p.tags || [])) allTags.add(t);
+                }
+                for (const t of this.pinTags) allTags.add(t);
+                return [...allTags].sort().map(t => ({ tag: t, selected: this._updateAllTags.has(t) }));
+            })(),
             defaultMode: this._defaultMode,
             pinVisibilityVisible: (pin.config?.blacksmithVisibility ?? 'visible') !== 'hidden',
             pinVisibilityHidden: pin.config?.blacksmithVisibility === 'hidden'
@@ -954,7 +972,24 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
 
         nativeHtml.querySelector('.blacksmith-pin-config-update-all-toggle')?.addEventListener('change', (e) => {
             this._updateAllMode = !!e.target.checked;
+            this._updateAllTags.clear();
+            if (this._updateAllMode) {
+                for (const t of this.pinTags) this._updateAllTags.add(t);
+            }
             this.render(true);
+        });
+
+        nativeHtml.querySelectorAll('.blacksmith-pin-config-update-all-tag').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const tag = chip.dataset.tag;
+                if (this._updateAllTags.has(tag)) {
+                    this._updateAllTags.delete(tag);
+                    chip.classList.remove('active');
+                } else {
+                    this._updateAllTags.add(tag);
+                    chip.classList.add('active');
+                }
+            });
         });
 
         nativeHtml.querySelector('.blacksmith-pin-config-default')?.addEventListener('change', (e) => {

@@ -312,7 +312,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 : '';
             const hasMeta = typeLabel || (p.tags && p.tags.length);
             const visState = p.config?.blacksmithVisibility || 'visible';
-            const visIcon = visState === 'hidden' ? 'fa-eye-slash' : 'fa-eye';
+            const visIcon = visState === 'hidden' ? 'fa-users-slash' : 'fa-users';
             const visTitle = visState === 'hidden' ? 'Player Visibility: Hidden — click to show' : 'Player Visibility: Visible — click to hide';
             const gmActions = isGM ? `
                 <button type="button" class="blacksmith-icon-action ${visState === 'hidden' ? '' : 'is-active'}"

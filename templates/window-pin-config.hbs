@@ -414,12 +414,24 @@
         <div class="blacksmith-window-template-action-bar">
             <div class="blacksmith-window-template-action-left">
                 {{#if isGM}}
-                <div class="blacksmith-toggle-row" data-tooltip="When saving, apply checked sections to all matching pins on this scene.">
-                    <label class="blacksmith-toggle">
-                        <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-update-all-toggle" {{#if updateAllMode}}checked{{/if}}>
-                        <span class="blacksmith-toggle-slider"></span>
-                    </label>
-                    <span class="blacksmith-toggle-label">Update All Canvas Pins for type: {{pinTypeLabel}}</span>
+                <div class="blacksmith-pin-config-update-all-wrap">
+                    <div class="blacksmith-toggle-row" data-tooltip="When saving, apply checked sections to all matching pins on this scene.">
+                        <label class="blacksmith-toggle">
+                            <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-update-all-toggle" {{#if updateAllMode}}checked{{/if}}>
+                            <span class="blacksmith-toggle-slider"></span>
+                        </label>
+                        <span class="blacksmith-toggle-label">Update All Canvas Pins for type: {{pinTypeLabel}}</span>
+                    </div>
+                    {{#if updateAllMode}}
+                    {{#if updateAllTagList.length}}
+                    <div class="blacksmith-pin-config-update-all-tags">
+                        <span class="blacksmith-pin-config-update-all-tags-label">Filter by tag:</span>
+                        {{#each updateAllTagList}}
+                        <button type="button" class="blacksmith-tag blacksmith-pin-config-update-all-tag {{#if this.selected}}active{{/if}}" data-tag="{{this.tag}}">{{this.tag}}</button>
+                        {{/each}}
+                    </div>
+                    {{/if}}
+                    {{/if}}
                 </div>
                 {{/if}}
             </div>

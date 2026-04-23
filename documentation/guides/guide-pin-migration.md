@@ -15,8 +15,9 @@ For the full method reference see [`api-pins.md`](../api/api-pins.md).
 | Player Visibility | New field (`config.blacksmithVisibility`) separate from ownership. `'visible'` (default) or `'hidden'`. Editable in Configure Pin > Permissions. Exposed in Browse view with a per-pin toggle. |
 | Context menu | "Delete All Pins" and "Delete All [Type] Pins" removed. "Visibility" renamed to "Player Visibility". Bulk delete is now in the Pin Layers action bar. |
 | Configure Pin — Permissions | "Allow Duplicates" moved from header into the Permissions section. Player Visibility dropdown added alongside ownership. Both are included in "Update All" (permissions section) and "Use as Default" (if Permissions section is checked). |
-| Configure Pin — action bar | "Update All [type] Pins" toggle moved to action bar left (was a header toggle). |
+| Configure Pin — action bar | "Update All [type] Pins" toggle moved to action bar left (was a header toggle). When active, a "Filter by tag:" chip row appears showing all tags used by same-type pins on the scene. Current pin's tags are pre-selected. Multiselect OR logic — type is always the first gate, tags narrow within it. |
 | Configure Pin — Use as Default | "Default for [type]" toggle now shows per-section checkboxes so you can choose which sections (Design, Text, Animations, Source, Classification, Permissions) are saved as the default. |
+| Browse view — Player Visibility icon | Per-pin Player Visibility button now uses `fa-users` / `fa-users-slash` instead of `fa-eye` / `fa-eye-slash` to avoid confusion with layer-level visibility controls. |
 | Window position persistence | All `BlacksmithWindowBaseV2` windows now save and restore their position and size via `localStorage`. No code changes needed in subclasses. |
 
 ---

@@ -78,8 +78,8 @@
     },
     "coffee-pub-artificer": {
       "pinCategories": {
-        "habitat-pin": {
-          "label": "Habitat Pin",
+        "habitat-location": {
+          "label": "Habitat Location",
           "tags": [
             "mountain",
             "arctic",
@@ -95,10 +95,10 @@
             "hill"
           ]
         },
-        "component-pin": {
-          "label": "Component Pin",
+        "component-location": {
+          "label": "Component Location",
           "tags": [
-            "creature-part",
+            "creaturepart",
             "environmental",
             "essence",
             "gem",
@@ -106,8 +106,8 @@
             "plant"
           ]
         },
-        "harvesting-pin": {
-          "label": "Harvesting Pin",
+        "skill-location": {
+          "label": "Skill Pin",
           "tags": [
             "herbalism",
             "alchemy",

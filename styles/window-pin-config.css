@@ -294,6 +294,28 @@ div#blacksmith-pin-config .window-content {
     margin-bottom: 12px;
 }
 
+/* Update All — tag filter row */
+.blacksmith-pin-config-update-all-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.blacksmith-pin-config-update-all-tags {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding-left: 4px;
+}
+
+.blacksmith-pin-config-update-all-tags-label {
+    font-size: 11px;
+    color: rgba(210, 200, 170, 0.6);
+    white-space: nowrap;
+    margin-right: 2px;
+}
+
 /* Update All / Use as Default — section checkboxes in section headers */
 .blacksmith-pin-config-section-check,
 .blacksmith-pin-config-section-default-check {
