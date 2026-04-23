@@ -1,5 +1,7 @@
-2026/04/17-20:57:09.980 98bc Log #2833: 0 ops saved to Table #2834 OK
-2026/04/17-20:57:09.982 98bc Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-injuries/002833.log: OK
-2026/04/17-20:57:09.985 98bc Table #2833: 115 entries OK
-2026/04/17-20:57:09.991 98bc Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-injuries/MANIFEST-002846: OK
-2026/04/17-20:57:09.998 98bc **** Repaired leveldb C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-injuries; recovered 1 files; 107938 bytes. Some data may have been lost. ****
+2026/04/22-18:25:52.014 df08 Recovering log #2837
+2026/04/22-18:25:52.022 df08 Delete type=0 #2837
+2026/04/22-18:25:52.022 df08 Delete type=3 #2835
+2026/04/22-21:16:34.373 e7f4 Level-0 table #2843: started
+2026/04/22-21:16:34.373 e7f4 Level-0 table #2843: 0 bytes OK
+2026/04/22-21:16:34.375 e7f4 Delete type=0 #2841
+2026/04/22-21:16:34.377 e7f4 Manual compaction at level-0 from '!journal!AHcl2eLZo5VWNKCD' @ 72057594037927935 : 1 .. '!journal.pages!nIoXJWIEfIXqgzZY.uiGgsikWH1TfCkvz' @ 0 : 0; will stop at (end)

@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.6.3]
+
+### Added
+
+- **Journal toolbar — tag selector** (`ui-journal-pins.js`, `templates/toolbar-pins.hbs`, `styles/journal-pins.css`): A tag chip row now appears below the icon row in the journal "Pin Page" toolbar. Tags are populated from the registered `journal-pin` taxonomy (via `getPinTaxonomy`, not the global choice set) so only the relevant tags appear. Chips default to unchecked; multiple may be selected. Selected tags are collected and passed to `_ensurePin` / `_beginPlacement` on click.
+- **Journal toolbar — state restore on open** (`ui-journal-pins.js`): When a journal sheet opens or the active page changes, `_restoreBarState` looks up the page's linked pin and pre-selects the matching icon button and tag chips. Defaults the **narrative** tag chip when no saved state exists (new page or pin has no tags).
+
+### Fixed
+
+- **Journal toolbar — tag row too wide** (`ui-journal-pins.js`): `_populateTagChips` was calling `getPinTaxonomyChoices` which merges registered tags with every global tag ever used across all pins (narrative, backstory, encounter, etc. from other modules). Changed to `getPinTaxonomy` so only the `journal-pin` taxonomy tags are shown.
+- **Journal toolbar — selected tags not saved to existing pin** (`ui-journal-pins.js`): The `_ensurePin` update path (existing linked pin) only patched `text` and `image`, silently ignoring the user's tag selections. Fixed to include `tags` in the patch whenever `opts.selectedTags` is provided.
+- **Journal toolbar — icon row and tag row not visually connected** (`styles/journal-pins.css`): The outer bar was `display: flex` (row direction), placing the two rows side-by-side instead of stacked. Changed to `flex-direction: column`. The tag row now shares the same `--dnd5e-journal-header-background` as the icon row with complementary border-radius (`3px 3px 0 0` / `0 0 3px 3px`) so they render as one unified toolbar block.
+
+### Changed
+
+- **Journal toolbar — PIN PAGE button style** (`styles/journal-pins.css`): Button is now green (dark forest green background, light green text) to signal it as the primary action, rather than the neutral dark style used by passive controls.
+
+
 ## [13.6.2]
 
 ### Added

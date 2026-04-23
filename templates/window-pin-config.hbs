@@ -12,24 +12,10 @@
             </div>
             {{#if isGM}}
             <div class="window-note-header-controls">
-                <div class="blacksmith-toggle-row" data-tooltip="Allow multiple instances of this pin type to be placed on the same scene.">
-                    <span class="blacksmith-toggle-label">Duplicates</span>
-                    <label class="blacksmith-toggle">
-                        <input type="checkbox" id="blacksmith-pin-config-allow-duplicate" class="blacksmith-toggle-input blacksmith-pin-config-allow-duplicate" {{#if pinAllowDuplicatePins}}checked{{/if}}>
-                        <span class="blacksmith-toggle-slider"></span>
-                    </label>
-                </div>
                 <div class="blacksmith-toggle-row" data-tooltip="Save the current design as the default for this pin type. Applies to you only.">
-                    <span class="blacksmith-toggle-label">Default</span>
+                    <span class="blacksmith-toggle-label">Default for {{pinTypeLabel}}</span>
                     <label class="blacksmith-toggle">
                         <input type="checkbox" id="blacksmith-pin-config-default-toggle" class="blacksmith-toggle-input blacksmith-pin-config-default">
-                        <span class="blacksmith-toggle-slider"></span>
-                    </label>
-                </div>
-                <div class="blacksmith-toggle-row" data-tooltip="When saving, apply checked sections to all matching pins on this scene.">
-                    <span class="blacksmith-toggle-label">Update All</span>
-                    <label class="blacksmith-toggle">
-                        <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-update-all-toggle" {{#if updateAllMode}}checked{{/if}}>
                         <span class="blacksmith-toggle-slider"></span>
                     </label>
                 </div>
@@ -44,17 +30,32 @@
         <div class="blacksmith-window-section blacksmith-pin-config-permissions-section">
             <div class="blacksmith-window-section-header">{{#if updateAllMode}}<input type="checkbox" class="blacksmith-pin-config-section-check" data-section="permissions">{{/if}}<i class="fa-solid fa-shield-halved"></i> Permissions</div>
             <div class="blacksmith-window-section-body">
-                <div class="blacksmith-field" style="max-width: 280px;">
-                    <span class="blacksmith-field-label">Who can access this pin?</span>
-                    <select class="blacksmith-input blacksmith-pin-config-ownership-default">
-                        {{#each ownershipOptions}}
-                        <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-                        {{/each}}
-                    </select>
+                <div class="blacksmith-field-row">
+                    <div class="blacksmith-field">
+                        <span class="blacksmith-field-label">Who can access this pin?</span>
+                        <select class="blacksmith-input blacksmith-pin-config-ownership-default">
+                            {{#each ownershipOptions}}
+                            <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                            {{/each}}
+                        </select>
+                    </div>
+                    <div class="blacksmith-field">
+                        <span class="blacksmith-field-label">Player Visibility</span>
+                        <select class="blacksmith-input blacksmith-pin-config-player-visibility">
+                            <option value="visible" {{#if pinVisibilityVisible}}selected{{/if}}>Visible</option>
+                            <option value="hidden" {{#if pinVisibilityHidden}}selected{{/if}}>Hidden</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="blacksmith-pin-config-help">
-                    GM only (hidden): Only GMs see the pin. View: Players can see and click it (e.g. open journal). Edit: Players can also configure, move, or delete the pin.
+                {{#if isGM}}
+                <div class="blacksmith-toggle-row" style="margin-top: 10px;" data-tooltip="Allow multiple instances of this pin to be placed on the canvas at once.">
+                    <label class="blacksmith-toggle">
+                        <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-allow-duplicate" {{#if pinAllowDuplicatePins}}checked{{/if}}>
+                        <span class="blacksmith-toggle-slider"></span>
+                    </label>
+                    <span class="blacksmith-toggle-label">Allow Duplicates of this Pin on the Canvas</span>
                 </div>
+                {{/if}}
             </div>
         </div>
         {{/if}}
@@ -375,7 +376,17 @@
     {{!-- Footer --}}
     <section class="blacksmith-window-template-buttons">
         <div class="blacksmith-window-template-action-bar">
-            <div class="blacksmith-window-template-action-left"></div>
+            <div class="blacksmith-window-template-action-left">
+                {{#if isGM}}
+                <div class="blacksmith-toggle-row" data-tooltip="When saving, apply checked sections to all matching pins on this scene.">
+                    <label class="blacksmith-toggle">
+                        <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-update-all-toggle" {{#if updateAllMode}}checked{{/if}}>
+                        <span class="blacksmith-toggle-slider"></span>
+                    </label>
+                    <span class="blacksmith-toggle-label">Update All Canvas Pins for type: {{pinTypeLabel}}</span>
+                </div>
+                {{/if}}
+            </div>
             <div class="blacksmith-window-template-action-right">
                 <button type="button" class="blacksmith-window-btn-secondary cancel">
                     <i class="fa-solid fa-times"></i> Cancel

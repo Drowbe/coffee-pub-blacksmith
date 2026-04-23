@@ -43,8 +43,12 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         toggleType:    (_event, target) => _pinLayersWindowRef?._toggleType(target),
         toggleTag:       (_event, target) => _pinLayersWindowRef?._toggleTag(target),
         deleteType:      (_event, target) => _pinLayersWindowRef?._deleteType(target),
-        toggleTagManage: () => _pinLayersWindowRef?._toggleTagManage(),
-        deleteTagChip:   (_event, target) => _pinLayersWindowRef?._deleteTagChip(target)
+        toggleTagManage:       () => _pinLayersWindowRef?._toggleTagManage(),
+        deleteTagChip:         (_event, target) => _pinLayersWindowRef?._deleteTagChip(target),
+        deleteAllPins:         () => _pinLayersWindowRef?._deleteAllPins(),
+        configurePin:          (_event, target) => _pinLayersWindowRef?._configurePin(target),
+        deleteBrowsePin:       (_event, target) => _pinLayersWindowRef?._deleteBrowsePin(target),
+        setBrowsePinVisibility:(_event, target) => _pinLayersWindowRef?._setBrowsePinVisibility(target)
     };
 
     constructor(options = {}) {
@@ -226,6 +230,9 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 <button type="button" class="blacksmith-window-btn-secondary" data-action="refresh">
                     <i class="fa-solid fa-rotate"></i> Refresh
                 </button>
+                ${game.user?.isGM ? `<button type="button" class="blacksmith-window-btn-critical" data-action="deleteAllPins" title="Delete all pins on this scene">
+                    <i class="fa-solid fa-trash"></i> Delete All
+                </button>` : ''}
             `,
             actionBarRight: `
                 <button type="button" class="blacksmith-window-btn-secondary" data-action="hideAll">
@@ -291,6 +298,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     _buildBrowseBody(pins, totalPins) {
+        const isGM = !!game.user?.isGM;
         const pinRows = pins.map((p) => {
             const hidden = this._isPinHiddenByFilter(p);
             const typeLabel = PinManager.getPinTypeLabel(p.moduleId, p.type) || p.type || '';
@@ -303,6 +311,22 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 ? `<span class="blacksmith-tag blacksmith-tag-category ${typeHidden ? 'is-hidden' : ''}"><i class="fa-solid fa-layer-group"></i> ${esc(typeLabel)}</span>`
                 : '';
             const hasMeta = typeLabel || (p.tags && p.tags.length);
+            const visState = p.config?.blacksmithVisibility || 'visible';
+            const visIcon = visState === 'hidden' ? 'fa-eye-slash' : 'fa-eye';
+            const visTitle = visState === 'hidden' ? 'Player Visibility: Hidden — click to show' : 'Player Visibility: Visible — click to hide';
+            const gmActions = isGM ? `
+                <button type="button" class="blacksmith-icon-action ${visState === 'hidden' ? '' : 'is-active'}"
+                    data-action="setBrowsePinVisibility" data-pin-id="${esc(p.id)}" data-vis-state="${esc(visState)}" title="${visTitle}">
+                    <i class="fa-solid ${visIcon}"></i>
+                </button>
+                <button type="button" class="blacksmith-icon-action"
+                    data-action="configurePin" data-pin-id="${esc(p.id)}" title="Configure pin">
+                    <i class="fa-solid fa-cog"></i>
+                </button>
+                <button type="button" class="blacksmith-icon-action blacksmith-icon-action-danger"
+                    data-action="deleteBrowsePin" data-pin-id="${esc(p.id)}" title="Delete pin">
+                    <i class="fa-solid fa-trash"></i>
+                </button>` : '';
             return `
                 <div class="blacksmith-pin-layers-row ${hidden ? 'is-hidden' : ''}">
                     <div class="blacksmith-pin-layers-row-content">
@@ -312,6 +336,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                                 data-action="panToPin" data-pin-id="${esc(p.id)}" title="Pan to pin">
                                 <i class="fa-solid fa-location-crosshairs"></i>
                             </button>
+                            ${gmActions}
                         </div>
                         ${hasMeta ? `
                         <div class="blacksmith-pin-layers-row-submeta">
@@ -536,6 +561,51 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         if (!pinId) return;
         const api = game.modules.get(MODULE.ID)?.api?.pins;
         await api?.panTo?.(pinId, { sceneId: this.sceneId, ping: true });
+    }
+
+    async _deleteAllPins() {
+        const confirmed = await Dialog.confirm({
+            title: 'Delete All Pins',
+            content: '<p>Are you sure you want to delete <strong>ALL</strong> pins on this scene?</p><p>This action cannot be undone.</p>',
+            yes: () => true, no: () => false, defaultYes: false
+        });
+        if (!confirmed) return;
+        const count = await PinManager.deleteAll({ sceneId: this.sceneId });
+        ui.notifications?.info(`Deleted ${count} pin${count !== 1 ? 's' : ''}.`);
+        await this.render(true);
+    }
+
+    async _configurePin(target) {
+        const pinId = target?.dataset?.pinId || '';
+        if (!pinId) return;
+        const api = game.modules.get(MODULE.ID)?.api?.pins;
+        await api?.configure?.(pinId, { sceneId: this.sceneId });
+    }
+
+    async _deleteBrowsePin(target) {
+        const pinId = target?.dataset?.pinId || '';
+        if (!pinId) return;
+        const pin = PinManager.get(pinId);
+        const label = pin?.text || 'this pin';
+        const confirmed = await Dialog.confirm({
+            title: 'Delete Pin',
+            content: `<p>Delete <strong>${label}</strong>? This cannot be undone.</p>`,
+            yes: () => true, no: () => false, defaultYes: false
+        });
+        if (!confirmed) return;
+        await PinManager.delete(pinId);
+        await this.render(true);
+    }
+
+    async _setBrowsePinVisibility(target) {
+        const pinId = target?.dataset?.pinId || '';
+        const current = target?.dataset?.visState || 'visible';
+        if (!pinId) return;
+        const pin = PinManager.get(pinId);
+        if (!pin) return;
+        const next = current === 'hidden' ? 'visible' : 'hidden';
+        await PinManager.update(pinId, { config: { ...(pin.config || {}), blacksmithVisibility: next } });
+        await this.render(true);
     }
 
     async _toggleType(target) {

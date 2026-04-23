@@ -1,5 +1,7 @@
-2026/04/17-20:57:09.932 98bc Log #2877: 0 ops saved to Table #2878 OK
-2026/04/17-20:57:09.936 98bc Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-tables/002877.log: OK
-2026/04/17-20:57:09.937 98bc Table #2877: 263 entries OK
-2026/04/17-20:57:09.944 98bc Archiving C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-tables/MANIFEST-002890: OK
-2026/04/17-20:57:09.952 98bc **** Repaired leveldb C:\Users\drowb\AppData\Local\FoundryVTT\Data\modules\coffee-pub-blacksmith\packs\blacksmith-tables; recovered 1 files; 47939 bytes. Some data may have been lost. ****
+2026/04/22-18:25:51.995 c564 Recovering log #2881
+2026/04/22-18:25:52.002 c564 Delete type=0 #2881
+2026/04/22-18:25:52.002 c564 Delete type=3 #2879
+2026/04/22-21:16:34.362 e7f4 Level-0 table #2887: started
+2026/04/22-21:16:34.362 e7f4 Level-0 table #2887: 0 bytes OK
+2026/04/22-21:16:34.363 e7f4 Delete type=0 #2885
+2026/04/22-21:16:34.369 e7f4 Manual compaction at level-0 from '!folders!kOaw01a1lQdaYDrk' @ 72057594037927935 : 1 .. '!tables.results!lcAIOnaOk9X0Ln6m.wjnC7iMXGQrpwtYi' @ 0 : 0; will stop at (end)

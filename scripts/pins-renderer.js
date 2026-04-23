@@ -1023,7 +1023,7 @@ class PinDOMElement {
 
         if (game.user?.isGM) {
             coreItems.push({
-                name: 'Visibility',
+                name: 'Player Visibility',
                 icon: '<i class="fa-solid fa-eye"></i>',
                 submenu: [
                     {
@@ -1145,61 +1145,7 @@ class PinDOMElement {
             });
         }
         
-        // GM zone: bulk delete options (only when user is GM)
-        if (game.user?.isGM) {
-            const allPins = PinManager.list({ sceneId: canvas?.scene?.id, includeHiddenByFilter: true });
-            const pinTypes = new Set();
-            for (const pin of allPins) {
-                pinTypes.add(pin.type || 'default');
-            }
-            const currentPinType = pinData.type || 'default';
-            if (pinTypes.size > 0) {
-                gmItems.push({
-                    name: `Delete All "${currentPinType}" Pins`,
-                    icon: '<i class="fa-solid fa-trash-can"></i>',
-                    callback: async () => {
-                        try {
-                            const confirmed = await Dialog.confirm({
-                                title: 'Delete All Pins of Type',
-                                content: `<p>Are you sure you want to delete all pins of type "<strong>${currentPinType}</strong>" on this scene?</p><p>This action cannot be undone.</p>`,
-                                yes: () => true,
-                                no: () => false,
-                                defaultYes: false
-                            });
-                            if (confirmed) {
-                                const { PinManager } = await import('./manager-pins.js');
-                                const count = await PinManager.deleteAllByType(currentPinType);
-                                ui.notifications.info(`Deleted ${count} pin${count !== 1 ? 's' : ''} of type "${currentPinType}".`);
-                            }
-                        } catch (err) {
-                            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error deleting pins by type', err?.message || err, false, true);
-                        }
-                    }
-                });
-            }
-            gmItems.push({
-                name: 'Delete All Pins',
-                icon: '<i class="fa-solid fa-trash"></i>',
-                callback: async () => {
-                    try {
-                        const confirmed = await Dialog.confirm({
-                            title: 'Delete All Pins',
-                            content: '<p>Are you sure you want to delete <strong>ALL</strong> pins on this scene?</p><p>This action cannot be undone.</p>',
-                            yes: () => true,
-                            no: () => false,
-                            defaultYes: false
-                        });
-                        if (confirmed) {
-                            const { PinManager } = await import('./manager-pins.js');
-                            const count = await PinManager.deleteAll();
-                            ui.notifications.info(`Deleted ${count} pin${count !== 1 ? 's' : ''}.`);
-                        }
-                    } catch (err) {
-                        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error deleting all pins', err?.message || err, false, true);
-                    }
-                }
-            });
-        }
+        // GM zone reserved for future use
         
         const totalItems = moduleItems.length + coreItems.length + gmItems.length;
         if (totalItems > 0) {

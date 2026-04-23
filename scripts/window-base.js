@@ -86,6 +86,38 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
         apply('maxHeight', 'maxHeight');
     }
 
+    // ---- Position / size persistence ----------------------------------------
+
+    get _positionKey() {
+        return `blacksmith-win-pos-${this.constructor.name}`;
+    }
+
+    _saveWindowPosition() {
+        try {
+            const pos = this.position;
+            if (!pos || pos.left == null) return;
+            localStorage.setItem(this._positionKey, JSON.stringify({
+                left: pos.left, top: pos.top, width: pos.width, height: pos.height
+            }));
+        } catch (_) {}
+    }
+
+    _loadWindowPosition() {
+        try {
+            const raw = localStorage.getItem(this._positionKey);
+            return raw ? JSON.parse(raw) : null;
+        } catch (_) { return null; }
+    }
+
+    setPosition(position = {}) {
+        const result = super.setPosition(position);
+        clearTimeout(this._positionSaveTimer);
+        this._positionSaveTimer = setTimeout(() => this._saveWindowPosition(), 250);
+        return result;
+    }
+
+    // -------------------------------------------------------------------------
+
     _attachDelegationOnce() {
         this.constructor._ref = this;
         const Ctor = this.constructor;
@@ -114,6 +146,10 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
     async _onFirstRender(_context, options) {
         await super._onFirstRender?.(_context, options);
         this._attachDelegationOnce();
+        const saved = this._loadWindowPosition();
+        if (saved) {
+            requestAnimationFrame(() => this.setPosition(saved));
+        }
     }
 
     activateListeners(html) {

@@ -193,6 +193,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         }
         if (checked.has('permissions')) {
             partial.ownership = fullUpdateData.ownership;
+            if (fullUpdateData.config !== undefined) partial.config = fullUpdateData.config;
         }
 
         const sectionNames = [...checked].join(', ');
@@ -255,8 +256,9 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
 
     static formatIconLabel(iconClass) {
         if (!iconClass) return '';
-        const name = iconClass.split(' ').find(cls => cls.startsWith('fa-')) || iconClass;
-        return name.replace(/^fa-/, '').replace(/-/g, ' ');
+        const STYLE_PREFIXES = new Set(['fa-solid', 'fa-regular', 'fa-light', 'fa-thin', 'fa-duotone', 'fa-sharp', 'fa-brands', 'fa-kit']);
+        const name = iconClass.split(' ').find(cls => cls.startsWith('fa-') && !STYLE_PREFIXES.has(cls)) || iconClass;
+        return name.replace(/^fa-/, '');
     }
 
     /**
@@ -538,7 +540,9 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             deleteAnimationOptions,
             soundOptions,
             eventAnimations,
-            updateAllMode: this._updateAllMode
+            updateAllMode: this._updateAllMode,
+            pinVisibilityVisible: (pin.config?.blacksmithVisibility ?? 'visible') !== 'hidden',
+            pinVisibilityHidden: pin.config?.blacksmithVisibility === 'hidden'
         };
     }
 
@@ -972,6 +976,15 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                         pinUpdateData.ownership = { ...this._pinOwnership, default: defaultLevel };
                     }
                 }
+                const visSelect = nativeHtml.querySelector('.blacksmith-pin-config-player-visibility');
+                if (visSelect) {
+                    const { PinManager: PM } = await import('./manager-pins.js');
+                    const currentPin = PM.get(this.pinId, this.sceneId !== undefined ? { sceneId: this.sceneId } : {});
+                    pinUpdateData.config = {
+                        ...(currentPin?.config && typeof currentPin.config === 'object' ? currentPin.config : {}),
+                        blacksmithVisibility: visSelect.value === 'hidden' ? 'hidden' : 'visible'
+                    };
+                }
             }
 
             // For callback compat
@@ -1017,7 +1030,8 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                             ...configData.pinTextConfig,
                             allowDuplicatePins: !!allowDuplicateInput?.checked,
                             eventAnimations: pinUpdateData.eventAnimations,
-                            ...(pinUpdateData.ownership ? { ownership: foundry.utils.deepClone(pinUpdateData.ownership) } : {})
+                            ...(pinUpdateData.ownership ? { ownership: foundry.utils.deepClone(pinUpdateData.ownership) } : {}),
+                            ...(pinUpdateData.config ? { config: foundry.utils.deepClone(pinUpdateData.config) } : {})
                         };
                         const typeKey = this.pinType || 'default';
                         const compoundKey = `${this.moduleId}|${typeKey}`;
