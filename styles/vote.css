@@ -270,3 +270,41 @@
 	padding-right: 8px;
 	margin-bottom: 8px;
 }
+
+/* Leader tie-breaker — DialogV2 (Application V2) */
+.application.blacksmith-leader-tie-breaker .window-content {
+    font-family: var(--font-primary, Signika, sans-serif);
+    font-size: var(--font-size-14, 14px);
+}
+.application.blacksmith-leader-tie-breaker .blacksmith-tie-breaker-intro {
+    font-size: var(--font-size-14, 14px);
+    font-weight: 600;
+    margin: 0 0 0.65em 0;
+    line-height: 1.4;
+    color: var(--color-text-primary, #e0e0e0);
+}
+.application.blacksmith-leader-tie-breaker .form-group {
+    margin-bottom: 0.75em;
+}
+.application.blacksmith-leader-tie-breaker .form-group label {
+    display: block;
+    font-size: var(--font-size-13, 13px);
+    font-weight: 600;
+    margin-bottom: 0.35em;
+    color: var(--color-text-secondary, #c9c7c5);
+}
+.application.blacksmith-leader-tie-breaker select {
+    width: 100%;
+    max-width: 100%;
+}
+.application.blacksmith-leader-tie-breaker footer button,
+.application.blacksmith-leader-tie-breaker .window-footer button,
+.application.blacksmith-leader-tie-breaker .dialog-buttons button {
+    color: var(--color-text-primary, #f0f0e8);
+    font-weight: 600;
+}
+.application.blacksmith-leader-tie-breaker footer button i,
+.application.blacksmith-leader-tie-breaker .window-footer button i,
+.application.blacksmith-leader-tie-breaker .dialog-buttons button i {
+    color: inherit;
+}

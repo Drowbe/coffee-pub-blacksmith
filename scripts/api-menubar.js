@@ -3498,12 +3498,13 @@ class MenuBar {
             onClick: async () => {
                 if (!canClearPins) return;
                 try {
-                    const confirmed = await Dialog.confirm({
-                        title: 'Clear Pins',
+                    const confirmed = await foundry.applications.api.DialogV2.confirm({
+                        window: { title: 'Clear Pins' },
                         content: '<p>Are you sure you want to delete <strong>ALL</strong> pins on this scene?</p><p>This action cannot be undone.</p>',
-                        yes: () => true,
-                        no: () => false,
-                        defaultYes: false
+                        rejectClose: false,
+                        modal: true,
+                        yes: { default: false },
+                        no: { default: true }
                     });
                     if (!confirmed) return;
                     const count = await PinManager.deleteAll({ sceneId });
@@ -3523,12 +3524,13 @@ class MenuBar {
                 onClick: async () => {
                     if (!canClearPins) return;
                     try {
-                        const confirmed = await Dialog.confirm({
-                            title: 'Clear Pins by Type',
+                        const confirmed = await foundry.applications.api.DialogV2.confirm({
+                            window: { title: 'Clear Pins by Type' },
                             content: `<p>Are you sure you want to delete <strong>${entry.count}</strong> pin${entry.count !== 1 ? 's' : ''} of type "<strong>${entry.label}</strong>" on this scene?</p><p>This action cannot be undone.</p>`,
-                            yes: () => true,
-                            no: () => false,
-                            defaultYes: false
+                            rejectClose: false,
+                            modal: true,
+                            yes: { default: false },
+                            no: { default: true }
                         });
                         if (!confirmed) return;
                         const count = await PinManager.deleteAllByType(entry.type, { sceneId, moduleId: entry.moduleId });
@@ -3901,65 +3903,61 @@ class MenuBar {
 
 
 
-        // Create the dialog content
+        const DialogV2 = foundry.applications.api.DialogV2;
         const content = `
-            <form>
-                <div class="form-group">
-                    <label>Select Party Leader:</label>
-                    <select name="leader" id="leader-select">
-                        <option value="">None</option>
-                        ${characterEntries.map(entry => {
-                            const isCurrentLeader = this.currentLeader === entry.actor.name;
-                            const optLabel = entry.labelUser
-                                ? `${entry.actor.name} (${entry.labelUser.name})`
-                                : entry.actor.name;
-                            return `<option value="${entry.actor.id}|${entry.owner.id}" ${isCurrentLeader ? 'selected' : ''}>
-                                ${optLabel}
-                            </option>`;
-                        }).join('')}
-                    </select>
-                </div>
-            </form>
+            <div class="form-group">
+                <label>Select Party Leader:</label>
+                <select name="leader" id="leader-select">
+                    <option value="">None</option>
+                    ${characterEntries.map(entry => {
+                        const isCurrentLeader = this.currentLeader === entry.actor.name;
+                        const optLabel = entry.labelUser
+                            ? `${entry.actor.name} (${entry.labelUser.name})`
+                            : entry.actor.name;
+                        return `<option value="${entry.actor.id}|${entry.owner.id}" ${isCurrentLeader ? 'selected' : ''}>
+                            ${optLabel}
+                        </option>`;
+                    }).join('')}
+                </select>
+            </div>
         `;
 
-        // Show the dialog
-        new Dialog({
-            title: "Set Party Leader",
-            content: content,
-            buttons: {
-                set: {
-                    icon: '<i class="fas fa-check"></i>',
-                    label: "Set Leader",
-                    callback: async (html) => {
-                        // v13: Detect and convert jQuery to native DOM if needed
-                        let nativeDialogHtml = html;
-                        if (html && (html.jquery || typeof html.find === 'function')) {
-                            nativeDialogHtml = html[0] || html.get?.(0) || html;
-                        }
-                
-                        const leaderSelect = nativeDialogHtml.querySelector('#leader-select');
-                        const selectedValue = leaderSelect ? leaderSelect.value : '';
+        let leaderDlg;
+        leaderDlg = new DialogV2({
+            window: { title: 'Set Party Leader' },
+            position: { width: 400 },
+            content,
+            buttons: [
+                {
+                    action: 'cancel',
+                    label: 'Cancel',
+                    icon: 'fa-solid fa-xmark',
+                    callback: () => {
+                        void leaderDlg.close();
+                    }
+                },
+                {
+                    action: 'set',
+                    label: 'Set Leader',
+                    icon: 'fa-solid fa-check',
+                    default: true,
+                    callback: async (event, button, dialog) => {
+                        const leaderSelect = dialog.form?.querySelector('#leader-select');
+                        const selectedValue = leaderSelect?.value ?? '';
                         if (selectedValue) {
-  
                             const [actorId, userId] = selectedValue.split('|');
-                            // Send messages when selecting from dialog
                             await MenuBar.setNewLeader({ userId, actorId }, true);
                         } else {
-
-                            // Handle clearing the leader if none selected
                             await setSettingSafely(MODULE.ID, 'partyLeader', { userId: '', actorId: '' });
                             this.currentLeader = null;
                             await this.updateLeader(null);
                         }
+                        void dialog.close();
                     }
-                },
-                cancel: {
-                    icon: '<i class="fas fa-times"></i>',
-                    label: "Cancel"
                 }
-            },
-            default: "set"
-        }).render(true);
+            ]
+        });
+        await leaderDlg.render({ force: true });
     }
 
     static async loadLeader() {
@@ -4388,75 +4386,80 @@ class MenuBar {
             })
         ];
 
+        const DialogV2 = foundry.applications.api.DialogV2;
         const content = `
-            <form>
-                <div class="form-group">
-                    <label>Session Duration:</label>
-                    <div style="display: grid; gap: 10px;">
-                        <select name="duration-preset" id="duration-preset">
-                            ${durationOptions.map(opt =>
-                                `<option value="${opt.value}">${opt.label}</option>`
+            <div class="form-group">
+                <label>Session Duration:</label>
+                <div style="display: grid; gap: 10px;">
+                    <select name="duration-preset" id="duration-preset">
+                        ${durationOptions.map(opt =>
+                            `<option value="${opt.value}">${opt.label}</option>`
+                        ).join('')}
+                    </select>
+                    <div style="display: flex; gap: 10px;">
+                        <select name="hours" id="hours-select">
+                            ${Array.from({length: 9}, (_, i) =>
+                                `<option value="${i}" ${i === currentHours ? 'selected' : ''}>${i.toString().padStart(2, '0')} hours</option>`
                             ).join('')}
                         </select>
-                        <div style="display: flex; gap: 10px;">
-                            <select name="hours" id="hours-select">
-                                ${Array.from({length: 9}, (_, i) =>
-                                    `<option value="${i}" ${i === currentHours ? 'selected' : ''}>${i.toString().padStart(2, '0')} hours</option>`
-                                ).join('')}
-                            </select>
-                            <select name="minutes" id="minutes-select">
-                                ${[0, 30].map(i =>
-                                    `<option value="${i}" ${i === currentMinutes ? 'selected' : ''}>${i.toString().padStart(2, '0')} minutes</option>`
-                                ).join('')}
-                            </select>
-                        </div>
+                        <select name="minutes" id="minutes-select">
+                            ${[0, 30].map(i =>
+                                `<option value="${i}" ${i === currentMinutes ? 'selected' : ''}>${i.toString().padStart(2, '0')} minutes</option>`
+                            ).join('')}
+                        </select>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="set-default-duration" name="set-default-duration">
-                        Set as new default time
-                    </label>
-                </div>
-            </form>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="set-default-duration" name="set-default-duration">
+                    Set as new default time
+                </label>
+            </div>
         `;
 
-        new Dialog({
-            title: "Set Session Duration",
-            content: content,
-            buttons: {
-                set: {
-                    icon: '<i class="fas fa-check"></i>',
-                    label: "Set Timer",
-                    callback: async (html) => {
-                        let nativeDialogHtml = html;
-                        if (html && (html.jquery || typeof html.find === 'function')) {
-                            nativeDialogHtml = html[0] || html.get?.(0) || html;
-                        }
-                        const hoursSelect = nativeDialogHtml.querySelector('#hours-select');
-                        const minutesSelect = nativeDialogHtml.querySelector('#minutes-select');
-                        const presetSelect = nativeDialogHtml.querySelector('#duration-preset');
-                        const presetValue = presetSelect ? presetSelect.value : 'custom';
-                        const setDefaultCheckbox = nativeDialogHtml.querySelector('#set-default-duration');
-                        const setAsDefault = setDefaultCheckbox ? setDefaultCheckbox.checked : false;
+        let durationDlg;
+        durationDlg = new DialogV2({
+            window: { title: 'Set Session Duration' },
+            position: { width: 440 },
+            content,
+            buttons: [
+                {
+                    action: 'cancel',
+                    label: 'Cancel',
+                    icon: 'fa-solid fa-xmark',
+                    callback: () => {
+                        void durationDlg.close();
+                    }
+                },
+                {
+                    action: 'set',
+                    label: 'Set Timer',
+                    icon: 'fa-solid fa-check',
+                    default: true,
+                    callback: async (event, button, dialog) => {
+                        const root = dialog.form;
+                        const hoursSelect = root?.querySelector('#hours-select');
+                        const minutesSelect = root?.querySelector('#minutes-select');
+                        const presetSelect = root?.querySelector('#duration-preset');
+                        const presetValue = presetSelect?.value ?? 'custom';
+                        const setDefaultCheckbox = root?.querySelector('#set-default-duration');
+                        const setAsDefault = setDefaultCheckbox?.checked ?? false;
 
-                        let hours = parseInt(hoursSelect ? hoursSelect.value : '0');
-                        let minutes = parseInt(minutesSelect ? minutesSelect.value : '0');
+                        let hours = parseInt(hoursSelect?.value ?? '0', 10);
+                        let minutes = parseInt(minutesSelect?.value ?? '0', 10);
                         if (presetValue !== 'custom') {
-                            const total = parseInt(presetValue);
+                            const total = parseInt(presetValue, 10);
                             hours = Math.floor(total / 60);
                             minutes = total % 60;
                         }
                         await this._applyTimerDuration(hours, minutes, setAsDefault);
+                        void dialog.close();
                     }
-                },
-                cancel: {
-                    icon: '<i class="fas fa-times"></i>',
-                    label: "Cancel"
                 }
-            },
-            default: "set"
-        }).render(true);
+            ]
+        });
+        await durationDlg.render({ force: true });
     }
 
     static async showTimerEndTimeDialog() {
@@ -4478,57 +4481,65 @@ class MenuBar {
             })
         ];
 
+        const DialogV2 = foundry.applications.api.DialogV2;
         const content = `
-            <form>
-                <div class="form-group">
-                    <label>End Time:</label>
-                    <div style="display: grid; gap: 10px;">
-                        <select name="end-time-preset" id="end-time-preset">
-                            ${timeOptions.map(opt =>
-                                `<option value="${opt.value}">${opt.label}</option>`
-                            ).join('')}
+            <div class="form-group">
+                <label>End Time:</label>
+                <div style="display: grid; gap: 10px;">
+                    <select name="end-time-preset" id="end-time-preset">
+                        ${timeOptions.map(opt =>
+                            `<option value="${opt.value}">${opt.label}</option>`
+                        ).join('')}
+                    </select>
+                    <div style="display: flex; gap: 10px;">
+                        <select name="end-hour" id="end-hour">
+                            ${Array.from({length: 12}, (_, i) => {
+                                const h = i + 1;
+                                return `<option value="${h}" ${h === hour12Default ? 'selected' : ''}>${h}</option>`;
+                            }).join('')}
                         </select>
-                        <div style="display: flex; gap: 10px;">
-                            <select name="end-hour" id="end-hour">
-                                ${Array.from({length: 12}, (_, i) => {
-                                    const h = i + 1;
-                                    return `<option value="${h}" ${h === hour12Default ? 'selected' : ''}>${h}</option>`;
-                                }).join('')}
-                            </select>
-                            <select name="end-ampm" id="end-ampm">
-                                <option value="AM" ${ampmDefault === 'AM' ? 'selected' : ''}>AM</option>
-                                <option value="PM" ${ampmDefault === 'PM' ? 'selected' : ''}>PM</option>
-                            </select>
-                        </div>
+                        <select name="end-ampm" id="end-ampm">
+                            <option value="AM" ${ampmDefault === 'AM' ? 'selected' : ''}>AM</option>
+                            <option value="PM" ${ampmDefault === 'PM' ? 'selected' : ''}>PM</option>
+                        </select>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="set-default-endtime" name="set-default-endtime">
-                        Set as new default time
-                    </label>
-                </div>
-            </form>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="set-default-endtime" name="set-default-endtime">
+                    Set as new default time
+                </label>
+            </div>
         `;
 
-        new Dialog({
-            title: "Set End Time",
-            content: content,
-            buttons: {
-                set: {
-                    icon: '<i class="fas fa-check"></i>',
-                    label: "Set Timer",
-                    callback: async (html) => {
-                        let nativeDialogHtml = html;
-                        if (html && (html.jquery || typeof html.find === 'function')) {
-                            nativeDialogHtml = html[0] || html.get?.(0) || html;
-                        }
-                        const presetSelect = nativeDialogHtml.querySelector('#end-time-preset');
-                        const presetValue = presetSelect ? presetSelect.value : 'custom';
-                        const hourSelect = nativeDialogHtml.querySelector('#end-hour');
-                        const ampmSelect = nativeDialogHtml.querySelector('#end-ampm');
-                        const setDefaultCheckbox = nativeDialogHtml.querySelector('#set-default-endtime');
-                        const setAsDefault = setDefaultCheckbox ? setDefaultCheckbox.checked : false;
+        let endDlg;
+        endDlg = new DialogV2({
+            window: { title: 'Set End Time' },
+            position: { width: 440 },
+            content,
+            buttons: [
+                {
+                    action: 'cancel',
+                    label: 'Cancel',
+                    icon: 'fa-solid fa-xmark',
+                    callback: () => {
+                        void endDlg.close();
+                    }
+                },
+                {
+                    action: 'set',
+                    label: 'Set Timer',
+                    icon: 'fa-solid fa-check',
+                    default: true,
+                    callback: async (event, button, dialog) => {
+                        const root = dialog.form;
+                        const presetSelect = root?.querySelector('#end-time-preset');
+                        const presetValue = presetSelect?.value ?? 'custom';
+                        const hourSelect = root?.querySelector('#end-hour');
+                        const ampmSelect = root?.querySelector('#end-ampm');
+                        const setDefaultCheckbox = root?.querySelector('#set-default-endtime');
+                        const setAsDefault = setDefaultCheckbox?.checked ?? false;
                         let hour24 = 0;
                         let m = 0;
                         if (presetValue !== 'custom') {
@@ -4536,8 +4547,8 @@ class MenuBar {
                             hour24 = ph || 0;
                             m = pm || 0;
                         } else {
-                            const h12 = parseInt(hourSelect ? hourSelect.value : '12');
-                            const ampm = ampmSelect ? ampmSelect.value : 'AM';
+                            const h12 = parseInt(hourSelect?.value ?? '12', 10);
+                            const ampm = ampmSelect?.value ?? 'AM';
                             hour24 = h12 % 12;
                             if (ampm === 'PM') hour24 += 12;
                         }
@@ -4567,15 +4578,12 @@ class MenuBar {
 
                         await this.updateTimer(this.sessionEndTime, this.sessionStartTime, true);
                         this.updateTimerDisplay();
+                        void dialog.close();
                     }
-                },
-                cancel: {
-                    icon: '<i class="fas fa-times"></i>',
-                    label: "Cancel"
                 }
-            },
-            default: "set"
-        }).render(true);
+            ]
+        });
+        await endDlg.render({ force: true });
     }
 
     static async showTimerDialog() {
@@ -4596,61 +4604,65 @@ class MenuBar {
             currentMinutes = defaultMinutes % 60;
         }
 
+        const DialogV2 = foundry.applications.api.DialogV2;
         const content = `
-            <form>
-                <div class="form-group">
-                    <label>Session Duration:</label>
-                    <div style="display: flex; gap: 10px;">
-                        <select name="hours" id="hours-select">
-                            ${Array.from({length: 13}, (_, i) => 
-                                `<option value="${i}" ${i === currentHours ? 'selected' : ''}>${i.toString().padStart(2, '0')} hours</option>`
-                            ).join('')}
-                        </select>
-                        <select name="minutes" id="minutes-select">
-                            ${Array.from({length: 60}, (_, i) => 
-                                `<option value="${i}" ${i === currentMinutes ? 'selected' : ''}>${i.toString().padStart(2, '0')} minutes</option>`
-                            ).join('')}
-                        </select>
-                    </div>
+            <div class="form-group">
+                <label>Session Duration:</label>
+                <div style="display: flex; gap: 10px;">
+                    <select name="hours" id="hours-select">
+                        ${Array.from({length: 13}, (_, i) =>
+                            `<option value="${i}" ${i === currentHours ? 'selected' : ''}>${i.toString().padStart(2, '0')} hours</option>`
+                        ).join('')}
+                    </select>
+                    <select name="minutes" id="minutes-select">
+                        ${Array.from({length: 60}, (_, i) =>
+                            `<option value="${i}" ${i === currentMinutes ? 'selected' : ''}>${i.toString().padStart(2, '0')} minutes</option>`
+                        ).join('')}
+                    </select>
                 </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="set-default" name="set-default">
-                        Set as new default time
-                    </label>
-                </div>
-            </form>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="set-default" name="set-default">
+                    Set as new default time
+                </label>
+            </div>
         `;
 
-        new Dialog({
-            title: "Set Session Time",
-            content: content,
-            buttons: {
-                set: {
-                    icon: '<i class="fas fa-check"></i>',
-                    label: "Set Timer",
-                    callback: async (html) => {
-                        // v13: Detect and convert jQuery to native DOM if needed
-                        let nativeDialogHtml = html;
-                        if (html && (html.jquery || typeof html.find === 'function')) {
-                            nativeDialogHtml = html[0] || html.get?.(0) || html;
-                        }
-                        const hoursSelect = nativeDialogHtml.querySelector('#hours-select');
-                        const minutesSelect = nativeDialogHtml.querySelector('#minutes-select');
-                        const setDefaultCheckbox = nativeDialogHtml.querySelector('#set-default');
-                        const hours = parseInt(hoursSelect ? hoursSelect.value : '0');
-                        const minutes = parseInt(minutesSelect ? minutesSelect.value : '0');
-                        const setAsDefault = setDefaultCheckbox ? setDefaultCheckbox.checked : false;
-                        await this._applyTimerDuration(hours, minutes, setAsDefault);
+        let sessionDlg;
+        sessionDlg = new DialogV2({
+            window: { title: 'Set Session Time' },
+            position: { width: 440 },
+            content,
+            buttons: [
+                {
+                    action: 'cancel',
+                    label: 'Cancel',
+                    icon: 'fa-solid fa-xmark',
+                    callback: () => {
+                        void sessionDlg.close();
                     }
                 },
-                cancel: {
-                    icon: '<i class="fas fa-times"></i>',
-                    label: "Cancel"
+                {
+                    action: 'set',
+                    label: 'Set Timer',
+                    icon: 'fa-solid fa-check',
+                    default: true,
+                    callback: async (event, button, dialog) => {
+                        const root = dialog.form;
+                        const hoursSelect = root?.querySelector('#hours-select');
+                        const minutesSelect = root?.querySelector('#minutes-select');
+                        const setDefaultCheckbox = root?.querySelector('#set-default');
+                        const hours = parseInt(hoursSelect?.value ?? '0', 10);
+                        const minutes = parseInt(minutesSelect?.value ?? '0', 10);
+                        const setAsDefault = setDefaultCheckbox?.checked ?? false;
+                        await this._applyTimerDuration(hours, minutes, setAsDefault);
+                        void dialog.close();
+                    }
                 }
-            },
-            default: "set"
-        }).render(true);
+            ]
+        });
+        await sessionDlg.render({ force: true });
     }
 
     // Helper method for sending chat messages

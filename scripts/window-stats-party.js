@@ -503,12 +503,13 @@ export class StatsWindow extends BlacksmithWindowBaseV2 {
             return;
         }
 
-        const confirmed = await Dialog.confirm({
-            title: 'Delete All Combat History',
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Delete All Combat History' },
             content: '<p>Are you sure you want to delete all combat history?</p><p>This will also clear all player statistics. This action cannot be undone.</p>',
-            yes: () => true,
-            no: () => false,
-            defaultYes: false
+            rejectClose: false,
+            modal: true,
+            yes: { default: false },
+            no: { default: true }
         });
 
         if (!confirmed) return;
@@ -535,12 +536,13 @@ export class StatsWindow extends BlacksmithWindowBaseV2 {
         const history = StatsAPI.combat.getCombatHistory() || [];
         const combatSummary = history.find(s => s.combatId === combatId);
 
-        const confirmed = await Dialog.confirm({
-            title: 'Delete Combat Entry',
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Delete Combat Entry' },
             content: `<p>Are you sure you want to delete this combat from history?</p><p>This will also remove this combat's contribution from all player statistics. This action cannot be undone.</p>`,
-            yes: () => true,
-            no: () => false,
-            defaultYes: false
+            rejectClose: false,
+            modal: true,
+            yes: { default: false },
+            no: { default: true }
         });
 
         if (!confirmed) return;
@@ -583,12 +585,13 @@ export class StatsWindow extends BlacksmithWindowBaseV2 {
             return;
         }
 
-        const confirmed = await Dialog.confirm({
-            title: 'Clear Player Statistics',
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Clear Player Statistics' },
             content: `<p>Are you sure you want to clear all statistics for <strong>${actor.name}</strong>?</p><p>This action cannot be undone.</p>`,
-            yes: () => true,
-            no: () => false,
-            defaultYes: false
+            rejectClose: false,
+            modal: true,
+            yes: { default: false },
+            no: { default: true }
         });
 
         if (!confirmed) return;
@@ -636,15 +639,16 @@ export class StatsWindow extends BlacksmithWindowBaseV2 {
                     return;
                 }
 
-                const confirmed = await Dialog.confirm({
-                    title: 'Import Statistics',
+                const confirmed = await foundry.applications.api.DialogV2.confirm({
+                    window: { title: 'Import Statistics' },
                     content: `<p>This will merge imported statistics with existing data.</p>
                               <p><strong>Combat History:</strong> ${imported.combatHistory?.length || 0} combat(s)</p>
                               <p><strong>Player Stats:</strong> ${imported.playerStats?.length || 0} player(s)</p>
                               <p>Continue with import?</p>`,
-                    yes: () => true,
-                    no: () => false,
-                    defaultYes: false
+                    rejectClose: false,
+                    modal: true,
+                    yes: { default: false },
+                    no: { default: true }
                 });
 
                 if (!confirmed) {

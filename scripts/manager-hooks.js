@@ -8,6 +8,8 @@ import { postConsoleAndNotification } from './api-core.js';
 export class HookManager {
     static hooks = new Map(); // hookName -> { hookId, callbacks: [], registeredAt }
     static contexts = new Map(); // context -> Set(callbackId)
+    /** @type {boolean} One-time console hint when remapping deprecated `renderChatMessage` */
+    static _didWarnRenderChatMessageRemap = false;
     
     /**
      * Generate unique callback ID
@@ -19,7 +21,7 @@ export class HookManager {
     /**
      * Register a hook with a callback
      * @param {Object} options - Hook registration options
-     * @param {string} options.name - FoundryVTT hook name
+     * @param {string} options.name - FoundryVTT hook name (`renderChatMessage` is remapped to `renderChatMessageHTML` on v13+)
      * @param {string} options.description - Optional description for debugging
      * @param {number} options.priority - Priority level (1-5, default: 3)
      * @param {Function} options.callback - Your callback function
@@ -28,9 +30,22 @@ export class HookManager {
      * @param {string} options.context - Optional context for batch cleanup
      * @returns {string} callbackId for cleanup
      */
-    static registerHook({ name, description = '', priority = 3, callback, options = {}, key, context }) {
+    static registerHook({ name: requestedHookName, description = '', priority = 3, callback, options = {}, key, context }) {
+        let name = requestedHookName;
         if (!name || typeof name !== 'string') {
             throw new Error(`HookManager: name must be a string for ${name}`);
+        }
+
+        // Foundry v13+: registering `renderChatMessage` attaches to a deprecated hook; remap silently (console only, once per session).
+        if (name === 'renderChatMessage') {
+            if (!HookManager._didWarnRenderChatMessageRemap) {
+                HookManager._didWarnRenderChatMessageRemap = true;
+                console.warn(
+                    `[${MODULE.ID}] HookManager: legacy hook "renderChatMessage" is registered as "renderChatMessageHTML" (Foundry v13+). ` +
+                    'Update registerHook({ name: "renderChatMessageHTML" }) in consumer modules (e.g. Squire, Crier, SCRIBE) to remove this warning.'
+                );
+            }
+            name = 'renderChatMessageHTML';
         }
         
         if (typeof callback !== 'function') {

@@ -127,34 +127,49 @@ export class VoteConfig extends BlacksmithWindowBaseV2 {
     }
 
     async createCustomVote() {
-        const dialog = new Dialog({
-            title: "Create Custom Vote",
-            content: `
-                <div class="form-group">
-                    <label>Vote Title:</label>
-                    <input type="text" name="title" placeholder="Enter vote title">
-                </div>
-                <div class="form-group">
-                    <label>Options (one per line):</label>
-                    <textarea name="options" rows="5" placeholder="Enter each option on a new line"></textarea>
-                </div>
-            `,
-            buttons: {
-                create: {
-                    icon: '<i class="fas fa-check"></i>',
-                    label: "Create Vote",
-                    callback: async (html) => {
-                        let nativeDialogHtml = html;
-                        if (html && (html.jquery || typeof html.find === 'function')) {
-                            nativeDialogHtml = html[0] || html.get?.(0) || html;
-                        }
-                        const titleInput = nativeDialogHtml.querySelector('[name="title"]');
-                        const optionsTextarea = nativeDialogHtml.querySelector('[name="options"]');
-                        const title = titleInput ? titleInput.value.trim() : '';
-                        const optionsText = optionsTextarea ? optionsTextarea.value.trim() : '';
+        const DialogV2 = foundry.applications.api.DialogV2;
+        const content = `
+            <div class="form-group">
+                <label>Vote Title:</label>
+                <input type="text" name="title" placeholder="Enter vote title">
+            </div>
+            <div class="form-group">
+                <label>Options (one per line):</label>
+                <textarea name="options" rows="5" placeholder="Enter each option on a new line"></textarea>
+            </div>
+        `;
+
+        const self = this;
+        let dlg;
+        dlg = new DialogV2({
+            window: { title: 'Create Custom Vote' },
+            position: { width: 420 },
+            content,
+            render: (_ev, dialog) => {
+                dialog.element?.querySelector?.('[name="title"]')?.focus?.();
+            },
+            buttons: [
+                {
+                    action: 'cancel',
+                    label: 'Cancel',
+                    icon: 'fa-solid fa-xmark',
+                    callback: () => {
+                        void dlg.close();
+                    }
+                },
+                {
+                    action: 'create',
+                    label: 'Create Vote',
+                    icon: 'fa-solid fa-check',
+                    default: true,
+                    callback: async (event, button, dialog) => {
+                        const form = dialog.form;
+                        if (!form) return;
+                        const title = (form.elements.title?.value ?? '').trim();
+                        const optionsText = (form.elements.options?.value ?? '').trim();
 
                         if (!title || !optionsText) {
-                            ui.notifications.warn("Please provide both a title and options.");
+                            ui.notifications.warn('Please provide both a title and options.');
                             return;
                         }
 
@@ -167,34 +182,20 @@ export class VoteConfig extends BlacksmithWindowBaseV2 {
                             }));
 
                         if (options.length < 2) {
-                            ui.notifications.warn("Please provide at least two options.");
+                            ui.notifications.warn('Please provide at least two options.');
                             return;
                         }
 
                         await VoteManager.startVote('custom', {
-                            title: title,
-                            options: options
+                            title,
+                            options
                         });
-                        this.close();
+                        void dialog.close();
+                        self.close();
                     }
-                },
-                cancel: {
-                    icon: '<i class="fas fa-times"></i>',
-                    label: "Cancel"
                 }
-            },
-            default: "create",
-            render: html => {
-                let nativeDialogHtml = html;
-                if (html && (html.jquery || typeof html.find === 'function')) {
-                    nativeDialogHtml = html[0] || html.get?.(0) || html;
-                }
-                const titleInput = nativeDialogHtml.querySelector('[name="title"]');
-                if (titleInput) {
-                    titleInput.focus();
-                }
-            }
+            ]
         });
-        dialog.render(true);
+        await dlg.render({ force: true });
     }
 }

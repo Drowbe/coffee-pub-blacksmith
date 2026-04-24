@@ -204,13 +204,13 @@ Hooks.once('ready', async () => {
         });
 
         const chatHookId = BlacksmithHookManager.registerHook({
-            name: 'renderChatMessage',
-            description: 'API TEST: Test hook for chat messages',
+            name: 'renderChatMessageHTML',
+            description: 'API TEST: Test hook for chat messages (v13+ HTMLElement)',
             context: 'api-test-chat',
             priority: 5,
             // BEGIN - HOOKMANAGER CALLBACK
-            callback: (message, html, data) => {
-                console.log('🟣 API TEST | BLACKSMITH TEST: Chat Message Rendered:', { message, data });
+            callback: (message, html, context) => {
+                console.log('🟣 API TEST | BLACKSMITH TEST: Chat Message Rendered:', { message, context });
                 BlacksmithUtils.postConsoleAndNotification(
                     TEST_MODULE_ID,
                     'API TEST | BLACKSMITH TEST: Chat message rendered!',
@@ -239,7 +239,7 @@ Hooks.once('ready', async () => {
         console.log('API TEST | ====  HOOK ACTIVATION TEST INSTRUCTIONS       ====');
         console.log('API TEST | ===================================================');
         console.log('API TEST | 1. Move a token to trigger updateToken hook.');
-        console.log('API TEST | 2. Send a chat message to trigger renderChatMessage hook.');
+        console.log('API TEST | 2. Send a chat message to trigger renderChatMessageHTML hook.');
         console.log('API TEST | 3. If you see logging, your hooks worked!');
         console.log('API TEST | ');
 

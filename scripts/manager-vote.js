@@ -293,80 +293,80 @@ export class VoteManager {
         // Get available character sources
         const sources = await this._getCharacterSources();
 
-        const dialog = new Dialog({
-            title: "Create Character Vote",
-            content: `
-                <form>
-                    <div class="form-group">
-                        <label>Vote Title:</label>
-                        <input type="text" name="title" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Description:</label>
-                        <textarea name="description" rows="3"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Character Source:</label>
-                        <select name="source" required>
-                            ${Object.entries(sources).map(([key, source]) =>
-                                source.available ?
-                                `<option value="${key}">${source.label}</option>` :
-                                `<option value="${key}" disabled>${source.label} (${source.unavailableMessage || 'Not Available'})</option>`
-                            ).join('')}
-                        </select>
-                    </div>
-                </form>
-            `,
-            buttons: {
-                submit: {
-                    icon: '<i class="fas fa-check"></i>',
-                    label: "Create Vote",
-                    callback: async (html) => {
-                        // v13: Detect and convert jQuery to native DOM if needed
-                        let nativeDialogHtml = html;
-                        if (html && (html.jquery || typeof html.find === 'function')) {
-                            nativeDialogHtml = html[0] || html.get?.(0) || html;
-                        }
-                        const form = nativeDialogHtml.querySelector('form');
+        const DialogV2 = foundry.applications.api.DialogV2;
+        const content = `
+            <div class="form-group">
+                <label>Vote Title:</label>
+                <input type="text" name="title" required>
+            </div>
+            <div class="form-group">
+                <label>Description:</label>
+                <textarea name="description" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Character Source:</label>
+                <select name="source" required>
+                    ${Object.entries(sources).map(([key, source]) =>
+                        source.available ?
+                        `<option value="${key}">${source.label}</option>` :
+                        `<option value="${key}" disabled>${source.label} (${source.unavailableMessage || 'Not Available'})</option>`
+                    ).join('')}
+                </select>
+            </div>
+        `;
+
+        let dlg;
+        dlg = new DialogV2({
+            window: { title: 'Create Character Vote' },
+            position: { width: 420 },
+            content,
+            buttons: [
+                {
+                    action: 'cancel',
+                    label: 'Cancel',
+                    icon: 'fa-solid fa-xmark',
+                    callback: () => {
+                        void dlg.close();
+                    }
+                },
+                {
+                    action: 'submit',
+                    label: 'Create Vote',
+                    icon: 'fa-solid fa-check',
+                    default: true,
+                    callback: async (event, button, dialog) => {
+                        const form = button?.form ?? dialog.form;
                         if (!form) return;
-                        const titleInput = form.querySelector('[name="title"]');
-                        const descriptionInput = form.querySelector('[name="description"]');
-                        const sourceInput = form.querySelector('[name="source"]');
-                        const title = titleInput ? titleInput.value : '';
-                        const description = descriptionInput ? descriptionInput.value : '';
-                        const source = sourceInput ? sourceInput.value : '';
+                        const title = form.elements.title?.value ?? '';
+                        const description = form.elements.description?.value ?? '';
+                        const source = form.elements.source?.value ?? '';
 
                         if (!title) {
-                            ui.notifications.error("Please enter a title for the vote.");
+                            ui.notifications.error('Please enter a title for the vote.');
                             return;
                         }
 
                         const characters = await this._getCharactersFromSource(source);
                         if (!characters.length) {
-                            ui.notifications.error("No characters available from selected source.");
+                            ui.notifications.error('No characters available from selected source.');
                             return;
                         }
 
-                        // Start the vote with the gathered data
                         await this.startVote('characters', {
-                            title: title,
-                            description: description,
+                            title,
+                            description,
                             options: characters.map(char => ({
                                 id: char.id,
                                 name: char.name,
                                 img: char.img
                             }))
                         });
+                        void dialog.close();
                     }
-                },
-                cancel: {
-                    icon: '<i class="fas fa-times"></i>',
-                    label: "Cancel"
                 }
-            },
-            default: "submit"
+            ]
         });
-        dialog.render(true);
+        await dlg.render({ force: true });
     }
 
     /**
@@ -580,14 +580,22 @@ export class VoteManager {
         // Play completion sound
         playSound(window.COFFEEPUB?.SOUNDNOTIFICATION15, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
 
-        // Notify other clients
+        const pendingLeaderTieBreaker =
+            this.activeVote.type === 'leader' &&
+            Array.isArray(results.tiedWinners) &&
+            results.tiedWinners.length > 1 &&
+            !results.winner;
+
+        // Notify other clients (keep activeVote until GM resolves a leader tie — tie dialog opens after this)
         const socket = SocketManager.getSocket();
-        await socket.executeForOthers("receiveVoteClose", {
-            results: results
+        await socket.executeForOthers('receiveVoteClose', {
+            results,
+            pendingLeaderTieBreaker
         });
 
-        // Clear the active vote
-        this.activeVote = null;
+        if (!pendingLeaderTieBreaker) {
+            this.activeVote = null;
+        }
     }
 
     /**
@@ -665,68 +673,81 @@ export class VoteManager {
     static async _promptGMForTieBreaker(tiedCandidates) {
         if (!game.user.isGM) return;
 
-        const dialog = new Dialog({
-            title: "Leader Vote Tie",
-            content: `
-                <h3>There was a tie for leader. Please select the winner:</h3>
-                <div class="form-group">
-                    <select id="tie-breaker-select">
-                        ${tiedCandidates.map(c => {
-                            const character = this._getUserCharacter(c.id);
-                            const displayName = character ? character.name : c.name;
-                            return `<option value="${c.id}|${character ? character.id : ''}">${displayName}</option>`;
-                        }).join('')}
-                    </select>
-                </div>
-            `,
-            buttons: {
-                choose: {
-                    icon: '<i class="fas fa-crown"></i>',
-                    label: "Choose Leader",
-                    callback: async (html) => {
-                        // v13: Detect and convert jQuery to native DOM if needed
-                        let nativeDialogHtml = html;
-                        if (html && (html.jquery || typeof html.find === 'function')) {
-                            nativeDialogHtml = html[0] || html.get?.(0) || html;
-                        }
-                        const tieBreakerSelect = nativeDialogHtml.querySelector('#tie-breaker-select');
-                        const selectedValue = tieBreakerSelect ? tieBreakerSelect.value : '';
+        const DialogV2 = foundry.applications.api.DialogV2;
+        const content = `
+            <p class="blacksmith-tie-breaker-intro">There was a tie for leader. Please select the winner:</p>
+            <div class="form-group">
+                <label for="tie-breaker-select">Winner</label>
+                <select id="tie-breaker-select" name="tieBreaker">
+                    ${tiedCandidates.map(c => {
+                        const character = this._getUserCharacter(c.id);
+                        const displayName = character ? character.name : c.name;
+                        return `<option value="${c.id}|${character ? character.id : ''}">${displayName}</option>`;
+                    }).join('')}
+                </select>
+            </div>
+        `;
+
+        const dlg = new DialogV2({
+            classes: ['coffee-pub-blacksmith', 'blacksmith-leader-tie-breaker'],
+            window: { title: 'Leader Vote Tie' },
+            position: { width: 420 },
+            content,
+            buttons: [
+                {
+                    action: 'choose',
+                    label: 'Choose Leader',
+                    icon: 'fa-solid fa-crown',
+                    default: true,
+                    callback: async (event, button, dialog) => {
+                        // DialogV2: prefer the clicked button's owning form — dialog.form is often null here.
+                        const form = button?.form ?? dialog.form;
+                        const tieBreakerSelect = form?.querySelector?.('#tie-breaker-select')
+                            ?? dialog.element?.querySelector?.('#tie-breaker-select');
+                        const selectedValue = tieBreakerSelect?.value ?? '';
                         const [userId, actorId] = selectedValue.split('|');
 
-                        // Initialize results if they don't exist
-                        if (!this.activeVote.results) {
-                            this.activeVote.results = {};
+                        try {
+                            if (!VoteManager.activeVote) {
+                                postConsoleAndNotification(
+                                    MODULE.NAME,
+                                    'Leader tie-breaker: no active vote (state may have been cleared elsewhere).',
+                                    null,
+                                    false,
+                                    false
+                                );
+                                return;
+                            }
+                            if (!VoteManager.activeVote.results) {
+                                VoteManager.activeVote.results = {};
+                            }
+                            VoteManager.activeVote.results.winner = { userId, actorId };
+
+                            await MenuBar.setNewLeader({ userId, actorId }, true);
+                            await VoteManager._updateVoteMessage();
+
+                            VoteManager.activeVote.isActive = false;
+                            VoteManager.activeVote.endTime = Date.now();
+
+                            playSound(window.COFFEEPUB?.SOUNDNOTIFICATION15, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+
+                            const socket = SocketManager.getSocket();
+                            await socket.executeForOthers('receiveVoteClose', {
+                                results: VoteManager.activeVote.results
+                            });
+
+                            VoteManager.activeVote = null;
+                        } catch (err) {
+                            postConsoleAndNotification(MODULE.NAME, 'Leader tie-breaker failed', err, false, true);
+                            ui.notifications.error('Could not apply tie-breaker. See console for details.');
+                        } finally {
+                            void dialog.close();
                         }
-                        this.activeVote.results.winner = { userId, actorId };
-
-                        // Set the leader
-                        await MenuBar.setNewLeader({ userId, actorId }, true);
-
-                        // Update the vote message to show final results
-                        await this._updateVoteMessage();
-
-                        // Close the vote after tie-breaker selection
-                        // Mark vote as inactive and set end time
-                        this.activeVote.isActive = false;
-                        this.activeVote.endTime = Date.now();
-
-                        // Play completion sound
-                        playSound(window.COFFEEPUB?.SOUNDNOTIFICATION15, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
-
-                        // Notify other clients
-                        const socket = SocketManager.getSocket();
-                        await socket.executeForOthers("receiveVoteClose", {
-                            results: this.activeVote.results
-                        });
-
-                        // Clear the active vote
-                        this.activeVote = null;
-                    },
-                },
-            },
-            default: "choose",
+                    }
+                }
+            ]
         });
-        dialog.render(true);
+        await dlg.render({ force: true });
     }
 
     /**
@@ -874,8 +895,9 @@ export class VoteManager {
             }
         }
 
-        // Clear the active vote
-        this.activeVote = null;
+        if (!data.pendingLeaderTieBreaker) {
+            this.activeVote = null;
+        }
     }
 
     /**

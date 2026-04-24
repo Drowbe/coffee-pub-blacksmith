@@ -95,24 +95,26 @@ export class CSSEditor extends BlacksmithWindowBaseV2 {
             });
         });
 
-        el.querySelector('.clear-button')?.addEventListener('click', () => {
-            if (this._getEditorValue().trim() !== '') {
-                Dialog.confirm({
-                    title: 'Clear CSS Editor',
-                    content: '<p>Are you sure you want to clear all CSS? This cannot be undone.</p>',
-                    yes: () => {
-                        if (this._cmEditor) {
-                            this._cmEditor.dispatch({
-                                changes: { from: 0, to: this._cmEditor.state.doc.length, insert: '' }
-                            });
-                        } else {
-                            const textarea = el.querySelector('textarea[name="css"]');
-                            if (textarea) textarea.value = '';
-                        }
-                        ui.notifications.info('CSS editor cleared');
-                    }
+        el.querySelector('.clear-button')?.addEventListener('click', async () => {
+            if (this._getEditorValue().trim() === '') return;
+            const confirmed = await foundry.applications.api.DialogV2.confirm({
+                window: { title: 'Clear CSS Editor' },
+                content: '<p>Are you sure you want to clear all CSS? This cannot be undone.</p>',
+                rejectClose: false,
+                modal: true,
+                yes: { default: false },
+                no: { default: true }
+            });
+            if (!confirmed) return;
+            if (this._cmEditor) {
+                this._cmEditor.dispatch({
+                    changes: { from: 0, to: this._cmEditor.state.doc.length, insert: '' }
                 });
+            } else {
+                const textarea = el.querySelector('textarea[name="css"]');
+                if (textarea) textarea.value = '';
             }
+            ui.notifications.info('CSS editor cleared');
         });
 
         el.querySelector('.world-button')?.addEventListener('click', () => {

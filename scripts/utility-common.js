@@ -756,18 +756,36 @@ export async function copyToClipboard(text) {
     } catch (error) {
         postConsoleAndNotification(MODULE.NAME, 'Legacy clipboard method failed', error, false, false);
     }
-    // Method 3: Show dialog with text for manual copying
-    new Dialog({
-        title: 'Copy to Clipboard',
-        content: `
-            <p>Automatic clipboard copy failed. Please manually copy the text below:</p>
-            <textarea style="width: 100%; height: 200px; margin-top: 10px;" readonly>${text}</textarea>
-        `,
-        buttons: {
-            close: {
-                label: 'Close'
+    // Method 3: Show dialog with text for manual copying (DialogV2; content built as DOM so the snippet is not interpreted as HTML)
+    const DialogV2 = foundry.applications.api.DialogV2;
+    const wrap = document.createElement('div');
+    const p = document.createElement('p');
+    p.textContent = 'Automatic clipboard copy failed. Please manually copy the text below:';
+    const ta = document.createElement('textarea');
+    ta.readOnly = true;
+    ta.style.width = '100%';
+    ta.style.height = '200px';
+    ta.style.marginTop = '10px';
+    ta.value = text;
+    wrap.appendChild(p);
+    wrap.appendChild(ta);
+
+    let dlg;
+    dlg = new DialogV2({
+        window: { title: 'Copy to Clipboard' },
+        position: { width: 480 },
+        content: wrap,
+        buttons: [
+            {
+                action: 'close',
+                label: 'Close',
+                default: true,
+                callback: () => {
+                    void dlg.close();
+                }
             }
-        }
-    }).render(true);
+        ]
+    });
+    void dlg.render({ force: true });
     return false;
 }

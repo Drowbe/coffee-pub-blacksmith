@@ -118,62 +118,55 @@ async function _showPlayerRequestMoveDialog(tokenDocument, changes, userId) {
         return;
     }
 
-    return new Promise((resolve) => {
-        let finished = false;
-        const finish = () => {
-            if (finished) return;
-            finished = true;
-            _playerRequestMoveDialogOpen = false;
-            resolve();
-        };
-        new Dialog({
-            title: 'Request move',
-            content:
-                '<p class="blacksmith-request-move-prompt" style="display:flex;gap:0.65em;align-items:flex-start;margin:0 0 0.25em 0">' +
-                '<i class="fa-solid fa-person-circle-question fa-2x" aria-hidden="true"></i>' +
-                '<span>Ask the GM to allow this move?</span></p>',
-            close: finish,
-            buttons: {
-                cancel: {
-                    icon: '<i class="fa-solid fa-xmark"></i>',
-                    label: 'Cancel',
-                    callback: () => finish()
-                },
-                requestMove: {
-                    icon: '<i class="fa-solid fa-person-circle-question"></i>',
-                    label: 'Request Move',
-                    callback: async () => {
-                        const socket = SocketManager.getSocket();
-                        if (typeof socket?.executeAsGM !== 'function') {
-                            ui.notifications.warn('No GM is connected to approve this move right now.');
-                            finish();
-                            return;
-                        }
-                        try {
-                            const requester = game.users.get(userId);
-                            const requesterName = requester?.name ?? 'A player';
-                            const tokenName = tokenDocument.name || tokenDocument.actor?.name || 'Token';
-                            const sceneId = tokenDocument.parent?.id ?? canvas.scene?.id;
-                            await socket.executeAsGM('movementRequestAskGM', {
-                                type: 'movementRequestAskGM',
-                                requestId: foundry.utils.randomID(),
-                                sceneId,
-                                tokenId: tokenDocument.id,
-                                updates: subset,
-                                requesterId: userId,
-                                requesterName,
-                                tokenName
-                            });
-                        } catch (e) {
-                            postConsoleAndNotification(MODULE.NAME, 'Movement request to GM failed', e?.message ?? e, false, true);
-                            ui.notifications.error('No GM was available to approve this move.');
-                        }
-                        finish();
+    const DialogV2 = foundry.applications.api.DialogV2;
+    return DialogV2.wait({
+        window: { title: 'Request move' },
+        content:
+            '<p class="blacksmith-request-move-prompt" style="display:flex;gap:0.65em;align-items:flex-start;margin:0 0 0.25em 0">' +
+            '<i class="fa-solid fa-person-circle-question fa-2x" aria-hidden="true"></i>' +
+            '<span>Ask the GM to allow this move?</span></p>',
+        rejectClose: false,
+        buttons: [
+            {
+                action: 'cancel',
+                label: 'Cancel',
+                icon: 'fa-solid fa-xmark',
+                default: true
+            },
+            {
+                action: 'requestMove',
+                label: 'Request Move',
+                icon: 'fa-solid fa-person-circle-question',
+                callback: async () => {
+                    const socket = SocketManager.getSocket();
+                    if (typeof socket?.executeAsGM !== 'function') {
+                        ui.notifications.warn('No GM is connected to approve this move right now.');
+                        return;
+                    }
+                    try {
+                        const requester = game.users.get(userId);
+                        const requesterName = requester?.name ?? 'A player';
+                        const tokenName = tokenDocument.name || tokenDocument.actor?.name || 'Token';
+                        const sceneId = tokenDocument.parent?.id ?? canvas.scene?.id;
+                        await socket.executeAsGM('movementRequestAskGM', {
+                            type: 'movementRequestAskGM',
+                            requestId: foundry.utils.randomID(),
+                            sceneId,
+                            tokenId: tokenDocument.id,
+                            updates: subset,
+                            requesterId: userId,
+                            requesterName,
+                            tokenName
+                        });
+                    } catch (e) {
+                        postConsoleAndNotification(MODULE.NAME, 'Movement request to GM failed', e?.message ?? e, false, true);
+                        ui.notifications.error('No GM was available to approve this move.');
                     }
                 }
-            },
-            default: 'cancel'
-        }).render(true);
+            }
+        ]
+    }).finally(() => {
+        _playerRequestMoveDialogOpen = false;
     });
 }
 
@@ -197,31 +190,19 @@ export async function handleMovementRequestAskGM(data) {
     const safeRequester = foundry.utils.escapeHTML(String(requesterName ?? 'A player'));
     const safeToken = foundry.utils.escapeHTML(String(tokenName ?? 'Token'));
 
-    new Dialog({
-        title: 'Token move request',
+    const DialogV2 = foundry.applications.api.DialogV2;
+    void DialogV2.wait({
+        window: { title: 'Token move request' },
         content:
             '<p class="blacksmith-request-move-gm" style="display:flex;gap:0.65em;align-items:flex-start;margin:0">' +
             '<i class="fa-solid fa-person-circle-question fa-2x" aria-hidden="true"></i>' +
             `<span>${safeRequester} wants to move <strong>${safeToken}</strong>. Allow?</span></p>`,
-        buttons: {
-            yes: {
-                icon: '<i class="fa-solid fa-check"></i>',
-                label: 'Yes',
-                callback: async () => {
-                    _gmApplyingApprovedRequestMove = true;
-                    try {
-                        await td.update(updates);
-                    } catch (e) {
-                        postConsoleAndNotification(MODULE.NAME, 'Approved move update failed', e?.message ?? e, false, true);
-                        ui.notifications.error('Could not apply that move.');
-                    } finally {
-                        _gmApplyingApprovedRequestMove = false;
-                    }
-                }
-            },
-            no: {
-                icon: '<i class="fa-solid fa-xmark"></i>',
+        rejectClose: false,
+        buttons: [
+            {
+                action: 'no',
                 label: 'No',
+                icon: 'fa-solid fa-xmark',
                 callback: async () => {
                     const socket = SocketManager.getSocket();
                     const msg =
@@ -238,10 +219,26 @@ export async function handleMovementRequestAskGM(data) {
                         }
                     }
                 }
+            },
+            {
+                action: 'yes',
+                label: 'Yes',
+                icon: 'fa-solid fa-check',
+                default: true,
+                callback: async () => {
+                    _gmApplyingApprovedRequestMove = true;
+                    try {
+                        await td.update(updates);
+                    } catch (e) {
+                        postConsoleAndNotification(MODULE.NAME, 'Approved move update failed', e?.message ?? e, false, true);
+                        ui.notifications.error('Could not apply that move.');
+                    } finally {
+                        _gmApplyingApprovedRequestMove = false;
+                    }
+                }
             }
-        },
-        default: 'yes'
-    }).render(true);
+        ]
+    });
 }
 
 /**

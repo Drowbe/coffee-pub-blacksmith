@@ -709,9 +709,13 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const sceneId = this.sceneId ?? canvas?.scene?.id;
         if (!sceneId) return;
         const friendlyName = PinManager.getPinTypeLabel(moduleId, type) || type;
-        const confirmed = await Dialog.confirm({
-            title: 'Delete Pin Type',
-            content: `<p>Delete all <strong>${friendlyName}</strong> pins on this scene? This cannot be undone.</p>`
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Delete Pin Type' },
+            content: `<p>Delete all <strong>${friendlyName}</strong> pins on this scene? This cannot be undone.</p>`,
+            rejectClose: false,
+            modal: true,
+            yes: { default: false },
+            no: { default: true }
         });
         if (!confirmed) return;
         const count = await PinManager.deleteAllByType(type, { sceneId, moduleId });
@@ -727,10 +731,13 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     async _deleteAllPins() {
-        const confirmed = await Dialog.confirm({
-            title: 'Delete All Pins',
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Delete All Pins' },
             content: '<p>Are you sure you want to delete <strong>ALL</strong> pins on this scene?</p><p>This action cannot be undone.</p>',
-            yes: () => true, no: () => false, defaultYes: false
+            rejectClose: false,
+            modal: true,
+            yes: { default: false },
+            no: { default: true }
         });
         if (!confirmed) return;
         const count = await PinManager.deleteAll({ sceneId: this.sceneId });
@@ -750,10 +757,13 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         if (!pinId) return;
         const pin = PinManager.get(pinId);
         const label = pin?.text || 'this pin';
-        const confirmed = await Dialog.confirm({
-            title: 'Delete Pin',
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Delete Pin' },
             content: `<p>Delete <strong>${label}</strong>? This cannot be undone.</p>`,
-            yes: () => true, no: () => false, defaultYes: false
+            rejectClose: false,
+            modal: true,
+            yes: { default: false },
+            no: { default: true }
         });
         if (!confirmed) return;
         await PinManager.delete(pinId);
@@ -808,9 +818,13 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         if (!game.user?.isGM) return;
         const tag = target?.dataset?.tag;
         if (!tag) return;
-        const confirmed = await Dialog.confirm({
-            title: 'Delete Tag Globally',
-            content: `<p>Remove tag <strong>${tag}</strong> from all pins on all scenes? This cannot be undone.</p>`
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Delete Tag Globally' },
+            content: `<p>Remove tag <strong>${tag}</strong> from all pins on all scenes? This cannot be undone.</p>`,
+            rejectClose: false,
+            modal: true,
+            yes: { default: false },
+            no: { default: true }
         });
         if (!confirmed) return;
         await PinManager.deleteTagGlobally(tag);
@@ -834,10 +848,13 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         if (!moduleId) return;
         const taxonomy = PinManager.getPinTaxonomy(moduleId, type);
         const label = taxonomy?.label || type;
-        const confirmed = await Dialog.confirm({
-            title: 'Delete Custom Tags',
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Delete Custom Tags' },
             content: `<p>Remove all non-taxonomy tags from <strong>${label}</strong> pins across all scenes?</p><p>Taxonomy-defined tags on these pins are preserved. This cannot be undone.</p>`,
-            yes: () => true, no: () => false, defaultYes: false
+            rejectClose: false,
+            modal: true,
+            yes: { default: false },
+            no: { default: true }
         });
         if (!confirmed) return;
         const count = await PinManager.deleteCustomTagsForType(moduleId, type);
@@ -858,10 +875,13 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const taxonomy = PinManager.getPinTaxonomy?.(moduleId, type);
         const label = taxonomy?.label || type;
         const sceneName = game.scenes?.get(sceneId)?.name || 'this scene';
-        const confirmed = await Dialog.confirm({
-            title: 'Strip Tag From Scene',
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Strip Tag From Scene' },
             content: `<p>Remove tag <strong>${tag}</strong> from all <strong>${label}</strong> pins on <strong>${sceneName}</strong>?</p><p>Pins are not deleted. This cannot be undone.</p>`,
-            yes: () => true, no: () => false, defaultYes: false
+            rejectClose: false,
+            modal: true,
+            yes: { default: false },
+            no: { default: true }
         });
         if (!confirmed) return;
         const count = await PinManager.removeTagFromTypeOnScene(moduleId, type, tag, sceneId);
