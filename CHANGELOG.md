@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Request Roll cinematic button crash** (`window-skillcheck.js`): Fixed `TypeError: Cannot read properties of null (reading 'closest')` in cinematic roll button clicks by capturing `event.currentTarget` before async work and adding a null guard before calling `.closest(...)`.
 - **Async click handler hardening** (`window-skillcheck.js`, `manager-vote.js`, `window-vote-config.js`, `token-movement.js`): Added defensive `currentTarget` element guards in async UI handlers to prevent null/invalid-target runtime errors during delayed event flows.
+- **Token indicators persist after token delete** (`manager-token-indicators.js`): Added `deleteToken` cleanup to remove turn/target indicator graphics and purge deleted token IDs from indicator tracking sets/maps so stale rings never remain on canvas.
+- **Quick View overlays persist after token delete** (`utility-quickview.js`): Added `deleteToken` cleanup to remove tracked quickview overlays and hatch IDs for deleted tokens, then re-run visibility/overlay scheduling to keep the canvas clean.
 
 ### Changed
 

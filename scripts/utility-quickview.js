@@ -654,6 +654,23 @@ export class QuickViewUtility {
   }
 
   /**
+   * Remove a tracked overlay by token id (used when a token is deleted from the canvas).
+   * @param {string} tokenId
+   */
+  static _removeTokenOverlayById(tokenId) {
+    if (!tokenId) return;
+    const tracked = this._tokenOverlays.get(tokenId);
+    if (!tracked?.overlay) return;
+    try {
+      if (tracked.overlay.parent) tracked.overlay.parent.removeChild(tracked.overlay);
+      if (!tracked.overlay.destroyed) tracked.overlay.destroy({ children: true });
+    } catch {
+      /* ignore */
+    }
+    this._tokenOverlays.delete(tokenId);
+  }
+
+  /**
    * Remove all token overlays
    */
   static _hideAllTokens() {
@@ -783,6 +800,22 @@ export class QuickViewUtility {
       } catch {
         /* ignore */
       }
+    });
+
+    Hooks.on('deleteToken', (_scene, tokenData) => {
+      if (!this._isActive || !game.user.isGM) return;
+      const tokenId = tokenData?.id ?? tokenData?._id;
+      if (!tokenId) return;
+
+      this._tokenIdsNeedingHatch.delete(tokenId);
+      this._removeTokenOverlayById(tokenId);
+
+      try {
+        canvas.visibility?.restrictVisibility?.();
+      } catch {
+        /* ignore */
+      }
+      this._debouncedScheduleQuickViewTokens();
     });
 
     Hooks.on('controlToken', () => {

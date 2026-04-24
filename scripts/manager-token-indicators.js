@@ -73,6 +73,16 @@ export class TokenIndicatorManager {
             }
         });
 
+        this._hookIds.deleteToken = HookManager.registerHook({
+            name: 'deleteToken',
+            description: 'Token indicators: cleanup indicators for deleted tokens',
+            context: 'token-indicators',
+            priority: 3,
+            callback: (_scene, tokenData) => {
+                this._onTokenDeleted(tokenData);
+            }
+        });
+
         this._hookIds.targetToken = HookManager.registerHook({
             name: 'targetToken',
             description: 'Token indicators: update custom target indicators',
@@ -476,6 +486,22 @@ export class TokenIndicatorManager {
 
         if ((changes.x !== undefined || changes.y !== undefined) && this._targetedTokens.has(tokenId)) {
             this._updateTargetedIndicatorPosition(tokenId, changes);
+        }
+    }
+
+    static _onTokenDeleted(tokenData) {
+        const tokenId = tokenData?.id ?? tokenData?._id;
+        if (!tokenId) return;
+
+        if (tokenId === this._currentTurnTokenId) {
+            this._removeTurnIndicator();
+        }
+
+        this._removeTargetedRingsForToken(tokenId);
+        this._targetedTokens.delete(tokenId);
+
+        for (const set of this._targetsByUser.values()) {
+            set?.delete?.(tokenId);
         }
     }
 
