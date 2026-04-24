@@ -850,7 +850,8 @@ export class QuickViewUtility {
    */
   static _registerQuickViewKeybinding() {
     if (this._quickViewKeybindingRegistered || !game?.keybindings?.register) return;
-    const controlMod = typeof KeyboardManager !== 'undefined' && KeyboardManager?.MODIFIER_KEYS?.CONTROL;
+    const KM = foundry?.helpers?.interaction?.KeyboardManager;
+    const controlMod = KM?.MODIFIER_KEYS?.CONTROL;
     const modifiers = controlMod != null ? [controlMod] : ['Control'];
     try {
       const precedence =

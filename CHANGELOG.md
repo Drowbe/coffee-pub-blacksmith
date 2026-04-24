@@ -8,8 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.6.5]
 
+### Added
+
+- **Hide/Show UI — per-region controls** (`utility-core.js`, `settings.js`, `lang/en.json`): Replaced coarse “hide left / hide bottom” with five user toggles (Toolbar `#ui-left-column-1`, Scene Controls `#ui-left-column-2`, Online Players `#players`, Macro Hotbar `#hotbar`, Floating Chat `#chat-notifications`). Hide/Show, **Apply on Load**, and the module hotkey only affect regions marked as included.
+- **Manage UI start menu** (`utility-core.js`): **Hide UI** / **Show UI** plus an **Options** submenu (Apply on Load and each **Include …** line). Mirrors the Canvas settings; `_uiSuppressed` keeps DOM in sync when include flags change from the settings sheet (`updateSetting` / `clientSettingChanged`).
+- **Toggle Hide/Show Interface keybinding** (`utility-core.js`): Registered on `init` for Configure Controls (default **Ctrl+U**), same pattern as Quickview.
+- **Start menu hotkey labels** (`utility-core.js`): **Hide UI** / **Show UI** and **GM Quickview On/Off** append the live shortcut from `game.keybindings.get()` (e.g. `Hide UI (ctrl + u)`). New helpers `getKeybindingDisplayLower`, localized Quickview menubar strings (`quickViewMenubar-StateOn` / `StateOff`).
+- **Nested menubar context menus** (`api-menubar.js`): `_mapMenubarContextMenuItem` maps submenus recursively so **Manage UI → Options** renders correctly.
+
 ### Fixed
 
+- **Deprecated global `KeyboardManager`** (`utility-core.js`, `utility-quickview.js`, `blacksmith.js`): Read `foundry.helpers.interaction.KeyboardManager` instead of the global shim (v13 deprecation warning).
 - **Request Roll cinematic button crash** (`window-skillcheck.js`): Fixed `TypeError: Cannot read properties of null (reading 'closest')` in cinematic roll button clicks by capturing `event.currentTarget` before async work and adding a null guard before calling `.closest(...)`.
 - **Async click handler hardening** (`window-skillcheck.js`, `manager-vote.js`, `window-vote-config.js`, `token-movement.js`): Added defensive `currentTarget` element guards in async UI handlers to prevent null/invalid-target runtime errors during delayed event flows.
 - **Token indicators persist after token delete** (`manager-token-indicators.js`): Added `deleteToken` cleanup to remove turn/target indicator graphics and purge deleted token IDs from indicator tracking sets/maps so stale rings never remain on canvas.
@@ -17,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Canvas settings copy** (`lang/en.json`): Canvas section hint documents Configure Controls for **Toggle Hide/Show Interface** and points users at the granular include toggles.
 - **Release packaging includes theme assets** (`.github/workflows/release.yml`): Added `themes/` to the release zip so Request Roll theme JSON, images, and sounds are shipped with tagged releases.
 - **Release packaging includes changelog file** (`.github/workflows/release.yml`): Added `CHANGELOG.md` to the release zip to match the `module.json` changelog reference.
 

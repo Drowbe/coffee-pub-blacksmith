@@ -7,6 +7,11 @@ import { MenuBar } from './api-menubar.js';
 import { PinManager } from './manager-pins.js';
 import { getSettingSafely } from './api-core.js';
 
+/** Foundry v13+: use namespaced class; global `KeyboardManager` is deprecated. */
+function _keyboardManager() {
+    return foundry?.helpers?.interaction?.KeyboardManager ?? null;
+}
+
 export class CoreUIUtility {
     /**
      * Foundry interface regions managed by Hide/Show UI (element id + user setting key).
@@ -144,7 +149,7 @@ export class CoreUIUtility {
             if (!Array.isArray(bindings) || bindings.length === 0) return '';
             const b = bindings[0];
             if (!b?.key) return '';
-            const KM = typeof KeyboardManager !== 'undefined' ? KeyboardManager : null;
+            const KM = _keyboardManager();
             const parts = [];
             for (const raw of b.modifiers || []) {
                 const sym = String(raw).toUpperCase();
@@ -323,7 +328,8 @@ export class CoreUIUtility {
     static registerInterfaceToggleKeybinding() {
         if (this._interfaceKeybindingRegistered || !game?.keybindings?.register) return;
         try {
-            const controlMod = typeof KeyboardManager !== 'undefined' && KeyboardManager?.MODIFIER_KEYS?.CONTROL;
+            const KM = _keyboardManager();
+            const controlMod = KM?.MODIFIER_KEYS?.CONTROL;
             const modifiers = controlMod != null ? [controlMod] : ['Control'];
             const precedence =
                 typeof CONST !== 'undefined' && CONST.KEYBINDING_PRECEDENCE_NORMAL !== undefined

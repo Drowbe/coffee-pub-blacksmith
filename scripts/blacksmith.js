@@ -1354,9 +1354,10 @@ const renderNoteConfigHookId = HookManager.registerHook({
         const intFontSize = 40;
         
         // Check if the Ctrl key is held down
-        ctrlKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.CONTROL);
-        shiftKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT);
-        altKeyActiveDuringRender = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT); 
+        const KM = foundry?.helpers?.interaction?.KeyboardManager;
+        ctrlKeyActiveDuringRender = !!(KM && game.keyboard.isModifierActive(KM.MODIFIER_KEYS.CONTROL));
+        shiftKeyActiveDuringRender = !!(KM && game.keyboard.isModifierActive(KM.MODIFIER_KEYS.SHIFT));
+        altKeyActiveDuringRender = !!(KM && game.keyboard.isModifierActive(KM.MODIFIER_KEYS.ALT)); 
 
         if (ctrlKeyActiveDuringRender) {
             strIconUrl = strIconUrlCrtl;
