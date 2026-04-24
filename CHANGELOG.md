@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.6.5]
+
+### Fixed
+
+- **Request Roll cinematic button crash** (`window-skillcheck.js`): Fixed `TypeError: Cannot read properties of null (reading 'closest')` in cinematic roll button clicks by capturing `event.currentTarget` before async work and adding a null guard before calling `.closest(...)`.
+- **Async click handler hardening** (`window-skillcheck.js`, `manager-vote.js`, `window-vote-config.js`, `token-movement.js`): Added defensive `currentTarget` element guards in async UI handlers to prevent null/invalid-target runtime errors during delayed event flows.
+
+### Changed
+
+- **Release packaging includes theme assets** (`.github/workflows/release.yml`): Added `themes/` to the release zip so Request Roll theme JSON, images, and sounds are shipped with tagged releases.
+- **Release packaging includes changelog file** (`.github/workflows/release.yml`): Added `CHANGELOG.md` to the release zip to match the `module.json` changelog reference.
+
+
 ## [13.6.4]
 
 ### Added

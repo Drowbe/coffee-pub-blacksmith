@@ -109,7 +109,9 @@ export class VoteManager {
                                 ui.notifications.warn("GMs cannot participate in voting.");
                                 return;
                             }
-                            const optionId = event.currentTarget.dataset.optionId;
+                            const currentTarget = event.currentTarget;
+                            if (!(currentTarget instanceof HTMLElement)) return;
+                            const optionId = currentTarget.dataset.optionId;
                             await VoteManager.castVote(game.user.id, optionId);
                         });
                     });

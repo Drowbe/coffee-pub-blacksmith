@@ -2433,11 +2433,13 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         const rollButtons = overlay.querySelectorAll('.cpb-cinematic-roll-btn, .cpb-cinematic-roll-mod-btn');
         rollButtons.forEach(btn => {
             btn.addEventListener('click', async (event) => {
+            const button = event.currentTarget;
+            if (!(button instanceof HTMLElement)) return;
             postConsoleAndNotification(MODULE.NAME, `Cinema mode: Dice button clicked`, { eventTarget: event.target }, true, false);
             const diceSound = await resolveRequestRollSound('SOUNDDICEROLL');
             if (diceSound) playSound(diceSound, COFFEEPUB.SOUNDVOLUMENORMAL);
-            const button = event.currentTarget;
             const card = button.closest('.cpb-cinematic-card');
+            if (!card) return;
             const tokenId = card.dataset.tokenId;
             const actorData = messageData.actors.find(a => a.id === tokenId);
             if (!actorData) return;
@@ -2563,6 +2565,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         htmlElement.querySelectorAll('.cpb-skill-roll').forEach((btn) => {
             btn.addEventListener('click', async (event) => {
                 const button = event.currentTarget;
+                if (!(button instanceof HTMLElement)) return;
                 const actorId = button.dataset.actorId;
                 const tokenId = button.dataset.tokenId;
                 const type = button.dataset.type || 'skill';

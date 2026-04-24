@@ -396,7 +396,9 @@ export class MovementConfig extends BlacksmithWindowBaseV2 {
 
         el.querySelectorAll('.movement-type').forEach(button => {
             button.addEventListener('click', async (event) => {
-                const movementId = event.currentTarget.dataset.movementId;
+                const currentTarget = event.currentTarget;
+                if (!(currentTarget instanceof HTMLElement)) return;
+                const movementId = currentTarget.dataset.movementId;
                 await this._handleMovementChange(movementId);
             });
         });
@@ -404,7 +406,9 @@ export class MovementConfig extends BlacksmithWindowBaseV2 {
         const spacingSlider = el.querySelector('.token-spacing-slider');
         if (spacingSlider) {
             const onSpacingChange = async (event) => {
-                const spacing = parseInt(event.currentTarget.value);
+                const currentTarget = event.currentTarget;
+                if (!(currentTarget instanceof HTMLInputElement)) return;
+                const spacing = parseInt(currentTarget.value);
                 await game.settings.set(MODULE.ID, 'tokenSpacing', spacing);
                 tokenSpacing = spacing;
                 const spacingValue = el.querySelector('.spacing-value');

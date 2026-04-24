@@ -39,6 +39,7 @@ jobs:
             module.json \
             LICENSE \
             README.md \
+            CHANGELOG.md \
             scripts/ \
             styles/ \
             templates/ \
@@ -50,6 +51,7 @@ jobs:
             resources/ \
             api/ \
             utilities/ \
+            themes/ \
             -x "*.git*" -x "*.github*" -x "*node_modules*" -x "*.vscode*"
 
       # Create release

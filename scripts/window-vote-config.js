@@ -94,7 +94,9 @@ export class VoteConfig extends BlacksmithWindowBaseV2 {
         nativeHtml.querySelectorAll('.vote-type').forEach(button => {
             button.addEventListener('click', async (event) => {
                 event.preventDefault();
-                const type = event.currentTarget.dataset.type;
+                const currentTarget = event.currentTarget;
+                if (!(currentTarget instanceof HTMLElement)) return;
+                const type = currentTarget.dataset.type;
 
                 if (type === 'leader' && !game.user.isGM) {
                     ui.notifications.warn("Only the GM can start leader votes.");
