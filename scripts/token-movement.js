@@ -947,10 +947,7 @@ const updateTokenHookId = HookManager.registerHook({
                 if (leaderMovementPath.length >= 2) {
                     const sortedFollowers = getSortedFollowers();
                     processFollowerMovement(movementContext.currentMovement, sortedFollowers);
-                    // Post marching order after movement completes (but NOT for conga mode)
-                    if (movementContext.currentMovement !== 'conga-movement') {
-                        calculateMarchingOrder(token, true, false);
-                    }
+                    // No per-move chat for Conga or Fastest Path (same as Conga: chat on mode change / setup paths only).
                 }
             }, 100);
             
@@ -1092,7 +1089,7 @@ async function processFollowMovement(sortedFollowers) {
 
             // Only check for status changes after all followers are processed and distances checked
             if (statusUpdateNeeded) {
-                await calculateMarchingOrder(leaderToken, true, false);
+                await calculateMarchingOrder(leaderToken, false, false);
             }
         return;
     }
