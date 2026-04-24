@@ -44,6 +44,12 @@ let marchingOrderJustCalculated = false;
 // Add this near the top with other state variables
 let previousMarchingOrder = null;
 
+/** While true, GM client is applying a player-approved request move (bypasses request-mode gate in preUpdateToken). */
+let _gmApplyingApprovedRequestMove = false;
+
+/** Player already has a move-request dialog open (avoid stacking). */
+let _playerRequestMoveDialogOpen = false;
+
 // Track scheduled timeouts so they can be cancelled during cleanup
 const scheduledTimeouts = new Set();
 
@@ -68,6 +74,186 @@ const STATUS = {
 
 // Distance threshold in grid units (60 feet = 12 grid units at 5ft/grid)
 // const DISTANCE_THRESHOLD = 12;
+
+/**
+ * Subset of token update fields that represent spatial movement for request-mode approval.
+ * @param {object} changes
+ * @returns {object}
+ */
+function extractMovementSubset(changes) {
+    if (!changes || typeof changes !== 'object') return {};
+    const keys = ['x', 'y', 'elevation', 'rotation', 'width', 'height'];
+    const out = {};
+    for (const k of keys) {
+        if (Object.prototype.hasOwnProperty.call(changes, k)) {
+            out[k] = foundry.utils.duplicate(changes[k]);
+        }
+    }
+    return out;
+}
+
+/**
+ * @param {TokenDocument} tokenDocument
+ * @param {object} changes
+ * @param {string} userId
+ */
+function queuePlayerRequestMoveDialog(tokenDocument, changes, userId) {
+    if (_playerRequestMoveDialogOpen) {
+        ui.notifications.info('Finish or cancel your pending move request before trying to move again.');
+        return;
+    }
+    _playerRequestMoveDialogOpen = true;
+    const run = () => void _showPlayerRequestMoveDialog(tokenDocument, changes, userId);
+    if (typeof queueMicrotask === 'function') queueMicrotask(run);
+    else setTimeout(run, 0);
+}
+
+/**
+ * Player confirms they want to ask the GM; forwards to the GM client for approval.
+ */
+async function _showPlayerRequestMoveDialog(tokenDocument, changes, userId) {
+    const subset = extractMovementSubset(changes);
+    if (!subset.x && !subset.y && !Object.prototype.hasOwnProperty.call(subset, 'elevation')) {
+        _playerRequestMoveDialogOpen = false;
+        return;
+    }
+
+    return new Promise((resolve) => {
+        let finished = false;
+        const finish = () => {
+            if (finished) return;
+            finished = true;
+            _playerRequestMoveDialogOpen = false;
+            resolve();
+        };
+        new Dialog({
+            title: 'Request move',
+            content:
+                '<p class="blacksmith-request-move-prompt" style="display:flex;gap:0.65em;align-items:flex-start;margin:0 0 0.25em 0">' +
+                '<i class="fa-solid fa-person-circle-question fa-2x" aria-hidden="true"></i>' +
+                '<span>Ask the GM to allow this move?</span></p>',
+            close: finish,
+            buttons: {
+                cancel: {
+                    icon: '<i class="fa-solid fa-xmark"></i>',
+                    label: 'Cancel',
+                    callback: () => finish()
+                },
+                requestMove: {
+                    icon: '<i class="fa-solid fa-person-circle-question"></i>',
+                    label: 'Request Move',
+                    callback: async () => {
+                        const socket = SocketManager.getSocket();
+                        if (typeof socket?.executeAsGM !== 'function') {
+                            ui.notifications.warn('No GM is connected to approve this move right now.');
+                            finish();
+                            return;
+                        }
+                        try {
+                            const requester = game.users.get(userId);
+                            const requesterName = requester?.name ?? 'A player';
+                            const tokenName = tokenDocument.name || tokenDocument.actor?.name || 'Token';
+                            const sceneId = tokenDocument.parent?.id ?? canvas.scene?.id;
+                            await socket.executeAsGM('movementRequestAskGM', {
+                                type: 'movementRequestAskGM',
+                                requestId: foundry.utils.randomID(),
+                                sceneId,
+                                tokenId: tokenDocument.id,
+                                updates: subset,
+                                requesterId: userId,
+                                requesterName,
+                                tokenName
+                            });
+                        } catch (e) {
+                            postConsoleAndNotification(MODULE.NAME, 'Movement request to GM failed', e?.message ?? e, false, true);
+                            ui.notifications.error('No GM was available to approve this move.');
+                        }
+                        finish();
+                    }
+                }
+            },
+            default: 'cancel'
+        }).render(true);
+    });
+}
+
+/**
+ * Runs on the GM client when a player submits a move request (via module socket).
+ * @param {object} data
+ */
+export async function handleMovementRequestAskGM(data) {
+    if (!game.user?.isGM) return;
+    if (data?.type !== 'movementRequestAskGM') return;
+    const { sceneId, tokenId, updates, requesterName, tokenName, requesterId } = data;
+    if (!sceneId || !tokenId || !updates) return;
+
+    const scene = game.scenes.get(sceneId);
+    const td = scene?.tokens.get(tokenId);
+    if (!td) {
+        ui.notifications.warn('Move request referred to a token that is no longer on that scene.');
+        return;
+    }
+
+    const safeRequester = foundry.utils.escapeHTML(String(requesterName ?? 'A player'));
+    const safeToken = foundry.utils.escapeHTML(String(tokenName ?? 'Token'));
+
+    new Dialog({
+        title: 'Token move request',
+        content:
+            '<p class="blacksmith-request-move-gm" style="display:flex;gap:0.65em;align-items:flex-start;margin:0">' +
+            '<i class="fa-solid fa-person-circle-question fa-2x" aria-hidden="true"></i>' +
+            `<span>${safeRequester} wants to move <strong>${safeToken}</strong>. Allow?</span></p>`,
+        buttons: {
+            yes: {
+                icon: '<i class="fa-solid fa-check"></i>',
+                label: 'Yes',
+                callback: async () => {
+                    _gmApplyingApprovedRequestMove = true;
+                    try {
+                        await td.update(updates);
+                    } catch (e) {
+                        postConsoleAndNotification(MODULE.NAME, 'Approved move update failed', e?.message ?? e, false, true);
+                        ui.notifications.error('Could not apply that move.');
+                    } finally {
+                        _gmApplyingApprovedRequestMove = false;
+                    }
+                }
+            },
+            no: {
+                icon: '<i class="fa-solid fa-xmark"></i>',
+                label: 'No',
+                callback: async () => {
+                    const socket = SocketManager.getSocket();
+                    const msg =
+                        'The GM wants to hold off on letting you move your token for now.';
+                    if (typeof socket?.executeForOthers === 'function') {
+                        try {
+                            await socket.executeForOthers('movementRequestDenied', {
+                                type: 'movementRequestDenied',
+                                requesterId,
+                                message: msg
+                            });
+                        } catch (e) {
+                            postConsoleAndNotification(MODULE.NAME, 'movementRequestDenied emit failed', e?.message ?? e, false, false);
+                        }
+                    }
+                }
+            }
+        },
+        default: 'yes'
+    }).render(true);
+}
+
+/**
+ * Non-GM clients: show denial when GM declined their move request.
+ * @param {object} data
+ */
+export function handleMovementRequestDenied(data) {
+    if (data?.type !== 'movementRequestDenied') return;
+    if (data.requesterId && data.requesterId === game.user?.id && data.message) {
+        ui.notifications.warn(String(data.message));
+    }
+}
 
 function scheduleTimeout(callback, delay) {
     const id = globalThis.setTimeout(() => {
@@ -354,33 +540,39 @@ export class MovementConfig extends BlacksmithWindowBaseV2 {
             MovementTypes: [
                 {
                     id: 'normal-movement',
-                    name: 'Free Movement',
+                    name: 'Wander',
                     description: 'All party members can move their tokens at will without limitations. Move wisely.',
                     icon: 'fa-person-walking',
                 },
                 {
                     id: 'no-movement',
-                    name: 'Movement Locked',
+                    name: 'Locked',
                     description: 'Movement is completly locked down for all party members.',
                     icon: 'fa-person-circle-xmark'
                 },
                 {
                     id: 'combat-movement',
-                    name: 'Combat Mode',
+                    name: 'Combat',
                     description: 'Movement is locked down while combat is active. Players can only move their tokens during their turn in combat.',
-                    icon: 'fa-swords'
+                    icon: 'fa-person-harassing'
                 },
                 {
                     id: 'conga-movement',
-                    name: 'Conga Movement',
+                    name: 'Conga',
                     description: 'The party leader moves freely while the ramaining party will follow the exact path set by the leader.',
                     icon: 'fa-people-pulling'
                 },
                 {
                     id: 'follow-movement',
-                    name: 'Fastest Path Movement',
+                    name: 'Fastest Path',
                     description: 'The party leader moves freely while the reamining party loosely follows them in line.',
-                    icon: 'fa-person-walking-arrow-right'
+                    icon: 'fa-person-running'
+                },
+                {
+                    id: 'request-movement',
+                    name: 'Request',
+                    description: 'When a party member moves their token, they will be prompted to get approval for the move by the GM.',
+                    icon: 'fa-person-circle-question'
                 }
             ].filter(type => !type.gmOnly || isGM)
         };
@@ -491,7 +683,7 @@ export class MovementConfig extends BlacksmithWindowBaseV2 {
         const movementIcon = document.querySelector('.movement-icon');
         const movementLabel = document.querySelector('.movement-label');
         
-        if (movementIcon) movementIcon.className = `fas ${movementType.icon} movement-icon`;
+        if (movementIcon) movementIcon.className = `fa-solid ${movementType.icon} movement-icon`;
         if (movementLabel) movementLabel.textContent = movementType.name;
 
         // Notify all users about the movement change
@@ -569,8 +761,8 @@ const preUpdateTokenHookId = HookManager.registerHook({
     priority: 2, // High priority - movement validation
     callback: (tokenDocument, changes, options, userId) => {
         //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-    // Skip if no position change
-    if (!changes.x && !changes.y) return true;
+    // Skip if no spatial change we care about (x/y/elevation/rotation/size)
+    if (Object.keys(extractMovementSubset(changes)).length === 0) return true;
 
     try {
         if (!game.settings.settings.get(`${MODULE.ID}.movementType`)) {
@@ -606,7 +798,7 @@ const preUpdateTokenHookId = HookManager.registerHook({
             }
             
             // Non-leader tokens can't be moved manually in conga/follow mode
-            ui.notifications.warn(`In ${currentMovement === 'conga-movement' ? 'Conga' : 'Follow'} mode, only the leader can move tokens freely. Other tokens will follow automatically.`);
+            ui.notifications.warn(`In ${currentMovement === 'conga-movement' ? 'Conga' : 'Fastest Path'} mode, only the leader can move tokens freely. Other tokens will follow automatically.`);
             return false;
         }
         
@@ -632,6 +824,18 @@ const preUpdateTokenHookId = HookManager.registerHook({
                 ui.notifications.warn("You can only move tokens during your turn in combat.");
                 return false;
             }
+        }
+
+        if (currentMovement === 'request-movement') {
+            const subset = extractMovementSubset(changes);
+            if (Object.keys(subset).length === 0) return true;
+            if (_gmApplyingApprovedRequestMove) return true;
+
+            const initiatingUser = game.users.get(userId);
+            if (initiatingUser?.isGM) return true;
+
+            queuePlayerRequestMoveDialog(tokenDocument, changes, userId);
+            return false;
         }
     } catch (err) {
         // Setting not registered yet, allowing movement
@@ -1407,9 +1611,9 @@ const createCombatHookId = HookManager.registerHook({
             const combatTemplateData = {
                 isPublic: true,
                 isMovementChange: true,
-                movementIcon: 'fa-swords',
-                movementLabel: 'Combat',
-                movementDescription: `When combat ends <strong>${prevModeType.name} Mode</strong> will be restored.<br><br>${combatModeType.description}`
+                movementIcon: combatModeType?.icon ?? 'fa-person-harassing',
+                movementLabel: combatModeType?.name ?? 'Combat',
+                movementDescription: `When combat ends <strong>${prevModeType.name}</strong> will be restored.<br><br>${combatModeType.description}`
             };
 
             const combatContent = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', combatTemplateData);
@@ -1423,8 +1627,8 @@ const createCombatHookId = HookManager.registerHook({
             const movementIcon = document.querySelector('.movement-icon');
             const movementLabel = document.querySelector('.movement-label');
             
-            if (movementIcon) movementIcon.className = 'fas fa-swords movement-icon';
-            if (movementLabel) movementLabel.textContent = 'Combat';
+            if (movementIcon) movementIcon.className = `fa-solid ${combatModeType?.icon ?? 'fa-person-harassing'} movement-icon`;
+            if (movementLabel) movementLabel.textContent = combatModeType?.name ?? 'Combat';
             
             // Notify other clients
             const socket = SocketManager.getSocket();
@@ -1499,7 +1703,7 @@ const deleteCombatHookId = HookManager.registerHook({
         const movementIcon = document.querySelector('.movement-icon');
         const movementLabel = document.querySelector('.movement-label');
         
-        if (movementIcon) movementIcon.className = `fas ${movementType.icon} movement-icon`;
+        if (movementIcon) movementIcon.className = `fa-solid ${movementType.icon} movement-icon`;
         if (movementLabel) movementLabel.textContent = movementType.name;
         
         // Notify other clients
@@ -1568,7 +1772,7 @@ const readyHookId = HookManager.registerHook({
                     const movementIcon = document.querySelector('.movement-icon');
                     const movementLabel = document.querySelector('.movement-label');
                     
-                    if (movementIcon) movementIcon.className = `fas ${movementType.icon} movement-icon`;
+                    if (movementIcon) movementIcon.className = `fa-solid ${movementType.icon} movement-icon`;
                     if (movementLabel) movementLabel.textContent = movementType.name;
                     
                     // Show notification

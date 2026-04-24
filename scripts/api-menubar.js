@@ -2876,7 +2876,7 @@ class MenuBar {
         if (mov) {
             const iconEl = rootEl.querySelector('.movement .movement-icon');
             const labelEl = rootEl.querySelector('.movement .movement-label');
-            if (iconEl && mov.icon) iconEl.className = `fas ${mov.icon} movement-icon`;
+            if (iconEl && mov.icon) iconEl.className = `fa-solid ${mov.icon} movement-icon`;
             if (labelEl && mov.name != null) labelEl.textContent = mov.name;
         }
         this.updateTimerDisplay();
@@ -2918,7 +2918,7 @@ class MenuBar {
             }
             // Check if movement type setting exists first
             let currentMovement = 'normal-movement';
-            let currentMovementData = { icon: 'fa-person-running', name: 'Free' };
+            let currentMovementData = { icon: 'fa-person-walking', name: 'Wander' };
             
             try {
                 // Only try to get the setting if it's registered
@@ -2926,11 +2926,12 @@ class MenuBar {
                     currentMovement = game.settings.get(MODULE.ID, 'movementType') || 'normal-movement';
                     
                     const movementTypes = {
-                        'normal-movement': { icon: 'fa-person-walking', name: 'Free' },
+                        'normal-movement': { icon: 'fa-person-walking', name: 'Wander' },
                         'no-movement': { icon: 'fa-person-circle-xmark', name: 'Locked' },
-                        'combat-movement': { icon: 'fa-swords', name: 'Combat' },
-                        'follow-movement': { icon: 'fa-person-walking-arrow-right', name: 'Follow' },
-                        'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' }
+                        'combat-movement': { icon: 'fa-person-harassing', name: 'Combat' },
+                        'follow-movement': { icon: 'fa-person-running', name: 'Fastest Path' },
+                        'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' },
+                        'request-movement': { icon: 'fa-person-circle-question', name: 'Request' }
                     };
                     
                     currentMovementData = movementTypes[currentMovement] || movementTypes['normal-movement'];
@@ -3870,7 +3871,7 @@ class MenuBar {
         items.push({ separator: true });
         items.push({
             name: `Token Spacing: ${spacing}`,
-            description: 'Controls the space between tokens in Conga and Follow modes.',
+            description: 'Controls the space between tokens in Conga and Fastest Path modes.',
             icon: 'fa-solid fa-people-arrows',
             submenu: [
                 { name: '0 Grid Units', icon: spacing === 0 ? 'fa-solid fa-check' : 'fa-solid fa-square', description: 'No spacing', callback: async () => {
@@ -4844,11 +4845,12 @@ class MenuBar {
         const currentMovement = game.settings.get(MODULE.ID, 'movementType') || 'normal-movement';
         
         const movementTypes = {
-            'normal-movement': { icon: 'fa-person-walking', name: 'Free' },
-            'no-movement': { icon: 'fa-person-circle-xmark', name: 'None' },
-            'combat-movement': { icon: 'fa-swords', name: 'Combat' },
-            'follow-movement': { icon: 'fa-person-walking-arrow-right', name: 'Follow' },
-            'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' }
+            'normal-movement': { icon: 'fa-person-walking', name: 'Wander' },
+            'no-movement': { icon: 'fa-person-circle-xmark', name: 'Locked' },
+            'combat-movement': { icon: 'fa-person-harassing', name: 'Combat' },
+            'follow-movement': { icon: 'fa-person-running', name: 'Fastest Path' },
+            'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' },
+            'request-movement': { icon: 'fa-person-circle-question', name: 'Request' }
         };
 
         const data = {

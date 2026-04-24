@@ -66,7 +66,7 @@
         </div>
         {{!-- MOVEMENT --}}
         <div class="button movement {{#if isGM}}button-active{{else}}tool-readonly{{/if}}" data-tooltip="{{#if isGM}}Change Party Movement{{else}}Only the GM can change movement{{/if}}" data-tool="movement">
-            <i class="fas {{currentMovement.icon}} movement-icon"></i>
+            <i class="fa-solid {{currentMovement.icon}} movement-icon"></i>
             <span class="movement-label">{{currentMovement.name}}</span>
         </div>
         {{!-- DYNAMIC RIGHT ZONE TOOLS (timer stays after this block — always rightmost) --}}

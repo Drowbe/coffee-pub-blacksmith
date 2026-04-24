@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Toggle Hide/Show Interface keybinding** (`utility-core.js`): Registered on `init` for Configure Controls (default **Ctrl+U**), same pattern as Quickview.
 - **Start menu hotkey labels** (`utility-core.js`): **Hide UI** / **Show UI** and **GM Quickview On/Off** append the live shortcut from `game.keybindings.get()` (e.g. `Hide UI (ctrl + u)`). New helpers `getKeybindingDisplayLower`, localized Quickview menubar strings (`quickViewMenubar-StateOn` / `StateOff`).
 - **Nested menubar context menus** (`api-menubar.js`): `_mapMenubarContextMenuItem` maps submenus recursively so **Manage UI → Options** renders correctly.
+- **Request movement mode** (`token-movement.js`, `manager-sockets.js`): New movement type **`request-movement`**. When a non-GM moves a token, a dialog asks whether to request approval (**Cancel** / **Request Move**); the GM gets an allow/deny prompt and approved moves are applied on the GM client (`_gmApplyingApprovedRequestMove` bypass in `preUpdateToken`). If the GM declines, the player is notified. Socket events **`movementRequestAskGM`** and **`movementRequestDenied`** are registered with dynamic `import('./token-movement.js')` so handlers stay on the GM / clients without circular imports.
 
 ### Fixed
 
@@ -26,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Token movement — labels, icons, and Request UX** (`token-movement.js`, `api-menubar.js`, `manager-sockets.js`, `templates/menubar.hbs`, `movement-window.hbs`, `cards-common.hbs`, `lang/en.json`): Modes renamed to **Wander**, **Locked**, **Combat**, **Conga**, and **Fastest Path** (replacing older “Free / Movement Locked / Combat Mode / Conga Movement / Fastest Path Movement” wording). Combat mode icon is **`fa-person-harassing`**; Fastest Path uses **`fa-person-running`**; **Request** uses **`fa-person-circle-question`**. Movement chips and config use **`fa-solid …`** for Font Awesome 6. **`preUpdateToken`** treats any `extractMovementSubset` change (position, elevation, rotation, size) as movement. Request dialogs show the question icon in the body; GM dialog uses the same icon treatment and **`fa-solid`** for Yes/No.
 - **Canvas settings copy** (`lang/en.json`): Canvas section hint documents Configure Controls for **Toggle Hide/Show Interface** and points users at the granular include toggles.
 - **Release packaging includes theme assets** (`.github/workflows/release.yml`): Added `themes/` to the release zip so Request Roll theme JSON, images, and sounds are shipped with tagged releases.
 - **Release packaging includes changelog file** (`.github/workflows/release.yml`): Added `CHANGELOG.md` to the release zip to match the `module.json` changelog reference.

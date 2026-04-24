@@ -4,7 +4,7 @@
             <div class="movement-type" data-movement-id="{{this.id}}">
                 <div class="movement-type-layout">
                     <div class="movement-type-icon">
-                        <i class="fas {{this.icon}}"></i>
+                        <i class="fa-solid {{this.icon}}"></i>
                     </div>
                     <div class="movement-type-content">
                         <div class="movement-type-name">{{this.name}}</div>
@@ -15,7 +15,7 @@
         {{/each}}
         <div class="spacing-control">
             <div class="spacing-label"><i class="fas fa-people-arrows"></i> Token Spacing: <span class="spacing-value">{{currentSpacing}}</span></div>
-            <div class="movement-description">Controls the space between tokens in Conga and Follow modes.</div>
+            <div class="movement-description">Controls the space between tokens in Conga and Fastest Path modes.</div>
             <input type="range" class="token-spacing-slider" min="0" max="2" value="{{currentSpacing}}" />
         </div>
 

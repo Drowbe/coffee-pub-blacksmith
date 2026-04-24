@@ -825,7 +825,7 @@
 				"movementType-Hint": "The current movement restriction type for all players",
 
 				"movementFollowDistanceThreshold-Label": "Follow Distance Threshold",
-				"movementFollowDistanceThreshold-Hint": "The number of tiles a token can be from the leader before it is considered too far away to be included in the Conga or Follow marching order. A best practice is to at least have as many tiles as the number of party tokens on the canvas.",
+				"movementFollowDistanceThreshold-Hint": "The number of tiles a token can be from the leader before it is considered too far away to be included in the Conga or Fastest Path marching order. A best practice is to at least have as many tiles as the number of party tokens on the canvas.",
 
 				"tokenSpacing-Label": "Token Spacing",
 				"tokenSpacing-Hint": "Number of grid spaces to maintain between tokens in formation",

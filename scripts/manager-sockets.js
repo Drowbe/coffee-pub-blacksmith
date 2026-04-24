@@ -378,6 +378,16 @@ class SocketManager {
         this.socket.register("receiveVoteUpdate", VoteManager.receiveVoteUpdate.bind(VoteManager));
         this.socket.register("receiveVoteClose", VoteManager.receiveVoteClose.bind(VoteManager));
 
+        // Token Movement — request-mode GM prompt (executeAsGM when available)
+        this.socket.register('movementRequestAskGM', async (data) => {
+            const { handleMovementRequestAskGM } = await import('./token-movement.js');
+            return handleMovementRequestAskGM(data);
+        });
+        this.socket.register('movementRequestDenied', async (data) => {
+            const { handleMovementRequestDenied } = await import('./token-movement.js');
+            handleMovementRequestDenied(data);
+        });
+
         // Token Movement
         this.socket.register("movementChange", (data) => {
             postConsoleAndNotification(MODULE.NAME, "SocketManager: Received movement change", data, false, false);
@@ -393,17 +403,18 @@ class SocketManager {
                     const movementLabel = document.querySelector('.movement-label');
                     
                     const movementTypes = {
-                        'normal-movement': { icon: 'fa-person-running', name: 'Free' },
+                        'normal-movement': { icon: 'fa-person-walking', name: 'Wander' },
                         'no-movement': { icon: 'fa-person-circle-xmark', name: 'Locked' },
-                        'combat-movement': { icon: 'fa-swords', name: 'Combat' },
-                        'follow-movement': { icon: 'fa-person-walking-arrow-right', name: 'Follow' },
-                        'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' }
+                        'combat-movement': { icon: 'fa-person-harassing', name: 'Combat' },
+                        'follow-movement': { icon: 'fa-person-running', name: 'Fastest Path' },
+                        'conga-movement': { icon: 'fa-people-pulling', name: 'Conga' },
+                        'request-movement': { icon: 'fa-person-circle-question', name: 'Request' }
                     };
                     
                     const newType = movementTypes[data.movementId];
                     if (newType) {
                         if (movementIcon) {
-                            movementIcon.className = `fas ${newType.icon} movement-icon`;
+                            movementIcon.className = `fa-solid ${newType.icon} movement-icon`;
                         }
                         if (movementLabel) {
                             movementLabel.textContent = newType.name;
