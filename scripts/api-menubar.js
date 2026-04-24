@@ -3344,35 +3344,39 @@ class MenuBar {
      * @param {number} y - clientY
      * @private
      */
-    static _showMenubarContextMenu(items, x, y) {
-        this._closeMenubarContextMenu();
-
-        const mapped = (items || []).map((item) => ({
+    /**
+     * Map menubar context menu item to UIContextMenu shape (recursive for nested submenus).
+     * @param {{ separator?: boolean, name?: string, icon?: string, description?: string, disabled?: boolean, onClick?: Function, submenu?: Array }} item
+     * @returns {object}
+     * @private
+     */
+    static _mapMenubarContextMenuItem(item) {
+        const hasSub = Array.isArray(item.submenu) && item.submenu.length > 0;
+        return {
             separator: !!item.separator,
             name: item.name,
             icon: item.icon,
             description: item.description,
             disabled: !!item.disabled,
-            callback: async () => {
-                if (typeof item.onClick === 'function') {
-                    try {
-                        await item.onClick();
-                    } catch (err) {
-                        postConsoleAndNotification(MODULE.NAME, 'Menubar context menu item error', err?.message || err, false, true);
+            submenu: hasSub ? item.submenu.map((sub) => MenuBar._mapMenubarContextMenuItem(sub)) : null,
+            callback: hasSub
+                ? undefined
+                : async () => {
+                    if (typeof item.onClick === 'function') {
+                        try {
+                            await item.onClick();
+                        } catch (err) {
+                            postConsoleAndNotification(MODULE.NAME, 'Menubar context menu item error', err?.message || err, false, true);
+                        }
                     }
                 }
-            },
-            submenu: Array.isArray(item.submenu)
-                ? item.submenu.map((sub) => ({
-                    separator: !!sub.separator,
-                    name: sub.name,
-                    description: sub.description,
-                    icon: sub.icon,
-                    disabled: !!sub.disabled,
-                    callback: sub.onClick
-                }))
-                : null
-        }));
+        };
+    }
+
+    static _showMenubarContextMenu(items, x, y) {
+        this._closeMenubarContextMenu();
+
+        const mapped = (items || []).map((item) => MenuBar._mapMenubarContextMenuItem(item));
 
         UIContextMenu.show({
             id: 'blacksmith-menubar-context-menu',

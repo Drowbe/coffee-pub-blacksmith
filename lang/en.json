@@ -83,16 +83,46 @@
 				"objectLinkStyle-Hint": "Styling for object links in chat and journals",
 
 			"headingH3CanvasTools-Label": "Canvas",
-			"headingH3CanvasTools-Hint": "",
+			"headingH3CanvasTools-Hint": "Hide/Show UI affects only the parts you mark below. You can also use the hamburger menu (Manage UI) or a keyboard shortcut: open Foundry Configure Controls, choose this module, and edit Toggle Hide/Show Interface (default Ctrl+U), same idea as GM Quickview’s keybinding.",
 
-				"canvasToolsHideLeftUI-Label": "Hide Left UI",
-				"canvasToolsHideLeftUI-Hint": "When enabled, the left side of the interface, including the branding, toolbar, and player list will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
+				"canvasToolsHideUIIncludeToolbar-Label": "Toolbar",
+				"canvasToolsHideUIIncludeToolbar-Hint": "When included, the left toolbar (#ui-left-column-1) is shown or hidden with Hide/Show UI, Apply on Load, and the keyboard shortcut.",
 
-				"canvasToolsHideBottomUI-Label": "Hide Bottom UI",
-				"canvasToolsHideBottomUI-Hint": "When enabled, the bottom of the interface, including the macrobar, will be hidden when the toggle is activated. Be warned, if other modules have added items to this area, they will also be hidden.",
+				"canvasToolsHideUIIncludeSceneControls-Label": "Scene Controls",
+				"canvasToolsHideUIIncludeSceneControls-Hint": "When included, scene controls (#ui-left-column-2) follow Hide/Show UI, Apply on Load, and the shortcut.",
+
+				"canvasToolsHideUIIncludePlayers-Label": "Online Players",
+				"canvasToolsHideUIIncludePlayers-Hint": "When included, the online players list (#players) follows Hide/Show UI, Apply on Load, and the shortcut.",
+
+				"canvasToolsHideUIIncludeHotbar-Label": "Macro Hotbar",
+				"canvasToolsHideUIIncludeHotbar-Hint": "When included, the macro hotbar (#hotbar) follows Hide/Show UI, Apply on Load, and the shortcut.",
+
+				"canvasToolsHideUIIncludeFloatingChat-Label": "Floating Chat",
+				"canvasToolsHideUIIncludeFloatingChat-Hint": "When included, floating chat notifications (#chat-notifications) follow Hide/Show UI, Apply on Load, and the shortcut.",
 
 				"canvasToolsHideUIOnLoad-Label": "Apply on Load",
-				"canvasToolsHideUIOnLoad-Hint": "When enabled, the interface will automatically hide on load if you have the toggle set to hide.",
+				"canvasToolsHideUIOnLoad-Hint": "When enabled, included interface parts are hidden automatically when this client finishes loading (same targets as Hide/Show UI in the hamburger menu).",
+
+				"canvasToolsHideUIOnLoad-Toggled": "Apply on Load is now {state}.",
+				"canvasToolsHideUIOnLoad-StateOn": "enabled",
+				"canvasToolsHideUIOnLoad-StateOff": "disabled",
+
+				"canvasToolsManageUI-Menubar": "Manage UI",
+				"canvasToolsHideUIHideUI-Menubar": "Hide UI",
+				"canvasToolsHideUIShowUI-Menubar": "Show UI",
+				"canvasToolsHideUIOptions-Menubar": "Options",
+				"canvasToolsHideUIIncludeToolbar-Menubar": "Include Toolbar",
+				"canvasToolsHideUIIncludeSceneControls-Menubar": "Include Scene Controls",
+				"canvasToolsHideUIIncludePlayers-Menubar": "Include Online Players",
+				"canvasToolsHideUIIncludeHotbar-Menubar": "Include Macro Hotbar",
+				"canvasToolsHideUIIncludeFloatingChat-Menubar": "Include Floating Chat",
+
+				"canvasToolsHideUINoInclude-Warn": "No interface parts are included. Enable at least one under Canvas in module settings, or use Manage UI → Options.",
+				"canvasToolsHideUIHiding-Toast": "Hiding the interface…",
+				"canvasToolsHideUIShowing-Toast": "Showing the interface…",
+
+				"keybindingToggleInterfaceHide-Name": "Toggle Hide/Show Interface",
+				"keybindingToggleInterfaceHide-Hint": "Show or hide the Foundry interface regions you marked as included (module settings → Canvas, or Manage UI → Options). Default: Ctrl+U. Change the key in Configure Controls.",
 
 			"headingH3Pins-Label": "Pins",
 			"headingH3Pins-Hint": "Map pin editing permissions and related options.",
@@ -191,6 +221,9 @@
 
 			"keybindingQuickViewToggle-Name": "Toggle Quickview",
 			"keybindingQuickViewToggle-Hint": "Turn GM Quickview (clarity mode) on or off.",
+
+			"quickViewMenubar-StateOn": "GM Quickview On",
+			"quickViewMenubar-StateOff": "GM Quickview Off",
 
 		"headingH2CombatEnhancements-Label": "Combat",
 		"headingH2CombatEnhancements-Hint": "Enhancements and quality of lifeimprovements to the combat system.",

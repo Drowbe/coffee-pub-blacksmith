@@ -9,6 +9,23 @@ import { getSettingSafely } from './api-core.js';
 
 export class CoreUIUtility {
     /**
+     * Foundry interface regions managed by Hide/Show UI (element id + user setting key).
+     * @type {ReadonlyArray<{ id: string, settingKey: string }>}
+     */
+    static MANAGED_UI_SEGMENTS = Object.freeze([
+        { id: 'ui-left-column-1', settingKey: 'canvasToolsHideUIIncludeToolbar' },
+        { id: 'ui-left-column-2', settingKey: 'canvasToolsHideUIIncludeSceneControls' },
+        { id: 'players', settingKey: 'canvasToolsHideUIIncludePlayers' },
+        { id: 'hotbar', settingKey: 'canvasToolsHideUIIncludeHotbar' },
+        { id: 'chat-notifications', settingKey: 'canvasToolsHideUIIncludeFloatingChat' }
+    ]);
+
+    /** Last explicit suppressed state from toggle / Apply on Load (drives sheet edits to include list). */
+    static _uiSuppressed = false;
+
+    static _interfaceKeybindingRegistered = false;
+
+    /**
      * Whether a core UI region is hidden (inline style or computed, for v13 compatibility).
      * @param {HTMLElement | null} el
      * @returns {boolean}
@@ -24,53 +41,80 @@ export class CoreUIUtility {
     }
 
     /**
-     * Check the current state of UI elements to determine if interface is hidden
-     * @returns {boolean} True if any UI elements are hidden
+     * Elements that currently participate in Hide/Show (exist in DOM and setting is on).
+     * @returns {HTMLElement[]}
      */
-    static isInterfaceHidden() {
-        const uiLeft = document.getElementById('ui-left');
-        const uiBottom = document.getElementById('ui-bottom');
-        const uiTop = document.getElementById('ui-top');
-
-        return (
-            this._isRegionHidden(uiLeft) ||
-            this._isRegionHidden(uiBottom) ||
-            this._isRegionHidden(uiTop)
-        );
+    static getIncludedManagedElements() {
+        const out = [];
+        for (const { id, settingKey } of this.MANAGED_UI_SEGMENTS) {
+            if (!game.settings.settings.has(`${MODULE.ID}.${settingKey}`)) continue;
+            if (!game.settings.get(MODULE.ID, settingKey)) continue;
+            const el = document.getElementById(id);
+            if (el) out.push(el);
+        }
+        return out;
     }
 
     /**
-     * Toggle the FoundryVTT interface visibility
+     * Apply hidden or visible state to every managed segment (excluded segments are always shown).
+     * @param {boolean} suppressed
+     */
+    static applySuppressedState(suppressed) {
+        this._uiSuppressed = !!suppressed;
+        for (const { id, settingKey } of this.MANAGED_UI_SEGMENTS) {
+            const el = document.getElementById(id);
+            if (!el) continue;
+            if (!game.settings.settings.has(`${MODULE.ID}.${settingKey}`)) {
+                el.style.display = '';
+                continue;
+            }
+            const included = game.settings.get(MODULE.ID, settingKey);
+            if (!included) {
+                el.style.display = '';
+                continue;
+            }
+            el.style.display = suppressed ? 'none' : '';
+        }
+    }
+
+    /**
+     * True when every included segment is hidden (nothing included → false).
+     * @returns {boolean}
+     */
+    static isInterfaceHidden() {
+        const els = this.getIncludedManagedElements();
+        if (els.length === 0) return false;
+        return els.every((el) => this._isRegionHidden(el));
+    }
+
+    /**
+     * Toggle the FoundryVTT interface visibility for included regions only.
      * @param {{ silent?: boolean }} [options]
      */
     static toggleInterface(options = {}) {
         const silent = !!options.silent;
-        const uiLeft = document.getElementById('ui-left');
-        const uiBottom = document.getElementById('ui-bottom');
-        const uiTop = document.getElementById('ui-top');
         const label = document.querySelector('.interface-label');
-
-        const isLeftHidden = this._isRegionHidden(uiLeft);
-        const isBottomHidden = this._isRegionHidden(uiBottom);
-        const isTopHidden = this._isRegionHidden(uiTop);
-        const isAnyHidden = isLeftHidden || isBottomHidden || isTopHidden;
-
-        const hideLeftUI = game.settings.get(MODULE.ID, 'canvasToolsHideLeftUI');
-        const hideBottomUI = game.settings.get(MODULE.ID, 'canvasToolsHideBottomUI');
-
-        if (isAnyHidden) {
-            if (!silent) ui.notifications.info('Showing the Interface...');
-            if (hideLeftUI && uiLeft && isLeftHidden) uiLeft.style.display = 'inherit';
-            if (hideBottomUI && uiBottom && isBottomHidden) uiBottom.style.display = 'inherit';
-            if (uiTop && isTopHidden) uiTop.style.display = 'inherit';
-            if (label) label.textContent = '';
-        } else {
-            if (!silent) ui.notifications.info('Hiding the Interface...');
-            if (hideLeftUI && uiLeft) uiLeft.style.display = 'none';
-            if (hideBottomUI && uiBottom) uiBottom.style.display = 'none';
-            if (uiTop) uiTop.style.display = 'none';
-            if (label) label.textContent = '';
+        const els = this.getIncludedManagedElements();
+        if (els.length === 0) {
+            if (!silent) {
+                ui.notifications.warn(
+                    game.i18n?.localize?.(`${MODULE.ID}.canvasToolsHideUINoInclude-Warn`) ||
+                        'No interface parts are included. Enable at least one in module settings or Manage UI → Options.'
+                );
+            }
+            return;
         }
+        const allHidden = els.every((el) => this._isRegionHidden(el));
+        const nextSuppressed = !allHidden;
+        if (!silent) {
+            ui.notifications.info(
+                nextSuppressed
+                    ? (game.i18n?.localize?.(`${MODULE.ID}.canvasToolsHideUIHiding-Toast`) || 'Hiding the interface...')
+                    : (game.i18n?.localize?.(`${MODULE.ID}.canvasToolsHideUIShowing-Toast`) || 'Showing the interface...')
+            );
+        }
+        this.applySuppressedState(nextSuppressed);
+        if (label) label.textContent = '';
     }
 
     /**
@@ -88,11 +132,53 @@ export class CoreUIUtility {
     }
 
     /**
+     * Human-readable shortcut from Configure Controls (lowercase "ctrl + q" style).
+     * Uses game.keybindings.get() so reassigned keys are reflected whenever the menu is built.
+     * @param {string} namespace - Module id that registered the action
+     * @param {string} action - Keybinding action id (e.g. toggleQuickView, toggleInterfaceHide)
+     * @returns {string} Empty if unavailable or unassigned.
+     */
+    static getKeybindingDisplayLower(namespace, action) {
+        try {
+            const bindings = game.keybindings?.get?.(namespace, action);
+            if (!Array.isArray(bindings) || bindings.length === 0) return '';
+            const b = bindings[0];
+            if (!b?.key) return '';
+            const KM = typeof KeyboardManager !== 'undefined' ? KeyboardManager : null;
+            const parts = [];
+            for (const raw of b.modifiers || []) {
+                const sym = String(raw).toUpperCase();
+                if (KM?.MODIFIER_KEYS) {
+                    if (raw === KM.MODIFIER_KEYS.CONTROL || sym === 'CONTROL') {
+                        parts.push(String(KM.CONTROL_KEY_STRING || 'Ctrl').toLowerCase());
+                        continue;
+                    }
+                    if (raw === KM.MODIFIER_KEYS.SHIFT || sym === 'SHIFT') {
+                        parts.push('shift');
+                        continue;
+                    }
+                    if (raw === KM.MODIFIER_KEYS.ALT || sym === 'ALT') {
+                        parts.push('alt');
+                        continue;
+                    }
+                }
+                parts.push(String(raw).toLowerCase());
+            }
+            const keyPart = KM?.getKeycodeDisplayString?.(b.key) ?? b.logicalKey ?? b.key;
+            parts.push(String(keyPart).toLowerCase());
+            return parts.join(' + ');
+        } catch {
+            return '';
+        }
+    }
+
+    /**
      * Build the start menu context items
      * @returns {Promise<Array<{name: string, icon: string, description?: string, onClick?: Function, submenu?: Array, separator?: boolean}>>}
      */
     static async getLeftStartMenuItems() {
         const items = [];
+        const L = (key) => (game.i18n?.localize?.(`${MODULE.ID}.${key}`) ?? key);
 
         items.push({
             name: "Refresh",
@@ -134,8 +220,11 @@ export class CoreUIUtility {
             } catch {
                 /* module cycling / not yet loaded */
             }
+            const qvBase = qvOn ? L('quickViewMenubar-StateOn') : L('quickViewMenubar-StateOff');
+            const qvHotkey = CoreUIUtility.getKeybindingDisplayLower(MODULE.ID, 'toggleQuickView');
+            const qvLabel = qvHotkey ? `${qvBase} (${qvHotkey})` : qvBase;
             items.push({
-                name: qvOn ? 'GM Quickview On' : 'GM Quickview Off', 
+                name: qvLabel,
                 icon: qvOn ? 'fa-solid fa-street-view' : 'fa-regular fa-street-view',
                 description: '',
                 onClick: async () => {
@@ -146,33 +235,79 @@ export class CoreUIUtility {
             });
         }
 
-        const api = game.modules.get(MODULE.ID)?.api;
         const applyOnLoad = game.settings.get(MODULE.ID, 'canvasToolsHideUIOnLoad');
         const isHidden = CoreUIUtility.isInterfaceHidden();
-        
+
+        const includeSettingKeys = [
+            'canvasToolsHideUIIncludeToolbar',
+            'canvasToolsHideUIIncludeSceneControls',
+            'canvasToolsHideUIIncludePlayers',
+            'canvasToolsHideUIIncludeHotbar',
+            'canvasToolsHideUIIncludeFloatingChat'
+        ];
+        const includeMenubarKeys = [
+            'canvasToolsHideUIIncludeToolbar-Menubar',
+            'canvasToolsHideUIIncludeSceneControls-Menubar',
+            'canvasToolsHideUIIncludePlayers-Menubar',
+            'canvasToolsHideUIIncludeHotbar-Menubar',
+            'canvasToolsHideUIIncludeFloatingChat-Menubar'
+        ];
+
+        const optionsSubmenu = [
+            {
+                name: L('canvasToolsHideUIOnLoad-Label'),
+                icon: applyOnLoad ? 'fa-solid fa-square-check' : 'fa-regular fa-square',
+                description: '',
+                onClick: async () => {
+                    await game.settings.set(MODULE.ID, 'canvasToolsHideUIOnLoad', !applyOnLoad);
+                    ui.notifications.info(
+                        game.i18n.format(`${MODULE.ID}.canvasToolsHideUIOnLoad-Toggled`, {
+                            state: !applyOnLoad ? L('canvasToolsHideUIOnLoad-StateOn') : L('canvasToolsHideUIOnLoad-StateOff')
+                        })
+                    );
+                }
+            }
+        ];
+        for (let i = 0; i < includeSettingKeys.length; i++) {
+            const settingKey = includeSettingKeys[i];
+            const on = game.settings.get(MODULE.ID, settingKey);
+            optionsSubmenu.push({
+                name: L(includeMenubarKeys[i]),
+                icon: on ? 'fa-solid fa-square-check' : 'fa-regular fa-square',
+                description: '',
+                onClick: async () => {
+                    const suppressedBefore = CoreUIUtility._uiSuppressed;
+                    await game.settings.set(MODULE.ID, settingKey, !on);
+                    CoreUIUtility.applySuppressedState(suppressedBefore);
+                    MenuBar.renderMenubar();
+                }
+            });
+        }
+
+        const hideShowBase = isHidden ? L('canvasToolsHideUIShowUI-Menubar') : L('canvasToolsHideUIHideUI-Menubar');
+        const hideHotkey = CoreUIUtility.getKeybindingDisplayLower(MODULE.ID, 'toggleInterfaceHide');
+        const hideShowLabel = hideHotkey ? `${hideShowBase} (${hideHotkey})` : hideShowBase;
+
         const uiSubmenu = [
             {
-                name: isHidden ? "Show Interface" : "Hide Interface",
-                icon: "fa-solid fa-sidebar",
-                description: "",
+                name: hideShowLabel,
+                icon: 'fa-solid fa-sidebar',
+                description: '',
                 onClick: () => {
                     CoreUIUtility.toggleInterface();
                     MenuBar.renderMenubar();
                 }
             },
             {
-                name: applyOnLoad ? "Disable Apply on Load" : "Enable Apply on Load",
-                icon: applyOnLoad ? "fa-solid fa-square-check" : "fa-regular fa-square",
-                description: "",
-                onClick: async () => {
-                    await game.settings.set(MODULE.ID, 'canvasToolsHideUIOnLoad', !applyOnLoad);
-                    ui.notifications.info(`Apply on Load is now ${!applyOnLoad ? 'Enabled' : 'Disabled'}.`);
-                }
+                name: L('canvasToolsHideUIOptions-Menubar'),
+                icon: 'fa-solid fa-sliders',
+                description: '',
+                submenu: optionsSubmenu
             }
         ];
 
         items.push({
-            name: "Manage UI",
+            name: L('canvasToolsManageUI-Menubar'),
             icon: "fa-solid fa-desktop",
             description: "",
             submenu: uiSubmenu
@@ -180,7 +315,41 @@ export class CoreUIUtility {
 
         return items;
     }
+
+    /**
+     * Register default Ctrl+U in Configure Controls. Call from `init` so the binding appears in the controls UI.
+     * Same pattern as QuickViewUtility._registerQuickViewKeybinding in utility-quickview.js.
+     */
+    static registerInterfaceToggleKeybinding() {
+        if (this._interfaceKeybindingRegistered || !game?.keybindings?.register) return;
+        try {
+            const controlMod = typeof KeyboardManager !== 'undefined' && KeyboardManager?.MODIFIER_KEYS?.CONTROL;
+            const modifiers = controlMod != null ? [controlMod] : ['Control'];
+            const precedence =
+                typeof CONST !== 'undefined' && CONST.KEYBINDING_PRECEDENCE_NORMAL !== undefined
+                    ? CONST.KEYBINDING_PRECEDENCE_NORMAL
+                    : undefined;
+            game.keybindings.register(MODULE.ID, 'toggleInterfaceHide', {
+                name: MODULE.ID + '.keybindingToggleInterfaceHide-Name',
+                hint: MODULE.ID + '.keybindingToggleInterfaceHide-Hint',
+                editable: [{ key: 'KeyU', modifiers }],
+                restricted: false,
+                ...(precedence !== undefined ? { precedence } : {}),
+                onDown: () => {
+                    CoreUIUtility.toggleInterface();
+                    MenuBar.renderMenubar();
+                }
+            });
+            this._interfaceKeybindingRegistered = true;
+        } catch (e) {
+            console.error('Coffee Pub Blacksmith | Interface hide keybinding registration failed', e);
+        }
+    }
 }
+
+Hooks.once('init', () => {
+    CoreUIUtility.registerInterfaceToggleKeybinding();
+});
 
 // Register core UI menubar tools via the public API (same pattern as external modules)
 Hooks.once('ready', () => {
@@ -321,6 +490,28 @@ const _PIN_FILTER_KEYS = new Set([
     'pinsHideAll', 'pinsHiddenModuleTypes', 'pinsHiddenTags'
 ]);
 
+const _CORE_UI_HIDE_INCLUDE_KEYS = new Set([
+    'canvasToolsHideUIIncludeToolbar',
+    'canvasToolsHideUIIncludeSceneControls',
+    'canvasToolsHideUIIncludePlayers',
+    'canvasToolsHideUIIncludeHotbar',
+    'canvasToolsHideUIIncludeFloatingChat'
+]);
+
+function _onCoreUiIncludeSettingKeyChanged(rawKey) {
+    if (!rawKey || typeof rawKey !== 'string') return;
+    const short = rawKey.includes('.') ? rawKey.slice(rawKey.lastIndexOf('.') + 1) : rawKey;
+    if (!_CORE_UI_HIDE_INCLUDE_KEYS.has(short)) return;
+    CoreUIUtility.applySuppressedState(CoreUIUtility._uiSuppressed);
+}
+
 Hooks.on('updateSetting', (setting) => {
     if (_PIN_FILTER_KEYS.has(setting?.key)) _syncPinsIconColor();
+    if (setting?.namespace === MODULE.ID && _CORE_UI_HIDE_INCLUDE_KEYS.has(setting?.key)) {
+        _onCoreUiIncludeSettingKeyChanged(setting.key);
+    }
+});
+
+Hooks.on('clientSettingChanged', (key, _value, _options) => {
+    _onCoreUiIncludeSettingKeyChanged(key);
 });

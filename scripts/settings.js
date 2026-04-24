@@ -1439,10 +1439,10 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('CanvasTools', 'headingH3CanvasTools-Label', 'headingH3CanvasTools-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'user');
 
-	// -- Left UI --
-	game.settings.register(MODULE.ID, 'canvasToolsHideLeftUI', {
-		name: MODULE.ID + '.canvasToolsHideLeftUI-Label',
-		hint: MODULE.ID + '.canvasToolsHideLeftUI-Hint',
+	// -- Hide / Show UI: which Foundry regions are affected by the toggle, hotkey, and Apply on Load --
+	game.settings.register(MODULE.ID, 'canvasToolsHideUIIncludeToolbar', {
+		name: MODULE.ID + '.canvasToolsHideUIIncludeToolbar-Label',
+		hint: MODULE.ID + '.canvasToolsHideUIIncludeToolbar-Hint',
 		type: Boolean,
 		config: true,
 		requiresReload: false,
@@ -1451,10 +1451,42 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
-	// -- Bottom UI --
-	game.settings.register(MODULE.ID, 'canvasToolsHideBottomUI', {
-		name: MODULE.ID + '.canvasToolsHideBottomUI-Label',
-		hint: MODULE.ID + '.canvasToolsHideBottomUI-Hint',
+	game.settings.register(MODULE.ID, 'canvasToolsHideUIIncludeSceneControls', {
+		name: MODULE.ID + '.canvasToolsHideUIIncludeSceneControls-Label',
+		hint: MODULE.ID + '.canvasToolsHideUIIncludeSceneControls-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'user',
+		default: true,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
+	game.settings.register(MODULE.ID, 'canvasToolsHideUIIncludePlayers', {
+		name: MODULE.ID + '.canvasToolsHideUIIncludePlayers-Label',
+		hint: MODULE.ID + '.canvasToolsHideUIIncludePlayers-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'user',
+		default: true,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
+	game.settings.register(MODULE.ID, 'canvasToolsHideUIIncludeHotbar', {
+		name: MODULE.ID + '.canvasToolsHideUIIncludeHotbar-Label',
+		hint: MODULE.ID + '.canvasToolsHideUIIncludeHotbar-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'user',
+		default: true,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
+	game.settings.register(MODULE.ID, 'canvasToolsHideUIIncludeFloatingChat', {
+		name: MODULE.ID + '.canvasToolsHideUIIncludeFloatingChat-Label',
+		hint: MODULE.ID + '.canvasToolsHideUIIncludeFloatingChat-Hint',
 		type: Boolean,
 		config: true,
 		requiresReload: false,
