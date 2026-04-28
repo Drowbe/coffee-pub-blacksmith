@@ -41,6 +41,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         super(opts);
 
         this.windowTitle = opts.windowTitle || 'Import JSON';
+        this.headerTitle = opts.headerTitle || this.windowTitle;
         this.windowSubtitle = opts.windowSubtitle || '';
         this.windowIcon = opts.windowIcon || 'fa-solid fa-file-import';
         this.templateOptions = Array.isArray(opts.templateOptions) ? opts.templateOptions : [];
@@ -59,10 +60,10 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         return {
             appId: this.id,
             showOptionBar: false,
-            showHeader: false,
+            showHeader: true,
             showTools: false,
             showActionBar: true,
-            windowTitle: this.windowTitle,
+            windowTitle: this.headerTitle,
             subtitle: this.windowSubtitle,
             headerIcon: this.windowIcon,
             templateOptions: this.templateOptions.map((opt) => ({

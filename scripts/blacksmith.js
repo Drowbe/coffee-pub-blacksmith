@@ -2126,7 +2126,8 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
         button.addEventListener('click', () => {
             void JsonImportWindow.open({
                 idSuffix: 'journal',
-                windowTitle: 'Import Journal Entries from JSON',
+                windowTitle: 'Import JSON',
+                headerTitle: 'Import Journal',
                 windowIcon: 'fa-solid fa-masks-theater',
                 position: { width: 920, height: 680 },
                 templateOptions: [
@@ -3598,12 +3599,13 @@ const renderItemDirectoryHookId = HookManager.registerHook({
     const artificerPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-artificer-item.txt')).text();
 
     const button = document.createElement('button');
-    button.innerHTML = '<i class="fa-solid fa-boxes-stacked"></i> Import';
+    button.innerHTML = '<i class="fa-solid fa-briefcase"></i> Import';
     button.addEventListener('click', () => {
         void JsonImportWindow.open({
             idSuffix: 'item',
-            windowTitle: 'Import Items from JSON',
-            windowIcon: 'fa-solid fa-boxes-stacked',
+            windowTitle: 'Import JSON',
+            headerTitle: 'Import Item',
+            windowIcon: 'fa-solid fa-briefcase',
             position: { width: 920, height: 680 },
             templateOptions: [
                 { value: 'loot', label: 'Loot' },
@@ -3689,7 +3691,8 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
     button.addEventListener('click', () => {
         void JsonImportWindow.open({
             idSuffix: 'rolltable',
-            windowTitle: 'Import Roll Tables from JSON',
+            windowTitle: 'Import JSON',
+            headerTitle: 'Import Roll Table',
             windowIcon: 'fa-solid fa-dice-d20',
             position: { width: 920, height: 680 },
             templateOptions: [
@@ -3789,7 +3792,8 @@ const renderActorDirectoryHookId = HookManager.registerHook({
     button.addEventListener('click', () => {
         void JsonImportWindow.open({
             idSuffix: 'actor',
-            windowTitle: 'Import Actors/NPCs from JSON',
+            windowTitle: 'Import JSON',
+            headerTitle: 'Import Actor',
             windowIcon: 'fa-solid fa-user-plus',
             position: { width: 920, height: 680 },
             templateOptions: [{ value: 'npc', label: 'NPC/Monster' }],
