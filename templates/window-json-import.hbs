@@ -1,10 +1,13 @@
 <div class="blacksmith-window-template-root blacksmith-json-import-window" id="{{appId}}">
     <div class="blacksmith-window-template-body">
-        <section class="blacksmith-window-section blacksmith-json-import-section">
+        <section class="blacksmith-window-section blacksmith-json-import-section blacksmith-json-import-section-copy">
             <div class="blacksmith-window-section-body">
+                <div class="blacksmith-window-section-header">
+                    <i class="fa-solid fa-clipboard"></i>
+                    <span>Select Template To Copy</span>
+                </div>
                 <div class="blacksmith-field-row blacksmith-json-import-template-row">
                     <div class="blacksmith-field">
-                        <label class="blacksmith-field-label">Base Prompt Template</label>
                         <select class="blacksmith-select blacksmith-json-import-template-select" {{#unless hasTemplates}}disabled{{/unless}}>
                             {{#if hasTemplates}}
                                 {{#each templateOptions}}
@@ -19,16 +22,17 @@
                         <i class="fa-solid fa-clipboard"></i> {{copyTemplateLabel}}
                     </button>
                 </div>
+            </div>
+        </section>
 
+        <section class="blacksmith-window-section blacksmith-json-import-section blacksmith-json-import-section-import">
+            <div class="blacksmith-window-section-body">
+                <div class="blacksmith-window-section-header">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span>Import JSON</span>
+                </div>
                 <div class="blacksmith-json-import-content-grid">
-                    <div class="blacksmith-json-import-left">
-                        <label class="blacksmith-field-label">Select or Paste JSON</label>
-                        <input class="blacksmith-json-import-file-input" type="file" accept="{{fileInputAccept}}" hidden>
-                        <button type="button" class="blacksmith-window-btn-primary blacksmith-json-import-select-file">
-                            <i class="fa-solid fa-folder-open"></i> {{selectFileLabel}}
-                        </button>
-                    </div>
-                    <div class="blacksmith-json-import-right">
+                    <div class="blacksmith-json-import-editor">
                         <textarea class="blacksmith-textarea blacksmith-json-import-textarea" placeholder="{{textareaPlaceholder}}">{{initialJson}}</textarea>
                     </div>
                 </div>
@@ -39,12 +43,13 @@
     <section class="blacksmith-window-template-buttons">
         <div class="blacksmith-window-template-action-bar">
             <div class="blacksmith-window-template-action-left">
-                <button type="button" class="blacksmith-window-btn-secondary blacksmith-json-import-cancel">
-                    <i class="fa-solid fa-rectangle-xmark"></i> {{cancelLabel}}
+                <input class="blacksmith-json-import-file-input" type="file" accept="{{fileInputAccept}}" hidden>
+                <button type="button" class="blacksmith-window-btn-secondary blacksmith-json-import-select-file">
+                    <i class="fa-solid fa-folder-open"></i> {{selectFileLabel}}
                 </button>
             </div>
             <div class="blacksmith-window-template-action-right">
-                <button type="button" class="blacksmith-window-btn-primary blacksmith-json-import-submit">
+                <button type="button" class="blacksmith-window-btn-secondary blacksmith-json-import-submit">
                     <i class="fa-solid fa-file-import"></i> {{importLabel}}
                 </button>
             </div>

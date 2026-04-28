@@ -51,7 +51,6 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this.copyTemplateLabel = opts.copyTemplateLabel || 'Copy to Clipboard';
         this.selectFileLabel = opts.selectFileLabel || 'Select JSON File';
         this.importLabel = opts.importLabel || 'Import JSON';
-        this.cancelLabel = opts.cancelLabel || 'Cancel';
         this.onCopyTemplate = typeof opts.onCopyTemplate === 'function' ? opts.onCopyTemplate : null;
         this.onImport = typeof opts.onImport === 'function' ? opts.onImport : null;
     }
@@ -77,8 +76,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             initialJson: this.initialJson,
             copyTemplateLabel: this.copyTemplateLabel,
             selectFileLabel: this.selectFileLabel,
-            importLabel: this.importLabel,
-            cancelLabel: this.cancelLabel
+            importLabel: this.importLabel
         };
     }
 
@@ -96,7 +94,6 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         const textarea = root.querySelector('.blacksmith-json-import-textarea');
         const copyButton = root.querySelector('.blacksmith-json-import-copy-template');
         const templateSelect = root.querySelector('.blacksmith-json-import-template-select');
-        const cancelButton = root.querySelector('.blacksmith-json-import-cancel');
         const importButton = root.querySelector('.blacksmith-json-import-submit');
 
         selectButton?.addEventListener('click', () => fileInput?.click());
@@ -120,7 +117,6 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             await this.onCopyTemplate(this.selectedTemplate);
         });
 
-        cancelButton?.addEventListener('click', () => this.close());
         importButton?.addEventListener('click', async () => {
             if (!this.onImport) {
                 this.close();
