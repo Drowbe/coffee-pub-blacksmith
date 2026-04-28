@@ -281,7 +281,8 @@ export class CoreUIUtility {
                 icon: on ? 'fa-solid fa-square-check' : 'fa-regular fa-square',
                 description: '',
                 onClick: async () => {
-                    const suppressedBefore = CoreUIUtility._uiSuppressed;
+                    // If UI is currently hidden, apply include/exclude toggles immediately.
+                    const suppressedBefore = CoreUIUtility._uiSuppressed || CoreUIUtility.isInterfaceHidden();
                     await game.settings.set(MODULE.ID, settingKey, !on);
                     CoreUIUtility.applySuppressedState(suppressedBefore);
                     MenuBar.renderMenubar();
