@@ -83,7 +83,7 @@
 				"objectLinkStyle-Hint": "Styling for object links in chat and journals",
 
 			"headingH3CanvasTools-Label": "Canvas",
-			"headingH3CanvasTools-Hint": "Hide/Show UI affects only the parts you mark below. You can also use the hamburger menu (Manage UI) or a keyboard shortcut: open Foundry Configure Controls, choose this module, and edit Toggle Hide/Show Interface (default Ctrl+U), same idea as GM Quickview’s keybinding.",
+			"headingH3CanvasTools-Hint": "Hide/Show UI affects only the parts you mark below. You can also use the hamburger menu (Manage UI) or a keyboard shortcut: open Foundry Configure Controls, choose this module, and edit Toggle Hide/Show Interface (default Ctrl+I), same idea as GM Quickview’s keybinding.",
 
 				"canvasToolsHideUIIncludeToolbar-Label": "Toolbar",
 				"canvasToolsHideUIIncludeToolbar-Hint": "When included, the left toolbar (#ui-left-column-1) is shown or hidden with Hide/Show UI, Apply on Load, and the keyboard shortcut.",
@@ -122,7 +122,7 @@
 				"canvasToolsHideUIShowing-Toast": "Showing the interface…",
 
 				"keybindingToggleInterfaceHide-Name": "Toggle Hide/Show Interface",
-				"keybindingToggleInterfaceHide-Hint": "Show or hide the Foundry interface regions you marked as included (module settings → Canvas, or Manage UI → Options). Default: Ctrl+U. Change the key in Configure Controls.",
+				"keybindingToggleInterfaceHide-Hint": "Show or hide the Foundry interface regions you marked as included (module settings → Canvas, or Manage UI → Options). Default: Ctrl+I. Change the key in Configure Controls.",
 
 			"headingH3Pins-Label": "Pins",
 			"headingH3Pins-Hint": "Map pin editing permissions and related options.",

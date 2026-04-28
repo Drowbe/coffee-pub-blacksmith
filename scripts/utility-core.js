@@ -153,9 +153,13 @@ export class CoreUIUtility {
             const parts = [];
             for (const raw of b.modifiers || []) {
                 const sym = String(raw).toUpperCase();
+                if (sym === 'CONTROL' || sym === 'CTRL') {
+                    parts.push('ctrl');
+                    continue;
+                }
                 if (KM?.MODIFIER_KEYS) {
                     if (raw === KM.MODIFIER_KEYS.CONTROL || sym === 'CONTROL') {
-                        parts.push(String(KM.CONTROL_KEY_STRING || 'Ctrl').toLowerCase());
+                        parts.push('ctrl');
                         continue;
                     }
                     if (raw === KM.MODIFIER_KEYS.SHIFT || sym === 'SHIFT') {
@@ -207,7 +211,7 @@ export class CoreUIUtility {
                 items.push({
                     name: PerformanceUtility.getMemoryDisplayString(),
                     icon: 'fa-solid fa-chart-simple',
-                    description: 'Left hamburger menu only. Click for full performance report.',
+                    description: '',
                     onClick: () => {
                         PerformanceUtility.showPerformanceCheck();
                     }
@@ -323,7 +327,7 @@ export class CoreUIUtility {
     }
 
     /**
-     * Register default Ctrl+U in Configure Controls. Call from `init` so the binding appears in the controls UI.
+     * Register default Ctrl+I in Configure Controls. Call from `init` so the binding appears in the controls UI.
      * Same pattern as QuickViewUtility._registerQuickViewKeybinding in utility-quickview.js.
      */
     static registerInterfaceToggleKeybinding() {
@@ -339,7 +343,7 @@ export class CoreUIUtility {
             game.keybindings.register(MODULE.ID, 'toggleInterfaceHide', {
                 name: MODULE.ID + '.keybindingToggleInterfaceHide-Name',
                 hint: MODULE.ID + '.keybindingToggleInterfaceHide-Hint',
-                editable: [{ key: 'KeyU', modifiers }],
+                editable: [{ key: 'KeyI', modifiers }],
                 restricted: false,
                 ...(precedence !== undefined ? { precedence } : {}),
                 onDown: () => {
