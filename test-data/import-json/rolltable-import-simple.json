@@ -1,0 +1,23 @@
+{
+  "tableName": "Blacksmith DialogV2 Import Test Table",
+  "tableDescription": "Simple roll table used to validate Roll Table JSON import dialog.",
+  "tableImagePath": "icons/svg/d20-highlight.svg",
+  "drawWithReplacement": true,
+  "displayRollFormula": true,
+  "results": [
+    {
+      "resultType": "text",
+      "resultText": "Result A - import succeeded",
+      "resultWeight": 1,
+      "resultRangeLower": 1,
+      "resultRangeUpper": 1
+    },
+    {
+      "resultType": "text",
+      "resultText": "Result B - dialog callback succeeded",
+      "resultWeight": 1,
+      "resultRangeLower": 2,
+      "resultRangeUpper": 2
+    }
+  ]
+}

@@ -26,6 +26,7 @@
 @import "window-pin-config.css";
 @import "window-pin-layers.css";
 @import "window-template.css";
+@import "window-json-import.css";
 @import "window-form-controls.css";
 @import "window-tabs.css";
 @import "window-list.css";

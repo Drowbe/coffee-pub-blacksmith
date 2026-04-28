@@ -1,0 +1,31 @@
+{
+  "journaltype": "NARRATIVE",
+  "foldername": "Blacksmith Test Imports",
+  "realm": "Test Realm",
+  "region": "Test Region",
+  "site": "Test Site",
+  "area": "Test Area",
+  "scenetitle": "Dialog V2 Narrative Import Test",
+  "contextintro": "This is a minimal narrative import used to verify DialogV2 import flow.",
+  "prepencounter": "none",
+  "prepencounterdetails": "<ul><li><strong>Difficulty</strong>: Easy</li></ul>",
+  "preprewards": {
+    "Gold": "10 gp"
+  },
+  "prepsetup": "<ul><li><strong>Synopsis</strong>: Test import synopsis.</li><li><strong>Key Moments</strong>: Confirm the page renders after import.</li></ul>",
+  "sectiontitle": "Scene One",
+  "sectionintro": "The room is quiet and ready for testing.",
+  "cards": [
+    {
+      "cardtitle": "Arrival",
+      "carddescriptionprimary": "The party arrives at the test location.",
+      "cardimagetitle": "Test Image",
+      "cardimage": "icons/svg/book.svg",
+      "carddescriptionsecondary": "Nothing hostile is present.",
+      "carddialogue": "\"All systems look good.\""
+    }
+  ],
+  "contextadditionalnarration": "Additional narration text.",
+  "contextatmosphere": "Calm and clear.",
+  "contextgmnotes": "Created for import validation."
+}

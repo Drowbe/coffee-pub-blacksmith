@@ -1,0 +1,40 @@
+{
+  "name": "Blacksmith Import Test NPC",
+  "type": "npc",
+  "img": "icons/svg/mystery-man.svg",
+  "prototypeToken": {
+    "name": "Import Test NPC",
+    "texture": {
+      "src": "icons/svg/mystery-man.svg",
+      "scaleX": 1,
+      "scaleY": 1
+    }
+  },
+  "system": {
+    "details": {
+      "biography": {
+        "value": "<p>Created for JSON import testing.</p>"
+      },
+      "type": {
+        "value": "humanoid",
+        "subtype": "test"
+      },
+      "cr": 0.125,
+      "source": "Coffee Pub Test Data"
+    },
+    "abilities": {
+      "str": { "value": 10 },
+      "dex": { "value": 10 },
+      "con": { "value": 10 },
+      "int": { "value": 10 },
+      "wis": { "value": 10 },
+      "cha": { "value": 10 }
+    },
+    "attributes": {
+      "ac": { "flat": 10, "calc": "flat" },
+      "hp": { "value": 5, "max": 5, "formula": "1d8+1" },
+      "movement": { "walk": 30 }
+    }
+  },
+  "items": []
+}

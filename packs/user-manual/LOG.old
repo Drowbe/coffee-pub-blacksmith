@@ -1,3 +1,7 @@
-2026/04/22-21:43:39.368 df08 Recovering log #2901
-2026/04/22-21:43:39.377 df08 Delete type=0 #2901
-2026/04/22-21:43:39.377 df08 Delete type=3 #2899
+2026/04/27-09:59:43.396 1181c Recovering log #2906
+2026/04/27-09:59:43.403 1181c Delete type=0 #2906
+2026/04/27-09:59:43.403 1181c Delete type=3 #2905
+2026/04/27-10:05:25.759 6edc Level-0 table #2910: started
+2026/04/27-10:05:25.759 6edc Level-0 table #2910: 0 bytes OK
+2026/04/27-10:05:25.761 6edc Delete type=0 #2908
+2026/04/27-10:05:25.763 6edc Manual compaction at level-0 from '!journal!0pyQb2FdD1sOVZYs' @ 72057594037927935 : 1 .. '!journal.pages!eyKQu99qZ7K7jLQR.o7G1ue0VK2gDrmkB' @ 0 : 0; will stop at (end)

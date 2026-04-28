@@ -1,0 +1,14 @@
+{
+  "itemType": "loot",
+  "itemSubType": "trinket",
+  "itemName": "Blacksmith Test Trinket",
+  "itemDescription": "A harmless test trinket used to validate item import dialog migration.",
+  "itemPrice": "5 gp",
+  "itemWeight": 1,
+  "itemQuantity": 1,
+  "itemRarity": "common",
+  "itemIsMagical": false,
+  "itemIdentified": true,
+  "itemSource": "Coffee Pub Test Data",
+  "itemLicense": "Internal Test"
+}

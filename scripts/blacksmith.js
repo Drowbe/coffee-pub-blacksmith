@@ -66,6 +66,7 @@ import { JournalPagePins } from './ui-journal-pins.js';
 import { JournalDomWatchdog } from './manager-journal-dom.js';
 import { CSSEditor } from './window-gmtools.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
+import { JsonImportWindow } from './window-json-import.js';
 import { XpManager } from './xp-manager.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
@@ -2120,130 +2121,66 @@ const renderJournalDirectoryHookId = HookManager.registerHook({
         const encounterTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-encounter.txt')).text();
         const locationTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-location.txt')).text();
 
-        // Build dialog content with template, file select, and paste textbox
-        const dialogContent = `
-        <div class="form-group">
-            <label><strong>Base Prompt Template</strong></label>
-            <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-                <select id="template-type" style="flex: 0 0 auto;">
-                    <option value="narrative">Narrative</option>
-                    <option value="encounter">Encounter</option>
-                    <option value="injury">Injury</option>
-                    <option value="location">Location</option>
-                </select>
-                <button id="copy-template-btn" type="button" class="file-picker-button"><i class="fa-solid fa-clipboard"></i> Copy to Clipboard</button>
-            </div>
-        </div>
-        <div class="form-group">
-            <label><strong>Select or Paste JSON</strong></label>
-            <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-                <input type="file" id="journal-json-file-input" accept=".json,application/json" style="display:none">
-                <button id="select-journal-json-btn" type="button" class="file-picker-button" style="background: #2d5c27; color: white;"><i class="fa-solid fa-folder-open"></i> Select JSON File</button>
-            </div>
-            <textarea id="json-input" style="width:100%;height:400px;" placeholder="Paste JSON here or select a file above..."></textarea>
-        </div>
-        `;
-
         const button = document.createElement('button');
         button.innerHTML = '<i class="fa-solid fa-masks-theater"></i> Import';
         button.addEventListener('click', () => {
-        new Dialog({
-            title: "Import Journal Entries from JSON",
-            width: 800,
-            content: dialogContent,
-            buttons: {
-                cancel: {
-                    icon: "<i class='fa-solid fa-rectangle-xmark'></i>",
-                    label: "Cancel",
-                    },
-                ok: {
-                icon: "<i class='fa-solid fa-masks-theater'></i>",
-                label: "Import JSON",
-                callback: async (html) => {
-                    // v13: html may be a jQuery object, convert to native DOM
-                    let nativeHtml = html;
-                    if (html && (html.jquery || typeof html.find === 'function')) {
-                        nativeHtml = html[0] || html.get?.(0) || html;
+            void JsonImportWindow.open({
+                idSuffix: 'journal',
+                windowTitle: 'Import Journal Entries from JSON',
+                windowIcon: 'fa-solid fa-masks-theater',
+                position: { width: 920, height: 680 },
+                templateOptions: [
+                    { value: 'narrative', label: 'Narrative' },
+                    { value: 'encounter', label: 'Encounter' },
+                    { value: 'injury', label: 'Injury' },
+                    { value: 'location', label: 'Location' }
+                ],
+                onCopyTemplate: async (type) => {
+                    if (type === 'injury') {
+                        copyToClipboard(injuryTemplate);
+                    } else if (type === 'encounter') {
+                        const templateWithDefaults = await getEncounterTemplateWithDefaults(encounterTemplate);
+                        copyToClipboard(templateWithDefaults);
+                    } else if (type === 'location') {
+                        const templateWithDefaults = await getLocationTemplateWithDefaults(locationTemplate);
+                        copyToClipboard(templateWithDefaults);
+                    } else {
+                        const templateWithDefaults = await getNarrativeTemplateWithDefaults(narrativeTemplate);
+                        copyToClipboard(templateWithDefaults);
                     }
-                    const jsonInput = nativeHtml.querySelector("#json-input");
-                    const jsonData = jsonInput ? jsonInput.value : '';
+                },
+                onImport: async (jsonData) => {
                     try {
-                        // Get the journal 
                         const journalData = JSON.parse(jsonData);
-                        var strJournalType = journalData.journaltype;
-                        
-                        // Check if journaltype exists
+                        const strJournalType = journalData.journaltype;
                         if (!strJournalType) {
                             throw new Error("Missing 'journaltype' field in JSON data");
                         }
-                        
-                        // See what kind of Journal we are creating
                         switch (strJournalType.toUpperCase()) {
-                            // works for either NARRATION or ENCOUNTER
-                            case "NARRATIVE":
-                            case "ENCOUNTER":
-                            case "LOCATION":
-                                    await createJournalEntry(journalData);
+                            case 'NARRATIVE':
+                            case 'ENCOUNTER':
+                            case 'LOCATION':
+                                await createJournalEntry(journalData);
                                 break;
-                            case "INJURY":
-                                // ---------- INJURY ----------
+                            case 'INJURY':
                                 await buildInjuryJournalEntry(journalData);
                                 break;
                             default:
-                                postConsoleAndNotification(MODULE.NAME, "Can't create the journal entry. The journal type was not found.", strJournalType, false, true);
+                                postConsoleAndNotification(
+                                    MODULE.NAME,
+                                    "Can't create the journal entry. The journal type was not found.",
+                                    strJournalType,
+                                    false,
+                                    true
+                                );
                         }
-                } catch (e) {
-                    postConsoleAndNotification(MODULE.NAME, "Failed to parse JSON", e, false, true);
+                        return true;
+                    } catch (e) {
+                        postConsoleAndNotification(MODULE.NAME, 'Failed to parse JSON', e, false, true);
+                        return false;
+                    }
                 }
-                },
-            },
-            },
-            default: "ok",
-            render: (htmlDialog) => {
-            // v13: htmlDialog may be a jQuery object, convert to native DOM
-            let nativeHtmlDialog = htmlDialog;
-            if (htmlDialog && (htmlDialog.jquery || typeof htmlDialog.find === 'function')) {
-                nativeHtmlDialog = htmlDialog[0] || htmlDialog.get?.(0) || htmlDialog;
-            }
-            // Select JSON File button - trigger file input and load into textarea
-            const selectJsonBtn = nativeHtmlDialog.querySelector("#select-journal-json-btn");
-            const fileInput = nativeHtmlDialog.querySelector("#journal-json-file-input");
-            const jsonInput = nativeHtmlDialog.querySelector("#json-input");
-            if (selectJsonBtn && fileInput && jsonInput) {
-                selectJsonBtn.addEventListener('click', () => fileInput.click());
-                fileInput.addEventListener('change', (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        jsonInput.value = ev.target?.result || '';
-                        fileInput.value = '';
-                    };
-                    reader.readAsText(file);
-                });
-            }
-            // Attach event listeners for template copy
-            const copyTemplateBtn = nativeHtmlDialog.querySelector("#copy-template-btn");
-            if (copyTemplateBtn) {
-                copyTemplateBtn.addEventListener('click', async () => {
-                    const templateTypeSelect = nativeHtmlDialog.querySelector("#template-type");
-                    const type = templateTypeSelect ? templateTypeSelect.value : '';
-                if (type === "injury") {
-                copyToClipboard(injuryTemplate);
-                } else if (type === "encounter") {
-                const templateWithDefaults = await getEncounterTemplateWithDefaults(encounterTemplate);
-                copyToClipboard(templateWithDefaults);
-                } else if (type === "location") {
-                const templateWithDefaults = await getLocationTemplateWithDefaults(locationTemplate);
-                copyToClipboard(templateWithDefaults);
-                } else {
-                const templateWithDefaults = await getNarrativeTemplateWithDefaults(narrativeTemplate);
-                copyToClipboard(templateWithDefaults);
-                }
-                });
-            }
-            }
-        }).render(true);
+            });
         });
         const headerActions = html.querySelector(".header-actions.action-buttons");
         if (headerActions) {
@@ -3660,118 +3597,59 @@ const renderItemDirectoryHookId = HookManager.registerHook({
     const consumablePrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-items-consumables.txt')).text();
     const artificerPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-artificer-item.txt')).text();
 
-    // Build dialog content with template, file select, and paste textbox
-    const dialogContent = `
-      <div class="form-group">
-        <label><strong>Base Prompt Template</strong></label>
-        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-          <select id="item-template-type" style="flex: 0 0 auto;">
-            <option value="loot">Loot</option>
-            <option value="consumable">Consumables</option>
-            <option value="artificer">Artificer</option>
-          </select>
-          <button id="copy-item-template-btn" type="button" class="file-picker-button"><i class="fa-solid fa-clipboard"></i> Copy to Clipboard</button>
-        </div>
-      </div>
-      <div class="form-group">
-        <label><strong>Select or Paste JSON</strong></label>
-        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-          <input type="file" id="item-json-file-input" accept=".json,application/json" style="display:none">
-          <button id="select-item-json-btn" type="button" class="file-picker-button" style="background: #2d5c27; color: white;"><i class="fa-solid fa-folder-open"></i> Select JSON File</button>
-        </div>
-        <textarea id="item-json-input" style="width:100%;height:400px;" placeholder="Paste JSON here or select a file above..."></textarea>
-      </div>
-    `;
-
     const button = document.createElement('button');
     button.innerHTML = '<i class="fa-solid fa-boxes-stacked"></i> Import';
     button.addEventListener('click', () => {
-      new Dialog({
-        title: "Import Items from JSON",
-        content: dialogContent,
-        width: 800,
-        height: 800,
-        buttons: {
-            cancel: {
-                icon: "<i class='fa-solid fa-rectangle-xmark'></i>",
-                label: "Cancel",
+        void JsonImportWindow.open({
+            idSuffix: 'item',
+            windowTitle: 'Import Items from JSON',
+            windowIcon: 'fa-solid fa-boxes-stacked',
+            position: { width: 920, height: 680 },
+            templateOptions: [
+                { value: 'loot', label: 'Loot' },
+                { value: 'consumable', label: 'Consumables' },
+                { value: 'artificer', label: 'Artificer' }
+            ],
+            onCopyTemplate: async (type) => {
+                if (type === 'loot') {
+                    const promptWithDefaults = await getItemPromptWithDefaults(lootPrompt);
+                    copyToClipboard(promptWithDefaults);
+                } else if (type === 'consumable') {
+                    const promptWithDefaults = await getItemPromptWithDefaults(consumablePrompt);
+                    copyToClipboard(promptWithDefaults);
+                } else if (type === 'artificer') {
+                    const promptWithDefaults = await getItemPromptWithDefaults(artificerPrompt);
+                    copyToClipboard(promptWithDefaults);
+                }
             },
-            ok: {
-                icon: "<i class='fa-solid fa-boxes-stacked'></i>",
-                label: "Import JSON",
-                callback: async (html) => {
-                    // v13: html may be a jQuery object, convert to native DOM
-                    let nativeHtml = html;
-                    if (html && (html.jquery || typeof html.find === 'function')) {
-                        nativeHtml = html[0] || html.get?.(0) || html;
-                    }
-                    const jsonInput = nativeHtml.querySelector("#item-json-input");
-                    let jsonData = jsonInput ? jsonInput.value : '';
-                    jsonData = normalizeStraightQuotesForJson(jsonData);
+            onImport: async (jsonDataRaw) => {
+                let jsonData = normalizeStraightQuotesForJson(jsonDataRaw);
+                try {
+                    const parsed = JSON.parse(jsonData);
                     let itemsToImport = [];
-                    try {
-                        let parsed = JSON.parse(jsonData);
-                        if (Array.isArray(parsed)) {
-                            itemsToImport = await Promise.all(parsed.map(parseFlatItemToFoundry));
-                        } else if (typeof parsed === 'object' && parsed !== null) {
-                            itemsToImport = [await parseFlatItemToFoundry(parsed)];
-                        } else {
-                            throw new Error("JSON must be an array or object");
-                        }
-                        // Validate and create items
-                        const created = await Item.createDocuments(itemsToImport, {keepId: false});
-                        postConsoleAndNotification(MODULE.NAME, `Imported ${created.length} item(s) successfully.`, "", false, true);
-                    } catch (e) {
-                        postConsoleAndNotification(MODULE.NAME, "Failed to import items", e, false, true);
-                        ui.notifications.error("Failed to import items: " + e.message);
+                    if (Array.isArray(parsed)) {
+                        itemsToImport = await Promise.all(parsed.map(parseFlatItemToFoundry));
+                    } else if (typeof parsed === 'object' && parsed !== null) {
+                        itemsToImport = [await parseFlatItemToFoundry(parsed)];
+                    } else {
+                        throw new Error('JSON must be an array or object');
                     }
+                    const created = await Item.createDocuments(itemsToImport, { keepId: false });
+                    postConsoleAndNotification(
+                        MODULE.NAME,
+                        `Imported ${created.length} item(s) successfully.`,
+                        '',
+                        false,
+                        true
+                    );
+                    return true;
+                } catch (e) {
+                    postConsoleAndNotification(MODULE.NAME, 'Failed to import items', e, false, true);
+                    ui.notifications.error('Failed to import items: ' + e.message);
+                    return false;
                 }
             }
-        },
-        default: "ok",
-        render: (htmlDialog) => {
-          // v13: htmlDialog may be a jQuery object, convert to native DOM
-          let nativeHtmlDialog = htmlDialog;
-          if (htmlDialog && (htmlDialog.jquery || typeof htmlDialog.find === 'function')) {
-              nativeHtmlDialog = htmlDialog[0] || htmlDialog.get?.(0) || htmlDialog;
-          }
-          // Select JSON File button - trigger file input and load into textarea
-          const selectItemJsonBtn = nativeHtmlDialog.querySelector("#select-item-json-btn");
-          const itemFileInput = nativeHtmlDialog.querySelector("#item-json-file-input");
-          const itemJsonInput = nativeHtmlDialog.querySelector("#item-json-input");
-          if (selectItemJsonBtn && itemFileInput && itemJsonInput) {
-              selectItemJsonBtn.addEventListener('click', () => itemFileInput.click());
-              itemFileInput.addEventListener('change', (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = (ev) => {
-                      itemJsonInput.value = ev.target?.result || '';
-                      itemFileInput.value = '';
-                  };
-                  reader.readAsText(file);
-              });
-          }
-          // Attach event listeners for template copy
-          const copyItemTemplateBtn = nativeHtmlDialog.querySelector("#copy-item-template-btn");
-          if (copyItemTemplateBtn) {
-              copyItemTemplateBtn.addEventListener('click', async () => {
-                  const itemTemplateTypeSelect = nativeHtmlDialog.querySelector("#item-template-type");
-                  const type = itemTemplateTypeSelect ? itemTemplateTypeSelect.value : '';
-            if (type === "loot") {
-              const promptWithDefaults = await getItemPromptWithDefaults(lootPrompt);
-              copyToClipboard(promptWithDefaults);
-            } else if (type === "consumable") {
-              const promptWithDefaults = await getItemPromptWithDefaults(consumablePrompt);
-              copyToClipboard(promptWithDefaults);
-            } else if (type === "artificer") {
-              const promptWithDefaults = await getItemPromptWithDefaults(artificerPrompt);
-              copyToClipboard(promptWithDefaults);
-            }
-              });
-          }
-        }
-      }).render(true);
+        });
     });
         const headerActions = html.querySelector(".header-actions.action-buttons");
         if (headerActions) {
@@ -3806,144 +3684,77 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
     const tableCompendiumItemPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-compendium-items.txt')).text();
     const tableCompendiumActorPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-rolltable-compendium-actors.txt')).text();
 
-    // Build dialog content with template, file select, and paste textbox
-    const dialogContent = `
-      <div class="form-group">
-        <label><strong>Base Prompt Template</strong></label>
-        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-          <select id="table-template-type" style="flex: 0 0 auto;">
-            <option value="text">Simple Text</option>
-            <option value="document-custom">Custom</option>
-            <option value="document-item">World Items</option>
-            <option value="document-actor">World Actors</option>
-            <option value="compendium-item">Compendium Items</option>
-            <option value="compendium-actor">Compendium Actors</option>
-          </select>
-          <button id="copy-table-template-btn" type="button" class="file-picker-button"><i class="fa-solid fa-clipboard"></i> Copy to Clipboard</button>
-        </div>
-      </div>
-      <div class="form-group">
-        <label><strong>Select or Paste JSON</strong></label>
-        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-          <input type="file" id="table-json-file-input" accept=".json,application/json" style="display:none">
-          <button id="select-table-json-btn" type="button" class="file-picker-button" style="background: #2d5c27; color: white;"><i class="fa-solid fa-folder-open"></i> Select JSON File</button>
-        </div>
-        <textarea id="table-json-input" style="width:100%;height:400px;" placeholder="Paste JSON here or select a file above..."></textarea>
-      </div>
-    `;
-
     const button = document.createElement('button');
     button.innerHTML = '<i class="fa-solid fa-dice-d20"></i> Import';
     button.addEventListener('click', () => {
-      new Dialog({
-        title: "Import Roll Tables from JSON",
-        content: dialogContent,
-        width: 800,
-        height: 800,
-        buttons: {
-            cancel: {
-                icon: "<i class='fa-solid fa-rectangle-xmark'></i>",
-                label: "Cancel",
+        void JsonImportWindow.open({
+            idSuffix: 'rolltable',
+            windowTitle: 'Import Roll Tables from JSON',
+            windowIcon: 'fa-solid fa-dice-d20',
+            position: { width: 920, height: 680 },
+            templateOptions: [
+                { value: 'text', label: 'Simple Text' },
+                { value: 'document-custom', label: 'Custom' },
+                { value: 'document-item', label: 'World Items' },
+                { value: 'document-actor', label: 'World Actors' },
+                { value: 'compendium-item', label: 'Compendium Items' },
+                { value: 'compendium-actor', label: 'Compendium Actors' }
+            ],
+            onCopyTemplate: async (type) => {
+                let promptWithDefaults = '';
+                if (type === 'text') {
+                    promptWithDefaults = await getTablePromptWithDefaults(tablePrompt);
+                } else if (type === 'document-custom') {
+                    promptWithDefaults = await getTablePromptWithDefaults(tableDocumentCustomPrompt);
+                } else if (type === 'document-actor') {
+                    promptWithDefaults = await getTablePromptWithDefaults(tableDocumentActorPrompt);
+                    const actorsList = getWorldActorsList();
+                    promptWithDefaults = promptWithDefaults.split('[ADD-ACTORS-HERE]').join(actorsList);
+                } else if (type === 'document-item') {
+                    promptWithDefaults = await getTablePromptWithDefaults(tableDocumentItemPrompt);
+                    const itemsList = getWorldItemsList();
+                    promptWithDefaults = promptWithDefaults.split('[ADD-ITEMS-HERE]').join(itemsList);
+                } else if (type === 'compendium-item') {
+                    promptWithDefaults = await getTablePromptWithDefaults(tableCompendiumItemPrompt);
+                    const compendiumsList = getItemCompendiumsList();
+                    promptWithDefaults = promptWithDefaults.split('[ADD-COMPENDIUMS-HERE]').join(compendiumsList);
+                    const compendiumItemsList = await getCompendiumItemsList();
+                    promptWithDefaults = promptWithDefaults.split('[ADD-COMPENDIUM-ITEMS-HERE]').join(compendiumItemsList);
+                } else if (type === 'compendium-actor') {
+                    promptWithDefaults = await getTablePromptWithDefaults(tableCompendiumActorPrompt);
+                    const compendiumsList = getActorCompendiumsList();
+                    promptWithDefaults = promptWithDefaults.split('[ADD-COMPENDIUMS-HERE]').join(compendiumsList);
+                    const compendiumActorsList = await getCompendiumActorsList();
+                    promptWithDefaults = promptWithDefaults.split('[ADD-COMPENDIUM-ACTORS-HERE]').join(compendiumActorsList);
+                }
+                copyToClipboard(promptWithDefaults);
             },
-            ok: {
-                icon: "<i class='fa-solid fa-dice-d20'></i>",
-                label: "Import JSON",
-                callback: async (html) => {
-                    // v13: html may be a jQuery object, convert to native DOM
-                    let nativeHtml = html;
-                    if (html && (html.jquery || typeof html.find === 'function')) {
-                        nativeHtml = html[0] || html.get?.(0) || html;
-                    }
-                    const jsonInput = nativeHtml.querySelector("#table-json-input");
-                    const jsonData = jsonInput ? jsonInput.value : '';
+            onImport: async (jsonData) => {
+                try {
+                    const parsed = JSON.parse(jsonData);
                     let tablesToImport = [];
-                    try {
-                        let parsed = JSON.parse(jsonData);
-                        if (Array.isArray(parsed)) {
-                            tablesToImport = await Promise.all(parsed.map(parseTableToFoundry));
-                        } else if (typeof parsed === 'object' && parsed !== null) {
-                            tablesToImport = [await parseTableToFoundry(parsed)];
-                        } else {
-                            throw new Error("JSON must be an array or object");
-                        }
-                        // Validate and create tables
-                        const created = await RollTable.createDocuments(tablesToImport, {keepId: false});
-                        postConsoleAndNotification(MODULE.NAME, `Imported ${created.length} table(s) successfully.`, "", false, true);
-                    } catch (e) {
-                        postConsoleAndNotification(MODULE.NAME, "Failed to import tables", e, false, true);
+                    if (Array.isArray(parsed)) {
+                        tablesToImport = await Promise.all(parsed.map(parseTableToFoundry));
+                    } else if (typeof parsed === 'object' && parsed !== null) {
+                        tablesToImport = [await parseTableToFoundry(parsed)];
+                    } else {
+                        throw new Error('JSON must be an array or object');
                     }
+                    const created = await RollTable.createDocuments(tablesToImport, { keepId: false });
+                    postConsoleAndNotification(
+                        MODULE.NAME,
+                        `Imported ${created.length} table(s) successfully.`,
+                        '',
+                        false,
+                        true
+                    );
+                    return true;
+                } catch (e) {
+                    postConsoleAndNotification(MODULE.NAME, 'Failed to import tables', e, false, true);
+                    return false;
                 }
             }
-        },
-        default: "ok",
-        render: (htmlDialog) => {
-          // v13: htmlDialog may be a jQuery object, convert to native DOM
-          let nativeHtmlDialog = htmlDialog;
-          if (htmlDialog && (htmlDialog.jquery || typeof htmlDialog.find === 'function')) {
-              nativeHtmlDialog = htmlDialog[0] || htmlDialog.get?.(0) || htmlDialog;
-          }
-          // Select JSON File button - trigger file input and load into textarea
-          const selectTableJsonBtn = nativeHtmlDialog.querySelector("#select-table-json-btn");
-          const tableFileInput = nativeHtmlDialog.querySelector("#table-json-file-input");
-          const tableJsonInput = nativeHtmlDialog.querySelector("#table-json-input");
-          if (selectTableJsonBtn && tableFileInput && tableJsonInput) {
-              selectTableJsonBtn.addEventListener('click', () => tableFileInput.click());
-              tableFileInput.addEventListener('change', (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = (ev) => {
-                      tableJsonInput.value = ev.target?.result || '';
-                      tableFileInput.value = '';
-                  };
-                  reader.readAsText(file);
-              });
-          }
-          // Attach event listeners for template copy
-          const copyTableTemplateBtn = nativeHtmlDialog.querySelector("#copy-table-template-btn");
-          if (copyTableTemplateBtn) {
-              copyTableTemplateBtn.addEventListener('click', async () => {
-                  const tableTemplateTypeSelect = nativeHtmlDialog.querySelector("#table-template-type");
-                  const type = tableTemplateTypeSelect ? tableTemplateTypeSelect.value : '';
-            let promptWithDefaults = '';
-            
-            if (type === "text") {
-              promptWithDefaults = await getTablePromptWithDefaults(tablePrompt);
-            } else if (type === "document-custom") {
-              promptWithDefaults = await getTablePromptWithDefaults(tableDocumentCustomPrompt);
-            } else if (type === "document-actor") {
-              promptWithDefaults = await getTablePromptWithDefaults(tableDocumentActorPrompt);
-              // Replace [ADD-ACTORS-HERE] with actual actor list
-              const actorsList = getWorldActorsList();
-              promptWithDefaults = promptWithDefaults.split('[ADD-ACTORS-HERE]').join(actorsList);
-            } else if (type === "document-item") {
-              promptWithDefaults = await getTablePromptWithDefaults(tableDocumentItemPrompt);
-              // Replace [ADD-ITEMS-HERE] with actual item list
-              const itemsList = getWorldItemsList();
-              promptWithDefaults = promptWithDefaults.split('[ADD-ITEMS-HERE]').join(itemsList);
-            } else if (type === "compendium-item") {
-              promptWithDefaults = await getTablePromptWithDefaults(tableCompendiumItemPrompt);
-              // Replace [ADD-COMPENDIUMS-HERE] with selected compendium IDs
-              const compendiumsList = getItemCompendiumsList();
-              promptWithDefaults = promptWithDefaults.split('[ADD-COMPENDIUMS-HERE]').join(compendiumsList);
-              // Replace [ADD-COMPENDIUM-ITEMS-HERE] with formatted items from compendiums
-              const compendiumItemsList = await getCompendiumItemsList();
-              promptWithDefaults = promptWithDefaults.split('[ADD-COMPENDIUM-ITEMS-HERE]').join(compendiumItemsList);
-            } else if (type === "compendium-actor") {
-              promptWithDefaults = await getTablePromptWithDefaults(tableCompendiumActorPrompt);
-              // Replace [ADD-COMPENDIUMS-HERE] with selected actor compendium IDs
-              const compendiumsList = getActorCompendiumsList();
-              promptWithDefaults = promptWithDefaults.split('[ADD-COMPENDIUMS-HERE]').join(compendiumsList);
-              // Replace [ADD-COMPENDIUM-ACTORS-HERE] with formatted actors from compendiums
-              const compendiumActorsList = await getCompendiumActorsList();
-              promptWithDefaults = promptWithDefaults.split('[ADD-COMPENDIUM-ACTORS-HERE]').join(compendiumActorsList);
-            }
-            
-            copyToClipboard(promptWithDefaults);
-              });
-          }
-        }
-      }).render(true);
+        });
     });
         const headerActions = html.querySelector(".header-actions.action-buttons");
         if (headerActions) {
@@ -3973,118 +3784,51 @@ const renderActorDirectoryHookId = HookManager.registerHook({
     // Fetch the character prompt template at runtime
     const characterPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-characters.txt')).text();
 
-    // Build dialog content with template, file select, and paste textbox
-    const dialogContent = `
-      <div class="form-group">
-        <label><strong>Base Prompt Template</strong></label>
-        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-          <select id="actor-template-type" style="flex: 0 0 auto;">
-            <option value="npc">NPC/Monster</option>
-          </select>
-          <button id="copy-actor-template-btn" type="button" class="file-picker-button"><i class="fa-solid fa-clipboard"></i> Copy to Clipboard</button>
-        </div>
-      </div>
-      <div class="form-group">
-        <label><strong>Select or Paste JSON</strong></label>
-        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-          <input type="file" id="actor-json-file-input" accept=".json,application/json" style="display:none">
-          <button id="select-actor-json-btn" type="button" class="file-picker-button" style="background: #2d5c27; color: white;"><i class="fa-solid fa-folder-open"></i> Select JSON File</button>
-        </div>
-        <textarea id="actor-json-input" style="width:100%;height:400px;" placeholder="Paste JSON here or select a file above..."></textarea>
-      </div>
-    `;
-
     const button = document.createElement('button');
     button.innerHTML = '<i class="fa-solid fa-user-plus"></i> Import';
     button.addEventListener('click', () => {
-      new Dialog({
-        title: "Import Actors/NPCs from JSON",
-        content: dialogContent,
-        width: 800,
-        height: 800,
-        buttons: {
-            cancel: {
-                icon: "<i class='fa-solid fa-rectangle-xmark'></i>",
-                label: "Cancel",
+        void JsonImportWindow.open({
+            idSuffix: 'actor',
+            windowTitle: 'Import Actors/NPCs from JSON',
+            windowIcon: 'fa-solid fa-user-plus',
+            position: { width: 920, height: 680 },
+            templateOptions: [{ value: 'npc', label: 'NPC/Monster' }],
+            onCopyTemplate: async () => {
+                const promptWithDefaults = await getActorPromptWithDefaults(characterPrompt);
+                copyToClipboard(promptWithDefaults);
             },
-            ok: {
-                icon: "<i class='fa-solid fa-user-plus'></i>",
-                label: "Import JSON",
-                callback: async (html) => {
-                    // v13: html may be a jQuery object, convert to native DOM
-                    let nativeHtml = html;
-                    if (html && (html.jquery || typeof html.find === 'function')) {
-                        nativeHtml = html[0] || html.get?.(0) || html;
-                    }
-                    const jsonInput = nativeHtml.querySelector("#actor-json-input");
-                    const jsonData = jsonInput ? jsonInput.value : '';
+            onImport: async (jsonData) => {
+                try {
+                    const parsed = JSON.parse(jsonData);
                     let actorsToImport = [];
-                    try {
-                        let parsed = JSON.parse(jsonData);
-                        if (Array.isArray(parsed)) {
-                            actorsToImport = await Promise.all(parsed.map(parseActorJSONToFoundry));
-                        } else if (typeof parsed === 'object' && parsed !== null) {
-                            actorsToImport = [await parseActorJSONToFoundry(parsed)];
-                        } else {
-                            throw new Error("JSON must be an array or object");
-                        }
-                        
-                        // Create actors first (without items)
-                        const created = await Actor.createDocuments(actorsToImport, {keepId: false});
-                        
-                        // Add items to each created actor
-                        for (let i = 0; i < created.length; i++) {
-                            const actor = created[i];
-                            const originalData = actorsToImport[i];
-                            await compendiumManager.addItemsToActor(actor, originalData);
-                        }
-                        
-                        postConsoleAndNotification(MODULE.NAME, `Imported ${created.length} actor(s) successfully.`, "", false, true);
-                    } catch (e) {
-                        postConsoleAndNotification(MODULE.NAME, "Failed to import actors", e, false, true);
-                        ui.notifications.error("Failed to import actors: " + e.message);
+                    if (Array.isArray(parsed)) {
+                        actorsToImport = await Promise.all(parsed.map(parseActorJSONToFoundry));
+                    } else if (typeof parsed === 'object' && parsed !== null) {
+                        actorsToImport = [await parseActorJSONToFoundry(parsed)];
+                    } else {
+                        throw new Error('JSON must be an array or object');
                     }
+                    const created = await Actor.createDocuments(actorsToImport, { keepId: false });
+                    for (let i = 0; i < created.length; i++) {
+                        const actor = created[i];
+                        const originalData = actorsToImport[i];
+                        await compendiumManager.addItemsToActor(actor, originalData);
+                    }
+                    postConsoleAndNotification(
+                        MODULE.NAME,
+                        `Imported ${created.length} actor(s) successfully.`,
+                        '',
+                        false,
+                        true
+                    );
+                    return true;
+                } catch (e) {
+                    postConsoleAndNotification(MODULE.NAME, 'Failed to import actors', e, false, true);
+                    ui.notifications.error('Failed to import actors: ' + e.message);
+                    return false;
                 }
             }
-        },
-        default: "ok",
-        render: (htmlDialog) => {
-          // v13: htmlDialog may be a jQuery object, convert to native DOM
-          let nativeHtmlDialog = htmlDialog;
-          if (htmlDialog && (htmlDialog.jquery || typeof htmlDialog.find === 'function')) {
-              nativeHtmlDialog = htmlDialog[0] || htmlDialog.get?.(0) || htmlDialog;
-          }
-          // Select JSON File button - trigger file input and load into textarea
-          const selectActorJsonBtn = nativeHtmlDialog.querySelector("#select-actor-json-btn");
-          const actorFileInput = nativeHtmlDialog.querySelector("#actor-json-file-input");
-          const actorJsonInput = nativeHtmlDialog.querySelector("#actor-json-input");
-          if (selectActorJsonBtn && actorFileInput && actorJsonInput) {
-              selectActorJsonBtn.addEventListener('click', () => actorFileInput.click());
-              actorFileInput.addEventListener('change', (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = (ev) => {
-                      actorJsonInput.value = ev.target?.result || '';
-                      actorFileInput.value = '';
-                  };
-                  reader.readAsText(file);
-              });
-          }
-          // Attach event listeners for template copy
-          const copyActorTemplateBtn = nativeHtmlDialog.querySelector("#copy-actor-template-btn");
-          if (copyActorTemplateBtn) {
-              copyActorTemplateBtn.addEventListener('click', async () => {
-                  const actorTemplateTypeSelect = nativeHtmlDialog.querySelector("#actor-template-type");
-                  const type = actorTemplateTypeSelect ? actorTemplateTypeSelect.value : '';
-                  if (type === "npc") {
-                      const promptWithDefaults = await getActorPromptWithDefaults(characterPrompt);
-                      copyToClipboard(promptWithDefaults);
-                  }
-              });
-          }
-        }
-      }).render(true);
+        });
     });
         const headerActions = html.querySelector(".header-actions.action-buttons");
         if (headerActions) {
