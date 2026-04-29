@@ -2704,6 +2704,23 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Targeted Portraits Size --
+	game.settings.register(MODULE.ID, 'targetedPortraitsSize', {
+		name: MODULE.ID + '.targetedPortraitsSize-Label',
+		hint: MODULE.ID + '.targetedPortraitsSize-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 5,
+		range: {
+			min: 1,
+			max: 10,
+			step: 1
+		},
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// Hide Foundry Default Target Indicators
 	game.settings.register(MODULE.ID, 'hideDefaultTargetIndicators', {
 		name: 'Hide Default Target Indicators',

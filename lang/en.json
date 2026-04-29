@@ -446,6 +446,9 @@
 				"targetedPortraitsEnabled-Label": "Show Targeter Portraits",
 				"targetedPortraitsEnabled-Hint": "Display small circular portraits of the players who have targeted a token, floating above it. Each portrait shows that player's character image (or user avatar as a fallback) with a colored border matching their player color.",
 
+				"targetedPortraitsSize-Label": "Portrait Size",
+				"targetedPortraitsSize-Hint": "Controls the size of the targeter portraits (1 = smallest, 10 = largest). Scales proportionally to the scene's grid size.",
+
 				"targetedIndicatorUsePlayerColor-Label": "Use Player Color for Target Rings",
 				"targetedIndicatorUsePlayerColor-Hint": "When enabled, each user's target ring border uses their Player Color from User Configuration. Multiple users targeting the same token show concentric rings. Only users who own the active combatant's turn see a filled background on their rings; everyone else gets border-only rings. When disabled, Default Border / Default Background colors apply to the single ring style.",
 

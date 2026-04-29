@@ -157,7 +157,8 @@ export class TokenIndicatorManager {
                     'hideDefaultTargetIndicators',
                     'targetedIndicatorUsePlayerColor',
                     'targetedIndicatorBorderThickness',
-                    'targetedPortraitsEnabled'
+                    'targetedPortraitsEnabled',
+                    'targetedPortraitsSize'
                 ]);
                 if (!watchedKeys.has(key)) return;
                 this.refreshAll();
@@ -1111,7 +1112,9 @@ export class TokenIndicatorManager {
 
     static _addTargetPortraitsForToken(token, userIds) {
         const gridSize = canvas.grid?.size ?? 100;
-        const portraitSize = Math.min(50, Math.max(20, Math.round(gridSize * 0.38)));
+        const sizeScale = Number(getSettingSafely(MODULE.ID, 'targetedPortraitsSize', 5));
+        const multiplier = 0.20 + (Math.min(10, Math.max(1, sizeScale)) - 1) * (0.40 / 9);
+        const portraitSize = Math.min(80, Math.max(12, Math.round(gridSize * multiplier)));
         const radius = portraitSize / 2;
         const gap = 4;
         const stepX = portraitSize + gap;
