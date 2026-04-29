@@ -158,7 +158,8 @@ export class TokenIndicatorManager {
                     'targetedIndicatorUsePlayerColor',
                     'targetedIndicatorBorderThickness',
                     'targetedPortraitsEnabled',
-                    'targetedPortraitsSize'
+                    'targetedPortraitsSize',
+                    'targetedPortraitsShape'
                 ]);
                 if (!watchedKeys.has(key)) return;
                 this.refreshAll();
@@ -1129,6 +1130,9 @@ export class TokenIndicatorManager {
         const relY = -(halfH + settings.offset + 8 + radius);
         const startRelX = -(totalWidth / 2) + radius;
 
+        const shape = getSettingSafely(MODULE.ID, 'targetedPortraitsShape', 'circle');
+        const cornerRadius = Math.max(4, Math.round(radius * 0.35));
+
         const outerContainer = new PIXI.Container();
         outerContainer.position.set(center.x, center.y);
         outerContainer.zIndex = 15;
@@ -1147,14 +1151,22 @@ export class TokenIndicatorManager {
 
             const mask = new PIXI.Graphics();
             mask.beginFill(0xffffff);
-            mask.drawCircle(0, 0, radius);
+            if (shape === 'roundedSquare') {
+                mask.drawRoundedRect(-radius, -radius, portraitSize, portraitSize, cornerRadius);
+            } else {
+                mask.drawCircle(0, 0, radius);
+            }
             mask.endFill();
             sprite.mask = mask;
 
             const border = new PIXI.Graphics();
             const borderColor = this._userPlayerColorToPixi(user) ?? 0xffffff;
             border.lineStyle(2, borderColor, 1);
-            border.drawCircle(0, 0, radius + 1);
+            if (shape === 'roundedSquare') {
+                border.drawRoundedRect(-radius, -radius, portraitSize, portraitSize, cornerRadius);
+            } else {
+                border.drawCircle(0, 0, radius + 1);
+            }
 
             portraitContainer.addChild(mask);
             portraitContainer.addChild(sprite);

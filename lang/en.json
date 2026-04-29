@@ -446,6 +446,9 @@
 				"targetedPortraitsEnabled-Label": "Show Targeter Portraits",
 				"targetedPortraitsEnabled-Hint": "Display small circular portraits of the players who have targeted a token, floating above it. Each portrait shows that player's character image (or user avatar as a fallback) with a colored border matching their player color.",
 
+				"targetedPortraitsShape-Label": "Portrait Shape",
+				"targetedPortraitsShape-Hint": "Shape of each targeter portrait — Circle or Rounded Square.",
+
 				"targetedPortraitsSize-Label": "Portrait Size",
 				"targetedPortraitsSize-Hint": "Controls the size of the targeter portraits (1 = smallest, 10 = largest). Scales proportionally to the scene's grid size.",
 

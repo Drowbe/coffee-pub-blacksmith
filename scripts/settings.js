@@ -2704,6 +2704,22 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Targeted Portraits Shape --
+	game.settings.register(MODULE.ID, 'targetedPortraitsShape', {
+		name: MODULE.ID + '.targetedPortraitsShape-Label',
+		hint: MODULE.ID + '.targetedPortraitsShape-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			circle: 'Circle',
+			roundedSquare: 'Rounded Square'
+		},
+		default: 'circle',
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- Targeted Portraits Size --
 	game.settings.register(MODULE.ID, 'targetedPortraitsSize', {
 		name: MODULE.ID + '.targetedPortraitsSize-Label',

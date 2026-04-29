@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.6.6]
 
+### Added
+
+- **Targeter portraits above tokens** (`manager-token-indicators.js`, `settings.js`, `lang/en.json`): When one or more players have a token targeted, small circular portraits of those players now float above the token on the canvas. Each portrait shows the player's character image (falling back to their user avatar), clipped to a circle with a colored border ring in their player color. Portraits stack horizontally, centered above the token, and update in real time as targeting changes. A new **Show Targeter Portraits** toggle (enabled by default) and **Portrait Size** slider (1–10, default 5) appear in the Targeted Indicator settings section. Size scales proportionally to the scene grid so portraits look correct at any grid resolution or zoom level.
+
 ## [13.6.5]
 
 ### Added
