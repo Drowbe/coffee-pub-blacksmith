@@ -22,6 +22,9 @@ export class TokenIndicatorManager {
 
     static _hideTargetsAnimationId = null;
 
+    /** @type {Map<string, PIXI.Container>} tokenId -> portrait stack container shown above targeted token */
+    static _targetPortraits = new Map();
+
     static _hookIds = {};
 
     static initialize() {
@@ -153,7 +156,8 @@ export class TokenIndicatorManager {
                     'targetedIndicatorBackgroundColor',
                     'hideDefaultTargetIndicators',
                     'targetedIndicatorUsePlayerColor',
-                    'targetedIndicatorBorderThickness'
+                    'targetedIndicatorBorderThickness',
+                    'targetedPortraitsEnabled'
                 ]);
                 if (!watchedKeys.has(key)) return;
                 this.refreshAll();
@@ -724,6 +728,8 @@ export class TokenIndicatorManager {
                 this._addTargetedIndicatorRing(token, null, 0, false);
             }
         }
+
+        this._syncTargetPortraits();
     }
 
     /**
@@ -793,6 +799,7 @@ export class TokenIndicatorManager {
                 this._removeTargetedIndicatorByKey(key);
             }
         }
+        this._removeTargetPortraitsForToken(tokenId);
     }
 
     static _removeAllTargetedIndicators() {
@@ -800,6 +807,7 @@ export class TokenIndicatorManager {
             this._removeTargetedIndicatorByKey(key);
         }
         this._targetedTokens.clear();
+        this._removeAllTargetPortraits();
         // Keep _targetsByUser as the mirror of Foundry User#targets; refreshAll re-seeds if needed.
     }
 
@@ -838,6 +846,8 @@ export class TokenIndicatorManager {
                 graphics.y = center.y;
             }
         }
+
+        this._updateTargetPortraitPosition(tokenId, changes);
     }
 
     static _refreshDefaultTargetIndicatorHiding() {
@@ -1061,5 +1071,119 @@ export class TokenIndicatorManager {
         graphics.endFill();
         graphics.lineStyle(settings.thickness, settings.color, settings.pulseMax);
         graphics.drawRoundedRect(x, y, size, size, cornerRadius);
+    }
+
+    // -------------------------------------------------------------------------
+    // Targeter portraits
+    // -------------------------------------------------------------------------
+
+    static _syncTargetPortraits() {
+        if (!getSettingSafely(MODULE.ID, 'targetedPortraitsEnabled', true)
+            || !getSettingSafely(MODULE.ID, 'generalIndicatorsEnabled', true)) {
+            this._removeAllTargetPortraits();
+            return;
+        }
+
+        const byToken = new Map();
+        for (const [userId, set] of this._targetsByUser.entries()) {
+            const u = game.users.get(userId);
+            if (!u?.active) continue;
+            for (const tokenId of set) {
+                if (!byToken.has(tokenId)) byToken.set(tokenId, []);
+                byToken.get(tokenId).push(userId);
+            }
+        }
+
+        for (const tokenId of Array.from(this._targetPortraits.keys())) {
+            if (!byToken.has(tokenId)) this._removeTargetPortraitsForToken(tokenId);
+        }
+
+        for (const [tokenId, userIds] of byToken) {
+            const token = canvas.tokens?.get(tokenId);
+            if (!token || !this._canUserSeeToken(token)) {
+                this._removeTargetPortraitsForToken(tokenId);
+                continue;
+            }
+            this._removeTargetPortraitsForToken(tokenId);
+            this._addTargetPortraitsForToken(token, userIds);
+        }
+    }
+
+    static _addTargetPortraitsForToken(token, userIds) {
+        const gridSize = canvas.grid?.size ?? 100;
+        const portraitSize = Math.min(50, Math.max(20, Math.round(gridSize * 0.38)));
+        const radius = portraitSize / 2;
+        const gap = 4;
+        const stepX = portraitSize + gap;
+        const totalWidth = userIds.length * portraitSize + (userIds.length - 1) * gap;
+
+        const tokenWidth = token.document.width * gridSize;
+        const tokenHeight = token.document.height * gridSize;
+        const settings = this._getTargetedSettings();
+        const center = this._calculateTokenCenter(token);
+
+        const halfH = Math.max(tokenWidth, tokenHeight) / 2;
+        const relY = -(halfH + settings.offset + 8 + radius);
+        const startRelX = -(totalWidth / 2) + radius;
+
+        const outerContainer = new PIXI.Container();
+        outerContainer.position.set(center.x, center.y);
+        outerContainer.zIndex = 15;
+
+        for (let i = 0; i < userIds.length; i++) {
+            const user = game.users.get(userIds[i]);
+            const imageUrl = user?.character?.img || user?.avatar || 'icons/svg/mystery-man.svg';
+
+            const portraitContainer = new PIXI.Container();
+            portraitContainer.position.set(startRelX + i * stepX, relY);
+
+            const sprite = PIXI.Sprite.from(imageUrl);
+            sprite.width = portraitSize;
+            sprite.height = portraitSize;
+            sprite.anchor.set(0.5);
+
+            const mask = new PIXI.Graphics();
+            mask.beginFill(0xffffff);
+            mask.drawCircle(0, 0, radius);
+            mask.endFill();
+            sprite.mask = mask;
+
+            const border = new PIXI.Graphics();
+            const borderColor = this._userPlayerColorToPixi(user) ?? 0xffffff;
+            border.lineStyle(2, borderColor, 1);
+            border.drawCircle(0, 0, radius + 1);
+
+            portraitContainer.addChild(mask);
+            portraitContainer.addChild(sprite);
+            portraitContainer.addChild(border);
+            outerContainer.addChild(portraitContainer);
+        }
+
+        canvas.interface?.addChild(outerContainer);
+        this._targetPortraits.set(token.id, outerContainer);
+    }
+
+    static _updateTargetPortraitPosition(tokenId, changes = null) {
+        const container = this._targetPortraits.get(tokenId);
+        if (!container || container.destroyed) return;
+        const token = canvas.tokens?.get(tokenId);
+        if (!token) return;
+        const center = this._calculateTokenCenter(token, changes);
+        container.x = center.x;
+        container.y = center.y;
+    }
+
+    static _removeTargetPortraitsForToken(tokenId) {
+        const container = this._targetPortraits.get(tokenId);
+        if (!container) return;
+        if (canvas.interface && container.parent) canvas.interface.removeChild(container);
+        if (!container.destroyed) container.destroy({ children: true });
+        this._targetPortraits.delete(tokenId);
+    }
+
+    static _removeAllTargetPortraits() {
+        for (const tokenId of Array.from(this._targetPortraits.keys())) {
+            this._removeTargetPortraitsForToken(tokenId);
+        }
     }
 }

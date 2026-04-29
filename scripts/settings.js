@@ -2692,6 +2692,18 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Targeted Portraits Enabled --
+	game.settings.register(MODULE.ID, 'targetedPortraitsEnabled', {
+		name: MODULE.ID + '.targetedPortraitsEnabled-Label',
+		hint: MODULE.ID + '.targetedPortraitsEnabled-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// Hide Foundry Default Target Indicators
 	game.settings.register(MODULE.ID, 'hideDefaultTargetIndicators', {
 		name: 'Hide Default Target Indicators',
