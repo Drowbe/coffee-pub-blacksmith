@@ -10,7 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Targeter portraits above tokens** (`manager-token-indicators.js`, `settings.js`, `lang/en.json`): When one or more players have a token targeted, small circular portraits of those players now float above the token on the canvas. Each portrait shows the player's character image (falling back to their user avatar), clipped to a circle with a colored border ring in their player color. Portraits stack horizontally, centered above the token, and update in real time as targeting changes. A new **Show Targeter Portraits** toggle (enabled by default) and **Portrait Size** slider (1–10, default 5) appear in the Targeted Indicator settings section. Size scales proportionally to the scene grid so portraits look correct at any grid resolution or zoom level.
+- **Targeter portraits above tokens** (`manager-token-indicators.js`, `settings.js`, `lang/en.json`): When one or more players have a token targeted, small portraits of those players now float above the token on the canvas. Each portrait shows the player's character image (falling back to their user avatar), clipped to the chosen shape with a colored border ring in their player color. Portraits stack horizontally, centered above the token, and update in real time as targeting changes. Three new settings appear in the Targeted Indicator section: **Show Targeter Portraits** toggle (enabled by default), **Portrait Shape** dropdown (Circle or Rounded Square), and **Portrait Size** slider (1–10, default 5). Size scales proportionally to the scene grid so portraits look correct at any grid resolution or zoom level.
+- **Manual Rolls button in sidebar** (`ui-sidebar-style.js`, `sidebar-pin.css`, `lang/en.json`): A new button appears in the sidebar below the pin button, labeled "Manual Rolls" (or "Manual Rolls: Enabled" / "Manual Rolls: Disabled" when toggled). Clicking it toggles the manual rolls setting for all dice, with a confirmation message. The button icon changes to **`fa-solid fa-dice`** when enabled and **`fa-solid fa-dice-d20`** when disabled. The button is only visible for GMs.
+
 
 ## [13.6.5]
 

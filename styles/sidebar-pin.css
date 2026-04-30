@@ -46,43 +46,30 @@
 
 /* MANUAL ROLLS - blacksmith-manual-rolls */
 
+
 /* Pin button styling */
 .blacksmith-manual-rolls {
     color: rgba(255, 255, 255, 1.0);
     transition: all 0.2s ease;
     background-color: rgba(255, 255, 255, 0.0);
-    border: 0px solid var(--color-text-primary);
+    border: 0px solid rgba(255, 255, 255, 0.6) !important;
+    border-radius: 0px;
     text-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
-    transform: rotate(90deg);
-    margin: 0px 0px 30px 0px;
-    margin-top: 0px;
-}
+    margin: -10px 0px 10px 0px;}
 
 .blacksmith-manual-rolls:hover {
     color: rgba(201, 89, 63, 1.0) !important;
     background-color: rgba(255, 255, 255, 0.0) !important;
-    border: 0px solid var(--color-text-primary) !important;
-    transform: rotate(45deg);
     text-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
-    border: 0px solid var(--color-text-primary) !important;
+    opacity: 1;
+    cursor: pointer;
 }
 
 .blacksmith-manual-rolls.active {
     color: rgba(201, 89, 63, 1.0) !important;
     opacity: 1 !important;
     background-color: rgba(255, 255, 255, 0.0) !important;
-    border: 0px solid var(--color-text-primary) !important;
-    border-radius: 3px;
+    border: 0px solid rgba(255, 255, 255, 0.6) !important;
+    border-radius: 0px;
     text-shadow: 0 0 6px rgba(0, 0, 0, 0.4) !important;
-    transform: rotate(0deg);
-}
-
-.blacksmith-manual-rolls:hover {
-    color: rgba(201, 89, 63, 1.0) !important;
-    transform: rotate(-45deg);
-    background-color: rgba(255, 255, 255, 0.0) !important;
-    border: 0px solid var(--color-text-primary) !important;
-    text-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
-    border: 0px solid var(--color-text-primary) !important;
-    opacity: 1;
 }

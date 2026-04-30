@@ -527,13 +527,13 @@ export class SidebarStyle {
         // Create icon element
         const icon = document.createElement('i');
         if (isManualRollsEnabled) {
-            icon.className = 'fa-solid fa-dice-d20';
+            icon.className = 'fa-solid fa-dice';
             button.setAttribute('aria-pressed', 'true');
             button.setAttribute('data-tooltip', 'Manual Rolls: Enabled (Click to disable)');
             button.setAttribute('aria-label', 'Manual Rolls: Enabled');
             button.classList.add('active');
         } else {
-            icon.className = 'fa-solid fa-dice-d20';
+            icon.className = 'fa-solid fa-dice';
             button.setAttribute('aria-pressed', 'false');
             button.setAttribute('data-tooltip', 'Manual Rolls: Disabled (Click to enable)');
             button.setAttribute('aria-label', 'Manual Rolls: Disabled');
