@@ -123,7 +123,7 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Issue**: Tag-like concepts exist in more than one subsystem (e.g. pins: world registry, taxonomy per pin type, per-user tag visibility via `api.pins`; other UIs such as Image Replacement use their own tag tiers and helpers). There is no single shared model or API for “a Blacksmith flag” across features, which complicates naming, discoverability, and future cross-feature filtering or GM tooling.
 - **Status**: PLANNING – architecture drafted; implementation not started.
 - **Architecture doc**: `documentation/architecture/architecture-flags.md`
-- **API doc**: `documentation/api/api-flags.md` (to be written)
+- **API doc**: `documentation/api/api-flags.md`
 - **Location**: Pins: `scripts/manager-pins.js`, `scripts/api-pins.js`, `scripts/settings.js` (`pinTagRegistry`, hidden-tag client maps). Audit other tag consumers when scoping the design (e.g. asset / image-replacement flows).
 - **Need**:
   1. Resolve open questions in `architecture-flags.md` (visibility scope, delete semantics, taxonomy file ownership, UI component extraction).
