@@ -1,0 +1,153 @@
+/* ================================================================
+   FLAG WIDGET – styles/widget-flags.css
+   ================================================================ */
+
+.bsw-flag-widget {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+}
+
+/* ---------------------------------------------------------------
+   Full mode – chips
+   --------------------------------------------------------------- */
+
+.bsw-flag-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 24px;
+}
+
+.bsw-flag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    background: var(--blacksmith-color-accent, #6b3fa0);
+    color: var(--blacksmith-color-text-on-accent, #fff);
+    white-space: nowrap;
+}
+
+.bsw-flag-chip--protected {
+    background: var(--blacksmith-color-muted, #555);
+    opacity: 0.85;
+}
+
+.bsw-flag-chip-remove {
+    all: unset;
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.1s;
+}
+
+.bsw-flag-chip-remove:hover {
+    opacity: 1;
+}
+
+/* ---------------------------------------------------------------
+   Full mode – text input
+   --------------------------------------------------------------- */
+
+.bsw-flag-input-row {
+    display: flex;
+    gap: 4px;
+}
+
+.bsw-flag-input {
+    flex: 1;
+    font-size: 0.8rem;
+    padding: 3px 8px;
+    border: 1px solid var(--blacksmith-color-border, #888);
+    border-radius: 4px;
+    background: var(--blacksmith-color-input-bg, #1a1a1a);
+    color: var(--blacksmith-color-text, #eee);
+}
+
+.bsw-flag-input:focus {
+    outline: none;
+    border-color: var(--blacksmith-color-accent, #6b3fa0);
+}
+
+/* ---------------------------------------------------------------
+   Full mode – suggestions dropdown
+   --------------------------------------------------------------- */
+
+.bsw-flag-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px;
+    background: var(--blacksmith-color-surface, #222);
+    border: 1px solid var(--blacksmith-color-border, #888);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+.bsw-flag-suggestions[hidden] {
+    display: none;
+}
+
+.bsw-flag-suggestion {
+    all: unset;
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    background: var(--blacksmith-color-surface-alt, #333);
+    color: var(--blacksmith-color-text, #eee);
+    transition: background 0.1s;
+    white-space: nowrap;
+}
+
+.bsw-flag-suggestion:hover {
+    background: var(--blacksmith-color-accent, #6b3fa0);
+    color: var(--blacksmith-color-text-on-accent, #fff);
+}
+
+/* ---------------------------------------------------------------
+   Filter mode
+   --------------------------------------------------------------- */
+
+.bsw-flag-filter-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.bsw-flag-filter-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 2px 0;
+    font-size: 0.8rem;
+}
+
+.bsw-flag-filter-toggle {
+    cursor: pointer;
+    accent-color: var(--blacksmith-color-accent, #6b3fa0);
+}
+
+.bsw-flag-filter-label--protected {
+    opacity: 0.7;
+    font-style: italic;
+}
+
+.bsw-flag-filter-empty {
+    font-size: 0.75rem;
+    opacity: 0.6;
+    font-style: italic;
+}

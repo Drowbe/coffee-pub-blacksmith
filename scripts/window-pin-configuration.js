@@ -499,13 +499,15 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
 
         const imageValue = this.selected?.type === 'img' ? this.selected.value : '';
 
-        await PinManager.ensureBuiltinTaxonomyLoaded();
         const pinTypeLabel = PinManager.getPinTypeLabel(pin.moduleId, pin.type) || '';
-        const taxonomyChoices = PinManager.getPinTaxonomyChoices(pin.moduleId, pin.type);
 
-        // Build Suggested / Other tag groups
-        const thisTypeTaxonomy = PinManager.getPinTaxonomy(pin.moduleId, pin.type);
-        const thisTypeTaxonomySet = new Set(thisTypeTaxonomy?.tags || []);
+        // Build Suggested / Other tag groups via flags API
+        const flagsApi = game.modules.get(MODULE.ID)?.api?.flags;
+        const contextKey = `${pin.moduleId}.${pin.type || 'default'}`;
+        const taxonomyKeys = (flagsApi?.getChoices?.(contextKey) ?? [])
+            .filter(c => c.tier === 'taxonomy')
+            .map(c => c.key);
+        const thisTypeTaxonomySet = new Set(taxonomyKeys);
         const customTypeTagSet = new Set();
         {
             const sceneId = this.sceneId ?? canvas?.scene?.id;
@@ -521,7 +523,8 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         }
         const suggestedSet = new Set([...thisTypeTaxonomySet, ...customTypeTagSet]);
         const pinSuggestedTags = [...suggestedSet].sort();
-        const pinOtherTags = PinManager.getTagRegistry().filter(t => !suggestedSet.has(t)).sort();
+        const pinOtherTags = (flagsApi?.getRegistry?.() ?? PinManager.getTagRegistry())
+            .filter(t => !suggestedSet.has(t)).sort();
 
         this.pinType = pin.type || 'default';
         if (!this.moduleId) this.moduleId = pin.moduleId || null;
@@ -559,7 +562,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             pinTagsCsv: this.pinTags.join(', '),
             pinSuggestedTags,
             pinOtherTags,
-            pinClassificationHelp: taxonomyChoices.label || pinTypeLabel || (this.pinType || 'Pin'),
+            pinClassificationHelp: pinTypeLabel || (this.pinType || 'Pin'),
             pinImageFit: this.pinImageFit,
             pinImageZoom: this.pinImageZoom,
             pinImageZoomPercent,

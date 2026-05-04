@@ -79,6 +79,9 @@ import { SidebarStyle } from './ui-sidebar-style.js';
 import { LoadingProgressManager } from './manager-loading-progress.js';
 import { PinManager } from './manager-pins.js';
 import { PinsAPI } from './api-pins.js';
+import { FlagsAPI } from './api-flags.js';
+import { FlagManager } from './manager-flags.js';
+import { FlagWidget } from './widget-flags.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
 import { TokenIndicatorManager } from './manager-token-indicators.js';
 import { CampaignManager } from './manager-campaign.js';
@@ -521,6 +524,14 @@ Hooks.once('ready', async () => {
         // Initialize the unified roll system API
         LoadingProgressManager.logActivity("Loading roll system...");
         await _registerUnifiedHeaderPartial();
+        await FlagWidget.registerPartial();
+
+        // Initialize the Flags system: load taxonomy, register GM proxy, run migration
+        LoadingProgressManager.logActivity("Initializing flags system...");
+        await FlagManager.ensureTaxonomyLoaded();
+        FlagManager.registerGMProxy().catch(() => {});
+        FlagManager.runMigration().catch(() => {});
+
         const { executeRoll } = await import('./manager-rolls.js');
         BLACKSMITH.rolls.execute = executeRoll;
 
@@ -913,6 +924,7 @@ Hooks.once('init', async function() {
         CanvasLayer: null,
         getCanvasLayer: null,
         pins: PinsAPI,
+        flags: FlagsAPI,
         chatCards: ChatCardsAPI,
         campaign: CampaignAPI,
         getPartyCR: EncounterManager.getPartyCR.bind(EncounterManager),

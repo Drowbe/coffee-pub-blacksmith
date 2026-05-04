@@ -1540,6 +1540,60 @@ export const registerSettings = () => {
 		}
 	});
 
+	// -------------------------------------------------------
+	// -- FLAGS SYSTEM (internal data settings, no config UI)
+	// -------------------------------------------------------
+
+	// Central flag assignment store: { [contextKey]: { [recordId]: string[] } }
+	game.settings.register(MODULE.ID, 'flagAssignments', {
+		scope: 'world',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
+	// World flag registry: sorted string[] of every flag ever used
+	game.settings.register(MODULE.ID, 'flagRegistry', {
+		scope: 'world',
+		config: false,
+		type: Array,
+		default: []
+	});
+
+	// Per-user visibility map: { [flag | contextKey.flag]: boolean }
+	game.settings.register(MODULE.ID, 'flagVisibility', {
+		scope: 'user',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
+	// Optional path to a JSON file that overrides flag-taxonomy.json entries
+	game.settings.register(MODULE.ID, 'flagTaxonomyOverrideJson', {
+		name: 'Flag Taxonomy Override JSON',
+		hint: 'Optional world-level JSON path to merge over the shipped flag taxonomy. Leave blank to use only the built-in defaults.',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '',
+		filePicker: true,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE,
+		onChange: () => {
+			void import('./manager-flags.js').then(async ({ FlagManager }) => {
+				FlagManager.invalidateTaxonomy();
+				await FlagManager.ensureTaxonomyLoaded();
+			});
+		}
+	});
+
+	// One-time migration sentinel: set true after pinTagRegistry is seeded into flagRegistry
+	game.settings.register(MODULE.ID, 'flagsMigrationComplete', {
+		scope: 'world',
+		config: false,
+		type: Boolean,
+		default: false
+	});
+
 	// --------------------------------------
 	// -- H3: SIDEBARS
 	// --------------------------------------

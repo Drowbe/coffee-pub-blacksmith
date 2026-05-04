@@ -610,12 +610,13 @@ export class JournalPagePins {
         const tagRow = bar.querySelector('.journal-page-pins-tag-row');
         if (!tagRow || tagRow.dataset.populated) return;
         tagRow.dataset.populated = '1';
-        const pins = this._getPinsApi();
-        if (pins?.loadBuiltinTaxonomy) await pins.loadBuiltinTaxonomy();
-        // Use getPinTaxonomy (not Choices) so we show only the registered journal-pin tags, not all global tags.
-        const taxonomy = pins?.getPinTaxonomy?.(MODULE.ID, this.PIN_TYPE) ?? null;
-        const tags = Array.isArray(taxonomy?.tags) && taxonomy.tags.length ? taxonomy.tags : ['narrative'];
-        tagRow.innerHTML = tags.map(tag =>
+        // Use flags API: show only taxonomy-tier flags for this pin type, not global flags
+        const flags = this._getFlagsApi();
+        const contextKey = `${MODULE.ID}.${this.PIN_TYPE}`;
+        const choices = flags?.getChoices?.(contextKey) ?? [];
+        const tags = choices.filter(c => c.tier === 'taxonomy').map(c => c.key);
+        const displayTags = tags.length ? tags : ['narrative'];
+        tagRow.innerHTML = displayTags.map(tag =>
             `<button type="button" class="journal-page-pin-tag-option" data-tag="${tag}">${tag}</button>`
         ).join('');
     }
@@ -907,5 +908,9 @@ export class JournalPagePins {
 
     static _getPinsApi() {
         return game.modules.get(MODULE.ID)?.api?.pins;
+    }
+
+    static _getFlagsApi() {
+        return game.modules.get(MODULE.ID)?.api?.flags;
     }
 }

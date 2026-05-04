@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "globalFlags": ["todo", "revisit", "avoid", "complete"],
+  "contexts": {
+    "coffee-pub-blacksmith.journal-pin": {
+      "label": "Journal Page",
+      "flags": [
+        { "key": "narrative" },
+        { "key": "backstory" },
+        { "key": "encounter" },
+        { "key": "travel" },
+        { "key": "location" },
+        { "key": "tavern" },
+        { "key": "shop" },
+        { "key": "character" },
+        { "key": "quest" },
+        { "key": "rumor" },
+        { "key": "information" }
+      ]
+    },
+    "coffee-pub-squire.note": {
+      "label": "Note",
+      "flags": [
+        { "key": "party" },
+        { "key": "personal" },
+        { "key": "sticky" }
+      ]
+    },
+    "coffee-pub-squire.codex": {
+      "label": "Codex",
+      "flags": [
+        { "key": "artifact" },
+        { "key": "book" },
+        { "key": "character" },
+        { "key": "event" },
+        { "key": "faction" },
+        { "key": "location" },
+        { "key": "item" },
+        { "key": "map" }
+      ]
+    },
+    "coffee-pub-squire.quest": {
+      "label": "Quest",
+      "flags": [
+        { "key": "main", "protected": true },
+        { "key": "side", "protected": true },
+        { "key": "backstory" },
+        { "key": "faction" }
+      ]
+    },
+    "coffee-pub-squire.objective": {
+      "label": "Objective",
+      "flags": [
+        { "key": "main", "protected": true },
+        { "key": "side", "protected": true },
+        { "key": "backstory" },
+        { "key": "faction" }
+      ]
+    },
+    "coffee-pub-artificer.habitat-location": {
+      "label": "Habitat Location",
+      "flags": [
+        { "key": "mountain" },
+        { "key": "arctic" },
+        { "key": "planar" },
+        { "key": "coastal" },
+        { "key": "swamp" },
+        { "key": "desert" },
+        { "key": "underdark" },
+        { "key": "forest" },
+        { "key": "underwater" },
+        { "key": "grassland" },
+        { "key": "urban" },
+        { "key": "hill" }
+      ]
+    },
+    "coffee-pub-artificer.component-location": {
+      "label": "Component Location",
+      "flags": [
+        { "key": "creature" },
+        { "key": "environmental" },
+        { "key": "essence" },
+        { "key": "gem" },
+        { "key": "mineral" },
+        { "key": "plant" }
+      ]
+    },
+    "coffee-pub-artificer.skill-location": {
+      "label": "Skill",
+      "flags": [
+        { "key": "herbalism" },
+        { "key": "alchemy" },
+        { "key": "poisoncraft" },
+        { "key": "cooking" },
+        { "key": "healing" },
+        { "key": "smithing" },
+        { "key": "leatherworking" },
+        { "key": "tinkering" },
+        { "key": "cartography" },
+        { "key": "inscription" },
+        { "key": "enchanting" },
+        { "key": "gemcraft" },
+        { "key": "tailoring" },
+        { "key": "masonry" }
+      ]
+    }
+  }
+}
