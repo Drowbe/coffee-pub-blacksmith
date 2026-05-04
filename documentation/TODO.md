@@ -120,22 +120,25 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Priority**: Medium – Improves discoverability and consistency with pins/chatCards/stats APIs
 
 #### Unified Flags system (cross-feature)
-- **Issue**: Tag-like concepts exist in more than one subsystem (e.g. pins: world registry, taxonomy per pin type, per-user tag visibility via `api.pins`; other UIs such as Image Replacement use their own tag tiers and helpers). There is no single shared model or API for “a Blacksmith flag” across features, which complicates naming, discoverability, and future cross-feature filtering or GM tooling.
-- **Status**: PLANNING – architecture drafted; implementation not started.
+- **Status**: IN PROGRESS – infrastructure complete; journal pins wired; pins storage migration pending.
 - **Architecture doc**: `documentation/architecture/architecture-flags.md`
 - **API doc**: `documentation/api/api-flags.md`
-- **Location**: Pins: `scripts/manager-pins.js`, `scripts/api-pins.js`, `scripts/settings.js` (`pinTagRegistry`, hidden-tag client maps). Audit other tag consumers when scoping the design (e.g. asset / image-replacement flows).
-- **Need**:
-  1. Resolve open questions in `architecture-flags.md` (visibility scope, delete semantics, taxonomy file ownership, UI component extraction).
-  2. Write `api-flags.md` with full method contracts.
-  3. Implement `scripts/manager-flags.js` (FlagManager) and `scripts/api-flags.js` (FlagsAPI).
-  4. Create `resources/flag-taxonomy.json` migrating content from `pin-taxonomy.json`.
-  5. Redirect `manager-pins.js` tag logic to delegate to FlagManager.
-  6. Wrap `api-pins.js` tag methods to call FlagsAPI (keep existing signatures).
-  7. Migrate world setting from `pinTagRegistry` → `flagRegistry` (with compatibility shim for one release).
-  8. Register Pins contexts (`coffee-pub-blacksmith.journal-pin`, etc.) via `blacksmithReady` hook.
-  9. Expose at `game.modules.get('coffee-pub-blacksmith').api.flags`.
-- **Priority**: Medium – Reduces duplication and drift as more features grow tag UIs
+- **Completed**:
+  - Architecture and API docs written (all design decisions resolved)
+  - `scripts/manager-flags.js` (FlagManager), `scripts/api-flags.js` (FlagsAPI), `scripts/widget-flags.js` (FlagWidget)
+  - `resources/flag-taxonomy.json` — unified taxonomy for all coffee-pub contexts
+  - 5 settings registered: `flagAssignments`, `flagRegistry`, `flagVisibility`, `flagTaxonomyOverrideJson`, `flagsMigrationComplete`
+  - `game.modules.get('coffee-pub-blacksmith').api.flags` live on init
+  - One-time migration shim: seeds `flagRegistry` from `pinTagRegistry` on first GM load
+  - Journal pins taxonomy/registry lookups redirected to FlagsAPI (`ui-journal-pins.js`, `window-pin-configuration.js`) — **verified working**
+- **Remaining (pins storage migration)**:
+  1. `manager-pins.js` `deleteTagGlobally` / `renameTagGlobally` — also update `flagAssignments` for pin context
+  2. `api-pins.js` tag methods — wrap to delegate to FlagsAPI (keep existing signatures)
+  3. On pin create/update: mirror `pin.tags[]` into `flagAssignments` via `flags.setFlags()`
+  4. On pin delete: call `flags.deleteRecordFlags()` to clean up assignments
+  5. After one release: drop `pin.tags[]` from schema; read only from `flagAssignments`
+  6. Migrate `pinTagRegistry` world setting → `flagRegistry` (shim already seeds on first run)
+- **Priority**: Medium – Core system working; remaining work is pins storage migration
 
 #### Menubar API: Move party tool code out of api-menubar.js
 - **Issue**: Party bar registration, party tools (Deployment Pattern, Deploy Party, Vote, Statistics, Experience, Clear Party), party health progressbar, and party-bar refresh logic live in `api-menubar.js`, making that file a mix of API and experience code.
