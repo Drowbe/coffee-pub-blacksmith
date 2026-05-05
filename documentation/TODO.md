@@ -134,8 +134,8 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Remaining (pins storage migration)**:
   1. `manager-pins.js` `deleteTagGlobally` / `renameTagGlobally` — also update `flagAssignments` for pin context
   2. `api-pins.js` tag methods — wrap to delegate to FlagsAPI (keep existing signatures)
-  3. On pin create/update: mirror `pin.tags[]` into `flagAssignments` via `flags.setFlags()`
-  4. On pin delete: call `flags.deleteRecordFlags()` to clean up assignments
+  3. ~~On pin create/update: mirror `pin.tags[]` into `flagAssignments` via `flags.setFlags()`~~ **DONE** — `_mirrorFlagsForPin()` called at all 5 write sites in `manager-pins.js`
+  4. ~~On pin delete: call `flags.deleteRecordFlags()` to clean up assignments~~ **DONE** — `_clearFlagsForPin()` called at both delete sites
   5. After one release: drop `pin.tags[]` from schema; read only from `flagAssignments`
   6. Migrate `pinTagRegistry` world setting → `flagRegistry` (shim already seeds on first run)
 - **Priority**: Medium – Core system working; remaining work is pins storage migration

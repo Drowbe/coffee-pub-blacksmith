@@ -531,6 +531,7 @@ Hooks.once('ready', async () => {
         await FlagManager.ensureTaxonomyLoaded();
         FlagManager.registerGMProxy().catch(() => {});
         FlagManager.runMigration().catch(() => {});
+        PinManager.backfillFlagAssignments().catch(() => {});
 
         const { executeRoll } = await import('./manager-rolls.js');
         BLACKSMITH.rolls.execute = executeRoll;

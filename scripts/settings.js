@@ -1594,6 +1594,14 @@ export const registerSettings = () => {
 		default: false
 	});
 
+	// One-time migration sentinel: set true after existing pin.tags[] are backfilled into flagAssignments
+	game.settings.register(MODULE.ID, 'flagsAssignmentsMigrated', {
+		scope: 'world',
+		config: false,
+		type: Boolean,
+		default: false
+	});
+
 	// --------------------------------------
 	// -- H3: SIDEBARS
 	// --------------------------------------

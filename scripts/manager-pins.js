@@ -8,6 +8,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
+import { FlagManager } from './manager-flags.js';
 import {
     PIN_SCHEMA_VERSION,
     applyDefaults,
@@ -600,6 +601,18 @@ export class PinManager {
         return [...this._getTagRegistry()];
     }
 
+    /** Mirror a pin's current tags into the central flagAssignments store. Best-effort; never throws. */
+    static _mirrorFlagsForPin(pin) {
+        if (!pin?.id || !pin?.moduleId) return;
+        FlagManager.setFlags(`${pin.moduleId}.${pin.type || 'default'}`, pin.id, pin.tags ?? []).catch(() => {});
+    }
+
+    /** Remove a pin's flag assignments from the central store on delete. Best-effort; never throws. */
+    static _clearFlagsForPin(pin) {
+        if (!pin?.id || !pin?.moduleId) return;
+        FlagManager.deleteRecordFlags(`${pin.moduleId}.${pin.type || 'default'}`, pin.id).catch(() => {});
+    }
+
     static async _addTagsToRegistry(tags) {
         if (!game.user?.isGM) return;
         if (!Array.isArray(tags) || tags.length === 0) return;
@@ -714,6 +727,48 @@ export class PinManager {
         }
         const sorted = [...tags].filter(Boolean).sort();
         if (sorted.length > 0) await game.settings.set(MODULE.ID, this.TAG_REGISTRY_SETTING_KEY, sorted);
+    }
+
+    /**
+     * One-time backfill: populate flagAssignments from existing pin.tags[] across all scenes and
+     * the unplaced store. Runs once per world (gated by flagsAssignmentsMigrated sentinel).
+     * Merges with any assignments already written by forward writes; never overwrites.
+     */
+    static async backfillFlagAssignments() {
+        if (!game.user?.isGM) return;
+        if (getSettingSafely(MODULE.ID, 'flagsAssignmentsMigrated', false)) return;
+        try {
+            const toBackfill = {};
+            const addPin = (pin) => {
+                if (!pin?.id || !pin?.moduleId) return;
+                const tags = normalizePinTags(pin.tags);
+                if (tags.length === 0) return;
+                const contextKey = `${pin.moduleId}.${pin.type || 'default'}`;
+                if (!toBackfill[contextKey]) toBackfill[contextKey] = {};
+                toBackfill[contextKey][pin.id] = tags;
+            };
+            for (const scene of game.scenes) {
+                const pins = scene.getFlag(MODULE.ID, this.FLAG_KEY);
+                if (!Array.isArray(pins)) continue;
+                for (const pin of pins) addPin(pin);
+            }
+            for (const pin of this._getUnplacedPins()) addPin(pin);
+
+            if (Object.keys(toBackfill).length > 0) {
+                // Merge with any forward-writes already in the store; never overwrite existing entries
+                const existing = getSettingSafely(MODULE.ID, 'flagAssignments', {});
+                for (const [contextKey, records] of Object.entries(toBackfill)) {
+                    if (!existing[contextKey]) existing[contextKey] = {};
+                    for (const [recordId, flags] of Object.entries(records)) {
+                        if (!existing[contextKey][recordId]) existing[contextKey][recordId] = flags;
+                    }
+                }
+                await game.settings.set(MODULE.ID, 'flagAssignments', existing);
+            }
+            await game.settings.set(MODULE.ID, 'flagsAssignmentsMigrated', true);
+        } catch (err) {
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Failed to backfill flag assignments.', err?.message || err, false, true);
+        }
     }
 
     static _getStoredFilterProfiles() {
@@ -1402,6 +1457,7 @@ export class PinManager {
             }
             const next = [...unplaced, foundry.utils.deepClone(pin)];
             await this._setUnplacedPins(next);
+            this._mirrorFlagsForPin(pin);
             if (typeof Hooks !== 'undefined') {
                 Hooks.callAll('blacksmith.pins.created', { pinId: pin.id, moduleId: pin.moduleId, placement: 'unplaced', pin: foundry.utils.deepClone(pin) });
             }
@@ -1418,6 +1474,7 @@ export class PinManager {
         const next = [...pins, foundry.utils.deepClone(pin)];
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
         this._addTagsToRegistry(pin.tags).catch(() => {});
+        this._mirrorFlagsForPin(pin);
         if (typeof Hooks !== 'undefined') {
             Hooks.callAll('blacksmith.pins.created', { pinId: pin.id, sceneId: scene.id, moduleId: pin.moduleId, placement: 'placed', pin: foundry.utils.deepClone(pin) });
         }
@@ -1474,6 +1531,7 @@ export class PinManager {
                 const scenePins = this._getScenePins(scene);
                 const next = [...scenePins, foundry.utils.deepClone(placed)];
                 await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
+                this._mirrorFlagsForPin(placed);
                 if (typeof Hooks !== 'undefined') {
                     Hooks.callAll('blacksmith.pins.placed', { pinId, sceneId: scene.id, moduleId: placed.moduleId, type: placed.type ?? 'default', pin: foundry.utils.deepClone(placed) });
                 }
@@ -1494,6 +1552,7 @@ export class PinManager {
             const unplaced = this._getUnplacedPins();
             const next = unplaced.map((p) => (p.id === pinId ? foundry.utils.deepClone(updated) : p));
             await this._setUnplacedPins(next);
+            this._mirrorFlagsForPin(updated);
             if (typeof Hooks !== 'undefined') {
                 Hooks.callAll('blacksmith.pins.updated', { pinId, sceneId: null, moduleId: updated.moduleId, type: updated.type ?? 'default', patch, pin: foundry.utils.deepClone(updated) });
             }
@@ -1537,6 +1596,7 @@ export class PinManager {
         next[idx] = foundry.utils.deepClone(updated);
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
         this._addTagsToRegistry(updated.tags).catch(() => {});
+        this._mirrorFlagsForPin(updated);
         if (typeof Hooks !== 'undefined') {
             Hooks.callAll('blacksmith.pins.updated', { pinId, sceneId: scene.id, moduleId: updated.moduleId ?? existing.moduleId, type: updated.type ?? existing.type, patch, pin: foundry.utils.deepClone(updated) });
         }
@@ -1804,9 +1864,11 @@ export class PinManager {
         if (loc.location === 'unplaced') {
             const next = this._getUnplacedPins().filter((p) => p.id !== pinId);
             await this._setUnplacedPins(next);
+            this._clearFlagsForPin(existing);
         } else {
             const pins = this._getScenePins(loc.scene).filter((p) => p.id !== pinId);
             await loc.scene.setFlag(MODULE.ID, this.FLAG_KEY, pins);
+            this._clearFlagsForPin(existing);
             if (loc.scene.id === canvas?.scene?.id) {
                 import('./pins-renderer.js').then(({ PinRenderer }) => {
                     PinRenderer.removePin(pinId);
