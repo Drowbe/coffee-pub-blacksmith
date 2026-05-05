@@ -79,9 +79,9 @@ import { SidebarStyle } from './ui-sidebar-style.js';
 import { LoadingProgressManager } from './manager-loading-progress.js';
 import { PinManager } from './manager-pins.js';
 import { PinsAPI } from './api-pins.js';
-import { FlagsAPI } from './api-flags.js';
-import { FlagManager } from './manager-flags.js';
-import { FlagWidget } from './widget-flags.js';
+import { TagsAPI } from './api-tags.js';
+import { TagManager } from './manager-tags.js';
+import { TagWidget } from './widget-tags.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
 import { TokenIndicatorManager } from './manager-token-indicators.js';
 import { CampaignManager } from './manager-campaign.js';
@@ -524,13 +524,13 @@ Hooks.once('ready', async () => {
         // Initialize the unified roll system API
         LoadingProgressManager.logActivity("Loading roll system...");
         await _registerUnifiedHeaderPartial();
-        await FlagWidget.registerPartial();
+        await TagWidget.registerPartial();
 
-        // Initialize the Flags system: load taxonomy, register GM proxy, run migration
-        LoadingProgressManager.logActivity("Initializing flags system...");
-        await FlagManager.ensureTaxonomyLoaded();
-        FlagManager.registerGMProxy().catch(() => {});
-        FlagManager.runMigration().catch(() => {});
+        // Initialize the Tags system: load taxonomy, register GM proxy, run migration
+        LoadingProgressManager.logActivity("Initializing tags system...");
+        await TagManager.ensureTaxonomyLoaded();
+        TagManager.registerGMProxy().catch(() => {});
+        TagManager.runMigration().catch(() => {});
         PinManager.backfillFlagAssignments().catch(() => {});
 
         const { executeRoll } = await import('./manager-rolls.js');
@@ -925,7 +925,7 @@ Hooks.once('init', async function() {
         CanvasLayer: null,
         getCanvasLayer: null,
         pins: PinsAPI,
-        flags: FlagsAPI,
+        tags: TagsAPI,
         chatCards: ChatCardsAPI,
         campaign: CampaignAPI,
         getPartyCR: EncounterManager.getPartyCR.bind(EncounterManager),

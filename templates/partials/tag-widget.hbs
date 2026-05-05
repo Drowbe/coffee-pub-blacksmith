@@ -1,0 +1,53 @@
+{{!-- Tag Widget Partial – blacksmith-tag-widget --}}
+{{!-- Pass context from TagWidget.prepareData(). --}}
+<div class="bsw-tag-widget" data-tag-widget="{{contextKey}}">
+
+    {{#if isFullMode}}
+        <input type="hidden" data-tag-value value="{{#each chips}}{{#unless @first}},{{/unless}}{{key}}{{/each}}">
+
+        <div class="bsw-tag-chips" data-tag-chips>
+            {{#each chips}}
+                <span class="bsw-tag-chip{{#if protected}} bsw-tag-chip--protected{{/if}}" data-tag-key="{{key}}">
+                    {{label}}
+                    {{#if removable}}
+                        <button type="button" class="bsw-tag-chip-remove" data-remove-tag="{{key}}" aria-label="Remove {{label}}">×</button>
+                    {{/if}}
+                </span>
+            {{/each}}
+        </div>
+
+        <div class="bsw-tag-input-row">
+            <input type="text"
+                   class="bsw-tag-input"
+                   data-tag-input
+                   placeholder="{{placeholder}}"
+                   autocomplete="off">
+        </div>
+        <div class="bsw-tag-suggestions" data-tag-suggestions hidden>
+            {{#each suggestions}}
+                <button type="button" class="bsw-tag-suggestion" data-suggest-tag="{{key}}">{{label}}</button>
+            {{/each}}
+        </div>
+    {{/if}}
+
+    {{#if isFilterMode}}
+        <div class="bsw-tag-filter-list">
+            {{#each filterItems}}
+                <label class="bsw-tag-filter-item">
+                    <input type="checkbox"
+                           class="bsw-tag-filter-toggle"
+                           data-filter-tag="{{key}}"
+                           data-filter-context="{{../contextKey}}"
+                           {{#if visible}}checked{{/if}}>
+                    <span class="bsw-tag-filter-label{{#if protected}} bsw-tag-filter-label--protected{{/if}}">
+                        {{label}}
+                    </span>
+                </label>
+            {{/each}}
+            {{#unless filterItems}}
+                <span class="bsw-tag-filter-empty">No tags defined for this context.</span>
+            {{/unless}}
+        </div>
+    {{/if}}
+
+</div>

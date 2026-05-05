@@ -611,7 +611,7 @@ export class JournalPagePins {
         if (!tagRow || tagRow.dataset.populated) return;
         tagRow.dataset.populated = '1';
         // Use flags API: show only taxonomy-tier flags for this pin type, not global flags
-        const flags = this._getFlagsApi();
+        const flags = this._getTagsApi();
         const contextKey = `${MODULE.ID}.${this.PIN_TYPE}`;
         const choices = flags?.getChoices?.(contextKey) ?? [];
         const tags = choices.filter(c => c.tier === 'taxonomy').map(c => c.key);
@@ -910,7 +910,7 @@ export class JournalPagePins {
         return game.modules.get(MODULE.ID)?.api?.pins;
     }
 
-    static _getFlagsApi() {
-        return game.modules.get(MODULE.ID)?.api?.flags;
+    static _getTagsApi() {
+        return game.modules.get(MODULE.ID)?.api?.tags;
     }
 }

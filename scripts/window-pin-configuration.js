@@ -502,9 +502,9 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         const pinTypeLabel = PinManager.getPinTypeLabel(pin.moduleId, pin.type) || '';
 
         // Build Suggested / Other tag groups via flags API
-        const flagsApi = game.modules.get(MODULE.ID)?.api?.flags;
+        const tagsApi = game.modules.get(MODULE.ID)?.api?.tags;
         const contextKey = `${pin.moduleId}.${pin.type || 'default'}`;
-        const taxonomyKeys = (flagsApi?.getChoices?.(contextKey) ?? [])
+        const taxonomyKeys = (tagsApi?.getChoices?.(contextKey) ?? [])
             .filter(c => c.tier === 'taxonomy')
             .map(c => c.key);
         const thisTypeTaxonomySet = new Set(taxonomyKeys);
@@ -523,7 +523,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         }
         const suggestedSet = new Set([...thisTypeTaxonomySet, ...customTypeTagSet]);
         const pinSuggestedTags = [...suggestedSet].sort();
-        const pinOtherTags = (flagsApi?.getRegistry?.() ?? PinManager.getTagRegistry())
+        const pinOtherTags = (tagsApi?.getRegistry?.() ?? PinManager.getTagRegistry())
             .filter(t => !suggestedSet.has(t)).sort();
 
         this.pinType = pin.type || 'default';

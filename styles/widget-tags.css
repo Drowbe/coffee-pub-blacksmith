@@ -1,8 +1,8 @@
 /* ================================================================
-   FLAG WIDGET – styles/widget-flags.css
+   TAG WIDGET – styles/widget-tags.css
    ================================================================ */
 
-.bsw-flag-widget {
+.bsw-tag-widget {
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -13,14 +13,14 @@
    Full mode – chips
    --------------------------------------------------------------- */
 
-.bsw-flag-chips {
+.bsw-tag-chips {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
     min-height: 24px;
 }
 
-.bsw-flag-chip {
+.bsw-tag-chip {
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -32,12 +32,12 @@
     white-space: nowrap;
 }
 
-.bsw-flag-chip--protected {
+.bsw-tag-chip--protected {
     background: var(--blacksmith-color-muted, #555);
     opacity: 0.85;
 }
 
-.bsw-flag-chip-remove {
+.bsw-tag-chip-remove {
     all: unset;
     cursor: pointer;
     font-size: 0.85rem;
@@ -46,7 +46,7 @@
     transition: opacity 0.1s;
 }
 
-.bsw-flag-chip-remove:hover {
+.bsw-tag-chip-remove:hover {
     opacity: 1;
 }
 
@@ -54,12 +54,12 @@
    Full mode – text input
    --------------------------------------------------------------- */
 
-.bsw-flag-input-row {
+.bsw-tag-input-row {
     display: flex;
     gap: 4px;
 }
 
-.bsw-flag-input {
+.bsw-tag-input {
     flex: 1;
     font-size: 0.8rem;
     padding: 3px 8px;
@@ -69,7 +69,7 @@
     color: var(--blacksmith-color-text, #eee);
 }
 
-.bsw-flag-input:focus {
+.bsw-tag-input:focus {
     outline: none;
     border-color: var(--blacksmith-color-accent, #6b3fa0);
 }
@@ -78,7 +78,7 @@
    Full mode – suggestions dropdown
    --------------------------------------------------------------- */
 
-.bsw-flag-suggestions {
+.bsw-tag-suggestions {
     position: absolute;
     top: 100%;
     left: 0;
@@ -96,11 +96,11 @@
     overflow-y: auto;
 }
 
-.bsw-flag-suggestions[hidden] {
+.bsw-tag-suggestions[hidden] {
     display: none;
 }
 
-.bsw-flag-suggestion {
+.bsw-tag-suggestion {
     all: unset;
     cursor: pointer;
     padding: 2px 8px;
@@ -112,7 +112,7 @@
     white-space: nowrap;
 }
 
-.bsw-flag-suggestion:hover {
+.bsw-tag-suggestion:hover {
     background: var(--blacksmith-color-accent, #6b3fa0);
     color: var(--blacksmith-color-text-on-accent, #fff);
 }
@@ -121,13 +121,13 @@
    Filter mode
    --------------------------------------------------------------- */
 
-.bsw-flag-filter-list {
+.bsw-tag-filter-list {
     display: flex;
     flex-direction: column;
     gap: 2px;
 }
 
-.bsw-flag-filter-item {
+.bsw-tag-filter-item {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -136,18 +136,19 @@
     font-size: 0.8rem;
 }
 
-.bsw-flag-filter-toggle {
+.bsw-tag-filter-toggle {
     cursor: pointer;
     accent-color: var(--blacksmith-color-accent, #6b3fa0);
 }
 
-.bsw-flag-filter-label--protected {
+.bsw-tag-filter-label--protected {
     opacity: 0.7;
     font-style: italic;
 }
 
-.bsw-flag-filter-empty {
+.bsw-tag-filter-empty {
     font-size: 0.75rem;
     opacity: 0.6;
     font-style: italic;
 }
+

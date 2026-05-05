@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.7.0]
+
+### Added
+
+- **Unified Tags system** (`manager-tags.js`, `api-tags.js`, `settings.js`, `blacksmith.js`): New module-agnostic labeling infrastructure exposed at `game.modules.get('coffee-pub-blacksmith').api.tags`. Any coffee-pub module can register a taxonomy for its data types and attach, query, rename, or delete tags through a single shared API. Tags are stored centrally in a new world setting `tagAssignments` keyed by `{moduleId}.{dataType}` context key and record ID. A world-level `tagRegistry` tracks every tag ever used across all contexts. Full method surface: `setTags`, `getTags`, `addTags`, `removeTags`, `deleteRecordTags`, `getRecordsByTag`, `getChoices`, `getRegistry`, `normalize`, `rename`, `delete`, `seedRegistry`, `setVisibility`, `getVisibility`, `register`. Rename and delete propagate atomically across all records in all contexts. GM-only mutations route through the existing SocketLib GM proxy so non-GM players can tag records they own. Protected tags (marked `protected: true` in the taxonomy) cannot be renamed or deleted via the API.
+- **Unified tag taxonomy** (`resources/tag-taxonomy.json`): Single JSON file that defines tag choices for all coffee-pub module contexts — `coffee-pub-blacksmith.journal-pin`, `coffee-pub-squire.note/codex/quest/objective`, and `coffee-pub-artificer.habitat-location/component-location/skill-location`. Replaces per-system taxonomy registration. An optional world setting `tagTaxonomyOverrideJson` accepts a path to a merge-override file. A pin-taxonomy.json compatibility shim ensures existing pin contexts load correctly during the migration window.
+- **TagWidget** (`widget-tags.js`, `templates/partials/tag-widget.hbs`, `styles/widget-tags.css`): Reusable embeddable UI component for Application V2 windows. Full mode supports display, add, remove, and live-search against taxonomy suggestions. Filter mode renders visibility toggles for sidebar filter panels. Embed via `TagWidget.prepareData()` → `{{> blacksmith-tag-widget}}` → `TagWidget.readValue()` on save. `TagWidget.activate()` wires all interactivity after render.
+- **Pin tag mirroring into central store** (`manager-pins.js`): Pin create, update, and delete operations now mirror tag data into `tagAssignments` via `_mirrorTagsForPin` and `_clearTagsForPin` helpers. All five write paths are covered: placed create, unplaced create, placed update, unplaced update, and the unplaced→placed transition. Tag data remains on `pin.tags[]` as the authoritative source during the migration window.
+- **One-time pin tag backfill** (`manager-pins.js`, `settings.js`): `PinManager.backfillFlagAssignments()` runs once on first GM load to populate `tagAssignments` from all existing `pin.tags[]` across every scene and the unplaced store. Builds the full assignments object in a single in-memory pass and writes it in one settings call. Gated by `tagsAssignmentsMigrated` sentinel; merges with any forward-writes already present rather than overwriting.
+- **One-time registry migration** (`manager-tags.js`): `TagManager.runMigration()` seeds `tagRegistry` from the existing `pinTagRegistry` on first GM load, preserving the world's entire tag vocabulary without any manual steps. Backward-compatible with worlds that ran under the previous `flag*` naming — detects old sentinels and copies data across automatically.
+
+### Changed
+
+- **Journal pin tag chips use Tags API** (`ui-journal-pins.js`): `_populateTagChips` now calls `tags.getChoices('coffee-pub-blacksmith.journal-pin')` filtered to taxonomy-tier entries instead of `pins.loadBuiltinTaxonomy()` + `pins.getPinTaxonomy()`. The async taxonomy load is removed from the toolbar render path since `TagManager` loads at init.
+- **Pin configuration window Suggested/Other tags use Tags API** (`window-pin-configuration.js`): Tag group population replaced `PinManager.ensureBuiltinTaxonomyLoaded()` + `PinManager.getPinTaxonomyChoices()` + `PinManager.getPinTaxonomy()` + `PinManager.getTagRegistry()` with `tags.getChoices(contextKey)` (taxonomy tier only for Suggested) and `tags.getRegistry()` (for Other). Custom scene-local tags scan is unchanged. `pinClassificationHelp` now falls back directly to `pinTypeLabel` since `taxonomyChoices.label` was redundant.
+
 ## [13.6.6]
 
 ### Added

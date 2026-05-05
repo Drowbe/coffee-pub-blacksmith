@@ -1,27 +1,27 @@
-# Flags API Documentation
+# Tags API Documentation
 
 **Audience:** Developers integrating with Blacksmith and using the Flags system from another module.
 
-> **Architecture reference:** See `documentation/architecture/architecture-flags.md` for internals, storage design, the migration path from the pin tag system, and the FlagWidget component specification.
+> **Architecture reference:** See `documentation/architecture/architecture-tags.md` for internals, storage design, the migration path from the pin tag system, and the TagWidget component specification.
 >
 > **Feature summary:**
 > - **Central storage**: All flag assignments (record → flags) are stored in a Blacksmith world setting. Consuming modules do not store flags in their own record data.
 > - **Context keys**: Every flag operation is scoped to a `{moduleId}.{dataType}` context key (e.g. `"coffee-pub-squire.quests"`). This allows the same flag name to exist independently in different data types.
-> - **Taxonomy**: `resources/flag-taxonomy.json` defines the suggested flag set for each context. Modules contribute by adding their context entries to this file. Protected flags (those that drive module code) are marked `protected: true` and cannot be renamed or deleted.
+> - **Taxonomy**: `resources/tag-taxonomy.json` defines the suggested flag set for each context. Modules contribute by adding their context entries to this file. Protected flags (those that drive module code) are marked `protected: true` and cannot be renamed or deleted.
 > - **Global flags**: Flags like `"todo"` and `"revisit"` are offered as suggestions in every context.
 > - **Visibility**: Per-flag-globally by default, with an optional per-context override. Visibility is client-scope and affects filtering only — it does not remove flags from data.
-> - **FlagWidget**: A reusable Blacksmith UI component for flag selection, search, add, and remove. Embed in any Application V2 window; requires the Blacksmith Window API.
+> - **TagWidget**: A reusable Blacksmith UI component for flag selection, search, add, and remove. Embed in any Application V2 window; requires the Blacksmith Window API.
 > - **GM-only mutations**: Rename and delete operate across all records in all contexts and require GM privileges.
 
 ---
 
 ## Overview
 
-The Flags API provides a shared labeling infrastructure for all coffee-pub modules. Use it to attach classification labels to your records, offer a consistent UI for choosing and filtering flags, and let the GM manage the world's flag vocabulary in one place.
+The Tags API provides a shared labeling infrastructure for all coffee-pub modules. Use it to attach classification labels to your records, offer a consistent UI for choosing and filtering flags, and let the GM manage the world's flag vocabulary in one place.
 
 A **flag** is a normalized string: lowercase, hyphen-separated, no spaces (e.g. `"main-quest"`, `"tavern"`, `"todo"`). A **context key** scopes a flag taxonomy and its record assignments to one module + data type (e.g. `"coffee-pub-squire.quests"`).
 
-### When to use the Flags API
+### When to use the Tags API
 
 - You have records (quests, codex entries, notes, items) that users want to classify and filter.
 - You want a consistent flag UI without building tag-input, chip rendering, or search from scratch.
@@ -38,12 +38,12 @@ A **flag** is a normalized string: lowercase, hyphen-separated, no spaces (e.g. 
 
 | File | Role |
 |---|---|
-| `scripts/manager-flags.js` | FlagManager — core logic, storage, normalization |
-| `scripts/api-flags.js` | FlagsAPI — public wrapper (this document) |
-| `scripts/widget-flags.js` | FlagWidget — embeddable UI component |
-| `templates/widget-flags.hbs` | FlagWidget Handlebars template |
-| `styles/widget-flags.css` | FlagWidget styles |
-| `resources/flag-taxonomy.json` | Canonical taxonomy for all coffee-pub contexts |
+| `scripts/manager-flags.js` | TagManager — core logic, storage, normalization |
+| `scripts/api-flags.js` | TagsAPI — public wrapper (this document) |
+| `scripts/widget-flags.js` | TagWidget — embeddable UI component |
+| `templates/widget-flags.hbs` | TagWidget Handlebars template |
+| `styles/widget-flags.css` | TagWidget styles |
+| `resources/tag-taxonomy.json` | Canonical taxonomy for all coffee-pub contexts |
 
 ---
 
@@ -58,11 +58,11 @@ if (!flags?.isAvailable()) return;
 
 ### Availability check
 
-Call `isAvailable()` before any API use. The Flags API is ready as soon as Blacksmith initializes — it does not require the canvas.
+Call `isAvailable()` before any API use. The Tags API is ready as soon as Blacksmith initializes — it does not require the canvas.
 
 ### Add your context to the taxonomy
 
-Add your context key entry to `resources/flag-taxonomy.json` before shipping:
+Add your context key entry to `resources/tag-taxonomy.json` before shipping:
 
 ```json
 {
@@ -92,19 +92,19 @@ Hooks.on('blacksmithReady', async () => {
   if (!flags?.isAvailable()) return;
 
   // Set flags on a record (replaces any existing flags for this record)
-  await flags.setFlags('coffee-pub-squire.quests', quest.id, ['main', 'faction']);
+  await flags.setTags('coffee-pub-squire.quests', quest.id, ['main', 'faction']);
 });
 ```
 
 ### Clean up on record delete
 
 ```javascript
-await flags.deleteRecordFlags('coffee-pub-squire.quests', quest.id);
+await flags.deleteRecordTags('coffee-pub-squire.quests', quest.id);
 ```
 
 ### Embed the flag widget in a window
 
-See [FlagWidget](#flagwidget) below for the full embed pattern.
+See [TagWidget](#TagWidget) below for the full embed pattern.
 
 ---
 
@@ -114,14 +114,14 @@ See [FlagWidget](#flagwidget) below for the full embed pattern.
 
 #### `flags.isAvailable()`
 
-Returns `true` if the Flags API is loaded and ready. Safe to call at any time, including before `ready`.
+Returns `true` if the Tags API is loaded and ready. Safe to call at any time, including before `ready`.
 
 **Returns:** `boolean`
 
 ```javascript
 const flags = game.modules.get('coffee-pub-blacksmith')?.api?.flags;
 if (!flags?.isAvailable()) {
-  console.warn('Blacksmith Flags API not available');
+  console.warn('Blacksmith Tags API not available');
   return;
 }
 ```
@@ -132,7 +132,7 @@ if (!flags?.isAvailable()) {
 
 #### `flags.register(contextKey, taxonomy)`
 
-Merge a taxonomy entry into the in-memory registry at runtime. Useful for dev-time testing or dynamic contexts not known at ship time. For shipped modules, prefer adding entries directly to `flag-taxonomy.json`.
+Merge a taxonomy entry into the in-memory registry at runtime. Useful for dev-time testing or dynamic contexts not known at ship time. For shipped modules, prefer adding entries directly to `tag-taxonomy.json`.
 
 Runtime entries merge on top of the JSON entries — runtime wins on key collision.
 
@@ -164,7 +164,7 @@ Hooks.on('blacksmithReady', () => {
 
 #### `flags.getChoices(contextKey)`
 
-Get the full list of suggested flags for a context: the context's taxonomy flags plus global flags. Use this to populate a dropdown, chip input, or FlagWidget's suggestion list.
+Get the full list of suggested flags for a context: the context's taxonomy flags plus global flags. Use this to populate a dropdown, chip input, or TagWidget's suggestion list.
 
 Flags are returned in taxonomy order, with global flags appended. Protected flags are included; the caller can use the `protected` field to style or sort them differently.
 
@@ -190,9 +190,9 @@ const choices = flags.getChoices('coffee-pub-squire.quests');
 
 ### Record flag CRUD
 
-All CRUD methods write to the central `flagAssignments` world setting. Non-GM users go through the GM proxy automatically — you do not need to handle that routing.
+All CRUD methods write to the central `tagAssignments` world setting. Non-GM users go through the GM proxy automatically — you do not need to handle that routing.
 
-#### `flags.setFlags(contextKey, recordId, flagArray)`
+#### `flags.setTags(contextKey, recordId, flagArray)`
 
 Replace the flag set for a record. Normalizes the input array before storing. Adds any new flags to the world registry.
 
@@ -208,12 +208,12 @@ Replace the flag set for a record. Normalizes the input array before storing. Ad
 
 ```javascript
 // On quest save
-await flags.setFlags('coffee-pub-squire.quests', quest.id, ['main', 'faction', 'todo']);
+await flags.setTags('coffee-pub-squire.quests', quest.id, ['main', 'faction', 'todo']);
 ```
 
 ---
 
-#### `flags.getFlags(contextKey, recordId)`
+#### `flags.getTags(contextKey, recordId)`
 
 Get the current flags for a record. Returns an empty array if the record has no flags.
 
@@ -227,13 +227,13 @@ Get the current flags for a record. Returns an empty array if the record has no 
 **Returns:** `string[]`
 
 ```javascript
-const questFlags = flags.getFlags('coffee-pub-squire.quests', quest.id);
+const questFlags = flags.getTags('coffee-pub-squire.quests', quest.id);
 // ['main', 'faction', 'todo']
 ```
 
 ---
 
-#### `flags.addFlags(contextKey, recordId, flagArray)`
+#### `flags.addTags(contextKey, recordId, flagArray)`
 
 Add flags to a record without replacing its existing flags. Duplicates are deduplicated automatically. Adds any new flags to the world registry.
 
@@ -249,12 +249,12 @@ Add flags to a record without replacing its existing flags. Duplicates are dedup
 
 ```javascript
 // Mark a quest complete without touching its other flags
-await flags.addFlags('coffee-pub-squire.quests', quest.id, ['complete']);
+await flags.addTags('coffee-pub-squire.quests', quest.id, ['complete']);
 ```
 
 ---
 
-#### `flags.removeFlags(contextKey, recordId, flagArray)`
+#### `flags.removeTags(contextKey, recordId, flagArray)`
 
 Remove specific flags from a record. Flags not present on the record are silently ignored.
 
@@ -270,12 +270,12 @@ Remove specific flags from a record. Flags not present on the record are silentl
 
 ```javascript
 // Un-complete a quest
-await flags.removeFlags('coffee-pub-squire.quests', quest.id, ['complete']);
+await flags.removeTags('coffee-pub-squire.quests', quest.id, ['complete']);
 ```
 
 ---
 
-#### `flags.deleteRecordFlags(contextKey, recordId)`
+#### `flags.deleteRecordTags(contextKey, recordId)`
 
 Remove all flag data for a record. Call this when the record itself is deleted to avoid orphan entries in the assignment store.
 
@@ -290,12 +290,12 @@ Remove all flag data for a record. Call this when the record itself is deleted t
 
 ```javascript
 // In your module's record delete handler
-await flags.deleteRecordFlags('coffee-pub-squire.quests', deletedQuest.id);
+await flags.deleteRecordTags('coffee-pub-squire.quests', deletedQuest.id);
 ```
 
 ---
 
-#### `flags.getRecordsByFlag(contextKey, flag)`
+#### `flags.getRecordsByTag(contextKey, flag)`
 
 Get all record IDs in a context that currently have a specific flag. Useful for building filter views.
 
@@ -310,7 +310,7 @@ Get all record IDs in a context that currently have a specific flag. Useful for 
 
 ```javascript
 // Find all quests tagged 'faction'
-const factionQuestIds = flags.getRecordsByFlag('coffee-pub-squire.quests', 'faction');
+const factionQuestIds = flags.getRecordsByTag('coffee-pub-squire.quests', 'faction');
 ```
 
 ---
@@ -412,7 +412,7 @@ If the registry already contains a flag it is not duplicated.
 
 ```javascript
 // On first load: seed registry from all existing quests
-const allQuestFlags = myQuests.map(q => flags.getFlags('coffee-pub-squire.quests', q.id));
+const allQuestFlags = myQuests.map(q => flags.getTags('coffee-pub-squire.quests', q.id));
 await flags.seedRegistry('coffee-pub-squire.quests', allQuestFlags);
 ```
 
@@ -471,11 +471,11 @@ const visible = flags.getVisibility('todo', 'coffee-pub-squire.quests');
 
 ---
 
-## FlagWidget
+## TagWidget
 
-FlagWidget is a Blacksmith UI component for selecting and managing flags. Embed it in any Application V2 window instead of building your own tag input.
+TagWidget is a Blacksmith UI component for selecting and managing flags. Embed it in any Application V2 window instead of building your own tag input.
 
-**Prerequisite:** Your window must use the Blacksmith Window API (`documentation/api/api-window.md`). FlagWidget follows the same lifecycle and CSS conventions.
+**Prerequisite:** Your window must use the Blacksmith Window API (`documentation/api/api-window.md`). TagWidget follows the same lifecycle and CSS conventions.
 
 ### Capabilities
 
@@ -492,9 +492,9 @@ FlagWidget is a Blacksmith UI component for selecting and managing flags. Embed 
 async prepareContext(options) {
   const context = await super.prepareContext(options);
   const flags = game.modules.get('coffee-pub-blacksmith')?.api?.flags;
-  const currentFlags = flags.getFlags('coffee-pub-squire.quests', this.questId);
+  const currentFlags = flags.getTags('coffee-pub-squire.quests', this.questId);
 
-  context.flagWidget = FlagWidget.prepareData({
+  context.TagWidget = TagWidget.prepareData({
     contextKey: 'coffee-pub-squire.quests',
     currentFlags,
     mode: 'full'            // 'full' or 'filter'
@@ -508,7 +508,7 @@ async prepareContext(options) {
 
 ```handlebars
 <div class="quest-flags-section">
-  {{> blacksmith-flag-widget flags=flagWidget}}
+  {{> blacksmith-flag-widget flags=TagWidget}}
 </div>
 ```
 
@@ -517,19 +517,19 @@ async prepareContext(options) {
 ```javascript
 async _onSubmit(event, form, formData) {
   const flags = game.modules.get('coffee-pub-blacksmith')?.api?.flags;
-  const newFlags = FlagWidget.readValue(this.element, 'coffee-pub-squire.quests');
-  await flags.setFlags('coffee-pub-squire.quests', this.questId, newFlags);
+  const newFlags = TagWidget.readValue(this.element, 'coffee-pub-squire.quests');
+  await flags.setTags('coffee-pub-squire.quests', this.questId, newFlags);
   // ... rest of save
 }
 ```
 
-### Accessing FlagWidget
+### Accessing TagWidget
 
 ```javascript
-const { FlagWidget } = game.modules.get('coffee-pub-blacksmith')?.api?.flags ?? {};
+const { TagWidget } = game.modules.get('coffee-pub-blacksmith')?.api?.flags ?? {};
 ```
 
-### `FlagWidget.prepareData(options)`
+### `TagWidget.prepareData(options)`
 
 Prepare the template data object for the widget partial.
 
@@ -546,7 +546,7 @@ Prepare the template data object for the widget partial.
 
 ---
 
-### `FlagWidget.readValue(element, contextKey)`
+### `TagWidget.readValue(element, contextKey)`
 
 Read the current flag selection from a rendered widget inside `element`. Call this in your `_onSubmit` or change handler.
 
@@ -567,10 +567,10 @@ The Flags system fires the following Foundry hooks:
 
 | Hook | When | Payload |
 |---|---|---|
-| `blacksmith.flags.registered` | A taxonomy is registered (JSON load or runtime) | `{ contextKey, taxonomy }` |
-| `blacksmith.flags.renamed` | A flag is renamed globally (GM only) | `{ oldFlag, newFlag, updated: number }` |
-| `blacksmith.flags.deleted` | A flag is deleted globally (GM only) | `{ flag, removed: number }` |
-| `blacksmith.flags.changed` | Flags are set/added/removed on a record | `{ contextKey, recordId, flags: string[] }` |
+| `blacksmith.tags.registered` | A taxonomy is registered (JSON load or runtime) | `{ contextKey, taxonomy }` |
+| `blacksmith.tags.renamed` | A flag is renamed globally (GM only) | `{ oldFlag, newFlag, updated: number }` |
+| `blacksmith.tags.deleted` | A flag is deleted globally (GM only) | `{ flag, removed: number }` |
+| `blacksmith.tags.changed` | Flags are set/added/removed on a record | `{ contextKey, recordId, flags: string[] }` |
 
 ---
 
@@ -578,12 +578,12 @@ The Flags system fires the following Foundry hooks:
 
 When adding Flags support to a new module or data type:
 
-- [ ] Add your context key to `resources/flag-taxonomy.json`. Mark `protected: true` on any flags your code checks by value.
-- [ ] Call `flags.setFlags(contextKey, recordId, flagArray)` when saving a record.
-- [ ] Call `flags.deleteRecordFlags(contextKey, recordId)` when deleting a record.
+- [ ] Add your context key to `resources/tag-taxonomy.json`. Mark `protected: true` on any flags your code checks by value.
+- [ ] Call `flags.setTags(contextKey, recordId, flagArray)` when saving a record.
+- [ ] Call `flags.deleteRecordTags(contextKey, recordId)` when deleting a record.
 - [ ] Call `flags.seedRegistry(contextKey, existingArrays)` once on first load to populate the registry from pre-existing data.
-- [ ] Embed `FlagWidget` in your record's edit window.
-- [ ] Use `flags.getRecordsByFlag(contextKey, flag)` to power any filter UI.
+- [ ] Embed `TagWidget` in your record's edit window.
+- [ ] Use `flags.getRecordsByTag(contextKey, flag)` to power any filter UI.
 - [ ] Check `flags.isAvailable()` before all API calls from outside Blacksmith.
 
 ---
@@ -591,17 +591,18 @@ When adding Flags support to a new module or data type:
 ## Troubleshooting
 
 **Flags are not appearing in suggestions**
-- Verify your context key is in `flag-taxonomy.json` (or registered at runtime before the UI opens).
+- Verify your context key is in `tag-taxonomy.json` (or registered at runtime before the UI opens).
 - Check that `flags.getChoices(contextKey)` returns your expected flags in the console.
 
 **Rename / delete silently does nothing**
 - Confirm the calling user is GM.
 - Check if the flag is marked `protected: true` in the taxonomy — protected flags cannot be renamed or deleted.
 
-**FlagWidget is not rendering**
+**TagWidget is not rendering**
 - Confirm your window extends the Blacksmith Window API (see `documentation/api/api-window.md`).
-- Confirm you are passing the `flagWidget` value from `prepareData()` to the template context, not constructing the object manually.
+- Confirm you are passing the `TagWidget` value from `prepareData()` to the template context, not constructing the object manually.
 
 **Record flags are empty after reload**
-- Verify you are calling `setFlags` (not just updating your own record data).
-- Check the `flagAssignments` world setting in the browser console: `game.settings.get('coffee-pub-blacksmith', 'flagAssignments')`.
+- Verify you are calling `setTags` (not just updating your own record data).
+- Check the `tagAssignments` world setting in the browser console: `game.settings.get('coffee-pub-blacksmith', 'tagAssignments')`.
+

@@ -1541,37 +1541,37 @@ export const registerSettings = () => {
 	});
 
 	// -------------------------------------------------------
-	// -- FLAGS SYSTEM (internal data settings, no config UI)
+	// -- TAGS SYSTEM (internal data settings, no config UI)
 	// -------------------------------------------------------
 
-	// Central flag assignment store: { [contextKey]: { [recordId]: string[] } }
-	game.settings.register(MODULE.ID, 'flagAssignments', {
+	// Central tag assignment store: { [contextKey]: { [recordId]: string[] } }
+	game.settings.register(MODULE.ID, 'tagAssignments', {
 		scope: 'world',
 		config: false,
 		type: Object,
 		default: {}
 	});
 
-	// World flag registry: sorted string[] of every flag ever used
-	game.settings.register(MODULE.ID, 'flagRegistry', {
+	// World tag registry: sorted string[] of every tag ever used
+	game.settings.register(MODULE.ID, 'tagRegistry', {
 		scope: 'world',
 		config: false,
 		type: Array,
 		default: []
 	});
 
-	// Per-user visibility map: { [flag | contextKey.flag]: boolean }
-	game.settings.register(MODULE.ID, 'flagVisibility', {
+	// Per-user visibility map: { [tag | contextKey.tag]: boolean }
+	game.settings.register(MODULE.ID, 'tagVisibility', {
 		scope: 'user',
 		config: false,
 		type: Object,
 		default: {}
 	});
 
-	// Optional path to a JSON file that overrides flag-taxonomy.json entries
-	game.settings.register(MODULE.ID, 'flagTaxonomyOverrideJson', {
-		name: 'Flag Taxonomy Override JSON',
-		hint: 'Optional world-level JSON path to merge over the shipped flag taxonomy. Leave blank to use only the built-in defaults.',
+	// Optional path to a JSON file that overrides tag-taxonomy.json entries
+	game.settings.register(MODULE.ID, 'tagTaxonomyOverrideJson', {
+		name: 'Tag Taxonomy Override JSON',
+		hint: 'Optional world-level JSON path to merge over the shipped tag taxonomy. Leave blank to use only the built-in defaults.',
 		scope: 'world',
 		config: true,
 		type: String,
@@ -1579,23 +1579,23 @@ export const registerSettings = () => {
 		filePicker: true,
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE,
 		onChange: () => {
-			void import('./manager-flags.js').then(async ({ FlagManager }) => {
-				FlagManager.invalidateTaxonomy();
-				await FlagManager.ensureTaxonomyLoaded();
+			void import('./manager-tags.js').then(async ({ TagManager }) => {
+				TagManager.invalidateTaxonomy();
+				await TagManager.ensureTaxonomyLoaded();
 			});
 		}
 	});
 
-	// One-time migration sentinel: set true after pinTagRegistry is seeded into flagRegistry
-	game.settings.register(MODULE.ID, 'flagsMigrationComplete', {
+	// One-time migration sentinel: set true after pinTagRegistry is seeded into tagRegistry
+	game.settings.register(MODULE.ID, 'tagsMigrationComplete', {
 		scope: 'world',
 		config: false,
 		type: Boolean,
 		default: false
 	});
 
-	// One-time migration sentinel: set true after existing pin.tags[] are backfilled into flagAssignments
-	game.settings.register(MODULE.ID, 'flagsAssignmentsMigrated', {
+	// One-time migration sentinel: set true after existing pin.tags[] are backfilled into tagAssignments
+	game.settings.register(MODULE.ID, 'tagsAssignmentsMigrated', {
 		scope: 'world',
 		config: false,
 		type: Boolean,
