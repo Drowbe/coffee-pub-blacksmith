@@ -659,6 +659,8 @@ export class PinManager {
             const changed = updated.some((p, i) => p.tags.length !== normalizePinTags(pins[i].tags).length);
             if (changed) await scene.setFlag(MODULE.ID, 'pins', updated);
         }
+        // Mirror into central tag store
+        TagManager.delete(key).catch(() => {});
     }
 
     static async renameTagGlobally(oldKey, newKey) {
@@ -666,7 +668,9 @@ export class PinManager {
         const oldNorm = normalizePinGroup(oldKey);
         const newNorm = normalizePinGroup(newKey);
         if (!oldNorm || !newNorm || oldNorm === newNorm) return;
-        // Update registry
+        // Always mirror into central tag store regardless of pin registry state
+        TagManager.rename(oldNorm, newNorm).catch(() => {});
+        // Update pin-specific registry (guard: if not in pin registry, skip pin-level work)
         const registry = this._getTagRegistry();
         if (!registry.includes(oldNorm)) return;
         const updated = registry.map(t => (t === oldNorm ? newNorm : t));

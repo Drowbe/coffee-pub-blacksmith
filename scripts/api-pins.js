@@ -399,7 +399,9 @@ export class PinsAPI {
      * @returns {string[]}
      */
     static getTagRegistry() {
-        return PinManager.getTagRegistry();
+        // Return from the canonical Tags store; fall back to PinManager during migration window
+        const tagsApi = game.modules.get(MODULE_ID)?.api?.tags;
+        return tagsApi?.getRegistry?.() ?? PinManager.getTagRegistry();
     }
 
     /**
@@ -517,6 +519,8 @@ export class PinsAPI {
      */
     static async setTagVisibility(tag, visible) {
         await PinManager.setTagHidden(tag, !visible);
+        // Also sync to the central tags visibility store
+        game.modules.get(MODULE_ID)?.api?.tags?.setVisibility?.(tag, visible);
     }
 
     /**
