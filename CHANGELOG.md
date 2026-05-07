@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Journal pin tag chips use Tags API** (`ui-journal-pins.js`): `_populateTagChips` now calls `tags.getChoices('coffee-pub-blacksmith.journal-pin')` filtered to taxonomy-tier entries instead of `pins.loadBuiltinTaxonomy()` + `pins.getPinTaxonomy()`. The async taxonomy load is removed from the toolbar render path since `TagManager` loads at init.
 - **Pin configuration window Suggested/Other tags use Tags API** (`window-pin-configuration.js`): Tag group population replaced `PinManager.ensureBuiltinTaxonomyLoaded()` + `PinManager.getPinTaxonomyChoices()` + `PinManager.getPinTaxonomy()` + `PinManager.getTagRegistry()` with `tags.getChoices(contextKey)` (taxonomy tier only for Suggested) and `tags.getRegistry()` (for Other). Custom scene-local tags scan is unchanged. `pinClassificationHelp` now falls back directly to `pinTypeLabel` since `taxonomyChoices.label` was redundant.
+- **`pins.getTagRegistry()` delegates to canonical store** (`api-pins.js`): Returns `TagManager.getRegistry()` (the authoritative `tagRegistry` world setting) with a fallback to `PinManager.getTagRegistry()` during the migration window. Callers using the old pins API surface now read from the unified store.
+- **`pins.setTagVisibility()` syncs to Tags system** (`api-pins.js`): In addition to updating `pinsHiddenTags` for pin rendering, now also calls `TagManager.setVisibility()` so visibility state is consistent across both systems.
+
+### Fixed
+
+- **`renameTagGlobally` early-return prevented `tagAssignments` update** (`manager-pins.js`): The method had an early return when the tag was not present in `pinTagRegistry`. Tags added via `tags.setTags()` are written to `tagRegistry` but not `pinTagRegistry`, so renames called through the pins API never reached the `TagManager.rename()` call. Fixed by moving the `TagManager.rename()` call before the registry guard so it always runs regardless of pin registry state.
+- **`deleteTagGlobally` and `renameTagGlobally` did not update `tagAssignments`** (`manager-pins.js`): GM tag management operations via the existing Pin Layers UI updated `pin.tags[]` on all scenes but left `tagAssignments` stale. Both methods now mirror the operation into the central store via `TagManager.delete()` and `TagManager.rename()` respectively.
 
 ## [13.6.6]
 
