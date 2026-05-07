@@ -1039,6 +1039,93 @@ class PinDOMElement {
         });
 
         if (game.user?.isGM) {
+            const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
+            const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
+            const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
+            coreItems.push({
+                name: 'Access',
+                icon: '<i class="fa-solid fa-user-lock"></i>',
+                submenu: [
+                    {
+                        name: 'None: GM Only',
+                        icon: '<i class="fa-solid fa-ban"></i>',
+                        callback: async () => {
+                            try {
+                                const nextConfig = {
+                                    ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
+                                    blacksmithAccess: 'read',
+                                    blacksmithVisibility: 'hidden'
+                                };
+                                const nextOwnership = {
+                                    ...(pinData.ownership && typeof pinData.ownership === 'object' ? pinData.ownership : {}),
+                                    default: NONE
+                                };
+                                await PinManager.update(pinData.id, { ownership: nextOwnership, config: nextConfig });
+                            } catch (err) {
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin access (none)', err?.message || err, false, true);
+                            }
+                        }
+                    },
+                    {
+                        name: 'Read Only: All open / GM Edit',
+                        icon: '<i class="fa-solid fa-book-open-reader"></i>',
+                        callback: async () => {
+                            try {
+                                const nextConfig = {
+                                    ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
+                                    blacksmithAccess: 'read'
+                                };
+                                const nextOwnership = {
+                                    ...(pinData.ownership && typeof pinData.ownership === 'object' ? pinData.ownership : {}),
+                                    default: OBSERVER
+                                };
+                                await PinManager.update(pinData.id, { ownership: nextOwnership, config: nextConfig });
+                            } catch (err) {
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin access (read)', err?.message || err, false, true);
+                            }
+                        }
+                    },
+                    {
+                        name: 'Pin: All see pin / GM and Owner Edit',
+                        icon: '<i class="fa-solid fa-map-pin"></i>',
+                        callback: async () => {
+                            try {
+                                const nextConfig = {
+                                    ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
+                                    blacksmithAccess: 'pin'
+                                };
+                                const nextOwnership = {
+                                    ...(pinData.ownership && typeof pinData.ownership === 'object' ? pinData.ownership : {}),
+                                    default: OBSERVER
+                                };
+                                await PinManager.update(pinData.id, { ownership: nextOwnership, config: nextConfig });
+                            } catch (err) {
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin access (pin)', err?.message || err, false, true);
+                            }
+                        }
+                    },
+                    {
+                        name: 'Full: All view and edit',
+                        icon: '<i class="fa-solid fa-pen-to-square"></i>',
+                        callback: async () => {
+                            try {
+                                const nextConfig = {
+                                    ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
+                                    blacksmithAccess: 'full'
+                                };
+                                const nextOwnership = {
+                                    ...(pinData.ownership && typeof pinData.ownership === 'object' ? pinData.ownership : {}),
+                                    default: OWNER
+                                };
+                                await PinManager.update(pinData.id, { ownership: nextOwnership, config: nextConfig });
+                            } catch (err) {
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin access (full)', err?.message || err, false, true);
+                            }
+                        }
+                    }
+                ]
+            });
+
             coreItems.push({
                 name: 'Player Visibility',
                 icon: '<i class="fa-solid fa-eye"></i>',

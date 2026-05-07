@@ -43,6 +43,18 @@ div#blacksmith-pin-config .window-content {
     gap: 16px;
 }
 
+.blacksmith-pin-config .blacksmith-window-template-header-icon {
+    overflow: hidden;
+}
+
+.blacksmith-pin-config .blacksmith-window-template-header-icon .window-note-header-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+
 .blacksmith-pin-config .window-note-header-controls {
     display: flex;
     align-items: center;

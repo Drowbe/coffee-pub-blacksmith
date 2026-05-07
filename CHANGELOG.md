@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.7.1]
+
+### Added
+
+- **Pin context menu — GM Access submenu** (`scripts/pins-renderer.js`): Added a GM-only **Access** submenu on pin right-click with `None: GM Only`, `Read Only: All open / GM Edit`, `Pin: All see pin / GM and Owner Edit`, and `Full: All view and edit`. Each action updates both `ownership.default` and `config.blacksmithAccess` so context-menu edits match Configure Pin behavior.
+- **Pin visibility modes include Owner** (`scripts/window-pin-configuration.js`, `templates/window-pin-config.hbs`, `scripts/pins-renderer.js`, `scripts/window-pin-layers.js`): Added `owner` as a third visibility mode (`visible` / `hidden` / `owner`) in Configure Pin, renderer visibility checks, right-click visibility submenu, and Pin Layers browse toggle cycle.
+
+### Changed
+
+- **Configure Pin permissions model decoupled into Access + Visibility** (`scripts/window-pin-configuration.js`, `templates/window-pin-config.hbs`): Replaced legacy ownership labels with explicit access presets (`None`, `Read Only`, `Pin`, `Full`) and separate `Visibility` control (`Visible`, `Hidden`, `Owner`). Access presets map to Foundry ownership + `blacksmithAccess` runtime mode.
+- **Pin Layers browse visibility toggle cycles all three states** (`scripts/window-pin-layers.js`): Browse row visibility action now rotates `Visible -> Hidden -> Owner -> Visible` with matching icon/title updates.
+
+### Fixed
+
+- **GM-only access now enforces hidden visibility** (`scripts/window-pin-configuration.js`, `templates/window-pin-config.hbs`): Selecting `None: GM Only` now forces `Visibility=Hidden`, disables visibility editing in the form, and re-enforces `blacksmithVisibility='hidden'` on save to prevent invalid combinations.
+- **Pin interaction lock for non-editors in Pin mode** (`scripts/pins-renderer.js`, `styles/pins.css`): `blacksmithAccess='pin'` now allows players to see pins but blocks click/drag/context interactions unless they are GM or owner/editor. Locked pins also use a non-interactive cursor affordance.
+- **Pin config header portrait clipping regression (Application V2 migration)** (`styles/window-pin-config.css`): Restored header preview image to fill/crop inside the circular placeholder (`object-fit: cover`, circular clipping), matching pre-migration behavior.
 
 ## [13.7.0]
 
