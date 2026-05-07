@@ -462,9 +462,12 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 ? `<span class="blacksmith-tag blacksmith-tag-category ${typeHidden ? 'is-hidden' : ''}"><i class="fa-solid fa-layer-group"></i> ${esc(typeLabel)}</span>`
                 : '';
             const hasMeta = typeLabel || (p.tags && p.tags.length);
-            const visState = p.config?.blacksmithVisibility || 'visible';
-            const visIcon = visState === 'hidden' ? 'fa-users-slash' : 'fa-users';
-            const visTitle = visState === 'hidden' ? 'Player Visibility: Hidden — click to show' : 'Player Visibility: Visible — click to hide';
+            const visStateRaw = String(p.config?.blacksmithVisibility || 'visible').toLowerCase();
+            const visState = ['visible', 'hidden', 'owner'].includes(visStateRaw) ? visStateRaw : 'visible';
+            const visIcon = visState === 'hidden' ? 'fa-users-slash' : (visState === 'owner' ? 'fa-user-shield' : 'fa-users');
+            const visTitle = visState === 'hidden'
+                ? 'Visibility: Hidden — click for Owner'
+                : (visState === 'owner' ? 'Visibility: Owner — click for Visible' : 'Visibility: Visible — click for Hidden');
             const gmActions = isGM ? `
                 <button type="button" class="blacksmith-icon-action ${visState === 'hidden' ? '' : 'is-active'}"
                     data-action="setBrowsePinVisibility" data-pin-id="${esc(p.id)}" data-vis-state="${esc(visState)}" title="${visTitle}">
@@ -772,11 +775,12 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
 
     async _setBrowsePinVisibility(target) {
         const pinId = target?.dataset?.pinId || '';
-        const current = target?.dataset?.visState || 'visible';
+        const currentRaw = String(target?.dataset?.visState || 'visible').toLowerCase();
+        const current = ['visible', 'hidden', 'owner'].includes(currentRaw) ? currentRaw : 'visible';
         if (!pinId) return;
         const pin = PinManager.get(pinId);
         if (!pin) return;
-        const next = current === 'hidden' ? 'visible' : 'hidden';
+        const next = current === 'visible' ? 'hidden' : (current === 'hidden' ? 'owner' : 'visible');
         await PinManager.update(pinId, { config: { ...(pin.config || {}), blacksmithVisibility: next } });
         await this.render(true);
     }

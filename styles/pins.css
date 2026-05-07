@@ -43,6 +43,10 @@
     filter: var(--blacksmith-pin-drop-shadow);
 }
 
+.blacksmith-pin[data-interaction="locked"] {
+    cursor: default;
+}
+
 
 
 

@@ -39,17 +39,18 @@
                 <div class="blacksmith-field-row">
                     <div class="blacksmith-field">
                         <span class="blacksmith-field-label">Who can access this pin?</span>
-                        <select class="blacksmith-input blacksmith-pin-config-ownership-default">
-                            {{#each ownershipOptions}}
+                        <select class="blacksmith-input blacksmith-pin-config-access-default">
+                            {{#each accessOptions}}
                             <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
                             {{/each}}
                         </select>
                     </div>
                     <div class="blacksmith-field">
-                        <span class="blacksmith-field-label">Player Visibility</span>
-                        <select class="blacksmith-input blacksmith-pin-config-player-visibility">
+                        <span class="blacksmith-field-label">Visibility</span>
+                        <select class="blacksmith-input blacksmith-pin-config-player-visibility" {{#if pinVisibilityDisabled}}disabled{{/if}}>
                             <option value="visible" {{#if pinVisibilityVisible}}selected{{/if}}>Visible</option>
                             <option value="hidden" {{#if pinVisibilityHidden}}selected{{/if}}>Hidden</option>
+                            <option value="owner" {{#if pinVisibilityOwner}}selected{{/if}}>Owner</option>
                         </select>
                     </div>
                 </div>

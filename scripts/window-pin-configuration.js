@@ -464,22 +464,31 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             addSelected: eventAnimations.add.sound === opt.value
         }));
 
-        // Permissions (GM only): three clear options mapped to Foundry ownership levels
+        // Permissions (GM only): access level + independent visibility mode
         const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
+        const LIMITED = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED : 1;
         const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
         const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
         const isGM = !!game.user?.isGM;
         const rawDefault = typeof pin.ownership?.default === 'number' ? pin.ownership.default : NONE;
-        // Map LIMITED (1) to OBSERVER (2) for display so legacy pins show "View"
-        const ownershipDefault = rawDefault === 1 ? OBSERVER : rawDefault;
+        const ownershipDefault = rawDefault === LIMITED ? OBSERVER : rawDefault;
         this._pinOwnership = pin.ownership && typeof pin.ownership === 'object' && !Array.isArray(pin.ownership)
             ? { ...pin.ownership }
             : { default: NONE };
-        const ownershipOptions = [
-            { value: NONE, label: 'Hidden: GM Only', selected: ownershipDefault === NONE },
-            { value: OBSERVER, label: 'Visible: View & Click', selected: ownershipDefault === OBSERVER },
-            { value: OWNER, label: 'Editable: Full Edit & Configure Control', selected: ownershipDefault === OWNER }
+        const rawAccessMode = String(pin.config?.blacksmithAccess || '').trim().toLowerCase();
+        let accessMode = 'read';
+        if (ownershipDefault <= NONE) accessMode = 'none';
+        else if (ownershipDefault >= OWNER) accessMode = 'full';
+        else if (rawAccessMode === 'pin') accessMode = 'pin';
+        const accessOptions = [
+            { value: 'none', label: 'None: GM Only', selected: accessMode === 'none' },
+            { value: 'read', label: 'Read Only: All open / GM Edit', selected: accessMode === 'read' },
+            { value: 'pin', label: 'Pin: All see pin / GM and Owner Edit', selected: accessMode === 'pin' },
+            { value: 'full', label: 'Full: All view and edit', selected: accessMode === 'full' }
         ];
+        const rawVisibilityMode = String(pin.config?.blacksmithVisibility || 'visible').trim().toLowerCase();
+        let visibilityMode = ['visible', 'hidden', 'owner'].includes(rawVisibilityMode) ? rawVisibilityMode : 'visible';
+        if (accessMode === 'none') visibilityMode = 'hidden';
 
         // Load icon categories
         const categories = await PinConfigWindow.loadIconCategories();
@@ -533,7 +542,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             isGM,
             pinTypeLabel,
             pinName: pin.text || '',
-            ownershipOptions,
+            accessOptions,
             previewHtml: PinConfigWindow.buildIconHtml(this.selected, 'window-note-header-image'),
             imageValue,
             iconCategories,
@@ -587,8 +596,10 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                 return [...allTags].sort().map(t => ({ tag: t, selected: this._updateAllTags.has(t) }));
             })(),
             defaultMode: this._defaultMode,
-            pinVisibilityVisible: (pin.config?.blacksmithVisibility ?? 'visible') !== 'hidden',
-            pinVisibilityHidden: pin.config?.blacksmithVisibility === 'hidden'
+            pinVisibilityVisible: visibilityMode === 'visible',
+            pinVisibilityHidden: visibilityMode === 'hidden',
+            pinVisibilityOwner: visibilityMode === 'owner',
+            pinVisibilityDisabled: accessMode === 'none'
         };
     }
 
@@ -635,6 +646,8 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         const tagsInput = nativeHtml.querySelector('.blacksmith-pin-config-tags');
         const defaultInput = nativeHtml.querySelector('.blacksmith-pin-config-default');
         const allowDuplicateInput = nativeHtml.querySelector('.blacksmith-pin-config-allow-duplicate');
+        const accessSelect = nativeHtml.querySelector('.blacksmith-pin-config-access-default');
+        const visibilitySelect = nativeHtml.querySelector('.blacksmith-pin-config-player-visibility');
         const sourceToggle = nativeHtml.querySelector('.blacksmith-pin-config-source-toggle-input');
         const shapeNoneNote = nativeHtml.querySelector('.blacksmith-pin-config-shape-none-note');
         const iconModeNote = nativeHtml.querySelector('.blacksmith-pin-config-icon-mode-note');
@@ -721,6 +734,14 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                 applyIconFilter();
             }
             applyIconModeState();
+        };
+
+        const applyAccessVisibilityRules = () => {
+            if (!accessSelect || !visibilitySelect) return;
+            const access = String(accessSelect.value || 'read').toLowerCase();
+            const lockVisibility = access === 'none';
+            visibilitySelect.disabled = lockVisibility;
+            if (lockVisibility) visibilitySelect.value = 'hidden';
         };
 
         const clampDimension = (value, fallback) => {
@@ -955,6 +976,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         sourceToggle?.addEventListener('change', () => {
             updateMode(sourceToggle.checked ? 'icon' : 'image');
         });
+        accessSelect?.addEventListener('change', applyAccessVisibilityRules);
 
         // Tag chips — click to toggle a suggested tag on/off in the input
         const getTagsArray = () => (tagsInput?.value || '').split(',').map(t => t.trim()).filter(Boolean);
@@ -1037,20 +1059,28 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             // GM-only: tags and ownership are per-pin, not part of bulk update
             if (game.user?.isGM) {
                 pinUpdateData.tags = normalizePinTags(tagsInput?.value ?? this.pinTags ?? []);
-                const ownershipSelect = nativeHtml.querySelector('.blacksmith-pin-config-ownership-default');
-                if (ownershipSelect) {
-                    const defaultLevel = Number(ownershipSelect.value);
-                    if (Number.isInteger(defaultLevel)) {
-                        pinUpdateData.ownership = { ...this._pinOwnership, default: defaultLevel };
-                    }
-                }
+                const accessSelect = nativeHtml.querySelector('.blacksmith-pin-config-access-default');
                 const visSelect = nativeHtml.querySelector('.blacksmith-pin-config-player-visibility');
-                if (visSelect) {
+                if (accessSelect || visSelect) {
+                    const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
+                    const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
+                    const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
+                    const selectedAccess = String(accessSelect?.value || 'read').toLowerCase();
+                    let defaultLevel = OBSERVER;
+                    if (selectedAccess === 'none') defaultLevel = NONE;
+                    else if (selectedAccess === 'full') defaultLevel = OWNER;
+                    pinUpdateData.ownership = { ...this._pinOwnership, default: defaultLevel };
+
+                    const selectedVisibility = String(visSelect?.value || 'visible').toLowerCase();
+                    let visibilityMode = ['visible', 'hidden', 'owner'].includes(selectedVisibility) ? selectedVisibility : 'visible';
+                    if (selectedAccess === 'none') visibilityMode = 'hidden';
+
                     const { PinManager: PM } = await import('./manager-pins.js');
                     const currentPin = PM.get(this.pinId, this.sceneId !== undefined ? { sceneId: this.sceneId } : {});
                     pinUpdateData.config = {
                         ...(currentPin?.config && typeof currentPin.config === 'object' ? currentPin.config : {}),
-                        blacksmithVisibility: visSelect.value === 'hidden' ? 'hidden' : 'visible'
+                        blacksmithAccess: selectedAccess === 'pin' ? 'pin' : (selectedAccess === 'full' ? 'full' : 'read'),
+                        blacksmithVisibility: visibilityMode
                     };
                 }
             }
@@ -1149,6 +1179,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
 
         updatePreview();
         updateMode(this.iconMode);
+        applyAccessVisibilityRules();
     }
 
     /**
