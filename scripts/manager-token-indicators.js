@@ -81,8 +81,8 @@ export class TokenIndicatorManager {
             description: 'Token indicators: cleanup indicators for deleted tokens',
             context: 'token-indicators',
             priority: 3,
-            callback: (_scene, tokenData) => {
-                this._onTokenDeleted(tokenData);
+            callback: (tokenDocument) => {
+                this._onTokenDeleted(tokenDocument);
             }
         });
 
