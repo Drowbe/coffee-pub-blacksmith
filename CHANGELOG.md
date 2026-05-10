@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.7.2]
+
+### Added
+
+- **Portrait Image Source setting for targeter portraits** (`settings.js`, `lang/en.json`, `manager-token-indicators.js`): New **Portrait Image Source** dropdown in the Targeted Indicator section lets GMs choose what image appears in the portrait bubble above a targeted token. Three options: **Character Portrait** (actor portrait image, default), **Character Token** (canvas token art), and **Player Avatar** (user avatar). Changing the setting live-redraws all portraits immediately.
+
+### Changed
+
+- **Targeter portraits now resolve from the controlled token, not just the assigned character** (`manager-token-indicators.js`): A new `controlToken` hook tracks the last token each user controlled on the canvas. Portrait images now derive from that source token rather than always using the user's primary assigned character. This means players who own multiple characters will see the correct portrait for whichever character they have selected, and the fallback chain (actor portrait → user avatar → mystery-man) still applies when no controlled token is found.
+
+### Fixed
+
+- **Target indicators persisted after token deletion** (`manager-token-indicators.js`): The `deleteToken` hook callback used the Foundry v10 signature `(scene, tokenData)` which in v11+ became `(tokenDocument, options)`. The second argument (options) has no `id`, causing the early-return guard to silently skip all cleanup. Ring graphics, ticker animations, and internal state all remained on the canvas after a token was deleted. Fixed by updating the callback to `(tokenDocument)` so cleanup runs correctly.
+
 ## [13.7.1]
 
 ### Added
