@@ -159,7 +159,8 @@ export class TokenIndicatorManager {
                     'targetedIndicatorBorderThickness',
                     'targetedPortraitsEnabled',
                     'targetedPortraitsSize',
-                    'targetedPortraitsShape'
+                    'targetedPortraitsShape',
+                    'targetedPortraitsPortraitType'
                 ]);
                 if (!watchedKeys.has(key)) return;
                 this.refreshAll();
@@ -1139,7 +1140,16 @@ export class TokenIndicatorManager {
 
         for (let i = 0; i < userIds.length; i++) {
             const user = game.users.get(userIds[i]);
-            const imageUrl = user?.character?.img || user?.avatar || 'icons/svg/mystery-man.svg';
+            const portraitType = getSettingSafely(MODULE.ID, 'targetedPortraitsPortraitType', 'portrait');
+            let imageUrl;
+            if (portraitType === 'character') {
+                const sourceToken = canvas.tokens?.placeables?.find(t => t.document?.actorId === user?.character?.id);
+                imageUrl = sourceToken?.document?.texture?.src || user?.character?.img || user?.avatar || 'icons/svg/mystery-man.svg';
+            } else if (portraitType === 'player') {
+                imageUrl = user?.avatar || user?.character?.img || 'icons/svg/mystery-man.svg';
+            } else {
+                imageUrl = user?.character?.img || user?.avatar || 'icons/svg/mystery-man.svg';
+            }
 
             const portraitContainer = new PIXI.Container();
             portraitContainer.position.set(startRelX + i * stepX, relY);

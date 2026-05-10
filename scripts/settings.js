@@ -2799,6 +2799,23 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Targeted Portraits Portrait Type --
+	game.settings.register(MODULE.ID, 'targetedPortraitsPortraitType', {
+		name: MODULE.ID + '.targetedPortraitsPortraitType-Label',
+		hint: MODULE.ID + '.targetedPortraitsPortraitType-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			portrait: 'Character Portrait',
+			character: 'Character Token',
+			player: 'Player Avatar'
+		},
+		default: 'portrait',
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// Hide Foundry Default Target Indicators
 	game.settings.register(MODULE.ID, 'hideDefaultTargetIndicators', {
 		name: 'Hide Default Target Indicators',
