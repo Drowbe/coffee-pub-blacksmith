@@ -25,6 +25,9 @@ export class TokenIndicatorManager {
     /** @type {Map<string, PIXI.Container>} tokenId -> portrait stack container shown above targeted token */
     static _targetPortraits = new Map();
 
+    /** @type {Map<string, string>} userId -> tokenId of the last token they controlled on this client */
+    static _sourceTokenByUser = new Map();
+
     static _hookIds = {};
 
     static initialize() {
@@ -129,6 +132,18 @@ export class TokenIndicatorManager {
             }
         });
 
+        this._hookIds.controlToken = HookManager.registerHook({
+            name: 'controlToken',
+            description: 'Token indicators: track last controlled token for portrait display',
+            context: 'token-indicators',
+            priority: 3,
+            callback: (token, isControlled) => {
+                if (isControlled && token?.id) {
+                    this._sourceTokenByUser.set(game.user.id, token.id);
+                }
+            }
+        });
+
         this._hookIds.settingChange = HookManager.registerHook({
             name: 'settingChange',
             description: 'Token indicators: refresh when indicator settings change',
@@ -198,6 +213,7 @@ export class TokenIndicatorManager {
         this._removeAllTargetedIndicators();
         this._stopHideTargetIndicatorsLoop();
         this._targetsByUser.clear();
+        this._sourceTokenByUser.clear();
     }
 
     static _getTurnSettings() {
@@ -509,6 +525,10 @@ export class TokenIndicatorManager {
 
         for (const set of this._targetsByUser.values()) {
             set?.delete?.(tokenId);
+        }
+
+        for (const [userId, srcId] of this._sourceTokenByUser.entries()) {
+            if (srcId === tokenId) this._sourceTokenByUser.delete(userId);
         }
     }
 
@@ -1138,17 +1158,19 @@ export class TokenIndicatorManager {
         outerContainer.position.set(center.x, center.y);
         outerContainer.zIndex = 15;
 
+        const portraitType = getSettingSafely(MODULE.ID, 'targetedPortraitsPortraitType', 'portrait');
         for (let i = 0; i < userIds.length; i++) {
             const user = game.users.get(userIds[i]);
-            const portraitType = getSettingSafely(MODULE.ID, 'targetedPortraitsPortraitType', 'portrait');
+            const srcTokenId = this._sourceTokenByUser.get(user?.id);
+            const sourceToken = (srcTokenId ? canvas.tokens?.get(srcTokenId) : null)
+                ?? canvas.tokens?.placeables?.find(t => t.document?.actorId === user?.character?.id);
             let imageUrl;
             if (portraitType === 'character') {
-                const sourceToken = canvas.tokens?.placeables?.find(t => t.document?.actorId === user?.character?.id);
                 imageUrl = sourceToken?.document?.texture?.src || user?.character?.img || user?.avatar || 'icons/svg/mystery-man.svg';
             } else if (portraitType === 'player') {
                 imageUrl = user?.avatar || user?.character?.img || 'icons/svg/mystery-man.svg';
             } else {
-                imageUrl = user?.character?.img || user?.avatar || 'icons/svg/mystery-man.svg';
+                imageUrl = sourceToken?.actor?.img || user?.character?.img || user?.avatar || 'icons/svg/mystery-man.svg';
             }
 
             const portraitContainer = new PIXI.Container();
