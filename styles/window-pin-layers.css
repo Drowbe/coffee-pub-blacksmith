@@ -470,14 +470,25 @@
 .blacksmith-pin-layers-mgmt-actions {
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap;
     gap: 6px;
     padding: 8px 14px 14px;
 }
 
+.blacksmith-pin-layers-mgmt-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.blacksmith-pin-layers-mgmt-type-select {
+    flex: 1 1 auto;
+    min-width: 180px;
+}
+
 .blacksmith-pin-layers-mgmt-btn {
     width: auto;
-    flex: 0 1 auto;
+    flex: 0 0 auto;
     gap: 6px;
     font-size: 0.78em;
     padding: 4px 10px;

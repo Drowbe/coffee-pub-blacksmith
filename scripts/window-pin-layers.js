@@ -47,6 +47,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         toggleTagManage:         () => _pinLayersWindowRef?._toggleTagManage(),
         deleteTagChip:           (_event, target) => _pinLayersWindowRef?._deleteTagChip(target),
         toggleTypeTag:           (_event, target) => _pinLayersWindowRef?._toggleTypeTag(target),
+        deleteSelectedCustomTypeTags: () => _pinLayersWindowRef?._deleteSelectedCustomTypeTags(),
         deleteCustomTypeTag:     (_event, target) => _pinLayersWindowRef?._deleteCustomTypeTag(target),
         stripTypeTagFromScene:   (_event, target) => _pinLayersWindowRef?._stripTypeTagFromScene(target),
         deleteAllPins:         () => _pinLayersWindowRef?._deleteAllPins(),
@@ -361,22 +362,29 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         // GLOBAL PIN MANAGEMENT section (GM only)
         let managementSection = '';
         if (isGM) {
-            const typeButtons = Object.entries(allTaxonomies).flatMap(([moduleId, types]) =>
+            const typeOptions = Object.entries(allTaxonomies).flatMap(([moduleId, types]) =>
                 Object.entries(types).map(([type, entry]) =>
-                    `<button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-mgmt-btn"
-                        data-action="deleteCustomTypeTag"
-                        data-module-id="${esc(moduleId)}" data-type="${esc(type)}"
-                        title="Remove non-taxonomy tags from all ${esc(entry.label || type)} pins globally">
-                        <i class="fa-solid fa-trash"></i> Delete All ${esc(entry.label || type)} Custom Tags
-                    </button>`
+                    `<option value="${esc(`${moduleId}|${type}`)}" data-module-id="${esc(moduleId)}" data-type="${esc(type)}">${esc(entry.label || type)}</option>`
                 )
             ).join('');
+            const controls = typeOptions
+                ? `<div class="blacksmith-pin-layers-mgmt-control">
+                    <select class="blacksmith-input blacksmith-pin-layers-mgmt-type-select" title="Choose a pin category">
+                        ${typeOptions}
+                    </select>
+                    <button type="button" class="blacksmith-window-btn-critical blacksmith-pin-layers-mgmt-btn"
+                        data-action="deleteSelectedCustomTypeTags"
+                        title="Remove non-taxonomy tags from the selected pin category globally">
+                        <i class="fa-solid fa-trash"></i> Delete Custom Tags
+                    </button>
+                </div>`
+                : '<div class="blacksmith-pin-layers-empty">No pin types registered.</div>';
             managementSection = `
                 <div class="blacksmith-pin-layers-section-header">
                     <i class="fa-solid fa-wrench"></i><span>Global Pin Management</span>
                 </div>
                 <div class="blacksmith-pin-layers-mgmt-actions">
-                    ${typeButtons || '<div class="blacksmith-pin-layers-empty">No pin types registered.</div>'}
+                    ${controls}
                 </div>`;
         }
 
@@ -907,6 +915,23 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const moduleId = target?.dataset?.moduleId || '';
         const type = target?.dataset?.type || 'default';
         if (!moduleId) return;
+        await this._deleteCustomTagsForType(moduleId, type);
+    }
+
+    async _deleteSelectedCustomTypeTags() {
+        if (!game.user?.isGM) return;
+        const select = this._getRoot()?.querySelector('.blacksmith-pin-layers-mgmt-type-select');
+        const selected = select?.selectedOptions?.[0];
+        const moduleId = selected?.dataset?.moduleId || '';
+        const type = selected?.dataset?.type || 'default';
+        if (!moduleId) {
+            ui.notifications?.warn('Choose a pin category first.');
+            return;
+        }
+        await this._deleteCustomTagsForType(moduleId, type);
+    }
+
+    async _deleteCustomTagsForType(moduleId, type) {
         const taxonomy = PinManager.getPinTaxonomy(moduleId, type);
         const label = taxonomy?.label || type;
         const confirmed = await foundry.applications.api.DialogV2.confirm({
