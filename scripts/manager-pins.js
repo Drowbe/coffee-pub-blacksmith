@@ -892,7 +892,8 @@ export class PinManager {
             hideAll: this.isGlobalHidden(),
             hiddenModules: this._getHiddenModulesMap(),
             hiddenModuleTypes: this._getHiddenModuleTypesMap(),
-            hiddenTags: this._getHiddenTagsMap()
+            hiddenTags: this._getHiddenTagsMap(),
+            hiddenTypeTags: this._getHiddenTypeTagsMap()
         };
     }
 
@@ -906,7 +907,8 @@ export class PinManager {
         return current.hideAll === saved.hideAll
             && stable(current.hiddenModules) === stable(saved.hiddenModules)
             && stable(current.hiddenModuleTypes) === stable(saved.hiddenModuleTypes)
-            && stable(current.hiddenTags) === stable(saved.hiddenTags);
+            && stable(current.hiddenTags) === stable(saved.hiddenTags)
+            && stable(current.hiddenTypeTags) === stable(saved.hiddenTypeTags);
     }
 
     static async applyVisibilityProfileState(state = {}, options = {}) {
@@ -914,12 +916,14 @@ export class PinManager {
             hideAll: !!state.hideAll,
             hiddenModules: state.hiddenModules && typeof state.hiddenModules === 'object' && !Array.isArray(state.hiddenModules) ? { ...state.hiddenModules } : {},
             hiddenModuleTypes: state.hiddenModuleTypes && typeof state.hiddenModuleTypes === 'object' && !Array.isArray(state.hiddenModuleTypes) ? { ...state.hiddenModuleTypes } : {},
-            hiddenTags: state.hiddenTags && typeof state.hiddenTags === 'object' && !Array.isArray(state.hiddenTags) ? { ...state.hiddenTags } : {}
+            hiddenTags: state.hiddenTags && typeof state.hiddenTags === 'object' && !Array.isArray(state.hiddenTags) ? { ...state.hiddenTags } : {},
+            hiddenTypeTags: state.hiddenTypeTags && typeof state.hiddenTypeTags === 'object' && !Array.isArray(state.hiddenTypeTags) ? { ...state.hiddenTypeTags } : {}
         };
         await game.settings.set(MODULE.ID, this.HIDE_ALL_SETTING_KEY, normalized.hideAll);
         await game.settings.set(MODULE.ID, this.HIDDEN_MODULES_SETTING_KEY, normalized.hiddenModules);
         await game.settings.set(MODULE.ID, this.HIDDEN_MODULE_TYPES_SETTING_KEY, normalized.hiddenModuleTypes);
         await game.settings.set(MODULE.ID, this.HIDDEN_TAGS_SETTING_KEY, normalized.hiddenTags);
+        await game.settings.set(MODULE.ID, this.HIDDEN_TYPE_TAGS_SETTING_KEY, normalized.hiddenTypeTags);
         if (options.activeProfileName !== undefined) {
             await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, this._normalizeProfileName(options.activeProfileName));
         }

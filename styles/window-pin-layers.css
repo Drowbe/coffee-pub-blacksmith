@@ -383,6 +383,14 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.blacksmith-pin-layers-taxonomy-group.is-hidden {
+    opacity: 0.55;
+}
+
+.blacksmith-pin-layers-taxonomy-group.is-partial .blacksmith-pin-layers-taxonomy-group-label {
+    color: rgba(172, 159, 129, 0.9);
+}
+
 .blacksmith-pin-layers-taxonomy-group:last-child {
     border-bottom: none;
 }
@@ -397,6 +405,15 @@
     letter-spacing: 0.1em;
     color: rgba(172, 159, 129, 0.7);
     margin-bottom: 6px;
+}
+
+.blacksmith-pin-layers-section-toggle {
+    margin-left: auto !important;
+    flex-shrink: 0;
+}
+
+.blacksmith-pin-layers-section-toggle.is-partial {
+    color: rgba(255, 190, 90, 0.9);
 }
 
 .blacksmith-pin-layers-empty-inline {
