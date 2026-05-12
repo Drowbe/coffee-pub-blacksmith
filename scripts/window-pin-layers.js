@@ -6,6 +6,7 @@ import { BlacksmithWindowBaseV2 } from './window-base.js';
 const APP_ID = 'blacksmith-pin-layers';
 const BULK_TAGS_APP_ID = 'blacksmith-bulk-pin-tags';
 const CUSTOM_TAGS_APP_ID = 'blacksmith-custom-pin-tags';
+const PROFILE_ACTION_NEW = '__blacksmith_new_profile__';
 const SYSTEM_PROFILE_ALL = '__blacksmith_all_pins__';
 const SYSTEM_PROFILE_NONE = '__blacksmith_no_pins__';
 let _pinLayersWindowRef = null;
@@ -808,15 +809,17 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             ? (profileMatchesCurrent ? 'Active' : 'Unsaved Changes')
             : 'Custom';
         const profileOptions = [
+            !hasSelectedProfile ? '<option value="" selected hidden>Custom / Current View</option>' : '',
+            `<option value="${PROFILE_ACTION_NEW}">+ New Profile</option>`,
             `<optgroup label="System">
                 <option value="${SYSTEM_PROFILE_ALL}" ${selectedProfile === SYSTEM_PROFILE_ALL ? 'selected' : ''}>All Pins</option>
                 <option value="${SYSTEM_PROFILE_NONE}" ${selectedProfile === SYSTEM_PROFILE_NONE ? 'selected' : ''}>No Pins</option>
             </optgroup>`,
-            `<option value="" ${!hasSelectedProfile ? 'selected' : ''}>Custom / Current View</option>`,
-            profiles.length ? `<optgroup label="Saved">
+            `<optgroup label="Custom">
                 ${profiles.map((entry) =>
                     `<option value="${esc(entry.name)}" ${entry.name === selectedProfile ? 'selected' : ''}>${esc(entry.name)}</option>`).join('')}
-            </optgroup>` : ''
+                ${profiles.length ? '' : '<option value="" disabled>No custom profiles</option>'}
+            </optgroup>`
         ].join('');
 
         // --- Browse tab data ---
@@ -867,10 +870,6 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                     ${profileOptions}
                 </select>
                 <span class="blacksmith-pin-layers-profile-status ${profileMatchesCurrent ? 'is-active' : 'is-custom'}">${esc(profileStatus)}</span>
-                <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm"
-                    data-action="saveProfile" data-tooltip="Save the current hidden pins, categories, and tags as a new profile">
-                    <i class="fa-solid fa-floppy-disk"></i> Save As
-                </button>
                 ${hasSavedProfile && !profileMatchesCurrent ? `
                     <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm"
                         data-action="updateProfile" data-tooltip="Overwrite this profile with the current hidden pins, categories, and tags">
@@ -996,17 +995,30 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         // World registry orphan tags (not in any taxonomy) — used as the base for custom sections
         const orphanRegistryTags = this._getOrphanRegistryTags(allTaxonomies, globalTags);
 
-        // GLOBAL group
-        if (globalTags.length) {
-            const hiddenCount = globalTags.filter(tag => PinManager.isTagHidden(tag)).length;
-            const hidden = hiddenCount === globalTags.length;
+        // GLOBAL group — predefined global tags + global custom registry tags
+        if (globalTags.length || orphanRegistryTags.length) {
+            const globalSectionTags = [...new Set([...globalTags, ...orphanRegistryTags])];
+            const hiddenCount = globalSectionTags.filter(tag => PinManager.isTagHidden(tag)).length;
+            const hidden = hiddenCount === globalSectionTags.length;
             const partial = hiddenCount > 0 && !hidden;
-            const chips = [...globalTags].sort().map(tag => {
+            const predefinedChips = [...globalTags].sort().map(tag => {
                 const hidden = PinManager.isTagHidden(tag);
                 const count = globalTagSceneCounts.get(tag) ?? 0;
                 return this._buildTagChip({ tag, hidden, count, isGlobal: true });
             }).join('');
-            sections.push(this._buildTaxonomyGroup({ label: 'Global', chips, hidden, partial, toggleScope: 'global' }));
+            const customChips = [...orphanRegistryTags].sort((a, b) => a.localeCompare(b)).map(tag => {
+                const hidden = PinManager.isTagHidden(tag);
+                const count = globalTagSceneCounts.get(tag) ?? 0;
+                return this._buildTagChip({ tag, hidden, count, isGlobal: true });
+            }).join('');
+            sections.push(this._buildTaxonomyGroup({
+                label: 'Global',
+                predefinedChips,
+                customChips,
+                hidden,
+                partial,
+                toggleScope: 'global'
+            }));
         }
 
         // Per-type groups
@@ -1058,19 +1070,6 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             }
         }
 
-        // CUSTOM (orphan) group — registry tags not in any taxonomy (catch-all with total scene counts)
-        if (orphanRegistryTags.length) {
-            const hiddenCount = orphanRegistryTags.filter(tag => PinManager.isTagHidden(tag)).length;
-            const hidden = hiddenCount === orphanRegistryTags.length;
-            const partial = hiddenCount > 0 && !hidden;
-            const chips = orphanRegistryTags.sort((a, b) => a.localeCompare(b)).map(tag => {
-                const hidden = PinManager.isTagHidden(tag);
-                const count = globalTagSceneCounts.get(tag) ?? 0;
-                return this._buildTagChip({ tag, hidden, count, isGlobal: true });
-            }).join('');
-            sections.push(this._buildTaxonomyGroup({ label: 'Custom', chips, hidden, partial, toggleScope: 'custom' }));
-        }
-
         return `<div class="blacksmith-pin-layers-root">
             <div class="blacksmith-pin-layers-section-header blacksmith-pin-layers-section-header-first">
                 <i class="fa-solid fa-tags"></i><span>Taxonomy</span>
@@ -1098,7 +1097,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             const custom = customChips || '';
             body = `
                 <div class="blacksmith-pin-layers-taxonomy-subgroup">
-                    <div class="blacksmith-pin-layers-taxonomy-subgroup-label">Predefined</div>
+                    <div class="blacksmith-pin-layers-taxonomy-subgroup-label">System</div>
                     <div class="blacksmith-pin-layers-tag-cloud">
                         ${predefined || '<span class="blacksmith-pin-layers-empty-inline">—</span>'}
                     </div>
@@ -1380,6 +1379,11 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     async _selectProfile(name) {
+        if (name === PROFILE_ACTION_NEW) {
+            await this._saveProfile();
+            await this.render(true);
+            return;
+        }
         this._selectedProfileValue = name || '';
         await this._persistLastProfile();
         if (!this._selectedProfileValue) {
@@ -1486,11 +1490,11 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             <form>
                 <div class="blacksmith-field">
                     <span class="blacksmith-field-label">Profile name</span>
-                    <input type="text" class="blacksmith-input blacksmith-pin-layers-profile-name" value="${esc(defaultName)}" placeholder="Profile name">
+                    <input type="text" class="blacksmith-input blacksmith-pin-layers-profile-name" value="${esc(defaultName)}" placeholder="Custom profile name">
                 </div>
             </form>`;
         return foundry.applications.api.DialogV2.wait({
-            window: { title: 'Save Pin Visibility Profile' },
+            window: { title: 'New Pin Visibility Profile' },
             content,
             rejectClose: false,
             buttons: [
@@ -1707,7 +1711,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
 
         await PinManager.ensureBuiltinTaxonomyLoaded();
         const tags = scope === 'global'
-            ? PinManager.getGlobalTaxonomyTags()
+            ? [...new Set([...PinManager.getGlobalTaxonomyTags(), ...this._getOrphanRegistryTags()])]
             : (scope === 'custom' ? this._getOrphanRegistryTags() : []);
         if (!tags.length) return;
         const nextHidden = !tags.every(tag => PinManager.isTagHidden(tag));
