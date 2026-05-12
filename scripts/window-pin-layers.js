@@ -315,7 +315,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             id: APP_ID,
             classes: ['blacksmith-pin-layers-window'],
             position: { width: 720, height: 760 },
-            window: { title: 'Pin Layers', resizable: true, minimizable: true },
+            window: { title: 'Manage Pins', resizable: true, minimizable: true },
             windowSizeConstraints: { minWidth: 560, minHeight: 520, maxWidth: 1100, maxHeight: 1000 }
         }
     );
@@ -469,10 +469,10 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const tabNav = `
             <nav class="blacksmith-tabs">
                 <button type="button" class="blacksmith-tab ${isLayers ? 'is-active' : ''}" data-action="selectTab" data-value="layers">
-                    <i class="fa-solid fa-layer-group"></i><span>Layers</span>
+                    <i class="fa-solid fa-layer-group"></i><span>Manage Layers</span>
                 </button>
                 <button type="button" class="blacksmith-tab ${!isLayers ? 'is-active' : ''}" data-action="selectTab" data-value="browse">
-                    <i class="fa-solid fa-magnifying-glass"></i><span>Browse</span>
+                    <i class="fa-solid fa-magnifying-glass"></i><span>Manage Tags</span>
                     <span class="blacksmith-pin-layers-tag-count">${allSummary.total}</span>
                 </button>
             </nav>
@@ -1375,7 +1375,7 @@ Hooks.once('ready', () => {
     if (!api?.registerWindow) return;
     api.registerWindow('blacksmith-pin-layers', {
         open: (options = {}) => PinLayersWindow.open(options),
-        title: 'Pin Layers',
+        title: 'Manage Pins',
         moduleId: MODULE.ID
     });
 });
