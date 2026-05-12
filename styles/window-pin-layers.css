@@ -139,6 +139,32 @@
     width: 100%;
 }
 
+.blacksmith-pin-layers-window .blacksmith-window-template-tools {
+    padding: 0;
+}
+
+.blacksmith-pin-layers-tools-stack {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.blacksmith-pin-layers-tools-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 36px;
+    padding: 6px 12px;
+}
+
+.blacksmith-pin-layers-tools-row + .blacksmith-pin-layers-tools-row {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.blacksmith-pin-layers-tabs-row {
+    justify-content: flex-start;
+}
+
 .blacksmith-pin-layers-bulk-count {
     color: rgba(224, 224, 224, 0.75);
     font-size: 0.9em;

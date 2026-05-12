@@ -469,10 +469,10 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const tabNav = `
             <nav class="blacksmith-tabs">
                 <button type="button" class="blacksmith-tab ${isLayers ? 'is-active' : ''}" data-action="selectTab" data-value="layers">
-                    <i class="fa-solid fa-layer-group"></i><span>Manage Layers</span>
+                    <i class="fa-solid fa-layer-group"></i><span>Manage Pin Layers</span>
                 </button>
                 <button type="button" class="blacksmith-tab ${!isLayers ? 'is-active' : ''}" data-action="selectTab" data-value="browse">
-                    <i class="fa-solid fa-magnifying-glass"></i><span>Manage Tags</span>
+                    <i class="fa-solid fa-magnifying-glass"></i><span>Manage Pin Tags</span>
                     <span class="blacksmith-pin-layers-tag-count">${allSummary.total}</span>
                 </button>
             </nav>
@@ -512,12 +512,17 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
 
         return {
             appId: this.id,
-            showOptionBar: true,
+            showOptionBar: false,
             showHeader: true,
             showTools: true,
             showActionBar: true,
-            optionBarLeft: tabNav,
-            toolsContent: isLayers ? profileBar : `
+            toolsContent: `
+                <div class="blacksmith-pin-layers-tools-stack">
+                    <div class="blacksmith-pin-layers-tools-row blacksmith-pin-layers-tabs-row">
+                        ${tabNav}
+                    </div>
+                    <div class="blacksmith-pin-layers-tools-row">
+                        ${isLayers ? profileBar : `
                 <div class="blacksmith-pin-layers-browse-toolbar">
                     <div class="blacksmith-pin-layers-search-wrap">
                         <i class="fa-solid fa-magnifying-glass"></i>
@@ -537,6 +542,8 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                         data-action="toggleBrowseSelectMode" title="${this._browseSelectMode ? 'Exit select mode' : 'Select pins for bulk editing'}">
                         <i class="fa-solid ${this._browseSelectMode ? 'fa-check-square' : 'fa-square-check'}"></i> ${this._browseSelectMode ? 'Done' : 'Select'}
                     </button>` : ''}
+                </div>`}
+                    </div>
                 </div>
             `,
             headerIcon: 'fa-solid fa-layer-group',
@@ -568,7 +575,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             `,
             actionBarRight: selectionMode ? `
                 <button type="button" class="blacksmith-window-btn-primary" data-action="bulkEditSelectedTags" ${selectedCount ? '' : 'disabled'}>
-                    <i class="fa-solid fa-tags"></i> Bulk Tags
+                    <i class="fa-solid fa-tags"></i> Bulk Edit Tags
                 </button>
             ` : `
                 <button type="button" class="blacksmith-window-btn-secondary" data-action="hideAll">
@@ -720,7 +727,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         }
 
         const manageNote = managing
-            ? `<div class="blacksmith-pin-layers-manage-note"><i class="fa-solid fa-lock"></i> Taxonomy tags are protected. Only custom tags show <i class="fa-solid fa-xmark"></i> buttons.</div>`
+            ? `<div class="blacksmith-pin-layers-manage-note"><i class="fa-solid fa-lock"></i> Taxonomy tags are protected. Only custom tags can be edited, deleted or cleaned.`
             : '';
 
         return `<div class="blacksmith-pin-layers-root">
