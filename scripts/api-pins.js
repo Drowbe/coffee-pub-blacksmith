@@ -405,6 +405,34 @@ export class PinsAPI {
     }
 
     /**
+     * Add a custom tag to the registry without assigning it to any pins. GM only.
+     * @param {string} tagKey - The tag to add
+     * @returns {Promise<string|null>}
+     */
+    static addTagToRegistry(tagKey) {
+        return PinManager.addTagToRegistry(tagKey);
+    }
+
+    /**
+     * Remove a tag from all pins on a single scene while keeping the tag in the registry. GM only.
+     * @param {string} tagKey - The tag to strip
+     * @param {string} sceneId - Target scene ID
+     * @returns {Promise<number>}
+     */
+    static stripTagFromScene(tagKey, sceneId) {
+        return PinManager.stripTagFromScene(tagKey, sceneId);
+    }
+
+    /**
+     * Remove a tag from all pins on all scenes while keeping the tag in the registry. GM only.
+     * @param {string} tagKey - The tag to strip
+     * @returns {Promise<number>}
+     */
+    static stripTagFromAllScenes(tagKey) {
+        return PinManager.stripTagFromAllScenes(tagKey);
+    }
+
+    /**
      * Delete a tag from the registry and remove it from every pin on every scene. GM only.
      * @param {string} tagKey - The tag to delete
      * @returns {Promise<void>}

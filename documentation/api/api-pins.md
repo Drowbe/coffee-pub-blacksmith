@@ -1349,9 +1349,9 @@ const visible = pins.getModuleVisibility('coffee-pub-squire');
 
 ### Tag Registry (GM-only write)
 
-The **world-level tag registry** (`pinTagRegistry` world setting) is a sorted, deduplicated list of every tag string ever used across all pins in the world. It is seeded on `ready` from the built-in taxonomy and auto-populated whenever a pin is created or updated. Players can read it; only GMs can write.
+The **world-level tag registry** (`pinTagRegistry` world setting) is a sorted, deduplicated list of every known pin tag string in the world. It is seeded on `ready` from the built-in taxonomy, auto-populated whenever a pin is created or updated, and can accept registry-only custom tags. Players can read it; only GMs can write.
 
-The registry is used to populate tag suggestion chips in the Configure Pin window and the Pin Layers manage mode, so GMs see all tags that exist even if no pin currently uses them.
+The registry is used to populate tag suggestion chips in the Configure Pin window and the Manage Custom Pin Tags window, so GMs see all tags that exist even if no pin currently uses them.
 
 > **`getPinTaxonomy` vs `getPinTaxonomyChoices`** — critical distinction for UI:
 >
@@ -1391,6 +1391,27 @@ Returns a **copy** of the current world tag registry as `string[]`.
 ```javascript
 const tags = pins.getTagRegistry();
 // → ['encounter', 'location', 'npc', 'quest', ...]
+```
+
+#### `pins.addTagToRegistry(tagKey)` *(GM only)*
+Adds `tagKey` to the world registry without assigning it to any pins. Use this when a tag should be available in pin tag pickers before it has usage.
+
+```javascript
+await pins.addTagToRegistry('gathering-spot');
+```
+
+#### `pins.stripTagFromScene(tagKey, sceneId)` *(GM only)*
+Removes `tagKey` from every pin on one scene while keeping the tag in the world registry.
+
+```javascript
+const removed = await pins.stripTagFromScene('gathering-spot', canvas.scene.id);
+```
+
+#### `pins.stripTagFromAllScenes(tagKey)` *(GM only)*
+Removes `tagKey` from pins across all scenes while keeping the tag in the world registry.
+
+```javascript
+const removed = await pins.stripTagFromAllScenes('gathering-spot');
 ```
 
 #### `pins.deleteTagGlobally(tagKey)` *(GM only)*

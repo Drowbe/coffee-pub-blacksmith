@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.7.3]
+
+### Added
+
+- **Manage Pins window taxonomy controls** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`, `scripts/manager-pins.js`): Added section-level visibility toggles so GMs can hide or show whole pin groups such as Global, Custom, and registered pin categories, not just individual tags. Type-scoped tag visibility is now saved in visibility profiles via `hiddenTypeTags`.
+- **Manage Pin Tags bulk selection flow** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`): Added browse-tab select mode with row checkboxes, selected count, **Select Visible**, **Clear**, and **Bulk Edit Tags** actions in the window action bar. The **Done** control remains in the top toolbar.
+- **Bulk Edit Pin Tags Application V2 window** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`): Added a resizable Blacksmith V2 bulk tag editor for selected pins. It starts with the union of all selected pin tags, shows tag chips with per-selection counts, supports typed tag entry, and includes **Update** plus **Delete All Tags** actions.
+- **Manage Custom Pin Tags Application V2 window** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`, `scripts/manager-pins.js`, `scripts/api-pins.js`): Added a dedicated GM window for custom pin tag administration. It lists custom tags with current-scene usage, global usage, and pin types, and supports **Rename**, **Scene**, **All Scene**, and icon-only delete actions with `data-tooltip` explanations.
+- **Registry-only custom pin tags** (`scripts/window-pin-layers.js`, `scripts/manager-pins.js`, `scripts/api-pins.js`, `documentation/api/api-pins.md`): Added **Add** support in Manage Custom Pin Tags for adding one or more comma-separated tags to the registry without assigning them to pins. New API methods include `addTagToRegistry`, `stripTagFromScene`, and `stripTagFromAllScenes`.
+
+### Changed
+
+- **Pin manager naming and layout** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`): Renamed **Pin Layers** to **Manage Pins**, **Layers** to **Manage Pin Layers**, and **Browse** to **Manage Pin Tags**. Tabs and search/profile controls now render as separate tool rows with their own padding and divider.
+- **Manage Pin Layers scope cleanup** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`): Removed the pencil/manage mode and global tag mutation controls from the layer taxonomy tab so the tab now focuses on visibility only. Custom tag mutations moved into the dedicated Manage Custom Pin Tags window.
+- **Custom tag action labels** (`scripts/window-pin-layers.js`): Shortened custom tag row actions to compact labels: **Rename**, **Scene**, **All Scene**, and icon-only delete. Full explanations moved to `data-tooltip` attributes.
+- **Bulk tag editor visual consistency** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`): Aligned bulk tag chips with the shared `.blacksmith-tag` styling used by the main pin manager tag clouds.
+- **Tag registry operations preserve strip/delete distinction** (`scripts/manager-pins.js`): Strip actions remove tag usage while keeping the tag available in the registry; delete removes both usage and registry entries.
+
+### Fixed
+
+- **Bulk tag editor tag coverage** (`scripts/window-pin-layers.js`): Bulk editing now accounts for all selected pin tags, including custom/non-taxonomy tags, so existing tags like scene-local custom tags appear in both the input and chip suggestions.
+- **Global tag rename/delete cleanup** (`scripts/manager-pins.js`): Global rename and delete now also handle unplaced pins, type-scoped hidden tag state, and saved visibility profile snapshots.
+- **Bulk editor chip interaction** (`scripts/window-pin-layers.js`): Hardened listener attachment so tag chips continue to toggle correctly when Application V2/Dialog root elements differ.
+
 ## [13.7.2]
 
 ### Added
@@ -109,10 +133,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Pin taxonomy API — `getModuleTaxonomy(moduleId)`** (`manager-pins.js`, `api-pins.js`): New public method returns a module's full taxonomy as `{ [type]: { label, tags } }`. Allows other modules to read their registered pin types and tags without needing to know internal registry keys.
 - **Pin taxonomy — type-scoped tag visibility** (`manager-pins.js`, `settings.js`): New client setting `pinsHiddenTypeTags` (`object`) stores hidden state per `moduleId|type|tag` key, separate from the existing global `pinsHiddenTags`. New methods: `isTypeTagHidden`, `setTypeTagHidden`, `clearTypeTagHiddenState`. Toggling a tag in a type group no longer bleeds into the same tag name in another type's group.
-- **Pin taxonomy — `removeTagFromTypeOnScene(moduleId, type, tag, sceneId)`** (`manager-pins.js`): Strips a specific tag from all pins of a given type on a single scene without touching the global tag registry or deleting any pins. Returns the number of pins updated.
 - **Pin Layers — TAXONOMY section** (`window-pin-layers.js`, `window-pin-layers.css`): Replaced the flat CATEGORIES + TAGS layout with a single TAXONOMY section. Tags are grouped by type (one group per registered pin type), each showing a **Predefined** subsection (taxonomy-defined tags) and a **Custom** subsection (registry orphan tags + scene-local custom tags). A **Global** group shows the top-level `globalTags` from the JSON. A **Custom** catch-all group at the bottom shows all orphan registry tags.
-- **Pin Layers — GLOBAL PIN MANAGEMENT section** (`window-pin-layers.js`, `window-pin-layers.css`): GM-only section at the bottom of the Layers tab. Shows a "Delete All [type] Custom Tags" button per registered pin type, which strips every non-taxonomy tag from all pins of that type across all scenes (with confirmation).
-- **Pin Layers — manage mode: two-button custom tag chips** (`window-pin-layers.js`): In manage mode, custom tags inside a type group show two action buttons: ✕ to strip the tag from pins on the current scene only (`removeTagFromTypeOnScene`) and a trash icon to delete the tag globally from all scenes (`deleteTagGlobally`). Taxonomy-defined (predefined) tags are shown as protected chips with dashed border — no delete button.
+- **Manage Custom Pin Tags window** (`window-pin-layers.js`, `window-pin-layers.css`): New Application V2 window for GM custom pin tag administration. It lists each custom tag with current-scene usage, global usage, pin types, and explicit actions for **Rename Globally**, **Strip From Current Scene**, **Strip From All Scenes**, and **Delete Globally**. GMs can also add registry-only custom tags before any pin uses them.
 - **Pin Layers — tag counts always visible** (`window-pin-layers.js`): Every tag chip now shows a scene-pin count. Predefined tags with zero matching pins render with a dashed border (`is-empty`). Custom tags from the orphan registry that have been stripped from all scene pins remain visible with count 0 rather than disappearing.
 - **Configure Pin — Suggested / Other tag groups** (`window-pin-configuration.js`, `window-pin-config.hbs`, `window-pin-config.css`): The flat tag chip list is split into two labeled sections. **Suggested** shows the current pin type's taxonomy tags plus custom tags found on scene pins of that type. **Other** shows global tags, other types' taxonomy tags, and orphan registry tags — all in one flat group. Both groups toggle tags into the Tags input identically.
 
@@ -125,7 +147,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Pin Layers — tag chip active state inverted** (`window-pin-layers.js`): Tag chips now use `.active` when the tag is *visible* (click to hide) and no modifier when *hidden* (click to show), consistent with the global `.blacksmith-tag` convention used in Pin Configuration.
-- **Pin Layers — Global Pin Management icons** (`window-pin-layers.js`): Management buttons changed from broom (`fa-broom`) to trash (`fa-trash`) to reflect that the action permanently deletes custom tags across all scenes.
+- **Pin Layers — custom tag administration moved out of layers** (`window-pin-layers.js`): Removed the pencil/manage mode from the **Manage Pin Layers** tab so that tab stays focused on visibility filters. Custom tag mutations now live in the dedicated **Manage Custom Pin Tags** window.
 
 ## [13.6.3]
 

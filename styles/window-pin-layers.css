@@ -379,65 +379,6 @@
     border-style: dashed;
 }
 
-/* ----- Tag manage mode ----- */
-
-.blacksmith-pin-layers-tag-cloud .blacksmith-tag-manage {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 4px 2px 6px;
-    background: rgba(255, 100, 0, 0.1);
-    border: 1px dashed rgba(255, 100, 0, 0.35);
-    border-radius: 3px;
-    color: rgba(255, 140, 60, 0.7);
-    font-size: 0.78em;
-    font-weight: 300;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    white-space: nowrap;
-}
-
-.blacksmith-pin-layers-tag-cloud .blacksmith-tag-manage.is-empty {
-    opacity: 0.45;
-}
-
-.blacksmith-tag-delete {
-    all: unset;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 14px;
-    height: 14px;
-    border-radius: 2px;
-    color: rgba(255, 100, 0, 0.6);
-    cursor: pointer;
-    font-size: 0.85em;
-    transition: color 0.12s ease, background 0.12s ease;
-}
-
-.blacksmith-tag-delete:hover {
-    color: rgba(255, 60, 30, 1.0);
-    background: rgba(255, 60, 30, 0.15);
-}
-
-.blacksmith-pin-layers-manage-tags {
-    margin-left: auto !important;
-    flex-shrink: 0;
-}
-
-.blacksmith-pin-layers-manage-note {
-    padding: 6px 14px;
-    font-size: 0.78em;
-    color: rgba(172, 159, 129, 0.6);
-    font-style: italic;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(172, 159, 129, 0.05);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-
 /* ----- Empty state / hint ----- */
 
 .blacksmith-pin-layers-empty {
@@ -518,59 +459,72 @@
     color: rgba(172, 159, 129, 0.45);
 }
 
-/* Two-button delete chip variant (strip from scene + delete globally) */
-.blacksmith-tag-delete-global {
-    margin-left: 1px;
-    color: rgba(200, 80, 60, 0.6);
-}
+/* ----- Custom Pin Tags manager ----- */
 
-.blacksmith-tag-delete-global:hover {
-    color: rgba(255, 50, 30, 1.0);
-    background: rgba(255, 50, 30, 0.18);
-}
-
-/* Protected taxonomy tags (non-deletable) shown in manage mode */
-.blacksmith-tag-protected {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
-    border-radius: 12px;
-    border: 1px dashed rgba(172, 159, 129, 0.2);
-    background: transparent;
-    color: rgba(172, 159, 129, 0.3);
-    font-size: 0.78em;
-    cursor: default;
-    opacity: 0.6;
-}
-
-/* ----- Global Pin Management section ----- */
-
-.blacksmith-pin-layers-mgmt-actions {
-    display: flex;
-    flex-direction: row;
-    gap: 6px;
-    padding: 8px 14px 14px;
-}
-
-.blacksmith-pin-layers-mgmt-control {
+.blacksmith-custom-pin-tags-add-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    width: 100%;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.025);
 }
 
-.blacksmith-pin-layers-mgmt-type-select {
+.blacksmith-custom-pin-tags-add-input {
     flex: 1 1 auto;
     min-width: 180px;
 }
 
-.blacksmith-pin-layers-mgmt-btn {
-    width: auto;
-    flex: 0 0 auto;
-    gap: 6px;
-    font-size: 0.78em;
-    padding: 4px 10px;
+.blacksmith-custom-pin-tags-grid {
+    display: grid;
+    grid-template-columns: minmax(130px, 1.2fr) 72px 72px minmax(120px, 1fr) minmax(270px, 1.5fr);
+    align-items: stretch;
+    overflow-x: auto;
+}
+
+.blacksmith-custom-pin-tags-header,
+.blacksmith-custom-pin-tags-row {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.blacksmith-custom-pin-tags-header {
+    padding: 8px 10px;
+    color: rgba(172, 159, 129, 0.65);
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 0.68em;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.08em;
+}
+
+.blacksmith-custom-pin-tags-row {
+    display: contents;
+}
+
+.blacksmith-custom-pin-tags-row > div {
+    display: flex;
+    align-items: center;
+    min-height: 42px;
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.blacksmith-custom-pin-tags-count {
+    justify-content: center;
+    color: rgba(230, 220, 200, 0.8);
+    font-variant-numeric: tabular-nums;
+}
+
+.blacksmith-custom-pin-tags-types {
+    color: rgba(210, 200, 180, 0.7);
+    font-size: 0.86em;
+}
+
+.blacksmith-custom-pin-tags-actions {
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.blacksmith-custom-pin-tags-empty {
+    grid-column: 1 / -1;
 }
