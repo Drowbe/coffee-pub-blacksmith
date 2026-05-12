@@ -139,6 +139,21 @@
     width: 100%;
 }
 
+.blacksmith-pin-layers-bulk-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.blacksmith-pin-layers-bulk-count {
+    color: rgba(224, 224, 224, 0.75);
+    font-size: 0.9em;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: nowrap;
+}
+
 /* ----- Body root ----- */
 
 .blacksmith-pin-layers-root {
@@ -192,8 +207,53 @@
     background: rgba(255, 255, 255, 0.03);
 }
 
+.blacksmith-pin-layers-row.is-selected {
+    background: rgba(255, 140, 60, 0.08);
+}
+
 .blacksmith-pin-layers-row.is-hidden {
     opacity: 0.55;
+}
+
+.blacksmith-pin-layers-select-cell {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    cursor: pointer;
+}
+
+.blacksmith-pin-layers-pin-select {
+    margin: 0;
+}
+
+.blacksmith-pin-layers-bulk-tags-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.blacksmith-pin-layers-bulk-classification-section {
+    margin: 0;
+}
+
+.blacksmith-pin-layers-bulk-tags-form .blacksmith-form-row {
+    display: grid;
+    grid-template-columns: 130px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+}
+
+.blacksmith-pin-layers-bulk-help,
+.blacksmith-pin-layers-bulk-hint {
+    margin: 0;
+    color: rgba(224, 224, 224, 0.75);
+}
+
+.blacksmith-pin-layers-bulk-hint {
+    font-size: 0.86em;
+    font-style: italic;
+    color: rgba(172, 159, 129, 0.75);
 }
 
 /* Column wrapper for browse rows (title row + submeta tags stacked) */
