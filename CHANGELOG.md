@@ -22,12 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Custom tag action labels** (`scripts/window-pin-layers.js`): Shortened custom tag row actions to compact labels: **Rename**, **Scene**, **All Scene**, and icon-only delete. Full explanations moved to `data-tooltip` attributes.
 - **Bulk tag editor visual consistency** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`): Aligned bulk tag chips with the shared `.blacksmith-tag` styling used by the main pin manager tag clouds.
 - **Tag registry operations preserve strip/delete distinction** (`scripts/manager-pins.js`): Strip actions remove tag usage while keeping the tag available in the registry; delete removes both usage and registry entries.
+- **Manage Pin Layers profile workflow** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`): Saved profiles now auto-apply when selected, replacing the ambiguous **Apply** button. The profile row now uses **Save As**, conditional **Update**, a compact delete icon with confirmation, and an **Active / Unsaved Changes / Custom** status chip.
+- **Manage Pin Layers built-in profiles** (`scripts/window-pin-layers.js`): Added permanent **All Pins** and **No Pins** system profiles to the profile selector. They apply immediately, cannot be updated or deleted, and map to the hide-list model: **All Pins** clears all hidden state, while **No Pins** hides all current pin layers/tags and uses hide-all so future pins remain hidden too.
 
 ### Fixed
 
 - **Bulk tag editor tag coverage** (`scripts/window-pin-layers.js`): Bulk editing now accounts for all selected pin tags, including custom/non-taxonomy tags, so existing tags like scene-local custom tags appear in both the input and chip suggestions.
 - **Global tag rename/delete cleanup** (`scripts/manager-pins.js`): Global rename and delete now also handle unplaced pins, type-scoped hidden tag state, and saved visibility profile snapshots.
 - **Bulk editor chip interaction** (`scripts/window-pin-layers.js`): Hardened listener attachment so tag chips continue to toggle correctly when Application V2/Dialog root elements differ.
+- **Manage Pin Layers profile state clarity** (`scripts/window-pin-layers.js`, `scripts/manager-pins.js`): Profile controls now more clearly represent the saved visibility snapshot: hide-all state, hidden categories, hidden global tags, and hidden type-scoped tags. Selecting **Custom / Current View** clears the active profile label without changing the current layer visibility.
 
 ## [13.7.2]
 

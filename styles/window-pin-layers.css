@@ -45,6 +45,34 @@
     max-width: 200px;
 }
 
+.blacksmith-pin-layers-profile-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 2px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    color: rgba(180, 180, 180, 0.65);
+    background: rgba(0, 0, 0, 0.16);
+    font-size: 0.68em;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.blacksmith-pin-layers-profile-status.is-active {
+    color: rgba(140, 210, 140, 0.85);
+    border-color: rgba(80, 180, 90, 0.22);
+    background: rgba(50, 140, 60, 0.12);
+}
+
+.blacksmith-pin-layers-profile-status.is-custom {
+    color: rgba(255, 190, 90, 0.85);
+    border-color: rgba(255, 190, 90, 0.2);
+    background: rgba(255, 160, 50, 0.08);
+}
+
 .blacksmith-pin-layers-profile-name {
     min-width: 140px;
     max-width: 180px;

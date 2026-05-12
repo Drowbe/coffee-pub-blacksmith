@@ -6,12 +6,20 @@ import { BlacksmithWindowBaseV2 } from './window-base.js';
 const APP_ID = 'blacksmith-pin-layers';
 const BULK_TAGS_APP_ID = 'blacksmith-bulk-pin-tags';
 const CUSTOM_TAGS_APP_ID = 'blacksmith-custom-pin-tags';
+const SYSTEM_PROFILE_ALL = '__blacksmith_all_pins__';
+const SYSTEM_PROFILE_NONE = '__blacksmith_no_pins__';
 let _pinLayersWindowRef = null;
 let _bulkPinTagsWindowRef = null;
 let _customPinTagsWindowRef = null;
 
 function esc(value) {
     return foundry.utils.escapeHTML(String(value ?? ''));
+}
+
+function getProfileDisplayName(value) {
+    if (value === SYSTEM_PROFILE_ALL) return 'All Pins';
+    if (value === SYSTEM_PROFILE_NONE) return 'No Pins';
+    return String(value || '');
 }
 
 class BulkPinTagsWindow extends BlacksmithWindowBaseV2 {
@@ -689,7 +697,6 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         hideAll:       () => _pinLayersWindowRef?._hideAll(),
         showAll:       () => _pinLayersWindowRef?._showAll(),
         saveProfile:   () => _pinLayersWindowRef?._saveProfile(),
-        applyProfile:  () => _pinLayersWindowRef?._applyProfile(),
         updateProfile: () => _pinLayersWindowRef?._updateProfile(),
         deleteProfile: () => _pinLayersWindowRef?._deleteProfile(),
         clearBrowse:   () => { if (_pinLayersWindowRef) { _pinLayersWindowRef.browseQuery = ''; _pinLayersWindowRef.render(true); } },
@@ -786,13 +793,30 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         // --- Profile data ---
         const profiles = PinManager.listVisibilityProfiles();
         const activeProfileName = PinManager.getActiveFilterProfileName();
-        const selectedProfile = this._selectedProfileValue;
-        const isNewProfile = selectedProfile === '';
-        const profileMatchesCurrent = !isNewProfile && PinManager.visibilityStateMatchesProfile(selectedProfile);
+        const profileNames = new Set(profiles.map(entry => entry.name));
+        const systemProfiles = new Set([SYSTEM_PROFILE_ALL, SYSTEM_PROFILE_NONE]);
+        const isSelectedSystemProfile = systemProfiles.has(this._selectedProfileValue);
+        const selectedProfile = isSelectedSystemProfile || profileNames.has(this._selectedProfileValue) ? this._selectedProfileValue : '';
+        if (selectedProfile !== this._selectedProfileValue) this._selectedProfileValue = selectedProfile;
+        const hasSelectedProfile = selectedProfile !== '';
+        const isSystemProfile = systemProfiles.has(selectedProfile);
+        const hasSavedProfile = hasSelectedProfile && !isSystemProfile;
+        const profileMatchesCurrent = isSystemProfile
+            ? this._visibilityStateMatchesState(this._getSystemProfileState(selectedProfile))
+            : (hasSavedProfile && PinManager.visibilityStateMatchesProfile(selectedProfile));
+        const profileStatus = hasSelectedProfile
+            ? (profileMatchesCurrent ? 'Active' : 'Unsaved Changes')
+            : 'Custom';
         const profileOptions = [
-            `<option value="" ${isNewProfile ? 'selected' : ''}>New Profile</option>`,
-            ...profiles.map((entry) =>
-                `<option value="${esc(entry.name)}" ${entry.name === selectedProfile ? 'selected' : ''}>${esc(entry.name)}</option>`)
+            `<optgroup label="System">
+                <option value="${SYSTEM_PROFILE_ALL}" ${selectedProfile === SYSTEM_PROFILE_ALL ? 'selected' : ''}>All Pins</option>
+                <option value="${SYSTEM_PROFILE_NONE}" ${selectedProfile === SYSTEM_PROFILE_NONE ? 'selected' : ''}>No Pins</option>
+            </optgroup>`,
+            `<option value="" ${!hasSelectedProfile ? 'selected' : ''}>Custom / Current View</option>`,
+            profiles.length ? `<optgroup label="Saved">
+                ${profiles.map((entry) =>
+                    `<option value="${esc(entry.name)}" ${entry.name === selectedProfile ? 'selected' : ''}>${esc(entry.name)}</option>`).join('')}
+            </optgroup>` : ''
         ].join('');
 
         // --- Browse tab data ---
@@ -842,23 +866,21 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 <select class="blacksmith-input blacksmith-pin-layers-profile-select">
                     ${profileOptions}
                 </select>
-                ${isNewProfile ? `
-                    <input type="text" class="blacksmith-input blacksmith-pin-layers-profile-name" value="" placeholder="Profile name">
-                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm" data-action="saveProfile" title="Save as new profile">
-                        <i class="fa-solid fa-floppy-disk"></i> Save
-                    </button>
-                ` : `
-                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm" data-action="applyProfile" title="Restore this profile's saved filters">
-                        <i class="fa-solid fa-check"></i> Apply
-                    </button>
-                    ${!profileMatchesCurrent ? `
-                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm" data-action="updateProfile" title="Save current filters over this profile">
-                        <i class="fa-solid fa-floppy-disk"></i> Update
+                <span class="blacksmith-pin-layers-profile-status ${profileMatchesCurrent ? 'is-active' : 'is-custom'}">${esc(profileStatus)}</span>
+                <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm"
+                    data-action="saveProfile" data-tooltip="Save the current hidden pins, categories, and tags as a new profile">
+                    <i class="fa-solid fa-floppy-disk"></i> Save As
+                </button>
+                ${hasSavedProfile && !profileMatchesCurrent ? `
+                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm"
+                        data-action="updateProfile" data-tooltip="Overwrite this profile with the current hidden pins, categories, and tags">
+                        <i class="fa-solid fa-rotate"></i> Update
                     </button>` : ''}
-                    <button type="button" class="blacksmith-window-btn-critical blacksmith-pin-layers-btn-icon blacksmith-pin-layers-btn-sm" data-action="deleteProfile" title="Delete this profile">
+                ${hasSavedProfile ? `
+                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-icon blacksmith-pin-layers-btn-sm"
+                        data-action="deleteProfile" data-tooltip="Delete this saved profile" aria-label="Delete profile">
                         <i class="fa-solid fa-trash"></i>
-                    </button>
-                `}
+                    </button>` : ''}
             </div>
         `;
 
@@ -903,7 +925,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             subtitle: 'Scene Pins',
             headerRight: `
                 <div class="blacksmith-pin-layers-summary">
-                    <span class="blacksmith-pin-layers-summary-profile">${activeProfileName ? esc(activeProfileName) : 'Custom'}</span>
+                    <span class="blacksmith-pin-layers-summary-profile">${activeProfileName ? esc(getProfileDisplayName(activeProfileName)) : 'Custom'}</span>
                     <span class="blacksmith-pin-layers-summary-stat"><i class="fa-solid fa-eye"></i> ${visibleSummary.total}</span>
                     <span class="blacksmith-pin-layers-summary-stat">${allSummary.total} total</span>
                 </div>
@@ -1254,9 +1276,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         // Profile select (Layers tab)
         root?.querySelector('.blacksmith-pin-layers-profile-select')
             ?.addEventListener('change', (e) => {
-                this._selectedProfileValue = e.target.value;
-                void this._persistLastProfile();
-                void this.render(true);
+                void this._selectProfile(e.target.value);
             });
 
         // Browse filter input
@@ -1336,36 +1356,16 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     async _refresh() { await this.render(true); }
 
     async _hideAll() {
-        const sceneId = this.sceneId ?? canvas?.scene?.id;
-        const summary = PinManager.getSceneFilterSummary(sceneId, { includeHiddenByFilter: true });
-        for (const entry of summary.types) {
-            const [moduleId, type] = String(entry.key || '').split('|');
-            await PinManager.setModuleTypeHidden(moduleId, type || 'default', true);
-        }
-        for (const tag of PinManager.getTagRegistry()) await PinManager.setTagHidden(tag, true);
-        for (const entry of summary.tags) await PinManager.setTagHidden(entry.key, true);
-        // Hide all type-tag combos from the full taxonomy
-        const allTaxonomies = PinManager.getAllTaxonomies();
-        for (const [moduleId, types] of Object.entries(allTaxonomies)) {
-            for (const [type, entry] of Object.entries(types)) {
-                for (const tag of (entry.tags || [])) {
-                    await PinManager.setTypeTagHidden(moduleId, type, tag, true);
-                }
-            }
-        }
+        this._selectedProfileValue = SYSTEM_PROFILE_NONE;
+        await this._persistLastProfile();
+        await this._applySystemProfile(SYSTEM_PROFILE_NONE);
         await this.render(true);
     }
 
     async _showAll() {
-        await PinManager.setGlobalHidden(false);
-        const summary = PinManager.getSceneFilterSummary(this.sceneId ?? canvas?.scene?.id, { includeHiddenByFilter: true });
-        for (const entry of summary.types) {
-            const [moduleId, type] = String(entry.key || '').split('|');
-            await PinManager.setModuleTypeHidden(moduleId, type || 'default', false);
-        }
-        for (const tag of PinManager.getTagRegistry()) await PinManager.setTagHidden(tag, false);
-        for (const entry of summary.tags) await PinManager.setTagHidden(entry.key, false);
-        await PinManager.clearTypeTagHiddenState();
+        this._selectedProfileValue = SYSTEM_PROFILE_ALL;
+        await this._persistLastProfile();
+        await this._applySystemProfile(SYSTEM_PROFILE_ALL);
         await this.render(true);
     }
 
@@ -1379,13 +1379,155 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         } catch (_err) {}
     }
 
-    _getPendingProfileName() {
-        return this._getRoot()?.querySelector('.blacksmith-pin-layers-profile-name')?.value?.trim() || '';
+    async _selectProfile(name) {
+        this._selectedProfileValue = name || '';
+        await this._persistLastProfile();
+        if (!this._selectedProfileValue) {
+            await PinManager.applyVisibilityProfileState(PinManager.getVisibilityProfileState(), { activeProfileName: '' });
+            await this.render(true);
+            return;
+        }
+        if (this._isSystemProfile(this._selectedProfileValue)) {
+            await this._applySystemProfile(this._selectedProfileValue);
+            ui.notifications?.info(`Loaded pin profile: ${getProfileDisplayName(this._selectedProfileValue)}`);
+            await this.render(true);
+            return;
+        }
+        try {
+            await PinManager.applyVisibilityProfile(this._selectedProfileValue);
+            ui.notifications?.info(`Loaded pin profile: ${this._selectedProfileValue}`);
+        } catch (err) {
+            ui.notifications?.warn(err?.message || `Unable to load pin profile: ${this._selectedProfileValue}`);
+            this._selectedProfileValue = '';
+            await this._persistLastProfile();
+        }
+        await this.render(true);
+    }
+
+    _isSystemProfile(value) {
+        return value === SYSTEM_PROFILE_ALL || value === SYSTEM_PROFILE_NONE;
+    }
+
+    _visibilityStateMatchesState(state) {
+        if (!state) return false;
+        const current = PinManager.getVisibilityProfileState();
+        const stable = (obj) => JSON.stringify(Object.fromEntries(Object.entries(obj ?? {}).sort()));
+        return current.hideAll === !!state.hideAll
+            && stable(current.hiddenModules) === stable(state.hiddenModules)
+            && stable(current.hiddenModuleTypes) === stable(state.hiddenModuleTypes)
+            && stable(current.hiddenTags) === stable(state.hiddenTags)
+            && stable(current.hiddenTypeTags) === stable(state.hiddenTypeTags);
+    }
+
+    _getSystemProfileState(value) {
+        if (value === SYSTEM_PROFILE_ALL) {
+            return {
+                hideAll: false,
+                hiddenModules: {},
+                hiddenModuleTypes: {},
+                hiddenTags: {},
+                hiddenTypeTags: {}
+            };
+        }
+        if (value !== SYSTEM_PROFILE_NONE) return null;
+
+        const hiddenModuleTypes = {};
+        const hiddenTags = {};
+        const hiddenTypeTags = {};
+        const allTaxonomies = PinManager.getAllTaxonomies();
+        for (const [moduleId, types] of Object.entries(allTaxonomies)) {
+            for (const [type, entry] of Object.entries(types)) {
+                const typeKey = `${moduleId}|${type || 'default'}`;
+                hiddenModuleTypes[typeKey] = true;
+                for (const tag of normalizePinTags(entry.tags || [])) {
+                    hiddenTypeTags[`${typeKey}|${tag}`] = true;
+                }
+            }
+        }
+        for (const tag of normalizePinTags([
+            ...PinManager.getGlobalTaxonomyTags(),
+            ...PinManager.getTagRegistry()
+        ])) {
+            hiddenTags[tag] = true;
+        }
+        const sceneId = this.sceneId ?? canvas?.scene?.id;
+        const scenePins = sceneId ? (PinManager.list({ sceneId, includeHiddenByFilter: true }) || []) : [];
+        for (const pin of scenePins) {
+            const typeKey = `${pin.moduleId}|${pin.type || 'default'}`;
+            hiddenModuleTypes[typeKey] = true;
+            for (const tag of normalizePinTags(pin.tags || [])) {
+                hiddenTags[tag] = true;
+                hiddenTypeTags[`${typeKey}|${tag}`] = true;
+            }
+        }
+
+        return {
+            hideAll: true,
+            hiddenModules: {},
+            hiddenModuleTypes,
+            hiddenTags,
+            hiddenTypeTags
+        };
+    }
+
+    async _applySystemProfile(value) {
+        const state = this._getSystemProfileState(value);
+        if (!state) return;
+        await PinManager.applyVisibilityProfileState(state, { activeProfileName: value });
+    }
+
+    _isReservedProfileName(name) {
+        const normalized = String(name || '').trim().toLowerCase();
+        return normalized === 'all pins' || normalized === 'no pins';
+    }
+
+    async _promptProfileName(defaultName = '') {
+        const content = `
+            <form>
+                <div class="blacksmith-field">
+                    <span class="blacksmith-field-label">Profile name</span>
+                    <input type="text" class="blacksmith-input blacksmith-pin-layers-profile-name" value="${esc(defaultName)}" placeholder="Profile name">
+                </div>
+            </form>`;
+        return foundry.applications.api.DialogV2.wait({
+            window: { title: 'Save Pin Visibility Profile' },
+            content,
+            rejectClose: false,
+            buttons: [
+                { action: 'cancel', label: 'Cancel', icon: 'fa-solid fa-xmark', callback: () => '' },
+                {
+                    action: 'save',
+                    label: 'Save',
+                    icon: 'fa-solid fa-floppy-disk',
+                    default: true,
+                    callback: (_event, _button, dialog) => {
+                        const root = dialog.form || dialog.element;
+                        return root?.querySelector('.blacksmith-pin-layers-profile-name')?.value?.trim() || '';
+                    }
+                }
+            ]
+        });
     }
 
     async _saveProfile() {
-        const name = this._getPendingProfileName();
-        if (!name) { ui.notifications?.warn('Enter a profile name to save.'); return; }
+        const name = await this._promptProfileName();
+        if (!name) return;
+        if (this._isReservedProfileName(name)) {
+            ui.notifications?.warn('All Pins and No Pins are built-in profiles and cannot be overwritten.');
+            return;
+        }
+        const existing = PinManager.getVisibilityProfile(name);
+        if (existing) {
+            const confirmed = await foundry.applications.api.DialogV2.confirm({
+                window: { title: 'Overwrite Pin Profile' },
+                content: `<p>A pin visibility profile named <strong>${esc(name)}</strong> already exists.</p><p>Overwrite it with the current layer visibility?</p>`,
+                rejectClose: false,
+                modal: true,
+                yes: { default: false },
+                no: { default: true }
+            });
+            if (!confirmed) return;
+        }
         await PinManager.saveVisibilityProfile(name);
         this._selectedProfileValue = name;
         await this._persistLastProfile();
@@ -1393,18 +1535,10 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         await this.render(true);
     }
 
-    async _applyProfile() {
-        const name = this._selectedProfileValue;
-        if (!name) { ui.notifications?.warn('Choose a saved profile to apply.'); return; }
-        await PinManager.applyVisibilityProfile(name);
-        await this._persistLastProfile();
-        ui.notifications?.info(`Applied pin profile: ${name}`);
-        await this.render(true);
-    }
-
     async _updateProfile() {
         const name = this._selectedProfileValue;
         if (!name) { ui.notifications?.warn('No profile selected to update.'); return; }
+        if (this._isSystemProfile(name)) { ui.notifications?.warn('Built-in profiles cannot be updated.'); return; }
         await PinManager.saveVisibilityProfile(name);
         await this._persistLastProfile();
         ui.notifications?.info(`Updated pin profile: ${name}`);
@@ -1414,6 +1548,16 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     async _deleteProfile() {
         const name = this._selectedProfileValue;
         if (!name) { ui.notifications?.warn('Choose a saved profile to delete.'); return; }
+        if (this._isSystemProfile(name)) { ui.notifications?.warn('Built-in profiles cannot be deleted.'); return; }
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Delete Pin Profile' },
+            content: `<p>Delete saved pin visibility profile <strong>${esc(name)}</strong>?</p><p>The current layer visibility will not be changed.</p>`,
+            rejectClose: false,
+            modal: true,
+            yes: { default: false },
+            no: { default: true }
+        });
+        if (!confirmed) return;
         const removed = await PinManager.deleteVisibilityProfile(name);
         if (!removed) { ui.notifications?.warn(`Profile not found: ${name}`); return; }
         this._selectedProfileValue = '';
