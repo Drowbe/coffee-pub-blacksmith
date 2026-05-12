@@ -4,10 +4,305 @@ import { normalizePinTags } from './pins-schema.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 
 const APP_ID = 'blacksmith-pin-layers';
+const BULK_TAGS_APP_ID = 'blacksmith-bulk-pin-tags';
 let _pinLayersWindowRef = null;
+let _bulkPinTagsWindowRef = null;
 
 function esc(value) {
     return foundry.utils.escapeHTML(String(value ?? ''));
+}
+
+class BulkPinTagsWindow extends BlacksmithWindowBaseV2 {
+    static ROOT_CLASS = 'blacksmith-window-template-root';
+
+    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {
+            id: BULK_TAGS_APP_ID,
+            classes: ['blacksmith-pin-layers-window', 'blacksmith-pin-bulk-tags-window'],
+            position: { width: 720, height: 560 },
+            window: { title: 'Bulk Edit Pin Tags', resizable: true, minimizable: true },
+            windowSizeConstraints: { minWidth: 560, minHeight: 420, maxWidth: 1100, maxHeight: 1000 }
+        }
+    );
+
+    static PARTS = {
+        body: {
+            template: `modules/${MODULE.ID}/templates/window-template.hbs`
+        }
+    };
+
+    static ACTION_HANDLERS = {
+        cancel: () => _bulkPinTagsWindowRef?.close(),
+        deleteAllTags: () => _bulkPinTagsWindowRef?._deleteAllTags(),
+        updateTags: () => _bulkPinTagsWindowRef?._updateTags()
+    };
+
+    constructor(options = {}) {
+        const opts = foundry.utils.mergeObject({}, options);
+        opts.id = opts.id ?? BULK_TAGS_APP_ID;
+        super(opts);
+        this.sceneId = options.sceneId ?? canvas?.scene?.id ?? null;
+        this.pinIds = (options.pins || []).map(pin => pin?.id).filter(Boolean);
+        this._selectedPinsById = new Map((options.pins || []).filter(pin => pin?.id).map(pin => [pin.id, pin]));
+    }
+
+    static async open(options = {}) {
+        const existing = _bulkPinTagsWindowRef;
+        if (existing?.element?.isConnected) {
+            existing.sceneId = options.sceneId ?? existing.sceneId;
+            existing.pinIds = (options.pins || []).map(pin => pin?.id).filter(Boolean);
+            existing._selectedPinsById = new Map((options.pins || []).filter(pin => pin?.id).map(pin => [pin.id, pin]));
+            await existing.render(true);
+            await Promise.resolve(existing.bringToFront?.());
+            return existing;
+        }
+        if (existing && !existing.element?.isConnected) _bulkPinTagsWindowRef = null;
+        const win = new BulkPinTagsWindow(options);
+        _bulkPinTagsWindowRef = win;
+        return win.render(true);
+    }
+
+    async close(options) {
+        if (_bulkPinTagsWindowRef === this) _bulkPinTagsWindowRef = null;
+        return super.close(options);
+    }
+
+    async getData() {
+        const selectedPins = this._getSelectedPins();
+        const bodyContent = this._buildBulkTagEditorContent(selectedPins);
+        const count = selectedPins.length;
+        return {
+            appId: this.id,
+            showOptionBar: false,
+            showHeader: true,
+            showTools: false,
+            showActionBar: true,
+            headerIcon: 'fa-solid fa-tags',
+            windowTitle: 'Bulk Edit Pin Tags',
+            subtitle: `${count} Selected Pin${count !== 1 ? 's' : ''}`,
+            headerRight: `<span class="blacksmith-pin-layers-summary-stat">${count} selected</span>`,
+            bodyContent,
+            actionBarLeft: `
+                <button type="button" class="blacksmith-window-btn-secondary" data-action="cancel">
+                    <i class="fa-solid fa-xmark"></i> Cancel
+                </button>
+            `,
+            actionBarRight: `
+                <button type="button" class="blacksmith-window-btn-critical" data-action="deleteAllTags">
+                    <i class="fa-solid fa-trash"></i> Delete All Tags
+                </button>
+                <button type="button" class="blacksmith-window-btn-primary" data-action="updateTags">
+                    <i class="fa-solid fa-check"></i> Update
+                </button>
+            `
+        };
+    }
+
+    _getSelectedPins() {
+        return this.pinIds
+            .map(pinId => this._selectedPinsById.get(pinId) || PinManager.get(pinId, { sceneId: this.sceneId }))
+            .filter(Boolean);
+    }
+
+    _buildBulkTagEditorContent(selectedPins) {
+        const tagCounts = new Map();
+        const total = selectedPins.length;
+        for (const pin of selectedPins) {
+            for (const tag of this._getAllTagsForPin(pin)) {
+                tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+            }
+        }
+        const existingTags = [...tagCounts.keys()].sort((a, b) => a.localeCompare(b));
+        const suggestedTags = this._getBulkSuggestedTags(selectedPins, tagCounts);
+        const otherTags = this._getBulkOtherTags(suggestedTags, tagCounts);
+        const suggestedChips = this._buildBulkTagEditorChips(suggestedTags, tagCounts, total);
+        const otherChips = this._buildBulkTagEditorChips(otherTags, tagCounts, total);
+
+        return `
+            <form class="blacksmith-pin-layers-bulk-tags-form">
+                <div class="blacksmith-window-section blacksmith-pin-layers-bulk-classification-section">
+                    <div class="blacksmith-window-section-header">
+                        <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-tags"></i> Classification</span>
+                    </div>
+                    <div class="blacksmith-window-section-body">
+                        <p class="blacksmith-pin-layers-bulk-help">
+                            Editing <strong>${total}</strong> selected pin${total !== 1 ? 's' : ''}. The field starts with every tag currently used by the selection.
+                        </p>
+                        <div class="blacksmith-field-row">
+                            <div class="blacksmith-field">
+                                <span class="blacksmith-field-label">Tags</span>
+                                <input type="text" class="blacksmith-input blacksmith-pin-layers-bulk-tags" value="${esc(existingTags.join(', '))}" placeholder="tag1, tag2">
+                                ${suggestedTags.length ? `
+                                <div class="blacksmith-pin-config-tag-group-label">Suggested</div>
+                                <div class="blacksmith-tags" data-chip-type="tag">
+                                    ${suggestedChips}
+                                </div>` : ''}
+                                ${otherTags.length ? `
+                                <div class="blacksmith-pin-config-tag-group-label">Other</div>
+                                <div class="blacksmith-tags" data-chip-type="tag">
+                                    ${otherChips}
+                                </div>` : ''}
+                            </div>
+                        </div>
+                        <p class="blacksmith-pin-layers-bulk-hint">Chip counts show how many selected pins currently have that tag. Update replaces each selected pin's tags with the tags in the field.</p>
+                    </div>
+                </div>
+            </form>`;
+    }
+
+    _getBulkSuggestedTags(selectedPins, tagCounts) {
+        const tagsApi = game.modules.get(MODULE.ID)?.api?.tags;
+        const suggested = new Set();
+        const sceneId = this.sceneId ?? canvas?.scene?.id;
+        for (const pin of selectedPins) {
+            const contextKey = `${pin.moduleId}.${pin.type || 'default'}`;
+            for (const choice of (tagsApi?.getChoices?.(contextKey) ?? [])) {
+                if (choice?.tier === 'taxonomy' && choice.key) suggested.add(choice.key);
+            }
+            const taxonomy = PinManager.getPinTaxonomy?.(pin.moduleId, pin.type);
+            for (const tag of (taxonomy?.tags || [])) suggested.add(tag);
+        }
+        if (sceneId) {
+            const scenePins = PinManager.list({ sceneId, includeHiddenByFilter: true }) || [];
+            const selectedContexts = new Set(selectedPins.map(pin => `${pin.moduleId}|${pin.type || 'default'}`));
+            for (const pin of scenePins) {
+                if (!selectedContexts.has(`${pin.moduleId}|${pin.type || 'default'}`)) continue;
+                for (const tag of this._getAllTagsForPin(pin)) suggested.add(tag);
+            }
+        }
+        for (const tag of tagCounts.keys()) suggested.add(tag);
+        return [...suggested].sort((a, b) => a.localeCompare(b));
+    }
+
+    _getAllTagsForPin(pin) {
+        if (!pin) return [];
+        const tagsApi = game.modules.get(MODULE.ID)?.api?.tags;
+        const contextKey = `${pin.moduleId}.${pin.type || 'default'}`;
+        const tags = [
+            ...normalizePinTags(pin.tags || []),
+            ...normalizePinTags(tagsApi?.getTags?.(contextKey, pin.id) || [])
+        ];
+        return [...new Set(tags)].sort((a, b) => a.localeCompare(b));
+    }
+
+    _getBulkOtherTags(suggestedTags, tagCounts) {
+        const tagsApi = game.modules.get(MODULE.ID)?.api?.tags;
+        const suggested = new Set(suggestedTags);
+        const registry = [
+            ...(tagsApi?.getRegistry?.() ?? []),
+            ...PinManager.getTagRegistry()
+        ];
+        for (const tag of tagCounts.keys()) {
+            if (!suggested.has(tag)) registry.push(tag);
+        }
+        return [...new Set(registry)]
+            .filter(tag => !suggested.has(tag))
+            .sort((a, b) => a.localeCompare(b));
+    }
+
+    _buildBulkTagEditorChips(tags, tagCounts, total) {
+        return tags.map(tag => {
+            const count = tagCounts.get(tag) || 0;
+            const partial = count > 0 && count < total;
+            return `<span
+                class="blacksmith-tag ${count === total ? 'active' : ''} ${partial ? 'is-partial' : ''} ${count === 0 ? 'is-empty' : ''}"
+                data-value="${esc(tag)}"
+                title="${esc(tag)} (${count} of ${total})">
+                ${esc(tag)} <span class="blacksmith-pin-layers-tag-count">${count}</span>
+            </span>`;
+        }).join('');
+    }
+
+    async _onRender(context, options) {
+        await super._onRender?.(context, options);
+        this._attachLocalListeners();
+    }
+
+    _attachLocalListeners() {
+        const root = this._getRoot();
+        const input = root?.querySelector('.blacksmith-pin-layers-bulk-tags');
+        if (!root || !input) return;
+        const getTagsArray = () => normalizePinTags(input.value || '');
+        const updateTagChips = () => {
+            const current = new Set(getTagsArray());
+            root.querySelectorAll('.blacksmith-tags[data-chip-type="tag"] .blacksmith-tag').forEach(chip => {
+                chip.classList.toggle('active', current.has(chip.dataset.value));
+            });
+        };
+        root.querySelectorAll('.blacksmith-tags[data-chip-type="tag"] .blacksmith-tag').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const tags = getTagsArray();
+                const value = chip.dataset.value;
+                const idx = tags.indexOf(value);
+                if (idx >= 0) tags.splice(idx, 1);
+                else tags.push(value);
+                input.value = tags.join(', ');
+                updateTagChips();
+            });
+        });
+        input.addEventListener('input', updateTagChips);
+        updateTagChips();
+    }
+
+    async _deleteAllTags() {
+        const selectedPins = this._getSelectedPins();
+        if (!selectedPins.length) return;
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Delete All Tags' },
+            content: `<p>Delete <strong>all tags</strong> from <strong>${selectedPins.length}</strong> selected pin${selectedPins.length !== 1 ? 's' : ''}?</p><p>This cannot be undone.</p>`,
+            rejectClose: false,
+            modal: true,
+            yes: { default: false },
+            no: { default: true }
+        });
+        if (!confirmed) return;
+        await this._applyBulkTagSet(selectedPins.map(pin => pin.id), []);
+        await this.close();
+    }
+
+    async _updateTags() {
+        const selectedPins = this._getSelectedPins();
+        if (!selectedPins.length) return;
+        const root = this._getRoot();
+        const tags = normalizePinTags(root?.querySelector('.blacksmith-pin-layers-bulk-tags')?.value || '');
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Confirm Bulk Tag Edit' },
+            content: `<p>Replace tags on <strong>${selectedPins.length}</strong> selected pin${selectedPins.length !== 1 ? 's' : ''} with:</p><p><strong>${tags.length ? esc(tags.join(', ')) : 'No tags'}</strong></p>`,
+            rejectClose: false,
+            modal: true,
+            yes: { default: false },
+            no: { default: true }
+        });
+        if (!confirmed) return;
+        await this._applyBulkTagSet(selectedPins.map(pin => pin.id), tags);
+        await this.close();
+    }
+
+    async _applyBulkTagSet(pinIds, nextTags) {
+        let updated = 0;
+        let failed = 0;
+        const normalizedNext = normalizePinTags(nextTags);
+        for (const pinId of pinIds) {
+            const pin = PinManager.get(pinId, { sceneId: this.sceneId });
+            if (!pin) {
+                failed++;
+                continue;
+            }
+            const current = normalizePinTags(pin.tags || []);
+            const next = [...normalizedNext];
+            if (next.length === current.length && next.every((tag, idx) => tag === current[idx])) continue;
+            try {
+                await PinManager.update(pinId, { tags: next }, { sceneId: this.sceneId });
+                updated++;
+            } catch (_err) {
+                failed++;
+            }
+        }
+        const failureText = failed ? ` ${failed} failed.` : '';
+        ui.notifications?.info(`Updated tags on ${updated} pin${updated !== 1 ? 's' : ''}.${failureText}`);
+        await _pinLayersWindowRef?.render(true);
+    }
 }
 
 export class PinLayersWindow extends BlacksmithWindowBaseV2 {
@@ -907,226 +1202,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             ui.notifications?.warn('Selected pins were not found.');
             return;
         }
-
-        const dialogApi = foundry.applications.api.DialogV2;
-        const content = this._buildBulkTagEditorContent(selectedPins);
-
-        let dialog;
-        dialog = new dialogApi({
-            classes: ['blacksmith-pin-layers-window'],
-            window: { title: 'Bulk Edit Pin Tags', resizable: true },
-            position: { width: 720, height: 560 },
-            content,
-            buttons: [
-                {
-                    action: 'cancel',
-                    label: 'Cancel',
-                    icon: 'fa-solid fa-xmark',
-                    callback: () => { void dialog.close(); }
-                },
-                {
-                    action: 'clear-tags',
-                    label: 'Delete All Tags',
-                    icon: 'fa-solid fa-trash',
-                    callback: async (_event, _button, activeDialog) => {
-                        const confirmed = await dialogApi.confirm({
-                            window: { title: 'Delete All Tags' },
-                            content: `<p>Delete <strong>all tags</strong> from <strong>${selectedPins.length}</strong> selected pin${selectedPins.length !== 1 ? 's' : ''}?</p><p>This cannot be undone.</p>`,
-                            rejectClose: false,
-                            modal: true,
-                            yes: { default: false },
-                            no: { default: true }
-                        });
-                        if (!confirmed) return;
-                        await this._applyBulkTagSet(selectedPins.map(pin => pin.id), []);
-                        void activeDialog.close();
-                    }
-                },
-                {
-                    action: 'update',
-                    label: 'Update',
-                    icon: 'fa-solid fa-check',
-                    default: true,
-                    callback: async (_event, _button, activeDialog) => {
-                        const root = activeDialog.form || activeDialog.element;
-                        const tags = normalizePinTags(root?.querySelector('.blacksmith-pin-layers-bulk-tags')?.value || '');
-                        const confirmed = await dialogApi.confirm({
-                            window: { title: 'Confirm Bulk Tag Edit' },
-                            content: `<p>Replace tags on <strong>${selectedPins.length}</strong> selected pin${selectedPins.length !== 1 ? 's' : ''} with:</p><p><strong>${tags.length ? esc(tags.join(', ')) : 'No tags'}</strong></p>`,
-                            rejectClose: false,
-                            modal: true,
-                            yes: { default: false },
-                            no: { default: true }
-                        });
-                        if (!confirmed) return;
-                        await this._applyBulkTagSet(selectedPins.map(pin => pin.id), tags);
-                        void activeDialog.close();
-                    }
-                }
-            ]
-        });
-        await dialog.render(true);
-        this._attachBulkTagEditorListeners(dialog);
-    }
-
-    _buildBulkTagEditorContent(selectedPins) {
-        const tagCounts = new Map();
-        const total = selectedPins.length;
-        for (const pin of selectedPins) {
-            for (const tag of this._getAllTagsForPin(pin)) {
-                tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
-            }
-        }
-        const existingTags = [...tagCounts.keys()].sort((a, b) => a.localeCompare(b));
-        const suggestedTags = this._getBulkSuggestedTags(selectedPins, tagCounts);
-        const otherTags = this._getBulkOtherTags(suggestedTags, tagCounts);
-        const suggestedChips = this._buildBulkTagEditorChips(suggestedTags, tagCounts, total);
-        const otherChips = this._buildBulkTagEditorChips(otherTags, tagCounts, total);
-
-        return `
-            <form class="blacksmith-pin-layers-bulk-tags-form">
-                <div class="blacksmith-window-section blacksmith-pin-layers-bulk-classification-section">
-                    <div class="blacksmith-window-section-header">
-                        <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-tags"></i> Classification</span>
-                    </div>
-                    <div class="blacksmith-window-section-body">
-                        <p class="blacksmith-pin-layers-bulk-help">
-                            Editing <strong>${total}</strong> selected pin${total !== 1 ? 's' : ''}. The field starts with every tag currently used by the selection.
-                        </p>
-                        <div class="blacksmith-field-row">
-                            <div class="blacksmith-field">
-                                <span class="blacksmith-field-label">Tags</span>
-                                <input type="text" class="blacksmith-input blacksmith-pin-layers-bulk-tags" value="${esc(existingTags.join(', '))}" placeholder="tag1, tag2">
-                                ${suggestedTags.length ? `
-                                <div class="blacksmith-pin-config-tag-group-label">Suggested</div>
-                                <div class="blacksmith-tags" data-chip-type="tag">
-                                    ${suggestedChips}
-                                </div>` : ''}
-                                ${otherTags.length ? `
-                                <div class="blacksmith-pin-config-tag-group-label">Other</div>
-                                <div class="blacksmith-tags" data-chip-type="tag">
-                                    ${otherChips}
-                                </div>` : ''}
-                            </div>
-                        </div>
-                        <p class="blacksmith-pin-layers-bulk-hint">Chip counts show how many selected pins currently have that tag. Update replaces each selected pin's tags with the tags in the field.</p>
-                    </div>
-                </div>
-            </form>`;
-    }
-
-    _getBulkSuggestedTags(selectedPins, tagCounts) {
-        const tagsApi = game.modules.get(MODULE.ID)?.api?.tags;
-        const suggested = new Set();
-        const sceneId = this.sceneId ?? canvas?.scene?.id;
-        for (const pin of selectedPins) {
-            const contextKey = `${pin.moduleId}.${pin.type || 'default'}`;
-            for (const choice of (tagsApi?.getChoices?.(contextKey) ?? [])) {
-                if (choice?.tier === 'taxonomy' && choice.key) suggested.add(choice.key);
-            }
-            const taxonomy = PinManager.getPinTaxonomy?.(pin.moduleId, pin.type);
-            for (const tag of (taxonomy?.tags || [])) suggested.add(tag);
-        }
-        if (sceneId) {
-            const scenePins = PinManager.list({ sceneId, includeHiddenByFilter: true }) || [];
-            const selectedContexts = new Set(selectedPins.map(pin => `${pin.moduleId}|${pin.type || 'default'}`));
-            for (const pin of scenePins) {
-                if (!selectedContexts.has(`${pin.moduleId}|${pin.type || 'default'}`)) continue;
-                for (const tag of this._getAllTagsForPin(pin)) suggested.add(tag);
-            }
-        }
-        for (const tag of tagCounts.keys()) suggested.add(tag);
-        return [...suggested].sort((a, b) => a.localeCompare(b));
-    }
-
-    _getAllTagsForPin(pin) {
-        if (!pin) return [];
-        const tagsApi = game.modules.get(MODULE.ID)?.api?.tags;
-        const contextKey = `${pin.moduleId}.${pin.type || 'default'}`;
-        const tags = [
-            ...normalizePinTags(pin.tags || []),
-            ...normalizePinTags(tagsApi?.getTags?.(contextKey, pin.id) || [])
-        ];
-        return [...new Set(tags)].sort((a, b) => a.localeCompare(b));
-    }
-
-    _getBulkOtherTags(suggestedTags, tagCounts) {
-        const tagsApi = game.modules.get(MODULE.ID)?.api?.tags;
-        const suggested = new Set(suggestedTags);
-        const registry = [
-            ...(tagsApi?.getRegistry?.() ?? []),
-            ...PinManager.getTagRegistry()
-        ];
-        for (const tag of tagCounts.keys()) {
-            if (!suggested.has(tag)) registry.push(tag);
-        }
-        return [...new Set(registry)]
-            .filter(tag => !suggested.has(tag))
-            .sort((a, b) => a.localeCompare(b));
-    }
-
-    _buildBulkTagEditorChips(tags, tagCounts, total) {
-        return tags.map(tag => {
-            const count = tagCounts.get(tag) || 0;
-            const partial = count > 0 && count < total;
-            return `<span
-                class="blacksmith-tag ${count === total ? 'active' : ''} ${partial ? 'is-partial' : ''} ${count === 0 ? 'is-empty' : ''}"
-                data-value="${esc(tag)}"
-                title="${esc(tag)} (${count} of ${total})">
-                ${esc(tag)} <span class="blacksmith-pin-layers-tag-count">${count}</span>
-            </span>`;
-        }).join('');
-    }
-
-    _attachBulkTagEditorListeners(dialog) {
-        const root = dialog.form || dialog.element;
-        const input = root?.querySelector('.blacksmith-pin-layers-bulk-tags');
-        if (!root || !input) return;
-        const getTagsArray = () => normalizePinTags(input.value || '');
-        const updateTagChips = () => {
-            const current = new Set(getTagsArray());
-            root.querySelectorAll('.blacksmith-tags[data-chip-type="tag"] .blacksmith-tag').forEach(chip => {
-                chip.classList.toggle('active', current.has(chip.dataset.value));
-            });
-        };
-        root.querySelectorAll('.blacksmith-tags[data-chip-type="tag"] .blacksmith-tag').forEach(chip => {
-            chip.addEventListener('click', () => {
-                const tags = getTagsArray();
-                const value = chip.dataset.value;
-                const idx = tags.indexOf(value);
-                if (idx >= 0) tags.splice(idx, 1);
-                else tags.push(value);
-                input.value = tags.join(', ');
-                updateTagChips();
-            });
-        });
-        input.addEventListener('input', updateTagChips);
-        updateTagChips();
-    }
-
-    async _applyBulkTagSet(pinIds, nextTags) {
-        let updated = 0;
-        let failed = 0;
-        const normalizedNext = normalizePinTags(nextTags);
-        for (const pinId of pinIds) {
-            const pin = PinManager.get(pinId, { sceneId: this.sceneId });
-            if (!pin) {
-                failed++;
-                continue;
-            }
-            const current = normalizePinTags(pin.tags || []);
-            const next = [...normalizedNext];
-            if (next.length === current.length && next.every((tag, idx) => tag === current[idx])) continue;
-            try {
-                await PinManager.update(pinId, { tags: next }, { sceneId: this.sceneId });
-                updated++;
-            } catch (_err) {
-                failed++;
-            }
-        }
-        const failureText = failed ? ` ${failed} failed.` : '';
-        ui.notifications?.info(`Updated tags on ${updated} pin${updated !== 1 ? 's' : ''}.${failureText}`);
-        await this.render(true);
+        await BulkPinTagsWindow.open({ sceneId: this.sceneId, pins: selectedPins });
     }
 
     async _setBrowsePinVisibility(target) {
