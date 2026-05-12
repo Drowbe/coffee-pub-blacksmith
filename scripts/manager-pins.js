@@ -104,6 +104,8 @@ export class PinManager {
     static HIDE_ALL_SETTING_KEY = PINS_HIDE_ALL_KEY;
     static FILTER_PROFILES_SETTING_KEY = PINS_FILTER_PROFILES_KEY;
     static ACTIVE_FILTER_PROFILE_SETTING_KEY = PINS_ACTIVE_FILTER_PROFILE_KEY;
+    static SYSTEM_PROFILE_ALL = '__blacksmith_all_pins__';
+    static SYSTEM_PROFILE_NONE = '__blacksmith_no_pins__';
 
     // Event handler storage: Map<eventType, Set<handler>>
     static _eventHandlers = new Map();
@@ -855,6 +857,59 @@ export class PinManager {
         return this._normalizeProfileName(getSettingSafely(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, ''));
     }
 
+    static isSystemVisibilityProfileName(name) {
+        const key = this._normalizeProfileName(name);
+        return key === this.SYSTEM_PROFILE_ALL || key === this.SYSTEM_PROFILE_NONE;
+    }
+
+    static getSystemVisibilityProfileState(name, options = {}) {
+        const key = this._normalizeProfileName(name);
+        if (key === this.SYSTEM_PROFILE_ALL) {
+            return {
+                hideAll: false,
+                hiddenModules: {},
+                hiddenModuleTypes: {},
+                hiddenTags: {},
+                hiddenTypeTags: {}
+            };
+        }
+        if (key !== this.SYSTEM_PROFILE_NONE) return null;
+
+        const hiddenModuleTypes = {};
+        const hiddenTags = {};
+        const hiddenTypeTags = {};
+        for (const [moduleId, types] of Object.entries(this.getAllTaxonomies())) {
+            for (const [type, entry] of Object.entries(types)) {
+                const typeKey = this._pinTypeKey(moduleId, type);
+                hiddenModuleTypes[typeKey] = true;
+                for (const tag of normalizePinTags(entry.tags || [])) {
+                    hiddenTypeTags[`${typeKey}|${tag}`] = true;
+                }
+            }
+        }
+        for (const tag of normalizePinTags([...this.getGlobalTaxonomyTags(), ...this.getTagRegistry()])) {
+            hiddenTags[tag] = true;
+        }
+        const sceneId = options.sceneId ?? canvas?.scene?.id ?? null;
+        const scenePins = sceneId ? (this.list({ sceneId, includeHiddenByFilter: true }) || []) : [];
+        for (const pin of scenePins) {
+            if (!pin?.moduleId) continue;
+            const typeKey = this._pinTypeKey(pin.moduleId, pin.type);
+            hiddenModuleTypes[typeKey] = true;
+            for (const tag of normalizePinTags(pin.tags || [])) {
+                hiddenTags[tag] = true;
+                hiddenTypeTags[`${typeKey}|${tag}`] = true;
+            }
+        }
+        return {
+            hideAll: true,
+            hiddenModules: {},
+            hiddenModuleTypes,
+            hiddenTags,
+            hiddenTypeTags
+        };
+    }
+
     static isGlobalHidden() {
         return !!getSettingSafely(MODULE.ID, this.HIDE_ALL_SETTING_KEY, false);
     }
@@ -958,7 +1013,9 @@ export class PinManager {
     static visibilityStateMatchesProfile(profileName) {
         const key = this._normalizeProfileName(profileName);
         if (!key) return false;
-        const saved = this.getVisibilityProfile(key);
+        const saved = this.isSystemVisibilityProfileName(key)
+            ? this.getSystemVisibilityProfileState(key)
+            : this.getVisibilityProfile(key);
         if (!saved) return false;
         const current = this.getVisibilityProfileState();
         const stable = (obj) => JSON.stringify(Object.fromEntries(Object.entries(obj ?? {}).sort()));
@@ -1017,13 +1074,41 @@ export class PinManager {
         return { name: key, state: foundry.utils.deepClone(profiles[key]) };
     }
 
-    static async applyVisibilityProfile(name) {
+    static async applySystemVisibilityProfile(name, options = {}) {
         const key = this._normalizeProfileName(name);
-        if (!key) throw new Error('Profile name is required.');
-        const profile = this.getVisibilityProfile(key);
-        if (!profile) throw new Error(`Profile not found: ${key}`);
+        const profile = this.getSystemVisibilityProfileState(key, options);
+        if (!profile) throw new Error(`System profile not found: ${key}`);
         await this.applyVisibilityProfileState(profile, { activeProfileName: key });
         return profile;
+    }
+
+    static _profileHasVisiblePinsWithoutHideAll(profile, sceneId) {
+        if (!profile?.hideAll || !sceneId) return false;
+        const hiddenModules = profile.hiddenModules && typeof profile.hiddenModules === 'object' ? profile.hiddenModules : {};
+        const hiddenModuleTypes = profile.hiddenModuleTypes && typeof profile.hiddenModuleTypes === 'object' ? profile.hiddenModuleTypes : {};
+        const hiddenTags = profile.hiddenTags && typeof profile.hiddenTags === 'object' ? profile.hiddenTags : {};
+        const hiddenTypeTags = profile.hiddenTypeTags && typeof profile.hiddenTypeTags === 'object' ? profile.hiddenTypeTags : {};
+        const pins = this.list({ sceneId, includeHiddenByFilter: true }) || [];
+        return pins.some((pin) => {
+            if (!pin?.moduleId) return false;
+            const typeKey = this._pinTypeKey(pin.moduleId, pin.type);
+            if (hiddenModules[pin.moduleId] || hiddenModuleTypes[typeKey]) return false;
+            const tags = normalizePinTags(pin.tags || []);
+            return !tags.some((tag) => hiddenTags[tag] || hiddenTypeTags[`${typeKey}|${tag}`]);
+        });
+    }
+
+    static async applyVisibilityProfile(name, options = {}) {
+        const key = this._normalizeProfileName(name);
+        if (!key) throw new Error('Profile name is required.');
+        if (this.isSystemVisibilityProfileName(key)) return this.applySystemVisibilityProfile(key, options);
+        const profile = this.getVisibilityProfile(key);
+        if (!profile) throw new Error(`Profile not found: ${key}`);
+        const appliedProfile = this._profileHasVisiblePinsWithoutHideAll(profile, options.sceneId ?? canvas?.scene?.id)
+            ? { ...profile, hideAll: false }
+            : profile;
+        await this.applyVisibilityProfileState(appliedProfile, { activeProfileName: key });
+        return appliedProfile;
     }
 
     static async deleteVisibilityProfile(name) {

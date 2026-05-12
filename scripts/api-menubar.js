@@ -3400,151 +3400,62 @@ class MenuBar {
 
 
     /**
-     * Build visibility menu items for pins (left hamburger → Pins submenu).
-     * @returns {Array<{name: string, icon: string, onClick: Function}>}
+     * Build focused context menu items for the pins menubar button.
+     * @returns {Array<{name: string, icon: string, description?: string, disabled?: boolean, onClick?: Function, submenu?: Array}>}
      * @private
      */
-    static _getPinsVisibilityMenuItems() {
-        const globalHidden = PinManager.isGlobalHidden();
-        const sceneId = canvas?.scene?.id;
-        const scenePins = sceneId ? PinManager.list({ sceneId, includeHiddenByFilter: true }) : [];
-        const unplacedPins = PinManager.list({ unplacedOnly: true, includeHiddenByFilter: true }) || [];
-        const allPins = [...scenePins, ...unplacedPins];
-        const pairKey = (p) => `${p.moduleId || ''}|${(p.type != null && p.type !== '') ? p.type : 'default'}`;
-        const pairs = [...new Map(allPins.filter((p) => p.moduleId).map((p) => {
-            const type = (p.type != null && p.type !== '') ? p.type : 'default';
-            return [pairKey(p), { moduleId: p.moduleId, type }];
-        })).values()];
-        pairs.sort((a, b) => (a.moduleId + a.type).localeCompare(b.moduleId + b.type));
+    static _getPinsContextMenuItems() {
+        const sceneId = canvas?.scene?.id ?? null;
+        const customProfiles = PinManager.listVisibilityProfiles().map((profile) => ({
+            name: profile.name,
+            icon: PinManager.getActiveFilterProfileName() === profile.name ? "fa-solid fa-check" : "fa-solid fa-bookmark",
+            description: "Load this saved pin visibility profile",
+            onClick: async () => {
+                await PinManager.applyVisibilityProfile(profile.name, { sceneId });
+                ui.notifications?.info(`Loaded pin profile: ${profile.name}`);
+                MenuBar.renderMenubar(true);
+            }
+        }));
 
-        const items = [
+        return [
             {
-                name: "Hide all pins",
-                icon: "fa-solid fa-map-pin",
+                name: "Manage Pins",
+                icon: "fa-solid fa-layer-group",
+                description: "Open the Manage Pins window",
                 onClick: async () => {
-                    await PinManager.setGlobalHidden(true);
-                    for (const { moduleId, type } of pairs) await PinManager.setModuleTypeHidden(moduleId, type, true);
+                    const api = game.modules.get(MODULE.ID)?.api;
+                    await api?.pins?.openLayers?.({ sceneId });
+                }
+            },
+            {
+                name: "Hide All Pins",
+                icon: "fa-solid fa-eye-slash",
+                description: "Hide all pins using the pin layer profile system",
+                onClick: async () => {
+                    await PinManager.applySystemVisibilityProfile(PinManager.SYSTEM_PROFILE_NONE, { sceneId });
+                    ui.notifications?.info("Loaded pin profile: No Pins");
                     MenuBar.renderMenubar(true);
                 }
             },
             {
-                name: "Show all pins",
-                icon: "fa-solid fa-map-pin",
+                name: "Show All Pins",
+                icon: "fa-solid fa-eye",
+                description: "Show all pins by clearing pin layer filters",
                 onClick: async () => {
-                    await PinManager.setGlobalHidden(false);
-                    for (const { moduleId, type } of pairs) await PinManager.setModuleTypeHidden(moduleId, type, false);
+                    await PinManager.applySystemVisibilityProfile(PinManager.SYSTEM_PROFILE_ALL, { sceneId });
+                    ui.notifications?.info("Loaded pin profile: All Pins");
                     MenuBar.renderMenubar(true);
                 }
+            },
+            {
+                name: "Load Profile",
+                icon: "fa-solid fa-bookmark",
+                description: customProfiles.length ? "Load a saved custom profile" : "No custom profiles saved",
+                disabled: customProfiles.length === 0,
+                submenu: customProfiles.length ? customProfiles : [{ name: "No custom profiles", icon: "fa-solid fa-ban", disabled: true }]
             }
         ];
-
-        for (const { moduleId, type } of pairs) {
-            const typeHidden = PinManager.isModuleTypeHidden(moduleId, type);
-            const showLabel = globalHidden || typeHidden;
-            const friendlyName = PinManager.getPinTypeLabel(moduleId, type);
-            const label = friendlyName || `${game.modules.get(moduleId)?.title ?? moduleId} ${type}`;
-            items.push({
-                name: showLabel ? `Show ${label}` : `Hide ${label}`,
-                icon: "fa-solid fa-map-pin",
-                onClick: async () => {
-                    if (showLabel) {
-                        await PinManager.setGlobalHidden(false);
-                        await PinManager.setModuleTypeHidden(moduleId, type, false);
-                    } else {
-                        await PinManager.setModuleTypeHidden(moduleId, type, true);
-                    }
-                    MenuBar.renderMenubar(true);
-                }
-            });
-        }
-
-        return items;
     }
-
-    /**
-     * Build clear menu items for pins by scene pin type (GM-only actions).
-     * @returns {Array<{name: string, icon: string, description?: string, disabled?: boolean, onClick?: Function}>}
-     * @private
-     */
-    static _getPinsClearMenuItems() {
-        const canClearPins = !!game.user?.isGM && !!canvas?.scene;
-        const sceneId = canvas?.scene?.id;
-        const sceneName = canvas?.scene?.name || 'this scene';
-        const scenePins = sceneId ? (PinManager.list({ sceneId, includeHiddenByFilter: true }) || []) : [];
-
-        const pinTypeMap = new Map(); // key: moduleId|type => { moduleId, type, label, count }
-        for (const pin of scenePins) {
-            const moduleId = pin?.moduleId || '';
-            const type = (pin?.type != null && pin.type !== '') ? String(pin.type) : 'default';
-            const key = `${moduleId}|${type}`;
-            const existing = pinTypeMap.get(key);
-            if (existing) {
-                existing.count += 1;
-                continue;
-            }
-            const friendlyName = moduleId ? PinManager.getPinTypeLabel(moduleId, type) : '';
-            const moduleTitle = moduleId ? (game.modules.get(moduleId)?.title ?? moduleId) : 'Unknown Module';
-            const label = friendlyName || `${moduleTitle} - ${type}`;
-            pinTypeMap.set(key, { moduleId, type, label, count: 1 });
-        }
-        const pinTypeEntries = Array.from(pinTypeMap.values()).sort((a, b) => a.label.localeCompare(b.label));
-
-        const items = [];
-        items.push({
-            name: "Clear All Pins",
-            icon: "fa-solid fa-trash",
-            disabled: !canClearPins,
-            description: !game.user?.isGM ? "GM only" : (!canvas?.scene ? "No active scene" : `Delete all pins on ${sceneName}`),
-            onClick: async () => {
-                if (!canClearPins) return;
-                try {
-                    const confirmed = await foundry.applications.api.DialogV2.confirm({
-                        window: { title: 'Clear Pins' },
-                        content: '<p>Are you sure you want to delete <strong>ALL</strong> pins on this scene?</p><p>This action cannot be undone.</p>',
-                        rejectClose: false,
-                        modal: true,
-                        yes: { default: false },
-                        no: { default: true }
-                    });
-                    if (!confirmed) return;
-                    const count = await PinManager.deleteAll({ sceneId });
-                    ui.notifications.info(`Deleted ${count} pin${count !== 1 ? 's' : ''}.`);
-                } catch (err) {
-                    postConsoleAndNotification(MODULE.NAME, 'Menubar | Error clearing pins', err?.message || err, false, true);
-                }
-            }
-        });
-
-        for (const entry of pinTypeEntries) {
-            items.push({
-                name: `Clear ${entry.label}`,
-                icon: "fa-solid fa-trash-can",
-                disabled: !canClearPins,
-                description: `Delete ${entry.count} pin${entry.count !== 1 ? 's' : ''}`,
-                onClick: async () => {
-                    if (!canClearPins) return;
-                    try {
-                        const confirmed = await foundry.applications.api.DialogV2.confirm({
-                            window: { title: 'Clear Pins by Type' },
-                            content: `<p>Are you sure you want to delete <strong>${entry.count}</strong> pin${entry.count !== 1 ? 's' : ''} of type "<strong>${entry.label}</strong>" on this scene?</p><p>This action cannot be undone.</p>`,
-                            rejectClose: false,
-                            modal: true,
-                            yes: { default: false },
-                            no: { default: true }
-                        });
-                        if (!confirmed) return;
-                        const count = await PinManager.deleteAllByType(entry.type, { sceneId, moduleId: entry.moduleId });
-                        ui.notifications.info(`Deleted ${count} pin${count !== 1 ? 's' : ''} of type "${entry.label}".`);
-                    } catch (err) {
-                        postConsoleAndNotification(MODULE.NAME, 'Menubar | Error clearing pins by type', err?.message || err, false, true);
-                    }
-                }
-            });
-        }
-
-        return items;
-    }
-
 
     /**
      * Open the XP Distribution window

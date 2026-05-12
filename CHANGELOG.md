@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Pin manager naming and layout** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`): Renamed **Pin Layers** to **Manage Pins**, **Layers** to **Manage Pin Layers**, and **Browse** to **Manage Pin Tags**. Tabs and search/profile controls now render as separate tool rows with their own padding and divider.
 - **Manage Pin Layers scope cleanup** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`): Removed the pencil/manage mode and global tag mutation controls from the layer taxonomy tab so the tab now focuses on visibility only. Custom tag mutations moved into the dedicated Manage Custom Pin Tags window.
-- **Manage Pin Layers global taxonomy grouping** (`scripts/window-pin-layers.js`): Consolidated the separate top **Global** and bottom **Custom** tag groups into one **Global** section with **Predefined** and **Custom** subsections, matching the layout used by registered pin categories.
+- **Manage Pin Layers global taxonomy grouping** (`scripts/window-pin-layers.js`): Consolidated the separate top **Global** and bottom **Custom** tag groups into one **Global** section with **System** and **Custom** subsections, matching the layout used by registered pin categories.
 - **Custom tag action labels** (`scripts/window-pin-layers.js`): Shortened custom tag row actions to compact labels: **Rename**, **Scene**, **All Scene**, and icon-only delete. Full explanations moved to `data-tooltip` attributes.
 - **Bulk tag editor visual consistency** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`): Aligned bulk tag chips with the shared `.blacksmith-tag` styling used by the main pin manager tag clouds.
 - **Tag registry operations preserve strip/delete distinction** (`scripts/manager-pins.js`): Strip actions remove tag usage while keeping the tag available in the registry; delete removes both usage and registry entries.
@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Manage Pin Layers built-in profiles** (`scripts/window-pin-layers.js`): Added permanent **All Pins** and **No Pins** system profiles to the profile selector. They apply immediately, cannot be updated or deleted, and map to the hide-list model: **All Pins** clears all hidden state, while **No Pins** hides all current pin layers/tags and uses hide-all so future pins remain hidden too.
 - **Manage Pin Layers profile dropdown organization** (`scripts/window-pin-layers.js`): Reordered the profile dropdown into **+ New Profile**, **System**, and **Custom** sections. Creating profiles now starts from the dropdown, while custom profile updates/deletes remain contextual to the selected custom profile.
 - **Manage Pin Layers taxonomy labels** (`scripts/window-pin-layers.js`): Renamed taxonomy subsection labels from **Predefined** to **System** for consistency with the profile dropdown and built-in tag language.
+- **Pins menubar context menu** (`scripts/utility-core.js`, `scripts/api-menubar.js`): Replaced the legacy right-click pin menu with a focused set of actions: **Manage Pins**, **Hide All Pins**, **Show All Pins**, and **Load Profile** with saved custom profiles in a flyout. Bulk deletion and detailed pin-layer operations now live in the Manage Pins window.
 
 ### Fixed
 
@@ -34,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Global tag rename/delete cleanup** (`scripts/manager-pins.js`): Global rename and delete now also handle unplaced pins, type-scoped hidden tag state, and saved visibility profile snapshots.
 - **Bulk editor chip interaction** (`scripts/window-pin-layers.js`): Hardened listener attachment so tag chips continue to toggle correctly when Application V2/Dialog root elements differ.
 - **Manage Pin Layers profile state clarity** (`scripts/window-pin-layers.js`, `scripts/manager-pins.js`): Profile controls now more clearly represent the saved visibility snapshot: hide-all state, hidden categories, hidden global tags, and hidden type-scoped tags. Selecting **Custom / Current View** clears the active profile label without changing the current layer visibility.
+- **Menubar profile synchronization** (`scripts/window-pin-layers.js`, `scripts/manager-pins.js`, `scripts/api-menubar.js`): Manage Pins now prefers the active profile set by the menubar over stale window history, and canvas reloads reapply the active profile instead of the last closed window selection.
+- **No Pins profile customization** (`scripts/window-pin-layers.js`, `scripts/manager-pins.js`): Showing a category or tag after starting from **No Pins** now clears the global hide-all flag before un-hiding the chosen layer, preventing profiles that look visible in the manager while remaining hidden on the canvas. Older custom profiles with visible layer exceptions under hide-all are repaired on apply and can be updated afterward.
 
 ## [13.7.2]
 

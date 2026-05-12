@@ -455,14 +455,9 @@ Hooks.once('ready', () => {
         tooltip: "Open Pins",
         onClick: () => api.pins?.openLayers({ sceneId: canvas?.scene?.id }),
         contextMenuItems: () => {
-            const visibilityItems = typeof MenuBar._getPinsVisibilityMenuItems === 'function'
-                ? MenuBar._getPinsVisibilityMenuItems() : [];
-            const clearItems = typeof MenuBar._getPinsClearMenuItems === 'function'
-                ? MenuBar._getPinsClearMenuItems() : [];
-            const items = [...visibilityItems];
-            if (visibilityItems.length > 0 && clearItems.length > 0) items.push({ separator: true });
-            items.push(...clearItems);
-            return items;
+            return typeof MenuBar._getPinsContextMenuItems === 'function'
+                ? MenuBar._getPinsContextMenuItems()
+                : [];
         },
         zone: "left",
         group: "general",

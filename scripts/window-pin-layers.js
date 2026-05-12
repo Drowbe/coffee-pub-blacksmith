@@ -7,8 +7,8 @@ const APP_ID = 'blacksmith-pin-layers';
 const BULK_TAGS_APP_ID = 'blacksmith-bulk-pin-tags';
 const CUSTOM_TAGS_APP_ID = 'blacksmith-custom-pin-tags';
 const PROFILE_ACTION_NEW = '__blacksmith_new_profile__';
-const SYSTEM_PROFILE_ALL = '__blacksmith_all_pins__';
-const SYSTEM_PROFILE_NONE = '__blacksmith_no_pins__';
+const SYSTEM_PROFILE_ALL = PinManager.SYSTEM_PROFILE_ALL ?? '__blacksmith_all_pins__';
+const SYSTEM_PROFILE_NONE = PinManager.SYSTEM_PROFILE_NONE ?? '__blacksmith_no_pins__';
 let _pinLayersWindowRef = null;
 let _bulkPinTagsWindowRef = null;
 let _customPinTagsWindowRef = null;
@@ -733,9 +733,8 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         this.activeTab = lastTab || 'layers';
         this.browseQuery = '';
         this.browseIncludeHidden = false;
-        this._selectedProfileValue = lastProfile !== undefined
-            ? lastProfile
-            : (PinManager.getActiveFilterProfileName() || '');
+        const activeProfileName = PinManager.getActiveFilterProfileName();
+        this._selectedProfileValue = activeProfileName || (lastProfile ?? '');
         this._browseDebounce = null;
         this._restoreBrowseFocus = false;
         this._browseSelectMode = false;
@@ -794,6 +793,9 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         // --- Profile data ---
         const profiles = PinManager.listVisibilityProfiles();
         const activeProfileName = PinManager.getActiveFilterProfileName();
+        if (activeProfileName && activeProfileName !== this._selectedProfileValue) {
+            this._selectedProfileValue = activeProfileName;
+        }
         const profileNames = new Set(profiles.map(entry => entry.name));
         const systemProfiles = new Set([SYSTEM_PROFILE_ALL, SYSTEM_PROFILE_NONE]);
         const isSelectedSystemProfile = systemProfiles.has(this._selectedProfileValue);
@@ -1424,60 +1426,11 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     _getSystemProfileState(value) {
-        if (value === SYSTEM_PROFILE_ALL) {
-            return {
-                hideAll: false,
-                hiddenModules: {},
-                hiddenModuleTypes: {},
-                hiddenTags: {},
-                hiddenTypeTags: {}
-            };
-        }
-        if (value !== SYSTEM_PROFILE_NONE) return null;
-
-        const hiddenModuleTypes = {};
-        const hiddenTags = {};
-        const hiddenTypeTags = {};
-        const allTaxonomies = PinManager.getAllTaxonomies();
-        for (const [moduleId, types] of Object.entries(allTaxonomies)) {
-            for (const [type, entry] of Object.entries(types)) {
-                const typeKey = `${moduleId}|${type || 'default'}`;
-                hiddenModuleTypes[typeKey] = true;
-                for (const tag of normalizePinTags(entry.tags || [])) {
-                    hiddenTypeTags[`${typeKey}|${tag}`] = true;
-                }
-            }
-        }
-        for (const tag of normalizePinTags([
-            ...PinManager.getGlobalTaxonomyTags(),
-            ...PinManager.getTagRegistry()
-        ])) {
-            hiddenTags[tag] = true;
-        }
-        const sceneId = this.sceneId ?? canvas?.scene?.id;
-        const scenePins = sceneId ? (PinManager.list({ sceneId, includeHiddenByFilter: true }) || []) : [];
-        for (const pin of scenePins) {
-            const typeKey = `${pin.moduleId}|${pin.type || 'default'}`;
-            hiddenModuleTypes[typeKey] = true;
-            for (const tag of normalizePinTags(pin.tags || [])) {
-                hiddenTags[tag] = true;
-                hiddenTypeTags[`${typeKey}|${tag}`] = true;
-            }
-        }
-
-        return {
-            hideAll: true,
-            hiddenModules: {},
-            hiddenModuleTypes,
-            hiddenTags,
-            hiddenTypeTags
-        };
+        return PinManager.getSystemVisibilityProfileState(value, { sceneId: this.sceneId ?? canvas?.scene?.id });
     }
 
     async _applySystemProfile(value) {
-        const state = this._getSystemProfileState(value);
-        if (!state) return;
-        await PinManager.applyVisibilityProfileState(state, { activeProfileName: value });
+        await PinManager.applySystemVisibilityProfile(value, { sceneId: this.sceneId ?? canvas?.scene?.id });
     }
 
     _isReservedProfileName(name) {
@@ -1675,7 +1628,9 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const moduleId = target?.dataset?.moduleId || '';
         const type = target?.dataset?.type || 'default';
         if (!moduleId) return;
-        await PinManager.setModuleTypeHidden(moduleId, type, !PinManager.isModuleTypeHidden(moduleId, type));
+        const currentlyHidden = PinManager.isModuleTypeHidden(moduleId, type);
+        if (currentlyHidden && PinManager.isGlobalHidden()) await PinManager.setGlobalHidden(false);
+        await PinManager.setModuleTypeHidden(moduleId, type, !currentlyHidden);
         await this.render(true);
     }
 
@@ -1684,6 +1639,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         if (!tag) return;
         const currentlyHidden = PinManager.isTagHidden(tag);
         if (currentlyHidden) {
+            if (PinManager.isGlobalHidden()) await PinManager.setGlobalHidden(false);
             // Showing this tag — unblock the categories of its pins so they can actually appear
             const sceneId = this.sceneId ?? canvas?.scene?.id;
             const pins = (PinManager.list({ sceneId, includeHiddenByFilter: true }) || [])
@@ -1704,7 +1660,9 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             const moduleId = target?.dataset?.moduleId || '';
             const type = target?.dataset?.type || 'default';
             if (!moduleId) return;
-            await PinManager.setModuleTypeHidden(moduleId, type, !PinManager.isModuleTypeHidden(moduleId, type));
+            const currentlyHidden = PinManager.isModuleTypeHidden(moduleId, type);
+            if (currentlyHidden && PinManager.isGlobalHidden()) await PinManager.setGlobalHidden(false);
+            await PinManager.setModuleTypeHidden(moduleId, type, !currentlyHidden);
             await this.render(true);
             return;
         }
@@ -1715,6 +1673,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             : (scope === 'custom' ? this._getOrphanRegistryTags() : []);
         if (!tags.length) return;
         const nextHidden = !tags.every(tag => PinManager.isTagHidden(tag));
+        if (!nextHidden && PinManager.isGlobalHidden()) await PinManager.setGlobalHidden(false);
         for (const tag of tags) {
             await PinManager.setTagHidden(tag, nextHidden);
         }
@@ -1731,7 +1690,12 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const moduleId = target?.dataset?.moduleId || '';
         const type = target?.dataset?.type || 'default';
         if (!tag || !moduleId) return;
-        await PinManager.setTypeTagHidden(moduleId, type, tag, !PinManager.isTypeTagHidden(moduleId, type, tag));
+        const currentlyHidden = PinManager.isTypeTagHidden(moduleId, type, tag);
+        if (currentlyHidden) {
+            if (PinManager.isGlobalHidden()) await PinManager.setGlobalHidden(false);
+            if (PinManager.isModuleTypeHidden(moduleId, type)) await PinManager.setModuleTypeHidden(moduleId, type, false);
+        }
+        await PinManager.setTypeTagHidden(moduleId, type, tag, !currentlyHidden);
         await this.render(true);
     }
 
@@ -1747,15 +1711,11 @@ Hooks.once('ready', () => {
     });
 });
 
-// On each canvas load, re-apply the last selected profile so filter state is consistent after reload.
+// On each canvas load, re-apply the active profile so scene-derived system states stay current.
 Hooks.on('canvasReady', async () => {
     try {
-        const bounds = game.settings.get(MODULE.ID, 'pinLayersWindowBounds') || {};
-        const profileName = bounds.lastProfile;
+        const profileName = PinManager.getActiveFilterProfileName();
         if (!profileName) return;
-        const profiles = PinManager.listVisibilityProfiles();
-        if (profiles.some(p => p.name === profileName)) {
-            await PinManager.applyVisibilityProfile(profileName);
-        }
+        await PinManager.applyVisibilityProfile(profileName, { sceneId: canvas?.scene?.id });
     } catch (_err) {}
 });
