@@ -72,6 +72,7 @@ class BulkPinTagsWindow extends BlacksmithWindowBaseV2 {
         const selectedPins = this._getSelectedPins();
         const bodyContent = this._buildBulkTagEditorContent(selectedPins);
         const count = selectedPins.length;
+
         return {
             appId: this.id,
             showOptionBar: false,
@@ -480,6 +481,9 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const bodyContent = isLayers
             ? this._buildLayersBody(allSummary)
             : this._buildBrowseBody(browsePins, allSummary.total);
+        const selectionMode = !isLayers && game.user?.isGM && this._browseSelectMode;
+        const selectedCount = this._selectedBrowsePinIds.size;
+        const visibleBrowseCount = browsePins.length;
 
         const profileBar = `
             <div class="blacksmith-pin-layers-profile-bar">
@@ -546,7 +550,15 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 </div>
             `,
             bodyContent,
-            actionBarLeft: `
+            actionBarLeft: selectionMode ? `
+                <span class="blacksmith-pin-layers-bulk-count">${selectedCount} selected</span>
+                <button type="button" class="blacksmith-window-btn-secondary" data-action="selectVisibleBrowsePins" ${visibleBrowseCount ? '' : 'disabled'}>
+                    <i class="fa-solid fa-list-check"></i> Select Visible
+                </button>
+                <button type="button" class="blacksmith-window-btn-secondary" data-action="clearBrowseSelection" ${selectedCount ? '' : 'disabled'}>
+                    <i class="fa-solid fa-eraser"></i> Clear
+                </button>
+            ` : `
                 <button type="button" class="blacksmith-window-btn-secondary" data-action="refresh">
                     <i class="fa-solid fa-rotate"></i> Refresh
                 </button>
@@ -554,7 +566,11 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                     <i class="fa-solid fa-trash"></i> Delete All
                 </button>` : ''}
             `,
-            actionBarRight: `
+            actionBarRight: selectionMode ? `
+                <button type="button" class="blacksmith-window-btn-primary" data-action="bulkEditSelectedTags" ${selectedCount ? '' : 'disabled'}>
+                    <i class="fa-solid fa-tags"></i> Bulk Tags
+                </button>
+            ` : `
                 <button type="button" class="blacksmith-window-btn-secondary" data-action="hideAll">
                     <i class="fa-solid fa-eye-slash"></i> Hide All
                 </button>
@@ -808,7 +824,6 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     _buildBrowseBody(pins, totalPins) {
         const isGM = !!game.user?.isGM;
         const selectMode = isGM && this._browseSelectMode;
-        const selectedCount = this._selectedBrowsePinIds.size;
         const pinRows = pins.map((p) => {
             const hidden = this._isPinHiddenByFilter(p);
             const selected = this._selectedBrowsePinIds.has(p.id);
@@ -869,19 +884,6 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 <i class="fa-solid fa-map-pin"></i>
                 <span>${this.browseQuery ? 'Filtered Pins' : 'All Pins'}</span>
                 <span class="blacksmith-pin-layers-tag-count">${pins.length}${pins.length < totalPins ? ` of ${totalPins}` : ''}</span>
-                ${selectMode ? `
-                <div class="blacksmith-pin-layers-bulk-bar">
-                    <span class="blacksmith-pin-layers-bulk-count">${selectedCount} selected</span>
-                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm" data-action="selectVisibleBrowsePins" ${pins.length ? '' : 'disabled'}>
-                        <i class="fa-solid fa-list-check"></i> Select Visible
-                    </button>
-                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm" data-action="clearBrowseSelection" ${selectedCount ? '' : 'disabled'}>
-                        <i class="fa-solid fa-eraser"></i> Clear
-                    </button>
-                    <button type="button" class="blacksmith-window-btn-primary blacksmith-pin-layers-btn-sm" data-action="bulkEditSelectedTags" ${selectedCount ? '' : 'disabled'}>
-                        <i class="fa-solid fa-tags"></i> Bulk Tags
-                    </button>
-                </div>` : ''}
             </div>
             <div class="blacksmith-pin-layers-list">
                 ${pinRows || '<div class="blacksmith-pin-layers-empty">No pins matched.</div>'}

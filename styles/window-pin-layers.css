@@ -139,13 +139,6 @@
     width: 100%;
 }
 
-.blacksmith-pin-layers-bulk-bar {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: auto;
-}
-
 .blacksmith-pin-layers-bulk-count {
     color: rgba(224, 224, 224, 0.75);
     font-size: 0.9em;
