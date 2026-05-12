@@ -140,6 +140,22 @@ export class PinManager {
         return `${m}|${t}`;
     }
 
+    static _normalizePinType(type) {
+        return (type != null && type !== '') ? String(type).trim() : 'default';
+    }
+
+    static getVisibilityPinType(moduleId, type) {
+        return this._normalizePinType(type);
+    }
+
+    static _pinVisibilityTypeKey(moduleId, type) {
+        return this._pinTypeKey(moduleId, this.getVisibilityPinType(moduleId, type));
+    }
+
+    static _pinVisibilityTypeKeys(moduleId, type) {
+        return [this._pinVisibilityTypeKey(moduleId, type)];
+    }
+
     /**
      * Register a friendly name for a pin type. Use in context menus, tools, etc. so we don't assume labels.
      * @param {string} moduleId - Your module id
@@ -213,7 +229,7 @@ export class PinManager {
 
     static getPinTaxonomy(moduleId, type) {
         if (!moduleId) return null;
-        const key = this._taxonomyTypeKey(moduleId, type);
+        const key = this._taxonomyTypeKey(moduleId, this.getVisibilityPinType(moduleId, type));
         const entry = this._mergeTaxonomyEntries(
             this._builtinTaxonomyRegistry.get(key),
             this._overrideTaxonomyRegistry.get(key),
@@ -468,13 +484,19 @@ export class PinManager {
     }
 
     static _typeTagKey(moduleId, type, tag) {
-        return `${this._pinTypeKey(moduleId, type)}|${normalizePinGroup(tag)}`;
+        return `${this._pinVisibilityTypeKey(moduleId, type)}|${normalizePinGroup(tag)}`;
+    }
+
+    static _typeTagKeys(moduleId, type, tag) {
+        const tagKey = normalizePinGroup(tag);
+        if (!tagKey) return [];
+        return this._pinVisibilityTypeKeys(moduleId, type).map(typeKey => `${typeKey}|${tagKey}`);
     }
 
     static isTypeTagHidden(moduleId, type, tag) {
         if (!moduleId || !tag) return false;
-        const key = this._typeTagKey(moduleId, type, tag);
-        return !!this._getHiddenTypeTagsMap()[key];
+        const map = this._getHiddenTypeTagsMap();
+        return this._typeTagKeys(moduleId, type, tag).some(key => !!map[key]);
     }
 
     static async setTypeTagHidden(moduleId, type, tag, hidden) {
@@ -482,7 +504,33 @@ export class PinManager {
         const key = this._typeTagKey(moduleId, type, tag);
         const map = this._getHiddenTypeTagsMap();
         if (hidden) map[key] = true;
-        else delete map[key];
+        else for (const candidate of this._typeTagKeys(moduleId, type, tag)) delete map[candidate];
+        await game.settings.set(MODULE.ID, this.HIDDEN_TYPE_TAGS_SETTING_KEY, map);
+        await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
+        const { PinRenderer } = await import('./pins-renderer.js');
+        PinRenderer.applyVisibilityFilters();
+    }
+
+    static async setTypeTagsHidden(moduleId, type, tags, hidden) {
+        if (!moduleId || !Array.isArray(tags) || !tags.length) return;
+        const map = this._getHiddenTypeTagsMap();
+        let changed = false;
+        for (const tag of normalizePinTags(tags)) {
+            const key = this._typeTagKey(moduleId, type, tag);
+            if (hidden) {
+                if (!map[key]) {
+                    map[key] = true;
+                    changed = true;
+                }
+            } else {
+                for (const candidate of this._typeTagKeys(moduleId, type, tag)) {
+                    if (!map[candidate]) continue;
+                    delete map[candidate];
+                    changed = true;
+                }
+            }
+        }
+        if (!changed) return;
         await game.settings.set(MODULE.ID, this.HIDDEN_TYPE_TAGS_SETTING_KEY, map);
         await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
         const { PinRenderer } = await import('./pins-renderer.js');
@@ -887,17 +935,26 @@ export class PinManager {
                 }
             }
         }
-        for (const tag of normalizePinTags([...this.getGlobalTaxonomyTags(), ...this.getTagRegistry()])) {
+        const taxonomyTags = new Set(this.getGlobalTaxonomyTags());
+        for (const types of Object.values(this.getAllTaxonomies())) {
+            for (const entry of Object.values(types)) {
+                for (const tag of normalizePinTags(entry.tags || [])) taxonomyTags.add(tag);
+            }
+        }
+        const globalHiddenTags = [
+            ...this.getGlobalTaxonomyTags(),
+            ...this.getTagRegistry().filter(tag => !taxonomyTags.has(tag))
+        ];
+        for (const tag of normalizePinTags(globalHiddenTags)) {
             hiddenTags[tag] = true;
         }
         const sceneId = options.sceneId ?? canvas?.scene?.id ?? null;
         const scenePins = sceneId ? (this.list({ sceneId, includeHiddenByFilter: true }) || []) : [];
         for (const pin of scenePins) {
             if (!pin?.moduleId) continue;
-            const typeKey = this._pinTypeKey(pin.moduleId, pin.type);
+            const typeKey = this._pinVisibilityTypeKey(pin.moduleId, pin.type);
             hiddenModuleTypes[typeKey] = true;
             for (const tag of normalizePinTags(pin.tags || [])) {
-                hiddenTags[tag] = true;
                 hiddenTypeTags[`${typeKey}|${tag}`] = true;
             }
         }
@@ -923,8 +980,7 @@ export class PinManager {
     static isModuleTypeHidden(moduleId, type) {
         if (!moduleId) return false;
         const map = this._getHiddenModuleTypesMap();
-        const key = this._pinTypeKey(moduleId, type);
-        return !!map[key];
+        return this._pinVisibilityTypeKeys(moduleId, type).some(key => !!map[key]);
     }
 
     static isTagHidden(tag) {
@@ -938,12 +994,24 @@ export class PinManager {
         return normalizePinTags(pin?.tags);
     }
 
+    static _getPinTypeTaxonomyTags(pin) {
+        if (!pin?.moduleId) return new Set();
+        return new Set(normalizePinTags(this.getPinTaxonomy(pin.moduleId, pin.type)?.tags || []));
+    }
+
+    static _isTagHiddenForPin(pin, tag, typeTaxonomyTags = this._getPinTypeTaxonomyTags(pin)) {
+        if (!this.isTagHidden(tag)) return false;
+        // Type taxonomy tags are controlled by hiddenTypeTags, not the global hidden tag map.
+        return !typeTaxonomyTags.has(normalizePinGroup(tag));
+    }
+
     static _isHiddenByFilter(pin) {
         if (this.isGlobalHidden()) return true;
         if (pin?.moduleId && this.isModuleHidden(pin.moduleId)) return true;
         if (pin?.moduleId && pin?.type != null && this.isModuleTypeHidden(pin.moduleId, pin.type)) return true;
         const tags = this._getPinTags(pin);
-        if (tags.some((tag) => this.isTagHidden(tag))) return true;
+        const typeTaxonomyTags = this._getPinTypeTaxonomyTags(pin);
+        if (tags.some((tag) => this._isTagHiddenForPin(pin, tag, typeTaxonomyTags))) return true;
         if (pin?.moduleId && tags.some((tag) => this.isTypeTagHidden(pin.moduleId, pin.type, tag))) return true;
         return false;
     }
@@ -979,9 +1047,9 @@ export class PinManager {
     static async setModuleTypeHidden(moduleId, type, hidden) {
         if (!moduleId || typeof moduleId !== 'string') return;
         const map = this._getHiddenModuleTypesMap();
-        const key = this._pinTypeKey(moduleId, type);
+        const key = this._pinVisibilityTypeKey(moduleId, type);
         if (hidden) map[key] = true;
-        else delete map[key];
+        else for (const candidate of this._pinVisibilityTypeKeys(moduleId, type)) delete map[candidate];
         await game.settings.set(MODULE.ID, this.HIDDEN_MODULE_TYPES_SETTING_KEY, map);
         await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
         const { PinRenderer } = await import('./pins-renderer.js');
@@ -1043,7 +1111,7 @@ export class PinManager {
             await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, this._normalizeProfileName(options.activeProfileName));
         }
         const { PinRenderer } = await import('./pins-renderer.js');
-        PinRenderer.applyVisibilityFilters();
+        await PinRenderer.applyVisibilityFilters();
     }
 
     static listVisibilityProfiles() {
@@ -1091,10 +1159,16 @@ export class PinManager {
         const pins = this.list({ sceneId, includeHiddenByFilter: true }) || [];
         return pins.some((pin) => {
             if (!pin?.moduleId) return false;
-            const typeKey = this._pinTypeKey(pin.moduleId, pin.type);
-            if (hiddenModules[pin.moduleId] || hiddenModuleTypes[typeKey]) return false;
+            const typeKey = this._pinVisibilityTypeKey(pin.moduleId, pin.type);
+            const typeKeys = this._pinVisibilityTypeKeys(pin.moduleId, pin.type);
+            if (hiddenModules[pin.moduleId] || typeKeys.some(key => hiddenModuleTypes[key])) return false;
+            const typeTaxonomyTags = this._getPinTypeTaxonomyTags(pin);
             const tags = normalizePinTags(pin.tags || []);
-            return !tags.some((tag) => hiddenTags[tag] || hiddenTypeTags[`${typeKey}|${tag}`]);
+            return !tags.some((tag) =>
+                (!typeTaxonomyTags.has(tag) && hiddenTags[tag])
+                || this._typeTagKeys(pin.moduleId, pin.type, tag).some(key => hiddenTypeTags[key])
+                || hiddenTypeTags[`${typeKey}|${tag}`]
+            );
         });
     }
 
@@ -1128,7 +1202,8 @@ export class PinManager {
         if (options.moduleId != null && options.moduleId !== '' && pin.moduleId !== options.moduleId) {
             return false;
         }
-        if (options.type != null && options.type !== '' && (pin.type || 'default') !== options.type) {
+        if (options.type != null && options.type !== ''
+            && this.getVisibilityPinType(pin.moduleId, pin.type) !== this.getVisibilityPinType(pin.moduleId, options.type)) {
             return false;
         }
         if (options.tag != null && options.tag !== '') {
@@ -1166,7 +1241,7 @@ export class PinManager {
 
         for (const pin of pins) {
             countInto(summary.modules, pin.moduleId || 'unknown', pin);
-            countInto(summary.types, `${pin.moduleId || ''}|${pin.type || 'default'}`, pin);
+            countInto(summary.types, `${pin.moduleId || ''}|${this.getVisibilityPinType(pin.moduleId, pin.type)}`, pin);
             for (const tag of this._getPinTags(pin)) countInto(summary.tags, tag, pin);
         }
 

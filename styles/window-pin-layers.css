@@ -35,9 +35,29 @@
 .blacksmith-pin-layers-profile-bar {
     display: flex;
     align-items: center;
-    gap: 6px;
-    flex-wrap: nowrap;
+    gap: 8px;
+    flex-wrap: wrap;
     width: 100%;
+}
+
+.blacksmith-pin-layers-profile-bar-main {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.blacksmith-pin-layers-profile-bar-side {
+    flex: 0 0 auto;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+}
+
+.blacksmith-pin-layers-hide-unused-row {
+    white-space: nowrap;
 }
 
 .blacksmith-pin-layers-profile-select {
@@ -468,6 +488,16 @@
     font-size: 0.85em;
     color: rgba(180, 180, 180, 0.4);
     font-style: italic;
+}
+
+.blacksmith-pin-layers-hide-unused-empty {
+    font-size: 0.78em;
+    font-style: italic;
+    color: rgba(180, 180, 180, 0.5);
+}
+
+.blacksmith-pin-layers-hide-unused-group-hint {
+    padding: 4px 14px 8px;
 }
 
 /* ----- Predefined / Custom subgroups within a taxonomy group ----- */

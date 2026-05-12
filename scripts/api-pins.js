@@ -480,10 +480,11 @@ export class PinsAPI {
     /**
      * Apply a saved visibility profile.
      * @param {string} name
+     * @param {{ sceneId?: string }} [options]
      * @returns {Promise<object>}
      */
-    static applyVisibilityProfile(name) {
-        return PinManager.applyVisibilityProfile(name);
+    static applyVisibilityProfile(name, options = {}) {
+        return PinManager.applyVisibilityProfile(name, options);
     }
 
     /**

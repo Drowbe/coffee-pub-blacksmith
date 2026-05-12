@@ -2171,10 +2171,23 @@ export class PinRenderer {
             if (PinManager.isGlobalHidden()) PinDOMElement._container.dataset.hidden = 'true';
             else delete PinDOMElement._container.dataset.hidden;
         }
-        for (const [pinId] of PinDOMElement._pins.entries()) {
-            const pinData = PinManager.get(pinId);
-            if (pinData) {
-                await this._applyVisibilityForPin(pinData);
+        const sceneId = this._currentSceneId ?? canvas?.scene?.id;
+        if (sceneId) {
+            const allPins = PinManager.list({ sceneId, includeHiddenByFilter: true }) || [];
+            const idsInScene = new Set(allPins.map(p => p?.id).filter(Boolean));
+            for (const pinData of allPins) {
+                if (!pinData?.id) continue;
+                await this.updatePin(pinData);
+            }
+            for (const pinId of [...PinDOMElement._pins.keys()]) {
+                if (!idsInScene.has(pinId)) PinDOMElement.removePin(pinId);
+            }
+        } else {
+            for (const [pinId] of PinDOMElement._pins.entries()) {
+                const pinData = PinManager.get(pinId);
+                if (pinData) {
+                    await this._applyVisibilityForPin(pinData);
+                }
             }
         }
     }

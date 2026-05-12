@@ -2,6 +2,7 @@ import { MODULE } from './const.js';
 import { PinManager } from './manager-pins.js';
 import { normalizePinTags } from './pins-schema.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { HookManager } from './manager-hooks.js';
 
 const APP_ID = 'blacksmith-pin-layers';
 const BULK_TAGS_APP_ID = 'blacksmith-bulk-pin-tags';
@@ -723,7 +724,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         // Stable id so only one Pin Layers window exists (singleton).
         opts.id = opts.id ?? APP_ID;
         const bounds = game.settings.get(MODULE.ID, 'pinLayersWindowBounds') || {};
-        const { lastProfile, lastTab, ...positionBounds } = bounds;
+        const { lastProfile, lastTab, layersHideUnused, ...positionBounds } = bounds;
         opts.position = foundry.utils.mergeObject(
             foundry.utils.mergeObject({}, PinLayersWindow.DEFAULT_OPTIONS.position ?? {}),
             positionBounds
@@ -741,6 +742,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         this._selectedBrowsePinIds = new Set();
         this._lastBrowsePinIds = [];
         this._lastBrowsePinsById = new Map();
+        this.layersHideUnused = !!layersHideUnused;
     }
 
     static async open(options = {}) {
@@ -759,6 +761,10 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
 
     async close(options) {
         try {
+            if (this._browseDebounce) {
+                clearTimeout(this._browseDebounce);
+                this._browseDebounce = null;
+            }
             const pos = this.position ?? {};
             await game.settings.set(MODULE.ID, 'pinLayersWindowBounds', {
                 left: pos.left,
@@ -766,7 +772,8 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 width: pos.width,
                 height: pos.height,
                 lastProfile: this._selectedProfileValue ?? '',
-                lastTab: this.activeTab ?? 'layers'
+                lastTab: this.activeTab ?? 'layers',
+                layersHideUnused: !!this.layersHideUnused
             });
         } catch (_err) {
             // Non-fatal UI preference write.
@@ -868,20 +875,31 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
 
         const profileBar = `
             <div class="blacksmith-pin-layers-profile-bar">
-                <select class="blacksmith-input blacksmith-pin-layers-profile-select">
-                    ${profileOptions}
-                </select>
-                <span class="blacksmith-pin-layers-profile-status ${profileMatchesCurrent ? 'is-active' : 'is-custom'}">${esc(profileStatus)}</span>
-                ${hasSavedProfile && !profileMatchesCurrent ? `
-                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm"
-                        data-action="updateProfile" data-tooltip="Overwrite this profile with the current hidden pins, categories, and tags">
-                        <i class="fa-solid fa-rotate"></i> Update
-                    </button>` : ''}
-                ${hasSavedProfile ? `
-                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-icon blacksmith-pin-layers-btn-sm"
-                        data-action="deleteProfile" data-tooltip="Delete this saved profile" aria-label="Delete profile">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>` : ''}
+                <div class="blacksmith-pin-layers-profile-bar-main">
+                    <select class="blacksmith-input blacksmith-pin-layers-profile-select">
+                        ${profileOptions}
+                    </select>
+                    <span class="blacksmith-pin-layers-profile-status ${profileMatchesCurrent ? 'is-active' : 'is-custom'}">${esc(profileStatus)}</span>
+                    ${hasSavedProfile && !profileMatchesCurrent ? `
+                        <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm"
+                            data-action="updateProfile" data-tooltip="Overwrite this profile with the current hidden pins, categories, and tags">
+                            <i class="fa-solid fa-rotate"></i> Update
+                        </button>` : ''}
+                    ${hasSavedProfile ? `
+                        <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-icon blacksmith-pin-layers-btn-sm"
+                            data-action="deleteProfile" data-tooltip="Delete this saved profile" aria-label="Delete profile">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>` : ''}
+                </div>
+                <div class="blacksmith-pin-layers-profile-bar-side">
+                    <div class="blacksmith-toggle-row blacksmith-pin-layers-hide-unused-row">
+                        <span class="blacksmith-toggle-label" data-tooltip="Hide tag chips with no pins on this scene. Taxonomy groups always stay visible.">Hide unused</span>
+                        <label class="blacksmith-toggle">
+                            <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-layers-hide-unused" ${this.layersHideUnused ? 'checked' : ''}>
+                            <span class="blacksmith-toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
             </div>
         `;
 
@@ -973,7 +991,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const typeTagCounts = new Map();   // 'moduleId|type|tag' → count
         const typeCounts = new Map();      // 'moduleId|type' → count
         for (const p of scenePins) {
-            const typeKey = `${p.moduleId}|${p.type || 'default'}`;
+            const typeKey = `${p.moduleId}|${PinManager.getVisibilityPinType(p.moduleId, p.type)}`;
             typeCounts.set(typeKey, (typeCounts.get(typeKey) || 0) + 1);
             for (const tag of (p.tags || [])) {
                 const k = `${typeKey}|${tag}`;
@@ -997,22 +1015,29 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         // World registry orphan tags (not in any taxonomy) — used as the base for custom sections
         const orphanRegistryTags = this._getOrphanRegistryTags(allTaxonomies, globalTags);
 
+        const chipVisible = (count) =>
+            !this.layersHideUnused || (count ?? 0) > 0;
+
         // GLOBAL group — predefined global tags + global custom registry tags
         if (globalTags.length || orphanRegistryTags.length) {
             const globalSectionTags = [...new Set([...globalTags, ...orphanRegistryTags])];
             const hiddenCount = globalSectionTags.filter(tag => PinManager.isTagHidden(tag)).length;
             const hidden = hiddenCount === globalSectionTags.length;
             const partial = hiddenCount > 0 && !hidden;
-            const predefinedChips = [...globalTags].sort().map(tag => {
-                const hidden = PinManager.isTagHidden(tag);
-                const count = globalTagSceneCounts.get(tag) ?? 0;
-                return this._buildTagChip({ tag, hidden, count, isGlobal: true });
-            }).join('');
-            const customChips = [...orphanRegistryTags].sort((a, b) => a.localeCompare(b)).map(tag => {
-                const hidden = PinManager.isTagHidden(tag);
-                const count = globalTagSceneCounts.get(tag) ?? 0;
-                return this._buildTagChip({ tag, hidden, count, isGlobal: true });
-            }).join('');
+            const predefinedChips = [...globalTags].sort()
+                .filter(tag => chipVisible(globalTagSceneCounts.get(tag) ?? 0))
+                .map(tag => {
+                    const tagHidden = PinManager.isTagHidden(tag);
+                    const count = globalTagSceneCounts.get(tag) ?? 0;
+                    return this._buildTagChip({ tag, hidden: tagHidden, count, isGlobal: true });
+                }).join('');
+            const customChips = [...orphanRegistryTags].sort((a, b) => a.localeCompare(b))
+                .filter(tag => chipVisible(globalTagSceneCounts.get(tag) ?? 0))
+                .map(tag => {
+                    const tagHidden = PinManager.isTagHidden(tag);
+                    const count = globalTagSceneCounts.get(tag) ?? 0;
+                    return this._buildTagChip({ tag, hidden: tagHidden, count, isGlobal: true });
+                }).join('');
             sections.push(this._buildTaxonomyGroup({
                 label: 'Global',
                 predefinedChips,
@@ -1036,34 +1061,38 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
 
                 // Overlay counts from current scene pins of this type
                 for (const p of scenePins) {
-                    if (p.moduleId !== moduleId || (p.type || 'default') !== (type || 'default')) continue;
+                    if (p.moduleId !== moduleId || PinManager.getVisibilityPinType(p.moduleId, p.type) !== PinManager.getVisibilityPinType(moduleId, type)) continue;
                     for (const tag of (p.tags || [])) {
                         if (!taxonomyTagSet.has(tag)) customTagCounts.set(tag, (customTagCounts.get(tag) || 0) + 1);
                     }
                 }
 
-                const predefinedChips = (entry.tags || []).map(tag => {
-                    const count = typeTagCounts.get(`${typeKey}|${tag}`) ?? 0;
-                    const hidden = PinManager.isTypeTagHidden(moduleId, type, tag);
-                    return this._buildTagChip({ tag, count, hidden, isGlobal: false, moduleId, type });
-                }).join('');
-
-                const customChips = [...customTagCounts.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([tag, count]) => {
-                    const hidden = PinManager.isTypeTagHidden(moduleId, type, tag);
-                    return this._buildTagChip({ tag, count, hidden, isGlobal: false, moduleId, type });
-                }).join('');
-
                 const sectionTags = new Set([...(entry.tags || []), ...customTagCounts.keys()]);
                 const hiddenTagCount = [...sectionTags].filter(tag => PinManager.isTypeTagHidden(moduleId, type, tag)).length;
-                const hidden = PinManager.isModuleTypeHidden(moduleId, type);
-                const partial = !hidden && hiddenTagCount > 0;
+                const typeRowHidden = PinManager.isModuleTypeHidden(moduleId, type);
+                const partial = !typeRowHidden && hiddenTagCount > 0;
+
+                const predefinedChips = (entry.tags || [])
+                    .filter(tag => chipVisible(typeTagCounts.get(`${typeKey}|${tag}`) ?? 0))
+                    .map(tag => {
+                        const count = typeTagCounts.get(`${typeKey}|${tag}`) ?? 0;
+                        const tagHidden = PinManager.isTypeTagHidden(moduleId, type, tag);
+                        return this._buildTagChip({ tag, count, hidden: tagHidden, isGlobal: false, moduleId, type });
+                    }).join('');
+
+                const customChips = [...customTagCounts.entries()].sort(([a], [b]) => a.localeCompare(b))
+                    .filter(([, count]) => chipVisible(count))
+                    .map(([tag, count]) => {
+                        const tagHidden = PinManager.isTypeTagHidden(moduleId, type, tag);
+                        return this._buildTagChip({ tag, count, hidden: tagHidden, isGlobal: false, moduleId, type });
+                    }).join('');
 
                 sections.push(this._buildTaxonomyGroup({
                     label: entry.label || type,
                     count: typeCount,
                     predefinedChips,
                     customChips,
-                    hidden,
+                    hidden: typeRowHidden,
                     partial,
                     toggleScope: 'type',
                     moduleId,
@@ -1093,26 +1122,34 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     _buildTaxonomyGroup({ label, count, chips, predefinedChips, customChips, hidden = false, partial = false, toggleScope = '', moduleId = '', type = '' }) {
+        const dashCloud = '<span class="blacksmith-pin-layers-empty-inline">—</span>';
+        const hideUnusedHint = `<span class="blacksmith-pin-layers-hide-unused-empty">${esc('Unused tags hidden. Nothing to show.')}</span>`;
         let body;
         if (predefinedChips !== undefined || customChips !== undefined) {
             const predefined = predefinedChips || '';
             const custom = customChips || '';
-            body = `
+            if (this.layersHideUnused && !predefined && !custom) {
+                body = `<div class="blacksmith-pin-layers-tag-cloud blacksmith-pin-layers-hide-unused-group-hint">${hideUnusedHint}</div>`;
+            } else {
+                const emptySystem = this.layersHideUnused ? hideUnusedHint : dashCloud;
+                const emptyCustom = this.layersHideUnused ? hideUnusedHint : dashCloud;
+                body = `
                 <div class="blacksmith-pin-layers-taxonomy-subgroup">
                     <div class="blacksmith-pin-layers-taxonomy-subgroup-label">System</div>
                     <div class="blacksmith-pin-layers-tag-cloud">
-                        ${predefined || '<span class="blacksmith-pin-layers-empty-inline">—</span>'}
+                        ${predefined || emptySystem}
                     </div>
                 </div>
                 <div class="blacksmith-pin-layers-taxonomy-subgroup">
                     <div class="blacksmith-pin-layers-taxonomy-subgroup-label">Custom</div>
                     <div class="blacksmith-pin-layers-tag-cloud">
-                        ${custom || '<span class="blacksmith-pin-layers-empty-inline">—</span>'}
+                        ${custom || emptyCustom}
                     </div>
                 </div>`;
+            }
         } else {
             body = `<div class="blacksmith-pin-layers-tag-cloud">
-                ${chips || '<span class="blacksmith-pin-layers-empty-inline">—</span>'}
+                ${chips || (this.layersHideUnused ? hideUnusedHint : dashCloud)}
             </div>`;
         }
         const toggleAttrs = toggleScope
@@ -1219,12 +1256,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     _isPinHiddenByFilter(p) {
-        if (PinManager.isGlobalHidden()) return true;
-        if (PinManager.isModuleTypeHidden(p.moduleId, p.type)) return true;
-        const tags = p.tags || [];
-        if (tags.some(t => PinManager.isTagHidden(t))) return true;
-        if (tags.some(t => PinManager.isTypeTagHidden(p.moduleId, p.type, t))) return true;
-        return false;
+        return PinManager._isHiddenByFilter(p);
     }
 
     _buildToggleRow({ action, keyLabel, count, hidden, attrs = {} }) {
@@ -1296,6 +1328,12 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         root?.querySelector('.blacksmith-pin-layers-browse-hidden')
             ?.addEventListener('change', (e) => {
                 this.browseIncludeHidden = !!e.target.checked;
+                void this.render(true);
+            });
+
+        root?.querySelector('.blacksmith-pin-layers-hide-unused')
+            ?.addEventListener('change', (e) => {
+                this.layersHideUnused = !!e.target.checked;
                 void this.render(true);
             });
 
@@ -1400,7 +1438,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             return;
         }
         try {
-            await PinManager.applyVisibilityProfile(this._selectedProfileValue);
+            await PinManager.applyVisibilityProfile(this._selectedProfileValue, { sceneId: this.sceneId ?? canvas?.scene?.id });
             ui.notifications?.info(`Loaded pin profile: ${this._selectedProfileValue}`);
         } catch (err) {
             ui.notifications?.warn(err?.message || `Unable to load pin profile: ${this._selectedProfileValue}`);
@@ -1629,8 +1667,15 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const type = target?.dataset?.type || 'default';
         if (!moduleId) return;
         const currentlyHidden = PinManager.isModuleTypeHidden(moduleId, type);
-        if (currentlyHidden && PinManager.isGlobalHidden()) await PinManager.setGlobalHidden(false);
-        await PinManager.setModuleTypeHidden(moduleId, type, !currentlyHidden);
+        const taxonomyTags = PinManager.getPinTaxonomy(moduleId, type)?.tags || [];
+        const hasHiddenTypeTags = taxonomyTags.some(tag => PinManager.isTypeTagHidden(moduleId, type, tag));
+        if (currentlyHidden || hasHiddenTypeTags) {
+            if (PinManager.isGlobalHidden()) await PinManager.setGlobalHidden(false);
+            if (taxonomyTags.length) await PinManager.setTypeTagsHidden(moduleId, type, taxonomyTags, false);
+            await PinManager.setModuleTypeHidden(moduleId, type, false);
+        } else {
+            await PinManager.setModuleTypeHidden(moduleId, type, true);
+        }
         await this.render(true);
     }
 
@@ -1661,8 +1706,15 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             const type = target?.dataset?.type || 'default';
             if (!moduleId) return;
             const currentlyHidden = PinManager.isModuleTypeHidden(moduleId, type);
-            if (currentlyHidden && PinManager.isGlobalHidden()) await PinManager.setGlobalHidden(false);
-            await PinManager.setModuleTypeHidden(moduleId, type, !currentlyHidden);
+            const taxonomyTags = PinManager.getPinTaxonomy(moduleId, type)?.tags || [];
+            const hasHiddenTypeTags = taxonomyTags.some(tag => PinManager.isTypeTagHidden(moduleId, type, tag));
+            if (currentlyHidden || hasHiddenTypeTags) {
+                if (PinManager.isGlobalHidden()) await PinManager.setGlobalHidden(false);
+                if (taxonomyTags.length) await PinManager.setTypeTagsHidden(moduleId, type, taxonomyTags, false);
+                await PinManager.setModuleTypeHidden(moduleId, type, false);
+            } else {
+                await PinManager.setModuleTypeHidden(moduleId, type, true);
+            }
             await this.render(true);
             return;
         }
@@ -1701,21 +1753,33 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
 
 }
 
-Hooks.once('ready', () => {
-    const api = game.modules.get(MODULE.ID)?.api;
-    if (!api?.registerWindow) return;
-    api.registerWindow('blacksmith-pin-layers', {
-        open: (options = {}) => PinLayersWindow.open(options),
-        title: 'Manage Pins',
-        moduleId: MODULE.ID
-    });
+HookManager.registerHook({
+    name: 'ready',
+    description: 'Manage Pins: Register Application V2 window API',
+    context: 'manage-pins-window-registration',
+    priority: 3,
+    options: { once: true },
+    callback: () => {
+        const api = game.modules.get(MODULE.ID)?.api;
+        if (!api?.registerWindow) return;
+        api.registerWindow('blacksmith-pin-layers', {
+            open: (options = {}) => PinLayersWindow.open(options),
+            title: 'Manage Pins',
+            moduleId: MODULE.ID
+        });
+    }
 });
 
-// On each canvas load, re-apply the active profile so scene-derived system states stay current.
-Hooks.on('canvasReady', async () => {
-    try {
-        const profileName = PinManager.getActiveFilterProfileName();
-        if (!profileName) return;
-        await PinManager.applyVisibilityProfile(profileName, { sceneId: canvas?.scene?.id });
-    } catch (_err) {}
+HookManager.registerHook({
+    name: 'canvasReady',
+    description: 'Manage Pins: Refresh scene-derived system profile state after scene load',
+    context: 'manage-pins-profile-sync',
+    priority: 3,
+    callback: async () => {
+        try {
+            const profileName = PinManager.getActiveFilterProfileName();
+            if (!PinManager.isSystemVisibilityProfileName(profileName)) return;
+            await PinManager.applySystemVisibilityProfile(profileName, { sceneId: canvas?.scene?.id });
+        } catch (_err) {}
+    }
 });
