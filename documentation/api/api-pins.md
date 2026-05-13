@@ -10,9 +10,9 @@
 > - **Classification**: Coarse `type` (displayed as "Category") + fine-grained `tags[]`. The old `group` field is removed (v4 schema auto-migrates existing values into tags).
 > - **Events**: `hover`, `click`, `doubleClick`, `rightClick`, `middleClick`, `drag*` — scoped by `pinId`, `moduleId`, or `sceneId`. Cleaned up via disposer or `AbortSignal`.
 > - **Animations**: `ping()` with 11 types, broadcast support, loop control. Optional per-pin event animations (hover, click, double-click, add, delete) with sound.
-> - **Visibility**: Ownership-based rendering filter + per-user client-side filters (`setGlobalVisibility`, `setModuleVisibility`, `setTagVisibility`) + named profiles. `config.blacksmithVisibility` (`'visible'`/`'hidden'`) lets GMs hide a pin from the map independently of ownership.
+> - **Visibility**: Ownership-based rendering filter + per-user client-side filters (`setGlobalVisibility`, `setModuleVisibility`, `setTagVisibility`) + named profiles (including built-in **All Pins** / **No Pins**). `config.blacksmithVisibility` (`'visible'` / `'hidden'` / `'owner'`) controls map visibility for non-GMs independently of ownership; GMs still see hidden pins with an affordance.
 > - **Taxonomy**: Built-in `pin-taxonomy.json` (v3 format). Modules register taxonomy via `registerPinTaxonomy()`. Read back with `getModuleTaxonomy(moduleId)` (all types) or `getPinTaxonomy(moduleId, type)` (one type). World-level tag registry tracks every tag ever used.
-> - **GM tools**: Bulk delete (`deleteAll`, `deleteAllByType`), GM proxy (`requestGM`), ownership resolver hook, reconciliation helper, Pin Layers window with Browse/tag management/visibility profiles.
+> - **GM tools**: Bulk delete (`deleteAll`, `deleteAllByType`), GM proxy (`requestGM`), ownership resolver hook, reconciliation helper, **Manage Pins** window (`openLayers()`) with taxonomy visibility, browse/tag management, custom tag administration, and saved profiles.
 > - **Configure Pin window**: Full visual editor — Design, Text, Animations, Source, Permissions (ownership + Player Visibility + Allow Duplicates), Classification. "Update All [type] Pins" with tag-scoped filter. "Default for [type]" with per-section checkboxes.
 
 ## Overview
@@ -40,7 +40,7 @@ The pins API follows Blacksmith's standard pattern:
 - **`scripts/pins-schema.js`** - Data model, validation, migration (Phase 1.1)
 - **`scripts/manager-pins.js`** - Internal manager with CRUD, permissions, event handler registration, and context menu item registration (Phase 1.2, 1.3)
 - **`scripts/pins-renderer.js`** - Pure DOM pin rendering (circle/square/none + Font Awesome icons or image URLs), DOM events, context menu (Phase 2, 3)
-- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `place()`, `unplace()`, `on()`, `registerContextMenuItem()`, `registerPinType()`, taxonomy helpers (`loadBuiltinTaxonomy()`, `registerPinTaxonomy()`, `getPinTaxonomy()`, `getPinTaxonomyChoices()`), `getPinTypeLabel()`, `reload()`, `refreshPin()`, `deleteAll()`, `deleteAllByType()`, `createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`, `reconcile()`, visibility filters (`setGlobalVisibility`, `setModuleVisibility`, `setTagVisibility`) and named profile helpers (`listVisibilityProfiles()`, `saveVisibilityProfile()`, `applyVisibilityProfile()`, `deleteVisibilityProfile()`), tag registry helpers (`getTagRegistry()`, `deleteTagGlobally()`, `renameTagGlobally()`, `seedTagRegistryIfEmpty()`), `isAvailable()`, `isReady()`, `whenReady()`. **Note**: `setGroupVisibility`/`getGroupVisibility` removed — groups have been replaced by tags.
+- **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `place()`, `unplace()`, `on()`, `registerContextMenuItem()`, `registerPinType()`, taxonomy helpers (`loadBuiltinTaxonomy()`, `registerPinTaxonomy()`, `getPinTaxonomy()`, `getPinTaxonomyChoices()`, `getModuleTaxonomy()`), `getPinTypeLabel()`, `reload()`, `refreshPin()`, `deleteAll()`, `deleteAllByType()`, `createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`, `reconcile()`, `openLayers()`, visibility filters (`setGlobalVisibility`, `setModuleVisibility`, `setTagVisibility`), named profile helpers (`listVisibilityProfiles()`, `saveVisibilityProfile()`, `applyVisibilityProfile()`, `deleteVisibilityProfile()`, `getActiveVisibilityProfileName()`), `getSceneFilterSummary()`, tag registry helpers (`getTagRegistry()`, `addTagToRegistry()`, `stripTagFromScene()`, `stripTagFromAllScenes()`, `deleteTagGlobally()`, `renameTagGlobally()`, `seedTagRegistryIfEmpty()`), `isAvailable()`, `isReady()`, `whenReady()`. **Note**: `setGroupVisibility`/`getGroupVisibility` removed — groups have been replaced by tags.
 - **`scripts/blacksmith.js`** - Exposes `module.api.pins = PinsAPI`; hooks for `canvasReady` / `updateScene` pin loading
 - **`styles/pins.css`** - All pin styling (CSS variables for configuration)
 
@@ -216,7 +216,7 @@ interface PinData {
   tags?: string[]; // User-facing classification tags. Supports registered and freeform values; normalized to lowercase kebab-case. Use tags for all fine-grained filtering — the old `group` field was removed (v4 schema auto-migrates group values into tags).
   allowDuplicatePins?: boolean; // If true, the same source (e.g. one journal page) may have multiple pins on the map; if false (default), one pin per source (creating replaces existing). Configurable in Configure Pin > Permissions.
   config?: {
-    blacksmithVisibility?: 'visible' | 'hidden'; // Whether the pin is shown on the map ('visible', default) or hidden from all non-GM users ('hidden'). GM-only field. Separate from ownership — a pin with OBSERVER ownership can still be hidden. Editable in Configure Pin > Permissions or per-pin in Browse view.
+    blacksmithVisibility?: 'visible' | 'hidden' | 'owner'; // Map visibility for non-GMs: 'visible' (default), 'hidden' (players do not see the pin on the map), or 'owner' (only users who can edit the pin see it on the map). GM-only field. Separate from ownership. Editable in Configure Pin > Permissions or per-pin in Browse view.
     [key: string]: unknown;
   };
   moduleId: string; // consumer module id
@@ -1110,7 +1110,7 @@ await pinsAPI.configure(pinId, {
 - Only users who can **edit** the pin (ownership-based) can open the window.
 - The window includes: **Appearance** (shape, size, fill, stroke, stroke width, icon color, opacity, drop shadow); **Icon/Image** (Font Awesome library + image URL with built-in FilePicker “Browse”); **Text** (layout, display mode, color, size, max characters, chars per line, scale-with-pin); **Event Animations** (hover, click, double-click, add to canvas, delete — each with optional animation and sound). Pin **type** is not currently editable in the window; **ownership** is not changed by the save.
 - The window header shows **”[Category]: [Pin Title]”** (e.g. “Journal Pin: The Rusty Anchor”) using `pins.getPinTypeLabel(pin.moduleId, pin.type)`. The header includes a **”Default for [type]”** toggle (renamed from “Default” in v13.6.3); when enabled, each section shows an additional checkbox so the user can choose which sections (Design, Text, Animations, Source, Classification, Permissions) are saved as the client default for that type.
-- **Permissions section** (v13.6.3): Contains ownership dropdown, **Player Visibility** dropdown (`config.blacksmithVisibility`: `’visible’` / `’hidden’`), and **”Allow Duplicates of this Pin on the Canvas”** toggle (moved from header). Player Visibility is separate from ownership — a pin can be player-observable but hidden from the map (`’hidden’`) so the GM can reveal it later.
+- **Permissions section** (v13.6.3+): Contains ownership dropdown, **Player Visibility** dropdown (`config.blacksmithVisibility`: `'visible'` / `'hidden'` / `'owner'` — owner-only on map for non-GMs), and **”Allow Duplicates of this Pin on the Canvas”** toggle (moved from header). Player Visibility is separate from ownership — a pin can be player-observable but hidden from the map (`'hidden'`) so the GM can reveal it later; `'owner'` limits map visibility to users who can edit the pin.
 - **Action bar left** (v13.6.3): **”Update All [type] Pins”** toggle (moved from header). When enabled, each section header shows a checkbox; on save, only checked sections are bulk-applied to matching pins with a confirmation dialog. The Permissions section includes ownership, player visibility, and allow-duplicates when checked. A **”Filter by tag:”** chip row appears below the toggle showing every tag used across all same-type pins on the scene; the current pin's own tags are pre-selected. Selecting chips (multiselect, OR logic) narrows the update target — type is always the first gate, tags narrow within it. An empty tag selection (all chips deselected) is not possible on initial open since the pin's tags are pre-seeded; if all chips are manually deselected the update applies to all pins of that type.
 - On submit, the pin is updated via `pins.update()` (ownership is preserved). If “Default for [type]” is toggled on, only the checked sections are written to `clientPinDefaultDesigns` under the key **`moduleId|type`** (from the pin being edited). If no section checkboxes are checked, a warning is shown. If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
 - The window is also available from the pin’s right-click context menu (“Configure Pin”).
@@ -1195,6 +1195,12 @@ console.log(`Found ${pins.length} pins`);
 
 // List placed pins on a specific scene
 const scenePins = pinsAPI.list({ sceneId: 'some-scene-id', type: 'note' });
+
+// List pins including those hidden by the current user's layer/tag profile (GM tools, audits)
+const allForScene = pinsAPI.list({ sceneId: canvas.scene.id, includeHiddenByFilter: true });
+
+// Filter by tag on a scene
+const tagged = pinsAPI.list({ sceneId: canvas.scene.id, tag: 'quest' });
 ```
 
 **Options**:
@@ -1202,6 +1208,8 @@ const scenePins = pinsAPI.list({ sceneId: 'some-scene-id', type: 'note' });
 - `sceneId` (string, optional): when listing placed pins, target scene; defaults to active scene when `unplacedOnly` is not set
 - `moduleId` (string, optional): filter by consumer module
 - `type` (string, optional): filter by pin type (e.g., 'note', 'quest', 'default')
+- `tag` (string, optional): filter to pins whose normalized tags include this tag
+- `includeHiddenByFilter` (boolean, optional): if `true`, include pins that are currently hidden by the client visibility profile / taxonomy filters (default is `false`; omit or `false` for “what the user sees on the map”)
 
 **Throws**: 
 - `Error` if scene not found (when sceneId required and invalid)
@@ -1347,9 +1355,43 @@ Returns `true` if the module's pins are visible for the current user.
 const visible = pins.getModuleVisibility('coffee-pub-squire');
 ```
 
+#### `pins.setTagVisibility(tag, visible)`
+Sets the client-side “hidden tag” filter for `tag` (normalized the same way as pin tags). When `visible` is `false`, pins that are affected by that global tag filter are hidden from the overlay for this user; `true` clears the filter for that tag. Also syncs `game.modules.get('coffee-pub-blacksmith').api.tags.setVisibility` when the Tags API is available.
+
+```javascript
+await pins.setTagVisibility('quest', false);
+await pins.setTagVisibility('quest', true);
+```
+
+#### `pins.getTagVisibility(tag)`
+Returns `true` if that tag is **not** in the hidden-tags set for the current user.
+
+```javascript
+const on = pins.getTagVisibility('quest');
+```
+
+### Named visibility profiles
+
+Saved profiles capture the current **client** hide state: global hide-all, hidden modules, hidden pin types/categories, hidden global tags, and hidden type-scoped tags. They do **not** include per-pin `config.blacksmithVisibility` or ownership.
+
+Built-in profiles **`All Pins`** and **`No Pins`** appear in the UI like custom names; they cannot be overwritten or deleted via the API. Reserved **custom** profile names (case-insensitive) **All Pins** and **No Pins** are rejected when saving.
+
+- **`pins.listVisibilityProfiles()`** — `{ name, state }[]` sorted by name. `state` is a deep clone suitable for inspection.
+- **`pins.saveVisibilityProfile(name)`** — Persists the current filter state under `name` and sets it active. Throws if the name is reserved or invalid.
+- **`pins.applyVisibilityProfile(name, options?)`** — Applies a saved or built-in profile. **`options.sceneId`** (optional): when applying a custom profile, pass the scene whose pin population should be used for repair logic (e.g. clearing hide-all when the profile still shows pins on that scene). Defaults to the active canvas scene.
+- **`pins.deleteVisibilityProfile(name)`** — Removes a saved profile. Built-in names are not stored and are not deleted here.
+- **`pins.getActiveVisibilityProfileName()`** — Returns the active profile key, or `''` if the user is in ad-hoc “custom / current view” mode.
+
+```javascript
+await pins.applyVisibilityProfile('Combat', { sceneId: canvas.scene.id });
+const active = pins.getActiveVisibilityProfileName();
+```
+
+Category / type-level filters toggled from **Manage Pin Layers** are stored in the same client settings as these profiles; use the window or future PinManager hooks—there is no separate `setTypeVisibility` on `PinsAPI` today.
+
 ### Tag Registry (GM-only write)
 
-The **world-level tag registry** (`pinTagRegistry` world setting) is a sorted, deduplicated list of every known pin tag string in the world. It is seeded on `ready` from the built-in taxonomy, auto-populated whenever a pin is created or updated, and can accept registry-only custom tags. Players can read it; only GMs can write.
+The **world-level tag registry** is the sorted, deduplicated list of known pin tag strings (canonical **`tagRegistry`** via the Tags API when enabled, with a legacy fallback to `pinTagRegistry` during migration). It is seeded on `ready` from the built-in taxonomy, auto-populated when pins change, and can include registry-only entries. Players can read it; only GMs can write.
 
 The registry is used to populate tag suggestion chips in the Configure Pin window and the Manage Custom Pin Tags window, so GMs see all tags that exist even if no pin currently uses them.
 
@@ -1594,13 +1636,34 @@ const result = await pins.reload();
 
 **Throws**: `Error` if no scene (e.g. canvas not ready).
 
+### `pins.refreshPin(pinId, options?)`
+Forces a rebuild of a single pin’s rendered icon from current data. Use when `update()` did not fully refresh visuals.
+
+**Returns**: `Promise<boolean>` — `true` if the pin existed and was refreshed.
+
+**Options**: Optional `{ sceneId }` — same as `pins.get()` when you know which scene holds the pin.
+
+### `pins.getSceneFilterSummary(sceneId?, options?)`
+Returns aggregate counts for **Manage Pins**–style summaries: totals plus grouped counts by module, type, and tag on the given scene.
+
+**Parameters**:
+- `sceneId` (string, optional): defaults to `canvas.scene.id` when omitted.
+- `options.includeHiddenByFilter` (boolean, optional): when `true`, counts include pins hidden by the current user’s taxonomy/profile filters (same idea as `list({ includeHiddenByFilter: true })`).
+
+**Returns**: `{ total: number, modules: Array<{ key: string, count: number, pins: string[] }>, types: Array<...>, tags: Array<...> }` — each grouping sorted by `key`. Type keys are `moduleId|visibilityType` as used internally for filters.
+
+### `pins.openLayers(options?)`
+Opens the **Manage Pins** window (Application V2): **Manage Pin Layers** tab for taxonomy and visibility profiles, **Manage Pin Tags** tab for browse/bulk tag tools. Equivalent to `game.modules.get('coffee-pub-blacksmith').api.openWindow('blacksmith-pin-layers', options)` when that bridge exists.
+
+**Returns**: `Promise<Application | void>`
+
 ## Permissions and Errors
 
 ### Permissions
 - **Creation** is gated by the world setting `pinsAllowPlayerWrites`: only GMs can create pins unless that setting is enabled. **Edit, Configure Pin, and Delete** are based on ownership only: any user with OWNER (or higher) on a pin can edit/configure/delete that pin regardless of `pinsAllowPlayerWrites`. GMs can always do everything.
 - `ownership` uses Foundry ownership levels (`CONST.DOCUMENT_OWNERSHIP_LEVELS`); GM always has full access.
 - Ownership can be explicitly provided in pin data, or resolved automatically using the ownership resolver hook.
-- **Visibility Filtering**: Pins are automatically filtered during rendering based on ownership. Only pins the current user has permission to view (LIMITED level or higher) are displayed on the canvas.
+- **Visibility Filtering**: Pins are filtered by **ownership** first (LIMITED or higher to see a pin at all). **Client** taxonomy and profile filters then control which of those pins appear on the overlay; `list({ includeHiddenByFilter: true })` and `getSceneFilterSummary(..., { includeHiddenByFilter: true })` include pins hidden only by those filters.
 - **Configure Pin**: The Configure Pin window and context menu item are shown only to users who can edit the pin (GM or ownership level ≥ OWNER). No separate gate from `pinsAllowPlayerWrites` for opening the window.
 
 ### Ownership Resolver Hook
@@ -1882,15 +1945,15 @@ Pins have a right-click context menu with the following options:
 **Available to Users with Edit Permissions:**
 - **Configure Pin**: Opens the Configure Pin window for visual and layout settings
 - **Delete Pin**: Deletes the individual pin
-- **Player Visibility**: Toggle the pin's visibility on the map (`config.blacksmithVisibility`). Renamed from "Visibility" in v13.6.3.
+- **Player Visibility**: Cycles or sets the pin’s map visibility (`config.blacksmithVisibility`: `visible` → `hidden` → `owner` → `visible` in browse tools where applicable). Renamed from "Visibility" in v13.6.3.
 
 **GM-Only Options** (appear below a separator):
-- Bulk delete operations have been **moved to the Pin Layers window action bar** (as of v13.6.3). The context menu no longer shows "Delete All Pins" or "Delete All [Type] Pins".
+- Bulk delete operations live in the **Manage Pins** window action bar. The context menu no longer shows "Delete All Pins" or "Delete All [Type] Pins".
 
 **Module-Registered Items:**
 - Modules can register custom context menu items using `pins.registerContextMenuItem()`. These appear above the separator, before the built-in options. See [`pins.registerContextMenuItem()`](#pinsregistercontextmenuitemitemid-itemdata) and [`pins.unregisterContextMenuItem()`](#pinsunregistercontextmenuitemitemid) for the full API.
 
-**Note**: GM bulk delete operations (Delete All Pins, Delete All [Type] Pins) are available in the Pin Layers window action bar with confirmation dialogs. The "Delete All of Type" action only appears if there are pins of that type on the scene.
+**Note**: GM bulk delete operations (**Delete All**, **Delete All** by type filter) are available in the **Manage Pins** window action bar with confirmation dialogs. The "Delete All of Type" action only appears if there are pins of that type on the scene.
 
 ### Error Handling
 - API calls validate input and throw on invalid data or missing scene.

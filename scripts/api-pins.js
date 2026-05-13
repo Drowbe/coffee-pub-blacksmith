@@ -183,7 +183,7 @@ export class PinsAPI {
     /**
      * Request GM to perform a pin action (for non-GM users).
      * Uses socket system to forward request to GM. If caller is already GM, executes directly.
-     * @param {string} action - Action type: 'create', 'update', or 'delete'
+     * @param {string} action - Action type: 'create', 'update', 'updateUnplaced', 'place', 'unplace', or 'delete'
      * @param {Object} params - Action parameters
      * @param {string} params.sceneId - Target scene
      * @param {string} [params.pinId] - Pin ID (for update/delete)

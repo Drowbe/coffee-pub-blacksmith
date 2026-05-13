@@ -1938,6 +1938,8 @@ class PinDOMElement {
  */
 export class PinRenderer {
     static _currentSceneId = null;
+    /** Monotonic run id so overlapping {@link applyVisibilityFilters} calls discard stale work (v13+). */
+    static _visibilityFilterSyncGen = 0;
     static _socketRegistered = false;
 
     /**
@@ -2164,26 +2166,71 @@ export class PinRenderer {
         return true;
     }
 
+    /**
+     * Decide which scene to sync against the DOM overlay. Avoids applying one scene's pin list
+     * while Foundry's active canvas scene has already changed (v13 / v14 migration-safe `canvas` usage).
+     * @returns {{ mode: 'full', sceneId: string } | { mode: 'domOnly' } | { mode: 'skip' }}
+     * @private
+     */
+    static _filterSyncContext() {
+        const canvasSceneId = canvas?.ready && canvas.scene?.id ? canvas.scene.id : null;
+        const loadedId = this._currentSceneId;
+        if (loadedId && canvasSceneId && loadedId !== canvasSceneId) {
+            return { mode: 'skip' };
+        }
+        const sceneId = loadedId || canvasSceneId || null;
+        if (sceneId) return { mode: 'full', sceneId };
+        return { mode: 'domOnly' };
+    }
+
     static async applyVisibilityFilters() {
         if (!PinDOMElement._isInitialized) return;
+        const gen = ++this._visibilityFilterSyncGen;
         const { PinManager } = await import('./manager-pins.js');
+        if (gen !== this._visibilityFilterSyncGen) return;
+
         if (PinDOMElement._container) {
             if (PinManager.isGlobalHidden()) PinDOMElement._container.dataset.hidden = 'true';
             else delete PinDOMElement._container.dataset.hidden;
         }
-        const sceneId = this._currentSceneId ?? canvas?.scene?.id;
-        if (sceneId) {
-            const allPins = PinManager.list({ sceneId, includeHiddenByFilter: true }) || [];
+        if (gen !== this._visibilityFilterSyncGen) return;
+
+        const ctx = this._filterSyncContext();
+        if (ctx.mode === 'skip') return;
+
+        if (ctx.mode === 'full') {
+            if (PinManager.isGlobalHidden()) {
+                for (const pinId of [...PinDOMElement._pins.keys()]) {
+                    if (gen !== this._visibilityFilterSyncGen) return;
+                    PinDOMElement.removePin(pinId);
+                }
+                return;
+            }
+
+            const allPins = PinManager.list({ sceneId: ctx.sceneId, includeHiddenByFilter: true }) || [];
+            if (gen !== this._visibilityFilterSyncGen) return;
+
+            if (allPins.length === 0) {
+                for (const pinId of [...PinDOMElement._pins.keys()]) {
+                    if (gen !== this._visibilityFilterSyncGen) return;
+                    PinDOMElement.removePin(pinId);
+                }
+                return;
+            }
+
             const idsInScene = new Set(allPins.map(p => p?.id).filter(Boolean));
             for (const pinData of allPins) {
                 if (!pinData?.id) continue;
                 await this.updatePin(pinData);
+                if (gen !== this._visibilityFilterSyncGen) return;
             }
             for (const pinId of [...PinDOMElement._pins.keys()]) {
+                if (gen !== this._visibilityFilterSyncGen) return;
                 if (!idsInScene.has(pinId)) PinDOMElement.removePin(pinId);
             }
         } else {
             for (const [pinId] of PinDOMElement._pins.entries()) {
+                if (gen !== this._visibilityFilterSyncGen) return;
                 const pinData = PinManager.get(pinId);
                 if (pinData) {
                     await this._applyVisibilityForPin(pinData);
@@ -2287,6 +2334,7 @@ export class PinRenderer {
     static clear() {
         PinDOMElement.clear();
         this._currentSceneId = null;
+        this._visibilityFilterSyncGen++;
     }
 
     /**

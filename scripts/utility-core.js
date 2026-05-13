@@ -29,6 +29,7 @@ export class CoreUIUtility {
     static _uiSuppressed = false;
 
     static _interfaceKeybindingRegistered = false;
+    static _applyOnLoadRetryScheduled = false;
 
     /**
      * Whether a core UI region is hidden (inline style or computed, for v13 compatibility).
@@ -56,6 +57,20 @@ export class CoreUIUtility {
             if (!game.settings.get(MODULE.ID, settingKey)) continue;
             const el = document.getElementById(id);
             if (el) out.push(el);
+        }
+        return out;
+    }
+
+    /**
+     * Managed region ids that are currently included by user settings, whether or not they exist in the DOM yet.
+     * @returns {string[]}
+     */
+    static getIncludedManagedRegionIds() {
+        const out = [];
+        for (const { id, settingKey } of this.MANAGED_UI_SEGMENTS) {
+            if (!game.settings.settings.has(`${MODULE.ID}.${settingKey}`)) continue;
+            if (!game.settings.get(MODULE.ID, settingKey)) continue;
+            out.push(id);
         }
         return out;
     }
@@ -125,15 +140,41 @@ export class CoreUIUtility {
     /**
      * If the user enabled "Apply on Load", hide the core UI once the DOM is available (may run multiple times).
      */
-    static applyHideInterfaceOnLoad() {
+    static _scheduleApplyHideInterfaceOnLoadRetries() {
+        if (this._applyOnLoadRetryScheduled) return;
+        this._applyOnLoadRetryScheduled = true;
+
+        const retry = () => this.applyHideInterfaceOnLoad({ allowRetry: false });
+        requestAnimationFrame(retry);
+        requestAnimationFrame(() => requestAnimationFrame(retry));
+        for (const delay of [100, 250, 500, 1000, 1500, 2500]) {
+            setTimeout(retry, delay);
+        }
+        setTimeout(() => {
+            this._applyOnLoadRetryScheduled = false;
+        }, 3000);
+    }
+
+    static applyHideInterfaceOnLoad({ allowRetry = true } = {}) {
         const settingKey = `${MODULE.ID}.canvasToolsHideUIOnLoad`;
         if (!game.settings.settings.has(settingKey) || !game.settings.get(MODULE.ID, 'canvasToolsHideUIOnLoad')) {
             return;
         }
-        if (!document.getElementById('ui-left')) return;
-        if (!this.isInterfaceHidden()) {
-            this.toggleInterface({ silent: true });
+
+        const includedIds = this.getIncludedManagedRegionIds();
+        if (includedIds.length === 0) return;
+
+        const hasAnyIncludedRegion = includedIds.some((id) => !!document.getElementById(id));
+        if (!hasAnyIncludedRegion) {
+            if (allowRetry) this._scheduleApplyHideInterfaceOnLoadRetries();
+            return;
         }
+
+        // Force the persisted "hidden" state instead of toggling based on whatever the DOM currently reports.
+        this.applySuppressedState(true);
+
+        // Some regions are rendered after the first pass; keep a short retry window so late DOM inserts inherit the hidden state.
+        if (allowRetry) this._scheduleApplyHideInterfaceOnLoadRetries();
     }
 
     /**
@@ -364,11 +405,8 @@ Hooks.once('init', () => {
 
 // Register core UI menubar tools via the public API (same pattern as external modules)
 Hooks.once('ready', () => {
-    // Apply on Load: hide UI when the setting is on — DOM may not exist on first tick (v13)
+    // Apply on Load: force hidden state once the client UI finishes building.
     CoreUIUtility.applyHideInterfaceOnLoad();
-    requestAnimationFrame(() => requestAnimationFrame(() => CoreUIUtility.applyHideInterfaceOnLoad()));
-    setTimeout(() => CoreUIUtility.applyHideInterfaceOnLoad(), 250);
-    setTimeout(() => CoreUIUtility.applyHideInterfaceOnLoad(), 1500);
 
     const api = game.modules.get(MODULE.ID)?.api;
     if (!api?.registerMenubarTool) return;
@@ -476,6 +514,18 @@ Hooks.once('ready', () => {
 });
 
 Hooks.once('canvasReady', () => {
+    CoreUIUtility.applyHideInterfaceOnLoad();
+});
+
+Hooks.on('renderHotbar', () => {
+    CoreUIUtility.applyHideInterfaceOnLoad();
+});
+
+Hooks.on('renderSceneControls', () => {
+    CoreUIUtility.applyHideInterfaceOnLoad();
+});
+
+Hooks.on('renderPlayerList', () => {
     CoreUIUtility.applyHideInterfaceOnLoad();
 });
 
