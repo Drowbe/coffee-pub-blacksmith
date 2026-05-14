@@ -247,6 +247,20 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Status**: PENDING — `font-size: 11px`, `text-transform: none`, and `line-height: 1.4` are set on the label but not applying. Needs investigation into Foundry's CSS cascade for Application V2 windows.
 - **Location**: `styles/window-pin-config.css` (`.blacksmith-pin-config-section-check-label`), `templates/window-pin-config.hbs`
 
+#### Pins: Selection state + keyboard actions
+- **Issue**: No concept of a "selected" pin — clicking fires the click event but nothing persists. Desired: click selects a pin (visual ring), selection clears on click-elsewhere or Escape, keyboard actions operate on the selected pin (Delete key → delete with permission check).
+- **Status**: PENDING — design validated; no performance concern (pins are a pure DOM overlay, so a single `pointerdown` delegated listener on `#blacksmith-pins-overlay` + a `document` `keydown` handler is sufficient)
+- **Location**: `scripts/pins-renderer.js` (selection state, CSS class, deselect-on-outside-click), `scripts/manager-pins.js` (keyboard delete), `scripts/api-pins.js` (expose `getSelectedPin()`, `selectPin()`, `deselectPin()`)
+- **Need**:
+  - Track selected pin ID in renderer (`PinDOMElement._selectedPinId`)
+  - Apply `is-selected` CSS class to selected pin element; define ring/outline style in `styles/pins.css`
+  - `pointerdown` on `#blacksmith-pins-overlay`: if target is a pin element, select it; if target is the container itself, deselect
+  - `document` `keydown`: Delete/Backspace → delete selected pin (respecting permissions); Escape → deselect
+  - Expose `pins.getSelectedPin()`, `pins.selectPin(pinId)`, `pins.deselectPin()` on the public API
+  - Fire `blacksmith.pins.selected` / `blacksmith.pins.deselected` hooks so other modules can react
+  - First keyboard action milestone: Delete key deletes the selected pin
+- **Priority**: Low — good UX foundation for future keyboard-driven pin management
+
 #### Migrate Combat Hooks to lib-wrapper
 - **Issue**: Using Foundry hooks for Combat methods that should be wrapped with lib-wrapper instead
 - **Status**: PENDING - Needs implementation
